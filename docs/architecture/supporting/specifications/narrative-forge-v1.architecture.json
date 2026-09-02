@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Narrative Forge V1 — 从输入到分镜",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1370, 610],
+    "views": [
+      {
+        "id": "text-generation",
+        "label": "文本生成主链",
+        "focus": ["browser-workbench", "generation-api", "prompt-assembly", "text-provider", "response-validation", "mutable-project-state", "storyboard-list"],
+        "note": "V1 把一次模型响应直接解析、修补并安装进浏览器中的可变项目状态。"
+      },
+      {
+        "id": "persistence-boundary",
+        "label": "状态与持久化",
+        "focus": ["browser-workbench", "mutable-project-state", "project-storage", "provider-secret-boundary"],
+        "note": "实时工作状态主要位于浏览器；显式保存才写入服务端 project.json。"
+      },
+      {
+        "id": "media-boundary",
+        "label": "媒体生成边界",
+        "focus": ["storyboard-list", "media-pipeline", "media-provider", "provider-secret-boundary"],
+        "note": "浏览器发起生成与轮询，后端负责供应商适配和素材保存。"
+      }
+    ]
+  },
+  "components": [
+    { "id": "browser-workbench", "type": "frontend", "label": "V1 浏览器工作台", "sublabel": "DOM 表单与事件", "pos": [40, 245], "size": [150, 72] },
+    { "id": "generation-api", "type": "backend", "label": "文本生成 API", "sublabel": "ThreadingHTTPServer", "pos": [220, 245], "size": [150, 72] },
+    { "id": "prompt-assembly", "type": "backend", "label": "Prompt 拼装", "sublabel": "JS/Python 字符串", "pos": [400, 110], "size": [150, 72] },
+    { "id": "text-provider", "type": "external", "label": "文本模型供应商", "sublabel": "OpenAI-compatible API", "pos": [580, 110], "size": [150, 72] },
+    { "id": "response-validation", "type": "backend", "label": "响应解析与修补", "sublabel": "提取 JSON、normalize", "pos": [760, 245], "size": [160, 72] },
+    { "id": "storyboard-list", "type": "frontend", "label": "分镜列表", "sublabel": "renderSceneList / editor", "pos": [960, 245], "size": [170, 72] },
+    { "id": "media-pipeline", "type": "backend", "label": "媒体生成流程", "sublabel": "提交、轮询、保存素材", "pos": [1190, 245], "size": [170, 72] },
+    { "id": "media-provider", "type": "external", "label": "图片/视频供应商", "sublabel": "异步 prediction API", "pos": [1190, 430], "size": [170, 72] },
+    { "id": "mutable-project-state", "type": "database", "label": "可变 Project 状态", "sublabel": "facade、scenes[]、模式切换", "pos": [400, 400], "size": [180, 72] },
+    { "id": "project-storage", "type": "database", "label": "V1 项目存储", "sublabel": "localStorage + project.json", "pos": [760, 400], "size": [180, 72] },
+    { "id": "provider-secret-boundary", "type": "security", "label": "供应商密钥边界", "sublabel": "sessionStorage 或环境变量", "pos": [205, 40], "size": [180, 72] }
+  ],
+  "connections": [
+    { "id": "submit-generation", "from": "browser-workbench", "to": "generation-api", "label": "POST /api/generate-story", "variant": "emphasis", "labelDy": 60 },
+    { "id": "build-prompt", "from": "generation-api", "to": "prompt-assembly", "label": "项目字段", "fromSide": "right", "toSide": "left", "via": [[380, 281], [380, 146]], "labelAt": [350, 210] },
+    { "id": "call-text-provider", "from": "prompt-assembly", "to": "text-provider", "label": "/chat/completions", "labelDy": 60 },
+    { "id": "parse-provider-response", "from": "text-provider", "to": "response-validation", "label": "JSON 文本", "fromSide": "right", "toSide": "top" },
+    { "id": "install-response", "from": "response-validation", "to": "mutable-project-state", "label": "直接安装 scenes[]", "variant": "emphasis", "fromSide": "top", "toSide": "top", "via": [[840, 220], [600, 220], [600, 360], [490, 360]], "labelAt": [545, 350] },
+    { "id": "render-storyboard", "from": "mutable-project-state", "to": "storyboard-list", "label": "同步 render()", "variant": "emphasis", "fromSide": "bottom", "toSide": "bottom", "via": [[490, 530], [1045, 530]], "labelAt": [820, 520] },
+    { "id": "persist-state", "from": "mutable-project-state", "to": "project-storage", "label": "自动保存 / 显式保存", "labelDy": 35 },
+    { "id": "create-media-task", "from": "storyboard-list", "to": "media-pipeline", "label": "生成图片或视频", "labelDy": 60 },
+    { "id": "call-media-provider", "from": "media-pipeline", "to": "media-provider", "label": "提交 + 浏览器轮询", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "text-secret-flow", "from": "provider-secret-boundary", "to": "generation-api", "label": "请求携带或服务端回退", "variant": "security", "fromSide": "bottom", "toSide": "top", "labelAt": [240, 180] },
+    { "id": "media-secret-flow", "from": "provider-secret-boundary", "to": "media-pipeline", "label": "请求体 / Header", "variant": "security", "fromSide": "top", "toSide": "top", "via": [[295, 10], [1275, 10]], "labelAt": [800, 30] }
+  ],
+  "cards": [
+    {
+      "dot": "amber",
+      "title": "V1 核心特征",
+      "items": [
+        "Prompt 职责分散在前端和 Python 后端",
+        "模型响应经过修补后直接改变浏览器项目状态"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "可靠性边界",
+      "items": [
+        "没有版本化 canonical stage、原子多阶段提交或 durable trace",
+        "浏览器工作状态与服务端 project.json 可能处于不同时间点"
+      ]
+    }
+  ]
+}

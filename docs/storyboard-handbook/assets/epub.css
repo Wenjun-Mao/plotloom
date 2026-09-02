@@ -1,0 +1,352 @@
+@charset "UTF-8";
+
+:root {
+  color-scheme: light;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", sans-serif;
+  line-height: 1.75;
+  color: #20201d;
+  background: #fffdf7;
+}
+
+body {
+  padding: 0;
+  margin: 0;
+  color: #20201d;
+  background: #fffdf7;
+}
+
+article {
+  padding: 0.5em 0.2em 2em;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 1.35em 0 0.55em;
+  line-height: 1.25;
+  break-after: avoid;
+}
+
+h1 {
+  margin-top: 0.35em;
+  font-size: 2em;
+}
+
+h2 {
+  padding-bottom: 0.18em;
+  border-bottom: 0.08em solid #d8cdb8;
+  font-size: 1.45em;
+}
+
+h3 {
+  font-size: 1.16em;
+}
+
+p,
+li,
+dd,
+td,
+th {
+  orphans: 2;
+  widows: 2;
+}
+
+a {
+  color: #7a352c;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.12em;
+}
+
+code,
+kbd,
+pre {
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+code,
+kbd {
+  padding: 0.08em 0.22em;
+  border-radius: 0.18em;
+  background: #eee7d8;
+  overflow-wrap: anywhere;
+}
+
+pre {
+  max-width: 100%;
+  padding: 0.9em;
+  border-left: 0.3em solid #984b3d;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  background: #f2ecdf;
+  font-size: 0.78em;
+  line-height: 1.55;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+figure {
+  max-width: 100%;
+  margin: 1.35em 0;
+  break-inside: avoid;
+}
+
+figcaption,
+caption {
+  color: #5d5b54;
+  font-size: 0.83em;
+  line-height: 1.55;
+}
+
+figcaption {
+  margin-top: 0.55em;
+}
+
+caption {
+  padding: 0 0 0.55em;
+  text-align: left;
+}
+
+.chapter-header,
+.chapter-hero {
+  padding: 0.9em 0 1.15em;
+  border-bottom: 0.12em solid #20201d;
+}
+
+.eyebrow,
+.chapter-kicker {
+  margin: 0;
+  color: #984b3d;
+  font-size: 0.78em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chapter-lede,
+.chapter-deck {
+  color: #47453f;
+  font-size: 1.05em;
+}
+
+.evidence-tag {
+  display: inline-block;
+  padding: 0.05em 0.42em;
+  margin-right: 0.25em;
+  border: 0.08em solid #867d6e;
+  border-radius: 999px;
+  color: #403d37;
+  background: #f4ecdc;
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1.45;
+  vertical-align: 0.08em;
+}
+
+.evidence-tag[data-evidence="source"],
+.evidence-tag[data-evidence="test"],
+.evidence-tag[data-evidence="runtime"] {
+  border-color: #316e75;
+  color: #214e53;
+  background: #e7f0ef;
+}
+
+.evidence-tag[data-evidence="inference"],
+.evidence-tag[data-evidence="proposal"] {
+  border-color: #984b3d;
+  color: #71372e;
+  background: #f5e6df;
+}
+
+.evidence-tag[data-evidence="case"] {
+  border-color: #b47713;
+  color: #6a4507;
+  background: #f7e7ba;
+}
+
+.callout,
+.note,
+.warning,
+.principle,
+.reading-note,
+.sample-note,
+.source-note,
+.duration-note,
+.chapter-summary {
+  padding: 0.8em 0.95em;
+  margin: 1.1em 0;
+  border-left: 0.28em solid #984b3d;
+  background: #f3eddf;
+  break-inside: avoid;
+}
+
+.callout-check,
+.callout-principle,
+.principle {
+  border-left-color: #316e75;
+  background: #e9f1f0;
+}
+
+.callout-warning,
+.warning {
+  border-left-color: #a84c35;
+  background: #f6e8df;
+}
+
+.definition-grid,
+.comparison-grid,
+.card-grid,
+.pipeline-grid,
+.route-grid,
+.evidence-legend,
+.decision-list,
+.variant-comparison,
+.field-groups,
+.checklist,
+.handoff-list,
+.pipeline,
+.package-layers {
+  display: block;
+  padding: 0;
+}
+
+.definition-card,
+.comparison-card,
+.card,
+.pipeline-step,
+.route-card,
+.evidence-legend > div,
+.decision-list > li,
+.variant-card,
+.package-layer {
+  padding: 0.75em 0.85em;
+  margin: 0.75em 0;
+  border: 0.08em solid #d4c7af;
+  background: #fff;
+  break-inside: avoid;
+}
+
+.table-scroll,
+.table-wrap {
+  display: block;
+  max-width: 100%;
+  margin: 1.2em 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.72em;
+  line-height: 1.45;
+  table-layout: auto;
+}
+
+th,
+td {
+  padding: 0.45em 0.52em;
+  border: 0.07em solid #bfb29b;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #eee5d5;
+}
+
+.storyboard-grid {
+  display: block;
+  margin: 1.4em 0;
+  counter-reset: storyboard-panel;
+}
+
+.storyboard-panel {
+  padding: 0.55em;
+  margin: 1em 0;
+  border: 0.08em solid #20201d;
+  background: #fff;
+  counter-increment: storyboard-panel;
+  break-inside: avoid;
+}
+
+.storyboard-panel::before {
+  display: inline-block;
+  padding: 0.08em 0.4em;
+  margin-bottom: 0.45em;
+  content: counter(storyboard-panel, decimal-leading-zero);
+  color: #20201d;
+  background: #f1b949;
+  font: 700 0.72em ui-monospace, monospace;
+}
+
+.storyboard-image-crop {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border: 0.06em solid #8d877c;
+  background: #f3eddf;
+}
+
+.storyboard-image-crop img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 400%;
+  max-width: none;
+  height: 200%;
+}
+
+.storyboard-image-crop[data-panel-index="2"] img { left: -100%; }
+.storyboard-image-crop[data-panel-index="3"] img { left: -200%; }
+.storyboard-image-crop[data-panel-index="4"] img { left: -300%; }
+.storyboard-image-crop[data-panel-index="5"] img { top: -100%; }
+.storyboard-image-crop[data-panel-index="6"] img { top: -100%; left: -100%; }
+.storyboard-image-crop[data-panel-index="7"] img { top: -100%; left: -200%; }
+.storyboard-image-crop[data-panel-index="8"] img { top: -100%; left: -300%; }
+
+.storyboard-image-crop[data-panel-source="single"] img {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.finished-frame {
+  padding: 0.55em;
+  border: 0.14em solid #316e75;
+  background: #f2ecdf;
+  break-inside: avoid;
+}
+
+.process-line,
+.continuity-axis,
+.state-transfer {
+  display: block;
+  padding: 0.75em;
+  margin: 1em 0;
+  border: 0.08em solid #d4c7af;
+  background: #fff;
+}
+
+.process-line > *,
+.continuity-axis > *,
+.state-transfer > * {
+  display: block;
+  margin: 0.45em 0;
+}
+
+.chapter-summary {
+  margin-top: 2em;
+  border-top: 0.14em solid #20201d;
+  border-left: 0;
+}

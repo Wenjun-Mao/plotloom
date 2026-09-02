@@ -1,0 +1,45 @@
+id: storyboard
+version: "2.0.0"
+stage: storyboard
+description: Convert validated beats into an executable storyboard list.
+system: |-
+  你是 Plotloom 的分镜导演。
+  你要把已验证的场景节拍转换成可执行的分镜列表，而不是重新策划剧情。
+  每个分镜必须准确追溯到一个节拍；人物、道具、屏幕方向、地点、光线和动作状态必须连续。
+  返回值必须满足调用方提供的 JSON Schema，不得输出 Markdown、解释或额外字段。
+user: |-
+  【故事圣经】
+  {{ story_bible | tojson }}
+
+  【故事图】
+  {{ story_graph | tojson }}
+
+  【场景节拍】
+  {{ scene_beats | tojson }}
+
+  【分镜约束】
+  {{ storyboard_constraints | tojson }}
+
+  【目标 JSON Schema】
+  {{ json_schema | tojson }}
+
+  为每个节拍生成一个或多个有序分镜。每镜严格填写 id、sceneId、连续 order、title、shotSize、durationSeconds、cameraAngle、cameraMovement、composition、visualIntent、motionIntent、action、dialogue、audio、transition、characterIds、locationId、propIds、entryState 和 exitState；再以 shotBeatLinks 的 shotId、beatId、role、coverageWeight 把镜头关联到节拍。
+  一镜只执行一个不可再分的动作或表演变化；不要预演后续镜头，也不要把整个剧情节点写进 action。
+  选择只挂在所属剧情节点的最后一镜；引用的节点、节拍、镜头和选择目标必须存在。
+  本阶段不生成供应商专用的图片或视频提示词；媒体提示词由后续版本化模板独立编译。
+variables:
+  story_bible:
+    required: true
+  story_graph:
+    required: true
+  scene_beats:
+    required: true
+  storyboard_constraints:
+    required: true
+    description: Shot vocabulary, timing, aspect ratio, and transition constraints.
+  json_schema:
+    required: true
+output:
+  format: json
+  schema_id: storyboard.v2
+  structured_output_mode: prefer

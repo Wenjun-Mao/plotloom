@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0b1013">
+  <meta name="description" content="Narrative Forge 从默认值或用户输入，到 LLM 提示词、响应解析和分镜列表的交互式源码图谱。">
+  <title>从输入到分镜列表｜Narrative Forge 提示词解剖</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23efb84b'/%3E%3Cpath d='M8 9h16v3H8zm0 6h11v3H8zm0 6h16v3H8z' fill='%230b1013'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="assets/lab.css">
+  <script src="assets/prompt-fixtures.js" defer></script>
+  <script src="assets/lab.js" defer></script>
+</head>
+<body id="page-top">
+  <a class="skip-link" href="#main-content">跳到正文</a>
+
+  <header class="masthead">
+    <div class="masthead-bar">
+      <a class="brand" href="#page-top" aria-label="返回页首">
+        <span class="brand-mark" aria-hidden="true">NF</span>
+        <span><strong>Prompt Pipeline Lab</strong><small>Narrative Forge 源码图谱</small></span>
+      </a>
+      <div class="snapshot-chip"><span aria-hidden="true"></span>冻结基线 <code>24c3c47</code></div>
+    </div>
+    <div class="hero">
+      <p class="eyebrow">默认值 / 用户输入 → 分镜列表</p>
+      <h1>一次“生成”，<br>其实经过三层提示词与两层契约</h1>
+      <p class="hero-lede">这不是按钮说明书，而是一张可以逐层拆开的执行地图：输入从哪里来，哪段代码拥有 prompt，模型到底被要求返回什么，响应怎样被容错、拒绝或改写，以及最终列表中每个字段究竟是谁写的。</p>
+      <div class="hero-principles" aria-label="三条核心结论">
+        <div><span>01</span><strong>互动 prompt 在后端</strong><p>浏览器只发结构化字段；Python 组装 system 与 user 消息。</p></div>
+        <div><span>02</span><strong>短剧 prompt 在前端</strong><p>浏览器先写完整本集 user prompt；后端补 system 消息与调用参数。</p></div>
+        <div><span>03</span><strong>媒体 prompt 是后编译</strong><p>关键帧与运镜提示词不是故事 LLM 原始输出。</p></div>
+      </div>
+    </div>
+    <nav class="page-nav" aria-label="本页目录">
+      <a href="#pipeline">总链路</a>
+      <a href="#prompt-lab">Prompt 组装器</a>
+      <a href="#response-lab">响应实验室</a>
+      <a href="#contract-gap">契约落差</a>
+      <a href="#media-prompts">三层 Prompt</a>
+      <a href="#provenance-loss">信息损失</a>
+      <a href="#rebuild-guide">改写指南</a>
+      <a href="#sources">证据索引</a>
+    </nav>
+  </header>
+
+  <main id="main-content">
+    <section class="section section-intro" aria-labelledby="how-to-read-title">
+      <div class="section-heading">
+        <p class="section-index">阅读约定</p>
+        <h2 id="how-to-read-title">先分清“看见什么”和“代码证明什么”</h2>
+      </div>
+      <div class="evidence-legend">
+        <div><span class="evidence evidence-source">源码事实</span><p>能定位到冻结提交中的函数、字段或字符串。</p></div>
+        <div><span class="evidence evidence-default">页面默认</span><p>来自 HTML 初始值；保存项目可以覆盖它。</p></div>
+        <div><span class="evidence evidence-screen">截图观察</span><p>只能证明界面显示状态，不能反推原始 prompt。</p></div>
+        <div><span class="evidence evidence-analysis">分析提示</span><p>解释契约落差、风险和重建方向。</p></div>
+      </div>
+      <aside class="thesis-callout">
+        <strong>本页最重要的一句话</strong>
+        <p>截图中的“分镜列表”不是 LLM 文本的直接投影。它是<strong>模型 JSON + 前端容错解析 + 安装器白名单与补全 + 内部 ID/关联 + UI 再渲染</strong>之后的结果。</p>
+      </aside>
+    </section>
+
+    <section id="pipeline" class="section" aria-labelledby="pipeline-title">
+      <div class="section-heading heading-with-note">
+        <div>
+          <p class="section-index">01 · 总链路</p>
+          <h2 id="pipeline-title">沿着八个执行关口走一遍</h2>
+        </div>
+        <p>点击任一节点查看它读取什么、做了什么、留下什么。</p>
+      </div>
+      <div class="pipeline-lane" id="pipelineLane" role="group" aria-label="从项目状态到分镜列表的八个阶段"></div>
+      <noscript><p class="noscript-chain">项目状态 → 点击时读取表单 → 按模式分叉 → 形成 Chat Completions 请求 → 模型响应 → 清洗与 JSON.parse → 安装器 → 分镜列表。启用 JavaScript 后可逐关检查输入与输出。</p></noscript>
+      <article class="stage-inspector" id="stageInspector" aria-live="polite">
+        <div class="stage-inspector-heading">
+          <span id="stageNumber">01</span>
+          <div><p id="stageSubtitle"></p><h3 id="stageTitle"></h3></div>
+        </div>
+        <div class="stage-grid">
+          <div><small>读取</small><p id="stageInput"></p></div>
+          <div><small>执行</small><p id="stageAction"></p></div>
+          <div><small>产出</small><p id="stageOutput"></p></div>
+        </div>
+        <div class="stage-footer">
+          <p class="stage-warning"><strong>边界：</strong><span id="stageWarning"></span></p>
+          <code id="stageSource"></code>
+        </div>
+      </article>
+
+      <div class="fork-map" aria-label="互动影游、AI 短剧和本地模板三条路径">
+        <div class="fork-origin"><span>同一组项目表单</span><strong>readMetaFromForm()</strong></div>
+        <div class="fork-branches">
+          <article class="fork interactive-fork">
+            <span>互动影游</span>
+            <h3>结构化请求 → 后端 prompt</h3>
+            <p><code>/api/generate-story</code></p>
+            <ol><li>前端发送 title / synopsis / tree 参数</li><li>后端计算 expected_nodes</li><li>后端拼 system + user prompt</li></ol>
+          </article>
+          <article class="fork serial-fork">
+            <span>AI 短剧</span>
+            <h3>前端 prompt → 后端包装</h3>
+            <p><code>/api/generate-episode</code></p>
+            <ol><li>前端拼项目级与本集级上下文</li><li>前端附加 schema 与九条规则</li><li>后端校验传输字段，补 system 与模型参数</li></ol>
+          </article>
+          <article class="fork local-fork">
+            <span>本地模板</span>
+            <h3>完全绕过文本 LLM</h3>
+            <p><code>buildLocalDraft()</code></p>
+            <ol><li>硬编码标题与节拍模板</li><li>程序建立树或线性连接</li><li>直接合成媒体 prompt</li></ol>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="prompt-lab" class="section section-lab" aria-labelledby="prompt-lab-title">
+      <div class="section-heading heading-with-note">
+        <div>
+          <p class="section-index">02 · Prompt 组装器</p>
+          <h2 id="prompt-lab-title">换一个输入，看它究竟流进哪段消息</h2>
+        </div>
+        <p>这是冻结源码模板的教学投影；只在浏览器本地计算，不调用模型。</p>
+      </div>
+
+      <div class="prompt-workbench">
+        <form id="promptControls" class="control-panel">
+          <fieldset class="mode-switch">
+            <legend>生成模式</legend>
+            <button type="button" class="mode-button is-active" data-mode="interactive" aria-pressed="true">互动影游</button>
+            <button type="button" class="mode-button" data-mode="serial" aria-pressed="false">AI 短剧</button>
+          </fieldset>
+
+          <div class="preset-row">
+            <button type="button" class="preset-button is-active" data-preset="defaults" aria-pressed="true">页面默认</button>
+            <button type="button" class="preset-button" data-preset="custom" aria-pressed="false">教学自定义</button>
+          </div>
+
+          <label>片名<input id="inputTitle" name="title" maxlength="80"></label>
+          <label>故事梗概<textarea id="inputSynopsis" name="synopsis" rows="5" maxlength="6000"></textarea></label>
+          <div class="field-row">
+            <label>类型<input id="inputGenre" name="genre" maxlength="80"></label>
+            <label>画幅<select id="inputAspect" name="aspectRatio"><option>16:9</option><option>9:16</option><option>1:1</option></select></label>
+          </div>
+          <label>视觉风格<textarea id="inputStyle" name="visualStyle" rows="3" maxlength="3000"></textarea></label>
+          <label>兼容角色文本<textarea id="inputCharacter" name="character" rows="3" maxlength="3000"></textarea></label>
+
+          <div id="interactiveControls" class="mode-fields">
+            <div class="field-row field-row-three">
+              <label>树深度<select id="inputDepth" name="treeDepth"><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+              <label>每节点分支<select id="inputBranches" name="branchCount"><option>2</option><option>3</option><option>4</option></select></label>
+              <label>每节点分镜<select id="inputShotsPerNode" name="shotsPerNode"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></label>
+            </div>
+          </div>
+
+          <div id="serialControls" class="mode-fields" hidden>
+            <label>本集标题<input id="inputEpisodeTitle" name="episodeTitle" maxlength="80"></label>
+            <label>本集梗概<textarea id="inputEpisodeSynopsis" name="episodeSynopsis" rows="3" maxlength="3000"></textarea></label>
+            <label>叙事目标<textarea id="inputEpisodeObjective" name="episodeObjective" rows="2" maxlength="1500"></textarea></label>
+            <label>开场钩子<textarea id="inputEpisodeHook" name="episodeHook" rows="2" maxlength="1200"></textarea></label>
+            <label>高潮与结尾<textarea id="inputEpisodeEnding" name="episodeEnding" rows="2" maxlength="1500"></textarea></label>
+            <label>目标镜头数<select id="inputEpisodeShots" name="episodeShotCount"><option>5</option><option>8</option><option>10</option><option>12</option><option>15</option><option>20</option><option>30</option></select></label>
+          </div>
+
+          <div class="optional-inputs">
+            <label><input id="includeCharacterCard" type="checkbox"> 加入一张结构化角色卡</label>
+            <label><input id="includeSceneCard" type="checkbox"> 加入一张结构化场景卡</label>
+          </div>
+          <button type="button" id="restorePreset" class="secondary-button">恢复当前预设</button>
+        </form>
+
+        <div class="prompt-output">
+          <div class="output-summary" id="promptSummary" aria-live="polite"></div>
+          <div class="tab-list" role="tablist" aria-label="请求与提示词视图">
+            <button id="promptTabRequest" type="button" role="tab" aria-controls="promptPanel" aria-selected="true" data-prompt-tab="request">前端请求</button>
+            <button id="promptTabSystem" type="button" role="tab" aria-controls="promptPanel" aria-selected="false" data-prompt-tab="system">System</button>
+            <button id="promptTabUser" type="button" role="tab" aria-controls="promptPanel" aria-selected="false" data-prompt-tab="user">User</button>
+            <button id="promptTabModel" type="button" role="tab" aria-controls="promptPanel" aria-selected="false" data-prompt-tab="model">模型参数</button>
+          </div>
+          <div class="code-heading"><span id="promptViewLabel">POST 请求体</span><button type="button" id="copyPrompt">复制当前视图</button></div>
+          <pre id="promptPanel" class="prompt-code" role="tabpanel" aria-labelledby="promptTabRequest" tabindex="0"><code id="promptCode"></code></pre>
+          <p class="copy-status" id="copyStatus" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <div class="input-routing">
+        <h3>字段不会全部进入同一层</h3>
+        <div class="routing-table-wrap" tabindex="0" aria-label="输入字段在四类提示词中的去向，可横向滚动">
+          <table>
+            <thead><tr><th scope="col">输入</th><th scope="col">互动故事 LLM</th><th scope="col">短剧故事 LLM</th><th scope="col">后续关键帧 prompt</th><th scope="col">后续视频 prompt</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">片名 / 梗概 / 类型</th><td>进入项目设定 JSON</td><td>进入项目级/本集上下文</td><td>类型进入模式标签</td><td>不直接注入</td></tr>
+              <tr><th scope="row">画幅</th><td class="no">不发送</td><td class="no">不发送</td><td class="yes">用于构图约束</td><td>不直接注入</td></tr>
+              <tr><th scope="row">视觉风格</th><td class="yes">发送</td><td class="yes">发送</td><td class="yes">再次注入</td><td>通常由首帧承接</td></tr>
+              <tr><th scope="row">角色 / 场景卡</th><td class="yes">完整对象发送</td><td class="yes">转成可读文本</td><td class="yes">按镜头关联后注入</td><td>要求保持首帧一致</td></tr>
+              <tr><th scope="row">现有分镜手工修改</th><td class="no">不发送</td><td class="no">不发送</td><td>从安装后的当前 scene 读取</td><td>从安装后的当前 scene 读取</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="source-note"><span class="evidence evidence-source">源码事实</span> 点击“重新生成”是替换式重写，不是把现有分镜交给故事 LLM 做修订。<code>draft.js:48–54, 302–403, 488–518</code></p>
+      </div>
+    </section>
+
+    <section id="response-lab" class="section section-lab" aria-labelledby="response-lab-title">
+      <div class="section-heading heading-with-note">
+        <div>
+          <p class="section-index">03 · 响应实验室</p>
+          <h2 id="response-lab-title">同一份内容，在哪一关会通过或失败？</h2>
+        </div>
+        <p>切换模型常见返回形态，再逐步观察 envelope、清洗、解析、安装和列表。</p>
+      </div>
+
+      <div class="response-controls">
+        <label>返回情形
+          <select id="responseScenario">
+            <option value="clean">干净 JSON</option>
+            <option value="thinkFence">带 think 与 Markdown 围栏</option>
+            <option value="invalidJson">截断的无效 JSON</option>
+            <option value="duplicateKey">重复 scene key</option>
+            <option value="badTarget">choice 指向不存在的 key</option>
+            <option value="softMismatch">数量/树形不符但能被接受</option>
+          </select>
+        </label>
+        <div class="response-step-buttons" role="group" aria-label="响应处理阶段">
+          <button type="button" class="is-active" data-response-step="envelope" aria-pressed="true">1 · Envelope</button>
+          <button type="button" data-response-step="content" aria-pressed="false">2 · Content</button>
+          <button type="button" data-response-step="cleaned" aria-pressed="false">3 · 清洗</button>
+          <button type="button" data-response-step="parsed" aria-pressed="false">4 · JSON.parse</button>
+          <button type="button" data-response-step="installed" aria-pressed="false">5 · 安装器</button>
+          <button type="button" data-response-step="ui" aria-pressed="false">6 · 列表 UI</button>
+        </div>
+      </div>
+
+      <div class="response-stage">
+        <div class="response-status" id="responseStatus" aria-live="polite"></div>
+        <div class="response-view" id="responseView"></div>
+      </div>
+
+      <div class="parser-strip" aria-label="parseStoryJson 的处理顺序">
+        <span>choices[0].message.content</span><i aria-hidden="true">→</i>
+        <span>删 think</span><i aria-hidden="true">→</i>
+        <span>删围栏</span><i aria-hidden="true">→</i>
+        <span>取首个平衡 {…}</span><i aria-hidden="true">→</i>
+        <span>JSON.parse 一次</span>
+      </div>
+      <aside class="warning-callout">
+        <strong>它不是 JSON 修理器</strong>
+        <p>没有尾逗号修复、单引号转换、缺括号补全、schema 驱动重试，也不会把失败内容再发给 LLM。解析失败时旧分镜仍保留，用户可以重试或手工选择本地模板。</p>
+      </aside>
+    </section>
+
+    <section id="contract-gap" class="section" aria-labelledby="contract-title">
+      <div class="section-heading">
+        <p class="section-index">04 · Prompt 承诺 vs 代码执法</p>
+        <h2 id="contract-title">最值得理解的不是 prompt 写了什么，而是谁真的检查了它</h2>
+      </div>
+      <div class="contract-compare">
+        <article>
+          <header><span>生成契约</span><h3>Prompt 要求</h3></header>
+          <ul>
+            <li>严格等于 expected_nodes</li>
+            <li>每个非结局节点恰好 branch_count 个选择</li>
+            <li>指定深度的有向树</li>
+            <li>最后一层没有选择</li>
+            <li>nextKey / targetKey 都必须有效</li>
+            <li>每镜一个原子动作，最长 15 秒</li>
+          </ul>
+        </article>
+        <div class="contract-gate" aria-label="自然语言约束和有限验证之间的落差"><span>自然语言</span><strong>≠</strong><span>程序断言</span></div>
+        <article>
+          <header><span>接收契约</span><h3>安装器强制</h3></header>
+          <ul>
+            <li>scenes 是非空数组，且不超过上限</li>
+            <li>scene key 不重复</li>
+            <li>choice.targetKey 非空且存在</li>
+            <li>镜别、时长、transition 走白名单</li>
+            <li>文本截断并转为字符串</li>
+            <li>无效 nextKey 静默变成结局</li>
+          </ul>
+        </article>
+      </div>
+      <p class="source-note"><span class="evidence evidence-source">范围说明</span> 本节的“安装器强制”和下方树形矩阵特指互动影游导入器；AI 短剧的差异在“响应字段如何变成内部对象”中单列。</p>
+
+      <div class="screenshot-audit">
+        <div class="screenshot-list" aria-label="对用户截图中七张分镜卡可见标签的文字转述">
+          <p><span class="evidence evidence-screen">截图观察</span> 可见标签的文字转述</p>
+          <ol>
+            <li><span>01</span><strong>苏醒</strong><small>2 个选择</small></li>
+            <li><span>02</span><strong>控制室警报</strong><small>2 个选择</small></li>
+            <li><span>03</span><strong>记忆闪回</strong><small>2 个选择</small></li>
+            <li><span>04</span><strong>唤醒核心</strong><small>2 个选择</small></li>
+            <li><span>05</span><strong>最后逃离</strong><small>结局</small></li>
+            <li><span>06</span><strong>真相与牺牲</strong><small>结局</small></li>
+            <li><span>07</span><strong>新的航向</strong><small>结局</small></li>
+          </ol>
+        </div>
+        <div class="audit-reasoning">
+          <p class="audit-formula">深度 3 × 二分支的满树<br><strong>1 + 2 + 4 = 7</strong><br><span>应有 3 个分支节点 + 4 个结局</span></p>
+          <p>截图却呈现<strong>4 个带选择节点 + 3 个结局</strong>。仅凭列表无法知道它是汇合、环、不可达节点还是标签/连接问题，但它与 prompt 描述的“完整二叉树”不一致。</p>
+          <p class="audit-conclusion"><span class="evidence evidence-analysis">分析提示</span> 这恰好说明：安装器只验证 choice 目标存在，并不验证完整树深、每层节点数、无汇合、无环和四个结局。</p>
+        </div>
+      </div>
+
+      <div class="enforcement-matrix" tabindex="0" aria-label="互动响应规则执行位置，可横向滚动">
+        <table>
+          <caption>互动响应主要规则的实际执行位置</caption>
+          <thead><tr><th scope="col">规则</th><th scope="col">Prompt 写了</th><th scope="col">安装时自动拒绝</th><th scope="col">后续手工检查</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">scenes 非空、≤ 240</th><td>部分</td><td class="yes">是</td><td>不需要</td></tr>
+            <tr><th scope="row">key 唯一</th><td class="yes">是</td><td class="yes">是</td><td>不需要</td></tr>
+            <tr><th scope="row">choice.targetKey 存在</th><td class="yes">是</td><td class="yes">是</td><td>不需要</td></tr>
+            <tr><th scope="row">nextKey 存在</th><td class="yes">是</td><td class="no">否，静默清空</td><td>分支检查可发现部分结果</td></tr>
+            <tr><th scope="row">精确镜头数</th><td class="yes">是</td><td class="no">否，只提示差异</td><td>用户判断</td></tr>
+            <tr><th scope="row">严格树形、深度、结局数</th><td class="yes">是</td><td class="no">否</td><td>现有检查也不完整</td></tr>
+            <tr><th scope="row">每镜一个原子动作</th><td class="yes">是</td><td class="no">否</td><td>人工内容审阅</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="media-prompts" class="section" aria-labelledby="media-title">
+      <div class="section-heading">
+        <p class="section-index">05 · 三层 Prompt</p>
+        <h2 id="media-title">故事模型只写“分镜语义”；图像与视频 prompt 随后重新编译</h2>
+      </div>
+      <div class="prompt-layer-stack">
+        <article>
+          <span>Layer A</span>
+          <h3>故事生成 Prompt</h3>
+          <p>项目/本集设定、拓扑、JSON schema、原子节拍和连续性规则。</p>
+          <strong>产出：结构化 scenes</strong>
+        </article>
+        <i aria-hidden="true">↓</i>
+        <article>
+          <span>Layer B</span>
+          <h3>关键帧 Prompt</h3>
+          <p>模式与类型、景别、入口状态、当前 action、角色/场景连续性、视觉风格、画幅。</p>
+          <strong>产出：scene.imagePrompt</strong>
+        </article>
+        <i aria-hidden="true">↓</i>
+        <article>
+          <span>Layer C</span>
+          <h3>运镜与动态 Prompt</h3>
+          <p>首帧一致、当前 action/dialogue、时长、入口/出口状态、转场与禁止跨镜概括。</p>
+          <strong>产出：scene.videoPrompt</strong>
+        </article>
+      </div>
+
+      <div class="media-prompt-demo">
+        <div class="installed-scene-card">
+          <p>安装后的示例镜头</p>
+          <span>01</span>
+          <h3>苏醒</h3>
+          <dl>
+            <div><dt>景别</dt><dd>特写</dd></div>
+            <div><dt>时长</dt><dd>8 秒</dd></div>
+            <div><dt>动作</dt><dd>林默骤然睁眼，呼吸急促，手本能地摸向左眉伤痕。</dd></div>
+            <div><dt>对白</dt><dd>我在哪儿？</dd></div>
+          </dl>
+        </div>
+        <div class="media-output-tabs">
+          <div role="tablist" aria-label="媒体提示词类型">
+            <button id="mediaTabImage" type="button" role="tab" aria-controls="mediaPromptPanel" aria-selected="true" data-media-tab="image">关键帧提示词</button>
+            <button id="mediaTabVideo" type="button" role="tab" aria-controls="mediaPromptPanel" aria-selected="false" data-media-tab="video">运镜与动态提示词</button>
+          </div>
+          <pre id="mediaPromptPanel" role="tabpanel" aria-labelledby="mediaTabImage" tabindex="0"><code id="mediaPromptCode"></code></pre>
+        </div>
+      </div>
+      <p class="source-note"><span class="evidence evidence-source">源码事实</span> 安装器不使用 LLM 返回的同名 imagePrompt/videoPrompt 字段；它总是调用 <code>composeImagePrompt()</code> 与 <code>composeVideoPrompt()</code> 重建。<code>draft.js:622–643 · prompt.js:122–175</code></p>
+    </section>
+
+    <section id="field-mapping" class="section" aria-labelledby="mapping-title">
+      <div class="section-heading">
+        <p class="section-index">06 · 响应字段如何变成内部对象</p>
+        <h2 id="mapping-title">模型 key 只是临时坐标；项目会重新建立自己的身份与状态</h2>
+      </div>
+      <div class="mapping-flow">
+        <div><small>模型 JSON</small><code>key: "n0_s1"</code><code>targetKey: "n1_s1"</code><code>shot: "大特写"</code><code>duration: 9</code></div>
+        <span aria-hidden="true">→</span>
+        <div><small>安装器</small><code>uid()</code><code>idByKey.get()</code><code>shot 白名单</code><code>duration 白名单</code></div>
+        <span aria-hidden="true">→</span>
+        <div><small>项目 scene</small><code>id: "scene_…"</code><code>targetSceneId: "scene_…"</code><code>shot: "中景"</code><code>duration: 8</code></div>
+      </div>
+      <div class="mapping-table-wrap" tabindex="0" aria-label="互动与短剧响应字段安装差异，可横向滚动">
+        <table>
+          <thead><tr><th scope="col">LLM 字段</th><th scope="col">互动影游安装器</th><th scope="col">AI 短剧安装器</th><th scope="col">最终状态</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">key</th><td>唯一性检查，只用于本轮映射</td><td>同样检查唯一，只用于本轮映射</td><td>两者都生成新的 scene_* 内部 ID</td></tr>
+            <tr><th scope="row">title</th><td>默认“剧情节点 N”；截断 80 字</td><td>默认“镜头 N”；截断 80 字</td><td>列表主标题</td></tr>
+            <tr><th scope="row">shot</th><td>五种景别白名单；否则“中景”</td><td>同一白名单；否则“中景”</td><td>规范化景别</td></tr>
+            <tr><th scope="row">duration</th><td>4/6/8/10/12/15；否则 8 秒</td><td>先按同一白名单；对白超预算时可上调至建议档位</td><td>最终合法秒数</td></tr>
+            <tr><th scope="row">action / dialogue</th><td>分别截断 6000/3000 字</td><td>同样截断；dialogue 还参与时长调整</td><td>镜头语义与媒体 prompt 输入</td></tr>
+            <tr><th scope="row">choices[].targetKey</th><td>必须存在并映射为 targetSceneId，否则整次拒绝</td><td>choices 不导入，统一写成空数组</td><td>只在互动模式形成分支</td></tr>
+            <tr><th scope="row">nextKey</th><td>尝试映射；不存在时静默清空</td><td>同样尝试映射；不存在时静默清空</td><td>空值在 UI 中成为“结局”</td></tr>
+            <tr><th scope="row">transition / entryState / exitState</th><td>不复制</td><td>校验四种 transition；保存并重建连续性状态</td><td>短剧视频 prompt 的额外输入</td></tr>
+            <tr><th scope="row">characters / sceneCards</th><td>非空时整体替换并规范化</td><td>同样整体替换并规范化</td><td>项目级卡片，再按名称自动关联镜头</td></tr>
+            <tr><th scope="row">其他未知字段</th><td>没有复制进 createScene()</td><td>没有复制进 createScene()</td><td>丢弃</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="provenance-loss" class="section" aria-labelledby="provenance-title">
+      <div class="section-heading">
+        <p class="section-index">07 · 信息损失漏斗</p>
+        <h2 id="provenance-title">项目保存的是“安装结果”，不是一次可复盘的模型运行</h2>
+      </div>
+      <div class="provenance-funnel" aria-label="模型运行信息从完整到丢失的五个阶段">
+        <article><span>调用前</span><strong>system + user prompt</strong><p>模板版本、输入字段与供应商参数没有随项目归档。</p></article>
+        <article><span>供应商</span><strong>原始 envelope</strong><p>模型 ID、usage、finish_reason 与运行 ID 不保存。</p></article>
+        <article><span>解析前</span><strong>assistant 原文</strong><p>think、围栏、前后解释和清洗差异不会保留。</p></article>
+        <article><span>安装时</span><strong>临时 key 与回退</strong><p>key 被换成内部 ID；哪些值被截断或回退没有安装报告。</p></article>
+        <article><span>最终留下</span><strong>project.scenes</strong><p>规范化镜头、卡片关联与派生媒体 prompt 进入本地项目。</p></article>
+      </div>
+      <p class="source-note"><span class="evidence evidence-analysis">分析提示</span> 如果以后要重写系统，最先值得补的是 provenance：保存 prompt recipe/version、输入快照、原始 content、解析警告、字段回退和 key→ID 映射，而不是只保存最终列表。</p>
+    </section>
+
+    <section id="local-template" class="section" aria-labelledby="local-title">
+      <div class="section-heading">
+        <p class="section-index">08 · 不经过 LLM 的对照组</p>
+        <h2 id="local-title">“本地模板生成”不是备用模型，而是另一套确定性作者</h2>
+      </div>
+      <div class="local-template-grid">
+        <div class="local-equation">
+          <span>Σ<sub>level 0…2</sub> 2<sup>level</sup></span><b>×</b><span>每节点 1 镜</span><b>→</b><strong>7 个分镜</strong>
+        </div>
+        <div>
+          <p>互动模板按层循环创建标题、动作、对白和 choices；短剧模板按目标镜头数循环创建“开场钩子—人物反应—冲突推进—高潮反转—结尾悬念”等节拍。</p>
+          <p>它不先生成本地草案再交给 LLM，也不会在 LLM 失败时自动触发。失败提示只建议用户手工点击本地模板按钮。</p>
+          <code>static/src/draft.js:146–265 · static/src/utils.js:128–143</code>
+        </div>
+      </div>
+    </section>
+
+    <section id="rebuild-guide" class="section" aria-labelledby="rebuild-title">
+      <div class="section-heading">
+        <p class="section-index">09 · 如果你准备改写或重做</p>
+        <h2 id="rebuild-title">从契约入手，而不是只在 prompt 里加一句“务必严格”</h2>
+      </div>
+      <ol class="rebuild-steps">
+        <li><span>01</span><div><h3>先定义唯一的 StoryboardResponse Schema</h3><p>明确互动与短剧共用字段、模式专用字段、枚举、长度、连接规则和版本号；让 prompt 示例、后端 structured output、前端安装器和测试共同消费它。</p></div></li>
+        <li><span>02</span><div><h3>把 prompt 所有权集中到可测试模块</h3><p>当前互动在 Python、短剧在浏览器。若不打算保留这种架构差异，应把两者迁到同一 prompt builder 层，并用快照测试固定每个变量的来源。</p></div></li>
+        <li><span>03</span><div><h3>先验证，再修改项目状态</h3><p>检查精确镜数、树深、分支度、无环、可达性、结局数、storyNodeKey/shotInNode 一致性和 nextKey；对修复策略做显式选择，而不是静默把无效 nextKey 变成结局。</p></div></li>
+        <li><span>04</span><div><h3>保留原始响应、清洗结果与安装报告</h3><p>将 provenance 与项目主数据分开保存：模型、prompt 版本、原始 content、解析警告、被回退字段和最终映射。这样才能解释某张卡为什么变成现在这样。</p></div></li>
+        <li><span>05</span><div><h3>把“生成”与“修订”分成两种操作</h3><p>生成可以替换整个作用域；修订则必须把当前 scenes、用户锁定字段和差异指令纳入上下文，并产生可审阅 patch，而不是默默重写。</p></div></li>
+        <li><span>06</span><div><h3>补齐真实回归测试</h3><p>至少覆盖完整 prompt 快照、think/fence 清洗、畸形 JSON、重复 key、无效 target/next、数量偏差、多镜 fallback、短剧时长调整，以及从响应到列表 UI 的端到端路径。</p></div></li>
+      </ol>
+
+      <div class="known-quirks">
+        <h3>当前版本值得先记下的四个实现细节</h3>
+        <ul>
+          <li><strong>互动多镜确认框会重复乘镜数。</strong>只影响二次确认文案，后端 expected_nodes 仍按正确公式计算。</li>
+          <li><strong>干净启动的隐藏“林默”文本不是结构化角色卡。</strong>互动请求仍发送兼容 character；短剧 prompt 却会写“暂无角色卡”。</li>
+          <li><strong>现有分镜不会成为重新生成上下文。</strong>手工修改过的 action、dialogue 和顺序不会发给故事 LLM。</li>
+          <li><strong>后端成功不等于内容成功。</strong>传输重试只处理网络/HTTP；JSON 或故事契约错误留给前端一次解析。</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="sources" class="section section-sources" aria-labelledby="sources-title">
+      <div class="section-heading">
+        <p class="section-index">10 · 源码证据索引</p>
+        <h2 id="sources-title">每个结论都应能回到一段可读源码</h2>
+      </div>
+      <div class="source-grid">
+        <a href="https://github.com/Wenjun-Mao/Narrative-Forge/blob/24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9/static/index.html#L62-L180"><code>static/index.html:62–180</code><span>表单默认值与生成入口</span></a>
+        <a href="https://github.com/Wenjun-Mao/Narrative-Forge/blob/24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9/static/src/project-model.js#L219-L238"><code>project-model.js:219–238</code><span>表单如何变成 meta</span></a>
+        <a href="https://github.com/Wenjun-Mao/Narrative-Forge/blob/24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9/static/src/draft.js#L302-L526"><code>draft.js:302–526</code><span>短剧/互动文本生成入口</span></a>
+        <a href="https://github.com/Wenjun-Mao/Narrative-Forge/blob/24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9/app.py#L481-L543"><code>app.py:481–543</code><span>互动 prompt 完整构造</span></a>
+        <a href="https://github.com/Wenjun-Mao/Narrative-Forge/blob/24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9/app.py#L1071-L1101"><code>app.py:1071–1101</code><span>两个 Chat Completions 端点</span></a>
+        <a href="https://github.com/Wenjun-Mao/Narrative-Forge/blob/24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9/static/src/utils.js#L85-L123"><code>utils.js:85–123</code><span>模型响应解析</span></a>
+        <a href="https://github.com/Wenjun-Mao/Narrative-Forge/blob/24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9/static/src/draft.js#L577-L650"><code>draft.js:577–650</code><span>互动响应安装器</span></a>
+        <a href="https://github.com/Wenjun-Mao/Narrative-Forge/blob/24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9/static/src/prompt.js#L122-L175"><code>prompt.js:122–175</code><span>关键帧/视频 prompt 编译</span></a>
+        <a href="https://github.com/Wenjun-Mao/Narrative-Forge/blob/24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9/static/src/scene-list.js#L20-L84"><code>scene-list.js:20–84</code><span>分镜列表渲染</span></a>
+      </div>
+      <p class="source-disclaimer">审计基线：<code>24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9</code>。完整证据说明见 <a href="SOURCE_MAP.md">SOURCE_MAP.md</a>。页面示例不会发送网络请求，也没有包含任何真实 API Key。</p>
+    </section>
+  </main>
+
+  <footer>
+    <p><strong>从输入到分镜列表</strong><span>Narrative Forge Prompt Pipeline Lab</span></p>
+    <a href="#page-top">返回页首 ↑</a>
+  </footer>
+</body>
+</html>

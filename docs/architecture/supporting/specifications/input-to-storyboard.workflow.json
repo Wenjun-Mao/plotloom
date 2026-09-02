@@ -1,0 +1,163 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "从默认／用户输入到分镜列表：V1 与 V2",
+    "locale": "zh-CN",
+    "output": "docs/architecture/input-to-storyboard-workflow.html",
+    "animation": "none",
+    "quality_profile": "showcase"
+  },
+  "lanes": [
+    { "id": "v1", "label": "V1 · 直接生成" },
+    { "id": "v2", "label": "V2 · 规范流水线" },
+    { "id": "exceptions", "label": "V2 · 隔离与修复", "variant": "exception" }
+  ],
+  "mainPath": [
+    "v2_input",
+    "v2_brief",
+    "v2_bible_graph",
+    "v2_plan_storyboard",
+    "v2_validate",
+    "v2_commit_list"
+  ],
+  "semanticChecks": {
+    "allowedRoots": ["v1_input", "v2_input"],
+    "allowedTerminals": ["v1_list", "v2_commit_list"],
+    "requiredPaths": [
+      { "from": "v1_input", "to": "v1_list" },
+      { "from": "v2_input", "to": "v2_commit_list" },
+      { "from": "v2_validate", "to": "v2_quarantine_repair" },
+      { "from": "v2_quarantine_repair", "to": "v2_validate" }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "v1_input",
+      "lane": "v1",
+      "col": 0,
+      "type": "frontend",
+      "label": "项目输入",
+      "sublabel": "故事梗概 + 项目设定",
+      "tag": "共同起点"
+    },
+    {
+      "id": "v1_prompt",
+      "lane": "v1",
+      "col": 1,
+      "type": "frontend",
+      "label": "一次性 Prompt",
+      "sublabel": "前端与后端分担模板逻辑"
+    },
+    {
+      "id": "v1_llm",
+      "lane": "v1",
+      "col": 2,
+      "type": "external",
+      "label": "单次 LLM 调用",
+      "sublabel": "返回一段 JSON 文本"
+    },
+    {
+      "id": "v1_parse",
+      "lane": "v1",
+      "col": 3,
+      "type": "backend",
+      "label": "JSON 解析",
+      "sublabel": "提取 JSON · 补齐结构"
+    },
+    {
+      "id": "v1_scenes",
+      "lane": "v1",
+      "col": 4,
+      "type": "database",
+      "label": "可变 scenes",
+      "sublabel": "浏览器 project 状态"
+    },
+    {
+      "id": "v1_list",
+      "lane": "v1",
+      "col": 5,
+      "type": "frontend",
+      "label": "渲染分镜列表",
+      "sublabel": "scene cards"
+    },
+    {
+      "id": "v2_input",
+      "lane": "v2",
+      "col": 0,
+      "type": "frontend",
+      "label": "项目输入",
+      "sublabel": "故事梗概 + 项目设定",
+      "tag": "同一输入契约"
+    },
+    {
+      "id": "v2_brief",
+      "lane": "v2",
+      "col": 1,
+      "type": "backend",
+      "label": "ProjectBrief",
+      "sublabel": "规范化输入快照",
+      "tag": "canonical"
+    },
+    {
+      "id": "v2_bible_graph",
+      "lane": "v2",
+      "col": 2,
+      "type": "backend",
+      "label": "StoryBible",
+      "sublabel": "→ StoryGraph · 工件留存",
+      "width": 112
+    },
+    {
+      "id": "v2_plan_storyboard",
+      "lane": "v2",
+      "col": 3,
+      "type": "backend",
+      "label": "SceneBeatPlan",
+      "sublabel": "→ Storyboard · 工件留存",
+      "width": 120
+    },
+    {
+      "id": "v2_validate",
+      "lane": "v2",
+      "col": 4,
+      "type": "security",
+      "label": "双重验证",
+      "sublabel": "Schema + 语义",
+      "tag": "acceptance gate"
+    },
+    {
+      "id": "v2_commit_list",
+      "lane": "v2",
+      "col": 5,
+      "type": "frontend",
+      "label": "原子提交",
+      "sublabel": "revision → 分镜列表",
+      "tag": "无部分安装"
+    },
+    {
+      "id": "v2_quarantine_repair",
+      "lane": "exceptions",
+      "col": 4,
+      "type": "security",
+      "label": "隔离修复",
+      "sublabel": "Quarantine / Repair",
+      "width": 104,
+      "tag": "不污染当前版本"
+    }
+  ],
+  "edges": [
+    { "from": "v1_input", "to": "v1_prompt" },
+    { "from": "v1_prompt", "to": "v1_llm", "label": "Prompt" },
+    { "from": "v1_llm", "to": "v1_parse", "label": "JSON" },
+    { "from": "v1_parse", "to": "v1_scenes", "label": "安装" },
+    { "from": "v1_scenes", "to": "v1_list", "label": "render" },
+    { "from": "v2_input", "to": "v2_brief", "variant": "emphasis", "role": "main" },
+    { "from": "v2_brief", "to": "v2_bible_graph", "label": "输入快照", "variant": "emphasis", "role": "main" },
+    { "from": "v2_bible_graph", "to": "v2_plan_storyboard", "label": "revisions", "variant": "emphasis", "role": "main" },
+    { "from": "v2_plan_storyboard", "to": "v2_validate", "label": "候选工件", "variant": "emphasis", "role": "main" },
+    { "from": "v2_validate", "to": "v2_commit_list", "label": "原子提交", "variant": "security", "role": "main" },
+    { "from": "v2_validate", "to": "v2_quarantine_repair", "variant": "security", "role": "error" },
+    { "from": "v2_quarantine_repair", "to": "v2_validate", "label": "修复候选后重验", "variant": "dashed", "role": "return" }
+  ]
+}

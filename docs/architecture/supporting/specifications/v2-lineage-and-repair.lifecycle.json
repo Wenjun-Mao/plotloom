@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Narrative Forge V2 — GenerationRun 生命周期与证据修复",
+    "locale": "zh-CN",
+    "output": "docs/architecture/v2-lineage-and-repair.html",
+    "animation": "none",
+    "quality_profile": "showcase",
+    "viewBox": [1240, 606]
+  },
+  "lanes": [
+    { "id": "main", "label": "GenerationRun 主阶段" },
+    { "id": "recovery", "label": "隔离与显式修复" },
+    { "id": "control", "label": "控制与重启事件" },
+    { "id": "terminal", "label": "非成功终态" }
+  ],
+  "states": [
+    { "id": "queued", "type": "start", "label": "Queued", "lane": "main", "col": 0, "step": "01", "tag": "pristine" },
+    { "id": "running-stages", "type": "active", "label": "Running Stages", "lane": "main", "col": 1, "step": "02", "tag": "provider" },
+    { "id": "validating", "type": "decision", "label": "Validate Candidate", "lane": "main", "col": 2, "step": "03", "tag": "gate" },
+    { "id": "atomic-commit", "type": "active", "label": "Atomic Commit", "lane": "main", "col": 3, "step": "04", "tag": "canonical" },
+    { "id": "succeeded", "type": "success", "label": "Succeeded", "lane": "main", "col": 4, "step": "05", "tag": "terminal" },
+
+    { "id": "quarantined", "type": "failure", "label": "Quarantined", "lane": "recovery", "col": 0, "yOffset": -50, "tag": "recoverable" },
+
+    { "id": "cancel-requested", "type": "waiting", "label": "Cancel Requested", "lane": "control", "col": 2, "yOffset": 50, "tag": "cooperative" },
+    { "id": "restart-scan", "type": "external", "label": "Restart Recovery", "lane": "control", "col": 1, "yOffset": 50, "tag": "startup" },
+
+    { "id": "cancelled", "type": "failure", "label": "Cancelled", "lane": "terminal", "col": 2, "yOffset": -30, "tag": "terminal" },
+    { "id": "interrupted-failed", "type": "failure", "label": "Interrupted → Failed", "lane": "terminal", "col": 1, "yOffset": -30, "tag": "terminal" }
+  ],
+  "transitions": [
+    { "id": "validation-quarantines", "from": "validating", "to": "quarantined", "variant": "security", "route": "straight", "fromSide": "bottom", "toSide": "top" },
+    { "id": "explicit-repair", "from": "quarantined", "to": "running-stages", "label": "显式 repair：新建 child run", "variant": "emphasis", "fromSide": "right", "toSide": "top", "via": [[1100, 257], [1100, 80], [248, 80]], "labelAt": [780, 257] },
+
+    { "id": "request-cancel", "from": "running-stages", "to": "cancel-requested", "label": "请求取消", "variant": "security", "fromSide": "bottom", "toSide": "top", "via": [[248, 296], [710, 296]], "labelAt": [600, 296] },
+    { "id": "confirm-cancel", "from": "cancel-requested", "to": "cancelled", "variant": "security", "route": "straight", "fromSide": "bottom", "toSide": "top" },
+
+    { "id": "restart-requeues-pristine", "from": "restart-scan", "to": "queued", "label": "pristine queued：重新入队", "variant": "dashed", "fromSide": "left", "toSide": "top", "via": [[8, 357], [8, 50], [94, 50]], "labelAt": [130, 50] },
+    { "id": "restart-fails-running", "from": "restart-scan", "to": "interrupted-failed", "variant": "security", "route": "straight", "fromSide": "bottom", "toSide": "top" }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Revision 与 Trace 谱系",
+      "items": [
+        "Run snapshot 固定输入 revision IDs、阶段范围、Prompt 版本与公开 provider 配置；每次尝试保存 Prompt、原始响应、解析/验证与 candidate",
+        "全部阶段通过才在一个事务中写入 revisions 并移动 canonical heads；quarantine、取消和 SecretLease 不污染 canonical 数据"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "显式修复与重启安全",
+      "items": [
+        "Repair 新建 child GenerationRun，引用失败 attempt、response、validation 与可复用 candidate；API Key 永不进入证据",
+        "pristine queued 可安全重投；previously running 标记失败且不自动重放 provider 调用"
+      ]
+    }
+  ]
+}

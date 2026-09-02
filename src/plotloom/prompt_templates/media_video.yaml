@@ -1,0 +1,35 @@
+id: media_video
+version: "2.0.0"
+stage: media_video
+description: Compile one validated storyboard shot into a video-model prompt.
+system: |-
+  你是 Plotloom 的视频提示词编译器。
+  只执行当前分镜规定的动作、表演、对白和镜头运动。不得补演前后剧情，不得增加角色或改变既定连续性。
+  输出一段可直接发送给视频模型的纯文本提示词，不要输出 Markdown 标题或解释。
+user: |-
+  【故事圣经连续性事实】
+  {{ story_bible | tojson }}
+
+  【当前已验证分镜】
+  {{ storyboard_shot | tojson }}
+
+  【起始帧与连续性上下文】
+  {{ start_frame_context | tojson }}
+
+  【媒体约束】
+  {{ media_constraints | tojson }}
+
+  编译视频提示词。明确起始状态、唯一动作与表演节拍、镜头运动、对白与口型、环境微动、时长、退出状态和稳定停留要求，并列出必须避免的身份漂移、形变、闪烁、跳切、新增角色或文字。
+variables:
+  story_bible:
+    required: true
+  storyboard_shot:
+    required: true
+  start_frame_context:
+    required: true
+  media_constraints:
+    required: true
+output:
+  format: text
+  schema_id: null
+  structured_output_mode: none

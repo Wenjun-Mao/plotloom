@@ -1,0 +1,802 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from enum import Enum
+from typing import Annotated, Any
+from urllib.parse import parse_qsl, urlparse
+from uuid import uuid4
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def new_id() -> str:
+    return str(uuid4())
+
+
+def to_camel(value: str) -> str:
+    head, *tail = value.split("_")
+    return head + "".join(part.capitalize() for part in tail)
+
+
+class CamelModel(BaseModel):
+    """Canonical Python models with a strict camelCase HTTP representation."""
+
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        extra="forbid",
+        validate_assignment=True,
+    )
+
+
+class StageName(str, Enum):
+    STORY_BIBLE = "story_bible"
+    STORY_GRAPH = "story_graph"
+    SCENE_BEATS = "scene_beats"
+    STORYBOARD = "storyboard"
+
+
+STAGE_ORDER: tuple[StageName, ...] = (
+    StageName.STORY_BIBLE,
+    StageName.STORY_GRAPH,
+    StageName.SCENE_BEATS,
+    StageName.STORYBOARD,
+)
+
+
+class StageStatus(str, Enum):
+    MISSING = "missing"
+    READY = "ready"
+    STALE = "stale"
+
+
+class RunStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    QUARANTINED = "quarantined"
+    CANCEL_REQUESTED = "cancel_requested"
+    CANCELLED = "cancelled"
+    FAILED = "failed"
+
+
+TERMINAL_RUN_STATUSES: frozenset[RunStatus] = frozenset(
+    {
+        RunStatus.SUCCEEDED,
+        RunStatus.QUARANTINED,
+        RunStatus.CANCELLED,
+        RunStatus.FAILED,
+    }
+)
+
+
+class RunKind(str, Enum):
+    PIPELINE = "pipeline"
+    REBUILD = "rebuild"
+    REPAIR = "repair"
+
+
+class AttemptStatus(str, Enum):
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class StoryNodeKind(str, Enum):
+    START = "start"
+    SCENE = "scene"
+    DECISION = "decision"
+    JOIN = "join"
+    ENDING = "ending"
+
+
+class StoryEdgeKind(str, Enum):
+    CONTINUATION = "continuation"
+    CHOICE = "choice"
+
+
+class CoverageRole(str, Enum):
+    PRIMARY = "primary"
+    SUPPORTING = "supporting"
+
+
+class ShotSize(str, Enum):
+    EXTREME_WIDE = "extreme_wide"
+    WIDE = "wide"
+    FULL = "full"
+    MEDIUM = "medium"
+    CLOSE_UP = "close_up"
+    EXTREME_CLOSE_UP = "extreme_close_up"
+    INSERT = "insert"
+
+
+class ArtifactKind(str, Enum):
+    PROMPT = "prompt"
+    RESPONSE = "response"
+    VALIDATION = "validation"
+    CANDIDATE = "candidate"
+    CANONICAL = "canonical"
+    MEDIA = "media"
+
+
+class MediaKind(str, Enum):
+    IMAGE = "image"
+    VIDEO = "video"
+
+
+class MediaTaskStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+TERMINAL_MEDIA_TASK_STATUSES: frozenset[MediaTaskStatus] = frozenset(
+    {
+        MediaTaskStatus.SUCCEEDED,
+        MediaTaskStatus.FAILED,
+        MediaTaskStatus.CANCELLED,
+    }
+)
+
+
+class ProjectBrief(CamelModel):
+    title: Annotated[str, Field(min_length=1, max_length=200)]
+    synopsis: Annotated[str, Field(min_length=1)]
+    genre: str | None = None
+    visual_style: str | None = None
+    language: str = "zh-CN"
+    aspect_ratio: str = "16:9"
+    target_playthrough_seconds: Annotated[int, Field(ge=1)] = 180
+    decision_points_per_path: Annotated[int, Field(ge=0)] = 2
+    ending_count: Annotated[int, Field(ge=1)] = 3
+    node_budget: Annotated[int, Field(ge=1)] = 10
+    max_out_degree: Annotated[int, Field(ge=1)] = 3
+    desired_join_count: Annotated[int, Field(ge=0)] = 1
+    shots_per_scene_min: Annotated[int, Field(ge=1)] = 2
+    shots_per_scene_max: Annotated[int, Field(ge=1)] = 4
+
+    @model_validator(mode="after")
+    def validate_internal_limits(self) -> ProjectBrief:
+        if self.shots_per_scene_min > self.shots_per_scene_max:
+            raise ValueError("shots_per_scene_min must not exceed shots_per_scene_max")
+        if self.ending_count > self.node_budget:
+            raise ValueError("ending_count must not exceed node_budget")
+        return self
+
+
+class Character(CamelModel):
+    id: Annotated[str, Field(min_length=1)]
+    name: Annotated[str, Field(min_length=1)]
+    role: str | None = None
+    description: str = ""
+    goal: str = ""
+    traits: list[str] = Field(default_factory=list)
+    visual_identity: str = ""
+    continuity_rules: list[str] = Field(default_factory=list)
+
+
+class Location(CamelModel):
+    id: Annotated[str, Field(min_length=1)]
+    name: Annotated[str, Field(min_length=1)]
+    description: str = ""
+    visual_identity: str = ""
+    continuity_rules: list[str] = Field(default_factory=list)
+
+
+class Prop(CamelModel):
+    id: Annotated[str, Field(min_length=1)]
+    name: Annotated[str, Field(min_length=1)]
+    description: str = ""
+    visual_identity: str = ""
+    continuity_rules: list[str] = Field(default_factory=list)
+
+
+class StoryBible(CamelModel):
+    logline: Annotated[str, Field(min_length=1)]
+    premise: Annotated[str, Field(min_length=1)]
+    genre: str = ""
+    tone: str = ""
+    audience: str = ""
+    narrative_promise: str = ""
+    visual_language: str = ""
+    themes: list[str] = Field(default_factory=list)
+    world_rules: list[str] = Field(default_factory=list)
+    known_facts: list[str] = Field(default_factory=list)
+    open_questions: list[str] = Field(default_factory=list)
+    source_notes: list[str] = Field(default_factory=list)
+    characters: list[Character] = Field(default_factory=list)
+    locations: list[Location] = Field(default_factory=list)
+    props: list[Prop] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_entity_ids(self) -> StoryBible:
+        for label, entities in (
+            ("character", self.characters),
+            ("location", self.locations),
+            ("prop", self.props),
+        ):
+            ids = [entity.id for entity in entities]
+            if len(ids) != len(set(ids)):
+                raise ValueError(f"duplicate {label} ids")
+        return self
+
+
+class StoryNode(CamelModel):
+    id: Annotated[str, Field(min_length=1)]
+    title: Annotated[str, Field(min_length=1)]
+    summary: Annotated[str, Field(min_length=1)]
+    kind: StoryNodeKind
+
+
+class StoryEdge(CamelModel):
+    id: Annotated[str, Field(min_length=1)]
+    source_node_id: Annotated[str, Field(min_length=1)]
+    target_node_id: Annotated[str, Field(min_length=1)]
+    kind: StoryEdgeKind = StoryEdgeKind.CONTINUATION
+    choice_text: str | None = None
+    state_effects: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def choice_edges_have_copy(self) -> StoryEdge:
+        if self.kind == StoryEdgeKind.CHOICE and not self.choice_text:
+            raise ValueError("choice edges require choice_text")
+        return self
+
+
+class JoinContract(CamelModel):
+    id: Annotated[str, Field(min_length=1)]
+    join_node_id: Annotated[str, Field(min_length=1)]
+    incoming_node_ids: Annotated[list[str], Field(min_length=2)]
+    required_state_keys: list[str] = Field(default_factory=list)
+    allowed_differences: list[str] = Field(default_factory=list)
+    reconciliation: str = ""
+    notes: str = ""
+
+
+class StoryGraph(CamelModel):
+    start_node_id: Annotated[str, Field(min_length=1)]
+    nodes: Annotated[list[StoryNode], Field(min_length=1)]
+    edges: list[StoryEdge] = Field(default_factory=list)
+    join_contracts: list[JoinContract] = Field(default_factory=list)
+
+
+class ContinuityState(CamelModel):
+    facts: dict[str, Any] = Field(default_factory=dict)
+    character_states: dict[str, str] = Field(default_factory=dict)
+    prop_states: dict[str, str] = Field(default_factory=dict)
+    location_state: str | None = None
+    screen_direction: str | None = None
+    lighting: str | None = None
+    sound: str | None = None
+    notes: list[str] = Field(default_factory=list)
+
+
+class DramaticScene(CamelModel):
+    id: Annotated[str, Field(min_length=1)]
+    story_node_id: Annotated[str, Field(min_length=1)]
+    title: Annotated[str, Field(min_length=1)]
+    objective: Annotated[str, Field(min_length=1)]
+    location_id: str | None = None
+    character_ids: list[str] = Field(default_factory=list)
+    beat_ids: Annotated[list[str], Field(min_length=1)]
+    entry_state: ContinuityState = Field(default_factory=ContinuityState)
+    exit_state: ContinuityState = Field(default_factory=ContinuityState)
+
+
+class Beat(CamelModel):
+    id: Annotated[str, Field(min_length=1)]
+    scene_id: Annotated[str, Field(min_length=1)]
+    order: Annotated[int, Field(ge=1)]
+    description: Annotated[str, Field(min_length=1)]
+    purpose: Annotated[str, Field(min_length=1)]
+    visible_event: str = ""
+    dialogue: str = ""
+    immediate_result: str = ""
+    dramatic_change: str = ""
+    entry_state: ContinuityState = Field(default_factory=ContinuityState)
+    exit_state: ContinuityState = Field(default_factory=ContinuityState)
+    continuity_anchors: list[str] = Field(default_factory=list)
+    continuity_delta: dict[str, Any] = Field(default_factory=dict)
+
+
+class SceneBeatPlan(CamelModel):
+    scenes: list[DramaticScene] = Field(default_factory=list)
+    beats: list[Beat] = Field(default_factory=list)
+
+
+class Shot(CamelModel):
+    id: Annotated[str, Field(min_length=1)]
+    scene_id: Annotated[str, Field(min_length=1)]
+    order: Annotated[int, Field(ge=1)]
+    title: Annotated[str, Field(min_length=1)]
+    shot_size: ShotSize
+    duration_seconds: Annotated[float, Field(gt=0)]
+    camera_angle: str = ""
+    camera_movement: str = ""
+    composition: str = ""
+    visual_intent: str = ""
+    motion_intent: str = ""
+    action: str = ""
+    dialogue: str = ""
+    audio: str = ""
+    transition: str = ""
+    character_ids: list[str] = Field(default_factory=list)
+    location_id: str | None = None
+    prop_ids: list[str] = Field(default_factory=list)
+    entry_state: ContinuityState = Field(default_factory=ContinuityState)
+    exit_state: ContinuityState = Field(default_factory=ContinuityState)
+
+
+class ShotBeatLink(CamelModel):
+    shot_id: Annotated[str, Field(min_length=1)]
+    beat_id: Annotated[str, Field(min_length=1)]
+    role: CoverageRole = CoverageRole.PRIMARY
+    coverage_weight: Annotated[float, Field(gt=0, le=1)] = 1.0
+
+
+class Storyboard(CamelModel):
+    shots: list[Shot] = Field(default_factory=list)
+    shot_beat_links: list[ShotBeatLink] = Field(default_factory=list)
+
+
+StagePayload = StoryBible | StoryGraph | SceneBeatPlan | Storyboard
+
+
+class InitialStage(CamelModel):
+    """One canonical stage supplied while a project is first created."""
+
+    stage: StageName
+    payload: dict[str, Any]
+
+    @model_validator(mode="after")
+    def normalize_payload(self) -> InitialStage:
+        parsed = stage_payload_model(self.stage).model_validate(self.payload)
+        object.__setattr__(self, "payload", parsed.model_dump(mode="json", by_alias=False))
+        return self
+
+
+def validate_initial_stage_prefix(stages: list[InitialStage]) -> None:
+    supplied = [stage.stage for stage in stages]
+    expected = list(STAGE_ORDER[: len(supplied)])
+    if supplied != expected:
+        raise ValueError("initialStages must be an ordered canonical stage prefix")
+
+
+class EntityRevision(CamelModel):
+    id: str = Field(default_factory=new_id)
+    project_id: str
+    stage: StageName
+    revision: Annotated[int, Field(ge=1)]
+    parent_revision_id: str | None = None
+    content_hash: str
+    input_revisions: dict[StageName, int] = Field(default_factory=dict)
+    payload: dict[str, Any]
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class StageHead(CamelModel):
+    stage: StageName
+    status: StageStatus = StageStatus.MISSING
+    revision: Annotated[int, Field(ge=0)] = 0
+    entity_revision_id: str | None = None
+    content_hash: str | None = None
+    input_revisions: dict[StageName, int] = Field(default_factory=dict)
+    stale_reasons: list[str] = Field(default_factory=list)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def validate_head_shape(self) -> StageHead:
+        if self.status == StageStatus.MISSING:
+            if self.revision != 0 or self.entity_revision_id is not None or self.content_hash is not None:
+                raise ValueError("missing stage heads cannot reference a canonical revision")
+        elif self.revision < 1 or self.entity_revision_id is None or self.content_hash is None:
+            raise ValueError("ready/stale stage heads require a canonical revision")
+        return self
+
+
+class StageEnvelope(CamelModel):
+    head: StageHead
+    payload: StagePayload | None = None
+
+
+class CanonicalSnapshot(CamelModel):
+    project_id: str
+    project_revision: Annotated[int, Field(ge=1)]
+    brief: ProjectBrief
+    stage_heads: dict[StageName, StageHead]
+    snapshot_hash: str
+    captured_at: datetime = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def validate_complete_stage_set(self) -> CanonicalSnapshot:
+        if set(self.stage_heads) != set(STAGE_ORDER):
+            raise ValueError("canonical snapshots must contain exactly the four pipeline stage heads")
+        if any(stage != head.stage for stage, head in self.stage_heads.items()):
+            raise ValueError("canonical snapshot stage keys must match their heads")
+        return self
+
+
+class Project(CamelModel):
+    id: str = Field(default_factory=new_id)
+    revision: Annotated[int, Field(ge=1)] = 1
+    brief: ProjectBrief
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+
+
+class ProjectCreation(Project):
+    """Authoritative aggregate returned by project creation and replay."""
+
+    stages: list[StageEnvelope]
+
+
+class RepairSource(CamelModel):
+    """Exact immutable evidence selected when an explicit repair is enqueued."""
+
+    failed_attempt_id: Annotated[str, Field(min_length=1)]
+    response_artifact_id: Annotated[str, Field(min_length=1)]
+    validation_artifact_id: Annotated[str, Field(min_length=1)]
+    reused_candidate_artifact_ids: dict[StageName, str] = Field(default_factory=dict)
+
+    @field_validator("reused_candidate_artifact_ids")
+    @classmethod
+    def validate_candidate_ids(cls, value: dict[StageName, str]) -> dict[StageName, str]:
+        if any(not artifact_id.strip() for artifact_id in value.values()):
+            raise ValueError("reused candidate artifact IDs must not be blank")
+        return value
+
+
+class GenerationRun(CamelModel):
+    id: str = Field(default_factory=new_id)
+    project_id: str
+    kind: RunKind
+    parent_run_id: str | None = None
+    repair_stage: StageName | None = None
+    repair_source: RepairSource | None = None
+    provider_snapshot: dict[str, Any] = Field(default_factory=dict)
+    requested_stages: list[StageName]
+    status: RunStatus = RunStatus.QUEUED
+    canonical_snapshot: CanonicalSnapshot
+    instructions: str | None = None
+    result_revision_ids: list[str] = Field(default_factory=list)
+    error: str | None = None
+    created_at: datetime = Field(default_factory=utc_now)
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+
+    @field_validator("provider_snapshot", mode="before")
+    @classmethod
+    def validate_provider_snapshot(cls, value: Any) -> dict[str, Any]:
+        return validate_public_provider_snapshot(value)
+
+    @model_validator(mode="after")
+    def validate_repair_lineage(self) -> GenerationRun:
+        if not self.requested_stages:
+            raise ValueError("generation runs require at least one requested stage")
+        if len(self.requested_stages) != len(set(self.requested_stages)):
+            raise ValueError("requested_stages must not contain duplicates")
+        if self.requested_stages != [stage for stage in STAGE_ORDER if stage in self.requested_stages]:
+            raise ValueError("requested_stages must follow canonical stage order")
+        first_index = STAGE_ORDER.index(self.requested_stages[0])
+        expected_range = list(
+            STAGE_ORDER[first_index : first_index + len(self.requested_stages)]
+        )
+        if self.requested_stages != expected_range:
+            raise ValueError("requested_stages must form one contiguous canonical stage range")
+        if self.kind == RunKind.REPAIR:
+            if self.parent_run_id is None or self.repair_stage is None:
+                raise ValueError("repair runs require parentRunId and repairStage")
+            if self.repair_stage not in self.requested_stages:
+                raise ValueError("repairStage must belong to requestedStages")
+            if self.repair_source is None:
+                if self.status not in TERMINAL_RUN_STATUSES:
+                    raise ValueError("non-terminal repair runs require repairSource")
+                return self
+            reused_stages = set(self.repair_source.reused_candidate_artifact_ids)
+            repair_index = self.requested_stages.index(self.repair_stage)
+            expected_reused = set(self.requested_stages[:repair_index])
+            if reused_stages != expected_reused:
+                raise ValueError("repairSource must freeze one candidate for every reused requested stage")
+        elif self.parent_run_id is not None or self.repair_stage is not None or self.repair_source is not None:
+            raise ValueError("only repair runs may carry repair lineage")
+        return self
+
+
+class GenerationAttempt(CamelModel):
+    id: str = Field(default_factory=new_id)
+    run_id: str
+    stage: StageName
+    attempt_number: Annotated[int, Field(ge=1)]
+    status: AttemptStatus
+    provider: str | None = None
+    model: str | None = None
+    error: str | None = None
+    started_at: datetime = Field(default_factory=utc_now)
+    finished_at: datetime | None = None
+
+
+class Artifact(CamelModel):
+    id: str = Field(default_factory=new_id)
+    run_id: str
+    attempt_id: str | None = None
+    source_artifact_id: str | None = None
+    stage: StageName | None = None
+    kind: ArtifactKind
+    media_type: str = "application/json"
+    content: Any
+    content_hash: str
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class MediaTask(CamelModel):
+    id: str = Field(default_factory=new_id)
+    project_id: str
+    shot_id: str
+    storyboard_revision: Annotated[int, Field(ge=1)]
+    kind: MediaKind
+    status: MediaTaskStatus = MediaTaskStatus.QUEUED
+    derived_prompt: Annotated[str, Field(min_length=1)]
+    prompt_components: dict[str, Any] = Field(default_factory=dict)
+    provider: str | None = None
+    public_settings: dict[str, Any] = Field(default_factory=dict)
+    provider_task_id: str | None = None
+    output_uri: str | None = None
+    error: str | None = None
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+
+    @field_validator("provider")
+    @classmethod
+    def validate_public_provider_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if contains_secret_value(normalized):
+            raise ValueError("provider must be a public identifier, not a credential")
+        return normalized or None
+
+    @model_validator(mode="after")
+    def validate_lifecycle_and_public_settings(self) -> MediaTask:
+        if contains_secret_setting(self.public_settings) or contains_secret_value(
+            self.public_settings
+        ):
+            raise ValueError("publicSettings must not contain credentials or other secrets")
+        validate_public_base_urls(self.public_settings)
+        if self.status == MediaTaskStatus.QUEUED:
+            if self.started_at is not None or self.finished_at is not None:
+                raise ValueError("queued media tasks cannot have lifecycle timestamps")
+        elif self.status == MediaTaskStatus.RUNNING:
+            if self.started_at is None or self.finished_at is not None:
+                raise ValueError("running media tasks require startedAt and no finishedAt")
+        else:
+            if self.started_at is None or self.finished_at is None:
+                raise ValueError("terminal media tasks require startedAt and finishedAt")
+        if self.status == MediaTaskStatus.SUCCEEDED and not self.output_uri:
+            raise ValueError("succeeded media tasks require outputUri")
+        if self.status == MediaTaskStatus.FAILED and not self.error:
+            raise ValueError("failed media tasks require an error")
+        return self
+
+
+class MediaPromptContext(CamelModel):
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    brief: ProjectBrief
+    story_bible: StoryBible
+    shot: Shot
+    storyboard_revision: Annotated[int, Field(ge=1)]
+
+
+class PublicProviderConfiguration(CamelModel):
+    """Strict allow-list shared by persisted settings and frozen run snapshots."""
+
+    text_provider: str | None = None
+    text_base_url: str | None = None
+    text_model: str | None = None
+    image_provider: str | None = None
+    image_base_url: str | None = None
+    image_model: str | None = None
+    video_provider: str | None = None
+    video_base_url: str | None = None
+    video_model: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_secret_material(cls, value: Any) -> Any:
+        if contains_secret_setting(value) or contains_secret_value(value):
+            raise ValueError("public provider configuration must not contain secrets")
+        return value
+
+    @field_validator(
+        "text_provider",
+        "text_model",
+        "image_provider",
+        "image_model",
+        "video_provider",
+        "video_model",
+    )
+    @classmethod
+    def normalize_public_identifier(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
+    @field_validator("text_base_url", "image_base_url", "video_base_url")
+    @classmethod
+    def validate_public_api_root(cls, value: str | None) -> str | None:
+        return validate_public_api_root(value)
+
+
+PUBLIC_PROVIDER_SETTING_FIELDS: tuple[str, ...] = tuple(
+    PublicProviderConfiguration.model_fields
+)
+
+
+class ProviderSnapshot(PublicProviderConfiguration):
+    """Canonical, secret-free provider configuration frozen into a run."""
+
+
+class ProviderSettings(PublicProviderConfiguration):
+    text_key_available: bool = False
+    image_key_available: bool = False
+    video_key_available: bool = False
+    revision: Annotated[int, Field(ge=0)] = 0
+    updated_at: datetime | None = None
+
+
+class RunTrace(CamelModel):
+    run: GenerationRun
+    attempts: list[GenerationAttempt] = Field(default_factory=list)
+    artifacts: list[Artifact] = Field(default_factory=list)
+    snapshot_is_current: bool
+
+
+class StartupRecoveryPlan(CamelModel):
+    """One-shot durable reconciliation actions for the local process runners."""
+
+    resubmit_run_ids: list[str] = Field(default_factory=list)
+    resubmit_media_task_ids: list[str] = Field(default_factory=list)
+    resume_media_poll_task_ids: list[str] = Field(default_factory=list)
+    terminated_run_ids: list[str] = Field(default_factory=list)
+    terminated_media_task_ids: list[str] = Field(default_factory=list)
+
+
+def stage_payload_model(stage: StageName) -> type[StagePayload]:
+    return {
+        StageName.STORY_BIBLE: StoryBible,
+        StageName.STORY_GRAPH: StoryGraph,
+        StageName.SCENE_BEATS: SceneBeatPlan,
+        StageName.STORYBOARD: Storyboard,
+    }[stage]
+
+
+def upstream_stages(stage: StageName) -> tuple[StageName, ...]:
+    index = STAGE_ORDER.index(stage)
+    return STAGE_ORDER[:index]
+
+
+def downstream_stages(stage: StageName) -> tuple[StageName, ...]:
+    index = STAGE_ORDER.index(stage)
+    return STAGE_ORDER[index + 1 :]
+
+
+SECRET_SETTING_NAMES = frozenset(
+    {
+        "apikey",
+        "key",
+        "accesstoken",
+        "refreshtoken",
+        "token",
+        "secret",
+        "password",
+        "authorization",
+        "credential",
+        "credentials",
+    }
+)
+
+
+def is_secret_setting_name(name: object) -> bool:
+    normalized = "".join(character for character in str(name).lower() if character.isalnum())
+    return (
+        normalized in SECRET_SETTING_NAMES
+        or normalized.startswith("authorization")
+        or normalized.endswith(
+            ("apikey", "token", "secret", "password", "credential", "credentials")
+        )
+    )
+
+
+def contains_secret_setting(value: Any) -> bool:
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if is_secret_setting_name(key):
+                return True
+            if contains_secret_setting(child):
+                return True
+    elif isinstance(value, (list, tuple)):
+        return any(contains_secret_setting(child) for child in value)
+    return False
+
+
+def contains_secret_value(value: Any) -> bool:
+    """Detect structurally recognizable secrets without guessing arbitrary tokens."""
+
+    if isinstance(value, dict):
+        return any(contains_secret_value(child) for child in value.values())
+    if isinstance(value, (list, tuple)):
+        return any(contains_secret_value(child) for child in value)
+    if not isinstance(value, str):
+        return False
+
+    candidate = value.strip()
+    lowered = candidate.lower()
+    if lowered.startswith(("bearer ", "basic ", "sk-", "sk_", "xai-", "hf_", "aiza")):
+        return True
+    if "-----begin private key-----" in lowered:
+        return True
+
+    parsed = urlparse(candidate)
+    if parsed.scheme and parsed.netloc:
+        if parsed.username or parsed.password:
+            return True
+        query_items = parse_qsl(parsed.query, keep_blank_values=True)
+        if any(is_secret_setting_name(key) for key, _ in query_items):
+            return True
+
+    assignment_name, separator, _assignment_value = candidate.partition("=")
+    return bool(separator and is_secret_setting_name(assignment_name))
+
+
+def validate_public_api_root(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value.strip().rstrip("/")
+    parsed = urlparse(normalized)
+    if (
+        parsed.scheme != "https"
+        or not parsed.netloc
+        or parsed.username
+        or parsed.password
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise ValueError(
+            "provider base URLs must be HTTPS roots without credentials, query, or fragment"
+        )
+    return normalized
+
+
+def validate_public_base_urls(value: Any) -> None:
+    """Apply the HTTPS-root contract to every nested public *BaseUrl field."""
+
+    if isinstance(value, dict):
+        for key, child in value.items():
+            normalized_key = "".join(
+                character for character in str(key).lower() if character.isalnum()
+            )
+            if normalized_key.endswith("baseurl"):
+                if not isinstance(child, str):
+                    raise ValueError("provider base URLs must be strings")
+                validate_public_api_root(child)
+            validate_public_base_urls(child)
+    elif isinstance(value, (list, tuple)):
+        for child in value:
+            validate_public_base_urls(child)
+
+
+def validate_public_provider_snapshot(value: Any) -> dict[str, Any]:
+    """Validate and canonicalize the only provider data allowed in durable runs."""
+
+    snapshot = ProviderSnapshot.model_validate({} if value is None else value)
+    return snapshot.model_dump(mode="json", by_alias=True)

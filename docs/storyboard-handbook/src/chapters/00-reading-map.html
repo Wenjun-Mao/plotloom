@@ -1,0 +1,249 @@
+<article data-title="阅读地图：先学会区分事实、方法与建议" data-kicker="导读">
+  <header class="chapter-header">
+    <p class="eyebrow">导读 · 阅读地图</p>
+    <h1>先学会区分事实、方法与建议</h1>
+    <p class="chapter-lede">
+      这不是一本教你照着某个界面点击的说明书，而是一份可以反向拆解第三方系统、再正向设计自己系统的学习地图。你会同时接触影视语言、结构化数据、生成模型约束和两个仓库的具体实现。它们彼此有关，却不是同一层的问题。
+    </p>
+  </header>
+
+  <aside class="callout">
+    <h2>完整学习版的范围</h2>
+    <p>本版共 11 章：导读、共同基础、一个贯穿案例、Narrative Forge 两章、shuohao-skills 两章、比较与重构三章，以及最终随身参考。它会把两套仓库的冻结证据对象追到字段、调用、校验与导出层；Narrative Forge 还分别保留上游快照、公开 fork 与本地基线的归因边界。手册不会把未公开的镜头配方卡、未实际调用的第三方模型，或本书提出的未来模型伪装成已验证的仓库能力。</p>
+  </aside>
+
+  <aside class="callout callout-principle">
+    <h2>Narrative Forge 提示词专题</h2>
+    <p>如果你希望逐字段观察“默认值／用户输入 → 请求体 → system/user prompt → 模型响应 → 解析与安装 → 分镜列表”，可另开独立的交互式 <a href="../prompt-pipeline-lab/index.html">Prompt Pipeline Lab</a>。它绑定同一套源码证据，但不把教学响应冒充真实模型运行。</p>
+  </aside>
+
+  <section id="how-to-read">
+    <h2>这本手册怎样回答问题</h2>
+    <p>
+      每当看到一项设计，先问四遍“为什么”：故事为什么需要这一步？观众为什么需要这个镜头？生产为什么需要这个字段？程序为什么需要把它保存下来？只有四个答案能彼此对上，这项设计才真正进入了系统，而不只是提示词里的一句话。
+    </p>
+    <aside class="callout callout-principle">
+      <h3>贯穿全书的原则</h3>
+      <p>
+        <strong>故事事实、导演选择和供应商参数必须分层。</strong>“弟弟被困在核心旁的维修救生舱”是故事事实；“用吊臂俯拍表现她的孤立”是导演选择；“生成 5 秒、使用首尾帧约束”是某次生产任务的参数。把三者塞进同一个字符串，短期方便，长期几乎无法验证、改写或迁移。
+      </p>
+    </aside>
+  </section>
+
+  <section id="evidence-labels">
+    <h2>证据标签：一句话究竟从哪里来</h2>
+    <p>
+      分析第三方项目时，最危险的错误是把“作者说它会做什么”直接当成“代码实际做了什么”，或把“一个测试通过”误当成“创作质量已经得到证明”。本书用以下标签把证据层级明示出来。
+    </p>
+    <dl class="evidence-legend">
+      <div>
+        <dt><span class="evidence-tag" data-evidence="common">通用方法</span></dt>
+        <dd>影视制作、叙事设计或软件建模中的通用概念。它用于建立比较坐标，不表示所有项目都必须采用同一术语。</dd>
+      </div>
+      <div>
+        <dt><span class="evidence-tag" data-evidence="docs">文档声明</span></dt>
+        <dd>README、使用说明或作者注释表达的意图。它能解释“想做什么”，但仍需与源码和产物互证。</dd>
+      </div>
+      <div>
+        <dt><span class="evidence-tag" data-evidence="source">源码实现</span></dt>
+        <dd>在固定提交中能沿调用关系、数据读写和分支条件定位的行为。它回答“现在实际上怎么做”。</dd>
+      </div>
+      <div>
+        <dt><span class="evidence-tag" data-evidence="test">测试约束</span></dt>
+        <dd>自动化测试明确保护的输入、输出或失败条件。测试只能证明覆盖到的契约，不能自动证明镜头好看。</dd>
+      </div>
+      <div>
+        <dt><span class="evidence-tag" data-evidence="runtime">运行验证</span></dt>
+        <dd>在注明环境、配置和步骤后观察到的结果。它比截图更有价值，因为别人可以重复验证。</dd>
+      </div>
+      <div>
+        <dt><span class="evidence-tag" data-evidence="inference">分析推论</span></dt>
+        <dd>依据前述证据得出的解释、风险或权衡。推论会写出依据，不伪装成作者原意。</dd>
+      </div>
+      <div>
+        <dt><span class="evidence-tag" data-evidence="proposal">重构建议</span></dt>
+        <dd>面向未来系统提出的领域模型、流程或接口方案。它可能优于现状，但不是对现有仓库行为的描述。</dd>
+      </div>
+      <div>
+        <dt><span class="evidence-tag" data-evidence="case">月城案例</span></dt>
+        <dd>为教学原创的虚构材料，用来让同一概念在文字、图像和数据之间来回映射，不属于任一第三方仓库。</dd>
+      </div>
+    </dl>
+    <p class="reading-note">
+      若一段话同时包含两类证据，本书会拆开写。例如：“README 把分镜描述为最终环节”属于文档声明；“对应脚本只读取已完成剧本”属于源码实现；“因此它试图禁止分镜阶段改写剧情”才是分析推论。
+    </p>
+  </section>
+
+  <section id="reading-routes">
+    <h2>四条阅读路径</h2>
+    <div class="route-grid">
+      <section class="route-card">
+        <h3>第一次系统学习分镜</h3>
+        <ol>
+          <li>先读本章和“共同基础”，把层级与术语分开。</li>
+          <li>跟随《月城失物局》完成一次从梗概到故事板的全过程。</li>
+          <li>再读两个仓库的解剖，观察它们在哪里合并或省略了步骤。</li>
+          <li>最后读重构篇，理解数据模型为何这样划分。</li>
+        </ol>
+      </section>
+      <section class="route-card">
+        <h3>正在使用 Narrative Forge</h3>
+        <ol>
+          <li>读完术语分层后直接进入 Narrative Forge 篇。</li>
+          <li>把界面里的“场景”逐项映射到故事节点、镜头和地点资产。</li>
+          <li>回到共同基础，补齐系统当前没有持久化的中间层。</li>
+          <li>用重构篇判断渐进改造和重新实现的边界。</li>
+        </ol>
+      </section>
+      <section class="route-card">
+        <h3>准备编程重写</h3>
+        <ol>
+          <li>重点阅读“来源事实与派生字段”“稳定 ID”和“多对多关系”。</li>
+          <li>对照两个仓库的数据契约、提示词契约和校验边界。</li>
+          <li>先建立供应商无关的核心模型，再设计模型适配器。</li>
+          <li>把每个生成步骤变成可保存、可复现、可人工修改的阶段。</li>
+        </ol>
+      </section>
+      <section class="route-card">
+        <h3>只关心 AI 视频投产</h3>
+        <ol>
+          <li>仍需先读场次、节拍和镜头覆盖，避免用提示词替代导演设计。</li>
+          <li>重点阅读关键帧、连续性、生成段和投产包。</li>
+          <li>把特定模型的时长、参考图和提示格式视为适配层约束。</li>
+          <li>用 animatic 先验证节奏，再投入昂贵的生成与返工。</li>
+        </ol>
+      </section>
+    </div>
+  </section>
+
+  <section id="three-coordinate-systems">
+    <h2>先建立三套坐标，不要把所有东西都叫“场景”</h2>
+    <p>
+      一部影像作品至少同时存在三种粒度。叙事层描述发生了什么；导演层描述观众怎样看见；生产层描述机器或团队怎样把它做出来。它们会相互引用，但不能互相替代。
+    </p>
+    <figure class="layer-map">
+      <div class="layer" data-layer="story">
+        <strong>叙事语义层</strong>
+        <span>项目 → 故事／系列 → 集 → 场 → 节拍</span>
+        <small>目标、冲突、因果、信息变化、人物状态</small>
+      </div>
+      <div class="layer-arrow" aria-hidden="true">↓ 导演选择</div>
+      <div class="layer" data-layer="directing">
+        <strong>导演表达层</strong>
+        <span>段落／序列 → 镜头 → 故事板画格</span>
+        <small>观看顺序、景别、构图、机位、运动、声音</small>
+      </div>
+      <div class="layer-arrow" aria-hidden="true">↓ 生产实例化</div>
+      <div class="layer" data-layer="production">
+        <strong>生产执行层</strong>
+        <span>生成单元 → 任务 → 素材片段 → 剪辑版本</span>
+        <small>参考资产、模型参数、首尾帧、依赖、状态、结果</small>
+      </div>
+      <figcaption>
+        同一个叙事节拍可以用多个镜头表现；一个视频生成任务也可能承载多个镜头。层与层之间是映射关系，不是简单的一对一改名。
+      </figcaption>
+    </figure>
+
+    <div class="table-scroll" role="region" aria-label="分镜核心术语工作定义" tabindex="0">
+    <table class="term-table">
+      <caption>表 1　本手册的分镜核心术语与边界</caption>
+      <thead>
+        <tr>
+          <th scope="col">术语</th>
+          <th scope="col">本书中的工作定义</th>
+          <th scope="col">最容易混淆的对象</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row"><dfn>场（scene）</dfn></th>
+          <td>在一段相对连续的时空和行动中完成一个戏剧任务的叙事单位。</td>
+          <td>地点资产。控制室可以反复出现于多场戏，它不是“那一场戏”本身。</td>
+        </tr>
+        <tr>
+          <th scope="row"><dfn>节拍（beat）</dfn></th>
+          <td>让行动、信息、情绪、关系或决定发生一次可辨认变化的最小叙事单位。</td>
+          <td>句子或固定秒数。一个节拍可以无台词，也不由标点决定。</td>
+        </tr>
+        <tr>
+          <th scope="row"><dfn>镜头（shot）</dfn></th>
+          <td>一个连续观看视点所形成的动态影像单位；剪辑点通常结束当前镜头。</td>
+          <td>故事板画格。一幅静态画只能代表镜头中的某个关键状态。</td>
+        </tr>
+        <tr>
+          <th scope="row"><dfn>cut</dfn></th>
+          <td>上下文相关的词：既可能指“切”这一剪辑动作，也可能被某个系统命名为镜头实体。</td>
+          <td>不要在跨系统模型中直接假定 cut 永远等于 shot，应先读该系统的 schema。</td>
+        </tr>
+        <tr>
+          <th scope="row"><dfn>画格／面板（panel）</dfn></th>
+          <td>故事板中的一幅静态图，用来表现构图、人物位置和镜头关键时刻。</td>
+          <td>关键帧文件。关键帧是可被生产管线消费的具体资产，面板可以只是草图。</td>
+        </tr>
+        <tr>
+          <th scope="row"><dfn>生成段（generation segment）</dfn></th>
+          <td>为满足视频模型时长、连续性或接口限制而组织的一次生成单元。</td>
+          <td>戏剧场次。一次生成段不应被赋予独立改写故事的权力。</td>
+        </tr>
+        <tr>
+          <th scope="row"><dfn>片段（clip）</dfn></th>
+          <td>已经生成、拍摄或导出的媒体文件，可被剪入时间线。</td>
+          <td>镜头规格。规格是意图与约束，片段是某一次执行得到的结果。</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  <section id="storyboard-definition">
+    <h2>本书如何使用“分镜列表”这个词</h2>
+    <p>
+      中文语境中的“分镜”常同时指文字镜头表、故事板图和镜头设计行为。为了减少歧义，本书在需要精确时使用三个词：
+    </p>
+    <ul>
+      <li><strong>镜头列表：</strong>逐镜头的结构化文字规格，重点是覆盖什么、为什么这样看、如何衔接。</li>
+      <li><strong>故事板：</strong>与镜头编号对应的视觉面板，重点是构图、调度、方向和关键状态。</li>
+      <li><strong>分镜列表：</strong>连接两者的上位交付物；每个镜头既有文字记录，也能关联零到多个面板、音频和生产任务。</li>
+    </ul>
+    <aside class="callout callout-case">
+      <span class="evidence-tag" data-evidence="case">月城案例</span>
+      <p>
+        “阮星发现母亲的求救信号仍在城市核心中循环”是故事事实。镜头列表可以决定先给控制室全景，再给屏幕特写，最后切阮星反应；故事板画出她与屏幕的位置关系；投产任务则指定参考图、时长和生成模型。四句话说的是同一时刻，却属于四种不同数据。
+      </p>
+    </aside>
+  </section>
+
+  <section id="source-derived">
+    <h2>给未来程序员的两个关键概念</h2>
+    <h3>来源事实与派生结果</h3>
+    <p>
+      <span class="evidence-tag" data-evidence="common">通用方法</span>
+      若镜头时长可以由时间线计算，就不应在多个地方各存一份互相矛盾的数值；若模型提示词可以由镜头规格和资产引用编译得到，它就应被视为可再生成的派生结果。真正需要长期保存的是创作者作出的决定、来源引用、人工覆盖和生成版本。
+    </p>
+    <h3>有损转换与可追踪关系</h3>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      从梗概到镜头不是“换一种格式”，而是连续作出新决定。每往下一层，内容更具体，也更难从结果倒推出原意。因此应为集、场、节拍、镜头和资产建立稳定 ID，并保存它们之间的引用关系。这样才能回答：这个特写在服务哪个节拍？删掉这句台词后，哪些镜头和提示词需要重算？
+    </p>
+    <figure class="traceability-example">
+      <div><code>SC-03</code> 控制室场</div>
+      <div aria-hidden="true">↓ 包含</div>
+      <div><code>B03-02</code> 屏幕亮起倒计时</div>
+      <div aria-hidden="true">↓ 被两个镜头覆盖</div>
+      <div><code>SH-021</code> 建立全景 ＋ <code>SH-022</code> 屏幕插入特写</div>
+      <div aria-hidden="true">↓ 编译为</div>
+      <div><code>JOB-104</code> 关键帧任务 ＋ <code>JOB-105</code> 视频任务</div>
+      <figcaption><span class="evidence-tag" data-evidence="proposal">重构建议</span> 稳定引用使修改能够沿依赖关系传播，而不是靠全文搜索猜测影响范围。</figcaption>
+    </figure>
+  </section>
+
+  <footer class="chapter-summary">
+    <h2>读完本章，你应当能做到</h2>
+    <ul class="checklist">
+      <li>看到一项结论时，先判断它是声明、实现、测试、实测、推论还是建议。</li>
+      <li>不再把场次、地点、镜头、画格、生成段和媒体片段混成一种对象。</li>
+      <li>理解“分镜列表”是从故事语义通向视觉执行的桥，而不是一串华丽提示词。</li>
+      <li>在阅读代码时主动寻找稳定 ID、来源引用、派生字段和人工覆盖点。</li>
+    </ul>
+  </footer>
+</article>

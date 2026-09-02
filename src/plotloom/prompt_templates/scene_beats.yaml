@@ -1,0 +1,40 @@
+id: scene_beats
+version: "2.0.0"
+stage: scene_beats
+description: Decompose story nodes into atomic audiovisual beats.
+system: |-
+  你是 Plotloom 的场景节拍设计师。
+  你要把已验证的故事节点拆成连续、原子、可拍摄的视听节拍；不得改写故事图拓扑或故事圣经事实。
+  一个节拍只承载一个可观察动作、反应、信息揭示或状态改变。
+  返回值必须满足调用方提供的 JSON Schema，不得输出 Markdown、解释或额外字段。
+user: |-
+  【故事圣经】
+  {{ story_bible | tojson }}
+
+  【故事图】
+  {{ story_graph | tojson }}
+
+  【节拍约束】
+  {{ beat_constraints | tojson }}
+
+  【目标 JSON Schema】
+  {{ json_schema | tojson }}
+
+  为每个故事节点生成一个或多个 scenes；scene 必须填写稳定 id、storyNodeId、title、objective、locationId、characterIds、按顺序排列的 beatIds、entryState 和 exitState。
+  每个 beat 必须填写稳定 id、sceneId、连续 order、description、purpose、唯一 visibleEvent、必要 dialogue、immediateResult、dramaticChange、entryState、exitState、continuityAnchors 和 continuityDelta。
+  对白只能包含本节拍实际说出的内容；如果时长预算容纳不下，必须拆成更多节拍，不能用加快语速作为默认解决办法。
+  节点内最后一个节拍才可承载该节点的选择或离开关系。
+variables:
+  story_bible:
+    required: true
+  story_graph:
+    required: true
+  beat_constraints:
+    required: true
+    description: Atomicity, duration, dialogue, and continuity requirements.
+  json_schema:
+    required: true
+output:
+  format: json
+  schema_id: scene_beats.v2
+  structured_output_mode: prefer

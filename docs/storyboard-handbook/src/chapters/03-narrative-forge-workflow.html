@@ -1,0 +1,388 @@
+<article data-title="Narrative Forge：从表单到可播放项目" data-kicker="仓库解剖 I">
+  <header class="chapter-hero">
+    <p class="eyebrow">仓库解剖 I · Narrative Forge 工作流</p>
+    <h1>Narrative Forge：从表单到可播放项目</h1>
+    <p class="chapter-deck">本章不按按钮顺序复述界面，而是沿真实调用链追踪一次创作：浏览器怎样建立第一个项目，梗概怎样变成模型请求，模型 JSON 怎样安装成镜头与引用，关键帧和视频怎样成为任务，最后又怎样变成试玩包或分集成片。</p>
+    <aside class="chapter-promise" aria-labelledby="nf-workflow-promise">
+      <h2 id="nf-workflow-promise">读完本章，你应该能回答</h2>
+      <ul>
+        <li>互动影游与 AI 短剧共用哪些模块，又从哪一步开始分叉。</li>
+        <li>模型返回的 <code>key</code>、项目内 <code>id</code> 与 <code>storyNodeKey</code> 分别解决什么问题。</li>
+        <li>为什么“生成成功”不等于“项目已经落盘、素材已经可发布”。</li>
+        <li>当前代码哪些行为来自原作者版本，哪些是公开 fork 状态，哪些只存在于本地修复。</li>
+      </ul>
+    </aside>
+  </header>
+
+  <section id="nf-baseline" class="chapter-section">
+    <h2>一、先钉住版本：这里分析的不是抽象的“GitHub 项目”</h2>
+    <p>同名仓库在三个位置可以表现不同。阅读任何结论前，先看它落在哪条边界内。</p>
+    <div class="table-scroll" role="region" aria-label="Narrative Forge 版本边界" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="source">源码实现</span> 表 1　本文绑定的 Git 证据边界</caption>
+        <thead>
+          <tr>
+            <th scope="col">层</th>
+            <th scope="col">固定点</th>
+            <th scope="col">本章如何使用</th>
+            <th scope="col">证据定位</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">原作者历史快照</th>
+            <td><code>abebc29</code>，作者 <code>Zafer_Liu</code></td>
+            <td>用来识别原作者仓库当时已有的创作、媒体与导出能力。不能把后续修复倒推成原作者已经实现。</td>
+            <td><span class="evidence-tag" data-evidence="source">Git 历史</span><br /><code>git show abebc29</code></td>
+          </tr>
+          <tr>
+            <th scope="row">公开 fork 指针</th>
+            <td><code>origin/main = 6b4972f</code></td>
+            <td>公开 fork 已包含 <code>a9513b5</code> 的首次启动与密钥边界修复，以及随后一次 uv 工程脚手架提交；它尚不包含下一行的端口修复。</td>
+            <td><span class="evidence-tag" data-evidence="source">Git 历史</span><br /><code>git log</code> · <code>origin/main</code></td>
+          </tr>
+          <tr>
+            <th scope="row">本地分析基线</th>
+            <td><code>24c3c47</code></td>
+            <td>本章所有“当前实现”都以这个本地提交为准；它在公开 fork 之上增加默认端口 <code>8765</code> 与本地占用时顺延尝试。</td>
+            <td><span class="evidence-tag" data-evidence="source">Git 历史</span><br /><code>git rev-parse HEAD</code> · <code>docs/adr/0002-local-port-selection.md</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <aside class="callout callout-warning">
+      <h3>归因纪律</h3>
+      <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>a9513b5</code> 把首次项目读取改为 <code>project?.meta</code>、加入根目录 <code>.env</code> 与会话密钥边界；<code>24c3c47</code> 再加入端口选择。证据定位：<code>static/src/project-model.js</code> · <code>readCharactersFromForm()</code>/<code>readSceneCardsFromForm()</code>，<code>app.py</code> · <code>load_root_environment()</code>/<code>create_http_server()</code>。</p>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 因而，若你要评价“上游是否完整”，应把创作工作流与本地可靠性修复分别评价；否则会把修复后的可启动性误算成原作者版本的能力。</p>
+    </aside>
+  </section>
+
+  <section id="nf-architecture" class="chapter-section">
+    <h2>二、总体结构：一个 Python 进程，两个运行世界</h2>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> Python 入口使用 <code>ThreadingHTTPServer</code> 和 <code>SimpleHTTPRequestHandler</code> 的子类：同一进程既从 <code>static/</code> 提供工作台文件，也把 <code>/api/*</code> 路径交给路由表，再从 <code>projects/</code> 提供已落盘素材。证据定位：<code>app.py</code> · <code>DirectorHandler.do_GET()</code>/<code>do_POST()</code>/<code>serve_static()</code>/<code>serve_project_file()</code>；<code>backend/route_registry.py</code> · <code>API_ROUTES</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 浏览器端不是服务端模板应用；<code>static/index.html</code> 提供 DOM，<code>static/dist/bundle.js</code> 是由 <code>static/src/main.js</code> 等 ES 模块构建出的运行包。项目编辑状态主要在浏览器内存和 Web Storage 中，显式“保存项目”才把 JSON 写入服务端目录。证据定位：<code>static/src/main.js</code> · <code>bootstrap()</code>；<code>static/src/project-model.js</code> · <code>saveProject()</code>；<code>static/src/project-io.js</code> · <code>persistProject()</code>。</p>
+
+    <figure class="pipeline-figure" aria-labelledby="nf-architecture-title">
+      <svg viewBox="0 0 1080 430" role="img" aria-labelledby="nf-architecture-title nf-architecture-desc" xmlns="http://www.w3.org/2000/svg">
+        <title id="nf-architecture-title">Narrative Forge 从浏览器到供应商与项目文件的调用图</title>
+        <desc id="nf-architecture-desc">浏览器表单和项目状态经前端模块调用 Python API。文本、图片和视频请求再去外部供应商；项目和素材写入 projects 目录；导出器读取项目和本地素材生成试玩包或成片。</desc>
+        <defs>
+          <marker id="nf-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+            <path d="M0 0 L10 4 L0 8 Z" fill="#984b3d"></path>
+          </marker>
+        </defs>
+        <rect x="25" y="30" width="250" height="350" rx="12" fill="#fffdf7" stroke="#20201d" stroke-width="2"></rect>
+        <text x="150" y="62" text-anchor="middle" font-size="19" font-weight="700" fill="#20201d">浏览器工作台</text>
+        <rect x="50" y="86" width="200" height="58" rx="7" fill="#fff2c9" stroke="#8f887c"></rect>
+        <text x="150" y="111" text-anchor="middle" font-size="15" fill="#20201d">表单／事件／编辑器</text>
+        <text x="150" y="132" text-anchor="middle" font-size="12" fill="#5d5b54">events · render · episodes</text>
+        <rect x="50" y="169" width="200" height="58" rx="7" fill="#f7f3e9" stroke="#8f887c"></rect>
+        <text x="150" y="194" text-anchor="middle" font-size="15" fill="#20201d">project v6 内存模型</text>
+        <text x="150" y="215" text-anchor="middle" font-size="12" fill="#5d5b54">interactive／episodes</text>
+        <rect x="50" y="252" width="200" height="58" rx="7" fill="#ece4d4" stroke="#8f887c"></rect>
+        <text x="150" y="277" text-anchor="middle" font-size="15" fill="#20201d">提示与安装器</text>
+        <text x="150" y="298" text-anchor="middle" font-size="12" fill="#5d5b54">draft · prompt · api</text>
+        <text x="150" y="350" text-anchor="middle" font-size="12" fill="#5d5b54">localStorage／sessionStorage</text>
+
+        <rect x="365" y="30" width="300" height="350" rx="12" fill="#fffdf7" stroke="#20201d" stroke-width="2"></rect>
+        <text x="515" y="62" text-anchor="middle" font-size="19" font-weight="700" fill="#20201d">Python 本地服务</text>
+        <rect x="390" y="86" width="250" height="58" rx="7" fill="#f7d98e" stroke="#8f887c"></rect>
+        <text x="515" y="111" text-anchor="middle" font-size="15" fill="#20201d">静态文件与 API 路由</text>
+        <text x="515" y="132" text-anchor="middle" font-size="12" fill="#5d5b54">DirectorHandler · API_ROUTES</text>
+        <rect x="390" y="169" width="250" height="58" rx="7" fill="#f7f3e9" stroke="#8f887c"></rect>
+        <text x="515" y="194" text-anchor="middle" font-size="15" fill="#20201d">校验／供应商适配／轮询</text>
+        <text x="515" y="215" text-anchor="middle" font-size="12" fill="#5d5b54">app.py · backend/providers.py</text>
+        <rect x="390" y="252" width="250" height="58" rx="7" fill="#ece4d4" stroke="#8f887c"></rect>
+        <text x="515" y="277" text-anchor="middle" font-size="15" fill="#20201d">保存与后台导出任务</text>
+        <text x="515" y="298" text-anchor="middle" font-size="12" fill="#5d5b54">publishing · serial_exporting · jobs</text>
+        <text x="515" y="350" text-anchor="middle" font-size="12" fill="#5d5b54">根目录 .env（不覆盖宿主环境）</text>
+
+        <rect x="755" y="30" width="300" height="160" rx="12" fill="#f3eee2" stroke="#316e75" stroke-width="2"></rect>
+        <text x="905" y="62" text-anchor="middle" font-size="19" font-weight="700" fill="#20201d">外部生成供应商</text>
+        <text x="905" y="98" text-anchor="middle" font-size="14" fill="#20201d">文本：OpenAI-compatible chat/completions</text>
+        <text x="905" y="126" text-anchor="middle" font-size="14" fill="#20201d">图片：AtlasCloud／OpenAI-compatible／DashScope</text>
+        <text x="905" y="154" text-anchor="middle" font-size="14" fill="#20201d">视频：AtlasCloud／Seedance／DashScope</text>
+
+        <rect x="755" y="220" width="300" height="160" rx="12" fill="#fffdf7" stroke="#20201d" stroke-width="2"></rect>
+        <text x="905" y="252" text-anchor="middle" font-size="19" font-weight="700" fill="#20201d">本地持久产物</text>
+        <text x="905" y="289" text-anchor="middle" font-size="14" fill="#20201d">projects/&lt;title&gt;/project.json</text>
+        <text x="905" y="317" text-anchor="middle" font-size="14" fill="#20201d">assets/&lt;scene-id&gt;/image|video</text>
+        <text x="905" y="345" text-anchor="middle" font-size="14" fill="#20201d">exports/试玩包.zip 或分集 MP4</text>
+
+        <path d="M275 120 H365" fill="none" stroke="#984b3d" stroke-width="2.5" marker-end="url(#nf-arrow)"></path>
+        <text x="320" y="108" text-anchor="middle" font-size="12" fill="#5d5b54">HTTP</text>
+        <path d="M665 120 H755" fill="none" stroke="#984b3d" stroke-width="2.5" marker-end="url(#nf-arrow)"></path>
+        <text x="710" y="108" text-anchor="middle" font-size="12" fill="#5d5b54">HTTPS</text>
+        <path d="M665 280 H755" fill="none" stroke="#984b3d" stroke-width="2.5" marker-end="url(#nf-arrow)"></path>
+        <text x="710" y="268" text-anchor="middle" font-size="12" fill="#5d5b54">文件</text>
+        <path d="M905 190 V220" fill="none" stroke="#984b3d" stroke-width="2.5" marker-end="url(#nf-arrow)"></path>
+        <text x="922" y="211" font-size="12" fill="#5d5b54">下载</text>
+      </svg>
+      <figcaption><span class="evidence-tag" data-evidence="source">源码实现</span> 图 1　运行时边界。证据定位：<code>static/src/main.js</code> · <code>bootstrap()</code>，<code>static/src/draft.js</code> · <code>generateStoryDraft()</code>/<code>generateSerialDraft()</code>，<code>static/src/api.js</code> · <code>generateImage()</code>/<code>generateVideo()</code>，<code>app.py</code> · <code>DirectorHandler</code>，<code>backend/providers.py</code> · <code>get_adapter()</code>，<code>backend/publishing.py</code> · <code>build_player_package()</code>，<code>backend/serial_exporting.py</code> · <code>build_serial_package()</code>。</figcaption>
+    </figure>
+
+    <aside class="callout callout-principle">
+      <h3>最重要的阅读结论</h3>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> Narrative Forge 是“浏览器编辑器 + 本地协调服务”，不是把项目全部保存在 Python 内存中的传统后端应用。调试时必须先判断故障发生在 DOM 装配、浏览器状态、API 路由、供应商协议、任务轮询还是文件落盘，不能把所有失败都叫成“按钮没反应”。</p>
+    </aside>
+  </section>
+
+  <section id="nf-startup" class="chapter-section">
+    <h2>三、首次启动：按钮获得生命之前发生了什么</h2>
+    <ol>
+      <li><span class="evidence-tag" data-evidence="source">源码实现</span> Python 导入时只读取仓库根目录的 <code>.env</code>，并以 <code>override=False</code> 保留宿主机或部署平台已经设置的同名环境变量。证据定位：<code>app.py</code> · <code>ROOT</code>/<code>load_root_environment()</code>。</li>
+      <li><span class="evidence-tag" data-evidence="source">源码实现</span> 本地默认绑定 <code>127.0.0.1:8765</code>；若端口被占用，会从起始端口起共试最多 20 个候选，也就是再试后续 19 个。平台设置了 <code>PORT</code> 时，若没有显式 <code>DIRECTOR_HOST</code>，主机默认改为 <code>0.0.0.0</code>；平台端口不会静默顺延。证据定位：<code>app.py</code> · <code>DEFAULT_DIRECTOR_PORT</code>/<code>resolve_server_address()</code>/<code>create_http_server()</code>/<code>main()</code>。</li>
+      <li><span class="evidence-tag" data-evidence="source">源码实现</span> 浏览器加载 bundle 后，入口等到 DOM 可用再执行 <code>bootstrap()</code>；它先缓存 DOM 元素，再尝试从 <code>localStorage</code> 读项目，否则用当前表单建立 version 6 空项目。证据定位：<code>static/src/main.js</code> · <code>bootstrap()</code>；<code>static/src/state.js</code> · <code>initElements()</code>；<code>static/src/project-model.js</code> · <code>loadProject()</code>/<code>normalizeProject()</code>。</li>
+      <li><span class="evidence-tag" data-evidence="source">源码实现</span> 项目就位后才把元数据写回表单、绑定事件、渲染当前模式，并设置 <code>document.body.dataset.appReady = "true"</code>；健康检查与供应商配置加载随后异步进行。证据定位：<code>static/src/main.js</code> · <code>bootstrap()</code>；<code>static/src/events.js</code> · <code>bindEvents()</code>；<code>static/src/project-io.js</code> · <code>checkHealth()</code>。</li>
+    </ol>
+    <aside class="callout callout-warning">
+      <h3>为什么旧版会出现“所有按钮都不工作”</h3>
+      <p><span class="evidence-tag" data-evidence="source">源码实现</span> 原作者快照在首次项目尚为 <code>null</code> 时，<code>readMetaFromForm()</code> 会进入角色卡和场景卡读取，而两处读取器先访问 <code>project.meta</code>；本地修复把它改为 <code>project?.meta</code>，使空项目建立可以继续完成。证据定位：<code>git diff abebc29..a9513b5 -- static/src/project-model.js</code> · <code>readCharactersFromForm()</code>/<code>readSceneCardsFromForm()</code>。</p>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 这类异常发生在 <code>bindEvents()</code> 之前，所以视觉上会呈现“页面出来了，但所有控件像死掉”；它并不证明每个按钮的业务函数都未实现。</p>
+    </aside>
+  </section>
+
+  <section id="nf-common-input" class="chapter-section">
+    <h2>四、共同入口：先把粗梗概压进项目表单</h2>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 两种模式共用项目级输入：片名、梗概、类型、画幅、视觉风格、兼容角色文本、结构化角色卡和结构化场景卡；互动模式另读树深、分支数、每节点分镜数，短剧模式另读集数、每集镜数与基调。证据定位：<code>static/src/project-model.js</code> · <code>readMetaFromForm()</code> 及 <code>meta.*</code> 字段。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 点击文本模型或本地模板前，<code>draftRequestMeta()</code> 要求项目梗概或当前集梗概至少有一个非空；若当前范围已经有镜头，用户确认后才用新草案替换，并先存一份 recovery 快照。证据定位：<code>static/src/draft.js</code> · <code>draftRequestMeta()</code>/<code>confirmDraftReplacement()</code>；<code>static/src/project-model.js</code> · <code>snapshotProjectBeforeReplacement()</code>。</p>
+
+    <div class="table-scroll" role="region" aria-label="两种模式入口与结果对照" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="source">源码实现</span> 表 2　同一项目表单进入两条生成路线</caption>
+        <thead>
+          <tr>
+            <th scope="col">环节</th>
+            <th scope="col">互动影游</th>
+            <th scope="col">AI 短剧</th>
+            <th scope="col">证据定位</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">规划单位</th>
+            <td>完整有向剧情树；节点数为 <code>Σ branchCount^level</code>。</td>
+            <td>当前选中的一集；计划镜数来自该集 <code>meta.shotCount</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/draft.js</code> · <code>draftRequestMeta()</code></td>
+          </tr>
+          <tr>
+            <th scope="row">规模边界</th>
+            <td>深度 2–5、分支 2–4、每节点 1–5 镜；最多 160 个剧情节点、240 个分镜。</td>
+            <td>常规 UI 与分集规范化把每集目标限制在 1–30 镜；草案读取和安装器另设最多 200 镜的外层防御上限，正常表单不能把目标设到该上限。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>app.py</code> · <code>build_story_payload()</code>；<code>static/src/draft.js</code> · <code>draftRequestMeta()</code>；<code>static/src/episode-model.js</code> · <code>normalizeEpisodes()</code></td>
+          </tr>
+          <tr>
+            <th scope="row">生成范围</th>
+            <td>替换互动容器中的全部镜头。</td>
+            <td>只替换当前集的全部镜头，其他集仍在 <code>episodes</code> 中。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/draft.js</code> · <code>installGeneratedStory()</code>/<code>installGeneratedSerial()</code>；<code>static/src/episode-model.js</code> · <code>installFacade()</code></td>
+          </tr>
+          <tr>
+            <th scope="row">运行关系</th>
+            <td>选择边或无选择时的 <code>nextSceneId</code>。</td>
+            <td>按集、按 <code>episodeOrder</code> 顺序播放；项目也保留线性 <code>nextSceneId</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/story-graph.js</code> · <code>storyTargets()</code>；<code>static/src/player.js</code> · <code>serialOrderedScenes()</code>/<code>renderSerialPlayer()</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="nf-interactive-flow" class="chapter-section">
+    <h2>五、互动模式：从表单到完整分支树</h2>
+    <div class="process-line" aria-label="互动影游生成流程">
+      <span>项目表单</span><span aria-hidden="true">→</span>
+      <span>树规模校验</span><span aria-hidden="true">→</span>
+      <span>POST /api/generate-story</span><span aria-hidden="true">→</span>
+      <span>模型 JSON</span><span aria-hidden="true">→</span>
+      <span>key 转 scene id</span><span aria-hidden="true">→</span>
+      <span>编辑／树览／试玩</span>
+    </div>
+
+    <h3>1. 提示契约由后端编译</h3>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 前端 <code>generateStoryDraft()</code> 发送项目字段、角色卡、场景卡、树深、分支数和每节点镜数；后端 <code>build_story_payload()</code> 再构造 system/user messages，要求模型返回一个从 <code>startKey</code> 开始的完整有向树。证据定位：<code>static/src/draft.js</code> · <code>generateStoryDraft()</code>；<code>app.py</code> · <code>build_story_payload()</code>/<code>DirectorHandler.generate_story()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 模型传输格式的每条 <code>scenes[]</code> 包含临时唯一 <code>key</code>、<code>storyNodeKey</code>、节点内镜号、标题、五档景别、时长、动作、对白、<code>choices[].targetKey</code> 与 <code>nextKey</code>；同一剧情节点前几镜线性相连，选择只放在该节点尾镜。证据定位：<code>app.py</code> · <code>build_story_payload()</code> 返回格式与约束文本。</p>
+
+    <h3>2. 文本供应商只返回模型响应，业务安装在浏览器完成</h3>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>/api/generate-story</code> 调用 OpenAI-compatible 的 <code>chat/completions</code>，把原始供应商 JSON 回给浏览器；浏览器从第一条 assistant message 中清除 think/围栏并提取首个 JSON 对象。证据定位：<code>app.py</code> · <code>DirectorHandler.generate_story()</code>/<code>atlas_request()</code>；<code>static/src/utils.js</code> · <code>parseStoryJson()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>installGeneratedStory()</code> 拒绝空 scenes、超过 240 镜、重复 key 与不存在的选择目标；随后为每条模型记录创建新的 <code>scene.id</code>，建立 <code>key → id</code> 映射，并把 <code>targetKey</code>/<code>nextKey</code> 改写成项目内引用。证据定位：<code>static/src/draft.js</code> · <code>installGeneratedStory()</code>；<code>static/src/project-model.js</code> · <code>createScene()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 若表单要求每节点多镜，而模型返回记录数恰好等于预期剧情节点数，安装器便把它启发式地视为“每节点一条”，将 <code>action</code> 按句子扩成多镜，用 <code>storyNodeKey</code> 归组，只在尾镜保留对白与分支；它没有先验证每个剧情节点是否确实各被覆盖一次。若模型记录数恰好等于目标总镜数，则直接采用其多镜结构。证据定位：<code>static/src/draft.js</code> · <code>expandInteractiveStoryScenes()</code>/<code>installGeneratedStory()</code>。</p>
+
+    <h3>3. 安装之后仍是一份可编辑图，而不是不可变模型输出</h3>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 编辑器允许改标题、景别、时长、动作、对白、下一镜、选择文案/影响/目标、角色与场景卡关联、参考镜头和两类提示词；“设为起点”“添加节点”“删除节点”也直接更新项目图。证据定位：<code>static/src/render.js</code> · <code>renderEditor()</code>/<code>renderFlowEditor()</code>/<code>syncEditorToScene()</code>；<code>static/src/events.js</code> · <code>bindEvents()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 分支检查验证起点、目标引用、从起点可达性和至少一个结局；遍历时，有选择就只沿选择走，否则沿 <code>nextSceneId</code> 走。证据定位：<code>static/src/story-graph.js</code> · <code>validateStoryGraph()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 试玩器优先播放本地视频，再退到远程视频、图片或无素材占位；有选择时显示选择按钮，无选择但有下一镜时显示“继续”，无二者时显示结局。节点内多镜还可在视频结束或图片计时结束后自动进入下一镜。证据定位：<code>static/src/player.js</code> · <code>renderStoryPlayer()</code>/<code>shouldAutoContinueStory()</code>。</p>
+
+    <aside class="callout callout-case">
+      <span class="evidence-tag" data-evidence="case">月城案例 · 互动映射</span>
+      <p>把“阮星的手停在两个按钮之间”设为一个剧情节点的尾镜，两个选择可分别写成“恢复全城记忆”和“释放弟弟救生舱”，各自指向后续节点的首镜。若这个选择前需要“看核心—看弟弟—手伸向按钮”三镜，三条项目记录共享一个 <code>storyNodeKey</code>，前两镜只用 <code>nextSceneId</code>，第三镜才拥有选择。</p>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 这能表达“一个互动节点包含多个观看镜头”，但不能表达章节 2 的 B01–B09 节拍与 SH-081–SH-088 镜头之间的显式认领关系；节拍只能隐含在 <code>action</code> 文本里。</p>
+    </aside>
+  </section>
+
+  <section id="nf-serial-flow" class="chapter-section">
+    <h2>六、短剧模式：从系列规划到当前集镜头列</h2>
+    <div class="process-line" aria-label="AI 短剧生成流程">
+      <span>项目与当前集表单</span><span aria-hidden="true">→</span>
+      <span>前端编译长提示</span><span aria-hidden="true">→</span>
+      <span>POST /api/generate-episode</span><span aria-hidden="true">→</span>
+      <span>模型 JSON</span><span aria-hidden="true">→</span>
+      <span>当前集 scenes</span><span aria-hidden="true">→</span>
+      <span>衔接重建／线性播放</span>
+    </div>
+
+    <h3>1. 分集是容器，生成范围是“当前集”</h3>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 进入短剧模式时至少创建一集；每集保存标题、梗概、目标、钩子、结尾和目标镜数，并拥有自己的 <code>scenes</code>、起点与当前选择。证据定位：<code>static/src/mode.js</code> · <code>setMode()</code>；<code>static/src/episode-model.js</code> · <code>create()</code>；<code>static/src/episodes.js</code> · <code>syncEpisodeFromForm()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>project.scenes</code> 在短剧模式下是当前集 scenes 的访问门面，所以生成、编辑和拖动仍能复用原有镜头代码；切换选中集后，同一属性会指向另一个容器。证据定位：<code>static/src/episode-model.js</code> · <code>activeContainer()</code>/<code>installFacade()</code>。</p>
+
+    <h3>2. 短剧提示由前端编译，后端只加 system message</h3>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>generateSerialDraft()</code> 把项目标题、全剧梗概、类型/基调、角色卡、场景卡、视觉风格、本集五项元数据、上一集摘要和下一集标题拼成一个长提示，并要求严格数量的线性镜头 JSON。证据定位：<code>static/src/draft.js</code> · <code>generateSerialDraft()</code>/<code>serialPrompt</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 提示要求模型先在内部拆连续节拍，但返回结构并没有 beat 数组；每镜返回 <code>key</code>、<code>episodeOrder</code>、标题、景别、时长、动作、对白、转场、入口/出口状态和 <code>nextKey</code>。证据定位：<code>static/src/draft.js</code> · <code>generateSerialDraft()</code> 的返回格式与要求 1–9。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 后端 <code>generate_episode()</code> 只校验提示、模型、Base URL 和密钥，加入“只返回 JSON”的 system message 后调用 <code>chat/completions</code>；它不重建短剧业务提示。证据定位：<code>app.py</code> · <code>DirectorHandler.generate_episode()</code>。</p>
+
+    <h3>3. 安装器把模型记录变成可生成镜头</h3>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>installGeneratedSerial()</code> 拒绝空 scenes、超过 200 镜与重复 key；它把景别限制在五档、转场限制在四类、时长限制在 4/6/8/10/12/15 秒，并把过长对白向上调整到可容纳的时长档。证据定位：<code>static/src/draft.js</code> · <code>installGeneratedSerial()</code>；<code>static/src/utils.js</code> · <code>dialogueBudget()</code>/<code>recommendedDialogueDuration()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 临时 key 被映射为新 scene ID；模型角色卡或场景卡若非空，会替换项目级对应数组。自动关联时，角色名匹配镜头标题、动作与对白，场景名只匹配标题与动作。证据定位：<code>static/src/draft.js</code> · <code>installGeneratedSerial()</code>；<code>static/src/project-model.js</code> · <code>autoAssociateCards()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 安装完成后，<code>rebuildSerialTransitions()</code> 为缺失的入口/出口状态做邻镜推断，并重新组合视频提示；线性播放器把所有集按集序和镜序摊平成一列，可手动前后翻或按视频结束/图片时长自动播放。证据定位：<code>static/src/prompt.js</code> · <code>rebuildSerialTransitions()</code>；<code>static/src/player.js</code> · <code>serialOrderedScenes()</code>/<code>renderSerialPlayer()</code>。</p>
+
+    <aside class="callout callout-case">
+      <span class="evidence-tag" data-evidence="case">月城案例 · 短剧映射</span>
+      <p>章节 2 的八镜可放进一集：本集钩子是“月城将在 38 秒后断电”，目标是让阮星确认二选一规则，结尾是弟弟说“姐，让我选”。每镜的动作和对白进入 <code>action</code>/<code>dialogue</code>，道具、视线与姿势的交接进入 <code>entryState</code>/<code>exitState</code>，镜 01–08 用 <code>nextSceneId</code> 线性连接。</p>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 系统能保存“镜头怎样接”，但没有单独保存“这一场为什么存在”“B08 由哪一镜覆盖”“为什么在这里切”。如果以后重写，不能只把现有 scenes 换个字段名就称为完整分镜模型。</p>
+    </aside>
+  </section>
+
+  <section id="nf-cards-prompts" class="chapter-section">
+    <h2>七、角色卡与场景卡：连续性怎样进入每一镜</h2>
+    <div class="table-scroll" role="region" aria-label="角色卡场景卡与镜头关联" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="source">源码实现</span> 表 3　从设定卡到镜头生成输入</caption>
+        <thead>
+          <tr>
+            <th scope="col">对象</th>
+            <th scope="col">结构化内容</th>
+            <th scope="col">怎样进入镜头</th>
+            <th scope="col">证据定位</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">角色卡</th>
+            <td>姓名、年龄段、性别呈现、发型、服装、道具、情绪、表演、备注和设定图状态。</td>
+            <td>镜头用 <code>characterIds[]</code> 引用；图像提示重复出场角色识别信息。未指定时退到第一张角色卡。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/project-model.js</code> · <code>normalizeCharacterCard()</code>；<code>static/src/prompt.js</code> · <code>characterContinuityBlock()</code></td>
+          </tr>
+          <tr>
+            <th scope="row">场景卡</th>
+            <td>名称、类型、光照、色调、氛围、环境、时段、备注和参考图状态。</td>
+            <td>镜头用单个 <code>sceneCardId</code> 引用；图像提示注入环境连续性描述。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/project-model.js</code> · <code>normalizeSceneCard()</code>；<code>static/src/prompt.js</code> · <code>sceneCardBlock()</code></td>
+          </tr>
+          <tr>
+            <th scope="row">设定图</th>
+            <td>角色全身中性背景图；无人物的场景空镜。</td>
+            <td>各自通过图片供应商生成；镜头关键帧会优先取指定参考镜头，否则取角色卡图，并可再加入场景卡图。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/prompt.js</code> · <code>composeCharacterPortraitPrompt()</code>/<code>composeSceneCardPrompt()</code>；<code>static/src/api.js</code> · <code>generateImage()</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 角色卡与场景卡面板支持增删改和单独出图；每个镜头编辑器也提供角色多选与场景单选。证据定位：<code>static/src/render.js</code> · <code>renderCharacterPanel()</code>/<code>renderSceneCardPanel()</code>/<code>renderCharacterSelector()</code>/<code>renderSceneCardSelector()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 这里的“连续性”主要靠重复文字与参考图片向模型传递，不是一个能证明发型、道具手别或空间方向始终一致的约束求解器；它提供生产提示，不提供视觉事实校验。</p>
+  </section>
+
+  <section id="nf-media-flow" class="chapter-section">
+    <h2>八、图片与视频：两段生成、一个统一任务外观</h2>
+    <h3>关键帧任务</h3>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 点击生成关键帧时，前端先同步编辑器，检查提示词与参考镜头，再按“参考镜头优先于角色卡图”的规则组装最多两类连续性参考；它发送尺寸、质量、格式、模型和供应商设置到 <code>/api/generate-image</code>。证据定位：<code>static/src/api.js</code> · <code>generateImage()</code>；<code>static/src/utils.js</code> · <code>imageSizeForAspect()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 后端只使用参考图数组的前四张，超出的会被忽略；有参考图时切换编辑模型，本地 <code>/projects/</code> 图片会转成 data URI，再由所选 adapter 生成供应商请求。证据定位：<code>app.py</code> · <code>validate_image_params()</code>/<code>resolve_reference_image()</code>/<code>DirectorHandler.generate_image()</code>；<code>backend/providers.py</code> · 图像 adapter 的 <code>submit_spec()</code>。</p>
+
+    <h3>图生视频任务</h3>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 视频生成必须先有当前镜头关键帧，并发送当前镜头视频提示、关键帧 URL、时长、分辨率、画幅、模型和供应商设置；对白超预算只提示风险，不阻止提交。证据定位：<code>static/src/api.js</code> · <code>generateVideo()</code>；<code>static/src/utils.js</code> · <code>spokenCharacterCount()</code>/<code>dialogueBudget()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 后端通用视频校验接受 1–15 秒整数、480p/720p 和三种画幅，再交给 AtlasCloud、Seedance 或 DashScope adapter；Seedance adapter 会把供应商时长夹在 4–15 秒。证据定位：<code>app.py</code> · <code>validate_video_params()</code>/<code>DirectorHandler.generate_video()</code>；<code>backend/providers.py</code> · <code>SeedanceVideoAdapter.submit_spec()</code>。</p>
+
+    <h3>同步供应商与异步供应商为何看起来一样</h3>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 异步供应商返回真实任务 ID；同步图片供应商的结果被服务端缓存并包装成 <code>sync-*</code> token。前端统一保存 prediction ID，再轮询 <code>/api/predictions/&lt;id&gt;</code>；完成后读取第一条输出 URL。证据定位：<code>app.py</code> · <code>DirectorHandler._submit_result()</code>/<code>api_prediction()</code>；<code>static/src/api.js</code> · <code>predictionId()</code>/<code>pollPrediction()</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 停止按钮只中止本地等待；若已经有 prediction ID，状态改为 <code>paused</code>，以后可继续轮询。完成的镜头图片/视频会尝试下载到 <code>projects/&lt;project&gt;/assets/&lt;scene-id&gt;/</code>，使用 <code>.part</code> 临时文件后原子替换。证据定位：<code>static/src/api.js</code> · <code>stopTask()</code>/<code>resumeTask()</code>/<code>saveAsset()</code>；<code>app.py</code> · <code>DirectorHandler.save_asset()</code>。</p>
+
+    <aside class="callout callout-warning">
+      <h3>停止不等于取消计费</h3>
+      <p><span class="evidence-tag" data-evidence="source">源码实现</span> 媒体任务停止逻辑只 abort 浏览器请求，没有调用供应商取消接口；界面文案也明确提示供应商后台任务可能继续。证据定位：<code>static/src/api.js</code> · <code>stopTask()</code>/<code>resetAsset()</code>。</p>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 因而批量生成的成本控制不能只依赖 UI 的“停止”；重写时应把“停止观察”“取消供应商任务”和“清除项目记录”建模成三个不同动作。</p>
+    </aside>
+  </section>
+
+  <section id="nf-edit-play-export" class="chapter-section">
+    <h2>九、编辑、播放、保存、导出：四种不同的“完成”</h2>
+    <div class="table-scroll" role="region" aria-label="Narrative Forge 完成状态对照" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="source">源码实现</span> 表 4　不要把四个完成状态混为一谈</caption>
+        <thead>
+          <tr>
+            <th scope="col">状态</th>
+            <th scope="col">实际结果</th>
+            <th scope="col">还没有发生什么</th>
+            <th scope="col">证据定位</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">草案已安装</th>
+            <td>项目内已有可编辑 scenes、引用与派生提示。</td>
+            <td>没有保证图片、视频或服务端 project.json 已存在。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/draft.js</code> · <code>installGeneratedStory()</code>/<code>installGeneratedSerial()</code></td>
+          </tr>
+          <tr>
+            <th scope="row">浏览器已保存</th>
+            <td><code>localStorage</code> 中有项目 JSON；覆盖前快照另存 recovery key。</td>
+            <td>没有把项目文件写入仓库的 <code>projects/</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/project-model.js</code> · <code>saveProject()</code>/<code>snapshotProjectBeforeReplacement()</code></td>
+          </tr>
+          <tr>
+            <th scope="row">服务端已保存</th>
+            <td><code>projects/&lt;title&gt;/project.json</code> 已写入；旧文件有时间戳备份。</td>
+            <td>远程素材 URL 不会因此自动变成本地文件。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/project-io.js</code> · <code>persistProject()</code>；<code>app.py</code> · <code>DirectorHandler.save_project()</code></td>
+          </tr>
+          <tr>
+            <th scope="row">发布包已导出</th>
+            <td>互动模式得到离线试玩 ZIP；短剧当前集得到 MP4。</td>
+            <td>互动包只打入能找到的本地素材；短剧导出要求每镜已有本地视频和 ffmpeg。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span><br /><code>static/src/main.js</code> · <code>bindPublishButton()</code>；<code>backend/publishing.py</code> · <code>build_player_package()</code>；<code>backend/serial_exporting.py</code> · <code>build_serial_package()</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> “导出项目”是浏览器下载完整编辑 JSON；“导出试玩包/当前集成片”则提交后台 job，前端每 700 毫秒查询状态，可再次点击请求协作式取消。证据定位：<code>static/src/project-io.js</code> · <code>exportProject()</code>；<code>static/src/main.js</code> · <code>bindPublishButton()</code>/<code>pollJob()</code>；<code>backend/jobs.py</code> · <code>JobManager</code>。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 互动导出先生成只含公开播放字段的 project 数据，移除供应商设置与编辑字段，再把本地场景素材、播放器运行时和 release JSON 打包；短剧导出用 ffprobe/ffmpeg 统一画幅、帧率与音频后顺序拼接。证据定位：<code>backend/publishing.py</code> · <code>_public_project()</code>/<code>build_player_package()</code>；<code>backend/serial_exporting.py</code> · <code>_probe_video()</code>/<code>_normalize_clip()</code>/<code>_concat_episode()</code>。</p>
+  </section>
+
+  <section id="nf-one-shot-trace" class="chapter-section">
+    <h2>十、月城镜 07：把一条镜头从纸面追到产物</h2>
+    <div class="mapping-stack" aria-label="月城镜头在 Narrative Forge 中的映射">
+      <div><span class="evidence-tag" data-evidence="case">月城案例</span> <strong>导演母版：</strong><code>SH-087</code>，阮星猛拉机械应急杆，杆体卡死并冒火花；它覆盖 B07，目的是真正关闭“第三条路”。</div>
+      <div><span class="evidence-tag" data-evidence="case">月城案例</span> <strong>Narrative Forge 镜头记录：</strong><code>title</code> 写“旁路失败”，<code>shot</code> 写“中景”，<code>action</code> 写当前可见动作，<code>entryState</code> 保存手已握住杆、钥匙仍在插槽，<code>exitState</code> 保存杆卡半程、火花与人物退半步。</div>
+      <div><span class="evidence-tag" data-evidence="source">源码实现</span> <strong>图像提示：</strong>组合景别、入口状态、唯一事件、角色卡、场景卡、视觉风格和画幅。证据定位：<code>static/src/prompt.js</code> · <code>composeImagePrompt()</code>。</div>
+      <div><span class="evidence-tag" data-evidence="source">源码实现</span> <strong>视频提示：</strong>保留运镜部分，再加入转场、入口、动作、对白、出口、时长和 0.3 秒首尾稳定约束。证据定位：<code>static/src/prompt.js</code> · <code>composeVideoPrompt()</code>/<code>videoNarrativeContext()</code>/<code>mergeVideoNarrativeContext()</code>。</div>
+      <div><span class="evidence-tag" data-evidence="source">源码实现</span> <strong>生产顺序：</strong>先生成关键帧，成功后才允许图生视频；完成 URL 尝试落盘到该 scene ID 目录。证据定位：<code>static/src/api.js</code> · <code>generateImage()</code>/<code>generateVideo()</code>/<code>saveAsset()</code>。</div>
+      <div><span class="evidence-tag" data-evidence="inference">分析推论</span> <strong>丢失内容：</strong>“关闭第三条路”这一镜头理由、它覆盖 B07 的关系、火花声与切点理由都没有专门字段；若只看项目 JSON，只能从 action、prompt 与上下文反推。</div>
+    </div>
+  </section>
+
+  <section id="nf-workflow-tests" class="chapter-section">
+    <h2>十一、哪些链路有测试契约</h2>
+    <p class="sample-note"><span class="evidence-tag" data-evidence="test">测试约束</span> 下列内容表示仓库中存在对应自动化测试；本章按任务要求没有启动后端或安装依赖，也没有执行测试，因此不把它们写成“本机运行通过”。</p>
+    <ul>
+      <li><span class="evidence-tag" data-evidence="test">测试约束</span> 清空 local/session storage 后导入 <code>static/src/main.js</code>，断言 project 非空、<code>data-app-ready</code> 为 true，并点击本地模板生成镜头。证据定位：<code>static/src/main.test.js</code> · <code>clean-session bootstrap</code>。</li>
+      <li><span class="evidence-tag" data-evidence="test">测试约束</span> 互动与短剧生成端点被测试为调用 <code>chat/completions</code>；短剧用例断言请求体传入的 <code>prompt</code> 原样进入 user message，但没有覆盖前端 <code>generateSerialDraft()</code> 如何构造该业务提示。证据定位：<code>backend/test_server.py</code> · <code>test_generate_story_uses_chat_completions()</code>/<code>test_generate_episode_uses_dedicated_prompt()</code>。</li>
+      <li><span class="evidence-tag" data-evidence="test">测试约束</span> 图像 adapter、任务规范化、保存项目备份、互动 ZIP 和短剧导出端点都有定向用例。证据定位：<code>backend/test_server.py</code> · <code>ProviderAdapterTests</code>/<code>ServerIntegrationTests</code>。</li>
+    </ul>
+  </section>
+
+  <section id="nf-workflow-conclusion" class="chapter-section chapter-conclusion">
+    <h2>本章结论：它不是空壳，但它把很多创作层压进了镜头记录</h2>
+    <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 当前基线的按钮背后有完整的创建、文本生成、安装、人工编辑、分支检查、媒体任务、播放、保存与导出调用链；“所有按钮无反应”的根因属于首次 bootstrap 在事件绑定前中断，而不是按钮函数普遍缺失。</p>
+    <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 同时，这条链并不等于完整的影视前期系统：它从项目/分集直接落到镜头，把场次任务、节拍认领、故事板面板、声音设计和生成版本等中间层压缩成自由文本或根本不保存。下一章将逐字段拆开这种便利与代价。</p>
+  </section>
+</article>

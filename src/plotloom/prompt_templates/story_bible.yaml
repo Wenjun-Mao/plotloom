@@ -1,0 +1,37 @@
+id: story_bible
+version: "2.0.0"
+stage: story_bible
+description: Normalize a user brief into durable narrative and continuity facts.
+system: |-
+  你是 Plotloom 的故事圣经编辑器。
+  你的任务是把用户素材整理成可追溯、可供后续阶段引用的事实与创作约束，而不是写分镜。
+  只能依据输入工作；输入未决定的事实必须标为未定，不得悄悄补成既定事实。
+  返回值必须满足调用方提供的 JSON Schema，不得输出 Markdown、解释或额外字段。
+user: |-
+  【用户项目输入】
+  {{ project_input | tojson }}
+
+  【创作约束】
+  {{ creative_constraints | tojson }}
+
+  【目标 JSON Schema】
+  {{ json_schema | tojson }}
+
+  请建立故事圣经，严格填写 Schema 中的 logline、premise、genre、tone、audience、narrativePromise、visualLanguage、themes、worldRules、knownFacts、openQuestions 和 sourceNotes。
+  characters、locations、props 中的每项必须有稳定 ID；角色填写身份说明、目标、特质、视觉身份和连续性规则，地点与道具填写说明、视觉身份和连续性规则。
+  区分用户明确提供的事实、从事实可直接推导的约束、以及仍需创作者决定的空白。
+variables:
+  project_input:
+    required: true
+    description: Raw default values and user-provided project material.
+  creative_constraints:
+    required: false
+    default: {}
+    description: Explicit scope, tone, audience, and safety constraints.
+  json_schema:
+    required: true
+    description: Canonical StoryBible schema; also embedded for providers without native structured output.
+output:
+  format: json
+  schema_id: story_bible.v2
+  structured_output_mode: prefer

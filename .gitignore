@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+/build/
+/dist/
+
+# Node
+node_modules/
+npm-debug.log*
+frontend/playwright-report/
+frontend/test-results/
+
+# Local configuration and generated state
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets.json
+/data/
+
+# Generated reading artifacts
+docs/storyboard-handbook/dist/
+
+# Editors and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local tooling
+.playwright-cli/

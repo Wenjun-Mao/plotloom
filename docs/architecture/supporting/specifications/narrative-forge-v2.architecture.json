@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Narrative Forge V2 — 从输入到分镜",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [1370, 610],
+    "views": [
+      {
+        "id": "canonical-pipeline",
+        "label": "Canonical 生成主链",
+        "focus": ["browser-workbench", "generation-api", "generation-orchestrator", "prompt-assembly", "text-provider", "response-validation", "canonical-domain", "project-storage", "storyboard-list"],
+        "note": "V2 按阶段生成、验证 candidate，并在一个事务内安装 canonical revisions。"
+      },
+      {
+        "id": "evidence-and-secrets",
+        "label": "证据与密钥",
+        "focus": ["provider-secret-boundary", "generation-orchestrator", "response-validation", "project-storage"],
+        "note": "公开 provider snapshot 可持久化；临时 Key 只形成内存 lease，prompt/response/validation 则进入 durable trace。"
+      },
+      {
+        "id": "media-boundary",
+        "label": "媒体任务边界",
+        "focus": ["storyboard-list", "media-pipeline", "media-provider", "provider-secret-boundary"],
+        "note": "Storyboard Shot 编译为不可变 MediaTask，由 runner 提交、轮询并恢复。"
+      }
+    ]
+  },
+  "components": [
+    { "id": "browser-workbench", "type": "frontend", "label": "V2 React 工作台", "sublabel": "typed workspace 恢复", "pos": [40, 245], "size": [150, 72] },
+    { "id": "generation-api", "type": "backend", "label": "V2 FastAPI 契约", "sublabel": "/api/v2 typed response", "pos": [220, 245], "size": [150, 72] },
+    { "id": "generation-orchestrator", "type": "backend", "label": "生成编排器", "sublabel": "快照、执行器、阶段范围", "pos": [400, 245], "size": [150, 72] },
+    { "id": "prompt-assembly", "type": "backend", "label": "版本化 Prompt", "sublabel": "YAML 库与 renderer", "pos": [400, 110], "size": [150, 72] },
+    { "id": "text-provider", "type": "external", "label": "文本模型供应商", "sublabel": "OpenAI-compatible API", "pos": [580, 110], "size": [150, 72] },
+    { "id": "response-validation", "type": "backend", "label": "Canonical 验证", "sublabel": "JSON、Pydantic、语义规则", "pos": [760, 245], "size": [160, 72] },
+    { "id": "storyboard-list", "type": "frontend", "label": "分镜工作区", "sublabel": "canonical heads + stale 状态", "pos": [960, 245], "size": [170, 72] },
+    { "id": "media-pipeline", "type": "backend", "label": "MediaTask Runner", "sublabel": "不可变任务、轮询与恢复", "pos": [1190, 245], "size": [170, 72] },
+    { "id": "media-provider", "type": "external", "label": "图片/视频供应商", "sublabel": "异步 provider API", "pos": [1190, 430], "size": [170, 72] },
+    { "id": "canonical-domain", "type": "backend", "label": "Canonical Domain", "sublabel": "Bible → Graph → Beats → Board", "pos": [400, 400], "size": [180, 72] },
+    { "id": "project-storage", "type": "database", "label": "V2 版本与证据库", "sublabel": "SQLite 版本、运行与证据", "pos": [760, 400], "size": [180, 72] },
+    { "id": "provider-secret-boundary", "type": "security", "label": "Secret Lease 边界", "sublabel": "session key 不持久化", "pos": [205, 40], "size": [180, 72] }
+  ],
+  "connections": [
+    { "id": "submit-generation", "from": "browser-workbench", "to": "generation-api", "label": "POST /projects/:id/pipeline-runs", "variant": "emphasis", "labelDy": 60 },
+    { "id": "enqueue-generation", "from": "generation-api", "to": "generation-orchestrator", "label": "冻结 snapshot 后入队", "variant": "emphasis", "labelDy": 60 },
+    { "id": "build-prompt", "from": "generation-orchestrator", "to": "prompt-assembly", "label": "阶段 + canonical 输入", "fromSide": "top", "toSide": "bottom" },
+    { "id": "call-text-provider", "from": "prompt-assembly", "to": "text-provider", "label": "/chat/completions", "labelDy": 60 },
+    { "id": "parse-provider-response", "from": "text-provider", "to": "response-validation", "label": "原始响应 + JSON", "fromSide": "right", "toSide": "top" },
+    { "id": "install-response", "from": "response-validation", "to": "canonical-domain", "label": "通过验证的 candidate", "variant": "emphasis", "fromSide": "left", "toSide": "left", "via": [[650, 281], [650, 380], [380, 380], [380, 436]], "labelAt": [700, 335] },
+    { "id": "persist-state", "from": "canonical-domain", "to": "project-storage", "label": "单事务原子安装", "variant": "emphasis", "labelDy": 35 },
+    { "id": "render-storyboard", "from": "project-storage", "to": "storyboard-list", "label": "rehydrate canonical heads", "variant": "emphasis" },
+    { "id": "create-media-task", "from": "storyboard-list", "to": "media-pipeline", "label": "Shot → immutable MediaTask", "labelDy": 60 },
+    { "id": "call-media-provider", "from": "media-pipeline", "to": "media-provider", "label": "提交 + runner 轮询", "fromSide": "bottom", "toSide": "top", "labelDy": 24 },
+    { "id": "text-secret-flow", "from": "provider-secret-boundary", "to": "generation-orchestrator", "label": "内存 SecretLease", "variant": "security", "fromSide": "left", "toSide": "bottom", "via": [[20, 76], [20, 370], [475, 370]], "labelAt": [250, 360] },
+    { "id": "media-secret-flow", "from": "provider-secret-boundary", "to": "media-pipeline", "label": "任务期 SecretLease", "variant": "security", "fromSide": "top", "toSide": "top", "via": [[295, 10], [1275, 10]], "labelAt": [1050, 30] }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "V2 核心合同",
+      "items": [
+        "ProjectBrief 依次驱动 StoryBible、StoryGraph、SceneBeatPlan、Storyboard",
+        "多阶段结果全部通过才原子安装，失败不会留下半完成 canonical revision"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "可追溯与可恢复",
+      "items": [
+        "Prompt、原始响应、validation 和 candidate 形成 durable trace",
+        "隔离与 repair 引用精确失败证据；媒体任务按安全状态恢复"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,237 @@
+<article data-title="两套系统：工作台与契约流水线" data-kicker="第七章 · 逐层比较">
+  <header class="chapter-header">
+    <p class="eyebrow">第七章 · Comparative Systems</p>
+    <h1>不是谁赢，而是谁保留了哪一种决定</h1>
+    <p class="chapter-lede">
+      Narrative Forge 把创作、预览、媒体生成和导出收进一个浏览器工作台；shuohao-skills 把小说改编拆成五份可校验、可交接的 JSON。两者解决的问题重叠，却不在同一抽象层。真正有用的比较，不是数功能按钮，而是沿同一条生产链追问：哪项决定被结构化保存，哪项只活在提示词里，哪项在适配时不可逆地丢失。
+    </p>
+  </header>
+
+  <section id="comparison-baseline">
+    <h2>先把比较对象放在同一张坐标纸上</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="source">源码实现</span>
+      Narrative Forge 本地固定提交 <code>24c3c47</code> 的核心对象是一个可编辑项目：互动模式保存带 <code>choices</code> 的镜头图，短剧模式保存 <code>episodes[].scenes[]</code> 的线性镜头；同一项目还能直接发起图像、视频和导出任务。核对入口是 <code>static/src/project-model.js</code>、<code>static/src/draft.js</code>、<code>static/src/api.js</code>、<code>app.py</code> 与 <code>backend/route_registry.py</code>。
+    </p>
+    <p>
+      <span class="evidence-tag" data-evidence="source">源码实现</span>
+      shuohao-skills 固定提交 <code>4322897</code> 的五个确定性脚本分别消费和产出 <code>outline.json</code>、<code>cast.json</code>、<code>art.json</code>、<code>script.json</code>、<code>storyboard.json</code>；脚本负责 <code>seed</code>、<code>validate</code>、<code>render</code> 和 <code>export</code>。<span class="evidence-tag" data-evidence="docs">文档声明</span> 语义创作由读过 <code>SKILL.md</code> 与 pass 文档的 agent 完成。核对入口是根 <code>README.md</code>、各 skill 的 <code>SKILL.md</code>、<code>references/schema.md</code> 与 <code>scripts/*.mjs</code>。
+    </p>
+
+    <figure class="pipeline-figure">
+      <svg viewBox="0 0 960 300" role="img" aria-labelledby="cmp-map-title cmp-map-desc">
+        <title id="cmp-map-title">Narrative Forge 与 shuohao-skills 的系统重心</title>
+        <desc id="cmp-map-desc">上方是围绕项目状态、媒体任务和播放器形成闭环的 Narrative Forge；下方是由五份 JSON 和质量门串联的 shuohao-skills。</desc>
+        <rect x="20" y="24" width="920" height="104" rx="10" fill="#fffdf7" stroke="#20201d" stroke-width="2"/>
+        <rect x="42" y="48" width="150" height="56" rx="6" fill="#f7d98e" stroke="#20201d"/>
+        <text x="117" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#20201d">项目／剧情图</text>
+        <text x="117" y="91" text-anchor="middle" font-size="12" fill="#5d5b54">浏览器编辑状态</text>
+        <text x="214" y="82" font-size="24" fill="#984b3d">→</text>
+        <rect x="250" y="48" width="150" height="56" rx="6" fill="#f7f3e9" stroke="#20201d"/>
+        <text x="325" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#20201d">提示与任务</text>
+        <text x="325" y="91" text-anchor="middle" font-size="12" fill="#5d5b54">图像／视频 API</text>
+        <text x="422" y="82" font-size="24" fill="#984b3d">→</text>
+        <rect x="458" y="48" width="150" height="56" rx="6" fill="#f7f3e9" stroke="#20201d"/>
+        <text x="533" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#20201d">项目素材</text>
+        <text x="533" y="91" text-anchor="middle" font-size="12" fill="#5d5b54">状态、URL、文件</text>
+        <text x="630" y="82" font-size="24" fill="#984b3d">→</text>
+        <rect x="666" y="48" width="246" height="56" rx="6" fill="#e7f0ef" stroke="#316e75"/>
+        <text x="789" y="70" text-anchor="middle" font-size="15" font-weight="700" fill="#20201d">试玩／分集成片导出</text>
+        <text x="789" y="91" text-anchor="middle" font-size="12" fill="#5d5b54">一个工作台内形成执行闭环</text>
+
+        <rect x="20" y="166" width="920" height="110" rx="10" fill="#fffdf7" stroke="#20201d" stroke-width="2"/>
+        <rect x="42" y="192" width="130" height="56" rx="6" fill="#f7d98e" stroke="#20201d"/>
+        <text x="107" y="215" text-anchor="middle" font-size="14" font-weight="700" fill="#20201d">outline</text>
+        <text x="107" y="235" text-anchor="middle" font-size="11" fill="#5d5b54">结构与分集</text>
+        <text x="184" y="226" font-size="22" fill="#984b3d">→</text>
+        <rect x="216" y="192" width="130" height="56" rx="6" fill="#f7f3e9" stroke="#20201d"/>
+        <text x="281" y="215" text-anchor="middle" font-size="14" font-weight="700" fill="#20201d">cast／art</text>
+        <text x="281" y="235" text-anchor="middle" font-size="11" fill="#5d5b54">角色与美术</text>
+        <text x="358" y="226" font-size="22" fill="#984b3d">→</text>
+        <rect x="390" y="192" width="130" height="56" rx="6" fill="#f7f3e9" stroke="#20201d"/>
+        <text x="455" y="215" text-anchor="middle" font-size="14" font-weight="700" fill="#20201d">script</text>
+        <text x="455" y="235" text-anchor="middle" font-size="11" fill="#5d5b54">场次与节拍</text>
+        <text x="532" y="226" font-size="22" fill="#984b3d">→</text>
+        <rect x="564" y="192" width="140" height="56" rx="6" fill="#f7f3e9" stroke="#20201d"/>
+        <text x="634" y="215" text-anchor="middle" font-size="14" font-weight="700" fill="#20201d">storyboard</text>
+        <text x="634" y="235" text-anchor="middle" font-size="11" fill="#5d5b54">segment／cut</text>
+        <text x="716" y="226" font-size="22" fill="#984b3d">→</text>
+        <rect x="748" y="192" width="164" height="56" rx="6" fill="#e7f0ef" stroke="#316e75"/>
+        <text x="830" y="215" text-anchor="middle" font-size="14" font-weight="700" fill="#20201d">validate／report</text>
+        <text x="830" y="235" text-anchor="middle" font-size="11" fill="#5d5b54">契约交接闭环</text>
+      </svg>
+      <figcaption>
+        <span class="evidence-tag" data-evidence="inference">分析推论</span>
+        上方的重心是“把一次作品做出来并预览”；下方的重心是“让每一层都能独立交付和对账”。它们不是同一种产品形态的两个皮肤。
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="comparison-layer-matrix">
+    <h2>逐层矩阵：同一个问题，两种保存方式</h2>
+    <p class="reading-note">
+      表中“现状”只描述冻结提交；“代价”是从这些实现推导出的信息损失，不等同于原作者承诺。路径均相对于各自仓库根目录。
+    </p>
+
+    <div class="table-scroll" role="region" aria-label="Narrative Forge 与 shuohao 逐层比较矩阵" tabindex="0">
+      <table>
+        <caption>表 1　从故事输入到最终输出的逐层比较</caption>
+        <thead>
+          <tr>
+            <th scope="col">层／问题</th>
+            <th scope="col">Narrative Forge</th>
+            <th scope="col">shuohao-skills</th>
+            <th scope="col">保留与损失</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">故事输入</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 表单保存片名、梗概、类型、视觉风格、角色卡与场景卡；文本生成直接消费这些当前值。见 <code>project-model.js</code> 的 <code>readMetaFromForm()</code> 与 <code>draft.js</code>。</td>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> <code>novel-outline</code> 从小说文本与总集数、单集时长、题材、改编幅度开始，并要求关键保留取舍附原文证据。见 <code>skills/novel-outline/SKILL.md</code>。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> 前者适合已经压缩成项目简报的故事；后者保留较长的改编交接链。Narrative Forge 项目没有原文引用模型，shuohao 的来源证据也主要集中在大纲层，尚不是通用 provenance 图。</td>
+          </tr>
+          <tr>
+            <th scope="row">形式契约</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>meta.mode</code> 区分互动与短剧，并保存画幅、树深、分支数、每节点镜头数、集数和每集镜头数。见 <code>state.js</code>、<code>project-model.js</code> 与 <code>draftRequestMeta()</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 五阶段 schema 围绕线性 AI 短剧：大纲规定集数与时长，剧本保存逐集 <code>targetSeconds</code>，分镜再量化 segment 与 cut。见 outline、script、storyboard 的 schema 与校验器。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> Narrative Forge 原生表达两种观看结构，但互动生成器偏向固定深度的满树；shuohao 的线性边界更窄，却让时长和交付责任更明确。</td>
+          </tr>
+          <tr>
+            <th scope="row">戏剧场次</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> UI 与项目 JSON 中名为 <code>scene</code> 的对象实际是一条镜头记录；地点另由 <code>sceneCards</code> 表达，没有独立 <code>DramaticScene</code> 实体。见 <code>createScene()</code>、<code>scene-list.js</code> 与 <code>draft.js</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>script.json</code> 保存集内场次出现与 <code>flow</code>；其中 <code>sceneId</code> 引用 <code>art.json</code> 的地点资产，而 storyboard 用集内 <code>sceneIndex</code> 回指场次出现。见 script 与 storyboard schema。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> shuohao 比前者多保留了“场次 → 节拍”，但场次出现仍没有稳定 ID；相同地点多次出现时，<code>sceneId</code> 不能单独回答“是哪一场戏”。</td>
+          </tr>
+          <tr>
+            <th scope="row">Beat／Shot</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 短剧提示要求模型先“内部拆拍”再返回 <code>scenes</code>，安装后只留下镜头动作、对白、景别、时长和首尾状态；互动多镜节点用 <code>storyNodeKey</code> 分组。见 <code>generateSerialDraft()</code> 与 <code>expandInteractiveStoryScenes()</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>script.flow</code> 保存动作或台词 beat；每个 storyboard cut 用 <code>beats: [起, 止]</code> 认领连续位置区间，segment 包含多个 cut。见 <code>novel-storyboard.mjs</code> 的 coverage gate。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> Narrative Forge 丢失显式 beat；shuohao 保留覆盖但使用位置索引，并要求每拍恰好归一个 cut。插入节拍会使索引漂移，多机位安全覆盖也无法原生表达。</td>
+          </tr>
+          <tr>
+            <th scope="row">互动与汇流</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 镜头可携 <code>choices[].targetSceneId</code> 与 <code>nextSceneId</code>，播放器按目标 ID 跳转；生成结果安装器检查重复 key 和无效选择目标。见 <code>story-graph.js</code>、<code>player.js</code>、<code>installGeneratedStory()</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> outline、script 与 storyboard 的冻结 schema 都是按集顺序组织，不含选择边、条件或分支汇流状态。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> 互动是 Narrative Forge 的明确强项；但现有数据没有把选择条件、状态变量与汇流兼容规则独立建模，合法目标 ID 不等于叙事图一定可达、可终止或可汇流。</td>
+          </tr>
+          <tr>
+            <th scope="row">提示词</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 每镜保存 <code>imagePrompt</code> 与 <code>videoPrompt</code>；<code>prompt.js</code> 可从镜头、角色卡、场景卡和连续性字段重新组合，但组合结果也被写回项目。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 每个 cut 保存关键帧 <code>frame</code>，每个 segment 保存供应商导向的 <code>h3Prompt</code>；校验器逐字核对对齐首行、切点时刻、台词与运镜。见 storyboard schema 与 <code>h3AlignmentLine()</code>。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> 两者都把派生提示持久化，因此人工微调方便；代价是来源规格与编译结果可能漂移。shuohao 的门能发现部分漂移，但 H3 协议进入主文档，供应商耦合更显式。</td>
+          </tr>
+          <tr>
+            <th scope="row">媒体与任务</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>api.js</code> 创建可停止或恢复本地等待的图像／视频任务、轮询 prediction、保存状态与本地路径；停止不会调用供应商取消接口。<code>app.py</code> 代理供应商、保存资产并异步导出试玩包或分集包。</td>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> 分镜 skill 可选调用当前 agent 的图像能力生成关键帧，但明确不执行视频生成或剪辑；<code>export</code> 只写每段 <code>prompt.md</code>、图片槽位与 <code>manifest.json</code>。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> Narrative Forge 更接近可执行工作台；shuohao 更接近生产规格编译器。前者的任务状态嵌在镜头对象，后者的生成任务本身没有一等记录。</td>
+          </tr>
+          <tr>
+            <th scope="row">校验</th>
+            <td><span class="evidence-tag" data-evidence="test">测试约束</span> 前后端测试覆盖启动、项目读写、供应商秘密、媒体参数、导出与部分草稿安装；生成结果安装器还限制重复 key、目标引用与规模。见 <code>static/src/*.test.js</code>、<code>backend/test_server.py</code>。</td>
+            <td><span class="evidence-tag" data-evidence="test">测试约束</span> 五个 <code>selftest.mjs</code> 用击穿夹具保护各层确定性逻辑；storyboard 进一步检查 exact-once beat 覆盖、时长链、引用和 H3 对账，第 17 道 shot-recipe 门仅在挂载卡库时启用。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> shuohao 的跨层确定性门更强；Narrative Forge 的真实媒体与导出路径更完整。两者的测试都不能证明镜头节奏、表演或构图已经好看。</td>
+          </tr>
+          <tr>
+            <th scope="row">持久化</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 浏览器用 <code>localStorage</code> 保存当前项目与一次覆盖恢复快照；<code>POST /api/save-project</code> 原子写入 <code>projects/&lt;title&gt;/project.json</code> 并把旧文件复制到时间戳备份目录，媒体另存项目资产目录。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 每层以独立 JSON 为主数据，Markdown／HTML 可重渲染；storyboard export 写段目录与 manifest，validate/checkup 把门结果追加到工作目录的 <code>.gates.jsonl</code>。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> 前者适合单项目连续操作，后者适合文件式审阅和 Git 对比。两者都缺少跨实体事务、并发冲突和细粒度人工批准模型。</td>
+          </tr>
+          <tr>
+            <th scope="row">版本与可追溯</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>normalizeProject()</code> 把项目结构版本写为 <code>6</code>，服务器保留项目文件备份；单个镜头、提示词、人工修改和生成结果没有各自的版本链或来源边。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 各 <code>SKILL.md</code> 有 skill 版本，JSON 有 <code>source</code>，门日志有运行时间与文件名；业务 JSON 本身没有统一 <code>schemaVersion</code>、实体 revision 或上游内容哈希。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> “能找回旧文件”与“能解释某个画面为何如此”不是一回事。两边都还无法完整回答：哪个人工批准版本，经哪个适配器，生成了这个具体文件？</td>
+          </tr>
+          <tr>
+            <th scope="row">最终输出</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 可保存项目 JSON 与素材，并通过后台 job 生成互动试玩包或短剧分集成片包；互动和短剧导出是两条不同端点。见 <code>export_player()</code>、<code>export_serial()</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 五阶段输出 JSON、Markdown、单页报告；storyboard 另导出 H3 提示文件、切点 manifest 与关键帧槽位，不合成最终视频。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> 前者交出可播放候选，后者交出可复核制作包。选择哪一个取决于你需要“立即运行”还是“逐层审计”，并非输出文件越多越成熟。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="comparison-strengths">
+    <h2>强项来自边界，弱项也来自同一个边界</h2>
+    <div class="comparison-grid">
+      <section class="comparison-card">
+        <h3>Narrative Forge：短反馈回路</h3>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 它最有价值的不是某条提示词，而是从镜头编辑、参考图、生成任务到播放器／导出的短回路。需要快速验证互动路线或逐镜媒体结果时，集中式项目状态减少了文件搬运。</p>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> <strong>代价：</strong>故事节点、场次、节拍、镜头和任务挤在少数对象里；越往大型项目、多人协作和重新生成发展，越难判断一次修改影响了什么。</p>
+      </section>
+      <section class="comparison-card">
+        <h3>shuohao：显式交接与质量门</h3>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 它最有价值的是每一阶段都能单独 seed、审阅、validate 和 render。长篇小说改编、批量分集和稳定资产 ID 需要大量对账时，这种文件契约比一份不断膨胀的项目对象更容易诊断。</p>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> <strong>代价：</strong>流程面向线性短剧并深度绑定位置索引与 H3 投产格式；没有持久任务、分支状态或成片执行层，跨阶段修改仍依赖操作者重跑正确命令。</p>
+      </section>
+      <section class="comparison-card">
+        <h3>共同缺口：来源、批准与派生没有闭环</h3>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 两者都能保存“现在是什么”，却不能系统回答“谁在何时批准了哪个来源版本”“哪些字段是人工决定”“哪些提示和媒体因上游修改而失效”。这不是多加一个时间戳可以解决的问题。</p>
+      </section>
+      <section class="comparison-card">
+        <h3>私有能力不能用想象补齐</h3>
+        <p><span class="evidence-tag" data-evidence="docs">文档声明</span> shuohao 的 <code>docs/superpowers/specs/2026-08-21-shot-recipes-repository-migration-design.md</code> 称完整 shot-recipes 卡库已移至私有仓库；公开提交只有挂载接口、迁移说明与最小测试夹具。</p>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 因而不能把未审计卡库算作公开系统的完整镜头知识，也不能据此贬低或拔高现有质量门。</p>
+      </section>
+    </div>
+  </section>
+
+  <section id="comparison-loss-ledger">
+    <h2>信息损失账本：先看不可逆，再看是否方便</h2>
+    <div class="table-scroll" role="region" aria-label="两套系统的信息损失账本" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="inference">前三列 · 分析推论</span> <span class="evidence-tag" data-evidence="proposal">末列 · 重构建议</span> 表 2　重用或迁移时应主动标注的降级</caption>
+        <thead>
+          <tr><th scope="col">原始决定</th><th scope="col">进入 Narrative Forge 后</th><th scope="col">进入 shuohao 后</th><th scope="col">应怎样保留</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">场次任务与转折</th><td>通常折入集梗概与镜头 action。</td><td>场次存在，但目标、策略、转折多留在 flow 文字。</td><td>另存稳定 <code>DramaticScene</code> 与批准版本。</td></tr>
+          <tr><th scope="row">反应／揭示等 beat 子型</th><td>显式 beat 不持久化。</td><td>序列化成 action 或 line，子型消失。</td><td>主数据保留 <code>Beat.kind</code>，适配时才降级。</td></tr>
+          <tr><th scope="row">一个 beat 的多镜覆盖</th><td>没有 coverage link。</td><td>exact-once 位置区间不允许重叠。</td><td>用稳定 ID 的多对多 <code>ShotBeatLink</code>。</td></tr>
+          <tr><th scope="row">分支条件与汇流状态</th><td>目标边存在，条件和 join 规则不独立。</td><td>线性 schema 无表达。</td><td>把条件、状态补丁和汇流不变量放进 <code>StoryGraph</code>。</td></tr>
+          <tr><th scope="row">导演母版时长</th><td>会被允许时长档或对白建议改写。</td><td>cut 秒数直接进入 H3 切点与硬门。</td><td>并存 <code>authoredSeconds</code> 与 <code>runtimeSeconds</code>。</td></tr>
+          <tr><th scope="row">提示词的来源</th><td>组合结果与可编辑文本共存，来源边不保存。</td><td>frame／h3Prompt 与结构对账，但无编译版本身份。</td><td>提示词作为带输入哈希的派生 <code>Artifact</code>。</td></tr>
+          <tr><th scope="row">一次生成的执行上下文</th><td>保存状态、prediction ID、URL 与路径，但任务输入快照不完整。</td><td>manifest 是计划，不是执行记录。</td><td>一等 <code>GenerationTask</code> 保存输入 revision、adapter、参数、尝试与结果。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="comparison-fit">
+    <h2>什么时候选哪一种，什么时候不该二选一</h2>
+    <div class="route-grid">
+      <section class="route-card">
+        <h3>快速做出可玩的互动原型</h3>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 优先利用 Narrative Forge 的剧情边、播放器、媒体任务和试玩导出；同时把复杂条件与汇流状态另存，不要假设满树生成器就是最终叙事模型。</p>
+      </section>
+      <section class="route-card">
+        <h3>从长篇材料批量改编线性短剧</h3>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 优先利用 shuohao 的阶段 JSON、稳定 C/S/P 资产 ID、时长对账和质量门；同时尽早替换场次与 beat 的位置索引，避免中途插入导致全链漂移。</p>
+      </section>
+      <section class="route-card">
+        <h3>要长期维护自己的生产系统</h3>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 不要简单把一个仓库塞进另一个。保留 Narrative Forge 的短执行回路与 shuohao 的显式契约，把两者接到供应商无关的规范领域模型上。</p>
+      </section>
+      <section class="route-card">
+        <h3>只需一次性教学或概念验证</h3>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 选择更短的路径即可。规范模型的价值来自变化、重跑和协作；若没有这些成本，过早建设完整平台反而会淹没创作问题。</p>
+      </section>
+    </div>
+  </section>
+
+  <footer class="chapter-summary">
+    <h2>本章结论</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="inference">分析推论</span>
+      Narrative Forge 的优势是执行闭环，shuohao 的优势是交接契约。前者容易把叙事层压进镜头与项目状态，后者容易把通用导演意图压进线性位置索引与特定视频协议。<span class="evidence-tag" data-evidence="proposal">重构建议</span> 重建时不应复制两边所有字段，而应先保存那些一旦丢失就无法可靠重算的创作决定，再把按钮、报告、提示与任务当成可替换的消费端。
+    </p>
+    <p class="source-note">
+      冻结证据：Narrative Forge <code>24c3c47</code> 的 <code>static/src/project-model.js</code>、<code>draft.js</code>、<code>prompt.js</code>、<code>api.js</code>、<code>player.js</code>、<code>app.py</code>、<code>backend/test_server.py</code>；shuohao-skills <code>4322897</code> 的根 <code>README.md</code>、五个 <code>SKILL.md</code>、各 <code>references/schema.md</code>、<code>scripts/*.mjs</code>、<code>selftest.mjs</code> 与 shot-recipes 迁移设计。完整私有 shot-recipes 卡库不在已审计范围。
+    </p>
+  </footer>
+</article>

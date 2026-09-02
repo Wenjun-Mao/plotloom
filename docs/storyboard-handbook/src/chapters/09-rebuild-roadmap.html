@@ -1,0 +1,371 @@
+<article data-title="重建路线：先立规范层，再替换执行层" data-kicker="第九章 · 实施路线">
+  <header class="chapter-header">
+    <p class="eyebrow">第九章 · Rebuild Roadmap</p>
+    <h1>先立规范层，再替换执行层</h1>
+    <p class="chapter-lede">
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      不必先决定“把哪个仓库重写掉”。更稳妥的顺序是：冻结真实样本，建立供应商无关的规范层，做两条只读导入，再让旧工作台与新执行器同时消费它。每一个里程碑都必须交付可回滚的用户价值，而不是等一个宏大平台全部完成才第一次运行。
+    </p>
+  </header>
+
+  <aside class="reading-note">
+    <strong>当前 fork 的实施决定（2026-08-30）：</strong>
+    后续讨论选择了“同仓并行开发、最终独立成仓”的混合路线；该迁移现已完成，独立产品命名为 Plotloom · 叙织。Plotloom 只创建新项目，不导入或双写 v1 数据，其后端、前端、提示词、迁移和测试禁止依赖 v1 运行时代码。本章后文关于旧项目导入与规范 sidecar 的内容保留为方案比较和被拒绝路线，不是当前实现承诺。权威工程合同见 <code>docs/adr/0010-plotloom-clean-repository.md</code> 与 <code>docs/provenance/initial-extraction.md</code>。
+  </aside>
+
+  <section id="rebuild-root-cause-and-decision">
+    <h2>先判断问题属于实现，还是属于合同</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="source">源码实现</span>
+      Narrative Forge 本地固定提交 <code>24c3c47</code> 已实现浏览器编辑、项目保存、图像／视频任务和两类导出的完整代码路径；主要入口是 <code>static/src/main.js</code>、<code>project-model.js</code>、<code>api.js</code>、<code>app.py</code> 与 <code>backend/route_registry.py</code>。<span class="evidence-tag" data-evidence="inference">分析推论</span> 这些交互面是渐进改造应优先保护的现有产品能力；它们在某一具体部署中是否可用，仍需另做运行验证。
+    </p>
+    <p>
+      <span class="evidence-tag" data-evidence="source">源码实现</span>
+      shuohao-skills 固定提交 <code>4322897</code> 已把 outline、cast／art、script、storyboard 拆成可 seed、validate、render、export 的文件合同；其确定性 Node 脚本不负责调用模型完成语义创作。<span class="evidence-tag" data-evidence="inference">分析推论</span> 它适合成为导入、验证和编译参考，而不是直接充当在线任务服务。
+    </p>
+    <p>
+      <span class="evidence-tag" data-evidence="inference">分析推论</span>
+      两边真正共同的根因不是“少一个按钮”：故事、导演覆盖、供应商提示、任务状态和文件来源之间缺少稳定的规范合同。只修页面或把五阶段脚本包进 HTTP，不会自动得到可追溯、可分支、可换供应商的系统。
+    </p>
+
+    <div class="table-scroll" role="region" aria-label="渐进改造与整体重建决策表" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="proposal">重构建议</span> 表 1　依据风险选择改造方式，而不是依据个人技术偏好</caption>
+        <thead>
+          <tr><th scope="col">判断问题</th><th scope="col">优先渐进改造</th><th scope="col">可以考虑独立重建</th><th scope="col">决策证据</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">现有工作台</th><td>镜头编辑、预览或生成回路仍被真实使用。</td><td>用户流程已经确定不再保留，且有可运行替代品。</td><td>真实任务完成率、录屏与使用日志。</td></tr>
+          <tr><th scope="row">数据迁移</th><td>项目量大、字段含义不一致、必须逐步核对。</td><td>只有少量测试项目，并能人工确认全部迁移结果。</td><td>迁移 dry-run、差异报告与回滚演练。</td></tr>
+          <tr><th scope="row">领域合同</th><td>可在旧读写旁增加 canonical sidecar 和适配层。</td><td>旧对象会强迫新模型继续混淆 Scene／Shot／Task。</td><td>代表项目的无损往返测试。</td></tr>
+          <tr><th scope="row">协作与版本</th><td>仍是单用户、本地优先，可晚些增加冲突模型。</td><td>多人并发、审核与权限是首个版本的硬需求。</td><td>角色矩阵、并发场景和审计要求。</td></tr>
+          <tr><th scope="row">供应商更换</th><td>先把现有三类请求移到 adapter，保持 UI 不动。</td><td>现有协议散落到每个业务对象，抽离成本超过重做执行层。</td><td>调用图、能力矩阵与黄金请求夹具。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="reading-note">
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      默认路线采用“绞杀者”式渐进改造：旧系统继续服务用户，新规范层先做只读镜像，再成为写入真相，最后逐个替换提示编译、任务、导出和 UI。只有当迁移样本证明旧边界无法被隔离，才把某一模块独立重建；不要一次性重写整个产品。
+    </p>
+    <p>
+      <span class="evidence-tag" data-evidence="inference">分析推论</span>
+      渐进路线会暂时增加“双模型”复杂度；整体重建则把所有风险推迟到最终切换日。前者需要明确的单向同步和淘汰日期，后者需要真实等价性证据。两者都不是免费的捷径。
+    </p>
+  </section>
+
+  <section id="rebuild-non-goals">
+    <h2>非目标：先保护范围，才有可能验收</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      第一轮重建明确不承担下列目标；需求若改变，应单独写 ADR、威胁模型与验收计划，而不是顺手塞进里程碑。
+    </p>
+    <ul class="checklist">
+      <li>不自动判定“镜头是否好看”；机器只检查可证明的合同，艺术判断由人批准。</li>
+      <li>不复制、猜测或重新分发 shuohao 未公开的完整 shot-recipes 私有卡库。</li>
+      <li>不复刻任一供应商的全部 API；只实现当前项目确实需要且可测的能力子集。</li>
+      <li>不在首轮建设模型训练、素材市场、实时协同编辑或完整云端账号系统。</li>
+      <li>不把旧项目原文件就地改写；导入始终产生新规范项目和可审阅报告。</li>
+      <li>不保证不同生成模型像素级一致；保证的是输入快照、能力映射和结果来源可解释。</li>
+    </ul>
+  </section>
+
+  <section id="rebuild-module-boundaries">
+    <h2>目标模块：领域核心不认识浏览器，也不认识模型品牌</h2>
+    <figure class="pipeline-figure">
+      <svg viewBox="0 0 980 560" role="img" aria-labelledby="roadmap-arch-title roadmap-arch-desc">
+        <title id="roadmap-arch-title">重建系统模块边界</title>
+        <desc id="roadmap-arch-desc">用户界面和导入工具经由 API 进入应用服务；领域核心位于中心，外围分别是存储、任务编排、供应商适配和产物仓库。</desc>
+        <defs>
+          <marker id="roadmap-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#984b3d"/>
+          </marker>
+        </defs>
+
+        <rect x="24" y="24" width="932" height="76" rx="10" fill="#fffdf7" stroke="#20201d" stroke-width="2"/>
+        <text x="44" y="50" font-size="12" font-weight="700" fill="#984b3d">交互与边界</text>
+        <rect x="180" y="42" width="168" height="40" rx="5" fill="#f7d98e" stroke="#20201d"/>
+        <text x="264" y="67" text-anchor="middle" font-size="13" font-weight="700">Authoring UI</text>
+        <rect x="406" y="42" width="168" height="40" rx="5" fill="#fffdf7" stroke="#20201d"/>
+        <text x="490" y="67" text-anchor="middle" font-size="13" font-weight="700">HTTP / CLI API</text>
+        <rect x="632" y="42" width="168" height="40" rx="5" fill="#fffdf7" stroke="#20201d"/>
+        <text x="716" y="67" text-anchor="middle" font-size="13" font-weight="700">Import / Export</text>
+
+        <line x1="490" y1="100" x2="490" y2="137" stroke="#984b3d" stroke-width="2" marker-end="url(#roadmap-arrow)"/>
+        <rect x="118" y="140" width="744" height="94" rx="10" fill="#fffdf7" stroke="#20201d" stroke-width="2"/>
+        <text x="140" y="166" font-size="12" font-weight="700" fill="#984b3d">应用服务：编排用例，不保存供应商条件</text>
+        <rect x="150" y="181" width="180" height="36" rx="5" fill="#fffdf7" stroke="#20201d"/>
+        <text x="240" y="204" text-anchor="middle" font-size="12">Authoring Service</text>
+        <rect x="400" y="181" width="180" height="36" rx="5" fill="#f7d98e" stroke="#20201d"/>
+        <text x="490" y="204" text-anchor="middle" font-size="12">Graph / Approval Service</text>
+        <rect x="650" y="181" width="180" height="36" rx="5" fill="#fffdf7" stroke="#20201d"/>
+        <text x="740" y="204" text-anchor="middle" font-size="12">Generation Service</text>
+
+        <line x1="490" y1="234" x2="490" y2="271" stroke="#984b3d" stroke-width="2" marker-end="url(#roadmap-arrow)"/>
+        <rect x="180" y="274" width="620" height="92" rx="10" fill="#f7d98e" stroke="#20201d" stroke-width="2"/>
+        <text x="490" y="304" text-anchor="middle" font-size="16" font-weight="700">Canonical Domain Core</text>
+        <text x="490" y="328" text-anchor="middle" font-size="12">entities · revisions · graph rules · coverage · continuity · approvals</text>
+        <text x="490" y="348" text-anchor="middle" font-size="11" fill="#5d5b54">纯规则可在内存中测试；不直接访问网络、文件系统或秘密</text>
+
+        <path d="M 320 366 L 220 416" fill="none" stroke="#984b3d" stroke-width="2" marker-end="url(#roadmap-arrow)"/>
+        <path d="M 430 366 L 410 416" fill="none" stroke="#984b3d" stroke-width="2" marker-end="url(#roadmap-arrow)"/>
+        <path d="M 550 366 L 570 416" fill="none" stroke="#984b3d" stroke-width="2" marker-end="url(#roadmap-arrow)"/>
+        <path d="M 660 366 L 760 416" fill="none" stroke="#984b3d" stroke-width="2" marker-end="url(#roadmap-arrow)"/>
+
+        <rect x="24" y="419" width="206" height="86" rx="8" fill="#fffdf7" stroke="#20201d"/>
+        <text x="127" y="446" text-anchor="middle" font-size="13" font-weight="700">Repository Ports</text>
+        <text x="127" y="469" text-anchor="middle" font-size="11">SQLite / Postgres</text>
+        <text x="127" y="488" text-anchor="middle" font-size="11">optimistic revisions</text>
+
+        <rect x="266" y="419" width="206" height="86" rx="8" fill="#fffdf7" stroke="#20201d"/>
+        <text x="369" y="446" text-anchor="middle" font-size="13" font-weight="700">Task Orchestrator</text>
+        <text x="369" y="469" text-anchor="middle" font-size="11">queue · lease · retry</text>
+        <text x="369" y="488" text-anchor="middle" font-size="11">idempotency · cancellation</text>
+
+        <rect x="508" y="419" width="206" height="86" rx="8" fill="#e7f0ef" stroke="#316e75"/>
+        <text x="611" y="446" text-anchor="middle" font-size="13" font-weight="700">Provider Adapters</text>
+        <text x="611" y="469" text-anchor="middle" font-size="11">compile · submit · poll</text>
+        <text x="611" y="488" text-anchor="middle" font-size="11">normalize · capability</text>
+
+        <rect x="750" y="419" width="206" height="86" rx="8" fill="#fffdf7" stroke="#20201d"/>
+        <text x="853" y="446" text-anchor="middle" font-size="13" font-weight="700">Artifact Store</text>
+        <text x="853" y="469" text-anchor="middle" font-size="11">content address · MIME</text>
+        <text x="853" y="488" text-anchor="middle" font-size="11">local FS / object storage</text>
+
+        <text x="490" y="544" text-anchor="middle" font-size="12" fill="#5d5b54">箭头表示依赖方向：外围实现依赖领域端口，领域核心不反向依赖具体基础设施。</text>
+      </svg>
+      <figcaption>
+        <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+        第一版可以部署成一个进程、一个 SQLite 文件和一个本地素材目录；模块边界是代码依赖合同，不要求立刻拆成微服务。
+      </figcaption>
+    </figure>
+
+    <div class="definition-grid">
+      <section class="definition-card">
+        <h3>Core Domain</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 实体、值对象、revision、StoryGraph、coverage、continuity 和 approval 规则；禁止网络、环境变量和具体文件路径进入。</p>
+      </section>
+      <section class="definition-card">
+        <h3>Application Services</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 负责“批准镜头”“编译生成段”“重试任务”等用例和事务；只通过端口访问存储、队列和适配器。</p>
+      </section>
+      <section class="definition-card">
+        <h3>Boundary Adapters</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> HTTP、CLI、旧项目导入、shuohao 导入、供应商协议和导出布局各自独立，降级规则可测试、可替换。</p>
+      </section>
+    </div>
+  </section>
+
+  <section id="rebuild-api-storage-task-contract">
+    <h2>API、存储与任务：从第一天就允许重试和恢复</h2>
+    <div class="table-scroll" role="region" aria-label="API 存储和任务架构合同" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="proposal">重构建议</span> 表 2　首个可用版本的基础设施合同</caption>
+        <thead>
+          <tr><th scope="col">边界</th><th scope="col">建议合同</th><th scope="col">必须避免</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">资源 API</th><td><code>GET /projects/:id</code>、<code>PATCH /shots/:id</code>、<code>POST /approvals</code>；写入携 <code>expectedRevision</code>，冲突返回当前 revision 与差异。</td><td>发送整份项目并静默覆盖并发修改。</td></tr>
+          <tr><th scope="row">命令 API</th><td><code>POST /generation-segments/:id/tasks</code> 接受已批准 snapshot ref 与幂等键，立即返回 task ID；查询、取消和重试是独立端点，取消结果明示 <code>confirmed</code>、<code>pending</code> 或 <code>unsupported</code>。</td><td>让长模型请求占住页面 HTTP 连接，或重试时重复扣费。</td></tr>
+          <tr><th scope="row">元数据存储</th><td>本地优先先用 SQLite 外键、事务和 WAL；Repository 接口允许未来切到 Postgres。</td><td>把每个实体散落成无法原子提交的多份可变 JSON。</td></tr>
+          <tr><th scope="row">产物存储</th><td>文件按内容哈希寻址，数据库保存 MIME、尺寸、来源和逻辑引用；接口允许未来接对象存储。</td><td>用供应商临时 URL 或用户标题充当永久文件身份。</td></tr>
+          <tr><th scope="row">任务状态</th><td><code>queued → cancelled | running</code>；<code>running → succeeded | failed | cancel_requested</code>；供应商确认后才进入 <code>cancelled</code>，竞态中仍可 succeeded／failed。attempt 保存 lease、时间、错误类别和外部 job ID。</td><td>把“页面不再轮询”当成供应商任务已取消，或只在内存 Map 保存唯一事实。</td></tr>
+          <tr><th scope="row">事件与失效</th><td>事务内写 outbox；worker 领取后编译，输入 revision 改变则把下游 Artifact 标 stale。</td><td>依赖前端“记得按正确顺序重跑”。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      API 返回领域错误码，例如 <code>REVISION_CONFLICT</code>、<code>GRAPH_JOIN_INCOMPATIBLE</code>、<code>ADAPTER_CAPABILITY_MISSING</code> 和 <code>ARTIFACT_INPUT_STALE</code>，同时提供实体 ID 与修复上下文；不要只返回模型供应商的原始字符串。
+    </p>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      取消 queued 任务可在提交前当场确认；已提交的任务只有在 adapter 声明 <code>supportsCancel</code> 且供应商确认时才可标记 cancelled。若能力不支持，命令返回 <code>unsupported</code>，任务继续并由后台对账；页面可停止观察，但这只是 UI 状态，不改写任务事实。
+    </p>
+    <p>
+      <span class="evidence-tag" data-evidence="inference">分析推论</span>
+      SQLite 加本地文件系统能以最低运维成本提供事务和可恢复任务；它不适合多机并发 worker。真正出现跨机器吞吐需求时，再以已存在的 Repository、Queue 和 ArtifactStore 端口替换为 Postgres、消息队列和对象存储。
+    </p>
+  </section>
+
+  <section id="rebuild-import-narrative-forge">
+    <h2>导入 Narrative Forge：保留原义，不替旧字段美化身份</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="source">源码实现</span>
+      截至 <code>24c3c47</code>，<code>static/src/project-model.js</code> 的 <code>normalizeProject()</code> 把项目结构归一为版本 6；短剧以 <code>episodes[].scenes[]</code> 保存线性镜头，互动以 <code>storyNodeKey</code> 把一个剧情节点下 1–5 个 shots 分组，组尾承担后继／选择。<span class="evidence-tag" data-evidence="inference">分析推论</span> UI 中的 <code>project.scenes</code> 是当前模式或当前集的操作门面，不应被当成另一份规范数据导入。
+    </p>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      导入器按下列次序运行，并始终输出 dry-run 报告：
+    </p>
+    <ol class="handoff-list">
+      <li><strong>封存来源：</strong>复制原始 project JSON 为只读 Artifact，记录 SHA-256、来源提交、导入器版本和时间。</li>
+      <li><strong>映射项目与资产：</strong>meta → Project；characters、sceneCards → Asset。保留旧 ID，另存 <code>legacyRef</code>。</li>
+      <li><strong>暂存短剧：</strong>Episode 可直接建立；每个旧 <code>scene</code> 作为“候选 Shot 规格”进入 MigrationRecord，因为 serial 合同中它近似镜头，但尚没有可归属的 DramaticScene 与 Beat。</li>
+      <li><strong>暂存互动：</strong>相同 <code>storyNodeKey</code> 的 1–5 个旧 scene、组内顺序、组尾选择／next 和原目标全部进入 MigrationRecord；在语义节点尚未建立时，它们不冒充规范 StoryGraph。</li>
+      <li><strong>晋升规范实体：</strong>只有明确规则或人工确认后，才从暂存记录同步创建 DramaticScene、Beat、Shot、ShotBeatLink 与 StoryGraph 节点／边，并记录晋升 provenance；基于 action 文本的候选带 confidence，不冒充原始事实。</li>
+      <li><strong>保存派生历史：</strong>旧 imagePrompt、videoPrompt、媒体 URL、prediction ID 和本地路径作为 legacy Artifact／Provenance 导入，不提升为规范创作字段。</li>
+    </ol>
+    <aside class="callout callout-principle">
+      <h3>迁移硬边界</h3>
+      <p><span class="evidence-tag" data-evidence="source">源码实现</span> serial 的 <code>scene ≈ shot</code>；interactive 则是 1–5 个 shots 组成一个 <code>storyNodeKey</code> 节点。</p>
+      <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 导入器必须按 mode 分派，绝不能用一条“scene → DramaticScene”映射处理两者。未晋升的 MigrationRecord 不能被批准、编译、生成或发布；这是迁移隔离区，不是放宽规范模型“无孤儿”验证的理由。</p>
+    </aside>
+  </section>
+
+  <section id="rebuild-import-shuohao">
+    <h2>导入 shuohao：先把位置引用变成稳定身份</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="source">源码实现</span>
+      截至 <code>4322897</code>，C/S/P 是 cast／art 层的稳定资产 ID；<code>script.json</code> 每条场次记录的 <code>sceneId</code> 引用地点／场景美术资产，而 storyboard 的 <code>sceneIndex</code> 指剧本中的场次出现位置，<code>beats: [start, end]</code> 也使用位置区间。依据是 <code>skills/novel-script/references/schema.md</code>、<code>skills/novel-storyboard/references/schema.md</code> 及相应 <code>scripts/*.mjs</code>。
+    </p>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      导入顺序必须从上游文件逐层建立 ID 映射，不能从 storyboard 倒猜：
+    </p>
+    <ol class="handoff-list">
+      <li><strong>封存五层输入：</strong>每份 JSON 保存原文件哈希、skill 版本、路径和导入器版本；原始数组顺序永远可回查。</li>
+      <li><strong>资产映射：</strong>C/S/P 转为 Asset，并保存 <code>legacyRef</code>；ID 冲突按来源命名空间处理，不重编号原文件。</li>
+      <li><strong>场次身份：</strong>为每一集中的剧本场次出现创建稳定 DramaticScene ID；旧 <code>sceneId</code> 仅写入该场次的 <code>locationAssetId</code>，不能与新场次 ID 交换。</li>
+      <li><strong>节拍身份：</strong>按 scene occurrence + 原位置为 flow 条目分配 Beat ID；文本、类型、说话者和原 index 一并保存。</li>
+      <li><strong>覆盖映射：</strong>storyboard <code>sceneIndex</code> 先解析到稳定 DramaticScene；cut 转为 Shot，<code>beats</code> 区间展开为 ShotBeatLink，并保留原范围供往返核对。</li>
+      <li><strong>生产映射：</strong>segment 转 GenerationSegment；英文 <code>frame</code> 与 <code>h3Prompt</code> 作为带输入哈希的派生 Artifact；若有实际关键帧文件，另建文件 Artifact。</li>
+      <li><strong>门结果映射：</strong><code>.gates.jsonl</code> 和报告作为验证 Artifact 导入；可选 shot-recipe 未运行或卡库缺失必须记为 skipped，而不是 pass。</li>
+    </ol>
+    <aside class="callout callout-principle">
+      <h3>迁移硬边界</h3>
+      <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>sceneIndex</code> 是剧本场次位置，<code>sceneId</code> 是该场引用的地点／场景资产标识。</p>
+      <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 把二者交换会制造表面引用合法、语义完全错误的数据，必须用迁移夹具专门击穿。</p>
+    </aside>
+  </section>
+
+  <section id="rebuild-provider-adapter-contract">
+    <h2>ProviderAdapter：只在这里承认供应商不同</h2>
+    <div class="table-scroll" role="region" aria-label="供应商适配器接口" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="proposal">重构建议</span> 表 3　每个 adapter 必须实现的可测试合同</caption>
+        <thead>
+          <tr><th scope="col">能力</th><th scope="col">输入／输出</th><th scope="col">守门</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row"><code>describeCapabilities()</code></th><td>支持的媒体类型、时长、画幅、参考图、异步协议、<code>supportsCancel</code> 和版本。</td><td>能力必须可序列化，不能靠 UI 猜测。</td></tr>
+          <tr><th scope="row"><code>validate(spec)</code></th><td>规范 segment／asset revisions → 结构化缺口或降级选项。</td><td>静默截断时长、丢参考图或改画幅一律禁止。</td></tr>
+          <tr><th scope="row"><code>compile(spec)</code></th><td>已批准规范快照 → 请求体、提示 Artifact 和编译 provenance。</td><td>同版本同输入必须确定性；秘密不进入编译产物。</td></tr>
+          <tr><th scope="row"><code>submit(request, secretRef)</code></th><td>请求与运行时秘密引用 → 标准化外部 job handle。</td><td>日志与错误必须脱敏。</td></tr>
+          <tr><th scope="row"><code>poll()/cancel()</code></th><td><code>poll</code> 归一状态与进度；<code>cancel</code> 返回 <code>confirmed | pending | unsupported</code>，不伪造终态。</td><td>区分临时错误、配额、鉴权、内容拒绝和永久输入错误；观察器脱离不等于远程取消。</td></tr>
+          <tr><th scope="row"><code>collect()</code></th><td>供应商结果 → 经验证的 Artifact 与 observed metadata。</td><td>下载前后检查 URL、MIME、大小和哈希。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      领域核心只保存如“需要 7 秒、16:9、两个镜头、使用地点参考”这样的能力需求。某模型只接受 6 或 8 秒时，adapter 返回显式降级方案，由人批准后写入 <code>runtimeSeconds</code>；不得反向改写 <code>authoredSeconds</code>。
+    </p>
+  </section>
+
+  <section id="rebuild-test-and-evaluation">
+    <h2>测试与 eval：格式正确只是第一层</h2>
+    <div class="route-grid">
+      <section class="route-card">
+        <h3>领域与图性质</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> JSON Schema、引用完整性、revision 冲突、随机图的可达／终止／join 性质、多对多 coverage 与连续状态转移。失败必须给出稳定错误码和实体 ID。</p>
+      </section>
+      <section class="route-card">
+        <h3>黄金迁移夹具</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 固定 Narrative Forge serial、interactive 多镜节点和 shuohao 重复地点／插入 beat 三类最小项目；断言原始哈希、ID 映射、降级报告和规范往返。</p>
+      </section>
+      <section class="route-card">
+        <h3>Adapter 合同</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 用 fake provider 验证确定性编译、能力拒绝、异步轮询、取消、超时、429、鉴权、内容拒绝与结果 MIME；黄金请求只存脱敏样本。</p>
+      </section>
+      <section class="route-card">
+        <h3>任务可靠性</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 在提交前、提交后未记账、下载中和落盘后分别杀进程；重启后不得重复收费、丢 provenance 或留下无法解释的半成品。</p>
+      </section>
+      <section class="route-card">
+        <h3>安全回归</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 密钥不出现在 API、日志、导出、项目 JSON；外部 URL、路径穿越、超大文件、错误 MIME、恶意文件名和提示注入材料都使用击穿夹具。</p>
+      </section>
+      <section class="route-card">
+        <h3>艺术与产品 eval</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 用固定场景由人工盲评叙事清楚度、空间连续、表演可读、节奏和修改成本；记录 rubric、评审者与输入 revision，不把主观分数伪装成单元测试。</p>
+      </section>
+    </div>
+    <p>
+      <span class="evidence-tag" data-evidence="inference">分析推论</span>
+      两套旧系统的校验优势应被保留，但不能原样合并成一张更长的 gates 清单。每道门必须归属某一合同、给出可行动错误，并证明一次真实失败；否则它只是仪式性复杂度。
+    </p>
+  </section>
+
+  <section id="rebuild-security-and-privacy">
+    <h2>隐私与安全：创作工具也处理秘密和不可信输入</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="source">源码实现</span>
+      Narrative Forge <code>24c3c47</code> 的 <code>README.md</code> 明确说明本地服务没有账号和访问控制，远程部署必须保持私有；<code>app.py</code> 的 <code>validate_media_url()</code> 拒绝本机／内网媒体地址，供应商配置端点不返回密钥。<span class="evidence-tag" data-evidence="inference">分析推论</span> 现有防线应作为迁移回归基线，而非新架构已经安全的证明。
+    </p>
+    <ul class="checklist">
+      <li><span class="evidence-tag" data-evidence="proposal">重构建议</span> 长期密钥来自进程环境或专用 secret store；浏览器覆盖仅限 session，数据库只保存 <code>secretRef</code>。</li>
+      <li><span class="evidence-tag" data-evidence="proposal">重构建议</span> 默认只监听 loopback；远程入口必须有认证、TLS、授权和审计，否则保持私有网络。</li>
+      <li><span class="evidence-tag" data-evidence="proposal">重构建议</span> 所有外部 URL 防 SSRF 与 DNS rebinding；下载限制协议、重定向、IP 范围、大小、超时和 MIME。</li>
+      <li><span class="evidence-tag" data-evidence="proposal">重构建议</span> 文件路径由服务器生成，禁止用户输入参与目录拼接；Artifact 落盘后计算哈希并做类型探测。</li>
+      <li><span class="evidence-tag" data-evidence="proposal">重构建议</span> 小说、提示和第三方仓库文本一律作为数据；不得把其中指令提升为系统命令、工具授权或模板代码。</li>
+      <li><span class="evidence-tag" data-evidence="proposal">重构建议</span> 日志默认脱敏并设保留期；按项目限制并发、文件大小、预算和重试次数，昂贵操作要求明确批准。</li>
+    </ul>
+    <p>
+      <span class="evidence-tag" data-evidence="inference">分析推论</span>
+      如果产品继续是单用户私有工具，完整多租户权限系统可以不是首轮目标；一旦公开联网或多人共享，它就从“未来增强”变成上线前置条件，不能靠免责声明代替。
+    </p>
+  </section>
+
+  <section id="rebuild-milestones">
+    <h2>里程碑：每一步都能停止、审阅和回滚</h2>
+    <div class="table-scroll" role="region" aria-label="重建里程碑与验收" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="proposal">重构建议</span> 表 4　从冻结样本到规范层切换的实施次序</caption>
+        <thead>
+          <tr><th scope="col">里程碑</th><th scope="col">交付</th><th scope="col">退出条件</th><th scope="col">可回滚点</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">M0　证据与决定</th><td>冻结代表项目、字段字典、威胁模型；ADR 记录领域身份、存储、任务与 adapter 边界。</td><td>serial、interactive 多镜节点、shuohao 位置索引都有黄金夹具；原文件哈希可复核。</td><td>只增加文档和只读夹具，不影响旧运行。</td></tr>
+          <tr><th scope="row">M1　规范核心</th><td>实体、revision、CanonicalSnapshot、MigrationRecord、StoryGraph、ShotBeatLink、Continuity、Approval 和分层验证器。</td><td>小型 JSON 通过 schema／引用／图／覆盖测试；<code>migration-staging</code> 无法进入执行／发布；领域包无网络与文件系统依赖。</td><td>作为独立库存在，旧系统仍是唯一写入源。</td></tr>
+          <tr><th scope="row">M2　只读导入</th><td>NF v6 与 shuohao 五层导入、dry-run 报告、来源 Artifact、迁移暂存和降级清单。</td><td>黄金夹具 100% 确定性；每条旧记录要么已晋升、要么在报告中明示阻止发布；两项 scene 边界测试可击穿错误映射；不改原文件。</td><td>删除新建规范项目即可，原项目未触碰。</td></tr>
+          <tr><th scope="row">M3　存储与 API</th><td>SQLite repositories、ArtifactStore、optimistic API、Approval 和 outbox。</td><td>事务／冲突／备份恢复通过；同一输入可导入后再导出等价规范 JSON。</td><td>API 仅旁路读，旧 UI 继续运行。</td></tr>
+          <tr><th scope="row">M4　编辑与影子投影</th><td>按功能切换单一写入权：新 UI 只写规范层，旧视图由规范快照编译成只读影子，差异只用于观察。</td><td>代表用户流程完成；每条路径只有一个权威 writer；所有差异可解释；authored override 跨重编译保留。</td><td>先冻结写入并导出规范快照，通过已演练的反向导入恢复旧 writer；不开启双写。</td></tr>
+          <tr><th scope="row">M5　任务与适配器</th><td>文本／图像／视频 adapter、持久队列、取消语义／重试、provenance 与预算守门。</td><td>fake provider 覆盖 confirmed／pending／unsupported 取消和故障矩阵；真实小额 smoke、杀进程恢复和秘密扫描全部通过。</td><td>逐供应商 feature flag 回退旧调用路径。</td></tr>
+          <tr><th scope="row">M6　切换与清退</th><td>规范层成为唯一写入真相；旧导入保留，旧写入冻结；发布和回滚手册完成。</td><td>连续两个发布周期无未解释差异；备份恢复演练；用户签署验收；旧路径有移除日期。</td><td>保留最后可读旧快照与向后导出，按发布 runbook 回退。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="rebuild-acceptance-checklist">
+    <h2>最终验收：能解释一次修改怎样走到一个文件</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      只有以下清单在同一个候选版本上全部成立，才可以称根本合同已被修复，而不只是新页面可以点击。
+    </p>
+    <ul class="checklist">
+      <li>作者编辑关系使用稳定 ID，移动顺序不改变身份；编译、执行与发布只消费已批准 CanonicalSnapshot 中的精确 revisions。</li>
+      <li>NF serial 与 interactive 多镜节点、shuohao sceneIndex 与 sceneId 均按各自语义无损导入；暂存记录要么晋升为完整规范关系，要么被明示阻止执行与发布。</li>
+      <li>一个 beat 可被多个 shots 覆盖，一个 shot 可覆盖多个 beats；验证器能定位缺口与有意重叠。</li>
+      <li>分支入口可达、终点合法、join 状态兼容；条件和状态补丁可被回放。</li>
+      <li>人工批准绑定精确 revision；上游变化会标记受影响 Artifact stale，而不覆盖人工 override。</li>
+      <li>同一 adapter 版本和输入快照编译出相同请求；不支持能力产生显式降级决定。</li>
+      <li>任务在每个故障边界重启后保持幂等与可追踪；只在提交前或供应商确认后进入 cancelled，不支持取消时继续后台对账，不重复收费或遗失结果。</li>
+      <li>API、日志、项目、导出和 Artifact 均扫描不到真实密钥；远程部署边界有可验证控制。</li>
+      <li>从任一生成视频可反查任务、adapter、提示 Artifact、输入 revisions、人工批准和来源文件哈希。</li>
+      <li>旧系统清退前完成备份恢复与回滚演练，操作者能按 runbook 在限定时间恢复服务。</li>
+    </ul>
+  </section>
+
+  <footer class="chapter-summary">
+    <h2>本章结论</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      先用冻结夹具证明旧数据是什么意思，再用规范核心保护这些意思；先做只读导入，再建立事务与任务；先让 adapter 替换供应商耦合，再切换唯一写入源。这样可以同时保留 Narrative Forge 的短反馈回路与 shuohao 的显式交接，而不继承它们最难演进的对象混用和位置引用。
+    </p>
+    <p class="source-note">
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      路线中的目标架构、API、存储、任务、安全和里程碑均为提案。现状依据固定为 Narrative Forge <code>24c3c47</code> 与 shuohao-skills <code>4322897</code>；具体证据路径在本章相邻段落、第七章和 <code>SOURCES.md</code> 中列出。私有 shot-recipes 卡库不在迁移或验收承诺内。
+    </p>
+  </footer>
+</article>

@@ -1,0 +1,463 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "compare",
+  "type": "architecture",
+  "comparatorVersion": 1,
+  "canonicalVersion": 1,
+  "completeness": "complete",
+  "proofLevel": "authored",
+  "base": {
+    "title": "Narrative Forge V1 — 从输入到分镜",
+    "rawSha256": "f8381abf667849071b25775a1f9d9556d47fc05114621d1c0e132669b8b8fe3b",
+    "semanticSha256": "a804d242ba27b78a0017705ac631a5522e7f6c045dca91300e8f0fe7e65dc502",
+    "bytes": 5629
+  },
+  "head": {
+    "title": "Narrative Forge V2 — 从输入到分镜",
+    "rawSha256": "f7b37f0f2eb242edceb5e1fb0767b0ff027ec1a03b4427132a7ccae1a2050c5d",
+    "semanticSha256": "ec0e25253c3fba5f919efc9751333b0e2a4c5649092496ae32bf95309735f06b",
+    "bytes": 6103
+  },
+  "summary": {
+    "components": {
+      "added": 2,
+      "changed": 9,
+      "evidenceChanged": 0,
+      "removed": 1,
+      "moved": 0
+    },
+    "connections": {
+      "added": 1,
+      "changed": 10,
+      "removed": 0,
+      "rerouted": 0
+    },
+    "boundaries": {
+      "added": 0,
+      "changed": 0,
+      "removed": 0,
+      "geometryChanged": 0
+    },
+    "presentationChanged": true,
+    "provenanceChanged": false
+  },
+  "changes": {
+    "components": [
+      {
+        "id": "browser-workbench",
+        "baseLabel": "V1 浏览器工作台",
+        "headLabel": "V2 React 工作台",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label",
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "canonical-domain",
+        "headLabel": "Canonical Domain",
+        "status": "added",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "generation-api",
+        "baseLabel": "文本生成 API",
+        "headLabel": "V2 FastAPI 契约",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label",
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "generation-orchestrator",
+        "headLabel": "生成编排器",
+        "status": "added",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "media-pipeline",
+        "baseLabel": "媒体生成流程",
+        "headLabel": "MediaTask Runner",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label",
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "media-provider",
+        "baseLabel": "图片/视频供应商",
+        "headLabel": "图片/视频供应商",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "mutable-project-state",
+        "baseLabel": "可变 Project 状态",
+        "status": "removed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "project-storage",
+        "baseLabel": "V1 项目存储",
+        "headLabel": "V2 版本与证据库",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label",
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "prompt-assembly",
+        "baseLabel": "Prompt 拼装",
+        "headLabel": "版本化 Prompt",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label",
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "provider-secret-boundary",
+        "baseLabel": "供应商密钥边界",
+        "headLabel": "Secret Lease 边界",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label",
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "response-validation",
+        "baseLabel": "响应解析与修补",
+        "headLabel": "Canonical 验证",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label",
+          "/sublabel"
+        ]
+      },
+      {
+        "id": "storyboard-list",
+        "baseLabel": "分镜列表",
+        "headLabel": "分镜工作区",
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label",
+          "/sublabel"
+        ]
+      }
+    ],
+    "connections": [
+      {
+        "id": "build-prompt",
+        "base": {
+          "from": "generation-api",
+          "to": "prompt-assembly",
+          "label": "项目字段"
+        },
+        "head": {
+          "from": "generation-orchestrator",
+          "to": "prompt-assembly",
+          "label": "阶段 + canonical 输入"
+        },
+        "status": "changed",
+        "classifications": [
+          "geometry",
+          "semantic",
+          "topology"
+        ],
+        "changedFields": [
+          "/from",
+          "/fromSide",
+          "/label",
+          "/labelAt",
+          "/toSide",
+          "/via"
+        ]
+      },
+      {
+        "id": "call-media-provider",
+        "base": {
+          "from": "media-pipeline",
+          "to": "media-provider",
+          "label": "提交 + 浏览器轮询"
+        },
+        "head": {
+          "from": "media-pipeline",
+          "to": "media-provider",
+          "label": "提交 + runner 轮询"
+        },
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label"
+        ]
+      },
+      {
+        "id": "create-media-task",
+        "base": {
+          "from": "storyboard-list",
+          "to": "media-pipeline",
+          "label": "生成图片或视频"
+        },
+        "head": {
+          "from": "storyboard-list",
+          "to": "media-pipeline",
+          "label": "Shot → immutable MediaTask"
+        },
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label"
+        ]
+      },
+      {
+        "id": "enqueue-generation",
+        "head": {
+          "from": "generation-api",
+          "to": "generation-orchestrator",
+          "label": "冻结 snapshot 后入队"
+        },
+        "status": "added",
+        "classifications": [
+          "topology"
+        ],
+        "changedFields": []
+      },
+      {
+        "id": "install-response",
+        "base": {
+          "from": "response-validation",
+          "to": "mutable-project-state",
+          "label": "直接安装 scenes[]"
+        },
+        "head": {
+          "from": "response-validation",
+          "to": "canonical-domain",
+          "label": "通过验证的 candidate"
+        },
+        "status": "changed",
+        "classifications": [
+          "geometry",
+          "semantic",
+          "topology"
+        ],
+        "changedFields": [
+          "/fromSide",
+          "/label",
+          "/labelAt",
+          "/to",
+          "/toSide",
+          "/via"
+        ]
+      },
+      {
+        "id": "media-secret-flow",
+        "base": {
+          "from": "provider-secret-boundary",
+          "to": "media-pipeline",
+          "label": "请求体 / Header"
+        },
+        "head": {
+          "from": "provider-secret-boundary",
+          "to": "media-pipeline",
+          "label": "任务期 SecretLease"
+        },
+        "status": "changed",
+        "classifications": [
+          "geometry",
+          "semantic"
+        ],
+        "changedFields": [
+          "/label",
+          "/labelAt"
+        ]
+      },
+      {
+        "id": "parse-provider-response",
+        "base": {
+          "from": "text-provider",
+          "to": "response-validation",
+          "label": "JSON 文本"
+        },
+        "head": {
+          "from": "text-provider",
+          "to": "response-validation",
+          "label": "原始响应 + JSON"
+        },
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label"
+        ]
+      },
+      {
+        "id": "persist-state",
+        "base": {
+          "from": "mutable-project-state",
+          "to": "project-storage",
+          "label": "自动保存 / 显式保存"
+        },
+        "head": {
+          "from": "canonical-domain",
+          "to": "project-storage",
+          "label": "单事务原子安装"
+        },
+        "status": "changed",
+        "classifications": [
+          "semantic",
+          "topology"
+        ],
+        "changedFields": [
+          "/from",
+          "/label",
+          "/variant"
+        ]
+      },
+      {
+        "id": "render-storyboard",
+        "base": {
+          "from": "mutable-project-state",
+          "to": "storyboard-list",
+          "label": "同步 render()"
+        },
+        "head": {
+          "from": "project-storage",
+          "to": "storyboard-list",
+          "label": "rehydrate canonical heads"
+        },
+        "status": "changed",
+        "classifications": [
+          "geometry",
+          "semantic",
+          "topology"
+        ],
+        "changedFields": [
+          "/from",
+          "/fromSide",
+          "/label",
+          "/labelAt",
+          "/toSide",
+          "/via"
+        ]
+      },
+      {
+        "id": "submit-generation",
+        "base": {
+          "from": "browser-workbench",
+          "to": "generation-api",
+          "label": "POST /api/generate-story"
+        },
+        "head": {
+          "from": "browser-workbench",
+          "to": "generation-api",
+          "label": "POST /projects/:id/pipeline-runs"
+        },
+        "status": "changed",
+        "classifications": [
+          "semantic"
+        ],
+        "changedFields": [
+          "/label"
+        ]
+      },
+      {
+        "id": "text-secret-flow",
+        "base": {
+          "from": "provider-secret-boundary",
+          "to": "generation-api",
+          "label": "请求携带或服务端回退"
+        },
+        "head": {
+          "from": "provider-secret-boundary",
+          "to": "generation-orchestrator",
+          "label": "内存 SecretLease"
+        },
+        "status": "changed",
+        "classifications": [
+          "geometry",
+          "semantic",
+          "topology"
+        ],
+        "changedFields": [
+          "/fromSide",
+          "/label",
+          "/labelAt",
+          "/to",
+          "/toSide",
+          "/via"
+        ]
+      }
+    ],
+    "boundaries": []
+  },
+  "identity": {
+    "components": "components[].id",
+    "connections": "connections[].id (required)",
+    "boundaries": "boundaries[].kind + boundaries[].label (derived)"
+  },
+  "view": {
+    "visualPreset": "classic"
+  },
+  "limitations": [
+    "Authored Architecture IR only; no runtime impact, causality, risk, or mergeability is inferred.",
+    "Boundary identity is conservatively derived from kind + label."
+  ],
+  "artifact": {
+    "sha256": "91ff350b8b4839a2edb394a528698886c8c791e78c6cec7b307291317e44b6f5",
+    "bytes": 2075024
+  },
+  "validation": {
+    "checksPassed": 28,
+    "checkCount": 28,
+    "baseComposition": "pass",
+    "headComposition": "pass"
+  }
+}

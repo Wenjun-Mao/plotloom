@@ -1,0 +1,321 @@
+<article data-title="随身参考：读代码、改流程、验收分镜" data-kicker="附录 · 实践索引">
+  <header class="chapter-header">
+    <p class="eyebrow">附录 · Practical Field Guide</p>
+    <h1>读代码、改流程、验收分镜</h1>
+    <p class="chapter-lede">这一章不是让你真的拿纸笔完成整套制作，而是把前面的知识压成一套可重复查询的方法：拿到任何故事生成项目时，知道先问什么、沿哪里追代码、哪些产物应该存在，以及什么情况下可以修改、应该重构或值得重写。</p>
+  </header>
+
+  <section id="reference-four-passes">
+    <h2>一、理解第三方系统的四遍阅读法</h2>
+    <p>不要从文件树第一行一直读到最后一行。每一遍只追一种问题，读完都应留下一个可以验证的产物。</p>
+
+    <div class="route-grid">
+      <section class="route-card">
+        <h3>第一遍：用户动作</h3>
+        <p>从一个真实按钮或命令开始，追到它产生的最终文件、页面或媒体任务。</p>
+        <ul>
+          <li>入口是什么？</li>
+          <li>中途跨过哪些模块或进程？</li>
+          <li>失败会在哪里暴露？</li>
+        </ul>
+        <p><strong>留下：</strong>一张端到端调用图。</p>
+      </section>
+      <section class="route-card">
+        <h3>第二遍：数据生命史</h3>
+        <p>选择一个概念，例如“场次”或“镜头”，追踪它从输入、内存、持久化到导出的每次变形。</p>
+        <ul>
+          <li>何处获得 ID？</li>
+          <li>哪些字段是创作者输入？</li>
+          <li>哪些字段会被重新计算或静默丢弃？</li>
+        </ul>
+        <p><strong>留下：</strong>一张字段转换表。</p>
+      </section>
+      <section class="route-card">
+        <h3>第三遍：失败契约</h3>
+        <p>读校验器、测试和回退逻辑，而不是只读成功路径。</p>
+        <ul>
+          <li>什么输入会被拒绝？</li>
+          <li>什么错误会被默认值掩盖？</li>
+          <li>测试保护的是格式、行为还是创作质量？</li>
+        </ul>
+        <p><strong>留下：</strong>一张失败模式清单。</p>
+      </section>
+      <section class="route-card">
+        <h3>第四遍：可替换边界</h3>
+        <p>假设更换文本模型、视频模型、存储或前端，观察哪些数据仍然成立。</p>
+        <ul>
+          <li>核心事实是否混在提示词里？</li>
+          <li>供应商参数能否由通用规格派生？</li>
+          <li>人工修订能否跨重新生成保留？</li>
+        </ul>
+        <p><strong>留下：</strong>一张重构接缝图。</p>
+      </section>
+    </div>
+
+    <aside class="callout callout-principle">
+      <h3>每次都用同一个小案例</h3>
+      <p>用“月城控制室”这样的短场景做探针，比直接输入一部长篇更容易看清信息在何处丢失。探针应同时包含空间、道具、反应、短对白、连续状态和一个形式差异；这样一轮运行就能触碰多数关键契约。</p>
+    </aside>
+  </section>
+
+  <section id="artifact-acceptance-ladder">
+    <h2>二、从梗概到投产，每层究竟要验收什么</h2>
+    <p><span class="evidence-tag" data-evidence="common">通用方法</span> 下表描述的是跨工具的最低理解标准，不要求任一现有仓库已经保存全部产物。</p>
+
+    <div class="table-scroll" role="region" aria-label="分镜产物验收阶梯" tabindex="0">
+      <table>
+        <caption>表 1　每一层的输入、输出与停止条件</caption>
+        <thead>
+          <tr>
+            <th scope="col">层</th>
+            <th scope="col">主要输入</th>
+            <th scope="col">应当输出</th>
+            <th scope="col">进入下一层前必须回答</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">粗梗概</th>
+            <td>原始故事想法</td>
+            <td>来源事实、批准补充、开放问题</td>
+            <td>谁要什么、什么阻止他、失败代价是什么？哪些仍未知？</td>
+          </tr>
+          <tr>
+            <th scope="row">形式契约</th>
+            <td>梗概、受众与交付目标</td>
+            <td>时长、画幅、线性／互动规则、交付范围</td>
+            <td>作者、玩家和生成器分别拥有什么决定权？</td>
+          </tr>
+          <tr>
+            <th scope="row">全局结构</th>
+            <td>故事简报与形式契约</td>
+            <td>因果链、关键转折、分支状态图</td>
+            <td>每个转折是否由前面的行动或信息迫使发生？</td>
+          </tr>
+          <tr>
+            <th scope="row">集</th>
+            <td>全局结构与总时长</td>
+            <td>本集进入状态、问题、变化、退出状态和钩子</td>
+            <td>这一集改变了什么，而不只是在哪里截断？</td>
+          </tr>
+          <tr>
+            <th scope="row">戏剧场次</th>
+            <td>本集任务、在场人物和地点资产</td>
+            <td>场次目标、阻碍、策略、转折、连续性负债</td>
+            <td>人物进场时相信什么，离场时知道或决定了什么？</td>
+          </tr>
+          <tr>
+            <th scope="row">节拍</th>
+            <td>已批准场次</td>
+            <td>带稳定 ID 的动作、台词、反应、揭示或决定</td>
+            <td>每一拍是否至少改变一项状态？删掉后是否真的没有损失？</td>
+          </tr>
+          <tr>
+            <th scope="row">镜头列表</th>
+            <td>节拍与导演意图</td>
+            <td>镜头功能、覆盖关系、观看设计、声音、估时和状态交接</td>
+            <td>为什么从这里看？为什么在这里切？下一镜接得住吗？</td>
+          </tr>
+          <tr>
+            <th scope="row">故事板</th>
+            <td>镜头列表、角色与地点参考</td>
+            <td>一个或多个面板、视线、调度、方向和关键状态</td>
+            <td>不读文字时，空间、动作和信息优先级是否仍清楚？</td>
+          </tr>
+          <tr>
+            <th scope="row">Animatic</th>
+            <td>面板、对白、声音与镜头时长</td>
+            <td>可以真实经历的时间线预演</td>
+            <td>信息来得及读吗？表演与对白装得下吗？转折有重量吗？</td>
+          </tr>
+          <tr>
+            <th scope="row">投产包</th>
+            <td>已批准分镜与供应商能力</td>
+            <td>参考资产、适配提示、任务依赖、参数、结果与版本</td>
+            <td>能否由来源规格重新编译？失败后能否只重做受影响任务？</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="cross-system-glossary">
+    <h2>三、跨系统术语表</h2>
+    <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 同一个词在电影制作、Narrative Forge、shuohao 和你未来的系统中可能代表不同对象。下表是本手册建议长期采用的工作词典，不是两个仓库已经共享的 schema；比较时先回到工作定义，再看具体实现。</p>
+
+    <div class="table-scroll" role="region" aria-label="跨系统术语表" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="proposal">重构建议</span> 表 2　建议长期固定的概念边界</caption>
+        <thead>
+          <tr>
+            <th scope="col">术语</th>
+            <th scope="col">建议工作定义</th>
+            <th scope="col">不要混成</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">Story / StoryGraph</th><td>故事事实及其允许的状态、选择和后继关系。</td><td>摄影机镜头树或页面导航。</td></tr>
+          <tr><th scope="row">Episode</th><td>系列中的一段宏观叙事交付，拥有自己的进入与退出状态。</td><td>按字符数平均切出的文件。</td></tr>
+          <tr><th scope="row">DramaticScene</th><td>在相对连续时空与行动线内完成一个戏剧任务的单位。</td><td>地点资产、AI 图片或数据库中的通用 <code>scene</code> 字段。</td></tr>
+          <tr><th scope="row">LocationAsset</th><td>可被多场戏引用的地点、布景、时间和灯光设计资产。</td><td>某一次人物行动本身。</td></tr>
+          <tr><th scope="row">Beat</th><td>让行动、信息、关系、情绪或决定发生一次可辨变化的最小叙事单位。</td><td>一句话、一个标点或固定秒数。</td></tr>
+          <tr><th scope="row">Shot</th><td>一个连续观看视点形成的动态影像单位，携带观看功能和状态交接。</td><td>故事板的一幅静态图。</td></tr>
+          <tr><th scope="row">Panel</th><td>代表镜头某个关键状态的故事板画格。</td><td>已经批准用于模型输入的关键帧文件。</td></tr>
+          <tr><th scope="row">KeyframeArtifact</th><td>具有版本、来源和不可变文件身份、可被生产任务消费的具体关键帧图像；若被长期选为参考，可由逻辑 Asset 的批准版本指向它。</td><td>故事板 Panel，或“近景、阴冷、电影感”这类文字描述。</td></tr>
+          <tr><th scope="row">GenerationSegment</th><td>为一次计划中的视频生成组织的连续时间单元，可包含一个或多个镜头。</td><td>戏剧场次或最终剪辑片段。</td></tr>
+          <tr><th scope="row">GenerationTask</th><td>一次可执行、可重试、有输入快照和供应商参数的工作。</td><td>通用镜头规格。</td></tr>
+          <tr><th scope="row">Artifact</th><td>一次执行产生的图片、视频、音频、字幕、报告或清单。</td><td>任务本身或抽象资产引用。</td></tr>
+          <tr><th scope="row">ContinuityState</th><td>某个边界时刻人物、道具、空间、光线、声音和知识的可检查状态。</td><td>“气氛紧张”这样的形容词。</td></tr>
+          <tr><th scope="row">Prompt</th><td>默认是由已批准事实、导演选择、参考资产和供应商协议编译出的 derived Artifact；人工编辑后，晋升为带 provenance 的 authored override／approved prompt Artifact。</td><td>系统唯一真相，或可被重编译静默覆盖的匿名文本。</td></tr>
+          <tr><th scope="row">ProviderAdapter</th><td>把通用规格转换成具体模型协议、枚举、时长和文件布局的边界模块。</td><td>隐藏在业务对象里的供应商条件分支。</td></tr>
+          <tr><th scope="row">Provenance</th><td>说明一个结果来自哪些来源、版本、人工覆盖和生成执行的记录。</td><td>只有创建时间的日志。</td></tr>
+          <tr><th scope="row">Gate</th><td>可机械判定、失败时能指出具体对象和修复方向的契约检查。</td><td>“感觉不够电影感”的主观评分。</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="source-tracing-map">
+    <h2>四、两套仓库的源码追踪入口</h2>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 下表基于手册冻结版本，用来回答“遇到一个现象先读哪里”。它不是说单个文件足以证明整条链路；真正结论仍要沿调用、读写和测试交叉核对。</p>
+
+    <div class="table-scroll" role="region" aria-label="两个仓库的源码追踪入口" tabindex="0">
+      <table>
+        <caption>表 3　按问题而非按目录阅读源码</caption>
+        <thead>
+          <tr>
+            <th scope="col">问题</th>
+            <th scope="col">Narrative Forge</th>
+            <th scope="col">shuohao-skills</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">用户动作从哪里进入</th>
+            <td><code>static/src/events.js</code>、<code>render.js</code>、<code>draft.js</code></td>
+            <td>各 skill 的 <code>SKILL.md</code> 与命令入口 <code>scripts/*.mjs</code></td>
+          </tr>
+          <tr>
+            <th scope="row">项目状态长什么样</th>
+            <td><code>project-model.js</code>、<code>state.js</code>、<code>episode-model.js</code>、<code>static/samples/</code></td>
+            <td>各 skill 的 <code>references/schema.md</code>、示例 JSON 与 <code>seed</code> 输出</td>
+          </tr>
+          <tr>
+            <th scope="row">文本模型被要求返回什么</th>
+            <td><code>draft.js</code> 的短剧提示、<code>app.py</code> 的互动提示与 agent 路由</td>
+            <td>agent 按各 <code>SKILL.md</code> 和 pass 文档创作；确定性脚本不调用模型</td>
+          </tr>
+          <tr>
+            <th scope="row">镜头与节拍怎样关联</th>
+            <td>短剧提示内部拆拍但不持久化；互动以 <code>storyNodeKey</code> 给镜头分组</td>
+            <td><code>novel-storyboard.mjs</code> 的 <code>sceneIndex</code> 与 <code>beats</code> 覆盖门</td>
+          </tr>
+          <tr>
+            <th scope="row">关键帧／视频提示怎样形成</th>
+            <td><code>static/src/prompt.js</code>、<code>api.js</code> 与 <code>app.py</code> 媒体端点</td>
+            <td><code>references/frame.md</code>、<code>h3-prompt.md</code> 及 storyboard 校验器</td>
+          </tr>
+          <tr>
+            <th scope="row">哪些失败会被拦住</th>
+            <td><code>*.test.js</code>、<code>backend/test_server.py</code>、前后端参数校验与默认回退</td>
+            <td><code>validate</code>、<code>selftest.mjs</code> 与各质量门的击穿夹具</td>
+          </tr>
+          <tr>
+            <th scope="row">最终交付到哪里</th>
+            <td>项目 JSON、项目素材目录、任务状态、互动离线试玩 ZIP 与短剧分集 MP4／ZIP</td>
+            <td>各阶段 JSON、HTML/Markdown 报告以及 storyboard 的生成批次目录</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="change-levels">
+    <h2>五、先判断问题在哪一层，再决定怎么改</h2>
+    <p>第三方项目最容易出现的维护错误，是在最靠近症状的地方加条件。先判断失败的是故事、领域契约、适配器还是界面，才能把修复放到真正拥有该规则的层。</p>
+
+    <div class="comparison-grid">
+      <article class="comparison-card">
+        <h3>只改配置</h3>
+        <p><strong>适用：</strong>模型地址、时长上限、提示语言或安全部署参数发生变化，但通用故事与镜头契约没变。</p>
+        <p><strong>警报：</strong>为了新供应商去改故事字段或镜头语义，说明适配边界不存在。</p>
+      </article>
+      <article class="comparison-card">
+        <h3>改适配器</h3>
+        <p><strong>适用：</strong>通用的 5 秒镜头需要映射到供应商六档时长，或同一关键帧需要不同上传协议。</p>
+        <p><strong>警报：</strong>适配器开始决定人物做什么、哪条分支成立，说明它越权进入创作层。</p>
+      </article>
+      <article class="comparison-card">
+        <h3>改领域模型</h3>
+        <p><strong>适用：</strong>无法表达一个节拍被多个镜头覆盖、同一地点出现于多场戏、分支汇流或人工覆盖来源。</p>
+        <p><strong>警报：</strong>只往自由文本里补标签，会延迟而不是解决结构缺口。</p>
+      </article>
+      <article class="comparison-card">
+        <h3>改工作流</h3>
+        <p><strong>适用：</strong>系统在场次未批准前就生成昂贵视频，或每次改台词都必须重做不相关资产。</p>
+        <p><strong>警报：</strong>增加更多按钮，却没有定义批准点、失效传播和恢复路径。</p>
+      </article>
+      <article class="comparison-card">
+        <h3>渐进重构</h3>
+        <p><span class="evidence-tag" data-evidence="inference">分析推论</span> <strong>适用：</strong>经真实使用证据确认，现有界面、媒体任务和导出仍有价值；可以在旁边建立规范模型与双向格式转换器。</p>
+        <p><strong>前提：</strong>能写出兼容测试，并允许一段时间内新旧表示并存；但任一功能在任一时刻只能有一个写入权威，另一侧只做只读投影与差异观察。</p>
+      </article>
+      <article class="comparison-card">
+        <h3>完全重写</h3>
+        <p><strong>适用：</strong>核心对象无法表达目标产品、状态变化难以迁移，且保留旧架构的成本高于重建。</p>
+        <p><strong>前提：</strong>先冻结行为样本、数据迁移和验收标准；“代码不好看”本身不构成重写理由。</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="understanding-checklist">
+    <h2>六、怎样判断自己已经真正理解</h2>
+    <p>“我能读懂代码”还不够。达到下面四级，才从会使用走到有能力重建。</p>
+
+    <ol class="handoff-list">
+      <li>
+        <strong>能解释</strong>
+        <span>不用仓库术语，向另一个人解释粗梗概如何变成场、节拍、镜头、画格和生成任务，并说明每层为什么存在。</span>
+      </li>
+      <li>
+        <strong>能追踪</strong>
+        <span>任选一个镜头，从 UI 或 JSON 追到提示、请求、任务、文件和回读状态；能指出中间每次字段改名与信息损失。</span>
+      </li>
+      <li>
+        <strong>能预测</strong>
+        <span>在运行前预测：删掉一个 beat、改变一个供应商时长或插入一个互动汇流节点，会使哪些产物失效、哪些不应重算。</span>
+      </li>
+      <li>
+        <strong>能替换</strong>
+        <span>把文本模型、媒体供应商或存储实现换掉，而不改故事事实和导演母版；适配结果可以重新生成，人工批准不会消失。</span>
+      </li>
+    </ol>
+
+    <aside class="callout callout-check">
+      <h3>一个很实用的闭卷测试</h3>
+      <p>关掉仓库，只看《月城失物局》中“月城控制室”这场戏的粗梗概。尝试口头重建：SC-03 与 SC-08 为什么是两场戏；九拍为什么变成八镜；镜 08 的线性与互动版本究竟在哪一层分叉；29 秒进入两套系统后为什么会变形。能把这些因果讲清，再回到代码验证，你学到的才不是文件路径记忆。</p>
+    </aside>
+  </section>
+
+  <section id="final-audit-card" class="chapter-section chapter-conclusion">
+    <h2>七、以后拿到任何生成式影视仓库，先问这十二题</h2>
+    <ol class="takeaway-chain">
+      <li>系统把来源故事和模型补写的内容分开保存了吗？</li>
+      <li>故事节点、戏剧场次、地点资产和镜头是独立对象吗？</li>
+      <li>节拍到镜头是一对一，还是能表达多对多覆盖？</li>
+      <li>线性后继、互动选择和分支汇流由哪一层拥有？</li>
+      <li>每个镜头的入口／出口状态能否机械检查？</li>
+      <li>时长是导演决定、估算、供应商枚举还是媒体实测？</li>
+      <li>提示词能否从规范数据和资产引用重新编译？</li>
+      <li>人工修改会不会被下一次生成静默覆盖？</li>
+      <li>模型返回格式与长期项目格式是否明确区分？</li>
+      <li>失败时能否定位到具体对象、字段和来源版本？</li>
+      <li>更换供应商是否只影响适配器与任务，而不是故事主数据？</li>
+      <li>仓库实际执行了什么，又有哪些只是 README 或提示词中的承诺？</li>
+    </ol>
+
+    <blockquote class="closing-thesis">
+      <p>彻底理解一个生成系统，不是知道每个按钮调用了哪个函数，而是能解释：哪些决定来自故事，哪些由导演新增，哪些只是供应商要求；它们怎样被保存、验证、转换、执行，又怎样在修改后可靠地重新计算。</p>
+    </blockquote>
+  </section>
+</article>

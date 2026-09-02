@@ -1,0 +1,16 @@
+Plotloom
+Copyright 2026 Plotloom contributors
+
+Plotloom was initially extracted and rebranded from independently developed
+Narrative Forge V2 work. Fixed source provenance is recorded in
+docs/provenance/initial-extraction.md.
+
+This distribution includes documentation that analyzes and compares the
+open-source project shuohao-skills:
+
+shuohao-skills
+Copyright 2026 烁皓
+
+The source repositories are licensed under the Apache License, Version 2.0.
+Detailed fixed-revision provenance and reuse boundaries are recorded in
+docs/storyboard-handbook/THIRD_PARTY_NOTICES.md.

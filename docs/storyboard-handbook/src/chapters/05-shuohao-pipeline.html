@@ -1,0 +1,413 @@
+<article data-title="shuohao-skills：五段管线怎样接力" data-kicker="源码解剖 · 五段管线">
+  <header class="chapter-hero">
+    <p class="eyebrow">源码解剖 · shuohao-skills 固定提交 4322897</p>
+    <h1>shuohao-skills：五段管线怎样接力</h1>
+    <p class="chapter-deck">这不是一个“按按钮自动跑完”的制片应用，而是一组交给编码代理执行的工作规程，加上一套不调用模型的确定性 Node 工具。理解它的关键，是把<strong>谁负责创作</strong>、<strong>谁负责搬运事实</strong>、<strong>谁负责判错</strong>分开。</p>
+    <aside class="chapter-promise" aria-labelledby="shuohao-pipeline-promise">
+      <h2 id="shuohao-pipeline-promise">读完本章，你应该能回答</h2>
+      <ul>
+        <li>五份 JSON 各自决定什么，哪些字段会成为下一层的事实。</li>
+        <li><code>seed</code>、<code>validate</code>、<code>render</code>、<code>export</code> 为什么不是“AI 创作”。</li>
+        <li><code>C / S / P / B</code> 编号在哪里稳定，在哪里已经退化成名字、类型或数组位置。</li>
+        <li>README 和 SKILL 的设计声明，与固定提交中的源码及测试究竟是否一致。</li>
+      </ul>
+    </aside>
+  </header>
+
+  <section id="shuohao-reading-contract" class="chapter-section">
+    <h2>一、先定证据口径：这是静态审计，不是运行测评</h2>
+    <p><span class="evidence-tag" data-evidence="docs">文档声明</span> 根 README 把项目定义为供 Claude Code 或 Codex 使用的 AI 短剧 skill 集合；每个 skill 由给代理阅读的 <code>SKILL.md</code>、标准库脚本、自测、参考资料、样例和截图组成，并声称 Node 18 以上即可、不需要 npm 安装或 API key。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 五个主脚本在文件头只导入 <code>node:fs</code>、<code>node:path</code>、<code>node:url</code> 等标准库；创作工作则写在 Markdown 指令中，由当前会话里的代理完成。脚本没有实现小说理解、人物塑造、剧本写作或镜头审美模型调用。</p>
+    <p><span class="evidence-tag" data-evidence="test">测试约束</span> 每个 skill 都有独立 <code>scripts/selftest.mjs</code>，测试文件直接导入纯函数、构造夹具并击穿质量门。仓库文档声明这些自测不调用模型；本手册只审阅了测试源码，<strong>没有执行第三方脚本</strong>，因此本章不使用“运行验证”标签。</p>
+    <p class="source-note">证据入口：shuohao-skills <code>README.md</code> 第 9–23、102–137 行；五个 <code>skills/*/scripts/*.mjs</code> 的 import 区；五个 <code>skills/*/scripts/selftest.mjs</code>（固定提交 <code>4322897e6d2bdaf66365534fd40194360c75a85f</code>）。</p>
+
+    <aside class="callout callout-warning">
+      <h3>“零依赖”不等于“没有运行时”</h3>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 这里准确的说法是“没有 npm 包依赖”：仍需 Node 18+，仍需能读写文件的代理环境；可选出图还依赖 Codex 的内置图像能力。把它理解成完全离线的单体程序，会误判系统边界。</p>
+    </aside>
+  </section>
+
+  <section id="shuohao-dag" class="chapter-section">
+    <h2>二、五段是交付顺序，标准 seed 主干其实是一张 DAG</h2>
+    <p><span class="evidence-tag" data-evidence="docs">文档声明</span> 项目把五份交付物概括为“大纲决定什么、角色决定谁、美术决定哪里和道具、剧本决定戏、分镜决定怎么拍”。根 README 同时强调：大纲先收敛结构，角色、美术与剧本可以同步迭代，分镜位于消费端。</p>
+
+    <figure class="diagram-figure">
+      <svg viewBox="0 0 940 330" role="img" aria-labelledby="shuohao-dag-title shuohao-dag-desc">
+        <title id="shuohao-dag-title">shuohao 五段标准 seed 主干与分镜依赖图</title>
+        <desc id="shuohao-dag-desc">原文和目标参数进入大纲；大纲分别给角色、美术与剧本提供种子；剧本是分镜硬前提，角色和美术为分镜提供参考与对账。图外另有美术到剧本的可选校验，以及角色到剧本的写作上下文和音色展示依赖。</desc>
+        <defs>
+          <marker id="shuohao-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#735d2d"></path>
+          </marker>
+        </defs>
+        <rect x="24" y="117" width="145" height="82" rx="8" fill="#f5ead0" stroke="#735d2d" stroke-width="2"></rect>
+        <text x="96" y="146" text-anchor="middle" font-size="17" font-weight="700">小说 / 短故事</text>
+        <text x="96" y="173" text-anchor="middle" font-size="13">目标集数 · 时长 · 题材</text>
+
+        <rect x="226" y="117" width="145" height="82" rx="8" fill="#f0b94a" stroke="#6c4a05" stroke-width="2"></rect>
+        <text x="298" y="144" text-anchor="middle" font-size="17" font-weight="700">outline.json</text>
+        <text x="298" y="169" text-anchor="middle" font-size="13">结构 · 角色表 · 资产码</text>
+        <text x="298" y="187" text-anchor="middle" font-size="12">分集 · 爽点 · 钩子</text>
+
+        <rect x="438" y="26" width="155" height="76" rx="8" fill="#f7f3e8" stroke="#735d2d" stroke-width="2"></rect>
+        <text x="515" y="55" text-anchor="middle" font-size="17" font-weight="700">cast.json</text>
+        <text x="515" y="80" text-anchor="middle" font-size="13">画像 · 形象 · 音色</text>
+
+        <rect x="438" y="127" width="155" height="76" rx="8" fill="#f7f3e8" stroke="#735d2d" stroke-width="2"></rect>
+        <text x="515" y="156" text-anchor="middle" font-size="17" font-weight="700">art.json</text>
+        <text x="515" y="181" text-anchor="middle" font-size="13">场景 · 道具 · 一致性</text>
+
+        <rect x="438" y="228" width="155" height="76" rx="8" fill="#f7f3e8" stroke="#735d2d" stroke-width="2"></rect>
+        <text x="515" y="257" text-anchor="middle" font-size="17" font-weight="700">script.json</text>
+        <text x="515" y="282" text-anchor="middle" font-size="13">场次 · flow · 台词时长</text>
+
+        <rect x="704" y="127" width="190" height="76" rx="8" fill="#dfe8e4" stroke="#315d52" stroke-width="2"></rect>
+        <text x="799" y="156" text-anchor="middle" font-size="17" font-weight="700">storyboard.json</text>
+        <text x="799" y="181" text-anchor="middle" font-size="13">segment · cut · frame · H3</text>
+
+        <path d="M169 158 H226" fill="none" stroke="#735d2d" stroke-width="2" marker-end="url(#shuohao-arrow)"></path>
+        <path d="M371 147 C402 128 405 67 438 64" fill="none" stroke="#735d2d" stroke-width="2" marker-end="url(#shuohao-arrow)"></path>
+        <path d="M371 158 H438" fill="none" stroke="#735d2d" stroke-width="2" marker-end="url(#shuohao-arrow)"></path>
+        <path d="M371 171 C405 193 403 263 438 266" fill="none" stroke="#735d2d" stroke-width="2" marker-end="url(#shuohao-arrow)"></path>
+        <path d="M593 266 C655 258 652 195 704 178" fill="none" stroke="#315d52" stroke-width="3" marker-end="url(#shuohao-arrow)"></path>
+        <path d="M593 64 C667 69 648 130 704 145" fill="none" stroke="#8c7650" stroke-width="1.7" stroke-dasharray="7 6" marker-end="url(#shuohao-arrow)"></path>
+        <path d="M593 165 H704" fill="none" stroke="#8c7650" stroke-width="1.7" stroke-dasharray="7 6" marker-end="url(#shuohao-arrow)"></path>
+        <text x="641" y="291" text-anchor="middle" font-size="12">硬前提</text>
+        <text x="651" y="96" text-anchor="middle" font-size="12">参考图 / 名称 / 对账</text>
+      </svg>
+      <figcaption><span class="evidence-tag" data-evidence="source">源码实现</span> 这张图突出标准 seed 主干：实线表示 seed 或强校验，虚线表示分镜的可选上下文。<code>novel-storyboard</code> 的 CLI 对 <code>--script</code> 强制报缺，<code>--outline</code>、<code>--cast</code>、<code>--art</code> 则按有则用。</figcaption>
+    </figure>
+
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 图中没有画完所有可选边：剧本可拿 art 做场景、光照、道具校验和展示；outline 提供角色显示名，cast 为剧本报告补 <code>voice.prompt</code>，也可成为代理写作上下文。它们不是 <code>seedFromOutline()</code> 建立剧本结构时的硬前提。</p>
+    <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 因此“outline → characters → art → script → storyboard”适合作为人类的学习与交付顺序，却不是一条只能串行执行的函数链。角色与美术都从大纲分叉，后续再通过可选校验、写作上下文和报告展示汇合。</p>
+    <p class="source-note">证据入口：根 <code>README.md</code> 第 11、15–23 行；<code>scripts/report.mjs</code> 的 <code>PANES</code>；<code>skills/novel-script/SKILL.md</code> Step 0–2；<code>skills/novel-storyboard/scripts/novel-storyboard.mjs</code> 的 <code>loadCtx()</code> 与 CLI <code>main()</code>。</p>
+  </section>
+
+  <section id="shuohao-two-engines" class="chapter-section">
+    <h2>三、每一段都有两台“引擎”：代理创作，脚本守合同</h2>
+    <p>把整个仓库想成“创作台 + 质检台”最准确。代理读原文和参考指令，写出需要判断的内容；Node 脚本只做可重复的切块、搬运、计数、引用检查、格式检查和报告编译。</p>
+
+    <div class="table-scroll" role="region" aria-label="五阶段代理创作与脚本职责" tabindex="0">
+      <table>
+        <caption>表 1　同一阶段内，哪些是创作，哪些是确定性操作</caption>
+        <thead>
+          <tr>
+            <th scope="col">阶段</th>
+            <th scope="col">代理必须创作或判断</th>
+            <th scope="col">脚本确定性完成</th>
+            <th scope="col">证据入口</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">大纲</th>
+            <td>读材料；决定保留、删改、合角；写人物弧、场景、爽点与分集梗概；把关键砍线、合人和爆点交用户拍板。</td>
+            <td><code>chunkVolumes()</code> 分卷；<code>validateOutline()</code> 按阶段卡门；<code>computeAssets()</code> 从分集引用汇总第五件“资产清单”；<code>render*</code> 编译报告。</td>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> <code>novel-outline/SKILL.md</code> Step 2–7<br><span class="evidence-tag" data-evidence="source">源码实现</span> <code>novel-outline.mjs</code> 同名函数</td>
+          </tr>
+          <tr>
+            <th scope="row">角色</th>
+            <td>每块识别人名、别名和证据；复核可能同人；为每个角色写画像、形象提示、声线与关系。</td>
+            <td><code>chunkText()</code> 切块；<code>mergeRoster()</code> 精确归并；<code>mergeCandidates()</code> 只提出包含关系候选；<code>seedFromOutline()</code> 搬角色事实；<code>assembleCast()</code>、<code>validateCast()</code>、<code>render*</code> 组装质检。</td>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> <code>novel-characters/SKILL.md</code> Step 2–9<br><span class="evidence-tag" data-evidence="source">源码实现</span> <code>novel-characters.mjs</code> 同名函数</td>
+          </tr>
+          <tr>
+            <th scope="row">美术</th>
+            <td>写空间设计意图、可画锚点、需要的光照状态；设计叙事道具尺度、状态与空景/白底提示词。</td>
+            <td><code>seedFromOutline()</code> 搬 <code>S/P</code> 清单、使用集与爽点；<code>gateReport()</code> 检查 11 门；<code>validateArt()</code> 和 <code>render*</code> 负责结构与交付。</td>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> <code>novel-art/SKILL.md</code> Step 1–5<br><span class="evidence-tag" data-evidence="source">源码实现</span> <code>novel-art.mjs</code> 的 <code>seedFromOutline()</code>、<code>gateReport()</code></td>
+          </tr>
+          <tr>
+            <th scope="row">剧本</th>
+            <td>把梗概落成有顺序的场次与 <code>flow</code>；写动作、台词、语气、具体钩子和结尾悬念。</td>
+            <td><code>seedFromOutline()</code> 搬集数、目标秒数、钩子、悬念和爽点类型；<code>sceneSeconds()</code> 计秒；<code>gateReport()</code> 检查十门；<code>render*</code> 汇出台词本。</td>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> <code>novel-script/SKILL.md</code> Step 1–4<br><span class="evidence-tag" data-evidence="source">源码实现</span> <code>novel-script.mjs</code> 同名函数</td>
+          </tr>
+          <tr>
+            <th scope="row">分镜</th>
+            <td>选择段边界、cut 边界、时长、景别、运镜、画内资产、关键帧描述和 H3 视听提示。</td>
+            <td><code>expandScript()</code> 给 flow 编号计秒；<code>seedFromScript()</code> 产生 <code>seedScenes</code>；<code>gateReport()</code> 检查 17 门；<code>exportPack()</code> 生成每段投产清单；<code>render*</code> 编译报告。</td>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> <code>novel-storyboard/SKILL.md</code> Step 1–5<br><span class="evidence-tag" data-evidence="source">源码实现</span> <code>novel-storyboard.mjs</code> 同名函数</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <aside class="callout callout-principle">
+      <h3>seed 的原则：搬事实，留设计</h3>
+      <p><span class="evidence-tag" data-evidence="source">源码实现</span> 四个下游 <code>seed*</code> 共享的原则是沿用上游已经拍板的事实，把本层应创作的数组或字符串留空；只有部分对象附临时上下文。角色 seed 留空画像与提示词；美术 seed 留空锚点与光照，且只有带 <code>reusePlan</code> 的场景获得 <code>seedNote</code>；剧本 seed 留空 <code>scenes</code>；分镜 seed 留空 <code>segments</code> 并固定携带 <code>seedScenes</code>。</p>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 这是本仓库最值得复用的架构思想：不要让模型重新发明已经确认的编号、清单和时长。否则同一事实会在每一层被“再创作”一次，漂移很快变成必然。</p>
+    </aside>
+  </section>
+
+  <section id="shuohao-five-contracts" class="chapter-section">
+    <h2>四、五份 JSON：每份只回答一组问题</h2>
+    <div class="table-scroll" role="region" aria-label="五阶段 JSON 输入输出契约" tabindex="0">
+      <table>
+        <caption>表 2　五阶段输入、主数据与交付物</caption>
+        <thead>
+          <tr>
+            <th scope="col">阶段</th>
+            <th scope="col">主要输入</th>
+            <th scope="col">JSON 里的核心信息</th>
+            <th scope="col">落地输出</th>
+            <th scope="col">明确不做</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row"><code>novel-outline</code></th>
+            <td>小说/故事；总集数、单集分钟、题材、改编幅度、偏好；可选既有 cast。</td>
+            <td><code>params</code>、<code>adaptation</code>、<code>characters[C]</code>、<code>scenes[S]</code>、可选 <code>props[P]</code>、爽点 <code>beats[B]</code>、<code>episodes</code>。</td>
+            <td><code>*-outline.json</code>、Markdown、HTML 报告；资产清单在报告中由脚本算出。</td>
+            <td>不写对白、剧本、分镜或生成提示词。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>novel-characters</code></th>
+            <td>小说原文；可选 <code>outline.json</code>；语言和画风。</td>
+            <td><code>summary</code>、<code>characters</code>；每人含别名、重要性、<code>persona</code>，本地语言的 <code>image.style/promptLocal</code>，英文机器字段 <code>image.prompt/negativePrompt/sheet</code>，以及英文 TTS <code>voice.prompt</code>。</td>
+            <td><code>*-cast.json</code>、Markdown、HTML；可选每人一张设定图。</td>
+            <td>不重新决定大纲角色轻重；不写戏。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>novel-art</code></th>
+            <td>优先 <code>outline.json</code>；可选 cast 做人名禁用检查；或原文/手写清单。</td>
+            <td><code>scenes[S]</code> 的锚点、光照和空景提示；<code>props[P]</code> 的尺度、状态和白底无手提示。</td>
+            <td><code>*-art.json</code>、Markdown、HTML；可选场景/道具设定图。</td>
+            <td>不写剧本、分镜、角色设定或大纲。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>novel-script</code></th>
+            <td><code>outline.json</code>；可选 art、cast；默认每批不超过三集。</td>
+            <td>每集 <code>targetSeconds</code>、<code>hook</code>、<code>cliff</code>、<code>hookBeat</code>、<code>beatsClaimed</code>；每场 <code>sceneId</code>、角色、道具与动作/台词 <code>flow</code>。</td>
+            <td><code>*-script.json</code>、Markdown、HTML；报告含按角色聚合的台词本。</td>
+            <td>不写镜号、画面提示、分镜图、配乐或剪辑。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>novel-storyboard</code></th>
+            <td><code>script.json</code> 硬前提；outline/cast/art 可选；配方卡目录可选。</td>
+            <td>集 → <code>segment</code> → <code>cut</code>；cut 认领 flow 位置，带时长、景别、运镜、人物、道具、英文 <code>frame</code>；每段一条 <code>h3Prompt</code>。</td>
+            <td><code>*-storyboard.json</code>、Markdown、HTML；可选关键帧；<code>export</code> 产出逐段目录与 <code>manifest.json</code>。</td>
+            <td>不改戏，不建立角色／场景／道具设定资产；可生成 cut 级关键帧 PNG，但不执行视频生成、剪辑或口型同步。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="source-note"><span class="evidence-tag" data-evidence="docs">文档声明</span> 字段与边界来自五个 <code>SKILL.md</code> 及各自 <code>references/schema.md</code>。<span class="evidence-tag" data-evidence="source">源码实现</span> seed、validate 与 render 的实际顶层形状由五个主 <code>.mjs</code> 对照核实。</p>
+
+    <h3>一条最小“数据脊柱”</h3>
+    <p>下面是本手册为了讲清交接而写的<strong>合法 JSON 教学对象</strong>，不是任何一个 skill 可直接验证的文件。它只显示同一组编号如何跨层移动：</p>
+    <pre class="code-sample" aria-label="shuohao 五阶段数据脊柱 JSON"><code>{
+  "outline": {
+    "characterId": "C01",
+    "sceneId": "S01",
+    "propId": "P01",
+    "payoffBeatId": "B07"
+  },
+  "cast": { "seededCharacterId": "C01" },
+  "art": { "sceneId": "S01", "propId": "P01" },
+  "script": {
+    "sceneId": "S01",
+    "characters": ["C01"],
+    "props": ["P01"],
+    "flowPositions": [1, 2, 3]
+  },
+  "storyboard": {
+    "sceneIndex": 1,
+    "claimedFlowRange": [1, 3]
+  }
+}</code></pre>
+  </section>
+
+  <section id="shuohao-identities" class="chapter-section">
+    <h2>五、稳定 ID 的真实边界：C、S、P 能接力，B 会换语义</h2>
+    <p><span class="evidence-tag" data-evidence="common">通用方法</span> 稳定 ID 的作用不是让表格好看，而是让名字修改、顺序调整和语言切换不会改变“它是谁”。审计这条管线时，不能只看字段像不像 ID，还要看下游是否继续引用同一个实体。</p>
+
+    <div class="table-scroll" role="region" aria-label="shuohao 标识符生命周期" tabindex="0">
+      <table>
+        <caption>表 3　标识符从大纲到分镜的生命周期</caption>
+        <thead>
+          <tr>
+            <th scope="col">编号</th>
+            <th scope="col">上游含义</th>
+            <th scope="col">下游如何使用</th>
+            <th scope="col">审计结论</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row"><code>C01</code></th>
+            <td>大纲人物实体。</td>
+            <td>剧本 <code>scene.characters</code>、台词 <code>speaker</code>、分镜 <code>cut.characters</code> 都继续用 C 码。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 主生产链稳定；但 cast 的 schema、内置样例与 validator 不要求 <code>id</code>。<code>seedFromOutline()</code> 会复制 C 码，却可能在后续手工/assemble 流程中成为无人守护的附加字段。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>S01</code></th>
+            <td>大纲中的场景资产。</td>
+            <td>art 沿用为环境资产；script 每个场次用 <code>sceneId</code> 指向它；storyboard 不再存 S 码，而以 <code>sceneIndex</code> 指向该集 script 中的一次场景出现。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> S 码本身稳定，但“空间资产”和“剧情场次出现”是两种实体；分镜选择的是后者的数组位置。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>P01</code></th>
+            <td>大纲拍板的叙事道具。</td>
+            <td>art 设计外观与状态；script 场次、storyboard cut 均继续引用 P 码并与上游集合对账。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 这是五段中最完整的稳定资产链。旧版 outline 没有 <code>props</code> 时，outline 的 <code>refs</code> 会移除道具检查并改标签，<code>prop-cap</code> 明示跳过；art 的四个 prop 门则因空数组直接通过，不统一显示“跳过”。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>B07</code></th>
+            <td>大纲中的“爽点/爆点”实体，带类型、权重和落集。</td>
+            <td>script seed 把同集爽点的<strong>类型文本</strong>放进 <code>beatsClaimed</code>，不保留 B 码；script 的 <code>flow</code> 又产生另一种细粒度动作/台词“拍”；storyboard 用位置区间认领后者。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> “beat”在两层中同名不同义，B 码没有贯穿。两个同类型爽点落在同集时，<code>beatsClaimed</code> 的去重会进一步抹平个体。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="source-note">核对入口：<code>novel-outline/references/schema.md</code> 的 C/S/P/B 结构；<code>novel-characters.mjs</code> 的 <code>seedFromOutline()</code> 与 <code>validateCast()</code>；<code>novel-script.mjs</code> 的 <code>seedFromOutline()</code>；<code>novel-storyboard.mjs</code> 的 <code>expandScript()</code> 与 <code>seedFromScript()</code>。</p>
+
+    <aside class="callout callout-limit">
+      <h3>位置不是身份</h3>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> <code>sceneIndex: 2</code> 与 <code>beats: [4, 6]</code> 在当前文件版本内非常简洁；但在剧本前面插一场或一拍后，同一个数字就会指向另一件事。validate 能发现覆盖断裂，却不能自动知道旧镜头原本想指谁。</p>
+      <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 如果要长期维护或多人协作，应给“场次出现”和“flow 节拍”独立稳定 ID；供应商适配时再派生 <code>sceneIndex</code> 与连续位置区间。</p>
+    </aside>
+  </section>
+
+  <section id="shuohao-handoff" class="chapter-section">
+    <h2>六、报告不是主数据，交接也不止一份 HTML</h2>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 五个 <code>render</code> 都从 JSON 生成 Markdown 或单页 HTML；报告内的“导出 JSON”嵌入的是源数据。根部 <code>scripts/report.mjs</code> 不是第六个 skill：它通过子进程调用每个 skill 的 <code>render --html</code>，再解决 CSS 选择器、页面脚本和图片相对路径冲突。</p>
+
+    <div class="pipeline-grid" aria-label="shuohao 交接物分层">
+      <article class="pipeline-step">
+        <span class="step-number">A</span>
+        <h3>JSON · 主数据</h3>
+        <p>下一层 seed、validate、render 读取它。修改应回到 JSON，不应把 HTML 当数据库。</p>
+      </article>
+      <article class="pipeline-step">
+        <span class="step-number">B</span>
+        <h3>Markdown / HTML · 评审面</h3>
+        <p>给人看决策、KPI、质量门和台词/镜头表；随主数据重新渲染。</p>
+      </article>
+      <article class="pipeline-step">
+        <span class="step-number">C</span>
+        <h3>PNG · 可选视觉锚</h3>
+        <p>角色、场景、道具和每切关键帧由代理调用图像能力生成；缺图时主流程仍可交付提示词与占位。</p>
+      </article>
+      <article class="pipeline-step">
+        <span class="step-number">D</span>
+        <h3>投产包 · 分镜专属</h3>
+        <p>每个 segment 一个目录；<code>export</code> 写 <code>prompt.md</code> 与根部 <code>manifest.json</code>，并记录预期的 <code>f1..fN.png</code> 路径。PNG 必须事先位于目标路径，export 不生成也不复制它们。</p>
+      </article>
+    </div>
+
+    <p><span class="evidence-tag" data-evidence="docs">文档声明</span> 每阶段最后都要求向用户汇报数量、路径、未过的门、截断或未生成的图片。角色、美术和分镜的可选出图失败被设计为“跳过并明说”，不阻断纯文本交付。</p>
+    <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 这使失败具有局部性：一张角色图失败，不必重写剧本；一份报告样式变化，不应改变主数据。不过，报告里显示的“全绿”只证明结构和规则通过，不能证明人物好看、对白动人或镜头有张力。</p>
+    <p class="source-note">证据入口：五个 <code>SKILL.md</code> 的“输出与汇报”；根 <code>README.md</code> 第 33–54 行；<code>scripts/report.mjs</code> 的 <code>PANES</code>、<code>splitDoc()</code>、<code>scopeCss()</code> 与渲染子进程。</p>
+  </section>
+
+  <section id="shuohao-self-contained" class="chapter-section">
+    <h2>七、自包含是有意的重复，不是偶然的重复</h2>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 分镜脚本重新实现剧本的计秒规则，而不是跨目录 import <code>novel-script</code>；它也自己解析配方卡 frontmatter，而不是 import 外部 <code>shot-recipes</code>。源码注释明确给出的理由是：任一 skill 都应能单独拷走。</p>
+    <p><span class="evidence-tag" data-evidence="docs">文档声明</span> 根 README 对组合报告也采用同一原则：组装器调用各 skill 的渲染 CLI，不共享内部模板代码。这样某一 skill 改渲染时，组合报告重新调用即可获得新结果。</p>
+
+    <div class="comparison-grid">
+      <article class="comparison-card">
+        <h3>收益</h3>
+        <ul>
+          <li>安装、复制、测试和故障边界都清楚。</li>
+          <li>一个 skill 不存在时，其他 skill 仍能运行。</li>
+          <li>外部卡库不成为分镜的硬依赖。</li>
+        </ul>
+      </article>
+      <article class="comparison-card">
+        <h3>代价</h3>
+        <ul>
+          <li>相同计时、枚举或解析规则会复制，版本漂移要靠测试发现。</li>
+          <li>跨层契约不是一份正式 schema，而散落在 Markdown、源码和夹具里。</li>
+          <li>“可单独拷走”弱化了端到端迁移与版本兼容的显式管理。</li>
+        </ul>
+      </article>
+    </div>
+    <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 这是一个明确的架构取舍，不应简单重构成共享工具包。若未来改成平台型应用，可以抽出版本化领域契约；若仍以可搬运 skill 为产品形态，重复实现反而是部署隔离的一部分。</p>
+    <p class="source-note">证据入口：<code>novel-storyboard.mjs</code> 第 175–224 行的 <code>expandScript()</code> 与卡库注释；根 <code>README.md</code> 第 35–49、110–129 行。</p>
+  </section>
+
+  <section id="shuohao-claims-vs-code" class="chapter-section">
+    <h2>八、把“作者想表达的设计”与“当前代码合同”分开</h2>
+    <div class="table-scroll" role="region" aria-label="shuohao 文档与源码差异" tabindex="0">
+      <table>
+        <caption>表 4　截至固定提交 4322897 的文档漂移与实现边界</caption>
+        <thead>
+          <tr>
+            <th scope="col">主题</th>
+            <th scope="col">文档怎么说</th>
+            <th scope="col">源码/测试怎么做</th>
+            <th scope="col">阅读时应采用的口径</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">端到端 demo 顺序</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> 根 README 的工作目录段一处写“角色 → 大纲 → 美术 → 剧本 → 分镜”。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>novel-characters::seedFromOutline()</code> 明确消费 <code>outline.json</code>；characters SKILL 也把大纲称为角色设定上游。</td>
+            <td>有既有 cast 时可先跑角色再反向映射；标准 seed 路径应先大纲、后角色。不要把 README 的单行 demo 顺序当成强依赖图。</td>
+          </tr>
+          <tr>
+            <th scope="row">动作与台词“交替”</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> README、script SKILL 和 schema 多处用“动作与台词交替”。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>validateScript()</code> 只检查单个 beat 必须在 <code>action</code>/<code>line</code> 二选一；没有检查相邻 beat 类型轮换。样例本身也有相邻动作和相邻台词。</td>
+            <td>把“交替”理解为混合编排，不理解为严格 ABAB。</td>
+          </tr>
+          <tr>
+            <th scope="row">分镜层级</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> storyboard SKILL 前部仍有“单镜头 ≤15 秒”“首帧 + 运动双提示词”“每镜一段 H3”的旧表述。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> schema、根 README 与代码采用 segment ≤15 秒、cut 2–5 秒、每 cut 一个 <code>frame</code>、每 segment 一个 <code>h3Prompt</code> 的三层模型。</td>
+            <td>以 schema 和 <code>gateReport()</code> 的 segment → cut 契约为准。</td>
+          </tr>
+          <tr>
+            <th scope="row">seed 空字段名</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> storyboard SKILL Step 1 写“shots 留空”。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>seedFromScript()</code> 返回的是 <code>segments: []</code> 与临时 <code>seedScenes</code>。</td>
+            <td><code>shots</code> 是旧词；写入当前 JSON 应使用 <code>segments</code>。</td>
+          </tr>
+          <tr>
+            <th scope="row">分镜图片路径</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> storyboard SKILL Step 5 一处仍写 <code>images/&lt;镜号&gt;-frame.png</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>renderHtml()</code>、<code>exportPack()</code> 和根 README 使用 <code>&lt;segment&gt;/f&lt;cut&gt;.png</code>。</td>
+            <td>图片与报告同级放在 <code>E01-01/f1.png</code> 这类路径；旧路径会显示占位。</td>
+          </tr>
+          <tr>
+            <th scope="row">角色稳定 ID</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> characters SKILL 说 outline 的 id 原样保留给 script/storyboard。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> seed 确实复制 <code>id</code>，但 cast schema、内置样例和 <code>validateCast()</code> 不要求或核对它。</td>
+            <td>C 码由 outline 主线守护；不要把 cast 单独当作可靠 ID 注册表。</td>
+          </tr>
+          <tr>
+            <th scope="row">“分镜不做新决定”</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> 根 README 说分镜只做输出不做新决定。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 分镜必须新增段界、切点、景别、运镜、画内资产、frame 与 H3 声画描述。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> 更准确的含义应是“不新增剧情与台词决定”，而不是“不做导演决定”。</td>
+          </tr>
+          <tr>
+            <th scope="row">测试与平台</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> 各 SKILL 宣称质量门都有击穿用例；根 README 说自测很快。</td>
+            <td><span class="evidence-tag" data-evidence="test">测试约束</span> 测试源码确实逐门构造失败输入；但根 README 同时明确没有 CI，只在 macOS + Node 24 验过。</td>
+            <td>把测试当契约证据，不把它扩大成跨平台或真实模型质量证明。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="source-note">主要核对入口：根 <code>README.md</code> 第 139–165 行；<code>novel-characters/SKILL.md</code> Step 1 与 <code>novel-characters.mjs::seedFromOutline()</code>；<code>skills/novel-script/references/schema.md</code> 与 <code>novel-script.mjs::validateScript()</code>；<code>skills/novel-storyboard/SKILL.md</code> 第 44–55、74–129 行；<code>novel-storyboard/references/schema.md</code>；<code>novel-storyboard.mjs::seedFromScript()</code>、<code>renderHtml()</code>、<code>exportPack()</code>；characters schema、样例与 <code>validateCast()</code>。</p>
+  </section>
+
+  <section id="shuohao-pipeline-assessment" class="chapter-section">
+    <h2>九、如果你要重写它，先保留这三条骨架</h2>
+    <ol>
+      <li><span class="evidence-tag" data-evidence="proposal">重构建议</span> <strong>保留“搬事实、留设计”的 seed 纪律。</strong> 上游已经批准的实体与约束只能引用，不能在下游再次生成。</li>
+      <li><span class="evidence-tag" data-evidence="proposal">重构建议</span> <strong>把 JSON 主数据、评审报告和供应商投产包分层。</strong> 报告可重建，供应商提示可再适配，主数据才是长期资产。</li>
+      <li><span class="evidence-tag" data-evidence="proposal">重构建议</span> <strong>把当前隐含契约升级成版本化 schema。</strong> 先补角色 ID、场次出现 ID、flow beat ID 与爽点 ID 的端到端关系，再谈自动化编排。</li>
+    </ol>
+    <aside class="callout callout-check">
+      <h3>本章的总判断</h3>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> shuohao-skills 的强项不是“模型替你写得多好”，而是把每层创作收进一个小合同，并用确定性脚本把可机械检查的错误挡在本层。它的主要技术债也来自同一选择：跨层正式 schema 不足、位置引用脆弱、文档在快速演进中留下旧术语。下一章将把最后一层 storyboard 拆到每个字段和每一道门。</p>
+    </aside>
+  </section>
+</article>

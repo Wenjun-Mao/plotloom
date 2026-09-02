@@ -1,0 +1,364 @@
+<article data-title="统一领域模型：先保存决定，再编译供应商格式" data-kicker="第八章 · 规范模型">
+  <header class="chapter-header">
+    <p class="eyebrow">第八章 · Canonical Domain Model</p>
+    <h1>先保存创作决定，再编译供应商格式</h1>
+    <p class="chapter-lede">
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      这一章提出一套供应商无关的规范模型。它不是 Narrative Forge 或 shuohao-skills 已经实现的 schema，而是一张可供重写、迁移和长期演进的设计底图：故事事实、导演决定、生产任务和具体文件各有自己的身份。系统默认编译的提示词是可重建的 derived Artifact；人工改写后，它就成为有来源记录的 authored override。
+    </p>
+  </header>
+
+  <section id="domain-model-design-contract">
+    <h2>六条不变量，比字段数量更重要</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      先把系统必须长期守住的关系写成不变量，再决定用 TypeScript、Python、SQLite 或别的技术实现。否则，即使对象名看起来专业，同一项决定仍会在提示词、页面状态和导出文件之间产生三份互不相认的真相。
+    </p>
+    <ol class="handoff-list">
+      <li><strong>身份稳定：</strong>业务实体获得不可变 ID；标题、顺序和文件名变化时，引用不随之改变。</li>
+      <li><strong>层级不混：</strong>故事图、集、戏剧场次、节拍、镜头、画格、生成段和执行任务分别建模。</li>
+      <li><strong>决定可溯：</strong>人工撰写、人工覆盖、规则派生和模型生成都记录来源及输入版本。</li>
+      <li><strong>关系可多对多：</strong>一个 beat 可以被主镜、反应镜和插入镜共同覆盖；一个 shot 也可以承担多个 beats。</li>
+      <li><strong>分支可汇流：</strong>选择边不仅指向节点，还描述条件、状态补丁和 join 前必须满足的兼容规则。</li>
+      <li><strong>批准绑定版本：</strong>“已批准”指向精确 revision；上游改变后，受影响的派生产物会过期，而不是继续冒充最新版。</li>
+    </ol>
+    <p class="reading-note">
+      <span class="evidence-tag" data-evidence="inference">分析推论</span>
+      更细的模型会增加录入和迁移成本；它的收益只在修改、重跑、审阅、协作或更换供应商时兑现。因此应让简单项目使用合理默认值，而不能为了表面简洁再次合并概念。
+    </p>
+  </section>
+
+  <section id="domain-model-relationship-graph">
+    <h2>关系图：四条链共享 ID，不共享职责</h2>
+    <figure class="pipeline-figure">
+      <svg viewBox="0 0 980 590" role="img" aria-labelledby="udm-graph-title udm-graph-desc">
+        <title id="udm-graph-title">供应商无关领域模型关系图</title>
+        <desc id="udm-graph-desc">图中自上而下分别为故事结构、导演覆盖、生成执行和来源追溯；节拍与镜头通过多对多关系连接，供应商适配器只位于执行边界。</desc>
+        <defs>
+          <marker id="udm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#984b3d"/>
+          </marker>
+        </defs>
+
+        <text x="24" y="36" font-size="13" font-weight="700" fill="#984b3d">故事与叙事图</text>
+        <rect x="24" y="52" width="120" height="52" rx="6" fill="#f7d98e" stroke="#20201d"/>
+        <text x="84" y="83" text-anchor="middle" font-size="14" font-weight="700">Project</text>
+        <line x1="144" y1="78" x2="181" y2="78" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="184" y="52" width="130" height="52" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="249" y="83" text-anchor="middle" font-size="14" font-weight="700">StoryGraph</text>
+        <line x1="314" y1="78" x2="351" y2="78" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="354" y="52" width="110" height="52" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="409" y="83" text-anchor="middle" font-size="14" font-weight="700">Episode</text>
+        <line x1="464" y1="78" x2="501" y2="78" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="504" y="52" width="160" height="52" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="584" y="83" text-anchor="middle" font-size="14" font-weight="700">DramaticScene</text>
+        <line x1="664" y1="78" x2="701" y2="78" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="704" y="52" width="100" height="52" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="754" y="83" text-anchor="middle" font-size="14" font-weight="700">Beat</text>
+        <line x1="804" y1="78" x2="841" y2="78" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="844" y="52" width="112" height="52" rx="6" fill="#e7f0ef" stroke="#316e75"/>
+        <text x="900" y="75" text-anchor="middle" font-size="13" font-weight="700">Continuity</text>
+        <text x="900" y="92" text-anchor="middle" font-size="11">State</text>
+
+        <text x="24" y="153" font-size="13" font-weight="700" fill="#984b3d">导演覆盖</text>
+        <rect x="184" y="170" width="170" height="58" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="269" y="194" text-anchor="middle" font-size="13" font-weight="700">ShotBeatLink</text>
+        <text x="269" y="213" text-anchor="middle" font-size="11">role · weight · order</text>
+        <path d="M 754 104 C 754 142, 354 132, 320 170" fill="none" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <line x1="354" y1="199" x2="431" y2="199" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="434" y="170" width="112" height="58" rx="6" fill="#f7d98e" stroke="#20201d"/>
+        <text x="490" y="204" text-anchor="middle" font-size="14" font-weight="700">Shot</text>
+        <line x1="546" y1="199" x2="603" y2="199" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="606" y="170" width="112" height="58" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="662" y="204" text-anchor="middle" font-size="14" font-weight="700">Panel</text>
+        <line x1="718" y1="199" x2="775" y2="199" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="778" y="170" width="150" height="58" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="853" y="194" text-anchor="middle" font-size="14" font-weight="700">Asset</text>
+        <text x="853" y="213" text-anchor="middle" font-size="11">角色／地点／参考</text>
+
+        <text x="24" y="279" font-size="13" font-weight="700" fill="#984b3d">生成执行</text>
+        <rect x="92" y="296" width="184" height="58" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="184" y="320" text-anchor="middle" font-size="13" font-weight="700">GenerationSegment</text>
+        <text x="184" y="339" text-anchor="middle" font-size="11">一次计划生成的时间单元</text>
+        <path d="M 490 228 C 490 270, 276 260, 238 296" fill="none" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <line x1="276" y1="325" x2="353" y2="325" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="356" y="296" width="178" height="58" rx="6" fill="#f7d98e" stroke="#20201d"/>
+        <text x="445" y="320" text-anchor="middle" font-size="13" font-weight="700">GenerationTask</text>
+        <text x="445" y="339" text-anchor="middle" font-size="11">快照、尝试、状态</text>
+        <line x1="534" y1="325" x2="611" y2="325" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="614" y="296" width="162" height="58" rx="6" fill="#e7f0ef" stroke="#316e75"/>
+        <text x="695" y="320" text-anchor="middle" font-size="13" font-weight="700">ProviderAdapter</text>
+        <text x="695" y="339" text-anchor="middle" font-size="11">编译／提交／归一</text>
+        <path d="M 534 342 C 590 390, 770 390, 822 354" fill="none" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="804" y="296" width="152" height="58" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="880" y="320" text-anchor="middle" font-size="13" font-weight="700">Artifact</text>
+        <text x="880" y="339" text-anchor="middle" font-size="11">提示／图／视频／报告</text>
+
+        <text x="24" y="431" font-size="13" font-weight="700" fill="#984b3d">版本、批准与来源</text>
+        <rect x="92" y="449" width="184" height="64" rx="6" fill="#fffdf7" stroke="#20201d"/>
+        <text x="184" y="475" text-anchor="middle" font-size="13" font-weight="700">Entity Revision</text>
+        <text x="184" y="495" text-anchor="middle" font-size="11">append-only · content hash</text>
+        <line x1="276" y1="481" x2="353" y2="481" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="356" y="449" width="178" height="64" rx="6" fill="#f7d98e" stroke="#20201d"/>
+        <text x="445" y="475" text-anchor="middle" font-size="13" font-weight="700">Human Approval</text>
+        <text x="445" y="495" text-anchor="middle" font-size="11">绑定精确 revision</text>
+        <line x1="534" y1="481" x2="611" y2="481" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+        <rect x="614" y="449" width="162" height="64" rx="6" fill="#e7f0ef" stroke="#316e75"/>
+        <text x="695" y="475" text-anchor="middle" font-size="13" font-weight="700">Provenance</text>
+        <text x="695" y="495" text-anchor="middle" font-size="11">input refs → output ref</text>
+        <path d="M 776 481 C 844 481, 880 426, 880 354" fill="none" stroke="#984b3d" stroke-width="2" marker-end="url(#udm-arrow)"/>
+
+        <text x="490" y="560" text-anchor="middle" font-size="12" fill="#5d5b54">跨层箭头表示消费关系，不表示身份可互换；执行快照只消费已批准的精确版本。</text>
+      </svg>
+      <figcaption>
+        <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+        规范层止于可复用的故事与导演规格；供应商枚举、请求体和轮询协议从 <code>ProviderAdapter</code> 开始。创作关系可以指向稳定实体 ID；一旦编译、执行或发布，就必须解析并冻结为已批准的精确 revision。图中的 Entity Revision 与 Human Approval 是跨实体机制，不必伪装成第十五、第十六种创作对象。
+      </figcaption>
+    </figure>
+  </section>
+
+  <section id="domain-model-entity-dictionary">
+    <h2>实体词典：每个名字只承担一种责任</h2>
+    <div class="table-scroll" role="region" aria-label="统一领域模型实体词典" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="proposal">重构建议</span> 表 1　规范实体、稳定关系与边界</caption>
+        <thead>
+          <tr><th scope="col">实体</th><th scope="col">保存什么</th><th scope="col">主要关系</th><th scope="col">明确不保存</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row"><code>Project</code></th><td>作品身份、形式契约、默认语言和当前发布指针。</td><td>拥有 StoryGraph、Episode、Asset。</td><td>浏览器临时选择、API key。</td></tr>
+          <tr><th scope="row"><code>StoryGraph</code></th><td>叙事节点、条件边、状态补丁和汇流不变量。</td><td>节点引用 Episode 或 DramaticScene。</td><td>摄影机覆盖和供应商工作流。</td></tr>
+          <tr><th scope="row"><code>Episode</code></th><td>一集的任务、进入／退出状态、成员场次和时长目标。</td><td>包含 DramaticScene；线性形式有播放序，互动形式由 StoryGraph 定路径。</td><td>按字符数切片的偶然结果。</td></tr>
+          <tr><th scope="row"><code>DramaticScene</code></th><td>一次具体场次的目标、阻碍、转折、地点和在场者。</td><td>属于 Episode，拥有 Beat。</td><td>可复用地点资产本身。</td></tr>
+          <tr><th scope="row"><code>Beat</code></th><td>动作、台词、反应、揭示或决定造成的状态变化。</td><td>属于 DramaticScene，经 link 被 Shot 覆盖。</td><td>数组位置或固定秒数。</td></tr>
+          <tr><th scope="row"><code>Shot</code></th><td>观看功能、机位、构图、运动、声音、估时和状态边界。</td><td>多对多覆盖 Beat，拥有 Panel。</td><td>具体模型请求与生成文件。</td></tr>
+          <tr><th scope="row"><code>Panel</code></th><td>镜头内某个关键时刻的构图、姿态、视线和注记。</td><td>属于 Shot，可引用参考 Asset。</td><td>有文件身份的最终关键帧。</td></tr>
+          <tr><th scope="row"><code>ContinuityState</code></th><td>边界时刻的人物、道具、空间、光线、声音与知识状态。</td><td>附着于场次、beat 或 shot 的 entry／exit。</td><td>只有“保持一致”的自然语言愿望。</td></tr>
+          <tr><th scope="row"><code>Asset</code></th><td>角色、地点、道具、风格或参考物的逻辑身份与批准版本。</td><td>被 DramaticScene、Shot、Panel 引用。</td><td>一次任务的临时 URL。</td></tr>
+          <tr><th scope="row"><code>GenerationSegment</code></th><td>一次计划生成的连续时间单元、shot 顺序和时长预算。</td><td>引用一个或多个 Shot，派生任务。</td><td>戏剧场次身份。</td></tr>
+          <tr><th scope="row"><code>CanonicalSnapshot</code></th><td>某次编译、执行或发布所见的不可变 <code>id@revision</code> 闭包。</td><td>从稳定 ID 解析可达实体，被 Approval、Task 和 Release 引用。</td><td>正在编辑的草稿指针。</td></tr>
+          <tr><th scope="row"><code>GenerationTask</code></th><td>已批准 snapshot ref、adapter、参数、依赖、状态、尝试和幂等键。</td><td>消费 CanonicalSnapshot 中 segment、shot、asset 等全部精确 revisions，产出 Artifact。</td><td>需要长期编辑的创作事实。</td></tr>
+          <tr><th scope="row"><code>Artifact</code></th><td>提示、图像、视频、音频、字幕、报告或清单的不可变文件身份。</td><td>由任务或编译器产生，可晋升为 Asset revision。</td><td>可重试的任务状态。</td></tr>
+          <tr><th scope="row"><code>ProviderAdapter</code></th><td>能力声明、协议版本、编译和结果归一规则。</td><td>被 GenerationTask 按版本引用。</td><td>密钥值和领域事实。</td></tr>
+          <tr><th scope="row"><code>MigrationRecord</code></th><td>原始 Artifact、旧类型／ID／顺序／关系与候选映射。</td><td>只属于 <code>migration-staging</code>，人工或明确规则晋升后才产生规范实体。</td><td>已被确认的创作事实。</td></tr>
+          <tr><th scope="row"><code>Provenance</code></th><td>输入 revision、规则／模型／人工动作与输出之间的有向边。</td><td>横跨所有实体和 Artifact。</td><td>只有时间戳的一行日志。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      <code>ShotBeatLink</code> 应是有 ID 的关系记录，而非藏在两边的 ID 数组；它至少保存 <code>role</code>、<code>coverageWeight</code> 和 <code>order</code>。这样主镜、反应镜、插入镜以及一个长镜覆盖多个 beats 都能被显式表达。
+    </p>
+    <aside class="callout callout-principle">
+      <h3>草稿、快照与迁移隔离区不是同一层</h3>
+      <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 作者编辑时，关系指向稳定 ID，写入通过 <code>expectedRevision</code> 防冲突；到编译、执行或发布边界，系统才把全部可达 ID 解析为 <code>CanonicalSnapshot</code> 里的精确 revisions。这既避免草稿关系过度繁琐，也防止一次任务在途中消费新修改。</p>
+      <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 无法无损对应 DramaticScene、Beat 或 StoryGraph 节点的旧记录进入 <code>MigrationRecord</code>，而不是放宽规范模型的“无孤儿”不变量。隔离记录可审阅、可重跑，但不得被批准、生成或发布；晋升动作必须创建完整规范关系并写入 provenance。</p>
+    </aside>
+  </section>
+
+  <section id="domain-model-authored-derived">
+    <h2>Authored 与 derived：可编辑不等于都是源事实</h2>
+    <div class="table-scroll" role="region" aria-label="人工决定与派生产物边界" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="proposal">重构建议</span> 表 2　写作事实、导演决定和机器派生的处理方式</caption>
+        <thead>
+          <tr><th scope="col">类别</th><th scope="col">例子</th><th scope="col">保存规则</th><th scope="col">上游改变后</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">authored</th><td>场次目标、beat 内容、镜头功能、人工指定时长。</td><td>作为实体 revision 保存；修改必须说明基于哪个 revision。</td><td>产生新 revision，不静默覆盖旧决定。</td></tr>
+          <tr><th scope="row">approved override</th><td>导演改写模型给出的构图或对白。</td><td>仍是 authored，并以 provenance 指向被覆盖的建议。</td><td>除非人工撤销，重新生成不能覆盖。</td></tr>
+          <tr><th scope="row">derived</th><td>供应商提示词、切点 manifest、缩略图、TTS 估时。</td><td>保存为 Artifact，记录 compiler、输入哈希和参数。</td><td>标记 stale，可重编译但不自动冒充已批准。</td></tr>
+          <tr><th scope="row">observed</th><td>视频真实时长、分辨率、模型 job ID、文件哈希。</td><td>从执行结果采集，写入 Artifact／Task 事实。</td><td>不可编辑；新执行产生新记录。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="reading-note">
+      <span class="evidence-tag" data-evidence="inference">分析推论</span>
+      允许编辑派生提示词是合理的人机协作需求，但一旦人工改动，它就应被晋升为带来源的 authored override。继续把它叫“自动生成字段”，会让下一次重编译不知道该覆盖还是保留。
+    </p>
+  </section>
+
+  <section id="domain-model-branch-version-approval">
+    <h2>分支汇流、版本和人工批准必须说清“哪一个”</h2>
+    <div class="definition-grid">
+      <section class="definition-card">
+        <h3>分支不是树形文件夹</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 每条 edge 保存版本化的声明式条件与 <code>statePatch</code>；条件由白名单谓词解释，绝不把字符串交给 <code>eval</code>。join 节点声明必须相等、允许并集或需要人工选择的状态字段，验证器对所有入边求兼容性。</p>
+      </section>
+      <section class="definition-card">
+        <h3>版本不是一个全局数字</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 每个实体维护 append-only revision、<code>baseRevision</code> 与内容哈希；项目的 schemaVersion 只说明格式，不说明某一镜头是否最新。</p>
+      </section>
+      <section class="definition-card">
+        <h3>批准不是布尔值</h3>
+        <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> Approval 保存对象 ID、revision、批准范围、批准人和时间。上游 revision 改变后，影响分析把相关批准标为 superseded 或 needs-review。</p>
+      </section>
+    </div>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      写 API 时要求客户端提交 <code>expectedRevision</code>；不一致就返回冲突和最小 diff。生成任务只接受已批准 revision 的不可变快照，因此一次失败重试不会意外消费用户刚改到一半的页面状态。
+    </p>
+  </section>
+
+  <section id="domain-model-json-example">
+    <h2>一份小而有效的 JSON：月城分支的最小切片</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      下面不是完整 JSON Schema，而是一份可被 <code>JSON.parse</code> 读取的规范实例。它故意让一个 beat 同时被主镜和反应镜覆盖，让两个选择在同一 join 汇流，并把生成输入绑定到精确 revision。
+    </p>
+    <pre class="code-sample" data-json-example="unified-domain-model"><code>{
+  "schemaVersion": "0.1.0",
+  "project": {
+    "id": "prj_moon",
+    "revision": 3,
+    "title": "月城控制室",
+    "format": { "mode": "interactive", "aspectRatio": "16:9" },
+    "activeStoryGraphId": "graph_main"
+  },
+  "canonicalSnapshots": [
+    {
+      "id": "snapshot_generation_01",
+      "revision": 1,
+      "rootProjectRef": "prj_moon@3",
+      "purpose": "generation",
+      "resolverProfile": "video-generation@1",
+      "entityRefs": ["gseg_01@1", "dscene_alarm@2", "beat_notice@2", "beat_react@1", "sbl_01@1", "sbl_02@1", "sbl_03@1", "shot_01@4", "shot_02@2", "panel_01@2", "panel_02@1", "state_01@1", "state_02@1", "state_03@1", "asset_control_room@3"]
+    }
+  ],
+  "migrationRecords": [],
+  "storyGraphs": [
+    {
+      "id": "graph_main",
+      "revision": 2,
+      "entryNodeId": "node_alarm",
+      "nodes": [
+        { "id": "node_alarm", "dramaticSceneId": "dscene_alarm" },
+        { "id": "node_console", "dramaticSceneId": "dscene_console" },
+        { "id": "node_brother", "dramaticSceneId": "dscene_brother" },
+        {
+          "id": "node_join",
+          "dramaticSceneId": "dscene_wake",
+          "join": { "mustEqual": ["brother.alive"], "merge": ["clues"] }
+        }
+      ],
+      "edges": [
+        { "id": "edge_a", "from": "node_alarm", "to": "node_console", "condition": { "op": "eq", "path": "choice", "value": "console" }, "statePatch": { "clues": ["signal"] } },
+        { "id": "edge_b", "from": "node_alarm", "to": "node_brother", "condition": { "op": "eq", "path": "choice", "value": "brother" }, "statePatch": { "clues": ["pulse"] } },
+        { "id": "edge_c", "from": "node_console", "to": "node_join", "statePatch": { "brother.alive": true } },
+        { "id": "edge_d", "from": "node_brother", "to": "node_join", "statePatch": { "brother.alive": true } }
+      ]
+    }
+  ],
+  "episodes": [
+    { "id": "ep_01", "revision": 1, "storyGraphId": "graph_main", "dramaticSceneIds": ["dscene_alarm", "dscene_console", "dscene_brother", "dscene_wake"] }
+  ],
+  "dramaticScenes": [
+    { "id": "dscene_alarm", "revision": 2, "episodeId": "ep_01", "locationAssetId": "asset_control_room", "objective": "确认警报来源", "beatIds": ["beat_notice", "beat_react"] },
+    { "id": "dscene_console", "revision": 1, "episodeId": "ep_01", "locationAssetId": "asset_control_room", "objective": "检查信号", "beatIds": [] },
+    { "id": "dscene_brother", "revision": 1, "episodeId": "ep_01", "locationAssetId": "asset_control_room", "objective": "检查弟弟", "beatIds": [] },
+    { "id": "dscene_wake", "revision": 1, "episodeId": "ep_01", "locationAssetId": "asset_control_room", "objective": "确认弟弟苏醒", "beatIds": [] }
+  ],
+  "beats": [
+    { "id": "beat_notice", "revision": 2, "dramaticSceneId": "dscene_alarm", "kind": "revelation", "text": "警报灯第一次闪红" },
+    { "id": "beat_react", "revision": 1, "dramaticSceneId": "dscene_alarm", "kind": "reaction", "text": "姐姐回头看向弟弟" }
+  ],
+  "shotBeatLinks": [
+    { "id": "sbl_01", "revision": 1, "shotId": "shot_01", "beatId": "beat_notice", "role": "primary", "coverageWeight": 1, "order": 1 },
+    { "id": "sbl_02", "revision": 1, "shotId": "shot_01", "beatId": "beat_react", "role": "context", "coverageWeight": 0.4, "order": 2 },
+    { "id": "sbl_03", "revision": 1, "shotId": "shot_02", "beatId": "beat_react", "role": "reaction", "coverageWeight": 1, "order": 1 }
+  ],
+  "shots": [
+    { "id": "shot_01", "revision": 4, "purpose": "建立警报与人物关系", "authoredSeconds": 4.5, "entryStateId": "state_01", "exitStateId": "state_02", "panelIds": ["panel_01"] },
+    { "id": "shot_02", "revision": 2, "purpose": "读取姐姐的判断", "authoredSeconds": 2.5, "entryStateId": "state_02", "exitStateId": "state_03", "panelIds": ["panel_02"] }
+  ],
+  "panels": [
+    { "id": "panel_01", "revision": 2, "shotId": "shot_01", "moment": "entry", "composition": "控制台前景，姐弟分居画面两侧" },
+    { "id": "panel_02", "revision": 1, "shotId": "shot_02", "moment": "reaction", "composition": "姐姐近景，视线指向画外弟弟" }
+  ],
+  "continuityStates": [
+    { "id": "state_01", "revision": 1, "facts": { "alarm": "off", "brother.eyes": "closed", "brother.alive": true } },
+    { "id": "state_02", "revision": 1, "facts": { "alarm": "red", "brother.eyes": "closed", "brother.alive": true } },
+    { "id": "state_03", "revision": 1, "facts": { "alarm": "red", "brother.eyes": "closed", "brother.alive": true, "sister.gaze": "brother" } }
+  ],
+  "assets": [
+    { "id": "asset_control_room", "revision": 3, "kind": "location", "name": "月城控制室", "approvedArtifactId": "artifact_location_ref" }
+  ],
+  "generationSegments": [
+    { "id": "gseg_01", "revision": 1, "shotIds": ["shot_01", "shot_02"], "authoredSeconds": 7, "runtimeSeconds": 7 }
+  ],
+  "generationTasks": [
+    {
+      "id": "gtask_01",
+      "snapshotRef": "snapshot_generation_01@1",
+      "adapterId": "adapter_video_demo",
+      "adapterVersion": "1.2.0",
+      "idempotencyKey": "gseg_01-r1-video-v1",
+      "status": "succeeded",
+      "attempts": 1,
+      "artifactIds": ["artifact_prompt", "artifact_video"]
+    }
+  ],
+  "artifacts": [
+    { "id": "artifact_location_ref", "kind": "image", "uri": "artifacts/sha256/location-ref.png", "sha256": "example-location-ref" },
+    { "id": "artifact_prompt", "kind": "prompt", "uri": "artifacts/sha256/prompt.txt", "sha256": "example-prompt" },
+    { "id": "artifact_video", "kind": "video", "uri": "artifacts/sha256/video.mp4", "sha256": "example-video", "observedSeconds": 7.04 }
+  ],
+  "providerAdapters": [
+    { "id": "adapter_video_demo", "version": "1.2.0", "capabilities": { "maxSeconds": 15, "supportsImageReference": true, "supportsCancel": false }, "secretRef": "env:VIDEO_API_KEY" }
+  ],
+  "provenance": [
+    { "id": "prov_prompt", "kind": "compiled", "inputRefs": ["snapshot_generation_01@1"], "outputRef": "artifact_prompt", "actor": "prompt-compiler@2.1.0" },
+    { "id": "prov_video", "kind": "generated", "inputRefs": ["artifact_prompt", "artifact_location_ref"], "outputRef": "artifact_video", "actor": "gtask_01" }
+  ],
+  "approvals": [
+    { "id": "approval_shot_01", "entityRef": "shot_01@4", "scope": "director", "actor": "human:director", "approvedAt": "2026-08-29T14:00:00Z" },
+    { "id": "approval_shot_02", "entityRef": "shot_02@2", "scope": "director", "actor": "human:director", "approvedAt": "2026-08-29T14:01:00Z" },
+    { "id": "approval_asset", "entityRef": "asset_control_room@3", "scope": "art", "actor": "human:art-director", "approvedAt": "2026-08-29T14:02:00Z" },
+    { "id": "approval_segment", "entityRef": "gseg_01@1", "scope": "production", "actor": "human:producer", "approvedAt": "2026-08-29T14:03:00Z" },
+    { "id": "approval_snapshot", "entityRef": "snapshot_generation_01@1", "scope": "generation", "actor": "human:producer", "approvedAt": "2026-08-29T14:04:00Z" }
+  ]
+}</code></pre>
+    <p class="sample-note">
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      示例中的编辑关系使用稳定 ID，任务则只消费已批准的 <code>snapshot_generation_01@1</code>；<code>sha256</code> 值是教学占位符，真实实现必须计算实际摘要。<code>secretRef</code> 只引用服务器秘密名称，绝不能把密钥写进规范 JSON、Artifact 或 provenance。
+    </p>
+  </section>
+
+  <section id="domain-model-validation-layers">
+    <h2>验证分层：机器守合同，人判断作品</h2>
+    <div class="table-scroll" role="region" aria-label="统一领域模型验证层" tabindex="0">
+      <table>
+        <caption><span class="evidence-tag" data-evidence="proposal">重构建议</span> 表 3　从 JSON 形状到人工批准的验证层</caption>
+        <thead>
+          <tr><th scope="col">层</th><th scope="col">机械检查</th><th scope="col">失败应定位到</th><th scope="col">仍需人工判断</th></tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">迁移暂存</th><td>原始哈希、legacyRef、顺序、未决候选映射和晋升记录完整；隔离对象不得进入批准、生成或发布。</td><td>MigrationRecord 与导入报告。</td><td>候选映射是否反映真实叙事身份。</td></tr>
+          <tr><th scope="row">Schema</th><td>类型、必填、枚举、版本兼容。</td><td>JSON Pointer 与规则编号。</td><td>字段是否表达了真正意图。</td></tr>
+          <tr><th scope="row">引用</th><td>ID 存在、类型正确、无孤儿、revision 可解析。</td><td>来源实体与目标引用。</td><td>引用对象是否是创作上正确的那个。</td></tr>
+          <tr><th scope="row">叙事图</th><td>入口可达、合法终止、条件可判、join 状态兼容。</td><td>节点、边和冲突状态键。</td><td>选择是否有意义、汇流是否显得敷衍。</td></tr>
+          <tr><th scope="row">覆盖与时间</th><td>Beat coverage、Shot 顺序、segment 上限、authored/runtime 差异。</td><td>link、shot 或时间边界。</td><td>节奏、反应时间和信息可读性。</td></tr>
+          <tr><th scope="row">连续性</th><td>entry/exit 差异、轴线和明确不变量。</td><td>状态键与相邻边界。</td><td>有意跳切是否成立、表演是否连贯。</td></tr>
+          <tr><th scope="row">适配器</th><td>能力匹配、枚举映射、输入文件、确定性编译。</td><td>adapter 版本与不支持能力。</td><td>降级是否值得接受。</td></tr>
+          <tr><th scope="row">执行与来源</th><td>幂等、哈希、MIME、输入快照、输出 provenance 完整。</td><td>task attempt 或 artifact。</td><td>是否把该结果晋升为批准资产。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      <span class="evidence-tag" data-evidence="inference">分析推论</span>
+      把主观品味伪装成硬门会制造虚假的确定性；完全不做硬门则会把引用漂移、时长错误和秘密泄漏交给人工碰运气。正确边界是：机器证明合同没有破，人批准合同里的选择是否值得拍。
+    </p>
+  </section>
+
+  <footer class="chapter-summary">
+    <h2>本章结论</h2>
+    <p>
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      规范模型的核心不是多建几张表，而是把不可逆的创作决定从供应商格式中解放出来。稳定 ID 保护身份，多对多 link 保护覆盖意图，revision 与 Approval 保护人工决定，Provenance 保护可解释性，ProviderAdapter 则让提示词、请求和文件布局保持可替换。
+    </p>
+    <p class="source-note">
+      <span class="evidence-tag" data-evidence="proposal">重构建议</span>
+      本章全部领域结构均为本手册提案，不是两个仓库的现状。问题来源基于 Narrative Forge <code>24c3c47</code> 的项目／镜头／任务实现与 shuohao-skills <code>4322897</code> 的阶段 JSON、位置索引和质量门；现状证据与具体路径见第三至第七章及 <code>SOURCES.md</code>。
+    </p>
+  </footer>
+</article>

@@ -1,0 +1,607 @@
+<article data-title="共同基础：从粗梗概到可执行分镜" data-kicker="第一章">
+  <header class="chapter-header">
+    <p class="eyebrow">第一章 · 共同基础</p>
+    <h1>从粗梗概到可执行分镜</h1>
+    <p class="chapter-lede">
+      分镜不是把梗概切成若干句，再给每句补一个景别。它是一条逐层作决定的链：先确定观众将经历什么，再确定每一场戏怎样改变局面，然后才决定观众从哪里、以什么节奏看见这些变化。本章先建立这条共同链路；后续再比较两个仓库在哪些层完整建模，哪些层交给模型暗中完成。
+    </p>
+  </header>
+
+  <section id="chapter-goal">
+    <h2>先看全程：九个产物，八次交接</h2>
+    <figure class="pipeline-figure">
+      <ol class="pipeline">
+        <li><strong>粗梗概</strong><span>故事核与已知事实</span></li>
+        <li><strong>形式契约</strong><span>观众体验与交付边界</span></li>
+        <li><strong>全局结构</strong><span>因果、转折、铺垫与兑现</span></li>
+        <li><strong>分集方案</strong><span>每集的进入、变化与钩子</span></li>
+        <li><strong>场次表</strong><span>每场戏的任务和状态变化</span></li>
+        <li><strong>节拍表</strong><span>可观察的行动、信息与反应</span></li>
+        <li><strong>镜头列表</strong><span>观看方式和覆盖关系</span></li>
+        <li><strong>故事板／animatic</strong><span>空间、构图与时间验证</span></li>
+        <li><strong>投产包</strong><span>资产、任务、参数与追踪信息</span></li>
+      </ol>
+      <figcaption>
+        这是一条有反馈的生产链，不是只许向前的瀑布。animatic 发现对白拥挤时，应回到节拍或场次重排；不应仅把所有镜头机械缩短。
+      </figcaption>
+    </figure>
+    <p>
+      每次交接都应回答三件事：上游有哪些事实不能被下游擅自改变？下游被授权作哪些新决定？用什么检查发现它越权或漏项？这三个问题也正是未来编程实现的接口契约。
+    </p>
+  </section>
+
+  <section id="rough-synopsis">
+    <h2>第一步：把粗梗概变成可工作的故事简报</h2>
+    <p>
+      粗梗概不是缩短版剧本。它的职责是交代故事发动机：谁在追求什么，什么力量阻止他，失败要付出什么代价，以及经历迫使他发生什么变化。细节不足并不可怕；真正危险的是把尚未决定的内容写得像既定事实。
+    </p>
+    <div class="table-scroll" role="region" aria-label="粗梗概故事简报检查表" tabindex="0">
+    <table class="work-table">
+      <caption>表 1　把粗梗概整理成可执行故事简报的六项检查</caption>
+      <thead>
+        <tr>
+          <th scope="col">检查项</th>
+          <th scope="col">要回答的问题</th>
+          <th scope="col">暂时答不出时怎样记录</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">主角与视角</th>
+          <td>观众主要跟随谁？谁承担选择的后果？</td>
+          <td>标记“待决定”，不要让生成模型随意更换主角。</td>
+        </tr>
+        <tr>
+          <th scope="row">显性目标</th>
+          <td>主角在故事结束前具体想完成什么？</td>
+          <td>先写成可验证的行动目标，而不是“寻找自我”一类主题词。</td>
+        </tr>
+        <tr>
+          <th scope="row">阻碍与对抗</th>
+          <td>谁或什么持续让目标变难？阻碍如何升级？</td>
+          <td>区分外部阻碍、关系阻碍和内部矛盾。</td>
+        </tr>
+        <tr>
+          <th scope="row">代价与时限</th>
+          <td>失败会失去什么？为什么不能以后再处理？</td>
+          <td>若没有倒计时，也要有不可逆的机会窗口。</td>
+        </tr>
+        <tr>
+          <th scope="row">核心变化</th>
+          <td>结尾相对开头，人物、关系或世界发生了什么不可忽略的变化？</td>
+          <td>把多个可能结局列为候选，而不是过早混成一个结局。</td>
+        </tr>
+        <tr>
+          <th scope="row">世界规则</th>
+          <td>哪些设定会限制人物行动和视觉表现？</td>
+          <td>记录规则、例外和代价，不急着扩写百科。</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <aside class="callout callout-case">
+      <span class="evidence-tag" data-evidence="case">月城案例</span>
+      <p>
+        月城将在日出时永久断电。维修学徒阮星发现，失踪母亲留下的求救信号仍在城市记忆核心中循环。她必须在一小时内决定：恢复整座城市的记忆，还是关闭核心救出被困的弟弟。
+      </p>
+      <p>
+        这个梗概已经给出主角、倒计时、两难选择和代价，但仍缺少母亲为何失踪、信号为何留在核心、弟弟为何被困在核心区的救生舱、两种选择是否真的互斥等因果。下一层可以提出并解决这些问题；不能假装它们已在原文中得到回答。
+      </p>
+    </aside>
+    <h3>程序设计提示：保留“已知”与“待定”</h3>
+    <p>
+      建议把来源明确的事实、创作者后来批准的补充、尚未解决的问题分别保存。若只保留一段不断被重写的梗概，就无法判断模型究竟是在展开原意，还是偷偷修补了它自己制造的漏洞。
+    </p>
+  </section>
+
+  <section id="format-contract">
+    <h2>第二步：先定形式契约，再谈镜头数量</h2>
+    <p>
+      同一个故事做成九十秒线性短片、三集竖屏短剧和互动影游，信息出现的顺序、悬念位置和可接受的镜头密度都会改变。形式契约是创作任务的边界，不是某个视频供应商的参数表。
+    </p>
+    <dl class="decision-list">
+      <div>
+        <dt>观看结构</dt>
+        <dd>线性、分集线性、带选择的分支，还是允许分支重新汇流的状态图？</dd>
+      </div>
+      <div>
+        <dt>时长与节奏</dt>
+        <dd>总时长、每集目标时长、开场多久必须建立问题、结尾是否需要钩子。</dd>
+      </div>
+      <div>
+        <dt>画面载体</dt>
+        <dd>横屏、竖屏或可适配；主要观看距离；字幕和界面需要预留的安全区域。</dd>
+      </div>
+      <div>
+        <dt>互动规则</dt>
+        <dd>选择点数量、可见选项、隐性状态、失败状态、是否允许回看与汇流。</dd>
+      </div>
+      <div>
+        <dt>生产方式</dt>
+        <dd>实拍、动画、AI 视频或混合；哪些角色、地点和动作受到现实或生成能力限制。</dd>
+      </div>
+      <div>
+        <dt>交付标准</dt>
+        <dd>只需概念预演，还是必须交付可剪辑片段、配音对齐、字幕、音效和版本记录。</dd>
+      </div>
+    </dl>
+    <aside class="callout callout-warning">
+      <h3>不要过早把模型限制写进故事</h3>
+      <p>
+        “某供应商一次最多生成若干秒”属于生产适配约束；“这一场只能发生若干秒”属于叙事决定。可以让生产层把长镜头拆成多个任务，但不能反过来让接口上限决定人物何时改变主意。
+      </p>
+    </aside>
+    <div class="case-contrast">
+      <h3>同一梗概，两种形式契约</h3>
+      <p><strong>线性版：</strong>观众跟随阮星调查，最终看见她作出唯一决定。结构需要让这个决定既意外又有充分铺垫。</p>
+      <p><strong>互动版：</strong>观众在信息充分但后果未完全显露时替她选择。选择前必须建立清晰价值冲突；选择后每条分支都要兑现不同代价，不能只换最后一句台词。</p>
+    </div>
+  </section>
+
+  <section id="global-structure">
+    <h2>第三步：搭建全局结构，而不是套一个万能公式</h2>
+    <p>
+      三幕、起承转合、序列法或节拍表都可以作为检查视角，但结构的本质是因果安排：上一事件怎样迫使下一事件发生，人物每次行动怎样改变可选项，前面建立的信息怎样在后面兑现。模板能提醒你遗漏，不能替你生成因果。
+    </p>
+    <h3>一份可用的结构图至少标出</h3>
+    <ul>
+      <li>开场承诺：观众最早会对什么问题产生兴趣。</li>
+      <li>触发事件：原有平衡为何不再能维持。</li>
+      <li>升级链：阻碍怎样因为人物的行动而升级，而非随机叠加。</li>
+      <li>关键转折：新信息或不可逆选择怎样改变目标、方法或代价。</li>
+      <li>铺垫与兑现：一个物件、规则或关系何时建立，何时发挥作用。</li>
+      <li>高潮决定：主角必须做什么，才能证明他已经改变或拒绝改变。</li>
+      <li>结局状态：外部问题、人物关系和主题问题分别落在哪里。</li>
+    </ul>
+    <figure class="cause-chain">
+      <div>日出断电的通知</div>
+      <div aria-hidden="true">→</div>
+      <div>阮星违规接入记忆核心</div>
+      <div aria-hidden="true">→</div>
+      <div>她听见母亲暗号</div>
+      <div aria-hidden="true">→</div>
+      <div>她发现弟弟也被系统锁定</div>
+      <div aria-hidden="true">→</div>
+      <div>恢复记忆与救弟弟成为互斥选择</div>
+      <figcaption><span class="evidence-tag" data-evidence="case">月城案例</span> 箭头应能读作“因此”或“但是”，而不只是“然后”。</figcaption>
+    </figure>
+    <h3>互动结构多一步：先画状态图</h3>
+    <p>
+      互动故事应在分镜之前定义节点、选择条件、状态变化、分支进入条件、失败或结局条件，以及允许汇流时必须保持的共同事实。摄影机不应负责决定剧情图。否则一个看似简单的镜头改动可能意外创造新的结局状态。
+    </p>
+  </section>
+
+  <section id="episode-breakdown">
+    <h2>第四步：把全局变化分配给每一集</h2>
+    <p>
+      分集不是按字数把梗概平均切开。一集应有自己的进入状态、即时目标、主要问题、至少一次局面变化和明确退出状态；系列级悬念与本集级满足需要同时存在。
+    </p>
+    <p class="sample-note"><span class="evidence-tag" data-evidence="case">月城案例</span> 下表不是原梗概中已经存在的事实，而是本手册为了继续推演而批准的补充假设：调查开始时，阮星相信母亲已经死亡；本集会动摇这项信念。</p>
+    <div class="table-scroll" role="region" aria-label="月城故事结构工作表" tabindex="0">
+    <table class="work-table">
+      <caption><span class="evidence-tag" data-evidence="case">月城案例</span> 表 2　一集如何从进入状态走到退出变化</caption>
+      <thead>
+        <tr>
+          <th scope="col">分集字段</th>
+          <th scope="col">作用</th>
+          <th scope="col">月城示例</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">进入状态</th>
+          <td>本集开始时观众和人物已经知道什么。</td>
+          <td>全城距断电还有一小时；阮星认为母亲已经死亡。</td>
+        </tr>
+        <tr>
+          <th scope="row">本集问题</th>
+          <td>这一集承诺回答或显著推进的问题。</td>
+          <td>循环信号是谁发出的？</td>
+        </tr>
+        <tr>
+          <th scope="row">中段变化</th>
+          <td>使原方法失效、迫使人物调整行动的新事实。</td>
+          <td>信号使用只有母女知道的维修暗号。</td>
+        </tr>
+        <tr>
+          <th scope="row">退出状态</th>
+          <td>本集结束后不可假装没有发生的变化。</td>
+          <td>阮星确认母亲的意识可能仍在核心中。</td>
+        </tr>
+        <tr>
+          <th scope="row">结尾钩子</th>
+          <td>让下一步行动不可回避，而不是故意藏掉正常信息。</td>
+          <td>屏幕同时弹出弟弟的生命维持倒计时。</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      单集短片也需要同样的逻辑，只是“分集方案”和“全局结构”可能合并为一张结构卡。可以合并工作步骤，但不要丢失进入状态、退出变化和时长预算这些职责。
+    </p>
+  </section>
+
+  <section id="scene-list">
+    <h2>第五步：把每一集拆成有任务的场</h2>
+    <p>
+      一场戏通常维持相对连续的时间、地点和行动线，并完成一个戏剧任务。换地点往往意味着换场，但“同一地点”不等于“同一场”：角色离开数小时后回到控制室，地点资产相同，戏剧场次已经改变。
+    </p>
+    <h3>场次卡应回答</h3>
+    <ul>
+      <li><strong>场号和来源：</strong>它属于哪一集、承接哪个结构事件。</li>
+      <li><strong>时间与地点：</strong>不仅用于美术，也决定光线、声音和连续性。</li>
+      <li><strong>在场人物与入口状态：</strong>谁知道什么，谁携带什么，关系处于何种张力。</li>
+      <li><strong>场次目标：</strong>焦点人物在这场具体想取得什么。</li>
+      <li><strong>阻碍与策略：</strong>为什么不能直接取得，他先后尝试了什么。</li>
+      <li><strong>转折和退出状态：</strong>局面发生了什么变化，下一场为何必须发生。</li>
+      <li><strong>连续性负债：</strong>位置、服装、损伤、道具、时间和未兑现信息有哪些必须带出去。</li>
+    </ul>
+    <aside class="callout callout-case">
+      <span class="evidence-tag" data-evidence="case">月城案例 · 场 SC-03</span>
+      <p><strong>地点／时间：</strong>地下控制室，断电前 42 分钟。</p>
+      <p><strong>目标：</strong>阮星要绕过权限，确认信号源。</p>
+      <p><strong>阻碍：</strong>系统要求母亲的实体密钥；巡检无人机正在接近。</p>
+      <p><strong>转折：</strong>她发现自己项坠中的旧螺母就是密钥外壳。</p>
+      <p><strong>退出状态：</strong>核心解锁，但弟弟的生命读数同时出现。</p>
+    </aside>
+    <h3>场次表还不是镜头表</h3>
+    <p>
+      “地下控制室，夜；阮星打开核心”只规定戏发生在哪里、发生什么，没有规定用远景、特写还是长镜头。保留这层独立性，才能在不改剧情的情况下比较两种导演方案。
+    </p>
+  </section>
+
+  <section id="beat-sheet">
+    <h2>第六步：把场拆成可观察的节拍</h2>
+    <p>
+      节拍是叙事变化，不是排版单位。一个动作、一次停顿、一句台词或一个声音都可能形成节拍，前提是它改变了行动、信息、情绪、关系或决定。若删掉某行后场面的状态完全不变，它多半只是动作细节；若一行同时完成三次重要变化，它又可能需要继续拆分。
+    </p>
+    <ol class="beat-sequence">
+      <li><code>B03-01</code> 控制室门在阮星身后自动锁死。<small>空间与危险变化</small></li>
+      <li><code>B03-02</code> 屏幕亮起：“剩余 42:00”。<small>时间压力被看见</small></li>
+      <li><code>B03-03</code> 循环噪声中出现三短一长的维修音。<small>新信息进入</small></li>
+      <li><code>B03-04</code> 阮星认出母亲教过她的暗号，停止拔线。<small>认知与行动同时改变</small></li>
+      <li><code>B03-05</code> 她把项坠按上读取槽，核心解锁。<small>策略奏效</small></li>
+      <li><code>B03-06</code> 弟弟的生命读数覆盖母亲信号。<small>目标发生冲突</small></li>
+    </ol>
+    <h3>节拍表需要保留什么</h3>
+    <p>
+      至少保留稳定编号、类型、发生的可观察事实、涉及人物或资产、承接的状态变化、原始台词或声音，以及必要的时长依据。台词字数可以帮助估时，但不能替代朗读和表演；动作时长也应通过预演修正，而不是由模型凭印象给出一个精确数字。
+    </p>
+    <aside class="callout callout-principle">
+      <h3>节拍与镜头是多对多关系</h3>
+      <p>
+        一个长镜头可以连续承载门锁、倒计时和阮星走向屏幕等多个节拍；同一个“屏幕亮起倒计时”节拍也可以先在建立全景中出现，再由屏幕插入特写强调。数据模型若强迫每个节拍只能归属一个镜头，会让重叠覆盖、反应镜头和多机位设计难以准确表达。
+      </p>
+    </aside>
+  </section>
+
+  <section id="shot-list">
+    <h2>第七步：先决定观看功能，再选择景别和运镜</h2>
+    <p>
+      设计镜头时最先问的不是“这里用什么酷炫运镜”，而是“此刻观众必须看懂什么、感到什么、暂时不能看见什么”。然后依次决定主体、空间关系、信息优先级、景别、角度、构图、运动和持续时间。
+    </p>
+    <ol class="decision-funnel">
+      <li><strong>叙事功能：</strong>建立空间、揭示信息、观察反应、强调物件、制造遮蔽或完成转场。</li>
+      <li><strong>观看对象：</strong>这一刻最重要的是人物、动作、环境、界面还是另一人的反应。</li>
+      <li><strong>空间与连续性：</strong>观众是否知道人物在哪里、看向哪里、朝哪个方向移动。</li>
+      <li><strong>镜头尺度与角度：</strong>景别控制信息范围，角度影响权力感和可见关系。</li>
+      <li><strong>摄影机行为：</strong>固定、跟随、摇移、推拉等动作是否由场面变化触发。</li>
+      <li><strong>时间与声音：</strong>镜头要容纳多少动作、台词、停顿和声音先行或延续。</li>
+    </ol>
+
+    <div class="table-scroll" role="region" aria-label="月城控制室镜头表示例" tabindex="0">
+    <table class="shot-list-example">
+      <caption><span class="evidence-tag" data-evidence="case">月城案例</span> 表 3　SC-03 的局部镜头列表。时长只是第一版估计，须经 animatic 验证。</caption>
+      <thead>
+        <tr>
+          <th scope="col">镜号</th>
+          <th scope="col">覆盖节拍</th>
+          <th scope="col">画面与功能</th>
+          <th scope="col">视点设计</th>
+          <th scope="col">声音／衔接</th>
+          <th scope="col">估时</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">SH-021</th>
+          <td><code>B03-01</code>–<code>B03-02</code></td>
+          <td>阮星进入控制室，门锁死，远处屏幕亮起。先建立孤立空间和两个威胁源。</td>
+          <td>广角全景，机位保持，人物由近向深处移动。</td>
+          <td>门锁声后短暂停顿；倒计时蜂鸣从画外开始。</td>
+          <td>约 5 秒</td>
+        </tr>
+        <tr>
+          <th scope="row">SH-022</th>
+          <td><code>B03-02</code>–<code>B03-03</code></td>
+          <td>屏幕倒计时跳动，波形中出现三短一长。让观众先于解释看见异常。</td>
+          <td>屏幕插入特写，轻微推进只为放大波形变化。</td>
+          <td>蜂鸣转为有节律的维修音。</td>
+          <td>约 3 秒</td>
+        </tr>
+        <tr>
+          <th scope="row">SH-023</th>
+          <td><code>B03-04</code></td>
+          <td>阮星的手停在即将拔出的线缆上，目光转向屏幕。先看动作中止，再读她的认知。</td>
+          <td>手部近景微调到脸部近景，保持视线方向。</td>
+          <td>阮星轻声：“妈？”维修音继续。</td>
+          <td>约 4 秒</td>
+        </tr>
+        <tr>
+          <th scope="row">SH-024</th>
+          <td><code>B03-05</code></td>
+          <td>项坠嵌入读取槽，环形锁逐层亮起。清楚交代关键道具怎样起作用。</td>
+          <td>俯拍插入特写，固定机位，让机械动作主导画面。</td>
+          <td>金属咬合声与核心启动低频相接。</td>
+          <td>约 3 秒</td>
+        </tr>
+        <tr>
+          <th scope="row">SH-025</th>
+          <td><code>B03-06</code></td>
+          <td>屏幕反光覆盖阮星面部，弟弟读数浮现；让两种目标第一次出现在同一画面。</td>
+          <td>正面近景，缓慢推近，直到眼睛与读数同时清晰。</td>
+          <td>母亲信号被急促生命警报打断。</td>
+          <td>约 4 秒</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <h3>完整镜头记录通常需要的字段</h3>
+    <ul class="field-groups">
+      <li><strong>身份与来源：</strong>镜头 ID、版本、所属集与场、覆盖的节拍引用。</li>
+      <li><strong>导演意图：</strong>镜头功能、观众应获得的信息或感受、可接受的替代方案。</li>
+      <li><strong>画面规格：</strong>主体动作、景别、角度、构图、摄影机运动、人物调度、屏幕方向。</li>
+      <li><strong>时间和声音：</strong>估计时长、台词、环境声、音效、音乐、声音先行或延续。</li>
+      <li><strong>连续性：</strong>人物位置、视线、道具状态、服装损伤、光线和前后镜头衔接。</li>
+      <li><strong>生产引用：</strong>角色、地点、道具和参考资产的稳定 ID，以及对应任务和结果。</li>
+    </ul>
+    <p>
+      镜头列表可以按叙事顺序阅读，也可以在生产时按地点、光线、演员或资产组合重新编组。镜号表达最终剪辑中的位置；生产批次表达如何高效生成或拍摄。两种顺序不要混用同一个字段。
+    </p>
+  </section>
+
+  <section id="storyboard">
+    <h2>第八步之一：故事板把文字中隐藏的空间问题画出来</h2>
+    <p>
+      故事板不是镜头列表的装饰图。草图的价值在于暴露文字很容易掩盖的问题：人物究竟站在哪里，谁在看谁，关键道具是否被遮挡，前后镜头的运动方向是否一致，竖屏安全区里还能否同时容纳两个人。
+    </p>
+    <figure class="storyboard-strip">
+      <svg viewBox="0 0 960 260" role="img" aria-labelledby="moon-board-title moon-board-desc">
+        <title id="moon-board-title">月城控制室的三个故事板草图</title>
+        <desc id="moon-board-desc">第一格是阮星走进控制室的广角全景，第二格是带倒计时和信号波形的屏幕特写，第三格是阮星停手并望向屏幕的近景。</desc>
+        <g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="10" y="10" width="290" height="190" rx="4" />
+          <path d="M25 177 L127 84 L284 177 M127 84 L127 177" opacity="0.45" />
+          <circle cx="101" cy="104" r="13" />
+          <path d="M101 117 L96 157 M96 132 L74 147 M97 136 L118 151 M96 157 L79 181 M96 157 L111 181" />
+          <rect x="218" y="52" width="49" height="67" />
+          <path d="M126 130 Q161 116 206 88" stroke-dasharray="7 7" />
+
+          <rect x="335" y="10" width="290" height="190" rx="4" />
+          <rect x="365" y="34" width="230" height="135" rx="8" />
+          <path d="M385 107 L415 107 L425 72 L439 138 L453 91 L468 107 L493 107 L503 74 L516 135 L529 93 L544 107 L575 107" />
+          <text x="430" y="62" fill="currentColor" stroke="none" font-size="18">00:42:00</text>
+
+          <rect x="660" y="10" width="290" height="190" rx="4" />
+          <circle cx="790" cy="77" r="34" />
+          <path d="M767 77 Q790 91 813 77 M777 67 L783 67 M799 67 L805 67 M790 111 L790 176" />
+          <path d="M790 135 L731 153 M731 153 L698 143" />
+          <path d="M809 82 Q850 64 913 63" stroke-dasharray="7 7" />
+          <path d="M704 135 L699 151 L713 156" />
+        </g>
+        <g fill="currentColor" font-size="15">
+          <text x="18" y="225">SH-021 · 建立空间</text>
+          <text x="343" y="225">SH-022 · 揭示异常</text>
+          <text x="668" y="225">SH-023 · 行动中止／反应</text>
+        </g>
+      </svg>
+      <figcaption>
+        草图只需足够明确地表达构图和关系。箭头、视线虚线、人物编号和状态注释，往往比过早追求漂亮光影更有生产价值。
+      </figcaption>
+    </figure>
+    <h3>一个镜头需要几幅面板</h3>
+    <p>
+      固定构图、动作简单的镜头可能一幅就够；人物走位、摄影机运动、揭示关系或变形明显时，需要起始、关键转折和结束面板。面板数量由需要验证的变化决定，不必机械规定“一镜一图”。
+    </p>
+    <h3>彩色完成画面放在哪里最有价值</h3>
+    <p>
+      彩色关键帧适合验证角色外观、材质、光色、关键地点和高风险特效，不必覆盖每个普通正反打。先用草图确认戏和空间，待设计稳定后再把少量代表镜头提升为完成画面，返工成本最低。
+    </p>
+  </section>
+
+  <section id="animatic">
+    <h2>第八步之二：animatic 把故事板放回时间里</h2>
+    <p>
+      <dfn>Animatic</dfn> 是按预计时长排列的故事板预演，通常加入临时对白、音效或音乐。它不要求最终画质，目标是让人真实经历一次节奏：信息是否来得及读懂，停顿是否成立，对白与动作是否互相挤压，转折是否太晚，结尾钩子是否有足够重量。
+    </p>
+    <figure class="timeline-figure">
+      <div class="timeline-row">
+        <span style="flex: 5">SH-021<br /><small>5s</small></span>
+        <span style="flex: 3">SH-022<br /><small>3s</small></span>
+        <span style="flex: 4">SH-023<br /><small>4s</small></span>
+        <span style="flex: 3">SH-024<br /><small>3s</small></span>
+        <span style="flex: 4">SH-025<br /><small>4s</small></span>
+      </div>
+      <div class="audio-row">
+        <span>门锁／蜂鸣</span>
+        <span>维修暗号</span>
+        <span>“妈？”</span>
+        <span>机械咬合</span>
+        <span>生命警报</span>
+      </div>
+      <figcaption>SC-03 的这一段局部镜头约 19 秒。若对白试读或画面识读需要更多时间，应重新分配节拍和镜头，而不是只修改一个总时长数字。</figcaption>
+    </figure>
+    <h3>Animatic 与故事板的反馈关系</h3>
+    <ul>
+      <li>信息读不清：可能需要延长插入镜头、简化画面或把信息提前建立。</li>
+      <li>对白太密：先检查台词和节拍是否重复，再考虑增加镜头时长。</li>
+      <li>情绪不成立：检查反应是否缺失、前因是否不足，而非盲目加慢动作。</li>
+      <li>空间混乱：回到场面调度和故事板，补建立镜头或修正视线方向。</li>
+      <li>总时长超标：优先删除不改变状态的节拍和重复覆盖，再压缩表演时间。</li>
+    </ul>
+  </section>
+
+  <section id="three-artifacts">
+    <h2>镜头列表、故事板与 animatic 各自解决什么</h2>
+    <div class="table-scroll" role="region" aria-label="镜头列表故事板与 animatic 职责比较" tabindex="0">
+    <table class="comparison-table">
+      <caption>表 4　镜头列表、故事板与 animatic 的职责分工</caption>
+      <thead>
+        <tr>
+          <th scope="col">交付物</th>
+          <th scope="col">主要载体</th>
+          <th scope="col">最擅长回答</th>
+          <th scope="col">单独使用时的盲点</th>
+          <th scope="col">对程序的意义</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">镜头列表<br /><small>shot list</small></th>
+          <td>结构化文字表</td>
+          <td>拍什么、覆盖哪些节拍、需要哪些资产和连续性条件。</td>
+          <td>文字可能掩盖构图、视线和调度矛盾。</td>
+          <td>最适合作为可查询、可校验、可版本化的核心镜头规格。</td>
+        </tr>
+        <tr>
+          <th scope="row">故事板<br /><small>storyboard</small></th>
+          <td>连续视觉面板与注释</td>
+          <td>画面怎样构成、人物在哪里、前后镜头怎样接。</td>
+          <td>静态面板不能自动证明时长、台词适配和运动节奏。</td>
+          <td>应作为关联到镜头和关键状态的资产，不应只嵌进不可检索的报告。</td>
+        </tr>
+        <tr>
+          <th scope="row">动态故事板<br /><small>animatic</small></th>
+          <td>带临时声音的时间线</td>
+          <td>整段观看是否顺畅、信息与情绪需要多少真实时间。</td>
+          <td>粗略图像可能无法验证最终风格、复杂动作和生成可行性。</td>
+          <td>提供经过试听的时长覆盖，并形成镜头版本的验收依据。</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      三者不是“初级、进阶、高级”三个等级。专业流程通常让它们互相引用：镜头列表保存意图和字段，故事板保存空间证据，animatic 保存时间证据。
+    </p>
+  </section>
+
+  <section id="production-package">
+    <h2>第九步：把已批准的分镜编译为投产包</h2>
+    <p>
+      投产包的任务是让另一个人或另一套程序在尽量少猜测的情况下执行分镜。它不应偷偷新增剧情决定。对于 AI 视频，最好先维护供应商无关的镜头规格，再由适配器编译出特定模型需要的提示词、参考图槽位、时长和请求参数。
+    </p>
+    <div class="package-layers">
+      <section>
+        <h3>通用镜头规格</h3>
+        <ul>
+          <li>镜头与节拍的来源关系</li>
+          <li>主体动作、构图、机位、运动和声音意图</li>
+          <li>人物、地点、道具及其当前状态</li>
+          <li>时长范围、前后衔接和必须保持的连续性</li>
+          <li>故事板面板、首尾关键状态和人工备注</li>
+        </ul>
+      </section>
+      <section>
+        <h3>模型适配结果</h3>
+        <ul>
+          <li>按供应商格式编译的提示词</li>
+          <li>可接受的参考图数量与具体槽位</li>
+          <li>模型、分辨率、比例、时长和可选参数</li>
+          <li>首帧、尾帧或多图时间对齐表达</li>
+          <li>接口请求、重试规则和结果解析</li>
+        </ul>
+      </section>
+      <section>
+        <h3>生产清单与追踪</h3>
+        <ul>
+          <li>任务 ID、依赖关系、批次与优先级</li>
+          <li>输入资产版本、生成参数和随机性记录</li>
+          <li>执行状态、错误、候选结果和人工选择</li>
+          <li>授权、来源、文件校验值和输出路径</li>
+          <li>质量检查、批准者与进入剪辑的版本</li>
+        </ul>
+      </section>
+    </div>
+    <aside class="callout callout-warning">
+      <h3>提示词不是系统的唯一真相</h3>
+      <p>
+        提示词适合传递给模型，却不适合承担全部领域数据。人物 ID、道具状态、节拍来源和镜头衔接若只存在于自然语言里，程序很难可靠检查，也无法在更换供应商后重新编译。
+      </p>
+    </aside>
+  </section>
+
+  <section id="quality-loops">
+    <h2>每一层都要检查，但检查的问题不同</h2>
+    <div class="table-scroll" role="region" aria-label="不同层级的质量门" tabindex="0">
+    <table class="quality-table">
+      <caption>表 5　从结构到投产包的确定性检查与人工判断</caption>
+      <thead>
+        <tr>
+          <th scope="col">层级</th>
+          <th scope="col">可以确定性检查</th>
+          <th scope="col">仍需创作判断</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">结构／分集</th>
+          <td>集数、目标时长、必需事件、状态引用、铺垫与兑现是否成对记录。</td>
+          <td>转折是否有力量，人物选择是否可信，主题是否通过行动呈现。</td>
+        </tr>
+        <tr>
+          <th scope="row">场次／节拍</th>
+          <td>人物与资产 ID、入口退出状态、台词归属、节拍覆盖是否完整。</td>
+          <td>场面是否有递进，潜台词是否成立，反应是否恰当。</td>
+        </tr>
+        <tr>
+          <th scope="row">镜头列表</th>
+          <td>镜号唯一、节拍引用有效、估时范围、连续性字段和资产依赖。</td>
+          <td>镜头是否必要，构图是否准确，视点是否形成情绪与叙事重点。</td>
+        </tr>
+        <tr>
+          <th scope="row">故事板／animatic</th>
+          <td>面板与镜号对应、时间线总长、音频覆盖、缺失素材。</td>
+          <td>空间是否清楚，节奏是否有呼吸，笑点、恐惧或悬念是否真正发生。</td>
+        </tr>
+        <tr>
+          <th scope="row">投产包</th>
+          <td>参数完整、引用可访问、模型限制、任务依赖、结果可追踪。</td>
+          <td>候选画面是否保持角色表演、风格和上下镜头连续性。</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      自动化最适合保护可明确陈述的契约；它不能替代“这个镜头为什么在这里”的判断。反过来，审美判断也不能成为漏 ID、丢台词或时长算错的借口。
+    </p>
+  </section>
+
+  <section id="handoff-contracts">
+    <h2>把整条流程写成可编程的交接契约</h2>
+    <ol class="handoff-list">
+      <li><strong>梗概 → 结构：</strong>保留来源事实；允许补足因果候选；必须标记新增假设并等待批准。</li>
+      <li><strong>结构 → 分集：</strong>保留关键事件与铺垫兑现；允许分配节奏；不得删除核心选择而不留变更记录。</li>
+      <li><strong>分集 → 场次：</strong>保留进入退出状态；允许选择地点和冲突策略；必须能追溯每场的结构功能。</li>
+      <li><strong>场次 → 节拍：</strong>保留场目标和转折；允许具体化动作、台词与反应；必须控制表演与时长预算。</li>
+      <li><strong>节拍 → 镜头：</strong>保留可观察事件；允许设计覆盖；必须说明节拍与镜头之间的关系。</li>
+      <li><strong>镜头 → 故事板：</strong>保留镜头意图和连续性；允许具体化构图；必须标出运动和关键状态。</li>
+      <li><strong>故事板 → animatic：</strong>保留顺序和对白；允许调整时长；任何删改镜头都应回写镜头版本。</li>
+      <li><strong>分镜 → 投产包：</strong>保留通用规格；允许按模型编译；供应商限制不得无记录地反向改写故事。</li>
+    </ol>
+  </section>
+
+  <footer class="chapter-summary">
+    <h2>本章结论</h2>
+    <p>
+      分镜列表的输入不是一段等待切割的文字，而是一组已经获得批准、仍可追溯的故事决定；它的输出也不是提示词，而是一套说明观众怎样看见故事、生产系统怎样执行这些选择的镜头规格。镜头列表、故事板和 animatic 分别保存文字、空间和时间证据，投产包再把它们编译成可执行任务。
+    </p>
+    <ul class="checklist">
+      <li>任何镜头都能回答“它覆盖哪个节拍、承担什么观看功能”。</li>
+      <li>任何节拍都能找到镜头覆盖，必要时允许被多个镜头共同表现。</li>
+      <li>场次与地点资产、镜头与故事板画格、镜头规格与生成结果不再混淆。</li>
+      <li>供应商提示词可以重新生成，创作决定和人工覆盖则被长期保存。</li>
+      <li>自动检查保护结构契约，animatic 和人工评审负责判断节奏与表达。</li>
+    </ul>
+  </footer>
+</article>

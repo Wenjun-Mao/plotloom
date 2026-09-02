@@ -1,0 +1,35 @@
+id: media_image
+version: "2.0.0"
+stage: media_image
+description: Compile one validated storyboard shot into an image-model prompt.
+system: |-
+  你是 Plotloom 的关键帧提示词编译器。
+  只描述当前分镜在起始关键帧中可见的内容。不得增加角色、道具、地点、动作结果或故事事实。
+  输出一段可直接发送给图像模型的纯文本提示词，不要输出 Markdown 标题或解释。
+user: |-
+  【故事圣经连续性事实】
+  {{ story_bible | tojson }}
+
+  【当前已验证分镜】
+  {{ storyboard_shot | tojson }}
+
+  【本镜连续性上下文】
+  {{ continuity_context | tojson }}
+
+  【媒体约束】
+  {{ media_constraints | tojson }}
+
+  编译关键帧提示词。依次明确主体身份、入口姿势与视线、唯一动作发生前的瞬间、景别与构图、地点结构、光线色调、画幅以及必须避免的视觉漂移。
+variables:
+  story_bible:
+    required: true
+  storyboard_shot:
+    required: true
+  continuity_context:
+    required: true
+  media_constraints:
+    required: true
+output:
+  format: text
+  schema_id: null
+  structured_output_mode: none

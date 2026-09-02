@@ -1,0 +1,596 @@
+<article data-title="shuohao storyboard：从剧本位置到 H3 投产包" data-kicker="源码解剖 · 分镜层">
+  <header class="chapter-hero">
+    <p class="eyebrow">源码解剖 · novel-storyboard 1.3.0 · 固定提交 4322897</p>
+    <h1>shuohao storyboard：从剧本位置到 H3 投产包</h1>
+    <p class="chapter-deck">这一层不是一张传统故事板图片，而是一套“剧本节拍认领合同”：先把一集拆成视频生成段，再在段内切镜，为每切准备关键帧，为每段准备时间对齐的 H3 提示词，最后用 17 道门检查结构。</p>
+    <aside class="chapter-promise" aria-labelledby="shuohao-storyboard-promise">
+      <h2 id="shuohao-storyboard-promise">本章会彻底拆开</h2>
+      <ul>
+        <li><code>script.flow</code>、<code>sceneIndex</code>、art <code>sceneId</code> 为什么是三套不同坐标。</li>
+        <li><code>seedScenes → segment → cut → beats/frame/h3Prompt</code> 的完整变换。</li>
+        <li>17 道质量门究竟查什么，哪些门缺上游时会跳过。</li>
+        <li>关键帧、H3 投产包与真实视频生成之间的明确边界。</li>
+        <li>29 秒“月城控制室”如何落进 3 段、8 切，以及这套模型会损失什么。</li>
+      </ul>
+    </aside>
+  </header>
+
+  <section id="storyboard-source-of-truth" class="chapter-section">
+    <h2>一、先确定现行模型：以 segment → cut 为准</h2>
+    <p><span class="evidence-tag" data-evidence="docs">文档声明</span> 根 README、storyboard schema 和 SKILL 后半部描述的是三层结构：集（episode）→ 生成段（segment）→ 分镜切（cut）。段对应一次计划中的视频生成调用，cut 是段内的剪切，关键帧按 cut 准备。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>validateStoryboard()</code> 要求每集有 <code>segments</code>，每段有 <code>sceneIndex</code>、<code>cuts</code> 和 <code>h3Prompt</code>；<code>gateReport()</code> 对段总时长、cut 时长和段内 H3 切点分别检查。源码没有现行的顶层 <code>shots</code> 数组。</p>
+    <p><span class="evidence-tag" data-evidence="test">测试约束</span> selftest 明确断言样例为 10 个 segment、34 个 cut、17 道门；seed 结果被断言为 <code>segments.length === 0</code>，而非 <code>shots</code>。</p>
+
+    <aside class="callout callout-warning">
+      <h3>同一份 SKILL 里保留着上一版词汇</h3>
+      <p><span class="evidence-tag" data-evidence="docs">文档声明</span> SKILL 开头一张旧表还写“单镜头 ≤15 秒”“首帧 + 运动双提示词”和“每镜一段 H3”，Step 1 也写“shots 留空”。这些说法与同文件后文、schema、样例及源码不一致。</p>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 学习当前实现时，应把它们视为文档漂移，而不是同时存在的另一套合法格式。现行合同是：segment 受 <code>maxSegmentSeconds</code> 约束（默认 15 秒），cut 受 <code>minCutSeconds..maxCutSeconds</code> 约束（默认 2–5 秒），每 cut 一个 frame，每 segment 一个 h3Prompt；顶层 <code>params</code> 可以覆盖这些时长默认值。</p>
+    </aside>
+    <p class="source-note">核对入口：<code>skills/novel-storyboard/SKILL.md</code> 第 44–58、74–107 行；<code>references/schema.md</code>；<code>scripts/novel-storyboard.mjs::validateStoryboard()</code>、<code>gateReport()</code>；<code>scripts/selftest.mjs</code> 的 stats、17 门与 seed 断言。</p>
+  </section>
+
+  <section id="storyboard-coordinate-systems" class="chapter-section">
+    <h2>二、三套坐标不要混：资产、场次出现、节拍位置</h2>
+    <figure class="diagram-figure">
+      <svg viewBox="0 0 940 360" role="img" aria-labelledby="storyboard-coords-title storyboard-coords-desc">
+        <title id="storyboard-coords-title">从美术场景资产到分镜切的三层坐标</title>
+        <desc id="storyboard-coords-desc">美术中的 S01 是可复用空间资产；剧本某集 scenes 数组的第一项是一次场次出现；该场 flow 的位置一到九被多个 cut 连续认领。</desc>
+        <defs>
+          <marker id="coords-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#5e5136"></path>
+          </marker>
+        </defs>
+        <rect x="28" y="104" width="190" height="122" rx="9" fill="#f5ead0" stroke="#735d2d" stroke-width="2"></rect>
+        <text x="123" y="137" text-anchor="middle" font-size="17" font-weight="700">art.scenes[ S01 ]</text>
+        <text x="123" y="167" text-anchor="middle" font-size="13">月城记忆控制室</text>
+        <text x="123" y="190" text-anchor="middle" font-size="12">锚点 · 光照 · 空景资产</text>
+        <text x="123" y="210" text-anchor="middle" font-size="12">可以跨集复用</text>
+
+        <rect x="300" y="76" width="245" height="178" rx="9" fill="#f7f3e8" stroke="#735d2d" stroke-width="2"></rect>
+        <text x="422" y="109" text-anchor="middle" font-size="17" font-weight="700">script.episodes[0].scenes[0]</text>
+        <text x="422" y="139" text-anchor="middle" font-size="13">sceneIndex = 1（由位置产生）</text>
+        <text x="422" y="164" text-anchor="middle" font-size="13">sceneId = S01（引用资产）</text>
+        <rect x="324" y="184" width="29" height="40" fill="#e6b34a"></rect>
+        <rect x="357" y="184" width="29" height="40" fill="#ead7a9"></rect>
+        <rect x="390" y="184" width="29" height="40" fill="#e6b34a"></rect>
+        <rect x="423" y="184" width="29" height="40" fill="#ead7a9"></rect>
+        <rect x="456" y="184" width="29" height="40" fill="#e6b34a"></rect>
+        <rect x="489" y="184" width="29" height="40" fill="#ead7a9"></rect>
+        <text x="421" y="243" text-anchor="middle" font-size="12">flow 位置 1 … 9</text>
+
+        <rect x="630" y="38" width="275" height="254" rx="9" fill="#e3ebe8" stroke="#315d52" stroke-width="2"></rect>
+        <text x="767" y="73" text-anchor="middle" font-size="17" font-weight="700">storyboard episode 1</text>
+        <rect x="653" y="99" width="229" height="47" rx="5" fill="#f8fbfa" stroke="#315d52"></rect>
+        <text x="667" y="119" font-size="13" font-weight="700">E01-01 · sceneIndex 1</text>
+        <text x="667" y="138" font-size="12">cuts: [1,1] [2,2] [3,3]</text>
+        <rect x="653" y="158" width="229" height="47" rx="5" fill="#f8fbfa" stroke="#315d52"></rect>
+        <text x="667" y="178" font-size="13" font-weight="700">E01-02 · sceneIndex 1</text>
+        <text x="667" y="197" font-size="12">cuts: [4,4] [5,5] [6,6]</text>
+        <rect x="653" y="217" width="229" height="47" rx="5" fill="#f8fbfa" stroke="#315d52"></rect>
+        <text x="667" y="237" font-size="13" font-weight="700">E01-03 · sceneIndex 1</text>
+        <text x="667" y="256" font-size="12">cuts: [7,7] [8,9]</text>
+
+        <path d="M218 165 H300" fill="none" stroke="#5e5136" stroke-width="2" marker-end="url(#coords-arrow)"></path>
+        <path d="M545 165 H630" fill="none" stroke="#315d52" stroke-width="2.5" marker-end="url(#coords-arrow)"></path>
+        <text x="258" y="151" text-anchor="middle" font-size="12">sceneId</text>
+        <text x="587" y="151" text-anchor="middle" font-size="12">sceneIndex + beats</text>
+        <text x="470" y="327" text-anchor="middle" font-size="13">资产身份 ≠ 戏剧场次出现 ≠ 场内节拍身份</text>
+      </svg>
+      <figcaption><span class="evidence-tag" data-evidence="source">源码实现</span> <code>expandScript()</code> 用剧本 scenes 数组的 <code>i + 1</code> 生成 <code>sceneIndex</code>，并用 flow 数组的 <code>j + 1</code> 生成 beat 编号。storyboard 本身不复制 art 的 <code>sceneId</code>；验证与报告需通过 script 反查。</figcaption>
+    </figure>
+
+    <div class="table-scroll" role="region" aria-label="storyboard 三套坐标定义" tabindex="0">
+      <table>
+        <caption>表 1　三套坐标各自回答的问题</caption>
+        <thead>
+          <tr>
+            <th scope="col">坐标</th>
+            <th scope="col">回答什么</th>
+            <th scope="col">例子</th>
+            <th scope="col">稳定性</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">art <code>sceneId</code></th>
+            <td>这是什么可复用环境资产？</td>
+            <td><code>S01</code> = 月城记忆控制室。</td>
+            <td>命名稳定；同一 S 码可在多集、多次场次出现。</td>
+          </tr>
+          <tr>
+            <th scope="row">script <code>sceneIndex</code></th>
+            <td>这是本集按剧情顺序出现的第几场？</td>
+            <td>第 1 场和第 4 场都可能引用 <code>S01</code>，但 index 不同。</td>
+            <td>数组位置；前面插场会整体漂移。</td>
+          </tr>
+          <tr>
+            <th scope="row">cut <code>beats:[a,b]</code></th>
+            <td>这切认领该场 flow 的第几拍到第几拍？</td>
+            <td><code>[8,9]</code> 同时容纳弟弟台词与阮星停手。</td>
+            <td>场内位置；前面插拍会漂移。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="source-note">证据入口：<code>skills/novel-script/references/schema.md</code> 的 scene/flow；<code>novel-storyboard.mjs::expandScript()</code> 第 188–212 行、<code>gateReport()</code> 的 scene 反查和 coverage 循环。</p>
+  </section>
+
+  <section id="storyboard-seeding" class="chapter-section">
+    <h2>三、seedScenes：先把剧本变成可切的工作底稿</h2>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>expandScript()</code> 遍历每集、每场、每个 flow beat：动作拍按剧本参数 <code>actionSeconds</code> 计时，默认 2.5 秒；台词去掉空白后按字符数除以 <code>charsPerSecond</code>，默认 4.5 字/秒，并四舍五入到一位小数。它还保留说话人、语气、文本、场景人物与道具。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>seedFromScript()</code> 把展开结果写入临时 <code>seedScenes</code>，同时把最终 <code>segments</code> 留空。它可按 <code>--eps</code> 过滤集数。代理切完后，SKILL 要求删除 <code>seedScenes</code>，因为正式 storyboard 可随时从 script 重算底稿。</p>
+
+    <pre class="code-sample" aria-label="storyboard seedScenes 合法 JSON 示例"><code>{
+  "source": "月城失物局",
+  "episodes": [
+    {
+      "ep": 1,
+      "segments": [],
+      "seedScenes": [
+        {
+          "sceneIndex": 1,
+          "sceneId": "S01",
+          "lighting": "日出前警报",
+          "characters": ["C01", "C02"],
+          "props": ["P01"],
+          "beats": [
+            { "n": 1, "kind": "action", "seconds": 2.5, "text": "阮星冲入控制室。" },
+            { "n": 2, "kind": "line", "seconds": 1.6, "speaker": "VO", "text": "别让全城忘记。" }
+          ]
+        }
+      ]
+    }
+  ]
+}</code></pre>
+    <p class="sample-note">这是符合 <code>seedFromScript()</code> 输出形状的教学缩略例；<code>segments</code> 尚空，因此它是工作底稿而非可通过最终 validate 的 storyboard。台词 1.6 秒只是按默认计数公式的示意，真实值由原字符串与参数确定。</p>
+
+    <div class="process-line" aria-label="storyboard seed 到正式数据流程">
+      <span>script.flow</span>
+      <span aria-hidden="true">→</span>
+      <span><code>expandScript()</code></span>
+      <span aria-hidden="true">→</span>
+      <span>seedScenes</span>
+      <span aria-hidden="true">→</span>
+      <span>代理切 segment / cut</span>
+      <span aria-hidden="true">→</span>
+      <span>删除 seedScenes</span>
+      <span aria-hidden="true">→</span>
+      <span>validate</span>
+    </div>
+    <p><span class="evidence-tag" data-evidence="test">测试约束</span> selftest 断言 seed 保留六集、第一集两场、第一场全部 13 拍且每拍有秒数；同时断言 <code>segments</code> 为空，并验证集数区间过滤。</p>
+    <p class="source-note">核对入口：<code>novel-storyboard.mjs::expandScript()</code>、<code>seedFromScript()</code>；<code>references/storyboard-pass.md</code> 第 1–18 行；<code>scripts/selftest.mjs</code> 的 expandScript 与 seed 小节。</p>
+  </section>
+
+  <section id="storyboard-schema" class="chapter-section">
+    <h2>四、正式 storyboard 的每一层存什么</h2>
+    <div class="table-scroll" role="region" aria-label="storyboard 字段契约" tabindex="0">
+      <table>
+        <caption>表 2　episode → segment → cut 的字段责任</caption>
+        <thead>
+          <tr>
+            <th scope="col">层级/字段</th>
+            <th scope="col">意义</th>
+            <th scope="col">是否派生或受门约束</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">顶层 <code>source</code></th>
+            <td>剧名；结构校验必填。</td>
+            <td>直接存储。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>style</code></th>
+            <td><code>realistic</code> 或 <code>ghibli</code>；默认 realistic。</td>
+            <td>每个 frame 必须含该预设的英文风格短语。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>promptLang</code></th>
+            <td>H3 正文和骨架语言；源码默认 <code>en</code>，可设 <code>zh</code>。</td>
+            <td>影响对齐句、字段名、镜头标记、姓名禁用与 H3 语言门；不改变 frame 恒为英文。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>episodes[].ep</code></th>
+            <td>正整数集号；同文件不许重复。</td>
+            <td>必须能在 script 找到，段号前缀也由它决定。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>segment.id</code></th>
+            <td><code>E01-01</code> 形状，集内从 01 顺序连号。</td>
+            <td>同时成为投产目录名；由段号门检查。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>segment.sceneIndex</code></th>
+            <td>剧本该集第几场，1 起；一个 segment 不跨场。</td>
+            <td>通过 script 反查 sceneId、光照、合法人物、合法道具与 flow。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>segment.cuts</code></th>
+            <td>段内按时间顺序排列的切。</td>
+            <td>段总时长不单存，始终等于 cut 秒数求和。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>segment.h3Prompt</code></th>
+            <td>这一整段的一条 H3 视频提示词，包含所有 cut、声景和配乐。</td>
+            <td>首行、切点、台词、运镜和语言受多道门逐项对账。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>cut.beats</code></th>
+            <td>闭区间 <code>[start,end]</code>，认领同一场的连续 flow 位置。</td>
+            <td>每拍必须恰好被一个 cut、按顺序、无缝认领。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>cut.seconds</code></th>
+            <td>这一切的下单时长，不是剧本估时。</td>
+            <td>默认 2–5 秒；必须容得下所认领台词的估算秒数。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>size / camera</code></th>
+            <td>五档景别与 H3 运镜词表中的一个动作。</td>
+            <td>景别英文短语进 frame；运镜词进自己对应的 H3 Shot 段落。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>characters / props</code></th>
+            <td>当前关键帧画内的 C/P 资产。</td>
+            <td>必须是剧本该场集合的子集；人物超阈值需 note。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>frame</code></th>
+            <td>这一切关键帧的英文图像提示词；不是图片本身。</td>
+            <td>必填、禁 CJK、含景别与统一风格短语、可选禁人名对账。</td>
+          </tr>
+          <tr>
+            <th scope="row"><code>recipe</code></th>
+            <td>可选的 cut 级镜头配方卡 ID。</td>
+            <td>第 17 门始终返回；未挂库时以“跳过（视为通过）”记录，挂载 <code>--shots</code> 卡目录后才执行实质配方检查。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="source-note"><span class="evidence-tag" data-evidence="docs">文档定义</span> <code>references/schema.md</code>。<span class="evidence-tag" data-evidence="source">源码实现</span> <code>DEFAULT_PARAMS</code>、<code>SHOT_SIZES</code>、<code>CAMERA_MOVES</code>、<code>STYLE_PRESETS</code>、<code>validateStoryboard()</code> 与 <code>gateReport()</code>。</p>
+
+    <aside class="callout callout-warning">
+      <h3>promptLang 的默认值有一处文档自相矛盾</h3>
+      <p><span class="evidence-tag" data-evidence="docs">文档声明</span> schema 顶部第 19 行明确写默认 <code>en</code>，但同文件 segment 表第 28 行又把 <code>h3Prompt</code> 说成“正文默认中文”。</p>
+      <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>gateReport()</code> 使用 <code>board.promptLang ?? 'en'</code>，<code>H3_TOKENS</code> 和测试的默认调用也都以英文为准。当前行为因此是：<strong>未写 promptLang 时默认英文</strong>。</p>
+    </aside>
+  </section>
+
+  <section id="storyboard-defaults" class="chapter-section">
+    <h2>五、默认参数是生产假设，不是电影学真理</h2>
+    <div class="definition-grid">
+      <article class="definition-card">
+        <h3><code>maxSegmentSeconds = 15</code></h3>
+        <p>一次视频生成段的上限；段内 cut 秒数求和不得超过它。</p>
+      </article>
+      <article class="definition-card">
+        <h3><code>minCutSeconds = 2</code></h3>
+        <p>单切下限；用于避免注意力节奏过碎。</p>
+      </article>
+      <article class="definition-card">
+        <h3><code>maxCutSeconds = 5</code></h3>
+        <p>单切上限；文档建议围绕约三秒变化。</p>
+      </article>
+      <article class="definition-card">
+        <h3><code>maxOnScreen = 3</code></h3>
+        <p>画内人物超过三人不是绝对禁止，但必须给 cut 或 segment 写拆解说明。</p>
+      </article>
+      <article class="definition-card">
+        <h3><code>tolerance = 0.15</code></h3>
+        <p>整集 storyboard 总时长相对 script 目标秒数的默认容差。</p>
+      </article>
+    </div>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 默认值集中在 <code>DEFAULT_PARAMS</code>，<code>paramsOf()</code> 用 JSON 顶层 <code>params</code> 浅覆盖。cut 可以改上下限，段可以按目标视频模型改上限；代码不把 15/2/5 写死在门逻辑里。</p>
+    <p><span class="evidence-tag" data-evidence="docs">文档声明</span> storyboard-pass 另外建议段通常 9–15 秒、3–5 切、固定镜头优先、一段内运镜克制。这些属于创作启发，不是全部由质量门强制的规则。</p>
+    <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 重写系统时应把“供应商能力限制”“团队节奏偏好”和“作品风格”拆成不同配置；否则换模型或换片种时，人们容易直接改代码常量，却忘了这些数字背后的假设。</p>
+    <p class="source-note">证据入口：<code>novel-storyboard.mjs::DEFAULT_PARAMS</code>、<code>paramsOf()</code>；<code>references/storyboard-pass.md</code> 第 5–29 行。</p>
+  </section>
+
+  <section id="storyboard-h3" class="chapter-section">
+    <h2>六、h3Prompt：把多张关键帧钉到段内时间线上</h2>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 对每个 segment，<code>cutStarts()</code> 从 0 开始累计前面 cut 的秒数。例如 3、4、3 秒三切的起点是 0、3、7。<code>h3CutTime()</code> 把起点格式化成 <code>00:03.000</code>；<code>h3AlignmentLine()</code> 再把 Picture 1..N 与这些时刻组成必须逐字匹配的首行。</p>
+
+    <div class="pipeline-grid" aria-label="H3 提示词四部分">
+      <article class="pipeline-step">
+        <span class="step-number">1</span>
+        <h3>图片对齐首行</h3>
+        <p>单切使用固定 I2VA 句式；多切逐张写 Picture k 对齐第几秒。</p>
+      </article>
+      <article class="pipeline-step">
+        <span class="step-number">2</span>
+        <h3>视听描述</h3>
+        <p><span class="evidence-tag" data-evidence="docs">文档声明</span> <code>[Shot 1]</code> 起；文档要求第 2 切以后用自己的累计切点开行。<span class="evidence-tag" data-evidence="source">源码实现</span> 当前门只确认对应 marker 在 H3 正文中出现，没有证明它位于行首；每切运镜词则会在自己的 Shot 切片里检查。</p>
+      </article>
+      <article class="pipeline-step">
+        <span class="step-number">3</span>
+        <h3>整体音景</h3>
+        <p><code>overall_soundscape</code> 写环境、动作与非语言人声；画面动作改变时也要同步。</p>
+      </article>
+      <article class="pipeline-step">
+        <span class="step-number">4</span>
+        <h3>非叙事配乐</h3>
+        <p><code>non_diegetic_music</code> 写观众听见、角色听不见的配器与速度；无则 N/A。</p>
+      </article>
+    </div>
+
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 每个被 cut 认领的台词必须逐字出现在 <code>&lt;d&gt;[标签] …&lt;/d&gt;</code> 块中；正则接受任意非空方括号标签，并不限定必须是 <code>[Chinese]</code>。语言检查先从 H3 中剔除 <code>&lt;d&gt;</code> 块和同一行双引号内容：<code>promptLang === "en"</code> 时，剩余正文出现 CJK 才失败；任何非 <code>en</code> 值都走中文 token 回退，只要求剩余正文至少有一个 CJK，不阻止中英混写，也不校验枚举。每个 frame 无论 H3 语言如何都必须非空且不含 CJK。</p>
+    <p><span class="evidence-tag" data-evidence="docs">文档声明</span> 说话人的身份、音色、语气写在 <code>&lt;d&gt;</code> 外；VO 另写画外音与闭唇指令。声景不是纯后期备注：文档把它视为可能驱动画面动作的生成指令。</p>
+
+    <aside class="callout callout-principle">
+      <h3>两个时间轴：全片时间与段内时间</h3>
+      <p><span class="evidence-tag" data-evidence="source">源码实现</span> 每个 segment 都是独立生成单元，因此它自己的 Picture 1 永远钉在 0.00 秒，后续 cut 起点也只在本段内累计。跨三个段的 29 秒场次，H3 会拥有三条各自从零开始的局部时间线，而不是一条连续的 0–29 秒提示。</p>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 后续剪辑或编排器必须另行保存“段在整集中的全局起点”。当前 manifest 记录段内 <code>cutStarts</code> 和段时长，却没有给段写全局 timecode。</p>
+    </aside>
+    <p class="source-note">证据入口：<code>novel-storyboard.mjs::cutStarts()</code>、<code>h3CutTime()</code>、<code>h3AlignmentLine()</code>、<code>h3CutSlices()</code> 与 <code>gateReport()</code> 的 H3 分支；<code>references/h3-prompt.md</code>。</p>
+  </section>
+
+  <section id="storyboard-gates" class="chapter-section">
+    <h2>七、17 道门：每道只拦可机械证明的违规</h2>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>gateReport()</code> 固定返回下列 17 个稳定 gate id。<code>validateStoryboard()</code> 先做基本结构检查，再把未通过的门转成问题列表。CLI 要求提供 script；缺少 outline/cast 只跳过人名相关证据，缺配方库只跳过第 17 门。</p>
+
+    <div class="table-scroll" role="region" aria-label="storyboard 十七道质量门" tabindex="0">
+      <table>
+        <caption>表 3　<code>gateReport()</code> 的 17 个门及其证明范围</caption>
+        <thead>
+          <tr>
+            <th scope="col"># / gate id</th>
+            <th scope="col">检查什么</th>
+            <th scope="col">需要什么证据</th>
+            <th scope="col">它不能证明什么</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row">1 · <code>coverage</code></th><td>同一剧本场的每个 flow 位置被恰好一次、按顺序、连续认领；segment 的场次顺序不倒退。</td><td>script + <code>sceneIndex/beats</code></td><td>不能证明覆盖镜头就是最佳视角。</td></tr>
+          <tr><th scope="row">2 · <code>segment-cap</code></th><td>每段 cut 秒数总和大于 0 且不超过 <code>maxSegmentSeconds</code>。</td><td>storyboard params/cuts</td><td>不能证明目标视频模型真的支持该时长。</td></tr>
+          <tr><th scope="row">3 · <code>cut-length</code></th><td>每切落在 <code>minCutSeconds..maxCutSeconds</code>。</td><td>cut seconds</td><td>不能证明节奏适合此处情绪。</td></tr>
+          <tr><th scope="row">4 · <code>dialogue-fit</code></th><td>被认领台词的估算秒数之和不大于 cut 秒数。</td><td>script flow + 语速参数</td><td>不能证明演员实际能自然说完。</td></tr>
+          <tr><th scope="row">5 · <code>ep-duration</code></th><td>整集所有段总时长在 script 目标的容差内。</td><td>script targetSeconds</td><td>不能用单场切片冒充整集通过。</td></tr>
+          <tr><th scope="row">6 · <code>crowd</code></th><td>画内人物不超阈值；超出时 cut 或 segment 必须有 note。</td><td>cut characters/note</td><td>note 的拆解是否真正可生成仍要人看。</td></tr>
+          <tr><th scope="row">7 · <code>segment-id</code></th><td>段号精确等于 <code>E{集号}-{顺序号}</code>，集内连号。</td><td>episode/curr index</td><td>不提供跨版本稳定身份。</td></tr>
+          <tr><th scope="row">8 · <code>size-phrase</code></th><td>size 在五档枚举内，且对应英文短语出现在 frame。</td><td>cut size/frame</td><td>不能检查生成图片实际景别。</td></tr>
+          <tr><th scope="row">9 · <code>camera-phrase</code></th><td>camera 属于词表，且出现在自己的 H3 Shot 段落。</td><td>cut camera/h3Prompt</td><td>不能证明运镜合理或可实现。</td></tr>
+          <tr><th scope="row">10 · <code>h3-structure</code></th><td>首行由 cuts 推导后逐字一致；三个核心字段齐全有序；第 2 切起的时刻正确。</td><td>cuts/h3Prompt/promptLang</td><td>不能证明自然语言描述有美感。</td></tr>
+          <tr><th scope="row">11 · <code>h3-dialogue</code></th><td>认领的每句台词逐字进入 <code>&lt;d&gt;</code> 块。</td><td>script flow/h3Prompt</td><td>不能证明声线、口型或表演正确。</td></tr>
+          <tr><th scope="row">12 · <code>h3-lang</code></th><td><code>en</code> 拒绝剔除台词块与双引号内容后仍含 CJK 的正文；其他值使用中文 token，并只要求剩余正文至少含一个 CJK。</td><td>promptLang/h3Prompt</td><td>不校验 promptLang 枚举、不阻止中英混写，也不是完整语言识别。</td></tr>
+          <tr><th scope="row">13 · <code>style-phrase</code></th><td>style 在预设内，每条 frame 含同一预设英文短语。</td><td>style/frame</td><td>字符串一致不等于画面真的统一。</td></tr>
+          <tr><th scope="row">14 · <code>prompt-english</code></th><td>每条 frame 非空且不含 CJK。</td><td>frame</td><td>不验证英文语法或提示质量。</td></tr>
+          <tr><th scope="row">15 · <code>prompt-no-names</code></th><td>frame 禁 outline/cast 人名；英文 H3 正文也禁人名。无 outline/cast 时显式跳过姓名库部分。</td><td>可选 outline/cast</td><td>无法识别没列入上游的别称。</td></tr>
+          <tr><th scope="row">16 · <code>refs</code></th><td>集与 sceneIndex 存在；cut 人物、道具是 script 该场集合子集。</td><td>script</td><td>不直接对账 art，因为合法集合已经由 script 承接。</td></tr>
+          <tr><th scope="row">17 · <code>shot-recipe</code></th><td>挂卡库时：配方 ID 存在、必备短语进入 frame、多格配方连续使用达到下限。</td><td>可选 <code>--shots</code> 目录</td><td>建议景别/运镜只提示偏离，不设硬门。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p><span class="evidence-tag" data-evidence="test">测试约束</span> selftest 直接断言 <code>gateReport(...).length === 17</code>，并为覆盖遗漏/重复、错误时长、H3 切点、语言、配方缺失等分支构造失败夹具；它还断言不给上游时相应门以带“跳过”说明的通过状态返回。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> validate/checkup 默认把每次运行和失败门追加到当前目录的 <code>.gates.jsonl</code>；<code>stats</code> 统计最常失败和从未失败的门。加 <code>--no-log</code> 可停记，写日志失败会被静默吞掉，不阻塞校验。</p>
+    <p class="source-note">证据入口：<code>novel-storyboard.mjs::gateReport()</code> 第 419–675 行、<code>validateStoryboard()</code>、<code>gateLogEntries()</code>、<code>summarizeGateLog()</code> 与 CLI <code>main()</code>；<code>scripts/selftest.mjs</code> 的“质量门”“门失败累积”小节。</p>
+  </section>
+
+  <section id="storyboard-recipes" class="chapter-section">
+    <h2>八、第 17 门为何是可选的：公开仓库没有完整卡库</h2>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>loadRecipes()</code> 只读取指定目录顶层的 <code>.md</code>，以受限 frontmatter 解析 <code>id/name/cuts/must_phrases/sizes/cameras</code> 等机器字段。CLI 拒绝导出的 JSON，也会在目录不存在或没有卡片时直接报错，避免“用户以为挂上了，实际没生效”。</p>
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> 挂库后，每个 cut 可有一个 <code>recipe</code>。<code>must_phrases</code> 以双方小写后的 <code>includes</code> 检查；卡片最小 cuts ≥2 时，同一 segment 内同 ID 必须连续出现足够多切。<code>sizes</code> 和 <code>cameras</code> 只由 <code>recipeDrift()</code> 产生报告提示，不使门失败。</p>
+    <p><span class="evidence-tag" data-evidence="docs">文档声明</span> 仓库内的迁移设计把完整 <code>shot-recipes</code> 迁往一个名为 <code>shuohao-video-skills</code> 的私有仓库作为目标；公开侧的合并提交与当前目录证明卡库已被清理，并以三张最小 fixture 保持分镜自测自包含。私有侧是否收到完整且当前的卡库不在本次审计范围。</p>
+    <p><span class="evidence-tag" data-evidence="test">测试约束</span> selftest 读取的正是 <code>references/test-fixtures/shot-recipes</code> 三张测试卡，覆盖未知 ID、缺必备短语、多格不够和建议偏离不设门；这些夹具证明接口行为，不代表完整私有镜头语汇库的内容。</p>
+
+    <aside class="callout callout-limit">
+      <h3>资料缺口必须保持为资料缺口</h3>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> 仅凭公开接口可以评估“卡如何被消费”，不能评估完整卡库的镜头分类、覆盖面、审美质量或授权状态。没有私有仓库访问权时，不应从卡名和三张测试夹具反推出全库。</p>
+      <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 若你重做公开系统，可保留通用 <code>recipe provider</code> 接口，同时提供一个公开、版本化的小型基础卡库；否则用户看到第 17 门，却无法获得其主要内容。</p>
+    </aside>
+    <p class="source-note">证据入口：<code>novel-storyboard.mjs::parseCardFields()</code>、<code>loadRecipes()</code>、<code>recipeDrift()</code>、<code>loadShots()</code>；<code>docs/superpowers/specs/2026-08-21-shot-recipes-repository-migration-design.md</code>；storyboard selftest 的配方卡小节。</p>
+  </section>
+
+  <section id="storyboard-images-video" class="chapter-section">
+    <h2>九、图片与视频的边界：脚本准备订单，不替你生产视频</h2>
+    <div class="table-scroll" role="region" aria-label="storyboard 图片视频边界" tabindex="0">
+      <table>
+        <caption>表 4　从文字 frame 到投产包，各环节实际由谁完成</caption>
+        <thead>
+          <tr>
+            <th scope="col">环节</th>
+            <th scope="col">仓库中存在的能力</th>
+            <th scope="col">不存在的能力</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">关键帧描述</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> JSON 强制每 cut 有英文 <code>frame</code>；报告提供提示词和缺图占位。</td>
+            <td>校验器不理解构图好坏，也不看实际 PNG 内容。</td>
+          </tr>
+          <tr>
+            <th scope="row">关键帧 PNG</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> 代理可选调用 Codex 内置 imagegen，一切一次调用，参考场景/角色/道具设定图，保存为 <code>&lt;segment&gt;/f&lt;cut&gt;.png</code>。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>novel-storyboard.mjs</code> 本身不调用图像 API；没有 Codex 时可以完全跳过。</td>
+          </tr>
+          <tr>
+            <th scope="row">报告找图</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>renderHtml()</code> 检查当前工作目录的 <code>E01-01/f1.png</code> 等相对路径，有图则用相对 <code>&lt;img src&gt;</code> 显示，无图显示提示词卡；图片字节并未内嵌，移动报告而不带图片会破图。</td>
+            <td>不会替你移动、复制、修复或生成图片。</td>
+          </tr>
+          <tr>
+            <th scope="row">H3 投产包</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> <code>exportPack()</code> 为每段写 <code>prompt.md</code>，根部写 manifest，列 Picture 顺序、切点、预期图片路径与 missing。</td>
+            <td>export 不创建 PNG；也不把图片字节复制进包，只有已在目标路径的图才会被判存在。</td>
+          </tr>
+          <tr>
+            <th scope="row">视频</th>
+            <td><span class="evidence-tag" data-evidence="docs">文档声明</span> 段目录被描述为一次 H3 生成所需的订单材料。</td>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> 没有视频 API 调用、生成轮询、下载、剪辑、拼接、口型同步或成片 QC。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre class="code-sample" aria-label="H3 manifest 合法 JSON 示例"><code>[
+  {
+    "segment": "E01-01",
+    "seconds": 9,
+    "cuts": 3,
+    "cutStarts": [0, 3, 6],
+    "prompt": "E01-01/prompt.md",
+    "pictures": [
+      "E01-01/f1.png",
+      "E01-01/f2.png",
+      "E01-01/f3.png"
+    ],
+    "missing": ["E01-01/f2.png"]
+  }
+]</code></pre>
+    <p class="sample-note"><span class="evidence-tag" data-evidence="source">源码实现</span> manifest 是数组而不是带版本信息的对象；当前实现也不会把 <code>recipe</code> 带进投产包。<span class="evidence-tag" data-evidence="test">测试约束</span> selftest 明确断言 export 结果中不出现 recipe，因为它被视为创作期语汇。</p>
+
+    <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>computeStats()</code> 还会按 <code>sceneId|lighting</code> 聚合“生成批次”，汇总涉及的 segments、人物和道具，供报告作为共用环境参考的顺场提示；这是清单分组，不是实际批量调用。</p>
+    <p class="source-note">证据入口：<code>references/frame.md</code>；<code>novel-storyboard.mjs::renderHtml()</code> 第 1093–1165 行、<code>exportPack()</code>、<code>computeStats()</code>；selftest 的 exportPack 小节。</p>
+  </section>
+
+  <section id="storyboard-moon-mapping" class="chapter-section">
+    <h2>十、月城 29 秒映射：3 个生成段，8 个 cut</h2>
+    <p><span class="evidence-tag" data-evidence="case">月城案例 · SC-08</span> 沿用第二章已批准的导演母版：月城将在日出时断电；维修学徒阮星在记忆控制室确认最后电容只能恢复全城记忆或释放弟弟救生舱。她试图拉应急杆绕过规则，失败后听见弟弟说“姐，让我选”，手最终停在两键之间。</p>
+    <p><span class="evidence-tag" data-evidence="case">月城案例</span> 为演示 shuohao 适配，本场暂设为某集的第 1 个 script scene，引用 art 资产 <code>S01</code>；9 个 flow 位置对应第二章 B01–B09。C/P 编号是本次适配的局部示例，不替代全剧主数据中的稳定命名空间。</p>
+
+    <div class="table-scroll" role="region" aria-label="月城 29 秒 shuohao 分镜映射" tabindex="0">
+      <table>
+        <caption>表 5　月城控制室：每切的节拍认领、时长与 H3 局部起点</caption>
+        <thead>
+          <tr>
+            <th scope="col">segment</th>
+            <th scope="col">cut</th>
+            <th scope="col">导演镜</th>
+            <th scope="col">beats</th>
+            <th scope="col">秒</th>
+            <th scope="col">段内起点</th>
+            <th scope="col">景别 / 运镜</th>
+            <th scope="col">画面任务</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><th scope="row" rowspan="3">E01-01<br>9 秒</th><td>#1</td><td>01</td><td>[1,1]</td><td>3</td><td>0.00</td><td>extreme-wide / Static Shot</td><td>阮星冲入；左核心、中央台、右救生舱一次建立。</td></tr>
+          <tr><td>#2</td><td>02</td><td>[2,2]</td><td>3</td><td>3.00</td><td>medium / Tracking Shot</td><td>确认弟弟有呼吸，同时读到红色锁标。</td></tr>
+          <tr><td>#3</td><td>03</td><td>[3,3]</td><td>3</td><td>6.00</td><td>extreme-close / Push In</td><td>铜色记忆钥匙进入控制台上沿授权插槽，金色波形亮起。</td></tr>
+
+          <tr><th scope="row" rowspan="3">E01-02<br>11 秒</th><td>#1</td><td>04</td><td>[4,4]</td><td>4</td><td>0.00</td><td>close / Static Shot</td><td>母亲信号说“别让全城忘记”。</td></tr>
+          <tr><td>#2</td><td>05</td><td>[5,5]</td><td>3</td><td>4.00</td><td>close / Push In</td><td>阮星视线从金色波形移向青色救生舱。</td></tr>
+          <tr><td>#3</td><td>06</td><td>[6,6]</td><td>4</td><td>7.00</td><td>extreme-close / Static Shot</td><td>双线路与单电容图标证明“只能救一边”。</td></tr>
+
+          <tr><th scope="row" rowspan="2">E01-03<br>9 秒</th><td>#1</td><td>07</td><td>[7,7]</td><td>4</td><td>0.00</td><td>medium / Shake Slightly</td><td>阮星拉杆，杆卡半程、根部爆火花；复苏提示音把注意力带向弟弟。</td></tr>
+          <tr><td>#2</td><td>08</td><td>[8,9]</td><td>5</td><td>4.00</td><td>close / Push In</td><td>弟弟睁眼说话；阮星转身，手移到双键之间停住。</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre class="code-sample" aria-label="月城 29 秒 segment cut 教学 JSON"><code>{
+  "sceneIndex": 1,
+  "segments": [
+    { "id": "E01-01", "seconds": 9, "cuts": [[1, 1, 3], [2, 2, 3], [3, 3, 3]] },
+    { "id": "E01-02", "seconds": 11, "cuts": [[4, 4, 4], [5, 5, 3], [6, 6, 4]] },
+    { "id": "E01-03", "seconds": 9, "cuts": [[7, 7, 4], [8, 9, 5]] }
+  ]
+}</code></pre>
+    <p class="sample-note">这是合法 JSON 的<strong>教学投影</strong>：每个 cut 三元组是 <code>[起拍,止拍,秒数]</code>，segment 的 <code>seconds</code> 也是为了读者而加。真实 storyboard 不存 segment.seconds，cut 必须展开成对象并补 <code>size</code>、<code>camera</code>、<code>characters</code>、<code>frame</code>，每个 segment 还必须有完整 <code>h3Prompt</code>，因此这段不能直接送 validate。</p>
+
+    <aside class="callout callout-warning">
+      <h3>29 秒是场次切片，不是整集合格证明</h3>
+      <p><span class="evidence-tag" data-evidence="source">源码实现</span> <code>ep-duration</code> 汇总该集所有 segment，与 script 的 <code>targetSeconds</code> 做 ±15% 对账。若本集目标 120 秒，只放这 29 秒会失败；只有把全剧本场次都切完，或把教学 script 的目标明确设为 29 秒，才能讨论整集门。</p>
+      <p><span class="evidence-tag" data-evidence="case">月城案例</span> 三个 H3 段的局部起点分别是 <code>[0,3,6]</code>、<code>[0,4,7]</code>、<code>[0,4]</code>。合成后的全场起点才是 0、3、6、9、13、16、20、24 秒；当前 export 不替后期写这组全局起点。</p>
+    </aside>
+  </section>
+
+  <section id="storyboard-strengths-limits" class="chapter-section">
+    <h2>十一、这套模型为什么好用，又为什么不能直接当通用分镜主数据</h2>
+    <div class="table-scroll" role="region" aria-label="shuohao storyboard 优点与限制" tabindex="0">
+      <table>
+        <caption>表 6　设计收益、代价与重写时的处理</caption>
+        <thead>
+          <tr>
+            <th scope="col">观察</th>
+            <th scope="col">收益</th>
+            <th scope="col">限制</th>
+            <th scope="col">重写建议</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">线性数组</th>
+            <td><span class="evidence-tag" data-evidence="source">源码实现</span> episode/segment/cut 都有清晰顺序，校验简单，投产包自然。</td>
+            <td><span class="evidence-tag" data-evidence="inference">分析推论</span> 没有分支、条件、回流或互动选项实体；同一集只能表达一条播放路径。</td>
+            <td><span class="evidence-tag" data-evidence="proposal">重构建议</span> 在线性生成视图之外另建 story graph；每条路径再派生 segment 顺序。</td>
+          </tr>
+          <tr>
+            <th scope="row">位置认领</th>
+            <td>用 <code>sceneIndex + [from,to]</code> 就能精确查漏、重复和顺序。</td>
+            <td>插场、插拍和重排会改变后续位置；旧镜头意图不能自动迁移。</td>
+            <td>给 scene occurrence 与 flow beat 稳定 ID，再把位置当构建产物。</td>
+          </tr>
+          <tr>
+            <th scope="row">恰好一次覆盖</th>
+            <td>非常适合“一个节拍只生成一次主画面”的线性 AI 视频订单，预算清楚。</td>
+            <td>同一句台词不能原生同时挂说话者、听者反应和主镜头安全覆盖；重复认领会失败。</td>
+            <td>用多对多 <code>ShotBeatLink</code> 保存拍摄覆盖，再派生一个不重叠的主剪版本。</td>
+          </tr>
+          <tr>
+            <th scope="row">一个 cut 一套 size/camera</th>
+            <td>枚举可机械校验，能直接写进 frame/H3。</td>
+            <td>复杂镜内调度、复合运镜或备用机位只能压进自然语言，结构层看不见。</td>
+            <td>保留 cut 主摄影意图，并用可选 camera phase / coverage take 扩展，而非把所有复杂度塞进字符串。</td>
+          </tr>
+          <tr>
+            <th scope="row">H3 内嵌核心数据</th>
+            <td>生成订单直接可复制；切点与台词有强对账。</td>
+            <td>供应商格式与领域主数据绑在一起；改视频模型要重写每段长字符串。</td>
+            <td>将动作、对白、声音、音乐、参考图和切点结构化，再由 H3 adapter 生成提示。</td>
+          </tr>
+          <tr>
+            <th scope="row">字符串质量门</th>
+            <td>能拦缺字段、缺短语、错误语言和错切点，成本低且确定。</td>
+            <td>短语存在不等于图片符合；合法提示也可能单调、冲突或不可生成。</td>
+            <td>保留结构门，再加可选图像/视频结果 QC；不要把结果质量伪装成文本门已覆盖。</td>
+          </tr>
+          <tr>
+            <th scope="row">sceneIndex 反查</th>
+            <td>storyboard 不重复存 sceneId/lighting/完整 flow，减少当前文件内冗余。</td>
+            <td>脱离同版本 script 后，storyboard 难以独立解释；script 场次重排即改变指向。</td>
+            <td>保存稳定 occurrenceId，并在导出清单中冗余可核验的 sceneId 与 source revision。</td>
+          </tr>
+          <tr>
+            <th scope="row">可选私有配方</th>
+            <td>分镜核心不依赖卡库，公开仓库仍可自测。</td>
+            <td>公开仓库不提供完整镜头语汇；用户未自行提供兼容卡库时，第 17 门会跳过。</td>
+            <td>把卡库作为明确版本的插件依赖，并公开最小基线或提供能力探测。</td>
+          </tr>
+          <tr>
+            <th scope="row">投产止于 manifest</th>
+            <td>责任边界清楚，任何视频供应商都可在后面接 adapter。</td>
+            <td>当前仓库没有生成状态、失败重试、视频文件 provenance、剪辑拼接或口型同步。</td>
+            <td>新增独立 production-run 层，不把远端任务状态塞回创作 storyboard。</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <aside class="callout callout-check">
+      <h3>最重要的判断</h3>
+      <p><span class="evidence-tag" data-evidence="inference">分析推论</span> shuohao storyboard 是一份很强的<strong>单一路径 AI 视频生成规格</strong>：它对节拍覆盖、时长、提示词和参考图订单的纪律，远强于只写“镜号 + 画面”的松散表格。但它不是完整的影视分镜领域模型，也不是视频生产系统。</p>
+      <p><span class="evidence-tag" data-evidence="proposal">重构建议</span> 最合理的继承方式不是推翻它，而是把它放在统一主数据之后：稳定场次/节拍/镜头关系负责长期编辑，shuohao adapter 负责把一条批准路径压成 segment、cut、H3 和 manifest。</p>
+    </aside>
+  </section>
+
+  <section id="storyboard-audit-map" class="chapter-section">
+    <h2>十二、自己继续审计时，从这些函数进</h2>
+    <div class="table-scroll" role="region" aria-label="storyboard 源码阅读地图" tabindex="0">
+      <table>
+        <caption>表 7　固定提交 4322897 的最短证据路径</caption>
+        <thead><tr><th scope="col">问题</th><th scope="col">文档入口</th><th scope="col">源码/测试入口</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">数据形状</th><td><code>references/schema.md</code></td><td><code>validateStoryboard()</code>、样例 <code>渡口-storyboard.json</code></td></tr>
+          <tr><th scope="row">剧本如何展开</th><td><code>SKILL.md</code> Step 1、<code>storyboard-pass.md</code></td><td><code>expandScript()</code>、<code>seedFromScript()</code> 及 selftest seed 小节</td></tr>
+          <tr><th scope="row">时长与 H3</th><td><code>h3-prompt.md</code></td><td><code>cutStarts()</code>、<code>h3AlignmentLine()</code>、<code>h3CutSlices()</code></td></tr>
+          <tr><th scope="row">17 门</th><td><code>SKILL.md</code> Step 3</td><td><code>gateReport()</code> 第 419–675 行及 selftest 逐门击穿</td></tr>
+          <tr><th scope="row">配方卡</th><td>schema 的 recipe 段、迁移设计</td><td><code>parseCardFields()</code>、<code>loadRecipes()</code>、<code>recipeDrift()</code></td></tr>
+          <tr><th scope="row">图与报告</th><td><code>frame.md</code>、SKILL Step 4–5</td><td><code>renderHtml()</code> 的 frame path 与占位逻辑</td></tr>
+          <tr><th scope="row">投产包</th><td>schema 第 5–7 行、SKILL 最终目录</td><td><code>exportPack()</code> 及 selftest exportPack 小节</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="sample-note">本章所有项目事实均来自上述公开文件的静态检查；没有执行第三方脚本、没有访问私有卡库，也没有调用真实图像或视频模型。由此产生的架构判断均以“分析推论”标出，未来设计均以“重构建议”标出。</p>
+  </section>
+</article>

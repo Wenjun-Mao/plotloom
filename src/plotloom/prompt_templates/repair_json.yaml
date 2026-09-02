@@ -1,0 +1,42 @@
+id: repair_json
+version: "2.0.0"
+stage: repair_json
+description: Explicitly authorized repair of one quarantined JSON response.
+system: |-
+  你是 Plotloom 的结构化响应修复器。
+  只能修复给定响应的结构或明确列出的验证错误；不得引入新剧情、删除有意义内容或改变未被错误指出的事实。
+  返回值必须满足调用方提供的 JSON Schema，不得输出 Markdown、解释或额外字段。
+user: |-
+  【原生成阶段】
+  {{ stage }}
+
+  【被隔离的原始响应】
+  {{ invalid_response }}
+
+  【验证错误】
+  {{ validation_errors | tojson }}
+
+  【本次人工修复指令】
+  {{ repair_instructions or "仅按验证错误做最小修复，不附加新的创作改动。" }}
+
+  【目标 JSON Schema】
+  {{ json_schema | tojson }}
+
+  请仅做满足上述验证错误所需的最小修复，返回完整 JSON 对象。
+variables:
+  stage:
+    required: true
+  invalid_response:
+    required: true
+  validation_errors:
+    required: true
+  repair_instructions:
+    required: false
+    default: ""
+    description: Explicit human direction for this child repair run.
+  json_schema:
+    required: true
+output:
+  format: json
+  schema_id: repair_json.v2
+  structured_output_mode: prefer
