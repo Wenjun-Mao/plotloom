@@ -9,6 +9,37 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from .domain import DEFAULT_TEXT_BASE_URL, DEFAULT_TEXT_MODEL, DEFAULT_TEXT_PROVIDER
+from .provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, PROFILE_ID_PATTERN
+
+
+def profile_text_api_key_environment_name(profile_id: str) -> str:
+    """Return the one server credential variable reserved for a text profile."""
+
+    import re
+
+    if not re.fullmatch(PROFILE_ID_PATTERN, profile_id):
+        raise ValueError("profile_id must match [a-z][a-z0-9_]{0,62}")
+    return f"PLOTLOOM_PROFILE_{profile_id.upper()}_TEXT_API_KEY"
+
+
+def resolve_text_provider_api_key(
+    profile_id: str,
+    environ: dict[str, str] | None = None,
+) -> str | None:
+    """Resolve a server-only text key without persisting its source or value.
+
+    The named variable has priority for every profile.  ``default`` keeps the
+    pre-M1.5 fallback order so upgrading a checkout does not silently lose its
+    existing credential.
+    """
+
+    values = os.environ if environ is None else environ
+    key = values.get(profile_text_api_key_environment_name(profile_id)) or None
+    if key:
+        return key
+    if profile_id == DEFAULT_PROVIDER_PROFILE_ID:
+        return values.get("TEXT_MODEL_API_KEY") or values.get("ATLASCLOUD_API_KEY") or None
+    return None
 
 
 def _source_checkout_root() -> Path | None:
@@ -81,12 +112,27 @@ class PlotloomSettings(BaseModel):
     text_auth_mode: Literal["none", "bearer"] = "bearer"
     text_supports_json_object: bool = False
     text_supports_json_schema: bool = False
+    text_supports_chat_template_kwargs: bool = False
     text_context_window_tokens: int = Field(default=32_768, ge=1)
     text_max_output_tokens: int = Field(default=8_192, ge=1)
     text_temperature: float = Field(default=0.2, ge=0.0, le=2.0)
     text_max_concurrency: int = Field(default=1, ge=1, le=32)
     text_connect_timeout_seconds: float = Field(default=10.0, gt=0.0, le=300.0)
     text_attempt_timeout_seconds: float = Field(default=300.0, gt=0.0, le=3_600.0)
+    text_request_extension: Literal["none", "chat_template_kwargs"] = "none"
+    text_reasoning_mode: Literal["provider_default", "enabled", "disabled"] = (
+        "provider_default"
+    )
+    text_extraction_allow_json_fence: bool = False
+    text_extraction_allow_leading_think_block: bool = False
+    text_story_bible_max_output_tokens: int = Field(default=8192, ge=1)
+    text_story_graph_max_output_tokens: int = Field(default=8192, ge=1)
+    text_scene_beats_max_output_tokens: int = Field(default=4096, ge=1)
+    text_storyboard_max_output_tokens: int = Field(default=4096, ge=1)
+    text_max_semantic_corrections: int = Field(default=2, ge=0, le=2)
+    text_preset_id: Literal[
+        "compatible_v1", "quality_reasoning_v1", "final_only_v1", "custom"
+    ] = "compatible_v1"
     image_provider: str = "atlascloud"
     image_base_url: str = "https://api.atlascloud.ai/api/v1/model"
     image_model: str = "openai/gpt-image-2/text-to-image"
@@ -98,6 +144,12 @@ class PlotloomSettings(BaseModel):
     text_api_key: SecretStr | None = None
     image_api_key: SecretStr | None = None
     video_api_key: SecretStr | None = None
+
+    def text_api_key_for_profile(self, profile_id: str) -> SecretStr | None:
+        """Resolve an ephemeral key for a named profile at dispatch time."""
+
+        value = resolve_text_provider_api_key(profile_id)
+        return SecretStr(value) if value else None
 
     @classmethod
     def from_env(cls, repo_root: Path | None = None) -> PlotloomSettings:
@@ -158,12 +210,39 @@ class PlotloomSettings(BaseModel):
             text_auth_mode=os.environ.get("TEXT_AUTH_MODE") or "bearer",
             text_supports_json_object=os.environ.get("TEXT_SUPPORTS_JSON_OBJECT", "false"),
             text_supports_json_schema=os.environ.get("TEXT_SUPPORTS_JSON_SCHEMA", "false"),
+            text_supports_chat_template_kwargs=os.environ.get(
+                "TEXT_SUPPORTS_CHAT_TEMPLATE_KWARGS", "false"
+            ),
             text_context_window_tokens=os.environ.get("TEXT_CONTEXT_WINDOW_TOKENS", "32768"),
             text_max_output_tokens=os.environ.get("TEXT_MAX_OUTPUT_TOKENS", "8192"),
             text_temperature=os.environ.get("TEXT_TEMPERATURE", "0.2"),
             text_max_concurrency=os.environ.get("TEXT_MAX_CONCURRENCY", "1"),
             text_connect_timeout_seconds=os.environ.get("TEXT_CONNECT_TIMEOUT_SECONDS", "10"),
             text_attempt_timeout_seconds=os.environ.get("TEXT_ATTEMPT_TIMEOUT_SECONDS", "300"),
+            text_request_extension=os.environ.get("TEXT_REQUEST_EXTENSION", "none"),
+            text_reasoning_mode=os.environ.get("TEXT_REASONING_MODE", "provider_default"),
+            text_extraction_allow_json_fence=os.environ.get(
+                "TEXT_EXTRACTION_ALLOW_JSON_FENCE", "false"
+            ),
+            text_extraction_allow_leading_think_block=os.environ.get(
+                "TEXT_EXTRACTION_ALLOW_LEADING_THINK_BLOCK", "false"
+            ),
+            text_story_bible_max_output_tokens=os.environ.get(
+                "TEXT_STORY_BIBLE_MAX_OUTPUT_TOKENS", "8192"
+            ),
+            text_story_graph_max_output_tokens=os.environ.get(
+                "TEXT_STORY_GRAPH_MAX_OUTPUT_TOKENS", "8192"
+            ),
+            text_scene_beats_max_output_tokens=os.environ.get(
+                "TEXT_SCENE_BEATS_MAX_OUTPUT_TOKENS", "4096"
+            ),
+            text_storyboard_max_output_tokens=os.environ.get(
+                "TEXT_STORYBOARD_MAX_OUTPUT_TOKENS", "4096"
+            ),
+            text_max_semantic_corrections=os.environ.get(
+                "TEXT_MAX_SEMANTIC_CORRECTIONS", "2"
+            ),
+            text_preset_id=os.environ.get("TEXT_PRESET_ID", "compatible_v1"),
             image_provider=os.environ.get("IMAGE_PROVIDER") or "atlascloud",
             image_base_url=os.environ.get("IMAGE_BASE_URL")
             or "https://api.atlascloud.ai/api/v1/model",
@@ -176,7 +255,7 @@ class PlotloomSettings(BaseModel):
             video_model=os.environ.get("VIDEO_MODEL")
             or "xai/grok-imagine-video-v1.5/image-to-video",
             video_auth_mode=os.environ.get("VIDEO_AUTH_MODE") or "bearer",
-            text_api_key=os.environ.get("TEXT_MODEL_API_KEY") or fallback_key,
+            text_api_key=resolve_text_provider_api_key(DEFAULT_PROVIDER_PROFILE_ID),
             image_api_key=os.environ.get("IMAGE_MODEL_API_KEY") or fallback_key,
             video_api_key=os.environ.get("VIDEO_MODEL_API_KEY") or fallback_key,
         )

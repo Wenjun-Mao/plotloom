@@ -1,5 +1,5 @@
 id: storyboard_fragment
-version: "2.1.0"
+version: "2.6.0"
 stage: storyboard
 description: Create a closed shot/coverage fragment for one dramatic scene.
 system: |-
@@ -7,6 +7,7 @@ system: |-
   只能为提供的【目标戏剧场景】和【该场景节拍】生成分镜；不得生成其他场景的镜头、节拍引用或剧情内容。
   不得修改已验证的节点、场景、节拍或故事圣经事实。每个镜头必须追溯到本场景的一个 beat，并保持人物、道具、地点、屏幕方向、光线和动作状态连续。
   返回值必须满足调用方提供的 JSON Schema，不得输出 Markdown、解释或额外字段。
+  这是 presence-strict 合同：每个对象的 required 数组所列属性都必须显式出现。未定内容只能使用 Schema 允许的 null、空数组、空对象或空字符串；nullable 表示写出 null，不表示可以省略字段，也不得依赖应用默认值。
   不要输出内部计划 ID、工作单元 ID、hash 或任何调用元数据；Schema 中没有这些字段。
 user: |-
   【故事圣经】
@@ -27,8 +28,12 @@ user: |-
   【目标 JSON Schema】
   {{ json_schema | tojson }}
 
-  仅为目标场景生成有序 shots 和 shotBeatLinks。每个 shot 的 sceneId 必须等于目标场景 ID，order 从 1 连续；每个 shot 都要关联本场景的 beat。
-  每个给出的 beat 恰好有一个 PRIMARY link；可额外有 SUPPORTING link。一镜只表达一个不可再分的动作或表演变化。
+  仅为目标场景生成有序 shots、primaryShotLocalIdByBeat 和 supportingBeatLinks。不要输出根 sceneId 或 shot.sceneId：它们由系统从目标工作单元确定性注入；若输出这些字段，回答会被拒绝。order 从 1 连续；每个 shot 都要关联本场景的 beat。
+  localShotId 与 supportingBeatLinks.shotLocalId 只是本次回答内部互相引用的局部句柄，不是 canonical ID；保持本回答内唯一、引用闭合即可。系统会在验证后按父场景与镜头顺序确定性绑定 canonical UUID。
+  shots 数量必须严格满足目标 JSON Schema 的 minItems/maxItems 和【分镜约束】中的 shotsPerSceneMin/shotsPerSceneMax；当上下限都是 1 时，必须且只能返回 1 个 shot。
+  primaryShotLocalIdByBeat 必须包含 Schema 中每一个 beat ID，且每个值必须是本次 shots 中的 localShotId；系统据此确定性生成每个 beat 恰好一个 PRIMARY link。supportingBeatLinks 只能从 Schema 的 beatId enum 中选择，可额外提供 SUPPORTING 覆盖；没有补充覆盖时也必须返回空数组 []。
+  一个 shot 可覆盖一个连续 beat 段；当 shotsPerSceneMax 小于 beat 数量时，必须让同一个 localShotId 覆盖多个连续 beats，并在 action 中描述连续推进，不能遗漏 beat。
+  每个 shot 的 entryState、exitState 都必须完整输出 facts、characterStates、propStates、locationState、screenDirection、lighting、sound、notes；没有内容时也分别写出 {}、null 或 []，不能省略任何一项。
   不要生成供应商专用的图片或视频提示词；媒体提示词由后续版本化模板独立编译。
 variables:
   story_bible:
@@ -45,5 +50,5 @@ variables:
     required: true
 output:
   format: json
-  schema_id: storyboard.fragment.v1
+  schema_id: storyboard.fragment.v3
   structured_output_mode: prefer

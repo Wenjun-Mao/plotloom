@@ -46,10 +46,81 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
 - A source checkout defaults to `data/plotloom.sqlite3` and `data/artifacts/`.
 - An installed wheel uses the OS user-data location: `~/Library/Application Support/Plotloom` on macOS, `%LOCALAPPDATA%\\Plotloom` on Windows, and `$XDG_DATA_HOME/plotloom` or `~/.local/share/plotloom` on Linux.
 - Only a source checkout loads its trusted repository-root `.env`; host environment values override it.
-- Public provider settings are persisted. API keys are not.
-- A browser key lives only in the current tab's `sessionStorage` and is sent as `X-Plotloom-Session-API-Key`.
-- A run freezes public provider/model settings when queued. Image and video tasks freeze their own public settings.
+- Named text-provider profiles persist complete public configuration and an
+  optimistic revision. API keys are never part of a profile.
+- The compatibility `PUT /api/v2/provider-settings` request must include the
+  active text profile ID and its expected revision. A stale projection receives
+  `409` rather than overwriting a newer named-profile change.
+- A browser key is scoped by profile ID, lives only in the current tab's
+  `sessionStorage`, and is sent as `X-Plotloom-Session-API-Key` only for that
+  profile's bearer-authenticated probe or text-run start, rebuild, repair, and
+  resume request.
+- A run freezes the exact profile ID, revision, resolved preset, capabilities,
+  extraction/correction policy, and public hash when queued. Updating or
+  activating a profile changes only future runs.
+- A safely recoverable run that depended solely on a browser key remains
+  queued after a server restart. Reopening it from the same browser tab (or
+  clicking **继续排队运行**) explicitly re-supplies that ephemeral key; the
+  server never persists it to make restart recovery convenient.
+- Named profiles apply only to text generation. Image and video tasks freeze
+  their own global public settings and cannot inherit a text profile.
+- Provider response envelopes are sanitized before persistence: exact outbound
+  credentials and secret-shaped fields are redacted, while numeric token usage
+  remains available for audit. Cancelling a queued run before worker start still
+  releases its ephemeral key lease, and deleting a profile clears that
+  profile's browser-session key.
 - Remote instances must remain private or use an external authentication layer.
+
+## M1.5 generation contracts
+
+- A Story Graph run freezes topology before dispatch. For Scene Beats and
+  Storyboard, model-facing fragment aliases are local to one response; the
+  trusted binder converts them into deterministic UUIDv5 canonical IDs from
+  the frozen selector and validated local order. Selector-owned
+  `storyNodeId`/`sceneId` values are omitted from the model schema and injected
+  by the binder; attempts to send them are rejected as extra fields.
+- Storyboard fragments use a closed `primaryShotLocalIdByBeat` map whose exact
+  Beat-ID keys are frozen by the schema. The binder creates PRIMARY links,
+  while optional supporting links remain explicitly SUPPORTING; one shot may
+  cover a continuous multi-beat span without weakening exact primary coverage.
+- Join continuity keys are explicit in the frozen join contracts. Incoming
+  fragments must provide them in exit state and join fragments in entry state;
+  aggregate validation remains the cross-shard authority.
+- Planner input estimates are UTF-8 byte bounds, despite the legacy field name
+  `estimated_input_tokens`. They protect declared byte budgets only. The
+  selected provider/model owns exact tokenization and context-window rejection.
+- Migration `0006` safely terminated old non-terminal runs whose plans predate
+  the frozen profile/topology contract; operators must submit a fresh run.
+  Migration `0007` persists stable run `failureCode` and `failedStage` for
+  pre-attempt, provider, recovery, and aggregate failures, and backfills the
+  exact 0006 terminalization reason without parsing arbitrary historical prose.
+- A work unit is `quarantined` only after a persisted model response exhausts
+  its explicit content corrections. Known provider, contract, storage, or
+  local failures are `failed`; uncertain post-dispatch outcomes remain
+  `outcome_unknown`.
+- Correction 1 repairs the previous final response. Correction 2 uses a
+  distinct frozen strategy that rebuilds from the closed schema, so a
+  deterministic model is not sent the same failed packet twice. Extraction
+  correction requires ASCII JSON delimiters and escaping; the extractor does
+  not silently rewrite full-width punctuation.
+- All structured prompts are presence-strict: every property named by a
+  schema `required` array must be emitted, including explicit empty/null state
+  fields. Native JSON Schema is a probed profile capability, not a replacement
+  for local presence/schema/semantic validation; some compatible servers only
+  partially enforce nested `$defs`. Provider-facing schemas deterministically
+  inline non-recursive local references; ambiguous or recursive shapes fail
+  before dispatch. Generation schemas also remove `default` annotations:
+  domain defaults remain available for hand-authored edits, while model output
+  must explicitly carry every required field.
+- `textMaxConcurrency` is an execution ceiling. The current runner is
+  deliberately serial and may use less concurrency without changing the
+  frozen profile or plan.
+- For array-shaped assistant content, only typed `text` and `output_text`
+  parts are eligible final output. Reasoning and unknown part types remain raw
+  evidence and cannot enter correction or canonical content.
+- Exact work-unit repair is not implemented. A failed shard is fail-closed and
+  requires a rebuild from its stage; do not represent it as partial repair in
+  UI, tooling, or operations.
 
 ## Verification order
 
@@ -66,4 +137,33 @@ uv run python scripts/smoke_installed_wheel.py dist
 
 The E2E fixture uses temporary SQLite and artifact storage, empties provider keys, and never contacts a live provider. Install Chromium once with `cd frontend && npx playwright install chromium`.
 
-The distribution contract builds and probes a wheel in isolation. It verifies that all seven prompt templates, the production UI, migrations, LICENSE, and NOTICE are packaged, and that an installed release ignores an unrelated working-directory `.env`.
+The distribution contract builds and probes a wheel in isolation. It verifies
+that all eleven prompt templates, the production UI, the current migration
+head, LICENSE, and NOTICE are packaged, and that an installed release ignores
+an unrelated working-directory `.env`.
+
+## Live profile conformance
+
+The checked-in fixture suite never contacts a model. After saving one or more
+real profiles, run the production four-stage pipeline against the locked
+Chinese baseline with:
+
+```sh
+uv run python scripts/conformance.py --qualify-m15 \
+  --profile <first-profile-id> --profile <second-profile-id> --runs 3
+```
+
+Without `--qualify-m15`, the command is an explicitly labelled diagnostic
+probe and cannot complete M1.5. The JSONL receipts omit endpoints, model names, prompts, responses, IPs and
+keys, while carrying a fixed `workloadHash` and one-based `sampleOrdinal` for
+repeatable qualification. The command fails unless each profile completes all
+samples atomically, keeps every unit within one primary plus two correction
+attempts, and reaches at least 10/12 first-pass stages. The initial real 3×2
+gate passed on 2026-09-03 with 12/12 first-pass stages for both profiles; see
+the [secret-free receipts](verification/2026-09-03-m15-conformance.jsonl) and
+[conformance.md](conformance.md). Any changed `workloadHash` requires a fresh
+qualification run.
+
+Strict mode evaluates the two profiles concurrently while preserving serial
+sample and work-unit execution inside each profile. This reduces wall time
+without changing profile-local concurrency or deterministic receipt order.

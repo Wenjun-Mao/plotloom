@@ -20,6 +20,11 @@ def test_strict_json_parser_does_not_silently_strip_wrappers() -> None:
     assert extracted.transformations == ("removed_json_markdown_fence",)
 
 
+def test_strict_json_parser_does_not_normalize_full_width_punctuation() -> None:
+    with pytest.raises(ResponseExtractionError):
+        parse_json_text('{"first": 1，"second": 2}')
+
+
 def test_each_enabled_response_transformation_is_traced() -> None:
     response = "<think>private reasoning</think>preface {\"ok\": true} suffix"
     extracted = parse_json_text(
@@ -54,3 +59,29 @@ def test_assistant_text_supports_string_and_text_part_envelopes() -> None:
 
     with pytest.raises(ResponseExtractionError, match="no first choice"):
         extract_assistant_text({"choices": []})
+
+
+def test_assistant_text_never_promotes_reasoning_or_unknown_content_parts() -> None:
+    envelope = {
+        "choices": [
+            {
+                "message": {
+                    "content": [
+                        {"type": "reasoning", "text": "private analysis"},
+                        {"type": "unknown", "text": "untrusted wrapper"},
+                        {"type": "text", "text": "{\"ok\":"},
+                        {"type": "output_text", "text": "true}"},
+                        {"content": "legacy untyped fallback"},
+                    ]
+                }
+            }
+        ]
+    }
+    assert extract_assistant_text(envelope) == '{"ok":true}'
+
+    envelope["choices"][0]["message"]["content"] = [
+        {"type": "reasoning", "text": "private analysis"},
+        {"type": "unknown", "text": "not final"},
+    ]
+    with pytest.raises(ResponseExtractionError, match="no textual content"):
+        extract_assistant_text(envelope)

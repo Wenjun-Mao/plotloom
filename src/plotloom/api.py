@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
-from typing import Annotated, Any, Mapping, Protocol
+from time import monotonic
+from typing import Annotated, Any, Callable, Mapping, Protocol
 
-from fastapi import FastAPI, HTTPException, Header, Request, status
+from fastapi import FastAPI, HTTPException, Header, Query, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field, ValidationError, field_validator, model_validator
@@ -45,6 +47,30 @@ from .exceptions import (
     StagePrerequisiteError,
 )
 from .persistence import SQLiteRepository
+from .provider_profiles import (
+    DEFAULT_PROVIDER_PROFILE_ID,
+    PROFILE_ID_PATTERN,
+    PresetId,
+    ProviderProfileSelection,
+    StageMaxOutputTokens,
+    TextProviderCapabilities,
+    TextProviderProfile,
+    TextProviderProfileSnapshot,
+    V2ExtractionPolicy,
+    execution_preset,
+    preset_values,
+)
+from .generation.contracts import GenerationRequest, PromptMessage, ProviderCapabilities
+from .generation.exceptions import (
+    ProviderCapabilityError,
+    ProviderError,
+    ResponseExtractionError,
+    SecretLeaseError,
+)
+from .generation.providers import ProviderAdapter
+from .generation.responses import extract_assistant_text, parse_json_text
+from .generation.secrets import InMemorySecretVault, SecretLease
+from .generation.story_graph_topology import StoryGraphTopologyError
 from .validation import DomainValidationError
 
 
@@ -60,6 +86,21 @@ class MediaScheduler(Protocol):
 
 class MediaPromptCompiler(Protocol):
     def compile(self, context: MediaPromptContext, kind: MediaKind) -> tuple[str, dict[str, Any]]: ...
+
+
+class TextProviderResolver(Protocol):
+    def resolve(self, provider_snapshot: Mapping[str, Any]) -> tuple[ProviderAdapter, str]: ...
+
+
+class TextProfileSecretSource(Protocol):
+    def server_key_available(self, profile_id: str = "default") -> bool: ...
+
+    def lease_for_profile(
+        self,
+        profile_id: str,
+        *,
+        auth_mode: ProviderAuthMode,
+    ) -> SecretLease | None: ...
 
 
 class ProjectCreateRequest(CamelModel):
@@ -97,6 +138,7 @@ class StagePatchRequest(CamelModel):
 class PipelineRunRequest(CamelModel):
     stages: list[StageName] | None = Field(default=None, min_length=1)
     instructions: str | None = None
+    provider_profile_id: str | None = Field(default=None, pattern=PROFILE_ID_PATTERN)
 
     @model_validator(mode="after")
     def reject_duplicate_stages(self) -> PipelineRunRequest:
@@ -114,6 +156,7 @@ class RebuildRequest(CamelModel):
     from_stage: StageName
     through_stage: StageName | None = None
     instructions: str | None = None
+    provider_profile_id: str | None = Field(default=None, pattern=PROFILE_ID_PATTERN)
 
     @model_validator(mode="after")
     def validate_range(self) -> RebuildRequest:
@@ -125,6 +168,65 @@ class RebuildRequest(CamelModel):
 class RepairRequest(CamelModel):
     stage: StageName | None = None
     instructions: str | None = None
+    provider_profile_id: str | None = Field(default=None, pattern=PROFILE_ID_PATTERN)
+
+
+class TextProviderProfileView(CamelModel):
+    profile_id: str
+    display_name: str
+    configuration: TextProviderProfileSnapshot
+    revision: int
+    created_at: datetime
+    updated_at: datetime
+    server_key_available: bool
+
+
+class TextProviderProfilesResponse(CamelModel):
+    profiles: list[TextProviderProfileView]
+    active_profile_id: str
+    selection_revision: int
+    presets: dict[str, dict[str, Any]]
+
+
+class TextProviderProfileCreate(CamelModel):
+    profile_id: str = Field(pattern=PROFILE_ID_PATTERN)
+    display_name: str = Field(min_length=1, max_length=120)
+    configuration: dict[str, Any] | None = None
+    copy_from_profile_id: str | None = Field(default=None, pattern=PROFILE_ID_PATTERN)
+
+    @model_validator(mode="after")
+    def require_one_configuration_source(self) -> "TextProviderProfileCreate":
+        if (self.configuration is None) == (self.copy_from_profile_id is None):
+            raise ValueError("provide exactly one of configuration or copyFromProfileId")
+        if contains_secret_setting(self.configuration) or contains_secret_value(self.configuration):
+            raise ValueError("text provider profiles must not contain secrets")
+        return self
+
+
+class TextProviderProfileUpdate(CamelModel):
+    expected_revision: int = Field(ge=0)
+    display_name: str = Field(min_length=1, max_length=120)
+    configuration: dict[str, Any]
+
+    @model_validator(mode="after")
+    def reject_profile_secrets(self) -> "TextProviderProfileUpdate":
+        if contains_secret_setting(self.configuration) or contains_secret_value(self.configuration):
+            raise ValueError("text provider profiles must not contain secrets")
+        return self
+
+
+class TextProviderProfileActivate(CamelModel):
+    expected_selection_revision: int = Field(ge=0)
+
+
+class TextProviderProbeResponse(CamelModel):
+    profile_id: str
+    model: str | None = None
+    final_content_present: bool = False
+    reasoning_present: bool = False
+    finish_reason: str | None = None
+    latency_ms: int = Field(ge=0)
+    error_code: str | None = None
 
 
 def _session_api_key(request: Request) -> str | None:
@@ -185,6 +287,8 @@ class MediaTaskRequest(CamelModel):
 
 
 class ProviderSettingsUpdate(CamelModel):
+    expected_profile_id: str = Field(pattern=PROFILE_ID_PATTERN)
+    expected_revision: int = Field(ge=0)
     text_provider: str | None = None
     text_base_url: str | None = None
     text_model: str | None = None
@@ -259,6 +363,51 @@ def _public_provider_snapshot(settings: ProviderSettings) -> dict[str, Any]:
     return validate_public_provider_snapshot(snapshot.model_dump(mode="json", by_alias=True))
 
 
+def _default_text_profile_snapshot(defaults: ProviderSettings) -> TextProviderProfileSnapshot:
+    """Translate the old runtime defaults into the first V2 named profile."""
+
+    preset = execution_preset(PresetId.COMPATIBLE_V1)
+    values: dict[str, Any] = {
+        "profile_schema_version": 2,
+        "profile_id": DEFAULT_PROVIDER_PROFILE_ID,
+        "profile_version": 0,
+        "text_provider": defaults.text_provider or "openai-compatible",
+        "text_base_url": defaults.text_base_url or "https://api.atlascloud.ai/v1",
+        "text_model": defaults.text_model or "deepseek-v3",
+        "text_auth_mode": defaults.text_auth_mode.value,
+        "text_capabilities": TextProviderCapabilities(
+            chat_completions=defaults.text_capabilities.chat_completions,
+            json_object=defaults.text_capabilities.json_object,
+            json_schema=defaults.text_capabilities.json_schema,
+            chat_template_kwargs=False,
+        ),
+        "text_context_window_tokens": defaults.text_context_window_tokens,
+        "text_max_output_tokens": defaults.text_max_output_tokens,
+        "text_temperature": defaults.text_temperature,
+        "text_max_concurrency": defaults.text_max_concurrency,
+        "text_connect_timeout_seconds": defaults.text_connect_timeout_seconds,
+        "text_attempt_timeout_seconds": defaults.text_attempt_timeout_seconds,
+        "redirect_policy": "no_follow",
+        "request_extension": preset.request_extension,
+        "reasoning_mode": preset.reasoning_mode,
+        "extraction_policy": V2ExtractionPolicy(),
+        "stage_max_output_tokens": StageMaxOutputTokens(
+            story_bible=min(8192, defaults.text_max_output_tokens),
+            story_graph=min(8192, defaults.text_max_output_tokens),
+            scene_beats=min(4096, defaults.text_max_output_tokens),
+            storyboard=min(4096, defaults.text_max_output_tokens),
+        ),
+        "max_semantic_corrections": 2,
+        "preset_id": PresetId.COMPATIBLE_V1,
+        "preset_version": preset.preset_version,
+    }
+    try:
+        return TextProviderProfileSnapshot.model_validate(values)
+    except ValueError:
+        values["preset_id"] = PresetId.CUSTOM
+        return TextProviderProfileSnapshot.model_validate(values)
+
+
 def create_app(
     repository: SQLiteRepository | None = None,
     *,
@@ -268,21 +417,158 @@ def create_app(
     static_dir: Path | None = None,
     provider_defaults: ProviderSettings | None = None,
     key_availability: Mapping[str, bool] | None = None,
+    text_profile_default: TextProviderProfileSnapshot | None = None,
+    profile_key_available: Callable[[str], bool] | None = None,
+    text_provider_resolver: TextProviderResolver | None = None,
+    text_secret_source: TextProfileSecretSource | None = None,
     lifespan: Any | None = None,
 ) -> FastAPI:
     repo = repository or SQLiteRepository()
     public_defaults = provider_defaults or ProviderSettings()
     availability = dict(key_availability or {})
+    repo.bootstrap_default_text_provider_profile(
+        text_profile_default or _default_text_profile_snapshot(public_defaults)
+    )
     app = FastAPI(title="Plotloom", version="2.0.0", lifespan=lifespan)
     app.state.repository = repo
     app.state.run_scheduler = run_scheduler
     app.state.media_scheduler = media_scheduler
 
-    def effective_provider_settings() -> ProviderSettings:
-        return _merge_provider_settings(repo.get_provider_settings(), public_defaults, availability)
+    def has_server_key(profile_id: str) -> bool:
+        if profile_key_available is not None:
+            return bool(profile_key_available(profile_id))
+        if text_secret_source is not None:
+            return bool(text_secret_source.server_key_available(profile_id))
+        return profile_id == DEFAULT_PROVIDER_PROFILE_ID and bool(
+            availability.get("text_key_available", False)
+        )
 
-    def provider_snapshot() -> dict[str, Any]:
-        return _public_provider_snapshot(effective_provider_settings())
+    def active_text_profile() -> TextProviderProfile:
+        selection = repo.get_provider_profile_selection()
+        return repo.get_text_provider_profile(selection.active_profile_id)
+
+    def provider_settings_projection(
+        profile: TextProviderProfile,
+        media: ProviderSettings,
+    ) -> ProviderSettings:
+        """Project one text profile and the global media singleton."""
+
+        text = profile.configuration
+        return ProviderSettings(
+            profile_id=profile.profile_id,
+            text_provider=text.text_provider,
+            text_base_url=text.text_base_url,
+            text_model=text.text_model,
+            text_auth_mode=ProviderAuthMode(text.text_auth_mode),
+            text_capabilities=ProviderProfileCapabilities(
+                chat_completions=text.text_capabilities.chat_completions,
+                json_object=text.text_capabilities.json_object,
+                json_schema=text.text_capabilities.json_schema,
+            ),
+            text_context_window_tokens=text.text_context_window_tokens,
+            text_max_output_tokens=text.text_max_output_tokens,
+            text_temperature=text.text_temperature,
+            text_max_concurrency=text.text_max_concurrency,
+            text_connect_timeout_seconds=text.text_connect_timeout_seconds,
+            text_attempt_timeout_seconds=text.text_attempt_timeout_seconds,
+            image_provider=media.image_provider,
+            image_base_url=media.image_base_url,
+            image_model=media.image_model,
+            image_auth_mode=media.image_auth_mode,
+            video_provider=media.video_provider,
+            video_base_url=media.video_base_url,
+            video_model=media.video_model,
+            video_auth_mode=media.video_auth_mode,
+            profile_version=profile.revision,
+            profile_hash=text.profile_hash,
+            text_key_available=has_server_key(profile.profile_id),
+            image_key_available=media.image_key_available,
+            video_key_available=media.video_key_available,
+            revision=profile.revision,
+            updated_at=profile.updated_at,
+        )
+
+    def effective_provider_settings() -> ProviderSettings:
+        """Compatibility projection: active text profile plus global media settings."""
+
+        media = _merge_provider_settings(repo.get_provider_settings(), public_defaults, availability)
+        return provider_settings_projection(active_text_profile(), media)
+
+    def provider_snapshot(profile_id: str | None = None) -> dict[str, Any]:
+        selected = (
+            repo.get_text_provider_profile(profile_id)
+            if profile_id is not None
+            else active_text_profile()
+        )
+        return selected.configuration.model_dump(mode="json", by_alias=True)
+
+    def profile_view(profile: TextProviderProfile) -> TextProviderProfileView:
+        return TextProviderProfileView(
+            **profile.model_dump(mode="python"),
+            server_key_available=has_server_key(profile.profile_id),
+        )
+
+    def profiles_response() -> TextProviderProfilesResponse:
+        selection = repo.get_provider_profile_selection()
+        return TextProviderProfilesResponse(
+            profiles=[profile_view(profile) for profile in repo.list_text_provider_profiles()],
+            active_profile_id=selection.active_profile_id,
+            selection_revision=selection.revision,
+            presets={
+                preset.value: preset_values(preset)
+                for preset in (
+                    PresetId.COMPATIBLE_V1,
+                    PresetId.QUALITY_REASONING_V1,
+                    PresetId.FINAL_ONLY_V1,
+                )
+            },
+        )
+
+    def text_submission_session_key(
+        snapshot: Mapping[str, Any], request: Request
+    ) -> str | None:
+        """Resolve request-scoped auth without touching a key for authMode=none."""
+
+        auth_mode = str(
+            snapshot.get("textAuthMode")
+            or snapshot.get("text_auth_mode")
+            or ProviderAuthMode.BEARER.value
+        )
+        if auth_mode == ProviderAuthMode.NONE.value:
+            return None
+        profile_id = str(
+            snapshot.get("profileId")
+            or snapshot.get("profile_id")
+            or DEFAULT_PROVIDER_PROFILE_ID
+        )
+        session_key = _session_api_key(request)
+        if session_key is None and not has_server_key(profile_id):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"text provider profile {profile_id!r} requires a server key "
+                    "or a browser-session key"
+                ),
+            )
+        return session_key
+
+    def submit_text_run(run: GenerationRun, request: Request) -> None:
+        if run_scheduler is None:
+            return
+        session_key = text_submission_session_key(run.provider_snapshot, request)
+        try:
+            if session_key is None:
+                run_scheduler.submit(run.id)
+            else:
+                run_scheduler.submit(run.id, session_api_key=session_key)
+        except SecretLeaseError as error:
+            # Safe restart recovery can leave a bearer run queued while its
+            # browser-only credential is unavailable.  It remains resumable;
+            # never turn the missing ephemeral value into durable evidence.
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="this queued run needs its profile's browser-session key",
+            ) from error
 
     @app.exception_handler(NotFoundError)
     async def not_found_handler(_request: Request, error: NotFoundError) -> JSONResponse:
@@ -341,6 +627,15 @@ def create_app(
             content={"code": "domain_validation", "message": str(error), "issues": error.issues},
         )
 
+    @app.exception_handler(StoryGraphTopologyError)
+    async def topology_planning_handler(
+        _request: Request, error: StoryGraphTopologyError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={"code": error.code, "message": str(error)},
+        )
+
     @app.post("/api/v2/projects", response_model=ProjectCreation, status_code=status.HTTP_201_CREATED)
     def create_project(
         body: ProjectCreateRequest,
@@ -382,15 +677,19 @@ def create_app(
         status_code=status.HTTP_202_ACCEPTED,
     )
     def create_pipeline_run(project_id: str, body: PipelineRunRequest, request: Request) -> GenerationRun:
+        snapshot = provider_snapshot(body.provider_profile_id)
+        if run_scheduler is not None:
+            # Fail before creating a durable run if no credential can possibly
+            # reach a bearer-authenticated provider.
+            text_submission_session_key(snapshot, request)
         run = repo.create_run(
             project_id,
             RunKind.PIPELINE,
             body.stages or list(STAGE_ORDER),
             instructions=body.instructions,
-            provider_snapshot=provider_snapshot(),
+            provider_snapshot=snapshot,
         )
-        if run_scheduler is not None:
-            _submit_with_optional_session_key(run_scheduler, run.id, request)
+        submit_text_run(run, request)
         return run
 
     @app.post(
@@ -401,15 +700,17 @@ def create_app(
     def create_rebuild(project_id: str, body: RebuildRequest, request: Request) -> GenerationRun:
         start_index = STAGE_ORDER.index(body.from_stage)
         end_index = STAGE_ORDER.index(body.through_stage) if body.through_stage else len(STAGE_ORDER) - 1
+        snapshot = provider_snapshot(body.provider_profile_id)
+        if run_scheduler is not None:
+            text_submission_session_key(snapshot, request)
         run = repo.create_run(
             project_id,
             RunKind.REBUILD,
             STAGE_ORDER[start_index : end_index + 1],
             instructions=body.instructions,
-            provider_snapshot=provider_snapshot(),
+            provider_snapshot=snapshot,
         )
-        if run_scheduler is not None:
-            _submit_with_optional_session_key(run_scheduler, run.id, request)
+        submit_text_run(run, request)
         return run
 
     @app.get("/api/v2/runs/{run_id}", response_model=GenerationRun)
@@ -426,6 +727,44 @@ def create_app(
 
         return repo.get_run_execution_trace(run_id)
 
+    @app.post(
+        "/api/v2/runs/{run_id}/resume",
+        response_model=GenerationRun,
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    def resume_run(run_id: str, request: Request) -> GenerationRun:
+        run = repo.get_run(run_id)
+        if run.status.value not in {"queued", "running"}:
+            raise InvalidTransitionError(
+                f"cannot resume a generation run while it is {run.status.value}"
+            )
+        if run_scheduler is not None:
+            auth_mode = str(
+                run.provider_snapshot.get("textAuthMode")
+                or run.provider_snapshot.get("text_auth_mode")
+                or ProviderAuthMode.BEARER.value
+            )
+            # Let the real scheduler return an already-live Future before it
+            # asks for a new credential.  After a restart, the same call raises
+            # SecretLeaseError until the browser supplies the frozen profile's
+            # session key (or a server key becomes available).
+            session_key = (
+                _session_api_key(request)
+                if auth_mode == ProviderAuthMode.BEARER.value
+                else None
+            )
+            try:
+                if session_key is None:
+                    run_scheduler.submit(run.id)
+                else:
+                    run_scheduler.submit(run.id, session_api_key=session_key)
+            except SecretLeaseError as error:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="this queued run needs its profile's browser-session key",
+                ) from error
+        return repo.get_run(run_id)
+
     @app.post("/api/v2/runs/{run_id}/cancel", response_model=GenerationRun)
     def cancel_run(run_id: str) -> GenerationRun:
         if run_scheduler is not None:
@@ -438,14 +777,16 @@ def create_app(
         status_code=status.HTTP_202_ACCEPTED,
     )
     def create_repair(run_id: str, body: RepairRequest, request: Request) -> GenerationRun:
+        snapshot = provider_snapshot(body.provider_profile_id)
+        if run_scheduler is not None:
+            text_submission_session_key(snapshot, request)
         run = repo.create_repair_run(
             run_id,
             stage=body.stage,
             instructions=body.instructions,
-            provider_snapshot=provider_snapshot(),
+            provider_snapshot=snapshot,
         )
-        if run_scheduler is not None:
-            _submit_with_optional_session_key(run_scheduler, run.id, request)
+        submit_text_run(run, request)
         return run
 
     @app.post(
@@ -494,17 +835,20 @@ def create_app(
 
     @app.put("/api/v2/provider-settings", response_model=ProviderSettings)
     def put_provider_settings(body: ProviderSettingsUpdate) -> ProviderSettings:
-        values = effective_provider_settings().model_dump(
+        updates = body.model_dump(
             mode="python",
             by_alias=False,
-            include=set(PUBLIC_PROVIDER_SETTING_FIELDS),
+            exclude_unset=True,
+            exclude={"expected_profile_id", "expected_revision"},
         )
-        values.update(body.model_dump(mode="python", by_alias=False, exclude_unset=True))
         try:
-            settings = ProviderSettings.model_validate(values)
+            profile, persisted_media = repo.update_provider_settings_projection(
+                expected_profile_id=body.expected_profile_id,
+                expected_profile_revision=body.expected_revision,
+                updates=updates,
+                defaults=public_defaults,
+            )
         except ValidationError as error:
-            # Cross-field constraints can only be evaluated after a partial
-            # update has been merged with the current trusted profile.
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail=error.errors(
@@ -513,8 +857,232 @@ def create_app(
                     include_input=False,
                 ),
             ) from error
-        repo.put_provider_settings(settings)
-        return effective_provider_settings()
+        media = _merge_provider_settings(persisted_media, public_defaults, availability)
+        return provider_settings_projection(profile, media)
+
+    @app.get(
+        "/api/v2/text-provider-profiles",
+        response_model=TextProviderProfilesResponse,
+    )
+    def list_text_provider_profiles() -> TextProviderProfilesResponse:
+        return profiles_response()
+
+    @app.post(
+        "/api/v2/text-provider-profiles",
+        response_model=TextProviderProfileView,
+        status_code=status.HTTP_201_CREATED,
+    )
+    def create_text_provider_profile(
+        body: TextProviderProfileCreate,
+    ) -> TextProviderProfileView:
+        try:
+            profile = repo.create_text_provider_profile(
+                body.profile_id,
+                body.display_name,
+                configuration=body.configuration,
+                copy_from_profile_id=body.copy_from_profile_id,
+            )
+        except ValidationError as error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=error.errors(
+                    include_url=False,
+                    include_context=False,
+                    include_input=False,
+                ),
+            ) from error
+        except ValueError as error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="invalid text provider profile configuration",
+            ) from error
+        return profile_view(profile)
+
+    @app.get(
+        "/api/v2/text-provider-profiles/{profile_id}",
+        response_model=TextProviderProfileView,
+    )
+    def get_text_provider_profile(profile_id: str) -> TextProviderProfileView:
+        return profile_view(repo.get_text_provider_profile(profile_id))
+
+    @app.put(
+        "/api/v2/text-provider-profiles/{profile_id}",
+        response_model=TextProviderProfileView,
+    )
+    def update_text_provider_profile(
+        profile_id: str,
+        body: TextProviderProfileUpdate,
+    ) -> TextProviderProfileView:
+        try:
+            return profile_view(
+                repo.update_text_provider_profile(
+                    profile_id,
+                    body.expected_revision,
+                    display_name=body.display_name,
+                    configuration=body.configuration,
+                )
+            )
+        except ValidationError as error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=error.errors(
+                    include_url=False,
+                    include_context=False,
+                    include_input=False,
+                ),
+            ) from error
+        except ValueError as error:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="invalid text provider profile configuration",
+            ) from error
+
+    @app.delete(
+        "/api/v2/text-provider-profiles/{profile_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
+    def delete_text_provider_profile(
+        profile_id: str,
+        expected_revision: Annotated[int, Query(alias="expectedRevision", ge=0)],
+    ) -> None:
+        repo.delete_text_provider_profile(profile_id, expected_revision)
+
+    @app.post(
+        "/api/v2/text-provider-profiles/{profile_id}/activate",
+        response_model=ProviderProfileSelection,
+    )
+    def activate_text_provider_profile(
+        profile_id: str,
+        body: TextProviderProfileActivate,
+    ) -> ProviderProfileSelection:
+        return repo.activate_text_provider_profile(
+            profile_id, body.expected_selection_revision
+        )
+
+    @app.post(
+        "/api/v2/text-provider-profiles/{profile_id}/probe",
+        response_model=TextProviderProbeResponse,
+    )
+    def probe_text_provider_profile(
+        profile_id: str,
+        request: Request,
+    ) -> TextProviderProbeResponse:
+        profile = repo.get_text_provider_profile(profile_id)
+        snapshot = profile.configuration
+        started = monotonic()
+        temporary_vault: InMemorySecretVault | None = None
+        lease: SecretLease | None = None
+        try:
+            if snapshot.text_auth_mode == "bearer":
+                session_key = _session_api_key(request)
+                if session_key is not None:
+                    temporary_vault = InMemorySecretVault()
+                    temporary_vault.put("probe", session_key)
+                    lease = temporary_vault.lease("probe", ttl_seconds=60, max_uses=1)
+                elif text_secret_source is not None:
+                    lease = text_secret_source.lease_for_profile(
+                        profile_id,
+                        auth_mode=ProviderAuthMode.BEARER,
+                    )
+                else:
+                    raise SecretLeaseError("no credential is available for this profile")
+            resolver = text_provider_resolver
+            if resolver is None:
+                from .pipeline import SnapshotTextProviderResolver
+
+                resolver = SnapshotTextProviderResolver()
+            adapter, model = resolver.resolve(
+                snapshot.model_dump(mode="json", by_alias=True)
+            )
+            extension, reasoning, _extraction = snapshot.request_contract()
+            probe_schema = (
+                {
+                    "type": "object",
+                    "properties": {
+                        "ok": {"type": "string", "enum": ["yes"]},
+                    },
+                    "required": ["ok"],
+                    "additionalProperties": False,
+                }
+                if snapshot.text_capabilities.json_schema
+                else None
+            )
+            response = adapter.generate(
+                GenerationRequest(
+                    messages=(
+                        PromptMessage(
+                            role="system",
+                            content=(
+                                "Return only the requested JSON object."
+                                if probe_schema is not None
+                                else "Return one short final answer to confirm this connection."
+                            ),
+                        ),
+                        PromptMessage(
+                            role="user",
+                            content=(
+                                "Set ok to yes."
+                                if probe_schema is not None
+                                else "Reply with OK."
+                            ),
+                        ),
+                    ),
+                    model=model,
+                    temperature=0,
+                    max_output_tokens=min(1024, snapshot.text_max_output_tokens),
+                    response_schema=probe_schema,
+                    response_schema_name=(
+                        "plotloom_profile_probe" if probe_schema is not None else None
+                    ),
+                    request_extension=extension,
+                    reasoning_mode=reasoning,
+                ),
+                lease,
+            )
+            if probe_schema is not None:
+                try:
+                    probe_value = parse_json_text(
+                        extract_assistant_text(response)
+                    ).value
+                except ResponseExtractionError:
+                    probe_value = None
+                if probe_value != {"ok": "yes"}:
+                    return TextProviderProbeResponse(
+                        profile_id=profile_id,
+                        model=response.model,
+                        final_content_present=response.final_content is not None,
+                        reasoning_present=response.reasoning_present,
+                        finish_reason=response.finish_reason,
+                        latency_ms=max(0, round((monotonic() - started) * 1000)),
+                        error_code="probe.json_schema_invalid",
+                    )
+            return TextProviderProbeResponse(
+                profile_id=profile_id,
+                model=response.model,
+                final_content_present=response.final_content is not None,
+                reasoning_present=response.reasoning_present,
+                finish_reason=response.finish_reason,
+                latency_ms=max(0, round((monotonic() - started) * 1000)),
+                error_code=response.outcome_code,
+            )
+        except SecretLeaseError:
+            error_code = "secret.unavailable"
+        except ProviderCapabilityError:
+            error_code = "provider.capability_unsupported"
+        except ProviderError:
+            error_code = "provider.request_failed"
+        except Exception:  # keep endpoint/IP/body details out of this diagnostic response
+            error_code = "probe.failed"
+        finally:
+            if lease is not None:
+                lease.revoke()
+            if temporary_vault is not None:
+                temporary_vault.clear()
+        return TextProviderProbeResponse(
+            profile_id=profile_id,
+            latency_ms=max(0, round((monotonic() - started) * 1000)),
+            error_code=error_code,
+        )
 
     if static_dir is not None:
         app.mount("/v2", StaticFiles(directory=static_dir, html=True, check_dir=False), name="v2-static")

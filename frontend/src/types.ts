@@ -290,6 +290,8 @@ export interface PipelineRun {
   legacyUnsealed: boolean;
   resultRevisionIds: string[];
   error: string | null;
+  failureCode: string | null;
+  failedStage: ServerStageName | null;
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
@@ -301,6 +303,8 @@ export interface GenerationAttempt {
   workUnitId: string | null;
   stage: ServerStageName;
   attemptNumber: number;
+  attemptKind: "primary" | "correction";
+  sourceAttemptId: string | null;
   status: "running" | "succeeded" | "failed" | "cancelled";
   provider: string | null;
   model: string | null;
@@ -309,6 +313,7 @@ export interface GenerationAttempt {
   responsePersistedAt: string | null;
   providerRequestId: string | null;
   outcomeUnknown: boolean;
+  outcomeCode: string | null;
   startedAt: string;
   finishedAt: string | null;
 }
@@ -362,7 +367,7 @@ export interface GenerationWorkUnitTrace {
   budget: Record<string, unknown>;
   estimatedInputTokens: number;
   contextWindowTokens: number;
-  status: "queued" | "running" | "succeeded" | "quarantined" | "cancelled" | "outcome_unknown";
+  status: "queued" | "running" | "succeeded" | "failed" | "quarantined" | "cancelled" | "outcome_unknown";
 }
 
 export interface SealedStageAggregateTrace {
@@ -376,8 +381,17 @@ export interface SealedStageAggregateTrace {
   createdAt: string;
 }
 
+export interface StoryGraphTopologyTrace {
+  runId: string;
+  generationPlanHash: string;
+  topologyHash: string;
+  topology: Record<string, unknown>;
+  createdAt: string;
+}
+
 export interface RunExecutionTrace {
   generationPlan: GenerationPlanTrace | null;
+  storyGraphTopology: StoryGraphTopologyTrace | null;
   stagePlans: StagePlanTrace[];
   workUnits: GenerationWorkUnitTrace[];
   sealedAggregates: SealedStageAggregateTrace[];
@@ -448,4 +462,96 @@ export type ProviderSettingsUpdate = Partial<Pick<ProviderSettings,
   "textConnectTimeoutSeconds" | "textAttemptTimeoutSeconds" |
   "imageProvider" | "imageBaseUrl" | "imageModel" | "imageAuthMode" |
   "videoProvider" | "videoBaseUrl" | "videoModel" | "videoAuthMode"
->>;
+>> & {
+  expectedProfileId: string;
+  expectedRevision: number;
+};
+
+export type TextProviderPresetId = "compatible_v1" | "quality_reasoning_v1" | "final_only_v1" | "custom";
+export type TextProviderRequestExtension = "none" | "chat_template_kwargs";
+export type TextProviderReasoningMode = "provider_default" | "enabled" | "disabled";
+
+/** The secret-free configuration frozen into a named text-provider profile. */
+export interface TextProviderProfileConfiguration {
+  profileSchemaVersion: 2;
+  profileId: string;
+  profileVersion: number;
+  profileHash: string;
+  textProvider: string;
+  textBaseUrl: string;
+  textModel: string;
+  textAuthMode: "none" | "bearer";
+  textCapabilities: {
+    chatCompletions: boolean;
+    jsonObject: boolean;
+    jsonSchema: boolean;
+    chatTemplateKwargs: boolean;
+  };
+  textContextWindowTokens: number;
+  textMaxOutputTokens: number;
+  textTemperature: number;
+  textMaxConcurrency: number;
+  textConnectTimeoutSeconds: number;
+  textAttemptTimeoutSeconds: number;
+  redirectPolicy: "no_follow";
+  requestExtension: TextProviderRequestExtension;
+  reasoningMode: TextProviderReasoningMode;
+  extractionPolicy: { allowJsonFence: boolean; allowLeadingThinkBlock: boolean };
+  stageMaxOutputTokens: Record<ServerStageName, number>;
+  maxSemanticCorrections: number;
+  presetId: TextProviderPresetId;
+  presetVersion: string;
+}
+
+export interface TextProviderProfileView {
+  profileId: string;
+  displayName: string;
+  configuration: TextProviderProfileConfiguration;
+  revision: number;
+  createdAt: string;
+  updatedAt: string;
+  serverKeyAvailable: boolean;
+}
+
+export interface TextProviderProfilesResponse {
+  profiles: TextProviderProfileView[];
+  activeProfileId: string;
+  selectionRevision: number;
+  presets: Record<Exclude<TextProviderPresetId, "custom">, TextProviderPresetValues>;
+}
+
+/** The optimistic-concurrency result of selecting the server's active profile. */
+export interface TextProviderProfileSelection {
+  activeProfileId: string;
+  revision: number;
+  updatedAt: string;
+}
+
+export interface TextProviderPresetValues {
+  presetId: Exclude<TextProviderPresetId, "custom">;
+  presetVersion: string;
+  requestExtension: TextProviderRequestExtension;
+  reasoningMode: TextProviderReasoningMode;
+  textContextWindowTokens: number;
+  textMaxOutputTokens: number;
+  stageMaxOutputTokens: Record<ServerStageName, number>;
+  textAttemptTimeoutSeconds: number;
+  maxSemanticCorrections: number;
+}
+
+export interface TextProviderProfileCreate {
+  profileId: string;
+  displayName: string;
+  configuration?: TextProviderProfileConfiguration;
+  copyFromProfileId?: string;
+}
+
+export interface TextProviderProfileProbe {
+  profileId: string;
+  model: string | null;
+  finalContentPresent: boolean;
+  reasoningPresent: boolean;
+  finishReason: string | null;
+  latencyMs: number;
+  errorCode: string | null;
+}

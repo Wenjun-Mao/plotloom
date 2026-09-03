@@ -1,4 +1,4 @@
-import type { RunTrace, SceneBeatPlan, ServerStageName, StoryGraph, Storyboard, TraceEvent, WorkspaceProject } from "./types";
+import type { RunExecutionTrace, RunTrace, SceneBeatPlan, ServerStageName, StoryGraph, Storyboard, TraceEvent, WorkspaceProject } from "./types";
 
 export const serverStages: ServerStageName[] = ["story_bible", "story_graph", "scene_beats", "storyboard"];
 
@@ -64,6 +64,25 @@ export interface StoryboardViewGroup {
   shots: Storyboard["shots"];
 }
 
+export function summarizeWorkUnitStatuses(trace?: RunExecutionTrace): string {
+  if (!trace?.workUnits.length) return "0 work units";
+  const order: RunExecutionTrace["workUnits"][number]["status"][] = [
+    "succeeded",
+    "running",
+    "queued",
+    "failed",
+    "quarantined",
+    "outcome_unknown",
+    "cancelled",
+  ];
+  const counts = new Map<string, number>();
+  trace.workUnits.forEach((unit) => counts.set(unit.status, (counts.get(unit.status) || 0) + 1));
+  return order
+    .filter((status) => counts.has(status))
+    .map((status) => `${counts.get(status)} ${status}`)
+    .join(" · ");
+}
+
 export function groupStoryboard(storyboard: Storyboard, plan: SceneBeatPlan, route?: StoryRoute): StoryboardViewGroup[] {
   const allowed = route ? new Set(route.nodeIds) : undefined;
   return plan.scenes
@@ -77,15 +96,37 @@ export function groupStoryboard(storyboard: Storyboard, plan: SceneBeatPlan, rou
     .filter((group) => group.shots.length > 0);
 }
 
-export function traceEvents(trace: RunTrace): TraceEvent[] {
+export function traceEvents(trace: RunTrace, executionTrace?: RunExecutionTrace): TraceEvent[] {
+  const correctionLimit = typeof trace.run.providerSnapshot.maxSemanticCorrections === "number"
+    ? trace.run.providerSnapshot.maxSemanticCorrections
+    : 2;
+  const maxAttempts = Math.max(1, correctionLimit + 1);
+  const usageByAttempt = new Map<string, { inputTokens: number | null; outputTokens: number | null }>();
+  trace.artifacts.forEach((artifact) => {
+    if (artifact.kind !== "response" || !artifact.attemptId || !artifact.content || typeof artifact.content !== "object") return;
+    const usage = (artifact.content as Record<string, unknown>).usage;
+    if (!usage || typeof usage !== "object") return;
+    const values = usage as Record<string, unknown>;
+    usageByAttempt.set(artifact.attemptId, {
+      inputTokens: typeof values.inputTokens === "number" ? values.inputTokens : null,
+      outputTokens: typeof values.outputTokens === "number" ? values.outputTokens : null,
+    });
+  });
   const attempts = trace.attempts.map((attempt) => ({
     id: attempt.id,
     at: attempt.startedAt,
     stage: attempt.stage,
     kind: attempt.status === "failed" ? "error" as const : "request" as const,
-    title: `Attempt ${attempt.attemptNumber} · ${attempt.status}`,
+    title: `Attempt ${attempt.attemptNumber}/${maxAttempts} · ${attempt.status}`,
     status: attempt.status === "failed" ? "error" as const : attempt.status === "running" ? "pending" as const : "ok" as const,
-    detail: attempt.error || [attempt.provider, attempt.model].filter(Boolean).join(" · "),
+    detail: [
+      `Outcome: ${attempt.outcomeUnknown ? "unknown" : attempt.outcomeCode || attempt.status}`,
+      `Lineage: ${attempt.attemptKind === "correction" ? `correction ← ${attempt.sourceAttemptId || "prior attempt"}` : "primary"}`,
+      `Elapsed: ${formatAttemptDuration(attempt.startedAt, attempt.finishedAt)}`,
+      formatAttemptUsage(usageByAttempt.get(attempt.id)),
+      attempt.error ? `Failure: ${attempt.error}` : "",
+      [attempt.provider, attempt.model].filter(Boolean).join(" · "),
+    ].filter(Boolean).join("\n"),
   }));
   const artifacts = trace.artifacts
     .filter((artifact): artifact is typeof artifact & { stage: ServerStageName } => Boolean(artifact.stage))
@@ -125,7 +166,29 @@ export function traceEvents(trace: RunTrace): TraceEvent[] {
         detail: `sha256:${artifact.contentHash.slice(0, 12)} · ${artifact.mediaType}`,
       };
     });
-  return [...attempts, ...artifacts].sort((left, right) => left.at.localeCompare(right.at));
+  const topology = executionTrace?.storyGraphTopology;
+  const topologyEvent: TraceEvent[] = topology ? [{
+    id: `topology:${topology.topologyHash}`,
+    at: topology.createdAt,
+    stage: "story_graph",
+    kind: "validation",
+    title: "Story graph topology frozen",
+    status: "ok",
+    detail: `Topology: sha256:${topology.topologyHash.slice(0, 12)} · generation plan ${topology.generationPlanHash.slice(0, 12)}`,
+    payload: topology.topology,
+  }] : [];
+  return [...attempts, ...artifacts, ...topologyEvent].sort((left, right) => left.at.localeCompare(right.at));
+}
+
+function formatAttemptDuration(startedAt: string, finishedAt: string | null): string {
+  if (!finishedAt) return "running";
+  const elapsed = Date.parse(finishedAt) - Date.parse(startedAt);
+  return Number.isFinite(elapsed) && elapsed >= 0 ? `${elapsed} ms` : "unavailable";
+}
+
+function formatAttemptUsage(usage: { inputTokens: number | null; outputTokens: number | null } | undefined): string {
+  if (!usage) return "Tokens: unavailable";
+  return `Tokens: input ${usage.inputTokens ?? "—"} · output ${usage.outputTokens ?? "—"}`;
 }
 
 export function mergeProjectResponse(current: WorkspaceProject, incoming: Partial<WorkspaceProject>): WorkspaceProject {

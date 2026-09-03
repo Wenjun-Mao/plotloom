@@ -38,10 +38,14 @@ def test_canonical_stage_schema_uses_wire_aliases_and_required_shot_fields() -> 
         bible=StoryBible(logline="失忆", premise="寻找身份"),
         scene_beats=SceneBeatPlan(),
     )
-    shot_schema = storyboard_adapter.json_schema()["$defs"]["Shot"]["properties"]
+    shot_schema = storyboard_adapter.json_schema()["properties"]["shots"]["items"][
+        "properties"
+    ]
     for field in ("audio", "transition", "visualIntent", "motionIntent"):
         assert field in shot_schema
-    required = storyboard_adapter.json_schema()["$defs"]["Shot"]["required"]
+    required = storyboard_adapter.json_schema()["properties"]["shots"]["items"][
+        "required"
+    ]
     for field in ("audio", "transition", "visualIntent", "motionIntent"):
         assert field in required
 

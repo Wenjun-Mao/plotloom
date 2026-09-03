@@ -13,8 +13,17 @@ from .contracts import (
     ProviderCapabilities,
     ProviderResponse,
     ProviderUsage,
+    ReasoningMode,
+    RequestExtension,
 )
-from .exceptions import ProviderCapabilityError, ProviderError
+from .exceptions import (
+    ProviderCapabilityError,
+    ProviderError,
+    ProviderOutcomeUnknownError,
+    ProviderRequestNotSentError,
+    ProviderResponseError,
+)
+from .responses import assistant_message_final_text, redact_provider_response_evidence
 from .secrets import SecretLease
 
 
@@ -96,6 +105,8 @@ class OpenAICompatibleAdapter:
         if request.max_output_tokens is not None:
             payload["max_tokens"] = request.max_output_tokens
 
+        self._apply_request_extension(payload, request)
+
         if request.response_schema is not None:
             if not self.capabilities.json_schema:
                 raise ProviderCapabilityError(
@@ -117,10 +128,12 @@ class OpenAICompatibleAdapter:
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
+        outbound_secret: str | None = None
         if self.auth_mode == "bearer":
             if secret is None:
                 raise ProviderError(f"Provider {self.name!r} requires a bearer credential")
             with secret.reveal() as api_key:
+                outbound_secret = api_key
                 headers["Authorization"] = f"Bearer {api_key}"
                 response = self._post(payload, headers)
         else:
@@ -129,19 +142,48 @@ class OpenAICompatibleAdapter:
             response = self._post(payload, headers)
 
         status_code = int(getattr(response, "status_code", 0) or 0)
+        headers_obj = getattr(response, "headers", {}) or {}
+        header_request_id = headers_obj.get("x-request-id")
         if not 200 <= status_code < 300:
-            raise ProviderError(f"Provider {self.name!r} returned HTTP {status_code}")
+            raise ProviderResponseError(
+                f"provider.http_{status_code}",
+                status_code=status_code,
+                request_id=(
+                    str(header_request_id) if header_request_id is not None else None
+                ),
+            )
         try:
             raw = response.json()
         except (ValueError, requests.JSONDecodeError) as exc:
-            raise ProviderError(f"Provider {self.name!r} returned a non-JSON envelope") from exc
+            raise ProviderResponseError(
+                "provider.envelope_non_json",
+                status_code=status_code,
+                request_id=(
+                    str(header_request_id) if header_request_id is not None else None
+                ),
+            ) from exc
         if not isinstance(raw, dict):
-            raise ProviderError(f"Provider {self.name!r} returned a non-object envelope")
+            raise ProviderResponseError(
+                "provider.envelope_non_object",
+                status_code=status_code,
+                request_id=(
+                    str(header_request_id) if header_request_id is not None else None
+                ),
+            )
+        raw = redact_provider_response_evidence(
+            raw,
+            known_secrets=((outbound_secret,) if outbound_secret is not None else ()),
+        )
 
         choices = raw.get("choices") if isinstance(raw.get("choices"), list) else []
         first_choice = choices[0] if choices and isinstance(choices[0], dict) else {}
+        message = first_choice.get("message")
+        final_content, reasoning_present = (
+            assistant_message_final_text(message)
+            if isinstance(message, dict)
+            else (None, False)
+        )
         usage_data = raw.get("usage") if isinstance(raw.get("usage"), dict) else {}
-        headers_obj = getattr(response, "headers", {}) or {}
         request_id = raw.get("id") or headers_obj.get("x-request-id")
         return ProviderResponse(
             provider=self.name,
@@ -157,7 +199,43 @@ class OpenAICompatibleAdapter:
                 input_tokens=_non_negative_int(usage_data.get("prompt_tokens")),
                 output_tokens=_non_negative_int(usage_data.get("completion_tokens")),
             ),
+            final_content=final_content,
+            reasoning_present=reasoning_present,
+            outcome_code=(None if final_content is not None else "response.missing_final_content"),
         )
+
+    def _apply_request_extension(
+        self,
+        payload: dict[str, Any],
+        request: GenerationRequest,
+    ) -> None:
+        """Emit only the one explicitly declared non-standard extension.
+
+        This intentionally does not accept a caller-owned mapping.  Passing
+        arbitrary JSON through here would make a saved profile an unreviewed
+        provider-specific execution surface and would make snapshots unable to
+        state what the request actually meant.
+        """
+
+        if request.request_extension == RequestExtension.NONE:
+            if request.reasoning_mode != ReasoningMode.PROVIDER_DEFAULT:
+                raise ProviderCapabilityError(
+                    "reasoning_mode requires request_extension=chat_template_kwargs"
+                )
+            return
+        if request.request_extension != RequestExtension.CHAT_TEMPLATE_KWARGS:
+            raise ProviderCapabilityError("unsupported request extension")
+        if not self.capabilities.chat_template_kwargs:
+            raise ProviderCapabilityError(
+                f"Provider {self.name!r} does not advertise chat_template_kwargs support"
+            )
+        if request.reasoning_mode == ReasoningMode.PROVIDER_DEFAULT:
+            raise ProviderCapabilityError(
+                "chat_template_kwargs requires an explicit enabled or disabled reasoning_mode"
+            )
+        payload["chat_template_kwargs"] = {
+            "enable_thinking": request.reasoning_mode == ReasoningMode.ENABLED
+        }
 
     def _post(self, payload: dict[str, Any], headers: dict[str, str]) -> Any:
         try:
@@ -168,9 +246,16 @@ class OpenAICompatibleAdapter:
                 timeout=(self.connect_timeout_seconds, self.timeout_seconds),
                 allow_redirects=False,
             )
+        except requests.ConnectTimeout as exc:
+            raise ProviderRequestNotSentError(
+                "provider connection was not established"
+            ) from exc
         except requests.RequestException as exc:
-            raise ProviderError(
-                f"Provider {self.name!r} request failed: {type(exc).__name__}"
+            # Once connection establishment is no longer provably the failing
+            # phase, the provider may have received and completed the request.
+            # The caller must retain this as outcome_unknown and never replay it.
+            raise ProviderOutcomeUnknownError(
+                f"provider transport outcome is unknown: {type(exc).__name__}"
             ) from exc
 
 

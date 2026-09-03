@@ -56,6 +56,26 @@ class BootstrapContentionError(PlotloomError):
 class QuarantinedOutputError(PlotloomError):
     """A provider candidate failed validation and carries trace evidence."""
 
-    def __init__(self, message: str, *, artifacts: list[Artifact]) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        artifacts: list[Artifact],
+        code: str = "response.rejected",
+        stage: StageName | None = None,
+    ) -> None:
         super().__init__(message)
         self.artifacts = artifacts
+        self.code = code
+        self.stage = stage
+
+
+class RunExecutionError(PlotloomError):
+    """A work unit failed with a persisted application-owned outcome code."""
+
+    def __init__(self, *, code: str, stage: StageName) -> None:
+        self.code = code
+        self.stage = stage
+        # Do not carry provider/body/transport prose across the worker
+        # boundary. The attempt trace remains the exact local evidence.
+        super().__init__(f"{stage.value} work unit failed with outcome {code}")

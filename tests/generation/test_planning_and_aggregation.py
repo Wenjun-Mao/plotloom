@@ -8,6 +8,7 @@ from plotloom.domain import (
     CoverageRole,
     DramaticScene,
     JoinContract,
+    SceneBeatPlan,
     Shot,
     ShotBeatLink,
     ShotSize,
@@ -310,13 +311,9 @@ def test_planner_refuses_unbounded_unit_or_input_budget():
             dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
         )
 
-    over_context = _run_plan(context_window_tokens=10)
-    with pytest.raises(PlanningError, match="context window"):
-        plan_stage(
-            over_context,
-            stage=StageName.SCENE_BEATS,
-            dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
-        )
+    with pytest.raises(PlanningError, match="leave room") as captured:
+        _run_plan(context_window_tokens=10)
+    assert captured.value.code == "planning.output_budget_exceeds_context"
 
 
 def test_generation_plan_freezes_effective_provider_output_ceiling():
@@ -333,6 +330,59 @@ def test_generation_plan_freezes_effective_provider_output_ceiling():
 
     with pytest.raises(PlanningError, match="provider_output_token_ceiling"):
         _run_plan(provider_output_token_ceiling=0)
+
+
+def test_storyboard_planning_preserves_sibling_scene_order_not_opaque_id_order():
+    bible = make_story_bible()
+    graph = make_story_graph()
+    first_node = graph.nodes[0].id
+    first = DramaticScene(
+        id="z-opaque-id",
+        story_node_id=first_node,
+        title="第一场",
+        objective="先发生",
+        beat_ids=["beat-first"],
+    )
+    second = DramaticScene(
+        id="a-opaque-id",
+        story_node_id=first_node,
+        title="第二场",
+        objective="后发生",
+        beat_ids=["beat-second"],
+    )
+    beats = SceneBeatPlan(
+        scenes=[first, second],
+        beats=[
+            Beat(
+                id="beat-first",
+                scene_id=first.id,
+                order=1,
+                description="第一拍",
+                purpose="建立",
+            ),
+            Beat(
+                id="beat-second",
+                scene_id=second.id,
+                order=1,
+                description="第二拍",
+                purpose="推进",
+            ),
+        ],
+    )
+    plan = _run_plan()
+    stage_plan = plan_stage(
+        plan,
+        stage=StageName.STORYBOARD,
+        dependencies={
+            StageName.STORY_BIBLE: bible,
+            StageName.STORY_GRAPH: graph,
+            StageName.SCENE_BEATS: beats,
+        },
+    )
+    assert [unit.selector.stable_id for unit in stage_plan.work_units[:2]] == [
+        "z-opaque-id",
+        "a-opaque-id",
+    ]
 
 
 def test_scene_beat_aggregation_requires_exact_ordered_unit_manifest():

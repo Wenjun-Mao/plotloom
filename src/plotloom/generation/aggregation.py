@@ -17,7 +17,7 @@ from ..domain import (
     StoryGraph,
     Storyboard,
 )
-from ..validation import validate_stage_payload
+from ..validation import DomainValidationError, validate_stage_payload
 from .fragments import (
     SceneBeatsFragment,
     StageFragment,
@@ -30,6 +30,17 @@ from .planning import StagePlan, WorkUnitSelectorKind
 
 class AggregateValidationError(ValueError):
     """A candidate set is not the exact, sealed result described by a StagePlan."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "aggregate.contract_invalid",
+        stage: StageName | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.stage = stage
 
 
 def aggregate_stage_fragments(
@@ -49,19 +60,34 @@ def aggregate_stage_fragments(
     output and repair lineage.
     """
 
-    ordered = tuple(fragments)
-    _assert_exact_manifest(stage_plan, ordered)
-    payload = _merge(stage_plan, ordered, scene_beats=scene_beats)
-    _assert_aggregate_size(stage_plan, payload)
-    validate_stage_payload(
-        stage_plan.stage,
-        payload,
-        brief=brief,
-        bible=bible,
-        graph=graph,
-        scene_beats=scene_beats,
-    )
-    return payload
+    try:
+        ordered = tuple(fragments)
+        _assert_exact_manifest(stage_plan, ordered)
+        payload = _merge(stage_plan, ordered, scene_beats=scene_beats)
+        _assert_aggregate_size(stage_plan, payload)
+        validate_stage_payload(
+            stage_plan.stage,
+            payload,
+            brief=brief,
+            bible=bible,
+            graph=graph,
+            scene_beats=scene_beats,
+        )
+        return payload
+    except AggregateValidationError as error:
+        if error.stage is not None:
+            raise
+        raise AggregateValidationError(
+            str(error),
+            code=error.code,
+            stage=stage_plan.stage,
+        ) from error
+    except DomainValidationError as error:
+        raise AggregateValidationError(
+            str(error),
+            code="aggregate.semantic_invalid",
+            stage=stage_plan.stage,
+        ) from error
 
 
 def _assert_exact_manifest(stage_plan: StagePlan, fragments: tuple[StageFragment, ...]) -> None:
@@ -164,7 +190,10 @@ def _merge_scene_beats(
                 details.append("scene IDs " + ", ".join(sorted(duplicate_scenes)))
             if duplicate_beats:
                 details.append("beat IDs " + ", ".join(sorted(duplicate_beats)))
-            raise AggregateValidationError("cross-unit identifier collision: " + "; ".join(details))
+            raise AggregateValidationError(
+                "cross-unit identifier collision: " + "; ".join(details),
+                code="aggregate.identifier_collision",
+            )
         seen_scene_ids.update(fragment_scene_ids)
         seen_beat_ids.update(fragment_beat_ids)
         all_scenes.extend(fragment.scenes)
@@ -202,7 +231,8 @@ def _merge_storyboard(
         collisions = seen_shot_ids & shot_ids
         if collisions:
             raise AggregateValidationError(
-                "cross-unit shot ID collision: " + ", ".join(sorted(collisions))
+                "cross-unit shot ID collision: " + ", ".join(sorted(collisions)),
+                code="aggregate.identifier_collision",
             )
         for link in fragment.shot_beat_links:
             beat = beats_by_id.get(link.beat_id)

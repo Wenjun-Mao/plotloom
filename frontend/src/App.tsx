@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MediaKind, MediaTask, PipelineRun, ProviderSettings, QuarantineItem, SceneBeatPlan, ServerStageName, Shot, StoryBible, StoryGraph, Storyboard, TraceEvent, WorkspaceProject } from "./types";
+import type { MediaKind, MediaTask, PipelineRun, ProviderSettings, QuarantineItem, RunExecutionTrace, SceneBeatPlan, ServerStageName, Shot, StoryBible, StoryGraph, Storyboard, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, WorkspaceProject } from "./types";
 import { plotloomApi, ApiError } from "./api";
-import { providerSessionKey } from "./session-key";
+import { providerSessionKeys } from "./session-key";
 import { defaultProviderSettings, demoProject, demoRun, demoTrace } from "./demo";
 import { markDownstreamStale, mergeProjectResponse, stageLabels, traceEvents } from "./model";
 import { initialStagesThrough, projectCreationBody, projectCreationRequest, workspaceWithStageDraft } from "./project-creation";
@@ -36,6 +36,62 @@ function projectIdFromLocation(): string {
   return new URLSearchParams(window.location.search).get("project") || "";
 }
 
+function defaultTextProfile(): TextProviderProfileView {
+  const configuration: TextProviderProfileConfiguration = {
+    profileSchemaVersion: 2, profileId: "default", profileVersion: 0, profileHash: "",
+    textProvider: defaultProviderSettings.textProvider || "openai-compatible",
+    textBaseUrl: defaultProviderSettings.textBaseUrl || "", textModel: defaultProviderSettings.textModel || "",
+    textAuthMode: defaultProviderSettings.textAuthMode,
+    textCapabilities: { ...defaultProviderSettings.textCapabilities, chatTemplateKwargs: false },
+    textContextWindowTokens: defaultProviderSettings.textContextWindowTokens,
+    textMaxOutputTokens: defaultProviderSettings.textMaxOutputTokens,
+    textTemperature: defaultProviderSettings.textTemperature,
+    textMaxConcurrency: defaultProviderSettings.textMaxConcurrency,
+    textConnectTimeoutSeconds: defaultProviderSettings.textConnectTimeoutSeconds,
+    textAttemptTimeoutSeconds: defaultProviderSettings.textAttemptTimeoutSeconds,
+    redirectPolicy: "no_follow", requestExtension: "none", reasoningMode: "provider_default",
+    extractionPolicy: { allowJsonFence: false, allowLeadingThinkBlock: false },
+    stageMaxOutputTokens: { story_bible: 8192, story_graph: 8192, scene_beats: 4096, storyboard: 4096 },
+    maxSemanticCorrections: 2, presetId: "custom", presetVersion: "1",
+  };
+  return { profileId: "default", displayName: "Default", configuration, revision: 0, createdAt: "", updatedAt: "", serverKeyAvailable: false };
+}
+
+function profileFromLegacySettings(settings: ProviderSettings): TextProviderProfileView {
+  const fallback = defaultTextProfile();
+  return {
+    ...fallback,
+    displayName: settings.profileId || fallback.displayName,
+    revision: settings.revision,
+    updatedAt: settings.updatedAt || "",
+    serverKeyAvailable: settings.textKeyAvailable,
+    configuration: {
+      ...fallback.configuration,
+      textProvider: settings.textProvider || fallback.configuration.textProvider,
+      textBaseUrl: settings.textBaseUrl || fallback.configuration.textBaseUrl,
+      textModel: settings.textModel || fallback.configuration.textModel,
+      textAuthMode: settings.textAuthMode,
+      textCapabilities: { ...settings.textCapabilities, chatTemplateKwargs: false },
+      textContextWindowTokens: settings.textContextWindowTokens,
+      textMaxOutputTokens: settings.textMaxOutputTokens,
+      textTemperature: settings.textTemperature,
+      textMaxConcurrency: settings.textMaxConcurrency,
+      textConnectTimeoutSeconds: settings.textConnectTimeoutSeconds,
+      textAttemptTimeoutSeconds: settings.textAttemptTimeoutSeconds,
+      redirectPolicy: settings.redirectPolicy,
+    },
+  };
+}
+
+const fallbackProfiles = (): TextProviderProfilesResponse => ({
+  profiles: [defaultTextProfile()], activeProfileId: "default", selectionRevision: 0,
+  presets: {
+    compatible_v1: { presetId: "compatible_v1", presetVersion: "1", requestExtension: "none", reasoningMode: "provider_default", textContextWindowTokens: 32768, textMaxOutputTokens: 8192, stageMaxOutputTokens: { story_bible: 8192, story_graph: 8192, scene_beats: 4096, storyboard: 4096 }, textAttemptTimeoutSeconds: 300, maxSemanticCorrections: 2 },
+    quality_reasoning_v1: { presetId: "quality_reasoning_v1", presetVersion: "1", requestExtension: "chat_template_kwargs", reasoningMode: "enabled", textContextWindowTokens: 131072, textMaxOutputTokens: 32768, stageMaxOutputTokens: { story_bible: 32768, story_graph: 32768, scene_beats: 32768, storyboard: 32768 }, textAttemptTimeoutSeconds: 900, maxSemanticCorrections: 2 },
+    final_only_v1: { presetId: "final_only_v1", presetVersion: "1", requestExtension: "chat_template_kwargs", reasoningMode: "disabled", textContextWindowTokens: 32768, textMaxOutputTokens: 16384, stageMaxOutputTokens: { story_bible: 8192, story_graph: 8192, scene_beats: 8192, storyboard: 8192 }, textAttemptTimeoutSeconds: 600, maxSemanticCorrections: 2 },
+  },
+});
+
 export default function App() {
   const [activePage, setActivePage] = useState<PageId>("brief");
   const [project, setProject] = useState<WorkspaceProject>(demoProject);
@@ -48,11 +104,30 @@ export default function App() {
   const [mediaTasks, setMediaTasks] = useState<Record<string, MediaTask>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rebuildOpen, setRebuildOpen] = useState(false);
-  const [providerSettings, setProviderSettings] = useState<ProviderSettings>(defaultProviderSettings);
-  const [sessionKey, setSessionKey] = useState(providerSessionKey.read());
+  const [sessionKey, setSessionKey] = useState(() => providerSessionKeys.read("default"));
+  const [profiles, setProfiles] = useState<TextProviderProfilesResponse>(fallbackProfiles);
+  const [selectedProfileId, setSelectedProfileId] = useState("default");
+  const [profileDraft, setProfileDraft] = useState<TextProviderProfileView>(defaultTextProfile);
+  const [profileDirty, setProfileDirty] = useState(false);
+  const [executionTrace, setExecutionTrace] = useState<RunExecutionTrace | undefined>();
   const pollingRunIds = useRef(new Set<string>());
   const projectSaveInFlight = useRef(false);
   const creationKeyByBody = useRef(new Map<string, string>());
+  const profilesLoaded = useRef(false);
+
+  const installProfiles = useCallback((next: TextProviderProfilesResponse, selectedId = next.activeProfileId) => {
+    const selected = next.profiles.find((profile) => profile.profileId === selectedId) || next.profiles[0];
+    if (!selected) return;
+    profilesLoaded.current = true;
+    setProfiles(next); setSelectedProfileId(selected.profileId); setProfileDraft(selected);
+    setSessionKey(providerSessionKeys.read(selected.profileId)); setProfileDirty(false);
+  }, []);
+
+  const refreshProfiles = useCallback(async (): Promise<TextProviderProfilesResponse> => {
+    const next = await plotloomApi.getTextProviderProfiles();
+    installProfiles(next);
+    return next;
+  }, [installProfiles]);
 
   const loadProject = useCallback(async (projectId: string) => {
     if (!projectId) { setConnection("demo"); return; }
@@ -66,15 +141,29 @@ export default function App() {
       ]);
       const latestRun = runResponse.runs[0];
       const latestTrace = latestRun ? await plotloomApi.getTrace(latestRun.id) : undefined;
+      // The execution shard is additive. A rolling upgrade must keep the
+      // compact trace usable even if this endpoint is temporarily unavailable.
+      const latestExecutionTrace = latestRun
+        ? await plotloomApi.getRunExecutionTrace(latestRun.id).catch(() => undefined)
+        : undefined;
       const quarantines = latestTrace ? quarantineItemsFromTrace(latestTrace) : [];
       setProject((current) => ({ ...hydrateWorkspaceProject(current, incoming, stageResponse.stages), quarantines }));
       setRun(latestRun);
-      setTrace(latestTrace ? traceEvents(latestTrace) : []);
+      setTrace(latestTrace ? traceEvents(latestTrace, latestExecutionTrace) : []);
+      setExecutionTrace(latestExecutionTrace);
       setMediaTasks(newestMediaTasksByShot(mediaResponse.tasks));
       setConnection("connected");
       setError("");
       if (latestRun && (latestRun.status === "queued" || latestRun.status === "running" || latestRun.status === "cancel_requested")) {
-        void pollRun(latestRun.id, incoming.id).catch((pollError) => setError(messageFrom(pollError)));
+        if (latestRun.status === "cancel_requested") {
+          void pollRun(latestRun.id, incoming.id).catch((pollError) => setError(messageFrom(pollError)));
+        } else {
+          const frozenProfileId = String(latestRun.providerSnapshot.profileId || "default");
+          const usesBearer = latestRun.providerSnapshot.textAuthMode !== "none";
+          void plotloomApi.resumeRun(latestRun.id, frozenProfileId, usesBearer)
+            .then(() => pollRun(latestRun.id, incoming.id))
+            .catch((resumeError) => setError(`运行保持排队：${messageFrom(resumeError)}`));
+        }
       }
     } catch (loadError) {
       setConnection("demo");
@@ -83,6 +172,7 @@ export default function App() {
   }, []);
 
   useEffect(() => { void loadProject(projectIdFromLocation()); }, [loadProject]);
+  useEffect(() => { void refreshProfiles().catch(() => undefined); }, [refreshProfiles]);
 
   const beginProjectSave = (): boolean => {
     // React state does not update synchronously enough to protect two clicks in
@@ -171,7 +261,8 @@ export default function App() {
       let keepPolling = true;
       while (keepPolling) {
         const [nextRun, nextTrace] = await Promise.all([plotloomApi.getRun(runId), plotloomApi.getTrace(runId)]);
-        setRun(nextRun); setTrace(traceEvents(nextTrace));
+        const nextExecutionTrace = await plotloomApi.getRunExecutionTrace(runId).catch(() => undefined);
+        setRun(nextRun); setTrace(traceEvents(nextTrace, nextExecutionTrace)); setExecutionTrace(nextExecutionTrace);
         keepPolling = nextRun.status === "queued" || nextRun.status === "running" || nextRun.status === "cancel_requested";
         if (keepPolling) await new Promise((resolve) => window.setTimeout(resolve, 1400));
         else if (nextRun.status === "quarantined") {
@@ -184,10 +275,30 @@ export default function App() {
     }
   }
 
+  const prepareGenerationProfile = async (): Promise<TextProviderProfileView> => {
+    // Every provider-spending action freezes the public form currently shown.
+    // A full-page refresh must first load the active server-side selection so
+    // it cannot accidentally save or use the UI fallback profile.
+    let profileToSave = profileDraft;
+    let keyToUse = sessionKey;
+    if (!profilesLoaded.current) {
+      const loaded = await refreshProfiles();
+      profileToSave = loaded.profiles.find((profile) => profile.profileId === loaded.activeProfileId) || profileToSave;
+      keyToUse = providerSessionKeys.read(profileToSave.profileId);
+    }
+    return saveProfile(profileToSave, keyToUse);
+  };
+
   const startRun = async (stages: ServerStageName[]) => {
     if (!project.id) { setError("请先保存项目，再启动生成流水线。"); return; }
     setBusy(true); setError("");
-    try { const started = await plotloomApi.startRun(project.id, stages); setRun(started); setTrace([]); void pollRun(started.id).catch((pollError) => setError(messageFrom(pollError))); }
+    try {
+      const saved = await prepareGenerationProfile();
+      const started = await plotloomApi.startRun(
+        project.id, stages, saved.profileId, saved.configuration.textAuthMode === "bearer",
+      );
+      setRun(started); setTrace([]); setExecutionTrace(undefined); void pollRun(started.id).catch((pollError) => setError(messageFrom(pollError)));
+    }
     catch (runError) { setError(messageFrom(runError)); }
     finally { setBusy(false); }
   };
@@ -198,10 +309,28 @@ export default function App() {
     catch (cancelError) { setError(messageFrom(cancelError)); }
   };
 
+  const resumeRun = async () => {
+    if (!run || (run.status !== "queued" && run.status !== "running")) return;
+    const frozenProfileId = String(run.providerSnapshot.profileId || "default");
+    const usesBearer = run.providerSnapshot.textAuthMode !== "none";
+    try {
+      const resumed = await plotloomApi.resumeRun(run.id, frozenProfileId, usesBearer);
+      setRun(resumed);
+      void pollRun(run.id).catch((pollError) => setError(messageFrom(pollError)));
+    } catch (resumeError) { setError(messageFrom(resumeError)); }
+  };
+
   const repair = async (item: QuarantineItem, instruction: string) => {
     if (!run) { setError("没有可修复的运行记录。"); return; }
     setBusy(true);
-    try { const next = await plotloomApi.repairRun(run.id, item.stage, instruction); setRun(next); setActivePage("trace"); void pollRun(next.id).catch((pollError) => setError(messageFrom(pollError))); }
+    try {
+      const saved = await prepareGenerationProfile();
+      const next = await plotloomApi.repairRun(
+        run.id, item.stage, instruction, saved.profileId,
+        saved.configuration.textAuthMode === "bearer",
+      );
+      setRun(next); setActivePage("trace"); void pollRun(next.id).catch((pollError) => setError(messageFrom(pollError)));
+    }
     catch (repairError) { setError(messageFrom(repairError)); }
     finally { setBusy(false); }
   };
@@ -230,21 +359,116 @@ export default function App() {
   const rebuild = async (fromStage: ServerStageName) => {
     if (!project.id) { setError("请先保存项目，再重建下游阶段。"); return; }
     setBusy(true);
-    try { const next = await plotloomApi.rebuild(project.id, fromStage); setRun(next); setTrace([]); setRebuildOpen(false); setActivePage("trace"); void pollRun(next.id).catch((pollError) => setError(messageFrom(pollError))); }
+    try {
+      const saved = await prepareGenerationProfile();
+      const next = await plotloomApi.rebuild(
+        project.id, fromStage, saved.profileId,
+        saved.configuration.textAuthMode === "bearer",
+      );
+      setRun(next); setTrace([]); setExecutionTrace(undefined); setRebuildOpen(false); setActivePage("trace"); void pollRun(next.id).catch((pollError) => setError(messageFrom(pollError)));
+    }
     catch (rebuildError) { setError(messageFrom(rebuildError)); }
     finally { setBusy(false); }
   };
 
+  const saveProfile = async (draft: TextProviderProfileView, key: string): Promise<TextProviderProfileView> => {
+    // `none` is a complete authentication mode, not an empty bearer key. Do
+    // not retain an unnecessary credential or attach it to a later request.
+    if (draft.configuration.textAuthMode === "bearer") providerSessionKeys.write(draft.profileId, key);
+    else providerSessionKeys.clear(draft.profileId);
+    const saved = await plotloomApi.updateTextProviderProfile(
+      draft.profileId, draft.revision, draft.displayName, draft.configuration,
+    );
+    setProfiles((current) => ({ ...current, profiles: current.profiles.map((profile) => profile.profileId === saved.profileId ? saved : profile) }));
+    if (saved.profileId === selectedProfileId) {
+      setProfileDraft(saved); setSessionKey(saved.configuration.textAuthMode === "bearer" ? providerSessionKeys.read(saved.profileId) : "");
+    }
+    setProfileDirty(false);
+    return saved;
+  };
+
+  const saveCurrentProfile = async (): Promise<TextProviderProfileView> => saveProfile(profileDraft, sessionKey);
+
   const openSettings = async () => {
     setSettingsOpen(true);
-    try { setProviderSettings(await plotloomApi.getProviderSettings()); } catch { /* Defaults remain editable offline. */ }
+    try { await refreshProfiles(); }
+    catch {
+      // Keep the legacy read as an offline/rolling-upgrade fallback. It never
+      // receives a profile key and preserves the existing settings entry path.
+      try {
+        const legacy = await plotloomApi.getProviderSettings();
+        const fallback = fallbackProfiles();
+        fallback.profiles[0] = profileFromLegacySettings(legacy);
+        installProfiles(fallback);
+      } catch { /* Defaults remain editable offline. */ }
+    }
   };
 
   const saveSettings = async () => {
     setBusy(true);
-    providerSessionKey.write(sessionKey);
-    try { setProviderSettings(await plotloomApi.putProviderSettings(providerSettings)); setSettingsOpen(false); }
+    try { await saveCurrentProfile(); setSettingsOpen(false); }
     catch (settingsError) { setError(messageFrom(settingsError)); }
+    finally { setBusy(false); }
+  };
+
+  const selectProfile = async (profileId: string) => {
+    setBusy(true); setError("");
+    try {
+      if (profileDirty) await saveCurrentProfile();
+      const selected = profiles.profiles.find((profile) => profile.profileId === profileId);
+      if (!selected) return;
+      setSelectedProfileId(profileId); setProfileDraft(selected);
+      setSessionKey(providerSessionKeys.read(profileId)); setProfileDirty(false);
+    } catch (profileError) { setError(messageFrom(profileError)); }
+    finally { setBusy(false); }
+  };
+
+  const createProfile = async (copy = false) => {
+    const profileId = window.prompt("新 Profile ID（小写字母、数字、下划线）", "")?.trim();
+    if (!profileId) return;
+    const displayName = window.prompt("显示名称", profileId)?.trim();
+    if (!displayName) return;
+    setBusy(true); setError("");
+    try {
+      const source = profileDirty ? await saveCurrentProfile() : profileDraft;
+      const created = await plotloomApi.createTextProviderProfile(copy
+        ? { profileId, displayName, copyFromProfileId: source.profileId }
+        : { profileId, displayName, configuration: { ...source.configuration, profileId, profileVersion: 0, profileHash: "", presetId: "custom" } });
+      setProfiles((current) => ({ ...current, profiles: [...current.profiles, created] }));
+      setSelectedProfileId(created.profileId); setProfileDraft(created); setSessionKey(providerSessionKeys.read(created.profileId)); setProfileDirty(false);
+    } catch (profileError) { setError(messageFrom(profileError)); }
+    finally { setBusy(false); }
+  };
+
+  const activateProfile = async () => {
+    setBusy(true); setError("");
+    try {
+      if (profileDirty) await saveCurrentProfile();
+      await plotloomApi.activateTextProviderProfile(profileDraft.profileId, profiles.selectionRevision);
+      await refreshProfiles();
+    } catch (profileError) { setError(messageFrom(profileError)); }
+    finally { setBusy(false); }
+  };
+
+  const deleteProfile = async () => {
+    if (profileDraft.profileId === profiles.activeProfileId) { setError("请先激活另一个 Profile，再删除当前活动 Profile。"); return; }
+    setBusy(true); setError("");
+    try {
+      await plotloomApi.deleteTextProviderProfile(profileDraft.profileId, profileDraft.revision);
+      providerSessionKeys.clear(profileDraft.profileId);
+      const next = await plotloomApi.getTextProviderProfiles();
+      installProfiles(next);
+    } catch (profileError) { setError(messageFrom(profileError)); }
+    finally { setBusy(false); }
+  };
+
+  const testProfile = async (): Promise<void> => {
+    setBusy(true); setError("");
+    try {
+      const saved = await saveCurrentProfile();
+      const probe = await plotloomApi.probeTextProviderProfile(saved.profileId, saved.configuration.textAuthMode === "bearer");
+      setError(probe.errorCode ? `连接测试失败：${probe.errorCode}` : `连接测试完成：${probe.model || saved.configuration.textModel} · ${probe.latencyMs}ms`);
+    } catch (profileError) { setError(messageFrom(profileError)); }
     finally { setBusy(false); }
   };
 
@@ -258,12 +482,12 @@ export default function App() {
       case "graph": return <GraphPage key={editorRevisionKey(project, "story_graph")} value={project.storyGraph} stale={project.staleStages.includes("story_graph")} saving={projectSaving} onSave={(value: StoryGraph) => commitStage("story_graph", value)} />;
       case "beats": return <SceneBeatsPage key={editorRevisionKey(project, "scene_beats")} value={project.sceneBeats} stale={project.staleStages.includes("scene_beats")} saving={projectSaving} onSave={(value: SceneBeatPlan) => commitStage("scene_beats", value)} />;
       case "storyboard": return <StoryboardPage key={editorRevisionKey(project, "storyboard")} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={project.storyboard} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={projectSaving} onSave={(value: Storyboard) => commitStage("storyboard", value)} onMedia={startMedia} />;
-      case "trace": return <TracePage run={run} trace={trace} running={Boolean(running)} onRun={startRun} onCancel={cancelRun} />;
+      case "trace": return <TracePage run={run} trace={trace} executionTrace={executionTrace} running={Boolean(running)} onRun={startRun} onResume={resumeRun} onCancel={cancelRun} />;
       case "quarantine": return <QuarantinePage items={project.quarantines} repairing={busy} onRepair={repair} />;
     }
   // Commit callbacks intentionally read the current revision at invocation time.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePage, project, busy, projectSaving, run, trace, mediaTasks, running]);
+  }, [activePage, project, busy, projectSaving, run, trace, executionTrace, mediaTasks, running]);
 
   return <div className="app-shell">
     <a className="skip-link" href="#workspace-main">跳到工作区</a>
@@ -280,25 +504,26 @@ export default function App() {
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       <main id="workspace-main">{page}</main>
     </div>
-    {settingsOpen && <SettingsDialog settings={providerSettings} sessionKey={sessionKey} busy={busy} onSettings={setProviderSettings} onSessionKey={setSessionKey} onClose={() => setSettingsOpen(false)} onSave={saveSettings} />}
+    {settingsOpen && <SettingsDialog profiles={profiles} selectedProfileId={selectedProfileId} draft={profileDraft} sessionKey={sessionKey} busy={busy} onDraft={(draft) => { setProfileDraft(draft); setProfileDirty(true); }} onSessionKey={setSessionKey} onSelect={selectProfile} onCreate={() => createProfile(false)} onCopy={() => createProfile(true)} onDelete={deleteProfile} onActivate={activateProfile} onProbe={testProfile} onClose={() => setSettingsOpen(false)} onSave={saveSettings} />}
     {rebuildOpen && <RebuildDialog staleStages={project.staleStages} busy={busy} onClose={() => setRebuildOpen(false)} onRebuild={rebuild} />}
   </div>;
 }
 
-function SettingsDialog({ settings, sessionKey, busy, onSettings, onSessionKey, onClose, onSave }: { settings: ProviderSettings; sessionKey: string; busy: boolean; onSettings: (settings: ProviderSettings) => void; onSessionKey: (key: string) => void; onClose: () => void; onSave: () => Promise<void> }) {
-  const field = (key: keyof ProviderSettings, label: string) => <label><span>{label}</span><input value={String(settings[key] ?? "")} onChange={(event) => onSettings({ ...settings, [key]: event.target.value })} /></label>;
-  const numberField = (key: keyof ProviderSettings, label: string) => <label><span>{label}</span><input type="number" value={Number(settings[key] ?? 0)} onChange={(event) => onSettings({ ...settings, [key]: Number(event.target.value) })} /></label>;
-  const authMode = (key: "textAuthMode" | "imageAuthMode" | "videoAuthMode", label: string) => <label><span>{label}</span><select value={settings[key]} onChange={(event) => onSettings({ ...settings, [key]: event.target.value as "none" | "bearer" })}><option value="none">none（不发送 Authorization）</option><option value="bearer">bearer</option></select></label>;
-  const capability = (key: "chatCompletions" | "jsonObject" | "jsonSchema", label: string) => <label><span>{label}</span><input type="checkbox" checked={settings.textCapabilities[key]} onChange={(event) => onSettings({ ...settings, textCapabilities: { ...settings.textCapabilities, [key]: event.target.checked } })} /></label>;
-  const serverKeys = [
-    settings.textKeyAvailable ? "文本" : "",
-    settings.imageKeyAvailable ? "图像" : "",
-    settings.videoKeyAvailable ? "视频" : "",
-  ].filter(Boolean);
-  const keyHint = serverKeys.length
-    ? `服务器已配置${serverKeys.join("、")}密钥；留空即使用服务器密钥，填写则仅覆盖当前标签页。`
+function SettingsDialog({ profiles, selectedProfileId, draft, sessionKey, busy, onDraft, onSessionKey, onSelect, onCreate, onCopy, onDelete, onActivate, onProbe, onClose, onSave }: { profiles: TextProviderProfilesResponse; selectedProfileId: string; draft: TextProviderProfileView; sessionKey: string; busy: boolean; onDraft: (draft: TextProviderProfileView) => void; onSessionKey: (key: string) => void; onSelect: (profileId: string) => Promise<void>; onCreate: () => Promise<void>; onCopy: () => Promise<void>; onDelete: () => Promise<void>; onActivate: () => Promise<void>; onProbe: () => Promise<void>; onClose: () => void; onSave: () => Promise<void> }) {
+  const configuration = draft.configuration;
+  const update = (patch: Partial<TextProviderProfileConfiguration>) => onDraft({ ...draft, configuration: { ...configuration, ...patch } });
+  const field = (key: "textProvider" | "textBaseUrl" | "textModel", label: string) => <label><span>{label}</span><input value={configuration[key]} onChange={(event) => update({ [key]: event.target.value } as Partial<TextProviderProfileConfiguration>)} /></label>;
+  const numberField = (key: "textContextWindowTokens" | "textMaxOutputTokens" | "textTemperature" | "textMaxConcurrency" | "textConnectTimeoutSeconds" | "textAttemptTimeoutSeconds" | "maxSemanticCorrections", label: string) => <label><span>{label}</span><input type="number" value={configuration[key]} onChange={(event) => update({ [key]: Number(event.target.value), presetId: "custom" } as Partial<TextProviderProfileConfiguration>)} /></label>;
+  const stageNumberField = (stage: ServerStageName) => <label><span>{stageLabels[stage]}最大输出 token</span><input type="number" value={configuration.stageMaxOutputTokens[stage]} onChange={(event) => update({ stageMaxOutputTokens: { ...configuration.stageMaxOutputTokens, [stage]: Number(event.target.value) }, presetId: "custom" })} /></label>;
+  const capability = (key: keyof TextProviderProfileConfiguration["textCapabilities"], label: string) => <label><span>{label}</span><input type="checkbox" checked={configuration.textCapabilities[key]} onChange={(event) => update({ textCapabilities: { ...configuration.textCapabilities, [key]: event.target.checked }, presetId: "custom" })} /></label>;
+  const applyPreset = (presetId: Exclude<TextProviderPresetId, "custom">) => {
+    const preset = profiles.presets[presetId];
+    update({ ...preset, presetId, textCapabilities: { ...configuration.textCapabilities, chatTemplateKwargs: preset.requestExtension === "chat_template_kwargs" } });
+  };
+  const keyHint = draft.serverKeyAvailable
+    ? "服务器已配置文本密钥；留空即使用服务器密钥，填写则仅覆盖当前标签页。"
     : "服务器没有可用密钥；填写后仅在当前标签页会话中使用。";
-  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title"><button className="modal-backdrop" aria-label="关闭" onClick={onClose} /><section className="modal-card"><header><div><span>Provider boundary · {settings.profileId} v{settings.profileVersion}</span><h2 id="settings-title">供应商与会话 Key</h2></div><button aria-label="关闭" onClick={onClose}>×</button></header><div className="modal-body"><div className="notice"><strong>Key 不进入项目</strong><span>仅写入当前标签页的 sessionStorage，并作为 `X-Plotloom-Session-API-Key` 请求头发送。HTTP 可用于本机、LAN 或 Tailnet 的已保存供应商根地址。</span></div>{field("textProvider", "文本供应商")}{field("textBaseUrl", "文本 API 根地址")}{field("textModel", "文本模型")}{authMode("textAuthMode", "文本认证")}{capability("chatCompletions", "支持 Chat Completions")}{capability("jsonObject", "支持 JSON object")}{capability("jsonSchema", "支持 JSON schema")}{numberField("textContextWindowTokens", "文本上下文 token")}{numberField("textMaxOutputTokens", "文本最大输出 token")}{numberField("textTemperature", "文本 temperature")}{numberField("textMaxConcurrency", "文本并发")}{numberField("textConnectTimeoutSeconds", "文本连接超时（秒）")}{numberField("textAttemptTimeoutSeconds", "文本尝试超时（秒）")}{field("imageProvider", "图像供应商")}{field("imageBaseUrl", "图像 API 根地址")}{field("imageModel", "图像模型")}{authMode("imageAuthMode", "图像认证")}{field("videoProvider", "视频供应商")}{field("videoBaseUrl", "视频 API 根地址")}{field("videoModel", "视频模型")}{authMode("videoAuthMode", "视频认证")}<label><span>临时 API Key</span><input type="password" autoComplete="off" value={sessionKey} placeholder={serverKeys.length ? "留空使用服务器密钥" : "当前标签页的临时密钥"} onChange={(event) => onSessionKey(event.target.value)} /><small>{keyHint}</small></label></div><footer><Button variant="quiet" onClick={onClose}>取消</Button><Button variant="primary" disabled={busy} onClick={() => void onSave()}>{busy ? "正在保存…" : "保存设置"}</Button></footer></section></div>;
+  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title"><button className="modal-backdrop" aria-label="关闭" onClick={onClose} /><section className="modal-card"><header><div><span>Text provider profile · {draft.profileId} r{draft.revision}</span><h2 id="settings-title">供应商 Profile 与会话 Key</h2></div><button aria-label="关闭" onClick={onClose}>×</button></header><div className="modal-body"><div className="notice"><strong>Key 不进入项目</strong><span>每个 Profile 的 Key 仅写入当前标签页 sessionStorage；保存、测试和生成请求都不会将它写入 JSON。</span></div><label><span>活动 Profile</span><select value={selectedProfileId} disabled={busy} onChange={(event) => void onSelect(event.target.value)}>{profiles.profiles.map((profile) => <option key={profile.profileId} value={profile.profileId}>{profile.displayName} · {profile.profileId}{profile.profileId === profiles.activeProfileId ? " · active" : ""}</option>)}</select></label><div className="profile-actions"><Button disabled={busy} onClick={() => void onCreate()}>新建</Button><Button disabled={busy} onClick={() => void onCopy()}>复制</Button><Button disabled={busy || draft.profileId === profiles.activeProfileId} variant="danger" onClick={() => void onDelete()}>删除</Button><Button disabled={busy || draft.profileId === profiles.activeProfileId} onClick={() => void onActivate()}>设为活动</Button></div><label><span>显示名称</span><input value={draft.displayName} onChange={(event) => onDraft({ ...draft, displayName: event.target.value })} /></label><label><span>执行预设</span><select value={configuration.presetId} onChange={(event) => event.target.value === "custom" ? update({ presetId: "custom" }) : applyPreset(event.target.value as Exclude<TextProviderPresetId, "custom">)}><option value="compatible_v1">兼容模式</option><option value="quality_reasoning_v1">高质量推理</option><option value="final_only_v1">仅最终答案</option><option value="custom">高级自定义</option></select></label>{field("textProvider", "文本供应商")}{field("textBaseUrl", "文本 API 根地址")}{field("textModel", "文本模型")}<label><span>文本认证</span><select value={configuration.textAuthMode} onChange={(event) => update({ textAuthMode: event.target.value as "none" | "bearer" })}><option value="none">none（不发送 Authorization）</option><option value="bearer">bearer</option></select></label><div className="profile-capabilities">{capability("chatCompletions", "支持 Chat Completions")}{capability("jsonObject", "支持 JSON object")}{capability("jsonSchema", "支持 JSON schema")}{capability("chatTemplateKwargs", "支持 Chat Template 参数")}</div><details><summary>高级设置</summary><div className="advanced-settings">{numberField("textContextWindowTokens", "文本上下文 token")}{numberField("textMaxOutputTokens", "文本最大输出 token")}{numberField("textTemperature", "文本 temperature")}{numberField("textMaxConcurrency", "文本并发")}{numberField("textConnectTimeoutSeconds", "文本连接超时（秒）")}{numberField("textAttemptTimeoutSeconds", "文本尝试超时（秒）")}{numberField("maxSemanticCorrections", "语义修正次数")}{(["story_bible", "story_graph", "scene_beats", "storyboard"] as ServerStageName[]).map(stageNumberField)}<label><span>请求扩展</span><select value={configuration.requestExtension} onChange={(event) => update({ requestExtension: event.target.value as TextProviderProfileConfiguration["requestExtension"], presetId: "custom" })}><option value="none">none</option><option value="chat_template_kwargs">chat_template_kwargs</option></select></label><label><span>推理模式</span><select value={configuration.reasoningMode} onChange={(event) => update({ reasoningMode: event.target.value as TextProviderProfileConfiguration["reasoningMode"], presetId: "custom" })}><option value="provider_default">provider_default</option><option value="enabled">enabled</option><option value="disabled">disabled</option></select></label><label><span>允许 JSON Fence</span><input type="checkbox" checked={configuration.extractionPolicy.allowJsonFence} onChange={(event) => update({ extractionPolicy: { ...configuration.extractionPolicy, allowJsonFence: event.target.checked }, presetId: "custom" })} /></label><label><span>允许开头 Think Block</span><input type="checkbox" checked={configuration.extractionPolicy.allowLeadingThinkBlock} onChange={(event) => update({ extractionPolicy: { ...configuration.extractionPolicy, allowLeadingThinkBlock: event.target.checked }, presetId: "custom" })} /></label></div></details>{configuration.textAuthMode === "bearer" ? <label><span>此 Profile 的临时 API Key</span><input type="password" autoComplete="off" value={sessionKey} placeholder={draft.serverKeyAvailable ? "留空使用服务器密钥" : "当前标签页的临时密钥"} onChange={(event) => onSessionKey(event.target.value)} /><small>{keyHint}</small></label> : <div className="notice"><strong>此 Profile 不需要 API Key</strong><span>authMode 为 none；保存后会清除此 Profile 的临时 key，测试和生成也不会发送它。</span></div>}</div><footer><Button variant="quiet" onClick={onClose}>取消</Button><Button disabled={busy} onClick={() => void onProbe()}>{busy ? "正在处理…" : "测试连接"}</Button><Button variant="primary" disabled={busy} onClick={() => void onSave()}>{busy ? "正在保存…" : "保存设置"}</Button></footer></section></div>;
 }
 
 function RebuildDialog({ staleStages, busy, onClose, onRebuild }: { staleStages: ServerStageName[]; busy: boolean; onClose: () => void; onRebuild: (stage: ServerStageName) => Promise<void> }) {

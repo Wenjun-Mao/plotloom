@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Generic, Iterable, Mapping, Protocol, TypeVar, runtime_checkable
 
@@ -19,6 +18,7 @@ from ..domain import (
 from ..validation import DomainValidationError, validate_stage_payload
 from .contracts import ValidationIssue, ValidationReport, ValidationSeverity
 from .exceptions import ResponseValidationError
+from .json_schema import explicit_presence_json_schema, inline_local_json_references
 
 
 T = TypeVar("T")
@@ -153,9 +153,10 @@ class CanonicalStageValidationAdapter(PydanticValidationAdapter[BaseModel]):
         become canonical through silent default insertion.
         """
 
-        schema = deepcopy(self.model_type.model_json_schema(by_alias=True))
-        _require_all_declared_fields(schema)
-        return schema
+        schema = explicit_presence_json_schema(
+            self.model_type.model_json_schema(by_alias=True)
+        )
+        return inline_local_json_references(schema)
 
     def validate(
         self,
@@ -221,18 +222,6 @@ def _domain_path(path: str) -> tuple[str | int, ...]:
     if not path:
         return ()
     return tuple(int(part) if part.isdigit() else part for part in path.split("."))
-
-
-def _require_all_declared_fields(schema_node: Any) -> None:
-    if isinstance(schema_node, dict):
-        properties = schema_node.get("properties")
-        if isinstance(properties, dict):
-            schema_node["required"] = list(properties)
-        for nested in schema_node.values():
-            _require_all_declared_fields(nested)
-    elif isinstance(schema_node, list):
-        for nested in schema_node:
-            _require_all_declared_fields(nested)
 
 
 def _resolve_schema(schema_node: Any, root: Mapping[str, Any]) -> Any:

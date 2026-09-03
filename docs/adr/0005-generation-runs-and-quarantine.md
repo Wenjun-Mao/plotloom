@@ -1,5 +1,10 @@
 # ADR 0005: Versioned prompts, generation runs, and quarantine
 
+> **Partial supersession (2026-09-03):** ADR 0013 permits at most two explicit,
+> persisted correction attempts for extraction, schema, or semantic failures.
+> This replaces the blanket no-retry sentence below without allowing hidden
+> loops, weaker validation, topology changes, or ambiguous provider replay.
+
 ## Context
 
 Legacy generation does not retain the rendered prompt, raw model response,

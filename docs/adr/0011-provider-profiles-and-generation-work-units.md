@@ -1,5 +1,11 @@
 # ADR 0011: Trusted provider profiles and bounded generation work units
 
+> **Partial supersession (2026-09-03):** ADR 0013 is authoritative for the
+> bounded, visible correction loop and current fail-closed rebuild boundary.
+> It supersedes this record's prohibition on automatic semantic retries and
+> defers the exact work-unit repair described below; the remaining profile,
+> work-unit, sealing, cancellation, and recovery decisions stay in force.
+
 ## Context
 
 Plotloom currently freezes public provider settings on a generation run, but

@@ -9,6 +9,7 @@ from pydantic import Field
 
 from .artifacts import ArtifactStore
 from .domain import Artifact, CamelModel, GenerationRun, StageName, StartupRecoveryPlan
+from .generation.exceptions import SecretLeaseError
 from .providers import ProviderPorts
 
 if TYPE_CHECKING:
@@ -77,7 +78,13 @@ def recover_runtime_jobs(
 
     plan = repository.reconcile_startup_jobs()
     for run_id in plan.resubmit_run_ids:
-        run_runner.submit(run_id)
+        try:
+            run_runner.submit(run_id)
+        except SecretLeaseError:
+            # Browser-session credentials are intentionally not durable.  A
+            # safely recoverable bearer run remains queued until a browser
+            # explicitly resumes it with the matching profile key.
+            continue
     for task_id in (
         *plan.resubmit_media_task_ids,
         *plan.resume_media_poll_task_ids,
@@ -100,11 +107,24 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
     )
     from .persistence import SQLiteRepository
     from .providers import ProviderPorts
+    from .provider_profiles import (
+        PresetId,
+        StageMaxOutputTokens,
+        TextProviderCapabilities,
+        TextProviderProfileSnapshot,
+        V2ExtractionPolicy,
+    )
+    from .generation.contracts import ReasoningMode, RequestExtension
 
     repository = SQLiteRepository(settings.database_url)
     artifact_store = LocalArtifactStore(settings.artifact_root)
     run_secrets = RunSecretBroker(
-        settings.text_api_key.get_secret_value() if settings.text_api_key else None
+        settings.text_api_key.get_secret_value() if settings.text_api_key else None,
+        server_key_resolver=lambda profile_id: (
+            key.get_secret_value()
+            if (key := settings.text_api_key_for_profile(profile_id)) is not None
+            else None
+        ),
     )
     provider_defaults = ProviderSettings(
         text_provider=settings.text_provider,
@@ -131,6 +151,54 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
         video_auth_mode=settings.video_auth_mode,
     )
     provider_resolver = SnapshotTextProviderResolver()
+    text_profile_values = {
+        "profile_schema_version": 2,
+        "profile_id": "default",
+        "profile_version": 0,
+        "text_provider": settings.text_provider,
+        "text_base_url": settings.text_base_url,
+        "text_model": settings.text_model,
+        "text_auth_mode": settings.text_auth_mode,
+        "text_capabilities": TextProviderCapabilities(
+            json_object=settings.text_supports_json_object,
+            json_schema=settings.text_supports_json_schema,
+            chat_template_kwargs=settings.text_supports_chat_template_kwargs,
+        ),
+        "text_context_window_tokens": settings.text_context_window_tokens,
+        "text_max_output_tokens": settings.text_max_output_tokens,
+        "text_temperature": settings.text_temperature,
+        "text_max_concurrency": settings.text_max_concurrency,
+        "text_connect_timeout_seconds": settings.text_connect_timeout_seconds,
+        "text_attempt_timeout_seconds": settings.text_attempt_timeout_seconds,
+        "request_extension": RequestExtension(settings.text_request_extension),
+        "reasoning_mode": ReasoningMode(settings.text_reasoning_mode),
+        "extraction_policy": V2ExtractionPolicy(
+            allow_json_fence=settings.text_extraction_allow_json_fence,
+            allow_leading_think_block=(
+                settings.text_extraction_allow_leading_think_block
+            ),
+        ),
+        "stage_max_output_tokens": StageMaxOutputTokens(
+            story_bible=settings.text_story_bible_max_output_tokens,
+            story_graph=settings.text_story_graph_max_output_tokens,
+            scene_beats=settings.text_scene_beats_max_output_tokens,
+            storyboard=settings.text_storyboard_max_output_tokens,
+        ),
+        "max_semantic_corrections": settings.text_max_semantic_corrections,
+        "preset_id": PresetId(settings.text_preset_id),
+        "preset_version": "1",
+    }
+    try:
+        text_profile_default = TextProviderProfileSnapshot.model_validate(
+            text_profile_values
+        )
+    except ValueError:
+        # Existing pre-M1.5 environment combinations remain valid, but they
+        # are explicitly frozen as custom instead of impersonating a preset.
+        text_profile_values["preset_id"] = PresetId.CUSTOM
+        text_profile_default = TextProviderProfileSnapshot.model_validate(
+            text_profile_values
+        )
     pipeline = PipelineEngine(repository, provider_resolver, run_secrets)
     run_runner = LifecycleJobRunner(
         repository,
@@ -181,6 +249,10 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
             "image_key_available": settings.image_api_key is not None,
             "video_key_available": settings.video_api_key is not None,
         },
+        text_profile_default=text_profile_default,
+        profile_key_available=run_secrets.server_key_available,
+        text_provider_resolver=provider_resolver,
+        text_secret_source=run_secrets,
         lifespan=runtime_lifespan,
     )
     app.state.artifact_store = artifact_store

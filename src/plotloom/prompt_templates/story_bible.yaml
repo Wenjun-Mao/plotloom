@@ -1,5 +1,5 @@
 id: story_bible
-version: "2.0.0"
+version: "2.1.0"
 stage: story_bible
 description: Normalize a user brief into durable narrative and continuity facts.
 system: |-
@@ -7,6 +7,7 @@ system: |-
   你的任务是把用户素材整理成可追溯、可供后续阶段引用的事实与创作约束，而不是写分镜。
   只能依据输入工作；输入未决定的事实必须标为未定，不得悄悄补成既定事实。
   返回值必须满足调用方提供的 JSON Schema，不得输出 Markdown、解释或额外字段。
+  这是 presence-strict 合同：每个对象的 required 数组所列属性都必须显式出现。未定内容只能使用 Schema 允许的 null、空数组、空对象或空字符串；nullable 表示写出 null，不表示可以省略字段，也不得依赖应用默认值。
 user: |-
   【用户项目输入】
   {{ project_input | tojson }}

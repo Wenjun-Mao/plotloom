@@ -16,7 +16,9 @@ from .contracts import (
     GenerationResult,
     GenerationRun,
     QuarantineRecord,
+    ReasoningMode,
     RenderedPrompt,
+    RequestExtension,
     RunStatus,
     ValidationIssue,
     utc_now,
@@ -29,7 +31,11 @@ from .exceptions import (
 )
 from .prompts import PromptRenderer, canonical_json, sha256_text
 from .providers import ProviderAdapter
-from .responses import extract_assistant_text, parse_json_text
+from .responses import (
+    extract_assistant_text,
+    parse_json_text,
+    redact_provider_boundary_evidence,
+)
 from .secrets import SecretLease
 from .validation import SemanticValidationContext, ValidationAdapter
 
@@ -123,6 +129,8 @@ class GenerationOrchestrator:
         temperature: float = 0.2,
         max_output_tokens: int | None = None,
         extraction_policy: ExtractionPolicy | None = None,
+        request_extension: RequestExtension = RequestExtension.NONE,
+        reasoning_mode: ReasoningMode = ReasoningMode.PROVIDER_DEFAULT,
         validation_metadata: Mapping[str, Any] | None = None,
         observer: AttemptLifecycleObserver | None = None,
     ) -> GenerationResult:
@@ -160,6 +168,8 @@ class GenerationOrchestrator:
             temperature=temperature,
             max_output_tokens=max_output_tokens,
             extraction_policy=extraction_policy or ExtractionPolicy(),
+            request_extension=request_extension,
+            reasoning_mode=reasoning_mode,
             validation_metadata=validation_metadata,
             observer=observer,
         )
@@ -176,6 +186,8 @@ class GenerationOrchestrator:
         temperature: float = 0.0,
         max_output_tokens: int | None = None,
         extraction_policy: ExtractionPolicy | None = None,
+        request_extension: RequestExtension = RequestExtension.NONE,
+        reasoning_mode: ReasoningMode = ReasoningMode.PROVIDER_DEFAULT,
         validation_metadata: Mapping[str, Any] | None = None,
         observer: AttemptLifecycleObserver | None = None,
     ) -> GenerationResult:
@@ -230,6 +242,8 @@ class GenerationOrchestrator:
             temperature=temperature,
             max_output_tokens=max_output_tokens,
             extraction_policy=extraction_policy or ExtractionPolicy(),
+            request_extension=request_extension,
+            reasoning_mode=reasoning_mode,
             validation_metadata=validation_metadata,
             observer=observer,
         )
@@ -247,6 +261,8 @@ class GenerationOrchestrator:
         temperature: float,
         max_output_tokens: int | None,
         extraction_policy: ExtractionPolicy,
+        request_extension: RequestExtension,
+        reasoning_mode: ReasoningMode,
         validation_metadata: Mapping[str, Any] | None,
         observer: AttemptLifecycleObserver | None,
     ) -> GenerationResult:
@@ -280,17 +296,43 @@ class GenerationOrchestrator:
                     "attempt_id": attempt.attempt_id,
                     "prompt_hash": rendered.trace.rendered_hash,
                 },
+                request_extension=request_extension,
+                reasoning_mode=reasoning_mode,
             )
             if observer is not None:
                 observer.prompt_prepared(attempt)
             provider_response = self.provider.generate(request, secret)
+            provider_response = provider_response.model_copy(
+                update={
+                    "raw": redact_provider_boundary_evidence(
+                        provider_response.raw,
+                        secret_lease=secret,
+                    )
+                }
+            )
             attempt.provider_request_id = provider_response.request_id
             attempt.finish_reason = provider_response.finish_reason
             attempt.usage = provider_response.usage
         except ProviderError as exc:
-            return self._fail_attempt(run, attempt, exc, "Provider attempt failed")
+            return self._fail_attempt(
+                run,
+                attempt,
+                exc,
+                "Provider attempt failed",
+                error_message=redact_provider_boundary_evidence(
+                    str(exc), secret_lease=secret
+                ),
+            )
         except Exception as exc:
-            return self._fail_attempt(run, attempt, exc, "Provider boundary failed")
+            return self._fail_attempt(
+                run,
+                attempt,
+                exc,
+                "Provider boundary failed",
+                error_message=redact_provider_boundary_evidence(
+                    str(exc), secret_lease=secret
+                ),
+            )
 
         raw_for_quarantine = canonical_json(provider_response.raw)
         try:
@@ -450,8 +492,12 @@ class GenerationOrchestrator:
         attempt: GenerationAttempt,
         error: Exception,
         message: str,
+        *,
+        error_message: str | None = None,
     ) -> GenerationResult:
-        GenerationOrchestrator._mark_failed(run, attempt, error)
+        GenerationOrchestrator._mark_failed(
+            run, attempt, error, error_message=error_message
+        )
         raise GenerationRunFailed(f"{message}: {type(error).__name__}", run=run) from error
 
     @staticmethod
@@ -459,10 +505,12 @@ class GenerationOrchestrator:
         run: GenerationRun,
         attempt: GenerationAttempt,
         error: Exception,
+        *,
+        error_message: str | None = None,
     ) -> None:
         attempt.status = AttemptStatus.FAILED
         attempt.error_type = type(error).__name__
-        attempt.error_message = str(error)
+        attempt.error_message = error_message if error_message is not None else str(error)
         attempt.finished_at = utc_now()
         run.status = RunStatus.FAILED
         run.finished_at = utc_now()

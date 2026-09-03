@@ -22,11 +22,22 @@ from ..domain import (
 from .prompts import canonical_json, sha256_text
 
 
-PLANNING_POLICY_VERSION = "m1-p0.1"
+PLANNING_POLICY_VERSION = "m1.5-p0.2"
 
 
 class PlanningError(ValueError):
     """The requested scope cannot be turned into a bounded deterministic plan."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "planning.invalid",
+        stage: StageName | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.stage = stage
 
 
 class PlanningModel(BaseModel):
@@ -74,6 +85,7 @@ class GenerationPlan(PlanningModel):
     planning_policy_version: str = Field(default=PLANNING_POLICY_VERSION, min_length=1)
     planning_policy_hash: str
     provider_profile_hash: str = Field(min_length=1)
+    story_graph_topology_hash: str | None = None
     canonical_snapshot_hash: str = Field(min_length=1)
     canonical_snapshot_bytes: int = Field(ge=0)
     instructions_hash: str = Field(min_length=1)
@@ -131,13 +143,6 @@ class GenerationWorkUnit(PlanningModel):
     estimated_input_tokens: int = Field(ge=0)
     context_window_tokens: int = Field(ge=1)
 
-    @model_validator(mode="after")
-    def validate_context_budget(self) -> "GenerationWorkUnit":
-        if self.estimated_input_tokens + self.budget.max_output_tokens > self.context_window_tokens:
-            raise ValueError("work-unit input and output budget exceeds its context window")
-        return self
-
-
 class StagePlan(PlanningModel):
     """Stage-local contract made only after its upstream inputs are available."""
 
@@ -180,6 +185,7 @@ def create_generation_plan(
     run_id: str,
     requested_stages: tuple[StageName, ...] | list[StageName],
     provider_profile_hash: str,
+    story_graph_topology_hash: str | None = None,
     canonical_snapshot: BaseModel | Mapping[str, Any] | None = None,
     canonical_snapshot_hash: str | None = None,
     canonical_snapshot_bytes: int | None = None,
@@ -268,6 +274,12 @@ def create_generation_plan(
                 }
             )
         budgets[stage] = requested_budget
+        if requested_budget.max_output_tokens >= context_window_tokens:
+            raise PlanningError(
+                f"{stage.value} max_output_tokens must leave room for provider input",
+                code="planning.output_budget_exceeds_context",
+                stage=stage,
+            )
     input_hashes = {
         stage: content_hash(value)
         for stage, value in sorted(existing.items(), key=lambda item: STAGE_ORDER.index(item[0]))
@@ -292,12 +304,15 @@ def create_generation_plan(
         "context_window_tokens": context_window_tokens,
         "prompt_overhead_bytes": prompt_overhead_bytes,
     }
+    if story_graph_topology_hash is not None:
+        unsigned["story_graph_topology_hash"] = story_graph_topology_hash
     return GenerationPlan(
         run_id=run_id,
         requested_stages=requested,
         planning_policy_version=planning_policy_version,
         planning_policy_hash=policy_hash,
         provider_profile_hash=provider_profile_hash,
+        story_graph_topology_hash=story_graph_topology_hash,
         canonical_snapshot_hash=canonical_snapshot_hash,
         canonical_snapshot_bytes=canonical_snapshot_bytes,
         instructions_hash=instructions_hash,
@@ -326,13 +341,19 @@ def plan_stage(
     """
 
     if stage not in generation_plan.requested_stages:
-        raise PlanningError(f"stage {stage.value} is not requested by this generation plan")
+        raise PlanningError(
+            f"stage {stage.value} is not requested by this generation plan",
+            code="planning.stage_not_requested",
+            stage=stage,
+        )
     required = _required_dependencies(stage)
     missing = [dependency.value for dependency in required if dependency not in dependencies]
     if missing:
         raise PlanningError(
             f"cannot plan {stage.value} before sealed/canonical dependencies exist: "
-            f"{', '.join(missing)}"
+            f"{', '.join(missing)}",
+            code="planning.dependencies_unavailable",
+            stage=stage,
         )
     dependency_values = {
         dependency: dependencies[dependency]
@@ -358,12 +379,16 @@ def plan_stage(
     if len(selectors) > budget.max_units:
         raise PlanningError(
             f"{stage.value} requires {len(selectors)} work units, exceeding its "
-            f"max_units budget of {budget.max_units}"
+            f"max_units budget of {budget.max_units}",
+            code="planning.max_units_exceeded",
+            stage=stage,
         )
     if len(selectors) > budget.max_aggregate_items:
         raise PlanningError(
             f"{stage.value} requires {len(selectors)} aggregate selectors, exceeding "
-            f"its max_aggregate_items budget of {budget.max_aggregate_items}"
+            f"its max_aggregate_items budget of {budget.max_aggregate_items}",
+            code="planning.max_aggregate_items_exceeded",
+            stage=stage,
         )
 
     work_units = tuple(
@@ -528,10 +553,15 @@ def _selectors_for_stage(
             "storyboard planning found scenes that do not belong to the sealed Story Graph: "
             + ", ".join(unknown_nodes)
         )
-    ordered_scenes = sorted(
-        scene_beats.scenes,
-        key=lambda scene: (node_position[scene.story_node_id], scene.id),
-    )
+    # Preserve the authored/sealed order of sibling scenes. Canonical UUIDv5
+    # identifiers are opaque identity, not sortable sequence metadata.
+    ordered_scenes = [
+        scene
+        for _, scene in sorted(
+            enumerate(scene_beats.scenes),
+            key=lambda item: (node_position[item[1].story_node_id], item[0]),
+        )
+    ]
     if not ordered_scenes:
         raise PlanningError("storyboard planning requires at least one dramatic scene")
     return tuple(
@@ -614,13 +644,14 @@ def _work_unit(
 ) -> GenerationWorkUnit:
     unit_dependency_json = canonical_json(unit_dependency_payload)
     unit_dependency_hash = sha256_text(unit_dependency_json)
-    # UTF-8 byte length is an intentionally conservative token upper bound for
-    # this provider-agnostic planner: a tokenizer cannot consume more byte
-    # pieces than the serialized input contains.  The separately frozen prompt
-    # overhead reserves template/schema text that is not represented here.
+    # This portable estimate is a bounded byte upper bound for memory and trace
+    # purposes, not a tokenizer result. Tokenization is provider/model-specific,
+    # so comparing it to a token context window would create deterministic false
+    # rejections for CJK prompts. The provider owns the exact context check; the
+    # planner only rejects the exact impossibility where output alone consumes
+    # the entire declared window (in ``create_generation_plan`` above).
     estimated_input_tokens = (
-        generation_plan.canonical_snapshot_bytes
-        + generation_plan.instructions_bytes
+        generation_plan.instructions_bytes
         + len(unit_dependency_json.encode("utf-8"))
         + generation_plan.prompt_overhead_bytes
     )
@@ -628,13 +659,9 @@ def _work_unit(
         raise PlanningError(
             f"{stage.value} unit {selector.stable_id} conservative input estimate "
             f"is {estimated_input_tokens} bytes, exceeding its max_input_bytes budget "
-            f"of {budget.max_input_bytes}"
-        )
-    if estimated_input_tokens + budget.max_output_tokens > generation_plan.context_window_tokens:
-        raise PlanningError(
-            f"{stage.value} unit {selector.stable_id} conservative input estimate "
-            f"({estimated_input_tokens}) plus max_output_tokens ({budget.max_output_tokens}) "
-            f"exceeds provider context window ({generation_plan.context_window_tokens})"
+            f"of {budget.max_input_bytes}",
+            code="planning.max_input_bytes_exceeded",
+            stage=stage,
         )
     input_payload = {
         "generation_plan_hash": generation_plan.plan_hash,
@@ -670,6 +697,11 @@ def _generation_plan_hash(plan: GenerationPlan) -> str:
         by_alias=False,
         exclude={"plan_hash"},
     )
+    # Historical M1 plans predate deterministic topologies.  Excluding the
+    # absent field retains their byte-for-byte hash contract while every M1.5
+    # graph-generating plan includes the non-null topology hash.
+    if unsigned.get("story_graph_topology_hash") is None:
+        unsigned.pop("story_graph_topology_hash", None)
     return sha256_text(canonical_json(unsigned))
 
 

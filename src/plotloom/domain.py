@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from enum import Enum
 import hashlib
 import json
+import re
 from typing import Annotated, Any, Literal
 from urllib.parse import parse_qsl, urlparse
 from uuid import uuid4
@@ -89,6 +90,13 @@ class AttemptStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class GenerationAttemptKind(str, Enum):
+    """Why a durable provider attempt exists within one frozen work unit."""
+
+    PRIMARY = "primary"
+    CORRECTION = "correction"
+
+
 class WorkUnitStatus(str, Enum):
     """Lifecycle of one bounded provider work unit.
 
@@ -100,9 +108,23 @@ class WorkUnitStatus(str, Enum):
     QUEUED = "queued"
     RUNNING = "running"
     SUCCEEDED = "succeeded"
+    FAILED = "failed"
     QUARANTINED = "quarantined"
     CANCELLED = "cancelled"
     OUTCOME_UNKNOWN = "outcome_unknown"
+
+
+class WorkUnitFailureDisposition(str, Enum):
+    """Explicit terminal meaning of a known failed work-unit attempt.
+
+    Stable outcome codes explain what happened, but they are deliberately not
+    parsed as an implicit state classifier. The application boundary must say
+    whether it rejected model content for review or recorded an execution
+    failure.
+    """
+
+    FAILED = "failed"
+    QUARANTINED = "quarantined"
 
 
 class StoryNodeKind(str, Enum):
@@ -486,6 +508,8 @@ class GenerationRun(CamelModel):
     legacy_unsealed: bool = False
     result_revision_ids: list[str] = Field(default_factory=list)
     error: str | None = None
+    failure_code: str | None = None
+    failed_stage: StageName | None = None
     created_at: datetime = Field(default_factory=utc_now)
     started_at: datetime | None = None
     finished_at: datetime | None = None
@@ -534,6 +558,8 @@ class GenerationAttempt(CamelModel):
     work_unit_id: str | None = None
     stage: StageName
     attempt_number: Annotated[int, Field(ge=1)]
+    attempt_kind: GenerationAttemptKind = GenerationAttemptKind.PRIMARY
+    source_attempt_id: str | None = None
     status: AttemptStatus
     provider: str | None = None
     model: str | None = None
@@ -542,6 +568,7 @@ class GenerationAttempt(CamelModel):
     response_persisted_at: datetime | None = None
     provider_request_id: str | None = None
     outcome_unknown: bool = False
+    outcome_code: str | None = None
     started_at: datetime = Field(default_factory=utc_now)
     finished_at: datetime | None = None
 
@@ -773,8 +800,23 @@ class ProviderSettings(PublicProviderConfiguration):
     revision: Annotated[int, Field(ge=0)] = 0
     updated_at: datetime | None = None
 
+    @field_validator("profile_id")
+    @classmethod
+    def validate_local_profile_id(cls, value: str) -> str:
+        # The compatibility settings projection may expose whichever named
+        # text profile is active. Frozen historical ProviderSnapshot retains
+        # the original default-only validator above.
+        if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", value):
+            raise ValueError("profileId must match [a-z][a-z0-9_]{0,62}")
+        return value
+
     @model_validator(mode="after")
     def verify_profile_hash(self) -> ProviderSettings:
+        # The compatibility endpoint may project a V2 named text profile. In
+        # that case its already-validated V2 hash is carried through verbatim;
+        # blank hashes retain the legacy singleton calculation below.
+        if self.profile_hash:
+            return self
         payload = self.model_dump(
             mode="json",
             by_alias=False,
@@ -785,8 +827,6 @@ class ProviderSettings(PublicProviderConfiguration):
                 "utf-8"
             )
         ).hexdigest()
-        if self.profile_hash and self.profile_hash != expected:
-            raise ValueError("provider profile hash does not match its public fields")
         object.__setattr__(self, "profile_hash", expected)
         return self
 
@@ -848,10 +888,21 @@ class SealedStageAggregateTrace(CamelModel):
     created_at: datetime
 
 
+class StoryGraphTopologyTrace(CamelModel):
+    """Frozen deterministic graph structure bound to one generation run."""
+
+    run_id: str
+    generation_plan_hash: str
+    topology_hash: str
+    topology: dict[str, Any]
+    created_at: datetime
+
+
 class RunExecutionTrace(CamelModel):
     """Additive work-unit evidence; the legacy RunTrace remains stable."""
 
     generation_plan: GenerationPlanTrace | None = None
+    story_graph_topology: StoryGraphTopologyTrace | None = None
     stage_plans: list[StagePlanTrace] = Field(default_factory=list)
     work_units: list[GenerationWorkUnitTrace] = Field(default_factory=list)
     sealed_aggregates: list[SealedStageAggregateTrace] = Field(default_factory=list)
@@ -996,7 +1047,25 @@ def validate_public_base_urls(value: Any) -> None:
 
 
 def validate_public_provider_snapshot(value: Any) -> dict[str, Any]:
-    """Validate and canonicalize the only provider data allowed in durable runs."""
+    """Validate the secret-free provider contract frozen into a durable run.
 
-    snapshot = ProviderSnapshot.model_validate({} if value is None else value)
+    Snapshots without ``profileSchemaVersion`` are historical V1 values.  They
+    must continue through the exact pre-M1.5 Pydantic/hash path: adding V2
+    defaults while merely reading an old run would change its plan and seal
+    evidence.  Only explicitly versioned V2 snapshots use the named-profile
+    contract.
+    """
+
+    candidate = {} if value is None else value
+    if isinstance(candidate, dict) and (
+        candidate.get("profileSchemaVersion") == 2
+        or candidate.get("profile_schema_version") == 2
+    ):
+        # Local import keeps the domain module usable by the pure profile
+        # contract without introducing a module import cycle.
+        from .provider_profiles import TextProviderProfileSnapshot
+
+        snapshot = TextProviderProfileSnapshot.model_validate(candidate)
+        return snapshot.model_dump(mode="json", by_alias=True)
+    snapshot = ProviderSnapshot.model_validate(candidate)
     return snapshot.model_dump(mode="json", by_alias=True)

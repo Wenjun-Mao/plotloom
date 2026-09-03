@@ -63,6 +63,39 @@ test.describe("first-save project bootstrap", () => {
     await expect(page.getByLabel("Logline")).toHaveValue(logline);
   });
 
+  test("persists a complete storyboard prefix and renders it after a browser refresh", async ({ page, request, workbench }) => {
+    await page.goto(`${workbench.frontendOrigin}/v2/`);
+    await page.getByRole("button", { name: "分镜工作台" }).click();
+    const action = "E2E：刷新后仍能看到这条已持久化的分镜动作。";
+    await page.getByLabel("动作").fill(action);
+    const created = captureProjectCreate(page);
+    await page.getByRole("button", { name: "保存分镜" }).click();
+    const createRequest = await created;
+
+    await expect(page).toHaveURL(/\?project=/);
+    const projectId = currentProjectId(page);
+    const requestBody = createRequest.postDataJSON() as ProjectCreateBody;
+    expect(requestBody.initialStages.map((stage) => stage.stage)).toEqual([
+      "story_bible", "story_graph", "scene_beats", "storyboard",
+    ]);
+    const submittedStoryboard = requestBody.initialStages.find(
+      (stage) => stage.stage === "storyboard",
+    );
+    expect(submittedStoryboard).toBeTruthy();
+    await expectCanonicalStage(
+      request,
+      workbench.apiOrigin,
+      projectId,
+      "storyboard",
+      submittedStoryboard!.payload,
+    );
+
+    await page.reload();
+    await expect(page.getByText("API 已连接", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "分镜工作台" }).click();
+    await expect(page.getByLabel("动作")).toHaveValue(action);
+  });
+
   test("retains an unsaved Story Bible draft and reuses its idempotency key after a transient create failure", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "故事圣经" }).click();

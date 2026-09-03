@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -27,6 +28,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sess
 from sqlalchemy.pool import StaticPool
 
 from .domain import (
+    PUBLIC_PROVIDER_SETTING_FIELDS,
     STAGE_ORDER,
     TERMINAL_MEDIA_TASK_STATUSES,
     TERMINAL_RUN_STATUSES,
@@ -36,6 +38,7 @@ from .domain import (
     CanonicalSnapshot,
     EntityRevision,
     GenerationAttempt,
+    GenerationAttemptKind,
     GenerationPlanTrace,
     GenerationRun,
     GenerationWorkUnitTrace,
@@ -61,8 +64,10 @@ from .domain import (
     StartupRecoveryPlan,
     StoryBible,
     Storyboard,
+    StoryGraphTopologyTrace,
     SealedStageAggregateTrace,
     StagePlanTrace,
+    WorkUnitFailureDisposition,
     WorkUnitStatus,
     downstream_stages,
     stage_payload_model,
@@ -70,6 +75,8 @@ from .domain import (
     new_id,
     validate_initial_stage_prefix,
     utc_now,
+    contains_secret_setting,
+    contains_secret_value,
     validate_public_provider_snapshot,
 )
 from .generation.aggregation import aggregate_stage_fragments
@@ -80,12 +87,31 @@ from .generation.fragments import (
     StoryboardFragment,
 )
 from .generation.planning import (
+    DEFAULT_STAGE_BUDGETS,
     GenerationPlan,
+    StageBudget,
     StagePlan,
     create_generation_plan,
     plan_stage,
 )
+from .generation.story_graph_topology import (
+    StoryGraphTopology,
+    plan_story_graph_topology,
+)
 from .generation.prompts import canonical_json
+from .provider_profiles import (
+    DEFAULT_PROVIDER_PROFILE_ID,
+    PROFILE_ID_PATTERN,
+    PresetId,
+    ProviderProfileSelection,
+    StageMaxOutputTokens,
+    TextProviderCapabilities,
+    TextProviderProfile,
+    TextProviderProfileSnapshot,
+    V2ExtractionPolicy,
+    execution_preset,
+    is_v2_snapshot,
+)
 from .exceptions import (
     BootstrapContentionError,
     IdempotencyConflictError,
@@ -173,6 +199,8 @@ class GenerationRunRow(Base):
     legacy_unsealed: Mapped[bool] = mapped_column(nullable=False, default=True)
     result_revision_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    failure_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    failed_stage: Mapped[str | None] = mapped_column(String(32), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -204,6 +232,10 @@ class GenerationAttemptRow(Base):
     )
     stage: Mapped[str] = mapped_column(String(32), nullable=False)
     attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    attempt_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="primary")
+    source_attempt_id: Mapped[str | None] = mapped_column(
+        ForeignKey("v2_generation_attempts.id", ondelete="RESTRICT"), nullable=True, index=True
+    )
     status: Mapped[str] = mapped_column(String(16), nullable=False)
     provider: Mapped[str | None] = mapped_column(String(100), nullable=True)
     model: Mapped[str | None] = mapped_column(String(200), nullable=True)
@@ -212,6 +244,7 @@ class GenerationAttemptRow(Base):
     response_persisted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     provider_request_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
     outcome_unknown: Mapped[bool] = mapped_column(nullable=False, default=False)
+    outcome_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
@@ -352,6 +385,40 @@ class ProviderSettingsRow(Base):
     updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class TextProviderProfileRow(Base):
+    __tablename__ = "v2_text_provider_profiles"
+
+    id: Mapped[str] = mapped_column(String(63), primary_key=True)
+    display_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    settings: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ProviderProfileSelectionRow(Base):
+    __tablename__ = "v2_provider_profile_selection"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    active_profile_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_text_provider_profiles.id", ondelete="RESTRICT"), nullable=False
+    )
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class StoryGraphTopologyRow(Base):
+    __tablename__ = "v2_generation_story_graph_topologies"
+
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), primary_key=True
+    )
+    generation_plan_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    topology_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    topology: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 def _json_data(value: Any) -> Any:
     if hasattr(value, "model_dump"):
         return value.model_dump(mode="json", by_alias=False)
@@ -402,10 +469,20 @@ class SQLiteRepository:
                 cursor = dbapi_connection.cursor()
                 cursor.execute("PRAGMA foreign_keys=ON")
                 cursor.execute(f"PRAGMA busy_timeout={self._sqlite_busy_timeout_ms}")
-                if file_database:
-                    cursor.execute("PRAGMA journal_mode=WAL")
-                    cursor.fetchone()
                 cursor.close()
+
+            if file_database:
+                # Journal mode is database-wide and changing it takes a write
+                # lock. Doing that in every connection callback races an
+                # unrelated BEGIN IMMEDIATE from another repository instance.
+                # Configure it once, synchronously, before this repository is
+                # published to concurrent callers.
+                with self.engine.connect() as connection:
+                    current_mode = connection.exec_driver_sql(
+                        "PRAGMA journal_mode"
+                    ).scalar_one()
+                    if str(current_mode).lower() != "wal":
+                        connection.exec_driver_sql("PRAGMA journal_mode=WAL").scalar_one()
 
         self._sessions = sessionmaker(bind=self.engine, expire_on_commit=False, class_=Session)
         self._write_lock = RLock()
@@ -536,6 +613,8 @@ class SQLiteRepository:
             legacy_unsealed=row.legacy_unsealed,
             result_revision_ids=list(row.result_revision_ids),
             error=row.error,
+            failure_code=row.failure_code,
+            failed_stage=StageName(row.failed_stage) if row.failed_stage else None,
             created_at=row.created_at,
             started_at=row.started_at,
             finished_at=row.finished_at,
@@ -549,6 +628,8 @@ class SQLiteRepository:
             work_unit_id=row.work_unit_id,
             stage=StageName(row.stage),
             attempt_number=row.attempt_number,
+            attempt_kind=GenerationAttemptKind(row.attempt_kind),
+            source_attempt_id=row.source_attempt_id,
             status=AttemptStatus(row.status),
             provider=row.provider,
             model=row.model,
@@ -557,6 +638,7 @@ class SQLiteRepository:
             response_persisted_at=row.response_persisted_at,
             provider_request_id=row.provider_request_id,
             outcome_unknown=row.outcome_unknown,
+            outcome_code=row.outcome_code,
             started_at=row.started_at,
             finished_at=row.finished_at,
         )
@@ -620,6 +702,40 @@ class SQLiteRepository:
             manifest_hash=row.manifest_hash,
             manifest=dict(row.manifest),
             payload=dict(row.payload),
+            created_at=_stored_utc(row.created_at),
+        )
+
+    @staticmethod
+    def _text_provider_profile(row: TextProviderProfileRow) -> TextProviderProfile:
+        configuration = TextProviderProfileSnapshot.model_validate(row.settings)
+        return TextProviderProfile(
+            profile_id=row.id,
+            display_name=row.display_name,
+            configuration=configuration,
+            revision=row.revision,
+            created_at=_stored_utc(row.created_at),
+            updated_at=_stored_utc(row.updated_at),
+        )
+
+    @staticmethod
+    def _provider_profile_selection(
+        row: ProviderProfileSelectionRow,
+    ) -> ProviderProfileSelection:
+        return ProviderProfileSelection(
+            active_profile_id=row.active_profile_id,
+            revision=row.revision,
+            updated_at=_stored_utc(row.updated_at),
+        )
+
+    @staticmethod
+    def _story_graph_topology_trace(
+        row: StoryGraphTopologyRow,
+    ) -> StoryGraphTopologyTrace:
+        return StoryGraphTopologyTrace(
+            run_id=row.run_id,
+            generation_plan_hash=row.generation_plan_hash,
+            topology_hash=row.topology_hash,
+            topology=dict(row.topology),
             created_at=_stored_utc(row.created_at),
         )
 
@@ -1169,12 +1285,37 @@ class SQLiteRepository:
             # before adding its plan so SQLite enforces the FK rather than
             # relying on SQLAlchemy's incidental INSERT ordering.
             session.flush()
+            topology: StoryGraphTopology | None = None
+            if StageName.STORY_GRAPH in ordered_stages:
+                topology = plan_story_graph_topology(
+                    project_id=project_id,
+                    brief=snapshot.brief,
+                    max_downstream_work_units=128,
+                )
             profile_hash = str(run.provider_snapshot.get("profileHash") or stable_hash(run.provider_snapshot))
+            stage_budgets: dict[StageName, StageBudget] | None = None
+            if is_v2_snapshot(run.provider_snapshot):
+                v2_profile = TextProviderProfileSnapshot.model_validate(run.provider_snapshot)
+                stage_budgets = {
+                    stage: StageBudget(
+                        **{
+                            **DEFAULT_STAGE_BUDGETS[stage].model_dump(mode="python"),
+                            "max_output_tokens": v2_profile.stage_max_output_tokens.for_stage(
+                                stage.value
+                            ),
+                        }
+                    )
+                    for stage in ordered_stages
+                }
             plan = create_generation_plan(
                 run_id=run.id,
                 requested_stages=ordered_stages,
                 provider_profile_hash=profile_hash,
+                story_graph_topology_hash=(
+                    topology.topology_hash if topology is not None else None
+                ),
                 canonical_inputs=self._run_plan_inputs_in_session(session, snapshot, ordered_stages),
+                stage_budgets=stage_budgets,
                 max_concurrency=int(run.provider_snapshot.get("textMaxConcurrency") or 1),
                 canonical_snapshot_hash=snapshot.snapshot_hash,
                 canonical_snapshot_bytes=len(
@@ -1196,6 +1337,16 @@ class SQLiteRepository:
                     created_at=run.created_at,
                 )
             )
+            if topology is not None:
+                session.add(
+                    StoryGraphTopologyRow(
+                        run_id=run.id,
+                        generation_plan_hash=plan.plan_hash,
+                        topology_hash=topology.topology_hash,
+                        topology=topology.model_dump(mode="json", by_alias=True),
+                        created_at=run.created_at,
+                    )
+                )
             return run
 
     def get_run(self, run_id: str) -> GenerationRun:
@@ -1211,6 +1362,28 @@ class SQLiteRepository:
             if row is None:
                 raise NotFoundError(f"generation plan not found for run: {run_id}")
             return GenerationPlan.model_validate(row.plan)
+
+    def get_story_graph_topology(self, run_id: str) -> StoryGraphTopology | None:
+        """Return the immutable topology for a run that generates Story Graph."""
+
+        with self._read() as session:
+            self._run_row(session, run_id)
+            row = session.get(StoryGraphTopologyRow, run_id)
+            if row is None:
+                return None
+            topology = StoryGraphTopology.model_validate(row.topology)
+            if topology.topology_hash != row.topology_hash:
+                raise InvalidTransitionError("stored Story Graph topology hash is inconsistent")
+            if row.generation_plan_hash != self._generation_plan_row_hash(session, run_id):
+                raise InvalidTransitionError("Story Graph topology is bound to a different GenerationPlan")
+            return topology
+
+    @staticmethod
+    def _generation_plan_row_hash(session: Session, run_id: str) -> str:
+        row = session.get(GenerationPlanRow, run_id)
+        if row is None:
+            raise InvalidTransitionError("run has no durable GenerationPlan")
+        return row.plan_hash
 
     @staticmethod
     def _stage_plan_row(session: Session, run_id: str, stage: StageName) -> StagePlanRow | None:
@@ -1294,6 +1467,19 @@ class SQLiteRepository:
             if plan_row is None:
                 raise InvalidTransitionError("run has no durable GenerationPlan")
             generation_plan = GenerationPlan.model_validate(plan_row.plan)
+            if stage == StageName.STORY_GRAPH:
+                topology_row = session.get(StoryGraphTopologyRow, run_id)
+                if topology_row is None:
+                    raise InvalidTransitionError(
+                        "new Story Graph stage has no frozen deterministic topology"
+                    )
+                if (
+                    generation_plan.story_graph_topology_hash != topology_row.topology_hash
+                    or topology_row.generation_plan_hash != generation_plan.plan_hash
+                ):
+                    raise InvalidTransitionError(
+                        "Story Graph topology does not match the frozen GenerationPlan"
+                    )
             expected = self._expected_stage_dependencies_in_session(session, run, stage)
             if dependencies is not None:
                 if set(dependencies) != set(expected) or any(
@@ -1462,13 +1648,17 @@ class SQLiteRepository:
         *,
         provider: str | None = None,
         model: str | None = None,
+        attempt_kind: GenerationAttemptKind = GenerationAttemptKind.PRIMARY,
+        source_attempt_id: str | None = None,
+        max_attempts: int | None = None,
     ) -> GenerationAttempt:
         """Atomically claim one executable work unit for its provider attempt.
 
-        This slice has no automatic retry policy.  The sole exception is a
-        startup-recovered attempt that is terminal and provably never crossed
-        the dispatch boundary; reconciliation puts that unit back in
-        ``QUEUED`` so it can receive the next unit-local attempt number.
+        Known schema/semantic rejection may authorize one explicit correction
+        attempt through ``allow_correction``. Startup recovery never consumes
+        another attempt number: it resumes the same durable identity only when
+        the repository can prove either that dispatch never happened or that
+        the provider response is already durable.
         """
 
         try:
@@ -1493,25 +1683,49 @@ class SQLiteRepository:
                 ).all()
                 if any(AttemptStatus(row.status) == AttemptStatus.RUNNING for row in prior_attempts):
                     raise InvalidTransitionError("work unit already has an active attempt")
-                if any(
-                    row.dispatched_at is not None
-                    or row.response_persisted_at is not None
-                    or row.outcome_unknown
-                    for row in prior_attempts
-                ):
-                    raise InvalidTransitionError(
-                        "work unit has prior dispatched or ambiguous evidence and cannot be retried automatically"
-                    )
+                if attempt_kind == GenerationAttemptKind.PRIMARY:
+                    if source_attempt_id is not None:
+                        raise InvalidTransitionError("a primary attempt cannot name a source attempt")
+                    if any(
+                        row.dispatched_at is not None
+                        or row.response_persisted_at is not None
+                        or row.outcome_unknown
+                        for row in prior_attempts
+                    ):
+                        raise InvalidTransitionError(
+                            "work unit has prior dispatched or ambiguous evidence and requires an explicit correction"
+                        )
+                else:
+                    if not prior_attempts or source_attempt_id != prior_attempts[-1].id:
+                        raise InvalidTransitionError(
+                            "a correction must name the latest attempt in its work unit"
+                        )
+                    source = prior_attempts[-1]
+                    if (
+                        AttemptStatus(source.status) != AttemptStatus.FAILED
+                        or source.response_persisted_at is None
+                        or source.outcome_unknown
+                        or not source.outcome_code
+                    ):
+                        raise InvalidTransitionError(
+                            "a correction source must be a known rejected response"
+                        )
 
                 attempt_number = max(
                     (row.attempt_number for row in prior_attempts),
                     default=0,
                 ) + 1
+                if max_attempts is not None and attempt_number > max_attempts:
+                    raise InvalidTransitionError(
+                        f"work unit attempt limit {max_attempts} has been exhausted"
+                    )
                 attempt = GenerationAttempt(
                     run_id=unit.run_id,
                     work_unit_id=unit.id,
                     stage=StageName(unit.stage),
                     attempt_number=attempt_number,
+                    attempt_kind=attempt_kind,
+                    source_attempt_id=source_attempt_id,
                     status=AttemptStatus.RUNNING,
                     provider=provider,
                     model=model,
@@ -1523,6 +1737,8 @@ class SQLiteRepository:
                         work_unit_id=attempt.work_unit_id,
                         stage=attempt.stage.value,
                         attempt_number=attempt.attempt_number,
+                        attempt_kind=attempt.attempt_kind.value,
+                        source_attempt_id=attempt.source_attempt_id,
                         status=attempt.status.value,
                         provider=provider,
                         model=model,
@@ -1531,6 +1747,7 @@ class SQLiteRepository:
                         response_persisted_at=None,
                         provider_request_id=None,
                         outcome_unknown=False,
+                        outcome_code=None,
                         started_at=attempt.started_at,
                         finished_at=None,
                     )
@@ -1543,6 +1760,41 @@ class SQLiteRepository:
                 return attempt
         except IntegrityError as error:
             raise InvalidTransitionError("work unit has already been claimed by another allocator") from error
+
+    def get_recoverable_attempt_for_work_unit(
+        self,
+        work_unit_id: str,
+    ) -> GenerationAttempt | None:
+        """Return the sole in-flight attempt safe to resume without replay.
+
+        A pre-dispatch attempt may continue to the provider boundary. An
+        attempt with a durably stored response may continue local extraction
+        and validation. A dispatch marker without a response is intentionally
+        excluded because its external outcome is unknown.
+        """
+
+        with self._read() as session:
+            unit = session.get(GenerationWorkUnitRow, work_unit_id)
+            if unit is None:
+                raise NotFoundError(f"generation work unit not found: {work_unit_id}")
+            if WorkUnitStatus(unit.status) != WorkUnitStatus.RUNNING:
+                return None
+            rows = session.scalars(
+                select(GenerationAttemptRow)
+                .where(
+                    GenerationAttemptRow.work_unit_id == work_unit_id,
+                    GenerationAttemptRow.status == AttemptStatus.RUNNING.value,
+                )
+                .order_by(GenerationAttemptRow.attempt_number.desc())
+            ).all()
+            if len(rows) > 1:
+                raise InvalidTransitionError("work unit has multiple running attempts")
+            if not rows:
+                return None
+            row = rows[0]
+            if row.dispatched_at is not None and row.response_persisted_at is None:
+                return None
+            return self._attempt(row)
 
     def mark_attempt_dispatched(self, attempt_id: str) -> GenerationAttempt:
         """Commit the non-idempotent provider-boundary marker before an HTTP call."""
@@ -1637,6 +1889,7 @@ class SQLiteRepository:
             row.status = AttemptStatus.FAILED.value
             row.error = error
             row.outcome_unknown = True
+            row.outcome_code = "provider.outcome_unknown"
             row.finished_at = utc_now()
             unit = session.get(GenerationWorkUnitRow, row.work_unit_id)
             if unit is None:
@@ -1654,6 +1907,7 @@ class SQLiteRepository:
         with self._read() as session:
             self._run_row(session, run_id)
             plan = session.get(GenerationPlanRow, run_id)
+            topology = session.get(StoryGraphTopologyRow, run_id)
             stage_plans = session.scalars(
                 select(StagePlanRow)
                 .where(StagePlanRow.run_id == run_id)
@@ -1671,6 +1925,11 @@ class SQLiteRepository:
             ).all()
             return RunExecutionTrace(
                 generation_plan=self._generation_plan_trace(plan) if plan is not None else None,
+                story_graph_topology=(
+                    self._story_graph_topology_trace(topology)
+                    if topology is not None
+                    else None
+                ),
                 stage_plans=[self._stage_plan_trace(row) for row in stage_plans],
                 work_units=[self._work_unit_trace(row) for row in units],
                 sealed_aggregates=[self._sealed_aggregate_trace(row) for row in aggregates],
@@ -1952,12 +2211,16 @@ class SQLiteRepository:
                     and not attempts
                 )
                 if pristine_queue and not legacy_execution:
+                    row.failure_code = None
+                    row.failed_stage = None
                     resubmit_run_ids.append(row.id)
                     continue
 
                 if status == RunStatus.CANCEL_REQUESTED:
                     row.status = RunStatus.CANCELLED.value
                     row.error = None
+                    row.failure_code = None
+                    row.failed_stage = None
                     row.finished_at = now
                     self._cancel_run_work_units_in_session(
                         session,
@@ -1971,11 +2234,18 @@ class SQLiteRepository:
                 if legacy_execution:
                     row.status = RunStatus.FAILED.value
                     row.error = interrupted_run_error
+                    row.failure_code = "recovery.legacy_interrupted"
+                    row.failed_stage = min(
+                        (attempt.stage for attempt in attempts),
+                        key=lambda stage: STAGE_ORDER.index(StageName(stage)),
+                        default=None,
+                    )
                     row.started_at = row.started_at or now
                     row.finished_at = now
                     for attempt in running_attempts:
                         attempt.status = AttemptStatus.FAILED.value
                         attempt.error = interrupted_run_error
+                        attempt.outcome_code = "recovery.legacy_interrupted"
                         attempt.finished_at = now
                     terminated_run_ids.append(row.id)
                     continue
@@ -1987,6 +2257,8 @@ class SQLiteRepository:
                     row.started_at = None
                     row.finished_at = None
                     row.error = None
+                    row.failure_code = None
+                    row.failed_stage = None
                     resubmit_run_ids.append(row.id)
                     continue
 
@@ -1995,13 +2267,7 @@ class SQLiteRepository:
                     for attempt in running_attempts
                     if attempt.dispatched_at is not None and attempt.response_persisted_at is None
                 ]
-                unsafe_running_attempts = [
-                    attempt
-                    for attempt in running_attempts
-                    if attempt not in dispatched_without_response
-                    and attempt.dispatched_at is not None
-                ]
-                if dispatched_without_response or unsafe_running_attempts:
+                if dispatched_without_response:
                     for attempt in dispatched_without_response:
                         attempt.status = AttemptStatus.FAILED.value
                         attempt.error = (
@@ -2009,23 +2275,20 @@ class SQLiteRepository:
                             "was recorded; outcome is unknown and replay is forbidden"
                         )
                         attempt.outcome_unknown = True
+                        attempt.outcome_code = "provider.outcome_unknown"
                         attempt.finished_at = now
                         unit = session.get(GenerationWorkUnitRow, attempt.work_unit_id)
                         if unit is not None:
                             unit.status = WorkUnitStatus.OUTCOME_UNKNOWN.value
-                    for attempt in unsafe_running_attempts:
-                        attempt.status = AttemptStatus.FAILED.value
-                        attempt.error = (
-                            "Generation process stopped after provider dispatch; automatic replay is forbidden"
-                        )
-                        attempt.finished_at = now
-                        unit = session.get(GenerationWorkUnitRow, attempt.work_unit_id)
-                        if unit is not None:
-                            unit.status = WorkUnitStatus.QUARANTINED.value
                     row.status = RunStatus.FAILED.value
                     row.error = (
-                        "Generation run has dispatched work without a complete sealed result; "
-                        "automatic recovery is forbidden"
+                        "Generation run has a provider dispatch without a durable response; "
+                        "its outcome is unknown and automatic replay is forbidden"
+                    )
+                    row.failure_code = "provider.outcome_unknown"
+                    row.failed_stage = min(
+                        (attempt.stage for attempt in dispatched_without_response),
+                        key=lambda stage: STAGE_ORDER.index(StageName(stage)),
                     )
                     row.started_at = row.started_at or now
                     row.finished_at = now
@@ -2036,38 +2299,107 @@ class SQLiteRepository:
                     unit
                     for unit in units
                     if WorkUnitStatus(unit.status)
-                    in {WorkUnitStatus.QUARANTINED, WorkUnitStatus.OUTCOME_UNKNOWN, WorkUnitStatus.CANCELLED}
+                    in {
+                        WorkUnitStatus.FAILED,
+                        WorkUnitStatus.QUARANTINED,
+                        WorkUnitStatus.OUTCOME_UNKNOWN,
+                        WorkUnitStatus.CANCELLED,
+                    }
                 ]
                 if nonrecoverable_units:
-                    row.status = RunStatus.FAILED.value
+                    statuses = {
+                        WorkUnitStatus(unit.status) for unit in nonrecoverable_units
+                    }
+                    terminal_unit_ids = {unit.id for unit in nonrecoverable_units}
+                    failed_attempts = [
+                        attempt
+                        for attempt in session.scalars(
+                            select(GenerationAttemptRow).where(
+                                GenerationAttemptRow.run_id == row.id,
+                                GenerationAttemptRow.status
+                                == AttemptStatus.FAILED.value,
+                                GenerationAttemptRow.outcome_code.is_not(None),
+                            )
+                        ).all()
+                        if attempt.work_unit_id in terminal_unit_ids
+                    ]
+                    latest = max(
+                        failed_attempts,
+                        key=lambda attempt: (
+                            attempt.attempt_number,
+                            attempt.finished_at or attempt.started_at,
+                        ),
+                        default=None,
+                    )
+                    only_quarantined = statuses == {WorkUnitStatus.QUARANTINED}
+                    row.status = (
+                        RunStatus.QUARANTINED.value
+                        if only_quarantined
+                        else RunStatus.FAILED.value
+                    )
                     row.error = (
-                        "Generation run has terminal work-unit evidence that cannot be replayed automatically"
+                        "Generation run contains a durably rejected model response"
+                        if only_quarantined
+                        else "Generation run has terminal work-unit evidence that cannot be replayed automatically"
+                    )
+                    if WorkUnitStatus.OUTCOME_UNKNOWN in statuses:
+                        row.failure_code = "provider.outcome_unknown"
+                    elif only_quarantined:
+                        row.failure_code = (
+                            latest.outcome_code
+                            if latest is not None
+                            else "recovery.quarantined_work_unit"
+                        )
+                    elif WorkUnitStatus.FAILED in statuses and latest is not None:
+                        row.failure_code = latest.outcome_code
+                    else:
+                        row.failure_code = "recovery.nonrecoverable_work_unit"
+                    row.failed_stage = min(
+                        (unit.stage for unit in nonrecoverable_units),
+                        key=lambda stage: STAGE_ORDER.index(StageName(stage)),
                     )
                     row.started_at = row.started_at or now
                     row.finished_at = now
                     terminated_run_ids.append(row.id)
                     continue
 
-                # A running attempt with no dispatch marker never crossed the
-                # provider boundary.  Close that abandoned identity, return
-                # its unit to QUEUED, and let allocation issue its next
-                # work-unit-local attempt number on the resubmitted run.
-                for attempt in running_attempts:
-                    attempt.status = AttemptStatus.FAILED.value
-                    attempt.error = (
-                        "Generation process stopped before provider dispatch; safe startup recovery may allocate a new attempt"
+                # Keep safe in-flight identities intact. A pre-dispatch
+                # attempt may continue to the provider boundary; an attempt
+                # with a durable response may continue local parsing,
+                # validation, and sealing. Neither path spends another
+                # correction slot or replays a provider call.
+                running_unit_ids = {
+                    attempt.work_unit_id for attempt in running_attempts
+                }
+                orphan_running_units = [
+                    unit
+                    for unit in units
+                    if WorkUnitStatus(unit.status) == WorkUnitStatus.RUNNING
+                    and unit.id not in running_unit_ids
+                ]
+                if orphan_running_units:
+                    row.status = RunStatus.FAILED.value
+                    row.error = (
+                        "Generation run has a running work unit without an active attempt; "
+                        "automatic recovery cannot prove a safe continuation"
                     )
-                    attempt.finished_at = now
-                    unit = session.get(GenerationWorkUnitRow, attempt.work_unit_id)
-                    if unit is not None:
-                        unit.status = WorkUnitStatus.QUEUED.value
-                for unit in units:
-                    if WorkUnitStatus(unit.status) == WorkUnitStatus.RUNNING:
-                        unit.status = WorkUnitStatus.QUEUED.value
+                    row.failure_code = "recovery.orphan_running_work_unit"
+                    row.failed_stage = min(
+                        (unit.stage for unit in orphan_running_units),
+                        key=lambda stage: STAGE_ORDER.index(StageName(stage)),
+                    )
+                    row.started_at = row.started_at or now
+                    row.finished_at = now
+                    for unit in orphan_running_units:
+                        unit.status = WorkUnitStatus.FAILED.value
+                    terminated_run_ids.append(row.id)
+                    continue
                 row.status = RunStatus.QUEUED.value
                 row.started_at = None
                 row.finished_at = None
                 row.error = None
+                row.failure_code = None
+                row.failed_stage = None
                 resubmit_run_ids.append(row.id)
 
             media_rows = session.scalars(
@@ -2324,6 +2656,8 @@ class SQLiteRepository:
         result_revision_ids: Sequence[str] | None = None,
         error: str | None = None,
         quarantine_reason: str | None = None,
+        failure_code: str | None = None,
+        failed_stage: StageName | None = None,
     ) -> GenerationRun:
         with self._write() as session:
             row = self._run_row(session, run_id)
@@ -2345,9 +2679,13 @@ class SQLiteRepository:
             elif error is not None:
                 row.status = RunStatus.FAILED.value
                 row.error = error
+                row.failure_code = failure_code
+                row.failed_stage = failed_stage.value if failed_stage else None
             elif quarantine_reason is not None:
                 row.status = RunStatus.QUARANTINED.value
                 row.error = quarantine_reason
+                row.failure_code = failure_code
+                row.failed_stage = failed_stage.value if failed_stage else None
             else:
                 row.status = (
                     RunStatus.SUCCEEDED.value
@@ -2356,6 +2694,11 @@ class SQLiteRepository:
                 )
                 if row.status == RunStatus.QUARANTINED.value:
                     row.error = "canonical inputs changed or requested outputs were not installed"
+                    row.failure_code = "commit.snapshot_changed"
+                else:
+                    row.error = None
+                    row.failure_code = None
+                    row.failed_stage = None
             row.finished_at = utc_now()
             return self._run(row)
 
@@ -2517,10 +2860,13 @@ class SQLiteRepository:
                     run_id=run_id,
                     stage=stage.value,
                     attempt_number=attempt.attempt_number,
+                    attempt_kind=GenerationAttemptKind.PRIMARY.value,
+                    source_attempt_id=None,
                     status=attempt.status.value,
                     provider=provider,
                     model=model,
                     error=None,
+                    outcome_code=None,
                     started_at=attempt.started_at,
                     finished_at=None,
                 )
@@ -2533,6 +2879,9 @@ class SQLiteRepository:
         status: AttemptStatus,
         *,
         error: str | None = None,
+        outcome_code: str | None = None,
+        allow_correction: bool = False,
+        failure_disposition: WorkUnitFailureDisposition | None = None,
     ) -> GenerationAttempt:
         if status == AttemptStatus.RUNNING:
             raise InvalidTransitionError("finish_attempt requires a terminal attempt status")
@@ -2545,14 +2894,29 @@ class SQLiteRepository:
                 raise InvalidTransitionError(f"cannot finish attempt from {row.status}")
             row.status = status.value
             row.error = error
+            row.outcome_code = outcome_code
             row.finished_at = utc_now()
+            if failure_disposition is not None and status != AttemptStatus.FAILED:
+                raise InvalidTransitionError(
+                    "only a failed attempt may declare a work-unit failure disposition"
+                )
             if unit is not None:
                 if status == AttemptStatus.SUCCEEDED:
                     unit.status = WorkUnitStatus.SUCCEEDED.value
                 elif status == AttemptStatus.CANCELLED:
                     unit.status = WorkUnitStatus.CANCELLED.value
+                elif allow_correction and not row.outcome_unknown:
+                    if row.response_persisted_at is None or not outcome_code:
+                        raise InvalidTransitionError(
+                            "only a durably recorded rejected response may authorize correction"
+                        )
+                    unit.status = WorkUnitStatus.QUEUED.value
                 elif not row.outcome_unknown:
-                    unit.status = WorkUnitStatus.QUARANTINED.value
+                    if failure_disposition is None:
+                        raise InvalidTransitionError(
+                            "known work-unit failures require an explicit failed or quarantined disposition"
+                        )
+                    unit.status = WorkUnitStatus(failure_disposition.value).value
             return self._attempt(row)
 
     def add_artifact(self, artifact: Artifact) -> Artifact:
@@ -2838,6 +3202,291 @@ class SQLiteRepository:
             )
             return ProviderSettings.model_validate(data)
 
+    def bootstrap_default_text_provider_profile(
+        self,
+        environment_default: TextProviderProfileSnapshot,
+    ) -> TextProviderProfile:
+        """Materialize the effective legacy/environment text config exactly once.
+
+        Migration 0006 deliberately stores the old singleton payload without
+        inventing V2 execution fields.  Runtime startup is the first layer that
+        can see the trusted repo-root ``.env`` and host environment.  Once this
+        method writes a V2 snapshot, later environment edits cannot silently
+        change the saved profile or runs that reference it.
+        """
+
+        if environment_default.profile_id != DEFAULT_PROVIDER_PROFILE_ID:
+            raise ValueError("the environment bootstrap snapshot must be for default")
+        with self._write() as session:
+            row = session.get(TextProviderProfileRow, DEFAULT_PROVIDER_PROFILE_ID)
+            now = utc_now()
+            if row is not None and is_v2_snapshot(row.settings):
+                return self._text_provider_profile(row)
+
+            legacy = dict(row.settings) if row is not None else {}
+            if contains_secret_setting(legacy) or contains_secret_value(legacy):
+                # Do not carry a credential forward from a legacy settings bag.
+                legacy = {
+                    key: value
+                    for key, value in legacy.items()
+                    if not contains_secret_setting({key: value})
+                    and not contains_secret_value(value)
+                }
+            revision = row.revision if row is not None else 0
+            values = environment_default.model_dump(
+                mode="python",
+                by_alias=False,
+                exclude={"profile_hash"},
+            )
+            if revision > 0:
+                aliases = {
+                    "textProvider": "text_provider",
+                    "textBaseUrl": "text_base_url",
+                    "textModel": "text_model",
+                    "textAuthMode": "text_auth_mode",
+                    "textCapabilities": "text_capabilities",
+                    "textContextWindowTokens": "text_context_window_tokens",
+                    "textMaxOutputTokens": "text_max_output_tokens",
+                    "textTemperature": "text_temperature",
+                    "textMaxConcurrency": "text_max_concurrency",
+                    "textConnectTimeoutSeconds": "text_connect_timeout_seconds",
+                    "textAttemptTimeoutSeconds": "text_attempt_timeout_seconds",
+                }
+                for source, target in aliases.items():
+                    legacy_value = legacy.get(source, legacy.get(target))
+                    if legacy_value is not None:
+                        if target == "text_capabilities" and isinstance(legacy_value, dict):
+                            current = dict(values[target])
+                            current.update(legacy_value)
+                            values[target] = current
+                        else:
+                            values[target] = legacy_value
+            values.update(
+                profile_schema_version=2,
+                profile_id=DEFAULT_PROVIDER_PROFILE_ID,
+                profile_version=revision,
+                profile_hash="",
+            )
+            try:
+                configuration = TextProviderProfileSnapshot.model_validate(values)
+            except ValueError:
+                # A legacy public setting may legitimately differ from a named
+                # published preset. Preserve it, but state that it is custom.
+                values["preset_id"] = PresetId.CUSTOM
+                configuration = TextProviderProfileSnapshot.model_validate(values)
+            stored = configuration.model_dump(mode="json", by_alias=True)
+            if row is None:
+                row = TextProviderProfileRow(
+                    id=DEFAULT_PROVIDER_PROFILE_ID,
+                    display_name="Default",
+                    settings=stored,
+                    revision=revision,
+                    created_at=now,
+                    updated_at=now,
+                )
+                session.add(row)
+                session.flush()
+            else:
+                row.settings = stored
+                row.updated_at = now
+
+            selection = session.get(ProviderProfileSelectionRow, 1)
+            if selection is None:
+                session.add(
+                    ProviderProfileSelectionRow(
+                        id=1,
+                        active_profile_id=DEFAULT_PROVIDER_PROFILE_ID,
+                        revision=0,
+                        updated_at=now,
+                    )
+                )
+            return self._text_provider_profile(row)
+
+    def get_text_provider_profile(self, profile_id: str) -> TextProviderProfile:
+        with self._read() as session:
+            row = session.get(TextProviderProfileRow, profile_id)
+            if row is None:
+                raise NotFoundError(f"text provider profile not found: {profile_id}")
+            return self._text_provider_profile(row)
+
+    def list_text_provider_profiles(self) -> list[TextProviderProfile]:
+        with self._read() as session:
+            rows = session.scalars(
+                select(TextProviderProfileRow).order_by(TextProviderProfileRow.id)
+            ).all()
+            return [self._text_provider_profile(row) for row in rows]
+
+    def get_provider_profile_selection(self) -> ProviderProfileSelection:
+        with self._read() as session:
+            row = session.get(ProviderProfileSelectionRow, 1)
+            if row is None:
+                raise NotFoundError("text provider profile selection has not been initialized")
+            return self._provider_profile_selection(row)
+
+    @staticmethod
+    def _profile_configuration_for_revision(
+        profile_id: str,
+        revision: int,
+        value: TextProviderProfileSnapshot | dict[str, Any],
+    ) -> TextProviderProfileSnapshot:
+        raw = (
+            value.model_dump(mode="python", by_alias=False)
+            if isinstance(value, TextProviderProfileSnapshot)
+            else dict(value)
+        )
+        if contains_secret_setting(raw) or contains_secret_value(raw):
+            raise ValueError("text provider profile configuration must not contain secrets")
+        for key in (
+            "profileHash",
+            "profile_hash",
+            "profileId",
+            "profile_id",
+            "profileVersion",
+            "profile_version",
+            "profileSchemaVersion",
+            "profile_schema_version",
+        ):
+            raw.pop(key, None)
+        raw.update(
+            profile_schema_version=2,
+            profile_id=profile_id,
+            profile_version=revision,
+            profile_hash="",
+        )
+        return TextProviderProfileSnapshot.model_validate(raw)
+
+    def create_text_provider_profile(
+        self,
+        profile_id: str,
+        display_name: str,
+        *,
+        configuration: TextProviderProfileSnapshot | dict[str, Any] | None = None,
+        copy_from_profile_id: str | None = None,
+    ) -> TextProviderProfile:
+        if (configuration is None) == (copy_from_profile_id is None):
+            raise ValueError("provide exactly one of configuration or copy_from_profile_id")
+        if re.fullmatch(PROFILE_ID_PATTERN, profile_id) is None:
+            raise ValueError("profile_id must match [a-z][a-z0-9_]{0,62}")
+        normalized_name = display_name.strip()
+        if not normalized_name:
+            raise ValueError("display_name must not be blank")
+        with self._write() as session:
+            if session.get(TextProviderProfileRow, profile_id) is not None:
+                raise InvalidTransitionError(f"text provider profile already exists: {profile_id}")
+            if copy_from_profile_id is not None:
+                source = session.get(TextProviderProfileRow, copy_from_profile_id)
+                if source is None:
+                    raise NotFoundError(
+                        f"text provider profile not found: {copy_from_profile_id}"
+                    )
+                configuration = dict(source.settings)
+            assert configuration is not None
+            parsed = self._profile_configuration_for_revision(profile_id, 1, configuration)
+            now = utc_now()
+            row = TextProviderProfileRow(
+                id=profile_id,
+                display_name=normalized_name,
+                settings=parsed.model_dump(mode="json", by_alias=True),
+                revision=1,
+                created_at=now,
+                updated_at=now,
+            )
+            session.add(row)
+            session.flush()
+            return self._text_provider_profile(row)
+
+    def update_text_provider_profile(
+        self,
+        profile_id: str,
+        expected_revision: int,
+        *,
+        display_name: str,
+        configuration: TextProviderProfileSnapshot | dict[str, Any],
+    ) -> TextProviderProfile:
+        with self._write() as session:
+            row = session.get(TextProviderProfileRow, profile_id)
+            if row is None:
+                raise NotFoundError(f"text provider profile not found: {profile_id}")
+            if row.revision != expected_revision:
+                raise RevisionConflictError(
+                    f"text-provider-profile:{profile_id}", expected_revision, row.revision
+                )
+            normalized_name = display_name.strip()
+            if not normalized_name:
+                raise ValueError("display_name must not be blank")
+            proposed = self._profile_configuration_for_revision(
+                profile_id, row.revision + 1, configuration
+            )
+            current_without_version = dict(row.settings)
+            proposed_without_version = proposed.model_dump(mode="json", by_alias=True)
+            for key in ("profileVersion", "profileHash"):
+                current_without_version.pop(key, None)
+                proposed_without_version.pop(key, None)
+            if row.display_name == normalized_name and current_without_version == proposed_without_version:
+                return self._text_provider_profile(row)
+            row.revision += 1
+            row.display_name = normalized_name
+            row.settings = proposed.model_dump(mode="json", by_alias=True)
+            row.updated_at = utc_now()
+            return self._text_provider_profile(row)
+
+    def activate_text_provider_profile(
+        self,
+        profile_id: str,
+        expected_selection_revision: int,
+    ) -> ProviderProfileSelection:
+        with self._write() as session:
+            if session.get(TextProviderProfileRow, profile_id) is None:
+                raise NotFoundError(f"text provider profile not found: {profile_id}")
+            row = session.get(ProviderProfileSelectionRow, 1)
+            if row is None:
+                raise NotFoundError("text provider profile selection has not been initialized")
+            if row.revision != expected_selection_revision:
+                raise RevisionConflictError(
+                    "text-provider-profile-selection",
+                    expected_selection_revision,
+                    row.revision,
+                )
+            if row.active_profile_id != profile_id:
+                row.active_profile_id = profile_id
+                row.revision += 1
+                row.updated_at = utc_now()
+            return self._provider_profile_selection(row)
+
+    def delete_text_provider_profile(
+        self,
+        profile_id: str,
+        expected_revision: int,
+    ) -> None:
+        if profile_id == DEFAULT_PROVIDER_PROFILE_ID:
+            raise InvalidTransitionError("the default text provider profile cannot be deleted")
+        with self._write() as session:
+            row = session.get(TextProviderProfileRow, profile_id)
+            if row is None:
+                raise NotFoundError(f"text provider profile not found: {profile_id}")
+            if row.revision != expected_revision:
+                raise RevisionConflictError(
+                    f"text-provider-profile:{profile_id}", expected_revision, row.revision
+                )
+            selection = session.get(ProviderProfileSelectionRow, 1)
+            if selection is not None and selection.active_profile_id == profile_id:
+                raise InvalidTransitionError("the active text provider profile cannot be deleted")
+            live_runs = session.scalars(
+                select(GenerationRunRow).where(
+                    GenerationRunRow.status.not_in(
+                        [status.value for status in TERMINAL_RUN_STATUSES]
+                    )
+                )
+            ).all()
+            if any(
+                candidate.provider_snapshot.get("profileId") == profile_id
+                for candidate in live_runs
+            ):
+                raise InvalidTransitionError(
+                    "a text provider profile referenced by a non-terminal run cannot be deleted"
+                )
+            session.delete(row)
+
     def put_provider_settings(self, settings: ProviderSettings) -> ProviderSettings:
         # ProviderSettings.extra=forbid is the security boundary: secret-shaped fields cannot enter storage.
         now = utc_now()
@@ -2870,3 +3519,171 @@ class SQLiteRepository:
                 updated_at=row.updated_at,
             )
             return ProviderSettings.model_validate(result)
+
+    def update_provider_settings_projection(
+        self,
+        *,
+        expected_profile_id: str,
+        expected_profile_revision: int,
+        updates: dict[str, Any],
+        defaults: ProviderSettings,
+    ) -> tuple[TextProviderProfile, ProviderSettings]:
+        """Atomically update the legacy active-profile/media projection.
+
+        The compatibility endpoint spans two durable records: the selected
+        named text profile and the singleton media settings.  Reading either
+        outside this transaction would allow an activation or named-profile
+        edit to interleave and make a stale form overwrite unrelated state.
+        """
+
+        if contains_secret_setting(updates) or contains_secret_value(updates):
+            raise ValueError("public provider configuration must not contain secrets")
+        with self._write() as session:
+            selection = session.get(ProviderProfileSelectionRow, 1)
+            if selection is None:
+                raise NotFoundError("text provider profile selection has not been initialized")
+            if selection.active_profile_id != expected_profile_id:
+                raise InvalidTransitionError(
+                    "active text provider profile changed; reload settings"
+                )
+
+            profile_row = session.get(TextProviderProfileRow, expected_profile_id)
+            if profile_row is None:
+                raise NotFoundError(
+                    f"text provider profile not found: {expected_profile_id}"
+                )
+            if profile_row.revision != expected_profile_revision:
+                raise RevisionConflictError(
+                    f"text-provider-profile:{expected_profile_id}",
+                    expected_profile_revision,
+                    profile_row.revision,
+                )
+
+            media_row = session.get(ProviderSettingsRow, 1)
+            if media_row is None:
+                persisted = ProviderSettings()
+            else:
+                persisted_data = dict(media_row.settings)
+                persisted_data.update(
+                    profile_version=media_row.revision,
+                    revision=media_row.revision,
+                    updated_at=media_row.updated_at,
+                )
+                persisted = ProviderSettings.model_validate(persisted_data)
+
+            effective_values = {
+                field: (
+                    getattr(defaults, field)
+                    if persisted.revision == 0
+                    else (
+                        getattr(persisted, field)
+                        if getattr(persisted, field) is not None
+                        else getattr(defaults, field)
+                    )
+                )
+                for field in PUBLIC_PROVIDER_SETTING_FIELDS
+            }
+            profile_configuration = TextProviderProfileSnapshot.model_validate(
+                profile_row.settings
+            )
+            effective_values.update(
+                profile_id=expected_profile_id,
+                text_provider=profile_configuration.text_provider,
+                text_base_url=profile_configuration.text_base_url,
+                text_model=profile_configuration.text_model,
+                text_auth_mode=profile_configuration.text_auth_mode,
+                text_capabilities={
+                    "chat_completions": profile_configuration.text_capabilities.chat_completions,
+                    "json_object": profile_configuration.text_capabilities.json_object,
+                    "json_schema": profile_configuration.text_capabilities.json_schema,
+                },
+                text_context_window_tokens=profile_configuration.text_context_window_tokens,
+                text_max_output_tokens=profile_configuration.text_max_output_tokens,
+                text_temperature=profile_configuration.text_temperature,
+                text_max_concurrency=profile_configuration.text_max_concurrency,
+                text_connect_timeout_seconds=profile_configuration.text_connect_timeout_seconds,
+                text_attempt_timeout_seconds=profile_configuration.text_attempt_timeout_seconds,
+            )
+            effective_values.update(updates)
+            settings = ProviderSettings.model_validate(effective_values)
+
+            profile_values = profile_configuration.model_dump(
+                mode="python", by_alias=False, exclude={"profile_hash"}
+            )
+            profile_values.update(
+                text_provider=settings.text_provider,
+                text_base_url=settings.text_base_url,
+                text_model=settings.text_model,
+                text_auth_mode=settings.text_auth_mode.value,
+                text_capabilities={
+                    **profile_configuration.text_capabilities.model_dump(mode="python"),
+                    "chat_completions": settings.text_capabilities.chat_completions,
+                    "json_object": settings.text_capabilities.json_object,
+                    "json_schema": settings.text_capabilities.json_schema,
+                },
+                text_context_window_tokens=settings.text_context_window_tokens,
+                text_max_output_tokens=settings.text_max_output_tokens,
+                text_temperature=settings.text_temperature,
+                text_max_concurrency=settings.text_max_concurrency,
+                text_connect_timeout_seconds=settings.text_connect_timeout_seconds,
+                text_attempt_timeout_seconds=settings.text_attempt_timeout_seconds,
+            )
+            if {
+                "text_context_window_tokens",
+                "text_max_output_tokens",
+                "text_attempt_timeout_seconds",
+            } & updates.keys():
+                profile_values["preset_id"] = PresetId.CUSTOM
+            proposed = self._profile_configuration_for_revision(
+                expected_profile_id,
+                profile_row.revision + 1,
+                profile_values,
+            )
+            current_without_version = dict(profile_row.settings)
+            proposed_without_version = proposed.model_dump(mode="json", by_alias=True)
+            for key in ("profileVersion", "profileHash"):
+                current_without_version.pop(key, None)
+                proposed_without_version.pop(key, None)
+            if current_without_version != proposed_without_version:
+                profile_row.revision += 1
+                profile_row.settings = proposed.model_dump(mode="json", by_alias=True)
+                profile_row.updated_at = utc_now()
+
+            now = utc_now()
+            stored_settings = settings.model_dump(
+                mode="json",
+                by_alias=False,
+                exclude={
+                    "revision",
+                    "updated_at",
+                    "profile_version",
+                    "profile_hash",
+                    "text_key_available",
+                    "image_key_available",
+                    "video_key_available",
+                },
+            )
+            if media_row is None:
+                media_row = ProviderSettingsRow(
+                    id=1,
+                    settings=stored_settings,
+                    revision=1,
+                    updated_at=now,
+                )
+                session.add(media_row)
+            elif media_row.settings != stored_settings:
+                media_row.settings = stored_settings
+                media_row.revision += 1
+                media_row.updated_at = now
+
+            session.flush()
+            persisted_result = dict(media_row.settings)
+            persisted_result.update(
+                profile_version=media_row.revision,
+                revision=media_row.revision,
+                updated_at=media_row.updated_at,
+            )
+            return (
+                self._text_provider_profile(profile_row),
+                ProviderSettings.model_validate(persisted_result),
+            )

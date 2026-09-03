@@ -80,8 +80,8 @@ describe("workspace hydration contracts", () => {
     const trace: RunTrace = {
       run: { ...demoRun, id: "run-1", projectId: "p1", status: "quarantined", requestedStages: ["story_bible"] },
       attempts: [
-        { id: "attempt-old", runId: "run-1", workUnitId: null, stage: "story_bible", attemptNumber: 1, status: "failed", provider: null, model: null, error: "old error", dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, startedAt: "2026-08-29T00:00:00Z", finishedAt: "2026-08-29T00:00:01Z" },
-        { id: "attempt-1", runId: "run-1", workUnitId: null, stage: "story_bible", attemptNumber: 2, status: "failed", provider: null, model: null, error: "schema invalid", dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z" },
+        { id: "attempt-old", runId: "run-1", workUnitId: null, stage: "story_bible", attemptNumber: 1, attemptKind: "primary", sourceAttemptId: null, status: "failed", provider: null, model: null, error: "old error", dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, outcomeCode: "schema_invalid", startedAt: "2026-08-29T00:00:00Z", finishedAt: "2026-08-29T00:00:01Z" },
+        { id: "attempt-1", runId: "run-1", workUnitId: null, stage: "story_bible", attemptNumber: 2, attemptKind: "correction", sourceAttemptId: "attempt-old", status: "failed", provider: null, model: null, error: "schema invalid", dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, outcomeCode: "schema_invalid", startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z" },
       ],
       artifacts: [
         { id: "old-response", runId: "run-1", attemptId: "attempt-old", workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "response", mediaType: "application/json", content: { rawResponse: "OLD RAW" }, contentHash: "old", createdAt: "2026-08-29T00:00:01Z" },

@@ -1,5 +1,5 @@
 id: scene_beats_fragment
-version: "2.1.0"
+version: "2.6.0"
 stage: scene_beats
 description: Create a closed dramatic-scene/beat fragment for one Story Graph node.
 system: |-
@@ -7,6 +7,7 @@ system: |-
   只能为提供的【目标故事节点】生成内容；不得重写故事图、不得提及或生成其他节点的 scene 或 beat。
   只能使用故事圣经中的角色和地点 ID；关联边和汇流契约只是本节点的连续性边界，不是要求你重述完整故事图。
   返回值必须满足调用方提供的 JSON Schema，不得输出 Markdown、解释或额外字段。
+  这是 presence-strict 合同：每个对象的 required 数组所列属性都必须显式出现。未定内容只能使用 Schema 允许的 null、空数组、空对象或空字符串；nullable 表示写出 null，不表示可以省略字段，也不得依赖应用默认值。
   不要输出内部计划 ID、工作单元 ID、hash 或任何调用元数据；Schema 中没有这些字段。
 user: |-
   【故事圣经】
@@ -21,15 +22,22 @@ user: |-
   【与目标节点相关的汇流契约】
   {{ join_contracts | tojson }}
 
+  【本节点必须兑现的连续性键】
+  {{ continuity_requirements | tojson }}
+
   【节拍约束】
   {{ beat_constraints | tojson }}
 
   【目标 JSON Schema】
   {{ json_schema | tojson }}
 
-  仅为目标故事节点生成一个或多个 scenes 及其 beats。scene 的 storyNodeId 必须等于目标节点 ID；每个 beat 的 sceneId 必须属于本次输出的 scene，且 beatIds 与连续 order 完全一致。
+  仅为目标故事节点生成一个或多个 scenes 及其 beats。不要输出根 storyNodeId 或 scene.storyNodeId：它们由系统从目标工作单元确定性注入；若输出这些字段，回答会被拒绝。
+  localSceneId、localBeatId 与 sceneLocalId 只是本次回答内部互相引用的局部句柄，不是 canonical ID；保持本回答内唯一、引用闭合即可。系统会在验证后按父节点与顺序确定性绑定 canonical UUID。
+  每个 beat 的 sceneLocalId 必须属于本次输出的 localSceneId；每个 scene 至少有一个 beat，并且该 scene 内的 beat.order 必须从 1 连续。不要输出 scene.beatLocalIds 或 scene.beatIds：系统会从 sceneLocalId 与 order 确定性生成 canonical beatIds。
+  locationId 与 characterIds 只能从 Schema 的 enum 中选择；没有合适对象时遵守 Schema 使用 null 或空数组，绝不能创造故事圣经之外的 ID。
   一个 beat 只承载一个可观察动作、反应、信息揭示或状态改变。对白只能包含此 beat 实际说出的内容。
-  若目标节点参与汇流，按给出的 requiredStateKeys 在恰当的 entryState 或 exitState 中保留连续性事实。
+  每个 scene 和 beat 的 entryState、exitState 都必须完整输出 facts、characterStates、propStates、locationState、screenDirection、lighting、sound、notes；没有内容时也分别写出 {}、null 或 []，不能省略任何一项。
+  “requiredEntryFactKeys” 中的每一个键必须出现在每个 scene.entryState.facts；“requiredExitFactKeys” 中的每一个键必须出现在每个 scene.exitState.facts。键名必须逐字符复制，并为每个键写出符合剧情的具体值；空数组表示该方向没有强制键。
 variables:
   story_bible:
     required: true
@@ -39,11 +47,13 @@ variables:
     required: true
   join_contracts:
     required: true
+  continuity_requirements:
+    required: true
   beat_constraints:
     required: true
   json_schema:
     required: true
 output:
   format: json
-  schema_id: scene_beats.fragment.v1
+  schema_id: scene_beats.fragment.v4
   structured_output_mode: prefer

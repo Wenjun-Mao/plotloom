@@ -14,6 +14,7 @@ from plotloom.domain import (
     RunKind,
     RunStatus,
     StageName,
+    WorkUnitFailureDisposition,
     WorkUnitStatus,
 )
 from plotloom.exceptions import InvalidTransitionError
@@ -237,13 +238,53 @@ def test_work_unit_validation_failure_requires_rebuild_until_exact_repair_exists
             content_hash=stable_hash(rejected),
         )
     )
-    repository.finish_attempt(attempt.id, AttemptStatus.FAILED, error="invalid candidate")
+    repository.finish_attempt(
+        attempt.id,
+        AttemptStatus.FAILED,
+        error="invalid candidate",
+        outcome_code="schema.invalid",
+        failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+    )
+    assert repository.list_generation_work_units(run.id)[0].status == (
+        WorkUnitStatus.QUARANTINED
+    )
     repository.finish_run(run.id, quarantine_reason="invalid candidate")
 
     with pytest.raises(InvalidTransitionError, match="exact work-unit repair"):
         repository.create_repair_run(run.id)
 
     assert len(repository.list_project_runs(run.project_id)) == 1
+
+
+def test_known_work_unit_failure_requires_an_explicit_terminal_disposition(
+    repository,
+    brief,
+) -> None:
+    run, unit = _running_bible_unit(repository, brief)
+    attempt = repository.allocate_attempt_for_work_unit(unit.id)
+
+    with pytest.raises(InvalidTransitionError, match="explicit failed or quarantined"):
+        repository.finish_attempt(
+            attempt.id,
+            AttemptStatus.FAILED,
+            error="known local failure",
+            outcome_code="local.known_failure",
+        )
+
+    assert repository.get_run_trace(run.id).attempts[0].status == AttemptStatus.RUNNING
+    assert repository.list_generation_work_units(run.id)[0].status == (
+        WorkUnitStatus.RUNNING
+    )
+    repository.finish_attempt(
+        attempt.id,
+        AttemptStatus.FAILED,
+        error="known local failure",
+        outcome_code="local.known_failure",
+        failure_disposition=WorkUnitFailureDisposition.FAILED,
+    )
+    assert repository.list_generation_work_units(run.id)[0].status == (
+        WorkUnitStatus.FAILED
+    )
 
 
 def test_artifacts_cannot_cross_run_or_escape_work_unit_ownership(repository, brief) -> None:
@@ -281,16 +322,17 @@ def test_work_unit_claim_is_single_use_except_safe_startup_recovery(repository, 
 
     assert recovery.resubmit_run_ids == [run.id]
     assert repository.get_run(run.id).status == RunStatus.QUEUED
-    assert repository.list_generation_work_units(run.id)[0].status == WorkUnitStatus.QUEUED
+    assert repository.list_generation_work_units(run.id)[0].status == WorkUnitStatus.RUNNING
     recovered = repository.get_run_trace(run.id).attempts[0]
     assert recovered.id == first.id
-    assert recovered.status == AttemptStatus.FAILED
+    assert recovered.status == AttemptStatus.RUNNING
     assert recovered.dispatched_at is None
 
     repository.start_run(run.id)
-    second = repository.allocate_attempt_for_work_unit(unit.id)
-
-    assert second.attempt_number == 2
+    resumed = repository.get_recoverable_attempt_for_work_unit(unit.id)
+    assert resumed is not None
+    assert resumed.id == first.id
+    assert resumed.attempt_number == 1
     with pytest.raises(InvalidTransitionError, match="work unit is running"):
         repository.allocate_attempt_for_work_unit(unit.id)
 
@@ -383,7 +425,13 @@ def test_seal_requires_succeeded_producer_and_accepted_object_validation(reposit
         failed.id,
         all_stage_payloads()[0],
     )
-    repository.finish_attempt(failed_attempt.id, AttemptStatus.FAILED, error="invalid")
+    repository.finish_attempt(
+        failed_attempt.id,
+        AttemptStatus.FAILED,
+        error="invalid",
+        outcome_code="local.fixture_failed",
+        failure_disposition=WorkUnitFailureDisposition.FAILED,
+    )
     with pytest.raises(InvalidTransitionError, match="succeeded"):
         repository.seal_stage_aggregate(
             failed.id,
@@ -552,9 +600,12 @@ def test_startup_recovery_classifies_work_unit_runs_without_provider_replay(repo
     assert set(recovery.resubmit_run_ids) == {pre_dispatch_run.id, sealed_run.id}
     assert recovery.terminated_run_ids == [ambiguous_run.id]
     assert repository.get_run(pre_dispatch_run.id).status == RunStatus.QUEUED
-    assert repository.list_generation_work_units(pre_dispatch_run.id)[0].status == WorkUnitStatus.QUEUED
-    assert repository.get_run_trace(pre_dispatch_run.id).attempts[0].status == AttemptStatus.FAILED
-    assert repository.get_run(ambiguous_run.id).status == RunStatus.FAILED
+    assert repository.list_generation_work_units(pre_dispatch_run.id)[0].status == WorkUnitStatus.RUNNING
+    assert repository.get_run_trace(pre_dispatch_run.id).attempts[0].status == AttemptStatus.RUNNING
+    recovered_ambiguous = repository.get_run(ambiguous_run.id)
+    assert recovered_ambiguous.status == RunStatus.FAILED
+    assert recovered_ambiguous.failure_code == "provider.outcome_unknown"
+    assert recovered_ambiguous.failed_stage == StageName.STORY_BIBLE
     ambiguous_trace = repository.get_run_trace(ambiguous_run.id).attempts[0]
     assert ambiguous_trace.status == AttemptStatus.FAILED
     assert ambiguous_trace.outcome_unknown is True
@@ -562,6 +613,50 @@ def test_startup_recovery_classifies_work_unit_runs_without_provider_replay(repo
     assert repository.get_run(sealed_run.id).status == RunStatus.QUEUED
     assert sealed_id
     assert pre_dispatch.id
+
+
+def test_startup_recovery_preserves_failed_and_quarantined_unit_meanings(
+    repository,
+    brief,
+) -> None:
+    failed_run, failed_unit = _running_bible_unit(repository, brief)
+    failed_attempt = repository.allocate_attempt_for_work_unit(failed_unit.id)
+    repository.finish_attempt(
+        failed_attempt.id,
+        AttemptStatus.FAILED,
+        error="known provider response failure",
+        outcome_code="provider.http_503",
+        failure_disposition=WorkUnitFailureDisposition.FAILED,
+    )
+
+    quarantined_run, quarantined_unit = _running_bible_unit(repository, brief)
+    quarantined_attempt = repository.allocate_attempt_for_work_unit(
+        quarantined_unit.id
+    )
+    repository.mark_attempt_dispatched(quarantined_attempt.id)
+    repository.persist_attempt_response(
+        quarantined_attempt.id,
+        {"choices": [{"message": {"content": "{}"}}]},
+    )
+    repository.finish_attempt(
+        quarantined_attempt.id,
+        AttemptStatus.FAILED,
+        error="semantic rejection exhausted",
+        outcome_code="semantic.fixture_rejected",
+        failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+    )
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert set(recovery.terminated_run_ids) == {failed_run.id, quarantined_run.id}
+    recovered_failed = repository.get_run(failed_run.id)
+    assert recovered_failed.status == RunStatus.FAILED
+    assert recovered_failed.failure_code == "provider.http_503"
+    assert recovered_failed.failed_stage == StageName.STORY_BIBLE
+    recovered_quarantined = repository.get_run(quarantined_run.id)
+    assert recovered_quarantined.status == RunStatus.QUARANTINED
+    assert recovered_quarantined.failure_code == "semantic.fixture_rejected"
+    assert recovered_quarantined.failed_stage == StageName.STORY_BIBLE
 
 
 def test_work_unit_migration_terminates_open_legacy_attempts(tmp_path) -> None:

@@ -9,8 +9,12 @@ from .exceptions import (
     InvalidTransitionError,
     QuarantinedOutputError,
     RevisionConflictError,
+    RunExecutionError,
     StagePrerequisiteError,
 )
+from .generation.aggregation import AggregateValidationError
+from .generation.exceptions import SecretLeaseError
+from .generation.planning import PlanningError
 from .persistence import SQLiteRepository
 from .runtime import GenerationEngine, RunContext
 from .validation import DomainValidationError
@@ -47,8 +51,34 @@ class LifecycleJobRunner:
             existing = self._futures.get(run_id)
             if existing is not None:
                 return existing
-            if session_api_key and self.secret_registrar is not None:
-                self.secret_registrar.register_run_override(run_id, session_api_key)
+            run = self.repository.get_run(run_id)
+            profile_id = str(
+                run.provider_snapshot.get("profileId")
+                or run.provider_snapshot.get("profile_id")
+                or "default"
+            )
+            auth_mode = str(
+                run.provider_snapshot.get("textAuthMode")
+                or run.provider_snapshot.get("text_auth_mode")
+                or "bearer"
+            )
+            if auth_mode == "bearer" and self.secret_registrar is not None:
+                if not session_api_key and not self.secret_registrar.server_key_available(
+                    profile_id
+                ):
+                    raise SecretLeaseError(
+                        "queued generation requires its profile's browser-session key"
+                    )
+            if (
+                auth_mode == "bearer"
+                and session_api_key
+                and self.secret_registrar is not None
+            ):
+                self.secret_registrar.register_run_override(
+                    run_id,
+                    session_api_key,
+                    profile_id=profile_id,
+                )
             cancellation = Event()
             self._cancellations[run_id] = cancellation
             future = self._executor.submit(self._execute, run_id, cancellation)
@@ -79,6 +109,21 @@ class LifecycleJobRunner:
         return run
 
     def _execute(self, run_id: str, cancellation: Event) -> GenerationRun:
+        """Execute and always release run-scoped process state.
+
+        Cancellation may win before ``start_run``.  Cleanup therefore wraps
+        the transition itself rather than only the engine body.
+        """
+
+        try:
+            return self._execute_run(run_id, cancellation)
+        finally:
+            if self.secret_registrar is not None:
+                self.secret_registrar.release_run(run_id)
+            with self._lock:
+                self._cancellations.pop(run_id, None)
+
+    def _execute_run(self, run_id: str, cancellation: Event) -> GenerationRun:
         try:
             run = self.repository.start_run(run_id)
         except InvalidTransitionError:
@@ -124,27 +169,64 @@ class LifecycleJobRunner:
                 if artifact.run_id != run_id:
                     raise ValueError("quarantine artifact run_id does not match the executing run")
                 self.repository.add_artifact(artifact)
-            return self.repository.finish_run(run_id, quarantine_reason=str(error))
+            return self.repository.finish_run(
+                run_id,
+                quarantine_reason=str(error),
+                failure_code=error.code,
+                failed_stage=error.stage,
+            )
+        except AggregateValidationError as error:
+            return self.repository.finish_run(
+                run_id,
+                quarantine_reason=str(error),
+                failure_code=error.code,
+                failed_stage=error.stage,
+            )
+        except RunExecutionError as error:
+            return self.repository.finish_run(
+                run_id,
+                error=str(error),
+                failure_code=error.code,
+                failed_stage=error.stage,
+            )
         except (DomainValidationError, RevisionConflictError, StagePrerequisiteError) as error:
-            return self.repository.finish_run(run_id, quarantine_reason=str(error))
+            return self.repository.finish_run(
+                run_id,
+                quarantine_reason=str(error),
+                failure_code="validation.canonical_rejected",
+                failed_stage=getattr(error, "stage", None),
+            )
+        except PlanningError as error:
+            return self.repository.finish_run(
+                run_id,
+                error=str(error),
+                failure_code=error.code,
+                failed_stage=error.stage,
+            )
         # This is the outer worker boundary: unknown engine/adapter failures must
         # become a durable failed run instead of escaping the executor thread.
         except Exception as error:  # noqa: BLE001
             current = self.repository.get_run(run_id)
             if current.status == RunStatus.CANCEL_REQUESTED:
                 return self.repository.finish_run(run_id)
-            return self.repository.finish_run(run_id, error=str(error))
-        finally:
-            if self.secret_registrar is not None:
-                self.secret_registrar.release_run(run_id)
-            with self._lock:
-                self._cancellations.pop(run_id, None)
-
+            return self.repository.finish_run(
+                run_id,
+                error=str(error),
+                failure_code="run.internal_error",
+            )
     def close(self, *, wait: bool = True) -> None:
         self._executor.shutdown(wait=wait, cancel_futures=False)
 
 
 class RunSecretRegistrar(Protocol):
-    def register_run_override(self, run_id: str, value: str | None) -> None: ...
+    def server_key_available(self, profile_id: str = "default") -> bool: ...
+
+    def register_run_override(
+        self,
+        run_id: str,
+        value: str | None,
+        *,
+        profile_id: str = "default",
+    ) -> None: ...
 
     def release_run(self, run_id: str) -> None: ...

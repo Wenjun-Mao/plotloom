@@ -7,7 +7,9 @@ from sqlalchemy import text
 
 from plotloom.api import create_app
 from plotloom.domain import STAGE_ORDER, MediaKind, ProviderSettings, StageName
+from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse
 from plotloom.persistence import SQLiteRepository
+from plotloom.pipeline import RunSecretBroker
 
 from .conftest import all_stage_payloads
 
@@ -32,6 +34,69 @@ class RecordingScheduler:
         raise AssertionError(f"unexpected cancellation for {run_id}")
 
 
+class ServerKeyProbeAdapter:
+    name = "server-key-probe"
+    capabilities = ProviderCapabilities()
+
+    def __init__(self) -> None:
+        self.observed_keys: list[str] = []
+
+    def generate(self, request, secret):
+        assert secret is not None
+        with secret.reveal() as value:
+            self.observed_keys.append(value)
+        return ProviderResponse(
+            provider=self.name,
+            model=request.model,
+            raw={
+                "model": request.model,
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {"role": "assistant", "content": "OK"},
+                    }
+                ],
+            },
+            final_content="OK",
+            finish_reason="stop",
+        )
+
+
+class ServerKeyProbeResolver:
+    def __init__(self, adapter: ServerKeyProbeAdapter) -> None:
+        self.adapter = adapter
+
+    def resolve(self, provider_snapshot):
+        return self.adapter, str(provider_snapshot["textModel"])
+
+
+class JsonSchemaProbeAdapter:
+    name = "json-schema-probe"
+    capabilities = ProviderCapabilities(json_schema=True)
+
+    def __init__(self, content: str = '{"ok":"yes"}') -> None:
+        self.content = content
+        self.requests = []
+
+    def generate(self, request, secret):
+        self.requests.append(request)
+        return ProviderResponse(
+            provider=self.name,
+            model=request.model,
+            raw={
+                "model": request.model,
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {"role": "assistant", "content": self.content},
+                    }
+                ],
+            },
+            final_content=self.content,
+            finish_reason="stop",
+        )
+
+
 def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
     app = create_app(repository)
     actual = {
@@ -52,13 +117,21 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
         ("POST", "/api/v2/projects/{project_id}/rebuilds"),
             ("GET", "/api/v2/runs/{run_id}"),
             ("GET", "/api/v2/runs/{run_id}/trace"),
-            ("GET", "/api/v2/runs/{run_id}/execution-trace"),
+        ("GET", "/api/v2/runs/{run_id}/execution-trace"),
+        ("POST", "/api/v2/runs/{run_id}/resume"),
         ("POST", "/api/v2/runs/{run_id}/cancel"),
         ("POST", "/api/v2/runs/{run_id}/repairs"),
         ("POST", "/api/v2/projects/{project_id}/shots/{shot_id}/media-tasks"),
         ("GET", "/api/v2/media-tasks/{task_id}"),
         ("GET", "/api/v2/provider-settings"),
         ("PUT", "/api/v2/provider-settings"),
+        ("GET", "/api/v2/text-provider-profiles"),
+        ("POST", "/api/v2/text-provider-profiles"),
+        ("GET", "/api/v2/text-provider-profiles/{profile_id}"),
+        ("PUT", "/api/v2/text-provider-profiles/{profile_id}"),
+        ("DELETE", "/api/v2/text-provider-profiles/{profile_id}"),
+        ("POST", "/api/v2/text-provider-profiles/{profile_id}/activate"),
+        ("POST", "/api/v2/text-provider-profiles/{profile_id}/probe"),
     }
 
 
@@ -211,7 +284,22 @@ def test_provider_and_media_request_reject_secret_fields(repository: SQLiteRepos
             client.put("/api/v2/provider-settings", json={"textBaseUrl": unsafe_url}).status_code
             == 422
         )
-    assert client.get("/api/v2/provider-settings").json()["textBaseUrl"] is None
+    assert client.get("/api/v2/provider-settings").json()["textBaseUrl"] == (
+        "https://api.atlascloud.ai/v1"
+    )
+    current_profile = client.get("/api/v2/text-provider-profiles/default").json()
+    unsafe_profile = client.put(
+        "/api/v2/text-provider-profiles/default",
+        json={
+            "expectedRevision": current_profile["revision"],
+            "displayName": current_profile["displayName"],
+            "configuration": {
+                **current_profile["configuration"],
+                "textBaseUrl": "https://example.com/v1?sig=must-not-persist",
+            },
+        },
+    )
+    assert unsafe_profile.status_code == 422
     response = client.post(
         "/api/v2/projects/unknown/shots/unknown/media-tasks",
         json={"kind": "image", "publicSettings": {"nested": {"accessToken": "secret"}}},
@@ -259,7 +347,12 @@ def test_provider_settings_merge_defaults_and_freeze_on_run(repository: SQLiteRe
 
     updated = client.put(
         "/api/v2/provider-settings",
-        json={"textModel": "saved-model", "textTemperature": 0},
+        json={
+            "expectedProfileId": initial["profileId"],
+            "expectedRevision": initial["revision"],
+            "textModel": "saved-model",
+            "textTemperature": 0,
+        },
     )
     assert updated.status_code == 200
     assert updated.json()["textBaseUrl"] == "https://server.example/v1"
@@ -283,7 +376,14 @@ def test_provider_settings_merge_defaults_and_freeze_on_run(repository: SQLiteRe
     assert "browser-only-secret" not in str(run)
     assert scheduler.submissions == [(run["id"], "browser-only-secret")]
 
-    client.put("/api/v2/provider-settings", json={"textModel": "later-model"})
+    client.put(
+        "/api/v2/provider-settings",
+        json={
+            "expectedProfileId": updated.json()["profileId"],
+            "expectedRevision": updated.json()["revision"],
+            "textModel": "later-model",
+        },
+    )
     frozen = client.get(f"/api/v2/runs/{run['id']}").json()["providerSnapshot"]
     assert frozen["textModel"] == "saved-model"
     assert "browser-only-secret" not in str(frozen)
@@ -292,17 +392,153 @@ def test_provider_settings_merge_defaults_and_freeze_on_run(repository: SQLiteRe
     assert [item["id"] for item in listed] == [run["id"]]
 
 
+def test_profile_probe_uses_its_server_key_without_a_browser_override(
+    repository: SQLiteRepository,
+) -> None:
+    adapter = ServerKeyProbeAdapter()
+    secrets = RunSecretBroker(server_profile_keys={"default": "server-profile-key"})
+    client = TestClient(
+        create_app(
+            repository,
+            text_provider_resolver=ServerKeyProbeResolver(adapter),
+            text_secret_source=secrets,
+        )
+    )
+    try:
+        profile = client.get("/api/v2/text-provider-profiles/default").json()
+        assert profile["serverKeyAvailable"] is True
+
+        response = client.post("/api/v2/text-provider-profiles/default/probe")
+
+        assert response.status_code == 200
+        assert response.json()["errorCode"] is None
+        assert response.json()["finalContentPresent"] is True
+        assert adapter.observed_keys == ["server-profile-key"]
+        assert "server-profile-key" not in response.text
+    finally:
+        secrets.close()
+
+
+def test_profile_probe_exercises_a_declared_json_schema_capability(
+    repository: SQLiteRepository,
+) -> None:
+    create_app(repository)
+    saved = repository.get_text_provider_profile("default")
+    capabilities = saved.configuration.text_capabilities.model_copy(
+        update={"json_schema": True}
+    )
+    repository.update_text_provider_profile(
+        "default",
+        saved.revision,
+        display_name=saved.display_name,
+        configuration=saved.configuration.model_copy(
+            update={"text_capabilities": capabilities, "profile_hash": ""}
+        ),
+    )
+    adapter = JsonSchemaProbeAdapter()
+    secrets = RunSecretBroker(server_profile_keys={"default": "server-profile-key"})
+    client = TestClient(
+        create_app(
+            repository,
+            text_provider_resolver=ServerKeyProbeResolver(adapter),
+            text_secret_source=secrets,
+        )
+    )
+    try:
+        response = client.post("/api/v2/text-provider-profiles/default/probe")
+
+        assert response.status_code == 200
+        assert response.json()["errorCode"] is None
+        assert adapter.requests[0].response_schema == {
+            "type": "object",
+            "properties": {"ok": {"type": "string", "enum": ["yes"]}},
+            "required": ["ok"],
+            "additionalProperties": False,
+        }
+        assert adapter.requests[0].response_schema_name == "plotloom_profile_probe"
+        assert adapter.requests[0].messages[1].content == "Set ok to yes."
+    finally:
+        secrets.close()
+
+
+def test_text_run_submission_requires_auth_only_for_bearer_and_can_resume(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    scheduler = RecordingScheduler()
+    client = TestClient(create_app(repository, run_scheduler=scheduler))
+    project = client.post(
+        "/api/v2/projects",
+        json={"brief": brief.model_dump(mode="json", by_alias=True)},
+    ).json()
+
+    missing = client.post(
+        f"/api/v2/projects/{project['id']}/pipeline-runs",
+        json={"stages": ["story_bible"]},
+    )
+    assert missing.status_code == 422
+    assert repository.list_project_runs(project["id"]) == []
+
+    queued = client.post(
+        f"/api/v2/projects/{project['id']}/pipeline-runs",
+        json={"stages": ["story_bible"]},
+        headers={"X-Plotloom-Session-API-Key": "session-only"},
+    )
+    assert queued.status_code == 202
+    run_id = queued.json()["id"]
+    assert scheduler.submissions == [(run_id, "session-only")]
+
+    resumed = client.post(
+        f"/api/v2/runs/{run_id}/resume",
+        headers={"X-Plotloom-Session-API-Key": "session-only"},
+    )
+    assert resumed.status_code == 202
+    assert scheduler.submissions[-1] == (run_id, "session-only")
+
+    anonymous_profile = client.get("/api/v2/text-provider-profiles/default").json()
+    anonymous_profile["configuration"].update(
+        {"textAuthMode": "none", "presetId": "custom"}
+    )
+    updated = client.put(
+        "/api/v2/text-provider-profiles/default",
+        json={
+            "expectedRevision": anonymous_profile["revision"],
+            "displayName": anonymous_profile["displayName"],
+            "configuration": anonymous_profile["configuration"],
+        },
+    )
+    assert updated.status_code == 200
+    anonymous = client.post(
+        f"/api/v2/projects/{project['id']}/pipeline-runs",
+        json={"stages": ["story_bible"]},
+        headers={"X-Plotloom-Session-API-Key": "must-be-ignored"},
+    )
+    assert anonymous.status_code == 202
+    assert scheduler.submissions[-1] == (anonymous.json()["id"], None)
+
+
 def test_provider_profile_rejects_an_impossible_text_token_budget(
     repository: SQLiteRepository,
 ) -> None:
     client = TestClient(create_app(repository))
+    current = client.get("/api/v2/provider-settings").json()
+    profile_before = repository.get_text_provider_profile(current["profileId"])
+    media_before = repository.get_provider_settings()
 
     response = client.put(
         "/api/v2/provider-settings",
-        json={"textContextWindowTokens": 4096, "textMaxOutputTokens": 4096},
+        json={
+            "expectedProfileId": current["profileId"],
+            "expectedRevision": current["revision"],
+            "textContextWindowTokens": 4096,
+            "textMaxOutputTokens": 4096,
+            "imageModel": "must-roll-back-with-invalid-text",
+        },
     )
 
     assert response.status_code == 422
+    assert repository.get_text_provider_profile(current["profileId"]) == profile_before
+    assert repository.get_provider_settings() == media_before
     assert "textMaxOutputTokens must be smaller" in response.text
 
 
@@ -310,20 +546,110 @@ def test_provider_profile_partial_updates_validate_after_merging_current_values(
     repository: SQLiteRepository,
 ) -> None:
     client = TestClient(create_app(repository))
+    current = client.get("/api/v2/provider-settings").json()
     first = client.put(
         "/api/v2/provider-settings",
-        json={"textContextWindowTokens": 16384, "textMaxOutputTokens": 1024},
+        json={
+            "expectedProfileId": current["profileId"],
+            "expectedRevision": current["revision"],
+            "textContextWindowTokens": 16384,
+            "textMaxOutputTokens": 1024,
+        },
     )
     assert first.status_code == 200
 
     second = client.put(
         "/api/v2/provider-settings",
-        json={"textContextWindowTokens": 4096},
+        json={
+            "expectedProfileId": first.json()["profileId"],
+            "expectedRevision": first.json()["revision"],
+            "textContextWindowTokens": 4096,
+        },
     )
 
     assert second.status_code == 200
     assert second.json()["textContextWindowTokens"] == 4096
     assert second.json()["textMaxOutputTokens"] == 1024
+
+
+def test_legacy_provider_settings_write_obeys_active_profile_revision(
+    repository: SQLiteRepository,
+) -> None:
+    client = TestClient(create_app(repository))
+    legacy = client.get("/api/v2/provider-settings").json()
+    profile = client.get("/api/v2/text-provider-profiles/default").json()
+    profile["configuration"].update(
+        {"textModel": "newer-named-model", "presetId": "custom"}
+    )
+    named_update = client.put(
+        "/api/v2/text-provider-profiles/default",
+        json={
+            "expectedRevision": profile["revision"],
+            "displayName": profile["displayName"],
+            "configuration": profile["configuration"],
+        },
+    )
+    assert named_update.status_code == 200
+
+    stale = client.put(
+        "/api/v2/provider-settings",
+        json={
+            "expectedProfileId": legacy["profileId"],
+            "expectedRevision": legacy["revision"],
+            "textModel": "stale-legacy-overwrite",
+        },
+    )
+
+    assert stale.status_code == 409
+    current = client.get("/api/v2/text-provider-profiles/default").json()
+    assert current["configuration"]["textModel"] == "newer-named-model"
+
+
+def test_legacy_provider_settings_write_rejects_a_changed_active_profile(
+    repository: SQLiteRepository,
+) -> None:
+    client = TestClient(create_app(repository))
+    legacy = client.get("/api/v2/provider-settings").json()
+    created = repository.create_text_provider_profile(
+        "quality",
+        "Quality",
+        copy_from_profile_id="default",
+    )
+    selection = repository.get_provider_profile_selection()
+    repository.activate_text_provider_profile("quality", selection.revision)
+
+    stale = client.put(
+        "/api/v2/provider-settings",
+        json={
+            "expectedProfileId": legacy["profileId"],
+            "expectedRevision": legacy["revision"],
+            "textModel": "must-not-be-written",
+        },
+    )
+
+    assert stale.status_code == 409
+    assert repository.get_text_provider_profile("default").configuration.text_model != (
+        "must-not-be-written"
+    )
+    assert repository.get_text_provider_profile("quality") == created
+
+
+def test_profile_delete_accepts_the_public_camel_case_revision_query(
+    repository: SQLiteRepository,
+) -> None:
+    client = TestClient(create_app(repository))
+    created = repository.create_text_provider_profile(
+        "delete_me",
+        "Delete Me",
+        copy_from_profile_id="default",
+    )
+
+    response = client.delete(
+        f"/api/v2/text-provider-profiles/delete_me?expectedRevision={created.revision}"
+    )
+
+    assert response.status_code == 204
+    assert response.content == b""
 
 
 def test_static_v2_mount_serves_index(repository: SQLiteRepository, tmp_path: Path) -> None:

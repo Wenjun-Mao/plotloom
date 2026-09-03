@@ -5,13 +5,23 @@ import json
 import pytest
 
 from plotloom.domain import ProjectBrief, StageName, StoryBible, StoryGraph
-from plotloom.generation.contracts import AttemptKind, AttemptStatus, RunStatus
-from plotloom.generation.exceptions import GenerationRunFailed
+from plotloom.generation.contracts import AttemptKind, AttemptStatus, ProviderCapabilities, RunStatus
+from plotloom.generation.exceptions import GenerationRunFailed, ProviderError
 from plotloom.generation.orchestration import GenerationOrchestrator
 from plotloom.generation.prompts import PromptRenderer
 from plotloom.generation.validation import CanonicalStageValidationAdapter
 
 from conftest import QueueProvider, secret_lease
+
+
+class SecretEchoErrorProvider:
+    name = "third-party-provider"
+    capabilities = ProviderCapabilities(json_schema=False)
+
+    def generate(self, request, secret):
+        assert secret is not None
+        with secret.reveal() as value:
+            raise ProviderError(f"third-party diagnostic echoed {value}")
 
 
 def _brief() -> ProjectBrief:
@@ -64,6 +74,27 @@ def test_capability_paths_share_prompt_schema_and_local_validation(
     assert '"logline"' in request.messages[1].content
     assert '"worldRules"' in request.messages[1].content
     assert "test-provider-secret" not in result.run.model_dump_json()
+
+
+def test_provider_boundary_error_is_redacted_after_third_party_adapter_spends_lease() -> None:
+    orchestrator = GenerationOrchestrator(
+        renderer=PromptRenderer(), provider=SecretEchoErrorProvider()
+    )
+    _, lease = secret_lease()
+    validator = CanonicalStageValidationAdapter(StageName.STORY_BIBLE, brief=_brief())
+
+    with pytest.raises(GenerationRunFailed) as captured:
+        orchestrator.generate(
+            prompt_id="story_bible",
+            variables={"project_input": _brief()},
+            validator=validator,
+            model="test-model",
+            secret=lease,
+        )
+
+    attempt = captured.value.run.attempts[0]
+    assert attempt.error_message == "third-party diagnostic echoed [redacted]"
+    assert "test-provider-secret" not in captured.value.run.model_dump_json()
 
 
 def test_semantically_invalid_output_is_quarantined_without_automatic_repair() -> None:

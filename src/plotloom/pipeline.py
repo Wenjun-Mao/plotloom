@@ -8,7 +8,7 @@ runner or the explicitly isolated historical repair flow.
 from __future__ import annotations
 
 from threading import Event, RLock
-from typing import Any, Mapping, Protocol
+from typing import Any, Callable, Mapping, Protocol
 
 from .domain import (
     Artifact,
@@ -26,11 +26,14 @@ from .domain import (
     stage_payload_model,
 )
 from .generation.contracts import (
+    ExtractionPolicy,
     GenerationAttempt as PromptAttempt,
     ProviderCapabilities,
     QuarantineRecord,
     RunStatus as PromptRunStatus,
     ValidationIssue,
+    ReasoningMode,
+    RequestExtension,
 )
 from .generation.exceptions import GenerationRunFailed, SecretLeaseError
 from .generation.fragments import StoryBibleFragment, StoryGraphFragment
@@ -45,6 +48,7 @@ from .generation.secrets import InMemorySecretVault, SecretLease
 from .generation.validation import CanonicalStageValidationAdapter
 from .exceptions import InvalidTransitionError, QuarantinedOutputError
 from .persistence import SQLiteRepository, stable_hash
+from .provider_profiles import TextProviderProfileSnapshot, is_v2_snapshot
 from .runtime import GenerationEngine, RunContext, RunExecutionResult
 from .work_unit_pipeline import DurableWorkUnitRunner
 
@@ -56,20 +60,54 @@ class RunSecretBroker:
     run ends, and neither names nor values are included in persistence models.
     """
 
-    def __init__(self, server_text_key: str | None = None) -> None:
+    def __init__(
+        self,
+        server_text_key: str | None = None,
+        *,
+        server_profile_keys: Mapping[str, str] | None = None,
+        server_key_resolver: Callable[[str], str | None] | None = None,
+    ) -> None:
         self._vault = InMemorySecretVault()
         self._lock = RLock()
-        self._run_aliases: dict[str, str] = {}
-        self._server_alias: str | None = None
+        self._run_aliases: dict[str, tuple[str, str]] = {}
+        self._server_aliases: dict[str, str] = {}
+        self._server_key_resolver = server_key_resolver
         if server_text_key:
-            self._server_alias = "server:text"
-            self._vault.put(self._server_alias, server_text_key)
+            self._server_aliases["default"] = "server:default:text"
+            self._vault.put(self._server_aliases["default"], server_text_key)
+        for profile_id, value in (server_profile_keys or {}).items():
+            normalized = value.strip()
+            if not normalized:
+                continue
+            alias = f"server:{profile_id}:text"
+            self._server_aliases[profile_id] = alias
+            self._vault.put(alias, normalized)
 
-    @property
-    def server_key_available(self) -> bool:
-        return self._server_alias is not None
+    def server_key_available(self, profile_id: str = "default") -> bool:
+        with self._lock:
+            return self._server_alias_for(profile_id) is not None
 
-    def register_run_override(self, run_id: str, value: str | None) -> None:
+    def _server_alias_for(self, profile_id: str) -> str | None:
+        alias = self._server_aliases.get(profile_id)
+        if alias is not None:
+            return alias
+        if self._server_key_resolver is None:
+            return None
+        value = (self._server_key_resolver(profile_id) or "").strip()
+        if not value:
+            return None
+        alias = f"server:{profile_id}:text"
+        self._vault.put(alias, value)
+        self._server_aliases[profile_id] = alias
+        return alias
+
+    def register_run_override(
+        self,
+        run_id: str,
+        value: str | None,
+        *,
+        profile_id: str = "default",
+    ) -> None:
         normalized = (value or "").strip()
         if not normalized:
             return
@@ -77,37 +115,60 @@ class RunSecretBroker:
         with self._lock:
             previous = self._run_aliases.get(run_id)
             if previous:
-                self._vault.remove(previous)
+                self._vault.remove(previous[0])
             self._vault.put(alias, normalized)
-            self._run_aliases[run_id] = alias
+            self._run_aliases[run_id] = (alias, profile_id)
 
     def lease_for_run(
         self,
         run_id: str,
         *,
         auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER,
+        profile_id: str = "default",
     ) -> SecretLease | None:
         if auth_mode == ProviderAuthMode.NONE:
             return None
         with self._lock:
-            alias = self._run_aliases.get(run_id) or self._server_alias
+            override = self._run_aliases.get(run_id)
+            if override is not None and override[1] != profile_id:
+                raise SecretLeaseError("Run session credential is bound to a different provider profile")
+            alias = override[0] if override is not None else self._server_alias_for(profile_id)
             if alias is None:
                 raise SecretLeaseError(
-                    "No text-provider key is available; configure TEXT_MODEL_API_KEY "
-                    "or provide a browser-session key"
+                    f"No text-provider key is available for profile {profile_id!r}; "
+                    "configure its profile-specific environment key or provide a browser-session key"
                 )
             return self._vault.lease(alias, ttl_seconds=900, max_uses=1)
 
+    def lease_for_profile(
+        self,
+        profile_id: str,
+        *,
+        auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER,
+    ) -> SecretLease | None:
+        """Lease a server-owned key for a secret-free connection probe."""
+
+        if auth_mode == ProviderAuthMode.NONE:
+            return None
+        with self._lock:
+            alias = self._server_alias_for(profile_id)
+            if alias is None:
+                raise SecretLeaseError(
+                    f"No text-provider key is available for profile {profile_id!r}"
+                )
+            return self._vault.lease(alias, ttl_seconds=60, max_uses=1)
+
     def release_run(self, run_id: str) -> None:
         with self._lock:
-            alias = self._run_aliases.pop(run_id, None)
-            if alias:
-                self._vault.remove(alias)
+            binding = self._run_aliases.pop(run_id, None)
+            if binding:
+                self._vault.remove(binding[0])
 
     def close(self) -> None:
         with self._lock:
             self._run_aliases.clear()
-            self._server_alias = None
+            self._server_aliases.clear()
+            self._server_key_resolver = None
             self._vault.clear()
 
 
@@ -126,7 +187,11 @@ class SnapshotTextProviderResolver:
     """
 
     def resolve(self, provider_snapshot: Mapping[str, Any]) -> tuple[ProviderAdapter, str]:
-        snapshot = ProviderSnapshot.model_validate(provider_snapshot)
+        snapshot: ProviderSnapshot | TextProviderProfileSnapshot
+        if is_v2_snapshot(provider_snapshot):
+            snapshot = TextProviderProfileSnapshot.model_validate(provider_snapshot)
+        else:
+            snapshot = ProviderSnapshot.model_validate(provider_snapshot)
         capabilities = ProviderCapabilities.model_validate(
             snapshot.text_capabilities.model_dump()
         )
@@ -134,7 +199,11 @@ class SnapshotTextProviderResolver:
             name=snapshot.text_provider,
             base_url=snapshot.text_base_url,
             capabilities=capabilities,
-            auth_mode=snapshot.text_auth_mode.value,
+            auth_mode=(
+                snapshot.text_auth_mode.value
+                if isinstance(snapshot.text_auth_mode, ProviderAuthMode)
+                else snapshot.text_auth_mode
+            ),
             connect_timeout_seconds=snapshot.text_connect_timeout_seconds,
             timeout_seconds=snapshot.text_attempt_timeout_seconds,
         )
@@ -266,7 +335,11 @@ class PipelineEngine(GenerationEngine):
                     "exact work-unit repair is not implemented; start a rebuild from the failed stage instead"
                 )
             return self._execute_legacy_repair(run, context, cancellation)
-        profile = ProviderSnapshot.model_validate(run.provider_snapshot)
+        profile: ProviderSnapshot | TextProviderProfileSnapshot
+        if is_v2_snapshot(run.provider_snapshot):
+            profile = TextProviderProfileSnapshot.model_validate(run.provider_snapshot)
+        else:
+            profile = ProviderSnapshot.model_validate(run.provider_snapshot)
         adapter, model = self.provider_resolver.resolve(run.provider_snapshot)
         return DurableWorkUnitRunner(self.repository, self.secrets, self.renderer).execute(
             run,
@@ -283,8 +356,18 @@ class PipelineEngine(GenerationEngine):
         cancellation: Event,
     ) -> RunExecutionResult:
         del context  # provider/artifact ports are used by media; text uses typed adapters here.
-        profile = ProviderSnapshot.model_validate(run.provider_snapshot)
+        profile: ProviderSnapshot | TextProviderProfileSnapshot
+        if is_v2_snapshot(run.provider_snapshot):
+            profile = TextProviderProfileSnapshot.model_validate(run.provider_snapshot)
+        else:
+            profile = ProviderSnapshot.model_validate(run.provider_snapshot)
         adapter, model = self.provider_resolver.resolve(run.provider_snapshot)
+        if isinstance(profile, TextProviderProfileSnapshot):
+            request_extension, reasoning_mode, extraction_policy = profile.request_contract()
+        else:
+            request_extension = RequestExtension.NONE
+            reasoning_mode = ReasoningMode.PROVIDER_DEFAULT
+            extraction_policy = ExtractionPolicy()
         quarantine = InMemoryQuarantineStore()
         orchestrator = GenerationOrchestrator(
             renderer=self.renderer,
@@ -336,7 +419,8 @@ class PipelineEngine(GenerationEngine):
                 try:
                     lease = self.secrets.lease_for_run(
                         run.id,
-                        auth_mode=profile.text_auth_mode,
+                        auth_mode=ProviderAuthMode(profile.text_auth_mode),
+                        profile_id=profile.profile_id,
                     )
                     if run.kind == RunKind.REPAIR and stage == run.repair_stage:
                         result = self._repair(
@@ -350,6 +434,9 @@ class PipelineEngine(GenerationEngine):
                             observer,
                             temperature=profile.text_temperature,
                             max_output_tokens=profile.text_max_output_tokens,
+                            extraction_policy=extraction_policy,
+                            request_extension=request_extension,
+                            reasoning_mode=reasoning_mode,
                         )
                     else:
                         result = orchestrator.generate(
@@ -360,6 +447,9 @@ class PipelineEngine(GenerationEngine):
                             secret=lease,
                             temperature=profile.text_temperature,
                             max_output_tokens=profile.text_max_output_tokens,
+                            extraction_policy=extraction_policy,
+                            request_extension=request_extension,
+                            reasoning_mode=reasoning_mode,
                             validation_metadata={"projectId": run.project_id, "runId": run.id},
                             observer=observer,
                         )
@@ -432,6 +522,9 @@ class PipelineEngine(GenerationEngine):
         *,
         temperature: float,
         max_output_tokens: int,
+        extraction_policy: ExtractionPolicy,
+        request_extension: RequestExtension,
+        reasoning_mode: ReasoningMode,
     ) -> Any:
         if not run.parent_run_id or run.repair_source is None:
             raise ValueError("repair run is missing frozen parent evidence")
@@ -479,6 +572,9 @@ class PipelineEngine(GenerationEngine):
             instructions=run.instructions,
             temperature=temperature,
             max_output_tokens=max_output_tokens,
+            extraction_policy=extraction_policy,
+            request_extension=request_extension,
+            reasoning_mode=reasoning_mode,
             validation_metadata={"projectId": run.project_id, "runId": run.id},
             observer=observer,
         )

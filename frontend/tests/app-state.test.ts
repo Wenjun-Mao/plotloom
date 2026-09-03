@@ -309,7 +309,7 @@ describe("App project/editor rehydration", () => {
     const run = { ...demoRun, id: "run-restored", projectId: incoming.id, status: "quarantined" as const, requestedStages: ["story_bible" as const] };
     const trace: RunTrace = {
       run,
-      attempts: [{ id: "attempt-restored", runId: run.id, workUnitId: null, stage: "story_bible", attemptNumber: 1, status: "failed", provider: null, model: null, error: "刷新后仍可见的合同错误", dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z" }],
+      attempts: [{ id: "attempt-restored", runId: run.id, workUnitId: null, stage: "story_bible", attemptNumber: 1, attemptKind: "primary", sourceAttemptId: null, status: "failed", provider: null, model: null, error: "刷新后仍可见的合同错误", dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, outcomeCode: "schema_invalid", startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z" }],
       artifacts: [
         { id: "response-restored", runId: run.id, attemptId: "attempt-restored", workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "response", mediaType: "application/json", content: { rawResponse: "original response" }, contentHash: "response", createdAt: "2026-08-30T00:00:00Z" },
         { id: "validation-restored", runId: run.id, attemptId: "attempt-restored", workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "validation", mediaType: "application/json", content: { issue: "missing premise" }, contentHash: "abc", createdAt: "2026-08-30T00:00:01Z" },
@@ -385,5 +385,32 @@ describe("App project/editor rehydration", () => {
 
     expect(document.body.textContent).toContain("服务器已配置文本密钥");
     expect(document.body.textContent).toContain("填写则仅覆盖当前标签页");
+  });
+
+  it("flushes the selected profile before generating and never includes its session key in the save", async () => {
+    window.history.replaceState(null, "", "/?project=profile-project");
+    const incoming = resource("profile-project", "Profile save before generate");
+    vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
+    vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
+    const savedProfile = {
+      profileId: "default", displayName: "Default", revision: 1, createdAt: "", updatedAt: "", serverKeyAvailable: false,
+      configuration: { profileId: "default", textModel: "model", textAuthMode: "bearer" },
+    } as never;
+    vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue({
+      profiles: [savedProfile], activeProfileId: "default", selectionRevision: 0, presets: {},
+    } as never);
+    const saveProfile = vi.spyOn(plotloomApi, "updateTextProviderProfile").mockResolvedValue(savedProfile);
+    const startRun = vi.spyOn(plotloomApi, "startRun").mockResolvedValue({ ...demoRun, id: "profile-run", status: "queued" });
+    window.sessionStorage.setItem("plotloom:provider-session-keys", JSON.stringify({ default: "never-in-profile-json" }));
+
+    await act(async () => root.render(createElement(App)));
+    await flush();
+    await act(async () => button("运行轨迹").click());
+    await act(async () => button("运行所选阶段").click());
+    await flush();
+
+    expect(saveProfile).toHaveBeenCalledBefore(startRun);
+    expect(saveProfile.mock.calls[0].some((value) => JSON.stringify(value).includes("never-in-profile-json"))).toBe(false);
+    expect(startRun).toHaveBeenCalledWith("profile-project", ["story_bible", "story_graph", "scene_beats", "storyboard"], "default", true);
   });
 });

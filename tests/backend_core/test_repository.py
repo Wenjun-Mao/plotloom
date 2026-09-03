@@ -437,7 +437,10 @@ def test_startup_reconciliation_resubmits_only_safe_jobs_and_closes_interrupted_
     }
     assert plan.terminated_media_task_ids == [ambiguous_media.id]
 
-    assert repository.get_run(running.id).status == RunStatus.FAILED
+    recovered_running = repository.get_run(running.id)
+    assert recovered_running.status == RunStatus.FAILED
+    assert recovered_running.failure_code == "recovery.legacy_interrupted"
+    assert recovered_running.failed_stage == StageName.STORY_BIBLE
     assert repository.get_run(cancelling.id).status == RunStatus.CANCELLED
     attempts = {
         attempt.id: attempt
@@ -463,7 +466,7 @@ def test_file_sqlite_uses_alembic_foreign_keys_and_wal(tmp_path: Path) -> None:
             assert connection.execute(text("PRAGMA journal_mode")).scalar_one().lower() == "wal"
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0005_v2_generation_work_units"
+                == "0007_v2_run_failure_codes"
             )
     finally:
         repository.close()

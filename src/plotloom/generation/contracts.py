@@ -68,6 +68,23 @@ class ProviderCapabilities(FrozenModel):
     chat_completions: bool = True
     json_object: bool = False
     json_schema: bool = False
+    # This is deliberately a capability rather than a model-name heuristic.
+    # Some OpenAI-compatible servers expose template controls while others
+    # reject unknown top-level request fields.
+    chat_template_kwargs: bool = False
+
+
+class RequestExtension(str, Enum):
+    """Explicit, audited extensions to the OpenAI-compatible request shape."""
+
+    NONE = "none"
+    CHAT_TEMPLATE_KWARGS = "chat_template_kwargs"
+
+
+class ReasoningMode(str, Enum):
+    PROVIDER_DEFAULT = "provider_default"
+    ENABLED = "enabled"
+    DISABLED = "disabled"
 
 
 class GenerationRequest(FrozenModel):
@@ -78,6 +95,8 @@ class GenerationRequest(FrozenModel):
     response_schema: dict[str, Any] | None = None
     response_schema_name: str | None = None
     metadata: dict[str, str] = Field(default_factory=dict)
+    request_extension: RequestExtension = RequestExtension.NONE
+    reasoning_mode: ReasoningMode = ReasoningMode.PROVIDER_DEFAULT
 
 
 class ProviderUsage(FrozenModel):
@@ -92,6 +111,13 @@ class ProviderResponse(FrozenModel):
     request_id: str | None = None
     finish_reason: str | None = None
     usage: ProviderUsage = Field(default_factory=ProviderUsage)
+    # ``raw`` remains the complete durable evidence envelope.  These fields
+    # are a deliberately narrow, content-only read of its first assistant
+    # message, so downstream parsing can never accidentally promote hidden
+    # reasoning to canonical output.
+    final_content: str | None = None
+    reasoning_present: bool = False
+    outcome_code: str | None = None
 
 
 class ExtractionPolicy(FrozenModel):

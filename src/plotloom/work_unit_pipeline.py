@@ -16,6 +16,8 @@ from .domain import (
     Artifact,
     ArtifactKind,
     AttemptStatus,
+    GenerationAttempt,
+    GenerationAttemptKind,
     GenerationRun,
     ProjectBrief,
     ProviderAuthMode,
@@ -23,20 +25,46 @@ from .domain import (
     RunStatus,
     StageName,
     StagePayload,
+    WorkUnitFailureDisposition,
     stage_payload_model,
 )
-from .exceptions import QuarantinedOutputError
-from .generation.contracts import GenerationRequest, ValidationIssue
-from .generation.exceptions import ProviderCapabilityError, ResponseExtractionError
+from .exceptions import QuarantinedOutputError, RunExecutionError
+from .generation.contracts import (
+    ExtractionPolicy,
+    GenerationRequest,
+    ProviderResponse,
+    ProviderUsage,
+    ReasoningMode,
+    RequestExtension,
+    ValidationIssue,
+)
+from .generation.exceptions import (
+    ProviderCapabilityError,
+    ProviderError,
+    ProviderOutcomeUnknownError,
+    ProviderRequestNotSentError,
+    ProviderResponseError,
+    ResponseExtractionError,
+)
 from .generation.fragments import StoryBibleFragment, StoryGraphFragment
-from .generation.planning import StagePlan
+from .generation.planning import GenerationWorkUnit, StagePlan
 from .generation.prompts import PromptRenderer
 from .generation.providers import ProviderAdapter
-from .generation.responses import extract_assistant_text, parse_json_text
+from .generation.responses import (
+    extract_assistant_text,
+    parse_json_text,
+    redact_provider_boundary_evidence,
+)
 from .generation.secrets import SecretLease
 from .generation.validation import SemanticValidationContext
-from .generation.work_units import CompiledWorkUnitRequest, compile_work_unit_request
+from .generation.work_units import (
+    FRAGMENT_ID_BINDING_VERSION,
+    CompiledWorkUnitRequest,
+    compile_work_unit_request,
+)
 from .persistence import SQLiteRepository, stable_hash
+from .provider_profiles import TextProviderProfileSnapshot
+from .generation.story_graph_topology import StoryGraphTopology
 from .runtime import RunExecutionResult
 
 
@@ -46,9 +74,16 @@ class RunSecretLeaser(Protocol):
         run_id: str,
         *,
         auth_mode: ProviderAuthMode,
+        profile_id: str = "default",
     ) -> SecretLease | None: ...
 
     def release_run(self, run_id: str) -> None: ...
+
+
+class CorrectionPromptBudgetError(ValueError):
+    """A correction packet cannot fit the work unit's frozen byte budget."""
+
+    code = "contract.correction_input_budget_exceeded"
 
 
 class DurableWorkUnitRunner:
@@ -70,12 +105,13 @@ class DurableWorkUnitRunner:
         *,
         adapter: ProviderAdapter,
         model: str,
-        profile: ProviderSnapshot,
+        profile: ProviderSnapshot | TextProviderProfileSnapshot,
         cancellation: Event,
     ) -> RunExecutionResult:
         """Run exact units, returning only repository-owned aggregate IDs."""
 
         generation_plan = self.repository.get_generation_plan(run.id)
+        story_graph_topology = self.repository.get_story_graph_topology(run.id)
         brief = run.canonical_snapshot.brief
         sealed_payloads: dict[StageName, StagePayload] = {}
         sealed_ids: list[str] = []
@@ -103,18 +139,40 @@ class DurableWorkUnitRunner:
                         continue
                     if self._cancelled(run.id, cancellation):
                         return RunExecutionResult(sealed_aggregate_ids=sealed_ids)
-                    candidate_id = self._execute_work_unit(
-                        run=run,
-                        generation_plan=generation_plan,
-                        stage_plan=stage_plan,
-                        work_unit_id=work_unit.unit_id,
-                        dependencies=dependencies,
-                        brief=brief,
-                        adapter=adapter,
-                        model=model,
-                        profile=profile,
-                        cancellation=cancellation,
-                    )
+                    try:
+                        candidate_id = self._execute_work_unit(
+                            run=run,
+                            generation_plan=generation_plan,
+                            stage_plan=stage_plan,
+                            work_unit_id=work_unit.unit_id,
+                            dependencies=dependencies,
+                            brief=brief,
+                            adapter=adapter,
+                            model=model,
+                            profile=profile,
+                            story_graph_topology=story_graph_topology,
+                            cancellation=cancellation,
+                        )
+                    except QuarantinedOutputError:
+                        raise
+                    except Exception as error:
+                        attempts = [
+                            attempt
+                            for attempt in self.repository.get_run_trace(run.id).attempts
+                            if attempt.work_unit_id == work_unit.unit_id
+                            and attempt.status == AttemptStatus.FAILED
+                            and attempt.outcome_code
+                        ]
+                        if attempts:
+                            latest = max(
+                                attempts,
+                                key=lambda attempt: attempt.attempt_number,
+                            )
+                            raise RunExecutionError(
+                                code=str(latest.outcome_code),
+                                stage=work_unit.stage,
+                            ) from error
+                        raise
                     if candidate_id is None:
                         return RunExecutionResult(sealed_aggregate_ids=sealed_ids)
                     candidates[work_unit.unit_id] = candidate_id
@@ -145,188 +203,630 @@ class DurableWorkUnitRunner:
         brief: ProjectBrief,
         adapter: ProviderAdapter,
         model: str,
-        profile: ProviderSnapshot,
+        profile: ProviderSnapshot | TextProviderProfileSnapshot,
+        story_graph_topology: StoryGraphTopology | None,
         cancellation: Event,
     ) -> str | None:
         work_unit = next(unit for unit in stage_plan.work_units if unit.unit_id == work_unit_id)
-        attempt = self.repository.allocate_attempt_for_work_unit(
-            work_unit_id, provider=adapter.name, model=model
-        )
-        try:
-            compiled = compile_work_unit_request(
-                generation_plan=generation_plan,
-                stage_plan=stage_plan,
-                work_unit=work_unit,
-                dependencies=dependencies,
-                brief=brief,
-                canonical_snapshot=run.canonical_snapshot,
-                instructions=run.instructions or "",
-                stage_constraints=self._stage_constraints(work_unit.stage, brief, run.instructions),
-                renderer=self.renderer,
-            )
-            self._assert_prior_prompt_contract(run.id, work_unit_id, compiled)
-            self._persist_prompt(run, attempt.id, work_unit_id, compiled, adapter, model)
-        except Exception as error:
-            self.repository.finish_attempt(attempt.id, AttemptStatus.FAILED, error=str(error))
-            raise
-
-        if self._cancelled(run.id, cancellation):
-            self.repository.finish_attempt(attempt.id, AttemptStatus.CANCELLED)
-            return None
-        try:
-            provider_schema = self._provider_schema(compiled, adapter)
-            lease = self.secrets.lease_for_run(run.id, auth_mode=profile.text_auth_mode)
-        except Exception as error:
-            self.repository.finish_attempt(attempt.id, AttemptStatus.FAILED, error=str(error))
-            raise
-
-        # Commit immediately before the non-idempotent provider boundary.
-        try:
-            self.repository.mark_attempt_dispatched(attempt.id)
-        except Exception as error:
-            self.repository.finish_attempt(attempt.id, AttemptStatus.FAILED, error=str(error))
-            raise
-        request = GenerationRequest(
-            messages=compiled.rendered.messages,
-            model=model,
-            temperature=profile.text_temperature,
-            max_output_tokens=min(work_unit.budget.max_output_tokens, profile.text_max_output_tokens),
-            response_schema=provider_schema,
-            response_schema_name=(
-                _provider_schema_name(compiled.contract.schema_id)
-                if provider_schema is not None
+        base_compiled = compile_work_unit_request(
+            generation_plan=generation_plan,
+            stage_plan=stage_plan,
+            work_unit=work_unit,
+            dependencies=dependencies,
+            brief=brief,
+            canonical_snapshot=run.canonical_snapshot,
+            instructions=run.instructions or "",
+            stage_constraints=self._stage_constraints(work_unit.stage, brief, run.instructions),
+            story_graph_topology=(
+                story_graph_topology
+                if work_unit.stage == StageName.STORY_GRAPH
                 else None
             ),
-            metadata={
-                "run_id": run.id,
-                "attempt_id": attempt.id,
-                "work_unit_id": work_unit_id,
-                "prompt_hash": compiled.contract.rendered_hash,
-            },
+            renderer=self.renderer,
         )
-        try:
-            provider_response = adapter.generate(request, lease)
-        except Exception as error:
-            self.repository.mark_attempt_outcome_unknown(attempt.id, error=str(error))
-            raise
+        if work_unit.stage == StageName.STORY_GRAPH and story_graph_topology is None:
+            raise ValueError("new Story Graph work units require a frozen topology")
 
-        response_content = {
-            # The unmodified envelope is durable before local extraction/parsing.
-            "rawResponse": provider_response.raw,
-            "providerRequestId": provider_response.request_id,
-            "finishReason": provider_response.finish_reason,
-            "usage": {
-                "inputTokens": provider_response.usage.input_tokens,
-                "outputTokens": provider_response.usage.output_tokens,
-            },
-            "contract": compiled.contract.model_dump(mode="json", by_alias=True),
-        }
-        try:
-            self.repository.persist_attempt_response(
-                attempt.id,
-                response_content,
-                provider_request_id=provider_response.request_id,
+        if isinstance(profile, TextProviderProfileSnapshot):
+            request_extension, reasoning_mode, extraction_policy = profile.request_contract()
+            max_corrections = profile.max_semantic_corrections
+        else:
+            request_extension = RequestExtension.NONE
+            reasoning_mode = ReasoningMode.PROVIDER_DEFAULT
+            extraction_policy = ExtractionPolicy()
+            max_corrections = 0
+        max_attempts = 1 + max_corrections
+
+        while True:
+            trace = self.repository.get_run_trace(run.id)
+            prior_attempts = sorted(
+                (
+                    item
+                    for item in trace.attempts
+                    if item.work_unit_id == work_unit_id
+                ),
+                key=lambda item: item.attempt_number,
             )
-        except Exception as error:
-            self.repository.mark_attempt_outcome_unknown(attempt.id, error=str(error))
-            raise
-        if self._cancelled(run.id, cancellation):
-            self.repository.finish_attempt(attempt.id, AttemptStatus.CANCELLED)
-            return None
+            recoverable_attempt = self.repository.get_recoverable_attempt_for_work_unit(
+                work_unit_id
+            )
+            if recoverable_attempt is not None:
+                attempt = recoverable_attempt
+                if attempt.attempt_number > max_attempts:
+                    raise ValueError(
+                        "recoverable work-unit attempt exceeds the frozen correction limit"
+                    )
+                source_attempt = (
+                    next(
+                        (
+                            item
+                            for item in prior_attempts
+                            if item.id == attempt.source_attempt_id
+                        ),
+                        None,
+                    )
+                    if attempt.attempt_kind == GenerationAttemptKind.CORRECTION
+                    else None
+                )
+                if (
+                    attempt.attempt_kind == GenerationAttemptKind.CORRECTION
+                    and source_attempt is None
+                ):
+                    raise ValueError(
+                        "recoverable correction attempt is missing its durable source attempt"
+                    )
+            else:
+                source_attempt = prior_attempts[-1] if prior_attempts else None
+                attempt_kind = (
+                    GenerationAttemptKind.CORRECTION
+                    if source_attempt is not None
+                    else GenerationAttemptKind.PRIMARY
+                )
+                attempt = self.repository.allocate_attempt_for_work_unit(
+                    work_unit_id,
+                    provider=adapter.name,
+                    model=model,
+                    attempt_kind=attempt_kind,
+                    source_attempt_id=(
+                        source_attempt.id if source_attempt is not None else None
+                    ),
+                    max_attempts=max_attempts,
+                )
+            compiled = base_compiled
+            try:
+                if source_attempt is not None:
+                    compiled = self._compile_correction_request(
+                        run=run,
+                        work_unit=work_unit,
+                        work_unit_id=work_unit_id,
+                        base_compiled=base_compiled,
+                        source_attempt=source_attempt,
+                    )
+                else:
+                    self._assert_prior_prompt_contract(run.id, work_unit_id, compiled)
+                existing_prompt = next(
+                    (
+                        artifact
+                        for artifact in trace.artifacts
+                        if artifact.attempt_id == attempt.id
+                        and artifact.kind == ArtifactKind.PROMPT
+                    ),
+                    None,
+                )
+                if existing_prompt is None:
+                    self._persist_prompt(
+                        run, attempt, work_unit_id, compiled, adapter, model
+                    )
+                else:
+                    self._assert_attempt_prompt_contract(
+                        existing_prompt, attempt, compiled
+                    )
+            except Exception as error:
+                self.repository.finish_attempt(
+                    attempt.id,
+                    AttemptStatus.FAILED,
+                    error=str(error),
+                    outcome_code=(
+                        error.code
+                        if isinstance(error, CorrectionPromptBudgetError)
+                        else "contract.prompt_failed"
+                    ),
+                    failure_disposition=WorkUnitFailureDisposition.FAILED,
+                )
+                raise
 
-        try:
-            raw_text = extract_assistant_text(provider_response)
-            extracted = parse_json_text(raw_text)
-            report = compiled.validator.validate(
-                extracted.value,
-                context=SemanticValidationContext(
-                    stage=work_unit.stage.value,
+            if self._cancelled(run.id, cancellation):
+                self.repository.finish_attempt(attempt.id, AttemptStatus.CANCELLED)
+                return None
+            response_artifact = next(
+                (
+                    artifact
+                    for artifact in trace.artifacts
+                    if artifact.attempt_id == attempt.id
+                    and artifact.kind == ArtifactKind.RESPONSE
+                ),
+                None,
+            )
+            if response_artifact is not None:
+                provider_response = self._provider_response_from_artifact(
+                    response_artifact,
+                    attempt=attempt,
+                    compiled=compiled,
+                    fallback_provider=adapter.name,
+                    fallback_model=model,
+                )
+            else:
+                try:
+                    provider_schema = self._provider_schema(compiled, adapter)
+                    lease = self.secrets.lease_for_run(
+                        run.id,
+                        auth_mode=ProviderAuthMode(profile.text_auth_mode),
+                        profile_id=profile.profile_id,
+                    )
+                except Exception as error:
+                    self.repository.finish_attempt(
+                        attempt.id,
+                        AttemptStatus.FAILED,
+                        error=str(error),
+                        outcome_code="provider.preflight_failed",
+                        failure_disposition=WorkUnitFailureDisposition.FAILED,
+                    )
+                    raise
+
+                # Commit immediately before the non-idempotent provider boundary.
+                try:
+                    self.repository.mark_attempt_dispatched(attempt.id)
+                except Exception as error:
+                    self.repository.finish_attempt(
+                        attempt.id,
+                        AttemptStatus.FAILED,
+                        error=str(error),
+                        outcome_code="provider.dispatch_not_started",
+                        failure_disposition=WorkUnitFailureDisposition.FAILED,
+                    )
+                    raise
+                request = GenerationRequest(
+                    messages=compiled.rendered.messages,
+                    model=model,
+                    temperature=profile.text_temperature,
+                    max_output_tokens=min(
+                        work_unit.budget.max_output_tokens,
+                        profile.text_max_output_tokens,
+                    ),
+                    response_schema=provider_schema,
+                    response_schema_name=(
+                        _provider_schema_name(compiled.contract.schema_id)
+                        if provider_schema is not None
+                        else None
+                    ),
                     metadata={
-                        "projectId": run.project_id,
-                        "runId": run.id,
-                        "attemptId": attempt.id,
-                        "workUnitId": work_unit_id,
+                        "run_id": run.id,
+                        "attempt_id": attempt.id,
+                        "work_unit_id": work_unit_id,
+                        "prompt_hash": compiled.contract.rendered_hash,
                     },
+                    request_extension=request_extension,
+                    reasoning_mode=reasoning_mode,
+                )
+                try:
+                    provider_response = adapter.generate(request, lease)
+                except ProviderOutcomeUnknownError as error:
+                    self.repository.mark_attempt_outcome_unknown(
+                        attempt.id,
+                        error=redact_provider_boundary_evidence(
+                            str(error), secret_lease=lease
+                        ),
+                    )
+                    raise
+                except ProviderRequestNotSentError as error:
+                    self.repository.finish_attempt(
+                        attempt.id,
+                        AttemptStatus.FAILED,
+                        error=redact_provider_boundary_evidence(
+                            str(error), secret_lease=lease
+                        ),
+                        outcome_code=error.code,
+                        failure_disposition=WorkUnitFailureDisposition.FAILED,
+                    )
+                    raise
+                except ProviderResponseError as error:
+                    self.repository.finish_attempt(
+                        attempt.id,
+                        AttemptStatus.FAILED,
+                        error=redact_provider_boundary_evidence(
+                            str(error), secret_lease=lease
+                        ),
+                        outcome_code=error.code,
+                        failure_disposition=WorkUnitFailureDisposition.FAILED,
+                    )
+                    raise
+                except ProviderCapabilityError as error:
+                    # The built-in adapter checks typed extensions before its
+                    # HTTP call.  Persist the violated preflight contract
+                    # without inventing an ambiguous external side effect.
+                    self.repository.finish_attempt(
+                        attempt.id,
+                        AttemptStatus.FAILED,
+                        error="provider capability preflight failed",
+                        outcome_code="provider.request_not_sent",
+                        failure_disposition=WorkUnitFailureDisposition.FAILED,
+                    )
+                    raise
+                except ProviderError as error:
+                    # Third-party adapters using only the historic base class
+                    # do not declare delivery certainty.  Preserve the safe,
+                    # conservative no-replay behavior.
+                    self.repository.mark_attempt_outcome_unknown(
+                        attempt.id,
+                        error=redact_provider_boundary_evidence(
+                            str(error), secret_lease=lease
+                        ),
+                    )
+                    raise
+                except Exception as error:
+                    self.repository.mark_attempt_outcome_unknown(
+                        attempt.id,
+                        error=f"unexpected provider boundary failure: {type(error).__name__}",
+                    )
+                    raise
+
+                provider_response = provider_response.model_copy(
+                    update={
+                        "raw": redact_provider_boundary_evidence(
+                            provider_response.raw,
+                            secret_lease=lease,
+                        )
+                    }
+                )
+                # Canonical final content is always message.content. Normalize
+                # adapters that omit the convenience field without ever
+                # falling back to reasoning/reasoning_content.
+                try:
+                    final_content = extract_assistant_text(provider_response)
+                except ResponseExtractionError:
+                    final_content = None
+                provider_response = provider_response.model_copy(
+                    update={
+                        "final_content": final_content,
+                        "outcome_code": (
+                            provider_response.outcome_code
+                            or (
+                                None
+                                if final_content is not None
+                                else "response.missing_final_content"
+                            )
+                        ),
+                    }
+                )
+                response_content = {
+                    # The unmodified envelope is durable before local extraction/parsing.
+                    # Reasoning remains here as evidence only and is never copied
+                    # into a correction prompt or canonical candidate.
+                    "rawResponse": provider_response.raw,
+                    "providerRequestId": provider_response.request_id,
+                    "finishReason": provider_response.finish_reason,
+                    "finalContentPresent": provider_response.final_content is not None,
+                    "reasoningPresent": provider_response.reasoning_present,
+                    "outcomeCode": provider_response.outcome_code,
+                    "usage": {
+                        "inputTokens": provider_response.usage.input_tokens,
+                        "outputTokens": provider_response.usage.output_tokens,
+                    },
+                    "contract": compiled.contract.model_dump(
+                        mode="json", by_alias=True
+                    ),
+                }
+                try:
+                    self.repository.persist_attempt_response(
+                        attempt.id,
+                        response_content,
+                        provider_request_id=provider_response.request_id,
+                    )
+                except Exception as error:
+                    # A provider response is already present in this process;
+                    # failure to persist it is a storage failure, not an
+                    # ambiguous provider outcome.  Do not replay or correct an
+                    # attempt whose required evidence could not be committed.
+                    self.repository.finish_attempt(
+                        attempt.id,
+                        AttemptStatus.FAILED,
+                        error="provider response persistence failed",
+                        outcome_code="storage.response_persist_failed",
+                        failure_disposition=WorkUnitFailureDisposition.FAILED,
+                    )
+                    raise ProviderError(
+                        "provider response persistence failed"
+                    ) from error
+            if self._cancelled(run.id, cancellation):
+                self.repository.finish_attempt(attempt.id, AttemptStatus.CANCELLED)
+                return None
+
+            try:
+                if provider_response.outcome_code == "response.missing_final_content":
+                    raise ResponseExtractionError(
+                        "Assistant message contains no final textual content"
+                    )
+                raw_text = extract_assistant_text(provider_response)
+                extracted = parse_json_text(raw_text, policy=extraction_policy)
+                report = compiled.validator.validate(
+                    extracted.value,
+                    context=SemanticValidationContext(
+                        stage=work_unit.stage.value,
+                        metadata={
+                            "projectId": run.project_id,
+                            "runId": run.id,
+                            "attemptId": attempt.id,
+                            "workUnitId": work_unit_id,
+                        },
+                    ),
+                )
+            except ResponseExtractionError as error:
+                issue = ValidationIssue(
+                    code=(
+                        provider_response.outcome_code
+                        or "response.extraction"
+                    ),
+                    message=str(error),
+                )
+                if self._reject_or_continue(
+                    run=run,
+                    attempt=attempt,
+                    work_unit_id=work_unit_id,
+                    compiled=compiled,
+                    error=str(error),
+                    issues=(issue,),
+                    transformations=(),
+                    max_attempts=max_attempts,
+                ):
+                    continue
+                raise AssertionError("unreachable")
+            except Exception as error:
+                self._persist_validation(
+                    run,
+                    attempt.id,
+                    work_unit_id,
+                    compiled,
+                    accepted=False,
+                    issues=(),
+                    transformations=(),
+                    error=str(error),
+                )
+                self.repository.finish_attempt(
+                    attempt.id,
+                    AttemptStatus.FAILED,
+                    error=str(error),
+                    outcome_code="validation.internal_error",
+                    failure_disposition=WorkUnitFailureDisposition.FAILED,
+                )
+                raise
+
+            if not report.accepted:
+                if self._reject_or_continue(
+                    run=run,
+                    attempt=attempt,
+                    work_unit_id=work_unit_id,
+                    compiled=compiled,
+                    error="response failed schema or semantic validation",
+                    issues=report.issues,
+                    transformations=extracted.transformations,
+                    max_attempts=max_attempts,
+                ):
+                    continue
+                raise AssertionError("unreachable")
+
+            self._persist_validation(
+                run,
+                attempt.id,
+                work_unit_id,
+                compiled,
+                accepted=True,
+                issues=report.issues,
+                transformations=(
+                    *extracted.transformations,
+                    *(
+                        (FRAGMENT_ID_BINDING_VERSION,)
+                        if work_unit.stage in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+                        else ()
+                    ),
                 ),
             )
-        except ResponseExtractionError as error:
-            return self._quarantine(
-                run,
-                attempt.id,
-                work_unit_id,
-                compiled,
-                error=str(error),
-                issues=(ValidationIssue(code="response.extraction", message=str(error)),),
+            fragment = self._fragment_for_unit(
+                stage=work_unit.stage,
+                stage_plan=stage_plan,
+                work_unit_id=work_unit_id,
+                value=report.value,
             )
-        except Exception as error:
-            self._persist_validation(
-                run, attempt.id, work_unit_id, compiled,
-                accepted=False, issues=(), transformations=(), error=str(error),
-            )
-            self.repository.finish_attempt(attempt.id, AttemptStatus.FAILED, error=str(error))
-            raise
-
-        if not report.accepted:
-            return self._quarantine(
-                run,
-                attempt.id,
-                work_unit_id,
-                compiled,
-                error="response failed schema or semantic validation",
-                issues=report.issues,
-                transformations=extracted.transformations,
-            )
-        self._persist_validation(
-            run, attempt.id, work_unit_id, compiled,
-            accepted=True, issues=report.issues, transformations=extracted.transformations,
-        )
-        fragment = self._fragment_for_unit(
-            stage=work_unit.stage,
-            stage_plan=stage_plan,
-            work_unit_id=work_unit_id,
-            value=report.value,
-        )
-        candidate_content = fragment.model_dump(mode="json", by_alias=False)
-        try:
-            candidate = self.repository.add_artifact(
-                Artifact(
-                    run_id=run.id,
-                    attempt_id=attempt.id,
-                    work_unit_id=work_unit_id,
-                    stage=work_unit.stage,
-                    kind=ArtifactKind.CANDIDATE,
-                    content=candidate_content,
-                    content_hash=stable_hash(candidate_content),
+            candidate_content = fragment.model_dump(mode="json", by_alias=False)
+            try:
+                candidate = self.repository.add_artifact(
+                    Artifact(
+                        run_id=run.id,
+                        attempt_id=attempt.id,
+                        work_unit_id=work_unit_id,
+                        stage=work_unit.stage,
+                        kind=ArtifactKind.CANDIDATE,
+                        content=candidate_content,
+                        content_hash=stable_hash(candidate_content),
+                    )
                 )
-            )
-            self.repository.finish_attempt(attempt.id, AttemptStatus.SUCCEEDED)
-        except Exception as error:
-            self.repository.finish_attempt(attempt.id, AttemptStatus.FAILED, error=str(error))
-            raise
-        return candidate.id
+                self.repository.finish_attempt(
+                    attempt.id,
+                    AttemptStatus.SUCCEEDED,
+                    outcome_code="response.accepted",
+                )
+            except Exception as error:
+                self.repository.finish_attempt(
+                    attempt.id,
+                    AttemptStatus.FAILED,
+                    error=str(error),
+                    outcome_code="artifact.commit_failed",
+                    failure_disposition=WorkUnitFailureDisposition.FAILED,
+                )
+                raise
+            return candidate.id
 
-    def _quarantine(
+    def _reject_or_continue(
         self,
+        *,
         run: GenerationRun,
-        attempt_id: str,
+        attempt: GenerationAttempt,
         work_unit_id: str,
         compiled: CompiledWorkUnitRequest,
-        *,
         error: str,
         issues: tuple[ValidationIssue, ...],
-        transformations: tuple[str, ...] = (),
-    ) -> str:
+        transformations: tuple[str, ...],
+        max_attempts: int,
+    ) -> bool:
+        """Persist one known rejection, then either expose a correction or stop."""
+
         self._persist_validation(
-            run, attempt_id, work_unit_id, compiled,
-            accepted=False, issues=issues, transformations=transformations, error=error,
+            run,
+            attempt.id,
+            work_unit_id,
+            compiled,
+            accepted=False,
+            issues=issues,
+            transformations=transformations,
+            error=error,
         )
-        self.repository.finish_attempt(attempt_id, AttemptStatus.FAILED, error=error)
-        raise QuarantinedOutputError(error, artifacts=[])
+        outcome_code = issues[0].code if issues else "response.rejected"
+        can_correct = attempt.attempt_number < max_attempts
+        self.repository.finish_attempt(
+            attempt.id,
+            AttemptStatus.FAILED,
+            error=error,
+            outcome_code=outcome_code,
+            allow_correction=can_correct,
+            failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+        )
+        if can_correct:
+            return True
+        raise QuarantinedOutputError(
+            error,
+            artifacts=[],
+            code=outcome_code,
+            stage=attempt.stage,
+        )
+
+    def _compile_correction_request(
+        self,
+        *,
+        run: GenerationRun,
+        work_unit: GenerationWorkUnit,
+        work_unit_id: str,
+        base_compiled: CompiledWorkUnitRequest,
+        source_attempt: GenerationAttempt,
+    ) -> CompiledWorkUnitRequest:
+        """Render one compact correction packet from durable final evidence.
+
+        The closed response schema carries the immutable topology/selector
+        structure.  The correction packet deliberately omits the broader
+        creative context: the previous final answer supplies its prose while
+        the schema, frozen contract, and stable code/path pairs supply the only
+        correction authority.  Free-form validator messages remain in the
+        audit artifact.
+        """
+
+        trace = self.repository.get_run_trace(run.id)
+        response = next(
+            (
+                artifact
+                for artifact in trace.artifacts
+                if artifact.attempt_id == source_attempt.id
+                and artifact.work_unit_id == work_unit_id
+                and artifact.kind == ArtifactKind.RESPONSE
+            ),
+            None,
+        )
+        validation = next(
+            (
+                artifact
+                for artifact in trace.artifacts
+                if artifact.attempt_id == source_attempt.id
+                and artifact.work_unit_id == work_unit_id
+                and artifact.kind == ArtifactKind.VALIDATION
+            ),
+            None,
+        )
+        if response is None or validation is None:
+            raise ValueError("correction source is missing durable response/validation evidence")
+        response_content = response.content if isinstance(response.content, Mapping) else {}
+        raw_envelope = response_content.get("rawResponse")
+        if not isinstance(raw_envelope, dict):
+            raise ValueError("correction source has no provider response envelope")
+        # This helper only reads message.content. It deliberately ignores
+        # reasoning/reasoning_content even though those fields remain in the
+        # raw evidence artifact.
+        try:
+            previous_final_content = extract_assistant_text(raw_envelope)
+        except ResponseExtractionError:
+            if source_attempt.outcome_code != "response.missing_final_content":
+                raise
+            # There is deliberately no fallback to message.reasoning.  The
+            # empty value plus stable issue is enough to request a full final
+            # answer without turning hidden reasoning into application data.
+            previous_final_content = ""
+        validation_content = (
+            validation.content if isinstance(validation.content, Mapping) else {}
+        )
+        issues = []
+        for item in validation_content.get("issues", []):
+            if not isinstance(item, Mapping):
+                continue
+            issue = ValidationIssue.model_validate(item)
+            issues.append({"code": issue.code, "path": list(issue.path)})
+        if not issues:
+            raise ValueError("correction source has no stable validation issues")
+        correction_ordinal = source_attempt.attempt_number
+        correction_strategy = (
+            "repair_previous_final"
+            if correction_ordinal == 1
+            else "reconstruct_from_schema"
+        )
+        rendered = self.renderer.render(
+            "work_unit_correction",
+            {
+                "original_contract": base_compiled.contract.model_dump(
+                    mode="json", by_alias=True
+                ),
+                "response_schema": base_compiled.response_schema,
+                "previous_final_content": previous_final_content,
+                "validation_issues": issues,
+                "correction_ordinal": correction_ordinal,
+                "correction_strategy": correction_strategy,
+            },
+        )
+        input_bytes = sum(
+            len(message.content.encode("utf-8")) for message in rendered.messages
+        )
+        if input_bytes > work_unit.budget.max_input_bytes:
+            raise CorrectionPromptBudgetError(
+                "correction prompt is "
+                f"{input_bytes} bytes, exceeding the frozen max_input_bytes "
+                f"budget of {work_unit.budget.max_input_bytes}"
+            )
+        contract = base_compiled.contract.model_copy(
+            update={
+                "prompt_id": rendered.trace.prompt_id,
+                "prompt_version": rendered.trace.prompt_version,
+                "prompt_spec_hash": rendered.trace.spec_hash,
+                "variables_hash": rendered.trace.input_hash,
+                "rendered_hash": rendered.trace.rendered_hash,
+                "correction_ordinal": correction_ordinal,
+                "correction_strategy": correction_strategy,
+            }
+        )
+        return CompiledWorkUnitRequest(
+            rendered=rendered,
+            validator=base_compiled.validator,
+            contract=contract,
+            response_schema=base_compiled.response_schema,
+        )
 
     def _persist_prompt(
         self,
         run: GenerationRun,
-        attempt_id: str,
+        attempt: GenerationAttempt,
         work_unit_id: str,
         compiled: CompiledWorkUnitRequest,
         adapter: ProviderAdapter,
@@ -339,18 +839,98 @@ class DurableWorkUnitRunner:
             "structuredOutputMode": compiled.rendered.output.structured_output_mode,
             "provider": adapter.name,
             "model": model,
+            "attemptKind": attempt.attempt_kind.value,
+            "sourceAttemptId": attempt.source_attempt_id,
             "contract": compiled.contract.model_dump(mode="json", by_alias=True),
         }
         self.repository.add_artifact(
             Artifact(
                 run_id=run.id,
-                attempt_id=attempt_id,
+                attempt_id=attempt.id,
                 work_unit_id=work_unit_id,
                 stage=compiled.contract.stage,
                 kind=ArtifactKind.PROMPT,
                 content=content,
                 content_hash=stable_hash(content),
             )
+        )
+
+    @staticmethod
+    def _assert_attempt_prompt_contract(
+        artifact: Artifact,
+        attempt: GenerationAttempt,
+        compiled: CompiledWorkUnitRequest,
+    ) -> None:
+        """Verify that a resumed attempt still means exactly the same request."""
+
+        content = artifact.content if isinstance(artifact.content, Mapping) else {}
+        expected_contract = compiled.contract.model_dump(mode="json", by_alias=True)
+        if (
+            artifact.attempt_id != attempt.id
+            or content.get("contract") != expected_contract
+            or content.get("attemptKind") != attempt.attempt_kind.value
+            or content.get("sourceAttemptId") != attempt.source_attempt_id
+        ):
+            raise ValueError(
+                "recoverable attempt prompt evidence does not match its frozen execution contract"
+            )
+
+    @staticmethod
+    def _provider_response_from_artifact(
+        artifact: Artifact,
+        *,
+        attempt: GenerationAttempt,
+        compiled: CompiledWorkUnitRequest,
+        fallback_provider: str,
+        fallback_model: str,
+    ) -> ProviderResponse:
+        """Rehydrate a durable response for local-only post-crash processing."""
+
+        content = artifact.content if isinstance(artifact.content, Mapping) else {}
+        raw = content.get("rawResponse")
+        if not isinstance(raw, dict):
+            raise ValueError("durable provider response has no object envelope")
+        expected_contract = compiled.contract.model_dump(mode="json", by_alias=True)
+        if content.get("contract") != expected_contract:
+            raise ValueError(
+                "durable provider response does not match the frozen prompt contract"
+            )
+        try:
+            final_content = extract_assistant_text(raw)
+        except ResponseExtractionError:
+            final_content = None
+        usage = content.get("usage")
+        usage_data = usage if isinstance(usage, Mapping) else {}
+        outcome_code = content.get("outcomeCode")
+        return ProviderResponse(
+            provider=attempt.provider or fallback_provider,
+            model=attempt.model or fallback_model,
+            raw=raw,
+            request_id=(
+                str(content["providerRequestId"])
+                if content.get("providerRequestId") is not None
+                else attempt.provider_request_id
+            ),
+            finish_reason=(
+                str(content["finishReason"])
+                if content.get("finishReason") is not None
+                else None
+            ),
+            usage=ProviderUsage(
+                input_tokens=_optional_non_negative_int(usage_data.get("inputTokens")),
+                output_tokens=_optional_non_negative_int(usage_data.get("outputTokens")),
+            ),
+            final_content=final_content,
+            reasoning_present=bool(content.get("reasoningPresent")),
+            outcome_code=(
+                str(outcome_code)
+                if outcome_code is not None
+                else (
+                    None
+                    if final_content is not None
+                    else "response.missing_final_content"
+                )
+            ),
         )
 
     def _persist_validation(
@@ -444,12 +1024,19 @@ class DurableWorkUnitRunner:
         self, run_id: str, stage: StageName, stage_plan: StagePlan
     ) -> dict[str, str]:
         expected = {unit.unit_id for unit in stage_plan.work_units}
+        trace = self.repository.get_run_trace(run_id)
+        succeeded_attempt_ids = {
+            attempt.id
+            for attempt in trace.attempts
+            if attempt.status == AttemptStatus.SUCCEEDED
+        }
         candidates: dict[str, str] = {}
-        for artifact in self.repository.get_run_trace(run_id).artifacts:
+        for artifact in trace.artifacts:
             if (
                 artifact.kind == ArtifactKind.CANDIDATE
                 and artifact.stage == stage
                 and artifact.work_unit_id in expected
+                and artifact.attempt_id in succeeded_attempt_ids
                 and artifact.work_unit_id not in candidates
             ):
                 candidates[artifact.work_unit_id] = artifact.id
@@ -517,3 +1104,13 @@ def _provider_schema_name(schema_id: str) -> str:
     if not normalized or not normalized[0].isalpha():
         normalized = f"schema_{normalized}"
     return normalized[:64]
+
+
+def _optional_non_negative_int(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        parsed = int(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0 else None

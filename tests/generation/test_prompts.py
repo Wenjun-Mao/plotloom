@@ -19,8 +19,10 @@ def test_repository_contains_all_versioned_stage_and_media_prompts() -> None:
         "scene_beats_fragment",
         "story_bible",
         "story_graph",
+        "story_graph_content_fill",
         "storyboard",
         "storyboard_fragment",
+        "work_unit_correction",
     )
     for prompt_id in repository.list_ids():
         spec, spec_hash, source = repository.load(prompt_id)
@@ -53,6 +55,28 @@ def test_prompt_rendering_is_strict_and_hashes_are_reproducible() -> None:
             "story_bible",
             {**variables, "json_schema": {}, "unexpected": True},
         )
+
+
+def test_structured_generation_prompts_require_explicit_field_presence() -> None:
+    repository = PromptRepository()
+    for prompt_id in (
+        "story_bible",
+        "story_graph_content_fill",
+        "scene_beats_fragment",
+        "storyboard_fragment",
+        "work_unit_correction",
+    ):
+        spec, _spec_hash, _source = repository.load(prompt_id)
+        assert "presence-strict" in spec.system
+        assert "required" in spec.system
+        assert "不得依赖应用默认值" in spec.system
+
+    scene_spec, _spec_hash, _source = repository.load("scene_beats_fragment")
+    assert "characterStates" in scene_spec.user
+    assert "不能省略任何一项" in scene_spec.user
+    correction_spec, _spec_hash, _source = repository.load("work_unit_correction")
+    assert "对每条 schema.missing" in correction_spec.user
+    assert "对每条 schema.extra_forbidden" in correction_spec.user
 
 
 def test_storyboard_schema_and_media_prompts_are_separate() -> None:

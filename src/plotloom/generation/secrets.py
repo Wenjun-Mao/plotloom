@@ -13,7 +13,7 @@ import threading
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Callable, Iterator
+from typing import Any, Callable, Iterator
 
 from .exceptions import SecretLeaseError
 
@@ -29,6 +29,11 @@ class _LeaseRecord:
     expires_at: float
     remaining_uses: int | None
     revoked: bool = False
+    # Redaction is deliberately separate from revealing a credential.  A
+    # provider adapter normally consumes its one permitted reveal before the
+    # response reaches the durable evidence boundary, but that boundary still
+    # has to remove an echoed credential.
+    redaction_available: bool = True
 
 
 class SecretLease:
@@ -61,6 +66,17 @@ class SecretLease:
 
     def revoke(self) -> None:
         self._vault.revoke_lease(self.lease_id)
+
+    def redact_provider_evidence(self, value: Any) -> Any:
+        """Return provider evidence with this lease's secret removed.
+
+        This does not reveal the credential to the caller and does not consume
+        a provider-use allowance.  It remains available after a one-use lease
+        has been spent so the response from that exact request can be persisted
+        safely; explicit revocation or secret removal disables it.
+        """
+
+        return self._vault._redact_provider_evidence(self.lease_id, value)
 
     def __repr__(self) -> str:
         return (
@@ -129,6 +145,7 @@ class InMemorySecretVault:
             record = self._leases.get(lease_id)
             if record is not None:
                 record.revoked = True
+                record.redaction_available = False
 
     def remove(self, name: str) -> None:
         with self._lock:
@@ -166,10 +183,30 @@ class InMemorySecretVault:
                     lease.revoked = True
             return secret.value.decode("utf-8")
 
+    def _redact_provider_evidence(self, lease_id: str, value: Any) -> Any:
+        """Redact with an opaque lease without spending another use."""
+
+        with self._lock:
+            lease = self._leases.get(lease_id)
+            secret = (
+                self._secrets.get(lease.secret_name)
+                if lease is not None and lease.redaction_available
+                else None
+            )
+            known_secrets = (
+                (secret.value.decode("utf-8"),) if secret is not None else ()
+            )
+        # Keep the credential inside the vault boundary: callers receive only
+        # the sanitized copy produced by the shared response sanitizer.
+        from .responses import redact_provider_response_evidence
+
+        return redact_provider_response_evidence(value, known_secrets=known_secrets)
+
     def _revoke_leases_for(self, name: str) -> None:
         for lease in self._leases.values():
             if lease.secret_name == name:
                 lease.revoked = True
+                lease.redaction_available = False
 
     @staticmethod
     def _wipe(value: bytearray) -> None:

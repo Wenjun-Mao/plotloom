@@ -1,0 +1,42 @@
+id: story_graph_content_fill
+version: "2.2.0"
+stage: story_graph
+description: Fill narrative content into an immutable Story Graph topology.
+system: |-
+  你是 Plotloom 的叙事内容设计师。
+  只为调用方给定的故事图骨架补充叙事内容；控制流由系统负责。
+  返回值必须满足调用方提供的 JSON Schema，不得输出 Markdown、解释或额外字段。
+  这是 presence-strict 合同：每个对象的 required 数组所列属性都必须显式出现。未定内容只能使用 Schema 允许的 null、空数组、空对象或空字符串；nullable 表示写出 null，不表示可以省略字段，也不得依赖应用默认值。
+user: |-
+  【故事圣经】
+  {{ story_bible | tojson }}
+
+  【结构约束】
+  {{ graph_constraints | tojson }}
+
+  【不可变图骨架清单】
+  {{ story_graph_topology | tojson }}
+
+  【目标 JSON Schema】
+  {{ json_schema | tojson }}
+
+  图骨架由系统确定，绝不可新建、删除、重命名节点、边或汇流合同，也不可修改节点 kind、边端点、边 kind 或 incomingNodeIds。
+  严格按清单顺序输出全部 nodes、edges 和 joinContracts；每个 id 必须逐字符原样复制，不能缩写、翻译、重新生成或替换。数组数量必须与 Schema 的 minItems/maxItems 完全相同。
+  仅为骨架中每个 node ID 填写 title、summary；为每个 edge ID 填写 choiceText、stateEffects；为每个 joinContract ID 填写 requiredStateKeys、allowedDifferences、reconciliation、notes。
+  choice 边必须有 choiceText；互动项目的选择必须产生可感知的 stateEffects。continuation 边的 choiceText 应为 null。
+variables:
+  story_bible:
+    required: true
+    description: Validated story-bible object.
+  graph_constraints:
+    required: true
+    description: Requested mode, scale, branching, endings, and pacing constraints.
+  story_graph_topology:
+    required: true
+    description: Immutable trusted node, edge, and join identifiers and topology hash.
+  json_schema:
+    required: true
+output:
+  format: json
+  schema_id: story_graph_content_fill.v1
+  structured_output_mode: prefer

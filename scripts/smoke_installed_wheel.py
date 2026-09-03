@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import textwrap
+import zipfile
 from pathlib import Path
 
 
@@ -23,6 +24,20 @@ def main() -> None:
     parser.add_argument("wheel_directory", type=Path, nargs="?", default=Path("dist"))
     args = parser.parse_args()
     wheel = _wheel_from(args.wheel_directory)
+    with zipfile.ZipFile(wheel) as archive:
+        names = set(archive.namelist())
+        license_roots = {
+            name.rsplit("/", 1)[0]
+            for name in names
+            if name.endswith(".dist-info/licenses/LICENSE")
+        }
+        if len(license_roots) != 1:
+            raise SystemExit("wheel must contain one dist-info license directory")
+        license_root = next(iter(license_roots))
+        for filename in ("LICENSE", "NOTICE"):
+            member = f"{license_root}/{filename}"
+            if member not in names or not archive.read(member).strip():
+                raise SystemExit(f"wheel is missing non-empty {filename}")
 
     with tempfile.TemporaryDirectory(prefix="plotloom-installed-wheel-") as temporary:
         temporary_root = Path(temporary)
@@ -78,12 +93,25 @@ def main() -> None:
             assert scripts["plotloom"] == "plotloom.runtime:main"
             assert set(PromptRepository().list_ids()) == {
                 "media_image", "media_video", "repair_json", "scene_beats",
-                "scene_beats_fragment", "story_bible", "story_graph", "storyboard",
-                "storyboard_fragment",
+                "scene_beats_fragment", "story_bible", "story_graph",
+                "story_graph_content_fill", "storyboard", "storyboard_fragment",
+                "work_unit_correction",
             }
             assert (package_root / "static" / "index.html").is_file()
             assert (package_root / "static" / "workbench.js").is_file()
             assert (package_root / "alembic" / "versions" / "0001_initial.py").is_file()
+            assert (
+                package_root
+                / "alembic"
+                / "versions"
+                / "0006_model_profiles_and_graph_topologies.py"
+            ).is_file()
+            assert (
+                package_root
+                / "alembic"
+                / "versions"
+                / "0007_generation_run_failure_codes.py"
+            ).is_file()
 
             settings = PlotloomSettings.from_env()
             home = Path.home()

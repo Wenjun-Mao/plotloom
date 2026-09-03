@@ -3,6 +3,7 @@
 ## Current product contracts
 
 - [Development and operations](development.md)
+- [Saved-profile conformance runner](conformance.md)
 - [Capability and adoption matrix](roadmap/capability-matrix.md)
 - Current ADRs: [0004](adr/0004-canonical-generation-contract.md),
   [0005](adr/0005-generation-runs-and-quarantine.md),
@@ -10,8 +11,9 @@
   [0008](adr/0008-capability-based-adoption-tracking.md),
   [0009](adr/0009-atomic-project-bootstrap.md),
   [0010](adr/0010-plotloom-clean-repository.md),
-  [0011](adr/0011-provider-profiles-and-generation-work-units.md), and
-  [0012](adr/0012-approved-storyboards-and-production-units.md)
+  [0011](adr/0011-provider-profiles-and-generation-work-units.md),
+  [0012](adr/0012-approved-storyboards-and-production-units.md), and
+  [0013](adr/0013-model-neutral-reliable-generation.md)
 - [Initial extraction provenance](provenance/initial-extraction.md)
 - [Remote CI receipt for `3bf4551`](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019)
 - [Local text-provider smoke receipt](verification/2026-09-02-local-text-smoke.md)

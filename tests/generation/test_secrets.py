@@ -19,6 +19,30 @@ def test_secret_lease_is_opaque_and_use_limited() -> None:
             pass
 
 
+def test_spent_lease_redacts_provider_evidence_without_another_reveal() -> None:
+    vault = InMemorySecretVault()
+    vault.put("provider", "echoed-only-by-provider")
+    lease = vault.lease("provider", max_uses=1)
+
+    with lease.reveal() as value:
+        assert value == "echoed-only-by-provider"
+
+    cleaned = lease.redact_provider_evidence(
+        {
+            "providerDiagnostic": "request used echoed-only-by-provider",
+            "usage": {"prompt_tokens": 7, "completion_tokens": 3},
+        }
+    )
+
+    assert cleaned == {
+        "providerDiagnostic": "request used [redacted]",
+        "usage": {"prompt_tokens": 7, "completion_tokens": 3},
+    }
+    with pytest.raises(SecretLeaseError, match="revoked"):
+        with lease.reveal():
+            pass
+
+
 def test_expired_and_replaced_secrets_invalidate_leases() -> None:
     now = [10.0]
     vault = InMemorySecretVault(clock=lambda: now[0])
