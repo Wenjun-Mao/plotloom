@@ -287,6 +287,7 @@ export interface PipelineRun {
   requestedStages: ServerStageName[];
   canonicalSnapshot: CanonicalSnapshot;
   instructions: string | null;
+  legacyUnsealed: boolean;
   resultRevisionIds: string[];
   error: string | null;
   createdAt: string;
@@ -297,12 +298,17 @@ export interface PipelineRun {
 export interface GenerationAttempt {
   id: string;
   runId: string;
+  workUnitId: string | null;
   stage: ServerStageName;
   attemptNumber: number;
   status: "running" | "succeeded" | "failed" | "cancelled";
   provider: string | null;
   model: string | null;
   error: string | null;
+  dispatchedAt: string | null;
+  responsePersistedAt: string | null;
+  providerRequestId: string | null;
+  outcomeUnknown: boolean;
   startedAt: string;
   finishedAt: string | null;
 }
@@ -311,6 +317,7 @@ export interface RunArtifact {
   id: string;
   runId: string;
   attemptId: string | null;
+  workUnitId: string | null;
   sourceArtifactId: string | null;
   stage: ServerStageName | null;
   kind: "prompt" | "response" | "validation" | "candidate" | "canonical" | "media";
@@ -325,6 +332,55 @@ export interface RunTrace {
   attempts: GenerationAttempt[];
   artifacts: RunArtifact[];
   snapshotIsCurrent: boolean;
+}
+
+export interface GenerationPlanTrace {
+  runId: string;
+  planHash: string;
+  plan: Record<string, unknown>;
+}
+
+export interface StagePlanTrace {
+  id: string;
+  runId: string;
+  stage: ServerStageName;
+  stagePlanHash: string;
+  dependencyHash: string;
+  plan: Record<string, unknown>;
+}
+
+export interface GenerationWorkUnitTrace {
+  id: string;
+  runId: string;
+  stagePlanId: string;
+  stage: ServerStageName;
+  sequence: number;
+  selector: Record<string, unknown>;
+  inputHash: string;
+  dependencyHash: string;
+  unitDependencyHash: string;
+  budget: Record<string, unknown>;
+  estimatedInputTokens: number;
+  contextWindowTokens: number;
+  status: "queued" | "running" | "succeeded" | "quarantined" | "cancelled" | "outcome_unknown";
+}
+
+export interface SealedStageAggregateTrace {
+  id: string;
+  runId: string;
+  stagePlanId: string;
+  stage: ServerStageName;
+  manifestHash: string;
+  manifest: Record<string, unknown>;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface RunExecutionTrace {
+  generationPlan: GenerationPlanTrace | null;
+  stagePlans: StagePlanTrace[];
+  workUnits: GenerationWorkUnitTrace[];
+  sealedAggregates: SealedStageAggregateTrace[];
 }
 
 export interface ProjectRunsResponse {
@@ -356,15 +412,29 @@ export interface ProjectMediaTasksResponse {
 }
 
 export interface ProviderSettings {
+  profileId: string;
+  profileVersion: number;
+  profileHash: string;
+  redirectPolicy: "no_follow";
   textProvider: string | null;
   textBaseUrl: string | null;
   textModel: string | null;
+  textAuthMode: "none" | "bearer";
+  textCapabilities: { chatCompletions: boolean; jsonObject: boolean; jsonSchema: boolean };
+  textContextWindowTokens: number;
+  textMaxOutputTokens: number;
+  textTemperature: number;
+  textMaxConcurrency: number;
+  textConnectTimeoutSeconds: number;
+  textAttemptTimeoutSeconds: number;
   imageProvider: string | null;
   imageBaseUrl: string | null;
   imageModel: string | null;
+  imageAuthMode: "none" | "bearer";
   videoProvider: string | null;
   videoBaseUrl: string | null;
   videoModel: string | null;
+  videoAuthMode: "none" | "bearer";
   textKeyAvailable: boolean;
   imageKeyAvailable: boolean;
   videoKeyAvailable: boolean;
@@ -373,7 +443,9 @@ export interface ProviderSettings {
 }
 
 export type ProviderSettingsUpdate = Partial<Pick<ProviderSettings,
-  "textProvider" | "textBaseUrl" | "textModel" |
-  "imageProvider" | "imageBaseUrl" | "imageModel" |
-  "videoProvider" | "videoBaseUrl" | "videoModel"
+  "textProvider" | "textBaseUrl" | "textModel" | "textAuthMode" | "textCapabilities" |
+  "textContextWindowTokens" | "textMaxOutputTokens" | "textTemperature" | "textMaxConcurrency" |
+  "textConnectTimeoutSeconds" | "textAttemptTimeoutSeconds" |
+  "imageProvider" | "imageBaseUrl" | "imageModel" | "imageAuthMode" |
+  "videoProvider" | "videoBaseUrl" | "videoModel" | "videoAuthMode"
 >>;

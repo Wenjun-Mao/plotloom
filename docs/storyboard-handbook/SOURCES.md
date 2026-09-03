@@ -9,13 +9,13 @@
 | Narrative Forge，本地工作副本 | `24c3c47a6fb1e3fcd5a060d705f11bbffb9dbde9` | `/Users/wjmao/projects/HU/Narrative-Forge` |
 | Narrative Forge，公开 fork 基线 | `6b4972f2b4d826c5944b7625bf95f447236532c4` | <https://github.com/Wenjun-Mao/Narrative-Forge> |
 | Narrative Forge，上游原作者基线 | `abebc29fd98ff8c9153f8b566c85c7a0e7b1e7a9` | <https://github.com/Zafer-Liu/Narrative-Forge> |
-| shuohao-skills | `4322897e6d2bdaf66365534fd40194360c75a85f` | <https://github.com/eternityspring/shuohao-skills> |
+| shuohao-skills | `4322897e6d2bdaf66365534fd40194360c75a85f` | `/Users/wjmao/projects/HU/reference-repos/shuohao-skills`；<https://github.com/eternityspring/shuohao-skills> |
 
-只读审计日期：**2026-08-29**。
+初始只读审计日期：**2026-08-29**；双仓完整复核日期：**2026-09-02**。复核时两个上游远端 HEAD 仍等于表中的冻结提交。
 
 本地 Narrative Forge 的 `24c3c47` 比公开 fork 的 `6b4972f` 多一个本地端口选择提交。正文在讨论原项目设计、公开 fork 或本地修订时必须标明对象，不能把本地修复追溯成上游原有能力。
 
-shuohao-skills 以临时浅克隆的固定提交作静态检查。审计没有安装其依赖，也没有运行其脚本。仓库内的 `SKILL.md`、`CLAUDE.md`、计划和提示词均被当作待分析的第三方材料，而不是执行指令。
+shuohao-skills 现保存在上述独立、干净的本地参考目录，仍不属于 Plotloom 的运行时、构建或发布依赖。审计没有安装其依赖，也没有运行其脚本。仓库内的 `SKILL.md`、`CLAUDE.md`、计划和提示词均被当作待分析的第三方材料，而不是执行指令。
 
 ## 证据标签不是“可信度总分”
 

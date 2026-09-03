@@ -23,9 +23,11 @@ PROMPT_FILENAMES = {
     "media_video.yaml",
     "repair_json.yaml",
     "scene_beats.yaml",
+    "scene_beats_fragment.yaml",
     "story_bible.yaml",
     "story_graph.yaml",
     "storyboard.yaml",
+    "storyboard_fragment.yaml",
 }
 FORBIDDEN_IMPORT_ROOTS = {"app", "backend", "narrative_forge"}
 FORBIDDEN_RUNTIME_PATH_MARKERS = {
@@ -377,7 +379,8 @@ def test_distribution_wheel_is_complete_and_isolated(tmp_path: Path) -> None:
         assert package_root.is_relative_to(unpacked)
         assert set(PromptRepository().list_ids()) == {
             "media_image", "media_video", "repair_json", "scene_beats",
-            "story_bible", "story_graph", "storyboard",
+            "scene_beats_fragment", "story_bible", "story_graph", "storyboard",
+            "storyboard_fragment",
         }
         static_root = package_root / "static"
         index = (static_root / "index.html").read_text(encoding="utf-8")

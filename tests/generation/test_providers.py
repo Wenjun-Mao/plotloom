@@ -119,11 +119,30 @@ def test_provider_errors_do_not_include_remote_body_or_secret() -> None:
 @pytest.mark.parametrize(
     "base_url",
     [
-        "http://api.example.test/v1",
         "https://user:password@api.example.test/v1",
         "https://api.example.test/v1?key=secret",
+        "https://api.example.test/v1#fragment",
+        "ftp://api.example.test/v1",
+        "https://api.example.test:bad/v1",
     ],
 )
-def test_adapter_rejects_non_https_or_credential_bearing_roots(base_url: str) -> None:
+def test_adapter_rejects_untrusted_url_shapes(base_url: str) -> None:
     with pytest.raises(ValueError):
         OpenAICompatibleAdapter(name="provider", base_url=base_url)
+
+
+def test_adapter_supports_no_auth_local_http_without_authorization_or_redirects() -> None:
+    session = _session()
+    adapter = OpenAICompatibleAdapter(
+        name="local-llama",
+        base_url="http://127.0.0.1:8080/v1",
+        auth_mode="none",
+        session=session,
+    )
+
+    adapter.generate(_request(schema=None), None)
+
+    sent = session.post.call_args.kwargs
+    assert "Authorization" not in sent["headers"]
+    assert sent["allow_redirects"] is False
+    assert sent["timeout"] == (10.0, 300.0)

@@ -50,8 +50,9 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
         ("PATCH", "/api/v2/projects/{project_id}/stages/{stage}"),
         ("POST", "/api/v2/projects/{project_id}/pipeline-runs"),
         ("POST", "/api/v2/projects/{project_id}/rebuilds"),
-        ("GET", "/api/v2/runs/{run_id}"),
-        ("GET", "/api/v2/runs/{run_id}/trace"),
+            ("GET", "/api/v2/runs/{run_id}"),
+            ("GET", "/api/v2/runs/{run_id}/trace"),
+            ("GET", "/api/v2/runs/{run_id}/execution-trace"),
         ("POST", "/api/v2/runs/{run_id}/cancel"),
         ("POST", "/api/v2/runs/{run_id}/repairs"),
         ("POST", "/api/v2/projects/{project_id}/shots/{shot_id}/media-tasks"),
@@ -203,7 +204,8 @@ def test_provider_and_media_request_reject_secret_fields(repository: SQLiteRepos
     for unsafe_url in (
         "https://user:password@example.com/v1",
         "https://example.com/v1?api_key=secret",
-        "http://example.com/v1",
+        "ftp://example.com/v1",
+        "https://example.com:bad/v1",
     ):
         assert (
             client.put("/api/v2/provider-settings", json={"textBaseUrl": unsafe_url}).status_code
@@ -213,6 +215,16 @@ def test_provider_and_media_request_reject_secret_fields(repository: SQLiteRepos
     response = client.post(
         "/api/v2/projects/unknown/shots/unknown/media-tasks",
         json={"kind": "image", "publicSettings": {"nested": {"accessToken": "secret"}}},
+    )
+    assert response.status_code == 422
+    response = client.post(
+        "/api/v2/projects/unknown/shots/unknown/media-tasks",
+        json={"kind": "image", "provider": "browser-selected"},
+    )
+    assert response.status_code == 422
+    response = client.post(
+        "/api/v2/projects/unknown/shots/unknown/media-tasks",
+        json={"kind": "image", "publicSettings": {"imageModel": "browser-selected"}},
     )
     assert response.status_code == 422
     response = client.post(
@@ -241,14 +253,20 @@ def test_provider_settings_merge_defaults_and_freeze_on_run(repository: SQLiteRe
     assert initial["textProvider"] == "server-default"
     assert initial["textKeyAvailable"] is True
     assert "apiKey" not in initial
+    assert initial["profileId"] == "default"
+    assert initial["redirectPolicy"] == "no_follow"
+    assert len(initial["profileHash"]) == 64
 
     updated = client.put(
         "/api/v2/provider-settings",
-        json={"textModel": "saved-model"},
+        json={"textModel": "saved-model", "textTemperature": 0},
     )
     assert updated.status_code == 200
     assert updated.json()["textBaseUrl"] == "https://server.example/v1"
     assert updated.json()["textModel"] == "saved-model"
+    assert updated.json()["textTemperature"] == 0
+    assert updated.json()["profileVersion"] == 1
+    assert len(updated.json()["profileHash"]) == 64
 
     project = client.post(
         "/api/v2/projects",
@@ -269,8 +287,43 @@ def test_provider_settings_merge_defaults_and_freeze_on_run(repository: SQLiteRe
     frozen = client.get(f"/api/v2/runs/{run['id']}").json()["providerSnapshot"]
     assert frozen["textModel"] == "saved-model"
     assert "browser-only-secret" not in str(frozen)
+    assert frozen["profileHash"] == updated.json()["profileHash"]
     listed = client.get(f"/api/v2/projects/{project['id']}/runs").json()["runs"]
     assert [item["id"] for item in listed] == [run["id"]]
+
+
+def test_provider_profile_rejects_an_impossible_text_token_budget(
+    repository: SQLiteRepository,
+) -> None:
+    client = TestClient(create_app(repository))
+
+    response = client.put(
+        "/api/v2/provider-settings",
+        json={"textContextWindowTokens": 4096, "textMaxOutputTokens": 4096},
+    )
+
+    assert response.status_code == 422
+    assert "textMaxOutputTokens must be smaller" in response.text
+
+
+def test_provider_profile_partial_updates_validate_after_merging_current_values(
+    repository: SQLiteRepository,
+) -> None:
+    client = TestClient(create_app(repository))
+    first = client.put(
+        "/api/v2/provider-settings",
+        json={"textContextWindowTokens": 16384, "textMaxOutputTokens": 1024},
+    )
+    assert first.status_code == 200
+
+    second = client.put(
+        "/api/v2/provider-settings",
+        json={"textContextWindowTokens": 4096},
+    )
+
+    assert second.status_code == 200
+    assert second.json()["textContextWindowTokens"] == 4096
+    assert second.json()["textMaxOutputTokens"] == 1024
 
 
 def test_static_v2_mount_serves_index(repository: SQLiteRepository, tmp_path: Path) -> None:
@@ -315,6 +368,7 @@ def test_media_api_compiler_receives_frozen_canonical_context(repository: SQLite
         "quality": "high",
         "imageBaseUrl": "https://images.example/v1",
         "imageModel": "image-model",
+        "imageAuthMode": "bearer",
     }
     assert scheduler.submissions == [(response.json()["id"], "ephemeral-media-key")]
     assert "ephemeral-media-key" not in str(response.json())

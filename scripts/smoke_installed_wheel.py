@@ -78,7 +78,8 @@ def main() -> None:
             assert scripts["plotloom"] == "plotloom.runtime:main"
             assert set(PromptRepository().list_ids()) == {
                 "media_image", "media_video", "repair_json", "scene_beats",
-                "story_bible", "story_graph", "storyboard",
+                "scene_beats_fragment", "story_bible", "story_graph", "storyboard",
+                "storyboard_fragment",
             }
             assert (package_root / "static" / "index.html").is_file()
             assert (package_root / "static" / "workbench.js").is_file()

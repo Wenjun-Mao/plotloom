@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import ProjectBrief, StoryEdge
+from plotloom.domain import CoverageRole, ProjectBrief, StoryEdge
 from plotloom.validation import (
     DomainValidationError,
     validate_scene_beat_coverage,
@@ -71,3 +71,27 @@ def test_primary_beat_coverage_is_required(brief: ProjectBrief) -> None:
     codes = {issue["code"] for issue in captured.value.issues}
     assert "beats_without_primary_coverage" in codes
     assert "unlinked_shots" in codes
+
+
+def test_each_beat_requires_exactly_one_primary_shot(brief: ProjectBrief) -> None:
+    bible = make_story_bible()
+    graph = make_story_graph()
+    plan = make_scene_beats(graph)
+    storyboard = make_storyboard(plan)
+    first_beat_id = plan.beats[0].id
+    supporting_index = next(
+        index
+        for index, link in enumerate(storyboard.shot_beat_links)
+        if link.beat_id == first_beat_id and link.role == CoverageRole.SUPPORTING
+    )
+    storyboard.shot_beat_links[supporting_index] = storyboard.shot_beat_links[
+        supporting_index
+    ].model_copy(update={"role": CoverageRole.PRIMARY})
+
+    with pytest.raises(DomainValidationError) as captured:
+        validate_storyboard_coverage(storyboard, plan, bible, brief)
+
+    assert any(
+        issue["code"] == "multiple_primary_shot_coverage"
+        for issue in captured.value.issues
+    )

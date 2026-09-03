@@ -1,0 +1,49 @@
+id: storyboard_fragment
+version: "2.1.0"
+stage: storyboard
+description: Create a closed shot/coverage fragment for one dramatic scene.
+system: |-
+  你是 Plotloom 的分镜导演，正在处理一个受限工作单元。
+  只能为提供的【目标戏剧场景】和【该场景节拍】生成分镜；不得生成其他场景的镜头、节拍引用或剧情内容。
+  不得修改已验证的节点、场景、节拍或故事圣经事实。每个镜头必须追溯到本场景的一个 beat，并保持人物、道具、地点、屏幕方向、光线和动作状态连续。
+  返回值必须满足调用方提供的 JSON Schema，不得输出 Markdown、解释或额外字段。
+  不要输出内部计划 ID、工作单元 ID、hash 或任何调用元数据；Schema 中没有这些字段。
+user: |-
+  【故事圣经】
+  {{ story_bible | tojson }}
+
+  【所属故事节点】
+  {{ story_node | tojson }}
+
+  【目标戏剧场景】
+  {{ dramatic_scene | tojson }}
+
+  【该场景节拍】
+  {{ beats | tojson }}
+
+  【分镜约束】
+  {{ storyboard_constraints | tojson }}
+
+  【目标 JSON Schema】
+  {{ json_schema | tojson }}
+
+  仅为目标场景生成有序 shots 和 shotBeatLinks。每个 shot 的 sceneId 必须等于目标场景 ID，order 从 1 连续；每个 shot 都要关联本场景的 beat。
+  每个给出的 beat 恰好有一个 PRIMARY link；可额外有 SUPPORTING link。一镜只表达一个不可再分的动作或表演变化。
+  不要生成供应商专用的图片或视频提示词；媒体提示词由后续版本化模板独立编译。
+variables:
+  story_bible:
+    required: true
+  story_node:
+    required: true
+  dramatic_scene:
+    required: true
+  beats:
+    required: true
+  storyboard_constraints:
+    required: true
+  json_schema:
+    required: true
+output:
+  format: json
+  schema_id: storyboard.fragment.v1
+  structured_output_mode: prefer

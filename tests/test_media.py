@@ -1,5 +1,5 @@
 import json
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -74,17 +74,17 @@ def test_gateway_never_places_key_in_payload():
     session.request.return_value = response
     gateway = MediaGateway(session=session)
     vault, lease = _lease()
-    with patch("plotloom.media.socket.getaddrinfo", return_value=[(None, None, None, None, ("8.8.8.8", 443))]):
-        result = gateway.submit(
-            adapter=OpenAIImageAdapter(),
-            params={"prompt": "frame", "size": "1536x1024"},
-            base_url="https://api.example/v1",
-            secret=lease,
-        )
+    result = gateway.submit(
+        adapter=OpenAIImageAdapter(),
+        params={"prompt": "frame", "size": "1536x1024"},
+        base_url="https://api.example/v1",
+        secret=lease,
+    )
     assert result.status == "succeeded"
     call = session.request.call_args
     assert "never-persist-this" not in repr(call.kwargs["json"])
     assert call.kwargs["headers"]["Authorization"] == "Bearer never-persist-this"
+    assert call.kwargs["allow_redirects"] is False
     vault.clear()
 
 
@@ -164,13 +164,36 @@ def test_media_prompt_compiler_compiles_frozen_context_for_api(
     assert "must-not-survive" not in prompt
 
 
-def test_gateway_rejects_private_provider_endpoint():
-    _, lease = _lease()
-    with patch("plotloom.media.socket.getaddrinfo", return_value=[(None, None, None, None, ("127.0.0.1", 443))]):
-        with pytest.raises(MediaProviderError):
-            MediaGateway(session=Mock()).submit(
-                adapter=OpenAIImageAdapter(),
-                params={"prompt": "frame", "size": "1536x1024"},
-                base_url="https://localhost/v1",
-                secret=lease,
-            )
+def test_gateway_supports_local_no_auth_without_authorization() -> None:
+    response = Mock(status_code=200)
+    response.json.return_value = {"data": [{"url": "https://cdn/x.png"}]}
+    session = Mock()
+    session.request.return_value = response
+
+    result = MediaGateway(session=session).submit(
+        adapter=OpenAIImageAdapter(),
+        params={"prompt": "frame", "size": "1536x1024"},
+        base_url="http://127.0.0.1:7860/v1",
+        secret=None,
+        auth_mode="none",
+    )
+
+    assert result.status == "succeeded"
+    call = session.request.call_args.kwargs
+    assert "Authorization" not in call["headers"]
+    assert call["allow_redirects"] is False
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    ["ftp://example.test/v1", "http://user:pass@example.test/v1", "http://example.test/v1?q=x", "http://example.test:bad/v1"],
+)
+def test_gateway_rejects_invalid_trusted_provider_roots(base_url: str) -> None:
+    with pytest.raises(MediaProviderError):
+        MediaGateway(session=Mock()).submit(
+            adapter=OpenAIImageAdapter(),
+            params={"prompt": "frame", "size": "1536x1024"},
+            base_url=base_url,
+            secret=None,
+            auth_mode="none",
+        )

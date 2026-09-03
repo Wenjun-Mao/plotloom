@@ -19,6 +19,10 @@ class RunExecutionResult(CamelModel):
     # Candidate payloads stay non-canonical until the repository verifies the run's
     # optimistic snapshot and installs them in dependency order.
     stage_payloads: dict[StageName, dict[str, Any]] = Field(default_factory=dict)
+    # Durable work-unit execution never hands caller-owned stage JSON back to
+    # the job runner.  It returns only repository-owned aggregate IDs, which
+    # the repository resolves and installs atomically in ``commit_sealed_run``.
+    sealed_aggregate_ids: list[str] = Field(default_factory=list)
     artifacts: list[Artifact] = Field(default_factory=list)
 
 
@@ -85,7 +89,7 @@ def recover_runtime_jobs(
 def build_runtime_app(settings: PlotloomSettings) -> object:
     from .api import create_app
     from .artifacts import LocalArtifactStore
-    from .domain import ProviderSettings
+    from .domain import ProviderProfileCapabilities, ProviderSettings
     from .jobs import LifecycleJobRunner
     from .media import MediaPromptCompiler
     from .media_jobs import MediaJobRunner, MediaTaskSecretBroker
@@ -93,7 +97,6 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
         PipelineEngine,
         RunSecretBroker,
         SnapshotTextProviderResolver,
-        TextProviderDefaults,
     )
     from .persistence import SQLiteRepository
     from .providers import ProviderPorts
@@ -107,20 +110,27 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
         text_provider=settings.text_provider,
         text_base_url=settings.text_base_url,
         text_model=settings.text_model,
+        text_auth_mode=settings.text_auth_mode,
+        text_capabilities=ProviderProfileCapabilities(
+            json_object=settings.text_supports_json_object,
+            json_schema=settings.text_supports_json_schema,
+        ),
+        text_context_window_tokens=settings.text_context_window_tokens,
+        text_max_output_tokens=settings.text_max_output_tokens,
+        text_temperature=settings.text_temperature,
+        text_max_concurrency=settings.text_max_concurrency,
+        text_connect_timeout_seconds=settings.text_connect_timeout_seconds,
+        text_attempt_timeout_seconds=settings.text_attempt_timeout_seconds,
         image_provider=settings.image_provider,
         image_base_url=settings.image_base_url,
         image_model=settings.image_model,
+        image_auth_mode=settings.image_auth_mode,
         video_provider=settings.video_provider,
         video_base_url=settings.video_base_url,
         video_model=settings.video_model,
+        video_auth_mode=settings.video_auth_mode,
     )
-    provider_resolver = SnapshotTextProviderResolver(
-        TextProviderDefaults(
-            provider=settings.text_provider,
-            base_url=settings.text_base_url,
-            model=settings.text_model,
-        )
-    )
+    provider_resolver = SnapshotTextProviderResolver()
     pipeline = PipelineEngine(repository, provider_resolver, run_secrets)
     run_runner = LifecycleJobRunner(
         repository,

@@ -156,12 +156,17 @@ export class PlotloomApiClient {
   }
 
   putProviderSettings(settings: ProviderSettings | ProviderSettingsUpdate): Promise<ProviderSettings> {
-    const update: Record<string, unknown> = { ...settings };
-    delete update.revision;
-    delete update.updatedAt;
-    delete update.textKeyAvailable;
-    delete update.imageKeyAvailable;
-    delete update.videoKeyAvailable;
+    const update: ProviderSettingsUpdate = {};
+    const publicKeys: (keyof ProviderSettingsUpdate)[] = [
+      "textProvider", "textBaseUrl", "textModel", "textAuthMode", "textCapabilities",
+      "textContextWindowTokens", "textMaxOutputTokens", "textTemperature", "textMaxConcurrency",
+      "textConnectTimeoutSeconds", "textAttemptTimeoutSeconds",
+      "imageProvider", "imageBaseUrl", "imageModel", "imageAuthMode",
+      "videoProvider", "videoBaseUrl", "videoModel", "videoAuthMode",
+    ];
+    for (const key of publicKeys) {
+      if (key in settings) (update as Record<string, unknown>)[key] = settings[key];
+    }
     return this.request("/provider-settings", { method: "PUT", body: JSON.stringify(update) });
   }
 }

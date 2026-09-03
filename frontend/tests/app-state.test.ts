@@ -309,10 +309,10 @@ describe("App project/editor rehydration", () => {
     const run = { ...demoRun, id: "run-restored", projectId: incoming.id, status: "quarantined" as const, requestedStages: ["story_bible" as const] };
     const trace: RunTrace = {
       run,
-      attempts: [{ id: "attempt-restored", runId: run.id, stage: "story_bible", attemptNumber: 1, status: "failed", provider: null, model: null, error: "刷新后仍可见的合同错误", startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z" }],
+      attempts: [{ id: "attempt-restored", runId: run.id, workUnitId: null, stage: "story_bible", attemptNumber: 1, status: "failed", provider: null, model: null, error: "刷新后仍可见的合同错误", dispatchedAt: null, responsePersistedAt: null, providerRequestId: null, outcomeUnknown: false, startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z" }],
       artifacts: [
-        { id: "response-restored", runId: run.id, attemptId: "attempt-restored", sourceArtifactId: null, stage: "story_bible", kind: "response", mediaType: "application/json", content: { rawResponse: "original response" }, contentHash: "response", createdAt: "2026-08-30T00:00:00Z" },
-        { id: "validation-restored", runId: run.id, attemptId: "attempt-restored", sourceArtifactId: null, stage: "story_bible", kind: "validation", mediaType: "application/json", content: { issue: "missing premise" }, contentHash: "abc", createdAt: "2026-08-30T00:00:01Z" },
+        { id: "response-restored", runId: run.id, attemptId: "attempt-restored", workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "response", mediaType: "application/json", content: { rawResponse: "original response" }, contentHash: "response", createdAt: "2026-08-30T00:00:00Z" },
+        { id: "validation-restored", runId: run.id, attemptId: "attempt-restored", workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "validation", mediaType: "application/json", content: { issue: "missing premise" }, contentHash: "abc", createdAt: "2026-08-30T00:00:01Z" },
       ],
       snapshotIsCurrent: true,
     };

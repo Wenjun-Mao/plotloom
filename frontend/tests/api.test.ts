@@ -63,12 +63,12 @@ describe("PlotloomApiClient", () => {
     expect(window.localStorage.length).toBe(0);
   });
 
-  it("does not echo read-only provider key availability flags in PUT", async () => {
+  it("does not echo read-only provider profile or key availability fields in PUT", async () => {
     providerSessionKey.write("must-not-leave-on-settings-request");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ revision: 3, textKeyAvailable: true }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 
-    await client.putProviderSettings({ textModel: "model-a", revision: 2, textKeyAvailable: true, imageKeyAvailable: false, videoKeyAvailable: false });
+    await client.putProviderSettings({ textModel: "model-a", profileId: "default", profileVersion: 2, profileHash: "public-only-hash", revision: 2, textKeyAvailable: true, imageKeyAvailable: false, videoKeyAvailable: false });
 
     const [, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     expect(new Headers(init.headers).has("X-Plotloom-Session-API-Key")).toBe(false);

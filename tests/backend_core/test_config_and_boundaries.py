@@ -16,12 +16,18 @@ from plotloom.runtime import build_runtime_app, select_available_port
 def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> None:
     (tmp_path / "pyproject.toml").write_text("[project]\nname='standalone-v2'\n", encoding="utf-8")
     (tmp_path / ".env").write_text(
-        "PLOTLOOM_DATA_DIR=dotenv-data\nPLOTLOOM_PORT=8790\nPORT=8791\n",
+        "PLOTLOOM_DATA_DIR=dotenv-data\nPLOTLOOM_PORT=8790\nPORT=8791\n"
+        "TEXT_BASE_URL=http://127.0.0.1:8080/v1\nTEXT_AUTH_MODE=none\n"
+        "TEXT_MAX_OUTPUT_TOKENS=4096\nTEXT_CONNECT_TIMEOUT_SECONDS=4\n",
         encoding="utf-8",
     )
-    for name in ("PLOTLOOM_DATA_DIR", "PLOTLOOM_PORT", "PORT"):
+    for name in (
+        "PLOTLOOM_DATA_DIR", "PLOTLOOM_PORT", "PORT", "TEXT_BASE_URL",
+        "TEXT_AUTH_MODE", "TEXT_MAX_OUTPUT_TOKENS", "TEXT_CONNECT_TIMEOUT_SECONDS",
+    ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("PORT", "8899")
+    monkeypatch.setenv("TEXT_MAX_OUTPUT_TOKENS", "2048")
     settings = PlotloomSettings.from_env(tmp_path)
     assert settings.port == 8899
     assert settings.port_fallback_count == 0
@@ -30,6 +36,10 @@ def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> No
     assert settings.database_url.endswith("/dotenv-data/plotloom.sqlite3")
     assert settings.artifact_root == (tmp_path / "dotenv-data" / "artifacts").resolve()
     assert settings.static_dir == (Path(__file__).resolve().parents[2] / "src/plotloom/static").resolve()
+    assert settings.text_base_url == "http://127.0.0.1:8080/v1"
+    assert settings.text_auth_mode == "none"
+    assert settings.text_max_output_tokens == 2048
+    assert settings.text_connect_timeout_seconds == 4
 
 
 def test_installed_runtime_ignores_cwd_dotenv_and_uses_user_data_home(

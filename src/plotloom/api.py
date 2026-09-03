@@ -6,7 +6,7 @@ from typing import Annotated, Any, Mapping, Protocol
 from fastapi import FastAPI, HTTPException, Header, Request, status
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import Field, model_validator
+from pydantic import Field, ValidationError, field_validator, model_validator
 
 from .domain import (
     PUBLIC_PROVIDER_SETTING_FIELDS,
@@ -20,14 +20,19 @@ from .domain import (
     Project,
     ProjectBrief,
     ProjectCreation,
+    ProviderAuthMode,
+    ProviderProfileCapabilities,
     ProviderSettings,
+    ProviderSnapshot,
     RunKind,
+    RunExecutionTrace,
     RunTrace,
     StageEnvelope,
     StageHead,
     StageName,
     contains_secret_setting,
     contains_secret_value,
+    validate_public_api_root,
     validate_public_provider_snapshot,
     validate_initial_stage_prefix,
 )
@@ -156,25 +161,26 @@ class MediaTaskRequest(CamelModel):
     def reject_secrets(self) -> MediaTaskRequest:
         if contains_secret_value(self.provider):
             raise ValueError("provider must be a public identifier, not a credential")
+        if self.provider is not None:
+            raise ValueError(
+                "media tasks cannot override the provider; save a trusted provider profile first"
+            )
         if contains_secret_setting(self.public_settings) or contains_secret_value(
             self.public_settings
         ):
             raise ValueError("publicSettings must not contain API keys, tokens, credentials, or other secrets")
-        for field, aliases in (
-            ("image_base_url", ("imageBaseUrl", "image_base_url")),
-            ("video_base_url", ("videoBaseUrl", "video_base_url")),
-        ):
-            value = next(
-                (self.public_settings[name] for name in aliases if self.public_settings.get(name)),
-                None,
-            )
-            if value is not None:
-                ProviderSettings.model_validate({field: value})
-        generic_base_url = self.public_settings.get("baseUrl") or self.public_settings.get("base_url")
-        if generic_base_url is not None:
-            ProviderSettings.model_validate(
-                {f"{self.kind.value}_base_url": generic_base_url}
-            )
+        for key in self.public_settings:
+            normalized = "".join(character for character in str(key).lower() if character.isalnum())
+            if (
+                normalized.endswith("baseurl")
+                or normalized.endswith("endpoint")
+                or normalized.endswith("authmode")
+                or normalized.endswith("provider")
+                or normalized.endswith("model")
+            ):
+                raise ValueError(
+                    "media tasks cannot override the trusted provider profile; save profile settings first"
+                )
         return self
 
 
@@ -182,17 +188,36 @@ class ProviderSettingsUpdate(CamelModel):
     text_provider: str | None = None
     text_base_url: str | None = None
     text_model: str | None = None
+    text_auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER
+    text_capabilities: ProviderProfileCapabilities = Field(
+        default_factory=ProviderProfileCapabilities
+    )
+    text_context_window_tokens: int = Field(default=32_768, ge=1)
+    text_max_output_tokens: int = Field(default=8_192, ge=1)
+    text_temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+    text_max_concurrency: int = Field(default=1, ge=1, le=32)
+    text_connect_timeout_seconds: float = Field(default=10.0, gt=0.0, le=300.0)
+    text_attempt_timeout_seconds: float = Field(default=300.0, gt=0.0, le=3_600.0)
     image_provider: str | None = None
     image_base_url: str | None = None
     image_model: str | None = None
+    image_auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER
     video_provider: str | None = None
     video_base_url: str | None = None
     video_model: str | None = None
+    video_auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER
 
-    @model_validator(mode="after")
-    def validate_public_settings(self) -> ProviderSettingsUpdate:
-        ProviderSettings.model_validate(self.model_dump())
-        return self
+    @model_validator(mode="before")
+    @classmethod
+    def reject_secret_material(cls, value: Any) -> Any:
+        if contains_secret_setting(value) or contains_secret_value(value):
+            raise ValueError("public provider configuration must not contain secrets")
+        return value
+
+    @field_validator("text_base_url", "image_base_url", "video_base_url")
+    @classmethod
+    def validate_provider_api_root(cls, value: str | None) -> str | None:
+        return validate_public_api_root(value)
 
 
 def _merge_provider_settings(
@@ -200,11 +225,20 @@ def _merge_provider_settings(
     defaults: ProviderSettings,
     key_availability: Mapping[str, bool],
 ) -> ProviderSettings:
-    values = {
-        field: getattr(persisted, field) or getattr(defaults, field)
-        for field in PUBLIC_PROVIDER_SETTING_FIELDS
-    }
+    if persisted.revision == 0:
+        # No row means environment-owned defaults still define the profile.
+        values = {
+            field: getattr(defaults, field) for field in PUBLIC_PROVIDER_SETTING_FIELDS
+        }
+    else:
+        values = {
+            field: getattr(persisted, field)
+            if getattr(persisted, field) is not None
+            else getattr(defaults, field)
+            for field in PUBLIC_PROVIDER_SETTING_FIELDS
+        }
     values.update(
+        profile_version=persisted.revision,
         revision=persisted.revision,
         updated_at=persisted.updated_at,
         text_key_available=bool(key_availability.get("text_key_available", False)),
@@ -215,13 +249,14 @@ def _merge_provider_settings(
 
 
 def _public_provider_snapshot(settings: ProviderSettings) -> dict[str, Any]:
-    return validate_public_provider_snapshot(
+    snapshot = ProviderSnapshot.model_validate(
         settings.model_dump(
             mode="json",
             by_alias=False,
-            include=set(PUBLIC_PROVIDER_SETTING_FIELDS),
+            include=set(ProviderSnapshot.model_fields),
         )
     )
+    return validate_public_provider_snapshot(snapshot.model_dump(mode="json", by_alias=True))
 
 
 def create_app(
@@ -385,6 +420,12 @@ def create_app(
     def get_run_trace(run_id: str) -> RunTrace:
         return repo.get_run_trace(run_id)
 
+    @app.get("/api/v2/runs/{run_id}/execution-trace", response_model=RunExecutionTrace)
+    def get_run_execution_trace(run_id: str) -> RunExecutionTrace:
+        """Additive shard-level trace; legacy /trace remains compact and stable."""
+
+        return repo.get_run_execution_trace(run_id)
+
     @app.post("/api/v2/runs/{run_id}/cancel", response_model=GenerationRun)
     def cancel_run(run_id: str) -> GenerationRun:
         if run_scheduler is not None:
@@ -423,15 +464,12 @@ def create_app(
         public_defaults = {
             f"{prefix}BaseUrl": getattr(current_settings, f"{prefix}_base_url"),
             f"{prefix}Model": getattr(current_settings, f"{prefix}_model"),
-        }
-        aliases = {
-            f"{prefix}BaseUrl": (f"{prefix}BaseUrl", f"{prefix}_base_url", "baseUrl", "base_url"),
-            f"{prefix}Model": (f"{prefix}Model", f"{prefix}_model", "model"),
+            f"{prefix}AuthMode": getattr(current_settings, f"{prefix}_auth_mode").value,
         }
         for name, value in public_defaults.items():
-            if value is not None and not any(alias in public_settings for alias in aliases[name]):
+            if value is not None:
                 public_settings[name] = value
-        provider = body.provider or getattr(current_settings, f"{prefix}_provider")
+        provider = getattr(current_settings, f"{prefix}_provider")
         task = repo.create_media_task(
             project_id,
             shot_id,
@@ -456,7 +494,26 @@ def create_app(
 
     @app.put("/api/v2/provider-settings", response_model=ProviderSettings)
     def put_provider_settings(body: ProviderSettingsUpdate) -> ProviderSettings:
-        repo.put_provider_settings(ProviderSettings.model_validate(body.model_dump()))
+        values = effective_provider_settings().model_dump(
+            mode="python",
+            by_alias=False,
+            include=set(PUBLIC_PROVIDER_SETTING_FIELDS),
+        )
+        values.update(body.model_dump(mode="python", by_alias=False, exclude_unset=True))
+        try:
+            settings = ProviderSettings.model_validate(values)
+        except ValidationError as error:
+            # Cross-field constraints can only be evaluated after a partial
+            # update has been merged with the current trusted profile.
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=error.errors(
+                    include_url=False,
+                    include_context=False,
+                    include_input=False,
+                ),
+            ) from error
+        repo.put_provider_settings(settings)
         return effective_provider_settings()
 
     if static_dir is not None:

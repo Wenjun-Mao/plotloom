@@ -406,7 +406,7 @@ def validate_storyboard_coverage(
             )
 
     linked_shots: set[str] = set()
-    primary_beats: set[str] = set()
+    primary_count_by_beat: dict[str, int] = defaultdict(int)
     link_pairs: set[tuple[str, str]] = set()
     for index, link in enumerate(storyboard.shot_beat_links):
         path = f"shotBeatLinks.{index}"
@@ -424,20 +424,35 @@ def validate_storyboard_coverage(
             issues.append(_issue("cross_scene_link", path, "a shot can only cover a beat from the same scene"))
         linked_shots.add(link.shot_id)
         if link.role == CoverageRole.PRIMARY:
-            primary_beats.add(link.beat_id)
+            primary_count_by_beat[link.beat_id] += 1
 
     unlinked_shots = set(shots_by_id) - linked_shots
     if unlinked_shots:
         issues.append(
             _issue("unlinked_shots", "shotBeatLinks", f"shots cover no beat: {', '.join(sorted(unlinked_shots))}")
         )
-    uncovered_beats = set(beats_by_id) - primary_beats
+    uncovered_beats = {
+        beat_id for beat_id in beats_by_id if primary_count_by_beat[beat_id] == 0
+    }
     if uncovered_beats:
         issues.append(
             _issue(
                 "beats_without_primary_coverage",
                 "shotBeatLinks",
                 f"beats lack primary shot coverage: {', '.join(sorted(uncovered_beats))}",
+            )
+        )
+    multiply_primary_beats = {
+        beat_id: count
+        for beat_id, count in primary_count_by_beat.items()
+        if beat_id in beats_by_id and count > 1
+    }
+    for beat_id, count in sorted(multiply_primary_beats.items()):
+        issues.append(
+            _issue(
+                "multiple_primary_shot_coverage",
+                "shotBeatLinks",
+                f"beat {beat_id} has {count} PRIMARY shot links; expected exactly one",
             )
         )
 

@@ -54,11 +54,11 @@ describe("Plotloom workspace model", () => {
       attempts: [],
       artifacts: [
         {
-          id: "prompt", runId: run.id, attemptId: null, sourceArtifactId: null, stage: "story_bible", kind: "prompt", mediaType: "application/json", contentHash: "a".repeat(64), createdAt: "2026-08-30T00:00:00Z",
+          id: "prompt", runId: run.id, attemptId: null, workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "prompt", mediaType: "application/json", contentHash: "a".repeat(64), createdAt: "2026-08-30T00:00:00Z",
           content: { messages: [{ role: "system", content: "SYSTEM EXACT" }, { role: "user", content: "USER EXACT" }] },
         },
         {
-          id: "validation", runId: run.id, attemptId: null, sourceArtifactId: null, stage: "story_bible", kind: "validation", mediaType: "application/json", contentHash: "b".repeat(64), createdAt: "2026-08-30T00:00:01Z",
+          id: "validation", runId: run.id, attemptId: null, workUnitId: null, sourceArtifactId: null, stage: "story_bible", kind: "validation", mediaType: "application/json", contentHash: "b".repeat(64), createdAt: "2026-08-30T00:00:01Z",
           content: { accepted: false, issues: [{ code: "missing" }] },
         },
       ],

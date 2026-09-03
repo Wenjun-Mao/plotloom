@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 from urllib.parse import urlparse
 
 import requests
@@ -28,7 +28,11 @@ class ProviderAdapter(Protocol):
     name: str
     capabilities: ProviderCapabilities
 
-    def generate(self, request: GenerationRequest, secret: SecretLease) -> ProviderResponse:
+    def generate(
+        self,
+        request: GenerationRequest,
+        secret: SecretLease | None,
+    ) -> ProviderResponse:
         ...
 
 
@@ -46,27 +50,39 @@ class OpenAICompatibleAdapter:
         base_url: str,
         capabilities: ProviderCapabilities | None = None,
         timeout_seconds: float = 300.0,
+        connect_timeout_seconds: float = 10.0,
+        auth_mode: Literal["none", "bearer"] = "bearer",
         session: requests.Session | Any | None = None,
     ) -> None:
         parsed = urlparse(base_url)
         if (
-            parsed.scheme != "https"
-            or not parsed.netloc
+            parsed.scheme not in {"http", "https"}
+            or not parsed.hostname
             or parsed.username
             or parsed.password
             or parsed.query
             or parsed.fragment
         ):
             raise ValueError(
-                "base_url must be an HTTPS API root without credentials, query, or fragment"
+                "base_url must be an HTTP(S) API root with a host and without credentials, query, or fragment"
             )
+        try:
+            parsed.port
+        except ValueError as error:
+            raise ValueError("base_url must use a valid port") from error
+        if timeout_seconds <= 0 or connect_timeout_seconds <= 0:
+            raise ValueError("provider timeouts must be greater than zero")
+        if auth_mode not in {"none", "bearer"}:
+            raise ValueError("auth_mode must be 'none' or 'bearer'")
         self.name = name.strip() or "openai-compatible"
         self.base_url = base_url.rstrip("/")
         self.capabilities = capabilities or ProviderCapabilities()
         self.timeout_seconds = timeout_seconds
+        self.connect_timeout_seconds = connect_timeout_seconds
+        self.auth_mode = auth_mode
         self._session = session or requests.Session()
 
-    def generate(self, request: GenerationRequest, secret: SecretLease) -> ProviderResponse:
+    def generate(self, request: GenerationRequest, secret: SecretLease | None) -> ProviderResponse:
         if not self.capabilities.chat_completions:
             raise ProviderCapabilityError(
                 f"Provider {self.name!r} does not advertise Chat Completions support"
@@ -97,23 +113,20 @@ class OpenAICompatibleAdapter:
                 },
             }
 
-        with secret.reveal() as api_key:
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            }
-            try:
-                response = self._session.post(
-                    f"{self.base_url}/chat/completions",
-                    json=payload,
-                    headers=headers,
-                    timeout=self.timeout_seconds,
-                )
-            except requests.RequestException as exc:
-                raise ProviderError(
-                    f"Provider {self.name!r} request failed: {type(exc).__name__}"
-                ) from exc
+        headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        if self.auth_mode == "bearer":
+            if secret is None:
+                raise ProviderError(f"Provider {self.name!r} requires a bearer credential")
+            with secret.reveal() as api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+                response = self._post(payload, headers)
+        else:
+            # A no-auth local provider must not receive an accidental browser or
+            # server credential even when the caller has one available.
+            response = self._post(payload, headers)
 
         status_code = int(getattr(response, "status_code", 0) or 0)
         if not 200 <= status_code < 300:
@@ -145,6 +158,20 @@ class OpenAICompatibleAdapter:
                 output_tokens=_non_negative_int(usage_data.get("completion_tokens")),
             ),
         )
+
+    def _post(self, payload: dict[str, Any], headers: dict[str, str]) -> Any:
+        try:
+            return self._session.post(
+                f"{self.base_url}/chat/completions",
+                json=payload,
+                headers=headers,
+                timeout=(self.connect_timeout_seconds, self.timeout_seconds),
+                allow_redirects=False,
+            )
+        except requests.RequestException as exc:
+            raise ProviderError(
+                f"Provider {self.name!r} request failed: {type(exc).__name__}"
+            ) from exc
 
 
 def _non_negative_int(value: object) -> int | None:

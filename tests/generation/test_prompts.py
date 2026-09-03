@@ -16,9 +16,11 @@ def test_repository_contains_all_versioned_stage_and_media_prompts() -> None:
         "media_video",
         "repair_json",
         "scene_beats",
+        "scene_beats_fragment",
         "story_bible",
         "story_graph",
         "storyboard",
+        "storyboard_fragment",
     )
     for prompt_id in repository.list_ids():
         spec, spec_hash, source = repository.load(prompt_id)

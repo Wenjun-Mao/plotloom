@@ -1,14 +1,12 @@
 """Application bridge from durable Plotloom runs to the prompt-generation subsystem.
 
 The generation package deliberately knows nothing about projects or SQLite.
-This module is the one place that translates a frozen canonical run into four
-ordered prompt calls, records secret-free trace artifacts, and returns complete
-candidate stages for one atomic repository installation.
+This module bridges a frozen canonical run to either the durable bounded-unit
+runner or the explicitly isolated historical repair flow.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from threading import Event, RLock
 from typing import Any, Mapping, Protocol
 
@@ -18,6 +16,8 @@ from .domain import (
     AttemptStatus,
     GenerationRun,
     ProjectBrief,
+    ProviderAuthMode,
+    ProviderSnapshot,
     RunKind,
     SceneBeatPlan,
     StageName,
@@ -27,11 +27,13 @@ from .domain import (
 )
 from .generation.contracts import (
     GenerationAttempt as PromptAttempt,
+    ProviderCapabilities,
     QuarantineRecord,
     RunStatus as PromptRunStatus,
     ValidationIssue,
 )
 from .generation.exceptions import GenerationRunFailed, SecretLeaseError
+from .generation.fragments import StoryBibleFragment, StoryGraphFragment
 from .generation.orchestration import (
     AttemptLifecycleObserver,
     GenerationOrchestrator,
@@ -41,13 +43,10 @@ from .generation.prompts import PromptRenderer
 from .generation.providers import OpenAICompatibleAdapter, ProviderAdapter
 from .generation.secrets import InMemorySecretVault, SecretLease
 from .generation.validation import CanonicalStageValidationAdapter
-from .exceptions import QuarantinedOutputError
+from .exceptions import InvalidTransitionError, QuarantinedOutputError
 from .persistence import SQLiteRepository, stable_hash
 from .runtime import GenerationEngine, RunContext, RunExecutionResult
-
-
-DEFAULT_TEXT_BASE_URL = "https://api.atlascloud.ai/v1"
-DEFAULT_TEXT_MODEL = "deepseek-v3"
+from .work_unit_pipeline import DurableWorkUnitRunner
 
 
 class RunSecretBroker:
@@ -82,7 +81,14 @@ class RunSecretBroker:
             self._vault.put(alias, normalized)
             self._run_aliases[run_id] = alias
 
-    def lease_for_run(self, run_id: str) -> SecretLease:
+    def lease_for_run(
+        self,
+        run_id: str,
+        *,
+        auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER,
+    ) -> SecretLease | None:
+        if auth_mode == ProviderAuthMode.NONE:
+            return None
         with self._lock:
             alias = self._run_aliases.get(run_id) or self._server_alias
             if alias is None:
@@ -105,13 +111,6 @@ class RunSecretBroker:
             self._vault.clear()
 
 
-@dataclass(frozen=True)
-class TextProviderDefaults:
-    provider: str = "openai-compatible"
-    base_url: str = DEFAULT_TEXT_BASE_URL
-    model: str = DEFAULT_TEXT_MODEL
-
-
 class TextProviderResolver(Protocol):
     """Build one adapter from the public settings frozen on a run."""
 
@@ -126,15 +125,20 @@ class SnapshotTextProviderResolver:
     provider snapshot on each run, and this resolver consumes only that snapshot.
     """
 
-    def __init__(self, defaults: TextProviderDefaults) -> None:
-        self.defaults = defaults
-
     def resolve(self, provider_snapshot: Mapping[str, Any]) -> tuple[ProviderAdapter, str]:
-        provider_name = str(provider_snapshot.get("textProvider") or self.defaults.provider)
-        base_url = str(provider_snapshot.get("textBaseUrl") or self.defaults.base_url)
-        model = str(provider_snapshot.get("textModel") or self.defaults.model)
-        adapter = OpenAICompatibleAdapter(name=provider_name, base_url=base_url)
-        return adapter, model
+        snapshot = ProviderSnapshot.model_validate(provider_snapshot)
+        capabilities = ProviderCapabilities.model_validate(
+            snapshot.text_capabilities.model_dump()
+        )
+        adapter = OpenAICompatibleAdapter(
+            name=snapshot.text_provider,
+            base_url=snapshot.text_base_url,
+            capabilities=capabilities,
+            auth_mode=snapshot.text_auth_mode.value,
+            connect_timeout_seconds=snapshot.text_connect_timeout_seconds,
+            timeout_seconds=snapshot.text_attempt_timeout_seconds,
+        )
+        return adapter, snapshot.text_model
 
 
 class _DurableTraceObserver(AttemptLifecycleObserver):
@@ -239,7 +243,47 @@ class PipelineEngine(GenerationEngine):
         context: RunContext,
         cancellation: Event,
     ) -> RunExecutionResult:
+        # Exact work-unit repair has a separate lineage contract: the old
+        # repair flow reuses historical, unsealed candidates and cannot safely
+        # manufacture StagePlan-bound fragments from them.  Keep it on the
+        # explicit compatibility path until targeted work-unit repair exists;
+        # ordinary production runs always use seals below.
+        if run.kind == RunKind.REPAIR:
+            if run.parent_run_id is None or run.repair_source is None:
+                raise ValueError("repair run is missing frozen parent evidence")
+            failed_attempt = next(
+                (
+                    attempt
+                    for attempt in self.repository.get_run_trace(run.parent_run_id).attempts
+                    if attempt.id == run.repair_source.failed_attempt_id
+                ),
+                None,
+            )
+            if failed_attempt is None:
+                raise ValueError("repair run references a missing failed attempt")
+            if failed_attempt.work_unit_id is not None:
+                raise InvalidTransitionError(
+                    "exact work-unit repair is not implemented; start a rebuild from the failed stage instead"
+                )
+            return self._execute_legacy_repair(run, context, cancellation)
+        profile = ProviderSnapshot.model_validate(run.provider_snapshot)
+        adapter, model = self.provider_resolver.resolve(run.provider_snapshot)
+        return DurableWorkUnitRunner(self.repository, self.secrets, self.renderer).execute(
+            run,
+            adapter=adapter,
+            model=model,
+            profile=profile,
+            cancellation=cancellation,
+        )
+
+    def _execute_legacy_repair(
+        self,
+        run: GenerationRun,
+        context: RunContext,
+        cancellation: Event,
+    ) -> RunExecutionResult:
         del context  # provider/artifact ports are used by media; text uses typed adapters here.
+        profile = ProviderSnapshot.model_validate(run.provider_snapshot)
         adapter, model = self.provider_resolver.resolve(run.provider_snapshot)
         quarantine = InMemoryQuarantineStore()
         orchestrator = GenerationOrchestrator(
@@ -290,7 +334,10 @@ class PipelineEngine(GenerationEngine):
                     attempt_id=persisted_attempt.id,
                 )
                 try:
-                    lease = self.secrets.lease_for_run(run.id)
+                    lease = self.secrets.lease_for_run(
+                        run.id,
+                        auth_mode=profile.text_auth_mode,
+                    )
                     if run.kind == RunKind.REPAIR and stage == run.repair_stage:
                         result = self._repair(
                             run,
@@ -301,6 +348,8 @@ class PipelineEngine(GenerationEngine):
                             orchestrator,
                             quarantine,
                             observer,
+                            temperature=profile.text_temperature,
+                            max_output_tokens=profile.text_max_output_tokens,
                         )
                     else:
                         result = orchestrator.generate(
@@ -309,6 +358,8 @@ class PipelineEngine(GenerationEngine):
                             validator=validator,
                             model=model,
                             secret=lease,
+                            temperature=profile.text_temperature,
+                            max_output_tokens=profile.text_max_output_tokens,
                             validation_metadata={"projectId": run.project_id, "runId": run.id},
                             observer=observer,
                         )
@@ -352,6 +403,20 @@ class PipelineEngine(GenerationEngine):
             or source.kind != ArtifactKind.CANDIDATE
         ):
             raise ValueError(f"frozen candidate evidence is invalid for {stage.value}")
+        # New ordinary runs retain a whole-stage fragment for Bible/Graph;
+        # compatibility repair predates exact unit repair and needs the payload
+        # that fragment represents.  Do not attempt to flatten multi-unit
+        # SceneBeats/Storyboard candidates here.
+        if stage == StageName.STORY_BIBLE:
+            try:
+                return StoryBibleFragment.model_validate(source.content).payload, source.id
+            except Exception:  # historical candidate payload, not a fragment
+                pass
+        if stage == StageName.STORY_GRAPH:
+            try:
+                return StoryGraphFragment.model_validate(source.content).payload, source.id
+            except Exception:  # historical candidate payload, not a fragment
+                pass
         return stage_payload_model(stage).model_validate(source.content), source.id
 
     def _repair(
@@ -360,10 +425,13 @@ class PipelineEngine(GenerationEngine):
         stage: StageName,
         validator: CanonicalStageValidationAdapter,
         model: str,
-        lease: SecretLease,
+        lease: SecretLease | None,
         orchestrator: GenerationOrchestrator,
         quarantine: InMemoryQuarantineStore,
         observer: AttemptLifecycleObserver,
+        *,
+        temperature: float,
+        max_output_tokens: int,
     ) -> Any:
         if not run.parent_run_id or run.repair_source is None:
             raise ValueError("repair run is missing frozen parent evidence")
@@ -398,7 +466,7 @@ class PipelineEngine(GenerationEngine):
                     schema_id=validator.schema_id,
                     reason=str(validation_content.get("error") or "explicit repair requested"),
                     response_hash=source_response.content_hash,
-                    raw_response=str(response_content.get("rawResponse") or ""),
+                    raw_response=self._repair_raw_response(response_content),
                     validation_issues=issues,
                 )
             )
@@ -409,9 +477,26 @@ class PipelineEngine(GenerationEngine):
             model=model,
             secret=lease,
             instructions=run.instructions,
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
             validation_metadata={"projectId": run.project_id, "runId": run.id},
             observer=observer,
         )
+
+    @staticmethod
+    def _repair_raw_response(response_content: Mapping[str, Any]) -> str:
+        """Read either historical text evidence or the new durable envelope."""
+
+        raw = response_content.get("rawResponse")
+        if isinstance(raw, str):
+            return raw
+        if isinstance(raw, Mapping):
+            choices = raw.get("choices")
+            if isinstance(choices, list) and choices and isinstance(choices[0], Mapping):
+                message = choices[0].get("message")
+                if isinstance(message, Mapping) and isinstance(message.get("content"), str):
+                    return message["content"]
+        return ""
 
     def _load_unrequested_upstream(
         self,

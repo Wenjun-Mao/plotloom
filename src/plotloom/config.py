@@ -3,9 +3,12 @@ from __future__ import annotations
 import os
 import sys
 from pathlib import Path
+from typing import Literal
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
+
+from .domain import DEFAULT_TEXT_BASE_URL, DEFAULT_TEXT_MODEL, DEFAULT_TEXT_PROVIDER
 
 
 def _source_checkout_root() -> Path | None:
@@ -72,15 +75,26 @@ class PlotloomSettings(BaseModel):
     media_workers: int = Field(default=2, ge=1, le=32)
     media_poll_interval_seconds: float = Field(default=2.0, ge=0.1, le=60.0)
     media_max_poll_attempts: int = Field(default=300, ge=1, le=10_000)
-    text_provider: str = "openai-compatible"
-    text_base_url: str = "https://api.atlascloud.ai/v1"
-    text_model: str = "deepseek-v3"
+    text_provider: str = DEFAULT_TEXT_PROVIDER
+    text_base_url: str = DEFAULT_TEXT_BASE_URL
+    text_model: str = DEFAULT_TEXT_MODEL
+    text_auth_mode: Literal["none", "bearer"] = "bearer"
+    text_supports_json_object: bool = False
+    text_supports_json_schema: bool = False
+    text_context_window_tokens: int = Field(default=32_768, ge=1)
+    text_max_output_tokens: int = Field(default=8_192, ge=1)
+    text_temperature: float = Field(default=0.2, ge=0.0, le=2.0)
+    text_max_concurrency: int = Field(default=1, ge=1, le=32)
+    text_connect_timeout_seconds: float = Field(default=10.0, gt=0.0, le=300.0)
+    text_attempt_timeout_seconds: float = Field(default=300.0, gt=0.0, le=3_600.0)
     image_provider: str = "atlascloud"
     image_base_url: str = "https://api.atlascloud.ai/api/v1/model"
     image_model: str = "openai/gpt-image-2/text-to-image"
+    image_auth_mode: Literal["none", "bearer"] = "bearer"
     video_provider: str = "atlascloud"
     video_base_url: str = "https://api.atlascloud.ai/api/v1/model"
     video_model: str = "xai/grok-imagine-video-v1.5/image-to-video"
+    video_auth_mode: Literal["none", "bearer"] = "bearer"
     text_api_key: SecretStr | None = None
     image_api_key: SecretStr | None = None
     video_api_key: SecretStr | None = None
@@ -138,19 +152,30 @@ class PlotloomSettings(BaseModel):
             media_max_poll_attempts=os.environ.get(
                 "PLOTLOOM_MEDIA_MAX_POLL_ATTEMPTS", "300"
             ),
-            text_provider=os.environ.get("TEXT_PROVIDER") or "openai-compatible",
-            text_base_url=os.environ.get("TEXT_BASE_URL") or "https://api.atlascloud.ai/v1",
-            text_model=os.environ.get("TEXT_MODEL") or "deepseek-v3",
+            text_provider=os.environ.get("TEXT_PROVIDER") or DEFAULT_TEXT_PROVIDER,
+            text_base_url=os.environ.get("TEXT_BASE_URL") or DEFAULT_TEXT_BASE_URL,
+            text_model=os.environ.get("TEXT_MODEL") or DEFAULT_TEXT_MODEL,
+            text_auth_mode=os.environ.get("TEXT_AUTH_MODE") or "bearer",
+            text_supports_json_object=os.environ.get("TEXT_SUPPORTS_JSON_OBJECT", "false"),
+            text_supports_json_schema=os.environ.get("TEXT_SUPPORTS_JSON_SCHEMA", "false"),
+            text_context_window_tokens=os.environ.get("TEXT_CONTEXT_WINDOW_TOKENS", "32768"),
+            text_max_output_tokens=os.environ.get("TEXT_MAX_OUTPUT_TOKENS", "8192"),
+            text_temperature=os.environ.get("TEXT_TEMPERATURE", "0.2"),
+            text_max_concurrency=os.environ.get("TEXT_MAX_CONCURRENCY", "1"),
+            text_connect_timeout_seconds=os.environ.get("TEXT_CONNECT_TIMEOUT_SECONDS", "10"),
+            text_attempt_timeout_seconds=os.environ.get("TEXT_ATTEMPT_TIMEOUT_SECONDS", "300"),
             image_provider=os.environ.get("IMAGE_PROVIDER") or "atlascloud",
             image_base_url=os.environ.get("IMAGE_BASE_URL")
             or "https://api.atlascloud.ai/api/v1/model",
             image_model=os.environ.get("IMAGE_MODEL")
             or "openai/gpt-image-2/text-to-image",
+            image_auth_mode=os.environ.get("IMAGE_AUTH_MODE") or "bearer",
             video_provider=os.environ.get("VIDEO_PROVIDER") or "atlascloud",
             video_base_url=os.environ.get("VIDEO_BASE_URL")
             or "https://api.atlascloud.ai/api/v1/model",
             video_model=os.environ.get("VIDEO_MODEL")
             or "xai/grok-imagine-video-v1.5/image-to-video",
+            video_auth_mode=os.environ.get("VIDEO_AUTH_MODE") or "bearer",
             text_api_key=os.environ.get("TEXT_MODEL_API_KEY") or fallback_key,
             image_api_key=os.environ.get("IMAGE_MODEL_API_KEY") or fallback_key,
             video_api_key=os.environ.get("VIDEO_MODEL_API_KEY") or fallback_key,

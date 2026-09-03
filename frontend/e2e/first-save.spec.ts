@@ -1,4 +1,4 @@
-import type { APIRequestContext, Page, Request as PlaywrightRequest, Route } from "@playwright/test";
+import type { APIRequestContext, Page, Request as PlaywrightRequest, Response as PlaywrightResponse, Route } from "@playwright/test";
 import { expect, test } from "./fixture";
 
 type InitialStage = { stage: string; payload: unknown };
@@ -46,9 +46,14 @@ test.describe("first-save project bootstrap", () => {
     const logline = "E2E：先保存简报，再保存故事圣经。";
     await page.getByLabel("Logline").fill(logline);
     await page.getByLabel("故事前提").fill("先建立项目，再为它写入第一条可追溯的故事规范。");
-    const stagePatch = captureStagePatch(page, projectId, "story_bible");
+    // The canonical read below is only valid after the PATCH response: waiting
+    // for the request alone races the backend transaction and can read the
+    // preceding stage revision.
+    const stagePatch = captureStagePatchResponse(page, projectId, "story_bible");
     await page.getByRole("button", { name: "保存故事圣经" }).click();
-    const stageRequest = await stagePatch;
+    const stageResponse = await stagePatch;
+    expect(stageResponse.ok()).toBeTruthy();
+    const stageRequest = stageResponse.request();
     const submittedPayload = (stageRequest.postDataJSON() as { payload: unknown }).payload;
     await expectCanonicalStage(request, workbench.apiOrigin, projectId, "story_bible", submittedPayload);
 
@@ -100,9 +105,12 @@ function captureProjectCreate(page: Page): Promise<PlaywrightRequest> {
   return page.waitForRequest((request) => request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/projects");
 }
 
-function captureStagePatch(page: Page, projectId: string, stage: string): Promise<PlaywrightRequest> {
+function captureStagePatchResponse(page: Page, projectId: string, stage: string): Promise<PlaywrightResponse> {
   const expectedPath = `/api/v2/projects/${projectId}/stages/${stage}`;
-  return page.waitForRequest((request) => request.method() === "PATCH" && new URL(request.url()).pathname === expectedPath);
+  return page.waitForResponse((response) => {
+    const request = response.request();
+    return request.method() === "PATCH" && new URL(request.url()).pathname === expectedPath;
+  });
 }
 
 function currentProjectId(page: Page): string {

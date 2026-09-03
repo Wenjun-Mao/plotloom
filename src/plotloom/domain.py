@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Annotated, Any
+import hashlib
+import json
+from typing import Annotated, Any, Literal
 from urllib.parse import parse_qsl, urlparse
 from uuid import uuid4
 
@@ -85,6 +87,22 @@ class AttemptStatus(str, Enum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"
+
+
+class WorkUnitStatus(str, Enum):
+    """Lifecycle of one bounded provider work unit.
+
+    This is deliberately separate from ``AttemptStatus``: a unit may have
+    several attempts over its lifetime, while an ambiguous dispatched attempt
+    leaves the unit in ``OUTCOME_UNKNOWN`` and must not be replayed blindly.
+    """
+
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    QUARANTINED = "quarantined"
+    CANCELLED = "cancelled"
+    OUTCOME_UNKNOWN = "outcome_unknown"
 
 
 class StoryNodeKind(str, Enum):
@@ -465,6 +483,7 @@ class GenerationRun(CamelModel):
     status: RunStatus = RunStatus.QUEUED
     canonical_snapshot: CanonicalSnapshot
     instructions: str | None = None
+    legacy_unsealed: bool = False
     result_revision_ids: list[str] = Field(default_factory=list)
     error: str | None = None
     created_at: datetime = Field(default_factory=utc_now)
@@ -512,12 +531,17 @@ class GenerationRun(CamelModel):
 class GenerationAttempt(CamelModel):
     id: str = Field(default_factory=new_id)
     run_id: str
+    work_unit_id: str | None = None
     stage: StageName
     attempt_number: Annotated[int, Field(ge=1)]
     status: AttemptStatus
     provider: str | None = None
     model: str | None = None
     error: str | None = None
+    dispatched_at: datetime | None = None
+    response_persisted_at: datetime | None = None
+    provider_request_id: str | None = None
+    outcome_unknown: bool = False
     started_at: datetime = Field(default_factory=utc_now)
     finished_at: datetime | None = None
 
@@ -526,6 +550,7 @@ class Artifact(CamelModel):
     id: str = Field(default_factory=new_id)
     run_id: str
     attempt_id: str | None = None
+    work_unit_id: str | None = None
     source_artifact_id: str | None = None
     stage: StageName | None = None
     kind: ArtifactKind
@@ -596,24 +621,73 @@ class MediaPromptContext(CamelModel):
     storyboard_revision: Annotated[int, Field(ge=1)]
 
 
-class PublicProviderConfiguration(CamelModel):
-    """Strict allow-list shared by persisted settings and frozen run snapshots."""
+DEFAULT_PROVIDER_PROFILE_ID = "default"
+DEFAULT_TEXT_PROVIDER = "openai-compatible"
+DEFAULT_TEXT_BASE_URL = "https://api.atlascloud.ai/v1"
+DEFAULT_TEXT_MODEL = "deepseek-v3"
 
+
+class ProviderAuthMode(str, Enum):
+    """The only credential behavior a trusted local provider may declare."""
+
+    NONE = "none"
+    BEARER = "bearer"
+
+
+class ProviderProfileCapabilities(CamelModel):
+    """Declared OpenAI-compatible text-model capabilities, not probe results."""
+
+    chat_completions: bool = True
+    json_object: bool = False
+    json_schema: bool = False
+
+
+class PublicProviderConfiguration(CamelModel):
+    """The public, persisted fields of the local trusted default profile.
+
+    Plotloom currently has one locally saved profile rather than an arbitrary
+    browser-selected profile registry.  The fixed ID makes that control-plane
+    boundary explicit while keeping the established provider-settings API
+    compatible.  Its revision and digest are attached only when the profile is
+    materialized as a snapshot below.
+    """
+
+    profile_id: str = DEFAULT_PROVIDER_PROFILE_ID
     text_provider: str | None = None
     text_base_url: str | None = None
     text_model: str | None = None
+    text_auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER
+    text_capabilities: ProviderProfileCapabilities = Field(
+        default_factory=ProviderProfileCapabilities
+    )
+    text_context_window_tokens: Annotated[int, Field(ge=1)] = 32_768
+    text_max_output_tokens: Annotated[int, Field(ge=1)] = 8_192
+    text_temperature: Annotated[float, Field(ge=0.0, le=2.0)] = 0.2
+    text_max_concurrency: Annotated[int, Field(ge=1, le=32)] = 1
+    text_connect_timeout_seconds: Annotated[float, Field(gt=0.0, le=300.0)] = 10.0
+    text_attempt_timeout_seconds: Annotated[float, Field(gt=0.0, le=3_600.0)] = 300.0
+    redirect_policy: Literal["no_follow"] = "no_follow"
     image_provider: str | None = None
     image_base_url: str | None = None
     image_model: str | None = None
+    image_auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER
     video_provider: str | None = None
     video_base_url: str | None = None
     video_model: str | None = None
+    video_auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER
 
     @model_validator(mode="before")
     @classmethod
     def reject_secret_material(cls, value: Any) -> Any:
         if contains_secret_setting(value) or contains_secret_value(value):
             raise ValueError("public provider configuration must not contain secrets")
+        return value
+
+    @field_validator("profile_id")
+    @classmethod
+    def validate_local_profile_id(cls, value: str) -> str:
+        if value != DEFAULT_PROVIDER_PROFILE_ID:
+            raise ValueError("only the trusted default provider profile may be selected")
         return value
 
     @field_validator(
@@ -636,22 +710,85 @@ class PublicProviderConfiguration(CamelModel):
     def validate_public_api_root(cls, value: str | None) -> str | None:
         return validate_public_api_root(value)
 
+    @model_validator(mode="after")
+    def validate_text_token_budget(self) -> PublicProviderConfiguration:
+        if self.text_max_output_tokens >= self.text_context_window_tokens:
+            raise ValueError(
+                "textMaxOutputTokens must be smaller than textContextWindowTokens"
+            )
+        return self
+
+
+class ProviderSnapshot(PublicProviderConfiguration):
+    """Canonical, secret-free provider profile frozen into a generation run."""
+
+    # PublicProviderConfiguration keeps these optional because an empty saved
+    # settings row means "use environment defaults". A run snapshot has crossed
+    # that boundary and must be fully resolved before it is hashed and queued.
+    text_provider: str = DEFAULT_TEXT_PROVIDER
+    text_base_url: str = DEFAULT_TEXT_BASE_URL
+    text_model: str = DEFAULT_TEXT_MODEL
+    profile_version: Annotated[int, Field(ge=0)] = 0
+    profile_hash: str = ""
+
+    @model_validator(mode="after")
+    def require_resolved_text_profile(self) -> ProviderSnapshot:
+        if not self.text_provider or not self.text_base_url or not self.text_model:
+            raise ValueError(
+                "provider snapshots require a resolved text provider, base URL, and model"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def verify_profile_hash(self) -> ProviderSnapshot:
+        payload = self.model_dump(
+            mode="json",
+            by_alias=False,
+            include=set(ProviderSnapshot.model_fields) - {"profile_hash"},
+        )
+        expected = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+                "utf-8"
+            )
+        ).hexdigest()
+        if self.profile_hash and self.profile_hash != expected:
+            raise ValueError("provider profile hash does not match its public fields")
+        object.__setattr__(self, "profile_hash", expected)
+        return self
+
 
 PUBLIC_PROVIDER_SETTING_FIELDS: tuple[str, ...] = tuple(
     PublicProviderConfiguration.model_fields
 )
 
 
-class ProviderSnapshot(PublicProviderConfiguration):
-    """Canonical, secret-free provider configuration frozen into a run."""
-
-
 class ProviderSettings(PublicProviderConfiguration):
+    """Trusted default profile plus local availability and persistence metadata."""
+
+    profile_version: Annotated[int, Field(ge=0)] = 0
+    profile_hash: str = ""
     text_key_available: bool = False
     image_key_available: bool = False
     video_key_available: bool = False
     revision: Annotated[int, Field(ge=0)] = 0
     updated_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def verify_profile_hash(self) -> ProviderSettings:
+        payload = self.model_dump(
+            mode="json",
+            by_alias=False,
+            include=set(ProviderSnapshot.model_fields) - {"profile_hash"},
+        )
+        expected = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+                "utf-8"
+            )
+        ).hexdigest()
+        if self.profile_hash and self.profile_hash != expected:
+            raise ValueError("provider profile hash does not match its public fields")
+        object.__setattr__(self, "profile_hash", expected)
+        return self
 
 
 class RunTrace(CamelModel):
@@ -659,6 +796,65 @@ class RunTrace(CamelModel):
     attempts: list[GenerationAttempt] = Field(default_factory=list)
     artifacts: list[Artifact] = Field(default_factory=list)
     snapshot_is_current: bool
+
+
+class GenerationPlanTrace(CamelModel):
+    """Secret-free run-level plan persisted alongside a generation run."""
+
+    run_id: str
+    plan_hash: str
+    plan: dict[str, Any]
+
+
+class StagePlanTrace(CamelModel):
+    """One immutable stage plan and its resolved dependency fingerprint."""
+
+    id: str
+    run_id: str
+    stage: StageName
+    stage_plan_hash: str
+    dependency_hash: str
+    plan: dict[str, Any]
+
+
+class GenerationWorkUnitTrace(CamelModel):
+    """Durable work-unit record exposed for diagnosis, not prompt execution."""
+
+    id: str
+    run_id: str
+    stage_plan_id: str
+    stage: StageName
+    sequence: Annotated[int, Field(ge=1)]
+    selector: dict[str, Any]
+    input_hash: str
+    dependency_hash: str
+    unit_dependency_hash: str
+    budget: dict[str, Any]
+    estimated_input_tokens: Annotated[int, Field(ge=0)]
+    context_window_tokens: Annotated[int, Field(ge=1)]
+    status: WorkUnitStatus
+
+
+class SealedStageAggregateTrace(CamelModel):
+    """Immutable exact-manifest aggregate eligible for canonical installation."""
+
+    id: str
+    run_id: str
+    stage_plan_id: str
+    stage: StageName
+    manifest_hash: str
+    manifest: dict[str, Any]
+    payload: dict[str, Any]
+    created_at: datetime
+
+
+class RunExecutionTrace(CamelModel):
+    """Additive work-unit evidence; the legacy RunTrace remains stable."""
+
+    generation_plan: GenerationPlanTrace | None = None
+    stage_plans: list[StagePlanTrace] = Field(default_factory=list)
+    work_units: list[GenerationWorkUnitTrace] = Field(default_factory=list)
+    sealed_aggregates: list[SealedStageAggregateTrace] = Field(default_factory=list)
 
 
 class StartupRecoveryPlan(CamelModel):
@@ -764,21 +960,25 @@ def validate_public_api_root(value: str | None) -> str | None:
     normalized = value.strip().rstrip("/")
     parsed = urlparse(normalized)
     if (
-        parsed.scheme != "https"
-        or not parsed.netloc
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
         or parsed.username
         or parsed.password
         or parsed.query
         or parsed.fragment
     ):
         raise ValueError(
-            "provider base URLs must be HTTPS roots without credentials, query, or fragment"
+            "provider base URLs must be HTTP(S) roots with a host and without credentials, query, or fragment"
         )
+    try:
+        parsed.port
+    except ValueError as error:
+        raise ValueError("provider base URLs must use a valid port") from error
     return normalized
 
 
 def validate_public_base_urls(value: Any) -> None:
-    """Apply the HTTPS-root contract to every nested public *BaseUrl field."""
+    """Apply the trusted HTTP(S)-root contract to nested public *BaseUrl fields."""
 
     if isinstance(value, dict):
         for key, child in value.items():

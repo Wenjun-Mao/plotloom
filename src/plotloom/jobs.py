@@ -93,6 +93,19 @@ class LifecycleJobRunner:
             result = self.engine.execute(run, self.context, cancellation)
             if cancellation.is_set() or self.repository.get_run(run_id).status == RunStatus.CANCEL_REQUESTED:
                 return self.repository.finish_run(run_id)
+            if result.sealed_aggregate_ids:
+                if result.stage_payloads:
+                    raise ValueError(
+                        "an execution result must use either sealed aggregates or legacy payloads, not both"
+                    )
+                # The durable runner must not receive or install an in-memory
+                # payload dictionary.  The repository re-reads these immutable
+                # seals and verifies their exact manifests in the commit
+                # transaction.
+                return self.repository.commit_sealed_run(
+                    run_id,
+                    sealed_aggregate_ids=result.sealed_aggregate_ids,
+                )
             for artifact in result.artifacts:
                 if artifact.run_id != run_id:
                     raise ValueError("engine artifact run_id does not match the executing run")

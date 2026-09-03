@@ -7,9 +7,7 @@ the repository extraction contract.
 
 from __future__ import annotations
 
-import ipaddress
 import json
-import socket
 from dataclasses import dataclass, field
 from typing import Any, Literal, Protocol, runtime_checkable
 from urllib.parse import urlparse
@@ -110,30 +108,32 @@ def _aspect(size: str) -> Literal["landscape", "portrait", "square"]:
     return "square"
 
 
-def validate_public_https_base_url(value: str) -> str:
-    """Reject credential-bearing, local, and private provider endpoints."""
+def validate_trusted_provider_base_url(value: str) -> str:
+    """Validate a root that reached this adapter through the saved profile.
+
+    The caller-facing API never accepts endpoint overrides, so private/LAN and
+    Tailnet roots are safe to support here without creating a browser-driven
+    request primitive.  Redirects remain disabled at the actual HTTP boundary.
+    """
 
     normalized = value.strip().rstrip("/")
     parsed = urlparse(normalized)
-    hostname = (parsed.hostname or "").lower()
     if (
-        parsed.scheme != "https"
-        or not hostname
+        parsed.scheme not in {"http", "https"}
+        or not parsed.hostname
         or parsed.username
         or parsed.password
         or parsed.query
         or parsed.fragment
     ):
-        raise MediaProviderError("Provider base URL must be a public HTTPS API root", status=400)
+        raise MediaProviderError(
+            "Provider base URL must be an HTTP(S) root without credentials, query, or fragment",
+            status=400,
+        )
     try:
-        addresses = {
-            result[4][0]
-            for result in socket.getaddrinfo(hostname, 443, type=socket.SOCK_STREAM)
-        }
-    except socket.gaierror as exc:
-        raise MediaProviderError("Provider hostname could not be resolved", status=400) from exc
-    if not addresses or any(not ipaddress.ip_address(address).is_global for address in addresses):
-        raise MediaProviderError("Provider base URL must not resolve to a local or private address", status=400)
+        parsed.port
+    except ValueError as error:
+        raise MediaProviderError("Provider base URL must use a valid port", status=400) from error
     return normalized
 
 
@@ -392,9 +392,10 @@ class MediaGateway:
         adapter: MediaProviderAdapter,
         params: dict[str, Any],
         base_url: str,
-        secret: SecretLease,
+        secret: SecretLease | None,
+        auth_mode: Literal["none", "bearer"] = "bearer",
     ) -> MediaSubmission:
-        payload = self._request(adapter.submit_spec(params), base_url, secret)
+        payload = self._request(adapter.submit_spec(params), base_url, secret, auth_mode)
         return adapter.read_submission(payload)
 
     def poll(
@@ -403,38 +404,36 @@ class MediaGateway:
         adapter: MediaProviderAdapter,
         provider_task_id: str,
         base_url: str,
-        secret: SecretLease,
+        secret: SecretLease | None,
+        auth_mode: Literal["none", "bearer"] = "bearer",
     ) -> MediaPollResult:
-        payload = self._request(adapter.poll_spec(provider_task_id), base_url, secret)
+        payload = self._request(adapter.poll_spec(provider_task_id), base_url, secret, auth_mode)
         return adapter.read_poll(payload)
 
     def _request(
         self,
         spec: MediaRequestSpec,
         base_url: str,
-        secret: SecretLease,
+        secret: SecretLease | None,
+        auth_mode: Literal["none", "bearer"],
     ) -> dict[str, Any]:
-        root = validate_public_https_base_url(base_url)
+        root = validate_trusted_provider_base_url(base_url)
         url = f"{root}/{spec.path.lstrip('/')}"
-        with secret.reveal() as api_key:
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Accept": "application/json",
-                "Content-Type": "application/json",
-                **spec.headers,
-            }
-            try:
-                response = self._session.request(
-                    spec.method,
-                    url,
-                    json=spec.json if spec.method == "POST" else None,
-                    headers=headers,
-                    timeout=self.timeout_seconds,
-                )
-            except requests.RequestException as exc:
-                raise MediaProviderError(
-                    f"Media provider request failed: {type(exc).__name__}", retryable=True
-                ) from exc
+        if auth_mode not in {"none", "bearer"}:
+            raise MediaProviderError("Media provider auth mode must be none or bearer", status=400)
+        headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            **spec.headers,
+        }
+        if auth_mode == "bearer":
+            if secret is None:
+                raise MediaProviderError("Media provider requires a bearer credential", status=400)
+            with secret.reveal() as api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+                response = self._send(spec, url, headers)
+        else:
+            response = self._send(spec, url, headers)
         status = int(getattr(response, "status_code", 0) or 0)
         if not 200 <= status < 300:
             raise MediaProviderError(
@@ -449,6 +448,26 @@ class MediaGateway:
         if not isinstance(payload, dict):
             raise MediaProviderError("Media provider returned a non-object response")
         return payload
+
+    def _send(
+        self,
+        spec: MediaRequestSpec,
+        url: str,
+        headers: dict[str, str],
+    ) -> Any:
+        try:
+            return self._session.request(
+                spec.method,
+                url,
+                json=spec.json if spec.method == "POST" else None,
+                headers=headers,
+                timeout=self.timeout_seconds,
+                allow_redirects=False,
+            )
+        except requests.RequestException as exc:
+            raise MediaProviderError(
+                f"Media provider request failed: {type(exc).__name__}", retryable=True
+            ) from exc
 
 
 class MediaPromptCompiler:

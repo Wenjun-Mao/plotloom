@@ -17,6 +17,7 @@ from .domain import (
     MediaKind,
     MediaTask,
     MediaTaskStatus,
+    ProviderAuthMode,
 )
 from .exceptions import InvalidTransitionError
 from .generation.exceptions import SecretLeaseError
@@ -39,7 +40,8 @@ class MediaGatewayPort(Protocol):
         adapter: MediaProviderAdapter,
         params: dict[str, object],
         base_url: str,
-        secret: SecretLease,
+        secret: SecretLease | None,
+        auth_mode: str,
     ) -> MediaSubmission: ...
 
     def poll(
@@ -48,7 +50,8 @@ class MediaGatewayPort(Protocol):
         adapter: MediaProviderAdapter,
         provider_task_id: str,
         base_url: str,
-        secret: SecretLease,
+        secret: SecretLease | None,
+        auth_mode: str,
     ) -> MediaPollResult: ...
 
 
@@ -104,7 +107,15 @@ class MediaTaskSecretBroker:
                 self._vault.put(alias, normalized)
                 self._task_aliases[task_id] = alias
 
-    def lease(self, task_id: str, kind: MediaKind) -> SecretLease:
+    def lease(
+        self,
+        task_id: str,
+        kind: MediaKind,
+        *,
+        auth_mode: ProviderAuthMode = ProviderAuthMode.BEARER,
+    ) -> SecretLease | None:
+        if auth_mode == ProviderAuthMode.NONE:
+            return None
         with self._lock:
             alias = self._task_aliases.get(task_id) or self._server_aliases.get(kind)
             if alias is None:
@@ -256,7 +267,8 @@ class MediaJobRunner:
         try:
             adapter = self.adapter_resolver(task.kind.value, provider_name)
             base_url = _base_url(task, adapter)
-            secret = self.secret_broker.lease(task.id, task.kind)
+            auth_mode = _auth_mode(task)
+            secret = self.secret_broker.lease(task.id, task.kind, auth_mode=auth_mode)
             if task.provider_task_id:
                 return self._poll(
                     task,
@@ -264,6 +276,7 @@ class MediaJobRunner:
                     task.provider_task_id,
                     base_url,
                     secret,
+                    auth_mode,
                 )
             params = _provider_params(task, adapter)
             submission = self.gateway.submit(
@@ -271,6 +284,7 @@ class MediaJobRunner:
                 params=params,
                 base_url=base_url,
                 secret=secret,
+                auth_mode=auth_mode.value,
             )
             self.repository.record_media_submission(
                 task.id,
@@ -283,7 +297,14 @@ class MediaJobRunner:
                 return self._fail(task, "Media provider rejected the submitted task")
             if not submission.provider_task_id:
                 return self._fail(task, "Asynchronous media provider returned no task ID")
-            return self._poll(task, adapter, submission.provider_task_id, base_url, secret)
+            return self._poll(
+                task,
+                adapter,
+                submission.provider_task_id,
+                base_url,
+                secret,
+                auth_mode,
+            )
         except Exception as error:  # noqa: BLE001 - durable worker boundary
             return self._fail(task, _error_message(error))
 
@@ -293,7 +314,8 @@ class MediaJobRunner:
         adapter: MediaProviderAdapter,
         provider_task_id: str,
         base_url: str,
-        secret: SecretLease,
+        secret: SecretLease | None,
+        auth_mode: ProviderAuthMode,
     ) -> MediaTask:
         for _attempt in range(self.max_poll_attempts):
             if self._wait_for_poll():
@@ -303,6 +325,7 @@ class MediaJobRunner:
                 provider_task_id=provider_task_id,
                 base_url=base_url,
                 secret=secret,
+                auth_mode=auth_mode.value,
             )
             if self._shutdown.is_set():
                 return self.repository.get_media_task(task.id)
@@ -384,6 +407,20 @@ def _base_url(task: MediaTask, adapter: MediaProviderAdapter) -> str:
         "baseUrl",
     )
     return str(value or adapter.default_base_url).strip()
+
+
+def _auth_mode(task: MediaTask) -> ProviderAuthMode:
+    value = _setting(
+        task.public_settings,
+        f"{task.kind.value}_auth_mode",
+        f"{task.kind.value}AuthMode",
+        "auth_mode",
+        "authMode",
+    )
+    try:
+        return ProviderAuthMode(str(value or ProviderAuthMode.BEARER.value))
+    except ValueError as error:
+        raise MediaProviderError("Media task has an invalid auth mode", status=400) from error
 
 
 def _provider_params(task: MediaTask, adapter: MediaProviderAdapter) -> dict[str, object]:

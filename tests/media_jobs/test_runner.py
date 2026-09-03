@@ -22,17 +22,24 @@ class ScriptedGateway:
         self.submit_calls: list[dict[str, object]] = []
         self.poll_calls: list[str] = []
 
-    def submit(self, *, adapter, params, base_url, secret):
-        with secret.reveal() as api_key:
-            self.seen_keys.append(api_key)
+    def submit(self, *, adapter, params, base_url, secret, auth_mode):
+        if secret is not None:
+            with secret.reveal() as api_key:
+                self.seen_keys.append(api_key)
         self.submit_calls.append(
-            {"adapter": adapter.name, "params": params, "base_url": base_url}
+            {
+                "adapter": adapter.name,
+                "params": params,
+                "base_url": base_url,
+                "auth_mode": auth_mode,
+            }
         )
         return self.submissions.popleft()
 
-    def poll(self, *, adapter, provider_task_id, base_url, secret):
-        with secret.reveal() as api_key:
-            self.seen_keys.append(api_key)
+    def poll(self, *, adapter, provider_task_id, base_url, secret, auth_mode):
+        if secret is not None:
+            with secret.reveal() as api_key:
+                self.seen_keys.append(api_key)
         self.poll_calls.append(provider_task_id)
         return self.polls.popleft()
 
@@ -227,8 +234,8 @@ class SignallingSecretBroker(MediaTaskSecretBroker):
         super().__init__(image_api_key=image_api_key)
         self.lease_started = Event()
 
-    def lease(self, task_id, kind):
-        lease = super().lease(task_id, kind)
+    def lease(self, task_id, kind, *, auth_mode):
+        lease = super().lease(task_id, kind, auth_mode=auth_mode)
         self.lease_started.set()
         return lease
 
@@ -395,7 +402,8 @@ def test_repository_rejects_secret_material_in_media_configuration(
 
 
 class EchoingFailureGateway(ScriptedGateway):
-    def submit(self, *, adapter, params, base_url, secret):
+    def submit(self, *, adapter, params, base_url, secret, auth_mode):
+        assert secret is not None
         with secret.reveal() as api_key:
             raise MediaProviderError(f"provider echoed {api_key}")
 
