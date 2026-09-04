@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from collections import deque
 from collections.abc import Callable
+from dataclasses import replace
 from threading import Event
 
 import pytest
 
+import plotloom.work_unit_pipeline as work_unit_pipeline
 from plotloom.artifacts import MemoryArtifactStore
 from plotloom.domain import (
     DEFAULT_TEXT_BASE_URL,
@@ -1069,6 +1071,351 @@ def test_v2_profile_corrects_a_known_rejection_with_visible_attempt_lineage(
     assert "ASCII 半角字符" in correction_request.messages[0].content
     assert len([item for item in trace.artifacts if item.kind == ArtifactKind.RESPONSE]) == 2
     assert repository.get_stage_payload(project.id, StageName.STORY_BIBLE) == bible
+
+
+def test_scene_timing_rejection_persists_safe_facts_and_uses_them_for_correction(
+    repository,
+    brief,
+) -> None:
+    """A semantic timing rejection carries numbers, not validator prose, forward."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    rejected_fragment = json.loads(responses[2])
+    rejected_fragment["dialogueCues"] = [
+        {
+            "localCueId": "timing-cue",
+            "beatLocalId": rejected_fragment["beats"][0]["localBeatId"],
+            "order": 1,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "继续",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "平静",
+            "estimatedDurationUnits": 1,
+        }
+    ]
+    responses[2] = json.dumps(rejected_fragment, ensure_ascii=False)
+    # The correction is a full valid fragment, followed by the remaining
+    # original units.  It must consume exactly one extra provider response.
+    responses.insert(3, _work_unit_responses(topology, brief)[2])
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("timing-repair-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    timing_attempt = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.stage == StageName.SCENE_BEATS
+        and attempt.outcome_code == "semantic.cue_duration_underestimated"
+    )
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == timing_attempt.id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.cue_duration_underestimated",
+            "path": ["dialogueCues", 0, "estimatedDurationUnits"],
+            "timingProfileVersion": "dialogue.default.v1",
+            "matchedRuleLanguage": "zh-CN",
+            "delivery": "natural",
+            "textCharacterCount": 2,
+            "unitsPerCharacter": 330,
+            "minimumDurationUnits": 660,
+            "currentEstimatedDurationUnits": 1,
+            "sceneDurationBudgetUnits": 8,
+            "sceneCueEstimatedTotalUnits": 1,
+            "sceneCueMinimumTotalUnits": 660,
+            "minimumFitsSceneBudget": False,
+        }
+    ]
+    assert "message" not in validation.content["repairFacts"][0]
+    correction_request = next(
+        request
+        for request in provider.requests
+        if "minimumDurationUnits" in request.messages[1].content
+    )
+    assert '"minimumDurationUnits":660' in correction_request.messages[1].content
+    assert '"minimumFitsSceneBudget":false' in correction_request.messages[1].content
+
+
+def test_non_timing_scene_rejection_reaches_correction_without_fact_reprojection(
+    repository,
+    brief,
+) -> None:
+    """Timing evidence must not reparse an unrelated semantic rejection."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    responses = list(complete)
+    rejected_fragment = json.loads(responses[2])
+    rejected_fragment["dialogueCues"] = [
+        {
+            "localCueId": "local-cue",
+            "beatLocalId": rejected_fragment["beats"][0]["localBeatId"],
+            "order": 1,
+            "speakerId": "not a stable id",
+            "voiceOver": None,
+            "text": "继续",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "平静",
+            "estimatedDurationUnits": 660,
+        }
+    ]
+    responses[2] = json.dumps(rejected_fragment, ensure_ascii=False)
+    responses.insert(3, complete[2])
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("semantic-repair-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    rejected = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.unknown_cue_speaker"
+    )
+    correction = next(
+        attempt for attempt in trace.attempts if attempt.source_attempt_id == rejected.id
+    )
+    assert correction.status == AttemptStatus.SUCCEEDED
+    assert "validation.internal_error" not in {
+        attempt.outcome_code for attempt in trace.attempts
+    }
+
+
+def test_v2_graph_projection_rejection_is_corrected_instead_of_becoming_internal_error(
+    repository,
+    brief,
+) -> None:
+    """A V1-permitted continuation label is ordinary model feedback, not a crash."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    rejected_graph = json.loads(complete[1])
+    continuation_id = next(
+        edge.id for edge in topology.edges if edge.kind.value == "continuation"
+    )
+    next(
+        edge for edge in rejected_graph["edges"] if edge["id"] == continuation_id
+    )["choiceText"] = ""
+    provider = QueueProvider([
+        complete[0],
+        json.dumps(rejected_graph, ensure_ascii=False),
+        complete[1],
+    ])
+    secrets = RunSecretBroker("graph-correction-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    graph_attempts = [
+        attempt for attempt in trace.attempts if attempt.stage == StageName.STORY_GRAPH
+    ]
+    assert [
+        (attempt.attempt_number, attempt.attempt_kind, attempt.status, attempt.outcome_code)
+        for attempt in graph_attempts
+    ] == [
+        (
+            1,
+            GenerationAttemptKind.PRIMARY,
+            AttemptStatus.FAILED,
+            "semantic.continuation_choice_text_must_be_null",
+        ),
+        (
+            2,
+            GenerationAttemptKind.CORRECTION,
+            AttemptStatus.SUCCEEDED,
+            "response.accepted",
+        ),
+    ]
+    assert graph_attempts[1].source_attempt_id == graph_attempts[0].id
+    assert "validation.internal_error" not in {
+        attempt.outcome_code for attempt in trace.attempts
+    }
+    first_validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == graph_attempts[0].id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert first_validation.content["issues"][0]["code"] == (
+        "semantic.continuation_choice_text_must_be_null"
+    )
+
+
+def test_unexpected_validator_exception_stays_fail_closed_without_correction(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    """A trusted-code fault is not model feedback and must never be replayed."""
+
+    project = repository.create_project(brief)
+    provider = QueueProvider(_responses(all_stage_payloads()[0]))
+    secrets = RunSecretBroker("programming-fault-secret")
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    original_compile = work_unit_pipeline.compile_work_unit_request
+
+    class ExplodingValidator:
+        def validate(self, *_args, **_kwargs):
+            raise RuntimeError("simulated trusted validator defect")
+
+    def compile_with_defective_validator(**kwargs):
+        compiled = original_compile(**kwargs)
+        return replace(compiled, validator=ExplodingValidator())
+
+    monkeypatch.setattr(
+        work_unit_pipeline,
+        "compile_work_unit_request",
+        compile_with_defective_validator,
+    )
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.FAILED
+    trace = repository.get_run_trace(run.id)
+    assert len(provider.requests) == 1
+    assert len(trace.attempts) == 1
+    assert trace.attempts[0].attempt_kind == GenerationAttemptKind.PRIMARY
+    assert trace.attempts[0].status == AttemptStatus.FAILED
+    assert trace.attempts[0].outcome_code == "validation.internal_error"
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["accepted"] is False
+    assert validation.content["issues"] == []
+
+
+def test_recovery_refuses_to_correct_under_a_changed_base_contract(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    """A deployment cannot silently reinterpret an already-rejected response."""
+
+    project = repository.create_project(brief)
+    provider = QueueProvider(["not json", "must not be dispatched"])
+    secrets = RunSecretBroker("frozen-correction-secret")
+    engine = PipelineEngine(repository, RecordingResolver(provider), secrets)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    original_finish = repository.finish_attempt
+
+    def finish_rejection_then_lose_process(attempt_id, status, **kwargs):
+        result = original_finish(attempt_id, status, **kwargs)
+        if kwargs.get("allow_correction"):
+            raise SimulatedProcessLoss()
+        return result
+
+    monkeypatch.setattr(
+        repository,
+        "finish_attempt",
+        finish_rejection_then_lose_process,
+    )
+    with pytest.raises(SimulatedProcessLoss):
+        engine.execute(
+            repository.start_run(run.id),
+            RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
+            Event(),
+        )
+    assert len(provider.requests) == 1
+
+    monkeypatch.setattr(repository, "finish_attempt", original_finish)
+    original_compile = work_unit_pipeline.compile_work_unit_request
+
+    def compile_changed_contract(**kwargs):
+        compiled = original_compile(**kwargs)
+        return replace(
+            compiled,
+            contract=compiled.contract.model_copy(
+                update={"contract_version": "m1.next"}
+            ),
+        )
+
+    monkeypatch.setattr(
+        work_unit_pipeline,
+        "compile_work_unit_request",
+        compile_changed_contract,
+    )
+    recovery = repository.reconcile_startup_jobs()
+    assert recovery.resubmit_run_ids == [run.id]
+
+    completed = _run(repository, engine, secrets, run.id)
+
+    assert completed.status == RunStatus.FAILED
+    assert len(provider.requests) == 1
+    trace = repository.get_run_trace(run.id)
+    assert [attempt.outcome_code for attempt in trace.attempts] == [
+        "response.extraction",
+        "contract.correction_source_changed",
+    ]
+    assert trace.attempts[1].attempt_kind == GenerationAttemptKind.CORRECTION
 
 
 def test_correction_treats_previous_final_as_untrusted_json_string(

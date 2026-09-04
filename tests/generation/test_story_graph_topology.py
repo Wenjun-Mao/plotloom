@@ -152,6 +152,50 @@ def test_binder_rejects_missing_unknown_and_topology_changes() -> None:
     assert any(issue["code"].startswith("semantic.") for issue in captured.value.issues)
 
 
+def test_v2_edge_and_join_contract_violations_are_reportable_binding_issues() -> None:
+    brief = _brief()
+    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    invalid = _complete_fill(topology)
+    continuation_id = next(
+        item.id for item in topology.edges if item.kind == StoryEdgeKind.CONTINUATION
+    )
+    continuation = next(
+        edge for edge in invalid["edges"] if edge["id"] == continuation_id
+    )
+    continuation["choiceText"] = "不应出现的选择文案"
+    invalid["joinContracts"][0]["requiredStateKeys"] = ["route", "route"]
+    invalid["joinContracts"][0]["allowedDifferences"] = ["other"]
+
+    with pytest.raises(StoryGraphContentBindingError) as captured:
+        bind_story_graph_content_fill(topology, invalid, brief=brief)
+
+    issues = {issue["code"]: issue["path"] for issue in captured.value.issues}
+    assert issues["semantic.continuation_choice_text_must_be_null"].startswith("edges.")
+    assert issues["semantic.join_state_keys_must_be_unique"].startswith("joinContracts.")
+    assert issues["semantic.join_allowed_differences_must_be_required"].startswith("joinContracts.")
+
+
+def test_v2_choice_and_join_text_must_be_non_blank() -> None:
+    brief = _brief()
+    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    invalid = _complete_fill(topology)
+    choice_id = next(
+        item.id for item in topology.edges if item.kind == StoryEdgeKind.CHOICE
+    )
+    next(edge for edge in invalid["edges"] if edge["id"] == choice_id)[
+        "choiceText"
+    ] = "   "
+    invalid["joinContracts"][0]["requiredStateKeys"] = ["   "]
+
+    with pytest.raises(StoryGraphContentBindingError) as captured:
+        bind_story_graph_content_fill(topology, invalid, brief=brief)
+
+    assert {issue["code"] for issue in captured.value.issues} >= {
+        "semantic.choice_edge_choice_text_required",
+        "semantic.join_state_key_must_be_non_blank",
+    }
+
+
 def test_different_project_id_changes_stable_ids_but_not_shape() -> None:
     brief = _brief()
     left = plan_story_graph_topology(project_id="project-a", brief=brief)
@@ -205,7 +249,7 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
         story_graph_topology=topology,
     )
 
-    assert compiled.contract.schema_id == "story_graph_content_fill.v1"
+    assert compiled.contract.schema_id == "story_graph_content_fill.v2"
     assert compiled.response_schema["properties"]["nodes"]["minItems"] == len(
         topology.nodes
     )
@@ -228,8 +272,30 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
     assert "structuralParameters" not in prompt
     assert all(item.id in prompt for item in (*topology.nodes, *topology.edges, *topology.joins))
     assert "sourceNodeId" not in compiled.rendered.messages[1].content.split("【目标 JSON Schema】", 1)[1]
+    edge_schema = compiled.response_schema["properties"]["edges"]["items"]
+    conditions = edge_schema["allOf"]
+    continuation_id = next(
+        item.id for item in topology.edges if item.kind == StoryEdgeKind.CONTINUATION
+    )
+    choice_id = next(item.id for item in topology.edges if item.kind == StoryEdgeKind.CHOICE)
+    by_id = {
+        condition["if"]["properties"]["id"]["const"]: condition["then"]["properties"]["choiceText"]
+        for condition in conditions
+    }
+    assert by_id[continuation_id] == {"const": None}
+    assert by_id[choice_id] == {"type": "string", "minLength": 1}
     accepted = compiled.validator.validate(
         _complete_fill(topology), context=SemanticValidationContext(stage="story_graph")
     )
     assert accepted.accepted is True
     assert accepted.value.start_node_id == topology.start_node_id
+
+    invalid = _complete_fill(topology)
+    next(edge for edge in invalid["edges"] if edge["id"] == continuation_id)["choiceText"] = "错误选择"
+    rejected = compiled.validator.validate(
+        invalid, context=SemanticValidationContext(stage="story_graph")
+    )
+    assert rejected.accepted is False
+    assert [issue.code for issue in rejected.issues] == [
+        "semantic.continuation_choice_text_must_be_null"
+    ]

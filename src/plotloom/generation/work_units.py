@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Annotated, Any, Literal, Mapping, TypeAlias
+from typing import Any, Literal, Mapping, TypeAlias
 from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -36,7 +36,7 @@ from ..domain import (
     StoryGraphV2,
     default_dialogue_timing_profile,
 )
-from ..canonical_schema import V2CoverageRole, V2ShotSize
+from ..canonical_schema import NonBlankText, V2CoverageRole, V2ShotSize
 from .contracts import RenderedPrompt, ValidationIssue, ValidationReport
 from .fragments import SceneBeatsFragment, StageFragment, StoryboardFragment
 from .json_schema import explicit_presence_json_schema, inline_local_json_references
@@ -63,8 +63,8 @@ from .story_graph_topology import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12a"
-CORRECTION_POLICY_VERSION = "bounded_correction.v3"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12b"
+CORRECTION_POLICY_VERSION = "bounded_correction.v4"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
 SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v5"
@@ -117,12 +117,13 @@ class DialogueCueContent(CamelModel):
     beat_local_id: str = Field(min_length=1)
     order: int = Field(ge=1)
     speaker_id: str | None
-    voice_over: Annotated[
-        str,
-        Field(min_length=1, pattern=r".*\S.*"),
-    ] | None
-    text: str = Field(min_length=1)
-    language: str = Field(min_length=1)
+    voice_over: NonBlankText | None
+    # These fields are consumed by the V2 timing policy and then bound into
+    # DialogueCue.  Keep the model-facing contract identical to the canonical
+    # one so whitespace-only content is a normal schema rejection, not a
+    # projection-time exception.
+    text: NonBlankText
+    language: NonBlankText
     delivery: DialogueDeliveryPace
     performance_notes: str = Field(min_length=1)
     estimated_duration_units: int = Field(ge=1)
@@ -142,6 +143,31 @@ class SceneBeatsFragmentOutput(CamelModel):
     scenes: list[DramaticSceneContent] = Field(min_length=1)
     beats: list[BeatContent] = Field(min_length=1)
     dialogue_cues: list[DialogueCueContent]
+
+
+class DialogueTimingRepairFact(CamelModel):
+    """Trusted, compact evidence for repairing one dialogue timing rejection.
+
+    The fact intentionally contains derived quantities only.  In particular it
+    never copies dialogue text, a validator's free-form message, model
+    reasoning, credentials, or any other provider evidence into a new prompt.
+    """
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    code: Literal["semantic.cue_duration_underestimated"]
+    path: tuple[str | int, ...]
+    timing_profile_version: str = Field(min_length=1, max_length=128)
+    matched_rule_language: str = Field(min_length=1, max_length=32)
+    delivery: DialogueDeliveryPace
+    text_character_count: int = Field(ge=1)
+    units_per_character: int = Field(ge=1)
+    minimum_duration_units: int = Field(ge=1)
+    current_estimated_duration_units: int = Field(ge=1)
+    scene_duration_budget_units: int | None = Field(default=None, ge=1)
+    scene_cue_estimated_total_units: int | None = Field(default=None, ge=0)
+    scene_cue_minimum_total_units: int | None = Field(default=None, ge=0)
+    minimum_fits_scene_budget: bool | None = None
 
 
 class ShotContent(CamelModel):
@@ -242,12 +268,26 @@ class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraphV2]):
         # The topology binder remains the deterministic graph authority.  Its
         # result is projected into the explicit V2 authoring schema only after
         # that topology contract has been checked.
-        return ValidationReport(
-            accepted=True,
-            value=StoryGraphV2.model_validate(
+        try:
+            canonical_graph = StoryGraphV2.model_validate(
                 graph.model_dump(mode="json", by_alias=True)
-            ),
-        )
+            )
+        except ValidationError as exc:
+            # The binder already verifies the complete V2 projection.  Keep a
+            # defensive conversion here so future V2 additions cannot turn a
+            # model-content mistake into ``validation.internal_error``.
+            return ValidationReport(
+                accepted=False,
+                issues=tuple(
+                    ValidationIssue(
+                        code="semantic.v2_projection_invalid",
+                        message=error["msg"],
+                        path=tuple(error.get("loc") or ()),
+                    )
+                    for error in exc.errors(include_url=False, include_context=False)
+                ),
+            )
+        return ValidationReport(accepted=True, value=canonical_graph)
 
 
 class WorkUnitPromptContract(_FrozenModel):
@@ -399,10 +439,17 @@ class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
         )
         if semantic_issues:
             return ValidationReport(accepted=False, issues=semantic_issues)
-        return ValidationReport(
-            accepted=True,
-            value=_bind_fragment(parsed, stage_plan=self.stage_plan, work_unit=self.work_unit),
+        # Model-controlled fields are made canonical-compatible by the closed
+        # response models and semantic checks above.  Any exception in this
+        # trusted binder is therefore a program/plan fault and must cross the
+        # runner's fail-closed validation boundary rather than authorize a
+        # model correction.
+        fragment = _bind_fragment(
+            parsed,
+            stage_plan=self.stage_plan,
+            work_unit=self.work_unit,
         )
+        return ValidationReport(accepted=True, value=fragment)
 
 
 def compile_work_unit_request(
@@ -590,6 +637,13 @@ def _prompt_variables(
             "join_contracts": scoped_context["join_contracts"],
             "continuity_requirements": _continuity_requirements(scoped_context),
             "beat_constraints": stage_constraints,
+            # The prompt receives the same versioned policy used below by
+            # semantic validation and correction facts.  Do not duplicate a
+            # language/pace table in YAML: a policy change must alter this
+            # input hash as well as the validator's rule selection.
+            "dialogue_timing_policy": default_dialogue_timing_profile().model_dump(
+                mode="json", by_alias=True
+            ),
             "json_schema": schema,
         }
     return "storyboard_fragment", {
@@ -785,6 +839,137 @@ def _fragment_semantic_issues(
     return _storyboard_semantic_issues(output, work_unit=work_unit, brief=brief, bible=bible, scoped_context=scoped_context)
 
 
+def dialogue_timing_repair_facts(
+    value: Any,
+    issues: tuple[ValidationIssue, ...],
+) -> tuple[DialogueTimingRepairFact, ...]:
+    """Derive safe timing repair facts from a parseable scene-beats response.
+
+    Validation artifacts are the trust boundary for correction prompts.  This
+    helper derives facts from that response and the same versioned timing
+    profile used by the semantic validator; it deliberately does not inspect
+    ``ValidationIssue.message``.  Schema-invalid fragments cannot supply
+    facts, because no parsed cue exists to support them.
+    """
+
+    timing_issues = tuple(
+        issue
+        for issue in issues
+        if issue.code == "semantic.cue_duration_underestimated"
+    )
+    if not timing_issues:
+        return ()
+
+    try:
+        output = SceneBeatsFragmentOutput.model_validate(
+            _canonicalize_model_local_ids(value, stage=StageName.SCENE_BEATS),
+            by_alias=True,
+            by_name=False,
+        )
+    except ValidationError:
+        return ()
+
+    profile = default_dialogue_timing_profile()
+    scene_ids = [scene.local_scene_id for scene in output.scenes]
+    beat_ids = [beat.local_beat_id for beat in output.beats]
+    scene_id_set = set(scene_ids)
+    structure_is_unambiguous = (
+        len(scene_ids) == len(scene_id_set)
+        and len(beat_ids) == len(set(beat_ids))
+        and all(beat.scene_local_id in scene_id_set for beat in output.beats)
+    )
+    scene_by_beat = {
+        beat.local_beat_id: beat.scene_local_id for beat in output.beats
+    }
+    scenes_by_id = {scene.local_scene_id: scene for scene in output.scenes}
+    cue_rows: list[tuple[DialogueCueContent, int | None]] = []
+    for cue in output.dialogue_cues:
+        cue_rows.append(
+            (
+                cue,
+                profile.estimate_text_duration_units(
+                    text=cue.text,
+                    language=cue.language,
+                    delivery=cue.delivery,
+                ),
+            )
+        )
+    scene_cues: dict[str, list[tuple[DialogueCueContent, int | None]]] = {}
+    for cue, minimum in cue_rows:
+        scene_id = scene_by_beat.get(cue.beat_local_id)
+        if scene_id is not None:
+            scene_cues.setdefault(scene_id, []).append((cue, minimum))
+
+    facts: list[DialogueTimingRepairFact] = []
+    for issue in timing_issues:
+        path = issue.path
+        if (
+            issue.code != "semantic.cue_duration_underestimated"
+            or len(path) != 3
+            or path[0] != "dialogueCues"
+            or not isinstance(path[1], int)
+            or path[2] != "estimatedDurationUnits"
+            or path[1] < 0
+            or path[1] >= len(cue_rows)
+        ):
+            continue
+        cue, minimum = cue_rows[path[1]]
+        rule = profile.rule_for(language=cue.language, delivery=cue.delivery)
+        scene_id = scene_by_beat.get(cue.beat_local_id)
+        scene = (
+            scenes_by_id.get(scene_id)
+            if structure_is_unambiguous and scene_id is not None
+            else None
+        )
+        # The cue-level minimum is always useful and deterministic.  Scene
+        # budget claims are added only when local IDs and cross-references are
+        # unambiguous; otherwise null explicitly means "not safely known".
+        if rule is None or minimum is None:
+            continue
+        timed_cues = scene_cues.get(scene_id, []) if scene is not None else []
+        complete_scene_minima = scene is not None and all(
+            item_minimum is not None for _item, item_minimum in timed_cues
+        )
+        estimated_total = (
+            sum(item.estimated_duration_units for item, _ in timed_cues)
+            if complete_scene_minima
+            else None
+        )
+        minimum_total = (
+            sum(
+                item_minimum
+                for _item, item_minimum in timed_cues
+                if item_minimum is not None
+            )
+            if complete_scene_minima
+            else None
+        )
+        facts.append(
+            DialogueTimingRepairFact(
+                code="semantic.cue_duration_underestimated",
+                path=path,
+                timing_profile_version=profile.version,
+                matched_rule_language=rule.language,
+                delivery=cue.delivery,
+                text_character_count=len(cue.text.strip()),
+                units_per_character=rule.units_per_character,
+                minimum_duration_units=minimum,
+                current_estimated_duration_units=cue.estimated_duration_units,
+                scene_duration_budget_units=(
+                    scene.duration_budget_units if complete_scene_minima else None
+                ),
+                scene_cue_estimated_total_units=estimated_total,
+                scene_cue_minimum_total_units=minimum_total,
+                minimum_fits_scene_budget=(
+                    minimum_total <= scene.duration_budget_units
+                    if minimum_total is not None and scene is not None
+                    else None
+                ),
+            )
+        )
+    return tuple(facts)
+
+
 def _scene_beats_semantic_issues(
     output: SceneBeatsFragmentOutput,
     *,
@@ -824,19 +1009,10 @@ def _scene_beats_semantic_issues(
             issues.append(_issue("semantic.cross_unit_cue", ("dialogueCues", cue_index, "beatLocalId"), "cue belongs to a beat outside this fragment"))
         if cue.speaker_id is not None and cue.speaker_id not in known_characters:
             issues.append(_issue("semantic.unknown_cue_speaker", ("dialogueCues", cue_index, "speakerId"), "cue speaker is not in the Story Bible"))
-        minimum_duration = timing_profile.estimate_duration_units(
-            DialogueCue(
-                id=cue.local_cue_id,
-                beat_id=cue.beat_local_id,
-                order=cue.order,
-                speaker_id=cue.speaker_id,
-                voice_over=cue.voice_over,
-                text=cue.text,
-                language=cue.language,
-                delivery=cue.delivery,
-                performance_notes=cue.performance_notes,
-                estimated_duration_units=cue.estimated_duration_units,
-            )
+        minimum_duration = timing_profile.estimate_text_duration_units(
+            text=cue.text,
+            language=cue.language,
+            delivery=cue.delivery,
         )
         if (
             minimum_duration is None
@@ -855,6 +1031,14 @@ def _scene_beats_semantic_issues(
         unknown_characters = set(scene.character_ids) - known_characters
         if unknown_characters:
             issues.append(_issue("semantic.unknown_characters", ("scenes", index, "characterIds"), "scene references unknown characters"))
+        if len(scene.character_ids) != len(set(scene.character_ids)):
+            issues.append(
+                _issue(
+                    "semantic.duplicate_character_ref",
+                    ("scenes", index, "characterIds"),
+                    "scene references the same character more than once",
+                )
+            )
         ordered = sorted(beats_by_scene.get(scene.local_scene_id, []), key=lambda beat: beat.order)
         if not ordered:
             issues.append(_issue("semantic.scene_without_beats", ("scenes", index), "each scene must contain at least one beat"))
@@ -920,8 +1104,24 @@ def _storyboard_semantic_issues(
             issues.append(_issue("semantic.unknown_location", ("shots", index, "locationId"), "shot references an unknown location"))
         if set(shot.character_ids) - known_characters:
             issues.append(_issue("semantic.unknown_characters", ("shots", index, "characterIds"), "shot references unknown characters"))
+        if len(shot.character_ids) != len(set(shot.character_ids)):
+            issues.append(
+                _issue(
+                    "semantic.duplicate_character_ref",
+                    ("shots", index, "characterIds"),
+                    "shot references the same character more than once",
+                )
+            )
         if set(shot.prop_ids) - known_props:
             issues.append(_issue("semantic.unknown_props", ("shots", index, "propIds"), "shot references unknown props"))
+        if len(shot.prop_ids) != len(set(shot.prop_ids)):
+            issues.append(
+                _issue(
+                    "semantic.duplicate_prop_ref",
+                    ("shots", index, "propIds"),
+                    "shot references the same prop more than once",
+                )
+            )
         for cue_id in shot.cue_ids:
             if cue_id not in cues_by_id:
                 issues.append(_issue("semantic.unknown_cue_ref", ("shots", index, "cueIds"), "shot references an unknown cue"))

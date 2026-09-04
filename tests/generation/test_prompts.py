@@ -114,6 +114,12 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     correction_spec, _spec_hash, _source = repository.load("work_unit_correction")
     assert "对每条 schema.missing" in correction_spec.user
     assert "对每条 schema.extra_forbidden" in correction_spec.user
+    assert "minimumDurationUnits" in correction_spec.user
+    assert "minimumFitsSceneBudget" in correction_spec.user
+    assert "timing_repair_facts" in correction_spec.variables
+    assert "dialogue_timing_policy" in scene_spec.variables
+    assert "language=\"*\"" in scene_spec.user
+    assert "× measured 420" not in scene_spec.user
 
 
 def test_storyboard_schema_and_media_prompts_are_separate() -> None:

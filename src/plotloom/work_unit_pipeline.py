@@ -61,7 +61,9 @@ from .generation.validation import SemanticValidationContext
 from .generation.work_units import (
     FRAGMENT_ID_BINDING_VERSION,
     CompiledWorkUnitRequest,
+    DialogueTimingRepairFact,
     compile_work_unit_request,
+    dialogue_timing_repair_facts,
 )
 from .persistence import SQLiteRepository, stable_hash
 from .provider_profiles import TextProviderProfileSnapshot
@@ -85,6 +87,25 @@ class CorrectionPromptBudgetError(ValueError):
     """A correction packet cannot fit the work unit's frozen byte budget."""
 
     code = "contract.correction_input_budget_exceeded"
+
+
+class CorrectionSourceContractError(ValueError):
+    """A rejected attempt cannot be corrected under changed executable rules."""
+
+    code = "contract.correction_source_changed"
+
+
+_CORRECTION_VARIANT_CONTRACT_FIELDS = frozenset(
+    {
+        "prompt_id",
+        "prompt_version",
+        "prompt_spec_hash",
+        "variables_hash",
+        "rendered_hash",
+        "correction_ordinal",
+        "correction_strategy",
+    }
+)
 
 
 class DurableWorkUnitRunner:
@@ -403,7 +424,13 @@ class DurableWorkUnitRunner:
                     error=str(error),
                     outcome_code=(
                         error.code
-                        if isinstance(error, CorrectionPromptBudgetError)
+                        if isinstance(
+                            error,
+                            (
+                                CorrectionPromptBudgetError,
+                                CorrectionSourceContractError,
+                            ),
+                        )
                         else "contract.prompt_failed"
                     ),
                     failure_disposition=WorkUnitFailureDisposition.FAILED,
@@ -676,6 +703,12 @@ class DurableWorkUnitRunner:
                 raise
 
             if not report.accepted:
+                repair_facts: tuple[DialogueTimingRepairFact, ...] = ()
+                if work_unit.stage == StageName.SCENE_BEATS:
+                    repair_facts = dialogue_timing_repair_facts(
+                        extracted.value,
+                        report.issues,
+                    )
                 if self._reject_or_continue(
                     run=run,
                     attempt=attempt,
@@ -685,6 +718,7 @@ class DurableWorkUnitRunner:
                     issues=report.issues,
                     transformations=extracted.transformations,
                     max_attempts=max_attempts,
+                    repair_facts=repair_facts,
                 ):
                     continue
                 raise AssertionError("unreachable")
@@ -751,6 +785,7 @@ class DurableWorkUnitRunner:
         issues: tuple[ValidationIssue, ...],
         transformations: tuple[str, ...],
         max_attempts: int,
+        repair_facts: tuple[DialogueTimingRepairFact, ...] = (),
     ) -> bool:
         """Persist one known rejection, then either expose a correction or stop."""
 
@@ -763,6 +798,7 @@ class DurableWorkUnitRunner:
             issues=issues,
             transformations=transformations,
             error=error,
+            repair_facts=repair_facts,
         )
         outcome_code = issues[0].code if issues else "response.rejected"
         can_correct = attempt.attempt_number < max_attempts
@@ -844,6 +880,16 @@ class DurableWorkUnitRunner:
         validation_content = (
             validation.content if isinstance(validation.content, Mapping) else {}
         )
+        source_contract = validation_content.get("contract")
+        if not isinstance(source_contract, Mapping):
+            raise CorrectionSourceContractError(
+                "correction source has no frozen work-unit contract"
+            )
+        self._assert_correction_source_contract(
+            source_attempt=source_attempt,
+            source_contract=source_contract,
+            base_compiled=base_compiled,
+        )
         issues = []
         for item in validation_content.get("issues", []):
             if not isinstance(item, Mapping):
@@ -852,6 +898,15 @@ class DurableWorkUnitRunner:
             issues.append({"code": issue.code, "path": list(issue.path)})
         if not issues:
             raise ValueError("correction source has no stable validation issues")
+        timing_repair_facts = []
+        raw_timing_facts = validation_content.get("repairFacts", [])
+        if not isinstance(raw_timing_facts, list):
+            raise ValueError("correction source has malformed deterministic repair facts")
+        for item in raw_timing_facts:
+            if not isinstance(item, Mapping):
+                raise ValueError("correction source has malformed deterministic repair facts")
+            fact = DialogueTimingRepairFact.model_validate(item)
+            timing_repair_facts.append(fact.model_dump(mode="json", by_alias=True))
         correction_ordinal = source_attempt.attempt_number
         correction_strategy = (
             "repair_previous_final"
@@ -867,10 +922,24 @@ class DurableWorkUnitRunner:
                 "response_schema": base_compiled.response_schema,
                 "previous_final_content": previous_final_content,
                 "validation_issues": issues,
+                "timing_repair_facts": timing_repair_facts,
                 "correction_ordinal": correction_ordinal,
                 "correction_strategy": correction_strategy,
             },
         )
+        if source_attempt.attempt_kind == GenerationAttemptKind.CORRECTION:
+            current_prompt_identity = {
+                "prompt_id": rendered.trace.prompt_id,
+                "prompt_version": rendered.trace.prompt_version,
+                "prompt_spec_hash": rendered.trace.spec_hash,
+            }
+            if any(
+                source_contract.get(key) != value
+                for key, value in current_prompt_identity.items()
+            ):
+                raise CorrectionSourceContractError(
+                    "correction prompt contract changed after the source rejection"
+                )
         input_bytes = sum(
             len(message.content.encode("utf-8")) for message in rendered.messages
         )
@@ -897,6 +966,46 @@ class DurableWorkUnitRunner:
             contract=contract,
             response_schema=base_compiled.response_schema,
         )
+
+    @staticmethod
+    def _assert_correction_source_contract(
+        *,
+        source_attempt: GenerationAttempt,
+        source_contract: Mapping[str, Any],
+        base_compiled: CompiledWorkUnitRequest,
+    ) -> None:
+        """Bind a correction to the exact executable contract that rejected it."""
+
+        current_contract = base_compiled.contract.model_dump(
+            mode="json", by_alias=True
+        )
+        if source_attempt.attempt_kind == GenerationAttemptKind.PRIMARY:
+            if dict(source_contract) != current_contract:
+                raise CorrectionSourceContractError(
+                    "primary work-unit contract changed after the source rejection"
+                )
+            return
+
+        source_base = {
+            key: value
+            for key, value in source_contract.items()
+            if key not in _CORRECTION_VARIANT_CONTRACT_FIELDS
+        }
+        current_base = {
+            key: value
+            for key, value in current_contract.items()
+            if key not in _CORRECTION_VARIANT_CONTRACT_FIELDS
+        }
+        if source_base != current_base:
+            raise CorrectionSourceContractError(
+                "base work-unit contract changed after the correction rejection"
+            )
+        if source_contract.get("correction_ordinal") != (
+            source_attempt.attempt_number - 1
+        ):
+            raise CorrectionSourceContractError(
+                "correction source ordinal does not match its durable attempt lineage"
+            )
 
     def _persist_prompt(
         self,
@@ -1019,12 +1128,17 @@ class DurableWorkUnitRunner:
         issues: tuple[ValidationIssue, ...],
         transformations: tuple[str, ...],
         error: str | None = None,
+        repair_facts: tuple[DialogueTimingRepairFact, ...] = (),
     ) -> None:
         content = {
             "accepted": accepted,
             "issues": [issue.model_dump(mode="json") for issue in issues],
             "transformations": list(transformations),
             "error": error,
+            "repairFacts": [
+                fact.model_dump(mode="json", by_alias=True)
+                for fact in repair_facts
+            ],
             "contract": compiled.contract.model_dump(mode="json", by_alias=True),
         }
         self.repository.add_artifact(

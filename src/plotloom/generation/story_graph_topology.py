@@ -17,6 +17,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import ConfigDict, Field, ValidationError, model_validator
 
+from ..canonical_schema import StoryGraphV2
 from ..domain import (
     CamelModel,
     JoinContract,
@@ -33,7 +34,7 @@ from .json_schema import explicit_presence_json_schema, inline_local_json_refere
 
 
 STORY_GRAPH_TOPOLOGY_VERSION = "story_graph_topology.v1"
-STORY_GRAPH_CONTENT_FILL_SCHEMA_ID = "story_graph_content_fill.v1"
+STORY_GRAPH_CONTENT_FILL_SCHEMA_ID = "story_graph_content_fill.v2"
 DEFAULT_MAX_DOWNSTREAM_WORK_UNITS = 128
 _STRUCTURAL_PARAMETER_KEYS = frozenset(
     {
@@ -646,6 +647,7 @@ def bind_story_graph_content_fill(
     _assert_exact_ids("nodes", [item.id for item in fill.nodes], [item.id for item in topology.nodes])
     _assert_exact_ids("edges", [item.id for item in fill.edges], [item.id for item in topology.edges])
     _assert_exact_ids("joinContracts", [item.id for item in fill.join_contracts], [item.id for item in topology.joins])
+    _assert_v2_content_contract(topology, fill)
     node_fill = {item.id: item for item in fill.nodes}
     edge_fill = {item.id: item for item in fill.edges}
     join_fill = {item.id: item for item in fill.join_contracts}
@@ -700,6 +702,23 @@ def bind_story_graph_content_fill(
     except DomainValidationError as exc:
         raise StoryGraphContentBindingError(
             [{"code": f"semantic.{issue['code']}", "path": issue["path"], "message": issue["message"]} for issue in exc.issues]
+        ) from exc
+    # The durable generation path installs V2 only.  Keep this projection at
+    # the binding boundary so a value that the historical V1 shape permits
+    # cannot escape as a worker exception.  The adapter converts this typed
+    # binding failure into a correction-eligible ValidationReport.
+    try:
+        StoryGraphV2.model_validate(graph.model_dump(mode="json", by_alias=True))
+    except ValidationError as exc:
+        raise StoryGraphContentBindingError(
+            [
+                {
+                    "code": "semantic.v2_projection_invalid",
+                    "path": _path(error.get("loc") or ()),
+                    "message": error["msg"],
+                }
+                for error in exc.errors(include_url=False, include_context=False)
+            ]
         ) from exc
     return graph
 
@@ -798,6 +817,7 @@ def story_graph_content_fill_schema(
             definition_name="StoryGraphJoinContentFill",
             identifiers=[item.id for item in topology.joins],
         )
+        _bind_edge_content_contract(schema, topology)
     return inline_local_json_references(schema)
 
 
@@ -855,6 +875,110 @@ def _bind_content_fill_ids(
             "enum": identifiers,
         }
     )
+
+
+def _bind_edge_content_contract(
+    schema: dict[str, Any], topology: StoryGraphTopology
+) -> None:
+    """Make immutable edge kinds executable in the model-facing schema.
+
+    ``choiceText`` is structurally present for every edge.  Its permitted value
+    is nevertheless determined by the trusted edge kind, not by model prose.
+    The binder below repeats this check because JSON Schema support varies among
+    compatible providers.
+    """
+
+    edge_schema = schema["$defs"]["StoryGraphEdgeContentFill"]
+    contracts: list[dict[str, Any]] = []
+    for edge in topology.edges:
+        if edge.kind == StoryEdgeKind.CONTINUATION:
+            choice_text_schema: dict[str, Any] = {"const": None}
+        else:
+            choice_text_schema = {"type": "string", "minLength": 1}
+        contracts.append(
+            {
+                "if": {
+                    "properties": {"id": {"const": edge.id}},
+                    "required": ["id"],
+                },
+                "then": {
+                    "properties": {"choiceText": choice_text_schema},
+                    "required": ["choiceText"],
+                },
+            }
+        )
+    edge_schema["allOf"] = contracts
+
+
+def _assert_v2_content_contract(
+    topology: StoryGraphTopology, fill: StoryGraphContentFill
+) -> None:
+    """Reject all model-controlled values that V2 would reject after binding.
+
+    The original binder builds a V1 graph to preserve historical read types.
+    V1 permits several values that current V2 authoring forbids.  Classifying
+    those values here turns ordinary model mistakes into stable, repairable
+    validation issues instead of letting a later V2 projection crash a worker.
+    """
+
+    edge_by_id = {edge.id: edge for edge in topology.edges}
+    issues: list[dict[str, str]] = []
+    for edge in fill.edges:
+        topology_edge = edge_by_id[edge.id]
+        path = f"edges.{edge.id}.choiceText"
+        if topology_edge.kind == StoryEdgeKind.CONTINUATION and edge.choice_text is not None:
+            issues.append(
+                {
+                    "code": "semantic.continuation_choice_text_must_be_null",
+                    "path": path,
+                    "message": "continuation edges must set choiceText to null",
+                }
+            )
+        elif topology_edge.kind == StoryEdgeKind.CHOICE and (
+            edge.choice_text is None or not edge.choice_text.strip()
+        ):
+            issues.append(
+                {
+                    "code": "semantic.choice_edge_choice_text_required",
+                    "path": path,
+                    "message": "choice edges require a non-blank choiceText",
+                }
+            )
+
+    for join in fill.join_contracts:
+        required_keys = join.required_state_keys
+        allowed_differences = join.allowed_differences
+        for field_name, values in (
+            ("requiredStateKeys", required_keys),
+            ("allowedDifferences", allowed_differences),
+        ):
+            path = f"joinContracts.{join.id}.{field_name}"
+            if any(not value.strip() for value in values):
+                issues.append(
+                    {
+                        "code": "semantic.join_state_key_must_be_non_blank",
+                        "path": path,
+                        "message": f"{field_name} entries must be non-blank",
+                    }
+                )
+            if len(values) != len(set(values)):
+                issues.append(
+                    {
+                        "code": "semantic.join_state_keys_must_be_unique",
+                        "path": path,
+                        "message": f"{field_name} entries must be unique",
+                    }
+                )
+        if not set(allowed_differences) <= set(required_keys):
+            issues.append(
+                {
+                    "code": "semantic.join_allowed_differences_must_be_required",
+                    "path": f"joinContracts.{join.id}.allowedDifferences",
+                    "message": "allowedDifferences must be contained in requiredStateKeys",
+                }
+            )
+    if issues:
+        raise StoryGraphContentBindingError(issues)
 
 
 def _assert_exact_ids(label: str, actual: list[str], expected: list[str]) -> None:

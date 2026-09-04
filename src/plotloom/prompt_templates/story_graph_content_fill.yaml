@@ -1,5 +1,5 @@
 id: story_graph_content_fill
-version: "2.2.0"
+version: "2.3.0"
 stage: story_graph
 description: Fill narrative content into an immutable Story Graph topology.
 system: |-
@@ -38,5 +38,5 @@ variables:
     required: true
 output:
   format: json
-  schema_id: story_graph_content_fill.v1
+  schema_id: story_graph_content_fill.v2
   structured_output_mode: prefer

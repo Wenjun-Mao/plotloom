@@ -1,5 +1,5 @@
 id: scene_beats_fragment
-version: "3.1.0"
+version: "3.3.0"
 stage: scene_beats
 description: Create a closed dramatic-scene/beat fragment for one Story Graph node.
 system: |-
@@ -28,6 +28,9 @@ user: |-
   【节拍约束】
   {{ beat_constraints | tojson }}
 
+  【版本化对白时长规则】
+  {{ dialogue_timing_policy | tojson }}
+
   【目标 JSON Schema】
   {{ json_schema | tojson }}
 
@@ -36,7 +39,7 @@ user: |-
   每个 beat 的 sceneLocalId 必须属于本次输出的 localSceneId；每个 scene 至少有一个 beat，并且该 scene 内的 beat.order 必须从 1 连续。不要输出 scene.beatLocalIds 或 scene.beatIds：系统会从 sceneLocalId 与 order 确定性生成 canonical beatIds。
   locationId 与 characterIds 只能从 Schema 的 enum 中选择；没有合适对象时遵守 Schema 使用 null 或空数组，绝不能创造故事圣经之外的 ID。
   一个 beat 只承载一个可观察动作、反应、信息揭示或状态改变；beat 绝不输出 dialogue 自由字符串。
-  所有 durationUnits 都使用整数毫秒。每条 dialogueCues 项通过 beatLocalId 归属本次输出的一个 beat，并使用 localCueId 作为本回答内部唯一句柄。cue.order 在同一 beat 内从 1 连续。speakerId 只能从 Schema enum 选择；speakerId 与 voiceOver 必须二选一：没有屏幕内说话角色时使用 speakerId=null，并以非空 voiceOver 字符串写明旁白身份或标签（例如 narrator）。每条 cue 要填写 text、language、delivery、performanceNotes 和 estimatedDurationUnits；delivery 只能是 measured、natural 或 brisk，performanceNotes 只描述表演意图，绝不作为时序键。estimatedDurationUnits 的最低值为：zh-CN 字符数 × measured 420 / natural 330 / brisk 260 毫秒；en 字符数 × 75 / 60 / 45；其他语言字符数 × 85 / 70 / 55。允许为表演停顿增加时间，但 scene 内所有 cue 总时长不得超过 durationBudgetUnits。不要在 beat、shot 或其他字段重复该台词。
+  所有 durationUnits 都使用整数毫秒。每条 dialogueCues 项通过 beatLocalId 归属本次输出的一个 beat，并使用 localCueId 作为本回答内部唯一句柄。cue.order 在同一 beat 内从 1 连续。speakerId 只能从 Schema enum 选择；speakerId 与 voiceOver 必须二选一：没有屏幕内说话角色时使用 speakerId=null，并以非空 voiceOver 字符串写明旁白身份或标签（例如 narrator）。每条 cue 要填写 text、language、delivery、performanceNotes 和 estimatedDurationUnits；delivery 只能是 measured、natural 或 brisk，performanceNotes 只描述表演意图，绝不作为时序键。估算字符数严格等于 text.strip() 的 Unicode 字符数：首尾空白不计，标点、内部空白和每个汉字均计一个字符。使用【版本化对白时长规则】中与 language 和 delivery 精确匹配的 rule；若不存在，使用同一 delivery 的 language="*" rule。estimatedDurationUnits 必须不小于字符数 × 该 rule 的 unitsPerCharacter。允许为表演停顿增加时间，但 scene 内所有 cue 总时长不得超过 durationBudgetUnits。不要在 beat、shot 或其他字段重复该台词。
   每个 scene 和 beat 的 entryState、exitState 都必须完整输出 facts、entityStates、screenDirection、lighting、sound、notes；每个 entityStates 项均填写 entityType、entityId、state。没有内容时也分别写出 {}、[] 或 null，不能省略任何一项。
   “requiredEntryFactKeys” 中的每一个键必须出现在每个 scene.entryState.facts；“requiredExitFactKeys” 中的每一个键必须出现在每个 scene.exitState.facts。键名必须逐字符复制，并为每个键写出符合剧情的具体值；空数组表示该方向没有强制键。
 variables:
@@ -51,6 +54,8 @@ variables:
   continuity_requirements:
     required: true
   beat_constraints:
+    required: true
+  dialogue_timing_policy:
     required: true
   json_schema:
     required: true

@@ -319,12 +319,24 @@ class DialogueTimingProfile(V2Model):
             raise ValueError("dialogue timing rules must be unique by language and delivery")
         return self
 
-    def estimate_duration_units(self, cue: DialogueCue) -> int | None:
+    def rule_for(
+        self,
+        *,
+        language: str,
+        delivery: DialogueDeliveryPace,
+    ) -> DialogueTimingRule | None:
+        """Return the one versioned rule governing a language/pace pair.
+
+        This is deliberately the sole language/delivery selection path.  The
+        validator and correction evidence must never independently reimplement
+        its exact-language then wildcard fallback semantics.
+        """
+
         matching = next(
             (
                 rule
                 for rule in self.rules
-                if rule.language == cue.language and rule.delivery == cue.delivery
+                if rule.language == language and rule.delivery == delivery
             ),
             None,
         )
@@ -332,14 +344,37 @@ class DialogueTimingProfile(V2Model):
             (
                 rule
                 for rule in self.rules
-                if rule.language == "*" and rule.delivery == cue.delivery
+                if rule.language == "*" and rule.delivery == delivery
             ),
             None,
         )
-        rule = matching or fallback
+        return matching or fallback
+
+    def estimate_text_duration_units(
+        self,
+        *,
+        text: str,
+        language: str,
+        delivery: DialogueDeliveryPace,
+    ) -> int | None:
+        """Estimate text without requiring a canonical cue identity.
+
+        Generation fragments use response-local correlation handles until the
+        trusted binder assigns canonical IDs.  Timing therefore depends only
+        on the three values that actually govern the versioned policy.
+        """
+
+        rule = self.rule_for(language=language, delivery=delivery)
         if rule is not None:
-            return len(cue.text.strip()) * rule.units_per_character
+            return len(text.strip()) * rule.units_per_character
         return None
+
+    def estimate_duration_units(self, cue: DialogueCue) -> int | None:
+        return self.estimate_text_duration_units(
+            text=cue.text,
+            language=cue.language,
+            delivery=cue.delivery,
+        )
 
 
 DEFAULT_DIALOGUE_TIMING_PROFILE = DialogueTimingProfile(
