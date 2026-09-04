@@ -6,9 +6,19 @@ from fastapi.testclient import TestClient
 from sqlalchemy import text
 
 from plotloom.api import create_app
-from plotloom.domain import STAGE_ORDER, MediaKind, ProviderSettings, StageName
+from plotloom.domain import (
+    STAGE_ORDER,
+    Artifact,
+    ArtifactKind,
+    AttemptStatus,
+    MediaKind,
+    ProviderSettings,
+    RunKind,
+    StageName,
+    WorkUnitFailureDisposition,
+)
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse
-from plotloom.persistence import SQLiteRepository
+from plotloom.persistence import SQLiteRepository, stable_hash
 from plotloom.pipeline import RunSecretBroker
 
 from .conftest import all_stage_payloads
@@ -97,6 +107,80 @@ class JsonSchemaProbeAdapter:
         )
 
 
+def _quarantined_bible_work_unit(
+    repository: SQLiteRepository,
+    brief,
+    *,
+    provider_snapshot: dict | None = None,
+):
+    """Create exact rejected evidence without invoking an external provider."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE],
+        provider_snapshot=provider_snapshot,
+    )
+    repository.start_run(run.id)
+    repository.get_or_create_stage_plan(run.id, StageName.STORY_BIBLE)
+    unit = repository.list_generation_work_units(run.id)[0]
+    attempt = repository.allocate_attempt_for_work_unit(
+        unit.id,
+        provider="local-test",
+        model="test-model",
+    )
+    repository.mark_attempt_dispatched(attempt.id)
+    prompt = {"messages": [{"role": "user", "content": "PROMPT_SHOULD_NOT_LEAK"}]}
+    repository.add_artifact(
+        Artifact(
+            run_id=run.id,
+            attempt_id=attempt.id,
+            work_unit_id=unit.id,
+            stage=StageName.STORY_BIBLE,
+            kind=ArtifactKind.PROMPT,
+            content=prompt,
+            content_hash=stable_hash(prompt),
+        )
+    )
+    repository.persist_attempt_response(
+        attempt.id,
+        {"rawResponse": "RAW_SHOULD_NOT_LEAK"},
+        provider_request_id="provider-request-should-not-leak",
+    )
+    validation = {
+        "accepted": False,
+        "issues": [
+            {"code": "schema.test_rejected", "message": "VALIDATION_SHOULD_NOT_LEAK"}
+        ],
+    }
+    repository.add_artifact(
+        Artifact(
+            run_id=run.id,
+            attempt_id=attempt.id,
+            work_unit_id=unit.id,
+            stage=StageName.STORY_BIBLE,
+            kind=ArtifactKind.VALIDATION,
+            content=validation,
+            content_hash=stable_hash(validation),
+        )
+    )
+    repository.finish_attempt(
+        attempt.id,
+        AttemptStatus.FAILED,
+        error="rejected test output",
+        outcome_code="schema.test_rejected",
+        failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+    )
+    repository.finish_run(
+        run.id,
+        quarantine_reason="rejected test output",
+        failure_code="schema.test_rejected",
+        failed_stage=StageName.STORY_BIBLE,
+    )
+    return project, repository.get_run(run.id), unit, attempt
+
+
 def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
     app = create_app(repository)
     actual = {
@@ -120,12 +204,14 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
         ("PATCH", "/api/v2/projects/{project_id}/stages/{stage}"),
         ("POST", "/api/v2/projects/{project_id}/pipeline-runs"),
         ("POST", "/api/v2/projects/{project_id}/rebuilds"),
-            ("GET", "/api/v2/runs/{run_id}"),
-            ("GET", "/api/v2/runs/{run_id}/trace"),
+        ("GET", "/api/v2/runs/{run_id}"),
+        ("GET", "/api/v2/runs/{run_id}/trace"),
         ("GET", "/api/v2/runs/{run_id}/execution-trace"),
+        ("GET", "/api/v2/runs/{run_id}/progress"),
         ("POST", "/api/v2/runs/{run_id}/resume"),
         ("POST", "/api/v2/runs/{run_id}/cancel"),
         ("POST", "/api/v2/runs/{run_id}/repairs"),
+        ("POST", "/api/v2/runs/{run_id}/work-units/{work_unit_id}/repairs"),
         ("POST", "/api/v2/projects/{project_id}/shots/{shot_id}/media-tasks"),
         ("GET", "/api/v2/media-tasks/{task_id}"),
         ("GET", "/api/v2/provider-settings"),
@@ -138,6 +224,118 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
         ("POST", "/api/v2/text-provider-profiles/{profile_id}/activate"),
         ("POST", "/api/v2/text-provider-profiles/{profile_id}/probe"),
     }
+
+
+def test_run_progress_is_bounded_and_excludes_prompt_response_and_validation_payloads(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    _, run, unit, attempt = _quarantined_bible_work_unit(repository, brief)
+    client = TestClient(create_app(repository))
+
+    response = client.get(f"/api/v2/runs/{run.id}/progress")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["runId"] == run.id
+    assert payload["status"] == "quarantined"
+    assert payload["failureCode"] == "schema.test_rejected"
+    assert payload["actions"]["repairEligible"] is True
+    assert len(payload["workUnits"]) == 1
+    projected_unit = payload["workUnits"][0]
+    assert projected_unit | {"latestAttempt": None} == {
+        "workUnitId": unit.id,
+        "stage": "story_bible",
+        "sequence": 1,
+        "status": "quarantined",
+        "maxAttempts": 1,
+        "latestAttempt": None,
+        "sealed": False,
+        "repairEligible": True,
+        "repairReasonCode": None,
+    }
+    projected_attempt = projected_unit["latestAttempt"]
+    assert projected_attempt["attemptId"] == attempt.id
+    assert projected_attempt["attemptNumber"] == 1
+    assert projected_attempt["attemptKind"] == "primary"
+    assert projected_attempt["sourceAttemptId"] is None
+    assert projected_attempt["status"] == "failed"
+    assert projected_attempt["outcomeCode"] == "schema.test_rejected"
+    assert projected_attempt["outcomeUnknown"] is False
+    assert projected_attempt["inputTokens"] is None
+    assert projected_attempt["outputTokens"] is None
+    assert projected_attempt["startedAt"]
+    assert projected_attempt["finishedAt"]
+    serialized = response.text
+    for forbidden in (
+        "PROMPT_SHOULD_NOT_LEAK",
+        "RAW_SHOULD_NOT_LEAK",
+        "VALIDATION_SHOULD_NOT_LEAK",
+        "provider-request-should-not-leak",
+        "messages",
+        "rawResponse",
+        "artifacts",
+    ):
+        assert forbidden not in serialized
+
+
+def test_exact_work_unit_repair_uses_frozen_profile_and_rejects_client_overrides(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    # Application bootstrap materializes the environment/default profile.
+    create_app(repository)
+    profile = repository.get_text_provider_profile("default")
+    project, source, unit, _ = _quarantined_bible_work_unit(
+        repository,
+        brief,
+        provider_snapshot=profile.configuration.model_dump(mode="json", by_alias=True),
+    )
+    scheduler = RecordingScheduler()
+    client = TestClient(create_app(repository, run_scheduler=scheduler))
+    endpoint = f"/api/v2/runs/{source.id}/work-units/{unit.id}/repairs"
+    headers = {
+        "Idempotency-Key": "repair-bible-001",
+        "X-Plotloom-Session-API-Key": "session-repair-key",
+    }
+
+    created = client.post(endpoint, json={}, headers=headers)
+
+    assert created.status_code == 202
+    child = created.json()
+    assert child["projectId"] == project.id
+    assert child["kind"] == "repair"
+    assert child["parentRunId"] == source.id
+    assert child["repairStage"] == "story_bible"
+    assert child["repairSource"] is None
+    assert child["workUnitRepairScopeId"] == child["id"]
+    assert child["providerSnapshot"] == source.provider_snapshot
+    assert child["instructions"] == source.instructions
+    assert scheduler.submissions == [(child["id"], "session-repair-key")]
+    assert "session-repair-key" not in created.text
+
+    replay = client.post(endpoint, json={}, headers=headers)
+    assert replay.status_code == 202
+    assert replay.json()["id"] == child["id"]
+    assert scheduler.submissions == [(child["id"], "session-repair-key")]
+
+    for forbidden_body in (
+        {"providerProfileId": "other"},
+        {"apiKey": "must-not-be-accepted"},
+        {"instructions": "change the frozen contract"},
+    ):
+        rejected = client.post(
+            endpoint,
+            json=forbidden_body,
+            headers={**headers, "Idempotency-Key": f"reject-{len(str(forbidden_body))}"},
+        )
+        assert rejected.status_code == 422
+        assert "must-not-be-accepted" not in str(repository.get_work_unit_repair_scope(child["id"]))
+
+    openapi_operation = client.get("/openapi.json").json()["paths"][
+        "/api/v2/runs/{run_id}/repairs"
+    ]["post"]
+    assert openapi_operation["deprecated"] is True
 
 
 def test_camel_case_and_revision_conflict(repository: SQLiteRepository, brief) -> None:

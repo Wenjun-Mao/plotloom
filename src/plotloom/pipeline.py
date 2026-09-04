@@ -46,7 +46,7 @@ from .generation.prompts import PromptRenderer
 from .generation.providers import OpenAICompatibleAdapter, ProviderAdapter
 from .generation.secrets import InMemorySecretVault, SecretLease
 from .generation.validation import CanonicalStageValidationAdapter
-from .exceptions import InvalidTransitionError, QuarantinedOutputError
+from .exceptions import InvalidTransitionError, NotFoundError, QuarantinedOutputError
 from .persistence import SQLiteRepository, stable_hash
 from .provider_profiles import TextProviderProfileSnapshot, is_v2_snapshot
 from .runtime import GenerationEngine, RunContext, RunExecutionResult
@@ -312,14 +312,54 @@ class PipelineEngine(GenerationEngine):
         context: RunContext,
         cancellation: Event,
     ) -> RunExecutionResult:
-        # Exact work-unit repair has a separate lineage contract: the old
-        # repair flow reuses historical, unsealed candidates and cannot safely
-        # manufacture StagePlan-bound fragments from them.  Keep it on the
-        # explicit compatibility path until targeted work-unit repair exists;
-        # ordinary production runs always use seals below.
+        # Exact work-unit repair has a separate lineage contract.  It only
+        # consumes repository-frozen scope and reuse bindings; a legacy repair
+        # keeps the historic stage-level bridge below.  The existence of the
+        # scope is the discriminator rather than a mutable request flag.
         if run.kind == RunKind.REPAIR:
+            scope_reader = getattr(self.repository, "get_work_unit_repair_scope", None)
+            if run.work_unit_repair_scope_id is not None:
+                if scope_reader is None:
+                    raise InvalidTransitionError(
+                        "exact repair scope cannot be resolved by this repository"
+                    )
+                try:
+                    repair_scope = scope_reader(run.id)
+                except NotFoundError as error:
+                    # A row-linked exact child without its scope is corrupt
+                    # durable lineage, never a request to fall back to the
+                    # historical stage-repair interpreter.
+                    raise InvalidTransitionError(
+                        "exact repair run is missing its immutable scope"
+                    ) from error
+                if run.parent_run_id != repair_scope.parent_run_id:
+                    raise InvalidTransitionError(
+                        "exact repair scope is not bound to the child run parent"
+                    )
+                if run.work_unit_repair_scope_id != repair_scope.child_run_id:
+                    raise InvalidTransitionError(
+                        "exact repair scope identity does not match its child run"
+                    )
+                profile: ProviderSnapshot | TextProviderProfileSnapshot
+                if is_v2_snapshot(run.provider_snapshot):
+                    profile = TextProviderProfileSnapshot.model_validate(run.provider_snapshot)
+                else:
+                    profile = ProviderSnapshot.model_validate(run.provider_snapshot)
+                adapter, model = self.provider_resolver.resolve(run.provider_snapshot)
+                return DurableWorkUnitRunner(
+                    self.repository, self.secrets, self.renderer
+                ).execute_exact_repair(
+                    run,
+                    repair_scope=repair_scope,
+                    adapter=adapter,
+                    model=model,
+                    profile=profile,
+                    cancellation=cancellation,
+                )
+            # Older databases/repository adapters contain only the legacy
+            # bridge. A repair without an exact scope retains that behavior.
             if run.parent_run_id is None or run.repair_source is None:
-                raise ValueError("repair run is missing frozen parent evidence")
+                raise ValueError("legacy repair run is missing frozen parent evidence")
             failed_attempt = next(
                 (
                     attempt

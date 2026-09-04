@@ -25,6 +25,7 @@ from .domain import (
     RunStatus,
     StageName,
     StagePayload,
+    WorkUnitRepairScope,
     WorkUnitFailureDisposition,
     stage_payload_model,
 )
@@ -107,6 +108,7 @@ class DurableWorkUnitRunner:
         model: str,
         profile: ProviderSnapshot | TextProviderProfileSnapshot,
         cancellation: Event,
+        repair_scope: WorkUnitRepairScope | None = None,
     ) -> RunExecutionResult:
         """Run exact units, returning only repository-owned aggregate IDs."""
 
@@ -127,13 +129,44 @@ class DurableWorkUnitRunner:
                     sealed_ids.append(existing.id)
                     continue
 
-                dependencies = self._stage_dependencies(run, stage, sealed_payloads)
+                dependencies = self._stage_dependencies(
+                    run,
+                    stage,
+                    sealed_payloads,
+                    repair_scope=repair_scope,
+                )
                 # Repository planning treats these as assertions against its
                 # frozen snapshot/seals, never as caller-provided authority.
-                stage_plan = self.repository.get_or_create_stage_plan(
-                    run.id, stage, dependencies=dependencies
+                stage_plan = self._get_stage_plan(
+                    run,
+                    stage,
+                    dependencies=dependencies,
+                    repair_scope=repair_scope,
                 )
                 candidates = self._existing_unit_candidates(run.id, stage, stage_plan)
+                if repair_scope is not None:
+                    candidates.update(
+                        self._materialize_reused_unit_candidates(
+                            run.id,
+                            stage,
+                            stage_plan,
+                        )
+                    )
+                    if stage == repair_scope.stage:
+                        # The scope authorizes at most one provider-bound unit
+                        # in its repaired stage.  Zero is valid after a crash
+                        # that happened after the target candidate committed
+                        # but before aggregation; more than one would quietly
+                        # turn a precise repair into a partial rebuild.
+                        unresolved = [
+                            unit.unit_id
+                            for unit in stage_plan.work_units
+                            if unit.unit_id not in candidates
+                        ]
+                        if len(unresolved) > 1:
+                            raise ValueError(
+                                "exact repair scope leaves more than one target-stage work unit unresolved"
+                            )
                 for work_unit in stage_plan.work_units:
                     if work_unit.unit_id in candidates:
                         continue
@@ -179,11 +212,21 @@ class DurableWorkUnitRunner:
 
                 if self._cancelled(run.id, cancellation):
                     return RunExecutionResult(sealed_aggregate_ids=sealed_ids)
-                aggregate = self.repository.seal_stage_aggregate(
-                    run.id,
-                    stage,
-                    candidate_artifact_ids=[candidates[unit.unit_id] for unit in stage_plan.work_units],
-                )
+                candidate_artifact_ids = [
+                    candidates[unit.unit_id] for unit in stage_plan.work_units
+                ]
+                if repair_scope is not None:
+                    aggregate = self.repository.seal_repair_stage_aggregate(
+                        run.id,
+                        stage,
+                        candidate_artifact_ids=candidate_artifact_ids,
+                    )
+                else:
+                    aggregate = self.repository.seal_stage_aggregate(
+                        run.id,
+                        stage,
+                        candidate_artifact_ids=candidate_artifact_ids,
+                    )
                 sealed_payloads[stage] = stage_payload_model(stage).model_validate(
                     aggregate.payload
                 )
@@ -191,6 +234,38 @@ class DurableWorkUnitRunner:
             return RunExecutionResult(sealed_aggregate_ids=sealed_ids)
         finally:
             self.secrets.release_run(run.id)
+
+    def execute_exact_repair(
+        self,
+        run: GenerationRun,
+        *,
+        repair_scope: WorkUnitRepairScope,
+        adapter: ProviderAdapter,
+        model: str,
+        profile: ProviderSnapshot | TextProviderProfileSnapshot,
+        cancellation: Event,
+    ) -> RunExecutionResult:
+        """Execute a scope-frozen child repair without touching parent evidence.
+
+        The repository owns the delicate boundary: it resolves scope-bound
+        upstream inputs, creates child-local reuse evidence, and verifies that
+        only the targeted unit remains executable.  This runner deliberately
+        retains the normal attempt/correction code path for that target and
+        for newly planned downstream work.
+        """
+
+        if run.id != repair_scope.child_run_id:
+            raise ValueError("exact repair scope is bound to a different child run")
+        if run.parent_run_id != repair_scope.parent_run_id:
+            raise ValueError("exact repair scope parent does not match child lineage")
+        return self.execute(
+            run,
+            adapter=adapter,
+            model=model,
+            profile=profile,
+            cancellation=cancellation,
+            repair_scope=repair_scope,
+        )
 
     def _execute_work_unit(
         self,
@@ -1006,7 +1081,18 @@ class DurableWorkUnitRunner:
         run: GenerationRun,
         stage: StageName,
         sealed_payloads: Mapping[StageName, StagePayload],
+        *,
+        repair_scope: WorkUnitRepairScope | None = None,
     ) -> dict[StageName, StagePayload]:
+        if repair_scope is not None:
+            # The target stage may depend on parent-run output that was sealed
+            # but never canonically installed after quarantine.  Only the
+            # repository can resolve that immutable boundary; later child
+            # stages resolve exclusively through child-local seals.
+            return self.repository.get_repair_stage_dependencies(
+                run.id,
+                stage,
+            )
         ordered = (StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS, StageName.STORYBOARD)
         dependencies: dict[StageName, StagePayload] = {}
         requested = set(run.requested_stages)
@@ -1019,6 +1105,69 @@ class DurableWorkUnitRunner:
             else:
                 dependencies[upstream] = self.repository.get_snapshot_stage_payload(run.id, upstream)
         return dependencies
+
+    def _get_stage_plan(
+        self,
+        run: GenerationRun,
+        stage: StageName,
+        *,
+        dependencies: Mapping[StageName, StagePayload],
+        repair_scope: WorkUnitRepairScope | None,
+    ) -> StagePlan:
+        """Obtain an immutable plan without giving repair callers authority.
+
+        A normal run asserts the dependency values it just resolved.  An exact
+        child repair delegates to the repository's scope-aware planner because
+        its initial dependency boundary may be a parent seal rather than a
+        canonical head.  The runner never gets to substitute either form.
+        """
+
+        if repair_scope is not None:
+            return self.repository.get_or_create_repair_stage_plan(
+                run.id,
+                stage,
+                dependencies=dict(dependencies),
+            )
+        return self.repository.get_or_create_stage_plan(
+            run.id,
+            stage,
+            dependencies=dict(dependencies),
+        )
+
+    def _materialize_reused_unit_candidates(
+        self,
+        run_id: str,
+        stage: StageName,
+        stage_plan: StagePlan,
+    ) -> dict[str, str]:
+        """Create child-local evidence only for scope-frozen reuse bindings.
+
+        The binding service verifies all source hashes and creates an immutable
+        child candidate with ``sourceArtifactId``.  We retain normal candidate
+        ownership for aggregate sealing; no caller is allowed to point an
+        aggregate directly at a parent candidate.
+        """
+
+        expected_unit_ids = {unit.unit_id for unit in stage_plan.work_units}
+        candidates: dict[str, str] = {}
+        for binding in self.repository.prepare_repair_stage_reuse(run_id, stage):
+            artifact = self.repository.materialize_fragment_reuse_binding(
+                run_id,
+                binding.id,
+            )
+            if (
+                artifact.run_id != run_id
+                or artifact.stage != stage
+                or artifact.kind != ArtifactKind.CANDIDATE
+                or artifact.work_unit_id not in expected_unit_ids
+            ):
+                raise ValueError(
+                    "repository materialized a reuse artifact outside the child stage plan"
+                )
+            if artifact.work_unit_id in candidates:
+                raise ValueError("repair scope has more than one reuse binding for a work unit")
+            candidates[artifact.work_unit_id] = artifact.id
+        return candidates
 
     def _existing_unit_candidates(
         self, run_id: str, stage: StageName, stage_plan: StagePlan

@@ -118,9 +118,11 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
 - For array-shaped assistant content, only typed `text` and `output_text`
   parts are eligible final output. Reasoning and unknown part types remain raw
   evidence and cannot enter correction or canonical content.
-- Exact work-unit repair is not implemented. A failed shard is fail-closed and
-  requires a rebuild from its stage; do not represent it as partial repair in
-  UI, tooling, or operations.
+- Exact work-unit repair is an immutable child execution defined by
+  [ADR 0015](adr/0015-exact-work-unit-repair.md). The server alone decides
+  eligibility, freezes the failed unit and reusable fragments, and re-plans
+  every downstream stage. The legacy stage-level repair endpoint remains only
+  for compatibility and must not be presented as exact repair.
 
 ## Verification order
 

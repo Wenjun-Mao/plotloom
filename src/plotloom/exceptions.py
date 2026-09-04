@@ -38,6 +38,14 @@ class InvalidTransitionError(PlotloomError):
     pass
 
 
+class RepairEligibilityError(InvalidTransitionError):
+    """A stable, server-owned reason an exact work-unit repair is refused."""
+
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        super().__init__(f"{code}: {message}")
+
+
 class ProjectBusyError(PlotloomError):
     """A destructive lifecycle transition has non-terminal project work."""
 

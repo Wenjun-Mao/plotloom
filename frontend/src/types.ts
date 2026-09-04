@@ -178,12 +178,21 @@ export interface ShotBeatLink {
 }
 
 export interface QuarantineItem {
+  /** Work-unit identity, never an attempt or an artifact id. */
   id: string;
   stage: ServerStageName;
   code: string;
   message: string;
-  rawOutput: string;
-  repairHint: string;
+  status?: "quarantined" | "outcome_unknown" | "failed" | "cancelled";
+  attempt?: RunProgressAttempt | null;
+  maxAttempts?: number;
+  sealed?: boolean;
+  repairEligible?: boolean;
+  repairReasonCode?: string | null;
+  /** @deprecated Legacy trace-only evidence; never populated from progress. */
+  rawOutput?: string;
+  /** @deprecated Legacy trace-only hint; exact repair accepts no client guidance. */
+  repairHint?: string;
 }
 
 export interface WorkspaceProject {
@@ -319,6 +328,7 @@ export interface PipelineRun {
   parentRunId: string | null;
   repairStage: ServerStageName | null;
   repairSource: RepairSource | null;
+  workUnitRepairScopeId: string | null;
   providerSnapshot: Record<string, unknown>;
   status: RunStatus;
   requestedStages: ServerStageName[];
@@ -332,6 +342,65 @@ export interface PipelineRun {
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
+}
+
+/**
+ * The polling projection deliberately excludes prompt text, provider response
+ * bodies, validation payloads, and artifact content. Those remain available
+ * only from the on-demand provenance endpoints.
+ */
+export interface RunProgressAttempt {
+  attemptId: string;
+  attemptNumber: number;
+  attemptKind: "primary" | "correction";
+  sourceAttemptId: string | null;
+  status: "running" | "succeeded" | "failed" | "cancelled";
+  outcomeCode: string | null;
+  outcomeUnknown: boolean;
+  startedAt: string | null;
+  finishedAt: string | null;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  durationMs: number | null;
+}
+
+export interface RunProgressWorkUnit {
+  workUnitId: string;
+  stage: ServerStageName;
+  sequence: number;
+  /** Frozen attempt budget: primary plus the profile's correction allowance. */
+  maxAttempts: number;
+  status: GenerationWorkUnitTrace["status"];
+  latestAttempt: RunProgressAttempt | null;
+  sealed: boolean;
+  repairEligible: boolean;
+  repairReasonCode: string | null;
+}
+
+export interface RunProgressStage {
+  stage: ServerStageName;
+  stagePlanId: string | null;
+  stagePlanHash: string | null;
+  sealed: boolean;
+  unitCount: number;
+  completedUnitCount: number;
+  quarantinedUnitCount: number;
+  repairEligibleUnitIds: string[];
+}
+
+export interface RunProgress {
+  runId: string;
+  status: RunStatus;
+  failureCode: string | null;
+  failedStage: ServerStageName | null;
+  stageProgress: RunProgressStage[];
+  workUnits: RunProgressWorkUnit[];
+  actions: {
+    canResume: boolean;
+    canCancel: boolean;
+    canRebuildStage: boolean;
+    repairEligible: boolean;
+  };
 }
 
 export interface GenerationAttempt {

@@ -1,9 +1,17 @@
 import { useState } from "react";
-import type { PipelineRun, RunExecutionTrace, ServerStageName, TraceEvent } from "../types";
+import type { PipelineRun, RunExecutionTrace, RunProgress, ServerStageName, TraceEvent } from "../types";
 import { stageLabels, summarizeWorkUnitStatuses, toggleContiguousStageRange } from "../model";
 import { Badge, Button, EmptyState, JsonPreview, PageHeader, Panel, Spinner } from "../components";
 
-export function TracePage({ run, trace, executionTrace, running, onRun, onResume, onCancel }: { run?: PipelineRun; trace: TraceEvent[]; executionTrace?: RunExecutionTrace; running: boolean; onRun: (stages: ServerStageName[]) => Promise<void>; onResume: () => Promise<void>; onCancel: () => Promise<void> }) {
+function progressElapsed(attempt: RunProgress["workUnits"][number]["latestAttempt"]): string {
+  if (!attempt) return "—";
+  if (attempt.durationMs != null) return `${attempt.durationMs}ms`;
+  if (!attempt.startedAt || !attempt.finishedAt) return attempt.status === "running" ? "运行中" : "—";
+  const elapsed = Date.parse(attempt.finishedAt) - Date.parse(attempt.startedAt);
+  return Number.isFinite(elapsed) && elapsed >= 0 ? `${elapsed}ms` : "—";
+}
+
+export function TracePage({ run, progress, trace, executionTrace, running, onRun, onResume, onCancel }: { run?: PipelineRun; progress?: RunProgress; trace: TraceEvent[]; executionTrace?: RunExecutionTrace; running: boolean; onRun: (stages: ServerStageName[]) => Promise<void>; onResume: () => Promise<void>; onCancel: () => Promise<void> }) {
   const [selectedStages, setSelectedStages] = useState<ServerStageName[]>(["story_bible", "story_graph", "scene_beats", "storyboard"]);
   const [selectedId, setSelectedId] = useState(trace.at(-1)?.id || "");
   const [promptTab, setPromptTab] = useState<"system" | "user" | "payload">("user");
@@ -17,6 +25,21 @@ export function TracePage({ run, trace, executionTrace, running, onRun, onResume
       <div className="run-state"><Badge tone={run?.status === "failed" ? "danger" : run?.status === "quarantined" ? "warning" : running ? "accent" : "neutral"}>{run?.status || "idle"}</Badge>{running && <Spinner label={currentStage ? `正在执行 ${stageLabels[currentStage]}` : "正在启动"} />}<code>{run?.id || "no active run"}</code></div>
       {run?.failureCode && <p className="event-detail">{run.failedStage ? `${stageLabels[run.failedStage]} · ` : ""}{run.failureCode}{run.error ? ` · ${run.error}` : ""}</p>}
     </Panel>
+    {progress && <Panel className="run-progress-panel">
+      <div className="section-title"><span>Live work-unit projection</span><strong>{progress.workUnits.length} units · {progress.status}</strong></div>
+      <p className="event-detail">轻量轮询投影不含 prompt、模型正文、验证 payload 或 artifact 内容。证据仅在下方按需加载。</p>
+      <div className="run-progress-units">
+        {progress.workUnits.map((unit) => <div key={unit.workUnitId}>
+          <strong>{stageLabels[unit.stage]} · #{unit.sequence}</strong>
+          <Badge tone={unit.status === "succeeded" ? "ok" : unit.status === "quarantined" || unit.status === "outcome_unknown" ? "warning" : unit.status === "failed" ? "danger" : "neutral"}>{unit.status}</Badge>
+          <small>Attempt {unit.latestAttempt ? `${unit.latestAttempt.attemptNumber}/${unit.maxAttempts}` : `—/${unit.maxAttempts}`} · {progressElapsed(unit.latestAttempt)} · token {unit.latestAttempt?.inputTokens ?? "—"}/{unit.latestAttempt?.outputTokens ?? "—"}</small>
+          {unit.latestAttempt?.outcomeCode && <code>{unit.latestAttempt.outcomeCode}</code>}
+          {unit.latestAttempt?.sourceAttemptId && <small>correction ← {unit.latestAttempt.sourceAttemptId}</small>}
+          {unit.repairEligible && <small>可前往隔离修复精确修复此 unit</small>}
+          {!unit.repairEligible && unit.repairReasonCode && <small>{unit.repairReasonCode}</small>}
+        </div>)}
+      </div>
+    </Panel>}
     {executionTrace?.storyGraphTopology && <Panel className="topology-trace">
       <div className="section-title"><span>Frozen topology</span><strong>story graph · sha256:{executionTrace.storyGraphTopology.topologyHash.slice(0, 12)}</strong></div>
       <p className="event-detail">Bound to generation plan {executionTrace.storyGraphTopology.generationPlanHash.slice(0, 12)} · {summarizeWorkUnitStatuses(executionTrace)} · {executionTrace.sealedAggregates.length} sealed aggregates</p>

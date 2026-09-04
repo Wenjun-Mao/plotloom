@@ -4,6 +4,7 @@ import type {
   MediaTask,
   ProjectResource,
   QuarantineItem,
+  RunProgress,
   RunTrace,
   SceneBeatPlan,
   ServerStageName,
@@ -64,6 +65,9 @@ export function hydrateWorkspaceProject(
 }
 
 export function quarantineItemsFromTrace(trace: RunTrace): QuarantineItem[] {
+  // Legacy runs have no work-unit progress projection. Keep this reader only
+  // for historical trace display; M1-R actions must come from server-issued
+  // repair eligibility in `quarantineItemsFromProgress` below.
   if (trace.run.status !== "quarantined") return [];
   const failed = [...trace.attempts].reverse().find((attempt) => attempt.status === "failed");
   if (!failed) return [];
@@ -94,6 +98,39 @@ export function quarantineItemsFromTrace(trace: RunTrace): QuarantineItem[] {
     rawOutput: rawResponse,
     repairHint: "检查验证证据，并为修复运行提供最小、明确的纠正指令。",
   }];
+}
+
+/**
+ * Turns the intentionally small server progress projection into a workbench
+ * list. Eligibility is copied verbatim from the server: the browser never
+ * infers it from trace evidence, output text, or a stale local snapshot.
+ */
+export function quarantineItemsFromProgress(progress: RunProgress | undefined): QuarantineItem[] {
+  if (!progress) return [];
+  return progress.workUnits
+    .filter((unit): unit is typeof unit & { status: "quarantined" | "outcome_unknown" } => (
+      unit.status === "quarantined" || unit.status === "outcome_unknown"
+    ))
+    .sort((left, right) => left.stage.localeCompare(right.stage) || left.sequence - right.sequence)
+    .map((unit) => {
+      const code = unit.repairReasonCode
+        || unit.latestAttempt?.outcomeCode
+        || (unit.status === "outcome_unknown" ? "outcome_unknown" : progress.failureCode || "work_unit.quarantined");
+      return {
+        id: unit.workUnitId,
+        stage: unit.stage,
+        status: unit.status,
+        code,
+        message: unit.status === "outcome_unknown"
+          ? "本次请求是否到达模型端未知；为避免重复生成，不能自动或精确重放。"
+          : "该 work unit 已隔离；规范内容尚未安装。",
+        attempt: unit.latestAttempt,
+        maxAttempts: unit.maxAttempts,
+        sealed: unit.sealed,
+        repairEligible: unit.repairEligible,
+        repairReasonCode: unit.repairReasonCode,
+      };
+    });
 }
 
 export function newestMediaTasksByShot(tasks: MediaTask[]): Record<string, MediaTask> {

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MediaKind, MediaTask, PipelineRun, ProjectListItem, ProviderSettings, QuarantineItem, RunExecutionTrace, SceneBeatPlan, ServerStageName, Shot, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, WorkspaceProject } from "./types";
+import type { MediaKind, MediaTask, PipelineRun, ProjectListItem, ProviderSettings, QuarantineItem, RunExecutionTrace, RunProgress, SceneBeatPlan, ServerStageName, Shot, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, WorkspaceProject } from "./types";
 import { plotloomApi, ApiError } from "./api";
 import { providerSessionKeys } from "./session-key";
 import { defaultProviderSettings, demoProject, demoRun, demoTrace, emptyStageContent } from "./demo";
 import { discardDraft, discardDraftRecord, findProjectDrafts, findRevisionConflict, getDraft, hasDraft, putDraft, type DraftRecord, type DraftScope } from "./draft-registry";
 import { markDownstreamStale, mergeProjectResponse, stageLabels, traceEvents } from "./model";
 import { initialStagesThrough, projectCreationBody, projectCreationRequest, workspaceWithStageDraft } from "./project-creation";
-import { editorRevisionKey, hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromTrace } from "./workspace-state";
+import { editorRevisionKey, hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromProgress } from "./workspace-state";
 import { Badge, Button, ErrorNotice, Spinner } from "./components";
 import { BriefPage } from "./pages/BriefPage";
 import { StoryBiblePage } from "./pages/StoryBiblePage";
@@ -140,6 +140,7 @@ export default function App() {
   const [projectSaving, setProjectSaving] = useState(false);
   const [error, setError] = useState("");
   const [run, setRun] = useState<PipelineRun | undefined>();
+  const [runProgress, setRunProgress] = useState<RunProgress | undefined>();
   const [trace, setTrace] = useState<TraceEvent[]>([]);
   const [mediaTasks, setMediaTasks] = useState<Record<string, MediaTask>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -177,6 +178,10 @@ export default function App() {
   const duplicateKeyByRequest = useRef(new Map<string, string>());
   const directoryEpoch = useRef(0);
   const profilesLoaded = useRef(false);
+  const repairKeyByUnit = useRef(new Map<string, string>());
+  const traceEvidenceEpoch = useRef(0);
+  const loadedTraceEvidenceFor = useRef<string | undefined>(undefined);
+  const loadingTraceEvidenceFor = useRef<string | undefined>(undefined);
 
   type WorkspaceOperation = { epoch: number; projectId: string; stage: PageId };
   const captureWorkspaceOperation = (): WorkspaceOperation => ({
@@ -231,20 +236,22 @@ export default function App() {
         ? runResponse.runs.find((candidate) => candidate.id === requestedRunId)
         : runResponse.runs[0];
       const requestedRunMissing = Boolean(requestedRunId && !latestRun);
-      const latestTrace = latestRun ? await plotloomApi.getTrace(latestRun.id) : undefined;
-      // The execution shard is additive. A rolling upgrade must keep the
-      // compact trace usable even if this endpoint is temporarily unavailable.
-      const latestExecutionTrace = latestRun
-        ? await plotloomApi.getRunExecutionTrace(latestRun.id).catch(() => undefined)
-        : undefined;
+      // Project load and polling use the deliberately small progress
+      // projection. Provenance evidence is fetched only after the user opens
+      // the Trace page; it must not travel on the high-frequency path.
+      const latestProgress = latestRun ? await plotloomApi.getRunProgress(latestRun.id) : undefined;
       if (!isCurrent()) return;
-      const quarantines = latestTrace ? quarantineItemsFromTrace(latestTrace) : [];
+      const quarantines = quarantineItemsFromProgress(latestProgress);
       setProject((current) => ({ ...hydrateWorkspaceProject(current, incoming, stageResponse.stages), quarantines }));
       canonicalRefreshRequired.current.delete(projectId);
       setStageHeads(headsByStage(stageResponse.stages));
       setRun(latestRun);
-      setTrace(latestTrace ? traceEvents(latestTrace, latestExecutionTrace) : []);
-      setExecutionTrace(latestExecutionTrace);
+      setRunProgress(latestProgress);
+      traceEvidenceEpoch.current += 1;
+      loadedTraceEvidenceFor.current = undefined;
+      loadingTraceEvidenceFor.current = undefined;
+      setTrace([]);
+      setExecutionTrace(undefined);
       setMediaTasks(newestMediaTasksByShot(mediaResponse.tasks));
       setConnection("connected");
       setOnboarding(false);
@@ -270,7 +277,7 @@ export default function App() {
       if (!isCurrent()) return;
       const staleDraft = findProjectDrafts(projectId)[0];
       if (staleDraft) setUnsafeDraft({ record: staleDraft, reason: "unavailable" });
-      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setTrace([]); setMediaTasks({});
+      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setTrace([]); setMediaTasks({});
       setConnection("error");
       setOnboarding(false);
       setError(`无法加载项目 ${projectId}：${messageFrom(loadError)}。项目未加载；没有回退到示例。`);
@@ -285,6 +292,38 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadProject]);
   useEffect(() => { void refreshProfiles().catch(() => undefined); }, [refreshProfiles]);
+  const loadTraceEvidence = useCallback(async (runId: string, projectId: string) => {
+    if (loadedTraceEvidenceFor.current === runId || loadingTraceEvidenceFor.current === runId) return;
+    loadingTraceEvidenceFor.current = runId;
+    const evidenceEpoch = ++traceEvidenceEpoch.current;
+    const workspaceEpoch = loadEpoch.current;
+    try {
+      const [runTrace, nextExecutionTrace] = await Promise.all([
+        plotloomApi.getTrace(runId),
+        plotloomApi.getRunExecutionTrace(runId).catch(() => undefined),
+      ]);
+      // Evidence can be large. A delayed response must never repaint another
+      // run after URL/back-forward navigation changed the inspector target.
+      const routeChanged = visibleRoute.current.project !== projectId
+        || visibleRoute.current.stage !== "trace"
+        || (visibleRoute.current.run !== "" && visibleRoute.current.run !== runId);
+      if (evidenceEpoch !== traceEvidenceEpoch.current || workspaceEpoch !== loadEpoch.current || routeChanged) return;
+      setTrace(traceEvents(runTrace, nextExecutionTrace));
+      setExecutionTrace(nextExecutionTrace);
+      loadedTraceEvidenceFor.current = runId;
+    } catch (traceError) {
+      const routeChanged = visibleRoute.current.project !== projectId
+        || visibleRoute.current.stage !== "trace"
+        || (visibleRoute.current.run !== "" && visibleRoute.current.run !== runId);
+      if (evidenceEpoch === traceEvidenceEpoch.current && workspaceEpoch === loadEpoch.current && !routeChanged) setError(`无法加载运行证据：${messageFrom(traceError)}`);
+    } finally {
+      if (loadingTraceEvidenceFor.current === runId) loadingTraceEvidenceFor.current = undefined;
+    }
+  }, []);
+  useEffect(() => {
+    if (activePage !== "trace" || !run?.id) return;
+    void loadTraceEvidence(run.id, run.projectId);
+  }, [activePage, loadTraceEvidence, run?.id, run?.projectId]);
   useEffect(() => {
     const warnBeforeUnload = (event: BeforeUnloadEvent) => {
       if (!currentDraft.current) return;
@@ -382,6 +421,7 @@ export default function App() {
     setProject(hydrated);
     setStageHeads(headsByStage(created.stages));
     setRun(undefined);
+    setRunProgress(undefined);
     setTrace([]);
     setMediaTasks({});
     setConnection("connected");
@@ -486,7 +526,7 @@ export default function App() {
     setActivePage(next.stage); setRouteEntity(next.entity); setDraftRecovery(undefined); setRestoredDraft(undefined); setDraftConflict(undefined); setUnsafeDraft(undefined);
     if (!next.project && next.project !== (project.id || "")) {
       localWorkspaceOwner.current = newClientDraftOwner();
-      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setTrace([]); setMediaTasks({}); setConnection("blank"); setOnboarding(true);
+      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setTrace([]); setMediaTasks({}); setConnection("blank"); setOnboarding(true);
     } else if (next.project) {
       setOnboarding(false);
       if (next.project !== project.id || next.run !== (run?.id || "") || canonicalRefreshRequired.current.has(next.project)) void loadProject(next.project, epoch);
@@ -590,15 +630,18 @@ export default function App() {
     try {
       let keepPolling = true;
       while (keepPolling) {
-        const [nextRun, nextTrace] = await Promise.all([plotloomApi.getRun(runId), plotloomApi.getTrace(runId)]);
-        const nextExecutionTrace = await plotloomApi.getRunExecutionTrace(runId).catch(() => undefined);
+        const nextProgress = await plotloomApi.getRunProgress(runId);
         if (!isWorkspaceOperationCurrent(pollOperation)) return;
-        setRun(nextRun); setTrace(traceEvents(nextTrace, nextExecutionTrace)); setExecutionTrace(nextExecutionTrace);
-        keepPolling = nextRun.status === "queued" || nextRun.status === "running" || nextRun.status === "cancel_requested";
+        setRunProgress(nextProgress);
+        setRun((current) => current?.id === runId ? {
+          ...current,
+          status: nextProgress.status,
+          failureCode: nextProgress.failureCode,
+          failedStage: nextProgress.failedStage,
+        } : current);
+        setProject((current) => ({ ...current, quarantines: quarantineItemsFromProgress(nextProgress) }));
+        keepPolling = nextProgress.status === "queued" || nextProgress.status === "running" || nextProgress.status === "cancel_requested";
         if (keepPolling) await new Promise((resolve) => window.setTimeout(resolve, 1400));
-        else if (nextRun.status === "quarantined") {
-          setProject((current) => ({ ...current, quarantines: quarantineItemsFromTrace(nextTrace) }));
-        }
       }
       if (projectIdToRefresh && isWorkspaceOperationCurrent(pollOperation)) await loadProject(projectIdToRefresh, pollOperation.epoch);
     } catch (pollError) {
@@ -620,7 +663,11 @@ export default function App() {
     setRestoredDraft(undefined);
     setDraftConflict(undefined);
     setRun(nextRun);
+    setRunProgress(undefined);
     if (resetTrace) {
+      traceEvidenceEpoch.current += 1;
+      loadedTraceEvidenceFor.current = undefined;
+      loadingTraceEvidenceFor.current = undefined;
       setTrace([]);
       setExecutionTrace(undefined);
     }
@@ -664,7 +711,12 @@ export default function App() {
     const operation = captureWorkspaceOperation();
     try {
       const cancelled = await plotloomApi.cancelRun(run.id);
-      if (isWorkspaceOperationCurrent(operation)) setRun(cancelled);
+      if (!isWorkspaceOperationCurrent(operation)) return;
+      setRun(cancelled);
+      // A cancellation can race an in-flight provider attempt. Re-enter the
+      // same lightweight observer so the inspector eventually reflects the
+      // durable terminal outcome without fetching trace evidence.
+      void pollRun(cancelled.id, cancelled.projectId).catch((pollError) => setError(messageFrom(pollError)));
     } catch (cancelError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(cancelError)); }
   };
 
@@ -681,18 +733,27 @@ export default function App() {
     } catch (resumeError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(resumeError)); }
   };
 
-  const repair = async (item: QuarantineItem, instruction: string) => {
-    if (!run) { setError("没有可修复的运行记录。"); return; }
+  const repair = async (item: QuarantineItem) => {
+    if (!run || !item.repairEligible) { setError("这个 work unit 当前不具备精确修复资格。"); return; }
     const operation = captureWorkspaceOperation();
     setBusy(true);
     try {
-      const saved = await prepareGenerationProfile();
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      const next = await plotloomApi.repairRun(
-        run.id, item.stage, instruction, saved.profileId,
-        saved.configuration.textAuthMode === "bearer",
+      // Exact repair is bound to its parent run. It must not save the visible
+      // profile form or switch models; only the matching profile-scoped
+      // session key can accompany this request.
+      const frozenProfileId = String(run.providerSnapshot.profileId || "default");
+      const usesBearer = run.providerSnapshot.textAuthMode !== "none";
+      const repairIdentity = `${run.id}:${item.id}`;
+      let idempotencyKey = repairKeyByUnit.current.get(repairIdentity);
+      if (!idempotencyKey) {
+        idempotencyKey = `work-unit-repair-${crypto.randomUUID()}`;
+        repairKeyByUnit.current.set(repairIdentity, idempotencyKey);
+      }
+      const next = await plotloomApi.repairWorkUnit(
+        run.id, item.id, frozenProfileId, idempotencyKey, usesBearer,
       );
       if (!isWorkspaceOperationCurrent(operation)) return;
+      repairKeyByUnit.current.delete(repairIdentity);
       showRunTrace(next);
     }
     catch (repairError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(repairError)); }
@@ -852,7 +913,7 @@ export default function App() {
     const nextRoute = { project: "", stage: route.stage, entity: "", run: "" };
     invalidateWorkspaceNavigation(nextRoute);
     localWorkspaceOwner.current = newClientDraftOwner();
-    setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setTrace([]); setMediaTasks({}); setConnection("blank");
+    setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setTrace([]); setMediaTasks({}); setConnection("blank");
     currentDraft.current = undefined; setDraftRecovery(undefined); setRestoredDraft(undefined); setDraftConflict(undefined); setUnsafeDraft(undefined); setActivePage(route.stage); setRouteEntity(""); setOnboarding(false);
     history.pushState(null, "", `${location.pathname}?stage=${encodeURIComponent(route.stage)}`);
     setDirectoryOpen(false);
@@ -863,7 +924,7 @@ export default function App() {
     const nextRoute = { project: "", stage: route.stage, entity: "", run: "" };
     invalidateWorkspaceNavigation(nextRoute);
     localWorkspaceOwner.current = newClientDraftOwner();
-    setProject({ ...demoProject, clientDraftOwner: localWorkspaceOwner.current }); setStageHeads({}); setRun(demoRun); setTrace(demoTrace); setConnection("demo");
+    setProject({ ...demoProject, clientDraftOwner: localWorkspaceOwner.current }); setStageHeads({}); setRun(demoRun); setRunProgress(undefined); setTrace(demoTrace); setConnection("demo");
     currentDraft.current = undefined; setDraftRecovery(undefined); setRestoredDraft(undefined); setDraftConflict(undefined); setUnsafeDraft(undefined); setActivePage(route.stage); setRouteEntity(""); setOnboarding(false);
     history.pushState(null, "", `${location.pathname}?stage=${encodeURIComponent(route.stage)}`);
     setDirectoryOpen(false);
@@ -957,12 +1018,12 @@ export default function App() {
       case "graph": return <GraphPage key={`${editorRevisionKey(project, "story_graph")}:${editorNonce}`} value={recoveredValue("story_graph", project.storyGraph)} stale={project.staleStages.includes("story_graph")} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: StoryGraph) => commitStage("story_graph", value)} onDraftChange={(value) => rememberDraft("story_graph", value)} />;
       case "beats": return <SceneBeatsPage key={`${editorRevisionKey(project, "scene_beats")}:${editorNonce}`} value={recoveredValue("scene_beats", project.sceneBeats)} stale={project.staleStages.includes("scene_beats")} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: SceneBeatPlan) => commitStage("scene_beats", value)} onDraftChange={(value) => rememberDraft("scene_beats", value)} />;
       case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${editorNonce}`} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: Storyboard) => commitStage("storyboard", value)} onMedia={startMedia} onDraftChange={(value) => rememberDraft("storyboard", value)} />;
-      case "trace": return <TracePage run={run} trace={trace} executionTrace={executionTrace} running={Boolean(running)} onRun={startRun} onResume={resumeRun} onCancel={cancelRun} />;
-      case "quarantine": return <QuarantinePage items={project.quarantines} repairing={busy} onRepair={repair} />;
+      case "trace": return <TracePage run={run} progress={runProgress} trace={trace} executionTrace={executionTrace} running={Boolean(running)} onRun={startRun} onResume={resumeRun} onCancel={cancelRun} />;
+      case "quarantine": return <QuarantinePage items={project.quarantines} repairing={busy} onRepair={repair} onRebuildStage={rebuild} />;
     }
   // Commit callbacks intentionally read the current revision at invocation time.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePage, project, busy, projectSaving, run, trace, executionTrace, mediaTasks, running, restoredDraft, editorNonce, projectReadOnly, rememberDraft, routeEntity, selectRouteEntity]);
+  }, [activePage, project, busy, projectSaving, run, runProgress, trace, executionTrace, mediaTasks, running, restoredDraft, editorNonce, projectReadOnly, rememberDraft, routeEntity, selectRouteEntity]);
 
   if (onboarding) return <>
     <WelcomeOnboarding onBlank={startBlankProject} onSample={openSampleProject} onDirectory={openDirectory} />

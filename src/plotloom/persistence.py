@@ -39,6 +39,9 @@ from .domain import (
     AttemptStatus,
     CanonicalSnapshot,
     EntityRevision,
+    FragmentReuseBinding,
+    FragmentReuseKind,
+    FrozenFragmentReuseSource,
     GenerationAttempt,
     GenerationAttemptKind,
     GenerationPlanTrace,
@@ -58,6 +61,11 @@ from .domain import (
     LatestRunSummary,
     ProviderSettings,
     RepairSource,
+    RunProgress,
+    RunProgressActions,
+    RunProgressAttempt,
+    RunProgressStage,
+    RunProgressUnit,
     RunKind,
     RunExecutionTrace,
     RunStatus,
@@ -74,6 +82,9 @@ from .domain import (
     SealedStageAggregateTrace,
     StagePlanTrace,
     WorkUnitFailureDisposition,
+    WorkUnitRepairEligibility,
+    WorkUnitRepairRunCreation,
+    WorkUnitRepairScope,
     WorkUnitStatus,
     downstream_stages,
     stage_payload_model,
@@ -125,6 +136,7 @@ from .exceptions import (
     LifecycleContentionError,
     NotFoundError,
     ProjectBusyError,
+    RepairEligibilityError,
     RevisionConflictError,
     StagePrerequisiteError,
 )
@@ -223,6 +235,7 @@ class GenerationRunRow(Base):
     )
     repair_stage: Mapped[str | None] = mapped_column(String(32), nullable=True)
     repair_source: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    work_unit_repair_scope_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     provider_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     requested_stages: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
@@ -383,6 +396,80 @@ class SealedStageAggregateRow(Base):
     manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     manifest: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class WorkUnitRepairScopeRow(Base):
+    """Immutable exact-repair boundary, separate from legacy stage repair."""
+
+    __tablename__ = "v2_generation_work_unit_repair_scopes"
+
+    child_run_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), primary_key=True
+    )
+    parent_run_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_runs.id", ondelete="RESTRICT"), nullable=False, index=True
+    )
+    target_work_unit_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_work_units.id", ondelete="RESTRICT"),
+        nullable=False,
+        unique=True,
+    )
+    stage: Mapped[str] = mapped_column(String(32), nullable=False)
+    scope_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    scope: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class FragmentReuseBindingRow(Base):
+    """A child-owned, audited mapping to one immutable parent candidate."""
+
+    __tablename__ = "v2_generation_fragment_reuse_bindings"
+    __table_args__ = (UniqueConstraint("child_work_unit_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    child_run_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    child_stage_plan_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_stage_plans.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    child_work_unit_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_work_units.id", ondelete="CASCADE"), nullable=False
+    )
+    stage: Mapped[str] = mapped_column(String(32), nullable=False)
+    kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    source_run_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_runs.id", ondelete="RESTRICT"), nullable=False
+    )
+    source_work_unit_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_work_units.id", ondelete="RESTRICT"), nullable=False
+    )
+    source_stage_plan_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_stage_plans.id", ondelete="RESTRICT"), nullable=False
+    )
+    source_candidate_artifact_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_artifacts.id", ondelete="RESTRICT"), nullable=False
+    )
+    binding_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    binding: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class WorkUnitRepairIdempotencyRow(Base):
+    __tablename__ = "v2_generation_work_unit_repair_idempotency"
+
+    idempotency_key: Mapped[str] = mapped_column(String(255), primary_key=True)
+    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    parent_run_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_runs.id", ondelete="RESTRICT"), nullable=False
+    )
+    target_work_unit_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_work_units.id", ondelete="RESTRICT"), nullable=False
+    )
+    child_run_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
@@ -679,6 +766,7 @@ class SQLiteRepository:
             parent_run_id=row.parent_run_id,
             repair_stage=StageName(row.repair_stage) if row.repair_stage else None,
             repair_source=RepairSource.model_validate(row.repair_source) if row.repair_source else None,
+            work_unit_repair_scope_id=row.work_unit_repair_scope_id,
             provider_snapshot=dict(row.provider_snapshot),
             requested_stages=[StageName(stage) for stage in row.requested_stages],
             status=RunStatus(row.status),
@@ -778,6 +866,38 @@ class SQLiteRepository:
             payload=dict(row.payload),
             created_at=_stored_utc(row.created_at),
         )
+
+    @staticmethod
+    def _repair_scope(row: WorkUnitRepairScopeRow) -> WorkUnitRepairScope:
+        scope = WorkUnitRepairScope.model_validate(row.scope)
+        if (
+            scope.child_run_id != row.child_run_id
+            or scope.scope_hash != row.scope_hash
+            or stable_hash(SQLiteRepository._scope_hash_payload(row.scope)) != row.scope_hash
+        ):
+            raise InvalidTransitionError("stored exact repair scope identity is inconsistent")
+        return scope
+
+    @staticmethod
+    def _fragment_reuse_binding(row: FragmentReuseBindingRow) -> FragmentReuseBinding:
+        binding = FragmentReuseBinding.model_validate(row.binding)
+        if (
+            binding.id != row.id
+            or binding.child_run_id != row.child_run_id
+            or binding.child_stage_plan_id != row.child_stage_plan_id
+            or binding.child_work_unit_id != row.child_work_unit_id
+            or binding.binding_hash != row.binding_hash
+            or stable_hash(
+                {
+                    key: value
+                    for key, value in row.binding.items()
+                    if key not in {"id", "bindingHash"}
+                }
+            )
+            != row.binding_hash
+        ):
+            raise InvalidTransitionError("stored fragment reuse binding identity is inconsistent")
+        return binding
 
     @staticmethod
     def _text_provider_profile(row: TextProviderProfileRow) -> TextProviderProfile:
@@ -1635,6 +1755,7 @@ class SQLiteRepository:
                         if repair_source
                         else None
                     ),
+                    work_unit_repair_scope_id=None,
                     provider_snapshot=run.provider_snapshot,
                     requested_stages=[stage.value for stage in ordered_stages],
                     status=run.status.value,
@@ -1807,6 +1928,173 @@ class SQLiteRepository:
             dependencies[dependency] = stage_payload_model(dependency).model_validate(revision.payload)
         return dependencies
 
+    def _repair_scope_row_in_session(
+        self,
+        session: Session,
+        child: GenerationRunRow,
+    ) -> WorkUnitRepairScopeRow:
+        if (
+            RunKind(child.kind) != RunKind.REPAIR
+            or not child.work_unit_repair_scope_id
+            or child.work_unit_repair_scope_id != child.id
+        ):
+            raise InvalidTransitionError("run is not an exact work-unit repair")
+        row = session.get(WorkUnitRepairScopeRow, child.id)
+        if row is None:
+            raise InvalidTransitionError("exact repair run has no immutable repair scope")
+        if row.parent_run_id != child.parent_run_id or row.stage != child.repair_stage:
+            raise InvalidTransitionError("exact repair scope does not match its child run")
+        self._repair_scope(row)
+        return row
+
+    def _validate_repair_scope_in_session(
+        self,
+        session: Session,
+        child: GenerationRunRow,
+        *,
+        require_source_current: bool,
+    ) -> WorkUnitRepairScope:
+        """Revalidate frozen target, profile, topology and rejection evidence."""
+
+        scope = self._repair_scope(self._repair_scope_row_in_session(session, child))
+        source = self._run_row(session, scope.parent_run_id)
+        source_plan_row = session.get(GenerationPlanRow, source.id)
+        source_stage_plan = session.get(StagePlanRow, scope.source_stage_plan_id)
+        target = session.get(GenerationWorkUnitRow, scope.target_work_unit_id)
+        if (
+            source_plan_row is None
+            or source_stage_plan is None
+            or target is None
+            or RunStatus(source.status) != RunStatus.QUARANTINED
+            or source_plan_row.plan_hash != scope.source_generation_plan_hash
+            or GenerationPlan.model_validate(source_plan_row.plan).provider_profile_hash
+            != scope.source_provider_profile_hash
+            or source_stage_plan.run_id != source.id
+            or source_stage_plan.stage_plan_hash != scope.source_stage_plan_hash
+            or target.run_id != source.id
+            or target.stage_plan_id != source_stage_plan.id
+            or target.stage != scope.stage.value
+            or target.selector != scope.target_selector
+            or target.dependency_hash != scope.target_dependency_hash
+            or target.unit_dependency_hash != scope.target_unit_dependency_hash
+            or target.input_hash != scope.target_input_hash
+            or CanonicalSnapshot.model_validate(source.canonical_snapshot).snapshot_hash
+            != scope.source_canonical_snapshot_hash
+            or child.provider_snapshot != source.provider_snapshot
+            or child.canonical_snapshot != source.canonical_snapshot
+            or child.instructions != source.instructions
+        ):
+            raise RepairEligibilityError("repair.scope_hash_mismatch", "exact repair scope no longer matches frozen run contract")
+        if self._work_unit_is_sealed_in_session(session, target):
+            raise RepairEligibilityError("repair.target_sealed", "exact repair target was sealed in its source run")
+        if WorkUnitStatus(target.status) == WorkUnitStatus.OUTCOME_UNKNOWN:
+            raise RepairEligibilityError("repair.target_outcome_unknown", "exact repair target has ambiguous provider outcome")
+        if WorkUnitStatus(target.status) != WorkUnitStatus.QUARANTINED:
+            raise RepairEligibilityError(
+                "repair.target_not_quarantined", "exact repair target is no longer quarantined"
+            )
+        source_topology = session.get(StoryGraphTopologyRow, source.id)
+        if (
+            (source_topology.topology_hash if source_topology is not None else None)
+            != scope.source_story_graph_topology_hash
+        ):
+            raise RepairEligibilityError("repair.scope_hash_mismatch", "exact repair topology binding changed")
+        rejected = self._latest_rejected_evidence_in_session(session, source=source, unit=target)
+        if (
+            rejected is None
+            or rejected[0].id != scope.failed_attempt_id
+            or rejected[1].id != scope.response_artifact_id
+            or rejected[2].id != scope.validation_artifact_id
+        ):
+            raise RepairEligibilityError("repair.parent_evidence_invalid", "exact repair rejection evidence changed")
+        if require_source_current:
+            if (
+                ProjectLifecycleStatus(self._project_row(session, source.project_id).lifecycle_status)
+                != ProjectLifecycleStatus.ACTIVE
+            ):
+                raise RepairEligibilityError("repair.project_archived", "archived projects cannot execute exact repairs")
+            if not self._source_snapshot_is_current_in_session(session, source):
+                raise RepairEligibilityError("repair.snapshot_stale", "repair source inputs changed after quarantine")
+        return scope
+
+    def _repair_stage_dependencies_in_session(
+        self,
+        session: Session,
+        child: GenerationRunRow,
+        stage: StageName,
+    ) -> dict[StageName, StagePayload]:
+        """Resolve exact repair dependencies without accepting caller JSON.
+
+        Before (and including) the repaired stage, uninstalled parent seals
+        are the only permissible source for requested upstream stages.  After
+        it, every requested upstream stage must be a newly child-owned seal,
+        which makes downstream regeneration dependency-correct by construction.
+        """
+
+        scope = self._validate_repair_scope_in_session(
+            session, child, require_source_current=True
+        )
+        source = self._run_row(session, scope.parent_run_id)
+        if not self._source_snapshot_is_current_in_session(session, source):
+            raise RepairEligibilityError(
+                "repair.snapshot_stale", "repair source inputs changed after quarantine"
+            )
+        requested = {StageName(value) for value in child.requested_stages}
+        if stage not in requested:
+            raise InvalidTransitionError(f"{stage.value} is not requested by this repair run")
+        target_index = STAGE_ORDER.index(scope.stage)
+        dependencies: dict[StageName, StagePayload] = {}
+        snapshot = CanonicalSnapshot.model_validate(child.canonical_snapshot)
+        for dependency in upstream_stages(stage):
+            if dependency not in requested:
+                head = snapshot.stage_heads[dependency]
+                if head.status != StageStatus.READY or head.entity_revision_id is None:
+                    raise StagePrerequisiteError(stage, dependency, head.status.value)
+                revision = session.get(EntityRevisionRow, head.entity_revision_id)
+                if revision is None:
+                    raise NotFoundError(f"snapshot entity revision not found: {head.entity_revision_id}")
+                dependencies[dependency] = stage_payload_model(dependency).model_validate(revision.payload)
+                continue
+            child_plan = self._stage_plan_row(session, child.id, dependency)
+            if child_plan is not None and session.scalar(
+                select(SealedStageAggregateRow.id).where(
+                    SealedStageAggregateRow.stage_plan_id == child_plan.id
+                )
+            ) is not None:
+                dependencies[dependency] = self._sealed_payload_in_session(session, child.id, dependency)
+                continue
+            if STAGE_ORDER.index(stage) > target_index:
+                raise InvalidTransitionError(
+                    f"cannot plan downstream repair stage {stage.value} before child {dependency.value} is sealed"
+                )
+            parent_plan = self._stage_plan_row(session, source.id, dependency)
+            if parent_plan is None:
+                raise RepairEligibilityError(
+                    "repair.parent_evidence_invalid",
+                    f"repair source has no sealed {dependency.value} StagePlan",
+                )
+            aggregate = session.scalar(
+                select(SealedStageAggregateRow).where(
+                    SealedStageAggregateRow.stage_plan_id == parent_plan.id
+                )
+            )
+            if aggregate is None:
+                raise RepairEligibilityError(
+                    "repair.parent_evidence_invalid",
+                    f"repair source {dependency.value} aggregate is not sealed",
+                )
+            dependencies[dependency] = stage_payload_model(dependency).model_validate(aggregate.payload)
+        return dependencies
+
+    def get_repair_stage_dependencies(
+        self,
+        child_run_id: str,
+        stage: StageName,
+    ) -> dict[StageName, StagePayload]:
+        with self._read() as session:
+            child = self._run_row(session, child_run_id)
+            return self._repair_stage_dependencies_in_session(session, child, stage)
+
     def get_or_create_stage_plan(
         self,
         run_id: str,
@@ -1847,7 +2135,11 @@ class SQLiteRepository:
                     raise InvalidTransitionError(
                         "Story Graph topology does not match the frozen GenerationPlan"
                     )
-            expected = self._expected_stage_dependencies_in_session(session, run, stage)
+            expected = (
+                self._repair_stage_dependencies_in_session(session, run, stage)
+                if run.work_unit_repair_scope_id is not None
+                else self._expected_stage_dependencies_in_session(session, run, stage)
+            )
             if dependencies is not None:
                 if set(dependencies) != set(expected) or any(
                     stable_hash(dependencies[name]) != stable_hash(expected[name]) for name in expected
@@ -1900,6 +2192,19 @@ class SQLiteRepository:
                 )
             return proposed
 
+    def get_or_create_repair_stage_plan(
+        self,
+        child_run_id: str,
+        stage: StageName,
+        *,
+        dependencies: dict[StageName, StagePayload] | None = None,
+    ) -> StagePlan:
+        """Create a child-local plan against repository-resolved repair inputs."""
+
+        with self._read() as session:
+            self._repair_scope_row_in_session(session, self._run_row(session, child_run_id))
+        return self.get_or_create_stage_plan(child_run_id, stage, dependencies=dependencies)
+
     def list_stage_plans(self, run_id: str) -> list[StagePlan]:
         with self._read() as session:
             self._run_row(session, run_id)
@@ -1919,6 +2224,312 @@ class SQLiteRepository:
                 .order_by(GenerationWorkUnitRow.stage, GenerationWorkUnitRow.sequence)
             ).all()
             return [self._work_unit_trace(row) for row in rows]
+
+    def get_fragment_reuse_bindings(self, child_run_id: str) -> list[FragmentReuseBinding]:
+        with self._read() as session:
+            self._repair_scope_row_in_session(session, self._run_row(session, child_run_id))
+            rows = session.scalars(
+                select(FragmentReuseBindingRow)
+                .where(FragmentReuseBindingRow.child_run_id == child_run_id)
+                .order_by(FragmentReuseBindingRow.stage, FragmentReuseBindingRow.created_at, FragmentReuseBindingRow.id)
+            ).all()
+            return [self._fragment_reuse_binding(row) for row in rows]
+
+    def _validate_frozen_reuse_source_in_session(
+        self,
+        session: Session,
+        *,
+        scope: WorkUnitRepairScope,
+        frozen: FrozenFragmentReuseSource,
+    ) -> tuple[GenerationWorkUnitRow, ArtifactRow, GenerationAttemptRow, list[ArtifactRow]]:
+        source = self._run_row(session, scope.parent_run_id)
+        if not self._source_snapshot_is_current_in_session(session, source):
+            raise RepairEligibilityError("repair.snapshot_stale", "repair source inputs changed after quarantine")
+        unit = session.get(GenerationWorkUnitRow, frozen.source_work_unit_id)
+        plan = session.get(StagePlanRow, frozen.source_stage_plan_id)
+        if (
+            unit is None
+            or plan is None
+            or unit.run_id != source.id
+            or unit.stage_plan_id != plan.id
+            or unit.stage != frozen.stage.value
+            or plan.run_id != source.id
+            or plan.stage_plan_hash != frozen.source_stage_plan_hash
+            or unit.generation_plan_hash != frozen.source_generation_plan_hash
+            or unit.selector != frozen.source_selector
+            or unit.dependency_hash != frozen.source_dependency_hash
+            or unit.unit_dependency_hash != frozen.source_unit_dependency_hash
+            or unit.input_hash != frozen.source_input_hash
+        ):
+            raise RepairEligibilityError("repair.parent_evidence_invalid", "frozen reusable source no longer matches parent evidence")
+        candidate, attempt, evidence = self._required_unit_evidence_in_session(
+            session,
+            run_id=source.id,
+            stage=frozen.stage,
+            unit=unit,
+            candidate_id=frozen.source_candidate_artifact_id,
+        )
+        evidence_by_kind = {row.kind: row for row in evidence}
+        if (
+            candidate.content_hash != frozen.source_candidate_content_hash
+            or attempt.id != frozen.source_producer_attempt_id
+            or evidence_by_kind[ArtifactKind.RESPONSE.value].id != frozen.source_response_artifact_id
+            or evidence_by_kind[ArtifactKind.VALIDATION.value].id != frozen.source_validation_artifact_id
+        ):
+            raise RepairEligibilityError("repair.parent_evidence_invalid", "frozen reusable evidence IDs or hashes changed")
+        return unit, candidate, attempt, evidence
+
+    def prepare_repair_stage_reuse(
+        self,
+        child_run_id: str,
+        stage: StageName,
+    ) -> list[FragmentReuseBinding]:
+        """Bind the scope's frozen parent candidates to planned child units.
+
+        It creates no candidate artifact.  This separation lets the runner
+        make every durable child-local materialization visible and idempotent.
+        """
+
+        with self._write() as session:
+            child = self._run_row(session, child_run_id)
+            scope = self._validate_repair_scope_in_session(
+                session, child, require_source_current=True
+            )
+            child_plan = self._stage_plan_row(session, child_run_id, stage)
+            if child_plan is None:
+                raise InvalidTransitionError(f"cannot prepare reuse before child {stage.value} StagePlan exists")
+            child_units = session.scalars(
+                select(GenerationWorkUnitRow)
+                .where(GenerationWorkUnitRow.stage_plan_id == child_plan.id)
+                .order_by(GenerationWorkUnitRow.sequence)
+            ).all()
+            by_selector = {stable_hash(unit.selector): unit for unit in child_units}
+            if len(by_selector) != len(child_units):
+                raise InvalidTransitionError("child StagePlan contains duplicate selectors")
+            frozen_sources = [item for item in scope.reuse_sources if item.stage == stage]
+            frozen_selector_hashes = {stable_hash(item.source_selector) for item in frozen_sources}
+            child_selector_hashes = set(by_selector)
+            if STAGE_ORDER.index(stage) < STAGE_ORDER.index(scope.stage):
+                # Exact repair may never send a new provider request for an
+                # upstream stage.  A planner or stored-plan drift that adds
+                # even one selector would otherwise turn this into a hidden
+                # partial rebuild.
+                if child_selector_hashes != frozen_selector_hashes:
+                    raise RepairEligibilityError(
+                        "repair.scope_hash_mismatch",
+                        "upstream repair StagePlan selectors must exactly equal frozen reuse selectors",
+                    )
+            elif STAGE_ORDER.index(stage) > STAGE_ORDER.index(scope.stage):
+                if frozen_sources:
+                    raise RepairEligibilityError(
+                        "repair.scope_hash_mismatch",
+                        "downstream repair stages cannot carry frozen reuse selectors",
+                    )
+            if stage == scope.stage:
+                target_child = by_selector.get(stable_hash(scope.target_selector))
+                source_target = session.get(GenerationWorkUnitRow, scope.target_work_unit_id)
+                if (
+                    target_child is None
+                    or source_target is None
+                    or source_target.run_id != scope.parent_run_id
+                    or source_target.selector != scope.target_selector
+                    or source_target.dependency_hash != scope.target_dependency_hash
+                    or source_target.unit_dependency_hash != scope.target_unit_dependency_hash
+                    or source_target.input_hash != scope.target_input_hash
+                ):
+                    raise RepairEligibilityError(
+                        "repair.scope_hash_mismatch",
+                        "target child selector no longer matches the immutable repair scope",
+                    )
+                unbound_selector_hashes = child_selector_hashes - frozen_selector_hashes
+                if unbound_selector_hashes != {stable_hash(scope.target_selector)}:
+                    raise RepairEligibilityError(
+                        "repair.scope_hash_mismatch",
+                        "repair StagePlan must leave exactly the scoped target selector unresolved",
+                    )
+            bindings: list[FragmentReuseBinding] = []
+            for frozen in frozen_sources:
+                self._validate_frozen_reuse_source_in_session(session, scope=scope, frozen=frozen)
+                child_unit = by_selector.get(stable_hash(frozen.source_selector))
+                if child_unit is None:
+                    raise RepairEligibilityError(
+                        "repair.scope_hash_mismatch",
+                        "child StagePlan no longer contains the frozen reusable selector",
+                    )
+                existing = session.scalar(
+                    select(FragmentReuseBindingRow).where(
+                        FragmentReuseBindingRow.child_work_unit_id == child_unit.id
+                    )
+                )
+                unsigned = {
+                    "childRunId": child_run_id,
+                    "childStagePlanId": child_plan.id,
+                    "childStagePlanHash": child_plan.stage_plan_hash,
+                    "childWorkUnitId": child_unit.id,
+                    "stage": stage,
+                    "kind": frozen.kind,
+                    "sourceRunId": scope.parent_run_id,
+                    "sourceWorkUnitId": frozen.source_work_unit_id,
+                    "sourceStagePlanId": frozen.source_stage_plan_id,
+                    "sourceCandidateArtifactId": frozen.source_candidate_artifact_id,
+                    "sourceCandidateContentHash": frozen.source_candidate_content_hash,
+                    "sourceStagePlanHash": frozen.source_stage_plan_hash,
+                    "sourceSelector": frozen.source_selector,
+                    "sourceDependencyHash": frozen.source_dependency_hash,
+                    "sourceUnitDependencyHash": frozen.source_unit_dependency_hash,
+                    "sourceInputHash": frozen.source_input_hash,
+                    "sourceProducerAttemptId": frozen.source_producer_attempt_id,
+                    "sourceResponseArtifactId": frozen.source_response_artifact_id,
+                    "sourceValidationArtifactId": frozen.source_validation_artifact_id,
+                    "childSelector": dict(child_unit.selector),
+                    "childDependencyHash": child_unit.dependency_hash,
+                    "childUnitDependencyHash": child_unit.unit_dependency_hash,
+                    "childInputHash": child_unit.input_hash,
+                    "createdAt": scope.created_at.isoformat(),
+                }
+                provisional_binding = FragmentReuseBinding(
+                    id=new_id(),
+                    **unsigned,
+                    binding_hash="pending",
+                )
+                binding_hash = stable_hash(
+                    {
+                        key: value
+                        for key, value in provisional_binding.model_dump(mode="json", by_alias=True).items()
+                        if key not in {"id", "bindingHash"}
+                    }
+                )
+                if existing is not None:
+                    binding = self._fragment_reuse_binding(existing)
+                    if binding.binding_hash != binding_hash:
+                        raise RepairEligibilityError(
+                            "repair.scope_hash_mismatch", "existing child reuse binding differs from frozen scope"
+                        )
+                    bindings.append(binding)
+                    continue
+                binding = provisional_binding.model_copy(update={"binding_hash": binding_hash})
+                session.add(
+                    FragmentReuseBindingRow(
+                        id=binding.id,
+                        child_run_id=binding.child_run_id,
+                        child_stage_plan_id=binding.child_stage_plan_id,
+                        child_work_unit_id=binding.child_work_unit_id,
+                        stage=binding.stage.value,
+                        kind=binding.kind.value,
+                        source_run_id=binding.source_run_id,
+                        source_work_unit_id=binding.source_work_unit_id,
+                        source_stage_plan_id=binding.source_stage_plan_id,
+                        source_candidate_artifact_id=binding.source_candidate_artifact_id,
+                        binding_hash=binding.binding_hash,
+                        binding=binding.model_dump(mode="json", by_alias=True),
+                        created_at=binding.created_at,
+                    )
+                )
+                bindings.append(binding)
+            return bindings
+
+    def materialize_fragment_reuse_binding(
+        self,
+        child_run_id: str,
+        binding_id: str,
+    ) -> Artifact:
+        """Create one child-owned, metadata-rebound candidate from a binding."""
+
+        with self._write() as session:
+            child = self._run_row(session, child_run_id)
+            scope = self._validate_repair_scope_in_session(
+                session, child, require_source_current=True
+            )
+            row = session.get(FragmentReuseBindingRow, binding_id)
+            if row is None or row.child_run_id != child_run_id:
+                raise NotFoundError(f"fragment reuse binding not found for child run: {binding_id}")
+            binding = self._fragment_reuse_binding(row)
+            frozen = next(
+                (
+                    item
+                    for item in scope.reuse_sources
+                    if item.source_candidate_artifact_id == binding.source_candidate_artifact_id
+                    and item.source_work_unit_id == binding.source_work_unit_id
+                ),
+                None,
+            )
+            if frozen is None:
+                raise RepairEligibilityError("repair.scope_hash_mismatch", "binding is absent from immutable repair scope")
+            _, source_candidate, _, _ = self._validate_frozen_reuse_source_in_session(
+                session, scope=scope, frozen=frozen
+            )
+            child_unit = session.get(GenerationWorkUnitRow, binding.child_work_unit_id)
+            child_plan = session.get(StagePlanRow, binding.child_stage_plan_id)
+            if (
+                child_unit is None
+                or child_plan is None
+                or child_unit.run_id != child_run_id
+                or child_unit.stage_plan_id != child_plan.id
+                or child_unit.stage != binding.stage.value
+                or child_plan.stage_plan_hash != binding.child_stage_plan_hash
+                or child_unit.selector != binding.child_selector
+                or child_unit.dependency_hash != binding.child_dependency_hash
+                or child_unit.unit_dependency_hash != binding.child_unit_dependency_hash
+                or child_unit.input_hash != binding.child_input_hash
+            ):
+                raise RepairEligibilityError("repair.scope_hash_mismatch", "child work unit no longer matches reuse binding")
+            self._assert_work_unit_unsealed_in_session(session, child_unit)
+            existing = session.scalar(
+                select(ArtifactRow).where(
+                    ArtifactRow.run_id == child_run_id,
+                    ArtifactRow.work_unit_id == child_unit.id,
+                    ArtifactRow.kind == ArtifactKind.CANDIDATE.value,
+                    ArtifactRow.source_artifact_id == source_candidate.id,
+                )
+            )
+            source_fragment = self._fragment_from_artifact(binding.stage, source_candidate)
+            rebound = source_fragment.model_copy(
+                update={"stage_plan_hash": child_plan.stage_plan_hash, "work_unit_id": child_unit.id}
+            )
+            content = rebound.model_dump(mode="json", by_alias=False)
+            content_hash = stable_hash(content)
+            if existing is not None:
+                if existing.content_hash != content_hash or existing.attempt_id is not None:
+                    raise RepairEligibilityError("repair.scope_hash_mismatch", "existing child reuse candidate differs from binding")
+                if WorkUnitStatus(child_unit.status) == WorkUnitStatus.QUEUED:
+                    child_unit.status = WorkUnitStatus.SUCCEEDED.value
+                return self._artifact(existing)
+            if WorkUnitStatus(child_unit.status) != WorkUnitStatus.QUEUED:
+                raise InvalidTransitionError(
+                    f"cannot materialize reuse while child work unit is {child_unit.status}"
+                )
+            artifact = Artifact(
+                run_id=child_run_id,
+                attempt_id=None,
+                work_unit_id=child_unit.id,
+                source_artifact_id=source_candidate.id,
+                stage=binding.stage,
+                kind=ArtifactKind.CANDIDATE,
+                content=content,
+                content_hash=content_hash,
+            )
+            session.add(
+                ArtifactRow(
+                    id=artifact.id,
+                    run_id=artifact.run_id,
+                    attempt_id=None,
+                    work_unit_id=artifact.work_unit_id,
+                    source_artifact_id=artifact.source_artifact_id,
+                    stage=artifact.stage.value if artifact.stage else None,
+                    kind=artifact.kind.value,
+                    media_type=artifact.media_type,
+                    content=content,
+                    content_hash=artifact.content_hash,
+                    created_at=artifact.created_at,
+                )
+            )
+            child_unit.status = WorkUnitStatus.SUCCEEDED.value
+            return artifact
+
+    def materialize_reused_fragment(self, child_run_id: str, binding_id: str) -> Artifact:
+        """Compatibility spelling for the explicit fragment-binding command."""
+
+        return self.materialize_fragment_reuse_binding(child_run_id, binding_id)
 
     @staticmethod
     def _work_unit_is_sealed_in_session(
@@ -2303,6 +2914,169 @@ class SQLiteRepository:
             )
 
     @staticmethod
+    def _run_max_attempts(row: GenerationRunRow) -> int:
+        """Read the frozen correction budget without synthesizing V2 history."""
+
+        if is_v2_snapshot(row.provider_snapshot):
+            return 1 + TextProviderProfileSnapshot.model_validate(
+                row.provider_snapshot
+            ).max_semantic_corrections
+        # Historical snapshots have no V2 execution contract.  Their old
+        # stage-level attempt behavior must not acquire a new implicit limit.
+        return 1
+
+    def get_run_progress(self, run_id: str) -> RunProgress:
+        """Return a compact, secret-free polling projection for the workbench."""
+
+        with self._read() as session:
+            run = self._run_row(session, run_id)
+            plans = {
+                StageName(row.stage): row
+                for row in session.scalars(
+                    select(StagePlanRow).where(StagePlanRow.run_id == run_id)
+                ).all()
+            }
+            sealed_plan_ids = set(
+                session.scalars(
+                    select(SealedStageAggregateRow.stage_plan_id).where(
+                        SealedStageAggregateRow.run_id == run_id
+                    )
+                ).all()
+            )
+            units = session.scalars(
+                select(GenerationWorkUnitRow)
+                .where(GenerationWorkUnitRow.run_id == run_id)
+                .order_by(GenerationWorkUnitRow.stage, GenerationWorkUnitRow.sequence)
+            ).all()
+            attempts = session.scalars(
+                select(GenerationAttemptRow)
+                .where(GenerationAttemptRow.run_id == run_id)
+                .order_by(GenerationAttemptRow.work_unit_id, GenerationAttemptRow.attempt_number.desc())
+            ).all()
+            latest_by_unit: dict[str, GenerationAttemptRow] = {}
+            for attempt in attempts:
+                if attempt.work_unit_id is not None and attempt.work_unit_id not in latest_by_unit:
+                    latest_by_unit[attempt.work_unit_id] = attempt
+            response_usage_by_attempt: dict[str, tuple[int | None, int | None]] = {}
+            response_rows = session.scalars(
+                select(ArtifactRow).where(
+                    ArtifactRow.run_id == run_id,
+                    ArtifactRow.kind == ArtifactKind.RESPONSE.value,
+                    ArtifactRow.attempt_id.is_not(None),
+                )
+            ).all()
+            for response in response_rows:
+                if not isinstance(response.content, dict) or response.attempt_id is None:
+                    continue
+                usage = response.content.get("usage")
+                if not isinstance(usage, dict):
+                    continue
+                input_tokens = usage.get("inputTokens")
+                output_tokens = usage.get("outputTokens")
+                response_usage_by_attempt[response.attempt_id] = (
+                    input_tokens if isinstance(input_tokens, int) and input_tokens >= 0 else None,
+                    output_tokens if isinstance(output_tokens, int) and output_tokens >= 0 else None,
+                )
+            eligibility_by_unit = {
+                item.work_unit_id: item
+                for item in (
+                    [
+                        self._work_unit_repair_eligibility_in_session(session, source=run, unit=unit)
+                        for unit in units
+                    ]
+                    if RunStatus(run.status) == RunStatus.QUARANTINED
+                    else []
+                )
+            }
+            max_attempts = self._run_max_attempts(run)
+            progress_units: list[RunProgressUnit] = []
+            for unit in units:
+                attempt = latest_by_unit.get(unit.id)
+                latest: RunProgressAttempt | None = None
+                if attempt is not None:
+                    duration_ms: int | None = None
+                    if attempt.finished_at is not None:
+                        duration_ms = max(
+                            0,
+                            int((attempt.finished_at - attempt.started_at).total_seconds() * 1000),
+                        )
+                    input_tokens, output_tokens = response_usage_by_attempt.get(
+                        attempt.id, (None, None)
+                    )
+                    latest = RunProgressAttempt(
+                        attempt_id=attempt.id,
+                        attempt_number=attempt.attempt_number,
+                        attempt_kind=GenerationAttemptKind(attempt.attempt_kind),
+                        source_attempt_id=attempt.source_attempt_id,
+                        status=AttemptStatus(attempt.status),
+                        outcome_code=attempt.outcome_code,
+                        outcome_unknown=attempt.outcome_unknown,
+                        input_tokens=input_tokens,
+                        output_tokens=output_tokens,
+                        duration_ms=duration_ms,
+                        started_at=_stored_utc(attempt.started_at),
+                        finished_at=(
+                            _stored_utc(attempt.finished_at) if attempt.finished_at is not None else None
+                        ),
+                    )
+                eligibility = eligibility_by_unit.get(unit.id)
+                progress_units.append(
+                    RunProgressUnit(
+                        work_unit_id=unit.id,
+                        stage=StageName(unit.stage),
+                        sequence=unit.sequence,
+                        status=WorkUnitStatus(unit.status),
+                        max_attempts=max_attempts,
+                        latest_attempt=latest,
+                        sealed=unit.stage_plan_id in sealed_plan_ids,
+                        repair_eligible=eligibility.eligible if eligibility is not None else False,
+                        repair_reason_code=eligibility.reason_code if eligibility is not None else None,
+                    )
+                )
+            stage_progress: list[RunProgressStage] = []
+            for stage_name in [StageName(value) for value in run.requested_stages]:
+                plan = plans.get(stage_name)
+                stage_units = [unit for unit in progress_units if unit.stage == stage_name]
+                stage_progress.append(
+                    RunProgressStage(
+                        stage=stage_name,
+                        stage_plan_id=plan.id if plan is not None else None,
+                        stage_plan_hash=plan.stage_plan_hash if plan is not None else None,
+                        sealed=plan.id in sealed_plan_ids if plan is not None else False,
+                        unit_count=len(stage_units),
+                        completed_unit_count=sum(
+                            unit.status == WorkUnitStatus.SUCCEEDED for unit in stage_units
+                        ),
+                        quarantined_unit_count=sum(
+                            unit.status == WorkUnitStatus.QUARANTINED for unit in stage_units
+                        ),
+                        repair_eligible_unit_ids=[
+                            unit.work_unit_id for unit in stage_units if unit.repair_eligible
+                        ],
+                    )
+                )
+            status = RunStatus(run.status)
+            has_repair = any(unit.repair_eligible for unit in progress_units)
+            project_is_active = (
+                ProjectLifecycleStatus(self._project_row(session, run.project_id).lifecycle_status)
+                == ProjectLifecycleStatus.ACTIVE
+            )
+            return RunProgress(
+                run_id=run.id,
+                status=status,
+                failure_code=run.failure_code,
+                failed_stage=StageName(run.failed_stage) if run.failed_stage else None,
+                stage_progress=stage_progress,
+                work_units=progress_units,
+                actions=RunProgressActions(
+                    can_resume=project_is_active and status in {RunStatus.QUEUED, RunStatus.RUNNING},
+                    can_cancel=status in {RunStatus.QUEUED, RunStatus.RUNNING, RunStatus.CANCEL_REQUESTED},
+                    can_rebuild_stage=project_is_active and status == RunStatus.QUARANTINED,
+                    repair_eligible=has_repair,
+                ),
+            )
+
+    @staticmethod
     def _fragment_from_artifact(stage: StageName, artifact: ArtifactRow) -> Any:
         fragment_type = {
             StageName.STORY_BIBLE: StoryBibleFragment,
@@ -2484,6 +3258,200 @@ class SQLiteRepository:
             aggregate = SealedStageAggregateRow(
                 id=new_id(),
                 run_id=run_id,
+                stage_plan_id=plan_row.id,
+                stage=stage.value,
+                manifest_hash=manifest_hash,
+                manifest=manifest,
+                payload=payload_data,
+                created_at=utc_now(),
+            )
+            session.add(aggregate)
+            for unit in units:
+                unit.status = WorkUnitStatus.SUCCEEDED.value
+            return self._sealed_aggregate_trace(aggregate)
+
+    def _required_repair_unit_evidence_in_session(
+        self,
+        session: Session,
+        *,
+        child_run_id: str,
+        scope: WorkUnitRepairScope,
+        stage: StageName,
+        unit: GenerationWorkUnitRow,
+        candidate_id: str,
+    ) -> tuple[ArtifactRow, str, list[ArtifactRow], FragmentReuseBinding | None]:
+        candidate = session.get(ArtifactRow, candidate_id)
+        if candidate is None:
+            raise NotFoundError(f"candidate artifact not found: {candidate_id}")
+        if candidate.source_artifact_id is None:
+            normal_candidate, attempt, evidence = self._required_unit_evidence_in_session(
+                session,
+                run_id=child_run_id,
+                stage=stage,
+                unit=unit,
+                candidate_id=candidate_id,
+            )
+            return normal_candidate, attempt.id, evidence, None
+        if (
+            candidate.run_id != child_run_id
+            or candidate.stage != stage.value
+            or candidate.kind != ArtifactKind.CANDIDATE.value
+            or candidate.work_unit_id != unit.id
+            or candidate.attempt_id is not None
+            or candidate.content_hash != stable_hash(candidate.content)
+        ):
+            raise InvalidTransitionError("reused candidate does not belong to the declared child run/stage/work unit")
+        binding_row = session.scalar(
+            select(FragmentReuseBindingRow).where(
+                FragmentReuseBindingRow.child_run_id == child_run_id,
+                FragmentReuseBindingRow.child_work_unit_id == unit.id,
+            )
+        )
+        if binding_row is None:
+            raise RepairEligibilityError("repair.scope_hash_mismatch", "reused candidate has no exact child binding")
+        binding = self._fragment_reuse_binding(binding_row)
+        if binding.stage != stage or binding.source_candidate_artifact_id != candidate.source_artifact_id:
+            raise RepairEligibilityError("repair.scope_hash_mismatch", "reused candidate does not match its binding")
+        frozen = next(
+            (
+                item
+                for item in scope.reuse_sources
+                if item.source_candidate_artifact_id == binding.source_candidate_artifact_id
+                and item.source_work_unit_id == binding.source_work_unit_id
+            ),
+            None,
+        )
+        if frozen is None:
+            raise RepairEligibilityError("repair.scope_hash_mismatch", "binding is absent from immutable repair scope")
+        _, source_candidate, source_attempt, evidence = self._validate_frozen_reuse_source_in_session(
+            session, scope=scope, frozen=frozen
+        )
+        if source_candidate.id != candidate.source_artifact_id:
+            raise RepairEligibilityError("repair.parent_evidence_invalid", "reused source candidate identity changed")
+        return candidate, source_attempt.id, evidence, binding
+
+    def seal_repair_stage_aggregate(
+        self,
+        child_run_id: str,
+        stage: StageName,
+        *,
+        candidate_artifact_ids: list[str],
+    ) -> SealedStageAggregateTrace:
+        """Seal a child stage with verified child evidence and explicit reuses.
+
+        This is intentionally separate from :meth:`seal_stage_aggregate`.
+        The normal method still requires every candidate to be produced by a
+        succeeded attempt in that same run and work unit.
+        """
+
+        with self._write() as session:
+            child = self._run_row(session, child_run_id)
+            scope = self._validate_repair_scope_in_session(
+                session, child, require_source_current=True
+            )
+            if RunStatus(child.status) != RunStatus.RUNNING:
+                raise InvalidTransitionError(
+                    f"cannot seal a repair stage aggregate while run is {child.status}"
+                )
+            plan_row = self._stage_plan_row(session, child_run_id, stage)
+            if plan_row is None:
+                raise InvalidTransitionError(f"cannot seal {stage.value} without a child StagePlan")
+            stage_plan = StagePlan.model_validate(plan_row.plan)
+            existing = session.scalar(
+                select(SealedStageAggregateRow).where(
+                    SealedStageAggregateRow.stage_plan_id == plan_row.id
+                )
+            )
+            units = session.scalars(
+                select(GenerationWorkUnitRow)
+                .where(GenerationWorkUnitRow.stage_plan_id == plan_row.id)
+                .order_by(GenerationWorkUnitRow.sequence)
+            ).all()
+            if [unit.id for unit in units] != [unit.unit_id for unit in stage_plan.work_units]:
+                raise InvalidTransitionError("persisted child work units do not match the immutable StagePlan")
+            if len(candidate_artifact_ids) != len(units) or len(set(candidate_artifact_ids)) != len(units):
+                raise InvalidTransitionError("repair seal requires one distinct candidate per child work unit")
+
+            bindings = session.scalars(
+                select(FragmentReuseBindingRow).where(
+                    FragmentReuseBindingRow.child_run_id == child_run_id,
+                    FragmentReuseBindingRow.child_stage_plan_id == plan_row.id,
+                )
+            ).all()
+            binding_units = {row.child_work_unit_id for row in bindings}
+            expected_reuse = {
+                stable_hash(item.source_selector)
+                for item in scope.reuse_sources
+                if item.stage == stage
+            }
+            actual_reuse = {
+                stable_hash(unit.selector)
+                for unit in units
+                if unit.id in binding_units
+            }
+            if actual_reuse != expected_reuse:
+                raise RepairEligibilityError(
+                    "repair.scope_hash_mismatch", "child StagePlan has not bound every frozen reusable source"
+                )
+
+            fragments: list[Any] = []
+            manifest_units: list[dict[str, Any]] = []
+            for unit, candidate_id in zip(units, candidate_artifact_ids, strict=True):
+                candidate, attempt_id, evidence, binding = self._required_repair_unit_evidence_in_session(
+                    session,
+                    child_run_id=child_run_id,
+                    scope=scope,
+                    stage=stage,
+                    unit=unit,
+                    candidate_id=candidate_id,
+                )
+                fragment = self._fragment_from_artifact(stage, candidate)
+                if fragment.work_unit_id != unit.id or fragment.stage_plan_hash != stage_plan.stage_plan_hash:
+                    raise InvalidTransitionError("repair candidate fragment is not bound to this child StagePlan unit")
+                fragments.append(fragment)
+                unit_manifest: dict[str, Any] = {
+                    "workUnitId": unit.id,
+                    "attemptId": attempt_id,
+                    "candidateArtifactId": candidate.id,
+                    "candidateContentHash": candidate.content_hash,
+                    "evidence": [
+                        {"artifactId": row.id, "kind": row.kind, "contentHash": row.content_hash}
+                        for row in evidence
+                    ],
+                }
+                if binding is not None:
+                    unit_manifest["reuseBindingId"] = binding.id
+                    unit_manifest["reuseBindingHash"] = binding.binding_hash
+                    unit_manifest["sourceRunId"] = binding.source_run_id
+                    unit_manifest["sourceCandidateArtifactId"] = binding.source_candidate_artifact_id
+                manifest_units.append(unit_manifest)
+
+            dependencies = self._repair_stage_dependencies_in_session(session, child, stage)
+            snapshot = CanonicalSnapshot.model_validate(child.canonical_snapshot)
+            payload = aggregate_stage_fragments(
+                stage_plan,
+                fragments,
+                brief=snapshot.brief,
+                bible=dependencies.get(StageName.STORY_BIBLE),  # type: ignore[arg-type]
+                graph=dependencies.get(StageName.STORY_GRAPH),  # type: ignore[arg-type]
+                scene_beats=dependencies.get(StageName.SCENE_BEATS),  # type: ignore[arg-type]
+            )
+            payload_data = payload.model_dump(mode="json", by_alias=False)
+            manifest = {
+                "stagePlanHash": stage_plan.stage_plan_hash,
+                "generationPlanHash": stage_plan.generation_plan_hash,
+                "dependencyHash": stage_plan.dependency_hash,
+                "units": manifest_units,
+                "aggregatePayloadHash": stable_hash(payload_data),
+            }
+            manifest_hash = stable_hash(manifest)
+            if existing is not None:
+                if existing.manifest_hash != manifest_hash:
+                    raise InvalidTransitionError("sealed repair stage aggregates are immutable")
+                return self._sealed_aggregate_trace(existing)
+            aggregate = SealedStageAggregateRow(
+                id=new_id(),
+                run_id=child_run_id,
                 stage_plan_id=plan_row.id,
                 stage=stage.value,
                 manifest_hash=manifest_hash,
@@ -3191,6 +4159,480 @@ class SQLiteRepository:
             repair_source=repair_source,
             provider_snapshot=provider_snapshot,
         )
+
+    @staticmethod
+    def _scope_hash_payload(scope_data: dict[str, Any]) -> dict[str, Any]:
+        """Return the exact public repair contract, excluding only its digest."""
+
+        return {key: value for key, value in scope_data.items() if key != "scopeHash"}
+
+    def _source_snapshot_is_current_in_session(
+        self,
+        session: Session,
+        source: GenerationRunRow,
+    ) -> bool:
+        snapshot = CanonicalSnapshot.model_validate(source.canonical_snapshot)
+        return self._snapshot_in_session(session, source.project_id).snapshot_hash == snapshot.snapshot_hash
+
+    def _latest_rejected_evidence_in_session(
+        self,
+        session: Session,
+        *,
+        source: GenerationRunRow,
+        unit: GenerationWorkUnitRow,
+    ) -> tuple[GenerationAttemptRow, ArtifactRow, ArtifactRow] | None:
+        attempts = session.scalars(
+            select(GenerationAttemptRow)
+            .where(GenerationAttemptRow.work_unit_id == unit.id)
+            .order_by(GenerationAttemptRow.attempt_number.desc())
+        ).all()
+        for attempt in attempts:
+            if (
+                attempt.run_id != source.id
+                or attempt.stage != unit.stage
+                or AttemptStatus(attempt.status) != AttemptStatus.FAILED
+                or attempt.outcome_unknown
+                or attempt.response_persisted_at is None
+                or not attempt.outcome_code
+            ):
+                continue
+            evidence = session.scalars(
+                select(ArtifactRow)
+                .where(ArtifactRow.attempt_id == attempt.id)
+                .order_by(ArtifactRow.created_at, ArtifactRow.id)
+            ).all()
+            response = next((row for row in evidence if row.kind == ArtifactKind.RESPONSE.value), None)
+            validation = next((row for row in evidence if row.kind == ArtifactKind.VALIDATION.value), None)
+            if (
+                response is not None
+                and validation is not None
+                and response.run_id == source.id
+                and validation.run_id == source.id
+                and response.work_unit_id == unit.id
+                and validation.work_unit_id == unit.id
+                and isinstance(validation.content, dict)
+                and validation.content.get("accepted") is False
+                and response.content_hash == stable_hash(response.content)
+                and validation.content_hash == stable_hash(validation.content)
+            ):
+                return attempt, response, validation
+        return None
+
+    def _work_unit_repair_eligibility_in_session(
+        self,
+        session: Session,
+        *,
+        source: GenerationRunRow,
+        unit: GenerationWorkUnitRow,
+        check_existing_scope: bool = True,
+    ) -> WorkUnitRepairEligibility:
+        stage = StageName(unit.stage)
+        if RunStatus(source.status) != RunStatus.QUARANTINED:
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.source_not_quarantined"
+            )
+        if source.legacy_unsealed or session.get(GenerationPlanRow, source.id) is None:
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.source_legacy_unsealed"
+            )
+        if (
+            ProjectLifecycleStatus(self._project_row(session, source.project_id).lifecycle_status)
+            != ProjectLifecycleStatus.ACTIVE
+        ):
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.project_archived"
+            )
+        if not self._source_snapshot_is_current_in_session(session, source):
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.snapshot_stale"
+            )
+        if unit.run_id != source.id or stage.value not in source.requested_stages:
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_not_in_source_run"
+            )
+        if self._work_unit_is_sealed_in_session(session, unit):
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_sealed"
+            )
+        if WorkUnitStatus(unit.status) == WorkUnitStatus.OUTCOME_UNKNOWN:
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_outcome_unknown"
+            )
+        if WorkUnitStatus(unit.status) != WorkUnitStatus.QUARANTINED:
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_not_quarantined"
+            )
+        if self._latest_rejected_evidence_in_session(session, source=source, unit=unit) is None:
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id,
+                stage=stage,
+                eligible=False,
+                reason_code="repair.target_not_rejected_model_output",
+            )
+        if check_existing_scope and session.scalar(
+            select(WorkUnitRepairScopeRow.child_run_id).where(
+                WorkUnitRepairScopeRow.target_work_unit_id == unit.id
+            )
+        ) is not None:
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.already_exists"
+            )
+        return WorkUnitRepairEligibility(work_unit_id=unit.id, stage=stage, eligible=True)
+
+    @staticmethod
+    def _raise_repair_ineligible(eligibility: WorkUnitRepairEligibility) -> None:
+        assert eligibility.reason_code is not None
+        raise RepairEligibilityError(
+            eligibility.reason_code,
+            f"work unit {eligibility.work_unit_id} is not eligible for exact repair: {eligibility.reason_code}",
+        )
+
+    def get_repair_eligible_work_units(self, run_id: str) -> list[WorkUnitRepairEligibility]:
+        """Return server-owned exact-repair decisions for one source run."""
+
+        with self._read() as session:
+            source = self._run_row(session, run_id)
+            units = session.scalars(
+                select(GenerationWorkUnitRow)
+                .where(GenerationWorkUnitRow.run_id == run_id)
+                .order_by(GenerationWorkUnitRow.stage, GenerationWorkUnitRow.sequence)
+            ).all()
+            return [
+                self._work_unit_repair_eligibility_in_session(session, source=source, unit=unit)
+                for unit in units
+            ]
+
+    def _frozen_reuse_source_in_session(
+        self,
+        session: Session,
+        *,
+        source: GenerationRunRow,
+        unit: GenerationWorkUnitRow,
+        kind: FragmentReuseKind,
+    ) -> FrozenFragmentReuseSource:
+        plan_row = session.get(StagePlanRow, unit.stage_plan_id)
+        if plan_row is None or plan_row.run_id != source.id:
+            raise RepairEligibilityError("repair.parent_evidence_invalid", "source work unit has no matching StagePlan")
+        candidate_rows = session.scalars(
+            select(ArtifactRow)
+            .where(
+                ArtifactRow.run_id == source.id,
+                ArtifactRow.work_unit_id == unit.id,
+                ArtifactRow.kind == ArtifactKind.CANDIDATE.value,
+            )
+            .order_by(ArtifactRow.created_at.desc())
+        ).all()
+        if len(candidate_rows) != 1:
+            raise RepairEligibilityError(
+                "repair.parent_evidence_invalid", "source reusable unit requires one immutable candidate"
+            )
+        candidate, attempt, evidence = self._required_unit_evidence_in_session(
+            session,
+            run_id=source.id,
+            stage=StageName(unit.stage),
+            unit=unit,
+            candidate_id=candidate_rows[0].id,
+        )
+        evidence_by_kind = {row.kind: row for row in evidence}
+        return FrozenFragmentReuseSource(
+            kind=kind,
+            stage=StageName(unit.stage),
+            source_work_unit_id=unit.id,
+            source_stage_plan_id=plan_row.id,
+            source_stage_plan_hash=plan_row.stage_plan_hash,
+            source_generation_plan_hash=unit.generation_plan_hash,
+            source_selector=dict(unit.selector),
+            source_dependency_hash=unit.dependency_hash,
+            source_unit_dependency_hash=unit.unit_dependency_hash,
+            source_input_hash=unit.input_hash,
+            source_producer_attempt_id=attempt.id,
+            source_response_artifact_id=evidence_by_kind[ArtifactKind.RESPONSE.value].id,
+            source_validation_artifact_id=evidence_by_kind[ArtifactKind.VALIDATION.value].id,
+            source_candidate_artifact_id=candidate.id,
+            source_candidate_content_hash=candidate.content_hash,
+        )
+
+    def _frozen_reuse_sources_in_session(
+        self,
+        session: Session,
+        *,
+        source: GenerationRunRow,
+        target: GenerationWorkUnitRow,
+    ) -> list[FrozenFragmentReuseSource]:
+        requested = [StageName(value) for value in source.requested_stages]
+        target_index = requested.index(StageName(target.stage))
+        reusable: list[FrozenFragmentReuseSource] = []
+        for stage in requested[:target_index]:
+            source_plan = self._stage_plan_row(session, source.id, stage)
+            if source_plan is None or session.scalar(
+                select(SealedStageAggregateRow.id).where(
+                    SealedStageAggregateRow.stage_plan_id == source_plan.id
+                )
+            ) is None:
+                raise RepairEligibilityError(
+                    "repair.parent_evidence_invalid",
+                    f"source upstream stage {stage.value} is not sealed",
+                )
+            units = session.scalars(
+                select(GenerationWorkUnitRow)
+                .where(GenerationWorkUnitRow.stage_plan_id == source_plan.id)
+                .order_by(GenerationWorkUnitRow.sequence)
+            ).all()
+            reusable.extend(
+                self._frozen_reuse_source_in_session(session, source=source, unit=unit, kind=FragmentReuseKind.UPSTREAM)
+                for unit in units
+            )
+        target_plan = self._stage_plan_row(session, source.id, StageName(target.stage))
+        if target_plan is None or target_plan.id != target.stage_plan_id:
+            raise RepairEligibilityError("repair.parent_evidence_invalid", "target source StagePlan is inconsistent")
+        siblings = session.scalars(
+            select(GenerationWorkUnitRow)
+            .where(GenerationWorkUnitRow.stage_plan_id == target_plan.id)
+            .order_by(GenerationWorkUnitRow.sequence)
+        ).all()
+        reusable.extend(
+            self._frozen_reuse_source_in_session(session, source=source, unit=unit, kind=FragmentReuseKind.SIBLING)
+            for unit in siblings
+            if unit.id != target.id
+        )
+        return reusable
+
+    def create_work_unit_repair_run(
+        self,
+        source_run_id: str,
+        work_unit_id: str,
+        *,
+        idempotency_key: str,
+        instructions: str | None = None,
+    ) -> WorkUnitRepairRunCreation:
+        """Create one immutable exact-repair child without changing model contract.
+
+        The source run's frozen provider snapshot, canonical snapshot,
+        requested range, and instructions are copied verbatim.  An exact
+        repair therefore cannot quietly turn into a model switch or a new
+        prompt request.  Callers may only supply ``None`` for instructions;
+        the parameter exists so the HTTP boundary can reject accidental UI
+        additions explicitly rather than silently dropping them.
+        """
+
+        key = idempotency_key.strip()
+        if not 1 <= len(key) <= 255:
+            raise ValueError("idempotency key must contain between 1 and 255 characters")
+        if instructions is not None:
+            raise RepairEligibilityError(
+                "repair.instructions_override_forbidden",
+                "exact work-unit repairs inherit frozen instructions and cannot override them",
+            )
+        fingerprint = stable_hash(
+            {"parentRunId": source_run_id, "targetWorkUnitId": work_unit_id}
+        )
+        with self._lifecycle_write() as session:
+            prior = session.get(WorkUnitRepairIdempotencyRow, key)
+            if prior is not None:
+                if prior.request_fingerprint != fingerprint:
+                    raise RepairEligibilityError(
+                        "repair.idempotency_conflict",
+                        "Idempotency-Key has already been used for a different exact repair",
+                    )
+                return WorkUnitRepairRunCreation(
+                    run=self._run(self._run_row(session, prior.child_run_id)), created=False
+                )
+
+            source = self._run_row(session, source_run_id)
+            target = session.get(GenerationWorkUnitRow, work_unit_id)
+            if target is None:
+                raise NotFoundError(f"generation work unit not found: {work_unit_id}")
+            eligibility = self._work_unit_repair_eligibility_in_session(
+                session, source=source, unit=target
+            )
+            if not eligibility.eligible:
+                self._raise_repair_ineligible(eligibility)
+            rejected = self._latest_rejected_evidence_in_session(
+                session, source=source, unit=target
+            )
+            assert rejected is not None
+            failed_attempt, response, validation = rejected
+            source_plan_row = session.get(GenerationPlanRow, source.id)
+            source_stage_plan = session.get(StagePlanRow, target.stage_plan_id)
+            if source_plan_row is None or source_stage_plan is None:
+                raise RepairEligibilityError("repair.parent_evidence_invalid", "source plan evidence is missing")
+            source_plan = GenerationPlan.model_validate(source_plan_row.plan)
+            project = self._project_row(session, source.project_id)
+            self._assert_active_project(project)
+            requested = [StageName(value) for value in source.requested_stages]
+            snapshot = CanonicalSnapshot.model_validate(source.canonical_snapshot)
+            child = GenerationRun(
+                project_id=source.project_id,
+                kind=RunKind.REPAIR,
+                parent_run_id=source.id,
+                repair_stage=StageName(target.stage),
+                repair_source=None,
+                work_unit_repair_scope_id="pending",  # replaced by child ID before persistence
+                provider_snapshot=dict(source.provider_snapshot),
+                requested_stages=requested,
+                canonical_snapshot=snapshot,
+                instructions=source.instructions,
+                legacy_unsealed=False,
+            )
+            # The scope ID is intentionally the child run ID.  It is a stable
+            # one-to-one foreign identity, not an inferred JSON convention.
+            child = child.model_copy(update={"work_unit_repair_scope_id": child.id})
+            session.add(
+                GenerationRunRow(
+                    id=child.id,
+                    project_id=child.project_id,
+                    kind=child.kind.value,
+                    parent_run_id=child.parent_run_id,
+                    repair_stage=child.repair_stage.value if child.repair_stage else None,
+                    repair_source=None,
+                    work_unit_repair_scope_id=child.work_unit_repair_scope_id,
+                    provider_snapshot=child.provider_snapshot,
+                    requested_stages=[stage.value for stage in child.requested_stages],
+                    status=child.status.value,
+                    canonical_snapshot=child.canonical_snapshot.model_dump(mode="json", by_alias=False),
+                    instructions=child.instructions,
+                    legacy_unsealed=False,
+                    result_revision_ids=[],
+                    error=None,
+                    failure_code=None,
+                    failed_stage=None,
+                    created_at=child.created_at,
+                    started_at=None,
+                    finished_at=None,
+                )
+            )
+            session.flush()
+
+            # A child run intentionally has a distinct plan hash and work-unit
+            # identities.  It keeps the parent profile/topology values as
+            # immutable inputs while making new aggregate seals unambiguous.
+            topology: StoryGraphTopology | None = None
+            if StageName.STORY_GRAPH in requested:
+                topology = plan_story_graph_topology(
+                    project_id=child.project_id,
+                    brief=snapshot.brief,
+                    max_downstream_work_units=128,
+                )
+                source_topology = session.get(StoryGraphTopologyRow, source.id)
+                if source_topology is not None and source_topology.topology_hash != topology.topology_hash:
+                    raise RepairEligibilityError(
+                        "repair.parent_evidence_invalid",
+                        "source Story Graph topology no longer matches the deterministic planner",
+                    )
+            profile_hash = str(child.provider_snapshot.get("profileHash") or stable_hash(child.provider_snapshot))
+            stage_budgets: dict[StageName, StageBudget] | None = None
+            if is_v2_snapshot(child.provider_snapshot):
+                v2_profile = TextProviderProfileSnapshot.model_validate(child.provider_snapshot)
+                stage_budgets = {
+                    stage: StageBudget(
+                        **{
+                            **DEFAULT_STAGE_BUDGETS[stage].model_dump(mode="python"),
+                            "max_output_tokens": v2_profile.stage_max_output_tokens.for_stage(stage.value),
+                        }
+                    )
+                    for stage in requested
+                }
+            plan = create_generation_plan(
+                run_id=child.id,
+                requested_stages=requested,
+                provider_profile_hash=profile_hash,
+                story_graph_topology_hash=topology.topology_hash if topology is not None else None,
+                canonical_inputs=self._run_plan_inputs_in_session(session, snapshot, requested),
+                stage_budgets=stage_budgets,
+                max_concurrency=int(child.provider_snapshot.get("textMaxConcurrency") or 1),
+                canonical_snapshot_hash=snapshot.snapshot_hash,
+                canonical_snapshot_bytes=len(
+                    canonical_json(snapshot.model_dump(mode="json", by_alias=True)).encode("utf-8")
+                ),
+                instructions=child.instructions,
+                context_window_tokens=int(child.provider_snapshot.get("textContextWindowTokens") or 32_768),
+                provider_output_token_ceiling=int(child.provider_snapshot.get("textMaxOutputTokens") or 8_192),
+            )
+            session.add(
+                GenerationPlanRow(
+                    run_id=child.id,
+                    plan_hash=plan.plan_hash,
+                    plan=plan.model_dump(mode="json", by_alias=False),
+                    created_at=child.created_at,
+                )
+            )
+            if topology is not None:
+                session.add(
+                    StoryGraphTopologyRow(
+                        run_id=child.id,
+                        generation_plan_hash=plan.plan_hash,
+                        topology_hash=topology.topology_hash,
+                        topology=topology.model_dump(mode="json", by_alias=True),
+                        created_at=child.created_at,
+                    )
+                )
+
+            reuse_sources = self._frozen_reuse_sources_in_session(
+                session, source=source, target=target
+            )
+            source_topology_row = session.get(StoryGraphTopologyRow, source.id)
+            unsigned_scope: dict[str, Any] = {
+                "childRunId": child.id,
+                "parentRunId": source.id,
+                "targetWorkUnitId": target.id,
+                "stage": target.stage,
+                "sourceGenerationPlanHash": source_plan_row.plan_hash,
+                "sourceProviderProfileHash": source_plan.provider_profile_hash,
+                "sourceStoryGraphTopologyHash": (
+                    source_topology_row.topology_hash if source_topology_row is not None else None
+                ),
+                "sourceStagePlanId": source_stage_plan.id,
+                "sourceStagePlanHash": source_stage_plan.stage_plan_hash,
+                "sourceCanonicalSnapshotHash": snapshot.snapshot_hash,
+                "targetSelector": dict(target.selector),
+                "targetDependencyHash": target.dependency_hash,
+                "targetUnitDependencyHash": target.unit_dependency_hash,
+                "targetInputHash": target.input_hash,
+                "failedAttemptId": failed_attempt.id,
+                "responseArtifactId": response.id,
+                "validationArtifactId": validation.id,
+                "reuseSources": [item.model_dump(mode="json", by_alias=True) for item in reuse_sources],
+                "createdAt": child.created_at.isoformat(),
+            }
+            unsigned_scope["scopeHash"] = "pending"
+            provisional_scope = WorkUnitRepairScope(
+                **unsigned_scope,
+            )
+            scope_hash = stable_hash(
+                self._scope_hash_payload(
+                    provisional_scope.model_dump(mode="json", by_alias=True)
+                )
+            )
+            scope = provisional_scope.model_copy(update={"scope_hash": scope_hash})
+            session.add(
+                WorkUnitRepairScopeRow(
+                    child_run_id=child.id,
+                    parent_run_id=source.id,
+                    target_work_unit_id=target.id,
+                    stage=target.stage,
+                    scope_hash=scope.scope_hash,
+                    scope=scope.model_dump(mode="json", by_alias=True),
+                    created_at=scope.created_at,
+                )
+            )
+            session.add(
+                WorkUnitRepairIdempotencyRow(
+                    idempotency_key=key,
+                    request_fingerprint=fingerprint,
+                    parent_run_id=source.id,
+                    target_work_unit_id=target.id,
+                    child_run_id=child.id,
+                    created_at=child.created_at,
+                )
+            )
+            return WorkUnitRepairRunCreation(run=child, created=True)
+
+    def get_work_unit_repair_scope(self, child_run_id: str) -> WorkUnitRepairScope:
+        with self._read() as session:
+            row = session.get(WorkUnitRepairScopeRow, child_run_id)
+            if row is None:
+                raise NotFoundError(f"exact work-unit repair scope not found for run: {child_run_id}")
+            return self._repair_scope(row)
 
     def create_attempt(
         self,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { demoProject, demoRun, emptyStageContent } from "../src/demo";
-import type { MediaTask, ProjectResource, RunTrace, ServerStageName, StageEnvelope } from "../src/types";
-import { editorRevisionKey, hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromTrace } from "../src/workspace-state";
+import type { MediaTask, ProjectResource, RunProgress, RunTrace, ServerStageName, StageEnvelope } from "../src/types";
+import { editorRevisionKey, hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromProgress, quarantineItemsFromTrace } from "../src/workspace-state";
 
 const mediaTask = (overrides: Partial<MediaTask>): MediaTask => ({
   id: "task",
@@ -96,5 +96,42 @@ describe("workspace hydration contracts", () => {
     expect(quarantineItemsFromTrace(trace)[0]).toMatchObject({ id: "attempt-1", stage: "story_bible", message: "schema invalid" });
     expect(quarantineItemsFromTrace(trace)[0].code).toBe("missing.logline");
     expect(quarantineItemsFromTrace(trace)[0].rawOutput).toBe("CURRENT RAW");
+  });
+
+  it("uses server-issued repair eligibility and never infers it from stale, sealed, or unknown work units", () => {
+    const progress: RunProgress = {
+      runId: "run-1",
+      status: "quarantined",
+      failureCode: "run.quarantined",
+      failedStage: "story_graph",
+      stageProgress: [],
+      actions: { canResume: false, canCancel: false, canRebuildStage: true, repairEligible: true },
+      workUnits: [
+        {
+          workUnitId: "unknown", stage: "story_graph", sequence: 1, status: "outcome_unknown", maxAttempts: 3,
+          latestAttempt: { attemptId: "a-unknown", attemptNumber: 1, attemptKind: "primary", sourceAttemptId: null, status: "failed", outcomeCode: "network.outcome_unknown", outcomeUnknown: true, startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z", inputTokens: null, outputTokens: null, durationMs: 1000 },
+          sealed: false, repairEligible: false, repairReasonCode: "repair.target_outcome_unknown",
+        },
+        {
+          workUnitId: "sealed", stage: "story_graph", sequence: 2, status: "quarantined", maxAttempts: 3,
+          latestAttempt: { attemptId: "a-sealed", attemptNumber: 3, attemptKind: "correction", sourceAttemptId: "a-2", status: "failed", outcomeCode: "schema.invalid", outcomeUnknown: false, startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z", inputTokens: 10, outputTokens: 20, durationMs: 1000 },
+          sealed: true, repairEligible: false, repairReasonCode: "repair.target_sealed",
+        },
+        {
+          workUnitId: "stale", stage: "story_graph", sequence: 3, status: "quarantined", maxAttempts: 3,
+          latestAttempt: { attemptId: "a-stale", attemptNumber: 3, attemptKind: "correction", sourceAttemptId: "a-2", status: "failed", outcomeCode: "schema.invalid", outcomeUnknown: false, startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z", inputTokens: 10, outputTokens: 20, durationMs: 1000 },
+          sealed: false, repairEligible: false, repairReasonCode: "repair.snapshot_stale",
+        },
+      ],
+    };
+
+    const items = quarantineItemsFromProgress(progress);
+
+    expect(items).toHaveLength(3);
+    expect(items.every((item) => item.repairEligible === false)).toBe(true);
+    expect(items.map((item) => item.repairReasonCode)).toEqual([
+      "repair.target_outcome_unknown", "repair.target_sealed", "repair.snapshot_stale",
+    ]);
+    expect(JSON.stringify(items)).not.toContain("rawResponse");
   });
 });

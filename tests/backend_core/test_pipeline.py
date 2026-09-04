@@ -42,14 +42,14 @@ from plotloom.provider_profiles import (
     StageMaxOutputTokens,
     TextProviderProfileSnapshot,
 )
-from plotloom.exceptions import InvalidTransitionError
+from plotloom.exceptions import InvalidTransitionError, NotFoundError, RepairEligibilityError
 from plotloom.jobs import LifecycleJobRunner
 from plotloom.pipeline import (
     PipelineEngine,
     RunSecretBroker,
     SnapshotTextProviderResolver,
 )
-from plotloom.persistence import stable_hash
+from plotloom.persistence import GenerationWorkUnitRow, stable_hash
 from plotloom.providers import ProviderPorts
 from plotloom.runtime import RunContext
 
@@ -1292,53 +1292,195 @@ def test_prompt_persistence_failure_prevents_provider_spend(
     assert "unspent-secret" not in trace.model_dump_json()
 
 
-def test_work_unit_quarantine_installs_no_heads_and_requires_an_explicit_rebuild(
+def test_exact_work_unit_repair_reexecutes_only_the_failed_shard_and_commits_atomically(
     repository,
     brief,
+    monkeypatch,
 ) -> None:
     project = repository.create_project(brief)
-    bible = all_stage_payloads()[0]
-    initial_provider = QueueProvider([*_responses(bible), "{}"])
-    initial_resolver = RecordingResolver(initial_provider)
-    secrets = RunSecretBroker("server-secret")
-    parent = repository.create_run(
+    source = repository.create_run(
         project.id,
         RunKind.PIPELINE,
         STAGE_ORDER,
         provider_snapshot={"textModel": "fixture-model"},
     )
+    topology = repository.get_story_graph_topology(source.id)
+    assert topology is not None
+    complete_responses = _work_unit_responses(topology, brief)
+    # Scene Beats is deliberately split by graph node.  Fail the final shard:
+    # all earlier shards become frozen sibling evidence that an exact child
+    # must bind locally rather than send to the provider again.
+    scene_unit_count = len(topology.nodes)
+    assert scene_unit_count > 1
+    failed_response_index = 1 + 1 + scene_unit_count - 1
+    initial_provider = QueueProvider(
+        [*complete_responses[:failed_response_index], "{}"]
+    )
+    initial_resolver = RecordingResolver(initial_provider)
+    secrets = RunSecretBroker("server-secret")
 
     quarantined = _run(
         repository,
         PipelineEngine(repository, initial_resolver, secrets),
         secrets,
-        parent.id,
+        source.id,
     )
 
     assert quarantined.status == RunStatus.QUARANTINED
     assert all(repository.get_stage_head(project.id, stage).revision == 0 for stage in STAGE_ORDER)
-    parent_trace = repository.get_run_trace(parent.id)
-    assert [attempt.stage for attempt in parent_trace.attempts] == [
-        StageName.STORY_BIBLE,
-        StageName.STORY_GRAPH,
+    parent_trace_before = repository.get_run_trace(source.id)
+    failed_attempt = parent_trace_before.attempts[-1]
+    assert failed_attempt.stage == StageName.SCENE_BEATS
+    assert failed_attempt.status == AttemptStatus.FAILED
+    assert failed_attempt.work_unit_id is not None
+    assert [
+        item for item in parent_trace_before.attempts if item.stage == StageName.SCENE_BEATS
+    ][-1].work_unit_id == failed_attempt.work_unit_id
+    parent_run_before = parent_trace_before.run.model_dump(mode="json")
+    parent_attempts_before = [
+        item.model_dump(mode="json") for item in parent_trace_before.attempts
     ]
-    assert parent_trace.attempts[-1].status == AttemptStatus.FAILED
-    assert parent_trace.attempts[-1].work_unit_id is not None
+    parent_artifacts_before = [
+        item.model_dump(mode="json") for item in parent_trace_before.artifacts
+    ]
 
-    with pytest.raises(InvalidTransitionError, match="exact work-unit repair"):
-        repository.create_repair_run(
-            parent.id,
-            provider_snapshot={"textModel": "repair-model"},
-        )
-
-    rebuild = repository.create_run(
-        project.id,
-        RunKind.REBUILD,
-        STAGE_ORDER[1:],
-        provider_snapshot={"textModel": "rebuild-model"},
+    repair_creation = repository.create_work_unit_repair_run(
+        source.id,
+        failed_attempt.work_unit_id,
+        idempotency_key="exact-scene-shard-repair",
     )
-    assert rebuild.requested_stages == list(STAGE_ORDER[1:])
-    assert all(repository.get_stage_head(project.id, stage).revision == 0 for stage in STAGE_ORDER)
+    repair = repair_creation.run
+    assert repair_creation.created is True
+    scope = repository.get_work_unit_repair_scope(repair.id)
+    assert scope.parent_run_id == source.id
+    assert scope.target_work_unit_id == failed_attempt.work_unit_id
+    # The first response repairs the quarantined scene fragment.  Every
+    # remaining response is for a newly planned Storyboard unit; Bible, Graph,
+    # and the successful Scene Beats siblings are all child-local reuses.
+    repair_provider = QueueProvider(
+        [
+            complete_responses[failed_response_index],
+            *complete_responses[failed_response_index + 1 :],
+        ]
+    )
+    engine = PipelineEngine(repository, RecordingResolver(repair_provider), secrets)
+    original_repair_seal = repository.seal_repair_stage_aggregate
+
+    def lose_process_after_target_candidate(child_run_id, stage, **kwargs):
+        if child_run_id == repair.id and stage == StageName.SCENE_BEATS:
+            raise SimulatedProcessLoss()
+        return original_repair_seal(child_run_id, stage, **kwargs)
+
+    # Model a hard restart after the target candidate has committed but before
+    # its repair-stage aggregate can seal.  Recovery must aggregate that exact
+    # candidate, not issue a second provider request for the same shard.
+    monkeypatch.setattr(
+        repository,
+        "seal_repair_stage_aggregate",
+        lose_process_after_target_candidate,
+    )
+    with pytest.raises(SimulatedProcessLoss):
+        engine.execute(
+            repository.start_run(repair.id),
+            RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
+            Event(),
+        )
+    assert len(repair_provider.requests) == 1
+    monkeypatch.setattr(repository, "seal_repair_stage_aggregate", original_repair_seal)
+    recovery = repository.reconcile_startup_jobs()
+    assert recovery.resubmit_run_ids == [repair.id]
+    completed = _run(repository, engine, secrets, repair.id)
+
+    assert completed.status == RunStatus.SUCCEEDED, completed.error
+    parent_trace_after = repository.get_run_trace(source.id)
+    # snapshotIsCurrent is deliberately derived from the project heads, so it
+    # changes when the child atomically installs output.  The parent evidence
+    # itself must remain byte-for-byte/model-for-model unchanged.
+    assert parent_trace_after.run.model_dump(mode="json") == parent_run_before
+    assert [item.model_dump(mode="json") for item in parent_trace_after.attempts] == (
+        parent_attempts_before
+    )
+    assert [item.model_dump(mode="json") for item in parent_trace_after.artifacts] == (
+        parent_artifacts_before
+    )
+    child_trace = repository.get_run_trace(repair.id)
+    assert [attempt.stage for attempt in child_trace.attempts] == [
+        StageName.SCENE_BEATS,
+        *([StageName.STORYBOARD] * scene_unit_count),
+    ]
+    assert len(repair_provider.requests) == 1 + scene_unit_count
+    reused_scene_candidates = [
+        artifact
+        for artifact in child_trace.artifacts
+        if artifact.stage == StageName.SCENE_BEATS
+        and artifact.kind == ArtifactKind.CANDIDATE
+        and artifact.source_artifact_id is not None
+    ]
+    assert len(reused_scene_candidates) == scene_unit_count - 1
+    assert all(
+        repository.get_stage_head(project.id, stage).revision == 1
+        for stage in STAGE_ORDER
+    )
+
+
+def test_exact_repair_rejects_an_upstream_child_selector_drift(repository, brief) -> None:
+    project = repository.create_project(brief)
+    source = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        STAGE_ORDER,
+        provider_snapshot={"textModel": "fixture-model"},
+    )
+    topology = repository.get_story_graph_topology(source.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    scene_unit_count = len(topology.nodes)
+    failed_response_index = 1 + 1 + scene_unit_count - 1
+    quarantined = _run(
+        repository,
+        PipelineEngine(
+            repository,
+            RecordingResolver(QueueProvider([*responses[:failed_response_index], "{}"])),
+            RunSecretBroker("source-secret"),
+        ),
+        RunSecretBroker("source-secret"),
+        source.id,
+    )
+    assert quarantined.status == RunStatus.QUARANTINED
+    failed = repository.get_run_trace(source.id).attempts[-1]
+    assert failed.work_unit_id is not None
+    child = repository.create_work_unit_repair_run(
+        source.id,
+        failed.work_unit_id,
+        idempotency_key="upstream-selector-drift",
+    ).run
+    repository.start_run(child.id)
+    repository.get_or_create_repair_stage_plan(child.id, StageName.STORY_BIBLE)
+    original = repository.list_generation_work_units(child.id)[0]
+    with repository._write() as session:
+        original_row = session.get(GenerationWorkUnitRow, original.id)
+        assert original_row is not None
+        session.add(
+            GenerationWorkUnitRow(
+                id=f"{original.id}-planner-drift",
+                run_id=child.id,
+                stage_plan_id=original.stage_plan_id,
+                stage=original.stage,
+                sequence=9_999,
+                selector={"kind": "whole_stage", "stable_id": "unexpected-upstream-selector"},
+                generation_plan_hash=original_row.generation_plan_hash,
+                dependency_hash=original_row.dependency_hash,
+                unit_dependency_hash=original_row.unit_dependency_hash,
+                input_hash=original_row.input_hash,
+                budget=original_row.budget,
+                estimated_input_tokens=original_row.estimated_input_tokens,
+                context_window_tokens=original_row.context_window_tokens,
+                status=WorkUnitStatus.QUEUED.value,
+                created_at=original_row.created_at,
+            )
+        )
+    with pytest.raises(RepairEligibilityError, match="repair.scope_hash_mismatch"):
+        repository.prepare_repair_stage_reuse(child.id, StageName.STORY_BIBLE)
 
 
 def test_legacy_unbound_repair_remains_compatible(
@@ -1395,6 +1537,48 @@ def test_legacy_unbound_repair_remains_compatible(
     assert "修复" in repair_provider.requests[0].messages[0].content
     assert repository.get_stage_payload(project.id, StageName.STORY_BIBLE) == bible
     assert "legacy-repair-secret" not in repository.get_run_trace(repair.id).model_dump_json()
+
+
+def test_exact_scope_link_never_falls_back_to_legacy_repair(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    """A corrupt exact child must fail before any legacy/provider path runs."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE],
+        provider_snapshot={"textModel": "fixture-model"},
+    )
+    # A small constructed exact child is sufficient here: PipelineEngine must
+    # inspect its durable scope-link before interpreting repairSource.
+    exact = run.model_copy(
+        update={
+            "id": "exact-scope-link-test",
+            "kind": RunKind.REPAIR,
+            "parent_run_id": run.id,
+            "repair_stage": StageName.STORY_BIBLE,
+            "work_unit_repair_scope_id": "exact-scope-link-test",
+            "repair_source": None,
+        }
+    )
+    provider = QueueProvider(_responses(all_stage_payloads()[0]))
+    secrets = RunSecretBroker("scope-link-secret")
+
+    def missing_scope(_run_id: str):
+        raise NotFoundError("scope row was deleted")
+
+    monkeypatch.setattr(repository, "get_work_unit_repair_scope", missing_scope)
+    with pytest.raises(InvalidTransitionError, match="missing its immutable scope"):
+        PipelineEngine(repository, RecordingResolver(provider), secrets).execute(
+            exact,
+            RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
+            Event(),
+        )
+    assert provider.requests == []
 
 
 def test_preexisting_work_unit_repair_is_rejected_before_provider_dispatch(

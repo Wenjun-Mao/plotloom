@@ -160,6 +160,41 @@ describe("PlotloomApiClient", () => {
     }
   });
 
+  it("uses a secret-free exact work-unit repair payload and the parent frozen profile key", async () => {
+    providerSessionKeys.write("default", "default-secret");
+    providerSessionKeys.write("frozen_quality", "quality-secret");
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "child-run", status: "queued" }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+
+    await client.repairWorkUnit("parent/run", "unit/a b", "frozen_quality", "repair-key");
+
+    const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("/api/v2/runs/parent%2Frun/work-units/unit%2Fa%20b/repairs");
+    expect(new Headers(init.headers).get("Idempotency-Key")).toBe("repair-key");
+    expect(new Headers(init.headers).get("X-Plotloom-Session-API-Key")).toBe("quality-secret");
+    expect(JSON.parse(String(init.body))).toEqual({});
+    expect(String(init.body)).not.toContain("frozen_quality");
+    expect(String(init.body)).not.toContain("quality-secret");
+    expect(String(init.body)).not.toContain("default-secret");
+  });
+
+  it("reads only the lightweight run-progress endpoint during status polling", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      runId: "run-1", status: "running", failureCode: null, failedStage: null,
+      stageProgress: [], workUnits: [], actions: { canResume: false, canCancel: true, canRebuildStage: false, repairEligible: false },
+    }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+
+    const progress = await client.getRunProgress("run/1");
+
+    expect((fetcher.mock.calls[0] as unknown as [string])[0]).toBe("/api/v2/runs/run%2F1/progress");
+    expect(progress).not.toHaveProperty("artifacts");
+    expect(progress).not.toHaveProperty("attempts");
+  });
+
   it("sends profile saves before probes without serializing the profile session key", async () => {
     providerSessionKeys.write("quality", "probe-secret");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ profileId: "quality" }), { status: 200, headers: { "Content-Type": "application/json" } }));

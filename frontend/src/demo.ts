@@ -170,6 +170,7 @@ export const demoRun: PipelineRun = {
   parentRunId: null,
   repairStage: null,
   repairSource: null,
+  workUnitRepairScopeId: null,
   providerSnapshot: {},
   status: "quarantined",
   requestedStages: ["story_bible", "story_graph", "scene_beats", "storyboard"],

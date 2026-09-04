@@ -22,6 +22,7 @@ import type {
   StageEnvelopesResponse,
   StageHead,
   RunExecutionTrace,
+  RunProgress,
   RunTrace,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
@@ -187,6 +188,14 @@ export class PlotloomApiClient {
     return this.request(`/runs/${encodeURIComponent(runId)}/execution-trace`);
   }
 
+  /**
+   * High-frequency status projection. This endpoint intentionally contains no
+   * prompt, provider-response, validation-payload, or artifact content.
+   */
+  getRunProgress(runId: string): Promise<RunProgress> {
+    return this.request(`/runs/${encodeURIComponent(runId)}/progress`);
+  }
+
   resumeRun(runId: string, providerProfileId: string, includeSessionKey = true): Promise<PipelineRun> {
     return this.request(
       `/runs/${encodeURIComponent(runId)}/resume`,
@@ -211,6 +220,29 @@ export class PlotloomApiClient {
       method: "POST",
       body: JSON.stringify({ stage, instructions, providerProfileId }),
     }, includeSessionKey, providerProfileId);
+  }
+
+  /**
+   * Exact work-unit repair inherits the parent run's frozen profile. The
+   * request body is deliberately secret-free and cannot switch profile.
+   */
+  repairWorkUnit(
+    runId: string,
+    workUnitId: string,
+    frozenProfileId: string,
+    idempotencyKey: string,
+    includeSessionKey = true,
+  ): Promise<PipelineRun> {
+    return this.request(
+      `/runs/${encodeURIComponent(runId)}/work-units/${encodeURIComponent(workUnitId)}/repairs`,
+      {
+        method: "POST",
+        headers: { "Idempotency-Key": idempotencyKey },
+        body: "{}",
+      },
+      includeSessionKey,
+      frozenProfileId,
+    );
   }
 
   startMediaTask(projectId: string, shotId: string, kind: MediaKind, publicSettings?: Record<string, unknown>): Promise<MediaTask> {

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../src/App";
 import { ApiError, plotloomApi } from "../src/api";
 import { defaultProviderSettings, demoProject, demoRun } from "../src/demo";
-import type { MediaTask, ProjectCreationResponse, ProjectListItem, ProjectResource, RunTrace, ServerStageName, StageEnvelope } from "../src/types";
+import type { MediaTask, ProjectCreationResponse, ProjectListItem, ProjectResource, RunProgress, RunTrace, ServerStageName, StageEnvelope } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -714,7 +714,7 @@ describe("App project/editor rehydration", () => {
     expect(document.body.textContent).toContain("项目简报");
   });
 
-  it("restores the newest quarantined run, its trace evidence, and repair context after refresh", async () => {
+  it("restores quarantined work-unit status without loading evidence until the trace page opens", async () => {
     window.history.replaceState(null, "", "/?project=restore-project");
     const incoming = resource("restore-project", "恢复项目");
     const run = { ...demoRun, id: "run-restored", projectId: incoming.id, status: "quarantined" as const, requestedStages: ["story_bible" as const] };
@@ -730,15 +730,28 @@ describe("App project/editor rehydration", () => {
     vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
     vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
     vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({ runs: [run] });
-    vi.spyOn(plotloomApi, "getTrace").mockResolvedValue(trace);
+    const progress: RunProgress = {
+      runId: run.id, status: "quarantined", failureCode: "schema_invalid", failedStage: "story_bible", stageProgress: [],
+      workUnits: [{
+        workUnitId: "unit-restored", stage: "story_bible", sequence: 1, status: "quarantined", maxAttempts: 3,
+        latestAttempt: { attemptId: "attempt-restored", attemptNumber: 3, attemptKind: "correction", sourceAttemptId: "attempt-2", status: "failed", outcomeCode: "schema_invalid", outcomeUnknown: false, startedAt: "2026-08-30T00:00:00Z", finishedAt: "2026-08-30T00:00:01Z", inputTokens: 10, outputTokens: 20, durationMs: 1000 },
+        sealed: false, repairEligible: true, repairReasonCode: null,
+      }],
+      actions: { canResume: false, canCancel: false, canRebuildStage: true, repairEligible: true },
+    };
+    vi.spyOn(plotloomApi, "getRunProgress").mockResolvedValue(progress);
+    const getTrace = vi.spyOn(plotloomApi, "getTrace").mockResolvedValue(trace);
 
     await act(async () => root.render(createElement(App)));
     await flush();
     await act(async () => button("隔离修复").click());
 
-    expect(document.body.textContent).toContain("刷新后仍可见的合同错误");
-    expect(document.body.textContent).toContain("提交修复");
+    expect(getTrace).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("unit-restored");
+    expect(document.body.textContent).toContain("修复这个 work unit");
     await act(async () => button("运行轨迹").click());
+    await flush();
+    expect(getTrace).toHaveBeenCalledWith("run-restored");
     expect(document.body.textContent).toContain("run-restored");
     await act(async () => button("Payload").click());
     expect(document.body.textContent).toContain("missing premise");
@@ -752,6 +765,15 @@ describe("App project/editor rehydration", () => {
     vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
     vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
     vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({ runs: [runTwo, runOne] });
+    vi.spyOn(plotloomApi, "getRunProgress").mockImplementation(async (runId) => ({
+      runId,
+      status: runId === runOne.id ? "succeeded" : "quarantined",
+      failureCode: null,
+      failedStage: null,
+      stageProgress: [],
+      workUnits: [],
+      actions: { canResume: false, canCancel: false, canRebuildStage: false, repairEligible: false },
+    }));
     const getTrace = vi.spyOn(plotloomApi, "getTrace").mockImplementation(async (runId) => ({
       run: runId === runOne.id ? runOne : runTwo,
       attempts: [], artifacts: [], snapshotIsCurrent: true,
@@ -760,6 +782,11 @@ describe("App project/editor rehydration", () => {
     await act(async () => root.render(createElement(App)));
     await flush();
     expect(document.body.textContent).toContain("run-one");
+    expect(getTrace).toHaveBeenCalledTimes(1);
+    await flush();
+    // A valid but empty provenance response is still a loaded response.
+    // Do not spin on it merely because the rendered event list has length 0.
+    expect(getTrace).toHaveBeenCalledTimes(1);
 
     window.history.replaceState(null, "", "/?project=history-project&stage=trace&run=run-two");
     await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
@@ -767,6 +794,26 @@ describe("App project/editor rehydration", () => {
 
     expect(getTrace).toHaveBeenCalledWith("run-two");
     expect(document.body.textContent).toContain("run-two");
+  });
+
+  it("loads latest-run provenance when a trace URL omits an explicit run id", async () => {
+    window.history.replaceState(null, "", "/?project=implicit-run-project&stage=trace");
+    const incoming = resource("implicit-run-project", "默认运行项目");
+    const latest = { ...demoRun, id: "latest-run", projectId: incoming.id, status: "succeeded" as const };
+    vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
+    vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
+    vi.spyOn(plotloomApi, "getProjectRuns").mockResolvedValue({ runs: [latest] });
+    vi.spyOn(plotloomApi, "getRunProgress").mockResolvedValue({
+      runId: latest.id, status: "succeeded", failureCode: null, failedStage: null, stageProgress: [], workUnits: [],
+      actions: { canResume: false, canCancel: false, canRebuildStage: false, repairEligible: false },
+    });
+    const getTrace = vi.spyOn(plotloomApi, "getTrace").mockResolvedValue({ run: latest, attempts: [], artifacts: [], snapshotIsCurrent: true });
+
+    await act(async () => root.render(createElement(App)));
+    await flush();
+
+    expect(getTrace).toHaveBeenCalledWith("latest-run");
+    expect(document.body.textContent).toContain("latest-run");
   });
 
   it("rehydrates a succeeded keyframe and passes it as the required video source", async () => {

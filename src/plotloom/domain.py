@@ -143,6 +143,13 @@ class WorkUnitFailureDisposition(str, Enum):
     QUARANTINED = "quarantined"
 
 
+class FragmentReuseKind(str, Enum):
+    """Why a child repair run can reuse a verified parent fragment."""
+
+    UPSTREAM = "upstream"
+    SIBLING = "sibling"
+
+
 class StoryNodeKind(str, Enum):
     START = "start"
     SCENE = "scene"
@@ -547,6 +554,7 @@ class GenerationRun(CamelModel):
     parent_run_id: str | None = None
     repair_stage: StageName | None = None
     repair_source: RepairSource | None = None
+    work_unit_repair_scope_id: str | None = None
     provider_snapshot: dict[str, Any] = Field(default_factory=dict)
     requested_stages: list[StageName]
     status: RunStatus = RunStatus.QUEUED
@@ -585,6 +593,10 @@ class GenerationRun(CamelModel):
                 raise ValueError("repair runs require parentRunId and repairStage")
             if self.repair_stage not in self.requested_stages:
                 raise ValueError("repairStage must belong to requestedStages")
+            if self.work_unit_repair_scope_id is not None:
+                if self.repair_source is not None:
+                    raise ValueError("exact work-unit repairs cannot carry legacy repairSource")
+                return self
             if self.repair_source is None:
                 if self.status not in TERMINAL_RUN_STATUSES:
                     raise ValueError("non-terminal repair runs require repairSource")
@@ -594,7 +606,12 @@ class GenerationRun(CamelModel):
             expected_reused = set(self.requested_stages[:repair_index])
             if reused_stages != expected_reused:
                 raise ValueError("repairSource must freeze one candidate for every reused requested stage")
-        elif self.parent_run_id is not None or self.repair_stage is not None or self.repair_source is not None:
+        elif (
+            self.parent_run_id is not None
+            or self.repair_stage is not None
+            or self.repair_source is not None
+            or self.work_unit_repair_scope_id is not None
+        ):
             raise ValueError("only repair runs may carry repair lineage")
         return self
 
@@ -920,6 +937,161 @@ class GenerationWorkUnitTrace(CamelModel):
     estimated_input_tokens: Annotated[int, Field(ge=0)]
     context_window_tokens: Annotated[int, Field(ge=1)]
     status: WorkUnitStatus
+
+
+class FrozenFragmentReuseSource(CamelModel):
+    """One parent candidate frozen into an exact repair scope.
+
+    This is deliberately metadata-only.  The candidate and its complete
+    producer evidence remain immutable artifacts owned by the parent run;
+    a child may only create a separately-owned, trusted re-binding through a
+    corresponding :class:`FragmentReuseBinding`.
+    """
+
+    kind: FragmentReuseKind
+    stage: StageName
+    source_work_unit_id: str = Field(min_length=1)
+    source_stage_plan_id: str = Field(min_length=1)
+    source_stage_plan_hash: str = Field(min_length=1)
+    source_generation_plan_hash: str = Field(min_length=1)
+    source_selector: dict[str, Any]
+    source_dependency_hash: str = Field(min_length=1)
+    source_unit_dependency_hash: str = Field(min_length=1)
+    source_input_hash: str = Field(min_length=1)
+    source_producer_attempt_id: str = Field(min_length=1)
+    source_response_artifact_id: str = Field(min_length=1)
+    source_validation_artifact_id: str = Field(min_length=1)
+    source_candidate_artifact_id: str = Field(min_length=1)
+    source_candidate_content_hash: str = Field(min_length=1)
+
+
+class WorkUnitRepairScope(CamelModel):
+    """Immutable evidence and contract boundary for one exact child repair."""
+
+    child_run_id: str = Field(min_length=1)
+    parent_run_id: str = Field(min_length=1)
+    target_work_unit_id: str = Field(min_length=1)
+    stage: StageName
+    source_generation_plan_hash: str = Field(min_length=1)
+    source_provider_profile_hash: str = Field(min_length=1)
+    source_story_graph_topology_hash: str | None = None
+    source_stage_plan_id: str = Field(min_length=1)
+    source_stage_plan_hash: str = Field(min_length=1)
+    source_canonical_snapshot_hash: str = Field(min_length=1)
+    target_selector: dict[str, Any]
+    target_dependency_hash: str = Field(min_length=1)
+    target_unit_dependency_hash: str = Field(min_length=1)
+    target_input_hash: str = Field(min_length=1)
+    failed_attempt_id: str = Field(min_length=1)
+    response_artifact_id: str = Field(min_length=1)
+    validation_artifact_id: str = Field(min_length=1)
+    reuse_sources: list[FrozenFragmentReuseSource] = Field(default_factory=list)
+    scope_hash: str = Field(min_length=1)
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class FragmentReuseBinding(CamelModel):
+    """Immutable parent-to-child fragment mapping used only by exact repair."""
+
+    id: str = Field(min_length=1)
+    child_run_id: str = Field(min_length=1)
+    child_stage_plan_id: str = Field(min_length=1)
+    child_stage_plan_hash: str = Field(min_length=1)
+    child_work_unit_id: str = Field(min_length=1)
+    stage: StageName
+    kind: FragmentReuseKind
+    source_run_id: str = Field(min_length=1)
+    source_work_unit_id: str = Field(min_length=1)
+    source_stage_plan_id: str = Field(min_length=1)
+    source_candidate_artifact_id: str = Field(min_length=1)
+    source_candidate_content_hash: str = Field(min_length=1)
+    source_stage_plan_hash: str = Field(min_length=1)
+    source_selector: dict[str, Any]
+    source_dependency_hash: str = Field(min_length=1)
+    source_unit_dependency_hash: str = Field(min_length=1)
+    source_input_hash: str = Field(min_length=1)
+    source_producer_attempt_id: str = Field(min_length=1)
+    source_response_artifact_id: str = Field(min_length=1)
+    source_validation_artifact_id: str = Field(min_length=1)
+    child_selector: dict[str, Any]
+    child_dependency_hash: str = Field(min_length=1)
+    child_unit_dependency_hash: str = Field(min_length=1)
+    child_input_hash: str = Field(min_length=1)
+    binding_hash: str = Field(min_length=1)
+    created_at: datetime = Field(default_factory=utc_now)
+
+
+class WorkUnitRepairEligibility(CamelModel):
+    """Secret-free server decision; callers never infer repair eligibility."""
+
+    work_unit_id: str = Field(min_length=1)
+    stage: StageName
+    eligible: bool
+    reason_code: str | None = None
+
+
+class WorkUnitRepairRunCreation(CamelModel):
+    """Atomic idempotency result; only a newly-created child may be scheduled."""
+
+    run: GenerationRun
+    created: bool
+
+
+class RunProgressAttempt(CamelModel):
+    attempt_id: str
+    attempt_number: Annotated[int, Field(ge=1)]
+    attempt_kind: GenerationAttemptKind
+    source_attempt_id: str | None = None
+    status: AttemptStatus
+    outcome_code: str | None = None
+    outcome_unknown: bool = False
+    input_tokens: int | None = Field(default=None, ge=0)
+    output_tokens: int | None = Field(default=None, ge=0)
+    duration_ms: int | None = Field(default=None, ge=0)
+    started_at: datetime
+    finished_at: datetime | None = None
+
+
+class RunProgressUnit(CamelModel):
+    work_unit_id: str
+    stage: StageName
+    sequence: Annotated[int, Field(ge=1)]
+    status: WorkUnitStatus
+    max_attempts: Annotated[int, Field(ge=1)]
+    latest_attempt: RunProgressAttempt | None = None
+    sealed: bool
+    repair_eligible: bool
+    repair_reason_code: str | None = None
+
+
+class RunProgressStage(CamelModel):
+    stage: StageName
+    stage_plan_id: str | None = None
+    stage_plan_hash: str | None = None
+    sealed: bool
+    unit_count: Annotated[int, Field(ge=0)]
+    completed_unit_count: Annotated[int, Field(ge=0)]
+    quarantined_unit_count: Annotated[int, Field(ge=0)]
+    repair_eligible_unit_ids: list[str] = Field(default_factory=list)
+
+
+class RunProgressActions(CamelModel):
+    can_resume: bool
+    can_cancel: bool
+    can_rebuild_stage: bool
+    repair_eligible: bool
+
+
+class RunProgress(CamelModel):
+    """Small polling projection; never includes prompt, response, or payload."""
+
+    run_id: str
+    status: RunStatus
+    failure_code: str | None = None
+    failed_stage: StageName | None = None
+    stage_progress: list[RunProgressStage] = Field(default_factory=list)
+    work_units: list[RunProgressUnit] = Field(default_factory=list)
+    actions: RunProgressActions
 
 
 class SealedStageAggregateTrace(CamelModel):

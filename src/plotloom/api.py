@@ -34,6 +34,7 @@ from .domain import (
     ProviderSnapshot,
     RunKind,
     RunExecutionTrace,
+    RunProgress,
     RunTrace,
     StageEnvelope,
     StageHead,
@@ -51,6 +52,7 @@ from .exceptions import (
     LifecycleContentionError,
     NotFoundError,
     ProjectBusyError,
+    RepairEligibilityError,
     RevisionConflictError,
     StagePrerequisiteError,
 )
@@ -208,6 +210,15 @@ class RepairRequest(CamelModel):
     stage: StageName | None = None
     instructions: str | None = None
     provider_profile_id: str | None = Field(default=None, pattern=PROFILE_ID_PATTERN)
+
+
+class ExactWorkUnitRepairRequest(CamelModel):
+    """A deliberately empty command body.
+
+    Exact repair replays the frozen author/model contract for one rejected
+    work unit. New guidance belongs to the separate whole-stage rebuild flow;
+    accepting it here would silently change the target input hash.
+    """
 
 
 class TextProviderProfileView(CamelModel):
@@ -673,6 +684,15 @@ def create_app(
     async def transition_handler(_request: Request, error: InvalidTransitionError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"code": "invalid_transition", "message": str(error)})
 
+    @app.exception_handler(RepairEligibilityError)
+    async def repair_eligibility_handler(
+        _request: Request, error: RepairEligibilityError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content={"code": error.code, "message": str(error)},
+        )
+
     @app.exception_handler(ProjectBusyError)
     async def project_busy_handler(_request: Request, error: ProjectBusyError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"code": "project_busy", "message": str(error)})
@@ -857,6 +877,12 @@ def create_app(
 
         return repo.get_run_execution_trace(run_id)
 
+    @app.get("/api/v2/runs/{run_id}/progress", response_model=RunProgress)
+    def get_run_progress(run_id: str) -> RunProgress:
+        """Return bounded polling state without prompt or response evidence."""
+
+        return repo.get_run_progress(run_id)
+
     @app.post(
         "/api/v2/runs/{run_id}/resume",
         response_model=GenerationRun,
@@ -905,6 +931,7 @@ def create_app(
         "/api/v2/runs/{run_id}/repairs",
         response_model=GenerationRun,
         status_code=status.HTTP_202_ACCEPTED,
+        deprecated=True,
     )
     def create_repair(run_id: str, body: RepairRequest, request: Request) -> GenerationRun:
         snapshot = provider_snapshot(body.provider_profile_id)
@@ -918,6 +945,37 @@ def create_app(
         )
         submit_text_run(run, request)
         return run
+
+    @app.post(
+        "/api/v2/runs/{run_id}/work-units/{work_unit_id}/repairs",
+        response_model=GenerationRun,
+        status_code=status.HTTP_202_ACCEPTED,
+    )
+    def create_exact_work_unit_repair(
+        run_id: str,
+        work_unit_id: str,
+        _body: ExactWorkUnitRepairRequest,
+        request: Request,
+        idempotency_key: Annotated[
+            str,
+            Header(alias="Idempotency-Key", min_length=1, max_length=255),
+        ],
+    ) -> GenerationRun:
+        # Validate credentials against the source run's frozen profile before
+        # creating a durable child. The active UI profile is not authority.
+        source = repo.get_run(run_id)
+        if run_scheduler is not None:
+            text_submission_session_key(source.provider_snapshot, request)
+        normalized_key = _normalize_idempotency_key(idempotency_key)
+        assert normalized_key is not None
+        creation = repo.create_work_unit_repair_run(
+            run_id,
+            work_unit_id,
+            idempotency_key=normalized_key,
+        )
+        if creation.created:
+            submit_text_run(creation.run, request)
+        return creation.run
 
     @app.post(
         "/api/v2/projects/{project_id}/shots/{shot_id}/media-tasks",
