@@ -3,11 +3,11 @@ from __future__ import annotations
 import pytest
 
 from plotloom.domain import (
+    StoryBibleV2,
+    SceneBeatPlanV2,
+    StoryGraphV2,
     ProjectBrief,
-    SceneBeatPlan,
     StageName,
-    StoryBible,
-    StoryGraph,
 )
 from plotloom.generation.validation import (
     CanonicalStageValidationAdapter,
@@ -26,6 +26,14 @@ def _brief() -> ProjectBrief:
     )
 
 
+def _bible() -> StoryBibleV2:
+    return StoryBibleV2(
+        logline="失忆", premise="寻找身份", genre="", tone="", audience="",
+        narrative_promise="", visual_language="", themes=[], world_rules=[],
+        known_facts=[], open_questions=[], source_notes=[], characters=[], locations=[], props=[],
+    )
+
+
 def test_canonical_stage_schema_uses_wire_aliases_and_required_shot_fields() -> None:
     bible_adapter = CanonicalStageValidationAdapter(StageName.STORY_BIBLE, brief=_brief())
     bible_schema = bible_adapter.json_schema()
@@ -35,18 +43,18 @@ def test_canonical_stage_schema_uses_wire_aliases_and_required_shot_fields() -> 
     storyboard_adapter = CanonicalStageValidationAdapter(
         StageName.STORYBOARD,
         brief=_brief(),
-        bible=StoryBible(logline="失忆", premise="寻找身份"),
-        scene_beats=SceneBeatPlan(),
+        bible=_bible(),
+        scene_beats=SceneBeatPlanV2(scenes=[], beats=[], dialogue_cues=[]),
     )
     shot_schema = storyboard_adapter.json_schema()["properties"]["shots"]["items"][
         "properties"
     ]
-    for field in ("audio", "transition", "visualIntent", "motionIntent"):
+    for field in ("audioPlan", "cueIds", "requiredEntityStates", "transition", "visualIntent", "motionIntent"):
         assert field in shot_schema
     required = storyboard_adapter.json_schema()["properties"]["shots"]["items"][
         "required"
     ]
-    for field in ("audio", "transition", "visualIntent", "motionIntent"):
+    for field in ("audioPlan", "cueIds", "requiredEntityStates", "transition", "visualIntent", "motionIntent"):
         assert field in required
 
     missing_generated_fields = storyboard_adapter.validate(
@@ -58,7 +66,7 @@ def test_canonical_stage_schema_uses_wire_aliases_and_required_shot_fields() -> 
                     "order": 1,
                     "title": "镜头",
                     "shotSize": "close_up",
-                    "durationSeconds": 2,
+                    "durationUnits": 2,
                 }
             ],
             "shotBeatLinks": [],
@@ -68,7 +76,9 @@ def test_canonical_stage_schema_uses_wire_aliases_and_required_shot_fields() -> 
     assert missing_generated_fields.accepted is False
     missing_names = {issue.path[-1] for issue in missing_generated_fields.issues}
     assert {
-        "audio",
+        "audioPlan",
+        "cueIds",
+        "requiredEntityStates",
         "transition",
         "visualIntent",
         "motionIntent",
@@ -118,7 +128,7 @@ def test_canonical_adapter_applies_semantic_validation_after_schema() -> None:
         context=SemanticValidationContext(stage="story_graph"),
     )
     assert accepted.accepted is True
-    assert isinstance(accepted.value, StoryGraph)
+    assert isinstance(accepted.value, StoryGraphV2)
 
 
 def test_canonical_adapter_requires_upstream_context() -> None:

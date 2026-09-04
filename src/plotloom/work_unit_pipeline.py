@@ -24,7 +24,7 @@ from .domain import (
     ProviderSnapshot,
     RunStatus,
     StageName,
-    StagePayload,
+    StagePayloadV2,
     WorkUnitRepairScope,
     WorkUnitFailureDisposition,
     stage_payload_model,
@@ -115,7 +115,7 @@ class DurableWorkUnitRunner:
         generation_plan = self.repository.get_generation_plan(run.id)
         story_graph_topology = self.repository.get_story_graph_topology(run.id)
         brief = run.canonical_snapshot.brief
-        sealed_payloads: dict[StageName, StagePayload] = {}
+        sealed_payloads: dict[StageName, StagePayloadV2] = {}
         sealed_ids: list[str] = []
         try:
             for stage in run.requested_stages:
@@ -123,7 +123,7 @@ class DurableWorkUnitRunner:
                     return RunExecutionResult(sealed_aggregate_ids=sealed_ids)
                 existing = self._sealed_stage(run.id, stage)
                 if existing is not None:
-                    sealed_payloads[stage] = stage_payload_model(stage).model_validate(
+                    sealed_payloads[stage] = stage_payload_model(stage, schema_version=2).model_validate(
                         existing.payload
                     )
                     sealed_ids.append(existing.id)
@@ -227,7 +227,7 @@ class DurableWorkUnitRunner:
                         stage,
                         candidate_artifact_ids=candidate_artifact_ids,
                     )
-                sealed_payloads[stage] = stage_payload_model(stage).model_validate(
+                sealed_payloads[stage] = stage_payload_model(stage, schema_version=2).model_validate(
                     aggregate.payload
                 )
                 sealed_ids.append(aggregate.id)
@@ -274,7 +274,7 @@ class DurableWorkUnitRunner:
         generation_plan: Any,
         stage_plan: StagePlan,
         work_unit_id: str,
-        dependencies: Mapping[StageName, StagePayload],
+        dependencies: Mapping[StageName, StagePayloadV2],
         brief: ProjectBrief,
         adapter: ProviderAdapter,
         model: str,
@@ -1080,10 +1080,10 @@ class DurableWorkUnitRunner:
         self,
         run: GenerationRun,
         stage: StageName,
-        sealed_payloads: Mapping[StageName, StagePayload],
+        sealed_payloads: Mapping[StageName, StagePayloadV2],
         *,
         repair_scope: WorkUnitRepairScope | None = None,
-    ) -> dict[StageName, StagePayload]:
+    ) -> dict[StageName, StagePayloadV2]:
         if repair_scope is not None:
             # The target stage may depend on parent-run output that was sealed
             # but never canonically installed after quarantine.  Only the
@@ -1094,7 +1094,7 @@ class DurableWorkUnitRunner:
                 stage,
             )
         ordered = (StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS, StageName.STORYBOARD)
-        dependencies: dict[StageName, StagePayload] = {}
+        dependencies: dict[StageName, StagePayloadV2] = {}
         requested = set(run.requested_stages)
         for upstream in ordered[: ordered.index(stage)]:
             if upstream in requested:
@@ -1111,7 +1111,7 @@ class DurableWorkUnitRunner:
         run: GenerationRun,
         stage: StageName,
         *,
-        dependencies: Mapping[StageName, StagePayload],
+        dependencies: Mapping[StageName, StagePayloadV2],
         repair_scope: WorkUnitRepairScope | None,
     ) -> StagePlan:
         """Obtain an immutable plan without giving repair callers authority.

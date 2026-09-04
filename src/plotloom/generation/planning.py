@@ -15,9 +15,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..domain import (
     STAGE_ORDER,
-    SceneBeatPlan,
+    SceneBeatPlanV2,
     StageName,
-    StoryGraph,
+    StoryGraphV2,
 )
 from .prompts import canonical_json, sha256_text
 
@@ -534,7 +534,7 @@ def _selectors_for_stage(
         return (WorkUnitSelector(kind=WorkUnitSelectorKind.WHOLE_STAGE, stable_id=stage.value),)
     if stage == StageName.SCENE_BEATS:
         graph = dependencies[StageName.STORY_GRAPH]
-        if not isinstance(graph, StoryGraph):
+        if not isinstance(graph, StoryGraphV2):
             raise PlanningError("scene_beats planning requires a parsed StoryGraph")
         return tuple(
             WorkUnitSelector(kind=WorkUnitSelectorKind.STORY_NODE, stable_id=node.id)
@@ -542,7 +542,7 @@ def _selectors_for_stage(
         )
     scene_beats = dependencies[StageName.SCENE_BEATS]
     graph = dependencies[StageName.STORY_GRAPH]
-    if not isinstance(scene_beats, SceneBeatPlan) or not isinstance(graph, StoryGraph):
+    if not isinstance(scene_beats, SceneBeatPlanV2) or not isinstance(graph, StoryGraphV2):
         raise PlanningError("storyboard planning requires parsed StoryGraph and SceneBeatPlan")
     node_position = {node.id: position for position, node in enumerate(graph.nodes)}
     unknown_nodes = sorted(
@@ -559,7 +559,7 @@ def _selectors_for_stage(
         scene
         for _, scene in sorted(
             enumerate(scene_beats.scenes),
-            key=lambda item: (node_position[item[1].story_node_id], item[0]),
+            key=lambda item: (node_position[item[1].story_node_id], item[1].order, item[0]),
         )
     ]
     if not ordered_scenes:
@@ -590,7 +590,7 @@ def _unit_dependency_payload(
     if stage == StageName.STORY_GRAPH:
         return {"story_bible": _json_value(bible)}
     graph = dependencies[StageName.STORY_GRAPH]
-    if not isinstance(graph, StoryGraph):
+    if not isinstance(graph, StoryGraphV2):
         raise PlanningError(f"{stage.value} requires a parsed StoryGraph")
     if stage == StageName.SCENE_BEATS:
         node = next((node for node in graph.nodes if node.id == selector.stable_id), None)
@@ -612,7 +612,7 @@ def _unit_dependency_payload(
             ],
         }
     scene_beats = dependencies[StageName.SCENE_BEATS]
-    if not isinstance(scene_beats, SceneBeatPlan):
+    if not isinstance(scene_beats, SceneBeatPlanV2):
         raise PlanningError("storyboard requires a parsed SceneBeatPlan")
     scene = next((scene for scene in scene_beats.scenes if scene.id == selector.stable_id), None)
     if scene is None:
@@ -628,6 +628,11 @@ def _unit_dependency_payload(
             _json_value(beat)
             for beat in scene_beats.beats
             if beat.scene_id == scene.id
+        ],
+        "dialogue_cues": [
+            _json_value(cue)
+            for cue in scene_beats.dialogue_cues
+            if cue.beat_id in set(scene.beat_ids)
         ],
     }
 

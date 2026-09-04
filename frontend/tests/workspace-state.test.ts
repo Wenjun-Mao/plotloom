@@ -31,6 +31,7 @@ const stages = (payload: unknown = null): StageEnvelope[] => (["story_bible", "s
     status: "missing",
     entityRevisionId: null,
     contentHash: null,
+    schemaVersion: 2,
     inputRevisions: {},
     staleReasons: [],
     updatedAt: "2026-08-30T00:00:00Z",

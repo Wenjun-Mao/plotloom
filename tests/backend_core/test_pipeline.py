@@ -22,6 +22,7 @@ from plotloom.domain import (
     RunKind,
     RunStatus,
     StageName,
+    StoryGraphV2,
     WorkUnitStatus,
 )
 from plotloom.generation.contracts import (
@@ -258,14 +259,18 @@ def _work_unit_responses(
             {
                 "id": join.id,
                 "requiredStateKeys": [],
-                "allowedDifferences": ["route"],
+                "allowedDifferences": [],
                 "reconciliation": "不同路线在此汇合。",
                 "notes": "",
             }
             for join in topology.joins
         ],
     }
-    graph = bind_story_graph_content_fill(topology, graph_fill, brief=brief)
+    graph = StoryGraphV2.model_validate(
+        bind_story_graph_content_fill(topology, graph_fill, brief=brief).model_dump(
+            mode="json", by_alias=True
+        )
+    )
     scene_beats = make_scene_beats(graph)
     scene_id_map: dict[str, str] = {}
     beat_id_map: dict[str, str] = {}
@@ -325,6 +330,7 @@ def _work_unit_responses(
                         for scene in scene_beats.scenes
                     )
                 ],
+                "dialogueCues": [],
             }
         for scene in payload["scenes"]:
             scene.pop("storyNodeId")

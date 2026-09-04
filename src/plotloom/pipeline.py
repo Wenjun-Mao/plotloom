@@ -23,7 +23,6 @@ from .domain import (
     StageName,
     StoryBible,
     StoryGraph,
-    stage_payload_model,
 )
 from .generation.contracts import (
     ExtractionPolicy,
@@ -46,7 +45,12 @@ from .generation.prompts import PromptRenderer
 from .generation.providers import OpenAICompatibleAdapter, ProviderAdapter
 from .generation.secrets import InMemorySecretVault, SecretLease
 from .generation.validation import CanonicalStageValidationAdapter
-from .exceptions import InvalidTransitionError, NotFoundError, QuarantinedOutputError
+from .exceptions import (
+    InvalidTransitionError,
+    NotFoundError,
+    QuarantinedOutputError,
+    SchemaResetRequiredError,
+)
 from .persistence import SQLiteRepository, stable_hash
 from .provider_profiles import TextProviderProfileSnapshot, is_v2_snapshot
 from .runtime import GenerationEngine, RunContext, RunExecutionResult
@@ -547,7 +551,11 @@ class PipelineEngine(GenerationEngine):
                 return StoryGraphFragment.model_validate(source.content).payload, source.id
             except Exception:  # historical candidate payload, not a fragment
                 pass
-        return stage_payload_model(stage).model_validate(source.content), source.id
+        # Historical whole-stage candidates did not record a canonical schema
+        # version. Guessing here could reinterpret V1 free-text dialogue/audio
+        # as the V2 authoring contract, so legacy repair fails closed. The
+        # immutable artifact remains available through the trace for review.
+        raise SchemaResetRequiredError(stage=stage, schema_version=None)
 
     def _repair(
         self,

@@ -8,9 +8,11 @@ from threading import Event
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import MediaKind, MediaTaskStatus
+from plotloom.domain import MediaKind, MediaTask, MediaTaskStatus, ProjectBrief
+from plotloom.exceptions import ProductionPipelineNotReadyError
 from plotloom.media import MediaPollResult, MediaProviderError, MediaSubmission
 from plotloom.media_jobs import MediaJobRunner, MediaTaskSecretBroker
+from plotloom.persistence import MediaTaskRow
 from tests.media_jobs.conftest import make_media_task
 
 
@@ -62,6 +64,110 @@ def test_media_future_cleanup_preserves_newer_mapping(repository) -> None:
         runner.close()
 
 
+@pytest.mark.parametrize("legacy_status", [MediaTaskStatus.QUEUED, MediaTaskStatus.RUNNING])
+def test_runner_never_submits_or_polls_legacy_media_tasks(
+    repository,
+    prepared_project,
+    legacy_status: MediaTaskStatus,
+) -> None:
+    task = make_media_task(
+        repository,
+        prepared_project,
+        MediaKind.IMAGE,
+        provider="openai",
+        public_settings={"imageBaseUrl": "https://api.example/v1"},
+    )
+    with repository._write() as session:
+        row = session.get(MediaTaskRow, task.id)
+        assert row is not None
+        row.status = legacy_status.value
+        row.provider_task_id = "legacy-provider-task" if legacy_status == MediaTaskStatus.RUNNING else None
+        row.started_at = task.created_at if legacy_status == MediaTaskStatus.RUNNING else None
+
+    gateway = ScriptedGateway([], [MediaPollResult("succeeded", ("https://cdn.example/forbidden.png",))])
+    runner = MediaJobRunner(
+        repository,
+        MediaTaskSecretBroker(image_api_key="server-image-key"),
+        gateway=gateway,
+        poll_interval_seconds=0,
+    )
+    try:
+        with pytest.raises(ProductionPipelineNotReadyError):
+            runner.submit(task.id).result(timeout=2)
+    finally:
+        runner.close()
+
+    persisted = repository.get_media_task(task.id)
+    assert persisted.status == legacy_status
+    assert gateway.submit_calls == []
+    assert gateway.poll_calls == []
+
+
+def test_runner_preserves_terminal_legacy_media_without_provider_work(
+    repository,
+) -> None:
+    """Completed historical evidence remains readable after the M2 hard stop."""
+
+    project = repository.create_project(
+        ProjectBrief(title="历史媒体", synopsis="终态证据必须保持只读。")
+    )
+    task = MediaTask(
+        project_id=project.id,
+        shot_id="historical-shot",
+        storyboard_revision=1,
+        kind=MediaKind.IMAGE,
+        derived_prompt="historical prompt",
+        prompt_components={"legacy": True},
+        provider="legacy-provider",
+        public_settings={"imageBaseUrl": "https://api.example/v1"},
+    )
+    output_uri = "https://cdn.example/historical-output.png"
+    with repository._write() as session:
+        session.add(
+            MediaTaskRow(
+                id=task.id,
+                project_id=task.project_id,
+                shot_id=task.shot_id,
+                storyboard_revision=task.storyboard_revision,
+                kind=task.kind.value,
+                status=MediaTaskStatus.SUCCEEDED.value,
+                derived_prompt=task.derived_prompt,
+                prompt_components=task.prompt_components,
+                provider=task.provider,
+                public_settings=task.public_settings,
+                provider_task_id=None,
+                output_uri=output_uri,
+                error=None,
+                created_at=task.created_at,
+                updated_at=task.created_at,
+                started_at=task.created_at,
+                finished_at=task.created_at,
+            )
+        )
+
+    before = repository.get_media_task(task.id)
+    assert repository.list_project_media_tasks(project.id) == [before]
+    gateway = ScriptedGateway([], [MediaPollResult("succeeded", ("https://cdn.example/forbidden.png",))])
+    runner = MediaJobRunner(
+        repository,
+        MediaTaskSecretBroker(image_api_key="server-image-key"),
+        gateway=gateway,
+        poll_interval_seconds=0,
+    )
+    try:
+        returned = runner.submit(task.id).result(timeout=2)
+    finally:
+        runner.close()
+
+    assert returned == before
+    assert returned.status == MediaTaskStatus.SUCCEEDED
+    assert returned.output_uri == output_uri
+    assert repository.get_media_task(task.id) == before
+    assert gateway.submit_calls == []
+    assert gateway.poll_calls == []
+
+
+@pytest.mark.skip(reason="M2 ProductionSnapshot is required before provider execution can resume")
 def test_session_override_beats_server_key_and_neither_is_persisted(
     repository,
     prepared_project,
@@ -108,6 +214,7 @@ def test_session_override_beats_server_key_and_neither_is_persisted(
     assert gateway.submit_calls[0]["params"]["model"] == "image-x"
 
 
+@pytest.mark.skip(reason="M2 ProductionSnapshot is required before provider execution can resume")
 def test_async_video_submission_polls_and_persists_provider_task_id(
     repository,
     prepared_project,
@@ -156,6 +263,7 @@ def test_async_video_submission_polls_and_persists_provider_task_id(
     assert gateway.submit_calls[0]["params"]["duration"] == 8
 
 
+@pytest.mark.skip(reason="M2 ProductionSnapshot is required before provider execution can resume")
 def test_recovered_running_media_task_only_polls_with_server_key(
     repository,
     prepared_project,
@@ -194,6 +302,7 @@ def test_recovered_running_media_task_only_polls_with_server_key(
     assert gateway.seen_keys == ["server-image-key"]
 
 
+@pytest.mark.skip(reason="M2 ProductionSnapshot is required before provider execution can resume")
 def test_recovered_media_without_server_key_fails_without_resubmission(
     repository,
     prepared_project,
@@ -240,6 +349,7 @@ class SignallingSecretBroker(MediaTaskSecretBroker):
         return lease
 
 
+@pytest.mark.skip(reason="M2 ProductionSnapshot is required before provider execution can resume")
 def test_close_interrupts_poll_wait_and_leaves_provider_task_resumable(
     repository,
     prepared_project,
@@ -282,6 +392,7 @@ def test_close_interrupts_poll_wait_and_leaves_provider_task_resumable(
     assert task.id not in runner._futures
 
 
+@pytest.mark.skip(reason="M2 ProductionSnapshot is required before provider execution can resume")
 def test_missing_video_source_fails_without_calling_provider(repository, prepared_project):
     task = make_media_task(
         repository,
@@ -308,6 +419,7 @@ def test_missing_video_source_fails_without_calling_provider(repository, prepare
     assert gateway.submit_calls == []
 
 
+@pytest.mark.skip(reason="M2 ProductionSnapshot is required before provider execution can resume")
 def test_poll_failure_redacts_session_key_before_persisting_error(
     repository,
     prepared_project,
@@ -344,6 +456,7 @@ def test_poll_failure_redacts_session_key_before_persisting_error(
     assert "video-session-key" not in repository.get_media_task(task.id).model_dump_json()
 
 
+@pytest.mark.skip(reason="M2 ProductionSnapshot is required before provider execution can resume")
 def test_poll_limit_produces_terminal_failure(repository, prepared_project):
     task = make_media_task(
         repository,
@@ -408,6 +521,7 @@ class EchoingFailureGateway(ScriptedGateway):
             raise MediaProviderError(f"provider echoed {api_key}")
 
 
+@pytest.mark.skip(reason="M2 ProductionSnapshot is required before provider execution can resume")
 def test_unexpected_gateway_error_is_terminal_and_secret_safe(repository, prepared_project):
     task = make_media_task(
         repository,

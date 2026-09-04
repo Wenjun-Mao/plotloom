@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MediaKind, MediaTask, PipelineRun, ProjectListItem, ProviderSettings, QuarantineItem, RunExecutionTrace, RunProgress, SceneBeatPlan, ServerStageName, Shot, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, WorkspaceProject } from "./types";
+import type { MediaTask, PipelineRun, ProjectListItem, ProviderSettings, QuarantineItem, RunExecutionTrace, RunProgress, SceneBeatPlan, ServerStageName, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, WorkspaceProject } from "./types";
 import { plotloomApi, ApiError } from "./api";
 import { providerSessionKeys } from "./session-key";
 import { defaultProviderSettings, demoProject, demoRun, demoTrace, emptyStageContent } from "./demo";
@@ -760,30 +760,6 @@ export default function App() {
     finally { if (isWorkspaceOperationCurrent(operation)) setBusy(false); }
   };
 
-  const startMedia = async (shot: Shot, kind: MediaKind) => {
-    if (!project.id) { setError("请先保存项目，再创建媒体任务。"); return; }
-    const sourceTask = kind === "video" ? mediaTasks[`${shot.id}:image`] : undefined;
-    const sourceUri = sourceTask?.status === "succeeded" ? sourceTask.outputUri : undefined;
-    if (kind === "video" && !sourceUri) {
-      setError("请先为这个镜头生成成功的关键帧，再创建视频任务。");
-      return;
-    }
-    const operation = captureWorkspaceOperation();
-    try {
-      const task = await plotloomApi.startMediaTask(project.id, shot.id, kind, sourceUri ? { sourceUri } : undefined);
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      const key = `${shot.id}:${kind}`;
-      setMediaTasks((current) => ({ ...current, [key]: task }));
-      let next = task;
-      while (next.status === "queued" || next.status === "running") {
-        await new Promise((resolve) => window.setTimeout(resolve, 1600));
-        next = await plotloomApi.getMediaTask(next.id);
-        if (!isWorkspaceOperationCurrent(operation)) return;
-        setMediaTasks((current) => ({ ...current, [key]: next }));
-      }
-    } catch (mediaError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(mediaError)); }
-  };
-
   const rebuild = async (fromStage: ServerStageName) => {
     if (!project.id) { setError("请先保存项目，再重建下游阶段。"); return; }
     const scope = stageForPage(activePage);
@@ -1017,7 +993,7 @@ export default function App() {
       case "bible": return <StoryBiblePage key={`${editorRevisionKey(project, "story_bible")}:${editorNonce}`} value={recoveredValue("story_bible", project.storyBible)} stale={project.staleStages.includes("story_bible")} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: StoryBible) => commitStage("story_bible", value)} onDraftChange={(value) => rememberDraft("story_bible", value)} />;
       case "graph": return <GraphPage key={`${editorRevisionKey(project, "story_graph")}:${editorNonce}`} value={recoveredValue("story_graph", project.storyGraph)} stale={project.staleStages.includes("story_graph")} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: StoryGraph) => commitStage("story_graph", value)} onDraftChange={(value) => rememberDraft("story_graph", value)} />;
       case "beats": return <SceneBeatsPage key={`${editorRevisionKey(project, "scene_beats")}:${editorNonce}`} value={recoveredValue("scene_beats", project.sceneBeats)} stale={project.staleStages.includes("scene_beats")} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: SceneBeatPlan) => commitStage("scene_beats", value)} onDraftChange={(value) => rememberDraft("scene_beats", value)} />;
-      case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${editorNonce}`} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: Storyboard) => commitStage("storyboard", value)} onMedia={startMedia} onDraftChange={(value) => rememberDraft("storyboard", value)} />;
+      case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${editorNonce}`} projectId={project.id} revision={stageHeads.storyboard?.revision} contentHash={stageHeads.storyboard?.contentHash} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: Storyboard) => commitStage("storyboard", value)} onDraftChange={(value) => rememberDraft("storyboard", value)} />;
       case "trace": return <TracePage run={run} progress={runProgress} trace={trace} executionTrace={executionTrace} running={Boolean(running)} onRun={startRun} onResume={resumeRun} onCancel={cancelRun} />;
       case "quarantine": return <QuarantinePage items={project.quarantines} repairing={busy} onRepair={repair} onRebuildStage={rebuild} />;
     }

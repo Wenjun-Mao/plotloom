@@ -9,13 +9,12 @@ from pydantic import BaseModel, ValidationError
 
 from ..domain import (
     ProjectBrief,
-    SceneBeatPlan,
     StageName,
-    StoryBible,
-    StoryGraph,
+    SceneBeatPlanV2,
+    StoryBibleV2,
+    StoryGraphV2,
     stage_payload_model,
 )
-from ..validation import DomainValidationError, validate_stage_payload
 from .contracts import ValidationIssue, ValidationReport, ValidationSeverity
 from .exceptions import ResponseValidationError
 from .json_schema import explicit_presence_json_schema, inline_local_json_references
@@ -127,9 +126,9 @@ class CanonicalStageValidationAdapter(PydanticValidationAdapter[BaseModel]):
         stage: StageName | str,
         *,
         brief: ProjectBrief,
-        bible: StoryBible | None = None,
-        graph: StoryGraph | None = None,
-        scene_beats: SceneBeatPlan | None = None,
+        bible: StoryBibleV2 | None = None,
+        graph: StoryGraphV2 | None = None,
+        scene_beats: SceneBeatPlanV2 | None = None,
     ) -> None:
         self.stage = StageName(stage)
         self.brief = brief
@@ -138,8 +137,8 @@ class CanonicalStageValidationAdapter(PydanticValidationAdapter[BaseModel]):
         self.scene_beats = scene_beats
         self._assert_dependencies()
         super().__init__(
-            stage_payload_model(self.stage),
-            schema_id=f"{self.stage.value}.v2",
+            stage_payload_model(self.stage, schema_version=2),
+            schema_id=f"{self.stage.value}.v3",
             by_alias=True,
             by_name=False,
         )
@@ -177,25 +176,9 @@ class CanonicalStageValidationAdapter(PydanticValidationAdapter[BaseModel]):
         if not schema_report.accepted:
             return schema_report
 
-        try:
-            validate_stage_payload(
-                self.stage,
-                schema_report.value,
-                brief=self.brief,
-                bible=self.bible,
-                graph=self.graph,
-                scene_beats=self.scene_beats,
-            )
-        except DomainValidationError as exc:
-            issues = tuple(
-                ValidationIssue(
-                    code=f"semantic.{issue['code']}",
-                    message=str(issue["message"]),
-                    path=_domain_path(str(issue.get("path") or "")),
-                )
-                for issue in exc.issues
-            )
-            return ValidationReport(accepted=False, issues=issues)
+        semantic_issues = _v2_canonical_semantic_issues(self.stage, schema_report.value)
+        if semantic_issues:
+            return ValidationReport(accepted=False, issues=semantic_issues)
         return schema_report
 
     def _assert_dependencies(self) -> None:
@@ -222,6 +205,24 @@ def _domain_path(path: str) -> tuple[str | int, ...]:
     if not path:
         return ()
     return tuple(int(part) if part.isdigit() else part for part in path.split("."))
+
+
+def _v2_canonical_semantic_issues(
+    stage: StageName,
+    value: BaseModel,
+) -> tuple[ValidationIssue, ...]:
+    """Keep V2 whole-stage validation independent of V1 compatibility rules."""
+
+    if stage != StageName.STORY_GRAPH:
+        return ()
+    assert isinstance(value, StoryGraphV2)
+    node_ids = [node.id for node in value.nodes]
+    issues: list[ValidationIssue] = []
+    if value.start_node_id not in set(node_ids):
+        issues.append(ValidationIssue(code="semantic.missing_start_node", message="startNodeId must identify a graph node", path=("startNodeId",)))
+    if len(node_ids) != len(set(node_ids)):
+        issues.append(ValidationIssue(code="semantic.duplicate_node_id", message="Story Graph node IDs must be unique", path=("nodes",)))
+    return tuple(issues)
 
 
 def _resolve_schema(schema_node: Any, root: Mapping[str, Any]) -> Any:

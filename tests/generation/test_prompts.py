@@ -26,7 +26,15 @@ def test_repository_contains_all_versioned_stage_and_media_prompts() -> None:
     )
     for prompt_id in repository.list_ids():
         spec, spec_hash, source = repository.load(prompt_id)
-        assert spec.version.startswith("2.")
+        expected_major = "3." if prompt_id in {
+            "story_bible",
+            "story_graph",
+            "scene_beats",
+            "scene_beats_fragment",
+            "storyboard",
+            "storyboard_fragment",
+        } else "2."
+        assert spec.version.startswith(expected_major)
         assert len(spec_hash) == 64
         assert source.parent.name == "prompt_templates"
 
@@ -72,8 +80,37 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
         assert "不得依赖应用默认值" in spec.system
 
     scene_spec, _spec_hash, _source = repository.load("scene_beats_fragment")
-    assert "characterStates" in scene_spec.user
+    assert "entityStates" in scene_spec.user
     assert "不能省略任何一项" in scene_spec.user
+    scene_full_spec, _spec_hash, _source = repository.load("scene_beats")
+    assert "连续 order" in scene_full_spec.user
+    assert "durationBudgetUnits" in scene_full_spec.user
+    for field in (
+        "facts",
+        "entityStates",
+        "screenDirection",
+        "lighting",
+        "sound",
+        "notes",
+        "voiceOver",
+    ):
+        assert field in scene_full_spec.user
+    bible_spec, _spec_hash, _source = repository.load("story_bible")
+    for field in (
+        "id",
+        "name",
+        "description",
+        "visualAnchors",
+        "soundAnchors",
+        "allowedStates",
+        "continuityRules",
+        "role",
+        "goal",
+        "traits",
+        "voiceAnchors",
+    ):
+        assert field in bible_spec.user
+    assert "visualIdentity" not in bible_spec.user
     correction_spec, _spec_hash, _source = repository.load("work_unit_correction")
     assert "对每条 schema.missing" in correction_spec.user
     assert "对每条 schema.extra_forbidden" in correction_spec.user
@@ -87,7 +124,9 @@ def test_storyboard_schema_and_media_prompts_are_separate() -> None:
             "shots": {
                 "items": {
                     "properties": {
-                        "audio": {},
+                        "audioPlan": {},
+                        "cueIds": {},
+                        "requiredEntityStates": {},
                         "transition": {},
                         "visualIntent": {},
                         "motionIntent": {},
@@ -109,7 +148,7 @@ def test_storyboard_schema_and_media_prompts_are_separate() -> None:
     assert storyboard.output.format == "json"
     assert storyboard.output.structured_output_mode == "prefer"
     assert "不生成供应商专用的图片或视频提示词" in storyboard.messages[1].content
-    for field in ("audio", "transition", "visualIntent", "motionIntent"):
+    for field in ("audioPlan", "cueIds", "requiredEntityStates", "transition", "visualIntent", "motionIntent"):
         assert field in storyboard.messages[1].content
 
     shot = Shot(

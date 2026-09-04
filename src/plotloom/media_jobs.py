@@ -19,7 +19,7 @@ from .domain import (
     MediaTaskStatus,
     ProviderAuthMode,
 )
-from .exceptions import InvalidTransitionError
+from .exceptions import InvalidTransitionError, ProductionPipelineNotReadyError
 from .generation.exceptions import SecretLeaseError
 from .generation.secrets import InMemorySecretVault, SecretLease
 from .media import (
@@ -250,6 +250,11 @@ class MediaJobRunner:
         task = self.repository.get_media_task(task_id)
         if self._shutdown.is_set():
             return task
+        if task.status not in TERMINAL_MEDIA_TASK_STATUSES:
+            # Historical MediaTask rows have no immutable ProductionSnapshot.
+            # Do not turn an already-submitted provider ID into a new polling
+            # operation merely because this runner was invoked directly.
+            raise ProductionPipelineNotReadyError()
         provider_name = _provider_name(task)
         if task.status in TERMINAL_MEDIA_TASK_STATUSES:
             return task

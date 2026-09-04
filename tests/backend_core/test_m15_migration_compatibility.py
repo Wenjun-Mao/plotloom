@@ -142,7 +142,8 @@ def test_0005_to_head_preserves_sealed_history_json_and_hash_bytes(tmp_path) -> 
                            stage_plans.plan AS stage_plan,
                            stage_plans.generation_plan_hash, stage_plans.dependency_hash,
                            stage_plans.stage_plan_hash,
-                           seals.manifest, seals.payload, seals.manifest_hash
+                           seals.manifest, seals.payload, seals.manifest_hash,
+                           seals.schema_version AS seal_schema_version
                     FROM v2_generation_runs AS runs
                     JOIN v2_generation_plans AS plans ON plans.run_id = runs.id
                     JOIN v2_generation_stage_plans AS stage_plans ON stage_plans.run_id = runs.id
@@ -157,9 +158,90 @@ def test_0005_to_head_preserves_sealed_history_json_and_hash_bytes(tmp_path) -> 
             assert migrated[column].encode("utf-8") == expected.encode("utf-8")
         for column, expected in expected_hashes.items():
             assert migrated[column].encode("utf-8") == expected.encode("utf-8")
+        assert migrated["seal_schema_version"] == 1
 
         run_columns = {column["name"] for column in inspect(engine).get_columns("v2_generation_runs")}
         assert {"failure_code", "failed_stage"} <= run_columns
+    finally:
+        engine.dispose()
+
+
+def test_0010_versions_legacy_stage_payloads_without_rewriting_payload_or_media_bytes(tmp_path) -> None:
+    """Schema labels are additive; historical JSON evidence is not migrated in place."""
+
+    database_url = f"sqlite:///{tmp_path / '0010-versioning.sqlite3'}"
+    migrator = SchemaMigrator(database_url)
+    configuration = migrator._config()
+    command.upgrade(configuration, "0009_v2_work_unit_repair_scopes")
+    engine = create_engine(database_url)
+    payload = '{  "legacyDialogue" : "不要由 V2 默认值重写我" }'
+    media_components = '{ "legacyPrompt" : [ "byte", "preserve" ] }'
+    now = "2026-09-03 12:00:00"
+
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO v2_projects
+                    (id, revision, lifecycle_revision, lifecycle_status, archived_at, brief, created_at, updated_at)
+                    VALUES ('project-0010', 1, 1, 'active', NULL, '{ "title" : "legacy" }', :now, :now)
+                    """
+                ),
+                {"now": now},
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO v2_entity_revisions
+                    (id, project_id, stage, revision, parent_revision_id, content_hash, input_revisions, payload, created_at)
+                    VALUES ('revision-0010', 'project-0010', 'storyboard', 1, NULL, :hash, '{}', :payload, :now)
+                    """
+                ),
+                {"hash": "a" * 64, "payload": payload, "now": now},
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO v2_stage_heads
+                    (id, project_id, stage, status, revision, entity_revision_id, content_hash, input_revisions, stale_reasons, updated_at)
+                    VALUES ('project-0010:storyboard', 'project-0010', 'storyboard', 'ready', 1,
+                            'revision-0010', :hash, '{}', '[]', :now)
+                    """
+                ),
+                {"hash": "a" * 64, "now": now},
+            )
+            connection.execute(
+                text(
+                    """
+                    INSERT INTO v2_media_tasks
+                    (id, project_id, shot_id, storyboard_revision, kind, status, derived_prompt,
+                     prompt_components, provider, public_settings, provider_task_id, output_uri,
+                     error, created_at, updated_at, started_at, finished_at)
+                    VALUES ('media-0010', 'project-0010', 'shot-1', 1, 'image', 'succeeded', 'legacy',
+                            :components, NULL, '{}', NULL, 'file:///historical', NULL, :now, :now, :now, :now)
+                    """
+                ),
+                {"components": media_components, "now": now},
+            )
+
+        command.upgrade(configuration, "head")
+
+        with engine.connect() as connection:
+            entity = connection.execute(
+                text("SELECT schema_version, payload FROM v2_entity_revisions WHERE id = 'revision-0010'")
+            ).one()
+            head = connection.execute(
+                text("SELECT schema_version FROM v2_stage_heads WHERE id = 'project-0010:storyboard'")
+            ).scalar_one()
+            media = connection.execute(
+                text("SELECT prompt_components FROM v2_media_tasks WHERE id = 'media-0010'")
+            ).scalar_one()
+
+        assert entity.schema_version == 1
+        assert head == 1
+        assert entity.payload.encode("utf-8") == payload.encode("utf-8")
+        assert media.encode("utf-8") == media_components.encode("utf-8")
     finally:
         engine.dispose()
 

@@ -20,6 +20,16 @@ from plotloom.domain import (
     StoryNode,
     StoryNodeKind,
     Storyboard,
+    AudioPlan,
+    BeatV2,
+    ContinuityStateV2,
+    DramaticSceneV2,
+    SceneBeatPlanV2,
+    ShotBeatLinkV2,
+    ShotV2,
+    StoryBibleV2,
+    StoryGraphV2,
+    StoryboardV2,
 )
 from plotloom.generation.aggregation import (
     AggregateValidationError,
@@ -63,11 +73,11 @@ def _run_plan(
     )
 
 
-def make_story_bible() -> StoryBible:
-    return StoryBible(logline="领航员在真相与生存之间选择。", premise="记忆可能是被设计的导航工具。")
+def make_story_bible():
+    return StoryBibleV2(logline="领航员在真相与生存之间选择。", premise="记忆可能是被设计的导航工具。", genre="", tone="", audience="", narrative_promise="", visual_language="", themes=[], world_rules=[], known_facts=[], open_questions=[], source_notes=[], characters=[], locations=[], props=[])
 
 
-def make_story_graph() -> StoryGraph:
+def _legacy_story_graph() -> StoryGraph:
     nodes = [
         StoryNode(id="start", title="苏醒", summary="林默苏醒。", kind=StoryNodeKind.START),
         StoryNode(id="decision-1", title="第一次选择", summary="选择调查路线。", kind=StoryNodeKind.DECISION),
@@ -100,14 +110,18 @@ def make_story_graph() -> StoryGraph:
                 join_node_id="join",
                 incoming_node_ids=["route-a", "route-b"],
                 required_state_keys=["identity"],
-                allowed_differences=["route"],
+                allowed_differences=[],
                 reconciliation="两条路线都确认主角身份。",
             )
         ],
     )
 
 
-def make_scene_beats(graph: StoryGraph) -> "SceneBeatPlan":
+def make_story_graph():
+    return StoryGraphV2.model_validate(_legacy_story_graph().model_dump(mode="json", by_alias=True))
+
+
+def _legacy_scene_beats(graph: StoryGraph) -> "SceneBeatPlan":
     from plotloom.domain import SceneBeatPlan
 
     scenes = []
@@ -140,7 +154,14 @@ def make_scene_beats(graph: StoryGraph) -> "SceneBeatPlan":
     return SceneBeatPlan(scenes=scenes, beats=beats)
 
 
-def make_storyboard(plan) -> Storyboard:
+def make_scene_beats(graph):
+    state = ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[])
+    scenes = [DramaticSceneV2(id=f"scene-{node.id}", story_node_id=node.id, order=1, title=node.title, objective=node.summary, location_id=None, character_ids=[], beat_ids=[f"beat-{node.id}"], duration_budget_units=2, entry_state=state, exit_state=state) for node in graph.nodes]
+    beats = [BeatV2(id=f"beat-{node.id}", scene_id=f"scene-{node.id}", order=1, description=node.summary, purpose="推进叙事", visible_event=node.summary, immediate_result="状态发生改变", dramatic_change="推进", entry_state=state, exit_state=state, continuity_anchors=[], continuity_delta={}) for node in graph.nodes]
+    return SceneBeatPlanV2(scenes=scenes, beats=beats, dialogue_cues=[])
+
+
+def _legacy_storyboard(plan) -> Storyboard:
     shots = []
     links = []
     for scene in plan.scenes:
@@ -170,6 +191,13 @@ def make_storyboard(plan) -> Storyboard:
                 )
             )
     return Storyboard(shots=shots, shot_beat_links=links)
+
+
+def make_storyboard(plan):
+    state = ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[])
+    shots = [ShotV2(id=f"shot-{scene.id}-{order}", scene_id=scene.id, order=order, title=scene.title, shot_size="medium", duration_units=2, camera_angle="", camera_movement="", composition="", visual_intent="", motion_intent="", action=scene.objective, transition="", cue_ids=[], audio_plan=AudioPlan(events=[]), character_ids=[], location_id=None, prop_ids=[], required_entity_states=[], entry_state=state, exit_state=state) for scene in plan.scenes for order in (1, 2)]
+    links = [ShotBeatLinkV2(shot_id=f"shot-{scene.id}-{order}", beat_id=scene.beat_ids[0], role="primary" if order == 1 else "supporting", coverage_weight=1.0) for scene in plan.scenes for order in (1, 2)]
+    return StoryboardV2(shots=shots, shot_beat_links=links)
 
 
 def _stage_plans():
@@ -216,6 +244,10 @@ def _scene_fragments(stage_plan, scene_beats):
                 story_node_id=unit.selector.stable_id,
                 scenes=scenes,
                 beats=[beat for beat in scene_beats.beats if beat.scene_id in scene_ids],
+                dialogue_cues=[
+                    cue for cue in scene_beats.dialogue_cues
+                    if cue.beat_id in {beat.id for beat in scene_beats.beats if beat.scene_id in scene_ids}
+                ],
             )
         )
     return fragments
@@ -336,38 +368,16 @@ def test_storyboard_planning_preserves_sibling_scene_order_not_opaque_id_order()
     bible = make_story_bible()
     graph = make_story_graph()
     first_node = graph.nodes[0].id
-    first = DramaticScene(
-        id="z-opaque-id",
-        story_node_id=first_node,
-        title="第一场",
-        objective="先发生",
-        beat_ids=["beat-first"],
-    )
-    second = DramaticScene(
-        id="a-opaque-id",
-        story_node_id=first_node,
-        title="第二场",
-        objective="后发生",
-        beat_ids=["beat-second"],
-    )
-    beats = SceneBeatPlan(
+    state = ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[])
+    first = DramaticSceneV2(id="z-opaque-id", story_node_id=first_node, order=1, title="第一场", objective="先发生", location_id=None, character_ids=[], beat_ids=["beat-first"], duration_budget_units=1, entry_state=state, exit_state=state)
+    second = DramaticSceneV2(id="a-opaque-id", story_node_id=first_node, order=2, title="第二场", objective="后发生", location_id=None, character_ids=[], beat_ids=["beat-second"], duration_budget_units=1, entry_state=state, exit_state=state)
+    beats = SceneBeatPlanV2(
         scenes=[first, second],
         beats=[
-            Beat(
-                id="beat-first",
-                scene_id=first.id,
-                order=1,
-                description="第一拍",
-                purpose="建立",
-            ),
-            Beat(
-                id="beat-second",
-                scene_id=second.id,
-                order=1,
-                description="第二拍",
-                purpose="推进",
-            ),
+            BeatV2(id="beat-first", scene_id=first.id, order=1, description="第一拍", purpose="建立", visible_event="", immediate_result="", dramatic_change="", entry_state=state, exit_state=state, continuity_anchors=[], continuity_delta={}),
+            BeatV2(id="beat-second", scene_id=second.id, order=1, description="第二拍", purpose="推进", visible_event="", immediate_result="", dramatic_change="", entry_state=state, exit_state=state, continuity_anchors=[], continuity_delta={}),
         ],
+        dialogue_cues=[],
     )
     plan = _run_plan()
     stage_plan = plan_stage(
@@ -446,7 +456,7 @@ def test_storyboard_aggregation_rejects_cross_unit_references_and_multiple_prima
             "shot_beat_links": (
                 *fragments[0].shot_beat_links[:1],
                 fragments[0].shot_beat_links[1].model_copy(
-                    update={"role": CoverageRole.PRIMARY}
+                    update={"role": "primary"}
                 ),
             )
         }
@@ -468,10 +478,11 @@ def test_storyboard_aggregation_allows_multiple_supporting_links_per_beat():
     fragments = _storyboard_fragments(storyboard_stage, storyboard)
     first = fragments[0]
     additional_shot = first.shots[-1].model_copy(update={"id": "extra-supporting-shot", "order": 3})
-    additional_link = ShotBeatLink(
+    additional_link = ShotBeatLinkV2(
         shot_id=additional_shot.id,
         beat_id=scene_beats.scenes[0].beat_ids[0],
-        role=CoverageRole.SUPPORTING,
+        role="supporting",
+        coverage_weight=1.0,
     )
     fragments[0] = first.model_copy(
         update={

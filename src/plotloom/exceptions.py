@@ -38,6 +38,29 @@ class InvalidTransitionError(PlotloomError):
     pass
 
 
+class SchemaResetRequiredError(InvalidTransitionError):
+    """Version-less or unsupported authored data cannot safely be interpreted."""
+
+    code = "data.schema_reset_required"
+
+    def __init__(self, *, stage: StageName, schema_version: int | None) -> None:
+        self.stage = stage
+        self.schema_version = schema_version
+        detail = "missing" if schema_version is None else f"unsupported schema version {schema_version}"
+        super().__init__(f"{self.code}: {stage.value} payload has {detail}")
+
+
+class ProductionPipelineNotReadyError(InvalidTransitionError):
+    """Media creation is closed until an approved ProductionSnapshot exists."""
+
+    code = "production_pipeline_not_ready"
+
+    def __init__(self) -> None:
+        super().__init__(
+            "media production requires the future Approval and ProductionSnapshot pipeline"
+        )
+
+
 class RepairEligibilityError(InvalidTransitionError):
     """A stable, server-owned reason an exact work-unit repair is refused."""
 

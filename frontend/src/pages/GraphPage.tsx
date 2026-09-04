@@ -44,6 +44,14 @@ export function GraphPage({ value, stale, saving, entityId, onEntitySelect, onSa
   const routeStats = useMemo(() => ({ decisions: nodes.filter((node) => node.data.kind === "decision").length, endings: nodes.filter((node) => node.data.kind === "ending").length, joins: nodes.filter((node) => node.data.kind === "join").length }), [nodes]);
   const connect = (connection: Connection) => setEdges((current) => addEdge({ ...connection, id: crypto.randomUUID(), label: "新选择", data: { kind: "choice", stateEffects: {} }, markerEnd: { type: MarkerType.ArrowClosed } }, current));
   const patchSelected = (patch: Partial<GraphNode["data"]>) => setNodes((current) => current.map((node) => node.id === selectedId ? { ...node, data: { ...node.data, ...patch }, className: `flow-node ${patch.kind || node.data.kind}` } : node));
+  const removeSelected = () => {
+    const linked = edges.filter((edge) => edge.source === selectedId || edge.target === selectedId);
+    const contracts = value.joinContracts.filter((item) => item.joinNodeId === selectedId || item.incomingNodeIds.includes(selectedId));
+    if (!window.confirm(`删除节点将移除 ${linked.length} 条边及 ${contracts.length} 个 join 合同。继续？`)) return;
+    setNodes((current) => current.filter((node) => node.id !== selectedId));
+    setEdges((current) => current.filter((edge) => edge.source !== selectedId && edge.target !== selectedId));
+    setSelectedId("");
+  };
   const save = () => onSave({
     startNodeId: value.startNodeId,
     nodes: nodes.map((node) => ({ id: node.id, title: node.data.label, summary: node.data.summary, kind: node.data.kind })),
@@ -51,7 +59,7 @@ export function GraphPage({ value, stale, saving, entityId, onEntitySelect, onSa
       const kind = edge.data?.kind === "continuation" ? "continuation" : "choice";
       return { id: edge.id, sourceNodeId: edge.source, targetNodeId: edge.target, kind, choiceText: kind === "choice" ? String(edge.label || "新选择") : null, stateEffects: typeof edge.data?.stateEffects === "object" && edge.data.stateEffects !== null ? edge.data.stateEffects as Record<string, unknown> : {} };
     }),
-    joinContracts: value.joinContracts,
+    joinContracts: value.joinContracts.filter((contract) => nodes.some((node) => node.id === contract.joinNodeId) && contract.incomingNodeIds.every((id) => nodes.some((node) => node.id === id))),
   });
   const hasMounted = useRef(false);
   useEffect(() => {
@@ -81,6 +89,7 @@ export function GraphPage({ value, stale, saving, entityId, onEntitySelect, onSa
           <Field label="类型"><select value={selected.data.kind} onChange={(event) => patchSelected({ kind: event.target.value as StoryNode["kind"] })}><option value="start">开场</option><option value="decision">决定</option><option value="scene">场景</option><option value="join">汇合</option><option value="ending">结局</option></select></Field>
           <Field label="标题"><input value={selected.data.label} onChange={(event) => patchSelected({ label: event.target.value })} /></Field>
           <Field label="剧情摘要"><textarea rows={6} value={selected.data.summary} onChange={(event) => patchSelected({ summary: event.target.value })} /></Field>
+          <Button variant="quiet" onClick={removeSelected}>删除节点与关联边</Button>
           <div className="node-position"><span>X {Math.round(selected.position.x)}</span><span>Y {Math.round(selected.position.y)}</span></div>
         </>}
       </Panel>

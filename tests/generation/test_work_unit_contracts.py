@@ -4,21 +4,18 @@ import pytest
 from pydantic import ValidationError
 
 from plotloom.domain import (
-    Beat,
-    CoverageRole,
-    DramaticScene,
-    JoinContract,
+    AudioPlan,
+    BeatV2,
+    ContinuityStateV2,
+    DramaticSceneV2,
+    JoinContractV2,
     ProjectBrief,
-    SceneBeatPlan,
-    Shot,
-    ShotBeatLink,
-    ShotSize,
+    SceneBeatPlanV2,
     StageName,
-    StoryBible,
-    StoryEdge,
-    StoryGraph,
-    StoryNode,
-    StoryNodeKind,
+    StoryBibleV2,
+    StoryEdgeV2,
+    StoryGraphV2,
+    StoryNodeV2,
 )
 from plotloom.generation.fragments import SceneBeatsFragment, StoryboardFragment
 from plotloom.generation.planning import create_generation_plan, plan_stage
@@ -50,46 +47,51 @@ def _brief() -> ProjectBrief:
     )
 
 
-def _bible() -> StoryBible:
-    return StoryBible(logline="领航员寻找身份。", premise="记忆决定生存。")
+def _state() -> ContinuityStateV2:
+    return ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[])
 
 
-def _graph() -> StoryGraph:
-    return StoryGraph(
+def _bible() -> StoryBibleV2:
+    return StoryBibleV2(logline="领航员寻找身份。", premise="记忆决定生存。", genre="", tone="", audience="", narrative_promise="", visual_language="", themes=[], world_rules=[], known_facts=[], open_questions=[], source_notes=[], characters=[], locations=[], props=[])
+
+
+def _graph() -> StoryGraphV2:
+    return StoryGraphV2(
         start_node_id="node-a",
         nodes=[
-            StoryNode(id="node-a", title="苏醒", summary="她在控制室醒来。", kind=StoryNodeKind.START),
-            StoryNode(id="node-b", title="秘密节点", summary="PRIVATE_OTHER_NODE", kind=StoryNodeKind.ENDING),
+            StoryNodeV2(id="node-a", title="苏醒", summary="她在控制室醒来。", kind="start"),
+            StoryNodeV2(id="node-b", title="秘密节点", summary="PRIVATE_OTHER_NODE", kind="ending"),
         ],
-        edges=[StoryEdge(id="edge-a-b", source_node_id="node-a", target_node_id="node-b")],
+        edges=[StoryEdgeV2(id="edge-a-b", source_node_id="node-a", target_node_id="node-b", kind="continuation", choice_text=None, state_effects={})],
+        join_contracts=[],
     )
 
 
-def _scene_beats(graph: StoryGraph) -> SceneBeatPlan:
-    scenes: list[DramaticScene] = []
-    beats: list[Beat] = []
+def _scene_beats(graph: StoryGraphV2) -> SceneBeatPlanV2:
+    scenes: list[DramaticSceneV2] = []
+    beats: list[BeatV2] = []
     for node in graph.nodes:
         scene_id = f"scene-{node.id}"
         beat_id = f"beat-{node.id}"
         scenes.append(
-            DramaticScene(
+            DramaticSceneV2(
                 id=scene_id,
                 story_node_id=node.id,
                 title=node.title,
                 objective=node.summary,
-                beat_ids=[beat_id],
+                order=1, beat_ids=[beat_id], duration_budget_units=2, entry_state=_state(), exit_state=_state(), location_id=None, character_ids=[],
             )
         )
         beats.append(
-            Beat(
+            BeatV2(
                 id=beat_id,
                 scene_id=scene_id,
                 order=1,
                 description=node.summary,
-                purpose="推进叙事",
+                purpose="推进叙事", visible_event="", immediate_result="", dramatic_change="", entry_state=_state(), exit_state=_state(), continuity_anchors=[], continuity_delta={},
             )
         )
-    return SceneBeatPlan(scenes=scenes, beats=beats)
+    return SceneBeatPlanV2(scenes=scenes, beats=beats, dialogue_cues=[])
 
 
 def _plan_and_inputs():
@@ -131,15 +133,15 @@ def _compile_scene_beats():
 
 def _scene_output() -> dict:
     return SceneBeatsFragmentOutput(
-        scenes=[DramaticSceneContent(local_scene_id="scene-node-a", title="苏醒", objective="确认身份")],
-        beats=[BeatContent(local_beat_id="beat-node-a", scene_local_id="scene-node-a", order=1, description="她睁开眼睛。", purpose="建立危机")],
+        scenes=[DramaticSceneContent(local_scene_id="scene-node-a", order=1, title="苏醒", objective="确认身份", location_id=None, character_ids=[], duration_budget_units=2, entry_state=_state(), exit_state=_state())],
+        beats=[BeatContent(local_beat_id="beat-node-a", scene_local_id="scene-node-a", order=1, description="她睁开眼睛。", purpose="建立危机", visible_event="", immediate_result="", dramatic_change="", entry_state=_state(), exit_state=_state(), continuity_anchors=[], continuity_delta={})], dialogue_cues=[],
     ).model_dump(mode="json", by_alias=True)
 
 
 def _storyboard_output(*, beat_ids: list[str], local_shot_id: str = "shot-a") -> dict:
     return StoryboardFragmentOutput(
-        shots=[ShotContent(local_shot_id=local_shot_id, order=1, title="苏醒", shot_size=ShotSize.CLOSE_UP, duration_seconds=2)],
-        primary_shot_local_id_by_beat={beat_id: local_shot_id for beat_id in beat_ids},
+        shots=[ShotContent(local_shot_id=local_shot_id, order=1, title="苏醒", shot_size="close_up", duration_units=2, camera_angle="", camera_movement="", composition="", visual_intent="", motion_intent="", action="", transition="", cue_ids=[], audio_plan=AudioPlan(events=[]), character_ids=[], location_id=None, prop_ids=[], required_entity_states=[], entry_state=_state(), exit_state=_state())],
+        primary_shot_local_id_by_beat={beat_id: local_shot_id for beat_id in beat_ids}, supporting_beat_links=[],
     ).model_dump(mode="json", by_alias=True)
 
 
@@ -173,7 +175,7 @@ def test_scene_work_unit_prompt_only_contains_the_selected_node_and_public_schem
     assert compiled.contract.work_unit_id == unit.unit_id
     assert compiled.contract.stage_plan_hash == stage_plan.stage_plan_hash
     assert compiled.contract.prompt_id == "scene_beats_fragment"
-    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v4"
+    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v5"
     scene_properties = compiled.response_schema["properties"]["scenes"]["items"][
         "properties"
     ]
@@ -186,9 +188,7 @@ def test_scene_work_unit_prompt_only_contains_the_selected_node_and_public_schem
     assert '"$ref"' not in str(compiled.response_schema)
     assert scene_properties["exitState"]["required"] == [
         "facts",
-        "characterStates",
-        "propStates",
-        "locationState",
+        "entityStates",
         "screenDirection",
         "lighting",
         "sound",
@@ -328,20 +328,20 @@ def test_scene_fragment_binding_namespaces_identical_model_ids_by_story_node() -
 
 def test_join_continuity_keys_are_explicit_in_schema_prompt_and_validation() -> None:
     brief, snapshot, plan, bible, _, _ = _plan_and_inputs()
-    graph = StoryGraph(
+    graph = StoryGraphV2(
         start_node_id="node-a",
         nodes=[
-            StoryNode(id="node-a", title="甲", summary="甲线", kind=StoryNodeKind.START),
-            StoryNode(id="node-c", title="乙", summary="乙线", kind=StoryNodeKind.DECISION),
-            StoryNode(id="node-b", title="汇流", summary="会合", kind=StoryNodeKind.ENDING),
+            StoryNodeV2(id="node-a", title="甲", summary="甲线", kind="start"),
+            StoryNodeV2(id="node-c", title="乙", summary="乙线", kind="decision"),
+            StoryNodeV2(id="node-b", title="汇流", summary="会合", kind="ending"),
         ],
         edges=[],
         join_contracts=[
-            JoinContract(
+            JoinContractV2(
                 id="join-a-c-b",
                 join_node_id="node-b",
                 incoming_node_ids=["node-a", "node-c"],
-                required_state_keys=["船钟归属"],
+                required_state_keys=["船钟归属"], allowed_differences=[], reconciliation="", notes="",
             )
         ],
     )
@@ -407,7 +407,7 @@ def test_storyboard_fragment_uses_closed_primary_coverage_and_injects_scene() ->
         canonical_snapshot=snapshot,
         instructions="preserve the project brief",
     )
-    assert compiled.rendered.output.schema_id == "storyboard.fragment.v3"
+    assert compiled.rendered.output.schema_id == "storyboard.fragment.v4"
     assert "sceneId" not in compiled.response_schema["properties"]
     assert "sceneId" not in compiled.response_schema["properties"]["shots"]["items"][
         "properties"
@@ -501,14 +501,14 @@ def test_storyboard_primary_map_closes_three_beats_with_one_shot_and_supporting_
     first_scene = scene_beats.scenes[0].model_copy(
         update={"beat_ids": ["beat-node-a", "beat-node-a-2", "beat-node-a-3"]}
     )
-    expanded_beats = SceneBeatPlan(
+    expanded_beats = SceneBeatPlanV2(
         scenes=[first_scene, *scene_beats.scenes[1:]],
         beats=[
             scene_beats.beats[0],
-            Beat(id="beat-node-a-2", scene_id=first_scene.id, order=2, description="警报加速。", purpose="升级风险"),
-            Beat(id="beat-node-a-3", scene_id=first_scene.id, order=3, description="她做出决定。", purpose="完成转折"),
+                BeatV2(id="beat-node-a-2", scene_id=first_scene.id, order=2, description="警报加速。", purpose="升级风险", visible_event="", immediate_result="", dramatic_change="", entry_state=_state(), exit_state=_state(), continuity_anchors=[], continuity_delta={}),
+                BeatV2(id="beat-node-a-3", scene_id=first_scene.id, order=3, description="她做出决定。", purpose="完成转折", visible_event="", immediate_result="", dramatic_change="", entry_state=_state(), exit_state=_state(), continuity_anchors=[], continuity_delta={}),
             *scene_beats.beats[1:],
-        ],
+        ], dialogue_cues=[],
     )
     stage_plan = plan_stage(
         plan,
@@ -530,8 +530,8 @@ def test_storyboard_primary_map_closes_three_beats_with_one_shot_and_supporting_
     accepted = compiled.validator.validate(one_shot, context=SemanticValidationContext(stage="storyboard"))
     assert accepted.accepted is True
     assert len(accepted.value.shots) == 1
-    assert [link.beat_id for link in accepted.value.shot_beat_links if link.role == CoverageRole.PRIMARY] == sorted(beat_ids)
-    assert {link.shot_id for link in accepted.value.shot_beat_links if link.role == CoverageRole.PRIMARY} == {accepted.value.shots[0].id}
+    assert [link.beat_id for link in accepted.value.shot_beat_links if link.role == "primary"] == sorted(beat_ids)
+    assert {link.shot_id for link in accepted.value.shot_beat_links if link.role == "primary"} == {accepted.value.shots[0].id}
 
     missing = _storyboard_output(beat_ids=beat_ids[:-1])
     missing_report = compiled.validator.validate(missing, context=SemanticValidationContext(stage="storyboard"))
@@ -546,11 +546,11 @@ def test_storyboard_primary_map_closes_three_beats_with_one_shot_and_supporting_
 
     two_shots = StoryboardFragmentOutput(
         shots=[
-            ShotContent(local_shot_id="shot-a", order=1, title="苏醒", shot_size=ShotSize.CLOSE_UP, duration_seconds=2),
-            ShotContent(local_shot_id="shot-b", order=2, title="反应", shot_size=ShotSize.MEDIUM, duration_seconds=2),
+            ShotContent(local_shot_id="shot-a", order=1, title="苏醒", shot_size="close_up", duration_units=2, camera_angle="", camera_movement="", composition="", visual_intent="", motion_intent="", action="", transition="", cue_ids=[], audio_plan=AudioPlan(events=[]), character_ids=[], location_id=None, prop_ids=[], required_entity_states=[], entry_state=_state(), exit_state=_state()),
+            ShotContent(local_shot_id="shot-b", order=2, title="反应", shot_size="medium", duration_units=2, camera_angle="", camera_movement="", composition="", visual_intent="", motion_intent="", action="", transition="", cue_ids=[], audio_plan=AudioPlan(events=[]), character_ids=[], location_id=None, prop_ids=[], required_entity_states=[], entry_state=_state(), exit_state=_state()),
         ],
         primary_shot_local_id_by_beat={beat_id: "shot-a" for beat_id in beat_ids},
-        supporting_beat_links=[{"shotLocalId": "shot-b", "beatId": beat_ids[-1]}],
+        supporting_beat_links=[{"shotLocalId": "shot-b", "beatId": beat_ids[-1], "coverageWeight": 1.0}],
     ).model_dump(mode="json", by_alias=True)
     two_shot_compiled = compile_work_unit_request(
         generation_plan=plan,
@@ -564,8 +564,8 @@ def test_storyboard_primary_map_closes_three_beats_with_one_shot_and_supporting_
     supporting_report = two_shot_compiled.validator.validate(two_shots, context=SemanticValidationContext(stage="storyboard"))
     assert supporting_report.accepted is True
     links = supporting_report.value.shot_beat_links
-    assert sum(link.role == CoverageRole.PRIMARY for link in links) == 3
-    assert sum(link.role == CoverageRole.SUPPORTING for link in links) == 1
+    assert sum(link.role == "primary" for link in links) == 3
+    assert sum(link.role == "supporting" for link in links) == 1
 
 
 def test_compiler_rejects_non_frozen_snapshot_or_context() -> None:

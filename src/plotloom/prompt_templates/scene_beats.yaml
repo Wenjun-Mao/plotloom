@@ -1,5 +1,5 @@
 id: scene_beats
-version: "2.0.0"
+version: "3.1.0"
 stage: scene_beats
 description: Decompose story nodes into atomic audiovisual beats.
 system: |-
@@ -20,9 +20,11 @@ user: |-
   【目标 JSON Schema】
   {{ json_schema | tojson }}
 
-  为每个故事节点生成一个或多个 scenes；scene 必须填写稳定 id、storyNodeId、title、objective、locationId、characterIds、按顺序排列的 beatIds、entryState 和 exitState。
-  每个 beat 必须填写稳定 id、sceneId、连续 order、description、purpose、唯一 visibleEvent、必要 dialogue、immediateResult、dramaticChange、entryState、exitState、continuityAnchors 和 continuityDelta。
-  对白只能包含本节拍实际说出的内容；如果时长预算容纳不下，必须拆成更多节拍，不能用加快语速作为默认解决办法。
+  为每个故事节点生成一个或多个 scenes；scene 必须填写稳定 id、storyNodeId、连续 order、title、objective、locationId、characterIds、按顺序排列的 beatIds、durationBudgetUnits、entryState 和 exitState。
+  每个 beat 必须填写稳定 id、sceneId、连续 order、description、purpose、唯一 visibleEvent、immediateResult、dramaticChange、entryState、exitState、continuityAnchors 和 continuityDelta。beat 不包含自由字符串 dialogue。
+  每个 scene 和 beat 的 entryState、exitState 都必须填写 facts、entityStates、screenDirection、lighting、sound、notes。所有 durationUnits 都使用整数毫秒。对白必须作为独立的 DialogueCue 输出：每条 cue 归属一个 beat，具有稳定 id、beatId、连续 order、speakerId 或明确 voiceOver、text、language、受限 delivery 节奏和 performanceNotes。speakerId 只能引用故事圣经角色；voiceOver 不能伪造角色 ID。不要把同一台词同时写入 beat 或 shot。
+  estimatedDurationUnits 不得低估版本化节奏下限：zh-CN 按去除首尾空白后的字符数乘 measured=420、natural=330、brisk=260 毫秒；en 分别乘 75、60、45；其他语言分别乘 85、70、55。可以为停顿和表演留出更多时间，但同一 scene 的 cue 总时长不得超过 durationBudgetUnits。
+  如果 cue 的台词在时长预算内无法自然说完，必须拆成更多节拍或 cues，不能用加快语速作为默认解决办法。
   节点内最后一个节拍才可承载该节点的选择或离开关系。
 variables:
   story_bible:
@@ -36,5 +38,5 @@ variables:
     required: true
 output:
   format: json
-  schema_id: scene_beats.v2
+  schema_id: scene_beats.v3
   structured_output_mode: prefer

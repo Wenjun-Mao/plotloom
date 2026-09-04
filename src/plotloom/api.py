@@ -18,6 +18,7 @@ from .domain import (
     STAGE_ORDER,
     CamelModel,
     GenerationRun,
+    GateEvaluation,
     InitialStage,
     MediaKind,
     MediaPromptContext,
@@ -51,12 +52,14 @@ from .exceptions import (
     InvalidTransitionError,
     LifecycleContentionError,
     NotFoundError,
+    ProductionPipelineNotReadyError,
     ProjectBusyError,
     RepairEligibilityError,
     RevisionConflictError,
+    SchemaResetRequiredError,
     StagePrerequisiteError,
 )
-from .persistence import SQLiteRepository
+from .persistence import ApprovalClosure, ApprovalDecision, SQLiteRepository
 from .provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,
     PROFILE_ID_PATTERN,
@@ -81,7 +84,7 @@ from .generation.providers import ProviderAdapter
 from .generation.responses import extract_assistant_text, parse_json_text
 from .generation.secrets import InMemorySecretVault, SecretLease
 from .generation.story_graph_topology import StoryGraphTopologyError
-from .validation import DomainValidationError
+from .validation import DomainValidationError, STORYBOARD_GATE_SET_VERSION
 
 
 class RunScheduler(Protocol):
@@ -174,6 +177,56 @@ class ProjectMediaTasksResponse(CamelModel):
 class StagePatchRequest(CamelModel):
     expected_revision: int = Field(ge=0)
     payload: dict[str, Any]
+
+
+class StoryboardApprovalRequest(CamelModel):
+    expected_revision: int = Field(ge=1)
+    content_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    decision: Literal["approve", "revoke"]
+    reviewer: str = Field(
+        min_length=1,
+        max_length=256,
+        description="User-supplied local-workbench label; not an authenticated identity.",
+    )
+    gate_set_version: str = Field(min_length=1, max_length=128)
+    note: str | None = Field(default=None, max_length=4_000)
+
+    @field_validator("reviewer", "gate_set_version")
+    @classmethod
+    def reject_blank_review_fields(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("reviewer and gateSetVersion must not be blank")
+        return normalized
+
+
+class ApprovalDecisionView(CamelModel):
+    id: str
+    project_id: str
+    entity_revision_id: str
+    subject_type: str
+    subject_id: str
+    subject_revision: int
+    content_hash: str
+    canonical_input_revisions: dict[StageName, int]
+    gate_set_version: str
+    decision: Literal["approve", "revoke"]
+    reviewer: str
+    note: str | None
+    created_at: datetime
+
+
+class ApprovalClosureView(CamelModel):
+    decision: ApprovalDecisionView
+    active: bool
+    stale_reasons: list[str]
+
+
+class StoryboardReviewResponse(CamelModel):
+    head: StageHead
+    gate_evaluation: GateEvaluation | None
+    decisions: list[ApprovalClosureView]
+    active_approval: ApprovalDecisionView | None
 
 
 class PipelineRunRequest(CamelModel):
@@ -488,6 +541,32 @@ def _default_text_profile_snapshot(defaults: ProviderSettings) -> TextProviderPr
         return TextProviderProfileSnapshot.model_validate(values)
 
 
+def _approval_decision_view(decision: ApprovalDecision) -> ApprovalDecisionView:
+    return ApprovalDecisionView(
+        id=decision.id,
+        project_id=decision.project_id,
+        entity_revision_id=decision.entity_revision_id,
+        subject_type=decision.subject_type,
+        subject_id=decision.subject_id,
+        subject_revision=decision.subject_revision,
+        content_hash=decision.content_hash,
+        canonical_input_revisions=dict(decision.canonical_input_revisions),
+        gate_set_version=decision.gate_set_version,
+        decision=decision.decision,
+        reviewer=decision.reviewer,
+        note=decision.note,
+        created_at=decision.created_at,
+    )
+
+
+def _approval_closure_view(closure: ApprovalClosure) -> ApprovalClosureView:
+    return ApprovalClosureView(
+        decision=_approval_decision_view(closure.decision),
+        active=closure.active,
+        stale_reasons=list(closure.stale_reasons),
+    )
+
+
 def create_app(
     repository: SQLiteRepository | None = None,
     *,
@@ -684,12 +763,35 @@ def create_app(
     async def transition_handler(_request: Request, error: InvalidTransitionError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"code": "invalid_transition", "message": str(error)})
 
+    @app.exception_handler(SchemaResetRequiredError)
+    async def schema_reset_required_handler(
+        _request: Request, error: SchemaResetRequiredError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={
+                "code": error.code,
+                "message": str(error),
+                "stage": error.stage.value,
+                "schemaVersion": error.schema_version,
+            },
+        )
+
     @app.exception_handler(RepairEligibilityError)
     async def repair_eligibility_handler(
         _request: Request, error: RepairEligibilityError
     ) -> JSONResponse:
         return JSONResponse(
             status_code=409,
+            content={"code": error.code, "message": str(error)},
+        )
+
+    @app.exception_handler(ProductionPipelineNotReadyError)
+    async def production_pipeline_not_ready_handler(
+        _request: Request, error: ProductionPipelineNotReadyError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
             content={"code": error.code, "message": str(error)},
         )
 
@@ -820,6 +922,63 @@ def create_app(
     @app.patch("/api/v2/projects/{project_id}/stages/{stage}", response_model=StageHead)
     def patch_stage(project_id: str, stage: StageName, body: StagePatchRequest) -> StageHead:
         return repo.update_stage(project_id, stage, body.expected_revision, body.payload)
+
+    @app.get(
+        "/api/v2/projects/{project_id}/storyboard-review",
+        response_model=StoryboardReviewResponse,
+    )
+    def get_storyboard_review(project_id: str) -> StoryboardReviewResponse:
+        head = repo.get_stage_head(project_id, StageName.STORYBOARD)
+        gate_evaluation: GateEvaluation | None = None
+        if head.entity_revision_id is not None:
+            try:
+                gate_evaluation = repo.get_gate_evaluation(
+                    head.entity_revision_id,
+                    STORYBOARD_GATE_SET_VERSION,
+                )
+            except NotFoundError:
+                # A V1 read-only storyboard, or an interrupted pre-gate V2
+                # migration, has no production-quality receipt.
+                gate_evaluation = None
+
+        decisions = [
+            _approval_closure_view(repo.get_approval_closure(decision.id))
+            for decision in repo.list_approval_decisions(project_id)
+        ]
+        active = next(
+            (
+                item.decision
+                for item in reversed(decisions)
+                if item.active and item.decision.decision == "approve"
+            ),
+            None,
+        )
+        return StoryboardReviewResponse(
+            head=head,
+            gate_evaluation=gate_evaluation,
+            decisions=decisions,
+            active_approval=active,
+        )
+
+    @app.post(
+        "/api/v2/projects/{project_id}/storyboard-approval",
+        response_model=ApprovalClosureView,
+        status_code=status.HTTP_201_CREATED,
+    )
+    def decide_storyboard_approval(
+        project_id: str,
+        body: StoryboardApprovalRequest,
+    ) -> ApprovalClosureView:
+        decision = repo.decide_storyboard_approval(
+            project_id,
+            expected_revision=body.expected_revision,
+            expected_content_hash=body.content_hash,
+            decision=body.decision,
+            reviewer=body.reviewer,
+            gate_set_version=body.gate_set_version,
+            note=body.note,
+        )
+        return _approval_closure_view(repo.get_approval_closure(decision.id))
 
     @app.post(
         "/api/v2/projects/{project_id}/pipeline-runs",
@@ -983,35 +1142,13 @@ def create_app(
         status_code=status.HTTP_202_ACCEPTED,
     )
     def create_media_task(project_id: str, shot_id: str, body: MediaTaskRequest, request: Request) -> MediaTask:
-        if media_prompt_compiler is None:
-            raise HTTPException(status_code=503, detail="media prompt compiler is not configured")
-        prompt_context = repo.get_media_prompt_context(project_id, shot_id)
-        derived_prompt, prompt_components = media_prompt_compiler.compile(prompt_context, body.kind)
-        current_settings = effective_provider_settings()
-        prefix = body.kind.value
-        public_settings = dict(body.public_settings)
-        public_defaults = {
-            f"{prefix}BaseUrl": getattr(current_settings, f"{prefix}_base_url"),
-            f"{prefix}Model": getattr(current_settings, f"{prefix}_model"),
-            f"{prefix}AuthMode": getattr(current_settings, f"{prefix}_auth_mode").value,
-        }
-        for name, value in public_defaults.items():
-            if value is not None:
-                public_settings[name] = value
-        provider = getattr(current_settings, f"{prefix}_provider")
-        task = repo.create_media_task(
-            project_id,
-            shot_id,
-            body.kind,
-            expected_storyboard_revision=prompt_context.storyboard_revision,
-            derived_prompt=derived_prompt,
-            prompt_components=prompt_components,
-            provider=provider,
-            public_settings=public_settings,
-        )
-        if media_scheduler is not None:
-            _submit_with_optional_session_key(media_scheduler, task.id, request)
-        return task
+        # ADR 0012 keeps this route shape so old clients receive an actionable
+        # contract error instead of an ambiguous 404. Rejection occurs before
+        # canonical lookup, prompt compilation, credential leasing, persistence,
+        # or scheduler dispatch. Reopening it requires an immutable approved
+        # ProductionSnapshot.
+        _ = (project_id, shot_id, body, request)
+        raise ProductionPipelineNotReadyError()
 
     @app.get("/api/v2/media-tasks/{task_id}", response_model=MediaTask)
     def get_media_task(task_id: str) -> MediaTask:

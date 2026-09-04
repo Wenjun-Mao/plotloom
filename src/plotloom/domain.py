@@ -11,6 +11,57 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+# V2 deliberately lives in a separate module.  The classes below remain the
+# explicit V1 read model for historical revisions; do not add V2 production
+# defaults to them.
+from .canonical_schema import (
+    AudioEvent,
+    AudioKind,
+    AudioPlan,
+    BeatV2,
+    CharacterV2,
+    ContinuityStateV2,
+    DialogueCue,
+    DialogueDeliveryPace,
+    DialogueTimingProfile,
+    DialogueTimingRule,
+    DEFAULT_DIALOGUE_TIMING_PROFILE,
+    DEFAULT_ZH_CN_DIALOGUE_TIMING_PROFILE,
+    DramaticSceneV2,
+    EntitySpecV2,
+    EntityType,
+    JoinContractV2,
+    LocationV2,
+    PropV2,
+    RequiredEntityState,
+    SceneBeatPlanV2,
+    ShotBeatLinkV2,
+    ShotV2,
+    StoryBibleV2,
+    StoryboardV2,
+    StoryEdgeV2,
+    StoryGraphV2,
+    StoryNodeV2,
+    V2CoverageRole,
+    V2ShotSize,
+    V2StoryEdgeKind,
+    V2StoryNodeKind,
+)
+from .timeline import (
+    NodeTimecode,
+    PathTimecode,
+    SceneTimecode,
+    Timecode,
+    TimelineContractError,
+    derive_node_timecodes,
+    derive_path_timecode,
+    derive_scene_timecodes,
+)
+from .canonical_schema import (
+    default_dialogue_timing_profile,
+    default_zh_cn_dialogue_timing_profile,
+)
+
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -166,6 +217,78 @@ class StoryEdgeKind(str, Enum):
 class CoverageRole(str, Enum):
     PRIMARY = "primary"
     SUPPORTING = "supporting"
+
+
+class GateStatus(str, Enum):
+    PASS = "pass"
+    FAIL = "fail"
+    SKIPPED = "skipped"
+    NOT_APPLICABLE = "not_applicable"
+
+
+class GateSeverity(str, Enum):
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+
+
+class GateEvidence(CamelModel):
+    """One immutable, JSON-safe observation supporting a gate decision."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    key: Annotated[str, Field(min_length=1)]
+    value: str
+
+
+class GateResult(CamelModel):
+    """Versioned deterministic quality-gate result.
+
+    Results deliberately record an entity path rather than a provider prompt or
+    transient runner detail.  Tuples and frozen nested evidence prevent callers
+    from mutating the recorded decision after evaluation.
+    """
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    # ``gate_id`` names one concrete check target (for example
+    # ``audio.timing.shot-7``); ``id`` is the stable persisted result identity.
+    id: Annotated[str, Field(min_length=1)]
+    gate_set_version: Annotated[str, Field(min_length=1)]
+    gate_id: Annotated[str, Field(min_length=1)]
+    evaluated_input_hash: Annotated[str, Field(min_length=1)]
+    required: bool
+    status: GateStatus
+    severity: GateSeverity
+    entity_path: tuple[str | int, ...] = ()
+    evidence: tuple[GateEvidence, ...] = ()
+    reason: str = ""
+
+    @property
+    def passed(self) -> bool:
+        """Whether this individual result can count toward acceptance."""
+
+        if self.status == GateStatus.PASS:
+            return True
+        if self.required:
+            # Required gates must run and pass.  In particular SKIPPED is not
+            # a success-shaped outcome, even if an evaluator lacks context.
+            return False
+        return self.status in {GateStatus.SKIPPED, GateStatus.NOT_APPLICABLE}
+
+
+class GateEvaluation(CamelModel):
+    """Immutable, ordered output of one versioned deterministic evaluator."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    gate_set_version: Annotated[str, Field(min_length=1)]
+    evaluated_input_hash: Annotated[str, Field(min_length=1)]
+    results: tuple[GateResult, ...]
+
+    @property
+    def passed(self) -> bool:
+        return all(result.passed for result in self.results)
 
 
 class ShotSize(str, Enum):
@@ -410,6 +533,17 @@ class Storyboard(CamelModel):
 
 
 StagePayload = StoryBible | StoryGraph | SceneBeatPlan | Storyboard
+# ``StagePayload`` is intentionally V1.  Storage selects this or the V2 union
+# only from an explicit persisted schema version.
+StagePayloadV1 = StagePayload
+StagePayloadV2 = StoryBibleV2 | StoryGraphV2 | SceneBeatPlanV2 | StoryboardV2
+
+# Explicit names make historical read behavior visible at call sites and avoid
+# the dangerous implication that a V2 default can reconstruct absent V1 data.
+StoryBibleV1 = StoryBible
+StoryGraphV1 = StoryGraph
+SceneBeatPlanV1 = SceneBeatPlan
+StoryboardV1 = Storyboard
 
 
 class InitialStage(CamelModel):
@@ -420,7 +554,10 @@ class InitialStage(CamelModel):
 
     @model_validator(mode="after")
     def normalize_payload(self) -> InitialStage:
-        parsed = stage_payload_model(self.stage).model_validate(self.payload)
+        # Initial-stage creation is a current authoring write.  Legacy V1
+        # revisions are read only through their persisted version at the
+        # repository boundary and must never be silently upgraded here.
+        parsed = stage_payload_model(self.stage, schema_version=2).model_validate(self.payload)
         object.__setattr__(self, "payload", parsed.model_dump(mode="json", by_alias=False))
         return self
 
@@ -437,6 +574,9 @@ class EntityRevision(CamelModel):
     project_id: str
     stage: StageName
     revision: Annotated[int, Field(ge=1)]
+    # Required at the read boundary: legacy JSON remains V1 rather than being
+    # reparsed as current authoring data and thereby re-hashed or rewritten.
+    schema_version: Literal[1, 2]
     parent_revision_id: str | None = None
     content_hash: str
     input_revisions: dict[StageName, int] = Field(default_factory=dict)
@@ -448,6 +588,11 @@ class StageHead(CamelModel):
     stage: StageName
     status: StageStatus = StageStatus.MISSING
     revision: Annotated[int, Field(ge=0)] = 0
+    # Generation-run snapshots created before migration 0010 contain embedded
+    # heads without this scalar. Those immutable snapshots are explicitly V1;
+    # live/current heads are hydrated from their migrated row and always pass
+    # the stored value, so this fallback cannot turn a new write into V1.
+    schema_version: Literal[1, 2] = 1
     entity_revision_id: str | None = None
     content_hash: str | None = None
     input_revisions: dict[StageName, int] = Field(default_factory=dict)
@@ -466,7 +611,12 @@ class StageHead(CamelModel):
 
 class StageEnvelope(CamelModel):
     head: StageHead
-    payload: StagePayload | None = None
+    # Current authoring endpoints reject schema-1 heads with
+    # ``data.schema_reset_required``. Keeping V1 in this response union would
+    # advertise an impossible success response and force the workbench to
+    # preserve fields it must never author. Historical V1 payloads remain
+    # available through immutable revision/run evidence readers.
+    payload: StagePayloadV2 | None = None
 
 
 class CanonicalSnapshot(CamelModel):
@@ -1137,13 +1287,36 @@ class StartupRecoveryPlan(CamelModel):
     terminated_media_task_ids: list[str] = Field(default_factory=list)
 
 
-def stage_payload_model(stage: StageName) -> type[StagePayload]:
-    return {
-        StageName.STORY_BIBLE: StoryBible,
-        StageName.STORY_GRAPH: StoryGraph,
-        StageName.SCENE_BEATS: SceneBeatPlan,
-        StageName.STORYBOARD: Storyboard,
-    }[stage]
+def stage_payload_model(
+    stage: StageName | str,
+    schema_version: int,
+) -> type[StagePayloadV1] | type[StagePayloadV2]:
+    """Return the exact stage model for a persisted schema version.
+
+    Version ``1`` is retained only for legacy reads.  Callers must pass the
+    persisted version rather than relying on a default that could parse a V2
+    write as V1 and silently erase its production semantics.
+    """
+
+    resolved_stage = StageName(stage)
+    models_by_version: dict[int, dict[StageName, type[BaseModel]]] = {
+        1: {
+            StageName.STORY_BIBLE: StoryBibleV1,
+            StageName.STORY_GRAPH: StoryGraphV1,
+            StageName.SCENE_BEATS: SceneBeatPlanV1,
+            StageName.STORYBOARD: StoryboardV1,
+        },
+        2: {
+            StageName.STORY_BIBLE: StoryBibleV2,
+            StageName.STORY_GRAPH: StoryGraphV2,
+            StageName.SCENE_BEATS: SceneBeatPlanV2,
+            StageName.STORYBOARD: StoryboardV2,
+        },
+    }
+    try:
+        return models_by_version[schema_version][resolved_stage]
+    except KeyError as exc:
+        raise ValueError(f"unsupported canonical schema version: {schema_version}") from exc
 
 
 def upstream_stages(stage: StageName) -> tuple[StageName, ...]:

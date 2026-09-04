@@ -24,6 +24,8 @@ import type {
   RunExecutionTrace,
   RunProgress,
   RunTrace,
+  StoryboardReview,
+  ApprovalClosure,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -137,6 +139,19 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/stages`);
   }
 
+  getStoryboardReview(projectId: string): Promise<StoryboardReview> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-review`);
+  }
+
+  decideStoryboardApproval(projectId: string, body: {
+    expectedRevision: number; contentHash: string; decision: "approve" | "revoke";
+    reviewer: string; gateSetVersion: string; note?: string;
+  }): Promise<ApprovalClosure> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-approval`, {
+      method: "POST", body: JSON.stringify(body),
+    });
+  }
+
   getProjectRuns(projectId: string): Promise<ProjectRunsResponse> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/runs`);
   }
@@ -245,10 +260,10 @@ export class PlotloomApiClient {
     );
   }
 
-  startMediaTask(projectId: string, shotId: string, kind: MediaKind, publicSettings?: Record<string, unknown>): Promise<MediaTask> {
+  startMediaTask(projectId: string, shotId: string, kind: MediaKind): Promise<MediaTask> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/shots/${encodeURIComponent(shotId)}/media-tasks`, {
       method: "POST",
-      body: JSON.stringify({ kind, ...(publicSettings ? { publicSettings } : {}) }),
+      body: JSON.stringify({ kind }),
     });
   }
 

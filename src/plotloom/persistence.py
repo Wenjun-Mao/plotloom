@@ -5,6 +5,7 @@ import json
 import re
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from threading import RLock
 from typing import Any
@@ -42,6 +43,9 @@ from .domain import (
     FragmentReuseBinding,
     FragmentReuseKind,
     FrozenFragmentReuseSource,
+    GateEvaluation,
+    GateEvidence,
+    GateResult,
     GenerationAttempt,
     GenerationAttemptKind,
     GenerationPlanTrace,
@@ -136,12 +140,46 @@ from .exceptions import (
     LifecycleContentionError,
     NotFoundError,
     ProjectBusyError,
+    ProductionPipelineNotReadyError,
     RepairEligibilityError,
     RevisionConflictError,
     StagePrerequisiteError,
+    SchemaResetRequiredError,
 )
 from .schema import SchemaMigrator, sqlite_database_path
-from .validation import validate_stage_payload
+from .validation import STORYBOARD_GATE_SET_VERSION, validate_stage_payload
+
+
+LEGACY_STAGE_SCHEMA_VERSION = 1
+CURRENT_STAGE_SCHEMA_VERSION = 2
+
+
+@dataclass(frozen=True)
+class ApprovalDecision:
+    """A read projection of one immutable human decision in the approval ledger."""
+
+    id: str
+    project_id: str
+    entity_revision_id: str
+    subject_type: str
+    subject_id: str
+    subject_revision: int
+    content_hash: str
+    canonical_input_revisions: tuple[tuple[StageName, int], ...]
+    gate_set_version: str
+    decision: str
+    reviewer: str
+    note: str | None
+    created_at: datetime
+
+
+@dataclass(frozen=True)
+class ApprovalClosure:
+    """Derived current applicability of an append-only approval decision."""
+
+    decision: ApprovalDecision
+    active: bool
+    stale_reasons: tuple[str, ...]
 
 
 class Base(DeclarativeBase):
@@ -203,6 +241,7 @@ class EntityRevisionRow(Base):
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     parent_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    schema_version: Mapped[int] = mapped_column(Integer, nullable=False)
     input_revisions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False)
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -219,9 +258,72 @@ class StageHeadRow(Base):
     revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     entity_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    schema_version: Mapped[int] = mapped_column(Integer, nullable=False)
     input_revisions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False)
     stale_reasons: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class GateResultRow(Base):
+    """An immutable evaluation result for one exact canonical revision."""
+
+    __tablename__ = "v2_gate_results"
+    __table_args__ = (
+        UniqueConstraint("entity_revision_id", "gate_set_version", "gate_id"),
+        UniqueConstraint("entity_revision_id", "gate_set_version", "sequence"),
+        Index("ix_v2_gate_results_project_id", "project_id"),
+        Index("ix_v2_gate_results_entity_revision_id", "entity_revision_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(256), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    entity_revision_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False
+    )
+    stage: Mapped[str] = mapped_column(String(32), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    evaluation_input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    gate_set_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Gate IDs include stable authoring IDs to make review paths readable.
+    # They are intentionally unbounded text; the row primary key is a fixed
+    # hash so database identity never depends on authored identifier length.
+    gate_id: Mapped[str] = mapped_column(Text, nullable=False)
+    gate_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    required: Mapped[bool] = mapped_column(nullable=False)
+    severity: Mapped[str] = mapped_column(String(32), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    entity_path: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
+    evidence: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
+    reason: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ApprovalDecisionRow(Base):
+    """Append-only human approval ledger; current state is derived, never stored."""
+
+    __tablename__ = "v2_approval_decisions"
+    __table_args__ = (
+        Index("ix_v2_approval_decisions_project_id_created_at", "project_id", "created_at"),
+        Index("ix_v2_approval_decisions_entity_revision_id", "entity_revision_id"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    entity_revision_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False
+    )
+    subject_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    subject_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    canonical_input_revisions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False)
+    gate_set_version: Mapped[str] = mapped_column(String(128), nullable=False)
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    reviewer: Mapped[str] = mapped_column(String(256), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class GenerationRunRow(Base):
@@ -396,6 +498,7 @@ class SealedStageAggregateRow(Base):
     manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
     manifest: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    schema_version: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
@@ -738,6 +841,7 @@ class SQLiteRepository:
             revision=row.revision,
             entity_revision_id=row.entity_revision_id,
             content_hash=row.content_hash,
+            schema_version=row.schema_version,
             input_revisions={StageName(key): value for key, value in row.input_revisions.items()},
             stale_reasons=list(row.stale_reasons),
             updated_at=row.updated_at,
@@ -752,9 +856,76 @@ class SQLiteRepository:
             revision=row.revision,
             parent_revision_id=row.parent_revision_id,
             content_hash=row.content_hash,
+            schema_version=row.schema_version,
             input_revisions={StageName(key): value for key, value in row.input_revisions.items()},
             payload=row.payload,
             created_at=row.created_at,
+        )
+
+    @staticmethod
+    def _decode_stage_payload(
+        stage: StageName,
+        payload: dict[str, Any],
+        schema_version: int | None,
+    ) -> StagePayload:
+        """Use the stored schema version, never the application's current default."""
+
+        if schema_version not in {LEGACY_STAGE_SCHEMA_VERSION, CURRENT_STAGE_SCHEMA_VERSION}:
+            raise SchemaResetRequiredError(stage=stage, schema_version=schema_version)
+        return stage_payload_model(stage, schema_version=schema_version).model_validate(payload)
+
+    @classmethod
+    def _decode_current_stage_payload(
+        cls,
+        stage: StageName,
+        payload: dict[str, Any],
+        schema_version: int | None,
+    ) -> StagePayload:
+        """Decode a live authoring/runtime input, which must use schema V2.
+
+        V1 remains readable as raw historical revision/run evidence. It is not
+        a valid current project input because its free-text dialogue, audio,
+        timing, and entity state cannot be upgraded without guessing.
+        """
+
+        if schema_version != CURRENT_STAGE_SCHEMA_VERSION:
+            raise SchemaResetRequiredError(stage=stage, schema_version=schema_version)
+        return cls._decode_stage_payload(stage, payload, schema_version)
+
+    @staticmethod
+    def _gate_result(row: GateResultRow) -> GateResult:
+        return GateResult(
+            id=row.id,
+            gate_id=row.gate_id,
+            gate_set_version=row.gate_version,
+            evaluated_input_hash=row.evaluation_input_hash,
+            required=row.required,
+            status=row.status,
+            severity=row.severity,
+            entity_path=tuple(row.entity_path),
+            evidence=tuple(GateEvidence.model_validate(item) for item in row.evidence),
+            reason=row.reason,
+        )
+
+    @staticmethod
+    def _approval_decision(row: ApprovalDecisionRow) -> ApprovalDecision:
+        return ApprovalDecision(
+            id=row.id,
+            project_id=row.project_id,
+            entity_revision_id=row.entity_revision_id,
+            subject_type=row.subject_type,
+            subject_id=row.subject_id,
+            subject_revision=row.subject_revision,
+            content_hash=row.content_hash,
+            canonical_input_revisions=tuple(
+                (StageName(stage), revision)
+                for stage, revision in sorted(row.canonical_input_revisions.items())
+            ),
+            gate_set_version=row.gate_set_version,
+            decision=row.decision,
+            reviewer=row.reviewer,
+            note=row.note,
+            created_at=_stored_utc(row.created_at),
         )
 
     @staticmethod
@@ -1025,6 +1196,7 @@ class SQLiteRepository:
                     revision=0,
                     entity_revision_id=None,
                     content_hash=None,
+                    schema_version=CURRENT_STAGE_SCHEMA_VERSION,
                     input_revisions={},
                     stale_reasons=[],
                     updated_at=now,
@@ -1096,7 +1268,9 @@ class SQLiteRepository:
                 revision = session.get(EntityRevisionRow, row.entity_revision_id)
                 if revision is None:
                     raise NotFoundError(f"entity revision not found: {row.entity_revision_id}")
-                payload = stage_payload_model(stage).model_validate(revision.payload)
+                payload = self._decode_current_stage_payload(
+                    stage, revision.payload, revision.schema_version
+                )
             envelopes.append(StageEnvelope(head=self._stage_head(row), payload=payload))
         return envelopes
 
@@ -1133,7 +1307,9 @@ class SQLiteRepository:
             now = utc_now()
             project_row = self._create_project_row_in_session(session, brief, now)
             for initial_stage in normalized_stages:
-                payload = stage_payload_model(initial_stage.stage).model_validate(initial_stage.payload)
+                payload = stage_payload_model(
+                    initial_stage.stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION
+                ).model_validate(initial_stage.payload)
                 self._install_stage_in_session(
                     session,
                     project_row,
@@ -1443,6 +1619,532 @@ class SQLiteRepository:
                 raise NotFoundError(f"entity revision not found: {revision_id}")
             return self._entity_revision(row)
 
+    def record_gate_evaluation(
+        self,
+        project_id: str,
+        entity_revision_id: str,
+        evaluation: GateEvaluation,
+    ) -> GateEvaluation:
+        """Persist one immutable, versioned gate evaluation for a storyboard revision."""
+
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            revision = session.get(EntityRevisionRow, entity_revision_id)
+            if revision is None or revision.project_id != project_id:
+                raise NotFoundError(f"entity revision not found: {entity_revision_id}")
+            head = self._stage_row(session, project_id, StageName.STORYBOARD)
+            if (
+                head.status != StageStatus.READY.value
+                or head.entity_revision_id != revision.id
+                or head.revision != revision.revision
+                or head.content_hash != revision.content_hash
+            ):
+                raise InvalidTransitionError(
+                    "gate evaluation can only bind the current READY storyboard"
+                )
+            authoritative = self._evaluate_storyboard_revision_in_session(
+                session,
+                project,
+                revision,
+            )
+            authoritative_semantics = authoritative.model_dump(
+                mode="json", by_alias=False
+            )
+            supplied_semantics = evaluation.model_dump(mode="json", by_alias=False)
+            for result in authoritative_semantics["results"]:
+                result.pop("id", None)
+            for result in supplied_semantics["results"]:
+                result.pop("id", None)
+            if supplied_semantics != authoritative_semantics:
+                raise InvalidTransitionError(
+                    "gate evaluation does not match the canonical evaluator receipt"
+                )
+            return self._record_gate_evaluation_in_session(
+                session,
+                project_id,
+                revision,
+                authoritative,
+                now=utc_now(),
+            )
+
+    def _evaluate_storyboard_revision_in_session(
+        self,
+        session: Session,
+        project: ProjectRow,
+        storyboard_revision: EntityRevisionRow,
+    ) -> GateEvaluation:
+        """Rebuild the only accepted gate receipt from exact canonical inputs."""
+
+        if storyboard_revision.stage != StageName.STORYBOARD.value:
+            raise InvalidTransitionError(
+                "gate evaluations can only bind storyboard revisions"
+            )
+        if storyboard_revision.schema_version != CURRENT_STAGE_SCHEMA_VERSION:
+            raise SchemaResetRequiredError(
+                stage=StageName.STORYBOARD,
+                schema_version=storyboard_revision.schema_version,
+            )
+
+        def exact_upstream(stage: StageName) -> StagePayload:
+            revision_number = storyboard_revision.input_revisions.get(stage.value)
+            if revision_number is None:
+                raise InvalidTransitionError(
+                    f"storyboard revision has no frozen {stage.value} input"
+                )
+            row = session.scalar(
+                select(EntityRevisionRow).where(
+                    EntityRevisionRow.project_id == project.id,
+                    EntityRevisionRow.stage == stage.value,
+                    EntityRevisionRow.revision == revision_number,
+                )
+            )
+            if row is None:
+                raise NotFoundError(
+                    f"storyboard input revision not found: {stage.value}/{revision_number}"
+                )
+            return self._decode_current_stage_payload(
+                stage, row.payload, row.schema_version
+            )
+
+        storyboard = self._decode_current_stage_payload(
+            StageName.STORYBOARD,
+            storyboard_revision.payload,
+            storyboard_revision.schema_version,
+        )
+        bible = exact_upstream(StageName.STORY_BIBLE)
+        scene_beats = exact_upstream(StageName.SCENE_BEATS)
+        evaluation = validate_stage_payload(
+            StageName.STORYBOARD,
+            storyboard,
+            schema_version=CURRENT_STAGE_SCHEMA_VERSION,
+            brief=ProjectBrief.model_validate(project.brief),
+            bible=bible,
+            graph=None,
+            scene_beats=scene_beats,
+        )
+        if evaluation is None:
+            raise InvalidTransitionError(
+                "canonical storyboard evaluator returned no gate receipt"
+            )
+        return evaluation
+
+    def _record_gate_evaluation_in_session(
+        self,
+        session: Session,
+        project_id: str,
+        revision: EntityRevisionRow,
+        evaluation: GateEvaluation,
+        *,
+        now: datetime,
+    ) -> GateEvaluation:
+        """Bind one deterministic receipt to an exact revision transactionally."""
+
+        if revision.project_id != project_id:
+            raise NotFoundError(f"entity revision not found: {revision.id}")
+        if revision.stage != StageName.STORYBOARD.value:
+            raise InvalidTransitionError("gate evaluations can only bind storyboard revisions")
+        if revision.schema_version != CURRENT_STAGE_SCHEMA_VERSION:
+            raise SchemaResetRequiredError(
+                stage=StageName.STORYBOARD, schema_version=revision.schema_version
+            )
+        if not evaluation.results:
+            raise InvalidTransitionError("gate evaluation must contain at least one result")
+        if any(
+            result.gate_set_version != evaluation.gate_set_version
+            or result.evaluated_input_hash != evaluation.evaluated_input_hash
+            for result in evaluation.results
+        ):
+            raise InvalidTransitionError(
+                "gate results must bind the evaluation's exact gate set and input hash"
+            )
+
+        existing = session.scalars(
+            select(GateResultRow)
+            .where(
+                GateResultRow.entity_revision_id == revision.id,
+                GateResultRow.gate_set_version == evaluation.gate_set_version,
+            )
+            .order_by(GateResultRow.sequence)
+        ).all()
+        if existing:
+            persisted = GateEvaluation(
+                gate_set_version=evaluation.gate_set_version,
+                evaluated_input_hash=existing[0].evaluation_input_hash,
+                results=tuple(self._gate_result(row) for row in existing),
+            )
+            persisted_semantics = [
+                result.model_dump(mode="json", by_alias=False, exclude={"id"})
+                for result in persisted.results
+            ]
+            requested_semantics = [
+                result.model_dump(mode="json", by_alias=False, exclude={"id"})
+                for result in evaluation.results
+            ]
+            if persisted_semantics != requested_semantics:
+                raise InvalidTransitionError(
+                    "gate evaluation is already recorded for this immutable revision"
+                )
+            return persisted
+
+        persisted_results: list[GateResult] = []
+        for sequence, result in enumerate(evaluation.results):
+            identity = hashlib.sha256(
+                f"{evaluation.gate_set_version}\0{result.gate_id}".encode("utf-8")
+            ).hexdigest()
+            persisted_result = result.model_copy(update={"id": f"{revision.id}:{identity}"})
+            persisted_results.append(persisted_result)
+            session.add(
+                GateResultRow(
+                    id=persisted_result.id,
+                    project_id=project_id,
+                    entity_revision_id=revision.id,
+                    stage=revision.stage,
+                    revision=revision.revision,
+                    content_hash=revision.content_hash,
+                    evaluation_input_hash=evaluation.evaluated_input_hash,
+                    gate_set_version=evaluation.gate_set_version,
+                    sequence=sequence,
+                    gate_id=result.gate_id,
+                    gate_version=result.gate_set_version,
+                    required=result.required,
+                    severity=result.severity.value,
+                    status=result.status.value,
+                    entity_path=list(result.entity_path),
+                    evidence=[
+                        item.model_dump(mode="json", by_alias=False)
+                        for item in result.evidence
+                    ],
+                    reason=result.reason,
+                    created_at=now,
+                )
+            )
+        return GateEvaluation(
+            gate_set_version=evaluation.gate_set_version,
+            evaluated_input_hash=evaluation.evaluated_input_hash,
+            results=tuple(persisted_results),
+        )
+
+    def get_gate_evaluation(
+        self,
+        entity_revision_id: str,
+        gate_set_version: str,
+    ) -> GateEvaluation:
+        with self._read() as session:
+            revision = session.get(EntityRevisionRow, entity_revision_id)
+            if revision is None:
+                raise NotFoundError(f"entity revision not found: {entity_revision_id}")
+            rows = session.scalars(
+                select(GateResultRow)
+                .where(
+                    GateResultRow.entity_revision_id == entity_revision_id,
+                    GateResultRow.gate_set_version == gate_set_version,
+                )
+                .order_by(GateResultRow.sequence)
+            ).all()
+            if not rows:
+                raise NotFoundError(
+                    f"gate evaluation not found: {entity_revision_id}/{gate_set_version}"
+                )
+            return GateEvaluation(
+                gate_set_version=gate_set_version,
+                evaluated_input_hash=rows[0].evaluation_input_hash,
+                results=tuple(self._gate_result(row) for row in rows),
+            )
+
+    def append_approval_decision(
+        self,
+        project_id: str,
+        entity_revision_id: str,
+        *,
+        decision: str,
+        reviewer: str,
+        gate_set_version: str,
+        note: str | None = None,
+        subject_type: str = "storyboard",
+        subject_id: str = "storyboard",
+    ) -> ApprovalDecision:
+        """Append (never update) an approval or revocation over an exact board."""
+
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            revision = session.get(EntityRevisionRow, entity_revision_id)
+            if revision is None or revision.project_id != project_id:
+                raise NotFoundError(f"entity revision not found: {entity_revision_id}")
+            return self._append_approval_decision_in_session(
+                session,
+                project_id,
+                revision,
+                decision=decision,
+                reviewer=reviewer,
+                gate_set_version=gate_set_version,
+                note=note,
+                subject_type=subject_type,
+                subject_id=subject_id,
+            )
+
+    def decide_storyboard_approval(
+        self,
+        project_id: str,
+        *,
+        expected_revision: int,
+        expected_content_hash: str,
+        decision: str,
+        reviewer: str,
+        gate_set_version: str,
+        note: str | None = None,
+    ) -> ApprovalDecision:
+        """Append a decision only if the exact current storyboard still matches."""
+
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            head = self._stage_row(session, project_id, StageName.STORYBOARD)
+            if head.revision != expected_revision:
+                raise RevisionConflictError(
+                    "stage:storyboard", expected_revision, head.revision
+                )
+            if (
+                head.status != StageStatus.READY.value
+                or head.entity_revision_id is None
+                or head.content_hash is None
+            ):
+                raise InvalidTransitionError(
+                    "only the current READY storyboard can receive a review decision"
+                )
+            if head.content_hash != expected_content_hash:
+                raise InvalidTransitionError(
+                    "storyboard content hash no longer matches the reviewed content"
+                )
+            revision = session.get(EntityRevisionRow, head.entity_revision_id)
+            if revision is None:
+                raise NotFoundError(
+                    f"entity revision not found: {head.entity_revision_id}"
+                )
+            return self._append_approval_decision_in_session(
+                session,
+                project_id,
+                revision,
+                decision=decision,
+                reviewer=reviewer,
+                gate_set_version=gate_set_version,
+                note=note,
+                subject_type="storyboard",
+                subject_id="storyboard",
+            )
+
+    def _append_approval_decision_in_session(
+        self,
+        session: Session,
+        project_id: str,
+        revision: EntityRevisionRow,
+        *,
+        decision: str,
+        reviewer: str,
+        gate_set_version: str,
+        note: str | None,
+        subject_type: str,
+        subject_id: str,
+    ) -> ApprovalDecision:
+        normalized_decision = decision.strip().lower()
+        normalized_reviewer = reviewer.strip()
+        normalized_gate_set_version = gate_set_version.strip()
+        if normalized_decision not in {"approve", "revoke"}:
+            raise ValueError("approval decision must be approve or revoke")
+        if not normalized_reviewer or not normalized_gate_set_version:
+            raise ValueError("reviewer and gate_set_version must not be blank")
+        if normalized_gate_set_version != STORYBOARD_GATE_SET_VERSION:
+            raise InvalidTransitionError(
+                "approval requires the current canonical storyboard gate set"
+            )
+        if subject_type != "storyboard" or subject_id != "storyboard":
+            raise InvalidTransitionError(
+                "only the canonical storyboard subject is approval-eligible"
+            )
+        if revision.project_id != project_id:
+            raise NotFoundError(f"entity revision not found: {revision.id}")
+        if revision.stage != StageName.STORYBOARD.value:
+            raise InvalidTransitionError(
+                "approval decisions can only bind storyboard revisions"
+            )
+        if revision.schema_version != CURRENT_STAGE_SCHEMA_VERSION:
+            raise SchemaResetRequiredError(
+                stage=StageName.STORYBOARD, schema_version=revision.schema_version
+            )
+        head = self._stage_row(session, project_id, StageName.STORYBOARD)
+        if (
+            head.status != StageStatus.READY.value
+            or head.entity_revision_id != revision.id
+            or head.revision != revision.revision
+            or head.content_hash != revision.content_hash
+        ):
+            raise InvalidTransitionError(
+                "approval decisions can only bind the current READY storyboard"
+            )
+
+        latest = session.scalar(
+            select(ApprovalDecisionRow)
+            .where(
+                ApprovalDecisionRow.entity_revision_id == revision.id,
+                ApprovalDecisionRow.subject_type == subject_type,
+                ApprovalDecisionRow.subject_id == subject_id,
+            )
+            .order_by(
+                ApprovalDecisionRow.created_at.desc(),
+                ApprovalDecisionRow.id.desc(),
+            )
+            .limit(1)
+        )
+        if latest is not None and latest.decision == normalized_decision:
+            raise InvalidTransitionError(
+                f"storyboard revision is already {normalized_decision}d"
+            )
+        if normalized_decision == "revoke" and (
+            latest is None or latest.decision != "approve"
+        ):
+            raise InvalidTransitionError(
+                "only an active approval for this storyboard revision can be revoked"
+            )
+
+        gates = session.scalars(
+            select(GateResultRow).where(
+                GateResultRow.entity_revision_id == revision.id,
+                GateResultRow.gate_set_version == normalized_gate_set_version,
+            )
+        ).all()
+        if normalized_decision == "approve":
+            if not gates:
+                raise InvalidTransitionError(
+                    "approval requires a recorded gate evaluation"
+                )
+            if any(
+                gate.content_hash != revision.content_hash
+                or gate.revision != revision.revision
+                or not self._gate_result(gate).passed
+                for gate in gates
+            ):
+                raise InvalidTransitionError(
+                    "approval requires all required gates to pass for the exact revision"
+                )
+
+        row = ApprovalDecisionRow(
+            id=new_id(),
+            project_id=project_id,
+            entity_revision_id=revision.id,
+            subject_type=subject_type,
+            subject_id=subject_id,
+            subject_revision=revision.revision,
+            content_hash=revision.content_hash,
+            canonical_input_revisions=dict(revision.input_revisions),
+            gate_set_version=normalized_gate_set_version,
+            decision=normalized_decision,
+            reviewer=normalized_reviewer,
+            note=note,
+            created_at=utc_now(),
+        )
+        session.add(row)
+        return self._approval_decision(row)
+
+    def approve_storyboard(
+        self,
+        project_id: str,
+        entity_revision_id: str,
+        *,
+        reviewer: str,
+        gate_set_version: str,
+        note: str | None = None,
+    ) -> ApprovalDecision:
+        return self.append_approval_decision(
+            project_id,
+            entity_revision_id,
+            decision="approve",
+            reviewer=reviewer,
+            gate_set_version=gate_set_version,
+            note=note,
+        )
+
+    def revoke_storyboard_approval(
+        self,
+        project_id: str,
+        entity_revision_id: str,
+        *,
+        reviewer: str,
+        gate_set_version: str,
+        note: str | None = None,
+    ) -> ApprovalDecision:
+        return self.append_approval_decision(
+            project_id,
+            entity_revision_id,
+            decision="revoke",
+            reviewer=reviewer,
+            gate_set_version=gate_set_version,
+            note=note,
+        )
+
+    def list_approval_decisions(self, project_id: str) -> list[ApprovalDecision]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            rows = session.scalars(
+                select(ApprovalDecisionRow)
+                .where(ApprovalDecisionRow.project_id == project_id)
+                .order_by(ApprovalDecisionRow.created_at, ApprovalDecisionRow.id)
+            ).all()
+            return [self._approval_decision(row) for row in rows]
+
+    def get_approval_closure(self, decision_id: str) -> ApprovalClosure:
+        """Derive applicability from immutable decisions and the current closure."""
+
+        with self._read() as session:
+            row = session.get(ApprovalDecisionRow, decision_id)
+            if row is None:
+                raise NotFoundError(f"approval decision not found: {decision_id}")
+            decision = self._approval_decision(row)
+            reasons: list[str] = []
+            if row.decision != "approve":
+                reasons.append("decision is a revocation")
+            latest = session.scalar(
+                select(ApprovalDecisionRow)
+                .where(
+                    ApprovalDecisionRow.entity_revision_id == row.entity_revision_id,
+                    ApprovalDecisionRow.subject_type == row.subject_type,
+                    ApprovalDecisionRow.subject_id == row.subject_id,
+                )
+                .order_by(ApprovalDecisionRow.created_at.desc(), ApprovalDecisionRow.id.desc())
+                .limit(1)
+            )
+            if latest is None or latest.id != row.id:
+                reasons.append("superseded or revoked by a later decision")
+            revision = session.get(EntityRevisionRow, row.entity_revision_id)
+            if revision is None:
+                reasons.append("approved revision is unavailable")
+            else:
+                head = self._stage_row(session, row.project_id, StageName.STORYBOARD)
+                if (
+                    head.status != StageStatus.READY.value
+                    or head.entity_revision_id != row.entity_revision_id
+                    or head.content_hash != row.content_hash
+                    or revision.revision != row.subject_revision
+                    or revision.content_hash != row.content_hash
+                ):
+                    reasons.append("storyboard head no longer matches the approved revision")
+                for stage, expected_revision in row.canonical_input_revisions.items():
+                    upstream = self._stage_row(session, row.project_id, StageName(stage))
+                    if upstream.status != StageStatus.READY.value or upstream.revision != expected_revision:
+                        reasons.append(f"upstream {stage} revision changed")
+                gates = session.scalars(
+                    select(GateResultRow).where(
+                        GateResultRow.entity_revision_id == row.entity_revision_id,
+                        GateResultRow.gate_set_version == row.gate_set_version,
+                    )
+                ).all()
+                if (
+                    not gates
+                    or any(not self._gate_result(gate).passed for gate in gates)
+                ):
+                    reasons.append("required gate results are absent or no longer passing")
+            return ApprovalClosure(decision=decision, active=not reasons, stale_reasons=tuple(reasons))
+
     def _load_stage_payload(self, session: Session, project_id: str, stage: StageName) -> StagePayload:
         head = self._stage_row(session, project_id, stage)
         if head.entity_revision_id is None:
@@ -1450,7 +2152,11 @@ class SQLiteRepository:
         revision = session.get(EntityRevisionRow, head.entity_revision_id)
         if revision is None:
             raise NotFoundError(f"entity revision not found: {head.entity_revision_id}")
-        return stage_payload_model(stage).model_validate(revision.payload)
+        if head.schema_version != revision.schema_version:
+            raise SchemaResetRequiredError(stage=stage, schema_version=head.schema_version)
+        return self._decode_current_stage_payload(
+            stage, revision.payload, revision.schema_version
+        )
 
     def get_stage_payload(self, project_id: str, stage: StageName) -> StagePayload:
         with self._read() as session:
@@ -1492,9 +2198,10 @@ class SQLiteRepository:
             upstream_payloads[upstream] = self._load_stage_payload(session, project_row.id, upstream)
 
         brief = ProjectBrief.model_validate(project_row.brief)
-        validate_stage_payload(
+        gate_evaluation = validate_stage_payload(
             stage,
             payload,
+            schema_version=CURRENT_STAGE_SCHEMA_VERSION,
             brief=brief,
             bible=upstream_payloads.get(StageName.STORY_BIBLE),  # type: ignore[arg-type]
             graph=upstream_payloads.get(StageName.STORY_GRAPH),  # type: ignore[arg-type]
@@ -1509,6 +2216,19 @@ class SQLiteRepository:
             and head.content_hash == content_hash
             and dict(head.input_revisions) == next_inputs
         ):
+            if gate_evaluation is not None and head.entity_revision_id is not None:
+                current_revision = session.get(EntityRevisionRow, head.entity_revision_id)
+                if current_revision is None:
+                    raise NotFoundError(
+                        f"entity revision not found: {head.entity_revision_id}"
+                    )
+                self._record_gate_evaluation_in_session(
+                    session,
+                    project_row.id,
+                    current_revision,
+                    gate_evaluation,
+                    now=now,
+                )
             return self._stage_head(head), None
 
         revision = EntityRevision(
@@ -1517,6 +2237,7 @@ class SQLiteRepository:
             revision=head.revision + 1,
             parent_revision_id=head.entity_revision_id,
             content_hash=content_hash,
+            schema_version=CURRENT_STAGE_SCHEMA_VERSION,
             input_revisions=input_revisions,
             payload=payload_data,
             created_at=now,
@@ -1528,15 +2249,28 @@ class SQLiteRepository:
             revision=revision.revision,
             parent_revision_id=revision.parent_revision_id,
             content_hash=revision.content_hash,
+            schema_version=CURRENT_STAGE_SCHEMA_VERSION,
             input_revisions=next_inputs,
             payload=payload_data,
             created_at=now,
         )
         session.add(revision_row)
+        if gate_evaluation is not None:
+            # The models intentionally have no ORM relationships, so flush the
+            # new immutable revision before inserting its gate receipts.
+            session.flush()
+            self._record_gate_evaluation_in_session(
+                session,
+                project_row.id,
+                revision_row,
+                gate_evaluation,
+                now=now,
+            )
         head.status = StageStatus.READY.value
         head.revision = revision.revision
         head.entity_revision_id = revision.id
         head.content_hash = content_hash
+        head.schema_version = CURRENT_STAGE_SCHEMA_VERSION
         head.input_revisions = next_inputs
         head.stale_reasons = []
         head.updated_at = now
@@ -1550,7 +2284,7 @@ class SQLiteRepository:
         expected_revision: int,
         payload: StagePayload | dict[str, Any],
     ) -> StageHead:
-        parsed = stage_payload_model(stage).model_validate(payload)
+        parsed = stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(payload)
         with self._lifecycle_write() as session:
             project_row = self._project_row(session, project_id)
             self._assert_active_project(project_row)
@@ -1648,7 +2382,15 @@ class SQLiteRepository:
             return self._assert_run_inputs_current_in_session(session, self._run_row(session, run_id))
 
     def get_snapshot_stage_payload(self, run_id: str, stage: StageName) -> StagePayload:
-        """Read immutable upstream facts by the run snapshot, never a mutable head."""
+        """Read immutable upstream facts by the run snapshot, never a mutable head.
+
+        Snapshot reads are historical evidence, rather than live authoring
+        inputs.  A pre-0010 snapshot has no embedded schemaVersion and the
+        ``StageHead`` compatibility default intentionally classifies it as V1.
+        Decode it with that frozen version; using the live-only decoder here
+        would both make historical runs unreadable and invite callers to infer
+        V2 semantics from absent V1 fields.
+        """
 
         with self._read() as session:
             row = self._run_row(session, run_id)
@@ -1659,7 +2401,9 @@ class SQLiteRepository:
             revision = session.get(EntityRevisionRow, head.entity_revision_id)
             if revision is None or revision.project_id != row.project_id or revision.stage != stage.value:
                 raise NotFoundError(f"snapshot entity revision not found: {head.entity_revision_id}")
-            return stage_payload_model(stage).model_validate(revision.payload)
+            if revision.schema_version != head.schema_version:
+                raise SchemaResetRequiredError(stage=stage, schema_version=head.schema_version)
+            return self._decode_stage_payload(stage, revision.payload, head.schema_version)
 
     def _run_plan_inputs_in_session(
         self,
@@ -1684,7 +2428,9 @@ class SQLiteRepository:
             revision = session.get(EntityRevisionRow, head.entity_revision_id)
             if revision is None:
                 raise NotFoundError(f"snapshot entity revision not found: {head.entity_revision_id}")
-            inputs[stage] = stage_payload_model(stage).model_validate(revision.payload)
+            inputs[stage] = self._decode_current_stage_payload(
+                stage, revision.payload, revision.schema_version
+            )
         return inputs
 
     def create_run(
@@ -1902,7 +2648,9 @@ class SQLiteRepository:
             raise InvalidTransitionError(
                 f"cannot use {stage.value} as a dependency before its aggregate is sealed"
             )
-        return stage_payload_model(stage).model_validate(aggregate.payload)
+        return self._decode_current_stage_payload(
+            stage, aggregate.payload, aggregate.schema_version
+        )
 
     def _expected_stage_dependencies_in_session(
         self,
@@ -1925,7 +2673,9 @@ class SQLiteRepository:
             revision = session.get(EntityRevisionRow, head.entity_revision_id)
             if revision is None:
                 raise NotFoundError(f"snapshot entity revision not found: {head.entity_revision_id}")
-            dependencies[dependency] = stage_payload_model(dependency).model_validate(revision.payload)
+            dependencies[dependency] = self._decode_current_stage_payload(
+                dependency, revision.payload, revision.schema_version
+            )
         return dependencies
 
     def _repair_scope_row_in_session(
@@ -2053,7 +2803,9 @@ class SQLiteRepository:
                 revision = session.get(EntityRevisionRow, head.entity_revision_id)
                 if revision is None:
                     raise NotFoundError(f"snapshot entity revision not found: {head.entity_revision_id}")
-                dependencies[dependency] = stage_payload_model(dependency).model_validate(revision.payload)
+                dependencies[dependency] = self._decode_current_stage_payload(
+                    dependency, revision.payload, revision.schema_version
+                )
                 continue
             child_plan = self._stage_plan_row(session, child.id, dependency)
             if child_plan is not None and session.scalar(
@@ -2083,7 +2835,9 @@ class SQLiteRepository:
                     "repair.parent_evidence_invalid",
                     f"repair source {dependency.value} aggregate is not sealed",
                 )
-            dependencies[dependency] = stage_payload_model(dependency).model_validate(aggregate.payload)
+            dependencies[dependency] = self._decode_current_stage_payload(
+                dependency, aggregate.payload, aggregate.schema_version
+            )
         return dependencies
 
     def get_repair_stage_dependencies(
@@ -3263,6 +4017,7 @@ class SQLiteRepository:
                 manifest_hash=manifest_hash,
                 manifest=manifest,
                 payload=payload_data,
+                schema_version=CURRENT_STAGE_SCHEMA_VERSION,
                 created_at=utc_now(),
             )
             session.add(aggregate)
@@ -3457,6 +4212,7 @@ class SQLiteRepository:
                 manifest_hash=manifest_hash,
                 manifest=manifest,
                 payload=payload_data,
+                schema_version=CURRENT_STAGE_SCHEMA_VERSION,
                 created_at=utc_now(),
             )
             session.add(aggregate)
@@ -3491,9 +4247,9 @@ class SQLiteRepository:
             "Generation run was interrupted by a process restart and was not "
             "retried automatically"
         )
-        ambiguous_media_error = (
-            "Media submission was interrupted before a provider task ID was "
-            "persisted; the task was not resubmitted to avoid duplicate billing"
+        legacy_media_error = (
+            "production_pipeline_not_ready: legacy media tasks have no immutable "
+            "ProductionSnapshot and cannot be resumed after restart"
         )
         now = utc_now()
         resubmit_run_ids: list[str] = []
@@ -3747,26 +4503,17 @@ class SQLiteRepository:
                 .order_by(MediaTaskRow.created_at)
             ).all()
             for row in media_rows:
-                status = MediaTaskStatus(row.status)
-                pristine_queue = (
-                    status == MediaTaskStatus.QUEUED
-                    and row.started_at is None
-                    and row.finished_at is None
-                    and not row.provider_task_id
-                )
-                if pristine_queue:
-                    resubmit_media_task_ids.append(row.id)
-                    continue
-                if status == MediaTaskStatus.RUNNING and row.provider_task_id:
-                    resume_media_poll_task_ids.append(row.id)
-                    continue
-
+                # M1-12A introduces Approval/ProductionSnapshot as the only
+                # valid media boundary.  Every existing task predates that
+                # immutable input contract, including a queued task that never
+                # reached a provider.  Preserve terminal history untouched,
+                # but never resume or poll these nonterminal legacy rows.
                 row.status = MediaTaskStatus.FAILED.value
                 row.started_at = row.started_at or now
                 row.finished_at = now
                 row.updated_at = now
                 row.output_uri = None
-                row.error = ambiguous_media_error
+                row.error = legacy_media_error
                 terminated_media_task_ids.append(row.id)
 
         return StartupRecoveryPlan(
@@ -3863,8 +4610,8 @@ class SQLiteRepository:
                 ):
                     raise InvalidTransitionError("sealed aggregate is not bound to the declared immutable StagePlan")
             payloads = {
-                StageName(aggregate.stage): stage_payload_model(StageName(aggregate.stage)).model_validate(
-                    aggregate.payload
+                StageName(aggregate.stage): self._decode_current_stage_payload(
+                    StageName(aggregate.stage), aggregate.payload, aggregate.schema_version
                 )
                 for aggregate in aggregates
             }
@@ -3879,7 +4626,8 @@ class SQLiteRepository:
         """Validate inputs, install every requested revision, and succeed atomically."""
 
         parsed_payloads = {
-            stage: stage_payload_model(stage).model_validate(payload) for stage, payload in payloads.items()
+            stage: stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(payload)
+            for stage, payload in payloads.items()
         }
         with self._lifecycle_write() as session:
             run_row = self._run_row(session, run_id)
@@ -4873,52 +5621,25 @@ class SQLiteRepository:
         provider: str | None = None,
         public_settings: dict[str, Any] | None = None,
     ) -> MediaTask:
-        if not derived_prompt.strip():
-            raise ValueError("derived media prompt must not be blank")
-        with self._lifecycle_write() as session:
-            project = self._project_row(session, project_id)
-            self._assert_active_project(project)
-            head = self._stage_row(session, project_id, StageName.STORYBOARD)
-            if head.status != StageStatus.READY.value:
-                raise StagePrerequisiteError(StageName.STORYBOARD, StageName.STORYBOARD, head.status)
-            if head.revision != expected_storyboard_revision:
-                raise RevisionConflictError("stage:storyboard", expected_storyboard_revision, head.revision)
-            storyboard = self._load_stage_payload(session, project_id, StageName.STORYBOARD)
-            assert isinstance(storyboard, Storyboard)
-            if not any(candidate.id == shot_id for candidate in storyboard.shots):
-                raise NotFoundError(f"shot not found in current storyboard: {shot_id}")
-            task = MediaTask(
-                project_id=project_id,
-                shot_id=shot_id,
-                storyboard_revision=head.revision,
-                kind=kind,
-                derived_prompt=derived_prompt,
-                prompt_components=prompt_components,
-                provider=provider,
-                public_settings=public_settings or {},
-            )
-            session.add(
-                MediaTaskRow(
-                    id=task.id,
-                    project_id=project_id,
-                    shot_id=shot_id,
-                    storyboard_revision=head.revision,
-                    kind=kind.value,
-                    status=task.status.value,
-                    derived_prompt=task.derived_prompt,
-                    prompt_components=prompt_components,
-                    provider=provider,
-                    public_settings=task.public_settings,
-                    provider_task_id=None,
-                    output_uri=None,
-                    error=None,
-                    created_at=task.created_at,
-                    updated_at=task.updated_at,
-                    started_at=None,
-                    finished_at=None,
-                )
-            )
-            return task
+        """Reject the pre-M2 Shot-to-provider path before any data access.
+
+        Approval alone is deliberately not a production input.  M2 will
+        replace this compatibility-shaped entry point with one that accepts an
+        immutable ProductionSnapshot; keeping the method callable today would
+        let an in-process caller bypass the API's hard stop.
+        """
+
+        _ = (
+            project_id,
+            shot_id,
+            kind,
+            expected_storyboard_revision,
+            derived_prompt,
+            prompt_components,
+            provider,
+            public_settings,
+        )
+        raise ProductionPipelineNotReadyError()
 
     def get_media_task(self, task_id: str) -> MediaTask:
         with self._read() as session:
@@ -4938,19 +5659,11 @@ class SQLiteRepository:
             return [self._media_task(row) for row in rows]
 
     def start_media_task(self, task_id: str, *, provider: str | None = None) -> MediaTask:
-        normalized_provider = provider.strip() if provider else None
-        with self._write() as session:
-            row = self._media_task_row(session, task_id)
-            if MediaTaskStatus(row.status) != MediaTaskStatus.QUEUED:
-                raise InvalidTransitionError(f"cannot start media task from {row.status}")
-            now = utc_now()
-            row.status = MediaTaskStatus.RUNNING.value
-            row.provider = normalized_provider or row.provider
-            row.error = None
-            row.started_at = now
-            row.finished_at = None
-            row.updated_at = now
-            return self._media_task(row)
+        # Every task stored before M2 lacks a ProductionSnapshot.  Do not even
+        # read it here: callers must not turn a queued historical row into a
+        # provider-bound execution by bypassing the HTTP hard stop.
+        _ = (task_id, provider)
+        raise ProductionPipelineNotReadyError()
 
     def record_media_submission(
         self,
@@ -4959,18 +5672,11 @@ class SQLiteRepository:
         provider: str,
         provider_task_id: str | None,
     ) -> MediaTask:
-        normalized_provider = provider.strip()
-        normalized_task_id = provider_task_id.strip() if provider_task_id else None
-        if not normalized_provider:
-            raise ValueError("media provider must not be blank")
-        with self._write() as session:
-            row = self._media_task_row(session, task_id)
-            if MediaTaskStatus(row.status) != MediaTaskStatus.RUNNING:
-                raise InvalidTransitionError(f"cannot record media submission from {row.status}")
-            row.provider = normalized_provider
-            row.provider_task_id = normalized_task_id
-            row.updated_at = utc_now()
-            return self._media_task(row)
+        # A persisted provider task ID would make subsequent polling a new
+        # production operation.  Historical rows can only be read or safely
+        # terminalized until M2 owns that immutable boundary.
+        _ = (task_id, provider, provider_task_id)
+        raise ProductionPipelineNotReadyError()
 
     def finish_media_task(
         self,
@@ -4982,10 +5688,11 @@ class SQLiteRepository:
     ) -> MediaTask:
         if status not in TERMINAL_MEDIA_TASK_STATUSES:
             raise InvalidTransitionError("finish_media_task requires a terminal status")
-        normalized_output = output_uri.strip() if output_uri else None
+        if status == MediaTaskStatus.SUCCEEDED:
+            # Success would attach a new provider-derived URI to a legacy row.
+            # Preserve only failure/cancellation for upgrade recovery.
+            raise ProductionPipelineNotReadyError()
         normalized_error = error.strip() if error else None
-        if status == MediaTaskStatus.SUCCEEDED and not normalized_output:
-            raise ValueError("succeeded media tasks require an output URI")
         if status == MediaTaskStatus.FAILED and not normalized_error:
             raise ValueError("failed media tasks require an error")
         with self._write() as session:
@@ -4994,7 +5701,7 @@ class SQLiteRepository:
                 raise InvalidTransitionError(f"cannot finish media task from {row.status}")
             now = utc_now()
             row.status = status.value
-            row.output_uri = normalized_output if status == MediaTaskStatus.SUCCEEDED else None
+            row.output_uri = None
             row.error = normalized_error if status == MediaTaskStatus.FAILED else None
             row.finished_at = now
             row.updated_at = now

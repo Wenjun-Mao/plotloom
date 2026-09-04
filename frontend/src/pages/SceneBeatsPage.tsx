@@ -4,13 +4,10 @@ import { Button, Field, PageHeader, Panel } from "../components";
 
 const emptyState = (note = ""): ContinuityState => ({
   facts: {},
-  characterStates: {},
-  propStates: {},
-  locationState: null,
   screenDirection: null,
   lighting: null,
   sound: null,
-  notes: note ? [note] : [],
+  notes: note ? [note] : [], entityStates: [],
 });
 
 export function SceneBeatsPage({ value, stale, saving, entityId, onEntitySelect, onSave, onDraftChange }: { value: SceneBeatPlan; stale: boolean; saving: boolean; entityId?: string; onEntitySelect?: (entityId: string) => void; onSave: (value: SceneBeatPlan) => Promise<void>; onDraftChange?: (value: SceneBeatPlan) => void }) {
@@ -28,8 +25,8 @@ export function SceneBeatsPage({ value, stale, saving, entityId, onEntitySelect,
   const addBeat = () => {
     if (!selected) return;
     const id = crypto.randomUUID();
-    const next: Beat = { id, sceneId: selected.id, order: beats.length + 1, description: "", purpose: "", visibleEvent: "", dialogue: "", immediateResult: "", dramaticChange: "", entryState: emptyState(), exitState: emptyState(), continuityAnchors: [], continuityDelta: {} };
-    update((current) => ({ scenes: current.scenes.map((scene) => scene.id === selected.id ? { ...scene, beatIds: [...scene.beatIds, id] } : scene), beats: [...current.beats, next] }));
+    const next: Beat = { id, sceneId: selected.id, order: beats.length + 1, description: "", purpose: "", visibleEvent: "", immediateResult: "", dramaticChange: "", entryState: emptyState(), exitState: emptyState(), continuityAnchors: [], continuityDelta: {} };
+    update((current) => ({ ...current, scenes: current.scenes.map((scene) => scene.id === selected.id ? { ...scene, beatIds: [...scene.beatIds, id] } : scene), beats: [...current.beats, next] }));
   };
   return <div className="page">
     <PageHeader eyebrow="04 · Scene decomposition" title="场景与节拍" description="每个剧情节点拆成可拍摄的原子事件；入口与出口连续性保持结构化合同。" actions={<><span className={`stage-chip ${stale ? "stale" : "ready"}`}>{stale ? "剧情图已变化" : `${plan.beats.length} 个节拍`}</span><Button variant="primary" disabled={saving} onClick={() => void onSave(plan)}>{saving ? "正在保存…" : "保存节拍"}</Button></>} />

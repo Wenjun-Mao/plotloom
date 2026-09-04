@@ -259,18 +259,17 @@ describe("PlotloomApiClient", () => {
     }
   });
 
-  it("sends a successful keyframe URI without leaking a text-profile session key", async () => {
+  it("keeps the legacy media request secret-free and accepts no client media inputs", async () => {
     providerSessionKey.write("text-profile-session-secret");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "media-1", shotId: "shot-1", kind: "video", status: "queued" }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 
-    await client.startMediaTask("p1", "shot-1", "video", { sourceUri: "https://assets.example/keyframe.png" });
+    await client.startMediaTask("p1", "shot-1", "video");
 
     const [, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     expect(new Headers(init.headers).has("X-Plotloom-Session-API-Key")).toBe(false);
     expect(JSON.parse(String(init.body))).toEqual({
       kind: "video",
-      publicSettings: { sourceUri: "https://assets.example/keyframe.png" },
     });
   });
 });

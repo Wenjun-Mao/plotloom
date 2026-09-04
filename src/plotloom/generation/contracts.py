@@ -32,7 +32,7 @@ class PromptOutputSpec(FrozenModel):
 
 class PromptSpec(FrozenModel):
     id: str = Field(pattern=r"^[a-z][a-z0-9_]{1,63}$")
-    version: str = Field(pattern=r"^2\.[0-9]+\.[0-9]+$")
+    version: str = Field(pattern=r"^[1-9][0-9]*\.[0-9]+\.[0-9]+$")
     stage: str = Field(pattern=r"^[a-z][a-z0-9_]{1,63}$")
     description: str = ""
     system: str

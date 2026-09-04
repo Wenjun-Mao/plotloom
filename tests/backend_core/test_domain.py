@@ -49,7 +49,8 @@ def test_valid_default_graph_and_coverage(brief: ProjectBrief) -> None:
     first_beat = plan.beats[0].model_dump(by_alias=True)
     assert "visibleEvent" in first_beat and "entryState" in first_beat
     first_shot = storyboard.shots[0].model_dump(by_alias=True)
-    assert {"audio", "transition", "visualIntent", "motionIntent"} <= set(first_shot)
+    assert {"audioPlan", "cueIds", "requiredEntityStates", "transition", "visualIntent", "motionIntent"} <= set(first_shot)
+    assert "audio" not in first_shot
 
 
 def test_graph_cycle_is_rejected(brief: ProjectBrief) -> None:

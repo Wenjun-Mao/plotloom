@@ -7,7 +7,7 @@ from time import perf_counter
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import ProjectBrief, StageName, StoryBible, StoryEdgeKind, StoryNodeKind
+from plotloom.domain import ProjectBrief, StageName, StoryBibleV2, StoryEdgeKind, StoryNodeKind
 from plotloom.generation.planning import create_generation_plan, plan_stage
 from plotloom.generation.story_graph_topology import (
     StoryGraphContentBindingError,
@@ -189,7 +189,11 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
         provider_profile_hash="profile",
         canonical_snapshot=snapshot,
     )
-    bible = StoryBible(logline="列车失控。", premise="每条路线都要付出代价。")
+    bible = StoryBibleV2(
+        logline="列车失控。", premise="每条路线都要付出代价。", genre="", tone="", audience="",
+        narrative_promise="", visual_language="", themes=[], world_rules=[], known_facts=[],
+        open_questions=[], source_notes=[], characters=[], locations=[], props=[],
+    )
     stage_plan = plan_stage(plan, stage=StageName.STORY_GRAPH, dependencies={StageName.STORY_BIBLE: bible})
     compiled = compile_work_unit_request(
         generation_plan=plan,

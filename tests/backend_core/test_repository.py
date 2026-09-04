@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from queue import Queue
@@ -12,24 +13,36 @@ from plotloom.domain import (
     STAGE_ORDER,
     Artifact,
     ArtifactKind,
+    ContinuityState,
     AttemptStatus,
     MediaKind,
+    MediaTask,
     MediaTaskStatus,
     ProviderSettings,
     RunKind,
     RunStatus,
     StageName,
     StageStatus,
+    Shot,
+    ShotSize,
+    StoryBible,
+    Storyboard,
 )
 from plotloom.exceptions import (
     IdempotencyConflictError,
     InvalidTransitionError,
+    ProductionPipelineNotReadyError,
     RevisionConflictError,
+    SchemaResetRequiredError,
 )
 from plotloom.persistence import (
     ArtifactRow,
+    EntityRevisionRow,
+    GenerationRunRow,
+    MediaTaskRow,
     ProjectCreationIdempotencyRow,
     SQLiteRepository,
+    StageHeadRow,
     stable_hash,
 )
 from plotloom.validation import DomainValidationError
@@ -40,6 +53,89 @@ from .conftest import all_stage_payloads, make_story_graph
 def _install_all_manually(repository: SQLiteRepository, project_id: str) -> None:
     for stage, payload in zip(STAGE_ORDER, all_stage_payloads(), strict=True):
         repository.update_stage(project_id, stage, 0, payload)
+
+
+def _install_historical_v1_media_context(repository: SQLiteRepository, project_id: str) -> Shot:
+    """Replace two stored V2 revisions with pre-versioning evidence.
+
+    Media prompt context is intentionally a V1-only internal compatibility
+    reader.  This fixture therefore models data that existed before the V2
+    authoring cutover instead of using current-stage writes as a bypass.
+    """
+
+    bible = StoryBible(logline="历史领航员寻找身份。", premise="历史记忆决定生存。")
+    shot = Shot(
+        id="historical-shot-1",
+        scene_id="historical-scene-1",
+        order=1,
+        title="历史苏醒",
+        shot_size=ShotSize.MEDIUM,
+        duration_seconds=8,
+        action="领航员在旧记录中醒来。",
+        entry_state=ContinuityState(facts={"pose": "lying"}),
+        exit_state=ContinuityState(facts={"pose": "sitting"}),
+    )
+    storyboard = Storyboard(shots=[shot])
+    with repository._write() as session:
+        for stage, payload in (
+            (StageName.STORY_BIBLE, bible),
+            (StageName.STORYBOARD, storyboard),
+        ):
+            head = session.get(StageHeadRow, f"{project_id}:{stage.value}")
+            assert head is not None and head.entity_revision_id is not None
+            revision = session.get(EntityRevisionRow, head.entity_revision_id)
+            assert revision is not None
+            serialized = payload.model_dump(mode="json", by_alias=True)
+            content_hash = stable_hash(serialized)
+            revision.payload = serialized
+            revision.schema_version = 1
+            revision.content_hash = content_hash
+            head.schema_version = 1
+            head.content_hash = content_hash
+    return shot
+
+
+def _insert_historical_media_task(
+    repository: SQLiteRepository,
+    *,
+    project_id: str,
+    shot_id: str,
+) -> MediaTask:
+    """Create a frozen pre-ProductionSnapshot task for recovery coverage."""
+
+    task = MediaTask(
+        project_id=project_id,
+        shot_id=shot_id,
+        storyboard_revision=1,
+        kind=MediaKind.IMAGE,
+        derived_prompt="historical cinematic image",
+        prompt_components={},
+        provider="openai",
+        public_settings={"imageBaseUrl": "https://api.example.test/v1"},
+    )
+    with repository._write() as session:
+        session.add(
+            MediaTaskRow(
+                id=task.id,
+                project_id=task.project_id,
+                shot_id=task.shot_id,
+                storyboard_revision=task.storyboard_revision,
+                kind=task.kind.value,
+                status=task.status.value,
+                derived_prompt=task.derived_prompt,
+                prompt_components=task.prompt_components,
+                provider=task.provider,
+                public_settings=task.public_settings,
+                provider_task_id=None,
+                output_uri=None,
+                error=None,
+                created_at=task.created_at,
+                updated_at=task.updated_at,
+                started_at=None,
+                finished_at=None,
+            )
+        )
+    return task
 
 
 def test_project_and_stage_revision_conflicts(repository: SQLiteRepository, brief) -> None:
@@ -344,24 +440,138 @@ def test_snapshot_freezes_brief_and_reads_upstream_by_revision(repository: SQLit
     assert repository.get_stage_payload(project.id, StageName.STORY_BIBLE).themes == ["后来修改"]
 
 
-def test_media_task_persists_compiled_prompt_trace(repository: SQLiteRepository, brief) -> None:
+def test_historical_v1_media_context_cannot_reopen_current_media_creation(repository: SQLiteRepository, brief) -> None:
     project = repository.create_project(brief)
     _install_all_manually(repository, project.id)
-    shot_id = all_stage_payloads()[3].shots[0].id
-    context = repository.get_media_prompt_context(project.id, shot_id)
-    assert context.story_bible.logline
-    assert context.shot.entry_state == all_stage_payloads()[3].shots[0].entry_state
-    task = repository.create_media_task(
-        project.id,
-        shot_id,
-        MediaKind.IMAGE,
-        expected_storyboard_revision=context.storyboard_revision,
-        derived_prompt="medium shot; clear spatial relationship",
-        prompt_components={"shotSize": "medium", "visualIntent": "clear spatial relationship"},
+    shot = _install_historical_v1_media_context(repository, project.id)
+    with pytest.raises(SchemaResetRequiredError):
+        repository.get_media_prompt_context(project.id, shot.id)
+
+
+def test_media_repository_boundary_never_looks_up_or_writes_shot_derived_tasks(
+    repository: SQLiteRepository,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The API hard stop must not be bypassable by an in-process caller."""
+
+    def unexpected_lookup(*_args, **_kwargs):
+        raise AssertionError("media creation must stop before project lookup")
+
+    monkeypatch.setattr(repository, "_project_row", unexpected_lookup)
+
+    with pytest.raises(ProductionPipelineNotReadyError):
+        repository.create_media_task(
+            "unknown-project",
+            "unknown-shot",
+            MediaKind.IMAGE,
+            expected_storyboard_revision=1,
+            derived_prompt="must never be persisted",
+            prompt_components={"source": "shot"},
+        )
+
+    with repository._read() as session:
+        assert session.execute(text("SELECT COUNT(*) FROM v2_media_tasks")).scalar_one() == 0
+
+
+def test_legacy_media_execution_is_hard_stopped_but_can_be_safely_terminalized(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    queued = _insert_historical_media_task(
+        repository, project_id=project.id, shot_id="historical-shot"
     )
-    stored = repository.get_media_task(task.id)
-    assert stored.derived_prompt == task.derived_prompt
-    assert stored.prompt_components["shotSize"] == "medium"
+    with pytest.raises(ProductionPipelineNotReadyError):
+        repository.start_media_task(queued.id, provider="legacy-provider")
+    assert repository.get_media_task(queued.id).status == MediaTaskStatus.QUEUED
+
+    running = _insert_historical_media_task(
+        repository, project_id=project.id, shot_id="historical-running-shot"
+    )
+    with repository._write() as session:
+        row = session.get(MediaTaskRow, running.id)
+        assert row is not None
+        row.status = MediaTaskStatus.RUNNING.value
+        row.started_at = running.created_at
+
+    with pytest.raises(ProductionPipelineNotReadyError):
+        repository.record_media_submission(
+            running.id,
+            provider="legacy-provider",
+            provider_task_id="must-not-persist",
+        )
+    with pytest.raises(ProductionPipelineNotReadyError):
+        repository.finish_media_task(
+            running.id,
+            MediaTaskStatus.SUCCEEDED,
+            output_uri="https://example.test/forbidden.png",
+        )
+    assert repository.get_media_task(running.id).provider_task_id is None
+
+    failed = repository.finish_media_task(
+        running.id,
+        MediaTaskStatus.FAILED,
+        error="upgrade recovery stopped legacy execution",
+    )
+    assert failed.status == MediaTaskStatus.FAILED
+    assert failed.output_uri is None
+
+    cancellable = _insert_historical_media_task(
+        repository, project_id=project.id, shot_id="historical-cancellable-shot"
+    )
+    with repository._write() as session:
+        row = session.get(MediaTaskRow, cancellable.id)
+        assert row is not None
+        row.status = MediaTaskStatus.RUNNING.value
+        row.started_at = cancellable.created_at
+    cancelled = repository.finish_media_task(cancellable.id, MediaTaskStatus.CANCELLED)
+    assert cancelled.status == MediaTaskStatus.CANCELLED
+
+
+def test_archived_project_rejects_gate_writes_but_keeps_receipts_readable(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    _install_all_manually(repository, project.id)
+    head = repository.get_stage_head(project.id, StageName.STORYBOARD)
+    assert head.entity_revision_id is not None
+    receipt = repository.get_gate_evaluation(head.entity_revision_id, "storyboard.v2")
+
+    repository.archive_project(project.id, expected_lifecycle_revision=1)
+
+    with pytest.raises(InvalidTransitionError, match="archived projects are read-only"):
+        repository.record_gate_evaluation(project.id, head.entity_revision_id, receipt)
+    assert repository.get_gate_evaluation(head.entity_revision_id, "storyboard.v2") == receipt
+
+
+def test_historical_run_snapshot_without_schema_version_reads_frozen_v1_payload(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    """A missing snapshot schemaVersion is immutable V1 evidence, not a V2 default."""
+
+    project = repository.create_project(brief)
+    _install_all_manually(repository, project.id)
+    _install_historical_v1_media_context(repository, project.id)
+    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE])
+
+    with repository._write() as session:
+        row = session.get(GenerationRunRow, run.id)
+        assert row is not None
+        frozen_snapshot = deepcopy(row.canonical_snapshot)
+        for head in frozen_snapshot["stage_heads"].values():
+            head.pop("schema_version", None)
+        row.canonical_snapshot = frozen_snapshot
+
+    historical = repository.get_snapshot_stage_payload(run.id, StageName.STORY_BIBLE)
+    assert isinstance(historical, StoryBible)
+    assert historical.logline == "历史领航员寻找身份。"
+    assert historical.premise == "历史记忆决定生存。"
+    with repository._read() as session:
+        row = session.get(GenerationRunRow, run.id)
+        assert row is not None
+        assert all("schema_version" not in head for head in row.canonical_snapshot["stage_heads"].values())
 
 
 def test_provider_settings_are_public_and_revisioned(repository: SQLiteRepository) -> None:
@@ -399,43 +609,43 @@ def test_startup_reconciliation_resubmits_only_safe_jobs_and_closes_interrupted_
     cancelling_attempt = repository.create_attempt(cancelling.id, StageName.STORY_BIBLE)
     repository.cancel_run(cancelling.id)
     _install_all_manually(repository, project.id)
-    storyboard = all_stage_payloads()[-1]
-    shot_id = storyboard.shots[0].id
-    context = repository.get_media_prompt_context(project.id, shot_id)
-
-    def media_task():
-        return repository.create_media_task(
-            project.id,
-            shot_id,
-            MediaKind.IMAGE,
-            expected_storyboard_revision=context.storyboard_revision,
-            derived_prompt="stable cinematic image",
-            prompt_components={},
-            provider="openai",
-            public_settings={"imageBaseUrl": "https://api.example.test/v1"},
-        )
-
-    queued_media = media_task()
-    polling_media = media_task()
-    repository.start_media_task(polling_media.id, provider="openai")
-    repository.record_media_submission(
-        polling_media.id,
-        provider="openai",
-        provider_task_id="provider-task-recovery",
+    historical_shot_id = "historical-shot-for-recovery"
+    queued_media = _insert_historical_media_task(
+        repository, project_id=project.id, shot_id=historical_shot_id
     )
-    ambiguous_media = media_task()
-    repository.start_media_task(ambiguous_media.id, provider="openai")
+    polling_media = _insert_historical_media_task(
+        repository, project_id=project.id, shot_id=historical_shot_id
+    )
+    ambiguous_media = _insert_historical_media_task(
+        repository, project_id=project.id, shot_id=historical_shot_id
+    )
+    # These are pre-M2 persisted rows, not calls through the now-closed
+    # execution API.  Recovery must terminalize both a submitted and an
+    # ambiguous historical task without polling or resubmitting either one.
+    with repository._write() as session:
+        polling_row = session.get(MediaTaskRow, polling_media.id)
+        ambiguous_row = session.get(MediaTaskRow, ambiguous_media.id)
+        assert polling_row is not None and ambiguous_row is not None
+        polling_row.status = MediaTaskStatus.RUNNING.value
+        polling_row.provider_task_id = "provider-task-recovery"
+        polling_row.started_at = polling_media.created_at
+        ambiguous_row.status = MediaTaskStatus.RUNNING.value
+        ambiguous_row.started_at = ambiguous_media.created_at
 
     plan = repository.reconcile_startup_jobs()
 
     assert plan.resubmit_run_ids == [queued.id]
-    assert plan.resubmit_media_task_ids == [queued_media.id]
-    assert plan.resume_media_poll_task_ids == [polling_media.id]
+    assert plan.resubmit_media_task_ids == []
+    assert plan.resume_media_poll_task_ids == []
     assert set(plan.terminated_run_ids) == {
         running.id,
         cancelling.id,
     }
-    assert plan.terminated_media_task_ids == [ambiguous_media.id]
+    assert set(plan.terminated_media_task_ids) == {
+        queued_media.id,
+        polling_media.id,
+        ambiguous_media.id,
+    }
 
     recovered_running = repository.get_run(running.id)
     assert recovered_running.status == RunStatus.FAILED
@@ -451,10 +661,10 @@ def test_startup_reconciliation_resubmits_only_safe_jobs_and_closes_interrupted_
     assert attempts[cancelling_attempt.id].status == AttemptStatus.CANCELLED
     assert all(attempt.finished_at is not None for attempt in attempts.values())
 
-    assert repository.get_media_task(polling_media.id).status == MediaTaskStatus.RUNNING
-    failed_media = repository.get_media_task(ambiguous_media.id)
-    assert failed_media.status == MediaTaskStatus.FAILED
-    assert "duplicate billing" in failed_media.error
+    for task_id in (queued_media.id, polling_media.id, ambiguous_media.id):
+        failed_media = repository.get_media_task(task_id)
+        assert failed_media.status == MediaTaskStatus.FAILED
+        assert "production_pipeline_not_ready" in (failed_media.error or "")
 
 
 def test_file_sqlite_uses_alembic_foreign_keys_and_wal(tmp_path: Path) -> None:
@@ -466,7 +676,7 @@ def test_file_sqlite_uses_alembic_foreign_keys_and_wal(tmp_path: Path) -> None:
             assert connection.execute(text("PRAGMA journal_mode")).scalar_one().lower() == "wal"
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                == "0009_v2_work_unit_repair_scopes"
+                    == "0010_v2_schema_approvals"
             )
     finally:
         repository.close()

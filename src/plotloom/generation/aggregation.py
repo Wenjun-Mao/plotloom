@@ -9,15 +9,14 @@ from typing import TypeVar
 from pydantic import BaseModel
 
 from ..domain import (
-    CoverageRole,
     ProjectBrief,
-    SceneBeatPlan,
     StageName,
-    StoryBible,
-    StoryGraph,
-    Storyboard,
+    SceneBeatPlanV2,
+    StoryBibleV2,
+    StoryGraphV2,
+    StoryboardV2,
 )
-from ..validation import DomainValidationError, validate_stage_payload
+from ..canonical_schema import V2CoverageRole
 from .fragments import (
     SceneBeatsFragment,
     StageFragment,
@@ -48,10 +47,10 @@ def aggregate_stage_fragments(
     fragments: Iterable[StageFragment],
     *,
     brief: ProjectBrief,
-    bible: StoryBible | None = None,
-    graph: StoryGraph | None = None,
-    scene_beats: SceneBeatPlan | None = None,
-) -> StoryBible | StoryGraph | SceneBeatPlan | Storyboard:
+    bible: StoryBibleV2 | None = None,
+    graph: StoryGraphV2 | None = None,
+    scene_beats: SceneBeatPlanV2 | None = None,
+) -> StoryBibleV2 | StoryGraphV2 | SceneBeatPlanV2 | StoryboardV2:
     """Merge exactly the StagePlan's candidates and run the canonical validator.
 
     Iteration order is evidence: a caller that provides valid unit IDs in a
@@ -65,14 +64,7 @@ def aggregate_stage_fragments(
         _assert_exact_manifest(stage_plan, ordered)
         payload = _merge(stage_plan, ordered, scene_beats=scene_beats)
         _assert_aggregate_size(stage_plan, payload)
-        validate_stage_payload(
-            stage_plan.stage,
-            payload,
-            brief=brief,
-            bible=bible,
-            graph=graph,
-            scene_beats=scene_beats,
-        )
+        _validate_aggregate_semantics(stage_plan.stage, payload, bible=bible, graph=graph, scene_beats=scene_beats)
         return payload
     except AggregateValidationError as error:
         if error.stage is not None:
@@ -80,12 +72,6 @@ def aggregate_stage_fragments(
         raise AggregateValidationError(
             str(error),
             code=error.code,
-            stage=stage_plan.stage,
-        ) from error
-    except DomainValidationError as error:
-        raise AggregateValidationError(
-            str(error),
-            code="aggregate.semantic_invalid",
             stage=stage_plan.stage,
         ) from error
 
@@ -121,8 +107,8 @@ def _merge(
     stage_plan: StagePlan,
     fragments: tuple[StageFragment, ...],
     *,
-    scene_beats: SceneBeatPlan | None,
-) -> StoryBible | StoryGraph | SceneBeatPlan | Storyboard:
+    scene_beats: SceneBeatPlanV2 | None,
+) -> StoryBibleV2 | StoryGraphV2 | SceneBeatPlanV2 | StoryboardV2:
     stage = stage_plan.stage
     if stage == StageName.STORY_BIBLE:
         fragment = _one_fragment(fragments, StoryBibleFragment, stage)
@@ -165,11 +151,13 @@ def _assert_whole_stage_selector(stage_plan: StagePlan, work_unit_id: str) -> No
 def _merge_scene_beats(
     stage_plan: StagePlan,
     fragments: tuple[StageFragment, ...],
-) -> SceneBeatPlan:
+) -> SceneBeatPlanV2:
     all_scenes = []
     all_beats = []
+    all_cues = []
     seen_scene_ids: set[str] = set()
     seen_beat_ids: set[str] = set()
+    seen_cue_ids: set[str] = set()
     for unit, fragment in zip(stage_plan.work_units, fragments, strict=True):
         if not isinstance(fragment, SceneBeatsFragment):
             raise AggregateValidationError("scene_beats aggregate requires only SceneBeatsFragment values")
@@ -182,30 +170,36 @@ def _merge_scene_beats(
             )
         fragment_scene_ids = {scene.id for scene in fragment.scenes}
         fragment_beat_ids = {beat.id for beat in fragment.beats}
+        fragment_cue_ids = {cue.id for cue in fragment.dialogue_cues}
         duplicate_scenes = seen_scene_ids & fragment_scene_ids
         duplicate_beats = seen_beat_ids & fragment_beat_ids
-        if duplicate_scenes or duplicate_beats:
+        duplicate_cues = seen_cue_ids & fragment_cue_ids
+        if duplicate_scenes or duplicate_beats or duplicate_cues:
             details = []
             if duplicate_scenes:
                 details.append("scene IDs " + ", ".join(sorted(duplicate_scenes)))
             if duplicate_beats:
                 details.append("beat IDs " + ", ".join(sorted(duplicate_beats)))
+            if duplicate_cues:
+                details.append("cue IDs " + ", ".join(sorted(duplicate_cues)))
             raise AggregateValidationError(
                 "cross-unit identifier collision: " + "; ".join(details),
                 code="aggregate.identifier_collision",
             )
         seen_scene_ids.update(fragment_scene_ids)
         seen_beat_ids.update(fragment_beat_ids)
+        seen_cue_ids.update(fragment_cue_ids)
         all_scenes.extend(fragment.scenes)
         all_beats.extend(fragment.beats)
-    return SceneBeatPlan(scenes=all_scenes, beats=all_beats)
+        all_cues.extend(fragment.dialogue_cues)
+    return SceneBeatPlanV2(scenes=all_scenes, beats=all_beats, dialogue_cues=all_cues)
 
 
 def _merge_storyboard(
     stage_plan: StagePlan,
     fragments: tuple[StageFragment, ...],
-    scene_beats: SceneBeatPlan,
-) -> Storyboard:
+    scene_beats: SceneBeatPlanV2,
+) -> StoryboardV2:
     scenes_by_id = {scene.id: scene for scene in scene_beats.scenes}
     beats_by_id = {beat.id: beat for beat in scene_beats.beats}
     all_shots = []
@@ -254,19 +248,19 @@ def _merge_storyboard(
         all_shots.extend(fragment.shots)
         all_links.extend(fragment.shot_beat_links)
 
-    storyboard = Storyboard(shots=all_shots, shot_beat_links=all_links)
+    storyboard = StoryboardV2(shots=all_shots, shot_beat_links=all_links)
     _assert_exactly_one_primary_per_beat(storyboard, scene_beats)
     return storyboard
 
 
 def _assert_exactly_one_primary_per_beat(
-    storyboard: Storyboard,
-    scene_beats: SceneBeatPlan,
+    storyboard: StoryboardV2,
+    scene_beats: SceneBeatPlanV2,
 ) -> None:
     counts = Counter(
         link.beat_id
         for link in storyboard.shot_beat_links
-        if link.role == CoverageRole.PRIMARY
+        if link.role == V2CoverageRole.PRIMARY
     )
     expected = {beat.id for beat in scene_beats.beats}
     missing = sorted(beat_id for beat_id in expected if counts[beat_id] == 0)
@@ -278,6 +272,47 @@ def _assert_exactly_one_primary_per_beat(
         if duplicate:
             details.append("beats with more than one PRIMARY link: " + ", ".join(duplicate))
         raise AggregateValidationError("; ".join(details))
+
+
+def _validate_aggregate_semantics(
+    stage: StageName,
+    payload: StoryBibleV2 | StoryGraphV2 | SceneBeatPlanV2 | StoryboardV2,
+    *,
+    bible: StoryBibleV2 | None,
+    graph: StoryGraphV2 | None,
+    scene_beats: SceneBeatPlanV2 | None,
+) -> None:
+    """Prove V2 cross-record references after deterministic aggregation.
+
+    V1's global validator must stay on the historical read path, so V2
+    aggregation owns the small set of relationships that only become visible
+    after shards are merged.
+    """
+
+    if stage == StageName.STORY_GRAPH:
+        assert isinstance(payload, StoryGraphV2)
+        node_ids = {node.id for node in payload.nodes}
+        if payload.start_node_id not in node_ids or len(node_ids) != len(payload.nodes):
+            raise AggregateValidationError("story graph start node or node IDs are invalid", code="aggregate.semantic_invalid")
+        return
+    if stage == StageName.SCENE_BEATS:
+        if not isinstance(payload, SceneBeatPlanV2) or bible is None or graph is None:
+            raise AggregateValidationError("scene-beats aggregation requires sealed V2 bible and graph", code="aggregate.semantic_invalid")
+        scene_ids = {scene.id for scene in payload.scenes}
+        beat_ids = {beat.id for beat in payload.beats}
+        graph_node_ids = {node.id for node in graph.nodes}
+        known_speakers = {character.id for character in bible.characters}
+        if any(scene.story_node_id not in graph_node_ids for scene in payload.scenes):
+            raise AggregateValidationError("scene references an unknown story node", code="aggregate.semantic_invalid")
+        if any(beat.scene_id not in scene_ids for beat in payload.beats):
+            raise AggregateValidationError("beat references an unknown scene", code="aggregate.semantic_invalid")
+        if any(cue.beat_id not in beat_ids or (cue.speaker_id is not None and cue.speaker_id not in known_speakers) for cue in payload.dialogue_cues):
+            raise AggregateValidationError("cue references an unknown beat or speaker", code="aggregate.semantic_invalid")
+        return
+    if stage == StageName.STORYBOARD:
+        if not isinstance(payload, StoryboardV2) or scene_beats is None:
+            raise AggregateValidationError("storyboard aggregation requires sealed V2 scene beats", code="aggregate.semantic_invalid")
+        _assert_exactly_one_primary_per_beat(payload, scene_beats)
 
 
 def _assert_aggregate_size(
@@ -294,10 +329,10 @@ def _assert_aggregate_size(
 
 
 def _aggregate_item_count(payload: BaseModel) -> int:
-    if isinstance(payload, SceneBeatPlan):
+    if isinstance(payload, SceneBeatPlanV2):
         return len(payload.scenes) + len(payload.beats)
-    if isinstance(payload, Storyboard):
+    if isinstance(payload, StoryboardV2):
         return len(payload.shots) + len(payload.shot_beat_links)
-    if isinstance(payload, StoryGraph):
+    if isinstance(payload, StoryGraphV2):
         return len(payload.nodes) + len(payload.edges) + len(payload.join_contracts)
     return len(payload.characters) + len(payload.locations) + len(payload.props) + 1

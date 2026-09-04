@@ -8,16 +8,6 @@ from typing import Any
 import pytest
 
 from plotloom import conformance
-from plotloom.domain import (
-    Beat,
-    ContinuityState,
-    CoverageRole,
-    DramaticScene,
-    Shot,
-    ShotBeatLink,
-    ShotSize,
-    StoryBible,
-)
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse, ProviderUsage
 from plotloom.persistence import SQLiteRepository
 from plotloom.provider_profiles import PresetId, StageMaxOutputTokens, TextProviderProfileSnapshot
@@ -85,7 +75,7 @@ class _FixtureProvider:
                     {
                         "id": join["id"],
                         "requiredStateKeys": [],
-                        "allowedDifferences": ["route"],
+                        "allowedDifferences": [],
                         "reconciliation": "不同路线在雾港汇合。",
                         "notes": "",
                     }
@@ -96,70 +86,23 @@ class _FixtureProvider:
             node = _json_after(prompt, "【目标故事节点】")
             scene_id = f"scene-{node['id']}"
             beat_id = f"beat-{node['id']}"
-            scene = DramaticScene(
-                id=scene_id,
-                story_node_id=node["id"],
-                title=node["title"],
-                objective="穿过雾港",
-                beat_ids=[beat_id],
-                entry_state=ContinuityState(),
-                exit_state=ContinuityState(),
-            )
-            beat = Beat(
-                id=beat_id,
-                scene_id=scene_id,
-                order=1,
-                description="船钟在雾中响起。",
-                purpose="推进叙事",
-                visible_event="摆渡人握紧船钟。",
-                immediate_result="摆渡人继续前行。",
-            )
             payload = {
-                "scenes": [scene.model_dump(mode="json", by_alias=True)],
-                "beats": [beat.model_dump(mode="json", by_alias=True)],
+                "scenes": [{"localSceneId": scene_id, "order": 1, "title": node["title"], "objective": "穿过雾港", "locationId": None, "characterIds": [], "durationBudgetUnits": 1, "entryState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}, "exitState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}}],
+                "beats": [{"localBeatId": beat_id, "sceneLocalId": scene_id, "order": 1, "description": "船钟在雾中响起。", "purpose": "推进叙事", "visibleEvent": "摆渡人握紧船钟。", "immediateResult": "摆渡人继续前行。", "dramaticChange": "继续前行", "entryState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}, "exitState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}, "continuityAnchors": [], "continuityDelta": {}}],
+                "dialogueCues": [],
             }
-            payload["scenes"][0].pop("storyNodeId")
-            payload["scenes"][0]["localSceneId"] = payload["scenes"][0].pop("id")
-            payload["scenes"][0].pop("beatIds")
-            payload["beats"][0]["localBeatId"] = payload["beats"][0].pop("id")
-            payload["beats"][0]["sceneLocalId"] = payload["beats"][0].pop(
-                "sceneId"
-            )
         elif "【目标戏剧场景】" in prompt:
             scene = _json_after(prompt, "【目标戏剧场景】")
             beats = _json_after(prompt, "【该场景节拍】")
             beat_id = beats[0]["id"]
             shot_id = f"shot-{scene['id']}"
-            shot = Shot(
-                id=shot_id,
-                scene_id=scene["id"],
-                order=1,
-                title="船钟特写",
-                shot_size=ShotSize.MEDIUM,
-                duration_seconds=4,
-                visual_intent="交代船钟与人物关系",
-                motion_intent="稳定推进",
-                action="摆渡人握紧船钟。",
-                audio="低沉钟声",
-                transition="硬切",
-            )
-            link = ShotBeatLink(
-                shot_id=shot_id,
-                beat_id=beat_id,
-                role=CoverageRole.PRIMARY,
-            )
             payload = {
-                "shots": [shot.model_dump(mode="json", by_alias=True)],
+                "shots": [{"localShotId": shot_id, "order": 1, "title": "船钟特写", "shotSize": "medium", "durationUnits": 1, "cameraAngle": "", "cameraMovement": "", "composition": "", "visualIntent": "交代船钟与人物关系", "motionIntent": "稳定推进", "action": "摆渡人握紧船钟。", "transition": "硬切", "cueIds": [], "audioPlan": {"events": []}, "characterIds": [], "locationId": None, "propIds": [], "requiredEntityStates": [], "entryState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}, "exitState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}}],
                 "primaryShotLocalIdByBeat": {beat_id: shot_id},
                 "supportingBeatLinks": [],
             }
-            payload["shots"][0].pop("sceneId")
-            payload["shots"][0]["localShotId"] = payload["shots"][0].pop("id")
         else:
-            payload = StoryBible(
-                logline="摆渡人做出选择。",
-                premise="未来的信改变当下。",
-            ).model_dump(mode="json", by_alias=True)
+            payload = {"logline": "摆渡人做出选择。", "premise": "未来的信改变当下。", "genre": "", "tone": "", "audience": "", "narrativePromise": "", "visualLanguage": "", "themes": [], "worldRules": [], "knownFacts": [], "openQuestions": [], "sourceNotes": [], "characters": [], "locations": [], "props": []}
         content = json.dumps(payload, ensure_ascii=False)
         return ProviderResponse(
             provider=self.name,

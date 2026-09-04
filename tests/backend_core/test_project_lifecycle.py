@@ -8,9 +8,9 @@ import pytest
 from sqlalchemy import select
 
 from plotloom.api import create_app
-from plotloom.domain import MediaKind, MediaTaskStatus, RunKind, StageName, StageStatus
+from plotloom.domain import MediaKind, MediaTask, MediaTaskStatus, RunKind, StageName, StageStatus
 from plotloom.exceptions import InvalidTransitionError, NotFoundError, ProjectBusyError, RevisionConflictError
-from plotloom.persistence import SQLiteRepository, StageHeadRow
+from plotloom.persistence import MediaTaskRow, SQLiteRepository, StageHeadRow
 
 from .conftest import all_stage_payloads
 
@@ -260,20 +260,27 @@ def test_permanent_delete_never_unlinks_an_opaque_media_output_uri(
     )
     opaque_output = tmp_path / "provider-owned-output.png"
     opaque_output.write_bytes(b"provider-owned-output")
-    task = repository.create_media_task(
-        project.id,
-        payloads[-1].shots[0].id,
-        MediaKind.IMAGE,
-        expected_storyboard_revision=1,
-        derived_prompt="A provider-owned result",
-        prompt_components={},
-    )
-    repository.start_media_task(task.id)
-    repository.finish_media_task(
-        task.id,
-        MediaTaskStatus.SUCCEEDED,
-        output_uri=opaque_output.as_uri(),
-    )
+    # A terminal historical row must not cause permanent deletion to touch a
+    # provider-owned URI. Current V2 media creation is hard-stopped pending a
+    # ProductionSnapshot, so this is deliberately not created through it.
+    task = MediaTask(
+        project_id=project.id, shot_id=payloads[-1].shots[0].id,
+        storyboard_revision=1, kind=MediaKind.IMAGE,
+        derived_prompt="A provider-owned result", prompt_components={},
+    ).model_copy(update={
+        "status": MediaTaskStatus.SUCCEEDED,
+        "output_uri": opaque_output.as_uri(),
+    })
+    with repository._write() as session:
+        session.add(MediaTaskRow(
+            id=task.id, project_id=task.project_id, shot_id=task.shot_id,
+            storyboard_revision=task.storyboard_revision, kind=task.kind.value,
+            status=task.status.value, derived_prompt=task.derived_prompt,
+            prompt_components=task.prompt_components, provider=None, public_settings={},
+            provider_task_id=None, output_uri=task.output_uri, error=None,
+            created_at=task.created_at, updated_at=task.updated_at,
+            started_at=task.created_at, finished_at=task.updated_at,
+        ))
 
     archived = repository.archive_project(project.id, 1)
     repository.permanent_delete_project(project.id, archived.lifecycle_revision, brief.title)

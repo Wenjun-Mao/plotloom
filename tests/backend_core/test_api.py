@@ -15,10 +15,11 @@ from plotloom.domain import (
     ProviderSettings,
     RunKind,
     StageName,
+    StoryBible,
     WorkUnitFailureDisposition,
 )
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse
-from plotloom.persistence import SQLiteRepository, stable_hash
+from plotloom.persistence import EntityRevisionRow, SQLiteRepository, StageHeadRow, stable_hash
 from plotloom.pipeline import RunSecretBroker
 
 from .conftest import all_stage_payloads
@@ -202,6 +203,8 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
         ("GET", "/api/v2/projects/{project_id}/runs"),
         ("GET", "/api/v2/projects/{project_id}/media-tasks"),
         ("PATCH", "/api/v2/projects/{project_id}/stages/{stage}"),
+        ("GET", "/api/v2/projects/{project_id}/storyboard-review"),
+        ("POST", "/api/v2/projects/{project_id}/storyboard-approval"),
         ("POST", "/api/v2/projects/{project_id}/pipeline-runs"),
         ("POST", "/api/v2/projects/{project_id}/rebuilds"),
         ("GET", "/api/v2/runs/{run_id}"),
@@ -865,12 +868,10 @@ def test_static_v2_mount_serves_index(repository: SQLiteRepository, tmp_path: Pa
     assert "<h1>v2</h1>" in response.text
 
 
-def test_media_api_compiler_receives_frozen_canonical_context(repository: SQLiteRepository, brief) -> None:
+def test_media_api_is_hard_stopped_before_lookup_compile_persist_or_dispatch(
+    repository: SQLiteRepository, brief
+) -> None:
     project = repository.create_project(brief)
-    payloads = all_stage_payloads()
-    for stage, payload in zip(STAGE_ORDER, payloads, strict=True):
-        repository.update_stage(project.id, stage, 0, payload)
-    shot = payloads[3].shots[0]
     compiler = RecordingCompiler()
     scheduler = RecordingScheduler()
     client = TestClient(
@@ -885,27 +886,48 @@ def test_media_api_compiler_receives_frozen_canonical_context(repository: SQLite
             ),
         )
     )
-    response = client.post(
-        f"/api/v2/projects/{project.id}/shots/{shot.id}/media-tasks",
-        json={"kind": "image", "publicSettings": {"quality": "high"}},
-        headers={"X-Plotloom-Session-API-Key": "ephemeral-media-key"},
-    )
-    assert response.status_code == 202
-    assert response.json()["derivedPrompt"] == "derived from canonical context"
-    assert response.json()["provider"] == "openai"
-    assert response.json()["publicSettings"] == {
-        "quality": "high",
-        "imageBaseUrl": "https://images.example/v1",
-        "imageModel": "image-model",
-        "imageAuthMode": "bearer",
-    }
-    assert scheduler.submissions == [(response.json()["id"], "ephemeral-media-key")]
-    assert "ephemeral-media-key" not in str(response.json())
+    for body in (
+        {"kind": "image"},
+        {"kind": "image", "publicSettings": {"quality": "high"}},
+        {
+            "kind": "video",
+            "publicSettings": {"sourceUri": "https://assets.example/keyframe.png"},
+        },
+        {
+            "kind": "video",
+            "publicSettings": {"imageUrl": "https://assets.example/keyframe.png"},
+        },
+        {
+            "kind": "video",
+            "publicSettings": {
+                "referenceImages": ["https://assets.example/keyframe.png"]
+            },
+        },
+    ):
+        response = client.post(
+            f"/api/v2/projects/{project.id}/shots/not-resolved/media-tasks",
+            json=body,
+            headers={"X-Plotloom-Session-API-Key": "ephemeral-media-key"},
+        )
+        assert response.status_code == 409
+        assert response.json() == {
+            "code": "production_pipeline_not_ready",
+            "message": (
+                "media production requires the future Approval and "
+                "ProductionSnapshot pipeline"
+            ),
+        }
+    assert scheduler.submissions == []
     listed = client.get(f"/api/v2/projects/{project.id}/media-tasks").json()["tasks"]
-    assert [item["id"] for item in listed] == [response.json()["id"]]
-    assert compiler.context.brief.title == brief.title
-    assert compiler.context.story_bible.logline == payloads[0].logline
-    assert compiler.context.shot.id == shot.id
+    assert listed == []
+    assert compiler.context is None
+
+    unknown = client.post(
+        "/api/v2/projects/unknown/shots/unknown/media-tasks",
+        json={"kind": "image"},
+    )
+    assert unknown.status_code == 409
+    assert unknown.json()["code"] == "production_pipeline_not_ready"
 
 
 def test_stage_envelopes_rehydrate_all_canonical_payloads(repository: SQLiteRepository, brief) -> None:
@@ -921,3 +943,36 @@ def test_stage_envelopes_rehydrate_all_canonical_payloads(repository: SQLiteRepo
     assert envelopes[1]["payload"]["startNodeId"] == "start"
     assert envelopes[2]["payload"]["beats"][0]["visibleEvent"]
     assert envelopes[3]["payload"]["shots"][0]["visualIntent"]
+
+
+def test_active_v1_canonical_stage_returns_stable_schema_reset_conflict(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    """Live authoring never interprets migrated V1 evidence as V2."""
+
+    project = repository.create_project(brief)
+    for stage, payload in zip(STAGE_ORDER, all_stage_payloads(), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+    legacy = StoryBible(logline="旧版故事", premise="旧版字段不能猜测升级。")
+    serialized = legacy.model_dump(mode="json", by_alias=True)
+    with repository._write() as session:
+        head = session.get(StageHeadRow, f"{project.id}:{StageName.STORY_BIBLE.value}")
+        assert head is not None and head.entity_revision_id is not None
+        revision = session.get(EntityRevisionRow, head.entity_revision_id)
+        assert revision is not None
+        revision.payload = serialized
+        revision.schema_version = 1
+        revision.content_hash = stable_hash(serialized)
+        head.schema_version = 1
+        head.content_hash = revision.content_hash
+
+    response = TestClient(create_app(repository)).get(f"/api/v2/projects/{project.id}/stages")
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "code": "data.schema_reset_required",
+        "message": "data.schema_reset_required: story_bible payload has unsupported schema version 1",
+        "stage": "story_bible",
+        "schemaVersion": 1,
+    }

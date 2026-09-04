@@ -11,6 +11,8 @@ from plotloom.domain import (
     Artifact,
     ArtifactKind,
     AttemptStatus,
+    MediaKind,
+    MediaTaskStatus,
     RunKind,
     RunStatus,
     StageName,
@@ -19,7 +21,7 @@ from plotloom.domain import (
 )
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.generation.fragments import StoryBibleFragment, StoryGraphFragment
-from plotloom.persistence import SQLiteRepository, stable_hash
+from plotloom.persistence import MediaTaskRow, SQLiteRepository, stable_hash
 from plotloom.schema import SchemaMigrator
 
 from .conftest import all_stage_payloads
@@ -742,3 +744,38 @@ def test_work_unit_migration_terminates_open_legacy_attempts(tmp_path) -> None:
         assert rows[1][6:] == (None, None, 0)
     finally:
         engine.dispose()
+
+
+def test_startup_recovery_terminates_nonterminal_legacy_media_without_resubmission(repository, brief) -> None:
+    project = repository.create_project(brief)
+    with repository._write() as session:
+        session.add(
+            MediaTaskRow(
+                id="legacy-media-task",
+                project_id=project.id,
+                shot_id="historical-shot",
+                storyboard_revision=1,
+                kind=MediaKind.IMAGE.value,
+                status=MediaTaskStatus.RUNNING.value,
+                derived_prompt="historical prompt",
+                prompt_components={"legacy": True},
+                provider="legacy-provider",
+                public_settings={},
+                provider_task_id="remote-legacy-task",
+                output_uri=None,
+                error=None,
+                created_at=project.created_at,
+                updated_at=project.created_at,
+                started_at=project.created_at,
+                finished_at=None,
+            )
+        )
+
+    recovery = repository.reconcile_startup_jobs()
+    task = repository.get_media_task("legacy-media-task")
+
+    assert recovery.resubmit_media_task_ids == []
+    assert recovery.resume_media_poll_task_ids == []
+    assert recovery.terminated_media_task_ids == ["legacy-media-task"]
+    assert task.status == MediaTaskStatus.FAILED
+    assert "production_pipeline_not_ready" in (task.error or "")

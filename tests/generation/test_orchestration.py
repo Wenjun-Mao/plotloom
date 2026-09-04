@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from plotloom.domain import ProjectBrief, StageName, StoryBible, StoryGraph
+from plotloom.domain import ProjectBrief, StageName, StoryBibleV2, StoryGraphV2
 from plotloom.generation.contracts import AttemptKind, AttemptStatus, ProviderCapabilities, RunStatus
 from plotloom.generation.exceptions import GenerationRunFailed, ProviderError
 from plotloom.generation.orchestration import GenerationOrchestrator
@@ -35,12 +35,31 @@ def _brief() -> ProjectBrief:
     )
 
 
+def _story_bible(**updates: object) -> StoryBibleV2:
+    values: dict[str, object] = {
+        "logline": "领航员寻找身份",
+        "premise": "她必须决定是否唤醒人工智能",
+        "genre": "",
+        "tone": "",
+        "audience": "",
+        "narrative_promise": "",
+        "visual_language": "",
+        "themes": [],
+        "world_rules": [],
+        "known_facts": [],
+        "open_questions": [],
+        "source_notes": [],
+        "characters": [],
+        "locations": [],
+        "props": [],
+    }
+    values.update(updates)
+    return StoryBibleV2(**values)
+
+
 def _story_bible_response() -> str:
     return json.dumps(
-        StoryBible(
-            logline="领航员寻找身份",
-            premise="她必须决定是否唤醒人工智能",
-        ).model_dump(mode="json", by_alias=True),
+        _story_bible().model_dump(mode="json", by_alias=True),
         ensure_ascii=False,
     )
 
@@ -63,7 +82,7 @@ def test_capability_paths_share_prompt_schema_and_local_validation(
     )
 
     assert result.run.status == RunStatus.SUCCEEDED
-    assert isinstance(result.value, StoryBible)
+    assert isinstance(result.value, StoryBibleV2)
     request = provider.requests[0]
     assert (request.response_schema is not None) is supports_schema
     assert result.run.attempts[0].native_json_schema_used is supports_schema
@@ -138,7 +157,7 @@ def test_semantically_invalid_output_is_quarantined_without_automatic_repair() -
     with pytest.raises(GenerationRunFailed) as captured:
         orchestrator.generate(
             prompt_id="story_graph",
-            variables={"story_bible": StoryBible(logline="失忆", premise="寻找身份"), "graph_constraints": _brief()},
+            variables={"story_bible": _story_bible(logline="失忆", premise="寻找身份"), "graph_constraints": _brief()},
             validator=validator,
             model="test-model",
             secret=lease,
@@ -159,7 +178,7 @@ def test_semantically_invalid_output_is_quarantined_without_automatic_repair() -
     quarantine_id = parent.quarantine_ids[0]
     quarantine = orchestrator.quarantine.get(quarantine_id)
     assert quarantine is not None
-    assert quarantine.schema_id == "story_graph.v2"
+    assert quarantine.schema_id == "story_graph.v3"
     repaired = orchestrator.repair(
         quarantine_id=quarantine_id,
         parent_run_id=parent.run_id,
@@ -172,7 +191,7 @@ def test_semantically_invalid_output_is_quarantined_without_automatic_repair() -
     assert repaired.run.source_quarantine_id == quarantine_id
     assert len(repaired.run.attempts) == 1
     assert repaired.run.attempts[0].kind == AttemptKind.REPAIR
-    assert isinstance(repaired.value, StoryGraph)
+    assert isinstance(repaired.value, StoryGraphV2)
     assert len(provider.requests) == 2
     assert provider.requests[1].response_schema is None
     assert "semantic.missing_start_node" in provider.requests[1].messages[1].content

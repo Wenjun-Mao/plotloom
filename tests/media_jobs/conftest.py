@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from plotloom.domain import MediaKind, ProjectBrief, STAGE_ORDER
-from plotloom.persistence import SQLiteRepository
+from plotloom.domain import MediaKind, MediaTask, ProjectBrief, STAGE_ORDER
+from plotloom.persistence import MediaTaskRow, SQLiteRepository
 from tests.backend_core.conftest import all_stage_payloads
 
 
@@ -37,20 +37,46 @@ def make_media_task(
     provider: str,
     public_settings: dict[str, object],
 ):
+    """Materialize a pre-M1-12A task for runner lifecycle coverage.
+
+    Current V2 authoring deliberately has no media-creation path until a
+    ProductionSnapshot exists.  These tests exercise the runner's handling of
+    an already persisted historical task, rather than reopening that path.
+    """
+
     project, shot = prepared_project
-    context = repository.get_media_prompt_context(project.id, shot.id)
-    return repository.create_media_task(
-        project.id,
-        shot.id,
-        kind,
-        expected_storyboard_revision=context.storyboard_revision,
-        derived_prompt="cinematic shot with stable character continuity",
+    task = MediaTask(
+        project_id=project.id,
+        shot_id=shot.id,
+        storyboard_revision=1,
+        kind=kind,
+        derived_prompt="historical cinematic shot with stable character continuity",
         prompt_components={
-            "mediaConstraints": {
-                "aspectRatio": "16:9",
-                "durationSeconds": 8,
-            }
+            "mediaConstraints": {"aspectRatio": "16:9", "durationSeconds": 8},
         },
         provider=provider,
         public_settings=public_settings,
     )
+    with repository._write() as session:
+        session.add(
+            MediaTaskRow(
+                id=task.id,
+                project_id=task.project_id,
+                shot_id=task.shot_id,
+                storyboard_revision=task.storyboard_revision,
+                kind=task.kind.value,
+                status=task.status.value,
+                derived_prompt=task.derived_prompt,
+                prompt_components=task.prompt_components,
+                provider=task.provider,
+                public_settings=task.public_settings,
+                provider_task_id=None,
+                output_uri=None,
+                error=None,
+                created_at=task.created_at,
+                updated_at=task.updated_at,
+                started_at=None,
+                finished_at=None,
+            )
+        )
+    return task

@@ -12,14 +12,15 @@ from collections import Counter, defaultdict
 from pydantic import ConfigDict, Field, model_validator
 
 from ..domain import (
-    Beat,
-    CoverageRole,
-    DramaticScene,
-    Shot,
-    ShotBeatLink,
-    StoryBible,
-    StoryGraph,
+    BeatV2,
+    DialogueCue,
+    DramaticSceneV2,
+    ShotBeatLinkV2,
+    ShotV2,
+    StoryBibleV2,
+    StoryGraphV2,
 )
+from ..canonical_schema import V2CoverageRole
 from .planning import PlanningModel
 
 
@@ -33,19 +34,20 @@ class FragmentBase(PlanningModel):
 
 
 class StoryBibleFragment(FragmentBase):
-    payload: StoryBible
+    payload: StoryBibleV2
 
 
 class StoryGraphFragment(FragmentBase):
-    payload: StoryGraph
+    payload: StoryGraphV2
 
 
 class SceneBeatsFragment(FragmentBase):
     """All scenes and beats assigned to one stable Story Graph node."""
 
     story_node_id: str = Field(min_length=1)
-    scenes: tuple[DramaticScene, ...] = Field(min_length=1)
-    beats: tuple[Beat, ...] = Field(min_length=1)
+    scenes: tuple[DramaticSceneV2, ...] = Field(min_length=1)
+    beats: tuple[BeatV2, ...] = Field(min_length=1)
+    dialogue_cues: tuple[DialogueCue, ...]
 
     @model_validator(mode="after")
     def validate_closed_scene_partition(self) -> "SceneBeatsFragment":
@@ -58,7 +60,12 @@ class SceneBeatsFragment(FragmentBase):
             raise ValueError("scene-beats fragments may not contain beats from another unit")
         if len({beat.id for beat in self.beats}) != len(self.beats):
             raise ValueError("scene-beats fragments may not contain duplicate beat IDs")
-        beats_by_scene: dict[str, list[Beat]] = defaultdict(list)
+        beat_ids = {beat.id for beat in self.beats}
+        if any(cue.beat_id not in beat_ids for cue in self.dialogue_cues):
+            raise ValueError("scene-beats fragments may not contain cues from another unit")
+        if len({cue.id for cue in self.dialogue_cues}) != len(self.dialogue_cues):
+            raise ValueError("scene-beats fragments may not contain duplicate cue IDs")
+        beats_by_scene: dict[str, list[BeatV2]] = defaultdict(list)
         for beat in self.beats:
             beats_by_scene[beat.scene_id].append(beat)
         for scene in self.scenes:
@@ -74,8 +81,8 @@ class StoryboardFragment(FragmentBase):
     """All shots and coverage links assigned to one stable dramatic scene."""
 
     scene_id: str = Field(min_length=1)
-    shots: tuple[Shot, ...] = Field(min_length=1)
-    shot_beat_links: tuple[ShotBeatLink, ...] = Field(min_length=1)
+    shots: tuple[ShotV2, ...] = Field(min_length=1)
+    shot_beat_links: tuple[ShotBeatLinkV2, ...] = Field(min_length=1)
 
     @model_validator(mode="after")
     def validate_closed_scene_partition(self) -> "StoryboardFragment":
@@ -106,5 +113,5 @@ def primary_link_counts(fragment: StoryboardFragment) -> Counter[str]:
     return Counter(
         link.beat_id
         for link in fragment.shot_beat_links
-        if link.role == CoverageRole.PRIMARY
+        if link.role == V2CoverageRole.PRIMARY
     )

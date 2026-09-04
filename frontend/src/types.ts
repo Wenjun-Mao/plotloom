@@ -27,7 +27,10 @@ export interface CharacterCard {
   description: string;
   goal: string;
   traits: string[];
-  visualIdentity: string;
+  visualAnchors: string[];
+  soundAnchors: string[];
+  voiceAnchors: string[];
+  allowedStates: string[];
   continuityRules: string[];
 }
 
@@ -35,7 +38,9 @@ export interface LocationCard {
   id: string;
   name: string;
   description: string;
-  visualIdentity: string;
+  visualAnchors: string[];
+  soundAnchors: string[];
+  allowedStates: string[];
   continuityRules: string[];
 }
 
@@ -43,7 +48,9 @@ export interface PropCard {
   id: string;
   name: string;
   description: string;
-  visualIdentity: string;
+  visualAnchors: string[];
+  soundAnchors: string[];
+  allowedStates: string[];
   continuityRules: string[];
 }
 
@@ -100,13 +107,18 @@ export interface StoryGraph {
 
 export interface ContinuityState {
   facts: Record<string, unknown>;
-  characterStates: Record<string, string>;
-  propStates: Record<string, string>;
-  locationState: string | null;
   screenDirection: string | null;
   lighting: string | null;
   sound: string | null;
   notes: string[];
+  entityStates: RequiredEntityState[];
+}
+
+export type EntityType = "character" | "location" | "prop";
+export interface RequiredEntityState {
+  entityType: EntityType;
+  entityId: string;
+  state: string;
 }
 
 export interface DramaticScene {
@@ -117,6 +129,8 @@ export interface DramaticScene {
   locationId: string | null;
   characterIds: string[];
   beatIds: string[];
+  order: number;
+  durationBudgetUnits: number;
   entryState: ContinuityState;
   exitState: ContinuityState;
 }
@@ -128,7 +142,6 @@ export interface Beat {
   description: string;
   purpose: string;
   visibleEvent: string;
-  dialogue: string;
   immediateResult: string;
   dramaticChange: string;
   entryState: ContinuityState;
@@ -137,9 +150,35 @@ export interface Beat {
   continuityDelta: Record<string, unknown>;
 }
 
+export interface DialogueCue {
+  id: string;
+  beatId: string;
+  order: number;
+  speakerId: string | null;
+  voiceOver: string | null;
+  text: string;
+  language: string;
+  delivery: "measured" | "natural" | "brisk";
+  performanceNotes: string;
+  estimatedDurationUnits: number;
+}
+
 export interface SceneBeatPlan {
   scenes: DramaticScene[];
   beats: Beat[];
+  dialogueCues: DialogueCue[];
+}
+
+export interface AudioEvent {
+  id: string;
+  kind: "ambience" | "sound_effect" | "diegetic_sound" | "diegetic_music" | "score";
+  description: string;
+  startOffsetUnits: number;
+  durationUnits: number;
+}
+
+export interface AudioPlan {
+  events: AudioEvent[];
 }
 
 export interface Shot {
@@ -148,19 +187,20 @@ export interface Shot {
   order: number;
   title: string;
   shotSize: "extreme_wide" | "wide" | "full" | "medium" | "close_up" | "extreme_close_up" | "insert";
-  durationSeconds: number;
+  durationUnits: number;
   cameraAngle: string;
   cameraMovement: string;
   composition: string;
   visualIntent: string;
   motionIntent: string;
   action: string;
-  dialogue: string;
-  audio: string;
   transition: string;
   characterIds: string[];
   locationId: string | null;
   propIds: string[];
+  cueIds: string[];
+  audioPlan: AudioPlan;
+  requiredEntityStates: RequiredEntityState[];
   entryState: ContinuityState;
   exitState: ContinuityState;
 }
@@ -275,6 +315,7 @@ export interface StageHead {
   status: "ready" | "stale" | "missing";
   entityRevisionId: string | null;
   contentHash: string | null;
+  schemaVersion: 1 | 2;
   inputRevisions: Partial<Record<ServerStageName, number>>;
   staleReasons: string[];
   updatedAt: string;
@@ -287,6 +328,59 @@ export interface StageEnvelope<T = unknown> {
 
 export interface StageEnvelopesResponse {
   stages: StageEnvelope[];
+}
+
+export interface GateEvidence {
+  key: string;
+  value: string;
+}
+
+export interface GateResult {
+  id: string;
+  gateSetVersion: string;
+  gateId: string;
+  evaluatedInputHash: string;
+  required: boolean;
+  status: "pass" | "fail" | "skipped" | "not_applicable";
+  severity: "info" | "warning" | "error";
+  entityPath: Array<string | number>;
+  evidence: GateEvidence[];
+  reason: string;
+}
+
+export interface GateEvaluation {
+  gateSetVersion: string;
+  evaluatedInputHash: string;
+  results: GateResult[];
+}
+
+export interface ApprovalDecision {
+  id: string;
+  projectId: string;
+  entityRevisionId: string;
+  subjectType: string;
+  subjectId: string;
+  subjectRevision: number;
+  contentHash: string;
+  canonicalInputRevisions: Partial<Record<ServerStageName, number>>;
+  gateSetVersion: string;
+  decision: "approve" | "revoke";
+  reviewer: string;
+  note: string | null;
+  createdAt: string;
+}
+
+export interface ApprovalClosure {
+  decision: ApprovalDecision;
+  active: boolean;
+  staleReasons: string[];
+}
+
+export interface StoryboardReview {
+  head: StageHead;
+  gateEvaluation: GateEvaluation | null;
+  decisions: ApprovalClosure[];
+  activeApproval: ApprovalDecision | null;
 }
 
 /** The create/replay response is the complete canonical project aggregate. */

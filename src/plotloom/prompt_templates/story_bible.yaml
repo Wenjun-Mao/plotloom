@@ -1,5 +1,5 @@
 id: story_bible
-version: "2.1.0"
+version: "3.0.0"
 stage: story_bible
 description: Normalize a user brief into durable narrative and continuity facts.
 system: |-
@@ -19,7 +19,7 @@ user: |-
   {{ json_schema | tojson }}
 
   请建立故事圣经，严格填写 Schema 中的 logline、premise、genre、tone、audience、narrativePromise、visualLanguage、themes、worldRules、knownFacts、openQuestions 和 sourceNotes。
-  characters、locations、props 中的每项必须有稳定 ID；角色填写身份说明、目标、特质、视觉身份和连续性规则，地点与道具填写说明、视觉身份和连续性规则。
+  characters、locations、props 中的每项都必须填写 V2 的精确字段：id、name、description、visualAnchors、soundAnchors、allowedStates、continuityRules。characters 每项还必须填写 role、goal、traits、voiceAnchors；不得创造未列出的视觉身份或其他同义字段。allowedStates 是后续 shots.requiredEntityStates 唯一可引用的状态词表，不是供应商图片/视频槽位。
   区分用户明确提供的事实、从事实可直接推导的约束、以及仍需创作者决定的空白。
 variables:
   project_input:
@@ -34,5 +34,5 @@ variables:
     description: Canonical StoryBible schema; also embedded for providers without native structured output.
 output:
   format: json
-  schema_id: story_bible.v2
+  schema_id: story_bible.v3
   structured_output_mode: prefer

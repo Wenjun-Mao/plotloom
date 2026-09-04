@@ -11,26 +11,32 @@ from __future__ import annotations
 
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Literal, Mapping, TypeAlias
+from typing import Annotated, Any, Literal, Mapping, TypeAlias
 from uuid import NAMESPACE_URL, uuid5
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from ..domain import (
-    Beat,
+    AudioPlan,
     CanonicalSnapshot,
+    BeatV2,
     CamelModel,
-    ContinuityState,
-    CoverageRole,
-    DramaticScene,
+    ContinuityStateV2,
+    DialogueCue,
+    DialogueDeliveryPace,
+    DramaticSceneV2,
+    EntityType,
     ProjectBrief,
-    Shot,
-    ShotBeatLink,
-    ShotSize,
+    RequiredEntityState,
+    SceneBeatPlanV2,
+    ShotV2,
+    ShotBeatLinkV2,
     StageName,
-    StoryBible,
-    StoryGraph,
+    StoryBibleV2,
+    StoryGraphV2,
+    default_dialogue_timing_profile,
 )
+from ..canonical_schema import V2CoverageRole, V2ShotSize
 from .contracts import RenderedPrompt, ValidationIssue, ValidationReport
 from .fragments import SceneBeatsFragment, StageFragment, StoryboardFragment
 from .json_schema import explicit_presence_json_schema, inline_local_json_references
@@ -57,12 +63,12 @@ from .story_graph_topology import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.5.6"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12a"
 CORRECTION_POLICY_VERSION = "bounded_correction.v3"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
-SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v4"
-STORYBOARD_FRAGMENT_SCHEMA_ID = "storyboard.fragment.v3"
+SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v5"
+STORYBOARD_FRAGMENT_SCHEMA_ID = "storyboard.fragment.v4"
 
 
 class WorkUnitContractError(ValueError):
@@ -77,12 +83,14 @@ class DramaticSceneContent(CamelModel):
     """Model-authored scene fields, without the selector-owned story-node ID."""
 
     local_scene_id: str = Field(min_length=1)
+    order: int = Field(ge=1)
     title: str = Field(min_length=1)
     objective: str = Field(min_length=1)
-    location_id: str | None = None
-    character_ids: list[str] = Field(default_factory=list)
-    entry_state: ContinuityState = Field(default_factory=ContinuityState)
-    exit_state: ContinuityState = Field(default_factory=ContinuityState)
+    location_id: str | None
+    character_ids: list[str]
+    duration_budget_units: int = Field(ge=1)
+    entry_state: ContinuityStateV2
+    exit_state: ContinuityStateV2
 
 
 class BeatContent(CamelModel):
@@ -93,14 +101,39 @@ class BeatContent(CamelModel):
     order: int = Field(ge=1)
     description: str = Field(min_length=1)
     purpose: str = Field(min_length=1)
-    visible_event: str = ""
-    dialogue: str = ""
-    immediate_result: str = ""
-    dramatic_change: str = ""
-    entry_state: ContinuityState = Field(default_factory=ContinuityState)
-    exit_state: ContinuityState = Field(default_factory=ContinuityState)
-    continuity_anchors: list[str] = Field(default_factory=list)
-    continuity_delta: dict[str, Any] = Field(default_factory=dict)
+    visible_event: str
+    immediate_result: str
+    dramatic_change: str
+    entry_state: ContinuityStateV2
+    exit_state: ContinuityStateV2
+    continuity_anchors: list[str]
+    continuity_delta: dict[str, Any]
+
+
+class DialogueCueContent(CamelModel):
+    """Model-authored dialogue tied to a local beat before trusted ID binding."""
+
+    local_cue_id: str = Field(min_length=1)
+    beat_local_id: str = Field(min_length=1)
+    order: int = Field(ge=1)
+    speaker_id: str | None
+    voice_over: Annotated[
+        str,
+        Field(min_length=1, pattern=r".*\S.*"),
+    ] | None
+    text: str = Field(min_length=1)
+    language: str = Field(min_length=1)
+    delivery: DialogueDeliveryPace
+    performance_notes: str = Field(min_length=1)
+    estimated_duration_units: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def validate_voice_source(self) -> "DialogueCueContent":
+        if (self.speaker_id is None) == (self.voice_over is None):
+            raise ValueError("DialogueCue requires exactly one of speakerId or voiceOver")
+        if self.voice_over is not None and not self.voice_over.strip():
+            raise ValueError("DialogueCue voiceOver must be a non-blank identity or label")
+        return self
 
 
 class SceneBeatsFragmentOutput(CamelModel):
@@ -108,6 +141,7 @@ class SceneBeatsFragmentOutput(CamelModel):
 
     scenes: list[DramaticSceneContent] = Field(min_length=1)
     beats: list[BeatContent] = Field(min_length=1)
+    dialogue_cues: list[DialogueCueContent]
 
 
 class ShotContent(CamelModel):
@@ -116,22 +150,23 @@ class ShotContent(CamelModel):
     local_shot_id: str = Field(min_length=1)
     order: int = Field(ge=1)
     title: str = Field(min_length=1)
-    shot_size: ShotSize
-    duration_seconds: float = Field(gt=0)
-    camera_angle: str = ""
-    camera_movement: str = ""
-    composition: str = ""
-    visual_intent: str = ""
-    motion_intent: str = ""
-    action: str = ""
-    dialogue: str = ""
-    audio: str = ""
-    transition: str = ""
-    character_ids: list[str] = Field(default_factory=list)
-    location_id: str | None = None
-    prop_ids: list[str] = Field(default_factory=list)
-    entry_state: ContinuityState = Field(default_factory=ContinuityState)
-    exit_state: ContinuityState = Field(default_factory=ContinuityState)
+    shot_size: V2ShotSize
+    duration_units: int = Field(ge=1)
+    camera_angle: str
+    camera_movement: str
+    composition: str
+    visual_intent: str
+    motion_intent: str
+    action: str
+    transition: str
+    cue_ids: list[str]
+    audio_plan: AudioPlan
+    character_ids: list[str]
+    location_id: str | None
+    prop_ids: list[str]
+    required_entity_states: list[RequiredEntityState]
+    entry_state: ContinuityStateV2
+    exit_state: ContinuityStateV2
 
 
 class SupportingBeatLinkContent(CamelModel):
@@ -139,7 +174,7 @@ class SupportingBeatLinkContent(CamelModel):
 
     shot_local_id: str = Field(min_length=1)
     beat_id: str = Field(min_length=1)
-    coverage_weight: float = Field(default=1.0, gt=0, le=1)
+    coverage_weight: float = Field(gt=0, le=1)
 
 
 class StoryboardFragmentOutput(CamelModel):
@@ -153,7 +188,7 @@ class StoryboardFragmentOutput(CamelModel):
 FragmentOutput: TypeAlias = SceneBeatsFragmentOutput | StoryboardFragmentOutput
 
 
-class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraph]):
+class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraphV2]):
     """Validate model prose against a frozen topology before canonicalizing it."""
 
     schema_id = STORY_GRAPH_CONTENT_FILL_SCHEMA_ID
@@ -204,7 +239,15 @@ class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraph]):
                     for issue in exc.issues
                 ),
             )
-        return ValidationReport(accepted=True, value=graph)
+        # The topology binder remains the deterministic graph authority.  Its
+        # result is projected into the explicit V2 authoring schema only after
+        # that topology contract has been checked.
+        return ValidationReport(
+            accepted=True,
+            value=StoryGraphV2.model_validate(
+                graph.model_dump(mode="json", by_alias=True)
+            ),
+        )
 
 
 class WorkUnitPromptContract(_FrozenModel):
@@ -284,7 +327,7 @@ class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
         stage_plan: StagePlan,
         work_unit: GenerationWorkUnit,
         brief: ProjectBrief,
-        bible: StoryBible,
+        bible: StoryBibleV2,
         scoped_context: Mapping[str, Any],
     ) -> None:
         if work_unit.stage not in {StageName.SCENE_BEATS, StageName.STORYBOARD}:
@@ -492,7 +535,7 @@ def _validator_for_unit(
     if work_unit.stage == StageName.STORY_BIBLE:
         return CanonicalStageValidationAdapter(StageName.STORY_BIBLE, brief=brief)
     bible = dependencies.get(StageName.STORY_BIBLE)
-    if not isinstance(bible, StoryBible):
+    if not isinstance(bible, StoryBibleV2):
         raise WorkUnitContractError(f"{work_unit.stage.value} requires a sealed StoryBible")
     if work_unit.stage == StageName.STORY_GRAPH:
         if story_graph_topology is not None:
@@ -554,6 +597,7 @@ def _prompt_variables(
         "story_node": scoped_context["story_node"],
         "dramatic_scene": scoped_context["dramatic_scene"],
         "beats": scoped_context["beats"],
+        "dialogue_cues": scoped_context["dialogue_cues"],
         "storyboard_constraints": stage_constraints,
         "json_schema": schema,
     }
@@ -570,9 +614,9 @@ def _bind_fragment(
             scene.local_scene_id: canonical_fragment_id(
                 "scene",
                 work_unit.selector.stable_id,
-                str(index),
+                str(scene.order),
             )
-            for index, scene in enumerate(output.scenes, start=1)
+            for scene in output.scenes
         }
         beat_ids = {
             beat.local_beat_id: canonical_fragment_id(
@@ -583,14 +627,13 @@ def _bind_fragment(
             for beat in output.beats
         }
         bound_beats = tuple(
-            Beat(
+            BeatV2(
                 id=beat_ids[beat.local_beat_id],
                 scene_id=scene_ids[beat.scene_local_id],
                 order=beat.order,
                 description=beat.description,
                 purpose=beat.purpose,
                 visible_event=beat.visible_event,
-                dialogue=beat.dialogue,
                 immediate_result=beat.immediate_result,
                 dramatic_change=beat.dramatic_change,
                 entry_state=beat.entry_state,
@@ -601,9 +644,10 @@ def _bind_fragment(
             for beat in output.beats
         )
         bound_scenes = tuple(
-            DramaticScene(
+            DramaticSceneV2(
                 id=scene_ids[scene.local_scene_id],
                 story_node_id=work_unit.selector.stable_id,
+                order=scene.order,
                 title=scene.title,
                 objective=scene.objective,
                 location_id=scene.location_id,
@@ -619,6 +663,7 @@ def _bind_fragment(
                         key=lambda item: item.order,
                     )
                 ],
+                duration_budget_units=scene.duration_budget_units,
                 entry_state=scene.entry_state,
                 exit_state=scene.exit_state,
             )
@@ -630,6 +675,25 @@ def _bind_fragment(
             story_node_id=work_unit.selector.stable_id,
             scenes=bound_scenes,
             beats=bound_beats,
+            dialogue_cues=tuple(
+                DialogueCue(
+                    id=canonical_fragment_id(
+                        "dialogue-cue",
+                        beat_ids[cue.beat_local_id],
+                        str(cue.order),
+                    ),
+                    beat_id=beat_ids[cue.beat_local_id],
+                    order=cue.order,
+                    speaker_id=cue.speaker_id,
+                    voice_over=cue.voice_over,
+                    text=cue.text,
+                    language=cue.language,
+                    delivery=cue.delivery,
+                    performance_notes=cue.performance_notes,
+                    estimated_duration_units=cue.estimated_duration_units,
+                )
+                for cue in output.dialogue_cues
+            ),
         )
     shot_ids = {
         shot.local_shot_id: canonical_fragment_id(
@@ -644,25 +708,26 @@ def _bind_fragment(
         work_unit_id=work_unit.unit_id,
         scene_id=work_unit.selector.stable_id,
         shots=tuple(
-            Shot(
+            ShotV2(
                 id=shot_ids[shot.local_shot_id],
                 scene_id=work_unit.selector.stable_id,
                 order=shot.order,
                 title=shot.title,
                 shot_size=shot.shot_size,
-                duration_seconds=shot.duration_seconds,
+                duration_units=shot.duration_units,
                 camera_angle=shot.camera_angle,
                 camera_movement=shot.camera_movement,
                 composition=shot.composition,
                 visual_intent=shot.visual_intent,
                 motion_intent=shot.motion_intent,
                 action=shot.action,
-                dialogue=shot.dialogue,
-                audio=shot.audio,
                 transition=shot.transition,
+                cue_ids=shot.cue_ids,
+                audio_plan=shot.audio_plan,
                 character_ids=shot.character_ids,
                 location_id=shot.location_id,
                 prop_ids=shot.prop_ids,
+                required_entity_states=shot.required_entity_states,
                 entry_state=shot.entry_state,
                 exit_state=shot.exit_state,
             )
@@ -670,20 +735,21 @@ def _bind_fragment(
         ),
         shot_beat_links=tuple(
             [
-                ShotBeatLink(
+                ShotBeatLinkV2(
                     shot_id=shot_ids[local_shot_id],
                     beat_id=beat_id,
-                    role=CoverageRole.PRIMARY,
+                    role=V2CoverageRole.PRIMARY,
+                    coverage_weight=1.0,
                 )
                 for beat_id, local_shot_id in sorted(
                     output.primary_shot_local_id_by_beat.items()
                 )
             ]
             + [
-                ShotBeatLink(
+                ShotBeatLinkV2(
                     shot_id=shot_ids[link.shot_local_id],
                     beat_id=link.beat_id,
-                    role=CoverageRole.SUPPORTING,
+                    role=V2CoverageRole.SUPPORTING,
                     coverage_weight=link.coverage_weight,
                 )
                 for link in output.supporting_beat_links
@@ -711,7 +777,7 @@ def _fragment_semantic_issues(
     *,
     work_unit: GenerationWorkUnit,
     brief: ProjectBrief,
-    bible: StoryBible,
+    bible: StoryBibleV2,
     scoped_context: Mapping[str, Any],
 ) -> tuple[ValidationIssue, ...]:
     if isinstance(output, SceneBeatsFragmentOutput):
@@ -723,7 +789,7 @@ def _scene_beats_semantic_issues(
     output: SceneBeatsFragmentOutput,
     *,
     work_unit: GenerationWorkUnit,
-    bible: StoryBible,
+    bible: StoryBibleV2,
     scoped_context: Mapping[str, Any],
 ) -> tuple[ValidationIssue, ...]:
     issues: list[ValidationIssue] = []
@@ -734,6 +800,9 @@ def _scene_beats_semantic_issues(
     scene_ids = [scene.local_scene_id for scene in output.scenes]
     if len(scene_ids) != len(set(scene_ids)):
         issues.append(_issue("semantic.duplicate_scene_id", "scenes", "fragment contains duplicate scene IDs"))
+    scene_orders = sorted(scene.order for scene in output.scenes)
+    if scene_orders != list(range(1, len(scene_orders) + 1)):
+        issues.append(_issue("semantic.scene_order", "scenes", "scene order must be contiguous from 1"))
     beat_ids = [beat.local_beat_id for beat in output.beats]
     if len(beat_ids) != len(set(beat_ids)):
         issues.append(_issue("semantic.duplicate_beat_id", "beats", "fragment contains duplicate beat IDs"))
@@ -744,6 +813,42 @@ def _scene_beats_semantic_issues(
         beats_by_scene.setdefault(beat.scene_local_id, []).append(beat)
         if beat.scene_local_id not in scene_ids:
             issues.append(_issue("semantic.cross_unit_beat", "beats", "beat belongs to a scene outside this fragment"))
+    cues_by_beat: dict[str, list[DialogueCueContent]] = {}
+    timing_profile = default_dialogue_timing_profile()
+    cue_ids = [cue.local_cue_id for cue in output.dialogue_cues]
+    if len(cue_ids) != len(set(cue_ids)):
+        issues.append(_issue("semantic.duplicate_cue_id", "dialogueCues", "fragment contains duplicate cue IDs"))
+    for cue_index, cue in enumerate(output.dialogue_cues):
+        cues_by_beat.setdefault(cue.beat_local_id, []).append(cue)
+        if cue.beat_local_id not in beat_ids:
+            issues.append(_issue("semantic.cross_unit_cue", ("dialogueCues", cue_index, "beatLocalId"), "cue belongs to a beat outside this fragment"))
+        if cue.speaker_id is not None and cue.speaker_id not in known_characters:
+            issues.append(_issue("semantic.unknown_cue_speaker", ("dialogueCues", cue_index, "speakerId"), "cue speaker is not in the Story Bible"))
+        minimum_duration = timing_profile.estimate_duration_units(
+            DialogueCue(
+                id=cue.local_cue_id,
+                beat_id=cue.beat_local_id,
+                order=cue.order,
+                speaker_id=cue.speaker_id,
+                voice_over=cue.voice_over,
+                text=cue.text,
+                language=cue.language,
+                delivery=cue.delivery,
+                performance_notes=cue.performance_notes,
+                estimated_duration_units=cue.estimated_duration_units,
+            )
+        )
+        if (
+            minimum_duration is None
+            or cue.estimated_duration_units < minimum_duration
+        ):
+            issues.append(
+                _issue(
+                    "semantic.cue_duration_underestimated",
+                    ("dialogueCues", cue_index, "estimatedDurationUnits"),
+                    "cue duration is below the versioned language/delivery minimum",
+                )
+            )
     for index, scene in enumerate(output.scenes):
         if scene.location_id is not None and scene.location_id not in known_locations:
             issues.append(_issue("semantic.unknown_location", ("scenes", index, "locationId"), "scene references an unknown location"))
@@ -755,6 +860,19 @@ def _scene_beats_semantic_issues(
             issues.append(_issue("semantic.scene_without_beats", ("scenes", index), "each scene must contain at least one beat"))
         if [beat.order for beat in ordered] != list(range(1, len(ordered) + 1)):
             issues.append(_issue("semantic.beat_order", ("scenes", index), "beat order must be contiguous from 1"))
+        for beat in ordered:
+            beat_cues = sorted(cues_by_beat.get(beat.local_beat_id, []), key=lambda cue: cue.order)
+            if any(cue.speaker_id is not None and cue.speaker_id not in scene.character_ids for cue in beat_cues):
+                issues.append(_issue("semantic.cue_speaker_not_in_scene", "dialogueCues", "cue speaker must appear in its dramatic scene"))
+            if [cue.order for cue in beat_cues] != list(range(1, len(beat_cues) + 1)):
+                issues.append(_issue("semantic.cue_order", "dialogueCues", "cue order must be contiguous within its beat"))
+        cue_duration = sum(
+            cue.estimated_duration_units
+            for beat in ordered
+            for cue in cues_by_beat.get(beat.local_beat_id, [])
+        )
+        if cue_duration > scene.duration_budget_units:
+            issues.append(_issue("semantic.cue_duration_budget", ("scenes", index, "durationBudgetUnits"), "cue timing exceeds the scene duration budget"))
     for contract in scoped_context.get("join_contracts", []):
         required_keys = set(contract.get("requiredStateKeys", []))
         if target == contract.get("joinNodeId"):
@@ -771,7 +889,7 @@ def _storyboard_semantic_issues(
     *,
     work_unit: GenerationWorkUnit,
     brief: ProjectBrief,
-    bible: StoryBible,
+    bible: StoryBibleV2,
     scoped_context: Mapping[str, Any],
 ) -> tuple[ValidationIssue, ...]:
     issues: list[ValidationIssue] = []
@@ -786,6 +904,17 @@ def _storyboard_semantic_issues(
     known_characters = {item.id for item in bible.characters}
     known_locations = {item.id for item in bible.locations}
     known_props = {item.id for item in bible.props}
+    entities_by_type = {
+        EntityType.CHARACTER: {item.id: set(item.allowed_states) for item in bible.characters},
+        EntityType.LOCATION: {item.id: set(item.allowed_states) for item in bible.locations},
+        EntityType.PROP: {item.id: set(item.allowed_states) for item in bible.props},
+    }
+    cues_by_id = {
+        str(cue["id"]): cue
+        for cue in scoped_context.get("dialogue_cues", [])
+        if isinstance(cue, Mapping) and cue.get("id")
+    }
+    scheduled_cues: dict[str, str] = {}
     for index, shot in enumerate(output.shots):
         if shot.location_id is not None and shot.location_id not in known_locations:
             issues.append(_issue("semantic.unknown_location", ("shots", index, "locationId"), "shot references an unknown location"))
@@ -793,6 +922,27 @@ def _storyboard_semantic_issues(
             issues.append(_issue("semantic.unknown_characters", ("shots", index, "characterIds"), "shot references unknown characters"))
         if set(shot.prop_ids) - known_props:
             issues.append(_issue("semantic.unknown_props", ("shots", index, "propIds"), "shot references unknown props"))
+        for cue_id in shot.cue_ids:
+            if cue_id not in cues_by_id:
+                issues.append(_issue("semantic.unknown_cue_ref", ("shots", index, "cueIds"), "shot references an unknown cue"))
+            elif cue_id in scheduled_cues:
+                issues.append(_issue("semantic.duplicate_cue_ref", ("shots", index, "cueIds"), "a cue may be scheduled only once per scene"))
+            else:
+                scheduled_cues[cue_id] = shot.local_shot_id
+        required_entities: set[tuple[EntityType, str]] = set()
+        for state_index, required in enumerate(shot.required_entity_states):
+            key = (required.entity_type, required.entity_id)
+            if key in required_entities:
+                issues.append(_issue("semantic.duplicate_required_entity_state", ("shots", index, "requiredEntityStates", state_index), "entity state is duplicated within one shot"))
+            required_entities.add(key)
+            allowed = entities_by_type[required.entity_type].get(required.entity_id)
+            if allowed is None:
+                issues.append(_issue("semantic.unknown_required_entity", ("shots", index, "requiredEntityStates", state_index, "entityId"), "required entity is absent from the Story Bible or has the wrong type"))
+            elif required.state not in allowed:
+                issues.append(_issue("semantic.invalid_required_entity_state", ("shots", index, "requiredEntityStates", state_index, "state"), "required entity state is not allowed by the Story Bible"))
+        for event_index, event in enumerate(shot.audio_plan.events):
+            if event.start_offset_units + event.duration_units > shot.duration_units:
+                issues.append(_issue("semantic.audio_timing", ("shots", index, "audioPlan", "events", event_index), "audio event must fit within the shot duration"))
     ordered = sorted(output.shots, key=lambda shot: shot.order)
     if [shot.order for shot in ordered] != list(range(1, len(ordered) + 1)):
         issues.append(_issue("semantic.shot_order", "shots", "shot order must be contiguous from 1"))
@@ -827,6 +977,23 @@ def _storyboard_semantic_issues(
             issues.append(_issue("semantic.cross_unit_beat", ("supportingBeatLinks", index), "supporting link references a beat outside this fragment"))
     if set(shot_ids) - linked_shots:
         issues.append(_issue("semantic.unlinked_shots", "primaryShotLocalIdByBeat", "each shot must cover a selected beat"))
+    for cue_id, cue in cues_by_id.items():
+        scheduled_shot = scheduled_cues.get(cue_id)
+        if scheduled_shot is None:
+            issues.append(_issue("semantic.unscheduled_cue_ref", "shots", f"cue {cue_id} is not scheduled by a shot"))
+            continue
+        cue_beat_id = str(cue.get("beatId") or "")
+        covered_beats = {
+            beat_id
+            for beat_id, shot_id in primary_map.items()
+            if shot_id == scheduled_shot
+        } | {
+            link.beat_id
+            for link in output.supporting_beat_links
+            if link.shot_local_id == scheduled_shot
+        }
+        if cue_beat_id not in covered_beats:
+            issues.append(_issue("semantic.cue_not_covered_by_shot", "shots", f"cue {cue_id} must be scheduled by a shot covering its beat"))
     return tuple(issues)
 
 
@@ -852,7 +1019,7 @@ def _bind_fragment_foreign_keys(
     *,
     work_unit: GenerationWorkUnit,
     brief: ProjectBrief,
-    bible: StoryBible,
+    bible: StoryBibleV2,
     scoped_context: Mapping[str, Any],
 ) -> None:
     """Expose trusted selector/foreign-key constraints in the model schema.
@@ -872,6 +1039,8 @@ def _bind_fragment_foreign_keys(
         scene_properties = definitions["DramaticSceneContent"]["properties"]
         _set_nullable_string_enum(scene_properties["locationId"], location_ids)
         _set_array_string_enum(scene_properties["characterIds"], character_ids)
+        cue_properties = definitions["DialogueCueContent"]["properties"]
+        _set_nullable_string_enum(cue_properties["speakerId"], character_ids)
         continuity = _continuity_requirements(scoped_context)
         _require_state_fact_keys(
             scene_properties["entryState"],
@@ -895,6 +1064,12 @@ def _bind_fragment_foreign_keys(
     _set_nullable_string_enum(shot_properties["locationId"], location_ids)
     _set_array_string_enum(shot_properties["characterIds"], character_ids)
     _set_array_string_enum(shot_properties["propIds"], prop_ids)
+    cue_ids = sorted(
+        str(item["id"])
+        for item in scoped_context.get("dialogue_cues", [])
+        if isinstance(item, Mapping) and item.get("id")
+    )
+    _set_array_string_enum(shot_properties["cueIds"], cue_ids)
     beat_ids = sorted(
         str(item["id"])
         for item in scoped_context.get("beats", [])

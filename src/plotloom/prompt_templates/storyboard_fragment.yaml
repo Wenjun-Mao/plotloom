@@ -1,5 +1,5 @@
 id: storyboard_fragment
-version: "2.6.0"
+version: "3.1.0"
 stage: storyboard
 description: Create a closed shot/coverage fragment for one dramatic scene.
 system: |-
@@ -22,6 +22,9 @@ user: |-
   【该场景节拍】
   {{ beats | tojson }}
 
+  【该场景 Dialogue Cues】
+  {{ dialogue_cues | tojson }}
+
   【分镜约束】
   {{ storyboard_constraints | tojson }}
 
@@ -33,7 +36,9 @@ user: |-
   shots 数量必须严格满足目标 JSON Schema 的 minItems/maxItems 和【分镜约束】中的 shotsPerSceneMin/shotsPerSceneMax；当上下限都是 1 时，必须且只能返回 1 个 shot。
   primaryShotLocalIdByBeat 必须包含 Schema 中每一个 beat ID，且每个值必须是本次 shots 中的 localShotId；系统据此确定性生成每个 beat 恰好一个 PRIMARY link。supportingBeatLinks 只能从 Schema 的 beatId enum 中选择，可额外提供 SUPPORTING 覆盖；没有补充覆盖时也必须返回空数组 []。
   一个 shot 可覆盖一个连续 beat 段；当 shotsPerSceneMax 小于 beat 数量时，必须让同一个 localShotId 覆盖多个连续 beats，并在 action 中描述连续推进，不能遗漏 beat。
-  每个 shot 的 entryState、exitState 都必须完整输出 facts、characterStates、propStates、locationState、screenDirection、lighting、sound、notes；没有内容时也分别写出 {}、null 或 []，不能省略任何一项。
+  所有 durationUnits 都使用整数毫秒。cueIds 仅可从 Schema 提供的 cue ID enum 选择。每个 cue 在本场景的调度必须恰好一次，且不能在同一或多个 shot 中重复；承载 cue 的 shot.durationUnits 必须足以容纳对应 estimatedDurationUnits，绝不能输出 dialogue 文本字段。audioPlan 是唯一声音合同，且只包含 events；每个 event 要填写 id、kind、description、startOffsetUnits 与 durationUnits，kind 只能是 ambience、sound_effect、diegetic_sound、diegetic_music 或 score，时序必须落在该 shot.durationUnits 内，绝不能输出 audio 自由字符串。
+  requiredEntityStates 是镜头所需实体状态的显式引用；每项均填写 entityType、entityId、state，entityId 只能引用故事圣经中对应类型的角色、地点或道具，state 必须是该实体 allowedStates 中的值。不要输出 provider reference slot、URL 或素材路径。
+  每个 shot 的 entryState、exitState 都必须完整输出 facts、entityStates、screenDirection、lighting、sound、notes；每个 entityStates 项均填写 entityType、entityId、state。没有内容时也分别写出 {}、[] 或 null，不能省略任何一项。
   不要生成供应商专用的图片或视频提示词；媒体提示词由后续版本化模板独立编译。
 variables:
   story_bible:
@@ -44,11 +49,13 @@ variables:
     required: true
   beats:
     required: true
+  dialogue_cues:
+    required: true
   storyboard_constraints:
     required: true
   json_schema:
     required: true
 output:
   format: json
-  schema_id: storyboard.fragment.v3
+  schema_id: storyboard.fragment.v4
   structured_output_mode: prefer

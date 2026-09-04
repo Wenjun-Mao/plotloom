@@ -54,6 +54,7 @@ function stageEnvelopes(payloads: Partial<Record<ServerStageName, unknown>> = {}
       status: payloads[stage] == null ? "missing" : "ready",
       entityRevisionId: payloads[stage] == null ? null : `${stage}-r1`,
       contentHash: payloads[stage] == null ? null : `${stage}-hash`,
+      schemaVersion: 2,
       inputRevisions: {},
       staleReasons: [],
       updatedAt: "2026-08-30T00:00:00Z",
@@ -816,7 +817,7 @@ describe("App project/editor rehydration", () => {
     expect(document.body.textContent).toContain("latest-run");
   });
 
-  it("rehydrates a succeeded keyframe and passes it as the required video source", async () => {
+  it("keeps historical media readable while disabling new production tasks", async () => {
     window.history.replaceState(null, "", "/?project=media-project");
     const incoming = resource("media-project", "媒体项目");
     vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
@@ -827,18 +828,18 @@ describe("App project/editor rehydration", () => {
       storyboard: demoProject.storyboard,
     }) });
     vi.spyOn(plotloomApi, "getProjectMediaTasks").mockResolvedValue({ tasks: [mediaTask({ id: "image-task", status: "succeeded", outputUri: "https://assets.example/shot-01.png", startedAt: "2026-08-30T00:00:01Z", finishedAt: "2026-08-30T00:00:02Z" })] });
-    const startMedia = vi.spyOn(plotloomApi, "startMediaTask").mockResolvedValue(mediaTask({ id: "video-task", kind: "video", status: "succeeded", outputUri: "https://assets.example/shot-01.mp4", startedAt: "2026-08-30T00:00:01Z", finishedAt: "2026-08-30T00:00:02Z" }));
+    const startMedia = vi.spyOn(plotloomApi, "startMediaTask");
 
     await act(async () => root.render(createElement(App)));
     await flush();
     await act(async () => button("分镜工作台").click());
-    await act(async () => button("生成视频").click());
-    await flush();
-
-    expect(startMedia).toHaveBeenCalledWith("media-project", "shot_01", "video", { sourceUri: "https://assets.example/shot-01.png" });
+    expect(document.body.textContent).toContain("媒体生产尚未开放");
+    expect(document.body.textContent).toContain("现有媒体结果保持可读");
+    expect(button("视频生产未就绪").disabled).toBe(true);
+    expect(startMedia).not.toHaveBeenCalled();
   });
 
-  it("blocks video generation with a clear error until a keyframe succeeds", async () => {
+  it("does not expose a client-side media enqueue action without a ProductionSnapshot", async () => {
     window.history.replaceState(null, "", "/?project=no-source-project");
     const incoming = resource("no-source-project", "无关键帧项目");
     vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
@@ -853,10 +854,11 @@ describe("App project/editor rehydration", () => {
     await act(async () => root.render(createElement(App)));
     await flush();
     await act(async () => button("分镜工作台").click());
-    await act(async () => button("生成视频").click());
-
+    expect(button("图片生产未就绪").disabled).toBe(true);
+    expect(button("视频生产未就绪").disabled).toBe(true);
     expect(startMedia).not.toHaveBeenCalled();
-    expect(document.body.textContent).toContain("请先为这个镜头生成成功的关键帧");
+    expect(document.body.textContent).toContain("Approval");
+    expect(document.body.textContent).toContain("ProductionSnapshot");
   });
 
   it("explains when a server key is available and a session key is only an override", async () => {
