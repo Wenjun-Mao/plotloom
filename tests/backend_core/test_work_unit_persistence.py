@@ -8,6 +8,7 @@ import pytest
 from alembic import command
 from sqlalchemy import create_engine, select, text
 
+import plotloom.generation.planning as generation_planning
 import plotloom.validation as validation_module
 from plotloom.domain import (
     Artifact,
@@ -21,7 +22,7 @@ from plotloom.domain import (
     WorkUnitFailureDisposition,
     WorkUnitStatus,
 )
-from plotloom.exceptions import InvalidTransitionError
+from plotloom.exceptions import InvalidTransitionError, RepairEligibilityError
 from plotloom.generation.fragments import (
     SceneBeatsFragment,
     StoryBibleFragment,
@@ -33,12 +34,16 @@ from plotloom.generation.dialogue_capacity import (
     plan_dialogue_capacity,
 )
 from plotloom.generation.planning import (
+    GenerationPlan,
     PlanningError,
     StagePlan,
+    _generation_plan_hash,
     _stage_plan_hash,
     assert_work_unit_input_contract,
 )
+from plotloom.generation.prompts import sha256_text
 from plotloom.persistence import (
+    GenerationPlanRow,
     GenerationWorkUnitRow,
     MediaTaskRow,
     SQLiteRepository,
@@ -357,6 +362,82 @@ def _persisted_scene_beats_plan(repository: SQLiteRepository, run_id: str) -> di
         return deepcopy(plan_row.plan)
 
 
+def _replace_generation_plan_policy(
+    repository: SQLiteRepository,
+    run_id: str,
+    *,
+    policy_version: str = "m1.5-p0.3",
+) -> dict:
+    """Persist a hash-valid historic GenerationPlan without changing its inputs."""
+
+    current = repository.get_generation_plan(run_id)
+    draft = current.model_copy(
+        update={
+            "planning_policy_version": policy_version,
+            "planning_policy_hash": sha256_text(policy_version),
+            "plan_hash": "",
+        }
+    )
+    historic = GenerationPlan(
+        **draft.model_dump(mode="python", exclude={"plan_hash"}),
+        plan_hash=_generation_plan_hash(draft),
+    )
+    persisted = historic.model_dump(mode="json", by_alias=False)
+    with repository._write() as session:
+        row = session.get(GenerationPlanRow, run_id)
+        assert row is not None
+        row.plan = deepcopy(persisted)
+        row.plan_hash = historic.plan_hash
+    return persisted
+
+
+def _replace_scene_beats_plan_without_join_state_contract(
+    repository: SQLiteRepository,
+    run_id: str,
+) -> dict:
+    """Create parseable historic evidence without rewriting its old hash."""
+
+    current = next(
+        (
+            plan
+            for plan in repository.list_stage_plans(run_id)
+            if plan.stage == StageName.SCENE_BEATS
+        ),
+        None,
+    )
+    if current is None:
+        current = repository.get_or_create_stage_plan(run_id, StageName.SCENE_BEATS)
+    historic = current.model_dump(mode="json", by_alias=False, exclude_none=True)
+    historic.pop("join_state_value_contract_version", None)
+    historic.pop("join_state_value_contract_hash", None)
+    historic.pop("stage_plan_hash", None)
+    draft = StagePlan.model_construct(
+        **historic,
+        stage_plan_hash="",
+    )
+    legacy = StagePlan(
+        **draft.model_dump(
+            mode="python",
+            exclude={"stage_plan_hash"},
+            exclude_none=True,
+        ),
+        stage_plan_hash=_stage_plan_hash(draft),
+    )
+    persisted = legacy.model_dump(mode="json", by_alias=False, exclude_none=True)
+    assert StagePlan.model_validate(persisted) == legacy
+    with repository._write() as session:
+        row = session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == run_id,
+                StagePlanRow.stage == StageName.SCENE_BEATS.value,
+            )
+        )
+        assert row is not None
+        row.plan = deepcopy(persisted)
+        row.stage_plan_hash = legacy.stage_plan_hash
+    return persisted
+
+
 def _replace_scene_beats_plan_with_complete_v1_capacity_contract(
     repository: SQLiteRepository,
     run_id: str,
@@ -518,6 +599,90 @@ def test_sealed_aggregate_is_exact_and_commit_reads_only_sealed_payloads(reposit
         repository.commit_sealed_run(run.id, sealed_aggregate_ids=[aggregate_id])
 
 
+def test_upstream_normal_seal_does_not_require_future_scene_beats_profile(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    """Sealing Bible starts a full run before any Scene Beats plan exists."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(project.id, RunKind.PIPELINE, list(StageName))
+    repository.start_run(run.id)
+
+    def future_profile_must_not_be_read(*_args, **_kwargs):
+        raise AssertionError("an upstream seal must not resolve a future Scene Beats plan")
+
+    monkeypatch.setattr(
+        repository,
+        "_frozen_dialogue_timing_profile_for_sealed_commit_in_session",
+        future_profile_must_not_be_read,
+    )
+
+    assert _seal_bible_unit(repository, run.id, all_stage_payloads()[0])
+
+
+def test_upstream_repair_seal_does_not_require_future_scene_beats_profile(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    """The same sequencing invariant holds for a child exact-repair run."""
+
+    project = repository.create_project(brief)
+    bible = all_stage_payloads()[0]
+    source = repository.create_run(project.id, RunKind.PIPELINE, list(StageName))
+    repository.start_run(source.id)
+    _, source_unit, failed_attempt, _ = _persist_bible_unit_evidence(
+        repository,
+        source.id,
+        bible,
+        validation_content={"accepted": False, "issues": [{"code": "schema.rejected"}]},
+    )
+    repository.finish_attempt(
+        failed_attempt.id,
+        AttemptStatus.FAILED,
+        error="rejected source output",
+        outcome_code="schema.rejected",
+        failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+    )
+    repository.finish_run(
+        source.id,
+        quarantine_reason="rejected source output",
+        failure_code="schema.rejected",
+        failed_stage=StageName.STORY_BIBLE,
+    )
+
+    child = repository.create_work_unit_repair_run(
+        source.id,
+        source_unit.id,
+        idempotency_key="repair-upstream-seal-profile-guard",
+    ).run
+    repository.start_run(child.id)
+    _, _, repaired_attempt, candidate = _persist_bible_unit_evidence(
+        repository,
+        child.id,
+        bible,
+    )
+    repository.finish_attempt(repaired_attempt.id, AttemptStatus.SUCCEEDED)
+
+    def future_profile_must_not_be_read(*_args, **_kwargs):
+        raise AssertionError("an upstream repair seal must not resolve a future Scene Beats plan")
+
+    monkeypatch.setattr(
+        repository,
+        "_frozen_dialogue_timing_profile_for_sealed_commit_in_session",
+        future_profile_must_not_be_read,
+    )
+    sealed = repository.seal_repair_stage_aggregate(
+        child.id,
+        StageName.STORY_BIBLE,
+        candidate_artifact_ids=[candidate.id],
+    )
+
+    assert sealed.stage == StageName.STORY_BIBLE
+
+
 def test_sealed_scene_beats_and_storyboard_install_replays_frozen_timing_profile(
     repository,
     brief,
@@ -564,7 +729,7 @@ def test_sealed_scene_beats_commit_rejects_missing_frozen_timing_profile(
     brief,
 ) -> None:
     project = repository.create_project(brief)
-    bible, graph, scene_beats, _ = all_stage_payloads()
+    bible, graph, scene_beats, storyboard = all_stage_payloads()
     repository.update_stage(project.id, StageName.STORY_BIBLE, 0, bible)
     repository.update_stage(project.id, StageName.STORY_GRAPH, 0, graph)
     run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.SCENE_BEATS])
@@ -591,7 +756,7 @@ def test_sealed_scene_beats_commit_rejects_missing_frozen_timing_profile(
     assert repository.get_stage_head(project.id, StageName.SCENE_BEATS).revision == 0
 
 
-def test_sealed_storyboard_only_commit_fails_closed_without_run_timing_provenance(
+def test_sealed_storyboard_only_commit_uses_its_own_frozen_timing_provenance(
     repository,
     brief,
     monkeypatch,
@@ -606,12 +771,9 @@ def test_sealed_storyboard_only_commit_fails_closed_without_run_timing_provenanc
         repository.update_stage(project.id, stage, 0, payload)
     run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORYBOARD])
     repository.start_run(run.id)
-    aggregate_id = _seal_partitioned_stage(
-        repository, run.id, StageName.STORYBOARD, storyboard
-    )
 
     def current_default_must_not_be_read():
-        raise AssertionError("provenance-free sealed storyboard install must fail before default lookup")
+        raise AssertionError("seal/install must use the Storyboard StagePlan profile")
 
     monkeypatch.setattr(
         validation_module,
@@ -619,13 +781,269 @@ def test_sealed_storyboard_only_commit_fails_closed_without_run_timing_provenanc
         current_default_must_not_be_read,
     )
 
-    with pytest.raises(
-        InvalidTransitionError,
-        match="frozen Scene Beats dialogue timing profile",
-    ):
-        repository.commit_sealed_run(run.id, sealed_aggregate_ids=[aggregate_id])
+    aggregate_id = _seal_partitioned_stage(
+        repository, run.id, StageName.STORYBOARD, storyboard
+    )
+    stage_plan = next(
+        plan
+        for plan in repository.list_stage_plans(run.id)
+        if plan.stage == StageName.STORYBOARD
+    )
 
-    assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 0
+    assert stage_plan.storyboard_dialogue_timing_profile is not None
+    assert all(plan.stage != StageName.SCENE_BEATS for plan in repository.list_stage_plans(run.id))
+    completed = repository.commit_sealed_run(run.id, sealed_aggregate_ids=[aggregate_id])
+
+    assert completed.status == RunStatus.SUCCEEDED
+    assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 1
+
+
+def test_startup_recovery_fails_closed_for_tampered_storyboard_timing_provenance(
+    repository,
+    brief,
+) -> None:
+    """A nonterminal plan with missing provenance is never default-replanned."""
+
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, storyboard = all_stage_payloads()
+    for stage, payload in (
+        (StageName.STORY_BIBLE, bible),
+        (StageName.STORY_GRAPH, graph),
+        (StageName.SCENE_BEATS, scene_beats),
+    ):
+        repository.update_stage(project.id, stage, 0, payload)
+    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORYBOARD])
+    repository.start_run(run.id)
+    repository.get_or_create_stage_plan(run.id, StageName.STORYBOARD)
+    with repository._write() as session:
+        row = session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == run.id,
+                StagePlanRow.stage == StageName.STORYBOARD.value,
+            )
+        )
+        assert row is not None
+        # Preserve the durable row itself: recovery must diagnose rather than
+        # silently fill this field and thereby rewrite its StagePlan hash.
+        row.plan = {**row.plan, "storyboard_dialogue_timing_profile": None}
+    recovery = repository.reconcile_startup_jobs()
+
+    assert recovery.terminated_run_ids == [run.id]
+    recovered = repository.get_run(run.id)
+    assert recovered.status == RunStatus.FAILED
+    assert recovered.failure_code == "recovery.storyboard_timing_provenance_missing"
+    assert recovered.failed_stage == StageName.STORYBOARD
+    with repository._read() as session:
+        row = session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == run.id,
+                StagePlanRow.stage == StageName.STORYBOARD.value,
+            )
+        )
+        assert row is not None
+        assert row.plan["storyboard_dialogue_timing_profile"] is None
+
+
+def test_exact_repair_rejects_storyboard_parent_without_frozen_timing_provenance(
+    repository,
+    brief,
+) -> None:
+    """Exact repair cannot invent a timing policy for a quarantined shard."""
+
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, _ = all_stage_payloads()
+    for stage, payload in (
+        (StageName.STORY_BIBLE, bible),
+        (StageName.STORY_GRAPH, graph),
+        (StageName.SCENE_BEATS, scene_beats),
+    ):
+        repository.update_stage(project.id, stage, 0, payload)
+    source = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORYBOARD])
+    repository.start_run(source.id)
+    repository.get_or_create_stage_plan(source.id, StageName.STORYBOARD)
+    unit = repository.list_generation_work_units(source.id)[0]
+    attempt = repository.allocate_attempt_for_work_unit(unit.id)
+    repository.mark_attempt_dispatched(attempt.id)
+    repository.persist_attempt_response(attempt.id, {"rawResponse": "{}"})
+    rejected = {"accepted": False, "issues": [{"code": "schema.rejected"}]}
+    repository.add_artifact(
+        Artifact(
+            run_id=source.id,
+            attempt_id=attempt.id,
+            work_unit_id=unit.id,
+            stage=StageName.STORYBOARD,
+            kind=ArtifactKind.VALIDATION,
+            content=rejected,
+            content_hash=stable_hash(rejected),
+        )
+    )
+    repository.finish_attempt(
+        attempt.id,
+        AttemptStatus.FAILED,
+        error="fixture rejected output",
+        outcome_code="schema.rejected",
+        failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+    )
+    repository.finish_run(
+        source.id,
+        quarantine_reason="fixture rejected output",
+        failure_code="schema.rejected",
+        failed_stage=StageName.STORYBOARD,
+    )
+    with repository._write() as session:
+        row = session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == source.id,
+                StagePlanRow.stage == StageName.STORYBOARD.value,
+            )
+        )
+        assert row is not None
+        row.plan = {**row.plan, "storyboard_dialogue_timing_profile": None}
+
+    eligibility = repository.get_repair_eligible_work_units(source.id)
+
+    assert eligibility[0].eligible is False
+    assert eligibility[0].reason_code == "repair.parent_stage_plan_obsolete"
+    with pytest.raises(RepairEligibilityError, match="repair.parent_stage_plan_obsolete"):
+        repository.create_work_unit_repair_run(
+            source.id,
+            unit.id,
+            idempotency_key="storyboard-profile-provenance",
+        )
+
+
+def test_exact_storyboard_repair_inherits_parent_profile_without_default_lookup(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    """A child repair plan is new evidence, not a new timing-policy choice."""
+
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, storyboard = all_stage_payloads()
+    for stage, payload in (
+        (StageName.STORY_BIBLE, bible),
+        (StageName.STORY_GRAPH, graph),
+        (StageName.SCENE_BEATS, scene_beats),
+    ):
+        repository.update_stage(project.id, stage, 0, payload)
+    source = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORYBOARD])
+    repository.start_run(source.id)
+    parent_plan = repository.get_or_create_stage_plan(source.id, StageName.STORYBOARD)
+    units = repository.list_generation_work_units(source.id)
+    unit = units[0]
+    for sibling in units[1:]:
+        sibling_attempt = repository.allocate_attempt_for_work_unit(sibling.id)
+        repository.mark_attempt_dispatched(sibling_attempt.id)
+        prompt = {"messages": [{"role": "user", "content": "fixture storyboard"}]}
+        repository.add_artifact(
+            Artifact(
+                run_id=source.id,
+                attempt_id=sibling_attempt.id,
+                work_unit_id=sibling.id,
+                stage=StageName.STORYBOARD,
+                kind=ArtifactKind.PROMPT,
+                content=prompt,
+                content_hash=stable_hash(prompt),
+            )
+        )
+        repository.persist_attempt_response(sibling_attempt.id, {"rawResponse": "{}"})
+        accepted = {"accepted": True, "issues": []}
+        repository.add_artifact(
+            Artifact(
+                run_id=source.id,
+                attempt_id=sibling_attempt.id,
+                work_unit_id=sibling.id,
+                stage=StageName.STORYBOARD,
+                kind=ArtifactKind.VALIDATION,
+                content=accepted,
+                content_hash=stable_hash(accepted),
+            )
+        )
+        fragment = StoryboardFragment(
+            stage_plan_hash=parent_plan.stage_plan_hash,
+            work_unit_id=sibling.id,
+            scene_id=sibling.selector["stable_id"],
+            shots=tuple(
+                shot
+                for shot in storyboard.shots
+                if shot.scene_id == sibling.selector["stable_id"]
+            ),
+            shot_beat_links=tuple(
+                link
+                for link in storyboard.shot_beat_links
+                if any(
+                    shot.id == link.shot_id
+                    and shot.scene_id == sibling.selector["stable_id"]
+                    for shot in storyboard.shots
+                )
+            ),
+        )
+        fragment_data = fragment.model_dump(mode="json", by_alias=False)
+        repository.add_artifact(
+            Artifact(
+                run_id=source.id,
+                attempt_id=sibling_attempt.id,
+                work_unit_id=sibling.id,
+                stage=StageName.STORYBOARD,
+                kind=ArtifactKind.CANDIDATE,
+                content=fragment_data,
+                content_hash=stable_hash(fragment_data),
+            )
+        )
+        repository.finish_attempt(sibling_attempt.id, AttemptStatus.SUCCEEDED)
+    attempt = repository.allocate_attempt_for_work_unit(unit.id)
+    repository.mark_attempt_dispatched(attempt.id)
+    repository.persist_attempt_response(attempt.id, {"rawResponse": "{}"})
+    rejected = {"accepted": False, "issues": [{"code": "schema.rejected"}]}
+    repository.add_artifact(
+        Artifact(
+            run_id=source.id,
+            attempt_id=attempt.id,
+            work_unit_id=unit.id,
+            stage=StageName.STORYBOARD,
+            kind=ArtifactKind.VALIDATION,
+            content=rejected,
+            content_hash=stable_hash(rejected),
+        )
+    )
+    repository.finish_attempt(
+        attempt.id,
+        AttemptStatus.FAILED,
+        error="fixture rejected output",
+        outcome_code="schema.rejected",
+        failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+    )
+    repository.finish_run(
+        source.id,
+        quarantine_reason="fixture rejected output",
+        failure_code="schema.rejected",
+        failed_stage=StageName.STORYBOARD,
+    )
+    child = repository.create_work_unit_repair_run(
+        source.id,
+        unit.id,
+        idempotency_key="storyboard-profile-inheritance",
+    ).run
+    repository.start_run(child.id)
+
+    def current_default_must_not_be_read():
+        raise AssertionError("exact repair must inherit parent Storyboard provenance")
+
+    monkeypatch.setattr(
+        generation_planning,
+        "default_dialogue_timing_profile",
+        current_default_must_not_be_read,
+    )
+
+    child_plan = repository.get_or_create_repair_stage_plan(
+        child.id, StageName.STORYBOARD
+    )
+
+    assert child_plan.storyboard_dialogue_timing_profile == (
+        parent_plan.storyboard_dialogue_timing_profile
+    )
+    assert child_plan.stage_plan_hash != parent_plan.stage_plan_hash
 
 
 def test_work_unit_attempt_requires_dispatch_and_marks_unknown_outcomes(repository, brief) -> None:
@@ -1190,6 +1608,387 @@ def test_startup_recovery_terminates_complete_v1_capacity_plan_without_replay(
     assert repository.get_artifact(artifact.id).content == {
         "legacy": "dialogue_capacity.v1"
     }
+
+
+def test_startup_recovery_terminates_missing_join_state_plan_marker_without_rewriting_history(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+    )
+    repository.start_run(run.id)
+    _seal_bible_unit(repository, run.id, all_stage_payloads()[0])
+    _seal_graph_unit(repository, run.id, all_stage_payloads()[1])
+    legacy_plan = _replace_scene_beats_plan_without_join_state_contract(
+        repository, run.id
+    )
+    artifact = repository.add_artifact(
+        Artifact(
+            run_id=run.id,
+            stage=StageName.SCENE_BEATS,
+            kind=ArtifactKind.PROMPT,
+            content={"historic": "no join-state marker"},
+            content_hash=stable_hash({"historic": "no join-state marker"}),
+        )
+    )
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert recovery.resubmit_run_ids == []
+    assert recovery.terminated_run_ids == [run.id]
+    recovered = repository.get_run(run.id)
+    assert recovered.status == RunStatus.FAILED
+    assert recovered.failure_code == "recovery.join_state_value_contract_obsolete"
+    assert recovered.failed_stage == StageName.SCENE_BEATS
+    assert repository.get_artifact(artifact.id).content == {
+        "historic": "no join-state marker"
+    }
+    assert _persisted_scene_beats_plan(repository, run.id) == legacy_plan
+
+
+def test_startup_recovery_does_not_execute_pristine_old_scene_beats_planning_policy(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+    )
+    historic_payload = _replace_generation_plan_policy(repository, run.id)
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert recovery.resubmit_run_ids == []
+    assert recovery.terminated_run_ids == [run.id]
+    recovered = repository.get_run(run.id)
+    assert recovered.status == RunStatus.FAILED
+    assert recovered.failure_code == "recovery.join_state_value_contract_obsolete"
+    assert recovered.failed_stage == StageName.SCENE_BEATS
+    assert repository.get_generation_plan(run.id).model_dump(mode="json", by_alias=False) == historic_payload
+
+
+def test_startup_recovery_terminates_storyboard_only_old_planning_policy_without_replanning(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, _ = all_stage_payloads()
+    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, bible)
+    repository.update_stage(project.id, StageName.STORY_GRAPH, 0, graph)
+    repository.update_stage(project.id, StageName.SCENE_BEATS, 0, scene_beats)
+    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORYBOARD])
+    historic_plan = _replace_generation_plan_policy(repository, run.id)
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert recovery.resubmit_run_ids == []
+    assert recovery.terminated_run_ids == [run.id]
+    recovered = repository.get_run(run.id)
+    assert recovered.status == RunStatus.FAILED
+    assert recovered.failure_code == "recovery.generation_planning_policy_obsolete"
+    assert recovered.failed_stage == StageName.STORYBOARD
+    assert repository.get_generation_plan(run.id).model_dump(
+        mode="json", by_alias=False
+    ) == historic_plan
+    assert repository.list_stage_plans(run.id) == []
+    assert repository.list_generation_work_units(run.id) == []
+    assert repository.get_run_trace(run.id).artifacts == []
+
+
+def test_stage_planning_rejects_old_storyboard_policy_before_creating_plan_or_units(
+    repository,
+    brief,
+) -> None:
+    """Direct worker planning must not bypass startup recovery's policy gate."""
+
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, _ = all_stage_payloads()
+    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, bible)
+    repository.update_stage(project.id, StageName.STORY_GRAPH, 0, graph)
+    repository.update_stage(project.id, StageName.SCENE_BEATS, 0, scene_beats)
+    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORYBOARD])
+    repository.start_run(run.id)
+    historic_plan = _replace_generation_plan_policy(repository, run.id)
+    trace_before = repository.get_run_trace(run.id).model_dump(mode="json")
+
+    with pytest.raises(PlanningError) as error:
+        repository.get_or_create_stage_plan(run.id, StageName.STORYBOARD)
+
+    assert error.value.code == "planning.generation_planning_policy_obsolete"
+    assert repository.get_generation_plan(run.id).model_dump(
+        mode="json", by_alias=False
+    ) == historic_plan
+    assert repository.list_stage_plans(run.id) == []
+    assert repository.list_generation_work_units(run.id) == []
+    assert repository.get_run_trace(run.id).model_dump(mode="json") == trace_before
+
+
+def test_stage_planning_rejects_old_policy_without_rewriting_existing_stage_plan(
+    repository,
+    brief,
+) -> None:
+    """A pre-existing historical plan is evidence, not a current-plan input."""
+
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, _ = all_stage_payloads()
+    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, bible)
+    repository.update_stage(project.id, StageName.STORY_GRAPH, 0, graph)
+    repository.update_stage(project.id, StageName.SCENE_BEATS, 0, scene_beats)
+    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORYBOARD])
+    repository.start_run(run.id)
+    existing = repository.get_or_create_stage_plan(run.id, StageName.STORYBOARD)
+    historic_plan = _replace_generation_plan_policy(repository, run.id)
+    trace_before = repository.get_run_trace(run.id).model_dump(mode="json")
+
+    with pytest.raises(PlanningError) as error:
+        repository.get_or_create_stage_plan(run.id, StageName.STORYBOARD)
+
+    assert error.value.code == "planning.generation_planning_policy_obsolete"
+    assert repository.get_generation_plan(run.id).model_dump(
+        mode="json", by_alias=False
+    ) == historic_plan
+    assert repository.list_stage_plans(run.id) == [existing]
+    assert repository.get_run_trace(run.id).model_dump(mode="json") == trace_before
+
+
+def test_startup_recovery_marks_first_unsealed_stage_for_generic_old_policy(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH],
+    )
+    repository.start_run(run.id)
+    _seal_bible_unit(repository, run.id, all_stage_payloads()[0])
+    _replace_generation_plan_policy(repository, run.id)
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert recovery.resubmit_run_ids == []
+    assert recovery.terminated_run_ids == [run.id]
+    recovered = repository.get_run(run.id)
+    assert recovered.failure_code == "recovery.generation_planning_policy_obsolete"
+    assert recovered.failed_stage == StageName.STORY_GRAPH
+
+
+def test_startup_recovery_prioritizes_reached_scene_timing_contract_over_old_policy(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+    )
+    repository.start_run(run.id)
+    _seal_bible_unit(repository, run.id, all_stage_payloads()[0])
+    _seal_graph_unit(repository, run.id, all_stage_payloads()[1])
+    historic_stage_plan = _replace_scene_beats_plan_with_obsolete_contract(
+        repository, run.id
+    )
+    historic_generation_plan = _replace_generation_plan_policy(repository, run.id)
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert recovery.resubmit_run_ids == []
+    assert recovery.terminated_run_ids == [run.id]
+    recovered = repository.get_run(run.id)
+    assert recovered.failure_code == "recovery.scene_timing_contract_obsolete"
+    assert repository.get_generation_plan(run.id).model_dump(
+        mode="json", by_alias=False
+    ) == historic_generation_plan
+    assert _persisted_scene_beats_plan(repository, run.id) == historic_stage_plan
+
+
+def test_exact_repair_rejects_old_parent_policy_before_child_or_artifact_creation(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    source = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE])
+    repository.start_run(source.id)
+    _, unit, attempt, _ = _persist_bible_unit_evidence(
+        repository,
+        source.id,
+        all_stage_payloads()[0],
+        validation_content={"accepted": False, "issues": [{"code": "schema.rejected"}]},
+    )
+    repository.finish_attempt(
+        attempt.id,
+        AttemptStatus.FAILED,
+        error="fixture rejected output",
+        outcome_code="schema.rejected",
+        failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+    )
+    repository.finish_run(
+        source.id,
+        quarantine_reason="fixture rejected output",
+        failure_code="schema.rejected",
+        failed_stage=StageName.STORY_BIBLE,
+    )
+    historic_plan = _replace_generation_plan_policy(repository, source.id)
+    source_trace = repository.get_run_trace(source.id).model_dump(mode="json")
+
+    eligibility = repository.get_repair_eligible_work_units(source.id)
+
+    assert len(eligibility) == 1
+    assert eligibility[0].eligible is False
+    assert eligibility[0].reason_code == "repair.parent_plan_obsolete"
+    with pytest.raises(RepairEligibilityError, match="repair.parent_plan_obsolete"):
+        repository.create_work_unit_repair_run(
+            source.id,
+            unit.id,
+            idempotency_key="obsolete-parent-policy",
+        )
+    assert repository.list_project_runs(project.id) == [repository.get_run(source.id)]
+    assert repository.get_generation_plan(source.id).model_dump(
+        mode="json", by_alias=False
+    ) == historic_plan
+    assert repository.get_run_trace(source.id).model_dump(mode="json") == source_trace
+
+
+def test_exact_repair_stage_planning_rejects_old_child_policy_without_provider_artifacts(
+    repository,
+    brief,
+) -> None:
+    """A queued exact child cannot turn a historical child plan into current units."""
+
+    project = repository.create_project(brief)
+    source = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE])
+    repository.start_run(source.id)
+    _, unit, attempt, _ = _persist_bible_unit_evidence(
+        repository,
+        source.id,
+        all_stage_payloads()[0],
+        validation_content={"accepted": False, "issues": [{"code": "schema.rejected"}]},
+    )
+    repository.finish_attempt(
+        attempt.id,
+        AttemptStatus.FAILED,
+        error="fixture rejected output",
+        outcome_code="schema.rejected",
+        failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+    )
+    repository.finish_run(
+        source.id,
+        quarantine_reason="fixture rejected output",
+        failure_code="schema.rejected",
+        failed_stage=StageName.STORY_BIBLE,
+    )
+    source_trace = repository.get_run_trace(source.id).model_dump(mode="json")
+    child = repository.create_work_unit_repair_run(
+        source.id,
+        unit.id,
+        idempotency_key="obsolete-child-planning-policy",
+    ).run
+    historic_child_plan = _replace_generation_plan_policy(repository, child.id)
+    child_trace = repository.get_run_trace(child.id).model_dump(mode="json")
+
+    with pytest.raises(PlanningError) as error:
+        repository.get_or_create_repair_stage_plan(child.id, StageName.STORY_BIBLE)
+
+    assert error.value.code == "planning.generation_planning_policy_obsolete"
+    assert repository.get_generation_plan(child.id).model_dump(
+        mode="json", by_alias=False
+    ) == historic_child_plan
+    assert repository.list_stage_plans(child.id) == []
+    assert repository.list_generation_work_units(child.id) == []
+    assert repository.get_run_trace(child.id).model_dump(mode="json") == child_trace
+    assert repository.get_run_trace(source.id).model_dump(mode="json") == source_trace
+
+
+def test_exact_repair_rejects_parent_scene_beats_without_join_marker(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    source = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+    )
+    repository.start_run(source.id)
+    _seal_bible_unit(repository, source.id, all_stage_payloads()[0])
+    _seal_graph_unit(repository, source.id, all_stage_payloads()[1])
+    repository.get_or_create_stage_plan(source.id, StageName.SCENE_BEATS)
+    unit = next(
+        item
+        for item in repository.list_generation_work_units(source.id)
+        if item.stage == StageName.SCENE_BEATS
+    )
+    attempt = repository.allocate_attempt_for_work_unit(unit.id, provider="local", model="qwen")
+    repository.mark_attempt_dispatched(attempt.id)
+    prompt = {"messages": [{"role": "user", "content": "scene marker fixture"}]}
+    repository.add_artifact(
+        Artifact(
+            run_id=source.id,
+            attempt_id=attempt.id,
+            work_unit_id=unit.id,
+            stage=StageName.SCENE_BEATS,
+            kind=ArtifactKind.PROMPT,
+            content=prompt,
+            content_hash=stable_hash(prompt),
+        )
+    )
+    repository.persist_attempt_response(
+        attempt.id,
+        {"rawResponse": "{}"},
+        provider_request_id="scene-marker-fixture",
+    )
+    rejected = {"accepted": False, "issues": [{"code": "schema.rejected"}]}
+    repository.add_artifact(
+        Artifact(
+            run_id=source.id,
+            attempt_id=attempt.id,
+            work_unit_id=unit.id,
+            stage=StageName.SCENE_BEATS,
+            kind=ArtifactKind.VALIDATION,
+            content=rejected,
+            content_hash=stable_hash(rejected),
+        )
+    )
+    repository.finish_attempt(
+        attempt.id,
+        AttemptStatus.FAILED,
+        error="fixture rejected output",
+        outcome_code="schema.rejected",
+        failure_disposition=WorkUnitFailureDisposition.QUARANTINED,
+    )
+    repository.finish_run(
+        source.id,
+        quarantine_reason="fixture rejected output",
+        failure_code="schema.rejected",
+        failed_stage=StageName.SCENE_BEATS,
+    )
+    historic_stage_plan = _replace_scene_beats_plan_without_join_state_contract(
+        repository, source.id
+    )
+    source_trace = repository.get_run_trace(source.id).model_dump(mode="json")
+
+    eligibility = repository.get_repair_eligible_work_units(source.id)
+
+    target = next(item for item in eligibility if item.work_unit_id == unit.id)
+    assert target.eligible is False
+    assert target.reason_code == "repair.parent_stage_plan_obsolete"
+    with pytest.raises(RepairEligibilityError, match="repair.parent_stage_plan_obsolete"):
+        repository.create_work_unit_repair_run(
+            source.id,
+            unit.id,
+            idempotency_key="obsolete-parent-scene-marker",
+        )
+    assert repository.list_project_runs(project.id) == [repository.get_run(source.id)]
+    assert _persisted_scene_beats_plan(repository, source.id) == historic_stage_plan
+    assert repository.get_run_trace(source.id).model_dump(mode="json") == source_trace
 
 
 def test_startup_recovery_does_not_rewrite_terminal_obsolete_scene_timing_history(

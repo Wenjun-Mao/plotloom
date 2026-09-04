@@ -40,7 +40,13 @@ from plotloom.domain import (
     derive_scene_timecodes,
     stage_payload_model,
 )
-from plotloom.validation import DomainValidationError, StoryboardGateEvaluator, validate_stage_payload
+from plotloom.validation import (
+    DomainValidationError,
+    StoryboardGateEvaluator,
+    _validate_v2_scene_order_and_continuity,
+    validate_stage_payload,
+)
+from plotloom.join_state_values import compile_join_state_value_contract
 
 
 def _state(*entity_states: RequiredEntityState) -> ContinuityStateV2:
@@ -95,6 +101,21 @@ def test_schema_dispatch_keeps_v1_read_and_v2_authoring_separate() -> None:
         StoryBibleV1.model_validate(
             {"logline": "new", "premise": "new", "characters": [{"id": "m", "name": "M", "visualAnchors": []}]}
         )
+
+
+def test_canonical_scene_validation_rejects_nonfinite_continuity_delta() -> None:
+    bible, plan, _, _ = _authoring_fixture()
+    bad_beat = plan.beats[0].model_copy(
+        update={"continuity_delta": {"impossible": float("nan")}}
+    )
+    bad_plan = plan.model_copy(update={"beats": [bad_beat]})
+
+    with pytest.raises(DomainValidationError) as captured:
+        _validate_v2_scene_order_and_continuity(bad_plan, bible)
+
+    assert {issue["code"] for issue in captured.value.issues} == {
+        "continuity_delta_not_json"
+    }
 
 
 def test_dialogue_cue_requires_exactly_one_speaker_or_voice_over() -> None:
@@ -604,35 +625,43 @@ def test_v2_join_contract_and_edge_choice_fields_are_unambiguous() -> None:
         )
 
 
-def test_v2_join_required_state_equality_allows_only_reconciled_exceptions() -> None:
+def test_v2_join_entry_values_come_from_post_edge_effects() -> None:
+    """A source scene's shared exit is not a branch-specific edge result."""
+
     bible, plan, _, _ = _authoring_fixture()
-    def state(channel: str) -> ContinuityStateV2:
+    def state(channel: object) -> ContinuityStateV2:
         return ContinuityStateV2(
             facts={"channel": channel}, entity_states=[], screen_direction=None,
             lighting=None, sound=None, notes=[],
         )
 
     left = plan.scenes[0].model_copy(
-        update={"id": "scene-left", "story_node_id": "left", "beat_ids": ["beat-left"], "entry_state": state("open"), "exit_state": state("open")}
+        update={"id": "scene-left", "story_node_id": "left", "beat_ids": ["beat-left"], "entry_state": state("source-left"), "exit_state": state("source-left")}
     )
     right = plan.scenes[0].model_copy(
-        update={"id": "scene-right", "story_node_id": "right", "beat_ids": ["beat-right"], "entry_state": state("closed"), "exit_state": state("closed")}
+        update={"id": "scene-right", "story_node_id": "right", "beat_ids": ["beat-right"], "entry_state": state("source-right"), "exit_state": state("source-right")}
     )
     joined = plan.scenes[0].model_copy(
-        update={"id": "scene-join", "story_node_id": "join", "beat_ids": ["beat-join"], "entry_state": state("open"), "exit_state": state("open")}
+        update={"id": "scene-join", "story_node_id": "join", "beat_ids": ["beat-join"], "entry_state": state("shared"), "exit_state": state("shared")}
     )
     joined_plan = plan.model_copy(
         update={
             "scenes": [left, right, joined],
             "beats": [
-                plan.beats[0].model_copy(update={"id": "beat-left", "scene_id": "scene-left", "entry_state": state("open"), "exit_state": state("open")}),
-                plan.beats[0].model_copy(update={"id": "beat-right", "scene_id": "scene-right", "entry_state": state("closed"), "exit_state": state("closed")}),
-                plan.beats[0].model_copy(update={"id": "beat-join", "scene_id": "scene-join", "entry_state": state("open"), "exit_state": state("open")}),
+                plan.beats[0].model_copy(update={"id": "beat-left", "scene_id": "scene-left", "entry_state": state("source-left"), "exit_state": state("source-left")}),
+                plan.beats[0].model_copy(update={"id": "beat-right", "scene_id": "scene-right", "entry_state": state("source-right"), "exit_state": state("source-right")}),
+                plan.beats[0].model_copy(update={"id": "beat-join", "scene_id": "scene-join", "entry_state": state("shared"), "exit_state": state("shared")}),
             ],
             "dialogue_cues": [],
         }
     )
-    def graph(allowed_differences: list[str], reconciliation: str) -> StoryGraphV2:
+
+    def graph(
+        left_effect: object,
+        right_effect: object,
+        allowed_differences: list[str],
+        reconciliation: str,
+    ) -> StoryGraphV2:
         return StoryGraphV2(
             start_node_id="left",
             nodes=[
@@ -641,9 +670,9 @@ def test_v2_join_required_state_equality_allows_only_reconciled_exceptions() -> 
                 StoryNodeV2(id="join", title="Join", summary="join", kind="ending"),
             ],
             edges=[
-                StoryEdgeV2(id="left-join", source_node_id="left", target_node_id="join", kind="choice", choice_text="join", state_effects={}),
+                StoryEdgeV2(id="left-join", source_node_id="left", target_node_id="join", kind="choice", choice_text="join", state_effects={"channel": left_effect}),
                 StoryEdgeV2(id="left-right", source_node_id="left", target_node_id="right", kind="choice", choice_text="right", state_effects={}),
-                StoryEdgeV2(id="right-join", source_node_id="right", target_node_id="join", kind="continuation", choice_text=None, state_effects={}),
+                StoryEdgeV2(id="right-join", source_node_id="right", target_node_id="join", kind="continuation", choice_text=None, state_effects={"channel": right_effect}),
             ],
             join_contracts=[JoinContractV2(
                 id="join-contract", join_node_id="join", incoming_node_ids=["left", "right"],
@@ -652,26 +681,76 @@ def test_v2_join_required_state_equality_allows_only_reconciled_exceptions() -> 
             )],
         )
 
-    brief = ProjectBrief(title="x", synopsis="y", ending_count=1, desired_join_count=0, decision_points_per_path=0, node_budget=3, shots_per_scene_min=1, shots_per_scene_max=1)
+    brief = ProjectBrief(title="x", synopsis="y", ending_count=1, desired_join_count=1, decision_points_per_path=0, node_budget=3, shots_per_scene_min=1, shots_per_scene_max=1)
     with pytest.raises(DomainValidationError) as captured:
-        validate_stage_payload(StageName.SCENE_BEATS, joined_plan, schema_version=2, brief=brief, bible=bible, graph=graph([], ""))
-    mismatch = next(issue for issue in captured.value.issues if issue["code"] == "join_required_state_mismatch")
-    assert mismatch["path"] == "joinContracts.join-contract.requiredStateKeys"
+        validate_stage_payload(
+            StageName.SCENE_BEATS,
+            joined_plan,
+            schema_version=2,
+            brief=brief,
+            bible=bible,
+            graph=graph("left", "right", [], ""),
+        )
+    assert any(
+        issue["code"] == "join_state_effect_conflict"
+        for issue in captured.value.issues
+    )
 
     with pytest.raises(DomainValidationError) as captured:
-        validate_stage_payload(StageName.SCENE_BEATS, joined_plan, schema_version=2, brief=brief, bible=bible, graph=graph(["channel"], ""))
+        validate_stage_payload(
+            StageName.SCENE_BEATS,
+            joined_plan,
+            schema_version=2,
+            brief=brief,
+            bible=bible,
+            graph=graph("left", "right", ["channel"], ""),
+        )
     assert any(issue["code"] == "join_allowed_difference_without_reconciliation" for issue in captured.value.issues)
 
-    assert validate_stage_payload(
-        StageName.SCENE_BEATS, joined_plan, schema_version=2, brief=brief,
-        bible=bible, graph=graph(["channel"], "the join resolves this channel state"),
-    ) is None
-
-    over_budget_plan = joined_plan.model_copy(
+    variant_graph = graph(
+        "left",
+        "right",
+        ["channel"],
+        "汇流场景保留两条路线的来源。",
+    )
+    expected_variant = compile_join_state_value_contract(
+        variant_graph
+    ).requirements_for_node("join")["requiredEntryFacts"]["channel"]
+    variant_plan = joined_plan.model_copy(
         update={
             "scenes": [
-                joined_plan.scenes[0].model_copy(update={"duration_budget_units": 60_001}),
-                *joined_plan.scenes[1:],
+                *joined_plan.scenes[:2],
+                joined_plan.scenes[2].model_copy(
+                    update={"entry_state": state(expected_variant)}
+                ),
+            ],
+            "beats": [
+                *joined_plan.beats[:2],
+                joined_plan.beats[2].model_copy(
+                    update={"entry_state": state(expected_variant)}
+                ),
+            ],
+        }
+    )
+    assert validate_stage_payload(
+        StageName.SCENE_BEATS,
+        variant_plan,
+        schema_version=2,
+        brief=brief,
+        bible=bible,
+        graph=variant_graph,
+    ) is None
+
+    # The source exits deliberately differ from the post-edge values above.
+    # Only the direct incoming effects determine the join entry value.
+    assert left.exit_state.facts["channel"] == "source-left"
+    assert right.exit_state.facts["channel"] == "source-right"
+
+    over_budget_plan = variant_plan.model_copy(
+        update={
+            "scenes": [
+                variant_plan.scenes[0].model_copy(update={"duration_budget_units": 60_001}),
+                *variant_plan.scenes[1:],
             ]
         }
     )
@@ -682,7 +761,7 @@ def test_v2_join_required_state_equality_allows_only_reconciled_exceptions() -> 
             schema_version=2,
             brief=brief,
             bible=bible,
-            graph=graph(["channel"], "the join resolves this channel state"),
+            graph=variant_graph,
         )
     assert any(
         issue["code"] == "scene_node_budget_exceeded"

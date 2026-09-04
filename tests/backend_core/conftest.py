@@ -74,8 +74,10 @@ def make_story_graph() -> StoryGraphV2:
             choice_text="去记忆舱",
             state_effects={},
         ),
-        StoryEdgeV2(id="e4", source_node_id="route-a", target_node_id="join", kind="continuation", choice_text=None, state_effects={}),
-        StoryEdgeV2(id="e5", source_node_id="route-b", target_node_id="join", kind="continuation", choice_text=None, state_effects={}),
+        # Required join values are post-edge arrivals, not a constraint on a
+        # source node's pre-edge exit state.
+        StoryEdgeV2(id="e4", source_node_id="route-a", target_node_id="join", kind="continuation", choice_text=None, state_effects={"identity": "confirmed"}),
+        StoryEdgeV2(id="e5", source_node_id="route-b", target_node_id="join", kind="continuation", choice_text=None, state_effects={"identity": "confirmed"}),
         StoryEdgeV2(id="e6", source_node_id="join", target_node_id="decision-2", kind="continuation", choice_text=None, state_effects={}),
         StoryEdgeV2(
             id="e7",
@@ -128,7 +130,7 @@ def make_scene_beats(graph: StoryGraphV2 | None = None) -> SceneBeatPlanV2:
         scene_id = f"scene-{node.id}"
         beat_id = f"beat-{node.id}"
         entry_facts = {"identity": "confirmed"} if node.id == "join" else {}
-        exit_facts = {"identity": "confirmed"} if node.id in {"route-a", "route-b"} else {}
+        exit_facts = dict(entry_facts)
         scenes.append(
             DramaticSceneV2(
                 id=scene_id,
@@ -152,8 +154,8 @@ def make_scene_beats(graph: StoryGraphV2 | None = None) -> SceneBeatPlanV2:
                 description=node.summary,
                 purpose="推进叙事",
                 visible_event=node.summary, immediate_result="状态发生改变", dramatic_change="",
-                entry_state=ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[]),
-                exit_state=ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[]),
+                entry_state=ContinuityStateV2(facts=entry_facts, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[]),
+                exit_state=ContinuityStateV2(facts=exit_facts, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[]),
                 continuity_anchors=[], continuity_delta={},
             )
         )
@@ -183,8 +185,8 @@ def make_storyboard(plan: SceneBeatPlanV2 | None = None) -> StoryboardV2:
                     transition="硬切",
                     cue_ids=[], audio_plan=AudioPlan(events=[]),
                     character_ids=[], location_id=None, prop_ids=[], required_entity_states=[],
-                    entry_state=ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[]),
-                    exit_state=ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[]),
+                    entry_state=scene.entry_state,
+                    exit_state=scene.exit_state,
                 )
             )
             links.append(

@@ -16,30 +16,43 @@ const state = {
 const continuity = () => ({ facts: {}, entityStates: [], screenDirection: null, lighting: null, sound: null, notes: [] });
 
 function jsonAfter(text, marker) {
-  const markerIndex = text.lastIndexOf(marker);
-  if (markerIndex < 0) return undefined;
-  const start = text.slice(markerIndex + marker.length).search(/[\[{]/);
-  if (start < 0) return undefined;
-  const first = markerIndex + marker.length + start;
-  let depth = 0;
-  let quoted = false;
-  let escaped = false;
-  for (let index = first; index < text.length; index += 1) {
-    const character = text[index];
-    if (quoted) {
-      if (escaped) escaped = false;
-      else if (character === "\\") escaped = true;
-      else if (character === "\"") quoted = false;
+  // Prompt instructions may repeat an input label (for example, explaining a
+  // cue order relative to 【该场景节拍】).  Only a context block has JSON as
+  // its first non-whitespace character.  Do not scan forward through prose
+  // for a later brace: that can turn an instruction echo into a fake payload.
+  let offset = 0;
+  while (true) {
+    const markerIndex = text.indexOf(marker, offset);
+    if (markerIndex < 0) return undefined;
+    const afterMarker = markerIndex + marker.length;
+    const whitespace = text.slice(afterMarker).match(/^\s*/)?.[0].length ?? 0;
+    const first = afterMarker + whitespace;
+    if (text[first] !== "{" && text[first] !== "[") {
+      offset = afterMarker;
       continue;
     }
-    if (character === "\"") quoted = true;
-    else if (character === "{" || character === "[") depth += 1;
-    else if (character === "}" || character === "]") {
-      depth -= 1;
-      if (depth === 0) return JSON.parse(text.slice(first, index + 1));
+    let depth = 0;
+    let quoted = false;
+    let escaped = false;
+    for (let index = first; index < text.length; index += 1) {
+      const character = text[index];
+      if (quoted) {
+        if (escaped) escaped = false;
+        else if (character === "\\") escaped = true;
+        else if (character === "\"") quoted = false;
+        continue;
+      }
+      if (character === "\"") quoted = true;
+      else if (character === "{" || character === "[") depth += 1;
+      else if (character === "}" || character === "]") {
+        depth -= 1;
+        if (depth === 0) return JSON.parse(text.slice(first, index + 1));
+      }
     }
+    // A malformed candidate must not be silently interpreted from a later
+    // instruction occurrence; fail it as an absent fixture context instead.
+    return undefined;
   }
-  return undefined;
 }
 
 function graphFill(topology) {

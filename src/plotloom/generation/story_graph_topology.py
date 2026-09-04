@@ -34,7 +34,7 @@ from .json_schema import explicit_presence_json_schema, inline_local_json_refere
 
 
 STORY_GRAPH_TOPOLOGY_VERSION = "story_graph_topology.v1"
-STORY_GRAPH_CONTENT_FILL_SCHEMA_ID = "story_graph_content_fill.v2"
+STORY_GRAPH_CONTENT_FILL_SCHEMA_ID = "story_graph_content_fill.v3"
 DEFAULT_MAX_DOWNSTREAM_WORK_UNITS = 128
 _STRUCTURAL_PARAMETER_KEYS = frozenset(
     {
@@ -708,7 +708,10 @@ def bind_story_graph_content_fill(
     # cannot escape as a worker exception.  The adapter converts this typed
     # binding failure into a correction-eligible ValidationReport.
     try:
-        StoryGraphV2.model_validate(graph.model_dump(mode="json", by_alias=True))
+        v2_graph = StoryGraphV2.model_validate(
+            graph.model_dump(mode="json", by_alias=True)
+        )
+        validate_story_graph(v2_graph, brief, strict_v2=True)  # type: ignore[arg-type]
     except ValidationError as exc:
         raise StoryGraphContentBindingError(
             [
@@ -718,6 +721,17 @@ def bind_story_graph_content_fill(
                     "message": error["msg"],
                 }
                 for error in exc.errors(include_url=False, include_context=False)
+            ]
+        ) from exc
+    except DomainValidationError as exc:
+        raise StoryGraphContentBindingError(
+            [
+                {
+                    "code": f"semantic.{issue['code']}",
+                    "path": issue["path"],
+                    "message": issue["message"],
+                }
+                for issue in exc.issues
             ]
         ) from exc
     return graph

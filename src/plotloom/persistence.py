@@ -112,6 +112,8 @@ from .generation.fragments import (
 from .generation.planning import (
     DEFAULT_STAGE_BUDGETS,
     GenerationPlan,
+    PLANNING_POLICY_VERSION,
+    PlanningError,
     StageBudget,
     StagePlan,
     create_generation_plan,
@@ -121,6 +123,7 @@ from .generation.scene_timing_allocation import (
     SCENE_TIMING_ALLOCATION_VERSION,
     SceneTimingAllocation,
 )
+from .join_state_values import JOIN_STATE_VALUE_CONTRACT_VERSION
 from .generation.story_graph_topology import (
     StoryGraphTopology,
     plan_story_graph_topology,
@@ -2857,6 +2860,97 @@ class SQLiteRepository:
             child = self._run_row(session, child_run_id)
             return self._repair_stage_dependencies_in_session(session, child, stage)
 
+    def _repair_scene_beats_timing_profile_in_session(
+        self,
+        session: Session,
+        child: GenerationRunRow,
+    ) -> DialogueTimingProfile:
+        """Return the parent Scene Beats profile frozen for an exact repair."""
+
+        if child.parent_run_id is None:
+            raise RepairEligibilityError(
+                "repair.parent_stage_plan_obsolete",
+                "Scene Beats repair has no parent timing provenance",
+            )
+        parent = self._run_row(session, child.parent_run_id)
+        row = self._stage_plan_row(session, parent.id, StageName.SCENE_BEATS)
+        if row is None or self._scene_beats_stage_plan_contract_code(row) is not None:
+            raise RepairEligibilityError(
+                "repair.parent_stage_plan_obsolete",
+                "Scene Beats repair parent has no valid frozen timing provenance",
+            )
+        try:
+            return self._frozen_dialogue_timing_profile_from_stage_plan(
+                StagePlan.model_validate(row.plan)
+            )
+        except ValueError as exc:
+            raise RepairEligibilityError(
+                "repair.parent_stage_plan_obsolete",
+                "Scene Beats repair parent has invalid frozen timing provenance",
+            ) from exc
+
+    def _repair_storyboard_timing_profile_in_session(
+        self,
+        session: Session,
+        child: GenerationRunRow,
+    ) -> DialogueTimingProfile:
+        """Return the parent Storyboard profile frozen for an exact repair.
+
+        A repair's child StagePlan has a new run ID and dependency hashes, but
+        it is not a new authoring decision.  The profile is therefore copied
+        from the quarantined parent StagePlan, never selected from whatever
+        default happens to exist when the repair executes.
+        """
+
+        # A downstream Storyboard plan may be absent from the parent because a
+        # Scene Beats shard quarantined first.  Once this child has sealed its
+        # repaired Scene Beats aggregate, that child-local plan is the direct
+        # frozen provenance for the downstream regeneration.
+        child_scene_beats = self._stage_plan_row(
+            session, child.id, StageName.SCENE_BEATS
+        )
+        if child_scene_beats is not None and session.scalar(
+            select(SealedStageAggregateRow.id).where(
+                SealedStageAggregateRow.stage_plan_id == child_scene_beats.id
+            )
+        ) is not None:
+            if self._scene_beats_stage_plan_contract_code(child_scene_beats) is not None:
+                raise RepairEligibilityError(
+                    "repair.parent_stage_plan_obsolete",
+                    "repaired Scene Beats has no valid frozen timing provenance",
+                )
+            try:
+                return self._frozen_dialogue_timing_profile_from_stage_plan(
+                    StagePlan.model_validate(child_scene_beats.plan)
+                )
+            except ValueError as exc:
+                raise RepairEligibilityError(
+                    "repair.parent_stage_plan_obsolete",
+                    "repaired Scene Beats has invalid frozen timing provenance",
+                ) from exc
+
+        if child.parent_run_id is None:
+            raise RepairEligibilityError(
+                "repair.parent_stage_plan_obsolete",
+                "Storyboard repair has no parent timing provenance",
+            )
+        parent = self._run_row(session, child.parent_run_id)
+        row = self._stage_plan_row(session, parent.id, StageName.STORYBOARD)
+        if row is None or self._storyboard_stage_plan_contract_code(row) is not None:
+            raise RepairEligibilityError(
+                "repair.parent_stage_plan_obsolete",
+                "Storyboard repair parent has no valid frozen timing provenance",
+            )
+        try:
+            return self._frozen_dialogue_timing_profile_from_stage_plan(
+                StagePlan.model_validate(row.plan)
+            )
+        except ValueError as exc:
+            raise RepairEligibilityError(
+                "repair.parent_stage_plan_obsolete",
+                "Storyboard repair parent has invalid frozen timing provenance",
+            ) from exc
+
     def get_or_create_stage_plan(
         self,
         run_id: str,
@@ -2884,6 +2978,17 @@ class SQLiteRepository:
             if plan_row is None:
                 raise InvalidTransitionError("run has no durable GenerationPlan")
             generation_plan = GenerationPlan.model_validate(plan_row.plan)
+            # Startup recovery is not the only path into a durable runner:
+            # a live worker can also reach this repository command directly.
+            # Do not let it create a current StagePlan from an older frozen
+            # GenerationPlan, because that would silently substitute current
+            # selector/context/prompt semantics for historical evidence.
+            if generation_plan.planning_policy_version != PLANNING_POLICY_VERSION:
+                raise PlanningError(
+                    "frozen GenerationPlan uses an obsolete planning policy and cannot be executed",
+                    code="planning.generation_planning_policy_obsolete",
+                    stage=stage,
+                )
             if stage == StageName.STORY_GRAPH:
                 topology_row = session.get(StoryGraphTopologyRow, run_id)
                 if topology_row is None:
@@ -2909,14 +3014,46 @@ class SQLiteRepository:
                     raise InvalidTransitionError(
                         "StagePlan dependencies must exactly match frozen canonical or sealed inputs"
                     )
+            existing = self._stage_plan_row(session, run_id, stage)
+            if (
+                stage == StageName.STORYBOARD
+                and existing is not None
+                and self._storyboard_stage_plan_contract_code(existing) is not None
+            ):
+                # Do not recalculate an already durable plan under a new
+                # default.  Exact repair uses this same command, so this also
+                # prevents a child repair from inheriting an unprovable timing
+                # policy after a restart or a tampering incident.
+                raise PlanningError(
+                    "frozen Storyboard timing provenance is missing or invalid",
+                    code="planning.storyboard_timing_provenance_missing",
+                    stage=stage,
+                )
             snapshot = CanonicalSnapshot.model_validate(run.canonical_snapshot)
+            repair_storyboard_profile = (
+                self._repair_storyboard_timing_profile_in_session(session, run)
+                if (
+                    run.work_unit_repair_scope_id is not None
+                    and stage == StageName.STORYBOARD
+                )
+                else None
+            )
+            repair_scene_beats_profile = (
+                self._repair_scene_beats_timing_profile_in_session(session, run)
+                if (
+                    run.work_unit_repair_scope_id is not None
+                    and stage == StageName.SCENE_BEATS
+                )
+                else None
+            )
             proposed = plan_stage(
                 generation_plan,
                 stage=stage,
                 dependencies=expected,
                 brief=snapshot.brief,
+                scene_beats_dialogue_timing_profile=repair_scene_beats_profile,
+                storyboard_dialogue_timing_profile=repair_storyboard_profile,
             )
-            existing = self._stage_plan_row(session, run_id, stage)
             if existing is not None:
                 if existing.stage_plan_hash != proposed.stage_plan_hash:
                     raise InvalidTransitionError(
@@ -3359,17 +3496,29 @@ class SQLiteRepository:
         return sealed_plan_ids == {plan.id for plan in plans}
 
     @staticmethod
-    def _run_requires_scene_timing_rebuild_in_session(
+    def _obsolete_scene_beats_recovery_code_in_session(
         session: Session,
         run: GenerationRunRow,
-    ) -> bool:
-        """Whether an interrupted run reached an obsolete Scene Beats contract.
+    ) -> str | None:
+        """Return the stable reason an interrupted Scene Beats run is obsolete.
 
         Timing allocation and dialogue capacity are part of the immutable
-        Scene Beats StagePlan rather than startup defaults. Old plans must
-        therefore be stopped before a runner can recompute their dependency
-        or prompt identities.
+        Scene Beats StagePlan rather than startup defaults. Join-entry facts
+        now share that immutable boundary. Old plans (including pristine runs
+        created under an older planning policy) must be stopped before a
+        runner can recompute dependency or prompt identities.
         """
+
+        requested = {StageName(value) for value in run.requested_stages}
+        if StageName.SCENE_BEATS not in requested:
+            return None
+        generation_plan_row = session.get(GenerationPlanRow, run.id)
+        if generation_plan_row is None:
+            return "recovery.join_state_value_contract_obsolete"
+        try:
+            generation_plan = GenerationPlan.model_validate(generation_plan_row.plan)
+        except ValueError:
+            return "recovery.join_state_value_contract_obsolete"
 
         plans = session.scalars(
             select(StagePlanRow).where(StagePlanRow.run_id == run.id)
@@ -3379,21 +3528,47 @@ class SQLiteRepository:
             for plan in plans
         )
         if not reached_scene_beats:
-            return False
+            return (
+                "recovery.join_state_value_contract_obsolete"
+                if generation_plan.planning_policy_version
+                != PLANNING_POLICY_VERSION
+                else None
+            )
         scene_beats_plan = next(
             (plan for plan in plans if plan.stage == StageName.SCENE_BEATS.value),
             None,
         )
         if scene_beats_plan is None:
-            return True
+            return "recovery.scene_timing_contract_obsolete"
+        scene_beats_contract_code = (
+            SQLiteRepository._scene_beats_stage_plan_contract_code(scene_beats_plan)
+        )
+        if scene_beats_contract_code is not None:
+            return scene_beats_contract_code
+        if generation_plan.planning_policy_version != PLANNING_POLICY_VERSION:
+            return "recovery.join_state_value_contract_obsolete"
+        return None
+
+    @staticmethod
+    def _scene_beats_stage_plan_contract_code(
+        scene_beats_plan: StagePlanRow,
+    ) -> str | None:
+        """Classify a persisted Scene Beats plan without supplying defaults.
+
+        The ordering is intentional: an already-reached timing/capacity
+        contract predates and is more specific than the later join marker.
+        Both branches preserve historical plan JSON; callers only use the
+        result to refuse a nonterminal continuation.
+        """
+
         allocation = scene_beats_plan.plan.get("scene_timing_allocation")
         if not isinstance(allocation, dict):
-            return True
+            return "recovery.scene_timing_contract_obsolete"
         try:
             parsed_allocation = SceneTimingAllocation.model_validate(allocation)
             parsed_plan = StagePlan.model_validate(scene_beats_plan.plan)
         except ValueError:
-            return True
+            return "recovery.scene_timing_contract_obsolete"
         # StagePlan keeps these fields optional only to preserve the exact
         # serialized shape of terminal historical evidence.  A nonterminal
         # Scene Beats run cannot be resumed without the complete frozen
@@ -3401,13 +3576,110 @@ class SQLiteRepository:
         # request identity.  Parsing the full plan also verifies that the
         # profile, capacity plan, timing allocation, and work units remain
         # mutually bound rather than merely individually well-formed.
-        return (
+        if (
             parsed_allocation.allocation_version != SCENE_TIMING_ALLOCATION_VERSION
             or parsed_plan.dialogue_timing_profile is None
             or parsed_plan.dialogue_capacity_plan is None
             or parsed_plan.dialogue_capacity_plan.policy_version
             != DIALOGUE_CAPACITY_POLICY_VERSION
-        )
+        ):
+            return "recovery.scene_timing_contract_obsolete"
+        if (
+            parsed_plan.join_state_value_contract_version
+            != JOIN_STATE_VALUE_CONTRACT_VERSION
+            or parsed_plan.join_state_value_contract_hash is None
+        ):
+            return "recovery.join_state_value_contract_obsolete"
+        return None
+
+    @staticmethod
+    def _storyboard_stage_plan_contract_code(
+        storyboard_plan: StagePlanRow,
+    ) -> str | None:
+        """Classify StagePlan-local Storyboard timing provenance.
+
+        The canonical Scene Beats payload is intentionally content-only and
+        cannot be retroactively credited with a profile from some prior run.
+        This check therefore examines only the immutable Storyboard plan.  It
+        is used for nonterminal recovery and direct repair planning; terminal
+        history is never parsed, rewritten, or upgraded for this purpose.
+        """
+
+        try:
+            parsed_plan = StagePlan.model_validate(storyboard_plan.plan)
+        except ValueError:
+            return "recovery.storyboard_timing_provenance_missing"
+        if (
+            parsed_plan.stage != StageName.STORYBOARD
+            or parsed_plan.storyboard_dialogue_timing_profile is None
+        ):
+            return "recovery.storyboard_timing_provenance_missing"
+        return None
+
+    @staticmethod
+    def _obsolete_generation_planning_policy_recovery_code_in_session(
+        session: Session,
+        run: GenerationRunRow,
+    ) -> str | None:
+        """Refuse any non-legacy run whose plan needs a newer executable policy."""
+
+        requested = {StageName(value) for value in run.requested_stages}
+        if StageName.SCENE_BEATS in requested:
+            scene_beats_code = (
+                SQLiteRepository._obsolete_scene_beats_recovery_code_in_session(
+                    session, run
+                )
+            )
+            if scene_beats_code is not None:
+                return scene_beats_code
+        generation_plan_row = session.get(GenerationPlanRow, run.id)
+        if generation_plan_row is None:
+            return "recovery.generation_planning_policy_obsolete"
+        try:
+            generation_plan = GenerationPlan.model_validate(generation_plan_row.plan)
+        except ValueError:
+            return "recovery.generation_planning_policy_obsolete"
+        if generation_plan.planning_policy_version != PLANNING_POLICY_VERSION:
+            return "recovery.generation_planning_policy_obsolete"
+        if StageName.STORYBOARD in requested:
+            storyboard_plan = SQLiteRepository._stage_plan_row(
+                session, run.id, StageName.STORYBOARD
+            )
+            if storyboard_plan is not None:
+                contract_code = SQLiteRepository._storyboard_stage_plan_contract_code(
+                    storyboard_plan
+                )
+                if contract_code is not None:
+                    return contract_code
+        return None
+
+    @staticmethod
+    def _recovery_obsolete_contract_stage(
+        session: Session,
+        run: GenerationRunRow,
+        code: str,
+    ) -> StageName:
+        if code in {
+            "recovery.scene_timing_contract_obsolete",
+            "recovery.join_state_value_contract_obsolete",
+        }:
+            return StageName.SCENE_BEATS
+        if code == "recovery.storyboard_timing_provenance_missing":
+            return StageName.STORYBOARD
+        for stage in (StageName(value) for value in run.requested_stages):
+            plan = SQLiteRepository._stage_plan_row(session, run.id, stage)
+            if plan is None:
+                return stage
+            sealed = session.scalar(
+                select(SealedStageAggregateRow.id).where(
+                    SealedStageAggregateRow.stage_plan_id == plan.id
+                )
+            )
+            if sealed is None:
+                return stage
+        # This branch is defensive: a run with every requested stage sealed
+        # normally takes the atomic-commit recovery branch instead.
+        return StageName(run.requested_stages[0])
 
     @staticmethod
     def _cancel_run_work_units_in_session(
@@ -4053,6 +4325,14 @@ class SQLiteRepository:
 
             dependencies = self._expected_stage_dependencies_in_session(session, run, stage)
             snapshot = CanonicalSnapshot.model_validate(run.canonical_snapshot)
+            # Storyboard consumes only its own frozen timing provenance.
+            # Reading it while sealing an upstream Story Bible/Graph would
+            # incorrectly require a future StagePlan that cannot exist yet.
+            dialogue_timing_profile = (
+                self._frozen_dialogue_timing_profile_from_stage_plan(stage_plan)
+                if stage == StageName.STORYBOARD
+                else None
+            )
             payload = aggregate_stage_fragments(
                 stage_plan,
                 fragments,
@@ -4060,6 +4340,7 @@ class SQLiteRepository:
                 bible=dependencies.get(StageName.STORY_BIBLE),  # type: ignore[arg-type]
                 graph=dependencies.get(StageName.STORY_GRAPH),  # type: ignore[arg-type]
                 scene_beats=dependencies.get(StageName.SCENE_BEATS),  # type: ignore[arg-type]
+                dialogue_timing_profile=dialogue_timing_profile,
             )
             payload_data = payload.model_dump(mode="json", by_alias=False)
             manifest = {
@@ -4248,6 +4529,11 @@ class SQLiteRepository:
 
             dependencies = self._repair_stage_dependencies_in_session(session, child, stage)
             snapshot = CanonicalSnapshot.model_validate(child.canonical_snapshot)
+            dialogue_timing_profile = (
+                self._frozen_dialogue_timing_profile_from_stage_plan(stage_plan)
+                if stage == StageName.STORYBOARD
+                else None
+            )
             payload = aggregate_stage_fragments(
                 stage_plan,
                 fragments,
@@ -4255,6 +4541,7 @@ class SQLiteRepository:
                 bible=dependencies.get(StageName.STORY_BIBLE),  # type: ignore[arg-type]
                 graph=dependencies.get(StageName.STORY_GRAPH),  # type: ignore[arg-type]
                 scene_beats=dependencies.get(StageName.SCENE_BEATS),  # type: ignore[arg-type]
+                dialogue_timing_profile=dialogue_timing_profile,
             )
             payload_data = payload.model_dump(mode="json", by_alias=False)
             manifest = {
@@ -4321,6 +4608,21 @@ class SQLiteRepository:
             "resumed safely. Submit a new run to regenerate Scene Beats under "
             "the current trusted timing and dialogue-capacity contract."
         )
+        obsolete_join_state_error = (
+            "This run uses an obsolete Scene Beats join-state contract and cannot "
+            "be resumed safely. Submit a new run to regenerate Scene Beats under "
+            "the current trusted join-entry value contract."
+        )
+        obsolete_generation_planning_error = (
+            "This run uses an obsolete generation planning policy and cannot be "
+            "resumed safely. Submit a new run under the current executable "
+            "planning contract."
+        )
+        obsolete_storyboard_timing_provenance_error = (
+            "This run has no valid frozen Storyboard dialogue timing profile and cannot "
+            "be resumed safely. Submit a new Storyboard run under the current "
+            "provenance contract."
+        )
         now = utc_now()
         resubmit_run_ids: list[str] = []
         resubmit_media_task_ids: list[str] = []
@@ -4380,23 +4682,46 @@ class SQLiteRepository:
                     terminated_run_ids.append(row.id)
                     continue
 
-                if self._run_requires_scene_timing_rebuild_in_session(session, row):
-                    # A Scene Beats plan created before the complete timing
-                    # contract was frozen has different dependency, unit,
-                    # prompt, and binder contracts. Replanning it would
-                    # rewrite immutable historical evidence; replaying it
-                    # would silently execute a different request. Terminalize
-                    # only the nonterminal execution state and require an
-                    # explicit fresh run.
+                obsolete_contract_code = (
+                    self._obsolete_generation_planning_policy_recovery_code_in_session(
+                        session, row
+                    )
+                    if not legacy_execution
+                    else None
+                )
+                if obsolete_contract_code is not None:
+                    # A plan created before its complete executable contract
+                    # was frozen has different dependency, unit, prompt, or
+                    # binder rules. Replanning it would rewrite immutable
+                    # historical evidence; replaying it would silently execute
+                    # a different request. Terminalize only nonterminal state.
+                    error = (
+                        obsolete_scene_timing_error
+                        if obsolete_contract_code
+                        == "recovery.scene_timing_contract_obsolete"
+                        else (
+                            obsolete_join_state_error
+                            if obsolete_contract_code
+                            == "recovery.join_state_value_contract_obsolete"
+                            else (
+                                obsolete_storyboard_timing_provenance_error
+                                if obsolete_contract_code
+                                == "recovery.storyboard_timing_provenance_missing"
+                                else obsolete_generation_planning_error
+                            )
+                        )
+                    )
                     row.status = RunStatus.FAILED.value
-                    row.error = obsolete_scene_timing_error
-                    row.failure_code = "recovery.scene_timing_contract_obsolete"
-                    row.failed_stage = StageName.SCENE_BEATS.value
+                    row.error = error
+                    row.failure_code = obsolete_contract_code
+                    row.failed_stage = self._recovery_obsolete_contract_stage(
+                        session, row, obsolete_contract_code
+                    ).value
                     row.started_at = row.started_at or now
                     row.finished_at = now
                     for attempt in running_attempts:
                         attempt.status = AttemptStatus.FAILED.value
-                        attempt.error = obsolete_scene_timing_error
+                        attempt.error = error
                         attempt.outcome_code = row.failure_code
                         attempt.finished_at = now
                     for unit in units:
@@ -4707,7 +5032,7 @@ class SQLiteRepository:
                     or aggregate.manifest.get("stagePlanHash") != plan.stage_plan_hash
                 ):
                     raise InvalidTransitionError("sealed aggregate is not bound to the declared immutable StagePlan")
-            dialogue_timing_profile = self._frozen_scene_beats_timing_profile_for_sealed_commit_in_session(
+            dialogue_timing_profile = self._frozen_dialogue_timing_profile_for_sealed_commit_in_session(
                 session,
                 run_row,
             )
@@ -4725,39 +5050,69 @@ class SQLiteRepository:
             )
             return run
 
-    def _frozen_scene_beats_timing_profile_for_sealed_commit_in_session(
+    @staticmethod
+    def _frozen_dialogue_timing_profile_from_stage_plan(
+        stage_plan: StagePlan,
+    ) -> DialogueTimingProfile:
+        """Read a stage-owned timing profile without any runtime fallback."""
+
+        if stage_plan.stage == StageName.SCENE_BEATS:
+            profile = stage_plan.dialogue_timing_profile
+            description = "Scene Beats"
+        elif stage_plan.stage == StageName.STORYBOARD:
+            profile = stage_plan.storyboard_dialogue_timing_profile
+            description = "Storyboard"
+        else:
+            raise InvalidTransitionError(
+                f"{stage_plan.stage.value} has no dialogue timing provenance"
+            )
+        if profile is None:
+            raise InvalidTransitionError(
+                f"sealed commit requires a frozen {description} dialogue timing profile"
+            )
+        return profile
+
+    def _frozen_dialogue_timing_profile_for_sealed_commit_in_session(
         self,
         session: Session,
         run_row: GenerationRunRow,
     ) -> DialogueTimingProfile | None:
         """Load the timing policy that bound this run's sealed V2 output.
 
-        Scene Beats and Storyboard canonical validation must replay the same
-        policy used to compile and seal the run.  Reconstructing it from the
-        process default would let a deployment change alter acceptance of
-        immutable evidence, so missing or malformed frozen evidence is an
+        Each stage owns its own immutable provenance.  In particular, a
+        Storyboard-only run cannot assume that a READY Scene Beats revision
+        came from this run: canonical revisions deliberately store authored
+        content, not generator-policy metadata.  Reconstructing either policy
+        from a process default would let a deployment change alter acceptance
+        of immutable evidence, so missing or malformed frozen evidence is an
         install failure rather than a fallback opportunity.
         """
 
         requested = {StageName(value) for value in run_row.requested_stages}
         if not requested & {StageName.SCENE_BEATS, StageName.STORYBOARD}:
             return None
-        row = self._stage_plan_row(session, run_row.id, StageName.SCENE_BEATS)
-        if row is None:
+        profiles: list[DialogueTimingProfile] = []
+        for stage in (StageName.SCENE_BEATS, StageName.STORYBOARD):
+            if stage not in requested:
+                continue
+            description = "Scene Beats" if stage == StageName.SCENE_BEATS else "Storyboard"
+            row = self._stage_plan_row(session, run_row.id, stage)
+            if row is None:
+                raise InvalidTransitionError(
+                    f"sealed commit requires a frozen {description} dialogue timing profile"
+                )
+            try:
+                plan = StagePlan.model_validate(row.plan)
+            except ValueError as exc:
+                raise InvalidTransitionError(
+                    f"sealed commit requires a valid frozen {description} dialogue timing profile"
+                ) from exc
+            profiles.append(self._frozen_dialogue_timing_profile_from_stage_plan(plan))
+        if len({profile.model_dump_json() for profile in profiles}) != 1:
             raise InvalidTransitionError(
-                "sealed commit requires a frozen Scene Beats dialogue timing profile"
+                "sealed commit requires matching frozen Scene Beats and Storyboard dialogue timing profiles"
             )
-        try:
-            plan = StagePlan.model_validate(row.plan)
-        except ValueError as exc:
-            raise InvalidTransitionError(
-                "sealed commit requires a valid frozen Scene Beats dialogue timing profile"
-            ) from exc
-        if plan.stage != StageName.SCENE_BEATS or plan.dialogue_timing_profile is None:
-            raise InvalidTransitionError(
-                "sealed commit requires a frozen Scene Beats dialogue timing profile"
-            )
-        return plan.dialogue_timing_profile
+        return profiles[0]
 
     def _commit_run_outputs(
         self,
@@ -5110,6 +5465,59 @@ class SQLiteRepository:
                 return attempt, response, validation
         return None
 
+    def _exact_repair_parent_contract_code_in_session(
+        self,
+        session: Session,
+        *,
+        source: GenerationRunRow,
+        target: GenerationWorkUnitRow,
+    ) -> str | None:
+        """Reject a parent that cannot be replayed under the current repair contract.
+
+        Exact repair may rebind successful sibling fragments into child-local
+        plans, but it may not treat a historical planner or a pre-join Scene
+        Beats plan as if it had current provenance.  This check is deliberately
+        before child creation and never reconstructs missing fields.
+        """
+
+        generation_plan_row = session.get(GenerationPlanRow, source.id)
+        if generation_plan_row is None:
+            return "repair.parent_plan_obsolete"
+        try:
+            generation_plan = GenerationPlan.model_validate(generation_plan_row.plan)
+        except ValueError:
+            return "repair.parent_plan_obsolete"
+        if generation_plan.planning_policy_version != PLANNING_POLICY_VERSION:
+            return "repair.parent_plan_obsolete"
+
+        requested = [StageName(value) for value in source.requested_stages]
+        target_stage = StageName(target.stage)
+        if (
+            StageName.SCENE_BEATS in requested
+            and STAGE_ORDER.index(StageName.SCENE_BEATS)
+            <= STAGE_ORDER.index(target_stage)
+        ):
+            scene_beats_plan = self._stage_plan_row(
+                session, source.id, StageName.SCENE_BEATS
+            )
+            if scene_beats_plan is None:
+                return "repair.parent_stage_plan_obsolete"
+            if self._scene_beats_stage_plan_contract_code(scene_beats_plan) is not None:
+                return "repair.parent_stage_plan_obsolete"
+        if (
+            StageName.STORYBOARD in requested
+            and STAGE_ORDER.index(StageName.STORYBOARD)
+            <= STAGE_ORDER.index(target_stage)
+        ):
+            storyboard_plan = self._stage_plan_row(
+                session, source.id, StageName.STORYBOARD
+            )
+            if storyboard_plan is None:
+                return "repair.parent_stage_plan_obsolete"
+            if self._storyboard_stage_plan_contract_code(storyboard_plan) is not None:
+                return "repair.parent_stage_plan_obsolete"
+        return None
+
     def _work_unit_repair_eligibility_in_session(
         self,
         session: Session,
@@ -5127,6 +5535,22 @@ class SQLiteRepository:
             return WorkUnitRepairEligibility(
                 work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.source_legacy_unsealed"
             )
+        if unit.run_id != source.id or stage.value not in source.requested_stages:
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_not_in_source_run"
+            )
+        parent_contract_code = self._exact_repair_parent_contract_code_in_session(
+            session,
+            source=source,
+            target=unit,
+        )
+        if parent_contract_code is not None:
+            return WorkUnitRepairEligibility(
+                work_unit_id=unit.id,
+                stage=stage,
+                eligible=False,
+                reason_code=parent_contract_code,
+            )
         if (
             ProjectLifecycleStatus(self._project_row(session, source.project_id).lifecycle_status)
             != ProjectLifecycleStatus.ACTIVE
@@ -5137,10 +5561,6 @@ class SQLiteRepository:
         if not self._source_snapshot_is_current_in_session(session, source):
             return WorkUnitRepairEligibility(
                 work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.snapshot_stale"
-            )
-        if unit.run_id != source.id or stage.value not in source.requested_stages:
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_not_in_source_run"
             )
         if self._work_unit_is_sealed_in_session(session, unit):
             return WorkUnitRepairEligibility(
@@ -5348,6 +5768,16 @@ class SQLiteRepository:
             source_stage_plan = session.get(StagePlanRow, target.stage_plan_id)
             if source_plan_row is None or source_stage_plan is None:
                 raise RepairEligibilityError("repair.parent_evidence_invalid", "source plan evidence is missing")
+            parent_contract_code = self._exact_repair_parent_contract_code_in_session(
+                session,
+                source=source,
+                target=target,
+            )
+            if parent_contract_code is not None:
+                raise RepairEligibilityError(
+                    parent_contract_code,
+                    "exact repair parent no longer satisfies the current frozen planning contract",
+                )
             source_plan = GenerationPlan.model_validate(source_plan_row.plan)
             project = self._project_row(session, source.project_id)
             self._assert_active_project(project)

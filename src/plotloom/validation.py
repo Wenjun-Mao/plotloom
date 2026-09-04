@@ -34,6 +34,15 @@ from .canonical_schema import (
 )
 from .domain import default_dialogue_timing_profile
 from .generation.scene_timing_allocation import plan_scene_timing_allocation
+from .json_value_contract import (
+    CanonicalJsonValueError,
+    finite_canonical_json,
+    finite_json_values_equal,
+)
+from .join_state_values import (
+    JoinStateValueContractError,
+    compile_join_state_value_contract,
+)
 
 
 class ValidationIssue(dict):
@@ -277,6 +286,34 @@ def validate_story_graph(
             for target_id in adjacency[node_id]:
                 path_stack.append((target_id, next_count, next_path))
 
+    if strict_v2 and not issues:
+        try:
+            v2_graph = (
+                graph
+                if isinstance(graph, StoryGraphV2)
+                else StoryGraphV2.model_validate(
+                    graph.model_dump(mode="json", by_alias=True)
+                )
+            )
+            compile_join_state_value_contract(v2_graph)
+        except ValidationError as error:
+            issues.extend(
+                _issue(
+                    "join_state_contract_schema_invalid",
+                    ".".join(str(part) for part in item.get("loc") or ()),
+                    item["msg"],
+                )
+                for item in error.errors(
+                    include_url=False,
+                    include_context=False,
+                )
+            )
+        except JoinStateValueContractError as error:
+            issues.extend(
+                _issue(issue.code, issue.path, issue.message)
+                for issue in error.issues
+            )
+
     if issues:
         raise DomainValidationError(issues)
 
@@ -356,18 +393,76 @@ def validate_scene_beat_coverage(
             )
         )
 
+    join_state_values = None
+    if strict_v2 and isinstance(graph, StoryGraphV2):
+        try:
+            join_state_values = compile_join_state_value_contract(graph)
+        except JoinStateValueContractError as error:
+            issues.extend(
+                _issue(issue.code, issue.path, issue.message)
+                for issue in error.issues
+            )
+    join_values_by_contract = (
+        {
+            (entry.join_contract_id, entry.state_key): entry.expected_join_entry_value
+            for entry in join_state_values.entries
+        }
+        if join_state_values is not None
+        else {}
+    )
     for contract in graph.join_contracts:
         join_scenes = scenes_by_node.get(contract.join_node_id, [])
-        if strict_v2 and contract.allowed_differences and not contract.reconciliation.strip():
-            issues.append(
-                _issue(
-                    "join_allowed_difference_without_reconciliation",
-                    f"joinContracts.{contract.id}.reconciliation",
-                    "allowedDifferences require an explicit reconciliation",
-                )
-            )
         for key in contract.required_state_keys:
-            if not join_scenes or any(key not in scene.entry_state.facts for scene in join_scenes):
+            if strict_v2:
+                expected_key = (contract.id, key)
+                if expected_key not in join_values_by_contract:
+                    continue
+                expected = join_values_by_contract[expected_key]
+                if not join_scenes:
+                    issues.append(
+                        _issue(
+                            "join_entry_state_value_missing",
+                            f"joinContracts.{contract.id}.requiredStateKeys",
+                            f"join scene entry state is missing required fact: {key}",
+                        )
+                    )
+                for scene in join_scenes:
+                    if key not in scene.entry_state.facts:
+                        issues.append(
+                            _issue(
+                                "join_entry_state_value_missing",
+                                f"scenes.{scene.id}.entryState.facts.{key}",
+                                f"join entry must contain exact required fact {key!r}",
+                            )
+                        )
+                    else:
+                        try:
+                            matches = finite_json_values_equal(
+                                scene.entry_state.facts[key],
+                                expected,
+                            )
+                        except CanonicalJsonValueError:
+                            issues.append(
+                                _issue(
+                                    "join_entry_state_value_not_json",
+                                    f"scenes.{scene.id}.entryState.facts.{key}",
+                                    "join entry facts must be finite canonical JSON values",
+                                )
+                            )
+                        else:
+                            if not matches:
+                                issues.append(
+                                    _issue(
+                                        "join_entry_state_value_mismatch",
+                                        f"scenes.{scene.id}.entryState.facts.{key}",
+                                        f"join entry fact {key!r} does not match the sealed edge-transition contract",
+                                    )
+                                )
+                continue
+
+            if not join_scenes or any(
+                key not in scene.entry_state.facts for scene in join_scenes
+            ):
                 issues.append(
                     _issue(
                         "join_entry_state_missing",
@@ -377,37 +472,14 @@ def validate_scene_beat_coverage(
                 )
             for incoming_node_id in contract.incoming_node_ids:
                 incoming_scenes = scenes_by_node.get(incoming_node_id, [])
-                if not incoming_scenes or any(key not in scene.exit_state.facts for scene in incoming_scenes):
+                if not incoming_scenes or any(
+                    key not in scene.exit_state.facts for scene in incoming_scenes
+                ):
                     issues.append(
                         _issue(
                             "join_exit_state_missing",
                             f"joinContracts.{contract.id}.requiredStateKeys",
                             f"incoming node {incoming_node_id} exit state is missing required fact: {key}",
-                        )
-                    )
-            if strict_v2:
-                states_with_key = [
-                    scene.entry_state.facts[key]
-                    for scene in join_scenes
-                    if key in scene.entry_state.facts
-                ]
-                for incoming_node_id in contract.incoming_node_ids:
-                    incoming_scenes = scenes_by_node.get(incoming_node_id, [])
-                    states_with_key.extend(
-                        scene.exit_state.facts[key]
-                        for scene in incoming_scenes
-                        if key in scene.exit_state.facts
-                    )
-                if (
-                    key not in contract.allowed_differences
-                    and states_with_key
-                    and any(value != states_with_key[0] for value in states_with_key[1:])
-                ):
-                    issues.append(
-                        _issue(
-                            "join_required_state_mismatch",
-                            f"joinContracts.{contract.id}.requiredStateKeys",
-                            f"required join state {key!r} must agree across incoming exits and join entry",
                         )
                     )
 
@@ -686,6 +758,17 @@ def _validate_v2_scene_order_and_continuity(
     for beat in plan.beats:
         issues.extend(_continuity_state_issues(f"beats.{beat.id}.entryState", beat.entry_state, bible))
         issues.extend(_continuity_state_issues(f"beats.{beat.id}.exitState", beat.exit_state, bible))
+        for delta_key, delta_value in beat.continuity_delta.items():
+            try:
+                finite_canonical_json(delta_value)
+            except CanonicalJsonValueError:
+                issues.append(
+                    _issue(
+                        "continuity_delta_not_json",
+                        f"beats.{beat.id}.continuityDelta.{delta_key}",
+                        "continuity delta values must be finite canonical JSON",
+                    )
+                )
     beats_by_scene: dict[str, list] = defaultdict(list)
     for beat in plan.beats:
         beats_by_scene[beat.scene_id].append(beat)
@@ -714,6 +797,17 @@ def _continuity_state_issues(
 ) -> list[ValidationIssue]:
     allowed_states = _allowed_entity_states(bible)
     issues: list[ValidationIssue] = []
+    for fact_key, fact_value in continuity_state.facts.items():
+        try:
+            finite_canonical_json(fact_value)
+        except CanonicalJsonValueError:
+            issues.append(
+                _issue(
+                    "continuity_fact_not_json",
+                    f"{path_prefix}.facts.{fact_key}",
+                    "continuity facts must be finite canonical JSON values",
+                )
+            )
     for index, state in enumerate(continuity_state.entity_states):
         known_states = allowed_states[state.entity_type].get(state.entity_id)
         state_path = f"{path_prefix}.entityStates.{index}"
@@ -1371,9 +1465,12 @@ def _continuity_states_are_compatible(left, right) -> bool:
     for key in set(left_entities) & set(right_entities):
         if left_entities[key] != right_entities[key]:
             return False
-    for key in set(left.facts) & set(right.facts):
-        if left.facts[key] != right.facts[key]:
-            return False
+    try:
+        for key in set(left.facts) & set(right.facts):
+            if not finite_json_values_equal(left.facts[key], right.facts[key]):
+                return False
+    except CanonicalJsonValueError:
+        return False
     for field in ("screen_direction", "lighting", "sound"):
         left_value = getattr(left, field)
         right_value = getattr(right, field)

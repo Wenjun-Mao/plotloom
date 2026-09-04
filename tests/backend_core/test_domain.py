@@ -43,8 +43,11 @@ def test_valid_default_graph_and_coverage(brief: ProjectBrief) -> None:
     graph = make_story_graph()
     plan = make_scene_beats(graph)
     storyboard = make_storyboard(plan)
-    validate_story_graph(graph, brief)
-    validate_scene_beat_coverage(plan, graph, bible)
+    # These fixtures are explicit V2 payloads.  V1 validation intentionally
+    # retains the historical source-exit join convention for persisted runs,
+    # while new V2 data uses exact post-edge join-entry values.
+    validate_story_graph(graph, brief, strict_v2=True)
+    validate_scene_beat_coverage(plan, graph, bible, strict_v2=True)
     validate_storyboard_coverage(storyboard, plan, bible, brief)
     first_beat = plan.beats[0].model_dump(by_alias=True)
     assert "visibleEvent" in first_beat and "entryState" in first_beat

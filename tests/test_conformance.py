@@ -38,9 +38,23 @@ def _profile(profile_id: str) -> TextProviderProfileSnapshot:
 
 
 def _json_after(content: str, marker: str) -> Any:
-    # Instruction text can repeat a label; the rendered user section is last.
-    remainder = content.rsplit(marker, 1)[1].lstrip()
-    return json.JSONDecoder().raw_decode(remainder)[0]
+    """Read the first labelled JSON value, ignoring instructional echoes.
+
+    Prompt copy is allowed to mention a context label after the structured
+    context itself.  A fixture must therefore find a label occurrence that is
+    actually followed by JSON instead of relying on whether prose is rendered
+    before or after the context block.
+    """
+
+    decoder = json.JSONDecoder()
+    offset = 0
+    while (index := content.find(marker, offset)) != -1:
+        remainder = content[index + len(marker) :].lstrip()
+        try:
+            return decoder.raw_decode(remainder)[0]
+        except json.JSONDecodeError:
+            offset = index + len(marker)
+    raise AssertionError(f"no JSON value follows marker {marker!r}")
 
 
 def test_fixed_workload_preserves_storyboard_capacity_for_multi_beat_scenes() -> None:

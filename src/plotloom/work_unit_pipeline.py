@@ -59,13 +59,21 @@ from .generation.responses import (
 from .generation.secrets import SecretLease
 from .generation.validation import SemanticValidationContext
 from .generation.work_units import (
+    AUDIO_EVENT_ID_BINDING_VERSION,
     FRAGMENT_ID_BINDING_VERSION,
     CompiledWorkUnitRequest,
     SemanticRepairFact,
+    StoryboardTimingRepairPlanFact,
+    WorkUnitContractError,
     compile_work_unit_request,
     parse_semantic_repair_fact,
     assert_semantic_repair_fact_matches_issue,
     semantic_repair_facts,
+    serialize_semantic_repair_fact,
+)
+from .generation.storyboard_timing_repair import (
+    StoryboardTimingGuidance,
+    storyboard_timing_guidance_hash,
 )
 from .persistence import SQLiteRepository, stable_hash
 from .provider_profiles import TextProviderProfileSnapshot
@@ -212,6 +220,15 @@ class DurableWorkUnitRunner:
                     except QuarantinedOutputError:
                         raise
                     except Exception as error:
+                        if isinstance(error, WorkUnitContractError):
+                            # This is a frozen-contract impossibility detected
+                            # before a prompt or provider call exists.  Do not
+                            # allocate/replay a correction attempt merely to
+                            # make the durable code visible to the run owner.
+                            raise RunExecutionError(
+                                code=error.code,
+                                stage=work_unit.stage,
+                            ) from error
                         attempts = [
                             attempt
                             for attempt in self.repository.get_run_trace(run.id).attempts
@@ -719,6 +736,33 @@ class DurableWorkUnitRunner:
                         if work_unit.stage == StageName.SCENE_BEATS
                         else None
                     ),
+                    dialogue_timing_profile=(
+                        stage_plan.dialogue_timing_profile
+                        if work_unit.stage == StageName.SCENE_BEATS
+                        else None
+                    ),
+                    node_duration_budget_units=(
+                        compiled.contract.node_duration_budget_units
+                        if work_unit.stage == StageName.SCENE_BEATS
+                        else None
+                    ),
+                    join_state_value_requirements=(
+                        getattr(compiled.validator, "scoped_context", {}).get(
+                            "join_state_value_requirements"
+                        )
+                        if work_unit.stage == StageName.SCENE_BEATS
+                        else None
+                    ),
+                    storyboard_timing_guidance=(
+                        compiled.contract.storyboard_timing_guidance
+                        if work_unit.stage == StageName.STORYBOARD
+                        else None
+                    ),
+                    story_graph_topology=(
+                        story_graph_topology
+                        if work_unit.stage == StageName.STORY_GRAPH
+                        else None
+                    ),
                 )
                 if self._reject_or_continue(
                     run=run,
@@ -746,6 +790,11 @@ class DurableWorkUnitRunner:
                     *(
                         (FRAGMENT_ID_BINDING_VERSION,)
                         if work_unit.stage in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+                        else ()
+                    ),
+                    *(
+                        (AUDIO_EVENT_ID_BINDING_VERSION,)
+                        if work_unit.stage == StageName.STORYBOARD
                         else ()
                     ),
                 ),
@@ -922,8 +971,12 @@ class DurableWorkUnitRunner:
             assert_semantic_repair_fact_matches_issue(
                 fact, tuple(validated_issues)
             )
+            self._assert_timing_fact_guidance(
+                fact,
+                source_contract=source_contract,
+            )
             serialized_repair_facts.append(
-                fact.model_dump(mode="json", by_alias=True)
+                serialize_semantic_repair_fact(fact)
             )
         correction_ordinal = source_attempt.attempt_number
         correction_strategy = (
@@ -984,6 +1037,56 @@ class DurableWorkUnitRunner:
             contract=contract,
             response_schema=base_compiled.response_schema,
         )
+
+    @staticmethod
+    def _assert_timing_fact_guidance(
+        fact: SemanticRepairFact,
+        *,
+        source_contract: Mapping[str, Any],
+    ) -> None:
+        """Reject a self-consistent timing plan from another frozen scope.
+
+        Artifact hashes make persisted evidence tamper-evident only when the
+        semantic fact is also bound back to the source prompt contract.  The
+        plan's internal hash alone cannot establish that its scene/cues were
+        those supplied to the rejected work unit.
+        """
+
+        timing_codes = {
+            "semantic.shot_duration_budget_exceeded",
+            "semantic.cue_duration_exceeds_shot",
+        }
+        if not isinstance(fact, StoryboardTimingRepairPlanFact):
+            if fact.code in timing_codes:
+                # Current source contracts may not downgrade a fully bound
+                # plan into any legacy plan or witness shape by deleting its
+                # binding fields. Historical evidence is still parseable for
+                # terminal inspection, but old policy recovery never reaches
+                # this execution boundary.
+                raise CorrectionSourceContractError(
+                    "unbound Storyboard timing repair fact cannot authorize current correction"
+                )
+            return
+        # ``WorkUnitPromptContract`` is a frozen trace model rather than a
+        # public CamelModel, so its durable artifact shape is snake_case even
+        # when callers request aliases.  Read the actual stored contract key;
+        # accepting a second spelling here would weaken this exact replay
+        # boundary.
+        raw_guidance = source_contract.get("storyboard_timing_guidance")
+        if not isinstance(raw_guidance, Mapping):
+            raise CorrectionSourceContractError(
+                "Storyboard timing repair fact has no frozen source guidance"
+            )
+        try:
+            guidance = StoryboardTimingGuidance.model_validate(raw_guidance)
+        except ValueError as error:
+            raise CorrectionSourceContractError(
+                "Storyboard timing repair fact source guidance is malformed"
+            ) from error
+        if storyboard_timing_guidance_hash(guidance) != fact.guidance_hash:
+            raise CorrectionSourceContractError(
+                "Storyboard timing repair fact does not match frozen source guidance"
+            )
 
     @staticmethod
     def _assert_correction_source_contract(
@@ -1154,7 +1257,7 @@ class DurableWorkUnitRunner:
             "transformations": list(transformations),
             "error": error,
             "repairFacts": [
-                fact.model_dump(mode="json", by_alias=True)
+                serialize_semantic_repair_fact(fact)
                 for fact in repair_facts
             ],
             "contract": compiled.contract.model_dump(mode="json", by_alias=True),

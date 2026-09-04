@@ -1,5 +1,5 @@
 id: scene_beats_fragment
-version: "3.8.0"
+version: "3.11.0"
 stage: scene_beats
 description: Create a closed dramatic-scene/beat fragment for one Story Graph node.
 system: |-
@@ -46,7 +46,8 @@ user: |-
   每条 dialogueCues 项通过 beatLocalId 归属本次输出的一个 beat，并使用 localCueId 作为本回答内部唯一句柄。cue.order 在同一 beat 内从 1 连续。speakerId 只能从 Schema enum 选择；speakerId 与 voiceOver 必须恰好二选一：角色发言时同时显式写出合法 speakerId 与 voiceOver=null；没有屏幕内说话角色时同时显式写出 speakerId=null，并以非空 voiceOver 字符串写明旁白身份或标签（例如 narrator）。禁止两者同时为 null 或同时为非 null。每条 cue 只填写 text、language、delivery 和 performanceNotes；delivery 只能是 measured、natural 或 brisk，performanceNotes 只描述表演意图，绝不作为时序键。不要输出 estimatedDurationUnits：服务端会依据冻结的版本化规则从 text、language 与 delivery 确定性生成 canonical 时长。
   严格遵守【本节点冻结对白容量】：scenes 数不超过 nodeGuidance.maxScenes，dialogueCues 总数不超过 nodeGuidance.maxDialogueCues。若 nodeGuidance 含 authoringLanguage，则 language 必须逐字等于该值，且每条 cue 的字符数不超过 schemaMaxTextCodepoints；该值是所有 delivery 都安全的可移植硬上限。schemaMaxTextCodepoints=0 时 dialogueCues 必须是 []。其余情况下，每条 cue 还必须不超过其 language 和 delivery 对应 ruleGuidance.maxTextCodepoints。不要自行计算毫秒或改写任何容量值；优先使用更少、更精炼的 cue，并避免在 beat、shot 或其他字段重复台词。
   每个 scene 和 beat 的 entryState、exitState 都必须完整输出 facts、entityStates、screenDirection、lighting、sound、notes；每个 entityStates 项均填写 entityType、entityId、state。没有内容时也分别写出 {}、[] 或 null，不能省略任何一项。
-  “requiredEntryFactKeys” 中的每一个键必须出现在每个 scene.entryState.facts；“requiredExitFactKeys” 中的每一个键必须出现在每个 scene.exitState.facts。键名必须逐字符复制，并为每个键写出符合剧情的具体值；空数组表示该方向没有强制键。
+  entryState 与 exitState 中每个 entityStates.entityId 必须是【故事圣经】中对应 entityType 的实体，state 必须逐字属于该实体的 allowedStates；不要把人物、地点或道具的自由描述伪装成状态。每个 scene 必须满足 scene.entryState → 该 scene 按 order 排列的全部 beat.entryState/exitState → scene.exitState 的连续性：相邻两端同时声明同一事实、实体状态、screenDirection、lighting 或 sound 时必须逐值一致。状态变化只发生在同一个 beat 的 entryState → exitState 内；后一 beat 的 entryState 必须逐值复制前一 beat.exitState 中两端共同声明的键。不要在同一相邻边界为同一键写出旧值和新值。
+  【本节点必须兑现的连续性键】是服务端从已封存 Story Graph 的直接汇流入边编译出的精确合同。requiredEntryFactKeys 中每个键都必须出现在每个 scene.entryState.facts，并且值必须逐结构复制 requiredEntryFacts 中同名 JSON 值；不得改写字符串、挑选一条分支或简化带 $plotloom 标记的 variant map。空对象表示本节点不是汇流入口。edge.stateEffects 在来源节点 exitState 之后才生效，因此不得把分支专用值伪造到来源节点共享的 exitState。
 variables:
   story_bible:
     required: true
@@ -68,5 +69,5 @@ variables:
     required: true
 output:
   format: json
-  schema_id: scene_beats.fragment.v9
+  schema_id: scene_beats.fragment.v11
   structured_output_mode: prefer

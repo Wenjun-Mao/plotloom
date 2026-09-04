@@ -125,15 +125,17 @@ never required to add wildcard rules merely to validate an out-of-contract
 response.
 
 The same frozen timing profile remains authoritative after model execution.
-`commit_sealed_run` validates the Scene Beats aggregate and evaluates the
-Storyboard gates with the profile parsed from that run's hash-valid Scene
-Beats StagePlan. It never consults the process default at install time. A
-sealed run that requests Scene Beats or Storyboard but lacks that same-run
-provenance fails closed before canonical mutation. Consequently a standalone
-Storyboard-only sealed run is not installable in this contract version; it
-must be submitted with Scene Beats so the timing authority is explicit. Manual
-canonical saves remain a separate authoring path and select the current
-versioned profile at the time of that save.
+At the time this ADR was accepted, `commit_sealed_run` located Storyboard
+timing provenance through a same-run Scene Beats StagePlan, so standalone
+Storyboard-only sealed runs were deliberately not installable. That specific
+same-run lookup is superseded by ADR 0019's Storyboard-owned provenance rule:
+current Storyboard StagePlans freeze and hash their own complete profile at
+planning time, while a Storyboard-only run may consume a READY Scene Beats
+revision from an earlier run. Seal and install still never consult a process
+default. A missing or invalid current StagePlan profile fails closed before
+canonical mutation; it is not inferred from a canonical payload, parent run,
+or deployment default. Manual canonical saves remain a separate authoring
+path and select the current versioned profile at the time of that save.
 
 The fixed limits are a versioned product policy, not a provider heuristic.
 Changing them requires a new capacity-policy version. Historical v1 plans,

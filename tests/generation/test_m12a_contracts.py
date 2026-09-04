@@ -22,9 +22,11 @@ from plotloom.domain import (
     StoryNodeV2,
 )
 from plotloom.generation.planning import create_generation_plan, plan_stage
+from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.work_units import (
     BeatContent,
+    AudioTimingRepairFact,
     DialogueCueContent,
     DialogueCapacityRepairFact,
     DramaticSceneContent,
@@ -33,7 +35,10 @@ from plotloom.generation.work_units import (
     ShotContent,
     StoryboardFragmentOutput,
     compile_work_unit_request,
+    canonical_audio_event_id,
+    canonical_fragment_id,
     scene_beats_dialogue_capacity_repair_facts,
+    storyboard_audio_timing_repair_facts,
     storyboard_required_entity_state_repair_facts,
 )
 
@@ -117,15 +122,15 @@ def _scene_output(*, speaker_id: str = "speaker") -> dict:
 def _board_output(*, cue_ids: list[str] | None = None, audio_duration: int = 660, state: str = "awake") -> dict:
     continuity = _state()
     return StoryboardFragmentOutput(
-        shots=[ShotContent(local_shot_id="shot", order=1, title="镜头", shot_size="medium", duration_units=660, camera_angle="", camera_movement="", composition="", visual_intent="", motion_intent="", action="", transition="", cue_ids=cue_ids or ["cue"], audio_plan={"events": [{"id": "amb", "kind": "ambience", "description": "低鸣", "startOffsetUnits": 0, "durationUnits": audio_duration}]}, character_ids=["speaker"], location_id=None, prop_ids=[], required_entity_states=[{"entityType": "character", "entityId": "speaker", "state": state}], entry_state=continuity, exit_state=continuity)],
+        shots=[ShotContent(local_shot_id="shot", order=1, title="镜头", shot_size="medium", duration_units=660, camera_angle="", camera_movement="", composition="", visual_intent="", motion_intent="", action="", transition="", cue_ids=cue_ids or ["cue"], audio_plan={"events": [{"kind": "ambience", "description": "低鸣", "startOffsetUnits": 0, "durationUnits": audio_duration}]}, character_ids=["speaker"], location_id=None, prop_ids=[], required_entity_states=[{"entityType": "character", "entityId": "speaker", "state": state}], entry_state=continuity, exit_state=continuity)],
         primary_shot_local_id_by_beat={"beat": "shot"}, supporting_beat_links=[],
     ).model_dump(mode="json", by_alias=True)
 
 
 def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None:
     compiled = _compiled(StageName.SCENE_BEATS)
-    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v9"
-    assert compiled.contract.contract_version == "m1.12h"
+    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v11"
+    assert compiled.contract.contract_version == "m1.12o"
     assert "dialogueCues" in compiled.response_schema["properties"]
     assert '"dialogue"' not in str(compiled.response_schema)
     cue_schema = compiled.response_schema["properties"]["dialogueCues"]["items"]
@@ -373,6 +378,12 @@ def test_m12a_rejects_illegal_speaker_and_cue_schedule_references() -> None:
     assert "semantic.unknown_cue_speaker" in {issue.code for issue in bad_speaker.issues}
 
     board = _compiled(StageName.STORYBOARD)
+    # A sealed 660-unit cue in a 660-unit scene leaves no capacity for a
+    # second shot.  The effective max, not the project preference, is bound
+    # directly into the provider-visible schema.
+    assert board.contract.storyboard_timing_guidance is not None
+    assert board.contract.storyboard_timing_guidance.max_shots == 1
+    assert board.response_schema["properties"]["shots"]["maxItems"] == 1
     unknown = board.validator.validate(_board_output(cue_ids=["invented"]), context=SemanticValidationContext(stage="storyboard"))
     assert "semantic.unknown_cue_ref" in {issue.code for issue in unknown.issues}
     duplicate = board.validator.validate(_board_output(cue_ids=["cue", "cue"]), context=SemanticValidationContext(stage="storyboard"))
@@ -416,9 +427,150 @@ def test_m12a_rejects_duplicate_canonical_entity_references_before_binding() -> 
 def test_m12a_rejects_audio_timing_and_unavailable_entity_state() -> None:
     board = _compiled(StageName.STORYBOARD)
     timing = board.validator.validate(_board_output(audio_duration=661), context=SemanticValidationContext(stage="storyboard"))
-    assert "semantic.audio_timing" in {issue.code for issue in timing.issues}
+    assert [(issue.code, issue.path) for issue in timing.issues if issue.code == "semantic.audio_timing"] == [
+        (
+            "semantic.audio_timing",
+            ("shots", 0, "audioPlan", "events", 0, "durationUnits"),
+        )
+    ]
     entity = board.validator.validate(_board_output(state="asleep"), context=SemanticValidationContext(stage="storyboard"))
     assert "semantic.invalid_required_entity_state" in {issue.code for issue in entity.issues}
+
+
+def test_m12a_audio_timing_projects_exact_repair_and_binds_event_ids() -> None:
+    board = _compiled(StageName.STORYBOARD)
+    output = _board_output(audio_duration=661)
+    report = board.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="storyboard"),
+    )
+
+    facts = storyboard_audio_timing_repair_facts(output, report.issues)
+
+    assert facts == (
+        AudioTimingRepairFact(
+            code="semantic.audio_timing",
+            path=("shots", 0, "audioPlan", "events", 0, "durationUnits"),
+            shot_local_id="shot",
+            event_index=0,
+            start_offset_units=0,
+            duration_units=661,
+            shot_duration_units=660,
+            repair_action="replace_duration",
+            replacement_duration_units=660,
+        ),
+    )
+    assert set(facts[0].model_dump(mode="json", by_alias=True)) == {
+        "code",
+        "path",
+        "shotLocalId",
+        "eventIndex",
+        "startOffsetUnits",
+        "durationUnits",
+        "shotDurationUnits",
+        "repairAction",
+        "replacementDurationUnits",
+    }
+    assert "低鸣" not in str(facts[0].model_dump(mode="json", by_alias=True))
+
+    output["shots"][0]["audioPlan"]["events"][0]["durationUnits"] = 660
+    accepted = board.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="storyboard"),
+    )
+    assert accepted.accepted
+    shot = accepted.value.shots[0]
+    assert shot.audio_plan.events[0].id == canonical_audio_event_id(shot.id, 1)
+
+
+def test_m12a_audio_timing_requires_removal_at_or_past_shot_end() -> None:
+    board = _compiled(StageName.STORYBOARD)
+    output = _board_output(audio_duration=1)
+    output["shots"][0]["audioPlan"]["events"][0]["startOffsetUnits"] = 660
+    report = board.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="storyboard"),
+    )
+
+    assert storyboard_audio_timing_repair_facts(output, report.issues) == (
+        AudioTimingRepairFact(
+            code="semantic.audio_timing",
+            path=("shots", 0, "audioPlan", "events", 0, "durationUnits"),
+            shot_local_id="shot",
+            event_index=0,
+            start_offset_units=660,
+            duration_units=1,
+            shot_duration_units=660,
+            repair_action="remove_event",
+            replacement_duration_units=None,
+        ),
+    )
+
+
+def test_m12a_audio_timing_facts_are_one_descending_sequence_per_shot() -> None:
+    """A removal cannot shift the original index of a later replacement."""
+
+    output = _board_output(audio_duration=661)
+    output["shots"][0]["audioPlan"]["events"].append(
+        {
+            "kind": "sound_effect",
+            "description": "超出镜头尾部的警报",
+            "startOffsetUnits": 660,
+            "durationUnits": 1,
+        }
+    )
+    issues = (
+        ValidationIssue(
+            code="semantic.audio_timing",
+            message="irrelevant evidence",
+            path=("shots", 0, "audioPlan", "events", 0, "durationUnits"),
+        ),
+        ValidationIssue(
+            code="semantic.audio_timing",
+            message="irrelevant evidence",
+            path=("shots", 0, "audioPlan", "events", 1, "durationUnits"),
+        ),
+    )
+
+    facts = storyboard_audio_timing_repair_facts(output, issues)
+
+    assert [(fact.event_index, fact.repair_action) for fact in facts] == [
+        (1, "remove_event"),
+        (0, "replace_duration"),
+    ]
+    assert storyboard_audio_timing_repair_facts(output, (*issues, issues[0])) == ()
+
+
+def test_m12a_storyboard_response_schema_keeps_audio_event_ids_server_owned() -> None:
+    board = _compiled(StageName.STORYBOARD)
+    event_schema = board.response_schema["properties"]["shots"]["items"]["properties"][
+        "audioPlan"
+    ]["properties"]["events"]["items"]
+
+    assert "id" not in event_schema["properties"]
+    assert "id" not in event_schema["required"]
+
+    output = _board_output()
+    output["shots"][0]["audioPlan"]["events"][0]["id"] = "model-owned-id"
+    rejected = board.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="storyboard"),
+    )
+    assert any(issue.code == "schema.extra_forbidden" for issue in rejected.issues)
+
+
+def test_m12a_audio_timing_fact_fails_closed_for_stale_issue_path() -> None:
+    board = _compiled(StageName.STORYBOARD)
+    output = _board_output(audio_duration=661)
+    report = board.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="storyboard"),
+    )
+    stale_issue = report.issues[0].model_copy(
+        update={"path": ("shots", 0, "audioPlan", "events", 1, "durationUnits")}
+    )
+
+    assert storyboard_audio_timing_repair_facts(output, (stale_issue,)) == ()
 
 
 def test_m12a_invalid_entity_state_projects_only_frozen_allowed_choices() -> None:

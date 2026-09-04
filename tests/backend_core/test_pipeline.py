@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from collections import deque
 from collections.abc import Callable
+from copy import deepcopy
 from dataclasses import replace
 from threading import Event
 
 import pytest
+from fastapi.testclient import TestClient
 
 import plotloom.generation.planning as generation_planning
 import plotloom.work_unit_pipeline as work_unit_pipeline
+from plotloom.api import create_app
 from plotloom.artifacts import MemoryArtifactStore
 from plotloom.domain import (
     DEFAULT_TEXT_BASE_URL,
@@ -43,7 +47,11 @@ from plotloom.generation.story_graph_topology import (
     StoryGraphTopology,
     bind_story_graph_content_fill,
 )
-from plotloom.generation.work_units import canonical_fragment_id
+from plotloom.generation.work_units import (
+    AUDIO_EVENT_ID_BINDING_VERSION,
+    FRAGMENT_ID_BINDING_VERSION,
+    canonical_fragment_id,
+)
 from plotloom.provider_profiles import (
     PresetId,
     StageMaxOutputTokens,
@@ -56,7 +64,9 @@ from plotloom.pipeline import (
     RunSecretBroker,
     SnapshotTextProviderResolver,
 )
-from plotloom.persistence import GenerationWorkUnitRow, stable_hash
+from plotloom.persistence import GenerationPlanRow, GenerationWorkUnitRow, stable_hash
+from plotloom.generation.prompts import sha256_text
+from plotloom.json_value_contract import finite_canonical_json
 from plotloom.providers import ProviderPorts
 from plotloom.runtime import RunContext
 
@@ -381,6 +391,46 @@ def _work_unit_responses(
         for shot in payload["shots"]:
             shot.pop("sceneId")
             shot["localShotId"] = shot.pop("id")
+            for event in shot["audioPlan"]["events"]:
+                event.pop("id")
+        responses.append(json.dumps(payload, ensure_ascii=False))
+    return responses
+
+
+def _storyboard_only_responses(scene_beats, storyboard) -> list[str]:
+    """Render fixture canonicals into the model-facing Storyboard fragments."""
+
+    responses: list[str] = []
+    for scene in scene_beats.scenes:
+        scene_shot_ids = {
+            shot.id for shot in storyboard.shots if shot.scene_id == scene.id
+        }
+        payload = {
+            "shots": [
+                shot.model_dump(mode="json", by_alias=True)
+                for shot in storyboard.shots
+                if shot.scene_id == scene.id
+            ],
+            "primaryShotLocalIdByBeat": {
+                link.beat_id: link.shot_id
+                for link in storyboard.shot_beat_links
+                if link.role == CoverageRole.PRIMARY and link.shot_id in scene_shot_ids
+            },
+            "supportingBeatLinks": [
+                {
+                    "shotLocalId": link.shot_id,
+                    "beatId": link.beat_id,
+                    "coverageWeight": link.coverage_weight,
+                }
+                for link in storyboard.shot_beat_links
+                if link.role == CoverageRole.SUPPORTING and link.shot_id in scene_shot_ids
+            ],
+        }
+        for shot in payload["shots"]:
+            shot.pop("sceneId")
+            shot["localShotId"] = shot.pop("id")
+            for event in shot["audioPlan"]["events"]:
+                event.pop("id")
         responses.append(json.dumps(payload, ensure_ascii=False))
     return responses
 
@@ -454,6 +504,67 @@ def _run(repository, engine: PipelineEngine, secrets: RunSecretBroker, run_id: s
         runner.close()
 
 
+def test_job_runner_persists_obsolete_planning_policy_without_provider_dispatch(
+    repository,
+    brief,
+) -> None:
+    """The worker boundary keeps an old plan's failure code out of internal_error."""
+
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, _ = all_stage_payloads()
+    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, bible)
+    repository.update_stage(project.id, StageName.STORY_GRAPH, 0, graph)
+    repository.update_stage(project.id, StageName.SCENE_BEATS, 0, scene_beats)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORYBOARD],
+        provider_snapshot={"textModel": "fixture-model"},
+    )
+    current = repository.get_generation_plan(run.id)
+    historic_policy = "m1.5-p0.3"
+    draft = current.model_copy(
+        update={
+            "planning_policy_version": historic_policy,
+            "planning_policy_hash": sha256_text(historic_policy),
+            "plan_hash": "",
+        }
+    )
+    historic = generation_planning.GenerationPlan(
+        **draft.model_dump(mode="python", exclude={"plan_hash"}),
+        plan_hash=generation_planning._generation_plan_hash(draft),
+    )
+    with repository._write() as session:
+        row = session.get(GenerationPlanRow, run.id)
+        assert row is not None
+        row.plan = historic.model_dump(mode="json", by_alias=False)
+        row.plan_hash = historic.plan_hash
+
+    provider = QueueProvider([])
+    secrets = RunSecretBroker("obsolete-plan-secret")
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.FAILED
+    assert completed.failure_code == "planning.generation_planning_policy_obsolete"
+    assert completed.failed_stage == StageName.STORYBOARD
+    assert provider.requests == []
+    assert repository.list_stage_plans(run.id) == []
+    assert repository.list_generation_work_units(run.id) == []
+    assert repository.get_run_trace(run.id).artifacts == []
+    progress = repository.get_run_progress(run.id)
+    assert progress.failure_code == "planning.generation_planning_policy_obsolete"
+    assert progress.failed_stage == StageName.STORYBOARD
+    response = TestClient(create_app(repository)).get(f"/api/v2/runs/{run.id}/progress")
+    assert response.status_code == 200
+    assert response.json()["failureCode"] == "planning.generation_planning_policy_obsolete"
+    assert response.json()["failedStage"] == "storyboard"
+
+
 def test_pipeline_generates_traces_then_commits_all_stages_atomically(
     repository,
     brief,
@@ -506,6 +617,56 @@ def test_pipeline_generates_traces_then_commits_all_stages_atomically(
     assert all(request.metadata["attempt_id"] in {attempt.id for attempt in trace.attempts} for request in provider.requests)
     assert "snapshotHash" not in provider.requests[0].messages[1].content
     assert "stageHeads" not in provider.requests[0].messages[1].content
+
+
+def test_storyboard_only_pipeline_freezes_and_replays_its_own_timing_profile(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    """READY Scene Beats need not be regenerated for a Storyboard-only run."""
+
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, storyboard = all_stage_payloads()
+    for stage, payload in (
+        (StageName.STORY_BIBLE, bible),
+        (StageName.STORY_GRAPH, graph),
+        (StageName.SCENE_BEATS, scene_beats),
+    ):
+        repository.update_stage(project.id, stage, 0, payload)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORYBOARD],
+        provider_snapshot={"textModel": "fixture-model"},
+    )
+    provider = QueueProvider(_storyboard_only_responses(scene_beats, storyboard))
+    secrets = RunSecretBroker("storyboard-only-profile-secret")
+
+    import plotloom.validation as validation_module
+
+    def mutable_default_must_not_be_read():
+        raise AssertionError("Storyboard seal/install must use StagePlan provenance")
+
+    monkeypatch.setattr(
+        validation_module,
+        "default_dialogue_timing_profile",
+        mutable_default_must_not_be_read,
+    )
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 1
+    plans = repository.list_stage_plans(run.id)
+    assert [plan.stage for plan in plans] == [StageName.STORYBOARD]
+    assert plans[0].storyboard_dialogue_timing_profile is not None
+    assert len(provider.requests) == len(scene_beats.scenes)
 
 
 def test_dispatch_marker_is_committed_before_the_provider_call(repository, brief, monkeypatch) -> None:
@@ -1197,6 +1358,15 @@ def test_non_timing_scene_rejection_reaches_correction_without_fact_reprojection
         attempt for attempt in trace.attempts if attempt.source_attempt_id == rejected.id
     )
     assert correction.status == AttemptStatus.SUCCEEDED
+    accepted_validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == correction.id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert FRAGMENT_ID_BINDING_VERSION in accepted_validation.content[
+        "transformations"
+    ]
     assert "validation.internal_error" not in {
         attempt.outcome_code for attempt in trace.attempts
     }
@@ -1357,6 +1527,79 @@ def test_v2_graph_projection_rejection_is_corrected_instead_of_becoming_internal
     )
 
 
+def test_non_join_nonfinite_state_effect_reaches_typed_correction_and_installs(
+    repository,
+    brief,
+) -> None:
+    """A normal choice edge receives the same bounded repair path as a join."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    rejected_graph = json.loads(complete[1])
+    join_target_ids = {
+        edge.id
+        for join in topology.joins
+        for edge in topology.edges
+        if edge.target_node_id == join.join_node_id
+    }
+    target = next(edge for edge in topology.edges if edge.id not in join_target_ids)
+    next(edge for edge in rejected_graph["edges"] if edge["id"] == target.id)[
+        "stateEffects"
+    ] = {"ordinary": float("nan")}
+    provider = QueueProvider(
+        [
+            complete[0],
+            json.dumps(rejected_graph, ensure_ascii=False),
+            complete[1],
+        ]
+    )
+    secrets = RunSecretBroker("finite-json-repair-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    rejected = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.state_effect_not_json"
+    )
+    correction = next(
+        attempt for attempt in trace.attempts if attempt.source_attempt_id == rejected.id
+    )
+    assert correction.status == AttemptStatus.SUCCEEDED
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == rejected.id and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.state_effect_not_json",
+            "path": ["edges", target.id, "stateEffects", "ordinary"],
+            "edgeId": target.id,
+            "sourceNodeId": target.source_node_id,
+            "targetNodeId": target.target_node_id,
+            "stateKey": "ordinary",
+            "repairAction": "replace_with_finite_json",
+        }
+    ]
+    assert repository.get_stage_head(project.id, StageName.STORY_GRAPH).revision == 1
+
+
 def test_graph_join_subset_rejection_uses_typed_repair_facts(
     repository,
     brief,
@@ -1376,6 +1619,19 @@ def test_graph_join_subset_rejection_uses_typed_repair_facts(
     rejected_graph = json.loads(complete[1])
     rejected_graph["joinContracts"][0]["requiredStateKeys"] = ["route"]
     rejected_graph["joinContracts"][0]["allowedDifferences"] = ["other"]
+    join = topology.joins[0]
+    incoming_pairs = {
+        (source_id, join.join_node_id)
+        for source_id in join.incoming_node_ids
+    }
+    topology_edge_by_id = {edge.id: edge for edge in topology.edges}
+    for edge in rejected_graph["edges"]:
+        topology_edge = topology_edge_by_id[edge["id"]]
+        if (topology_edge.source_node_id, topology_edge.target_node_id) in incoming_pairs:
+            edge["stateEffects"] = {
+                "route": "shared",
+                "other": edge["id"],
+            }
     repaired_graph = json.loads(json.dumps(rejected_graph))
     repaired_graph["joinContracts"][0]["requiredStateKeys"] = ["route", "other"]
     provider = QueueProvider(
@@ -1408,18 +1664,28 @@ def test_graph_join_subset_rejection_uses_typed_repair_facts(
         if artifact.attempt_id == rejected_attempt.id
         and artifact.kind == ArtifactKind.VALIDATION
     )
-    assert validation.content["repairFacts"] == [
+    assert len(validation.content["repairFacts"]) == 1
+    repair_fact = validation.content["repairFacts"][0]
+    assert repair_fact["code"] == "semantic.join_allowed_differences_must_be_required"
+    assert repair_fact["path"] == ["joinContracts", topology.joins[0].id, "allowedDifferences"]
+    assert repair_fact["joinContractId"] == topology.joins[0].id
+    assert repair_fact["missingRequiredStateKeys"] == ["other"]
+    assert repair_fact["expectedRequiredStateKeys"] == ["route", "other"]
+    assert repair_fact["expectedAllowedDifferences"] == ["other"]
+    assert repair_fact["newRequiredKeyIncomingEdges"] == [
         {
-            "code": "semantic.join_allowed_differences_must_be_required",
-            "path": [
-                "joinContracts",
-                topology.joins[0].id,
-                "allowedDifferences",
+            "stateKey": "other",
+            "incomingEdges": [
+                {"edgeId": edge.id, "sourceNodeId": edge.source_node_id}
+                for edge in sorted(
+                    (
+                        edge
+                        for edge in topology.edges
+                        if edge.target_node_id == topology.joins[0].join_node_id
+                    ),
+                    key=lambda edge: (edge.id, edge.source_node_id),
+                )
             ],
-            "joinContractId": topology.joins[0].id,
-            "missingRequiredStateKeys": ["other"],
-            "expectedRequiredStateKeys": ["route", "other"],
-            "expectedAllowedDifferences": ["other"],
         }
     ]
     correction_prompt = provider.requests[2].messages[1].content
@@ -1457,6 +1723,24 @@ def test_graph_join_reconstruction_after_extraction_uses_complete_repair_fact(
         "evidence",
         "other",
     ]
+    join = topology.joins[0]
+    incoming_pairs = {
+        (source_id, join.join_node_id)
+        for source_id in join.incoming_node_ids
+    }
+    topology_edge_by_id = {edge.id: edge for edge in topology.edges}
+    for edge in rejected_graph["edges"]:
+        topology_edge = topology_edge_by_id[edge["id"]]
+        if (topology_edge.source_node_id, topology_edge.target_node_id) in incoming_pairs:
+            # These assignments are post-edge transition facts.  The rejected
+            # response is invalid only because ``other`` is allowed but absent
+            # from requiredStateKeys; it must otherwise satisfy the join-value
+            # contract so the typed reconstruction fact remains reachable.
+            edge["stateEffects"] = {
+                "route": "shared",
+                "evidence": edge["id"],
+                "other": edge["id"],
+            }
     repaired_graph = json.loads(json.dumps(rejected_graph))
     repaired_graph["joinContracts"][0]["requiredStateKeys"] = [
         "route",
@@ -1496,25 +1780,325 @@ def test_graph_join_reconstruction_after_extraction_uses_complete_repair_fact(
         if artifact.attempt_id == graph_attempts[1].id
         and artifact.kind == ArtifactKind.VALIDATION
     )
-    assert validation.content["repairFacts"] == [
-        {
-            "code": "semantic.join_allowed_differences_must_be_required",
-            "path": [
-                "joinContracts",
-                topology.joins[0].id,
-                "allowedDifferences",
-            ],
-            "joinContractId": topology.joins[0].id,
-            "missingRequiredStateKeys": ["other"],
-            "expectedRequiredStateKeys": ["route", "evidence", "other"],
-            "expectedAllowedDifferences": ["evidence", "other"],
-        }
+    assert len(validation.content["repairFacts"]) == 1
+    repair_fact = validation.content["repairFacts"][0]
+    assert repair_fact["code"] == "semantic.join_allowed_differences_must_be_required"
+    assert repair_fact["path"] == [
+        "joinContracts", topology.joins[0].id, "allowedDifferences"
     ]
+    assert repair_fact["expectedRequiredStateKeys"] == ["route", "evidence", "other"]
+    assert repair_fact["expectedAllowedDifferences"] == ["evidence", "other"]
+    assert repair_fact["newRequiredKeyIncomingEdges"][0]["stateKey"] == "other"
     final_prompt = provider.requests[3].messages[1].content
     assert "reconstruct_from_schema" in final_prompt
     assert "expectedRequiredStateKeys" in final_prompt
     assert '"route","evidence","other"' in final_prompt
     assert "join-reconstruction-secret" not in final_prompt
+
+
+def _join_incoming_edges(topology: StoryGraphTopology):
+    """Return one frozen join plus its direct incoming topology edges.
+
+    The correction contract is meaningful only when it binds to the actual
+    topology rather than an incidental order in the model-facing graph fill.
+    Keeping this small helper in the pipeline regression tests makes every
+    case below assert that same boundary.
+    """
+
+    join = topology.joins[0]
+    incoming = tuple(
+        sorted(
+            (
+                edge
+                for edge in topology.edges
+                if edge.target_node_id == join.join_node_id
+                and edge.source_node_id in join.incoming_node_ids
+            ),
+            key=lambda edge: (edge.id, edge.source_node_id),
+        )
+    )
+    assert len(incoming) == len(join.incoming_node_ids) >= 2
+    return join, incoming
+
+
+def _graph_edge_by_id(graph_fill: dict[str, object]) -> dict[str, dict[str, object]]:
+    return {
+        str(edge["id"]): edge
+        for edge in graph_fill["edges"]  # type: ignore[index,union-attr]
+    }
+
+
+def test_graph_join_missing_convergent_null_uses_exact_expected_value_and_installs(
+    repository,
+    brief,
+) -> None:
+    """JSON null remains an exact, authorized convergent peer value."""
+
+    # Create the run first because its frozen topology owns every edge that a
+    # correction may alter.  Recreate the provider only after the response is
+    # shaped against that topology.
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    rejected_graph = json.loads(complete[1])
+    join, incoming = _join_incoming_edges(topology)
+    rejected_graph["joinContracts"][0]["requiredStateKeys"] = ["marker"]
+    rejected_graph["joinContracts"][0]["allowedDifferences"] = []
+    edges = _graph_edge_by_id(rejected_graph)
+    edges[incoming[0].id]["stateEffects"] = {"marker": None}
+    edges[incoming[1].id]["stateEffects"] = {}
+    corrected_graph = json.loads(json.dumps(rejected_graph))
+    corrected_edges = _graph_edge_by_id(corrected_graph)
+    for edge in incoming:
+        corrected_edges[edge.id]["stateEffects"] = {"marker": None}
+
+    provider = QueueProvider(
+        [
+            complete[0],
+            json.dumps(rejected_graph, ensure_ascii=False),
+            json.dumps(corrected_graph, ensure_ascii=False),
+        ]
+    )
+    secrets = RunSecretBroker("typed-join-null-secret")
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED, completed.failure_code
+    trace = repository.get_run_trace(run.id)
+    primary = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.stage == StageName.STORY_GRAPH
+        and attempt.outcome_code == "semantic.join_state_effect_missing"
+    )
+    correction = next(
+        attempt for attempt in trace.attempts if attempt.source_attempt_id == primary.id
+    )
+    assert (primary.attempt_kind, primary.status) == (
+        GenerationAttemptKind.PRIMARY,
+        AttemptStatus.FAILED,
+    )
+    assert (correction.attempt_kind, correction.status, correction.outcome_code) == (
+        GenerationAttemptKind.CORRECTION,
+        AttemptStatus.SUCCEEDED,
+        "response.accepted",
+    )
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == primary.id and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.join_state_effect_missing",
+            "path": ["edges", incoming[1].id, "stateEffects", "marker"],
+            "joinContractId": join.id,
+            "joinNodeId": join.join_node_id,
+            "stateKey": "marker",
+            "mode": "convergent",
+            "incomingEdges": [
+                {"edgeId": edge.id, "sourceNodeId": edge.source_node_id}
+                for edge in incoming
+            ],
+            "repairAction": "set_missing",
+            "hasExpectedValue": True,
+            "expectedValue": None,
+        }
+    ]
+    assert "validation.internal_error" not in {
+        attempt.outcome_code for attempt in trace.attempts
+    }
+    assert repository.get_stage_head(project.id, StageName.STORY_GRAPH).revision == 1
+
+
+def test_graph_join_allowed_difference_promotes_key_and_populates_all_incoming_edges(
+    repository,
+    brief,
+) -> None:
+    """One correction turns an allowed-only key into a complete join contract."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    rejected_graph = json.loads(complete[1])
+    join, incoming = _join_incoming_edges(topology)
+    rejected_graph["joinContracts"][0]["requiredStateKeys"] = ["route"]
+    rejected_graph["joinContracts"][0]["allowedDifferences"] = ["variant"]
+    edges = _graph_edge_by_id(rejected_graph)
+    for edge in incoming:
+        # ``variant`` is absent from every frozen incoming edge in the primary
+        # response.  ``route`` is otherwise convergent, so the only defect is
+        # the allowed→required relation and its deterministic implications.
+        edges[edge.id]["stateEffects"] = {"route": "shared"}
+    corrected_graph = json.loads(json.dumps(rejected_graph))
+    corrected_graph["joinContracts"][0]["requiredStateKeys"] = ["route", "variant"]
+    corrected_edges = _graph_edge_by_id(corrected_graph)
+    for position, edge in enumerate(incoming, start=1):
+        corrected_edges[edge.id]["stateEffects"] = {
+            "route": "shared",
+            "variant": f"route-{position}",
+        }
+
+    provider = QueueProvider(
+        [
+            complete[0],
+            json.dumps(rejected_graph, ensure_ascii=False),
+            json.dumps(corrected_graph, ensure_ascii=False),
+        ]
+    )
+    secrets = RunSecretBroker("typed-join-promotion-secret")
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED, completed.failure_code
+    trace = repository.get_run_trace(run.id)
+    primary = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.stage == StageName.STORY_GRAPH
+        and attempt.outcome_code
+        == "semantic.join_allowed_differences_must_be_required"
+    )
+    correction = next(
+        attempt for attempt in trace.attempts if attempt.source_attempt_id == primary.id
+    )
+    assert correction.outcome_code == "response.accepted"
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == primary.id and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.join_allowed_differences_must_be_required",
+            "path": ["joinContracts", join.id, "allowedDifferences"],
+            "joinContractId": join.id,
+            "missingRequiredStateKeys": ["variant"],
+            "expectedRequiredStateKeys": ["route", "variant"],
+            "expectedAllowedDifferences": ["variant"],
+            "newRequiredKeyIncomingEdges": [
+                {
+                    "stateKey": "variant",
+                    "incomingEdges": [
+                        {"edgeId": edge.id, "sourceNodeId": edge.source_node_id}
+                        for edge in incoming
+                    ],
+                }
+            ],
+        }
+    ]
+    assert "validation.internal_error" not in {
+        attempt.outcome_code for attempt in trace.attempts
+    }
+    assert repository.get_stage_head(project.id, StageName.STORY_GRAPH).revision == 1
+
+
+def test_graph_join_convergent_conflict_uses_topology_bound_repair_and_installs(
+    repository,
+    brief,
+) -> None:
+    """A conflict supplies immutable incoming-edge scope, not guessed endpoints."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    rejected_graph = json.loads(complete[1])
+    join, incoming = _join_incoming_edges(topology)
+    rejected_graph["joinContracts"][0]["requiredStateKeys"] = ["route"]
+    rejected_graph["joinContracts"][0]["allowedDifferences"] = []
+    edges = _graph_edge_by_id(rejected_graph)
+    for position, edge in enumerate(incoming, start=1):
+        edges[edge.id]["stateEffects"] = {"route": f"conflict-{position}"}
+    corrected_graph = json.loads(json.dumps(rejected_graph))
+    corrected_edges = _graph_edge_by_id(corrected_graph)
+    for edge in incoming:
+        corrected_edges[edge.id]["stateEffects"] = {"route": "reconciled"}
+
+    provider = QueueProvider(
+        [
+            complete[0],
+            json.dumps(rejected_graph, ensure_ascii=False),
+            json.dumps(corrected_graph, ensure_ascii=False),
+        ]
+    )
+    secrets = RunSecretBroker("typed-join-conflict-secret")
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED, completed.failure_code
+    trace = repository.get_run_trace(run.id)
+    primary = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.stage == StageName.STORY_GRAPH
+        and attempt.outcome_code == "semantic.join_state_effect_conflict"
+    )
+    correction = next(
+        attempt for attempt in trace.attempts if attempt.source_attempt_id == primary.id
+    )
+    assert (correction.attempt_kind, correction.status, correction.outcome_code) == (
+        GenerationAttemptKind.CORRECTION,
+        AttemptStatus.SUCCEEDED,
+        "response.accepted",
+    )
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == primary.id and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.join_state_effect_conflict",
+            "path": ["joinContracts", join.id, "requiredStateKeys", "route"],
+            "joinContractId": join.id,
+            "joinNodeId": join.join_node_id,
+            "stateKey": "route",
+            "mode": "convergent",
+            "incomingEdges": [
+                {"edgeId": edge.id, "sourceNodeId": edge.source_node_id}
+                for edge in incoming
+            ],
+            "repairAction": "make_all_equal",
+            "hasExpectedValue": False,
+        }
+    ]
+    assert "validation.internal_error" not in {
+        attempt.outcome_code for attempt in trace.attempts
+    }
+    assert repository.get_stage_head(project.id, StageName.STORY_GRAPH).revision == 1
 
 
 def test_storyboard_invalid_entity_state_uses_frozen_bible_repair_fact(
@@ -1612,6 +2196,18 @@ def test_storyboard_invalid_entity_state_uses_frozen_bible_repair_fact(
             "allowedStates": ["awake"],
         }
     ]
+    accepted_validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == correction.id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert FRAGMENT_ID_BINDING_VERSION in accepted_validation.content[
+        "transformations"
+    ]
+    assert AUDIO_EVENT_ID_BINDING_VERSION in accepted_validation.content[
+        "transformations"
+    ]
     correction_prompt = next(
         request.messages[1].content
         for request in provider.requests
@@ -1620,6 +2216,282 @@ def test_storyboard_invalid_entity_state_uses_frozen_bible_repair_fact(
     )
     assert "验证器说明" in correction_prompt
     assert "required entity state is not allowed" not in correction_prompt
+
+
+def test_storyboard_audio_timing_uses_exact_frozen_repair_fact(
+    repository,
+    brief,
+) -> None:
+    """A storyboard correction receives a safe action, not error prose/arithmetic."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        list(StageName),
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+
+    storyboard_start = 2 + len(topology.nodes)
+    rejected = json.loads(responses[storyboard_start])
+    rejected["shots"][0]["audioPlan"] = {
+        "events": [
+            {
+                "kind": "ambience",
+                "description": "低频机器声",
+                "startOffsetUnits": 0,
+                "durationUnits": rejected["shots"][0]["durationUnits"] + 1,
+            }
+        ]
+    }
+    corrected = json.loads(json.dumps(rejected))
+    corrected["shots"][0]["audioPlan"]["events"][0]["durationUnits"] = (
+        corrected["shots"][0]["durationUnits"]
+    )
+    responses[storyboard_start : storyboard_start + 1] = [
+        json.dumps(rejected, ensure_ascii=False),
+        json.dumps(corrected, ensure_ascii=False),
+    ]
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("audio-timing-repair-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    rejected_attempt = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.audio_timing"
+    )
+    correction = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.source_attempt_id == rejected_attempt.id
+    )
+    assert correction.status == AttemptStatus.SUCCEEDED
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == rejected_attempt.id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.audio_timing",
+            "path": ["shots", 0, "audioPlan", "events", 0, "durationUnits"],
+            "shotLocalId": rejected["shots"][0]["localShotId"],
+            "eventIndex": 0,
+            "startOffsetUnits": 0,
+            "durationUnits": rejected["shots"][0]["durationUnits"] + 1,
+            "shotDurationUnits": rejected["shots"][0]["durationUnits"],
+            "repairAction": "replace_duration",
+            "replacementDurationUnits": rejected["shots"][0]["durationUnits"],
+        }
+    ]
+    correction_prompt = next(
+        request.messages[1].content
+        for request in provider.requests
+        if "semantic.audio_timing" in request.messages[1].content
+        and '"repairAction":"replace_duration"' in request.messages[1].content
+    )
+    assert "验证器说明" in correction_prompt
+    assert "audio event must fit within the shot duration" not in correction_prompt
+    assert "audio-timing-repair-secret" not in correction_prompt
+
+
+def test_storyboard_timing_plan_correction_seals_and_installs(repository, brief) -> None:
+    """A Queue provider applies one executable timing plan before sealing."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id, RunKind.PIPELINE, list(StageName),
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    first_scene_index = 2
+    first_scene = json.loads(responses[first_scene_index])
+    first_beat_id = first_scene["beats"][0]["localBeatId"]
+    first_scene["dialogueCues"] = [
+        {
+            "localCueId": "timing-probe",
+            "beatLocalId": first_beat_id,
+            "order": 1,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "一二三四五六七八九十",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "克制",
+        }
+    ]
+    responses[first_scene_index] = json.dumps(first_scene, ensure_ascii=False)
+    storyboard_index = 2 + len(topology.nodes)
+    original = json.loads(responses[storyboard_index])
+    # The Scene Beats binder derives canonical cue IDs from its own canonical
+    # scene and beat IDs, not from a model-local ID.
+    canonical_scene_id = canonical_fragment_id(
+        "scene", topology.nodes[0].id, str(first_scene["scenes"][0]["order"])
+    )
+    canonical_beat_id = canonical_fragment_id(
+        "beat", canonical_scene_id, str(first_scene["beats"][0]["order"])
+    )
+    cue_id = canonical_fragment_id("dialogue-cue", canonical_beat_id, "1")
+    original["shots"][0]["cueIds"] = [cue_id]
+    corrected = json.loads(json.dumps(original))
+    corrected["shots"][0]["durationUnits"] = 3300
+    corrected["shots"][1]["durationUnits"] = 1
+    responses[storyboard_index : storyboard_index + 1] = [
+        json.dumps(original, ensure_ascii=False),
+        json.dumps(corrected, ensure_ascii=False),
+    ]
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("timing-plan-secret")
+
+    completed = _run(
+        repository, PipelineEngine(repository, RecordingResolver(provider), secrets), secrets, run.id
+    )
+
+    trace = repository.get_run_trace(run.id)
+    assert completed.status == RunStatus.SUCCEEDED, completed.failure_code
+    rejected = next(
+        attempt for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.cue_duration_exceeds_shot"
+    )
+    correction = next(attempt for attempt in trace.attempts if attempt.source_attempt_id == rejected.id)
+    assert correction.status == AttemptStatus.SUCCEEDED
+    validation = next(
+        artifact for artifact in trace.artifacts
+        if artifact.attempt_id == rejected.id and artifact.kind == ArtifactKind.VALIDATION
+    )
+    repair_facts = validation.content["repairFacts"]
+    assert {fact["code"] for fact in repair_facts} == {"semantic.cue_duration_exceeds_shot"}
+    assert repair_facts[0]["planHash"] == repair_facts[0]["plan"]["planHash"]
+    assert repair_facts[0]["guidanceHash"] == repair_facts[0]["plan"]["guidanceHash"]
+    assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 1
+
+
+@pytest.mark.parametrize("tamper_mode", ["other_guidance", "legacy_plan"])
+def test_storyboard_timing_fact_rejects_unbound_or_rehashed_guidance_before_correction_dispatch(
+    repository,
+    brief,
+    monkeypatch,
+    tamper_mode,
+) -> None:
+    """A self-consistent plan from another scene cannot authorize a correction."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id, RunKind.PIPELINE, list(StageName),
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    first_scene_index = 2
+    first_scene = json.loads(responses[first_scene_index])
+    first_beat_id = first_scene["beats"][0]["localBeatId"]
+    first_scene["dialogueCues"] = [
+        {
+            "localCueId": "timing-probe",
+            "beatLocalId": first_beat_id,
+            "order": 1,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "一二三四五六七八九十",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "克制",
+        }
+    ]
+    responses[first_scene_index] = json.dumps(first_scene, ensure_ascii=False)
+    storyboard_index = 2 + len(topology.nodes)
+    rejected = json.loads(responses[storyboard_index])
+    canonical_scene_id = canonical_fragment_id(
+        "scene", topology.nodes[0].id, str(first_scene["scenes"][0]["order"])
+    )
+    canonical_beat_id = canonical_fragment_id(
+        "beat", canonical_scene_id, str(first_scene["beats"][0]["order"])
+    )
+    rejected["shots"][0]["cueIds"] = [
+        canonical_fragment_id("dialogue-cue", canonical_beat_id, "1")
+    ]
+    responses[storyboard_index] = json.dumps(rejected, ensure_ascii=False)
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("timing-guidance-tamper-secret")
+    original_add_artifact = repository.add_artifact
+    tampered_artifact_ids: list[str] = []
+
+    def add_rehashed_timing_validation(artifact: Artifact) -> Artifact:
+        if (
+            artifact.kind == ArtifactKind.VALIDATION
+            and isinstance(artifact.content, dict)
+            and any(
+                item.get("code") == "semantic.cue_duration_exceeds_shot"
+                for item in artifact.content.get("repairFacts", [])
+                if isinstance(item, dict)
+            )
+        ):
+            content = deepcopy(artifact.content)
+            fact = content["repairFacts"][0]
+            plan = fact["plan"]
+            if tamper_mode == "other_guidance":
+                plan["sceneId"] = "other-scene"
+                plan["guidance"]["sceneId"] = "other-scene"
+                guidance_unsigned = plan["guidance"]
+                guidance_hash = hashlib.sha256(
+                    finite_canonical_json(guidance_unsigned).encode("utf-8")
+                ).hexdigest()
+                plan["guidanceHash"] = guidance_hash
+                fact["guidanceHash"] = guidance_hash
+            else:
+                plan.pop("guidance")
+                plan.pop("guidanceHash")
+                fact.pop("guidanceHash")
+            plan_unsigned = {key: value for key, value in plan.items() if key != "planHash"}
+            plan["planHash"] = hashlib.sha256(
+                finite_canonical_json(plan_unsigned).encode("utf-8")
+            ).hexdigest()
+            fact["planHash"] = plan["planHash"]
+            artifact = artifact.model_copy(
+                update={"content": content, "content_hash": stable_hash(content)}
+            )
+            tampered_artifact_ids.append(artifact.id)
+        return original_add_artifact(artifact)
+
+    monkeypatch.setattr(repository, "add_artifact", add_rehashed_timing_validation)
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert tampered_artifact_ids
+    assert completed.status == RunStatus.FAILED
+    trace = repository.get_run_trace(run.id)
+    rejected_attempt = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.cue_duration_exceeds_shot"
+    )
+    correction = next(
+        attempt for attempt in trace.attempts if attempt.source_attempt_id == rejected_attempt.id
+    )
+    assert correction.outcome_code == "contract.correction_source_changed"
+    assert len(provider.requests) == storyboard_index + 1
+    assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 0
 
 
 def test_scene_beats_capacity_rejection_keeps_exact_frozen_guidance_in_correction(

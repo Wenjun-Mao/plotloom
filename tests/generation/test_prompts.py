@@ -130,6 +130,26 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     assert "missingRequiredStateKeys" in correction_spec.user
     assert "allowedStates" in correction_spec.user
     assert "dialogue_capacity_guidance" in correction_spec.user
+    assert "AudioTimingRepairFact" in correction_spec.user
+    assert "repairAction=replace_duration" in correction_spec.user
+    assert "零基索引" in correction_spec.user
+    assert "semantic.primary_coverage" in correction_spec.user
+    assert "semantic.cue_not_covered_by_shot" in correction_spec.user
+    assert "PRIMARY 或 SUPPORTING" in correction_spec.user
+    assert scene_spec.version == "3.11.0"
+    assert "DialogueNodeBudgetRepairFact" in correction_spec.user
+    assert "StoryboardTimingRepairPlanFact" in correction_spec.user
+    assert "JoinStateEffectRepairFact" in correction_spec.user
+    assert "EdgeStateEffectJsonRepairFact" in correction_spec.user
+    assert "hasExpectedValue" in correction_spec.user
+    assert correction_spec.version == "3.8.0"
+    storyboard_fragment_spec, _spec_hash, _source = repository.load(
+        "storyboard_fragment"
+    )
+    assert storyboard_fragment_spec.version == "3.4.0"
+    for spec in (scene_spec, storyboard_fragment_spec):
+        assert "状态变化只发生在同一个" in spec.user
+        assert "两端共同声明的键" in spec.user
 
 
 def test_storyboard_schema_and_media_prompts_are_separate() -> None:

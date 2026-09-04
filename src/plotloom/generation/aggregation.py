@@ -9,6 +9,7 @@ from typing import TypeVar
 from pydantic import BaseModel
 
 from ..domain import (
+    DialogueTimingProfile,
     ProjectBrief,
     StageName,
     SceneBeatPlanV2,
@@ -17,6 +18,7 @@ from ..domain import (
     StoryboardV2,
 )
 from ..canonical_schema import V2CoverageRole
+from ..validation import DomainValidationError, validate_stage_payload
 from .fragments import (
     SceneBeatsFragment,
     StageFragment,
@@ -50,6 +52,7 @@ def aggregate_stage_fragments(
     bible: StoryBibleV2 | None = None,
     graph: StoryGraphV2 | None = None,
     scene_beats: SceneBeatPlanV2 | None = None,
+    dialogue_timing_profile: DialogueTimingProfile | None = None,
 ) -> StoryBibleV2 | StoryGraphV2 | SceneBeatPlanV2 | StoryboardV2:
     """Merge exactly the StagePlan's candidates and run the canonical validator.
 
@@ -65,6 +68,15 @@ def aggregate_stage_fragments(
         payload = _merge(stage_plan, ordered, scene_beats=scene_beats)
         _assert_aggregate_size(stage_plan, payload)
         _validate_aggregate_semantics(stage_plan.stage, payload, bible=bible, graph=graph, scene_beats=scene_beats)
+        _validate_canonical_parity(
+            stage_plan,
+            payload,
+            brief=brief,
+            bible=bible,
+            graph=graph,
+            scene_beats=scene_beats,
+            dialogue_timing_profile=dialogue_timing_profile,
+        )
         return payload
     except AggregateValidationError as error:
         if error.stage is not None:
@@ -313,6 +325,83 @@ def _validate_aggregate_semantics(
         if not isinstance(payload, StoryboardV2) or scene_beats is None:
             raise AggregateValidationError("storyboard aggregation requires sealed V2 scene beats", code="aggregate.semantic_invalid")
         _assert_exactly_one_primary_per_beat(payload, scene_beats)
+
+
+def _validate_canonical_parity(
+    stage_plan: StagePlan,
+    payload: StoryBibleV2 | StoryGraphV2 | SceneBeatPlanV2 | StoryboardV2,
+    *,
+    brief: ProjectBrief,
+    bible: StoryBibleV2 | None,
+    graph: StoryGraphV2 | None,
+    scene_beats: SceneBeatPlanV2 | None,
+    dialogue_timing_profile: DialogueTimingProfile | None,
+) -> None:
+    """Run the exact V2 installation gate before an aggregate receives a seal.
+
+    Fragment-local binding deliberately cannot prove cross-shard ordering,
+    coverage, or total timing.  The seal is therefore the first boundary that
+    owns the complete candidate.  Reusing ``validate_stage_payload`` keeps
+    the pre-seal and atomic-install contracts identical.
+
+    Scene Beats and Storyboard each own the exact profile in the StagePlan
+    which bound their own output.  A Storyboard-only run can consume a READY
+    Scene Beats revision from an earlier run, whose canonical payload does not
+    claim generator-policy provenance.  Neither branch may fall back to the
+    mutable process default: accepting with a different timing policy would
+    make a sealed artifact fail later during canonical installation.
+    """
+
+    timing_profile: DialogueTimingProfile | None = None
+    if stage_plan.stage == StageName.SCENE_BEATS:
+        timing_profile = stage_plan.dialogue_timing_profile
+        if timing_profile is None:
+            raise AggregateValidationError(
+                "Scene Beats aggregate requires its frozen dialogue timing profile",
+                code="aggregate.frozen_dialogue_timing_profile_missing",
+            )
+    elif stage_plan.stage == StageName.STORYBOARD:
+        timing_profile = stage_plan.storyboard_dialogue_timing_profile
+        if timing_profile is None:
+            raise AggregateValidationError(
+                "Storyboard aggregate requires its frozen dialogue timing profile",
+                code="aggregate.frozen_dialogue_timing_profile_missing",
+            )
+        if (
+            dialogue_timing_profile is not None
+            and stage_plan.storyboard_dialogue_timing_profile is not None
+            and dialogue_timing_profile != stage_plan.storyboard_dialogue_timing_profile
+        ):
+            raise AggregateValidationError(
+                "Storyboard aggregate timing profile does not match its frozen StagePlan",
+                code="aggregate.frozen_dialogue_timing_profile_mismatch",
+            )
+
+    try:
+        validate_stage_payload(
+            stage_plan.stage,
+            payload,
+            schema_version=2,
+            brief=brief,
+            bible=bible,
+            graph=graph,
+            scene_beats=scene_beats,
+            dialogue_timing_profile=timing_profile,
+        )
+    except DomainValidationError as error:
+        issue_codes = ", ".join(sorted({str(issue["code"]) for issue in error.issues}))
+        raise AggregateValidationError(
+            "aggregate failed canonical validation"
+            + (f": {issue_codes}" if issue_codes else ""),
+            code="aggregate.canonical_rejected",
+        ) from error
+    except (TypeError, ValueError) as error:
+        # A malformed frozen dependency is a deterministic aggregate contract
+        # failure, never a reason to defer validation until installation.
+        raise AggregateValidationError(
+            "aggregate cannot satisfy the canonical validation contract",
+            code="aggregate.canonical_contract_invalid",
+        ) from error
 
 
 def _assert_aggregate_size(

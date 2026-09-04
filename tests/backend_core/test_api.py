@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -19,7 +20,15 @@ from plotloom.domain import (
     WorkUnitFailureDisposition,
 )
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse
-from plotloom.persistence import EntityRevisionRow, SQLiteRepository, StageHeadRow, stable_hash
+from plotloom.generation.planning import GenerationPlan, _generation_plan_hash
+from plotloom.generation.prompts import sha256_text
+from plotloom.persistence import (
+    EntityRevisionRow,
+    GenerationPlanRow,
+    SQLiteRepository,
+    StageHeadRow,
+    stable_hash,
+)
 from plotloom.pipeline import RunSecretBroker
 
 from .conftest import all_stage_payloads
@@ -368,6 +377,46 @@ def test_run_progress_is_bounded_and_excludes_prompt_response_and_validation_pay
         "artifacts",
     ):
         assert forbidden not in serialized
+
+
+def test_exact_repair_api_projects_old_parent_plan_as_ineligible(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    _, source, unit, _ = _quarantined_bible_work_unit(repository, brief)
+    current = repository.get_generation_plan(source.id)
+    historic_policy = "m1.5-p0.3"
+    draft = current.model_copy(
+        update={
+            "planning_policy_version": historic_policy,
+            "planning_policy_hash": sha256_text(historic_policy),
+            "plan_hash": "",
+        }
+    )
+    historic = GenerationPlan(
+        **draft.model_dump(mode="python", exclude={"plan_hash"}),
+        plan_hash=_generation_plan_hash(draft),
+    )
+    with repository._write() as session:
+        row = session.get(GenerationPlanRow, source.id)
+        assert row is not None
+        row.plan = deepcopy(historic.model_dump(mode="json", by_alias=False))
+        row.plan_hash = historic.plan_hash
+
+    client = TestClient(create_app(repository))
+    progress = client.get(f"/api/v2/runs/{source.id}/progress")
+    rejected = client.post(
+        f"/api/v2/runs/{source.id}/work-units/{unit.id}/repairs",
+        json={},
+        headers={"Idempotency-Key": "obsolete-parent-plan-api"},
+    )
+
+    assert progress.status_code == 200
+    projected = progress.json()["workUnits"][0]
+    assert projected["repairEligible"] is False
+    assert projected["repairReasonCode"] == "repair.parent_plan_obsolete"
+    assert rejected.status_code == 409
+    assert rejected.json()["code"] == "repair.parent_plan_obsolete"
 
 
 def test_exact_work_unit_repair_uses_frozen_profile_and_rejects_client_overrides(

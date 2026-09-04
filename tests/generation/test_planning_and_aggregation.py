@@ -94,8 +94,21 @@ def _legacy_story_graph() -> StoryGraph:
         StoryEdge(id="e1", source_node_id="start", target_node_id="decision-1"),
         StoryEdge(id="e2", source_node_id="decision-1", target_node_id="route-a", kind=StoryEdgeKind.CHOICE, choice_text="去控制室"),
         StoryEdge(id="e3", source_node_id="decision-1", target_node_id="route-b", kind=StoryEdgeKind.CHOICE, choice_text="去记忆舱"),
-        StoryEdge(id="e4", source_node_id="route-a", target_node_id="join"),
-        StoryEdge(id="e5", source_node_id="route-b", target_node_id="join"),
+        # A required join fact is a post-edge assignment.  The two source
+        # nodes may retain different exit facts; their direct join edges must
+        # instead establish the same arrival state.
+        StoryEdge(
+            id="e4",
+            source_node_id="route-a",
+            target_node_id="join",
+            state_effects={"identity": "confirmed"},
+        ),
+        StoryEdge(
+            id="e5",
+            source_node_id="route-b",
+            target_node_id="join",
+            state_effects={"identity": "confirmed"},
+        ),
         StoryEdge(id="e6", source_node_id="join", target_node_id="decision-2"),
         StoryEdge(id="e7", source_node_id="decision-2", target_node_id="ending-1", kind=StoryEdgeKind.CHOICE, choice_text="唤醒"),
         StoryEdge(id="e8", source_node_id="decision-2", target_node_id="ending-2", kind=StoryEdgeKind.CHOICE, choice_text="关闭"),
@@ -157,8 +170,10 @@ def _legacy_scene_beats(graph: StoryGraph) -> "SceneBeatPlan":
 
 def make_scene_beats(graph):
     state = ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[])
-    scenes = [DramaticSceneV2(id=f"scene-{node.id}", story_node_id=node.id, order=1, title=node.title, objective=node.summary, location_id=None, character_ids=[], beat_ids=[f"beat-{node.id}"], duration_budget_units=2, entry_state=state, exit_state=state) for node in graph.nodes]
-    beats = [BeatV2(id=f"beat-{node.id}", scene_id=f"scene-{node.id}", order=1, description=node.summary, purpose="推进叙事", visible_event=node.summary, immediate_result="状态发生改变", dramatic_change="推进", entry_state=state, exit_state=state, continuity_anchors=[], continuity_delta={}) for node in graph.nodes]
+    join_entry_state = state.model_copy(update={"facts": {"identity": "confirmed"}})
+    state_for_node = lambda node: join_entry_state if node.kind.value == "join" else state
+    scenes = [DramaticSceneV2(id=f"scene-{node.id}", story_node_id=node.id, order=1, title=node.title, objective=node.summary, location_id=None, character_ids=[], beat_ids=[f"beat-{node.id}"], duration_budget_units=3, entry_state=state_for_node(node), exit_state=state_for_node(node)) for node in graph.nodes]
+    beats = [BeatV2(id=f"beat-{node.id}", scene_id=f"scene-{node.id}", order=1, description=node.summary, purpose="推进叙事", visible_event=node.summary, immediate_result="状态发生改变", dramatic_change="推进", entry_state=state_for_node(node), exit_state=state_for_node(node), continuity_anchors=[], continuity_delta={}) for node in graph.nodes]
     return SceneBeatPlanV2(scenes=scenes, beats=beats, dialogue_cues=[])
 
 
@@ -196,7 +211,10 @@ def _legacy_storyboard(plan) -> Storyboard:
 
 def make_storyboard(plan):
     state = ContinuityStateV2(facts={}, entity_states=[], screen_direction=None, lighting=None, sound=None, notes=[])
-    shots = [ShotV2(id=f"shot-{scene.id}-{order}", scene_id=scene.id, order=order, title=scene.title, shot_size="medium", duration_units=2, camera_angle="", camera_movement="", composition="", visual_intent="", motion_intent="", action=scene.objective, transition="", cue_ids=[], audio_plan=AudioPlan(events=[]), character_ids=[], location_id=None, prop_ids=[], required_entity_states=[], entry_state=state, exit_state=state) for scene in plan.scenes for order in (1, 2)]
+    # The primary/supporting pair meets the two-shot fixture minimum while
+    # leaving one unit for a legal additional supporting shot in the coverage
+    # test below.
+    shots = [ShotV2(id=f"shot-{scene.id}-{order}", scene_id=scene.id, order=order, title=scene.title, shot_size="medium", duration_units=1, camera_angle="", camera_movement="", composition="", visual_intent="", motion_intent="", action=scene.objective, transition="", cue_ids=[], audio_plan=AudioPlan(events=[]), character_ids=[], location_id=None, prop_ids=[], required_entity_states=[], entry_state=scene.entry_state, exit_state=scene.exit_state) for scene in plan.scenes for order in (1, 2)]
     links = [ShotBeatLinkV2(shot_id=f"shot-{scene.id}-{order}", beat_id=scene.beat_ids[0], role="primary" if order == 1 else "supporting", coverage_weight=1.0) for scene in plan.scenes for order in (1, 2)]
     return StoryboardV2(shots=shots, shot_beat_links=links)
 
@@ -480,7 +498,7 @@ def test_scene_beat_aggregation_requires_exact_ordered_unit_manifest():
 
 
 def test_storyboard_aggregation_rejects_cross_unit_references_and_multiple_primary_links():
-    bible, graph, scene_beats, _, _, _, storyboard_stage = _stage_plans()
+    bible, graph, scene_beats, _, _, beats_stage, storyboard_stage = _stage_plans()
     storyboard = make_storyboard(scene_beats)
     fragments = _storyboard_fragments(storyboard_stage, storyboard)
 
@@ -502,16 +520,24 @@ def test_storyboard_aggregation_rejects_cross_unit_references_and_multiple_prima
             bible=bible,
             graph=graph,
             scene_beats=scene_beats,
+            dialogue_timing_profile=beats_stage.dialogue_timing_profile,
         )
 
+    second_primary_shot = fragments[0].shots[0].model_copy(
+        update={"id": "duplicate-primary-shot", "order": 3}
+    )
     duplicate_primary = fragments[0].model_copy(
         update={
+            "shots": (*fragments[0].shots, second_primary_shot),
             "shot_beat_links": (
-                *fragments[0].shot_beat_links[:1],
-                fragments[0].shot_beat_links[1].model_copy(
-                    update={"role": "primary"}
+                *fragments[0].shot_beat_links,
+                ShotBeatLinkV2(
+                    shot_id=second_primary_shot.id,
+                    beat_id=scene_beats.scenes[0].beat_ids[0],
+                    role="primary",
+                    coverage_weight=1.0,
                 ),
-            )
+            ),
         }
     )
     with pytest.raises(AggregateValidationError, match="more than one PRIMARY"):
@@ -522,11 +548,12 @@ def test_storyboard_aggregation_rejects_cross_unit_references_and_multiple_prima
             bible=bible,
             graph=graph,
             scene_beats=scene_beats,
+            dialogue_timing_profile=beats_stage.dialogue_timing_profile,
         )
 
 
 def test_storyboard_aggregation_allows_multiple_supporting_links_per_beat():
-    bible, graph, scene_beats, _, _, _, storyboard_stage = _stage_plans()
+    bible, graph, scene_beats, _, _, beats_stage, storyboard_stage = _stage_plans()
     storyboard = make_storyboard(scene_beats)
     fragments = _storyboard_fragments(storyboard_stage, storyboard)
     first = fragments[0]
@@ -551,8 +578,72 @@ def test_storyboard_aggregation_allows_multiple_supporting_links_per_beat():
         bible=bible,
         graph=graph,
         scene_beats=scene_beats,
+        dialogue_timing_profile=beats_stage.dialogue_timing_profile,
     )
     assert len(aggregate.shot_beat_links) == len(storyboard.shot_beat_links) + 1
+
+
+def test_aggregate_uses_frozen_profile_and_rejects_global_canonical_failures(monkeypatch):
+    """A seal must observe the same timing gate as canonical installation."""
+
+    bible, graph, scene_beats, _, _, beats_stage, storyboard_stage = _stage_plans()
+    storyboard = make_storyboard(scene_beats)
+    fragments = _storyboard_fragments(storyboard_stage, storyboard)
+
+    import plotloom.validation as validation_module
+
+    def current_default_must_not_be_read():
+        raise AssertionError("aggregate validation must use the frozen timing profile")
+
+    monkeypatch.setattr(
+        validation_module,
+        "default_dialogue_timing_profile",
+        current_default_must_not_be_read,
+    )
+
+    aggregate = aggregate_stage_fragments(
+        storyboard_stage,
+        fragments,
+        brief=_brief(),
+        bible=bible,
+        graph=graph,
+        scene_beats=scene_beats,
+        dialogue_timing_profile=beats_stage.dialogue_timing_profile,
+    )
+    assert aggregate == storyboard
+
+    # Current Storyboard plans now own their profile.  A caller may not omit
+    # it from the aggregate boundary and thereby trigger a mutable validator
+    # default; the StagePlan remains the source of the exact frozen value.
+    assert aggregate_stage_fragments(
+        storyboard_stage,
+        fragments,
+        brief=_brief(),
+        bible=bible,
+        graph=graph,
+        scene_beats=scene_beats,
+    ) == storyboard
+
+    over_budget = fragments[0].model_copy(
+        update={
+            "shots": (
+                fragments[0].shots[0].model_copy(update={"duration_units": 3}),
+                *fragments[0].shots[1:],
+            )
+        }
+    )
+    with pytest.raises(AggregateValidationError) as rejected:
+        aggregate_stage_fragments(
+            storyboard_stage,
+            [over_budget, *fragments[1:]],
+            brief=_brief(),
+            bible=bible,
+            graph=graph,
+            scene_beats=scene_beats,
+            dialogue_timing_profile=beats_stage.dialogue_timing_profile,
+        )
+    assert rejected.value.code == "aggregate.canonical_rejected"
+    assert "gate.duration.budget" in str(rejected.value)
 
 
 def _brief(*, shots_per_scene_max: int = 2):

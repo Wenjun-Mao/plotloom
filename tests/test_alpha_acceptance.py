@@ -52,7 +52,17 @@ def _profile(profile_id: str) -> TextProviderProfileSnapshot:
 
 
 def _json_after(content: str, marker: str) -> Any:
-    return json.JSONDecoder().raw_decode(content.rsplit(marker, 1)[1].lstrip())[0]
+    """Read the first labelled JSON value, ignoring instructional echoes."""
+
+    decoder = json.JSONDecoder()
+    offset = 0
+    while (index := content.find(marker, offset)) != -1:
+        remainder = content[index + len(marker) :].lstrip()
+        try:
+            return decoder.raw_decode(remainder)[0]
+        except json.JSONDecodeError:
+            offset = index + len(marker)
+    raise AssertionError(f"no JSON value follows marker {marker!r}")
 
 
 class _FixtureProvider:

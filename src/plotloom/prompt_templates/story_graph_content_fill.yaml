@@ -1,5 +1,5 @@
 id: story_graph_content_fill
-version: "2.4.0"
+version: "2.5.0"
 stage: story_graph
 description: Fill narrative content into an immutable Story Graph topology.
 system: |-
@@ -24,7 +24,7 @@ user: |-
   严格按清单顺序输出全部 nodes、edges 和 joinContracts；每个 id 必须逐字符原样复制，不能缩写、翻译、重新生成或替换。数组数量必须与 Schema 的 minItems/maxItems 完全相同。
   仅为骨架中每个 node ID 填写 title、summary；为每个 edge ID 填写 choiceText、stateEffects；为每个 joinContract ID 填写 requiredStateKeys、allowedDifferences、reconciliation、notes。
   choice 边必须有 choiceText；互动项目的选择必须产生可感知的 stateEffects。continuation 边的 choiceText 应为 null。
-  requiredStateKeys 是每条进入该汇流的路径都必须明确携带、并在汇流时检查的状态键；它不表示这些键的值必须相同。allowedDifferences 必须是 requiredStateKeys 的子集，表示这些已追踪键中允许在各路径之间保持不同值的部分。两个数组内的键都必须非空且各自唯一；先确定 requiredStateKeys，再只从其中逐字符复制键到 allowedDifferences，绝不能新增只存在于 allowedDifferences 的键。若没有合理差异就输出 []；若差异必须保留，则同名键也必须列入 requiredStateKeys。allowedDifferences 非空时，reconciliation 必须明确说明如何在保留差异的同时汇流。
+  stateEffects 是穿过该 edge 后生效的状态赋值。requiredStateKeys 是每条直接进入该汇流的 edge 都必须明确赋值、并在汇流入口检查的状态键：在确定 requiredStateKeys 后，找到骨架中每条 targetNodeId 等于该 joinNodeId 的 edge，并在它的 stateEffects 中逐字符写出每个 required key。即使某个值源自更早的选择，也必须在这条直接入边上重申其当前值，不能要求后续场景自行推断路径历史。allowedDifferences 必须是 requiredStateKeys 的子集；未列入 allowedDifferences 的 key 在所有直接入边上必须使用完全相同的 JSON 值，列入的 key 可以不同。两个数组内的键都必须非空且各自唯一；先确定 requiredStateKeys，再只从其中逐字符复制键到 allowedDifferences。若没有合理差异就输出 []；allowedDifferences 非空时，reconciliation 必须明确说明如何保留并处理各入边差异。
 variables:
   story_bible:
     required: true
@@ -39,5 +39,5 @@ variables:
     required: true
 output:
   format: json
-  schema_id: story_graph_content_fill.v2
+  schema_id: story_graph_content_fill.v3
   structured_output_mode: prefer

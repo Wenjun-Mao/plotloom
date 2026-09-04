@@ -4,7 +4,7 @@
 >
 > **快照日期：**2026-09-04。产品结论以固定版本为基线，不随远端分支漂移。
 >
-> **决策依据：**能力追踪采用 [ADR 0008](../adr/0008-capability-based-adoption-tracking.md)，当前独立仓库与身份边界采用 [ADR 0010](../adr/0010-plotloom-clean-repository.md)，运行与生产边界采用 [ADR 0011](../adr/0011-provider-profiles-and-generation-work-units.md)、[ADR 0012](../adr/0012-approved-storyboards-and-production-units.md)、[ADR 0013](../adr/0013-model-neutral-reliable-generation.md)、[ADR 0014](../adr/0014-project-lifecycle-and-workbench.md)、[ADR 0015](../adr/0015-exact-work-unit-repair.md)、[ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md)、[ADR 0017](../adr/0017-alpha-validation-and-correction-boundaries.md) 和 [ADR 0018](../adr/0018-trusted-story-timing-allocation.md)。ADR 0003–0007 保留了重建阶段的历史架构证据。
+> **决策依据：**能力追踪采用 [ADR 0008](../adr/0008-capability-based-adoption-tracking.md)，当前独立仓库与身份边界采用 [ADR 0010](../adr/0010-plotloom-clean-repository.md)，运行与生产边界采用 [ADR 0011](../adr/0011-provider-profiles-and-generation-work-units.md)、[ADR 0012](../adr/0012-approved-storyboards-and-production-units.md)、[ADR 0013](../adr/0013-model-neutral-reliable-generation.md)、[ADR 0014](../adr/0014-project-lifecycle-and-workbench.md)、[ADR 0015](../adr/0015-exact-work-unit-repair.md)、[ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md)、[ADR 0017](../adr/0017-alpha-validation-and-correction-boundaries.md)、[ADR 0018](../adr/0018-trusted-story-timing-allocation.md) 和 [ADR 0019](../adr/0019-exact-fragment-and-join-state-contracts.md)。ADR 0003–0007 保留了重建阶段的历史架构证据。
 
 ## 一眼看懂当前状态
 

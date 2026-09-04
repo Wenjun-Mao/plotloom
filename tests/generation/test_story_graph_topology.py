@@ -19,11 +19,14 @@ from plotloom.generation.story_graph_topology import (
 from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.work_units import (
     DialogueTimingRepairFact,
+    EdgeStateEffectJsonRepairFact,
     JoinAllowedDifferencesRepairFact,
     RequiredEntityStateRepairFact,
+    StoryGraphContentFillValidationAdapter,
     assert_semantic_repair_fact_matches_issue,
     compile_work_unit_request,
     parse_semantic_repair_fact,
+    semantic_repair_facts,
     story_graph_join_repair_facts,
 )
 from plotloom.validation import validate_story_graph
@@ -42,6 +45,11 @@ def _brief(**updates: int) -> ProjectBrief:
 
 
 def _complete_fill(topology) -> dict:
+    join_pairs = {
+        (source_id, join.join_node_id)
+        for join in topology.joins
+        for source_id in join.incoming_node_ids
+    }
     return {
         "nodes": [
             {"id": item.id, "title": f"节点 {index}", "summary": f"推进剧情 {index}"}
@@ -51,7 +59,12 @@ def _complete_fill(topology) -> dict:
             {
                 "id": item.id,
                 "choiceText": "继续前进" if item.kind == StoryEdgeKind.CHOICE else None,
-                "stateEffects": {"route": item.id} if item.kind == StoryEdgeKind.CHOICE else {},
+                "stateEffects": (
+                    {"route": item.id}
+                    if item.kind == StoryEdgeKind.CHOICE
+                    or (item.source_node_id, item.target_node_id) in join_pairs
+                    else {}
+                ),
             }
             for item in topology.edges
         ],
@@ -85,6 +98,80 @@ def test_planner_is_deterministic_minimal_and_domain_valid() -> None:
     validate_story_graph(graph, brief)
     assert graph.start_node_id == first.start_node_id
     assert {edge.id for edge in graph.edges} == {edge.id for edge in first.edges}
+
+
+def test_current_join_missing_fact_is_bound_to_frozen_direct_edges() -> None:
+    brief = _brief()
+    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    fill = _complete_fill(topology)
+    join = topology.joins[0]
+    target_edges = sorted(
+        (
+            edge
+            for edge in topology.edges
+            if edge.target_node_id == join.join_node_id
+        ),
+        key=lambda edge: (edge.id, edge.source_node_id),
+    )
+    next(edge for edge in fill["edges"] if edge["id"] == target_edges[0].id)["stateEffects"] = {}
+    report = StoryGraphContentFillValidationAdapter(
+        topology=topology,
+        brief=brief,
+    ).validate(fill, context=SemanticValidationContext(stage="story_graph"))
+    assert report.accepted is False
+    issues = report.issues
+    facts = semantic_repair_facts(
+        fill,
+        issues,
+        stage=StageName.STORY_GRAPH,
+        story_graph_topology=topology,
+    )
+    missing = next(fact for fact in facts if fact.code == "semantic.join_state_effect_missing")
+    assert missing.path == ("edges", target_edges[0].id, "stateEffects", "route")
+    assert [edge.edge_id for edge in missing.incoming_edges] == [
+        edge.id for edge in target_edges
+    ]
+    assert missing.mode == "variant"
+    assert missing.has_expected_value is False
+
+
+def test_non_join_nonfinite_state_effect_gets_a_topology_bound_repair_fact() -> None:
+    """Finite JSON is graph-wide, so ordinary choices must be repairable too."""
+
+    brief = _brief()
+    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    fill = _complete_fill(topology)
+    join_targets = {
+        edge.id
+        for join in topology.joins
+        for edge in topology.edges
+        if edge.target_node_id == join.join_node_id
+    }
+    target = next(edge for edge in topology.edges if edge.id not in join_targets)
+    fill_edge = next(edge for edge in fill["edges"] if edge["id"] == target.id)
+    fill_edge["stateEffects"] = {"ordinary": float("nan")}
+
+    report = StoryGraphContentFillValidationAdapter(
+        topology=topology,
+        brief=brief,
+    ).validate(fill, context=SemanticValidationContext(stage="story_graph"))
+    assert any(issue.code == "semantic.state_effect_not_json" for issue in report.issues)
+
+    facts = semantic_repair_facts(
+        fill,
+        report.issues,
+        stage=StageName.STORY_GRAPH,
+        story_graph_topology=topology,
+    )
+    fact = next(fact for fact in facts if fact.code == "semantic.state_effect_not_json")
+    assert isinstance(fact, EdgeStateEffectJsonRepairFact)
+    assert fact.path == ("edges", target.id, "stateEffects", "ordinary")
+    assert (fact.edge_id, fact.source_node_id, fact.target_node_id) == (
+        target.id,
+        target.source_node_id,
+        target.target_node_id,
+    )
+    assert fact.repair_action == "replace_with_finite_json"
 
 
 def test_planner_reports_stable_pre_provider_errors() -> None:
@@ -258,7 +345,7 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
         story_graph_topology=topology,
     )
 
-    assert compiled.contract.schema_id == "story_graph_content_fill.v2"
+    assert compiled.contract.schema_id == "story_graph_content_fill.v3"
     assert compiled.response_schema["properties"]["nodes"]["minItems"] == len(
         topology.nodes
     )
