@@ -3,9 +3,11 @@ import type {
   MediaTask,
   ProjectCreationRequest,
   ProjectCreationResponse,
+  ProjectDuplicateResponse,
   PipelineRun,
   ProjectBrief,
   ProjectMediaTasksResponse,
+  ProjectListResponse,
   ProjectResource,
   ProjectRunsResponse,
   ProviderSettings,
@@ -87,6 +89,40 @@ export class PlotloomApiClient {
 
   getProject(projectId: string): Promise<ProjectResource> {
     return this.request(`/projects/${encodeURIComponent(projectId)}`);
+  }
+
+  listProjects(includeArchived = false, limit = 50, cursor?: string): Promise<ProjectListResponse> {
+    const query = new URLSearchParams({
+      status: includeArchived ? "all" : "active",
+      limit: String(limit),
+    });
+    if (cursor) query.set("cursor", cursor);
+    return this.request(`/projects?${query.toString()}`);
+  }
+
+  archiveProject(projectId: string, expectedLifecycleRevision: number): Promise<ProjectResource> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/archive`, {
+      method: "POST", body: JSON.stringify({ expectedLifecycleRevision }),
+    });
+  }
+
+  restoreProject(projectId: string, expectedLifecycleRevision: number): Promise<ProjectResource> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/restore`, {
+      method: "POST", body: JSON.stringify({ expectedLifecycleRevision }),
+    });
+  }
+
+  duplicateProject(projectId: string, expectedLifecycleRevision: number, title?: string, idempotencyKey?: string): Promise<ProjectDuplicateResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/duplicate`, {
+      method: "POST", headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+      body: JSON.stringify({ expectedLifecycleRevision, ...(title ? { title } : {}) }),
+    });
+  }
+
+  permanentlyDeleteProject(projectId: string, expectedLifecycleRevision: number, confirmationTitle: string): Promise<void> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/permanent-delete`, {
+      method: "POST", body: JSON.stringify({ expectedLifecycleRevision, confirmationTitle }),
+    });
   }
 
   patchProject(projectId: string, expectedRevision: number, brief: ProjectBrief): Promise<ProjectResource> {

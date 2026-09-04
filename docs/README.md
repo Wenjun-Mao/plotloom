@@ -12,8 +12,9 @@
   [0009](adr/0009-atomic-project-bootstrap.md),
   [0010](adr/0010-plotloom-clean-repository.md),
   [0011](adr/0011-provider-profiles-and-generation-work-units.md),
-  [0012](adr/0012-approved-storyboards-and-production-units.md), and
-  [0013](adr/0013-model-neutral-reliable-generation.md)
+  [0012](adr/0012-approved-storyboards-and-production-units.md),
+  [0013](adr/0013-model-neutral-reliable-generation.md), and
+  [0014](adr/0014-project-lifecycle-and-workbench.md)
 - [Initial extraction provenance](provenance/initial-extraction.md)
 - [Remote CI receipt for `3bf4551`](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019)
 - [Local text-provider smoke receipt](verification/2026-09-02-local-text-smoke.md)

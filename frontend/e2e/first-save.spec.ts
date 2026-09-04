@@ -7,8 +7,9 @@ type ProjectCreateBody = { brief: unknown; initialStages: InitialStage[] };
 test.describe("first-save project bootstrap", () => {
   test("creates the Story Bible prefix in one request, hydrates it, and restores it after reload", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
+    await openSampleProject(page);
     await expect(page.getByText("教学草案", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "故事圣经" }).click();
+    await navigateToStage(page, "02 故事圣经");
 
     const logline = "E2E：未保存工作台从故事圣经开始建立规范项目。";
     const premise = "E2E：一份作者填写的故事前提必须随首次保存成为规范数据。";
@@ -18,7 +19,7 @@ test.describe("first-save project bootstrap", () => {
     await page.getByRole("button", { name: "保存故事圣经" }).click();
     const createRequest = await created;
 
-    await expect(page).toHaveURL(/\?project=/);
+    await expect(page).toHaveURL(/[?&]project=/);
     await expect(page.getByLabel("Logline")).toHaveValue(logline);
     await expect(page.getByLabel("故事前提")).toHaveValue(premise);
     const projectId = currentProjectId(page);
@@ -29,20 +30,21 @@ test.describe("first-save project bootstrap", () => {
 
     await page.reload();
     await expect(page.getByText("API 已连接", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "故事圣经" }).click();
+    await navigateToStage(page, "02 故事圣经");
     await expect(page.getByLabel("Logline")).toHaveValue(logline);
     await expect(page.getByLabel("故事前提")).toHaveValue(premise);
   });
 
   test("keeps the ordinary Brief-first workflow and persists the later Story Bible edit", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
+    await openSampleProject(page);
     const title = "E2E Brief-first project";
     await page.getByLabel("片名").fill(title);
     await page.getByRole("button", { name: "保存简报" }).click();
-    await expect(page).toHaveURL(/\?project=/);
+    await expect(page).toHaveURL(/[?&]project=/);
     const projectId = currentProjectId(page);
 
-    await page.getByRole("button", { name: "故事圣经" }).click();
+    await navigateToStage(page, "02 故事圣经");
     const logline = "E2E：先保存简报，再保存故事圣经。";
     await page.getByLabel("Logline").fill(logline);
     await page.getByLabel("故事前提").fill("先建立项目，再为它写入第一条可追溯的故事规范。");
@@ -59,20 +61,21 @@ test.describe("first-save project bootstrap", () => {
 
     await page.reload();
     await expect(page.getByText("API 已连接", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "故事圣经" }).click();
+    await navigateToStage(page, "02 故事圣经");
     await expect(page.getByLabel("Logline")).toHaveValue(logline);
   });
 
   test("persists a complete storyboard prefix and renders it after a browser refresh", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
-    await page.getByRole("button", { name: "分镜工作台" }).click();
+    await openSampleProject(page);
+    await navigateToStage(page, "05 分镜工作台");
     const action = "E2E：刷新后仍能看到这条已持久化的分镜动作。";
     await page.getByLabel("动作").fill(action);
     const created = captureProjectCreate(page);
     await page.getByRole("button", { name: "保存分镜" }).click();
     const createRequest = await created;
 
-    await expect(page).toHaveURL(/\?project=/);
+    await expect(page).toHaveURL(/[?&]project=/);
     const projectId = currentProjectId(page);
     const requestBody = createRequest.postDataJSON() as ProjectCreateBody;
     expect(requestBody.initialStages.map((stage) => stage.stage)).toEqual([
@@ -92,13 +95,14 @@ test.describe("first-save project bootstrap", () => {
 
     await page.reload();
     await expect(page.getByText("API 已连接", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "分镜工作台" }).click();
+    await navigateToStage(page, "05 分镜工作台");
     await expect(page.getByLabel("动作")).toHaveValue(action);
   });
 
   test("retains an unsaved Story Bible draft and reuses its idempotency key after a transient create failure", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
-    await page.getByRole("button", { name: "故事圣经" }).click();
+    await openSampleProject(page);
+    await navigateToStage(page, "02 故事圣经");
     const logline = "E2E：失败后仍可安全重试同一份首次保存。";
     await page.getByLabel("Logline").fill(logline);
 
@@ -125,7 +129,7 @@ test.describe("first-save project bootstrap", () => {
       await expect(page.getByLabel("Logline")).toHaveValue(logline);
 
       await page.getByRole("button", { name: "保存故事圣经" }).click();
-      await expect(page).toHaveURL(/\?project=/);
+      await expect(page).toHaveURL(/[?&]project=/);
       expect(idempotencyKeys).toHaveLength(2);
       expect(idempotencyKeys[1]).toBe(idempotencyKeys[0]);
     } finally {
@@ -136,6 +140,18 @@ test.describe("first-save project bootstrap", () => {
 
 function captureProjectCreate(page: Page): Promise<PlaywrightRequest> {
   return page.waitForRequest((request) => request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/projects");
+}
+
+async function openSampleProject(page: Page): Promise<void> {
+  await page.getByRole("button", { name: "打开示例项目" }).click();
+}
+
+async function navigateToStage(page: Page, name: string): Promise<void> {
+  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: new RegExp(`^${escapeRegex(name)}`) }).click();
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function captureStagePatchResponse(page: Page, projectId: string, stage: string): Promise<PlaywrightResponse> {

@@ -2,9 +2,12 @@ import { useState } from "react";
 import type { ProjectBrief } from "../types";
 import { Button, Field, PageHeader, Panel } from "../components";
 
-export function BriefPage({ value, saving, onSave }: { value: ProjectBrief; saving: boolean; onSave: (brief: ProjectBrief) => Promise<void> }) {
+export function BriefPage({ value, saving, onSave, onDraftChange }: { value: ProjectBrief; saving: boolean; onSave: (brief: ProjectBrief) => Promise<void>; onDraftChange?: (brief: ProjectBrief) => void }) {
   const [draft, setDraft] = useState(value);
-  const set = <K extends keyof ProjectBrief>(key: K, next: ProjectBrief[K]) => setDraft((current) => ({ ...current, [key]: next }));
+  const set = <K extends keyof ProjectBrief>(key: K, next: ProjectBrief[K]) => setDraft((current) => {
+    const updated = { ...current, [key]: next };
+    onDraftChange?.(updated); return updated;
+  });
   const numeric = <K extends keyof ProjectBrief>(key: K, raw: string) => set(key, Number(raw) as ProjectBrief[K]);
   return <div className="page">
     <PageHeader eyebrow="01 · Project contract" title="项目简报" description="先确定生成边界。所有下游阶段都引用这份版本化合同。" actions={<Button variant="primary" disabled={saving} onClick={() => void onSave(draft)}>{saving ? "保存中…" : "保存简报"}</Button>} />

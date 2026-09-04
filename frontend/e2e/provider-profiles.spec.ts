@@ -27,6 +27,7 @@ test("tests a profile only after saving public settings and keeps its key sessio
   });
 
   await page.goto(`${workbench.frontendOrigin}/v2/`);
+  await page.getByRole("button", { name: "打开示例项目" }).click();
   await page.getByRole("button", { name: "供应商与会话 Key" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByLabel("此 Profile 的临时 API Key").fill("test-session-secret");
@@ -47,6 +48,7 @@ test("tests a profile only after saving public settings and keeps its key sessio
 
 test("persists a copied profile through the real API without persisting its browser key", async ({ page, request, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
+  await page.getByRole("button", { name: "打开示例项目" }).click();
   await page.getByRole("button", { name: "供应商与会话 Key" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
 

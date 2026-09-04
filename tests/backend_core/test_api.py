@@ -107,7 +107,12 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
     }
     assert actual == {
         ("POST", "/api/v2/projects"),
+        ("GET", "/api/v2/projects"),
         ("GET", "/api/v2/projects/{project_id}"),
+        ("POST", "/api/v2/projects/{project_id}/archive"),
+        ("POST", "/api/v2/projects/{project_id}/restore"),
+        ("POST", "/api/v2/projects/{project_id}/duplicate"),
+        ("POST", "/api/v2/projects/{project_id}/permanent-delete"),
         ("PATCH", "/api/v2/projects/{project_id}"),
         ("GET", "/api/v2/projects/{project_id}/stages"),
         ("GET", "/api/v2/projects/{project_id}/runs"),

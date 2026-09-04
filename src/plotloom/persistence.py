@@ -19,6 +19,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     create_engine,
+    delete,
     event,
     select,
     text,
@@ -32,6 +33,7 @@ from .domain import (
     STAGE_ORDER,
     TERMINAL_MEDIA_TASK_STATUSES,
     TERMINAL_RUN_STATUSES,
+    TERMINAL_WORK_UNIT_STATUSES,
     Artifact,
     ArtifactKind,
     AttemptStatus,
@@ -50,6 +52,10 @@ from .domain import (
     Project,
     ProjectBrief,
     ProjectCreation,
+    ProjectDuplicateResult,
+    ProjectLifecycleStatus,
+    ProjectSummary,
+    LatestRunSummary,
     ProviderSettings,
     RepairSource,
     RunKind,
@@ -116,7 +122,9 @@ from .exceptions import (
     BootstrapContentionError,
     IdempotencyConflictError,
     InvalidTransitionError,
+    LifecycleContentionError,
     NotFoundError,
+    ProjectBusyError,
     RevisionConflictError,
     StagePrerequisiteError,
 )
@@ -130,9 +138,20 @@ class Base(DeclarativeBase):
 
 class ProjectRow(Base):
     __tablename__ = "v2_projects"
+    __table_args__ = (
+        Index(
+            "ix_v2_projects_lifecycle_status_created_at_id",
+            "lifecycle_status",
+            "created_at",
+            "id",
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    lifecycle_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    lifecycle_status: Mapped[str] = mapped_column(String(16), nullable=False, default=ProjectLifecycleStatus.ACTIVE.value)
+    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     brief: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
@@ -146,6 +165,19 @@ class ProjectCreationIdempotencyRow(Base):
     project_id: Mapped[str] = mapped_column(
         ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False, unique=True
     )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ProjectDuplicateIdempotencyRow(Base):
+    __tablename__ = "v2_project_duplicate_idempotency"
+
+    idempotency_key: Mapped[str] = mapped_column(String(255), primary_key=True)
+    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False, unique=True
+    )
+    copied_through: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    omitted_stages: Mapped[list[str]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
@@ -527,6 +559,34 @@ class SQLiteRepository:
                 raise
 
     @contextmanager
+    def _lifecycle_write(self) -> Iterator[Session]:
+        """Serialize project lifecycle and project-owned writes across processes.
+
+        A lifecycle revision is an optimistic concurrency token, so its check
+        and mutation must share SQLite's writer lease.  The same lease is used
+        by project-owned entry writes to prevent a stale active-project read
+        from creating work immediately after a successful archive.
+        """
+
+        if self.engine.dialect.name != "sqlite":
+            with self._write() as session:
+                yield session
+            return
+        with self._write_lock, self._sessions() as session:
+            try:
+                session.connection().exec_driver_sql("BEGIN IMMEDIATE")
+                yield session
+                session.commit()
+            except OperationalError as error:
+                session.rollback()
+                if self._is_sqlite_lock_contention(error):
+                    raise LifecycleContentionError(self._bootstrap_retry_after_seconds) from error
+                raise
+            except BaseException:
+                session.rollback()
+                raise
+
+    @contextmanager
     def _work_unit_claim_write(self) -> Iterator[Session]:
         """Serialize a work-unit claim before inspecting its current state.
 
@@ -564,9 +624,23 @@ class SQLiteRepository:
         return Project(
             id=row.id,
             revision=row.revision,
+            lifecycle_revision=row.lifecycle_revision,
+            lifecycle_status=ProjectLifecycleStatus(row.lifecycle_status),
+            archived_at=_stored_utc(row.archived_at) if row.archived_at else None,
             brief=ProjectBrief.model_validate(row.brief),
             created_at=_stored_utc(row.created_at),
             updated_at=_stored_utc(row.updated_at),
+        )
+
+    @staticmethod
+    def _latest_run_summary(row: GenerationRunRow) -> LatestRunSummary:
+        return LatestRunSummary(
+            id=row.id,
+            kind=RunKind(row.kind),
+            status=RunStatus(row.status),
+            requested_stages=[StageName(stage) for stage in row.requested_stages],
+            created_at=_stored_utc(row.created_at),
+            finished_at=_stored_utc(row.finished_at) if row.finished_at else None,
         )
 
     @staticmethod
@@ -813,6 +887,9 @@ class SQLiteRepository:
         row = ProjectRow(
             id=project.id,
             revision=project.revision,
+            lifecycle_revision=project.lifecycle_revision,
+            lifecycle_status=project.lifecycle_status.value,
+            archived_at=None,
             brief=brief.model_dump(mode="json", by_alias=False),
             created_at=now,
             updated_at=now,
@@ -834,6 +911,57 @@ class SQLiteRepository:
                 )
             )
         return row
+
+    @staticmethod
+    def _assert_active_project(project_row: ProjectRow) -> None:
+        if ProjectLifecycleStatus(project_row.lifecycle_status) != ProjectLifecycleStatus.ACTIVE:
+            raise InvalidTransitionError("archived projects are read-only")
+
+    @staticmethod
+    def _assert_lifecycle_revision(project_row: ProjectRow, expected_lifecycle_revision: int) -> None:
+        if project_row.lifecycle_revision != expected_lifecycle_revision:
+            raise RevisionConflictError(
+                "project-lifecycle", expected_lifecycle_revision, project_row.lifecycle_revision
+            )
+
+    @staticmethod
+    def _project_is_busy_in_session(session: Session, project_id: str) -> bool:
+        nonterminal_run = session.scalar(
+            select(GenerationRunRow.id)
+            .where(
+                GenerationRunRow.project_id == project_id,
+                GenerationRunRow.status.not_in(
+                    [status.value for status in TERMINAL_RUN_STATUSES]
+                ),
+            )
+            .limit(1)
+        )
+        nonterminal_media = session.scalar(
+            select(MediaTaskRow.id)
+            .where(
+                MediaTaskRow.project_id == project_id,
+                MediaTaskRow.status.not_in(
+                    [status.value for status in TERMINAL_MEDIA_TASK_STATUSES]
+                ),
+            )
+            .limit(1)
+        )
+        nonterminal_work_unit = session.scalar(
+            select(GenerationWorkUnitRow.id)
+            .join(GenerationRunRow, GenerationWorkUnitRow.run_id == GenerationRunRow.id)
+            .where(
+                GenerationRunRow.project_id == project_id,
+                GenerationWorkUnitRow.status.not_in(
+                    [status.value for status in TERMINAL_WORK_UNIT_STATUSES]
+                ),
+            )
+            .limit(1)
+        )
+        return (
+            nonterminal_run is not None
+            or nonterminal_media is not None
+            or nonterminal_work_unit is not None
+        )
 
     def _stage_envelopes_in_session(self, session: Session, project_id: str) -> list[StageEnvelope]:
         rows = session.scalars(
@@ -916,9 +1044,245 @@ class SQLiteRepository:
         with self._read() as session:
             return self._project(self._project_row(session, project_id))
 
-    def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
-        with self._write() as session:
+    def list_projects(
+        self,
+        *,
+        lifecycle_status: ProjectLifecycleStatus | None = ProjectLifecycleStatus.ACTIVE,
+        limit: int = 50,
+        cursor: tuple[datetime, str] | None = None,
+    ) -> tuple[list[ProjectSummary], tuple[datetime, str] | None]:
+        """Return one stable page ordered by immutable `(created_at, id)` facts.
+
+        The cursor is deliberately represented internally as the actual sort
+        tuple.  The HTTP layer alone owns its opaque encoding, keeping storage
+        ordering independent from a presentation format.
+        """
+
+        if not 1 <= limit <= 200:
+            raise ValueError("project list limit must be between 1 and 200")
+        with self._read() as session:
+            statement = select(ProjectRow)
+            if lifecycle_status is not None:
+                statement = statement.where(ProjectRow.lifecycle_status == lifecycle_status.value)
+            if cursor is not None:
+                created_at, project_id = cursor
+                statement = statement.where(
+                    (ProjectRow.created_at < created_at)
+                    | ((ProjectRow.created_at == created_at) & (ProjectRow.id < project_id))
+                )
+            rows = session.scalars(
+                statement.order_by(ProjectRow.created_at.desc(), ProjectRow.id.desc()).limit(limit + 1)
+            ).all()
+            page_rows = rows[:limit]
+            has_more = len(rows) > limit
+            summaries: list[ProjectSummary] = []
+            for row in page_rows:
+                stage_rows = session.scalars(
+                    select(StageHeadRow).where(StageHeadRow.project_id == row.id)
+                ).all()
+                statuses = {StageName(head.stage): StageStatus(head.status) for head in stage_rows}
+                latest_run = session.scalar(
+                    select(GenerationRunRow)
+                    .where(GenerationRunRow.project_id == row.id)
+                    .order_by(GenerationRunRow.created_at.desc(), GenerationRunRow.id.desc())
+                    .limit(1)
+                )
+                summaries.append(
+                    ProjectSummary(
+                        **self._project(row).model_dump(mode="python"),
+                        stage_statuses=statuses,
+                        latest_run=self._latest_run_summary(latest_run) if latest_run else None,
+                    )
+                )
+            next_cursor = None
+            if has_more and page_rows:
+                last = page_rows[-1]
+                next_cursor = (last.created_at, last.id)
+            return summaries, next_cursor
+
+    def archive_project(self, project_id: str, expected_lifecycle_revision: int) -> Project:
+        with self._lifecycle_write() as session:
             row = self._project_row(session, project_id)
+            self._assert_lifecycle_revision(row, expected_lifecycle_revision)
+            if ProjectLifecycleStatus(row.lifecycle_status) == ProjectLifecycleStatus.ARCHIVED:
+                return self._project(row)
+            if self._project_is_busy_in_session(session, project_id):
+                raise ProjectBusyError()
+            now = utc_now()
+            row.lifecycle_status = ProjectLifecycleStatus.ARCHIVED.value
+            row.archived_at = now
+            row.lifecycle_revision += 1
+            row.updated_at = now
+            return self._project(row)
+
+    def restore_project(self, project_id: str, expected_lifecycle_revision: int) -> Project:
+        with self._lifecycle_write() as session:
+            row = self._project_row(session, project_id)
+            self._assert_lifecycle_revision(row, expected_lifecycle_revision)
+            if ProjectLifecycleStatus(row.lifecycle_status) == ProjectLifecycleStatus.ACTIVE:
+                return self._project(row)
+            now = utc_now()
+            row.lifecycle_status = ProjectLifecycleStatus.ACTIVE.value
+            row.archived_at = None
+            row.lifecycle_revision += 1
+            row.updated_at = now
+            return self._project(row)
+
+    @staticmethod
+    def _duplicate_fingerprint(
+        project_id: str,
+        expected_lifecycle_revision: int,
+        title: str | None,
+    ) -> str:
+        return stable_hash(
+            {
+                "projectId": project_id,
+                "expectedLifecycleRevision": expected_lifecycle_revision,
+                "title": title,
+            }
+        )
+
+    def _duplicate_result_in_session(
+        self,
+        session: Session,
+        project_id: str,
+        copied_through: str | None,
+        omitted_stages: Sequence[str],
+    ) -> ProjectDuplicateResult:
+        return ProjectDuplicateResult(
+            project=self._project_creation_in_session(session, self._project_row(session, project_id)),
+            copied_through=StageName(copied_through) if copied_through else None,
+            omitted_stages=[StageName(stage) for stage in omitted_stages],
+        )
+
+    def duplicate_project(
+        self,
+        project_id: str,
+        expected_lifecycle_revision: int,
+        *,
+        title: str | None = None,
+        idempotency_key: str | None = None,
+    ) -> ProjectDuplicateResult:
+        normalized_title = title.strip() if title is not None else None
+        if normalized_title == "":
+            raise ValueError("duplicate title must not be blank")
+        key = idempotency_key.strip() if idempotency_key is not None else None
+        if key is not None and (not key or len(key) > 255):
+            raise ValueError("idempotency key must contain between 1 and 255 characters")
+        fingerprint = self._duplicate_fingerprint(
+            project_id, expected_lifecycle_revision, normalized_title
+        )
+
+        # Duplicate-key decisions must be made at SQLite's immediate write
+        # boundary, exactly like project creation.  Otherwise two processes
+        # can both observe an unbound key and create distinct copies.
+        with self._bootstrap_write() as session:
+            if key is not None:
+                existing = session.get(ProjectDuplicateIdempotencyRow, key)
+                if existing is not None:
+                    if existing.request_fingerprint != fingerprint:
+                        raise IdempotencyConflictError()
+                    return self._duplicate_result_in_session(
+                        session,
+                        existing.project_id,
+                        existing.copied_through,
+                        existing.omitted_stages,
+                    )
+
+            source = self._project_row(session, project_id)
+            self._assert_lifecycle_revision(source, expected_lifecycle_revision)
+            source_brief = ProjectBrief.model_validate(source.brief)
+            brief_data = source_brief.model_dump(mode="python")
+            if normalized_title is not None:
+                brief_data["title"] = normalized_title
+            duplicate_brief = ProjectBrief.model_validate(brief_data)
+            now = utc_now()
+            duplicate = self._create_project_row_in_session(session, duplicate_brief, now)
+
+            copied: list[StageName] = []
+            for stage in STAGE_ORDER:
+                source_head = self._stage_row(session, source.id, stage)
+                if source_head.status != StageStatus.READY.value:
+                    break
+                payload = self._load_stage_payload(session, source.id, stage)
+                self._install_stage_in_session(
+                    session,
+                    duplicate,
+                    stage,
+                    payload,
+                    expected_revision=0,
+                    now=now,
+                    allow_noop=False,
+                )
+                copied.append(stage)
+            copied_through = copied[-1] if copied else None
+            omitted = list(STAGE_ORDER[len(copied) :])
+            if key is not None:
+                session.flush()
+                session.add(
+                    ProjectDuplicateIdempotencyRow(
+                        idempotency_key=key,
+                        request_fingerprint=fingerprint,
+                        project_id=duplicate.id,
+                        copied_through=copied_through.value if copied_through else None,
+                        omitted_stages=[stage.value for stage in omitted],
+                        created_at=now,
+                    )
+                )
+            return self._duplicate_result_in_session(
+                session,
+                duplicate.id,
+                copied_through.value if copied_through else None,
+                [stage.value for stage in omitted],
+            )
+
+    def permanent_delete_project(
+        self,
+        project_id: str,
+        expected_lifecycle_revision: int,
+        confirmation_title: str,
+    ) -> None:
+        if not confirmation_title.strip():
+            raise ValueError("confirmation title must not be blank")
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_lifecycle_revision(project, expected_lifecycle_revision)
+            if ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ARCHIVED:
+                raise InvalidTransitionError("only archived projects can be permanently deleted")
+            if confirmation_title != ProjectBrief.model_validate(project.brief).title:
+                raise InvalidTransitionError("confirmation title does not match the project title")
+            if self._project_is_busy_in_session(session, project_id):
+                raise ProjectBusyError()
+
+            # Generation-run repair lineage uses a self-referential RESTRICT
+            # foreign key.  Deleting leaf runs first preserves that durable
+            # lineage contract while letting every other project-owned record
+            # cascade from its run or project parent.
+            remaining_run_ids = set(
+                session.scalars(
+                    select(GenerationRunRow.id).where(GenerationRunRow.project_id == project_id)
+                ).all()
+            )
+            while remaining_run_ids:
+                referenced_parents = set(
+                    session.scalars(
+                        select(GenerationRunRow.parent_run_id).where(
+                            GenerationRunRow.parent_run_id.in_(remaining_run_ids)
+                        )
+                    ).all()
+                )
+                leaves = remaining_run_ids - {parent for parent in referenced_parents if parent is not None}
+                if not leaves:
+                    raise InvalidTransitionError("generation run lineage cannot be deleted safely")
+                session.execute(delete(GenerationRunRow).where(GenerationRunRow.id.in_(leaves)))
+                session.flush()
+                remaining_run_ids -= leaves
+            session.delete(project)
+
+    def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
+        with self._lifecycle_write() as session:
+            row = self._project_row(session, project_id)
+            self._assert_active_project(row)
             if row.revision != expected_revision:
                 raise RevisionConflictError("project", expected_revision, row.revision)
             brief_data = brief.model_dump(mode="json", by_alias=False)
@@ -1067,8 +1431,9 @@ class SQLiteRepository:
         payload: StagePayload | dict[str, Any],
     ) -> StageHead:
         parsed = stage_payload_model(stage).model_validate(payload)
-        with self._write() as session:
+        with self._lifecycle_write() as session:
             project_row = self._project_row(session, project_id)
+            self._assert_active_project(project_row)
             head, _ = self._install_stage_in_session(
                 session,
                 project_row,
@@ -1226,7 +1591,7 @@ class SQLiteRepository:
             raise InvalidTransitionError(
                 "requested stages must be unique, ordered, and form one contiguous canonical range"
             )
-        with self._write() as session:
+        with self._lifecycle_write() as session:
             if kind == RunKind.REPAIR and (
                 parent_run_id is None or repair_stage is None or repair_source is None
             ):
@@ -1243,6 +1608,8 @@ class SQLiteRepository:
                 parent = self._run_row(session, parent_run_id)
                 if parent.project_id != project_id or RunStatus(parent.status) != RunStatus.QUARANTINED:
                     raise InvalidTransitionError("repair parent must be a quarantined run from the same project")
+            project_row = self._project_row(session, project_id)
+            self._assert_active_project(project_row)
             snapshot = self._snapshot_in_session(session, project_id)
             run = GenerationRun(
                 project_id=project_id,
@@ -2495,7 +2862,7 @@ class SQLiteRepository:
         transaction that performs canonical installation.
         """
 
-        with self._write() as session:
+        with self._lifecycle_write() as session:
             run_row = self._run_row(session, run_id)
             if run_row.legacy_unsealed:
                 raise InvalidTransitionError("legacy/unsealed runs cannot commit sealed aggregates")
@@ -2546,7 +2913,7 @@ class SQLiteRepository:
         parsed_payloads = {
             stage: stage_payload_model(stage).model_validate(payload) for stage, payload in payloads.items()
         }
-        with self._write() as session:
+        with self._lifecycle_write() as session:
             run_row = self._run_row(session, run_id)
             return self._commit_parsed_run_outputs_in_session(session, run_row, parsed_payloads)
 
@@ -2567,6 +2934,7 @@ class SQLiteRepository:
             raise InvalidTransitionError("run outputs have already been committed")
         snapshot = self._assert_run_inputs_current_in_session(session, run_row)
         project_row = self._project_row(session, run_row.project_id)
+        self._assert_active_project(project_row)
         results: list[StageHead] = []
         for stage in requested:
             current_head = self._stage_row(session, run_row.project_id, stage)
@@ -3065,8 +3433,9 @@ class SQLiteRepository:
     ) -> MediaTask:
         if not derived_prompt.strip():
             raise ValueError("derived media prompt must not be blank")
-        with self._write() as session:
-            self._project_row(session, project_id)
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
             head = self._stage_row(session, project_id, StageName.STORYBOARD)
             if head.status != StageStatus.READY.value:
                 raise StagePrerequisiteError(StageName.STORYBOARD, StageName.STORYBOARD, head.status)

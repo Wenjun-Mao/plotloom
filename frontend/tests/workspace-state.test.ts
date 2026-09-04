@@ -44,6 +44,9 @@ const projectResource = (id = "project-real"): ProjectResource => ({
   brief: { ...demoProject.brief, title: "真实项目" },
   createdAt: "2026-08-30T00:00:00Z",
   updatedAt: "2026-08-30T00:00:00Z",
+  lifecycleRevision: 1,
+  lifecycleStatus: "active",
+  archivedAt: null,
 });
 
 describe("workspace hydration contracts", () => {

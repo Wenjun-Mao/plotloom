@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import base64
+import binascii
 from datetime import datetime
+import json
 from pathlib import Path
 from time import monotonic
-from typing import Annotated, Any, Callable, Mapping, Protocol
+from typing import Annotated, Any, Callable, Literal, Mapping, Protocol
 
 from fastapi import FastAPI, HTTPException, Header, Query, Request, status
 from fastapi.responses import JSONResponse
@@ -22,6 +25,9 @@ from .domain import (
     Project,
     ProjectBrief,
     ProjectCreation,
+    ProjectDuplicateResult,
+    ProjectLifecycleStatus,
+    ProjectSummary,
     ProviderAuthMode,
     ProviderProfileCapabilities,
     ProviderSettings,
@@ -42,7 +48,9 @@ from .exceptions import (
     BootstrapContentionError,
     IdempotencyConflictError,
     InvalidTransitionError,
+    LifecycleContentionError,
     NotFoundError,
+    ProjectBusyError,
     RevisionConflictError,
     StagePrerequisiteError,
 )
@@ -116,6 +124,37 @@ class ProjectCreateRequest(CamelModel):
 class ProjectPatchRequest(CamelModel):
     expected_revision: int = Field(ge=1)
     brief: ProjectBrief
+
+
+class LifecycleRequest(CamelModel):
+    expected_lifecycle_revision: int = Field(ge=1)
+
+
+class ProjectDuplicateRequest(LifecycleRequest):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+
+    @field_validator("title")
+    @classmethod
+    def reject_blank_title(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
+            raise ValueError("title must not be blank")
+        return value
+
+
+class ProjectPermanentDeleteRequest(LifecycleRequest):
+    confirmation_title: str = Field(min_length=1, max_length=200)
+
+    @field_validator("confirmation_title")
+    @classmethod
+    def reject_blank_confirmation(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("confirmationTitle must not be blank")
+        return value
+
+
+class ProjectListResponse(CamelModel):
+    projects: list[ProjectSummary]
+    next_cursor: str | None = None
 
 
 class StageEnvelopesResponse(CamelModel):
@@ -245,6 +284,36 @@ def _normalize_idempotency_key(value: str | None) -> str | None:
     if len(normalized) > 255:
         raise HTTPException(status_code=400, detail="Idempotency-Key must be at most 255 characters")
     return normalized
+
+
+def _encode_project_cursor(cursor: tuple[datetime, str] | None) -> str | None:
+    if cursor is None:
+        return None
+    created_at, project_id = cursor
+    payload = json.dumps(
+        {"createdAt": created_at.isoformat(), "id": project_id},
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    return base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
+
+
+def _decode_project_cursor(value: str | None) -> tuple[datetime, str] | None:
+    if value is None:
+        return None
+    try:
+        padded = value + "=" * (-len(value) % 4)
+        payload = json.loads(base64.urlsafe_b64decode(padded.encode("ascii")))
+        if set(payload) != {"createdAt", "id"} or not isinstance(payload["id"], str):
+            raise ValueError("wrong cursor shape")
+        created_at = datetime.fromisoformat(payload["createdAt"])
+        if created_at.tzinfo is not None:
+            raise ValueError("cursor timestamp must use the database's local UTC representation")
+        if not payload["id"]:
+            raise ValueError("blank project ID")
+        return created_at, payload["id"]
+    except (TypeError, ValueError, UnicodeDecodeError, binascii.Error, json.JSONDecodeError) as error:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="invalid project cursor") from error
 
 
 def _submit_with_optional_session_key(scheduler: Any, resource_id: str, request: Request) -> Any:
@@ -604,6 +673,20 @@ def create_app(
     async def transition_handler(_request: Request, error: InvalidTransitionError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"code": "invalid_transition", "message": str(error)})
 
+    @app.exception_handler(ProjectBusyError)
+    async def project_busy_handler(_request: Request, error: ProjectBusyError) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"code": "project_busy", "message": str(error)})
+
+    @app.exception_handler(LifecycleContentionError)
+    async def lifecycle_contention_handler(
+        _request: Request, error: LifecycleContentionError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=503,
+            content={"code": "lifecycle_contention", "message": str(error)},
+            headers={"Retry-After": str(error.retry_after_seconds)},
+        )
+
     @app.exception_handler(IdempotencyConflictError)
     async def idempotency_conflict_handler(
         _request: Request, error: IdempotencyConflictError
@@ -647,9 +730,56 @@ def create_app(
             idempotency_key=_normalize_idempotency_key(idempotency_key),
         )
 
+    @app.get("/api/v2/projects", response_model=ProjectListResponse)
+    def list_projects(
+        project_status: Annotated[
+            Literal["active", "archived", "all"], Query(alias="status")
+        ] = "active",
+        limit: int = Query(default=50, ge=1, le=200),
+        cursor: str | None = None,
+    ) -> ProjectListResponse:
+        lifecycle_status = (
+            None if project_status == "all" else ProjectLifecycleStatus(project_status)
+        )
+        projects, next_cursor = repo.list_projects(
+            lifecycle_status=lifecycle_status,
+            limit=limit,
+            cursor=_decode_project_cursor(cursor),
+        )
+        return ProjectListResponse(projects=projects, next_cursor=_encode_project_cursor(next_cursor))
+
     @app.get("/api/v2/projects/{project_id}", response_model=Project)
     def get_project(project_id: str) -> Project:
         return repo.get_project(project_id)
+
+    @app.post("/api/v2/projects/{project_id}/archive", response_model=Project)
+    def archive_project(project_id: str, body: LifecycleRequest) -> Project:
+        return repo.archive_project(project_id, body.expected_lifecycle_revision)
+
+    @app.post("/api/v2/projects/{project_id}/restore", response_model=Project)
+    def restore_project(project_id: str, body: LifecycleRequest) -> Project:
+        return repo.restore_project(project_id, body.expected_lifecycle_revision)
+
+    @app.post("/api/v2/projects/{project_id}/duplicate", response_model=ProjectDuplicateResult)
+    def duplicate_project(
+        project_id: str,
+        body: ProjectDuplicateRequest,
+        idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    ) -> ProjectDuplicateResult:
+        return repo.duplicate_project(
+            project_id,
+            body.expected_lifecycle_revision,
+            title=body.title,
+            idempotency_key=_normalize_idempotency_key(idempotency_key),
+        )
+
+    @app.post("/api/v2/projects/{project_id}/permanent-delete", status_code=status.HTTP_204_NO_CONTENT)
+    def permanent_delete_project(project_id: str, body: ProjectPermanentDeleteRequest) -> None:
+        repo.permanent_delete_project(
+            project_id,
+            body.expected_lifecycle_revision,
+            body.confirmation_title,
+        )
 
     @app.patch("/api/v2/projects/{project_id}", response_model=Project)
     def patch_project(project_id: str, body: ProjectPatchRequest) -> Project:

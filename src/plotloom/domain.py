@@ -57,6 +57,11 @@ class StageStatus(str, Enum):
     STALE = "stale"
 
 
+class ProjectLifecycleStatus(str, Enum):
+    ACTIVE = "active"
+    ARCHIVED = "archived"
+
+
 class RunStatus(str, Enum):
     QUEUED = "queued"
     RUNNING = "running"
@@ -112,6 +117,17 @@ class WorkUnitStatus(str, Enum):
     QUARANTINED = "quarantined"
     CANCELLED = "cancelled"
     OUTCOME_UNKNOWN = "outcome_unknown"
+
+
+TERMINAL_WORK_UNIT_STATUSES: frozenset[WorkUnitStatus] = frozenset(
+    {
+        WorkUnitStatus.SUCCEEDED,
+        WorkUnitStatus.FAILED,
+        WorkUnitStatus.QUARANTINED,
+        WorkUnitStatus.CANCELLED,
+        WorkUnitStatus.OUTCOME_UNKNOWN,
+    }
+)
 
 
 class WorkUnitFailureDisposition(str, Enum):
@@ -466,15 +482,46 @@ class CanonicalSnapshot(CamelModel):
 class Project(CamelModel):
     id: str = Field(default_factory=new_id)
     revision: Annotated[int, Field(ge=1)] = 1
+    lifecycle_revision: Annotated[int, Field(ge=1)] = 1
+    lifecycle_status: ProjectLifecycleStatus = ProjectLifecycleStatus.ACTIVE
+    archived_at: datetime | None = None
     brief: ProjectBrief
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
+
+    @model_validator(mode="after")
+    def validate_lifecycle_shape(self) -> Project:
+        if self.lifecycle_status == ProjectLifecycleStatus.ACTIVE and self.archived_at is not None:
+            raise ValueError("active projects cannot have an archived_at timestamp")
+        if self.lifecycle_status == ProjectLifecycleStatus.ARCHIVED and self.archived_at is None:
+            raise ValueError("archived projects require an archived_at timestamp")
+        return self
 
 
 class ProjectCreation(Project):
     """Authoritative aggregate returned by project creation and replay."""
 
     stages: list[StageEnvelope]
+
+
+class LatestRunSummary(CamelModel):
+    id: str
+    kind: RunKind
+    status: RunStatus
+    requested_stages: list[StageName]
+    created_at: datetime
+    finished_at: datetime | None = None
+
+
+class ProjectSummary(Project):
+    stage_statuses: dict[StageName, StageStatus]
+    latest_run: LatestRunSummary | None = None
+
+
+class ProjectDuplicateResult(CamelModel):
+    project: ProjectCreation
+    copied_through: StageName | None = None
+    omitted_stages: list[StageName]
 
 
 class RepairSource(CamelModel):

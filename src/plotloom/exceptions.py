@@ -38,6 +38,21 @@ class InvalidTransitionError(PlotloomError):
     pass
 
 
+class ProjectBusyError(PlotloomError):
+    """A destructive lifecycle transition has non-terminal project work."""
+
+    def __init__(self) -> None:
+        super().__init__("project has non-terminal runs, work units, or media tasks")
+
+
+class LifecycleContentionError(PlotloomError):
+    """A lifecycle command could not acquire SQLite's cross-process writer lease."""
+
+    def __init__(self, retry_after_seconds: int) -> None:
+        self.retry_after_seconds = retry_after_seconds
+        super().__init__("project lifecycle is temporarily busy; retry the request")
+
+
 class IdempotencyConflictError(PlotloomError):
     """A creation key was already bound to a different aggregate request."""
 

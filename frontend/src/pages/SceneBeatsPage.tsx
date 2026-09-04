@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Beat, ContinuityState, SceneBeatPlan } from "../types";
 import { Button, Field, PageHeader, Panel } from "../components";
 
@@ -13,24 +13,29 @@ const emptyState = (note = ""): ContinuityState => ({
   notes: note ? [note] : [],
 });
 
-export function SceneBeatsPage({ value, stale, saving, onSave }: { value: SceneBeatPlan; stale: boolean; saving: boolean; onSave: (value: SceneBeatPlan) => Promise<void> }) {
+export function SceneBeatsPage({ value, stale, saving, entityId, onEntitySelect, onSave, onDraftChange }: { value: SceneBeatPlan; stale: boolean; saving: boolean; entityId?: string; onEntitySelect?: (entityId: string) => void; onSave: (value: SceneBeatPlan) => Promise<void>; onDraftChange?: (value: SceneBeatPlan) => void }) {
   const [plan, setPlan] = useState(value);
   const [selectedId, setSelectedId] = useState(value.scenes[0]?.id || "");
+  useEffect(() => {
+    if (entityId && plan.scenes.some((scene) => scene.id === entityId)) setSelectedId(entityId);
+    else if (!entityId) setSelectedId(plan.scenes[0]?.id || "");
+  }, [entityId, plan.scenes]);
   const selected = plan.scenes.find((scene) => scene.id === selectedId);
   const beats = plan.beats.filter((beat) => beat.sceneId === selectedId).sort((left, right) => left.order - right.order);
-  const updateBeat = (beatId: string, patch: Partial<Beat>) => setPlan((current) => ({ ...current, beats: current.beats.map((beat) => beat.id === beatId ? { ...beat, ...patch } : beat) }));
+  const update = (next: SceneBeatPlan | ((current: SceneBeatPlan) => SceneBeatPlan)) => setPlan((current) => { const updated = typeof next === "function" ? next(current) : next; onDraftChange?.(updated); return updated; });
+  const updateBeat = (beatId: string, patch: Partial<Beat>) => update((current) => ({ ...current, beats: current.beats.map((beat) => beat.id === beatId ? { ...beat, ...patch } : beat) }));
   const updateNotes = (beat: Beat, key: "entryState" | "exitState", note: string) => updateBeat(beat.id, { [key]: { ...beat[key], notes: note ? [note] : [] } });
   const addBeat = () => {
     if (!selected) return;
     const id = crypto.randomUUID();
     const next: Beat = { id, sceneId: selected.id, order: beats.length + 1, description: "", purpose: "", visibleEvent: "", dialogue: "", immediateResult: "", dramaticChange: "", entryState: emptyState(), exitState: emptyState(), continuityAnchors: [], continuityDelta: {} };
-    setPlan((current) => ({ scenes: current.scenes.map((scene) => scene.id === selected.id ? { ...scene, beatIds: [...scene.beatIds, id] } : scene), beats: [...current.beats, next] }));
+    update((current) => ({ scenes: current.scenes.map((scene) => scene.id === selected.id ? { ...scene, beatIds: [...scene.beatIds, id] } : scene), beats: [...current.beats, next] }));
   };
   return <div className="page">
     <PageHeader eyebrow="04 · Scene decomposition" title="场景与节拍" description="每个剧情节点拆成可拍摄的原子事件；入口与出口连续性保持结构化合同。" actions={<><span className={`stage-chip ${stale ? "stale" : "ready"}`}>{stale ? "剧情图已变化" : `${plan.beats.length} 个节拍`}</span><Button variant="primary" disabled={saving} onClick={() => void onSave(plan)}>{saving ? "正在保存…" : "保存节拍"}</Button></>} />
     <div className="beats-layout">
       <nav className="scene-rail" aria-label="场景列表">
-        {plan.scenes.map((scene, index) => <button key={scene.id} className={scene.id === selectedId ? "active" : ""} onClick={() => setSelectedId(scene.id)}><span>{String(index + 1).padStart(2, "0")}</span><strong>{scene.title}</strong><small>{plan.beats.filter((beat) => beat.sceneId === scene.id).length} beats</small></button>)}
+        {plan.scenes.map((scene, index) => <button key={scene.id} className={scene.id === selectedId ? "active" : ""} onClick={() => { setSelectedId(scene.id); onEntitySelect?.(scene.id); }}><span>{String(index + 1).padStart(2, "0")}</span><strong>{scene.title}</strong><small>{plan.beats.filter((beat) => beat.sceneId === scene.id).length} beats</small></button>)}
       </nav>
       <div className="beat-editor">
         <div className="section-bar"><div><span className="eyebrow">Story node {selected?.storyNodeId}</span><h2>{selected?.title}</h2><small>{selected?.objective}</small></div><Button variant="quiet" onClick={addBeat}>＋ 添加节拍</Button></div>

@@ -188,8 +188,16 @@ export interface QuarantineItem {
 
 export interface WorkspaceProject {
   id?: string;
+  /**
+   * A local workspace needs an owner that is distinct from every other
+   * unsaved workspace. It deliberately never crosses the API boundary.
+   */
+  clientDraftOwner?: string;
   revision: number;
   updatedAt?: string;
+  archivedAt?: string | null;
+  lifecycleRevision?: number;
+  lifecycleStatus?: "active" | "archived";
   brief: ProjectBrief;
   storyBible: StoryBible;
   storyGraph: StoryGraph;
@@ -206,6 +214,35 @@ export interface ProjectResource {
   brief: ProjectBrief;
   createdAt: string;
   updatedAt: string;
+  /** Archived projects stay addressable but are read-only in the workbench. */
+  archivedAt: string | null;
+  lifecycleRevision: number;
+  lifecycleStatus: "active" | "archived";
+}
+
+export interface LatestRunSummary {
+  id: string;
+  kind: PipelineRun["kind"];
+  status: RunStatus;
+  requestedStages: ServerStageName[];
+  createdAt: string;
+  finishedAt: string | null;
+}
+
+export interface ProjectListItem extends ProjectResource {
+  stageStatuses: Record<ServerStageName, StageHead["status"]>;
+  latestRun: LatestRunSummary | null;
+}
+
+export interface ProjectListResponse {
+  projects: ProjectListItem[];
+  nextCursor: string | null;
+}
+
+export interface ProjectDuplicateResponse {
+  project: ProjectCreationResponse;
+  copiedThrough: ServerStageName | null;
+  omittedStages: ServerStageName[];
 }
 
 /** A stage payload installed atomically with a newly-created project. */

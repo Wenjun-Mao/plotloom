@@ -32,6 +32,45 @@ describe("PlotloomApiClient", () => {
     expect(JSON.parse(String(init.body))).toMatchObject({ expectedRevision: 7, payload: { startNodeId: "n1" } });
   });
 
+  it("uses lifecycle revisions and an explicit title confirmation for project lifecycle actions", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "p1" }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+
+    await client.archiveProject("p1", 4);
+    await client.restoreProject("p1", 5);
+    await client.duplicateProject("p1", 6, undefined, "duplicate-key");
+    await client.permanentlyDeleteProject("p1", 7, "Moon City");
+
+    const calls = fetcher.mock.calls as unknown as Array<[string, RequestInit]>;
+    expect(calls.map(([url]) => url)).toEqual([
+      "/api/v2/projects/p1/archive", "/api/v2/projects/p1/restore",
+      "/api/v2/projects/p1/duplicate", "/api/v2/projects/p1/permanent-delete",
+    ]);
+    expect(JSON.parse(String(calls[0][1].body))).toEqual({ expectedLifecycleRevision: 4 });
+    expect(new Headers(calls[2][1].headers).get("Idempotency-Key")).toBe("duplicate-key");
+    expect(JSON.parse(String(calls[3][1].body))).toEqual({ expectedLifecycleRevision: 7, confirmationTitle: "Moon City" });
+  });
+
+  it("requests the lifecycle status query and unwraps no stale client-side filter", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ projects: [] }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+
+    await client.listProjects();
+    await client.listProjects(true);
+
+    expect((fetcher.mock.calls[0] as unknown as [string])[0]).toBe("/api/v2/projects?status=active&limit=50");
+    expect((fetcher.mock.calls[1] as unknown as [string])[0]).toBe("/api/v2/projects?status=all&limit=50");
+  });
+
+  it("passes a directory cursor without changing the selected lifecycle filter", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({ projects: [], nextCursor: null }), { status: 200, headers: { "Content-Type": "application/json" } }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+
+    await client.listProjects(true, 50, "after-project-50");
+
+    expect((fetcher.mock.calls[0] as unknown as [string])[0]).toBe("/api/v2/projects?status=all&limit=50&cursor=after-project-50");
+  });
+
   it("sends the canonical creation body and caller-owned idempotency key", async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "p1", revision: 1, brief: {}, createdAt: "now", updatedAt: "now", stages: [] }), { status: 201, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);

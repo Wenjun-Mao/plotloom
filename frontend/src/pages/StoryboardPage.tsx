@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { MediaKind, MediaTask, SceneBeatPlan, Shot, StoryGraph, Storyboard } from "../types";
 import { deriveRoutes, groupStoryboard } from "../model";
 import { Badge, Button, EmptyState, Field, PageHeader, Panel, Spinner } from "../components";
@@ -7,26 +7,36 @@ const shotSizes: Array<{ value: Shot["shotSize"]; label: string }> = [
   { value: "extreme_wide", label: "大远景" }, { value: "wide", label: "全景" }, { value: "full", label: "全身" }, { value: "medium", label: "中景" }, { value: "close_up", label: "近景" }, { value: "extreme_close_up", label: "特写" }, { value: "insert", label: "插入镜头" },
 ];
 
-export function StoryboardPage({ graph, sceneBeats, value, stale, mediaTasks, saving, onSave, onMedia }: {
+export function StoryboardPage({ graph, sceneBeats, value, stale, mediaTasks, saving, entityId, onEntitySelect, onSave, onMedia, onDraftChange }: {
   graph: StoryGraph;
   sceneBeats: SceneBeatPlan;
   value: Storyboard;
   stale: boolean;
   mediaTasks: Record<string, MediaTask>;
   saving: boolean;
+  entityId?: string;
+  onEntitySelect?: (entityId: string) => void;
   onSave: (storyboard: Storyboard) => Promise<void>;
   onMedia: (shot: Shot, kind: MediaKind) => Promise<void>;
+  onDraftChange?: (storyboard: Storyboard) => void;
 }) {
   const [storyboard, setStoryboard] = useState(value);
   const routes = useMemo(() => deriveRoutes(graph), [graph]);
   const [routeId, setRouteId] = useState("");
   const [selectedShotId, setSelectedShotId] = useState(value.shots[0]?.id || "");
+  useEffect(() => {
+    if (entityId && storyboard.shots.some((shot) => shot.id === entityId)) setSelectedShotId(entityId);
+    else if (!entityId) setSelectedShotId(storyboard.shots[0]?.id || "");
+  }, [entityId, storyboard.shots]);
   const route = routes.find((candidate) => candidate.id === routeId);
   const visible = groupStoryboard(storyboard, sceneBeats, route);
   const selectedShot = storyboard.shots.find((shot) => shot.id === selectedShotId);
   const selectedImageTask = selectedShot ? mediaTasks[`${selectedShot.id}:image`] : undefined;
   const selectedVideoTask = selectedShot ? mediaTasks[`${selectedShot.id}:video`] : undefined;
-  const patchShot = (id: string, patch: Partial<Shot>) => setStoryboard((current) => ({ ...current, shots: current.shots.map((shot) => shot.id === id ? { ...shot, ...patch } : shot) }));
+  const patchShot = (id: string, patch: Partial<Shot>) => setStoryboard((current) => {
+    const updated = { ...current, shots: current.shots.map((shot) => shot.id === id ? { ...shot, ...patch } : shot) };
+    onDraftChange?.(updated); return updated;
+  });
   return <div className="page">
     <PageHeader eyebrow="05 · Grouped production board" title="分镜工作台" description="按场景分组，按完整剧情路径审阅。每个媒体任务只作用于一个镜头。" actions={<><Field label="路径过滤"><select value={routeId} onChange={(event) => setRouteId(event.target.value)}><option value="">全部场景</option>{routes.map((item, index) => <option key={item.id} value={item.id}>路径 {index + 1} · {item.label}</option>)}</select></Field><Button variant="primary" disabled={saving} onClick={() => void onSave(storyboard)}>{saving ? "正在保存…" : "保存分镜"}</Button></>} />
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
@@ -40,8 +50,8 @@ export function StoryboardPage({ graph, sceneBeats, value, stale, mediaTasks, sa
               const imageTask = mediaTasks[`${shot.id}:image`];
               const videoTask = mediaTasks[`${shot.id}:video`];
               const mediaBusy = (task?: MediaTask) => task?.status === "running" || task?.status === "queued";
-              return <article key={shot.id} className={`shot-card ${shot.id === selectedShotId ? "selected" : ""}`} onClick={() => setSelectedShotId(shot.id)}>
-                <button className="shot-select" aria-label={`编辑镜头 ${shot.title}`} onClick={() => setSelectedShotId(shot.id)}>
+              return <article key={shot.id} className={`shot-card ${shot.id === selectedShotId ? "selected" : ""}`} onClick={() => { setSelectedShotId(shot.id); onEntitySelect?.(shot.id); }}>
+                <button className="shot-select" aria-label={`编辑镜头 ${shot.title}`} onClick={(event) => { event.stopPropagation(); setSelectedShotId(shot.id); onEntitySelect?.(shot.id); }}>
                   <div className="shot-frame">
                     {imageTask?.outputUri ? <img src={imageTask.outputUri} alt={`${shot.title} 生成关键帧`} /> : <span>{String(shot.order).padStart(2, "0")}</span>}
                     {stale && <Badge tone="warning">STALE</Badge>}
