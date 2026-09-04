@@ -30,6 +30,10 @@ from ..domain import (
     to_camel,
 )
 from ..validation import DomainValidationError, validate_story_graph
+from ..join_state_values import (
+    JoinStateValueContractError,
+    compile_join_state_value_contract,
+)
 from .json_schema import explicit_presence_json_schema, inline_local_json_references
 
 
@@ -648,45 +652,8 @@ def bind_story_graph_content_fill(
     _assert_exact_ids("edges", [item.id for item in fill.edges], [item.id for item in topology.edges])
     _assert_exact_ids("joinContracts", [item.id for item in fill.join_contracts], [item.id for item in topology.joins])
     _assert_v2_content_contract(topology, fill)
-    node_fill = {item.id: item for item in fill.nodes}
-    edge_fill = {item.id: item for item in fill.edges}
-    join_fill = {item.id: item for item in fill.join_contracts}
     try:
-        graph = StoryGraph(
-            start_node_id=topology.start_node_id,
-            nodes=[
-                StoryNode(
-                    id=item.id,
-                    kind=item.kind,
-                    title=node_fill[item.id].title,
-                    summary=node_fill[item.id].summary,
-                )
-                for item in topology.nodes
-            ],
-            edges=[
-                StoryEdge(
-                    id=item.id,
-                    source_node_id=item.source_node_id,
-                    target_node_id=item.target_node_id,
-                    kind=item.kind,
-                    choice_text=edge_fill[item.id].choice_text,
-                    state_effects=edge_fill[item.id].state_effects,
-                )
-                for item in topology.edges
-            ],
-            join_contracts=[
-                JoinContract(
-                    id=item.id,
-                    join_node_id=item.join_node_id,
-                    incoming_node_ids=list(item.incoming_node_ids),
-                    required_state_keys=join_fill[item.id].required_state_keys,
-                    allowed_differences=join_fill[item.id].allowed_differences,
-                    reconciliation=join_fill[item.id].reconciliation,
-                    notes=join_fill[item.id].notes,
-                )
-                for item in topology.joins
-            ],
-        )
+        graph = _bound_story_graph_from_content_fill(topology, fill)
         validate_story_graph(graph, brief)
     except ValidationError as exc:
         raise StoryGraphContentBindingError(
@@ -735,6 +702,131 @@ def bind_story_graph_content_fill(
             ]
         ) from exc
     return graph
+
+
+def story_graph_content_fill_join_diagnostic_issues(
+    topology: StoryGraphTopology,
+    content: StoryGraphContentFill,
+) -> list[dict[str, str]]:
+    """Expose independent join defects hidden by an allowed-key subset error.
+
+    A response with an allowed-only key cannot construct the canonical V2 join
+    contract, so normal binding correctly stops before the join-value compiler.
+    For correction evidence only, this helper creates an in-memory diagnostic
+    view whose required keys are the ordered union of required and allowed
+    keys.  It never accepts, persists, or rewrites the model response.  The
+    shared join-state compiler remains the authority for missing values,
+    conflicts, finite JSON, and reconciliation semantics.
+    """
+
+    _assert_exact_ids("nodes", [item.id for item in content.nodes], [item.id for item in topology.nodes])
+    _assert_exact_ids("edges", [item.id for item in content.edges], [item.id for item in topology.edges])
+    _assert_exact_ids("joinContracts", [item.id for item in content.join_contracts], [item.id for item in topology.joins])
+
+    try:
+        diagnostic_graph = _bound_story_graph_from_content_fill(
+            topology,
+            content,
+            include_allowed_in_required=True,
+        )
+        # Keep native values (not ``mode='json'``) so NaN/Infinity remain
+        # visible to finite_canonical_json instead of being silently coerced.
+        diagnostic_v2 = StoryGraphV2.model_validate(
+            diagnostic_graph.model_dump(by_alias=True)
+        )
+        compile_join_state_value_contract(diagnostic_v2)
+    except JoinStateValueContractError as exc:
+        diagnostic_issues = list(exc.issues)
+    except ValidationError:
+        # Blank/duplicate keys and other malformed join arrays do not grant
+        # extra repair authority.  Normal binding reports those defects.
+        return []
+    else:
+        return []
+
+    promoted_by_join = {
+        join.id: set(join.allowed_differences) - set(join.required_state_keys)
+        for join in content.join_contracts
+    }
+    joins_by_incoming_edge = {
+        edge.id: join.id
+        for join in topology.joins
+        for edge in topology.edges
+        if edge.target_node_id == join.join_node_id
+        and edge.source_node_id in set(join.incoming_node_ids)
+    }
+    retained: list[dict[str, str]] = []
+    for issue in diagnostic_issues:
+        if issue.code == "join_state_effect_missing":
+            parts = issue.path.split(".")
+            if len(parts) == 4 and parts[0] == "edges":
+                join_id = joins_by_incoming_edge.get(parts[1])
+                if join_id is not None and parts[3] in promoted_by_join[join_id]:
+                    # The subset repair fact already authorizes writing every
+                    # promoted allowed key to each immutable incoming edge.
+                    continue
+        retained.append(
+            {
+                "code": f"semantic.{issue.code}",
+                "path": issue.path,
+                "message": issue.message,
+            }
+        )
+    return retained
+
+
+def _bound_story_graph_from_content_fill(
+    topology: StoryGraphTopology,
+    fill: StoryGraphContentFill,
+    *,
+    include_allowed_in_required: bool = False,
+) -> StoryGraph:
+    """Bind frozen topology to content, optionally normalizing join diagnostics."""
+
+    node_fill = {item.id: item for item in fill.nodes}
+    edge_fill = {item.id: item for item in fill.edges}
+    join_fill = {item.id: item for item in fill.join_contracts}
+    return StoryGraph(
+        start_node_id=topology.start_node_id,
+        nodes=[
+            StoryNode(
+                id=item.id,
+                kind=item.kind,
+                title=node_fill[item.id].title,
+                summary=node_fill[item.id].summary,
+            )
+            for item in topology.nodes
+        ],
+        edges=[
+            StoryEdge(
+                id=item.id,
+                source_node_id=item.source_node_id,
+                target_node_id=item.target_node_id,
+                kind=item.kind,
+                choice_text=edge_fill[item.id].choice_text,
+                state_effects=edge_fill[item.id].state_effects,
+            )
+            for item in topology.edges
+        ],
+        join_contracts=[
+            JoinContract(
+                id=item.id,
+                join_node_id=item.join_node_id,
+                incoming_node_ids=list(item.incoming_node_ids),
+                required_state_keys=(
+                    list(dict.fromkeys(
+                        (*join_fill[item.id].required_state_keys, *join_fill[item.id].allowed_differences)
+                    ))
+                    if include_allowed_in_required
+                    else join_fill[item.id].required_state_keys
+                ),
+                allowed_differences=join_fill[item.id].allowed_differences,
+                reconciliation=join_fill[item.id].reconciliation,
+                notes=join_fill[item.id].notes,
+            )
+            for item in topology.joins
+        ],
+    )
 
 
 def _validate_topology_semantics(topology: StoryGraphTopology) -> None:

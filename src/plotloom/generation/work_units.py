@@ -92,6 +92,7 @@ from .story_graph_topology import (
     StoryGraphContentFill,
     StoryGraphTopology,
     bind_story_graph_content_fill,
+    story_graph_content_fill_join_diagnostic_issues,
     story_graph_content_fill_manifest,
     story_graph_content_fill_schema,
 )
@@ -108,7 +109,7 @@ from .validation import CanonicalStageValidationAdapter, SemanticValidationConte
 
 
 WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12o"
-CORRECTION_POLICY_VERSION = "bounded_correction.v16"
+CORRECTION_POLICY_VERSION = "bounded_correction.v17"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 AUDIO_EVENT_ID_BINDING_VERSION = "audio_event_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
@@ -870,16 +871,38 @@ class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraphV2]):
         try:
             graph = bind_story_graph_content_fill(self.topology, fill, brief=self.brief)
         except StoryGraphContentBindingError as exc:
-            return ValidationReport(
-                accepted=False,
-                issues=tuple(
+            binding_issues = tuple(
+                ValidationIssue(
+                    code=issue["code"],
+                    message=issue["message"],
+                    path=tuple(part for part in issue["path"].split(".") if part),
+                )
+                for issue in exc.issues
+            )
+            diagnostic_issues: tuple[ValidationIssue, ...] = ()
+            if any(
+                issue.code == "semantic.join_allowed_differences_must_be_required"
+                for issue in binding_issues
+            ):
+                # Normal binding cannot construct a canonical join when an
+                # allowed key is absent from requiredStateKeys.  Its
+                # normalized diagnostic view reuses the join-state compiler
+                # to reveal independent pre-existing join defects without
+                # accepting or changing the rejected response.
+                diagnostic_issues = tuple(
                     ValidationIssue(
                         code=issue["code"],
                         message=issue["message"],
                         path=tuple(part for part in issue["path"].split(".") if part),
                     )
-                    for issue in exc.issues
-                ),
+                    for issue in story_graph_content_fill_join_diagnostic_issues(
+                        self.topology,
+                        fill,
+                    )
+                )
+            return ValidationReport(
+                accepted=False,
+                issues=(*binding_issues, *diagnostic_issues),
             )
         finite_json_issues: list[ValidationIssue] = []
         for edge in graph.edges:

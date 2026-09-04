@@ -198,6 +198,28 @@ def test_contract_rejects_unreconciled_variants_and_non_finite_json() -> None:
     assert "state_effect_not_json" in _issue_codes(non_json.value)
 
 
+def test_contract_reports_independent_join_issues_alongside_non_finite_values() -> None:
+    """One rejected graph exposes all join repairs unaffected by a NaN value."""
+
+    graph = _graph(
+        left_effects={"shared": "left", "invalid": math.nan, "route": "left"},
+        right_effects={"shared": "right", "invalid": "ready", "route": "right"},
+        reconciliation="",
+    )
+    graph.join_contracts[0].required_state_keys = ["route", "shared", "missing", "invalid"]
+
+    with pytest.raises(JoinStateValueContractError) as rejected:
+        compile_join_state_value_contract(graph)
+
+    codes = _issue_codes(rejected.value)
+    assert {
+        "state_effect_not_json",
+        "join_state_effect_conflict",
+        "join_state_effect_missing",
+        "join_allowed_difference_without_reconciliation",
+    } <= codes
+
+
 def test_required_nonfinite_edge_effect_has_one_stable_issue() -> None:
     """A malformed required value authorizes one, not duplicate, correction fact."""
 

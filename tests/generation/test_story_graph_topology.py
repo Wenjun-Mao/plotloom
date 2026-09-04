@@ -135,6 +135,56 @@ def test_current_join_missing_fact_is_bound_to_frozen_direct_edges() -> None:
     assert missing.has_expected_value is False
 
 
+def test_subset_join_diagnostics_include_existing_conflicts_but_not_promoted_missing_keys() -> None:
+    """An allowed-only key must not hide an independent convergent conflict."""
+
+    brief = _brief()
+    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    fill = _complete_fill(topology)
+    join = topology.joins[0]
+    incoming = sorted(
+        (
+            edge
+            for edge in topology.edges
+            if edge.target_node_id == join.join_node_id
+            and edge.source_node_id in join.incoming_node_ids
+        ),
+        key=lambda edge: (edge.id, edge.source_node_id),
+    )
+    fill["joinContracts"][0]["requiredStateKeys"] = ["route"]
+    fill["joinContracts"][0]["allowedDifferences"] = ["variant"]
+    for position, edge in enumerate(incoming, start=1):
+        next(item for item in fill["edges"] if item["id"] == edge.id)["stateEffects"] = {
+            "route": f"conflict-{position}",
+        }
+
+    report = StoryGraphContentFillValidationAdapter(
+        topology=topology,
+        brief=brief,
+    ).validate(fill, context=SemanticValidationContext(stage="story_graph"))
+
+    assert report.accepted is False
+    assert [issue.code for issue in report.issues] == [
+        "semantic.join_allowed_differences_must_be_required",
+        "semantic.join_state_effect_conflict",
+    ]
+    facts = semantic_repair_facts(
+        fill,
+        report.issues,
+        stage=StageName.STORY_GRAPH,
+        story_graph_topology=topology,
+    )
+    assert [fact.code for fact in facts] == [
+        "semantic.join_allowed_differences_must_be_required",
+        "semantic.join_state_effect_conflict",
+    ]
+    conflict = facts[1]
+    assert conflict.path == (
+        "joinContracts", join.id, "requiredStateKeys", "route"
+    )
+    assert conflict.has_expected_value is False
+
+
 def test_non_join_nonfinite_state_effect_gets_a_topology_bound_repair_fact() -> None:
     """Finite JSON is graph-wide, so ordinary choices must be repairable too."""
 

@@ -1796,6 +1796,87 @@ def test_graph_join_reconstruction_after_extraction_uses_complete_repair_fact(
     assert "join-reconstruction-secret" not in final_prompt
 
 
+def test_graph_join_reconstruction_after_extraction_combines_subset_and_conflict(
+    repository,
+    brief,
+) -> None:
+    """The last bounded correction receives both independent join repairs."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    rejected_graph = json.loads(complete[1])
+    join, incoming = _join_incoming_edges(topology)
+    rejected_graph["joinContracts"][0]["requiredStateKeys"] = ["route"]
+    rejected_graph["joinContracts"][0]["allowedDifferences"] = ["variant"]
+    edges = _graph_edge_by_id(rejected_graph)
+    for position, edge in enumerate(incoming, start=1):
+        edges[edge.id]["stateEffects"] = {"route": f"conflict-{position}"}
+
+    repaired_graph = json.loads(json.dumps(rejected_graph))
+    repaired_graph["joinContracts"][0]["requiredStateKeys"] = ["route", "variant"]
+    repaired_edges = _graph_edge_by_id(repaired_graph)
+    for position, edge in enumerate(incoming, start=1):
+        repaired_edges[edge.id]["stateEffects"] = {
+            "route": "reconciled",
+            "variant": f"path-{position}",
+        }
+
+    provider = QueueProvider(
+        [
+            complete[0],
+            "not json",
+            json.dumps(rejected_graph, ensure_ascii=False),
+            json.dumps(repaired_graph, ensure_ascii=False),
+        ]
+    )
+    secrets = RunSecretBroker("combined-join-repair-secret")
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED, completed.failure_code
+    trace = repository.get_run_trace(run.id)
+    graph_attempts = [
+        attempt for attempt in trace.attempts if attempt.stage == StageName.STORY_GRAPH
+    ]
+    assert [attempt.outcome_code for attempt in graph_attempts] == [
+        "response.extraction",
+        "semantic.join_allowed_differences_must_be_required",
+        "response.accepted",
+    ]
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == graph_attempts[1].id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert [fact["code"] for fact in validation.content["repairFacts"]] == [
+        "semantic.join_allowed_differences_must_be_required",
+        "semantic.join_state_effect_conflict",
+    ]
+    conflict = validation.content["repairFacts"][1]
+    assert conflict["path"] == [
+        "joinContracts", join.id, "requiredStateKeys", "route"
+    ]
+    assert conflict["hasExpectedValue"] is False
+    final_prompt = provider.requests[3].messages[1].content
+    assert "reconstruct_from_schema" in final_prompt
+    assert "semantic.join_state_effect_conflict" in final_prompt
+    assert '"hasExpectedValue":false' in final_prompt
+    assert "combined-join-repair-secret" not in final_prompt
+
+
 def _join_incoming_edges(topology: StoryGraphTopology):
     """Return one frozen join plus its direct incoming topology edges.
 
@@ -2019,7 +2100,7 @@ def test_graph_join_convergent_conflict_uses_topology_bound_repair_and_installs(
     repository,
     brief,
 ) -> None:
-    """A conflict supplies immutable incoming-edge scope, not guessed endpoints."""
+    """A conflict scopes edges without making either branch value authoritative."""
 
     project = repository.create_project(brief)
     run = repository.create_run(

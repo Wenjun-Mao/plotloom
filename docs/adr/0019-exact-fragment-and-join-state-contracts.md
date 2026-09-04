@@ -144,6 +144,20 @@ may carry an exact value only when all surviving convergent peers prove one;
 `hasExpectedValue` distinguishes that authority from a legitimate JSON null.
 No fact may infer a topology endpoint or choose a branch value arbitrarily.
 
+When `allowedDifferences` names a key absent from `requiredStateKeys`, normal
+canonical binding remains rejecting. Before that rejected response is turned
+into a correction packet, trusted code also binds an in-memory diagnostic view
+whose required keys are the ordered union of those arrays and runs the shared
+join-state compiler. This exposes independent pre-existing required-key
+missing/conflict, finite-JSON, and reconciliation defects in the same packet;
+it never accepts or rewrites the response. Missing effects for keys promoted
+by the subset repair are omitted as redundant because that repair already
+names every immutable incoming edge that must receive the key. A convergent
+conflict still has no authoritative replacement value: the correction must
+make its values equal while preserving or selecting the narrative value from
+the frozen prompt and previous final, rather than allowing trusted code to
+arbitrarily elevate one branch's value.
+
 ## Rejected alternatives
 
 - **Ask the model to create durable audio IDs.** Rejected because retries and
@@ -172,8 +186,10 @@ No fact may infer a topology endpoint or choose a branch value arbitrarily.
 - Tests cover text-free storyboard timing guidance, deterministic dialogue
   delete/renumber plans, and pre-provider timing impossibilities.
 - Tests cover topology-bound join repair facts, including JSON null authority
-  and same-turn promotion of allowed keys onto direct incoming edges, plus
-  non-join finite-JSON repair facts that cannot alter endpoints.
+  and same-turn promotion of allowed keys onto direct incoming edges. They also
+  prove that an allowed-key subset and an independent convergent conflict share
+  one final correction packet after an extraction rejection, plus non-join
+  finite-JSON repair facts that cannot alter endpoints.
 - Tests cover finite JSON parity in fragment and canonical validators,
   including the deliberate `1` versus `1.0` distinction and non-finite facts
   or beat deltas.

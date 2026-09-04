@@ -123,11 +123,13 @@ def compile_join_state_value_contract(
 
     graph_json = graph.model_dump(mode="json", by_alias=True)
     issues: list[JoinStateValueIssue] = []
+    invalid_effect_values: set[tuple[str, str]] = set()
     for edge in graph.edges:
         for state_key, value in edge.state_effects.items():
             try:
                 finite_canonical_json(value)
             except (TypeError, ValueError):
+                invalid_effect_values.add((edge.id, state_key))
                 issues.append(
                     JoinStateValueIssue(
                         code="state_effect_not_json",
@@ -135,8 +137,6 @@ def compile_join_state_value_contract(
                         message="story edge state effects must be finite canonical JSON values",
                     )
                 )
-    if issues:
-        raise JoinStateValueContractError(issues)
     graph_hash = _sha256(graph_json)
     edges_by_pair: dict[tuple[str, str], list[Any]] = {}
     for edge in graph.edges:
@@ -192,10 +192,15 @@ def compile_join_state_value_contract(
                     )
                     key_is_complete = False
                     continue
-                # Every edge effect was checked above before contract
-                # compilation begins.  Rechecking the same required value
-                # here would turn one rejected edge/key into duplicate stable
-                # issues (and consequently duplicate correction facts).
+                if (edge.id, state_key) in invalid_effect_values:
+                    # A non-finite value is reported at its exact edge path.
+                    # It cannot also be treated as absent or compared against
+                    # peers, but unrelated join keys should still yield their
+                    # independent correction evidence in this same packet.
+                    key_is_complete = False
+                    continue
+                # The finite scan above has already established JSON identity
+                # for this edge/key.  Avoid duplicating its stable issue here.
                 serialized = finite_canonical_json(edge.state_effects[state_key])
                 # Reparse the finite canonical representation so nested
                 # mappings cannot retain mutable aliases from the graph.
