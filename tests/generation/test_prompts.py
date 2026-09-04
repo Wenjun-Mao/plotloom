@@ -33,6 +33,7 @@ def test_repository_contains_all_versioned_stage_and_media_prompts() -> None:
             "scene_beats_fragment",
             "storyboard",
             "storyboard_fragment",
+            "work_unit_correction",
         } else "2."
         assert spec.version.startswith(expected_major)
         assert len(spec_hash) == 64

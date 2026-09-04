@@ -77,25 +77,52 @@ often succeeded only after the validator rejected them. The validator was
 correct, but the primary prompt lacked the deterministic capacity facts needed
 to satisfy it on the first attempt.
 
-The pure `dialogue_capacity.v1` planner therefore derives a conservative
+The original pure `dialogue_capacity.v1` planner derived a conservative
 authoring envelope from the exact frozen scene allocation and dialogue timing
-profile. For every Story Graph node it permits at most two dramatic scenes and
-four dialogue cues. It reserves the one-unit minimum for both possible scenes,
-divides the remaining node budget equally across four cue slots, and projects
-each timing rule into an exact `maxTextCodepoints` value. The invariant is:
+profile. For every Story Graph node it permitted at most two dramatic scenes
+and four dialogue cues. It reserved the one-unit minimum for both possible
+scenes, divided the remaining node budget equally across four cue slots, and
+projected each timing rule into an exact `maxTextCodepoints` value. The
+invariant was:
 
 ```text
 scene floors + all permitted cue slots <= frozen node duration
 ```
 
+The two-profile preflight showed that this was safe but too restrictive: even a
+node with only one creative line received no more than one fourth of the node
+time. `dialogue_capacity.v2` is therefore the new-plan default. It retains at
+most two dramatic scenes, reduces the fixed dialogue envelope to two cue slots,
+and freezes `ProjectBrief.language` as `authoringLanguage`. For that language,
+it derives a portable `schemaMaxTextCodepoints`: the smallest cap safe for every
+permitted delivery. The provider-facing Scene Beats schema fixes `language` to
+`authoringLanguage` and applies that value as `text.maxLength`; if it is zero,
+`dialogueCues.maxItems` is zero. Local semantic validation remains authoritative
+for every provider, including ones without native JSON Schema.
+
 The complete timing profile and capacity plan are frozen in both the Scene
 Beats StagePlan and each work unit. Their public versions and hashes, plus the
 selected node guidance, bind the request contract. The primary prompt receives
 the bounded guidance directly; the response schema enforces the global scene
-and cue counts; and local semantic validation applies the language/delivery
-rule to each cue before retaining the existing whole-node budget check as a
-defense in depth. A node too small to fund the fixed envelope fails with
-`dialogue_capacity.node_budget_too_small` before any provider call.
+and cue counts plus v2's portable language/text cap; and local semantic
+validation applies the frozen rule to each cue before retaining the existing
+whole-node budget check as a defense in depth. A node too small to fund the
+fixed envelope fails with `dialogue_capacity.node_budget_too_small` before any
+provider call.
+
+When a schema-valid Scene Beats response exceeds a cue cap, the runner derives
+a `DialogueCapacityRepairFact` only from its stable issue path, frozen node
+guidance, and parsed cue metadata. It contains the exact cap, current codepoint
+count, and compatible delivery limits, never dialogue text or validator prose.
+The correction prompt treats this fact as its only capacity authority. Missing,
+malformed, cross-language, or stale facts authorize no capacity repair.
+If a provider returns a cue language that differs from the frozen authoring
+language, validation emits
+`semantic.dialogue_language_not_authoring_language` and does not query the
+timing profile with that untrusted language. This is ordinary model feedback
+eligible for bounded correction; a valid authoring-language-only profile is
+never required to add wildcard rules merely to validate an out-of-contract
+response.
 
 The same frozen timing profile remains authoritative after model execution.
 `commit_sealed_run` validates the Scene Beats aggregate and evaluates the
@@ -109,9 +136,16 @@ canonical saves remain a separate authoring path and select the current
 versioned profile at the time of that save.
 
 The fixed limits are a versioned product policy, not a provider heuristic.
-Changing them requires a new capacity-policy version. Neither startup recovery
-nor compilation may reconstruct a missing historical capacity contract from a
-new process default.
+Changing them requires a new capacity-policy version. Historical v1 plans,
+hashes, prompts, and recovery records retain their original four-cue shape and
+must never be recalculated with v2 defaults. Terminal history remains readable,
+but startup recovery terminates a nonterminal v1 Scene Beats run and requires a
+fresh submission because its prompt and derived work-unit hashes cannot be
+replayed under v2. Neither recovery nor compilation may reconstruct a missing
+historical capacity contract from a new process default. V2 also rejects a
+timing profile that lacks an exact or wildcard rule for any delivery before a
+provider call; an incomplete trusted policy is a planning fault, not a model
+correction opportunity.
 
 ## Rejected alternatives
 
@@ -129,11 +163,10 @@ new process default.
 - **Rely on rejection-and-correction to teach the capacity.** Rejected because
   deterministic limits belong in the primary contract, and first-pass quality
   should not depend on consuming a correction attempt.
-- **Encode language/delivery conditionals with provider-specific JSON Schema.**
-  Rejected for this version because profile capability currently guarantees
-  only basic JSON Schema support. Global array limits are projected into the
-  schema; rule-specific text limits remain explicit prompt facts backed by the
-  same local semantic authority for every provider.
+- **Encode delivery-specific conditionals with provider-specific JSON Schema.**
+  Rejected because profile capability guarantees only basic JSON Schema support.
+  V2 instead emits one portable frozen-language `text.maxLength` safe for all
+  delivery choices; semantic validation remains the common authority.
 - **Pad manual edits to the target.** Rejected because the target is an upper
   bound; shorter authored paths remain valid and should stay shorter.
 

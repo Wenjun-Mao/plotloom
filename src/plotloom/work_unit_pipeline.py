@@ -714,6 +714,11 @@ class DurableWorkUnitRunner:
                         if work_unit.stage == StageName.STORYBOARD
                         else None
                     ),
+                    dialogue_capacity_guidance=(
+                        compiled.contract.dialogue_capacity_guidance
+                        if work_unit.stage == StageName.SCENE_BEATS
+                        else None
+                    ),
                 )
                 if self._reject_or_continue(
                     run=run,

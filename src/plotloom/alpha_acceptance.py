@@ -13,6 +13,7 @@ import argparse
 import json
 import os
 import re
+import secrets
 import shutil
 import sqlite3
 import subprocess
@@ -23,8 +24,18 @@ from collections.abc import Callable, Iterable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from statistics import median
+from typing import Any, Literal, Protocol
 
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictInt,
+    ValidationError,
+    field_validator,
+)
 from sqlalchemy.engine import make_url
 
 from .artifacts import LocalArtifactStore
@@ -68,6 +79,7 @@ ALPHA_PROFILE_COUNT = 2
 ALPHA_STORY_COUNT = 3
 ALPHA_REPEATS_PER_STORY = 3
 ALPHA_EXPECTED_RUN_COUNT = ALPHA_PROFILE_COUNT * ALPHA_STORY_COUNT * ALPHA_REPEATS_PER_STORY
+ALPHA_EXPECTED_REVIEW_COUNT = ALPHA_PROFILE_COUNT * ALPHA_STORY_COUNT
 ALPHA_REQUIRED_FIRST_PASS_STAGES_PER_PROFILE = 30
 ALPHA_TOTAL_STAGES_PER_PROFILE = ALPHA_STORY_COUNT * ALPHA_REPEATS_PER_STORY * len(STAGE_ORDER)
 _SAFE_ISSUE_CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
@@ -87,6 +99,29 @@ _RECEIPT_FIELDS = frozenset({
 _TOKEN_FIELDS = frozenset({"inputTokens", "outputTokens", "totalTokens"})
 _SCORE_FIELDS = frozenset({"firstPass", "maxAttemptsPerWorkUnit"})
 _FIRST_PASS_FIELDS = frozenset({"total", "accepted", "rejected", "outcomeUnknown", "cancelled", "notRun"})
+_REVIEW_MAPPING_FILENAME = "review-mapping.private.json"
+_REVIEW_ID = re.compile(r"^review-[0-9a-f]{32}$")
+_CONTENT_HASH = re.compile(r"^[0-9a-f]{64}$")
+_CODEX_EXTERNAL_REVIEWER = "codex_external_review"
+_CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION = "m1c_authoring_quality.v1"
+_EXTERNAL_REVIEW_FIELDS = frozenset({
+    "commit",
+    "contractHash",
+    "reviewId",
+    "contentHash",
+    "rubricVersion",
+    "reviewer",
+    "scores",
+    "fatalContradiction",
+})
+_EXTERNAL_REVIEW_SCORE_FIELDS = frozenset({
+    "narrativeClarity",
+    "branchCausality",
+    "continuity",
+    "performanceReadability",
+    "shotLanguage",
+    "pacingAndEditCost",
+})
 _SQLITE_PENDING_BYTE = 0x40000000
 _SQLITE_WAL_LOCK_OFFSET = 120
 
@@ -98,6 +133,123 @@ class AlphaStory:
     alias: str
     version: str
     brief: ProjectBrief
+
+
+class _ReviewRandomSource(Protocol):
+    """Small injectable surface; production uses ``secrets.SystemRandom``."""
+
+    def sample(self, population: list[int], k: int) -> list[int]: ...
+
+    def getrandbits(self, k: int) -> int: ...
+
+
+@dataclass(frozen=True)
+class _ReviewCandidate:
+    """Private pre-publication association; never serialize into a receipt."""
+
+    profile_id: str
+    story_id: str
+    sample_id: str
+    payload: dict[str, Any]
+    content_hash: str
+
+
+class _ExternalReviewModel(BaseModel):
+    """A closed, text-free receipt model for independent Codex review."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True)
+
+
+class CodexExternalReview(_ExternalReviewModel):
+    """One blinded rubric score sheet, deliberately incapable of carrying prose."""
+
+    commit: str
+    contract_hash: str = Field(alias="contractHash")
+    review_id: str = Field(alias="reviewId")
+    content_hash: str = Field(alias="contentHash")
+    rubric_version: Literal["m1c_authoring_quality.v1"] = Field(alias="rubricVersion")
+    reviewer: Literal["codex_external_review"]
+    scores: dict[str, StrictInt]
+    fatal_contradiction: StrictBool = Field(alias="fatalContradiction")
+
+    @field_validator("commit")
+    @classmethod
+    def _validate_commit(cls, value: str) -> str:
+        if not _COMMIT_SHA.fullmatch(value):
+            raise ValueError("invalid commit")
+        return value.lower()
+
+    @field_validator("contract_hash", "content_hash")
+    @classmethod
+    def _validate_hash(cls, value: str) -> str:
+        if not _CONTENT_HASH.fullmatch(value):
+            raise ValueError("invalid hash")
+        return value
+
+    @field_validator("review_id")
+    @classmethod
+    def _validate_review_id(cls, value: str) -> str:
+        if not _REVIEW_ID.fullmatch(value):
+            raise ValueError("invalid opaque review ID")
+        return value
+
+    @field_validator("scores")
+    @classmethod
+    def _validate_scores(cls, value: dict[str, int]) -> dict[str, int]:
+        if set(value) != _EXTERNAL_REVIEW_SCORE_FIELDS:
+            raise ValueError("invalid rubric dimensions")
+        if any(
+            not isinstance(score, int)
+            or isinstance(score, bool)
+            or not 1 <= score <= 5
+            for score in value.values()
+        ):
+            raise ValueError("rubric scores must be integers from 1 through 5")
+        return dict(value)
+
+
+class CodexExternalReviewGate(_ExternalReviewModel):
+    """Secret-free aggregate that is suitable for a tracked Alpha receipt."""
+
+    gate: Literal["codex_external_review"] = "codex_external_review"
+    commit: str
+    contract_hash: str = Field(alias="contractHash")
+    rubric_version: Literal["m1c_authoring_quality.v1"] = Field(alias="rubricVersion")
+    reviewer: Literal["codex_external_review"]
+    review_count: int = Field(alias="reviewCount", ge=0)
+    expected_review_count: int = Field(alias="expectedReviewCount", ge=0)
+    issue_codes: tuple[str, ...] = Field(alias="issueCodes")
+    passed: bool
+    dimension_medians: dict[str, float] = Field(alias="dimensionMedians")
+
+
+class CodexExternalReviewReceipt(_ExternalReviewModel):
+    """Closed tracked receipt containing only validated blinded score sheets."""
+
+    receipt: Literal["codex_external_review"] = "codex_external_review"
+    commit: str
+    contract_hash: str = Field(alias="contractHash")
+    rubric_version: Literal["m1c_authoring_quality.v1"] = Field(alias="rubricVersion")
+    reviewer: Literal["codex_external_review"]
+    reviews: tuple[CodexExternalReview, ...]
+    gate: CodexExternalReviewGate
+
+
+@dataclass(frozen=True)
+class ReviewSampleManifest:
+    """The safe identity/hash pair needed to bind an external score sheet."""
+
+    review_id: str
+    content_hash: str
+
+
+@dataclass(frozen=True)
+class ReviewPackManifest:
+    """Immutable Alpha-pack provenance plus its six blinded sample hashes."""
+
+    commit: str
+    contract_hash: str
+    samples: tuple[ReviewSampleManifest, ...]
 
 
 def _brief(*, title: str, synopsis: str, genre: str, visual_style: str) -> ProjectBrief:
@@ -159,6 +311,7 @@ class AlphaAcceptanceResult:
     receipts: tuple[dict[str, Any], ...]
     review_paths: tuple[Path, ...]
     qualification_issues: tuple[str, ...]
+    review_mapping_path: Path | None = None
 
 
 def alpha_contract_hash() -> str:
@@ -296,6 +449,7 @@ def _receipt_for(
     repeat_ordinal: int,
     duration_milliseconds: int,
     commit_sha: str,
+    contract_hash: str,
 ) -> dict[str, Any]:
     completed = repository.get_run(run_id)
     trace = repository.get_run_trace(run_id)
@@ -308,7 +462,7 @@ def _receipt_for(
     # provider configuration, or workload/story fingerprints.
     return {
         "commit": commit_sha,
-        "contractHash": alpha_contract_hash(),
+        "contractHash": contract_hash,
         "profileId": profile_alias,
         "storyId": story.alias,
         "sampleId": f"{story.alias}-repeat-{repeat_ordinal:02d}",
@@ -367,7 +521,11 @@ def _prepare_review_directory(review_directory: Path, *, checkout_root: Path) ->
     return resolved_directory
 
 
-def _publish_review_directory(staging_directory: Path, review_directory: Path) -> tuple[Path, ...]:
+def _publish_review_directory(
+    staging_directory: Path,
+    review_directory: Path,
+    review_ids: Iterable[str],
+) -> tuple[Path, ...]:
     """Atomically expose a complete staged review pack, never individual files."""
 
     if review_directory.exists():
@@ -375,16 +533,155 @@ def _publish_review_directory(staging_directory: Path, review_directory: Path) -
             raise ValueError("review_directory changed while Alpha was running")
         review_directory.rmdir()
     staging_directory.replace(review_directory)
-    return tuple(review_directory / f"review-{ordinal:02d}.json" for ordinal in range(1, 7))
+    return tuple(review_directory / f"{review_id}.json" for review_id in review_ids)
 
 
-def _write_review_sample(review_directory: Path, ordinal: int, payload: Mapping[str, Any]) -> Path:
-    # Opaque sequential names prevent the review artifact from disclosing its
-    # provider/profile/run provenance. Ordering is deterministic by anonymous
-    # profile alias then fixed story alias; no local mapping file is needed.
-    path = review_directory / f"review-{ordinal:02d}.json"
+def _write_review_sample(
+    review_directory: Path,
+    review_id: str,
+    payload: Mapping[str, Any],
+) -> Path:
+    """Write a content-only blinded sample whose filename is an opaque ID."""
+
+    if not _REVIEW_ID.fullmatch(review_id):
+        raise ValueError("review sample needs an opaque review ID")
+    path = review_directory / f"{review_id}.json"
     path.write_text(canonical_json(dict(payload)) + "\n", encoding="utf-8")
     return path
+
+
+def _randomized_review_candidates(
+    candidates: Iterable[_ReviewCandidate],
+    *,
+    random_source: _ReviewRandomSource | None = None,
+) -> tuple[tuple[str, _ReviewCandidate], ...]:
+    """Assign opaque IDs after secure random permutation of fixed samples.
+
+    Selection remains deterministic (repeat one for every profile/story cell),
+    but neither file order nor IDs reveal the selected profile/story ordering.
+    Tests inject a minimal deterministic source; production always obtains its
+    randomness from the operating system through :class:`secrets.SystemRandom`.
+    """
+
+    source = random_source or secrets.SystemRandom()
+    items = tuple(candidates)
+    indexes = source.sample(list(range(len(items))), len(items))
+    if sorted(indexes) != list(range(len(items))):
+        raise ValueError("review random source returned an invalid permutation")
+    assigned: list[tuple[str, _ReviewCandidate]] = []
+    used_ids: set[str] = set()
+    for index in indexes:
+        review_id = f"review-{source.getrandbits(128):032x}"
+        if review_id in used_ids:
+            raise ValueError("review random source produced a duplicate opaque ID")
+        used_ids.add(review_id)
+        assigned.append((review_id, items[index]))
+    return tuple(assigned)
+
+
+def _write_private_review_mapping(
+    review_directory: Path,
+    assignments: Iterable[tuple[str, _ReviewCandidate]],
+    *,
+    commit_sha: str,
+    contract_hash: str,
+) -> Path:
+    """Write the sole private unblinding map with owner-only permissions.
+
+    This file is intentionally placed outside the checkout with the review pack,
+    and is never returned as a public receipt or published review sample.
+    """
+
+    entries = [
+        {
+            "reviewId": review_id,
+            "profileId": candidate.profile_id,
+            "storyId": candidate.story_id,
+            "sampleId": candidate.sample_id,
+            "contentHash": candidate.content_hash,
+        }
+        for review_id, candidate in assignments
+    ]
+    path = review_directory / _REVIEW_MAPPING_FILENAME
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8") as mapping_file:
+            mapping_file.write(
+                canonical_json(
+                    {
+                        "version": "alpha_review_mapping.v2",
+                        "commit": commit_sha,
+                        "contractHash": contract_hash,
+                        "reviewCount": ALPHA_EXPECTED_REVIEW_COUNT,
+                        "entries": entries,
+                    }
+                )
+                + "\n"
+            )
+    finally:
+        # ``fdopen`` owns and closes the descriptor on the normal and error
+        # paths. If it failed before ownership transferred, close defensively.
+        try:
+            os.close(descriptor)
+        except OSError:
+            pass
+    os.chmod(path, 0o600)
+    return path
+
+
+def load_private_review_manifest(mapping_path: Path) -> ReviewPackManifest:
+    """Read only the safe review ID/hash bindings from the private map.
+
+    The mapping file itself remains an operator-only unblinding artifact. This
+    parser intentionally does not return its profile/story fields, so callers
+    cannot accidentally put them into an external-review receipt.
+    """
+
+    try:
+        payload = json.loads(mapping_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError("private review mapping is unreadable") from error
+    if not isinstance(payload, Mapping) or set(payload) != {
+        "version",
+        "commit",
+        "contractHash",
+        "reviewCount",
+        "entries",
+    }:
+        raise ValueError("private review mapping has invalid shape")
+    if (
+        payload.get("version") != "alpha_review_mapping.v2"
+        or payload.get("reviewCount") != ALPHA_EXPECTED_REVIEW_COUNT
+        or not isinstance(payload.get("entries"), list)
+    ):
+        raise ValueError("private review mapping has invalid version")
+    try:
+        commit = _validate_commit_sha(payload.get("commit"))
+    except (TypeError, ValueError) as error:
+        raise ValueError("private review mapping has invalid commit") from error
+    contract_hash = payload.get("contractHash")
+    if not isinstance(contract_hash, str) or not _CONTENT_HASH.fullmatch(contract_hash):
+        raise ValueError("private review mapping has invalid contract hash")
+    manifests: list[ReviewSampleManifest] = []
+    for entry in payload["entries"]:
+        if not isinstance(entry, Mapping) or set(entry) != {"reviewId", "profileId", "storyId", "sampleId", "contentHash"}:
+            raise ValueError("private review mapping has invalid entry")
+        review_id = entry.get("reviewId")
+        content_hash = entry.get("contentHash")
+        if not isinstance(review_id, str) or not _REVIEW_ID.fullmatch(review_id):
+            raise ValueError("private review mapping has invalid review ID")
+        if not isinstance(content_hash, str) or not _CONTENT_HASH.fullmatch(content_hash):
+            raise ValueError("private review mapping has invalid content hash")
+        manifests.append(ReviewSampleManifest(review_id=review_id, content_hash=content_hash))
+    if len({item.review_id for item in manifests}) != len(manifests):
+        raise ValueError("private review mapping has duplicate review IDs")
+    if len(manifests) != ALPHA_EXPECTED_REVIEW_COUNT:
+        raise ValueError("private review mapping must contain all six Alpha samples")
+    return ReviewPackManifest(
+        commit=commit,
+        contract_hash=contract_hash,
+        samples=tuple(manifests),
+    )
 
 
 def _source_sqlite_path(source_database_url: str) -> Path:
@@ -657,6 +954,149 @@ def alpha_qualification_issue_codes(receipts: Iterable[Mapping[str, Any]]) -> li
     return sorted(set(issues))
 
 
+def parse_codex_external_review(value: Any) -> CodexExternalReview:
+    """Parse one untrusted score sheet through the closed, prose-free schema."""
+
+    if not isinstance(value, Mapping) or set(value) != _EXTERNAL_REVIEW_FIELDS:
+        raise ValueError("codex external review has invalid secret-free shape")
+    try:
+        return CodexExternalReview.model_validate(value)
+    except ValidationError as error:
+        # Do not expose arbitrary reviewer-controlled values through errors or
+        # logs. The model is closed, so a generic outcome is enough to audit a
+        # schema failure with the stable gate code below.
+        raise ValueError("codex external review has invalid secret-free shape") from error
+
+
+def codex_external_review_gate(
+    reviews: Iterable[Any],
+    *,
+    review_pack: ReviewPackManifest,
+) -> CodexExternalReviewGate:
+    """Aggregate blinded Codex review against the exact six published hashes.
+
+    The returned object intentionally carries no sample text or unblinding
+    metadata. Its stable codes make a failed quality gate actionable without
+    turning a tracked receipt into a provider/profile/story/run ledger.
+    """
+
+    expected = tuple(review_pack.samples)
+    issues: set[str] = set()
+    try:
+        normalized_commit = _validate_commit_sha(review_pack.commit)
+    except ValueError:
+        normalized_commit = ""
+        issues.add("codex_external_review.expected_commit")
+    contract_hash = review_pack.contract_hash
+    if not _CONTENT_HASH.fullmatch(contract_hash):
+        issues.add("codex_external_review.expected_contract_hash")
+
+    parsed: list[CodexExternalReview] = []
+    for value in reviews:
+        try:
+            parsed.append(parse_codex_external_review(value))
+        except ValueError:
+            issues.add("codex_external_review.schema")
+
+    expected_by_id = {sample.review_id: sample for sample in expected}
+    if len(expected) != ALPHA_EXPECTED_REVIEW_COUNT:
+        issues.add("codex_external_review.expected_manifest_count")
+    if (
+        len(expected_by_id) != len(expected)
+        or any(
+            not _REVIEW_ID.fullmatch(sample.review_id)
+            or not _CONTENT_HASH.fullmatch(sample.content_hash)
+            for sample in expected
+        )
+    ):
+        issues.add("codex_external_review.expected_manifest")
+    if len(parsed) != ALPHA_EXPECTED_REVIEW_COUNT or len(parsed) != len(expected):
+        issues.add("codex_external_review.count")
+    actual_ids = [review.review_id for review in parsed]
+    if len(actual_ids) != len(set(actual_ids)) or set(actual_ids) != set(expected_by_id):
+        issues.add("codex_external_review.identity")
+    if any(review.commit != normalized_commit for review in parsed):
+        issues.add("codex_external_review.commit_identity")
+    if any(review.contract_hash != contract_hash for review in parsed):
+        issues.add("codex_external_review.contract_identity")
+    if any(
+        expected_by_id.get(review.review_id) is None
+        or expected_by_id[review.review_id].content_hash != review.content_hash
+        for review in parsed
+    ):
+        issues.add("codex_external_review.content_identity")
+
+    dimension_medians: dict[str, float] = {}
+    if (
+        len(parsed) == ALPHA_EXPECTED_REVIEW_COUNT
+        and len(expected) == ALPHA_EXPECTED_REVIEW_COUNT
+    ):
+        if any(review.fatal_contradiction for review in parsed):
+            issues.add("codex_external_review.fatal_contradiction")
+        if any(any(score < 3 for score in review.scores.values()) for review in parsed):
+            issues.add("codex_external_review.score_floor")
+        if any(
+            sum(review.scores.values()) / len(_EXTERNAL_REVIEW_SCORE_FIELDS) < 3.5
+            for review in parsed
+        ):
+            issues.add("codex_external_review.sample_average")
+        for dimension in sorted(_EXTERNAL_REVIEW_SCORE_FIELDS):
+            dimension_medians[dimension] = float(median([
+                review.scores[dimension] for review in parsed
+            ]))
+        if any(value < 4 for value in dimension_medians.values()):
+            issues.add("codex_external_review.dimension_median")
+
+    return CodexExternalReviewGate(
+        commit=normalized_commit,
+        contractHash=(contract_hash if _CONTENT_HASH.fullmatch(contract_hash) else ""),
+        rubricVersion=_CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION,
+        reviewer=_CODEX_EXTERNAL_REVIEWER,
+        reviewCount=len(parsed),
+        expectedReviewCount=ALPHA_EXPECTED_REVIEW_COUNT,
+        issueCodes=tuple(sorted(issues)),
+        passed=not issues,
+        dimensionMedians=dimension_medians,
+    )
+
+
+def codex_external_review_receipt(
+    reviews: Iterable[Any],
+    *,
+    review_pack: ReviewPackManifest,
+) -> CodexExternalReviewReceipt:
+    """Build the only structure authorized for a tracked external-review receipt.
+
+    Malformed raw sheets influence the aggregate through a stable schema issue,
+    but are never echoed into the returned receipt. Only score sheets that pass
+    the closed, prose-free model can cross this persistence boundary.
+    """
+
+    normalized_commit = _validate_commit_sha(review_pack.commit)
+    contract_hash = review_pack.contract_hash
+    if not _CONTENT_HASH.fullmatch(contract_hash):
+        raise ValueError("invalid contract hash")
+    raw_reviews = tuple(reviews)
+    safe_reviews: list[CodexExternalReview] = []
+    for value in raw_reviews:
+        try:
+            safe_reviews.append(parse_codex_external_review(value))
+        except ValueError:
+            continue
+    gate = codex_external_review_gate(
+        raw_reviews,
+        review_pack=review_pack,
+    )
+    return CodexExternalReviewReceipt(
+        commit=normalized_commit,
+        contractHash=contract_hash,
+        rubricVersion=_CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION,
+        reviewer=_CODEX_EXTERNAL_REVIEWER,
+        reviews=tuple(safe_reviews),
+        gate=gate,
+    )
+
+
 def run_alpha_acceptance(
     *,
     source_database_url: str,
@@ -665,6 +1105,7 @@ def run_alpha_acceptance(
     provider_resolver: TextProviderResolver | None = None,
     server_key_resolver: Callable[[str], str | None] | None = None,
     commit_sha: str | None = None,
+    review_random_source: _ReviewRandomSource | None = None,
 ) -> AlphaAcceptanceResult:
     """Execute Alpha's 2 × 3 × 3 matrix through the production pipeline.
 
@@ -676,6 +1117,7 @@ def run_alpha_acceptance(
     if len(selected_ids) != ALPHA_PROFILE_COUNT or len(set(selected_ids)) != ALPHA_PROFILE_COUNT:
         raise ValueError("Alpha requires exactly two distinct saved profile IDs")
     resolved_commit_sha = _resolve_commit_sha(commit_sha)
+    resolved_contract_hash = alpha_contract_hash()
     review_destination = _prepare_review_directory(review_directory, checkout_root=_source_checkout_root())
     profiles = _load_named_profiles(source_database_url, selected_ids)
     resolver = provider_resolver or SnapshotTextProviderResolver()
@@ -689,7 +1131,7 @@ def run_alpha_acceptance(
         key_resolver = server_key_resolver
 
     receipts: list[dict[str, Any]] = []
-    staged_review_paths: list[Path] = []
+    review_candidates: list[_ReviewCandidate] = []
     review_destination.parent.mkdir(parents=True, exist_ok=True)
     staging_directory = Path(tempfile.mkdtemp(
         prefix=f".{review_destination.name}.plotloom-stage-",
@@ -702,7 +1144,7 @@ def run_alpha_acceptance(
             root = Path(temporary_root)
             for profile_index, profile in enumerate(profiles, start=1):
                 profile_alias = f"profile-{profile_index:02d}"
-                for story_index, story in enumerate(ALPHA_STORIES, start=1):
+                for story in ALPHA_STORIES:
                     for repeat_ordinal in range(1, ALPHA_REPEATS_PER_STORY + 1):
                         database_path = root / f"{profile_alias}-{story.alias}-{repeat_ordinal}.sqlite3"
                         artifact_root = root / f"{profile_alias}-{story.alias}-{repeat_ordinal}-artifacts"
@@ -735,26 +1177,49 @@ def run_alpha_acceptance(
                                 repeat_ordinal=repeat_ordinal,
                                 duration_milliseconds=elapsed_ms,
                                 commit_sha=resolved_commit_sha,
+                                contract_hash=resolved_contract_hash,
                             ))
                             if repeat_ordinal == 1 and repository.get_run(run.id).status.value == "succeeded":
-                                review_ordinal = (profile_index - 1) * ALPHA_STORY_COUNT + story_index
-                                staged_review_paths.append(_write_review_sample(
-                                    staging_directory,
-                                    review_ordinal,
-                                    _content_only_review_payload(repository, project.id),
-                                ))
+                                payload = _content_only_review_payload(repository, project.id)
+                                review_candidates.append(
+                                    _ReviewCandidate(
+                                        profile_id=profile_alias,
+                                        story_id=story.alias,
+                                        sample_id=f"{story.alias}-repeat-{repeat_ordinal:02d}",
+                                        content_hash=sha256_text(canonical_json(payload)),
+                                        payload=payload,
+                                    )
+                                )
                         finally:
                             if runner is not None:
                                 runner.close()
                             secrets.close()
                             repository.close()
         qualification = list(alpha_qualification_issue_codes(receipts))
-        if len(staged_review_paths) != ALPHA_PROFILE_COUNT * ALPHA_STORY_COUNT:
+        if len(review_candidates) != ALPHA_PROFILE_COUNT * ALPHA_STORY_COUNT:
             qualification.append("alpha.review_pack.count")
         if qualification:
             return AlphaAcceptanceResult(tuple(receipts), (), tuple(sorted(set(qualification))))
-        review_paths = _publish_review_directory(staging_directory, review_destination)
-        return AlphaAcceptanceResult(tuple(receipts), review_paths, ())
+        assignments = _randomized_review_candidates(
+            review_candidates,
+            random_source=review_random_source,
+        )
+        for review_id, candidate in assignments:
+            _write_review_sample(staging_directory, review_id, candidate.payload)
+        mapping_path = _write_private_review_mapping(
+            staging_directory,
+            assignments,
+            commit_sha=resolved_commit_sha,
+            contract_hash=resolved_contract_hash,
+        )
+        review_paths = _publish_review_directory(
+            staging_directory,
+            review_destination,
+            (review_id for review_id, _candidate in assignments),
+        )
+        return AlphaAcceptanceResult(
+            tuple(receipts), review_paths, (), review_destination / mapping_path.name
+        )
     finally:
         if staging_directory.exists():
             shutil.rmtree(staging_directory)

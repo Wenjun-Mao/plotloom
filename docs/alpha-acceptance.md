@@ -47,11 +47,43 @@ invariants (including partial canonical installation), and at least 30 of 36
 first-pass stages for each anonymous profile.
 
 Only after all 18 runs and qualification succeed, the runner atomically
-publishes the explicit review directory with exactly six deterministic files,
-`review-01.json` through `review-06.json`: repeat one for every anonymous
-profile/story pair. Each file contains only the four canonical authoring
-payloads (`storyBible`, `storyGraph`, `sceneBeats`, `storyboard`), with no run,
-profile, provider, trace, prompt, response, or receipt metadata. File ordering
-is deterministic by requested profile order then the fixed story order, so no
-mapping file is necessary. Do not check in the review directory or create a
-mapping file; reviewers should receive only those blinded content files.
+publishes six deterministically selected samples: repeat one for every
+anonymous profile/story pair. Before publication it applies a cryptographically
+secure random permutation and assigns opaque random IDs, so neither filename
+nor file order exposes profile or story order. Each `review-<opaque>.json`
+file contains only the four canonical authoring payloads (`storyBible`,
+`storyGraph`, `sceneBeats`, `storyboard`), with no run, profile, provider,
+trace, prompt, response, or receipt metadata.
+
+The same external directory also contains `review-mapping.private.json`. It is
+the sole unblinding map, is created with owner-only `0600` permissions, and
+maps an opaque review ID to the anonymous profile/story/sample aliases and the
+content hash. The map also freezes the exact run-code commit and production
+contract hash for the whole six-sample pack. It stays outside the checkout, is
+never included in stdout or a tracked receipt, and must not be shared with a
+reviewer. Share only the six content files; retain the private mapping locally
+for the release owner to bind returned scores back to both the reviewed content
+and the code/contract that produced it.
+
+## Independent Codex review gate
+
+After a qualified six-file pack exists, an independent Codex reviewer may
+submit one closed JSON score sheet per opaque review ID. This is an engineering
+quality gate named `codex_external_review`, not a human product Approval. A
+score sheet accepts exactly: commit, contract hash, opaque review ID, content
+hash, rubric version, fixed reviewer value, six integer scores from 1 to 5,
+and `fatalContradiction`. It cannot carry comments, story text, prompt text,
+profile/story/run/model/provider identity, or any other field.
+
+The release owner loads the frozen pack provenance from the private map,
+validates each sheet against it, and uses the closed receipt builder to record
+only the validated blinded score sheets, the commit/contract hash derived from
+that pack, secret-free aggregate gate result, and stable issue codes in a
+tracked receipt. There is no caller-supplied commit or contract override, so an
+old scored pack cannot be relabelled as a newer build. Malformed raw sheets are
+never echoed into that receipt. The gate passes only when all six samples are
+present and identity bound, none has a fatal contradiction, every individual
+score is at least 3, every sample average is at least 3.5, and every rubric
+dimension has a median of at least 4. This gate has not yet been executed merely
+because the runner or these rules exist; no documentation or receipt should
+claim completion until the six blinded reviews have been validated.

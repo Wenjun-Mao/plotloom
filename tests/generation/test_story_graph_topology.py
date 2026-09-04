@@ -328,6 +328,8 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
         ],
         "joinContractId": topology.joins[0].id,
         "missingRequiredStateKeys": ["other"],
+        "expectedRequiredStateKeys": ["route", "other"],
+        "expectedAllowedDifferences": ["other"],
     }
 
     for unsafe_allowed in (["   "], ["other", "other"]):

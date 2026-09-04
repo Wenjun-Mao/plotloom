@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import stat
 import sqlite3
 import subprocess
 import sys
@@ -13,6 +14,24 @@ from plotloom import alpha_acceptance
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse, ProviderUsage
 from plotloom.persistence import SQLiteRepository
 from plotloom.provider_profiles import PresetId, StageMaxOutputTokens, TextProviderProfileSnapshot
+
+
+class _DeterministicReviewRandom:
+    """Test-only permutation/ID source; production must use SystemRandom."""
+
+    def __init__(self, *, permutation: list[int] | None = None) -> None:
+        self.permutation = permutation
+        self._next_id = 1
+
+    def sample(self, population: list[int], k: int) -> list[int]:
+        assert k == len(population)
+        return self.permutation or list(reversed(population))
+
+    def getrandbits(self, k: int) -> int:
+        assert k == 128
+        value = self._next_id
+        self._next_id += 1
+        return value
 
 
 def _profile(profile_id: str) -> TextProviderProfileSnapshot:
@@ -126,6 +145,7 @@ def test_alpha_runs_full_18_cell_fixture_matrix_writes_blinded_reviews_and_clean
         review_directory=review_directory,
         provider_resolver=_FixtureResolver(),
         commit_sha="a" * 40,
+        review_random_source=_DeterministicReviewRandom(),
     )
 
     assert len(result.receipts) == 18
@@ -146,14 +166,39 @@ def test_alpha_runs_full_18_cell_fixture_matrix_writes_blinded_reviews_and_clean
         assert forbidden not in receipt_text
     assert roots and all(not root.exists() for root in roots)
 
-    assert [path.name for path in result.review_paths] == [f"review-{ordinal:02d}.json" for ordinal in range(1, 7)]
-    assert sorted(path.name for path in review_directory.iterdir()) == [f"review-{ordinal:02d}.json" for ordinal in range(1, 7)]
+    assert [path.name for path in result.review_paths] == [
+        f"review-{ordinal:032x}.json" for ordinal in range(1, 7)
+    ]
+    assert result.review_mapping_path == review_directory / "review-mapping.private.json"
+    assert result.review_mapping_path.exists()
+    assert stat.S_IMODE(result.review_mapping_path.stat().st_mode) == 0o600
+    assert sorted(path.name for path in review_directory.iterdir()) == sorted(
+        [path.name for path in result.review_paths] + ["review-mapping.private.json"]
+    )
+    manifest = alpha_acceptance.load_private_review_manifest(result.review_mapping_path)
+    assert manifest.commit == "a" * 40
+    assert manifest.contract_hash == alpha_acceptance.alpha_contract_hash()
+    assert [item.review_id for item in manifest.samples] == [
+        f"review-{ordinal:032x}" for ordinal in range(1, 7)
+    ]
+    assert len(manifest.samples) == 6
+    private_mapping = json.loads(result.review_mapping_path.read_text(encoding="utf-8"))
+    assert private_mapping["commit"] == "a" * 40
+    assert private_mapping["contractHash"] == alpha_acceptance.alpha_contract_hash()
+    assert private_mapping["reviewCount"] == 6
+    assert private_mapping["entries"][0]["profileId"] == "profile-02"
+    assert private_mapping["entries"][0]["storyId"] == "story-03"
+    assert "profile-02" not in result.review_paths[0].name
+    assert "story-03" not in result.review_paths[0].name
     for review_path in result.review_paths:
         payload = json.loads(review_path.read_text(encoding="utf-8"))
         assert set(payload) == {"storyBible", "storyGraph", "sceneBeats", "storyboard"}
         review_text = review_path.read_text(encoding="utf-8")
         for forbidden in ("profileId", "provider", "fixture", "endpoint", "prompt", "response", "runId", "real_looking"):
             assert forbidden not in review_text
+    mapping_text = result.review_mapping_path.read_text(encoding="utf-8")
+    assert "fixture-provider" not in mapping_text
+    assert "fixture-model" not in mapping_text
 
 
 def test_alpha_qualification_enforces_first_pass_and_unknown_outcome_invariants(tmp_path: Path) -> None:
@@ -458,3 +503,268 @@ def test_alpha_cli_rejects_non_commit_sha(tmp_path: Path, capsys) -> None:
     else:
         raise AssertionError("invalid commit SHA must be rejected by the CLI parser")
     assert "40-character hexadecimal Git commit SHA" in capsys.readouterr().err
+
+
+def _review_manifests() -> tuple[alpha_acceptance.ReviewSampleManifest, ...]:
+    return tuple(
+        alpha_acceptance.ReviewSampleManifest(
+            review_id=f"review-{ordinal:032x}",
+            content_hash=f"{ordinal:064x}",
+        )
+        for ordinal in range(1, 7)
+    )
+
+
+def _review_pack(
+    samples: tuple[alpha_acceptance.ReviewSampleManifest, ...] | None = None,
+) -> alpha_acceptance.ReviewPackManifest:
+    return alpha_acceptance.ReviewPackManifest(
+        commit="a" * 40,
+        contract_hash="b" * 64,
+        samples=samples if samples is not None else _review_manifests(),
+    )
+
+
+def _external_review(
+    manifest: alpha_acceptance.ReviewSampleManifest,
+    *,
+    scores: dict[str, int] | None = None,
+    fatal: bool = False,
+) -> dict[str, Any]:
+    return {
+        "commit": "a" * 40,
+        "contractHash": "b" * 64,
+        "reviewId": manifest.review_id,
+        "contentHash": manifest.content_hash,
+        "rubricVersion": "m1c_authoring_quality.v1",
+        "reviewer": "codex_external_review",
+        "scores": scores or {
+            "narrativeClarity": 4,
+            "branchCausality": 4,
+            "continuity": 4,
+            "performanceReadability": 4,
+            "shotLanguage": 4,
+            "pacingAndEditCost": 4,
+        },
+        "fatalContradiction": fatal,
+    }
+
+
+def test_codex_external_review_gate_uses_only_closed_secret_free_score_sheets() -> None:
+    manifests = _review_manifests()
+    reviews = [_external_review(manifest) for manifest in manifests]
+    gate = alpha_acceptance.codex_external_review_gate(
+        reviews,
+        review_pack=_review_pack(manifests),
+    )
+
+    assert gate.passed is True
+    assert gate.issue_codes == ()
+    assert gate.model_dump(mode="json", by_alias=True) == {
+        "gate": "codex_external_review",
+        "commit": "a" * 40,
+        "contractHash": "b" * 64,
+        "rubricVersion": "m1c_authoring_quality.v1",
+        "reviewer": "codex_external_review",
+        "reviewCount": 6,
+        "expectedReviewCount": 6,
+        "issueCodes": [],
+        "passed": True,
+        "dimensionMedians": {
+            "branchCausality": 4.0,
+            "continuity": 4.0,
+            "narrativeClarity": 4.0,
+            "pacingAndEditCost": 4.0,
+            "performanceReadability": 4.0,
+            "shotLanguage": 4.0,
+        },
+    }
+    serialized = json.dumps(gate.model_dump(mode="json", by_alias=True))
+    for forbidden in ("profile", "story", "run", "model", "prompt", "response", "comment"):
+        assert forbidden not in serialized
+
+    receipt = alpha_acceptance.codex_external_review_receipt(
+        reviews,
+        review_pack=_review_pack(manifests),
+    )
+    receipt_payload = receipt.model_dump(mode="json", by_alias=True)
+    assert receipt_payload["commit"] == "a" * 40
+    assert receipt_payload["contractHash"] == "b" * 64
+    assert len(receipt_payload["reviews"]) == 6
+    assert receipt_payload["gate"]["passed"] is True
+    receipt_text = json.dumps(receipt_payload)
+    for forbidden in ("profile", "story", "run", "model", "prompt", "response", "comment"):
+        assert forbidden not in receipt_text
+
+
+def test_codex_external_review_gate_rejects_shape_and_each_quality_threshold() -> None:
+    manifests = _review_manifests()
+    baseline = [_external_review(manifest) for manifest in manifests]
+
+    malformed = [dict(item) for item in baseline]
+    malformed[0]["comment"] = "must not be accepted"
+    malformed_gate = alpha_acceptance.codex_external_review_gate(
+        malformed,
+        review_pack=_review_pack(manifests),
+    )
+    assert "codex_external_review.schema" in malformed_gate.issue_codes
+    malformed_receipt = alpha_acceptance.codex_external_review_receipt(
+        malformed,
+        review_pack=_review_pack(manifests),
+    )
+    assert len(malformed_receipt.reviews) == 5
+    assert "codex_external_review.schema" in malformed_receipt.gate.issue_codes
+    assert "must not be accepted" not in json.dumps(
+        malformed_receipt.model_dump(mode="json", by_alias=True)
+    )
+
+    fatal = [dict(item) for item in baseline]
+    fatal[0]["fatalContradiction"] = True
+    assert "codex_external_review.fatal_contradiction" in alpha_acceptance.codex_external_review_gate(
+        fatal, review_pack=_review_pack(manifests)
+    ).issue_codes
+
+    floor = [dict(item) for item in baseline]
+    floor[0] = _external_review(manifests[0], scores={**floor[0]["scores"], "shotLanguage": 2})
+    assert "codex_external_review.score_floor" in alpha_acceptance.codex_external_review_gate(
+        floor, review_pack=_review_pack(manifests)
+    ).issue_codes
+
+    average = [dict(item) for item in baseline]
+    average[0] = _external_review(manifests[0], scores={
+        "narrativeClarity": 3,
+        "branchCausality": 3,
+        "continuity": 3,
+        "performanceReadability": 3,
+        "shotLanguage": 3,
+        "pacingAndEditCost": 5,
+    })
+    assert "codex_external_review.sample_average" in alpha_acceptance.codex_external_review_gate(
+        average, review_pack=_review_pack(manifests)
+    ).issue_codes
+
+    median = [dict(item) for item in baseline]
+    for index in range(4):
+        median[index] = _external_review(
+            manifests[index], scores={**median[index]["scores"], "narrativeClarity": 3}
+        )
+    assert "codex_external_review.dimension_median" in alpha_acceptance.codex_external_review_gate(
+        median, review_pack=_review_pack(manifests)
+    ).issue_codes
+
+
+def test_codex_external_review_rejects_non_integer_scores_and_identity_mismatch() -> None:
+    manifests = _review_manifests()
+    invalid = _external_review(manifests[0])
+    invalid["scores"] = {**invalid["scores"], "shotLanguage": "5"}
+    try:
+        alpha_acceptance.parse_codex_external_review(invalid)
+    except ValueError as error:
+        assert str(error) == "codex external review has invalid secret-free shape"
+    else:
+        raise AssertionError("string score must not be coerced into a valid score")
+
+    mismatched = [_external_review(manifest) for manifest in manifests]
+    mismatched[0]["contentHash"] = "c" * 64
+    gate = alpha_acceptance.codex_external_review_gate(
+        mismatched,
+        review_pack=_review_pack(manifests),
+    )
+    assert "codex_external_review.content_identity" in gate.issue_codes
+
+
+def test_codex_external_review_identity_is_derived_from_the_frozen_review_pack() -> None:
+    manifests = _review_manifests()
+    reviews = [_external_review(manifest) for manifest in manifests]
+    original_pack = _review_pack(manifests)
+
+    assert alpha_acceptance.codex_external_review_gate(
+        reviews,
+        review_pack=original_pack,
+    ).passed is True
+
+    different_commit_pack = alpha_acceptance.ReviewPackManifest(
+        commit="c" * 40,
+        contract_hash=original_pack.contract_hash,
+        samples=manifests,
+    )
+    commit_gate = alpha_acceptance.codex_external_review_gate(
+        reviews,
+        review_pack=different_commit_pack,
+    )
+    assert commit_gate.commit == "c" * 40
+    assert "codex_external_review.commit_identity" in commit_gate.issue_codes
+
+    different_contract_pack = alpha_acceptance.ReviewPackManifest(
+        commit=original_pack.commit,
+        contract_hash="d" * 64,
+        samples=manifests,
+    )
+    contract_gate = alpha_acceptance.codex_external_review_gate(
+        reviews,
+        review_pack=different_contract_pack,
+    )
+    assert contract_gate.contract_hash == "d" * 64
+    assert "codex_external_review.contract_identity" in contract_gate.issue_codes
+
+    receipt = alpha_acceptance.codex_external_review_receipt(
+        reviews,
+        review_pack=different_commit_pack,
+    )
+    assert receipt.commit == different_commit_pack.commit
+    assert receipt.contract_hash == different_commit_pack.contract_hash
+    assert receipt.gate.commit == different_commit_pack.commit
+    assert receipt.gate.passed is False
+
+
+def test_codex_external_review_gate_cannot_vacuously_pass_a_smaller_manifest() -> None:
+    all_manifests = _review_manifests() + (
+        alpha_acceptance.ReviewSampleManifest(
+            review_id=f"review-{7:032x}",
+            content_hash=f"{7:064x}",
+        ),
+    )
+    for count in (0, 1, 5, 7):
+        manifests = all_manifests[:count]
+        reviews = [_external_review(manifest) for manifest in manifests]
+        gate = alpha_acceptance.codex_external_review_gate(
+            reviews,
+            review_pack=_review_pack(manifests),
+        )
+
+        assert gate.passed is False
+        assert gate.expected_review_count == 6
+        assert "codex_external_review.expected_manifest_count" in gate.issue_codes
+        assert "codex_external_review.count" in gate.issue_codes
+
+
+def test_private_review_manifest_requires_all_six_samples(tmp_path: Path) -> None:
+    mapping_path = tmp_path / "review-mapping.private.json"
+    mapping_path.write_text(
+        json.dumps(
+            {
+                "version": "alpha_review_mapping.v2",
+                "commit": "a" * 40,
+                "contractHash": "b" * 64,
+                "reviewCount": 6,
+                "entries": [
+                    {
+                        "reviewId": manifest.review_id,
+                        "profileId": "profile-01",
+                        "storyId": "story-01",
+                        "sampleId": f"sample-{index}",
+                        "contentHash": manifest.content_hash,
+                    }
+                    for index, manifest in enumerate(_review_manifests()[:5], start=1)
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    try:
+        alpha_acceptance.load_private_review_manifest(mapping_path)
+    except ValueError as error:
+        assert str(error) == "private review mapping must contain all six Alpha samples"
+    else:
+        raise AssertionError("a partial private review manifest must fail closed")

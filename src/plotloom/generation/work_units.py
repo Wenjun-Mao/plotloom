@@ -81,11 +81,11 @@ from .story_graph_topology import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12f"
-CORRECTION_POLICY_VERSION = "bounded_correction.v7"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12h"
+CORRECTION_POLICY_VERSION = "bounded_correction.v9"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
-SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v8"
+SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v9"
 STORYBOARD_FRAGMENT_SCHEMA_ID = "storyboard.fragment.v4"
 
 
@@ -188,8 +188,70 @@ class DialogueTimingRepairFact(CamelModel):
     minimum_fits_scene_budget: bool | None = None
 
 
+class DialogueCapacityDeliveryLimit(CamelModel):
+    """One frozen delivery option made safe by the portable schema cap."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    delivery: DialogueDeliveryPace
+    max_text_codepoints: int = Field(ge=0)
+
+
+class DialogueCapacityRepairFact(CamelModel):
+    """Exact, non-prose authority for one rejected Scene Beats cue.
+
+    The fact never copies the cue text.  It makes the one trusted capacity cap
+    and compatible delivery choices directly visible to a bounded correction,
+    rather than asking a provider to traverse a larger contract and recreate
+    Unicode arithmetic.
+    """
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    code: Literal["semantic.dialogue_cue_capacity_exceeded"]
+    path: tuple[str | int, ...]
+    authoring_language: NonBlankText
+    language: NonBlankText
+    delivery: DialogueDeliveryPace
+    current_text_codepoints: int = Field(ge=1)
+    max_text_codepoints: int = Field(ge=0)
+    compatible_delivery_limits: tuple[DialogueCapacityDeliveryLimit, ...] = Field(
+        min_length=1
+    )
+
+    @model_validator(mode="after")
+    def validate_issue_identity_and_limits(self) -> "DialogueCapacityRepairFact":
+        if (
+            len(self.path) != 3
+            or self.path[0] != "dialogueCues"
+            or not isinstance(self.path[1], int)
+            or isinstance(self.path[1], bool)
+            or self.path[1] < 0
+            or self.path[2] != "text"
+        ):
+            raise ValueError("path must identify one dialogueCues text value")
+        if self.language != self.authoring_language:
+            raise ValueError("capacity facts only authorize the frozen authoring language")
+        deliveries = [item.delivery for item in self.compatible_delivery_limits]
+        if len(deliveries) != len(set(deliveries)):
+            raise ValueError("compatible delivery limits must be unique")
+        current = next(
+            (item for item in self.compatible_delivery_limits if item.delivery == self.delivery),
+            None,
+        )
+        if current is None or current.max_text_codepoints != self.max_text_codepoints:
+            raise ValueError("current delivery must carry the exact text cap")
+        return self
+
+
 class JoinAllowedDifferencesRepairFact(CamelModel):
-    """Trusted evidence for tracking every model-authored allowed difference."""
+    """Complete, intent-preserving replacement arrays for one join contract.
+
+    A reconstruction correction must not infer the pre-existing required keys
+    or allowed differences from the previous untrusted response. This fact
+    therefore carries both complete arrays after the safe subset repair, while
+    retaining the exact missing keys as auditable derivation evidence.
+    """
 
     model_config = CamelModel.model_config | {"frozen": True}
 
@@ -197,6 +259,16 @@ class JoinAllowedDifferencesRepairFact(CamelModel):
     path: tuple[str | int, ...]
     join_contract_id: str = Field(min_length=1)
     missing_required_state_keys: tuple[NonBlankText, ...] = Field(min_length=1)
+    # Absent only when parsing legacy persisted evidence created before
+    # bounded_correction.v9. New derivation always writes both complete arrays.
+    expected_required_state_keys: tuple[NonBlankText, ...] | None = Field(
+        default=None,
+        min_length=1,
+    )
+    expected_allowed_differences: tuple[NonBlankText, ...] | None = Field(
+        default=None,
+        min_length=1,
+    )
 
     @model_validator(mode="after")
     def validate_issue_identity_and_missing_keys(self) -> "JoinAllowedDifferencesRepairFact":
@@ -213,6 +285,33 @@ class JoinAllowedDifferencesRepairFact(CamelModel):
             set(self.missing_required_state_keys)
         ):
             raise ValueError("missingRequiredStateKeys must be unique")
+        has_expected_required = self.expected_required_state_keys is not None
+        has_expected_allowed = self.expected_allowed_differences is not None
+        if has_expected_required != has_expected_allowed:
+            raise ValueError("complete expected join arrays must be set together")
+        if not has_expected_required:
+            return self
+        assert self.expected_required_state_keys is not None
+        assert self.expected_allowed_differences is not None
+        if len(self.expected_required_state_keys) != len(
+            set(self.expected_required_state_keys)
+        ):
+            raise ValueError("expectedRequiredStateKeys must be unique")
+        if len(self.expected_allowed_differences) != len(
+            set(self.expected_allowed_differences)
+        ):
+            raise ValueError("expectedAllowedDifferences must be unique")
+        required = set(self.expected_required_state_keys)
+        allowed = set(self.expected_allowed_differences)
+        missing = set(self.missing_required_state_keys)
+        if not allowed <= required:
+            raise ValueError(
+                "expectedAllowedDifferences must be a subset of expectedRequiredStateKeys"
+            )
+        if not missing <= allowed:
+            raise ValueError(
+                "missingRequiredStateKeys must belong to expectedAllowedDifferences"
+            )
         return self
 
 
@@ -258,6 +357,7 @@ class RequiredEntityStateRepairFact(CamelModel):
 
 SemanticRepairFact: TypeAlias = Annotated[
     DialogueTimingRepairFact
+    | DialogueCapacityRepairFact
     | JoinAllowedDifferencesRepairFact
     | RequiredEntityStateRepairFact,
     Field(discriminator="code"),
@@ -670,6 +770,8 @@ def compile_work_unit_request(
             expected_capacity = plan_dialogue_capacity(
                 scene_timing_allocation=expected_timing,
                 dialogue_timing_profile=stage_plan.dialogue_timing_profile,
+                policy_version=stage_plan.dialogue_capacity_plan.policy_version,
+                authoring_language=stage_plan.dialogue_capacity_plan.authoring_language,
             )
         except DialogueCapacityPlanningError as exc:
             raise WorkUnitContractError(str(exc)) from exc
@@ -1264,6 +1366,10 @@ def story_graph_join_repair_facts(
                 path=path,
                 join_contract_id=join.id,
                 missing_required_state_keys=missing,
+                expected_required_state_keys=tuple(
+                    (*join.required_state_keys, *missing)
+                ),
+                expected_allowed_differences=tuple(join.allowed_differences),
             )
         )
     return tuple(facts)
@@ -1347,12 +1453,119 @@ def storyboard_required_entity_state_repair_facts(
     return tuple(facts)
 
 
+def scene_beats_dialogue_capacity_repair_facts(
+    value: Any,
+    issues: tuple[ValidationIssue, ...],
+    *,
+    guidance: DialogueCapacityNodeGuidance,
+) -> tuple[DialogueCapacityRepairFact, ...]:
+    """Derive exact cue caps from schema-valid output and frozen guidance.
+
+    A malformed response, an issue for another field, a language outside the
+    frozen ProjectBrief, or a rule that cannot be proved from the sealed plan
+    receives no fact.  That keeps corrections from gaining authority through
+    guessed indexes or current process configuration.
+    """
+
+    if guidance.authoring_language is None or guidance.schema_max_text_codepoints is None:
+        return ()
+    relevant_issues = tuple(
+        issue
+        for issue in issues
+        if issue.code == "semantic.dialogue_cue_capacity_exceeded"
+    )
+    if not relevant_issues:
+        return ()
+    try:
+        output = SceneBeatsFragmentOutput.model_validate(
+            value,
+            by_alias=True,
+            by_name=False,
+        )
+    except ValidationError:
+        return ()
+
+    def rule_for(
+        language: str,
+        delivery: DialogueDeliveryPace,
+    ) -> DialogueCapacityRuleGuidance | None:
+        exact = next(
+            (
+                rule
+                for rule in guidance.rule_guidance
+                if rule.language == language and rule.delivery == delivery
+            ),
+            None,
+        )
+        if exact is not None:
+            return exact
+        return next(
+            (
+                rule
+                for rule in guidance.rule_guidance
+                if rule.language == "*" and rule.delivery == delivery
+            ),
+            None,
+        )
+
+    compatible_limits: list[DialogueCapacityDeliveryLimit] = []
+    for delivery in DialogueDeliveryPace:
+        rule = rule_for(guidance.authoring_language, delivery)
+        if rule is None:
+            return ()
+        compatible_limits.append(
+            DialogueCapacityDeliveryLimit(
+                delivery=delivery,
+                max_text_codepoints=min(
+                    rule.max_text_codepoints,
+                    guidance.schema_max_text_codepoints,
+                ),
+            )
+        )
+    limits = tuple(compatible_limits)
+    facts: list[DialogueCapacityRepairFact] = []
+    for issue in relevant_issues:
+        path = issue.path
+        if (
+            len(path) != 3
+            or path[0] != "dialogueCues"
+            or not isinstance(path[1], int)
+            or isinstance(path[1], bool)
+            or path[1] < 0
+            or path[2] != "text"
+            or path[1] >= len(output.dialogue_cues)
+        ):
+            continue
+        cue = output.dialogue_cues[path[1]]
+        if cue.language != guidance.authoring_language:
+            continue
+        limit = next(item for item in limits if item.delivery == cue.delivery)
+        if len(cue.text.strip()) <= limit.max_text_codepoints:
+            # The issue was caused by a different invariant; do not invent a
+            # text-shortening authority for it.
+            continue
+        facts.append(
+            DialogueCapacityRepairFact(
+                code=issue.code,
+                path=path,
+                authoring_language=guidance.authoring_language,
+                language=cue.language,
+                delivery=cue.delivery,
+                current_text_codepoints=len(cue.text.strip()),
+                max_text_codepoints=limit.max_text_codepoints,
+                compatible_delivery_limits=limits,
+            )
+        )
+    return tuple(facts)
+
+
 def semantic_repair_facts(
     value: Any,
     issues: tuple[ValidationIssue, ...],
     *,
     stage: StageName,
     bible: StoryBibleV2 | None = None,
+    dialogue_capacity_guidance: DialogueCapacityNodeGuidance | None = None,
 ) -> tuple[SemanticRepairFact, ...]:
     """Route stable issues to versioned, stage-owned deterministic facts."""
 
@@ -1363,6 +1576,12 @@ def semantic_repair_facts(
             value,
             issues,
             bible=bible,
+        )
+    if stage == StageName.SCENE_BEATS and dialogue_capacity_guidance is not None:
+        return scene_beats_dialogue_capacity_repair_facts(
+            value,
+            issues,
+            guidance=dialogue_capacity_guidance,
         )
     return ()
 
@@ -1494,6 +1713,24 @@ def _scene_beats_semantic_issues(
         }
         cue_minimum_by_scene = {scene_id: 0 for scene_id in scene_ids}
         for cue_index, cue in enumerate(output.dialogue_cues):
+            if (
+                dialogue_capacity_guidance.authoring_language is not None
+                and cue.language != dialogue_capacity_guidance.authoring_language
+            ):
+                issues.append(
+                    _issue(
+                        "semantic.dialogue_language_not_authoring_language",
+                        ("dialogueCues", cue_index, "language"),
+                        "cue language differs from the frozen ProjectBrief language",
+                    )
+                )
+                # The model-authored language is already outside the frozen
+                # contract. Do not query the timing profile with that
+                # untrusted value: a valid authoring-language-only profile is
+                # not required to have a wildcard for arbitrary languages.
+                # Returning the semantic issue keeps this failure eligible for
+                # the normal bounded correction path.
+                continue
             minimum = dialogue_timing_profile.estimate_text_duration_units(
                 text=cue.text,
                 language=cue.language,
@@ -1503,7 +1740,15 @@ def _scene_beats_semantic_issues(
                 raise WorkUnitContractError(
                     "dialogue timing profile has no exact or wildcard rule"
                 )
-            if minimum > dialogue_capacity_guidance.per_cue_duration_budget_units:
+            schema_maximum = dialogue_capacity_guidance.schema_max_text_codepoints
+            exceeds_portable_text_cap = (
+                schema_maximum is not None
+                and len(cue.text.strip()) > schema_maximum
+            )
+            if (
+                minimum > dialogue_capacity_guidance.per_cue_duration_budget_units
+                or exceeds_portable_text_cap
+            ):
                 issues.append(
                     _issue(
                         "semantic.dialogue_cue_capacity_exceeded",
@@ -1713,13 +1958,24 @@ def _bind_fragment_foreign_keys(
             dialogue_capacity_guidance.max_scenes
         )
         schema["properties"]["dialogueCues"]["maxItems"] = (
-            dialogue_capacity_guidance.max_dialogue_cues
+            0
+            if dialogue_capacity_guidance.schema_max_text_codepoints == 0
+            else dialogue_capacity_guidance.max_dialogue_cues
         )
         scene_properties = definitions["DramaticSceneContent"]["properties"]
         _set_nullable_string_enum(scene_properties["locationId"], location_ids)
         _set_array_string_enum(scene_properties["characterIds"], character_ids)
         cue_properties = definitions["DialogueCueContent"]["properties"]
         _set_nullable_string_enum(cue_properties["speakerId"], character_ids)
+        if dialogue_capacity_guidance.authoring_language is not None:
+            _set_string_const(
+                cue_properties["language"],
+                dialogue_capacity_guidance.authoring_language,
+            )
+            assert dialogue_capacity_guidance.schema_max_text_codepoints is not None
+            cue_properties["text"]["maxLength"] = (
+                dialogue_capacity_guidance.schema_max_text_codepoints
+            )
         continuity = _continuity_requirements(scoped_context)
         _require_state_fact_keys(
             scene_properties["entryState"],

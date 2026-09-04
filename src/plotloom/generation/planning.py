@@ -227,6 +227,8 @@ class StagePlan(PlanningModel):
                 expected_capacity = plan_dialogue_capacity(
                     scene_timing_allocation=self.scene_timing_allocation,
                     dialogue_timing_profile=self.dialogue_timing_profile,
+                    policy_version=self.dialogue_capacity_plan.policy_version,
+                    authoring_language=self.dialogue_capacity_plan.authoring_language,
                 )
             except DialogueCapacityPlanningError as exc:
                 raise ValueError(str(exc)) from exc
@@ -457,6 +459,7 @@ def plan_stage(
             dialogue_capacity_plan = plan_dialogue_capacity(
                 scene_timing_allocation=scene_timing_allocation,
                 dialogue_timing_profile=dialogue_timing_profile,
+                authoring_language=brief.language,
             )
         except DialogueCapacityPlanningError as exc:
             raise PlanningError(str(exc), code=exc.code, stage=stage) from exc

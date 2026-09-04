@@ -102,6 +102,7 @@ from .domain import (
     validate_public_provider_snapshot,
 )
 from .generation.aggregation import aggregate_stage_fragments
+from .generation.dialogue_capacity import DIALOGUE_CAPACITY_POLICY_VERSION
 from .generation.fragments import (
     SceneBeatsFragment,
     StoryBibleFragment,
@@ -3404,6 +3405,8 @@ class SQLiteRepository:
             parsed_allocation.allocation_version != SCENE_TIMING_ALLOCATION_VERSION
             or parsed_plan.dialogue_timing_profile is None
             or parsed_plan.dialogue_capacity_plan is None
+            or parsed_plan.dialogue_capacity_plan.policy_version
+            != DIALOGUE_CAPACITY_POLICY_VERSION
         )
 
     @staticmethod

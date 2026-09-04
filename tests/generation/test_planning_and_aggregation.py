@@ -304,9 +304,9 @@ def test_run_plan_does_not_invent_future_selectors_and_stage_plans_are_determini
     assert first.scene_timing_allocation.allocation_version == "scene_timing_allocation.v1"
     assert first.dialogue_timing_profile is not None
     assert first.dialogue_capacity_plan is not None
-    assert first.dialogue_capacity_plan.policy_version == "dialogue_capacity.v1"
+    assert first.dialogue_capacity_plan.policy_version == "dialogue_capacity.v2"
     assert first.dialogue_capacity_plan.guidance_for("start").max_scenes == 2
-    assert first.dialogue_capacity_plan.guidance_for("start").max_dialogue_cues == 4
+    assert first.dialogue_capacity_plan.guidance_for("start").max_dialogue_cues == 2
     selected_context = work_unit_context(
         first.work_units[0],
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},

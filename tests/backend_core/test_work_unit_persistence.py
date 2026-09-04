@@ -28,7 +28,16 @@ from plotloom.generation.fragments import (
     StoryboardFragment,
     StoryGraphFragment,
 )
-from plotloom.generation.planning import StagePlan, _stage_plan_hash
+from plotloom.generation.dialogue_capacity import (
+    DIALOGUE_CAPACITY_POLICY_V1,
+    plan_dialogue_capacity,
+)
+from plotloom.generation.planning import (
+    PlanningError,
+    StagePlan,
+    _stage_plan_hash,
+    assert_work_unit_input_contract,
+)
 from plotloom.persistence import (
     GenerationWorkUnitRow,
     MediaTaskRow,
@@ -346,6 +355,93 @@ def _persisted_scene_beats_plan(repository: SQLiteRepository, run_id: str) -> di
         )
         assert plan_row is not None
         return deepcopy(plan_row.plan)
+
+
+def _replace_scene_beats_plan_with_complete_v1_capacity_contract(
+    repository: SQLiteRepository,
+    run_id: str,
+) -> dict:
+    """Persist a parseable v1 plan whose historic unit hashes omit v2 nulls."""
+
+    current = repository.get_or_create_stage_plan(run_id, StageName.SCENE_BEATS)
+    assert current.scene_timing_allocation is not None
+    assert current.dialogue_timing_profile is not None
+    generation_plan = repository.get_generation_plan(run_id)
+    legacy_capacity = plan_dialogue_capacity(
+        scene_timing_allocation=current.scene_timing_allocation,
+        dialogue_timing_profile=current.dialogue_timing_profile,
+        policy_version=DIALOGUE_CAPACITY_POLICY_V1,
+    )
+    legacy_units = []
+    for unit in current.work_units:
+        historic_input = {
+            "generation_plan_hash": generation_plan.plan_hash,
+            "stage": unit.stage.value,
+            "selector": unit.selector.model_dump(mode="json"),
+            "sequence": unit.sequence,
+            "dependency_hash": unit.dependency_hash,
+            "unit_dependency_hash": unit.unit_dependency_hash,
+            "budget": unit.budget.model_dump(mode="json"),
+            "estimated_input_tokens": unit.estimated_input_tokens,
+            "context_window_tokens": unit.context_window_tokens,
+            "dialogue_timing_profile": current.dialogue_timing_profile.model_dump(
+                mode="json",
+                by_alias=False,
+            ),
+            "dialogue_capacity_plan": legacy_capacity.model_dump(
+                mode="json",
+                by_alias=False,
+                exclude_none=True,
+            ),
+        }
+        historic_input_hash = stable_hash(historic_input)
+        legacy_units.append(
+            unit.model_copy(
+                update={
+                    "unit_id": (
+                        f"unit-{unit.stage.value}-{unit.sequence:04d}-"
+                        f"{historic_input_hash[:16]}"
+                    ),
+                    "input_hash": historic_input_hash,
+                    "dialogue_capacity_plan": legacy_capacity,
+                }
+            )
+        )
+    draft = StagePlan.model_construct(
+        run_id=current.run_id,
+        stage=current.stage,
+        generation_plan_hash=current.generation_plan_hash,
+        dependency_hash=current.dependency_hash,
+        scene_timing_allocation=current.scene_timing_allocation,
+        dialogue_timing_profile=current.dialogue_timing_profile,
+        dialogue_capacity_plan=legacy_capacity,
+        work_units=tuple(legacy_units),
+        stage_plan_hash="",
+    )
+    legacy = StagePlan(
+        **draft.model_dump(
+            mode="python",
+            exclude={"stage_plan_hash"},
+            exclude_none=True,
+        ),
+        stage_plan_hash=_stage_plan_hash(draft),
+    )
+    persisted = legacy.model_dump(mode="json", by_alias=False, exclude_none=True)
+    assert StagePlan.model_validate(persisted) == legacy
+    with pytest.raises(PlanningError, match="work-unit input hash does not match"):
+        assert_work_unit_input_contract(generation_plan, legacy.work_units[0])
+
+    with repository._write() as session:
+        plan_row = session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == run_id,
+                StagePlanRow.stage == StageName.SCENE_BEATS.value,
+            )
+        )
+        assert plan_row is not None
+        plan_row.plan = deepcopy(persisted)
+        plan_row.stage_plan_hash = legacy.stage_plan_hash
+    return persisted
 
 
 def test_run_plan_is_persisted_before_child_rows_and_trace_is_additive(repository, brief) -> None:
@@ -1051,6 +1147,49 @@ def test_startup_recovery_terminates_nonterminal_scene_beats_with_obsolete_dialo
     assert recovered.failed_stage == StageName.SCENE_BEATS
     assert repository.get_artifact(artifact.id).content == {"obsolete": field}
     assert _persisted_scene_beats_plan(repository, run.id) == obsolete_plan
+
+
+def test_startup_recovery_terminates_complete_v1_capacity_plan_without_replay(
+    repository,
+    brief,
+) -> None:
+    """A parseable v1 plan is historical evidence, not a v2 dispatch contract."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+    )
+    repository.start_run(run.id)
+    _seal_bible_unit(repository, run.id, all_stage_payloads()[0])
+    _seal_graph_unit(repository, run.id, all_stage_payloads()[1])
+    legacy_plan = _replace_scene_beats_plan_with_complete_v1_capacity_contract(
+        repository,
+        run.id,
+    )
+    artifact = repository.add_artifact(
+        Artifact(
+            run_id=run.id,
+            stage=StageName.SCENE_BEATS,
+            kind=ArtifactKind.PROMPT,
+            content={"legacy": "dialogue_capacity.v1"},
+            content_hash=stable_hash({"legacy": "dialogue_capacity.v1"}),
+        )
+    )
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert recovery.resubmit_run_ids == []
+    assert recovery.terminated_run_ids == [run.id]
+    recovered = repository.get_run(run.id)
+    assert recovered.status == RunStatus.FAILED
+    assert recovered.failure_code == "recovery.scene_timing_contract_obsolete"
+    assert recovered.failed_stage == StageName.SCENE_BEATS
+    assert _persisted_scene_beats_plan(repository, run.id) == legacy_plan
+    assert repository.get_artifact(artifact.id).content == {
+        "legacy": "dialogue_capacity.v1"
+    }
 
 
 def test_startup_recovery_does_not_rewrite_terminal_obsolete_scene_timing_history(

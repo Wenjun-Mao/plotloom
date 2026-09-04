@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import pytest
 
+import plotloom.generation.planning as generation_planning
 from plotloom.domain import (
     BeatV2,
     CharacterV2,
     ContinuityStateV2,
     DialogueCue,
+    DialogueDeliveryPace,
+    DialogueTimingProfile,
+    DialogueTimingRule,
     DramaticSceneV2,
     ProjectBrief,
     PropV2,
@@ -22,12 +26,14 @@ from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.work_units import (
     BeatContent,
     DialogueCueContent,
+    DialogueCapacityRepairFact,
     DramaticSceneContent,
     RequiredEntityStateRepairFact,
     SceneBeatsFragmentOutput,
     ShotContent,
     StoryboardFragmentOutput,
     compile_work_unit_request,
+    scene_beats_dialogue_capacity_repair_facts,
     storyboard_required_entity_state_repair_facts,
 )
 
@@ -85,6 +91,20 @@ def _compiled(stage: StageName):
     return compile_work_unit_request(generation_plan=plan, stage_plan=stage_plan, work_unit=stage_plan.work_units[0], dependencies=dependencies, brief=brief, canonical_snapshot=snapshot)
 
 
+def _authoring_only_timing_profile() -> DialogueTimingProfile:
+    return DialogueTimingProfile(
+        version="dialogue.zh-cn-only.v1",
+        rules=[
+            DialogueTimingRule(
+                language="zh-CN",
+                delivery=delivery,
+                units_per_character=330,
+            )
+            for delivery in DialogueDeliveryPace
+        ],
+    )
+
+
 def _scene_output(*, speaker_id: str = "speaker") -> dict:
     state = _state()
     return SceneBeatsFragmentOutput(
@@ -104,8 +124,8 @@ def _board_output(*, cue_ids: list[str] | None = None, audio_duration: int = 660
 
 def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None:
     compiled = _compiled(StageName.SCENE_BEATS)
-    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v8"
-    assert compiled.contract.contract_version == "m1.12f"
+    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v9"
+    assert compiled.contract.contract_version == "m1.12h"
     assert "dialogueCues" in compiled.response_schema["properties"]
     assert '"dialogue"' not in str(compiled.response_schema)
     cue_schema = compiled.response_schema["properties"]["dialogueCues"]["items"]
@@ -119,18 +139,102 @@ def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None
     assert compiled.contract.scene_timing_allocation_version == "scene_timing_allocation.v1"
     assert compiled.contract.scene_timing_allocation_hash
     assert compiled.contract.node_duration_budget_units == 90_000
-    assert compiled.contract.dialogue_capacity_policy_version == "dialogue_capacity.v1"
+    assert compiled.contract.dialogue_capacity_policy_version == "dialogue_capacity.v2"
     assert compiled.contract.dialogue_capacity_plan_hash
     assert compiled.contract.dialogue_capacity_guidance is not None
     assert compiled.contract.dialogue_capacity_guidance.max_scenes == 2
-    assert compiled.contract.dialogue_capacity_guidance.max_dialogue_cues == 4
+    assert compiled.contract.dialogue_capacity_guidance.max_dialogue_cues == 2
+    assert compiled.contract.dialogue_capacity_guidance.authoring_language == "zh-CN"
+    assert compiled.contract.dialogue_capacity_guidance.schema_max_text_codepoints == 107
     assert compiled.response_schema["properties"]["scenes"]["maxItems"] == 2
-    assert compiled.response_schema["properties"]["dialogueCues"]["maxItems"] == 4
+    assert compiled.response_schema["properties"]["dialogueCues"]["maxItems"] == 2
+    assert cue_schema["properties"]["language"] == {"type": "string", "const": "zh-CN"}
+    assert cue_schema["properties"]["text"]["maxLength"] == 107
     assert "本节点冻结对白容量" in compiled.rendered.messages[1].content
     report = compiled.validator.validate(_scene_output(), context=SemanticValidationContext(stage="scene_beats"))
     assert report.accepted
     assert report.value.dialogue_cues[0].beat_id == report.value.beats[0].id
     assert report.value.dialogue_cues[0].estimated_duration_units == 660
+
+
+def test_m12a_wrong_cue_language_is_semantic_feedback_without_wildcard_timing_rule(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        generation_planning,
+        "default_dialogue_timing_profile",
+        _authoring_only_timing_profile,
+    )
+    compiled = _compiled(StageName.SCENE_BEATS)
+    output = _scene_output()
+    output["dialogueCues"][0]["language"] = "fr-FR"
+
+    report = compiled.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="scene_beats"),
+    )
+
+    assert report.accepted is False
+    assert [(issue.code, issue.path) for issue in report.issues] == [
+        (
+            "semantic.dialogue_language_not_authoring_language",
+            ("dialogueCues", 0, "language"),
+        )
+    ]
+    guidance = compiled.contract.dialogue_capacity_guidance
+    assert guidance is not None
+    assert scene_beats_dialogue_capacity_repair_facts(
+        output,
+        report.issues,
+        guidance=guidance,
+    ) == ()
+
+
+def test_m12a_scene_capacity_fact_is_exact_and_fail_closed() -> None:
+    compiled = _compiled(StageName.SCENE_BEATS)
+    output = _scene_output()
+    output["dialogueCues"][0]["text"] = "长" * 108
+    report = compiled.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="scene_beats"),
+    )
+    guidance = compiled.contract.dialogue_capacity_guidance
+    assert guidance is not None
+    facts = scene_beats_dialogue_capacity_repair_facts(
+        output,
+        report.issues,
+        guidance=guidance,
+    )
+    assert len(facts) == 1
+    fact = facts[0]
+    assert isinstance(fact, DialogueCapacityRepairFact)
+    assert fact.path == ("dialogueCues", 0, "text")
+    assert fact.current_text_codepoints == 108
+    assert fact.max_text_codepoints == 107
+    assert {item.delivery.value for item in fact.compatible_delivery_limits} == {
+        "measured", "natural", "brisk"
+    }
+
+    malformed = _scene_output()
+    malformed["dialogueCues"][0].pop("text")
+    assert scene_beats_dialogue_capacity_repair_facts(
+        malformed,
+        report.issues,
+        guidance=guidance,
+    ) == ()
+
+
+def test_m12a_schema_disables_cues_for_zero_portable_capacity() -> None:
+    compiled = _compiled(StageName.SCENE_BEATS)
+    guidance = compiled.contract.dialogue_capacity_guidance
+    assert guidance is not None
+    compiled.validator.dialogue_capacity_guidance = guidance.model_copy(
+        update={"schema_max_text_codepoints": 0}
+    )
+
+    schema = compiled.validator.json_schema()
+
+    assert schema["properties"]["dialogueCues"]["maxItems"] == 0
 
 
 def test_m12a_scene_fragment_rejects_blank_voice_over() -> None:

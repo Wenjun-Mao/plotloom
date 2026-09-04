@@ -8,6 +8,7 @@ from threading import Event
 
 import pytest
 
+import plotloom.generation.planning as generation_planning
 import plotloom.work_unit_pipeline as work_unit_pipeline
 from plotloom.artifacts import MemoryArtifactStore
 from plotloom.domain import (
@@ -19,6 +20,9 @@ from plotloom.domain import (
     ArtifactKind,
     AttemptStatus,
     CoverageRole,
+    DialogueDeliveryPace,
+    DialogueTimingProfile,
+    DialogueTimingRule,
     GenerationAttemptKind,
     ProjectBrief,
     RunKind,
@@ -1198,6 +1202,87 @@ def test_non_timing_scene_rejection_reaches_correction_without_fact_reprojection
     }
 
 
+def test_wrong_scene_cue_language_reaches_correction_without_wildcard_timing_rule(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    timing_profile = DialogueTimingProfile(
+        version="dialogue.zh-cn-only.v1",
+        rules=[
+            DialogueTimingRule(
+                language="zh-CN",
+                delivery=delivery,
+                units_per_character=330,
+            )
+            for delivery in DialogueDeliveryPace
+        ],
+    )
+    monkeypatch.setattr(
+        generation_planning,
+        "default_dialogue_timing_profile",
+        lambda: timing_profile.model_copy(deep=True),
+    )
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    responses = list(complete)
+    rejected_fragment = json.loads(responses[2])
+    rejected_fragment["dialogueCues"] = [
+        {
+            "localCueId": "wrong-language-cue",
+            "beatLocalId": rejected_fragment["beats"][0]["localBeatId"],
+            "order": 1,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "继续",
+            "language": "fr-FR",
+            "delivery": "natural",
+            "performanceNotes": "平静",
+        }
+    ]
+    corrected_fragment = json.loads(json.dumps(rejected_fragment))
+    corrected_fragment["dialogueCues"][0]["language"] = "zh-CN"
+    responses[2:3] = [
+        json.dumps(rejected_fragment, ensure_ascii=False),
+        json.dumps(corrected_fragment, ensure_ascii=False),
+    ]
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("language-repair-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    rejected = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code
+        == "semantic.dialogue_language_not_authoring_language"
+    )
+    correction = next(
+        attempt for attempt in trace.attempts if attempt.source_attempt_id == rejected.id
+    )
+    assert rejected.status == AttemptStatus.FAILED
+    assert correction.attempt_kind == GenerationAttemptKind.CORRECTION
+    assert correction.status == AttemptStatus.SUCCEEDED
+    assert "validation.internal_error" not in {
+        attempt.outcome_code for attempt in trace.attempts
+    }
+
+
 def test_v2_graph_projection_rejection_is_corrected_instead_of_becoming_internal_error(
     repository,
     brief,
@@ -1333,14 +1418,103 @@ def test_graph_join_subset_rejection_uses_typed_repair_facts(
             ],
             "joinContractId": topology.joins[0].id,
             "missingRequiredStateKeys": ["other"],
+            "expectedRequiredStateKeys": ["route", "other"],
+            "expectedAllowedDifferences": ["other"],
         }
     ]
     correction_prompt = provider.requests[2].messages[1].content
     assert "missingRequiredStateKeys" in correction_prompt
+    assert "expectedRequiredStateKeys" in correction_prompt
+    assert "expectedAllowedDifferences" in correction_prompt
     assert '"other"' in correction_prompt
     assert "validation.internal_error" not in {
         attempt.outcome_code for attempt in trace.attempts
     }
+
+
+def test_graph_join_reconstruction_after_extraction_uses_complete_repair_fact(
+    repository,
+    brief,
+) -> None:
+    """The final correction rebuilds a join without trusting prior arrays."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    rejected_graph = json.loads(complete[1])
+    rejected_graph["joinContracts"][0]["requiredStateKeys"] = [
+        "route",
+        "evidence",
+    ]
+    rejected_graph["joinContracts"][0]["allowedDifferences"] = [
+        "evidence",
+        "other",
+    ]
+    repaired_graph = json.loads(json.dumps(rejected_graph))
+    repaired_graph["joinContracts"][0]["requiredStateKeys"] = [
+        "route",
+        "evidence",
+        "other",
+    ]
+    provider = QueueProvider(
+        [
+            complete[0],
+            "not json",
+            json.dumps(rejected_graph, ensure_ascii=False),
+            json.dumps(repaired_graph, ensure_ascii=False),
+        ]
+    )
+    secrets = RunSecretBroker("join-reconstruction-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    graph_attempts = [
+        attempt for attempt in trace.attempts if attempt.stage == StageName.STORY_GRAPH
+    ]
+    assert [attempt.outcome_code for attempt in graph_attempts] == [
+        "response.extraction",
+        "semantic.join_allowed_differences_must_be_required",
+        "response.accepted",
+    ]
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == graph_attempts[1].id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.join_allowed_differences_must_be_required",
+            "path": [
+                "joinContracts",
+                topology.joins[0].id,
+                "allowedDifferences",
+            ],
+            "joinContractId": topology.joins[0].id,
+            "missingRequiredStateKeys": ["other"],
+            "expectedRequiredStateKeys": ["route", "evidence", "other"],
+            "expectedAllowedDifferences": ["evidence", "other"],
+        }
+    ]
+    final_prompt = provider.requests[3].messages[1].content
+    assert "reconstruct_from_schema" in final_prompt
+    assert "expectedRequiredStateKeys" in final_prompt
+    assert '"route","evidence","other"' in final_prompt
+    assert "join-reconstruction-secret" not in final_prompt
 
 
 def test_storyboard_invalid_entity_state_uses_frozen_bible_repair_fact(
@@ -1511,7 +1685,9 @@ def test_scene_beats_capacity_rejection_keeps_exact_frozen_guidance_in_correctio
         for request in provider.requests
         if "semantic.dialogue_cue_capacity_exceeded" in request.messages[1].content
     )
-    assert '"dialogue_capacity_policy_version":"dialogue_capacity.v1"' in correction_prompt
+    assert '"dialogue_capacity_policy_version":"dialogue_capacity.v2"' in correction_prompt
+    assert '"currentTextCodepoints":300' in correction_prompt
+    assert '"compatibleDeliveryLimits"' in correction_prompt
     assert '"maxTextCodepoints"' in correction_prompt
     assert "capacity-repair-secret" not in correction_prompt
 

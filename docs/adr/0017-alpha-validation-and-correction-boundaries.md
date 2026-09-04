@@ -78,11 +78,14 @@ material.
 
 Repair facts are narrow discriminated records, not generic validator payloads.
 For example, a join whose `allowedDifferences` are not a subset of its tracked
-`requiredStateKeys` receives only the join ID and exact missing keys when both
-source arrays are nonblank and unique. Blank, duplicate, malformed, or
-unrelated data produces no repair fact and remains fail-closed. A persisted
-fact must also match the exact code and path of an issue in the same immutable
-validation artifact; syntactic validity alone never grants correction
+`requiredStateKeys` receives the join ID, exact missing keys, and complete
+expected required/allowed arrays when both source arrays are nonblank and
+unique. Both patch and final reconstruction corrections replace those arrays
+from the typed fact instead of inferring author intent from the previous
+untrusted response. Blank, duplicate, malformed, or unrelated data produces
+no repair fact and remains fail-closed. A persisted fact must also match the
+exact code and path of an issue in the same immutable validation artifact;
+syntactic validity alone never grants correction
 authority. Timing is now handled by ADR 0018's trusted projection; persisted
 legacy timing facts remain parseable only so old evidence can be read without
 broadening new authority.
