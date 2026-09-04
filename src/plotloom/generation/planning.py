@@ -14,15 +14,21 @@ from typing import Any, Mapping
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..domain import (
+    ProjectBrief,
     STAGE_ORDER,
     SceneBeatPlanV2,
     StageName,
     StoryGraphV2,
 )
 from .prompts import canonical_json, sha256_text
+from .scene_timing_allocation import (
+    SceneTimingAllocation,
+    SceneTimingAllocationError,
+    plan_scene_timing_allocation,
+)
 
 
-PLANNING_POLICY_VERSION = "m1.5-p0.2"
+PLANNING_POLICY_VERSION = "m1.5-p0.3"
 
 
 class PlanningError(ValueError):
@@ -150,6 +156,7 @@ class StagePlan(PlanningModel):
     stage: StageName
     generation_plan_hash: str = Field(min_length=1)
     dependency_hash: str = Field(min_length=1)
+    scene_timing_allocation: SceneTimingAllocation | None = None
     work_units: tuple[GenerationWorkUnit, ...]
     stage_plan_hash: str
 
@@ -332,6 +339,7 @@ def plan_stage(
     *,
     stage: StageName,
     dependencies: Mapping[StageName, BaseModel | Mapping[str, Any]],
+    brief: ProjectBrief | None = None,
 ) -> StagePlan:
     """Create a stage plan once all selectors for that stage are canonical.
 
@@ -359,6 +367,28 @@ def plan_stage(
         dependency: dependencies[dependency]
         for dependency in required
     }
+    scene_timing_allocation: SceneTimingAllocation | None = None
+    if stage == StageName.SCENE_BEATS:
+        graph = dependency_values.get(StageName.STORY_GRAPH)
+        if not isinstance(graph, StoryGraphV2):
+            raise PlanningError(
+                "scene_beats timing allocation requires a parsed StoryGraph",
+                code="planning.scene_timing_graph_unavailable",
+                stage=stage,
+            )
+        if brief is None:
+            raise PlanningError(
+                "scene_beats timing allocation requires the frozen ProjectBrief",
+                code="planning.scene_timing_brief_unavailable",
+                stage=stage,
+            )
+        try:
+            scene_timing_allocation = plan_scene_timing_allocation(
+                graph=graph,
+                brief=brief,
+            )
+        except SceneTimingAllocationError as exc:
+            raise PlanningError(str(exc), code=exc.code, stage=stage) from exc
     dependency_payload = {
         # A StagePlan must retain the run request boundary even when this stage
         # has no upstream canonical object (notably Story Bible).
@@ -372,6 +402,10 @@ def plan_stage(
             for dependency, value in dependency_values.items()
         },
     }
+    if scene_timing_allocation is not None:
+        dependency_payload["scene_timing_allocation"] = (
+            scene_timing_allocation.model_dump(mode="json", by_alias=True)
+        )
     dependency_json = canonical_json(dependency_payload)
     dependency_hash = sha256_text(dependency_json)
     selectors = _selectors_for_stage(stage, dependency_values)
@@ -403,6 +437,7 @@ def plan_stage(
                 stage,
                 selector,
                 dependency_values,
+                scene_timing_allocation=scene_timing_allocation,
             ),
         )
         for index, selector in enumerate(selectors, start=1)
@@ -414,11 +449,16 @@ def plan_stage(
         "dependency_hash": dependency_hash,
         "work_units": [unit.model_dump(mode="json") for unit in work_units],
     }
+    if scene_timing_allocation is not None:
+        unsigned["scene_timing_allocation"] = scene_timing_allocation.model_dump(
+            mode="json", by_alias=False
+        )
     return StagePlan(
         run_id=generation_plan.run_id,
         stage=stage,
         generation_plan_hash=generation_plan.plan_hash,
         dependency_hash=dependency_hash,
+        scene_timing_allocation=scene_timing_allocation,
         work_units=work_units,
         stage_plan_hash=sha256_text(canonical_json(unsigned)),
     )
@@ -434,6 +474,7 @@ def work_unit_context(
     work_unit: GenerationWorkUnit,
     *,
     dependencies: Mapping[StageName, BaseModel | Mapping[str, Any]],
+    scene_timing_allocation: SceneTimingAllocation | None = None,
 ) -> dict[str, Any]:
     """Reconstruct and verify the canonical context frozen for one unit.
 
@@ -454,6 +495,7 @@ def work_unit_context(
         work_unit.stage,
         work_unit.selector,
         {stage: dependencies[stage] for stage in required},
+        scene_timing_allocation=scene_timing_allocation,
     )
     actual_hash = content_hash(context)
     if actual_hash != work_unit.unit_dependency_hash:
@@ -574,6 +616,8 @@ def _unit_dependency_payload(
     stage: StageName,
     selector: WorkUnitSelector,
     dependencies: Mapping[StageName, BaseModel | Mapping[str, Any]],
+    *,
+    scene_timing_allocation: SceneTimingAllocation | None = None,
 ) -> dict[str, Any]:
     """Return the bounded canonical context selected for one provider unit.
 
@@ -593,6 +637,12 @@ def _unit_dependency_payload(
     if not isinstance(graph, StoryGraphV2):
         raise PlanningError(f"{stage.value} requires a parsed StoryGraph")
     if stage == StageName.SCENE_BEATS:
+        if scene_timing_allocation is None:
+            raise PlanningError(
+                "scene_beats work units require a frozen timing allocation",
+                code="planning.scene_timing_allocation_unavailable",
+                stage=stage,
+            )
         node = next((node for node in graph.nodes if node.id == selector.stable_id), None)
         if node is None:
             raise PlanningError(f"unknown Story Graph node selector {selector.stable_id}")
@@ -610,6 +660,14 @@ def _unit_dependency_payload(
                 if contract.join_node_id == selector.stable_id
                 or selector.stable_id in contract.incoming_node_ids
             ],
+            "scene_timing_allocation": {
+                "allocationVersion": scene_timing_allocation.allocation_version,
+                "allocationHash": scene_timing_allocation.allocation_hash,
+                "nodeId": selector.stable_id,
+                "durationBudgetUnits": scene_timing_allocation.node_duration_budget(
+                    selector.stable_id
+                ),
+            },
         }
     scene_beats = dependencies[StageName.SCENE_BEATS]
     if not isinstance(scene_beats, SceneBeatPlanV2):
@@ -715,5 +773,6 @@ def _stage_plan_hash(plan: StagePlan) -> str:
         mode="json",
         by_alias=False,
         exclude={"stage_plan_hash"},
+        exclude_none=True,
     )
     return sha256_text(canonical_json(unsigned))

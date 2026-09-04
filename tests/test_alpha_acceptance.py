@@ -55,7 +55,7 @@ class _FixtureProvider:
             scene_id, beat_id = f"scene-{node['id']}", f"beat-{node['id']}"
             state = {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}
             payload = {
-                "scenes": [{"localSceneId": scene_id, "order": 1, "title": node["title"], "objective": "推进叙事", "locationId": None, "characterIds": [], "durationBudgetUnits": 1, "entryState": state, "exitState": state}],
+                "scenes": [{"localSceneId": scene_id, "order": 1, "title": node["title"], "objective": "推进叙事", "locationId": None, "characterIds": [], "durationWeight": 1, "entryState": state, "exitState": state}],
                 "beats": [{"localBeatId": beat_id, "sceneLocalId": scene_id, "order": 1, "description": "角色在雪中前行。", "purpose": "推进叙事", "visibleEvent": "角色握紧信件。", "immediateResult": "角色继续前行。", "dramaticChange": "继续前行", "entryState": state, "exitState": state, "continuityAnchors": [], "continuityDelta": {}}],
                 "dialogueCues": [],
             }

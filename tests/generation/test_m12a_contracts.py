@@ -13,6 +13,7 @@ from plotloom.domain import (
     SceneBeatPlanV2,
     StageName,
     StoryBibleV2,
+    StoryEdgeV2,
     StoryGraphV2,
     StoryNodeV2,
 )
@@ -26,7 +27,6 @@ from plotloom.generation.work_units import (
     ShotContent,
     StoryboardFragmentOutput,
     compile_work_unit_request,
-    dialogue_timing_repair_facts,
 )
 
 
@@ -48,7 +48,24 @@ def _inputs() -> tuple[ProjectBrief, StoryBibleV2, StoryGraphV2, SceneBeatPlanV2
         locations=[],
         props=[PropV2(id="prop", name="道具", description="", visual_anchors=[], sound_anchors=[], allowed_states=["intact"], continuity_rules=[])],
     )
-    graph = StoryGraphV2(start_node_id="node", nodes=[StoryNodeV2(id="node", title="节点", summary="概要", kind="start")], edges=[], join_contracts=[])
+    graph = StoryGraphV2(
+        start_node_id="node",
+        nodes=[
+            StoryNodeV2(id="node", title="节点", summary="概要", kind="start"),
+            StoryNodeV2(id="ending", title="结局", summary="完成", kind="ending"),
+        ],
+        edges=[
+            StoryEdgeV2(
+                id="node-ending",
+                source_node_id="node",
+                target_node_id="ending",
+                kind="continuation",
+                choice_text=None,
+                state_effects={},
+            )
+        ],
+        join_contracts=[],
+    )
     state = _state()
     scene = DramaticSceneV2(id="scene", story_node_id="node", order=1, title="场", objective="目标", location_id=None, character_ids=["speaker"], beat_ids=["beat"], duration_budget_units=660, entry_state=state, exit_state=state)
     beat = BeatV2(id="beat", scene_id="scene", order=1, description="动作", purpose="推进", visible_event="", immediate_result="", dramatic_change="", entry_state=state, exit_state=state, continuity_anchors=[], continuity_delta={})
@@ -62,16 +79,16 @@ def _compiled(stage: StageName):
     dependencies = {StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph}
     if stage == StageName.STORYBOARD:
         dependencies[StageName.SCENE_BEATS] = scene_beats
-    stage_plan = plan_stage(plan, stage=stage, dependencies=dependencies)
+    stage_plan = plan_stage(plan, stage=stage, dependencies=dependencies, brief=brief)
     return compile_work_unit_request(generation_plan=plan, stage_plan=stage_plan, work_unit=stage_plan.work_units[0], dependencies=dependencies, brief=brief, canonical_snapshot=snapshot)
 
 
 def _scene_output(*, speaker_id: str = "speaker") -> dict:
     state = _state()
     return SceneBeatsFragmentOutput(
-        scenes=[DramaticSceneContent(local_scene_id="s", order=1, title="场", objective="目标", location_id=None, character_ids=["speaker"], duration_budget_units=660, entry_state=state, exit_state=state)],
+        scenes=[DramaticSceneContent(local_scene_id="s", order=1, title="场", objective="目标", location_id=None, character_ids=["speaker"], duration_weight=1, entry_state=state, exit_state=state)],
         beats=[BeatContent(local_beat_id="b", scene_local_id="s", order=1, description="动作", purpose="推进", visible_event="", immediate_result="", dramatic_change="", entry_state=state, exit_state=state, continuity_anchors=[], continuity_delta={})],
-        dialogue_cues=[DialogueCueContent(local_cue_id="q", beat_local_id="b", order=1, speaker_id=speaker_id, voice_over=None, text="继续", language="zh-CN", delivery="natural", performance_notes="平静", estimated_duration_units=660)],
+        dialogue_cues=[DialogueCueContent(local_cue_id="q", beat_local_id="b", order=1, speaker_id=speaker_id, voice_over=None, text="继续", language="zh-CN", delivery="natural", performance_notes="平静")],
     ).model_dump(mode="json", by_alias=True)
 
 
@@ -85,17 +102,28 @@ def _board_output(*, cue_ids: list[str] | None = None, audio_duration: int = 660
 
 def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None:
     compiled = _compiled(StageName.SCENE_BEATS)
-    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v5"
-    assert compiled.contract.contract_version == "m1.12b"
+    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v7"
+    assert compiled.contract.contract_version == "m1.12e"
     assert "dialogueCues" in compiled.response_schema["properties"]
     assert '"dialogue"' not in str(compiled.response_schema)
-    assert '"version":"dialogue.default.v1"' in compiled.rendered.messages[1].content
-    assert '"unitsPerCharacter":330' in compiled.rendered.messages[1].content
+    cue_schema = compiled.response_schema["properties"]["dialogueCues"]["items"]
+    scene_schema = compiled.response_schema["properties"]["scenes"]["items"]
+    assert "estimatedDurationUnits" not in cue_schema["properties"]
+    assert "estimatedDurationUnits" not in cue_schema["required"]
+    assert "durationBudgetUnits" not in scene_schema["properties"]
+    assert "durationWeight" in scene_schema["required"]
+    assert compiled.contract.dialogue_timing_profile_version == "dialogue.default.v1"
+    assert compiled.contract.dialogue_timing_profile_hash
+    assert compiled.contract.scene_timing_allocation_version == "scene_timing_allocation.v1"
+    assert compiled.contract.scene_timing_allocation_hash
+    assert compiled.contract.node_duration_budget_units == 90_000
     report = compiled.validator.validate(_scene_output(), context=SemanticValidationContext(stage="scene_beats"))
-    assert report.accepted and report.value.dialogue_cues[0].beat_id == report.value.beats[0].id
+    assert report.accepted
+    assert report.value.dialogue_cues[0].beat_id == report.value.beats[0].id
+    assert report.value.dialogue_cues[0].estimated_duration_units == 660
 
 
-def test_m12a_scene_fragment_rejects_blank_voice_over_and_underestimated_timing() -> None:
+def test_m12a_scene_fragment_rejects_blank_voice_over() -> None:
     compiled = _compiled(StageName.SCENE_BEATS)
     blank_voice_over = _scene_output()
     blank_voice_over["dialogueCues"][0].update(
@@ -108,19 +136,23 @@ def test_m12a_scene_fragment_rejects_blank_voice_over_and_underestimated_timing(
     assert blank_report.accepted is False
     assert any(issue.path[-1] == "voiceOver" for issue in blank_report.issues)
 
-    understated = _scene_output()
-    understated["dialogueCues"][0]["estimatedDurationUnits"] = 659
-    timing_report = compiled.validator.validate(
-        understated,
+
+def test_m12a_scene_fragment_rejects_model_authored_timing() -> None:
+    compiled = _compiled(StageName.SCENE_BEATS)
+    output = _scene_output()
+    output["dialogueCues"][0]["estimatedDurationUnits"] = 1
+
+    report = compiled.validator.validate(
+        output,
         context=SemanticValidationContext(stage="scene_beats"),
     )
-    assert timing_report.accepted is False
-    timing_issue = next(
-        issue
-        for issue in timing_report.issues
-        if issue.code == "semantic.cue_duration_underestimated"
+
+    assert report.accepted is False
+    assert any(
+        issue.code == "schema.extra_forbidden"
+        and issue.path == ("dialogueCues", 0, "estimatedDurationUnits")
+        for issue in report.issues
     )
-    assert timing_issue.path == ("dialogueCues", 0, "estimatedDurationUnits")
 
 
 @pytest.mark.parametrize("field", ("text", "language"))
@@ -158,90 +190,67 @@ def test_m12a_local_cue_handle_does_not_require_a_canonical_stable_id() -> None:
     assert report.value.dialogue_cues[0].id != "not a stable id"
 
 
-def test_m12a_dialogue_timing_repair_facts_are_derived_and_expose_budget_conflict() -> None:
+def test_m12a_binder_derives_dialogue_and_frozen_node_budget() -> None:
     compiled = _compiled(StageName.SCENE_BEATS)
     understated = _scene_output()
-    understated["dialogueCues"][0]["estimatedDurationUnits"] = 500
-    understated["scenes"][0]["durationBudgetUnits"] = 600
+    understated["scenes"][0]["durationWeight"] = 1
     report = compiled.validator.validate(
         understated,
         context=SemanticValidationContext(stage="scene_beats"),
     )
 
-    facts = dialogue_timing_repair_facts(understated, report.issues)
+    assert report.accepted is True
+    assert report.value.dialogue_cues[0].estimated_duration_units == 660
+    assert report.value.scenes[0].duration_budget_units == 90_000
+
+
+def test_m12a_binder_partitions_node_budget_by_scene_weight_and_dialogue_floor() -> None:
+    compiled = _compiled(StageName.SCENE_BEATS)
+    output = _scene_output()
+    output["scenes"][0]["durationWeight"] = 1
+    output["scenes"].append(
+        {
+            **output["scenes"][0],
+            "localSceneId": "s2",
+            "order": 2,
+            "title": "第二场",
+            "durationWeight": 3,
+        }
+    )
+    output["beats"].append(
+        {
+            **output["beats"][0],
+            "localBeatId": "b2",
+            "sceneLocalId": "s2",
+        }
+    )
+
+    report = compiled.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="scene_beats"),
+    )
+
+    assert report.accepted is True
+    budgets = [scene.duration_budget_units for scene in report.value.scenes]
+    assert sum(budgets) == 90_000
+    assert budgets[0] >= 660
+    assert budgets[1] > budgets[0]
+
+
+def test_m12a_rejects_dialogue_that_cannot_fit_frozen_node_budget() -> None:
+    compiled = _compiled(StageName.SCENE_BEATS)
+    output = _scene_output()
+    output["dialogueCues"][0]["text"] = "长" * 300
+
+    report = compiled.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="scene_beats"),
+    )
 
     assert report.accepted is False
-    assert len(facts) == 1
-    assert facts[0].model_dump(mode="json", by_alias=True) == {
-        "code": "semantic.cue_duration_underestimated",
-        "path": ["dialogueCues", 0, "estimatedDurationUnits"],
-        "timingProfileVersion": "dialogue.default.v1",
-        "matchedRuleLanguage": "zh-CN",
-        "delivery": "natural",
-        "textCharacterCount": 2,
-        "unitsPerCharacter": 330,
-        "minimumDurationUnits": 660,
-        "currentEstimatedDurationUnits": 500,
-        "sceneDurationBudgetUnits": 600,
-        "sceneCueEstimatedTotalUnits": 500,
-        "sceneCueMinimumTotalUnits": 660,
-        "minimumFitsSceneBudget": False,
+    assert "semantic.dialogue_exceeds_node_budget" in {
+        issue.code for issue in report.issues
     }
-    serialized = facts[0].model_dump(mode="json", by_alias=True)
-    assert "text" not in serialized
-    assert "message" not in serialized
-
-
-def test_m12a_dialogue_timing_repair_facts_require_a_parseable_cue() -> None:
-    facts = dialogue_timing_repair_facts(
-        {"dialogueCues": []},
-        (),
-    )
-    assert facts == ()
-
-
-def test_m12a_timing_fact_keeps_cue_minimum_when_scene_is_unresolved() -> None:
-    compiled = _compiled(StageName.SCENE_BEATS)
-    output = _scene_output()
-    output["dialogueCues"][0]["beatLocalId"] = "unknown-beat"
-    output["dialogueCues"][0]["estimatedDurationUnits"] = 1
-    report = compiled.validator.validate(
-        output,
-        context=SemanticValidationContext(stage="scene_beats"),
-    )
-
-    assert {issue.code for issue in report.issues} >= {
-        "semantic.cross_unit_cue",
-        "semantic.cue_duration_underestimated",
-    }
-    facts = dialogue_timing_repair_facts(output, report.issues)
-    assert len(facts) == 1
-    assert facts[0].minimum_duration_units == 660
-    assert facts[0].scene_duration_budget_units is None
-    assert facts[0].scene_cue_estimated_total_units is None
-    assert facts[0].scene_cue_minimum_total_units is None
-    assert facts[0].minimum_fits_scene_budget is None
-
-
-def test_m12a_timing_fact_omits_scene_claims_for_duplicate_local_ids() -> None:
-    compiled = _compiled(StageName.SCENE_BEATS)
-    output = _scene_output()
-    output["dialogueCues"][0]["estimatedDurationUnits"] = 1
-    output["beats"].append({**output["beats"][0]})
-    report = compiled.validator.validate(
-        output,
-        context=SemanticValidationContext(stage="scene_beats"),
-    )
-
-    assert {issue.code for issue in report.issues} >= {
-        "semantic.duplicate_beat_id",
-        "semantic.cue_duration_underestimated",
-    }
-    facts = dialogue_timing_repair_facts(output, report.issues)
-    assert len(facts) == 1
-    assert facts[0].minimum_duration_units == 660
-    assert facts[0].scene_duration_budget_units is None
-    assert facts[0].minimum_fits_scene_budget is None
 
 
 def test_m12a_rejects_illegal_speaker_and_cue_schedule_references() -> None:

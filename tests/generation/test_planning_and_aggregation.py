@@ -47,6 +47,7 @@ from plotloom.generation.planning import (
     WorkUnitSelectorKind,
     create_generation_plan,
     plan_stage,
+    work_unit_context,
 )
 
 def _run_plan(
@@ -215,6 +216,7 @@ def _stage_plans():
         plan,
         stage=StageName.SCENE_BEATS,
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=_brief(),
     )
     storyboard_stage = plan_stage(
         plan,
@@ -284,11 +286,13 @@ def test_run_plan_does_not_invent_future_selectors_and_stage_plans_are_determini
         plan,
         stage=StageName.SCENE_BEATS,
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=_brief(),
     )
     second = plan_stage(
         plan,
         stage=StageName.SCENE_BEATS,
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=_brief(),
     )
 
     assert first == second
@@ -296,6 +300,21 @@ def test_run_plan_does_not_invent_future_selectors_and_stage_plans_are_determini
         node.id for node in graph.nodes
     ]
     assert all(unit.selector.kind == WorkUnitSelectorKind.STORY_NODE for unit in first.work_units)
+    assert first.scene_timing_allocation is not None
+    assert first.scene_timing_allocation.allocation_version == "scene_timing_allocation.v1"
+    selected_context = work_unit_context(
+        first.work_units[0],
+        dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        scene_timing_allocation=first.scene_timing_allocation,
+    )
+    assert selected_context["scene_timing_allocation"] == {
+        "allocationVersion": "scene_timing_allocation.v1",
+        "allocationHash": first.scene_timing_allocation.allocation_hash,
+        "nodeId": first.work_units[0].selector.stable_id,
+        "durationBudgetUnits": first.scene_timing_allocation.node_duration_budget(
+            first.work_units[0].selector.stable_id
+        ),
+    }
 
     changed_story = _run_plan(canonical_snapshot={"brief": {"title": "另一个故事"}})
     changed_instructions = _run_plan(instructions="preserve a different constraint")
@@ -306,6 +325,7 @@ def test_run_plan_does_not_invent_future_selectors_and_stage_plans_are_determini
         changed_instructions,
         stage=StageName.SCENE_BEATS,
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=_brief(),
     )
     assert first.dependency_hash != changed_stage.dependency_hash
     assert first.work_units[0].input_hash != changed_stage.work_units[0].input_hash
@@ -331,6 +351,7 @@ def test_planner_refuses_unbounded_unit_or_input_budget():
             too_few_units,
             stage=StageName.SCENE_BEATS,
             dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+            brief=_brief(),
         )
 
     too_small_input = _run_plan(
@@ -341,6 +362,7 @@ def test_planner_refuses_unbounded_unit_or_input_budget():
             too_small_input,
             stage=StageName.SCENE_BEATS,
             dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+            brief=_brief(),
         )
 
     with pytest.raises(PlanningError, match="leave room") as captured:

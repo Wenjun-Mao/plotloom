@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from threading import Barrier
 
 import pytest
 from alembic import command
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, select, text
 
 from plotloom.domain import (
     Artifact,
@@ -21,7 +22,14 @@ from plotloom.domain import (
 )
 from plotloom.exceptions import InvalidTransitionError
 from plotloom.generation.fragments import StoryBibleFragment, StoryGraphFragment
-from plotloom.persistence import MediaTaskRow, SQLiteRepository, stable_hash
+from plotloom.generation.planning import StagePlan, _stage_plan_hash
+from plotloom.persistence import (
+    GenerationWorkUnitRow,
+    MediaTaskRow,
+    SQLiteRepository,
+    StagePlanRow,
+    stable_hash,
+)
 from plotloom.schema import SchemaMigrator
 
 from .conftest import all_stage_payloads
@@ -127,6 +135,71 @@ def _seal_bible_unit(repository: SQLiteRepository, run_id: str, payload) -> str:
         candidate_artifact_ids=[candidate.id],
     )
     return aggregate.id
+
+
+def _seal_graph_unit(repository: SQLiteRepository, run_id: str, payload) -> str:
+    _, _, attempt, candidate = _persist_stage_unit_evidence(
+        repository, run_id, StageName.STORY_GRAPH, payload
+    )
+    repository.finish_attempt(attempt.id, AttemptStatus.SUCCEEDED)
+    aggregate = repository.seal_stage_aggregate(
+        run_id,
+        StageName.STORY_GRAPH,
+        candidate_artifact_ids=[candidate.id],
+    )
+    return aggregate.id
+
+
+def _replace_scene_beats_plan_with_obsolete_contract(
+    repository: SQLiteRepository,
+    run_id: str,
+) -> dict:
+    """Install a hash-valid pre-allocation StagePlan fixture without rewriting it later."""
+
+    current = repository.get_or_create_stage_plan(run_id, StageName.SCENE_BEATS)
+    obsolete_dependency_hash = "f" * 64
+    legacy_units = tuple(
+        unit.model_copy(update={"dependency_hash": obsolete_dependency_hash})
+        for unit in current.work_units
+    )
+    draft = StagePlan.model_construct(
+        run_id=current.run_id,
+        stage=current.stage,
+        generation_plan_hash=current.generation_plan_hash,
+        dependency_hash=obsolete_dependency_hash,
+        scene_timing_allocation=None,
+        work_units=legacy_units,
+        stage_plan_hash="",
+    )
+    legacy_plan = StagePlan(
+        run_id=draft.run_id,
+        stage=draft.stage,
+        generation_plan_hash=draft.generation_plan_hash,
+        dependency_hash=draft.dependency_hash,
+        work_units=draft.work_units,
+        stage_plan_hash=_stage_plan_hash(draft),
+    )
+    persisted = legacy_plan.model_dump(mode="json", by_alias=False)
+
+    with repository._write() as session:
+        plan_row = session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == run_id,
+                StagePlanRow.stage == StageName.SCENE_BEATS.value,
+            )
+        )
+        assert plan_row is not None
+        plan_row.plan = deepcopy(persisted)
+        plan_row.dependency_hash = legacy_plan.dependency_hash
+        plan_row.stage_plan_hash = legacy_plan.stage_plan_hash
+        units = session.scalars(
+            select(GenerationWorkUnitRow).where(
+                GenerationWorkUnitRow.stage_plan_id == plan_row.id
+            )
+        ).all()
+        for unit in units:
+            unit.dependency_hash = obsolete_dependency_hash
+    return persisted
 
 
 def test_run_plan_is_persisted_before_child_rows_and_trace_is_additive(repository, brief) -> None:
@@ -615,6 +688,90 @@ def test_startup_recovery_classifies_work_unit_runs_without_provider_replay(repo
     assert repository.get_run(sealed_run.id).status == RunStatus.QUEUED
     assert sealed_id
     assert pre_dispatch.id
+
+
+def test_startup_recovery_terminates_obsolete_scene_timing_contract_without_rewriting_history(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+    )
+    repository.start_run(run.id)
+    _seal_bible_unit(repository, run.id, all_stage_payloads()[0])
+    _seal_graph_unit(repository, run.id, all_stage_payloads()[1])
+    legacy_plan = _replace_scene_beats_plan_with_obsolete_contract(repository, run.id)
+    artifact = repository.add_artifact(
+        Artifact(
+            run_id=run.id,
+            stage=StageName.SCENE_BEATS,
+            kind=ArtifactKind.PROMPT,
+            content={"legacy": "scene timing allocation absent"},
+            content_hash=stable_hash({"legacy": "scene timing allocation absent"}),
+        )
+    )
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert recovery.resubmit_run_ids == []
+    assert recovery.terminated_run_ids == [run.id]
+    recovered = repository.get_run(run.id)
+    assert recovered.status == RunStatus.FAILED
+    assert recovered.failure_code == "recovery.scene_timing_contract_obsolete"
+    assert recovered.failed_stage == StageName.SCENE_BEATS
+    assert "Submit a new run" in (recovered.error or "")
+    assert all(
+        unit.status != WorkUnitStatus.QUEUED
+        for unit in repository.list_generation_work_units(run.id)
+        if unit.stage == StageName.SCENE_BEATS
+    )
+    assert repository.get_artifact(artifact.id).content == {
+        "legacy": "scene timing allocation absent"
+    }
+    recovered_plan = next(
+        plan
+        for plan in repository.list_stage_plans(run.id)
+        if plan.stage == StageName.SCENE_BEATS
+    )
+    assert recovered_plan.model_dump(mode="json", by_alias=False) == legacy_plan
+
+
+def test_startup_recovery_does_not_rewrite_terminal_obsolete_scene_timing_history(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+    )
+    repository.start_run(run.id)
+    _seal_bible_unit(repository, run.id, all_stage_payloads()[0])
+    _seal_graph_unit(repository, run.id, all_stage_payloads()[1])
+    legacy_plan = _replace_scene_beats_plan_with_obsolete_contract(repository, run.id)
+    repository.finish_run(
+        run.id,
+        error="historical terminal outcome",
+        failure_code="fixture.terminal",
+        failed_stage=StageName.SCENE_BEATS,
+    )
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert run.id not in recovery.terminated_run_ids
+    terminal = repository.get_run(run.id)
+    assert terminal.status == RunStatus.FAILED
+    assert terminal.failure_code == "fixture.terminal"
+    recovered_plan = next(
+        plan
+        for plan in repository.list_stage_plans(run.id)
+        if plan.stage == StageName.SCENE_BEATS
+    )
+    assert recovered_plan.model_dump(mode="json", by_alias=False) == legacy_plan
 
 
 def test_startup_recovery_preserves_failed_and_quarantined_unit_meanings(

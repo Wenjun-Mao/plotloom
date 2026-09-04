@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from plotloom.domain import ProjectBrief, StageName, StoryBibleV2, StoryEdgeKind, StoryNodeKind
+from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.planning import create_generation_plan, plan_stage
 from plotloom.generation.story_graph_topology import (
     StoryGraphContentBindingError,
@@ -16,7 +17,14 @@ from plotloom.generation.story_graph_topology import (
     plan_story_graph_topology,
 )
 from plotloom.generation.validation import SemanticValidationContext
-from plotloom.generation.work_units import compile_work_unit_request
+from plotloom.generation.work_units import (
+    DialogueTimingRepairFact,
+    JoinAllowedDifferencesRepairFact,
+    assert_semantic_repair_fact_matches_issue,
+    compile_work_unit_request,
+    parse_semantic_repair_fact,
+    story_graph_join_repair_facts,
+)
 from plotloom.validation import validate_story_graph
 
 
@@ -299,3 +307,122 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
     assert [issue.code for issue in rejected.issues] == [
         "semantic.continuation_choice_text_must_be_null"
     ]
+
+    invalid_join = _complete_fill(topology)
+    invalid_join["joinContracts"][0]["requiredStateKeys"] = ["route"]
+    invalid_join["joinContracts"][0]["allowedDifferences"] = ["other"]
+    join_report = compiled.validator.validate(
+        invalid_join,
+        context=SemanticValidationContext(stage="story_graph"),
+    )
+    facts = story_graph_join_repair_facts(invalid_join, join_report.issues)
+    assert join_report.accepted is False
+    assert len(facts) == 1
+    assert facts[0].model_dump(mode="json", by_alias=True) == {
+        "code": "semantic.join_allowed_differences_must_be_required",
+        "path": [
+            "joinContracts",
+            topology.joins[0].id,
+            "allowedDifferences",
+        ],
+        "joinContractId": topology.joins[0].id,
+        "missingRequiredStateKeys": ["other"],
+    }
+
+    for unsafe_allowed in (["   "], ["other", "other"]):
+        unsafe = _complete_fill(topology)
+        unsafe["joinContracts"][0]["requiredStateKeys"] = ["route"]
+        unsafe["joinContracts"][0]["allowedDifferences"] = unsafe_allowed
+        unsafe_report = compiled.validator.validate(
+            unsafe,
+            context=SemanticValidationContext(stage="story_graph"),
+        )
+        assert unsafe_report.accepted is False
+        assert story_graph_join_repair_facts(unsafe, unsafe_report.issues) == ()
+
+    assert story_graph_join_repair_facts(
+        {"joinContracts": []}, join_report.issues
+    ) == ()
+    assert story_graph_join_repair_facts(
+        invalid_join,
+        (
+            ValidationIssue(
+                code="semantic.some_other_issue",
+                message="ignored",
+                path=("joinContracts", topology.joins[0].id),
+            ),
+        ),
+    ) == ()
+
+
+def test_semantic_repair_fact_union_revalidates_current_and_legacy_evidence() -> None:
+    join = parse_semantic_repair_fact(
+        {
+            "code": "semantic.join_allowed_differences_must_be_required",
+            "path": ["joinContracts", "join-1", "allowedDifferences"],
+            "joinContractId": "join-1",
+            "missingRequiredStateKeys": ["route"],
+        }
+    )
+    assert isinstance(join, JoinAllowedDifferencesRepairFact)
+    assert_semantic_repair_fact_matches_issue(
+        join,
+        (
+            ValidationIssue(
+                code="semantic.join_allowed_differences_must_be_required",
+                message="safe message is not correction authority",
+                path=("joinContracts", "join-1", "allowedDifferences"),
+            ),
+        ),
+    )
+
+    timing = parse_semantic_repair_fact(
+        {
+            "code": "semantic.cue_duration_underestimated",
+            "path": ["dialogueCues", 0, "estimatedDurationUnits"],
+            "timingProfileVersion": "dialogue.default.v1",
+            "matchedRuleLanguage": "zh-CN",
+            "delivery": "natural",
+            "textCharacterCount": 2,
+            "unitsPerCharacter": 330,
+            "minimumDurationUnits": 660,
+            "currentEstimatedDurationUnits": 1,
+            "sceneDurationBudgetUnits": 600,
+            "sceneCueEstimatedTotalUnits": 1,
+            "sceneCueMinimumTotalUnits": 660,
+            "minimumFitsSceneBudget": False,
+        }
+    )
+    assert isinstance(timing, DialogueTimingRepairFact)
+
+    with pytest.raises(ValidationError):
+        parse_semantic_repair_fact(
+            {
+                "code": "semantic.join_allowed_differences_must_be_required",
+                "path": ["joinContracts", "join-1", "allowedDifferences"],
+                "joinContractId": "join-1",
+                "missingRequiredStateKeys": ["route", "route"],
+            }
+        )
+    with pytest.raises(ValidationError, match="path must identify"):
+        parse_semantic_repair_fact(
+            {
+                "code": "semantic.join_allowed_differences_must_be_required",
+                "path": ["bogus", 0],
+                "joinContractId": "join-1",
+                "missingRequiredStateKeys": ["route"],
+            }
+        )
+    with pytest.raises(ValueError, match="no matching stable validation issue"):
+        assert_semantic_repair_fact_matches_issue(
+            join,
+            (
+                ValidationIssue(
+                    code="semantic.join_allowed_differences_must_be_required",
+                    message="different join",
+                    path=("joinContracts", "join-2", "allowedDifferences"),
+                ),
+            ),
+        )
+    with pytest.raises(ValidationError):
+        parse_semantic_repair_fact({"code": "semantic.unknown"})

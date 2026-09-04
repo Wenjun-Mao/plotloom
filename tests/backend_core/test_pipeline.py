@@ -338,6 +338,8 @@ def _work_unit_responses(
             scene.pop("storyNodeId")
             scene["localSceneId"] = scene.pop("id")
             scene.pop("beatIds")
+            scene.pop("durationBudgetUnits")
+            scene["durationWeight"] = 1
         for beat in payload["beats"]:
             beat["localBeatId"] = beat.pop("id")
             beat["sceneLocalId"] = beat.pop("sceneId")
@@ -1073,11 +1075,11 @@ def test_v2_profile_corrects_a_known_rejection_with_visible_attempt_lineage(
     assert repository.get_stage_payload(project.id, StageName.STORY_BIBLE) == bible
 
 
-def test_scene_timing_rejection_persists_safe_facts_and_uses_them_for_correction(
+def test_scene_timing_is_derived_without_model_authored_clock_values(
     repository,
     brief,
 ) -> None:
-    """A semantic timing rejection carries numbers, not validator prose, forward."""
+    """Dialogue timing arithmetic belongs to trusted binding, not the model."""
 
     project = repository.create_project(brief)
     run = repository.create_run(
@@ -1089,11 +1091,12 @@ def test_scene_timing_rejection_persists_safe_facts_and_uses_them_for_correction
     topology = repository.get_story_graph_topology(run.id)
     assert topology is not None
     responses = _work_unit_responses(topology, brief)
-    rejected_fragment = json.loads(responses[2])
-    rejected_fragment["dialogueCues"] = [
+    fragment = json.loads(responses[2])
+    fragment["scenes"][0]["durationWeight"] = 1
+    fragment["dialogueCues"] = [
         {
             "localCueId": "timing-cue",
-            "beatLocalId": rejected_fragment["beats"][0]["localBeatId"],
+            "beatLocalId": fragment["beats"][0]["localBeatId"],
             "order": 1,
             "speakerId": None,
             "voiceOver": "narrator",
@@ -1101,13 +1104,9 @@ def test_scene_timing_rejection_persists_safe_facts_and_uses_them_for_correction
             "language": "zh-CN",
             "delivery": "natural",
             "performanceNotes": "平静",
-            "estimatedDurationUnits": 1,
         }
     ]
-    responses[2] = json.dumps(rejected_fragment, ensure_ascii=False)
-    # The correction is a full valid fragment, followed by the remaining
-    # original units.  It must consume exactly one extra provider response.
-    responses.insert(3, _work_unit_responses(topology, brief)[2])
+    responses[2] = json.dumps(fragment, ensure_ascii=False)
     provider = QueueProvider(responses)
     secrets = RunSecretBroker("timing-repair-secret")
 
@@ -1120,43 +1119,24 @@ def test_scene_timing_rejection_persists_safe_facts_and_uses_them_for_correction
 
     assert completed.status == RunStatus.SUCCEEDED
     trace = repository.get_run_trace(run.id)
-    timing_attempt = next(
-        attempt
+    assert not any(
+        attempt.stage == StageName.SCENE_BEATS
+        and attempt.attempt_kind == GenerationAttemptKind.CORRECTION
         for attempt in trace.attempts
-        if attempt.stage == StageName.SCENE_BEATS
-        and attempt.outcome_code == "semantic.cue_duration_underestimated"
     )
-    validation = next(
-        artifact
-        for artifact in trace.artifacts
-        if artifact.attempt_id == timing_attempt.id
-        and artifact.kind == ArtifactKind.VALIDATION
+    installed = repository.get_stage_payload(project.id, StageName.SCENE_BEATS)
+    assert installed is not None
+    assert installed.dialogue_cues[0].estimated_duration_units == 660
+    cue_scene_id = next(
+        beat.scene_id
+        for beat in installed.beats
+        if beat.id == installed.dialogue_cues[0].beat_id
     )
-    assert validation.content["repairFacts"] == [
-        {
-            "code": "semantic.cue_duration_underestimated",
-            "path": ["dialogueCues", 0, "estimatedDurationUnits"],
-            "timingProfileVersion": "dialogue.default.v1",
-            "matchedRuleLanguage": "zh-CN",
-            "delivery": "natural",
-            "textCharacterCount": 2,
-            "unitsPerCharacter": 330,
-            "minimumDurationUnits": 660,
-            "currentEstimatedDurationUnits": 1,
-            "sceneDurationBudgetUnits": 8,
-            "sceneCueEstimatedTotalUnits": 1,
-            "sceneCueMinimumTotalUnits": 660,
-            "minimumFitsSceneBudget": False,
-        }
-    ]
-    assert "message" not in validation.content["repairFacts"][0]
-    correction_request = next(
-        request
-        for request in provider.requests
-        if "minimumDurationUnits" in request.messages[1].content
-    )
-    assert '"minimumDurationUnits":660' in correction_request.messages[1].content
-    assert '"minimumFitsSceneBudget":false' in correction_request.messages[1].content
+    assert next(
+        scene.duration_budget_units
+        for scene in installed.scenes
+        if scene.id == cue_scene_id
+    ) >= 660
 
 
 def test_non_timing_scene_rejection_reaches_correction_without_fact_reprojection(
@@ -1188,7 +1168,6 @@ def test_non_timing_scene_rejection_reaches_correction_without_fact_reprojection
             "language": "zh-CN",
             "delivery": "natural",
             "performanceNotes": "平静",
-            "estimatedDurationUnits": 660,
         }
     ]
     responses[2] = json.dumps(rejected_fragment, ensure_ascii=False)
@@ -1291,6 +1270,77 @@ def test_v2_graph_projection_rejection_is_corrected_instead_of_becoming_internal
     assert first_validation.content["issues"][0]["code"] == (
         "semantic.continuation_choice_text_must_be_null"
     )
+
+
+def test_graph_join_subset_rejection_uses_typed_repair_facts(
+    repository,
+    brief,
+) -> None:
+    """A join-key relation failure receives exact, intent-preserving arrays."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    complete = _work_unit_responses(topology, brief)
+    rejected_graph = json.loads(complete[1])
+    rejected_graph["joinContracts"][0]["requiredStateKeys"] = ["route"]
+    rejected_graph["joinContracts"][0]["allowedDifferences"] = ["other"]
+    repaired_graph = json.loads(json.dumps(rejected_graph))
+    repaired_graph["joinContracts"][0]["requiredStateKeys"] = ["route", "other"]
+    provider = QueueProvider(
+        [
+            complete[0],
+            json.dumps(rejected_graph, ensure_ascii=False),
+            json.dumps(repaired_graph, ensure_ascii=False),
+        ]
+    )
+    secrets = RunSecretBroker("join-repair-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    rejected_attempt = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code
+        == "semantic.join_allowed_differences_must_be_required"
+    )
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == rejected_attempt.id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.join_allowed_differences_must_be_required",
+            "path": [
+                "joinContracts",
+                topology.joins[0].id,
+                "allowedDifferences",
+            ],
+            "joinContractId": topology.joins[0].id,
+            "missingRequiredStateKeys": ["other"],
+        }
+    ]
+    correction_prompt = provider.requests[2].messages[1].content
+    assert "missingRequiredStateKeys" in correction_prompt
+    assert '"other"' in correction_prompt
+    assert "validation.internal_error" not in {
+        attempt.outcome_code for attempt in trace.attempts
+    }
 
 
 def test_unexpected_validator_exception_stays_fail_closed_without_correction(

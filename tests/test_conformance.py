@@ -87,7 +87,7 @@ class _FixtureProvider:
             scene_id = f"scene-{node['id']}"
             beat_id = f"beat-{node['id']}"
             payload = {
-                "scenes": [{"localSceneId": scene_id, "order": 1, "title": node["title"], "objective": "穿过雾港", "locationId": None, "characterIds": [], "durationBudgetUnits": 1, "entryState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}, "exitState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}}],
+                "scenes": [{"localSceneId": scene_id, "order": 1, "title": node["title"], "objective": "穿过雾港", "locationId": None, "characterIds": [], "durationWeight": 1, "entryState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}, "exitState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}}],
                 "beats": [{"localBeatId": beat_id, "sceneLocalId": scene_id, "order": 1, "description": "船钟在雾中响起。", "purpose": "推进叙事", "visibleEvent": "摆渡人握紧船钟。", "immediateResult": "摆渡人继续前行。", "dramaticChange": "继续前行", "entryState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}, "exitState": {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}, "continuityAnchors": [], "continuityDelta": {}}],
                 "dialogueCues": [],
             }

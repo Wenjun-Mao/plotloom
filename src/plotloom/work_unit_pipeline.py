@@ -61,9 +61,11 @@ from .generation.validation import SemanticValidationContext
 from .generation.work_units import (
     FRAGMENT_ID_BINDING_VERSION,
     CompiledWorkUnitRequest,
-    DialogueTimingRepairFact,
+    SemanticRepairFact,
     compile_work_unit_request,
-    dialogue_timing_repair_facts,
+    parse_semantic_repair_fact,
+    assert_semantic_repair_fact_matches_issue,
+    semantic_repair_facts,
 )
 from .persistence import SQLiteRepository, stable_hash
 from .provider_profiles import TextProviderProfileSnapshot
@@ -703,12 +705,11 @@ class DurableWorkUnitRunner:
                 raise
 
             if not report.accepted:
-                repair_facts: tuple[DialogueTimingRepairFact, ...] = ()
-                if work_unit.stage == StageName.SCENE_BEATS:
-                    repair_facts = dialogue_timing_repair_facts(
-                        extracted.value,
-                        report.issues,
-                    )
+                repair_facts = semantic_repair_facts(
+                    extracted.value,
+                    report.issues,
+                    stage=work_unit.stage,
+                )
                 if self._reject_or_continue(
                     run=run,
                     attempt=attempt,
@@ -785,7 +786,7 @@ class DurableWorkUnitRunner:
         issues: tuple[ValidationIssue, ...],
         transformations: tuple[str, ...],
         max_attempts: int,
-        repair_facts: tuple[DialogueTimingRepairFact, ...] = (),
+        repair_facts: tuple[SemanticRepairFact, ...] = (),
     ) -> bool:
         """Persist one known rejection, then either expose a correction or stop."""
 
@@ -891,22 +892,29 @@ class DurableWorkUnitRunner:
             base_compiled=base_compiled,
         )
         issues = []
+        validated_issues: list[ValidationIssue] = []
         for item in validation_content.get("issues", []):
             if not isinstance(item, Mapping):
                 continue
             issue = ValidationIssue.model_validate(item)
+            validated_issues.append(issue)
             issues.append({"code": issue.code, "path": list(issue.path)})
         if not issues:
             raise ValueError("correction source has no stable validation issues")
-        timing_repair_facts = []
-        raw_timing_facts = validation_content.get("repairFacts", [])
-        if not isinstance(raw_timing_facts, list):
+        serialized_repair_facts = []
+        raw_repair_facts = validation_content.get("repairFacts", [])
+        if not isinstance(raw_repair_facts, list):
             raise ValueError("correction source has malformed deterministic repair facts")
-        for item in raw_timing_facts:
+        for item in raw_repair_facts:
             if not isinstance(item, Mapping):
                 raise ValueError("correction source has malformed deterministic repair facts")
-            fact = DialogueTimingRepairFact.model_validate(item)
-            timing_repair_facts.append(fact.model_dump(mode="json", by_alias=True))
+            fact = parse_semantic_repair_fact(item)
+            assert_semantic_repair_fact_matches_issue(
+                fact, tuple(validated_issues)
+            )
+            serialized_repair_facts.append(
+                fact.model_dump(mode="json", by_alias=True)
+            )
         correction_ordinal = source_attempt.attempt_number
         correction_strategy = (
             "repair_previous_final"
@@ -922,7 +930,7 @@ class DurableWorkUnitRunner:
                 "response_schema": base_compiled.response_schema,
                 "previous_final_content": previous_final_content,
                 "validation_issues": issues,
-                "timing_repair_facts": timing_repair_facts,
+                "semantic_repair_facts": serialized_repair_facts,
                 "correction_ordinal": correction_ordinal,
                 "correction_strategy": correction_strategy,
             },
@@ -1128,7 +1136,7 @@ class DurableWorkUnitRunner:
         issues: tuple[ValidationIssue, ...],
         transformations: tuple[str, ...],
         error: str | None = None,
-        repair_facts: tuple[DialogueTimingRepairFact, ...] = (),
+        repair_facts: tuple[SemanticRepairFact, ...] = (),
     ) -> None:
         content = {
             "accepted": accepted,

@@ -638,9 +638,13 @@ def test_v2_join_required_state_equality_allows_only_reconciled_exceptions() -> 
             nodes=[
                 StoryNodeV2(id="left", title="Left", summary="left", kind="start"),
                 StoryNodeV2(id="right", title="Right", summary="right", kind="scene"),
-                StoryNodeV2(id="join", title="Join", summary="join", kind="join"),
+                StoryNodeV2(id="join", title="Join", summary="join", kind="ending"),
             ],
-            edges=[],
+            edges=[
+                StoryEdgeV2(id="left-join", source_node_id="left", target_node_id="join", kind="choice", choice_text="join", state_effects={}),
+                StoryEdgeV2(id="left-right", source_node_id="left", target_node_id="right", kind="choice", choice_text="right", state_effects={}),
+                StoryEdgeV2(id="right-join", source_node_id="right", target_node_id="join", kind="continuation", choice_text=None, state_effects={}),
+            ],
             join_contracts=[JoinContractV2(
                 id="join-contract", join_node_id="join", incoming_node_ids=["left", "right"],
                 required_state_keys=["channel"], allowed_differences=allowed_differences,
@@ -662,6 +666,28 @@ def test_v2_join_required_state_equality_allows_only_reconciled_exceptions() -> 
         StageName.SCENE_BEATS, joined_plan, schema_version=2, brief=brief,
         bible=bible, graph=graph(["channel"], "the join resolves this channel state"),
     ) is None
+
+    over_budget_plan = joined_plan.model_copy(
+        update={
+            "scenes": [
+                joined_plan.scenes[0].model_copy(update={"duration_budget_units": 60_001}),
+                *joined_plan.scenes[1:],
+            ]
+        }
+    )
+    with pytest.raises(DomainValidationError) as captured:
+        validate_stage_payload(
+            StageName.SCENE_BEATS,
+            over_budget_plan,
+            schema_version=2,
+            brief=brief,
+            bible=bible,
+            graph=graph(["channel"], "the join resolves this channel state"),
+        )
+    assert any(
+        issue["code"] == "scene_node_budget_exceeded"
+        for issue in captured.value.issues
+    )
 
 
 def test_coverage_gate_ids_use_shot_and_beat_identity() -> None:

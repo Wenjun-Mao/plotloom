@@ -54,7 +54,7 @@ function sceneFragment(target) {
   const sceneId = `scene-${target}`;
   const beatId = `beat-${target}`;
   return {
-    scenes: [{ localSceneId: sceneId, order: 1, title: "Fog-bound crossing", objective: "Move the story forward", locationId: null, characterIds: [], durationBudgetUnits: 1, entryState: continuity(), exitState: continuity() }],
+    scenes: [{ localSceneId: sceneId, order: 1, title: "Fog-bound crossing", objective: "Move the story forward", locationId: null, characterIds: [], durationWeight: 1, entryState: continuity(), exitState: continuity() }],
     beats: [{ localBeatId: beatId, sceneLocalId: sceneId, order: 1, description: "The ferry bell sounds once.", purpose: "Advance the story", visibleEvent: "The ferryman grips the bell.", immediateResult: "The crossing continues.", dramaticChange: "The ferry advances.", entryState: continuity(), exitState: continuity(), continuityAnchors: [], continuityDelta: {} }],
     dialogueCues: [],
   };

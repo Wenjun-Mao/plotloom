@@ -115,6 +115,10 @@ from .generation.planning import (
     create_generation_plan,
     plan_stage,
 )
+from .generation.scene_timing_allocation import (
+    SCENE_TIMING_ALLOCATION_VERSION,
+    SceneTimingAllocation,
+)
 from .generation.story_graph_topology import (
     StoryGraphTopology,
     plan_story_graph_topology,
@@ -2901,7 +2905,13 @@ class SQLiteRepository:
                     raise InvalidTransitionError(
                         "StagePlan dependencies must exactly match frozen canonical or sealed inputs"
                     )
-            proposed = plan_stage(generation_plan, stage=stage, dependencies=expected)
+            snapshot = CanonicalSnapshot.model_validate(run.canonical_snapshot)
+            proposed = plan_stage(
+                generation_plan,
+                stage=stage,
+                dependencies=expected,
+                brief=snapshot.brief,
+            )
             existing = self._stage_plan_row(session, run_id, stage)
             if existing is not None:
                 if existing.stage_plan_hash != proposed.stage_plan_hash:
@@ -3343,6 +3353,42 @@ class SQLiteRepository:
             ).all()
         )
         return sealed_plan_ids == {plan.id for plan in plans}
+
+    @staticmethod
+    def _run_requires_scene_timing_rebuild_in_session(
+        session: Session,
+        run: GenerationRunRow,
+    ) -> bool:
+        """Whether an interrupted run reached an obsolete Scene Beats contract.
+
+        The allocation is part of the immutable Scene Beats StagePlan rather
+        than a startup default.  Old plans must therefore be stopped before a
+        runner can recompute their dependency or prompt identities.
+        """
+
+        plans = session.scalars(
+            select(StagePlanRow).where(StagePlanRow.run_id == run.id)
+        ).all()
+        reached_scene_beats = any(
+            StageName(plan.stage) in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+            for plan in plans
+        )
+        if not reached_scene_beats:
+            return False
+        scene_beats_plan = next(
+            (plan for plan in plans if plan.stage == StageName.SCENE_BEATS.value),
+            None,
+        )
+        if scene_beats_plan is None:
+            return True
+        allocation = scene_beats_plan.plan.get("scene_timing_allocation")
+        if not isinstance(allocation, dict):
+            return True
+        try:
+            parsed = SceneTimingAllocation.model_validate(allocation)
+        except ValueError:
+            return True
+        return parsed.allocation_version != SCENE_TIMING_ALLOCATION_VERSION
 
     @staticmethod
     def _cancel_run_work_units_in_session(
@@ -4251,6 +4297,11 @@ class SQLiteRepository:
             "production_pipeline_not_ready: legacy media tasks have no immutable "
             "ProductionSnapshot and cannot be resumed after restart"
         )
+        obsolete_scene_timing_error = (
+            "This run uses a pre-scene-timing planning contract and cannot be "
+            "resumed safely. Submit a new run to regenerate Scene Beats under "
+            "the current trusted timing allocation."
+        )
         now = utc_now()
         resubmit_run_ids: list[str] = []
         resubmit_media_task_ids: list[str] = []
@@ -4295,18 +4346,6 @@ class SQLiteRepository:
                 legacy_execution = row.legacy_unsealed or any(
                     attempt.work_unit_id is None for attempt in attempts
                 )
-                pristine_queue = (
-                    status == RunStatus.QUEUED
-                    and row.started_at is None
-                    and not row.result_revision_ids
-                    and not attempts
-                )
-                if pristine_queue and not legacy_execution:
-                    row.failure_code = None
-                    row.failed_stage = None
-                    resubmit_run_ids.append(row.id)
-                    continue
-
                 if status == RunStatus.CANCEL_REQUESTED:
                     row.status = RunStatus.CANCELLED.value
                     row.error = None
@@ -4320,6 +4359,45 @@ class SQLiteRepository:
                         attempt_error="Generation attempt cancelled during startup recovery",
                     )
                     terminated_run_ids.append(row.id)
+                    continue
+
+                if self._run_requires_scene_timing_rebuild_in_session(session, row):
+                    # A Scene Beats plan created before timing allocation was
+                    # frozen has different dependency, unit, prompt, and
+                    # binder contracts. Replanning it would rewrite immutable
+                    # historical evidence; replaying it would silently execute
+                    # a different request. Terminalize only the nonterminal
+                    # execution state and require an explicit fresh run.
+                    row.status = RunStatus.FAILED.value
+                    row.error = obsolete_scene_timing_error
+                    row.failure_code = "recovery.scene_timing_contract_obsolete"
+                    row.failed_stage = StageName.SCENE_BEATS.value
+                    row.started_at = row.started_at or now
+                    row.finished_at = now
+                    for attempt in running_attempts:
+                        attempt.status = AttemptStatus.FAILED.value
+                        attempt.error = obsolete_scene_timing_error
+                        attempt.outcome_code = row.failure_code
+                        attempt.finished_at = now
+                    for unit in units:
+                        if WorkUnitStatus(unit.status) in {
+                            WorkUnitStatus.QUEUED,
+                            WorkUnitStatus.RUNNING,
+                        }:
+                            unit.status = WorkUnitStatus.FAILED.value
+                    terminated_run_ids.append(row.id)
+                    continue
+
+                pristine_queue = (
+                    status == RunStatus.QUEUED
+                    and row.started_at is None
+                    and not row.result_revision_ids
+                    and not attempts
+                )
+                if pristine_queue and not legacy_execution:
+                    row.failure_code = None
+                    row.failed_stage = None
+                    resubmit_run_ids.append(row.id)
                     continue
 
                 if legacy_execution:

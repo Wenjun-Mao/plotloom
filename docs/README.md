@@ -17,8 +17,9 @@
   [0013](adr/0013-model-neutral-reliable-generation.md),
   [0014](adr/0014-project-lifecycle-and-workbench.md),
   [0015](adr/0015-exact-work-unit-repair.md),
-  [0016](adr/0016-versioned-authoring-quality-gates-and-approval.md), and
-  [0017](adr/0017-alpha-validation-and-correction-boundaries.md)
+  [0016](adr/0016-versioned-authoring-quality-gates-and-approval.md),
+  [0017](adr/0017-alpha-validation-and-correction-boundaries.md), and
+  [0018](adr/0018-trusted-story-timing-allocation.md)
 - [Initial extraction provenance](provenance/initial-extraction.md)
 - [Remote CI receipt for `3bf4551`](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019)
 - [Local text-provider smoke receipt](verification/2026-09-02-local-text-smoke.md)

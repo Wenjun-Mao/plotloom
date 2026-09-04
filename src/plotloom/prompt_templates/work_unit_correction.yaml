@@ -1,5 +1,5 @@
 id: work_unit_correction
-version: "2.5.0"
+version: "2.7.0"
 stage: correction
 description: Correct one rejected final response without changing its frozen contract.
 system: |-
@@ -25,12 +25,13 @@ user: |-
   【稳定验证问题】
   {{ validation_issues | tojson }}
 
-  【确定性对白时长修复事实】
-  {{ timing_repair_facts | tojson }}
+  【确定性语义修复事实】
+  {{ semantic_repair_facts | tojson }}
 
   冻结合同、目标 Schema 和稳定验证问题是本次纠错的唯一权威；上一次最终回答只能提供待保留或待修复的候选内容。
   对每条 schema.missing，必须按 path 补出该属性，并递归检查其所属对象在 Schema 的 required 中列出的所有兄弟属性；即使值为空也必须按允许类型显式输出。对每条 schema.extra_forbidden，必须删除 path 指向的属性，除非另一个 schema.missing path 明确要求将其内容搬到合法字段。
-  每条 semantic.cue_duration_underestimated 对应的确定性时长事实给出 path、timingProfileVersion、textCharacterCount、unitsPerCharacter、minimumDurationUnits 与当前 estimatedDurationUnits。该 path 的 estimatedDurationUnits 必须不小于 minimumDurationUnits。若 minimumFitsSceneBudget 为 false，仅增加该字段仍会违反场景预算：必须在不改变冻结结构的前提下缩短相应台词或提高同一 scene 的 durationBudgetUnits，并重新核对 sceneCueMinimumTotalUnits 不超过 sceneDurationBudgetUnits。若场景相关字段为 null，说明另一个 ID/归属问题使场景预算无法安全判定；先按稳定问题修正归属，再根据 minimumDurationUnits 重算对应场景。时长事实不含台词正文，不能以猜测替代这些数值。
+  对 semantic.dialogue_exceeds_node_budget，不得输出或扩大 durationBudgetUnits，也不得修改原始合同中的 nodeDurationBudgetUnits；应在不改变核心剧情意义的前提下精简 dialogueCues 的 text、减少非必要 cue，或选择更快的合法 delivery，直到可信服务端能够在冻结节点预算内派生时长。
+  对 semantic.join_allowed_differences_must_be_required，找到 joinContractId 对应的对象，把 missingRequiredStateKeys 中的每个键按给定顺序逐字符追加到 requiredStateKeys；保留 allowedDifferences 和其余所有合法内容，不要删除模型原本想保留的分支差异，也不要修改汇流合同 ID。
   {% if correction_strategy == "reconstruct_from_schema" %}
   这是最后一次纠错。不要复制上一回答的 JSON 语法；只把它当作语义素材，严格按照目标 Schema 从根对象重新构造一份完整 JSON，并逐项复核 ASCII 分隔符与字符串转义。
   {% else %}
@@ -50,9 +51,9 @@ variables:
   validation_issues:
     required: true
     description: Stable validation issue codes and paths only.
-  timing_repair_facts:
+  semantic_repair_facts:
     required: true
-    description: Trusted derived dialogue timing thresholds; never raw model or validator prose.
+    description: Typed deterministic repair facts; never reasoning, secrets, or validator prose.
   correction_ordinal:
     required: true
     description: One-based explicit correction ordinal owned by the runner.
@@ -61,5 +62,5 @@ variables:
     description: Trusted correction strategy selected by the bounded runner.
 output:
   format: json
-  schema_id: work_unit_correction.v4
+  schema_id: work_unit_correction.v6
   structured_output_mode: prefer

@@ -20,11 +20,12 @@ unknown program failure from being retried, but it also makes a known,
 model-correctable contract violation look like a local implementation fault.
 The secret-free Alpha receipt can then report only the coarse failure code.
 
-Dialogue timing has the same boundary in a different form. A model may supply
-an estimated duration below the versioned language/delivery minimum. That is a
-deterministic semantic rejection, not free-form reviewer advice, and must be
-repairable without exposing hidden reasoning, arbitrary exception prose, or
-credentials.
+Dialogue timing originally appeared to have the same boundary in a different
+form. Live-model evidence later showed that asking a provider to reproduce
+exact character-count arithmetic was itself the ownership error. ADR 0018
+supersedes that timing mechanism: trusted code now derives cue duration and
+allocates absolute scene budgets, while this ADR continues to govern how known
+response failures enter bounded correction.
 
 ## Decision
 
@@ -67,7 +68,7 @@ authorize a correction. Internal evidence may retain a safe error type for
 diagnosis; secret-free receipts must not include exception messages, prompts,
 raw responses, endpoints, model names, IP addresses, or credentials.
 
-### Deterministic repair facts, including dialogue timing
+### Deterministic repair facts
 
 Correction packets contain only the frozen response contract, immutable
 topology/selector facts, the preceding final `message.content` when available,
@@ -75,14 +76,16 @@ and stable issue code/path pairs. They never use `reasoning`,
 `reasoning_content`, arbitrary validator or exception messages, or secret
 material.
 
-Dialogue duration repair uses the versioned deterministic timing policy as a
-contract fact. The primary Scene Beats prompt receives the complete manifest
-serialized from that policy as a named prompt variable; it does not repeat
-units-per-character constants in YAML. A correction receives only trusted,
-per-cue quantities derived from the same policy, plus nullable scene-budget
-facts when local IDs and ownership are unambiguous. It never asks the model to
-infer a pace from prose. Changing the timing policy requires a new version and
-a corresponding prompt/validator contract update.
+Repair facts are narrow discriminated records, not generic validator payloads.
+For example, a join whose `allowedDifferences` are not a subset of its tracked
+`requiredStateKeys` receives only the join ID and exact missing keys when both
+source arrays are nonblank and unique. Blank, duplicate, malformed, or
+unrelated data produces no repair fact and remains fail-closed. A persisted
+fact must also match the exact code and path of an issue in the same immutable
+validation artifact; syntactic validity alone never grants correction
+authority. Timing is now handled by ADR 0018's trusted projection; persisted
+legacy timing facts remain parseable only so old evidence can be read without
+broadening new authority.
 
 ## Rejected alternatives
 
@@ -95,8 +98,8 @@ a corresponding prompt/validator contract update.
 - **Put free-form error text or model reasoning into corrections.** Rejected
   because it is unstable, can leak private/provider data, and turns diagnostics
   into unversioned generation authority.
-- **Teach timing only in a correction prompt.** Rejected because first-pass
-  output must be governed by the same deterministic timing rule as repairs.
+- **Send arbitrary issue payloads to correction.** Rejected because a path and
+  code do not establish which values are safe for a model to change.
 - **Add aliases or model-vendor exceptions.** Rejected because Alpha failures
   are repaired at the shared contract boundary, not by model-specific paths.
 
@@ -110,11 +113,10 @@ a corresponding prompt/validator contract update.
   invariant.
 - Tests must prove a deliberately injected programming exception remains a
   one-attempt fail-closed failure and cannot become correction-eligible.
-- Tests must prove `semantic.cue_duration_underestimated` carries a stable
-  path, that the primary contract receives the full versioned policy while the
-  correction receives only safe policy-derived quantities, and that neither
-  reasoning, free-form errors, nor secrets enter a correction packet or
-  secret-free receipt.
+- Tests must prove typed repair facts reject unknown discriminators, duplicate
+  keys, blank values, and malformed source data, and that neither reasoning,
+  free-form errors, nor secrets enter a correction packet or secret-free
+  receipt.
 - Tests must prove a persisted rejected response cannot be corrected after its
   base or correction-template contract changes across a restart/deployment.
 - Alpha receipts must distinguish stable rejected-response issue codes from
@@ -123,6 +125,6 @@ a corresponding prompt/validator contract update.
   temporary database and artifact directory, which are deleted after the run;
   only the whitelisted receipt and blinded review samples may be promoted.
 
-This decision refines ADR 0013's bounded correction contract and ADR 0016's
-versioned dialogue timing without changing their secret, snapshot, or atomic
-installation boundaries.
+This decision refines ADR 0013's bounded correction contract. ADR 0018 now owns
+the dialogue and scene timing boundary without changing the secret, snapshot,
+or atomic installation rules defined here.

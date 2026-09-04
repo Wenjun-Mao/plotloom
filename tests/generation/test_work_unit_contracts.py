@@ -116,6 +116,7 @@ def _compile_scene_beats():
         plan,
         stage=StageName.SCENE_BEATS,
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=brief,
     )
     unit = stage_plan.work_units[0]
     compiled = compile_work_unit_request(
@@ -133,7 +134,7 @@ def _compile_scene_beats():
 
 def _scene_output() -> dict:
     return SceneBeatsFragmentOutput(
-        scenes=[DramaticSceneContent(local_scene_id="scene-node-a", order=1, title="苏醒", objective="确认身份", location_id=None, character_ids=[], duration_budget_units=2, entry_state=_state(), exit_state=_state())],
+        scenes=[DramaticSceneContent(local_scene_id="scene-node-a", order=1, title="苏醒", objective="确认身份", location_id=None, character_ids=[], duration_weight=1, entry_state=_state(), exit_state=_state())],
         beats=[BeatContent(local_beat_id="beat-node-a", scene_local_id="scene-node-a", order=1, description="她睁开眼睛。", purpose="建立危机", visible_event="", immediate_result="", dramatic_change="", entry_state=_state(), exit_state=_state(), continuity_anchors=[], continuity_delta={})], dialogue_cues=[],
     ).model_dump(mode="json", by_alias=True)
 
@@ -152,6 +153,7 @@ def test_scene_work_unit_prompt_only_contains_the_selected_node_and_public_schem
         plan,
         stage=StageName.SCENE_BEATS,
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=brief,
     )
     second = compile_work_unit_request(
         generation_plan=plan,
@@ -175,7 +177,7 @@ def test_scene_work_unit_prompt_only_contains_the_selected_node_and_public_schem
     assert compiled.contract.work_unit_id == unit.unit_id
     assert compiled.contract.stage_plan_hash == stage_plan.stage_plan_hash
     assert compiled.contract.prompt_id == "scene_beats_fragment"
-    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v5"
+    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v7"
     scene_properties = compiled.response_schema["properties"]["scenes"]["items"][
         "properties"
     ]
@@ -304,6 +306,7 @@ def test_scene_fragment_binding_namespaces_identical_model_ids_by_story_node() -
         plan,
         stage=StageName.SCENE_BEATS,
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=brief,
     )
     bound_ids: list[str] = []
     for unit in stage_plan.work_units:
@@ -332,10 +335,14 @@ def test_join_continuity_keys_are_explicit_in_schema_prompt_and_validation() -> 
         start_node_id="node-a",
         nodes=[
             StoryNodeV2(id="node-a", title="甲", summary="甲线", kind="start"),
-            StoryNodeV2(id="node-c", title="乙", summary="乙线", kind="decision"),
+            StoryNodeV2(id="node-c", title="乙", summary="乙线", kind="scene"),
             StoryNodeV2(id="node-b", title="汇流", summary="会合", kind="ending"),
         ],
-        edges=[],
+        edges=[
+            StoryEdgeV2(id="edge-a-b", source_node_id="node-a", target_node_id="node-b", kind="choice", choice_text="直接汇流", state_effects={}),
+            StoryEdgeV2(id="edge-a-c", source_node_id="node-a", target_node_id="node-c", kind="choice", choice_text="先走乙线", state_effects={}),
+            StoryEdgeV2(id="edge-c-b", source_node_id="node-c", target_node_id="node-b", kind="continuation", choice_text=None, state_effects={}),
+        ],
         join_contracts=[
             JoinContractV2(
                 id="join-a-c-b",
@@ -349,6 +356,7 @@ def test_join_continuity_keys_are_explicit_in_schema_prompt_and_validation() -> 
         plan,
         stage=StageName.SCENE_BEATS,
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=brief,
     )
     unit = next(item for item in stage_plan.work_units if item.selector.stable_id == "node-b")
     compiled = compile_work_unit_request(
@@ -570,7 +578,17 @@ def test_storyboard_primary_map_closes_three_beats_with_one_shot_and_supporting_
 
 def test_compiler_rejects_non_frozen_snapshot_or_context() -> None:
     compiled, stage_plan, unit, bible, graph = _compile_scene_beats()
-    plan = _plan_and_inputs()[2]
+    brief, snapshot, plan, _, _, _ = _plan_and_inputs()
+    with pytest.raises(WorkUnitContractError, match="timing allocation"):
+        compile_work_unit_request(
+            generation_plan=plan,
+            stage_plan=stage_plan,
+            work_unit=unit,
+            dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+            brief=brief.model_copy(update={"target_playthrough_seconds": 181}),
+            canonical_snapshot=snapshot,
+            instructions="preserve the project brief",
+        )
     with pytest.raises(WorkUnitContractError, match="canonical_snapshot"):
         compile_work_unit_request(
             generation_plan=plan,

@@ -33,6 +33,7 @@ from .canonical_schema import (
     StoryGraphV2,
 )
 from .domain import default_dialogue_timing_profile
+from .generation.scene_timing_allocation import plan_scene_timing_allocation
 
 
 class ValidationIssue(dict):
@@ -621,6 +622,7 @@ def _validate_stage_payload_v2(
         validate_scene_beat_coverage(payload, graph, bible, strict_v2=True)  # type: ignore[arg-type]
         _validate_v2_scene_order_and_continuity(payload, bible)
         _validate_v2_dialogue_cues(payload, bible)
+        _validate_v2_scene_timing_allocation(payload, graph, brief)
         return None
     if not isinstance(payload, StoryboardV2) or not isinstance(bible, StoryBibleV2) or not isinstance(scene_beats, SceneBeatPlanV2):
         raise TypeError("V2 storyboard requires StoryboardV2, StoryBibleV2, and SceneBeatPlanV2")
@@ -798,6 +800,30 @@ def _validate_v2_dialogue_cues(plan: SceneBeatPlanV2, bible: StoryBibleV2) -> No
                     f"dialogue requires {cue_duration} units but scene budget is {budget}",
                 )
             )
+    if issues:
+        raise DomainValidationError(issues)
+
+
+def _validate_v2_scene_timing_allocation(
+    plan: SceneBeatPlanV2,
+    graph: StoryGraphV2,
+    brief: ProjectBrief,
+) -> None:
+    """Keep manual canonical edits inside the generation-time path cap."""
+
+    allocation = plan_scene_timing_allocation(graph=graph, brief=brief)
+    budget_by_node: dict[str, int] = defaultdict(int)
+    for scene in plan.scenes:
+        budget_by_node[scene.story_node_id] += scene.duration_budget_units
+    issues = [
+        _issue(
+            "scene_node_budget_exceeded",
+            f"scenes.{node_id}.durationBudgetUnits",
+            "dramatic-scene budgets exceed the versioned Story Graph node cap",
+        )
+        for node_id, actual in sorted(budget_by_node.items())
+        if actual > allocation.node_duration_budget(node_id)
+    ]
     if issues:
         raise DomainValidationError(issues)
 
