@@ -225,7 +225,15 @@ class ContinuityStateV2(V2Model):
     entity_states: list[RequiredEntityState]
     screen_direction: str | None
     lighting: str | None
-    sound: str | None
+    sound: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Persistent sound or ambience at this exact continuity boundary; "
+                "transient action-local foley does not belong here."
+            )
+        ),
+    ]
     notes: list[str]
 
     @model_validator(mode="after")

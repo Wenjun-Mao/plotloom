@@ -1,10 +1,12 @@
-"""Typed, deterministic JSON-Schema overlays for bounded corrections.
+"""Typed, deterministic JSON-Schema hints for bounded corrections.
 
 The base work-unit schema remains the canonical response shape.  A correction
 can additionally carry exact authority derived from the rejected attempt (for
-example, the complete arrays for one join contract).  This module projects
-only that typed authority into a fresh schema.  It never reads validator prose
-or model text and never mutates the base schema.
+example, the complete arrays for one join contract). This module projects the
+portable parts of that authority into a fresh schema. Application-side
+postconditions remain the acceptance boundary because provider schema dialects
+and enforcement vary. This module never reads validator prose or model text and
+never mutates the base schema.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from .work_units import (
     ContinuityFactAssignment,
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
+    CueOrderRepairFact,
     JoinAllowedDifferencesRepairFact,
     JoinStateEffectRepairFact,
     SemanticRepairFact,
@@ -45,12 +48,14 @@ def compile_correction_response_schema(
     base_schema: Mapping[str, Any],
     facts: Sequence[SemanticRepairFact],
 ) -> CorrectionResponseSchema:
-    """Return a deep-copied schema narrowed by exact typed repair authority.
+    """Return a deep-copied schema narrowed by typed repair authority.
 
-    Unsupported fact types deliberately leave the schema unchanged.  They may
+    Unsupported fact types deliberately leave the schema unchanged. They may
     still be executable through their versioned prompt directive and the
-    canonical validator.  A supported fact with incomplete or contradictory
-    authority fails closed instead of silently falling back to prose.
+    canonical validator. Exact facts are independently checked after response
+    validation, so this schema is a constrained-decoding aid rather than the
+    trust boundary. A supported fact with incomplete or contradictory authority
+    fails closed instead of silently falling back to prose.
     """
 
     schema = deepcopy(dict(base_schema))
@@ -60,6 +65,7 @@ def compile_correction_response_schema(
         tuple[str, str, str, str],
         dict[str, Any],
     ] = {}
+    cue_order_fact: CueOrderRepairFact | None = None
     applied_codes: set[str] = set()
 
     for fact in facts:
@@ -156,6 +162,15 @@ def compile_correction_response_schema(
                         raise CorrectionResponseSchemaError(
                             "unsupported continuity assignment type"
                         )
+            applied_codes.add(fact.code)
+            continue
+
+        if isinstance(fact, CueOrderRepairFact):
+            if cue_order_fact is not None and cue_order_fact != fact:
+                raise CorrectionResponseSchemaError(
+                    "conflicting cue-order repair facts target dialogueCues"
+                )
+            cue_order_fact = fact
             applied_codes.add(fact.code)
 
     if join_arrays:
@@ -275,6 +290,22 @@ def compile_correction_response_schema(
                 "maxContains": 1,
             }
         )
+
+    if cue_order_fact is not None:
+        collection_schema = _collection_schema(schema, "dialogueCues")
+        assignment_count = len(cue_order_fact.assignments)
+        existing_min = collection_schema.get("minItems")
+        existing_max = collection_schema.get("maxItems")
+        if isinstance(existing_min, int) and existing_min > assignment_count:
+            raise CorrectionResponseSchemaError(
+                "cue-order repair count conflicts with base minItems"
+            )
+        if isinstance(existing_max, int) and existing_max < assignment_count:
+            raise CorrectionResponseSchemaError(
+                "cue-order repair count conflicts with base maxItems"
+            )
+        collection_schema["minItems"] = assignment_count
+        collection_schema["maxItems"] = assignment_count
 
     return CorrectionResponseSchema(
         version=CORRECTION_RESPONSE_SCHEMA_VERSION,

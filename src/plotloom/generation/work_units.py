@@ -116,11 +116,11 @@ from .storyboard_timing_repair import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12q"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12r"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 AUDIO_EVENT_ID_BINDING_VERSION = "audio_event_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
-SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v11"
+SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v12"
 STORYBOARD_FRAGMENT_SCHEMA_ID = "storyboard.fragment.v6"
 
 
@@ -174,9 +174,28 @@ class DialogueCueContent(CamelModel):
 
     local_cue_id: str = Field(min_length=1)
     beat_local_id: str = Field(min_length=1)
-    order: int = Field(ge=1)
-    speaker_id: str | None
-    voice_over: NonBlankText | None
+    order: int = Field(
+        ge=1,
+        description="One-based contiguous dialogue order within this cue's beatLocalId.",
+    )
+    speaker_id: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Story Bible character ID for spoken dialogue, or null for voice-over; "
+                "exactly one of speakerId and voiceOver must be non-null."
+            )
+        ),
+    ]
+    voice_over: Annotated[
+        NonBlankText | None,
+        Field(
+            description=(
+                "Non-blank voice-over identity when speakerId is null, otherwise null; "
+                "exactly one of speakerId and voiceOver must be non-null."
+            )
+        ),
+    ]
     # Canonical timing is deliberately absent.  Trusted binding derives it
     # from these semantic values under a frozen versioned policy; the model is
     # never asked to count Unicode code points or perform timing arithmetic.
@@ -334,6 +353,60 @@ class DialogueNodeBudgetRepairFact(CamelModel):
             by_beat.setdefault(item.beat_local_id, []).append(item.expected_order)
         if any(sorted(orders) != list(range(1, len(orders) + 1)) for orders in by_beat.values()):
             raise ValueError("remaining cue orders must be contiguous within each beat")
+        return self
+
+
+class CueOrderRepairAssignment(CamelModel):
+    """One response-local cue's exact beat ownership and repaired order."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    # Fragment-local handles are the only stable identities available before
+    # trusted canonical binding.  Canonical cue IDs intentionally cannot be
+    # used here because their derivation includes the mutable cue order.
+    local_cue_id: NonBlankText
+    beat_local_id: NonBlankText
+    expected_order: int = Field(ge=1)
+
+
+class CueOrderRepairFact(CamelModel):
+    """Complete, identity-preserving renumbering for Scene Beats dialogue.
+
+    The aggregate semantic issue has no individual cue path.  This fact makes
+    every response-local cue identity, its existing beat ownership, and its
+    exact contiguous replacement order explicit without carrying dialogue
+    text or validator prose.
+    """
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    code: Literal["semantic.cue_order"]
+    path: tuple[str | int, ...]
+    assignments: tuple[CueOrderRepairAssignment, ...] = Field(min_length=1)
+    repair_strategy: Literal["preserve_membership_and_renumber"] = (
+        "preserve_membership_and_renumber"
+    )
+
+    @model_validator(mode="after")
+    def validate_complete_renumbering(self) -> "CueOrderRepairFact":
+        if self.path != ("dialogueCues",):
+            raise ValueError("path must identify the complete dialogueCues collection")
+        cue_ids = [item.local_cue_id for item in self.assignments]
+        if len(cue_ids) != len(set(cue_ids)):
+            raise ValueError("cue-order assignment local cue IDs must be unique")
+        expected_sort = tuple(
+            sorted(self.assignments, key=lambda item: item.local_cue_id)
+        )
+        if self.assignments != expected_sort:
+            raise ValueError("cue-order assignments must use canonical local cue ID order")
+        by_beat: dict[str, list[int]] = {}
+        for item in self.assignments:
+            by_beat.setdefault(item.beat_local_id, []).append(item.expected_order)
+        if any(
+            sorted(orders) != list(range(1, len(orders) + 1))
+            for orders in by_beat.values()
+        ):
+            raise ValueError("cue-order assignments must be contiguous within each beat")
         return self
 
 
@@ -962,6 +1035,7 @@ class LegacyStoryboardTimingRepairPlanFact(CamelModel):
 CurrentSemanticRepairFact: TypeAlias = Annotated[
     DialogueCapacityRepairFact
     | DialogueNodeBudgetRepairFact
+    | CueOrderRepairFact
     | StoryboardTimingRepairPlanFact
     | JoinAllowedDifferencesRepairFact
     | JoinStateEffectRepairFact
@@ -1432,6 +1506,11 @@ class CompiledWorkUnitRequest:
     # Audit-only correction selection. The runner persists this beside the
     # rendered messages but never sends it through a provider adapter.
     audit_issue_selection: dict[str, Any] | None = None
+    # Executable exact facts are retained only in memory so trusted
+    # application validation can enforce them even when a provider does not
+    # support native JSON Schema. Recovery re-derives them from immutable
+    # validation evidence; they are never silently reconstructed from prose.
+    correction_repair_facts: tuple[SemanticRepairFact, ...] = ()
 
 
 class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
@@ -2950,6 +3029,107 @@ def scene_beats_dialogue_capacity_repair_facts(
     return tuple(facts)
 
 
+_CUE_ORDER_COLLECTION_MUTATION_CODES = frozenset(
+    {
+        # These repairs can remove or rename a cue/beat.  A complete
+        # membership-preserving overlay would conflict with that authority, so
+        # cue order must wait for the structurally safe rejection that follows.
+        "semantic.dialogue_cue_count_exceeded",
+        "semantic.dialogue_exceeds_node_budget",
+        "semantic.duplicate_beat_id",
+        "semantic.duplicate_cue_id",
+        "semantic.cross_unit_beat",
+        "semantic.cross_unit_cue",
+        "semantic.scene_capacity_exceeded",
+    }
+)
+
+
+def scene_beats_cue_order_repair_facts(
+    value: Any,
+    issues: tuple[ValidationIssue, ...],
+) -> tuple[CueOrderRepairFact, ...]:
+    """Derive a complete, source-bound cue renumbering when identity is safe.
+
+    Cue order is validated across a collection, rather than at one index.  A
+    correction therefore receives the complete response-local membership map,
+    not a guessed target cue.  If another stable issue can delete, rename, or
+    reassign a cue, no fact is emitted: an exact membership repair would be
+    contradictory and must not be fabricated.
+    """
+
+    relevant = tuple(
+        issue
+        for issue in issues
+        if issue.code == "semantic.cue_order" and issue.path == ("dialogueCues",)
+    )
+    if not relevant or any(
+        issue.code in _CUE_ORDER_COLLECTION_MUTATION_CODES for issue in issues
+    ):
+        return ()
+    try:
+        output = SceneBeatsFragmentOutput.model_validate(
+            value,
+            by_alias=True,
+            by_name=False,
+        )
+    except ValidationError:
+        return ()
+
+    beat_ids = [beat.local_beat_id for beat in output.beats]
+    cue_ids = [cue.local_cue_id for cue in output.dialogue_cues]
+    known_beat_ids = set(beat_ids)
+    if (
+        len(beat_ids) != len(set(beat_ids))
+        or len(cue_ids) != len(set(cue_ids))
+        or any(not beat_id.strip() for beat_id in beat_ids)
+        or any(not cue_id.strip() for cue_id in cue_ids)
+        or any(cue.beat_local_id not in known_beat_ids for cue in output.dialogue_cues)
+    ):
+        return ()
+
+    cues_by_beat: dict[str, list[tuple[int, DialogueCueContent]]] = {}
+    for source_index, cue in enumerate(output.dialogue_cues):
+        cues_by_beat.setdefault(cue.beat_local_id, []).append((source_index, cue))
+
+    assignments: list[CueOrderRepairAssignment] = []
+    source_is_invalid = False
+    for beat_id in beat_ids:
+        # This is the validator's ordering with the response index made
+        # explicit as a deterministic duplicate-order tie breaker.
+        ordered = sorted(
+            cues_by_beat.get(beat_id, ()),
+            key=lambda item: (item[1].order, item[0]),
+        )
+        if [cue.order for _index, cue in ordered] != list(
+            range(1, len(ordered) + 1)
+        ):
+            source_is_invalid = True
+        assignments.extend(
+            CueOrderRepairAssignment(
+                local_cue_id=cue.local_cue_id,
+                beat_local_id=beat_id,
+                expected_order=expected_order,
+            )
+            for expected_order, (_index, cue) in enumerate(ordered, start=1)
+        )
+    if not source_is_invalid:
+        # Do not turn an issue from another validator layer into authority for
+        # an otherwise valid source collection.
+        return ()
+    canonical_assignments = tuple(
+        sorted(assignments, key=lambda item: item.local_cue_id)
+    )
+    return tuple(
+        CueOrderRepairFact(
+            code=issue.code,
+            path=issue.path,
+            assignments=canonical_assignments,
+        )
+        for issue in relevant
+    )
+
+
 def scene_beats_dialogue_node_budget_repair_facts(
     value: Any,
     issues: tuple[ValidationIssue, ...],
@@ -3467,7 +3647,14 @@ def semantic_repair_facts(
             dialogue_timing_profile=dialogue_timing_profile,
             dialogue_capacity_guidance=dialogue_capacity_guidance,
         )
-        return (*continuity_facts, *capacity_facts, *join_facts, *node_budget_facts)
+        cue_order_facts = scene_beats_cue_order_repair_facts(value, issues)
+        return (
+            *continuity_facts,
+            *capacity_facts,
+            *join_facts,
+            *node_budget_facts,
+            *cue_order_facts,
+        )
     return ()
 
 
@@ -3570,6 +3757,22 @@ def assert_continuity_repair_fact_matches_source(
         )
 
 
+def assert_cue_order_repair_fact_matches_source(
+    fact: SemanticRepairFact,
+    source_value: Any,
+) -> None:
+    """Bind executable cue renumbering authority to its rejected response."""
+
+    if not isinstance(fact, CueOrderRepairFact):
+        return
+    source_issue = ValidationIssue(code=fact.code, path=fact.path, message="")
+    expected = scene_beats_cue_order_repair_facts(source_value, (source_issue,))
+    if len(expected) != 1 or expected[0] != fact:
+        raise ValueError(
+            "cue-order repair fact does not match the rejected response"
+        )
+
+
 def _scene_beats_semantic_issues(
     output: SceneBeatsFragmentOutput,
     *,
@@ -3656,6 +3859,7 @@ def _scene_beats_semantic_issues(
                         "continuity delta values must be finite canonical JSON",
                     )
                 )
+    cue_order_invalid = False
     for index, scene in enumerate(output.scenes):
         if scene.location_id is not None and scene.location_id not in known_locations:
             issues.append(_issue("semantic.unknown_location", ("scenes", index, "locationId"), "scene references an unknown location"))
@@ -3694,7 +3898,7 @@ def _scene_beats_semantic_issues(
             if any(cue.speaker_id is not None and cue.speaker_id not in scene.character_ids for cue in beat_cues):
                 issues.append(_issue("semantic.cue_speaker_not_in_scene", "dialogueCues", "cue speaker must appear in its dramatic scene"))
             if [cue.order for cue in beat_cues] != list(range(1, len(beat_cues) + 1)):
-                issues.append(_issue("semantic.cue_order", "dialogueCues", "cue order must be contiguous within its beat"))
+                cue_order_invalid = True
         if ordered and not continuity_sequence_is_compatible(
             scene.entry_state,
             ordered,
@@ -3707,6 +3911,14 @@ def _scene_beats_semantic_issues(
                     "scene entry, ordered beat states, and scene exit must be compatible",
                 )
             )
+    if cue_order_invalid:
+        issues.append(
+            _issue(
+                "semantic.cue_order",
+                "dialogueCues",
+                "cue order must be contiguous within its beat",
+            )
+        )
     timing_allocation = scoped_context.get("scene_timing_allocation")
     if not isinstance(timing_allocation, Mapping) or not isinstance(
         timing_allocation.get("durationBudgetUnits"), int
@@ -4196,6 +4408,7 @@ def _set_string_enum(schema_node: dict[str, Any], values: list[str]) -> None:
 def _set_nullable_string_enum(
     schema_node: dict[str, Any], values: list[str]
 ) -> None:
+    description = schema_node.get("description")
     schema_node.clear()
     if values:
         schema_node.update(
@@ -4208,6 +4421,8 @@ def _set_nullable_string_enum(
         )
     else:
         schema_node.update({"type": "null"})
+    if isinstance(description, str) and description:
+        schema_node["description"] = description
 
 
 def _set_array_string_enum(

@@ -90,13 +90,22 @@ _DIRECTIVES: tuple[_DirectiveDefinition, ...] = (
             "semantic.cross_unit_cue",
             "semantic.scene_without_beats",
             "semantic.beat_order",
-            "semantic.cue_order",
         ),
         required_fact_models={},
         text=(
             "对 Scene Beats 的局部结构问题，保持本 work unit 范围：scene、beat、cue 的 local ID 必须"
             "非空且各自唯一；每个 beat 必须引用本响应中的 scene，每个 cue 必须引用本响应中的 beat；"
             "每个 scene 至少一个 beat，并按 scene、各 scene 内 beat、各 beat 内 cue 分别从 1 连续编号。"
+        ),
+    ),
+    _DirectiveDefinition(
+        id="dialogue_cue_order",
+        codes=("semantic.cue_order",),
+        required_fact_models={"semantic.cue_order": "CueOrderRepairFact"},
+        text=(
+            "对 semantic.cue_order，只以同 code/path 的 CueOrderRepairFact 为权威："
+            "保留 assignments 中每个 localCueId 和 beatLocalId，不新增、删除、重命名或改派 cue；"
+            "只把 order 改为对应 expectedOrder。order 按 beatLocalId 分组独立编号，每组都从 1 开始。"
         ),
     ),
     _DirectiveDefinition(
@@ -405,6 +414,19 @@ _CONTINUITY_SEQUENCE_BLOCKER_CODES = frozenset(
     }
 )
 _CONTINUITY_DEFERRAL_REASON = "authority.sequence_fact_blocked_by_invalid_state"
+_CUE_ORDER_CODE = "semantic.cue_order"
+_CUE_ORDER_BLOCKER_CODES = frozenset(
+    {
+        "semantic.duplicate_beat_id",
+        "semantic.cross_unit_beat",
+        "semantic.duplicate_cue_id",
+        "semantic.cross_unit_cue",
+        "semantic.dialogue_cue_count_exceeded",
+        "semantic.dialogue_exceeds_node_budget",
+        "semantic.scene_capacity_exceeded",
+    }
+)
+_CUE_ORDER_DEFERRAL_REASON = "authority.cue_order_blocked_by_mutable_membership"
 
 
 def compile_correction_instruction_plan(
@@ -454,14 +476,19 @@ def compile_correction_instruction_plan(
     deferred_issue_indexes: list[int] = []
     executable_fact_indexes: list[int] = []
     deferred_issues: list[dict[str, Any]] = []
-    # Blocker matching is intentionally rejection-wide. The deterministic
-    # continuity fact compiler emits an exact fact whenever a mismatched
+    # Continuity blocker matching is intentionally rejection-wide. The
+    # deterministic fact compiler emits an exact fact whenever a mismatched
     # sequence is safe; a blocker can therefore only make this selector more
     # conservative, never authorize an unrelated repair.
-    blocker_indexes = [
+    continuity_blocker_indexes = [
         index
         for index, issue in enumerate(issues)
         if issue.code in _CONTINUITY_SEQUENCE_BLOCKER_CODES
+    ]
+    cue_order_blocker_indexes = [
+        index
+        for index, issue in enumerate(issues)
+        if issue.code in _CUE_ORDER_BLOCKER_CODES
     ]
     for issue_index, (code, path) in enumerate(issue_keys):
         if _is_base_issue_code(code):
@@ -479,8 +506,32 @@ def compile_correction_instruction_plan(
                 raise CorrectionDirectivePlanError(
                     f"correction issue {code} has duplicate {expected_model} authority"
                 )
+            if code == _CUE_ORDER_CODE and cue_order_blocker_indexes:
+                if matching_indexes:
+                    raise CorrectionDirectivePlanError(
+                        "cue-order authority must be deferred while cue membership is mutable"
+                    )
+                deferred_issue_indexes.append(issue_index)
+                deferred_issues.append(
+                    {
+                        "code": code,
+                        "path": list(path),
+                        "reasonCode": _CUE_ORDER_DEFERRAL_REASON,
+                        "blockingIssues": [
+                            {
+                                "code": issues[index].code,
+                                "path": list(issues[index].path),
+                            }
+                            for index in cue_order_blocker_indexes
+                        ],
+                    }
+                )
+                continue
             if not matching_indexes:
-                if code in _CONTINUITY_SEQUENCE_CODES and blocker_indexes:
+                if (
+                    code in _CONTINUITY_SEQUENCE_CODES
+                    and continuity_blocker_indexes
+                ):
                     deferred_issue_indexes.append(issue_index)
                     deferred_issues.append(
                         {
@@ -492,7 +543,7 @@ def compile_correction_instruction_plan(
                                     "code": issues[index].code,
                                     "path": list(issues[index].path),
                                 }
-                                for index in blocker_indexes
+                                for index in continuity_blocker_indexes
                             ],
                         }
                     )

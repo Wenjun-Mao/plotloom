@@ -65,6 +65,28 @@ def _join_effect_fact(
     return parse_semantic_repair_fact(payload)
 
 
+def _cue_order_fact():
+    return parse_semantic_repair_fact(
+        {
+            "code": "semantic.cue_order",
+            "path": ["dialogueCues"],
+            "assignments": [
+                {
+                    "localCueId": "cue-a",
+                    "beatLocalId": "beat-a",
+                    "expectedOrder": 1,
+                },
+                {
+                    "localCueId": "cue-b",
+                    "beatLocalId": "beat-b",
+                    "expectedOrder": 1,
+                },
+            ],
+            "repairStrategy": "preserve_membership_and_renumber",
+        }
+    )
+
+
 def test_single_typed_fact_selects_only_its_static_directive() -> None:
     fact = _join_allowed_fact()
     issue = _issue(fact.code, fact.path)
@@ -177,6 +199,69 @@ def test_required_typed_fact_and_unknown_semantic_code_fail_closed() -> None:
     )
     with pytest.raises(CorrectionDirectivePlanError, match="requires a matching"):
         compile_correction_instruction_plan([sequence_without_blocker], [])
+
+    cue_order_without_fact = _issue("semantic.cue_order", ("dialogueCues",))
+    with pytest.raises(CorrectionDirectivePlanError, match="requires a matching"):
+        compile_correction_instruction_plan([cue_order_without_fact], [])
+
+
+def test_cue_order_fact_selects_only_exact_membership_directive() -> None:
+    fact = _cue_order_fact()
+    issue = _issue(fact.code, fact.path)
+
+    plan = compile_correction_instruction_plan([issue], [fact])
+
+    assert plan.executable_issue_indexes == (0,)
+    assert plan.executable_fact_indexes == (0,)
+    assert plan.deferred_issue_indexes == ()
+    assert [directive.id for directive in plan.directives] == [
+        "dialogue_cue_order"
+    ]
+    assert "CueOrderRepairFact" in plan.directives[0].text
+    assert "expectedOrder" in plan.directives[0].text
+    assert plan.prompt_evidence["facts"] == [
+        fact.model_dump(mode="json", by_alias=True, exclude_none=True)
+    ]
+
+
+def test_cue_order_is_deferred_while_membership_can_change() -> None:
+    blocker = _issue("semantic.duplicate_cue_id", ("dialogueCues",))
+    cue_order = _issue("semantic.cue_order", ("dialogueCues",))
+
+    plan = compile_correction_instruction_plan([blocker, cue_order], [])
+
+    assert plan.executable_issue_indexes == (0,)
+    assert plan.deferred_issue_indexes == (1,)
+    assert plan.executable_fact_indexes == ()
+    assert [directive.id for directive in plan.directives] == ["scene_structure"]
+    assert plan.audit_issue_selection["deferredIssues"] == [
+        {
+            "code": "semantic.cue_order",
+            "path": ["dialogueCues"],
+            "reasonCode": "authority.cue_order_blocked_by_mutable_membership",
+            "blockingIssues": [
+                {
+                    "code": "semantic.duplicate_cue_id",
+                    "path": ["dialogueCues"],
+                }
+            ],
+        }
+    ]
+    rendered = json.dumps(plan.prompt_evidence, sort_keys=True)
+    assert "semantic.cue_order" not in rendered
+    assert "deferredIssues" not in rendered
+
+
+def test_cue_order_fact_cannot_bypass_membership_deferral() -> None:
+    fact = _cue_order_fact()
+    blocker = _issue("semantic.duplicate_cue_id", ("dialogueCues",))
+    cue_order = _issue(fact.code, fact.path)
+
+    with pytest.raises(
+        CorrectionDirectivePlanError,
+        match="cue-order authority must be deferred",
+    ):
+        compile_correction_instruction_plan([blocker, cue_order], [fact])
 
 
 @pytest.mark.parametrize(

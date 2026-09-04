@@ -43,6 +43,9 @@ from .generation.correction_directives import (
     CorrectionDirectivePlanError,
     compile_correction_instruction_plan,
 )
+from .generation.correction_postconditions import (
+    validate_correction_postconditions,
+)
 from .generation.correction_schema import (
     CorrectionResponseSchemaError,
     compile_correction_response_schema,
@@ -74,6 +77,7 @@ from .generation.work_units import (
     StoryboardTimingRepairPlanFact,
     WorkUnitContractError,
     compile_work_unit_request,
+    assert_cue_order_repair_fact_matches_source,
     parse_semantic_repair_fact,
     assert_continuity_repair_fact_matches_source,
     assert_semantic_repair_fact_matches_issue,
@@ -734,6 +738,27 @@ class DurableWorkUnitRunner:
                 )
                 raise
 
+            if report.accepted and compiled.correction_repair_facts:
+                postcondition_issues = validate_correction_postconditions(
+                    extracted.value,
+                    compiled.correction_repair_facts,
+                )
+                if postcondition_issues:
+                    self._reject_or_continue(
+                        run=run,
+                        attempt=attempt,
+                        work_unit_id=work_unit_id,
+                        compiled=compiled,
+                        error=(
+                            "correction output violated frozen exact repair authority"
+                        ),
+                        issues=postcondition_issues,
+                        transformations=extracted.transformations,
+                        max_attempts=max_attempts,
+                        allow_further_correction=False,
+                    )
+                    raise AssertionError("unreachable")
+
             if not report.accepted:
                 repair_facts = semantic_repair_facts(
                     extracted.value,
@@ -866,6 +891,7 @@ class DurableWorkUnitRunner:
         transformations: tuple[str, ...],
         max_attempts: int,
         repair_facts: tuple[SemanticRepairFact, ...] = (),
+        allow_further_correction: bool = True,
     ) -> bool:
         """Persist one known rejection, then either expose a correction or stop."""
 
@@ -881,7 +907,9 @@ class DurableWorkUnitRunner:
             repair_facts=repair_facts,
         )
         outcome_code = issues[0].code if issues else "response.rejected"
-        can_correct = attempt.attempt_number < max_attempts
+        can_correct = (
+            allow_further_correction and attempt.attempt_number < max_attempts
+        )
         self.repository.finish_attempt(
             attempt.id,
             AttemptStatus.FAILED,
@@ -1019,6 +1047,7 @@ class DurableWorkUnitRunner:
             if fact.code in {
                 "semantic.continuity_beat_sequence_mismatch",
                 "semantic.continuity_shot_sequence_mismatch",
+                "semantic.cue_order",
             }:
                 if source_value is None:
                     try:
@@ -1028,26 +1057,32 @@ class DurableWorkUnitRunner:
                         ).value
                     except ResponseExtractionError as error:
                         raise CorrectionSourceContractError(
-                            "continuity repair source can no longer be extracted"
+                            "semantic repair source can no longer be extracted"
                         ) from error
                 try:
-                    assert_continuity_repair_fact_matches_source(
-                        fact,
-                        source_value,
-                        stage=work_unit.stage,
-                        bible=(
-                            dependencies.get(StageName.STORY_BIBLE)
-                            if work_unit.stage
-                            in {StageName.SCENE_BEATS, StageName.STORYBOARD}
-                            else None
-                        ),
-                        scoped_context=(
-                            getattr(base_compiled.validator, "scoped_context", None)
-                            if work_unit.stage
-                            in {StageName.SCENE_BEATS, StageName.STORYBOARD}
-                            else None
-                        ),
-                    )
+                    if fact.code == "semantic.cue_order":
+                        assert_cue_order_repair_fact_matches_source(
+                            fact,
+                            source_value,
+                        )
+                    else:
+                        assert_continuity_repair_fact_matches_source(
+                            fact,
+                            source_value,
+                            stage=work_unit.stage,
+                            bible=(
+                                dependencies.get(StageName.STORY_BIBLE)
+                                if work_unit.stage
+                                in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+                                else None
+                            ),
+                            scoped_context=(
+                                getattr(base_compiled.validator, "scoped_context", None)
+                                if work_unit.stage
+                                in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+                                else None
+                            ),
+                        )
                 except ValueError as error:
                     raise CorrectionSourceContractError(str(error)) from error
             parsed_repair_facts.append(fact)
@@ -1056,12 +1091,13 @@ class DurableWorkUnitRunner:
                 validated_issues,
                 parsed_repair_facts,
             )
+            executable_repair_facts = tuple(
+                parsed_repair_facts[index]
+                for index in instruction_plan.executable_fact_indexes
+            )
             correction_schema = compile_correction_response_schema(
                 base_compiled.response_schema,
-                [
-                    parsed_repair_facts[index]
-                    for index in instruction_plan.executable_fact_indexes
-                ],
+                executable_repair_facts,
             )
         except (CorrectionDirectivePlanError, CorrectionResponseSchemaError) as error:
             raise CorrectionSourceContractError(str(error)) from error
@@ -1142,6 +1178,7 @@ class DurableWorkUnitRunner:
             contract=contract,
             response_schema=correction_schema.schema,
             audit_issue_selection=instruction_plan.audit_issue_selection,
+            correction_repair_facts=executable_repair_facts,
         )
 
     @staticmethod

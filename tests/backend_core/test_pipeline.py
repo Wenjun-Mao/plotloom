@@ -2919,6 +2919,276 @@ def test_scene_beats_second_correction_rebinds_new_continuity_fact(
     assert "ContinuitySequenceRepairFact" in second_prompt
 
 
+def _install_cue_order_rejection(
+    responses: list[str],
+    *,
+    rejected_index: int,
+) -> tuple[dict[str, object], dict[str, object]]:
+    primary = json.loads(responses[rejected_index])
+    first_beat = primary["beats"][0]
+    second_beat = deepcopy(first_beat)
+    second_beat.update(
+        {
+            "localBeatId": "beat-cue-order-b",
+            "order": 2,
+            "description": "远处的警报打断了回答。",
+            "purpose": "推动第二个可观察动作。",
+        }
+    )
+    primary["beats"].append(second_beat)
+    primary["dialogueCues"] = [
+        {
+            "localCueId": "cue-a",
+            "beatLocalId": first_beat["localBeatId"],
+            "order": 1,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "第一句",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "平静",
+        },
+        {
+            "localCueId": "cue-b",
+            "beatLocalId": second_beat["localBeatId"],
+            "order": 2,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "第二句",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "警觉",
+        },
+    ]
+    corrected = deepcopy(primary)
+    corrected["dialogueCues"][1]["order"] = 1
+    responses[rejected_index : rejected_index + 1] = [
+        json.dumps(primary, ensure_ascii=False),
+        json.dumps(corrected, ensure_ascii=False),
+    ]
+    return primary, corrected
+
+
+def test_scene_beats_cue_order_correction_is_exact_and_source_bound(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    rejected_index = 2
+    primary, _corrected = _install_cue_order_rejection(
+        responses,
+        rejected_index=rejected_index,
+    )
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("cue-order-correction-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    trace = repository.get_run_trace(run.id)
+    assert completed.status == RunStatus.SUCCEEDED, (
+        completed.failure_code,
+        [attempt.error for attempt in trace.attempts],
+    )
+    rejected = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.cue_order"
+    )
+    correction = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.source_attempt_id == rejected.id
+    )
+    assert correction.status == AttemptStatus.SUCCEEDED
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == rejected.id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.cue_order",
+            "path": ["dialogueCues"],
+            "assignments": [
+                {
+                    "localCueId": "cue-a",
+                    "beatLocalId": primary["beats"][0]["localBeatId"],
+                    "expectedOrder": 1,
+                },
+                {
+                    "localCueId": "cue-b",
+                    "beatLocalId": "beat-cue-order-b",
+                    "expectedOrder": 1,
+                },
+            ],
+            "repairStrategy": "preserve_membership_and_renumber",
+        }
+    ]
+    correction_request = provider.requests[rejected_index + 1]
+    prompt = correction_request.messages[1].content
+    assert "CueOrderRepairFact" in prompt
+    assert '"expectedOrder":1' in prompt
+    collection = correction_request.response_schema["properties"]["dialogueCues"]
+    assert collection["minItems"] == collection["maxItems"] == 2
+    assert "contains" not in json.dumps(collection, sort_keys=True)
+    assert repository.get_stage_head(project.id, StageName.SCENE_BEATS).revision == 1
+
+
+def test_cue_order_postcondition_quarantines_membership_change_without_native_schema(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    rejected_index = 2
+    _primary, corrected = _install_cue_order_rejection(
+        responses,
+        rejected_index=rejected_index,
+    )
+    changed_membership = deepcopy(corrected)
+    changed_membership["dialogueCues"].pop()
+    responses[rejected_index + 1] = json.dumps(
+        changed_membership,
+        ensure_ascii=False,
+    )
+    provider = QueueProvider(responses)
+    provider.capabilities = ProviderCapabilities(json_schema=False)
+    secrets = RunSecretBroker("cue-order-postcondition-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.QUARANTINED
+    assert len(provider.requests) == rejected_index + 2
+    assert provider.requests[-1].response_schema is None
+    trace = repository.get_run_trace(run.id)
+    attempts = [
+        attempt
+        for attempt in trace.attempts
+        if attempt.work_unit_id == trace.attempts[-1].work_unit_id
+    ]
+    assert [attempt.outcome_code for attempt in attempts] == [
+        "semantic.cue_order",
+        "contract.correction_output_constraint_mismatch",
+    ]
+    rejected_validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == attempts[-1].id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert [
+        (issue["code"], issue["path"], issue["severity"])
+        for issue in rejected_validation.content["issues"]
+    ] == [
+        (
+            "contract.correction_output_constraint_mismatch",
+            ["dialogueCues"],
+            "error",
+        )
+    ]
+    assert repository.get_stage_head(project.id, StageName.SCENE_BEATS).revision == 0
+
+
+def test_cue_order_fact_rejects_rebound_membership_before_dispatch(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    rejected_index = 2
+    _install_cue_order_rejection(responses, rejected_index=rejected_index)
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("cue-order-source-binding-secret")
+    original_add_artifact = repository.add_artifact
+    tampered_artifact_ids: list[str] = []
+
+    def add_rebound_cue_order_validation(artifact: Artifact) -> Artifact:
+        if artifact.kind == ArtifactKind.VALIDATION and isinstance(
+            artifact.content, dict
+        ):
+            content = deepcopy(artifact.content)
+            matching = [
+                item
+                for item in content.get("repairFacts", [])
+                if isinstance(item, dict)
+                and item.get("code") == "semantic.cue_order"
+            ]
+            if matching:
+                first, second = matching[0]["assignments"]
+                first["beatLocalId"], second["beatLocalId"] = (
+                    second["beatLocalId"],
+                    first["beatLocalId"],
+                )
+                artifact = artifact.model_copy(
+                    update={"content": content, "content_hash": stable_hash(content)}
+                )
+                tampered_artifact_ids.append(artifact.id)
+        return original_add_artifact(artifact)
+
+    monkeypatch.setattr(repository, "add_artifact", add_rebound_cue_order_validation)
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert tampered_artifact_ids
+    assert completed.status == RunStatus.FAILED
+    trace = repository.get_run_trace(run.id)
+    rejected = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.cue_order"
+    )
+    correction = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.source_attempt_id == rejected.id
+    )
+    assert correction.outcome_code == "contract.correction_source_changed"
+    assert len(provider.requests) == rejected_index + 1
+    assert repository.get_stage_head(project.id, StageName.SCENE_BEATS).revision == 0
+
+
 def test_scene_beats_capacity_rejection_keeps_exact_frozen_guidance_in_correction(
     repository,
     brief,
@@ -3289,11 +3559,11 @@ def test_v2_profile_stops_after_two_corrections_and_quarantines(
     ]
     primary_contract = prompt_artifacts[0].content["contract"]
     correction_contracts = [artifact.content["contract"] for artifact in prompt_artifacts[1:]]
-    assert primary_contract["correction_policy_version"] == "bounded_correction.v19"
-    assert primary_contract["correction_directive_registry_version"] == "correction_directives.v2"
+    assert primary_contract["correction_policy_version"] == "bounded_correction.v20"
+    assert primary_contract["correction_directive_registry_version"] == "correction_directives.v3"
     assert primary_contract["correction_evidence_projection_version"] == "correction_evidence_projection.v2"
-    assert primary_contract["correction_issue_selection_version"] == "correction_issue_selection.v1"
-    assert primary_contract["correction_response_schema_version"] == "correction_response_schema.v1"
+    assert primary_contract["correction_issue_selection_version"] == "correction_issue_selection.v2"
+    assert primary_contract["correction_response_schema_version"] == "correction_response_schema.v2"
     assert "correction_directive_set_hash" not in primary_contract
     assert "correction_evidence_projection_hash" not in primary_contract
     assert "correction_issue_selection_hash" not in primary_contract

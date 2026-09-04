@@ -18,6 +18,14 @@ larger configured context in Plotloom while its runtime properties reported only
 that physical limit. These are contract and deployment-capacity mismatches, not
 reasons for model-, alias-, or provider-specific behavior.
 
+A later retained preflight exposed the same class of defect for dialogue cue
+ordering. The model correctly repaired the `speakerId`/`voiceOver` XOR, but then
+numbered two cues on different beats as `1, 2`. The semantic validator correctly
+requires every beat's cue sequence to restart at `1`; both remaining attempts
+repeated the error because `semantic.cue_order` had neither deterministic repair
+facts nor a narrowed response schema. The failure therefore belonged in the
+shared correction contract, not in tolerant validation or a model exception.
+
 ## Decision
 
 ### Corrections execute an issue-selected, versioned contract
@@ -59,7 +67,7 @@ deferred details are included in a model-visible message or response schema.
 The model-facing projection contains only executable code/path pairs and
 bindings whose indexes are local to that executable projection.
 
-`WorkUnitPromptContract m1.12q` freezes the correction policy, issue selector,
+`WorkUnitPromptContract m1.12r` freezes the correction policy, issue selector,
 directive registry, evidence projection, and response-schema compiler versions
 on the primary attempt. Each correction additionally freezes SHA-256 hashes of
 the issue selection, selected directive set, evidence projection, and full
@@ -94,6 +102,35 @@ context; the persisted fact must match exactly. A foreign, renamed, reordered,
 or non-adjacent target cannot authorize an overlay merely by being internally
 self-consistent.
 
+### Cue ordering uses complete, source-bound assignments
+
+`CueOrderRepairFact` carries the complete response-local cue membership as
+`localCueId`, `beatLocalId`, and exact `expectedOrder` assignments. Plotloom
+preserves the model's relative intent by sorting cues within each beat by the
+declared order and original array position, then renumbers each beat from `1`.
+The correction schema fixes collection cardinality using the same basic array
+keywords already present in primary schemas. A provider-independent application
+postcondition then requires exactly one matching item for every assignment. The
+contract cannot be satisfied by deleting, renaming, duplicating, or moving a cue
+to another beat even when native JSON Schema is unavailable or ignored.
+
+Immediately before compilation, Plotloom re-extracts the rejected final content
+and independently re-derives the fact. A persisted fact whose identities,
+membership, beat ownership, or order differ from that source is rejected. When
+the same rejection includes an issue that can change beat or cue membership,
+cue-order repair is deferred as audit-only authority until structural repair and
+ordinary revalidation produce a stable collection. There is no server-side
+renumbering and the semantic validator remains unchanged.
+
+Native response schemas are an advisory constrained-decoding aid, not the trust
+boundary for exact repair authority. Plotloom does not add `oneOf` or
+`contains` solely to express the cue contract under the undifferentiated
+`jsonSchema` capability: OpenAI-compatible servers support different schema
+subsets. The ordinary local model/semantic validator enforces the voice-source
+XOR, while the application postcondition enforces exact repair facts. A future
+provider-schema dialect contract may safely opt into richer lowering without
+changing canonical acceptance.
+
 ### Declared provider context must match effective per-request capacity
 
 The saved profile's `textContextWindowTokens` is a trusted execution claim, not
@@ -126,6 +163,9 @@ output as valid JSON.
 - Tests cover every continuity boundary, ordered-ID replay, foreign/non-adjacent
   rejection, source-response rebinding, exact fact/scalar assignment, and
   required entity presence.
+- Tests cover beat-local cue renumbering, complete membership postconditions, source
+  rebinding, structural deferral, provider-independent postconditions, and
+  rejection of conflicting authority.
 - Retired dialogue-duration witness facts remain parseable as historical
   evidence but are outside the current executable repair-fact union.
 - Pipeline tests prove current compiler versions are present on primary attempts,

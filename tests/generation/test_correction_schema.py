@@ -16,6 +16,8 @@ from plotloom.generation.work_units import (
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
     ContinuityStateEndpoint,
+    CueOrderRepairAssignment,
+    CueOrderRepairFact,
     JoinAllowedDifferencesRepairFact,
     JoinIncomingEdgeRepairTarget,
     JoinNewRequiredKeyIncomingEdges,
@@ -102,6 +104,50 @@ def _continuity_base_schema() -> dict[str, object]:
     }
 
 
+def _cue_order_base_schema(*, max_items: int = 8) -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "dialogueCues": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": max_items,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "localCueId": {"type": "string"},
+                        "beatLocalId": {"type": "string"},
+                        "order": {"type": "integer", "minimum": 1},
+                        "text": {"type": "string"},
+                    },
+                    "required": ["localCueId", "beatLocalId", "order", "text"],
+                    "additionalProperties": False,
+                },
+            }
+        },
+        "required": ["dialogueCues"],
+    }
+
+
+def _cue_order_fact() -> CueOrderRepairFact:
+    return CueOrderRepairFact(
+        code="semantic.cue_order",
+        path=("dialogueCues",),
+        assignments=(
+            CueOrderRepairAssignment(
+                local_cue_id="cue-a",
+                beat_local_id="beat-a",
+                expected_order=1,
+            ),
+            CueOrderRepairAssignment(
+                local_cue_id="cue-b",
+                beat_local_id="beat-b",
+                expected_order=1,
+            ),
+        ),
+    )
+
+
 def _incoming() -> tuple[JoinIncomingEdgeRepairTarget, ...]:
     return (
         JoinIncomingEdgeRepairTarget(edge_id="edge-b", source_node_id="node-b"),
@@ -159,7 +205,7 @@ def test_join_array_projection_is_exact_deterministic_and_non_mutating() -> None
     first = compile_correction_response_schema(base, [_join_array_fact()])
     second = compile_correction_response_schema(base, [_join_array_fact()])
 
-    assert CORRECTION_RESPONSE_SCHEMA_VERSION == "correction_response_schema.v1"
+    assert CORRECTION_RESPONSE_SCHEMA_VERSION == "correction_response_schema.v2"
     assert base == original
     assert first.schema == second.schema
     assert first.schema_hash == second.schema_hash
@@ -302,3 +348,51 @@ def test_continuity_overlay_requires_exact_fact_entity_and_scalar_targets() -> N
         "minContains": 1,
         "maxContains": 1,
     }
+
+
+def test_cue_order_overlay_freezes_collection_cardinality_without_advanced_keywords() -> None:
+    base = _cue_order_base_schema()
+    original = deepcopy(base)
+
+    projected = compile_correction_response_schema(base, [_cue_order_fact()])
+
+    assert base == original
+    assert projected.applied_fact_codes == ("semantic.cue_order",)
+    collection = projected.schema["properties"]["dialogueCues"]
+    assert collection["minItems"] == collection["maxItems"] == 2
+    assert collection["items"] == original["properties"]["dialogueCues"]["items"]
+    assert "contains" not in str(collection)
+    assert "minContains" not in str(collection)
+    assert "maxContains" not in str(collection)
+
+
+def test_cue_order_overlay_rejects_conflicting_or_impossible_authority() -> None:
+    first = _cue_order_fact()
+    second = CueOrderRepairFact(
+        code="semantic.cue_order",
+        path=("dialogueCues",),
+        assignments=(
+            CueOrderRepairAssignment(
+                local_cue_id="cue-a",
+                beat_local_id="beat-b",
+                expected_order=1,
+            ),
+            CueOrderRepairAssignment(
+                local_cue_id="cue-b",
+                beat_local_id="beat-a",
+                expected_order=1,
+            ),
+        ),
+    )
+
+    with pytest.raises(CorrectionResponseSchemaError, match="conflicting cue-order"):
+        compile_correction_response_schema(
+            _cue_order_base_schema(),
+            [first, second],
+        )
+
+    with pytest.raises(CorrectionResponseSchemaError, match="base maxItems"):
+        compile_correction_response_schema(
+            _cue_order_base_schema(max_items=1),
+            [first],
+        )

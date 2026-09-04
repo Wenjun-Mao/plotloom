@@ -56,7 +56,7 @@ from .generation.work_units import (
 
 DEFAULT_SAMPLE_COUNT = 3
 M15_REQUIRED_PROFILE_COUNT = 2
-CONFORMANCE_WORKLOAD_VERSION = "fixed_chinese_interactive_story.v6"
+CONFORMANCE_WORKLOAD_VERSION = "fixed_chinese_interactive_story.v7"
 # The fixed workload exercises the complete topology contract: three endings,
 # two decisions on every path, and one explicit JOIN. It is still bounded at
 # nine nodes and four shots per scene so repeated operator probes stay

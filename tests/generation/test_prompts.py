@@ -131,8 +131,17 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     assert "allowedDifferences 必须是 requiredStateKeys 的子集" in graph_spec.user
     assert "本轮适用的静态纠错指令" in correction_spec.user
     assert "只执行上方本轮列出的静态指令" in correction_spec.user
-    assert scene_spec.version == "3.11.0"
-    assert correction_spec.version == "3.10.0"
+    assert scene_spec.version == "3.12.0"
+    assert correction_spec.version == "3.11.0"
+    assert "每换一个 beat 都必须重新从 1 开始" in scene_spec.user
+    assert "两条 cue 的 order 都是 1" in scene_spec.user
+    assert "sound 只表示在该连续性边界持续存在" in scene_spec.user
+    assert "完整状态链" in scene_spec.user
+    assert "尤其复核第一条和最后一条边界" in scene_spec.user
+    assert "不透明 JSON 字面量" in scene_spec.user
+    assert "不得手工重建或截断 UUID" in scene_spec.user
+    assert "dialogueCues.order 按 beatLocalId 分组独立编号" in correction_spec.user
+    assert "CueOrderRepairFact" in correction_spec.user
     assert "issueSelection.executableIssues" in correction_spec.user
     assert "deferredIssues" not in correction_spec.user
     storyboard_fragment_spec, _spec_hash, _source = repository.load(

@@ -38,9 +38,13 @@ from plotloom.generation.work_units import (
     AUDIO_EVENT_ID_BINDING_VERSION,
     WorkUnitContractError,
     WorkUnitPromptContract,
+    CueOrderRepairAssignment,
+    CueOrderRepairFact,
+    assert_cue_order_repair_fact_matches_source,
     canonical_audio_event_id,
     canonical_fragment_id,
     compile_work_unit_request,
+    scene_beats_cue_order_repair_facts,
     scene_beats_dialogue_node_budget_repair_facts,
     semantic_repair_facts,
     storyboard_timing_repair_facts,
@@ -206,6 +210,45 @@ def _scene_output() -> dict:
     ).model_dump(mode="json", by_alias=True)
 
 
+def _cue_order_output(*, second_order: int = 2) -> dict:
+    """A valid fragment shape whose second per-beat order is deliberately wrong."""
+
+    output = _scene_output()
+    output["beats"].append(
+        {
+            **deepcopy(output["beats"][0]),
+            "localBeatId": "beat-node-b",
+            "order": 2,
+            "description": "她听见远处警报。",
+        }
+    )
+    output["dialogueCues"] = [
+        {
+            "localCueId": "cue-a",
+            "beatLocalId": "beat-node-a",
+            "order": 1,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "第一句",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "平静",
+        },
+        {
+            "localCueId": "cue-b",
+            "beatLocalId": "beat-node-b",
+            "order": second_order,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "第二句",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "平静",
+        },
+    ]
+    return output
+
+
 def _storyboard_output(*, beat_ids: list[str], local_shot_id: str = "shot-a") -> dict:
     return StoryboardFragmentOutput(
         shots=[ShotContent(local_shot_id=local_shot_id, order=1, title="苏醒", shot_size="close_up", duration_units=2, camera_angle="", camera_movement="", composition="", visual_intent="", motion_intent="", action="", transition="", cue_ids=[], audio_plan={"events": []}, character_ids=[], location_id=None, prop_ids=[], required_entity_states=[], entry_state=_state(), exit_state=_state())],
@@ -263,6 +306,204 @@ def test_dialogue_node_budget_fact_uses_validator_scene_floors() -> None:
     # survives even when every cue is removed.
     assert fact.remaining_minimum_duration_units == 1
     assert fact.remaining_cues == ()
+
+
+def test_cue_order_fact_renumbers_independently_per_beat_and_round_trips() -> None:
+    output = _cue_order_output()
+    issue = ValidationIssue(
+        code="semantic.cue_order",
+        message="fixture",
+        path=("dialogueCues",),
+    )
+
+    facts = scene_beats_cue_order_repair_facts(output, (issue,))
+
+    assert facts == (
+        CueOrderRepairFact(
+            code="semantic.cue_order",
+            path=("dialogueCues",),
+            assignments=(
+                CueOrderRepairAssignment(
+                    local_cue_id="cue-a",
+                    beat_local_id="beat-node-a",
+                    expected_order=1,
+                ),
+                CueOrderRepairAssignment(
+                    local_cue_id="cue-b",
+                    beat_local_id="beat-node-b",
+                    expected_order=1,
+                ),
+            ),
+        ),
+    )
+    fact = facts[0]
+    assert parse_semantic_repair_fact(serialize_semantic_repair_fact(fact)) == fact
+    assert_cue_order_repair_fact_matches_source(fact, output)
+    routed = semantic_repair_facts(output, (issue,), stage=StageName.SCENE_BEATS)
+    assert routed == facts
+
+    tampered = deepcopy(output)
+    tampered["dialogueCues"][1]["beatLocalId"] = "beat-node-a"
+    with pytest.raises(ValueError, match="does not match the rejected response"):
+        assert_cue_order_repair_fact_matches_source(fact, tampered)
+
+
+def test_scene_beats_reports_one_aggregate_cue_order_issue() -> None:
+    compiled, _stage_plan, _unit, _bible, _graph = _compile_scene_beats()
+    output = _cue_order_output()
+    output["dialogueCues"][0]["order"] = 2
+
+    report = compiled.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="scene_beats"),
+    )
+
+    cue_order_issues = [
+        issue
+        for issue in report.issues
+        if issue.code == "semantic.cue_order"
+    ]
+    assert [(issue.code, issue.path) for issue in cue_order_issues] == [
+        ("semantic.cue_order", ("dialogueCues",))
+    ]
+
+
+def test_cue_order_fact_uses_source_index_to_break_duplicate_order_ties() -> None:
+    output = _scene_output()
+    output["dialogueCues"] = [
+        {
+            "localCueId": "cue-first",
+            "beatLocalId": "beat-node-a",
+            "order": 3,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "第一句",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "平静",
+        },
+        {
+            "localCueId": "cue-second",
+            "beatLocalId": "beat-node-a",
+            "order": 3,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "第二句",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "平静",
+        },
+    ]
+    issue = ValidationIssue(
+        code="semantic.cue_order", message="fixture", path=("dialogueCues",)
+    )
+
+    (fact,) = scene_beats_cue_order_repair_facts(output, (issue,))
+
+    assert [(item.local_cue_id, item.expected_order) for item in fact.assignments] == [
+        ("cue-first", 1),
+        ("cue-second", 2),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("mutate", "extra_issue"),
+    [
+        (
+            lambda output: output["dialogueCues"][1].update({"localCueId": "cue-a"}),
+            ValidationIssue(
+                code="semantic.duplicate_cue_id",
+                message="fixture",
+                path=("dialogueCues",),
+            ),
+        ),
+        (
+            lambda output: output["beats"][1].update({"localBeatId": "beat-node-a"}),
+            ValidationIssue(
+                code="semantic.duplicate_beat_id",
+                message="fixture",
+                path=("beats",),
+            ),
+        ),
+        (
+            lambda output: None,
+            ValidationIssue(
+                code="semantic.dialogue_cue_count_exceeded",
+                message="fixture",
+                path=("dialogueCues",),
+            ),
+        ),
+        (
+            lambda output: None,
+            ValidationIssue(
+                code="semantic.cross_unit_beat",
+                message="fixture",
+                path=("beats",),
+            ),
+        ),
+        (
+            lambda output: None,
+            ValidationIssue(
+                code="semantic.scene_capacity_exceeded",
+                message="fixture",
+                path=("scenes",),
+            ),
+        ),
+    ],
+)
+def test_cue_order_fact_declines_unsafe_identity_or_cardinality_source(
+    mutate,
+    extra_issue: ValidationIssue,
+) -> None:
+    output = _cue_order_output()
+    mutate(output)
+    cue_order_issue = ValidationIssue(
+        code="semantic.cue_order", message="fixture", path=("dialogueCues",)
+    )
+
+    assert scene_beats_cue_order_repair_facts(
+        output, (cue_order_issue, extra_issue)
+    ) == ()
+
+
+def test_cue_order_fact_invariants_fail_closed() -> None:
+    assignment = CueOrderRepairAssignment(
+        local_cue_id="cue-a", beat_local_id="beat-a", expected_order=1
+    )
+    with pytest.raises(ValidationError, match="complete dialogueCues"):
+        CueOrderRepairFact(
+            code="semantic.cue_order",
+            path=("dialogueCues", 0, "order"),
+            assignments=(assignment,),
+        )
+    with pytest.raises(ValidationError, match="local cue IDs must be unique"):
+        CueOrderRepairFact(
+            code="semantic.cue_order",
+            path=("dialogueCues",),
+            assignments=(assignment, assignment),
+        )
+    with pytest.raises(ValidationError, match="contiguous within each beat"):
+        CueOrderRepairFact(
+            code="semantic.cue_order",
+            path=("dialogueCues",),
+            assignments=(
+                assignment,
+                CueOrderRepairAssignment(
+                    local_cue_id="cue-b", beat_local_id="beat-a", expected_order=3
+                ),
+            ),
+        )
+    with pytest.raises(ValidationError, match="canonical local cue ID order"):
+        CueOrderRepairFact(
+            code="semantic.cue_order",
+            path=("dialogueCues",),
+            assignments=(
+                CueOrderRepairAssignment(
+                    local_cue_id="cue-b", beat_local_id="beat-b", expected_order=1
+                ),
+                assignment,
+            ),
+        )
 
 
 def test_storyboard_timing_facts_are_text_free_and_path_bound() -> None:
@@ -500,7 +741,7 @@ def test_scene_work_unit_prompt_only_contains_the_selected_node_and_public_schem
     assert compiled.contract.work_unit_id == unit.unit_id
     assert compiled.contract.stage_plan_hash == stage_plan.stage_plan_hash
     assert compiled.contract.prompt_id == "scene_beats_fragment"
-    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v11"
+    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v12"
     assert "allowedStates" in message
     assert "scene.entryState →" in message
     scene_properties = compiled.response_schema["properties"]["scenes"]["items"][
@@ -511,6 +752,17 @@ def test_scene_work_unit_prompt_only_contains_the_selected_node_and_public_schem
     assert "beatLocalIds" not in scene_properties
     assert "beatIds" not in scene_properties
     assert "localSceneId" in scene_properties
+    cue_schema = compiled.response_schema["properties"]["dialogueCues"]["items"]
+    assert cue_schema["properties"]["order"]["description"] == (
+        "One-based contiguous dialogue order within this cue's beatLocalId."
+    )
+    assert "exactly one of speakerId and voiceOver" in cue_schema["properties"][
+        "speakerId"
+    ]["description"]
+    assert "exactly one of speakerId and voiceOver" in cue_schema["properties"][
+        "voiceOver"
+    ]["description"]
+    assert "oneOf" not in cue_schema
     assert "$defs" not in compiled.response_schema
     assert '"$ref"' not in str(compiled.response_schema)
     assert scene_properties["exitState"]["required"] == [
