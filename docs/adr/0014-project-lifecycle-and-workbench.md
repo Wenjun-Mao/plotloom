@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted and implemented for M1-B0.
+Accepted and implemented for M1-B0 and M1-B1. The complete local checkpoint
+verification gate passed before the M1-B1 commit.
 
 ## Context
 
@@ -99,6 +100,35 @@ but is not a pixel-for-pixel reconstruction of Narrative Forge V1. Its layout,
 navigation, empty states, and media placeholders serve Plotloom's canonical
 contracts and must not import V1 runtime code or assets.
 
+### M1-B1 keeps authoring relationships and recovery explicit
+
+The four V2 canonical stages are edited as stable-ID records, rather than as
+anonymous form rows. Authors can add, remove, and reorder the records owned by
+their stage. A relationship that crosses a record boundary is a separate,
+visible operation: reconnecting a graph edge, moving a Beat or DialogueCue, or
+moving a Shot to another scene first presents its affected references and only
+then applies an ID-preserving migration. Deletion likewise presents its impact;
+the UI may not silently discard cross-stage references to make a form look
+valid.
+
+Server validation failures are authoring feedback, not an opaque HTTP error.
+Current-schema write failures return a structured `422` with stable issue paths.
+Request-body validation projects only `code`, `path`, and `message`; it must not
+echo rejected input or validator context because defensive secret rejection is
+part of this same boundary.
+The workbench resolves either stable-ID or array-index paths to the relevant
+record and editable field, selects it through the URL, and focuses that field.
+It retains the complete issue list for cases where a path has no editable
+target. This is intentionally a presentation of the server contract; browser
+code does not reinterpret a failed validation as permission to install data.
+
+A queued or running bearer-authenticated run may resume only when its exact
+frozen profile has a server key or a session key in the current tab. Missing
+credentials open a clear recovery state for that profile; the workbench must
+not auto-resume with the active profile or silently switch models. Progress
+polling stays small and secret-free, while prompt/response evidence remains an
+on-demand trace view.
+
 ## Consequences and guardrails
 
 - List results expose lifecycle state and lifecycle revision; archived projects
@@ -112,5 +142,10 @@ contracts and must not import V1 runtime code or assets.
 - Browser tests must cover explicit save, refresh draft recovery, draft/server
   revision conflict, route switching during delayed responses, and the
   three-panel workbench without media.
+- M1-B1 tests must cover stable-ID add/delete/reorder operations, explicit
+  relationship migration impact confirmation, server `422` issue-path focus,
+  frozen-profile credential gating, and a real-browser exact-repair to
+  approval/reload lineage. These are authoring and recovery contracts, not
+  optional visual polish.
 - Any future retention, export, or recoverable-trash policy is a separate
   decision. It must not weaken the explicit permanent-delete contract here.

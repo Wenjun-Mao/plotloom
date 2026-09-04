@@ -1,4 +1,4 @@
-import type { PropsWithChildren, ReactNode } from "react";
+import type { HTMLAttributes, PropsWithChildren, ReactNode } from "react";
 import type { ServerStageName } from "./types";
 import { stageLabels } from "./model";
 
@@ -6,8 +6,8 @@ export function Button({ variant = "default", className = "", ...props }: React.
   return <button {...props} className={`button ${variant} ${className}`.trim()} />;
 }
 
-export function Panel({ children, className = "" }: PropsWithChildren<{ className?: string }>) {
-  return <section className={`panel ${className}`.trim()}>{children}</section>;
+export function Panel({ children, className = "", ...props }: PropsWithChildren<HTMLAttributes<HTMLElement>>) {
+  return <section {...props} className={`panel ${className}`.trim()}>{children}</section>;
 }
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow: string; title: string; description: string; actions?: ReactNode }) {

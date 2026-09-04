@@ -3,6 +3,13 @@ export type ServerStageName = Exclude<StageName, "project_brief">;
 export type RunStatus = "queued" | "running" | "succeeded" | "quarantined" | "cancel_requested" | "cancelled" | "failed";
 export type MediaKind = "image" | "video";
 
+/** Stable server-side authoring failure projected back to one editor field. */
+export interface ValidationIssue {
+  code: string;
+  path: string;
+  message: string;
+}
+
 export interface ProjectBrief {
   title: string;
   synopsis: string;

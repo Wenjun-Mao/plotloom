@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MediaTask, PipelineRun, ProjectListItem, ProviderSettings, QuarantineItem, RunExecutionTrace, RunProgress, SceneBeatPlan, ServerStageName, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, WorkspaceProject } from "./types";
+import type { MediaTask, PipelineRun, ProjectListItem, ProviderSettings, QuarantineItem, RunExecutionTrace, RunProgress, SceneBeatPlan, ServerStageName, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, StoryboardReview, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, ValidationIssue, WorkspaceProject } from "./types";
 import { plotloomApi, ApiError } from "./api";
 import { providerSessionKeys } from "./session-key";
 import { defaultProviderSettings, demoProject, demoRun, demoTrace, emptyStageContent } from "./demo";
@@ -17,6 +17,21 @@ import { TracePage } from "./pages/TracePage";
 import { QuarantinePage } from "./pages/QuarantinePage";
 
 type PageId = "brief" | "bible" | "graph" | "beats" | "storyboard" | "trace" | "quarantine";
+type NavigationTarget = {
+  project: string;
+  stage: PageId;
+  entity: string;
+  run: string;
+  history: "push" | "pop";
+  forceReload?: boolean;
+};
+
+interface DraftConflictState {
+  scope: DraftScope;
+  record: DraftRecord;
+  workspace: WorkspaceProject;
+  serverReloaded: boolean;
+}
 
 const navigation: { id: PageId; index: string; label: string; description: string }[] = [
   { id: "brief", index: "01", label: "项目简报", description: "边界与预算" },
@@ -36,6 +51,26 @@ function headsByStage(stages: StageEnvelope[]): Partial<Record<ServerStageName, 
 function messageFrom(error: unknown): string {
   if (error instanceof ApiError && error.status === 409) return `项目版本冲突：${error.message}。请刷新后再合并修改。`;
   return error instanceof Error ? error.message : "未知错误";
+}
+
+function validationIssuesFrom(error: unknown): ValidationIssue[] {
+  if (!(error instanceof ApiError) || error.status !== 422 || !error.details || typeof error.details !== "object") return [];
+  const rawIssues = (error.details as { issues?: unknown }).issues;
+  if (!Array.isArray(rawIssues)) return [];
+  return rawIssues.flatMap((raw): ValidationIssue[] => {
+    if (!raw || typeof raw !== "object") return [];
+    const candidate = raw as { code?: unknown; path?: unknown; message?: unknown };
+    if (typeof candidate.code !== "string" || typeof candidate.message !== "string") return [];
+    const path = Array.isArray(candidate.path)
+      ? candidate.path.map(String).join(".")
+      : typeof candidate.path === "string" ? candidate.path : "";
+    return [{ code: candidate.code, path, message: candidate.message }];
+  });
+}
+
+function formatDuration(durationMs: number | null | undefined): string {
+  if (durationMs == null) return "—";
+  return durationMs < 1000 ? `${durationMs}ms` : `${(durationMs / 1000).toFixed(1)}s`;
 }
 
 function projectIdFromLocation(): string {
@@ -141,6 +176,8 @@ export default function App() {
   const [error, setError] = useState("");
   const [run, setRun] = useState<PipelineRun | undefined>();
   const [runProgress, setRunProgress] = useState<RunProgress | undefined>();
+  const [storyboardReview, setStoryboardReview] = useState<StoryboardReview | null>(null);
+  const [validationIssues, setValidationIssues] = useState<Partial<Record<ServerStageName, ValidationIssue[]>>>({});
   const [trace, setTrace] = useState<TraceEvent[]>([]);
   const [mediaTasks, setMediaTasks] = useState<Record<string, MediaTask>>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -161,9 +198,9 @@ export default function App() {
   const [routeEntity, setRouteEntity] = useState(() => routeFromLocation().entity);
   const [draftRecovery, setDraftRecovery] = useState<{ scope: DraftScope; payload: unknown } | undefined>();
   const [restoredDraft, setRestoredDraft] = useState<{ scope: DraftScope; payload: unknown } | undefined>();
-  const [draftConflict, setDraftConflict] = useState<{ scope: DraftScope; record: DraftRecord } | undefined>();
+  const [draftConflict, setDraftConflict] = useState<DraftConflictState | undefined>();
   const [unsafeDraft, setUnsafeDraft] = useState<{ record: DraftRecord; reason: "archived" | "unavailable" } | undefined>();
-  const [pendingNavigation, setPendingNavigation] = useState<{ project: string; stage: PageId; entity: string; run: string; history: "push" | "pop" } | undefined>();
+  const [pendingNavigation, setPendingNavigation] = useState<NavigationTarget | undefined>();
   const [editorNonce, setEditorNonce] = useState(0);
   const [onboarding, setOnboarding] = useState(() => !routeFromLocation().project);
   const [pendingArchive, setPendingArchive] = useState<ProjectListItem | undefined>();
@@ -178,15 +215,22 @@ export default function App() {
   const duplicateKeyByRequest = useRef(new Map<string, string>());
   const directoryEpoch = useRef(0);
   const profilesLoaded = useRef(false);
+  const profileCatalog = useRef<TextProviderProfilesResponse>(fallbackProfiles());
   const repairKeyByUnit = useRef(new Map<string, string>());
   const traceEvidenceEpoch = useRef(0);
+  const projectLoadController = useRef<AbortController | undefined>(undefined);
   const loadedTraceEvidenceFor = useRef<string | undefined>(undefined);
   const loadingTraceEvidenceFor = useRef<string | undefined>(undefined);
+  useEffect(() => { profileCatalog.current = profiles; }, [profiles]);
 
   type WorkspaceOperation = { epoch: number; projectId: string; stage: PageId };
   const captureWorkspaceOperation = (): WorkspaceOperation => ({
     epoch: loadEpoch.current,
-    projectId: project.id || "",
+    // During a hard refresh, the URL is the only project identity available
+    // until the first canonical response hydrates React state.  A user action
+    // in that interval must remain scoped to the URL project, never silently
+    // become an untitled local workspace.
+    projectId: visibleRoute.current.project || project.id || "",
     stage: activePage,
   });
   const isWorkspaceOperationCurrent = (operation: WorkspaceOperation): boolean => (
@@ -198,6 +242,8 @@ export default function App() {
     // Increment before any state update or request starts. A delayed write may
     // still finish on the server, but it can no longer repaint this workspace.
     loadEpoch.current += 1;
+    projectLoadController.current?.abort();
+    projectLoadController.current = undefined;
     visibleRoute.current = next;
     projectSaveInFlight.current = false;
     activeProjectSaveGeneration.current = undefined;
@@ -210,6 +256,7 @@ export default function App() {
     const selected = next.profiles.find((profile) => profile.profileId === selectedId) || next.profiles[0];
     if (!selected) return;
     profilesLoaded.current = true;
+    profileCatalog.current = next;
     setProfiles(next); setSelectedProfileId(selected.profileId); setProfileDraft(selected);
     setSessionKey(providerSessionKeys.read(selected.profileId)); setProfileDirty(false);
   }, []);
@@ -223,14 +270,21 @@ export default function App() {
   const loadProject = useCallback(async (projectId: string, epoch = loadEpoch.current) => {
     const isCurrent = () => epoch === loadEpoch.current && visibleRoute.current.project === projectId;
     if (!projectId) return;
+    projectLoadController.current?.abort();
+    const controller = new AbortController();
+    projectLoadController.current = controller;
     setConnection("loading");
     try {
       const [incoming, stageResponse, runResponse, mediaResponse] = await Promise.all([
-        plotloomApi.getProject(projectId),
-        plotloomApi.getStages(projectId),
-        plotloomApi.getProjectRuns(projectId),
-        plotloomApi.getProjectMediaTasks(projectId),
+        plotloomApi.getProject(projectId, controller.signal),
+        plotloomApi.getStages(projectId, controller.signal),
+        plotloomApi.getProjectRuns(projectId, controller.signal),
+        plotloomApi.getProjectMediaTasks(projectId, controller.signal),
       ]);
+      const storyboardHead = stageResponse.stages.find((envelope) => envelope.head.stage === "storyboard")?.head;
+      const reviewResponse = storyboardHead?.revision
+        ? await plotloomApi.getStoryboardReview(projectId, controller.signal).catch(() => null)
+        : null;
       const requestedRunId = routeFromLocation().run;
       const latestRun = requestedRunId
         ? runResponse.runs.find((candidate) => candidate.id === requestedRunId)
@@ -240,6 +294,26 @@ export default function App() {
       // projection. Provenance evidence is fetched only after the user opens
       // the Trace page; it must not travel on the high-frequency path.
       const latestProgress = latestRun ? await plotloomApi.getRunProgress(latestRun.id) : undefined;
+      let automaticResumeBlocked = "";
+      if (latestRun && (latestRun.status === "queued" || latestRun.status === "running") && latestRun.providerSnapshot.textAuthMode !== "none") {
+        const frozenProfileId = String(latestRun.providerSnapshot.profileId || "default");
+        let catalog = profileCatalog.current;
+        if (!profilesLoaded.current) {
+          try {
+            catalog = await plotloomApi.getTextProviderProfiles(controller.signal);
+          } catch (profileError) {
+            automaticResumeBlocked = `运行冻结在 Profile ${frozenProfileId}；无法确认该 Profile 的密钥状态，因此没有自动恢复：${messageFrom(profileError)}`;
+          }
+        }
+        if (!automaticResumeBlocked) {
+          const frozenProfile = catalog.profiles.find((candidate) => candidate.profileId === frozenProfileId);
+          if (!frozenProfile) {
+            automaticResumeBlocked = `运行冻结在 Profile ${frozenProfileId}，但该 Profile 已不存在；不会自动切换模型。`;
+          } else if (!frozenProfile.serverKeyAvailable && !providerSessionKeys.read(frozenProfileId)) {
+            automaticResumeBlocked = `运行冻结在 Profile ${frozenProfileId}；请为这个 Profile 补充当前标签页 Key 后再继续。不会自动切换模型。`;
+          }
+        }
+      }
       if (!isCurrent()) return;
       const quarantines = quarantineItemsFromProgress(latestProgress);
       setProject((current) => ({ ...hydrateWorkspaceProject(current, incoming, stageResponse.stages), quarantines }));
@@ -247,6 +321,8 @@ export default function App() {
       setStageHeads(headsByStage(stageResponse.stages));
       setRun(latestRun);
       setRunProgress(latestProgress);
+      setStoryboardReview(reviewResponse);
+      setValidationIssues({});
       traceEvidenceEpoch.current += 1;
       loadedTraceEvidenceFor.current = undefined;
       loadingTraceEvidenceFor.current = undefined;
@@ -255,12 +331,13 @@ export default function App() {
       setMediaTasks(newestMediaTasksByShot(mediaResponse.tasks));
       setConnection("connected");
       setOnboarding(false);
-      setError(requestedRunMissing ? `运行 ${requestedRunId} 不属于当前项目或已不存在。` : "");
+      setError(requestedRunMissing ? `运行 ${requestedRunId} 不属于当前项目或已不存在。` : automaticResumeBlocked);
       if (latestRun && (latestRun.status === "queued" || latestRun.status === "running" || latestRun.status === "cancel_requested")) {
         if (!isCurrent()) return;
         if (latestRun.status === "cancel_requested") {
           void pollRun(latestRun.id, incoming.id).catch((pollError) => setError(messageFrom(pollError)));
         } else {
+          if (automaticResumeBlocked) return;
           const frozenProfileId = String(latestRun.providerSnapshot.profileId || "default");
           const usesBearer = latestRun.providerSnapshot.textAuthMode !== "none";
           void plotloomApi.resumeRun(latestRun.id, frozenProfileId, usesBearer)
@@ -275,12 +352,15 @@ export default function App() {
       }
     } catch (loadError) {
       if (!isCurrent()) return;
+      if (loadError instanceof DOMException && loadError.name === "AbortError") return;
       const staleDraft = findProjectDrafts(projectId)[0];
       if (staleDraft) setUnsafeDraft({ record: staleDraft, reason: "unavailable" });
-      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setTrace([]); setMediaTasks({});
+      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setStoryboardReview(null); setValidationIssues({}); setTrace([]); setMediaTasks({});
       setConnection("error");
       setOnboarding(false);
       setError(`无法加载项目 ${projectId}：${messageFrom(loadError)}。项目未加载；没有回退到示例。`);
+    } finally {
+      if (projectLoadController.current === controller) projectLoadController.current = undefined;
     }
   }, []);
 
@@ -469,6 +549,11 @@ export default function App() {
     } catch (saveError) {
       if (!isWorkspaceOperationCurrent(operation)) return;
       setError(messageFrom(saveError));
+      if (saveError instanceof ApiError && saveError.status === 409) {
+        const record = getDraft(project, "brief") ?? putDraft(project, "brief", nextLocal.brief);
+        setDraftConflict({ scope: "brief", record, workspace: nextLocal, serverReloaded: false });
+        setPendingNavigation(undefined); setPendingArchive(undefined);
+      }
       if (connection === "demo") setProject((current) => mergeProjectResponse(current, patch));
     } finally { finishProjectSave(operation, saveGeneration); }
   };
@@ -482,6 +567,7 @@ export default function App() {
     try {
       if (!project.id) {
         if (!await createProjectFrom(nextLocal, operation, stage)) return;
+        setValidationIssues((current) => ({ ...current, [stage]: [] }));
         discardDraft(project, stage); currentDraft.current = undefined; setRestoredDraft(undefined);
         return;
       }
@@ -496,10 +582,24 @@ export default function App() {
       }
       setProject((current) => markDownstreamStale({ ...current, [key]: content, stageRevisions: { ...current.stageRevisions, [stage]: envelope.revision } }, stage));
       setStageHeads((current) => ({ ...current, [stage]: envelope }));
+      setValidationIssues((current) => ({ ...current, [stage]: [] }));
+      if (stage === "storyboard") {
+        const nextReview = await plotloomApi.getStoryboardReview(project.id).catch(() => null);
+        if (isWorkspaceOperationCurrent(operation)) setStoryboardReview(nextReview);
+      }
       currentDraft.current = undefined; setRestoredDraft(undefined);
     } catch (stageError) {
       if (!isWorkspaceOperationCurrent(operation)) return;
-      setError(messageFrom(stageError));
+      const issues = validationIssuesFrom(stageError);
+      if (issues.length) {
+        setValidationIssues((current) => ({ ...current, [stage]: issues }));
+        setError(`${stageLabels[stage]}未通过领域校验。已保留草稿并标出 ${issues.length} 个问题。`);
+      } else setError(messageFrom(stageError));
+      if (stageError instanceof ApiError && stageError.status === 409) {
+        const record = getDraft(project, stage) ?? putDraft(project, stage, content);
+        setDraftConflict({ scope: stage, record, workspace: nextLocal, serverReloaded: false });
+        setPendingNavigation(undefined); setPendingArchive(undefined);
+      }
       if (connection === "demo") setProject((current) => markDownstreamStale(workspaceWithStageDraft(current, stage, content), stage));
     } finally { finishProjectSave(operation, saveGeneration); }
   };
@@ -511,7 +611,7 @@ export default function App() {
     if (restoredDraft?.scope === scope) setRestoredDraft({ scope, payload });
   }, [project, restoredDraft?.scope]);
 
-  const applyNavigation = useCallback((next: { project: string; stage: PageId; entity: string; run: string; history: "push" | "pop" }) => {
+  const applyNavigation = useCallback((next: NavigationTarget) => {
     const route = { project: next.project, stage: next.stage, entity: next.entity, run: next.run };
     const epoch = invalidateWorkspaceNavigation(route);
     if (next.history === "push") {
@@ -526,15 +626,16 @@ export default function App() {
     setActivePage(next.stage); setRouteEntity(next.entity); setDraftRecovery(undefined); setRestoredDraft(undefined); setDraftConflict(undefined); setUnsafeDraft(undefined);
     if (!next.project && next.project !== (project.id || "")) {
       localWorkspaceOwner.current = newClientDraftOwner();
-      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setTrace([]); setMediaTasks({}); setConnection("blank"); setOnboarding(true);
+      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setStoryboardReview(null); setValidationIssues({}); setTrace([]); setMediaTasks({}); setConnection("blank"); setOnboarding(true);
     } else if (next.project) {
       setOnboarding(false);
-      if (next.project !== project.id || next.run !== (run?.id || "") || canonicalRefreshRequired.current.has(next.project)) void loadProject(next.project, epoch);
+      if (next.project !== project.id) { setStoryboardReview(null); setValidationIssues({}); }
+      if (next.forceReload || next.project !== project.id || next.run !== (run?.id || "") || canonicalRefreshRequired.current.has(next.project)) void loadProject(next.project, epoch);
     }
   }, [loadProject, project.id, run?.id]);
 
-  const requestNavigation = useCallback((next: { project: string; stage: PageId; entity?: string; run?: string; history?: "push" | "pop" }) => {
-    const normalized = { entity: "", run: "", history: "push" as const, ...next };
+  const requestNavigation = useCallback((next: { project: string; stage: PageId; entity?: string; run?: string; history?: "push" | "pop"; forceReload?: boolean }) => {
+    const normalized: NavigationTarget = { entity: "", run: "", history: "push", forceReload: false, ...next };
     const scope = stageForPage(activePage);
     // Unsafe drafts are never candidates for save/recovery. Keep a popstate
     // destination pending behind its discard-only dialog.
@@ -618,7 +719,7 @@ export default function App() {
     if (saved) setDraftRecovery({ scope, payload: saved.payload });
     else {
       const conflict = findRevisionConflict(project, scope);
-      if (conflict) setDraftConflict({ scope, record: conflict });
+      if (conflict) setDraftConflict({ scope, record: conflict, workspace: project, serverReloaded: false });
     }
   }, [activePage, draftConflict, draftRecovery, editorNonce, project, restoredDraft, unsafeDraft]);
 
@@ -720,8 +821,36 @@ export default function App() {
     } catch (cancelError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(cancelError)); }
   };
 
+  const openFrozenProfileSettings = async (profileId: string) => {
+    setSettingsOpen(true);
+    try {
+      const catalog = profilesLoaded.current ? profiles : await refreshProfiles();
+      const selected = catalog.profiles.find((profile) => profile.profileId === profileId);
+      if (!selected) { setError(`冻结 Profile ${profileId} 已不存在；该运行不能换用其他 Profile。`); return; }
+      setSelectedProfileId(profileId);
+      setProfileDraft(selected);
+      setSessionKey(providerSessionKeys.read(profileId));
+      setProfileDirty(false);
+    } catch (profileError) {
+      setError(`无法读取冻结 Profile ${profileId}：${messageFrom(profileError)}`);
+    }
+  };
+
+  const ensureFrozenRunCredential = async (frozenRun: PipelineRun): Promise<boolean> => {
+    if (frozenRun.providerSnapshot.textAuthMode === "none") return true;
+    const profileId = String(frozenRun.providerSnapshot.profileId || "default");
+    let catalog = profiles;
+    if (!profilesLoaded.current) catalog = await refreshProfiles();
+    const profile = catalog.profiles.find((candidate) => candidate.profileId === profileId);
+    if (profile?.serverKeyAvailable || providerSessionKeys.read(profileId)) return true;
+    await openFrozenProfileSettings(profileId);
+    setError(`运行冻结在 Profile ${profileId}；请为这个 Profile 补充当前标签页 Key 后再继续。不会自动切换模型。`);
+    return false;
+  };
+
   const resumeRun = async () => {
     if (!run || (run.status !== "queued" && run.status !== "running")) return;
+    if (!await ensureFrozenRunCredential(run)) return;
     const frozenProfileId = String(run.providerSnapshot.profileId || "default");
     const usesBearer = run.providerSnapshot.textAuthMode !== "none";
     const operation = captureWorkspaceOperation();
@@ -735,6 +864,7 @@ export default function App() {
 
   const repair = async (item: QuarantineItem) => {
     if (!run || !item.repairEligible) { setError("这个 work unit 当前不具备精确修复资格。"); return; }
+    if (!await ensureFrozenRunCredential(run)) return;
     const operation = captureWorkspaceOperation();
     setBusy(true);
     try {
@@ -889,7 +1019,7 @@ export default function App() {
     const nextRoute = { project: "", stage: route.stage, entity: "", run: "" };
     invalidateWorkspaceNavigation(nextRoute);
     localWorkspaceOwner.current = newClientDraftOwner();
-    setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setTrace([]); setMediaTasks({}); setConnection("blank");
+    setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setStoryboardReview(null); setValidationIssues({}); setTrace([]); setMediaTasks({}); setConnection("blank");
     currentDraft.current = undefined; setDraftRecovery(undefined); setRestoredDraft(undefined); setDraftConflict(undefined); setUnsafeDraft(undefined); setActivePage(route.stage); setRouteEntity(""); setOnboarding(false);
     history.pushState(null, "", `${location.pathname}?stage=${encodeURIComponent(route.stage)}`);
     setDirectoryOpen(false);
@@ -900,7 +1030,7 @@ export default function App() {
     const nextRoute = { project: "", stage: route.stage, entity: "", run: "" };
     invalidateWorkspaceNavigation(nextRoute);
     localWorkspaceOwner.current = newClientDraftOwner();
-    setProject({ ...demoProject, clientDraftOwner: localWorkspaceOwner.current }); setStageHeads({}); setRun(demoRun); setRunProgress(undefined); setTrace(demoTrace); setConnection("demo");
+    setProject({ ...demoProject, clientDraftOwner: localWorkspaceOwner.current }); setStageHeads({}); setRun(demoRun); setRunProgress(undefined); setStoryboardReview(null); setValidationIssues({}); setTrace(demoTrace); setConnection("demo");
     currentDraft.current = undefined; setDraftRecovery(undefined); setRestoredDraft(undefined); setDraftConflict(undefined); setUnsafeDraft(undefined); setActivePage(route.stage); setRouteEntity(""); setOnboarding(false);
     history.pushState(null, "", `${location.pathname}?stage=${encodeURIComponent(route.stage)}`);
     setDirectoryOpen(false);
@@ -973,9 +1103,88 @@ export default function App() {
     await performProjectLifecycle(item, "archive");
   };
 
+  const reloadConflictServer = async () => {
+    if (!draftConflict || !project.id) return;
+    currentDraft.current = undefined;
+    setRestoredDraft(undefined);
+    setDraftConflict((current) => current ? { ...current, serverReloaded: true } : current);
+    const epoch = invalidateWorkspaceNavigation({ ...visibleRoute.current });
+    await loadProject(project.id, epoch);
+  };
+
+  const copyConflictAsProject = async () => {
+    if (!draftConflict) return;
+    const saveGeneration = beginProjectSave();
+    if (!saveGeneration) return;
+    const operation = captureWorkspaceOperation();
+    const staged = draftConflict.scope === "brief"
+      ? { ...draftConflict.workspace, brief: draftConflict.record.payload as WorkspaceProject["brief"] }
+      : workspaceWithStageDraft(draftConflict.workspace, draftConflict.scope, draftConflict.record.payload);
+    const copy: WorkspaceProject = {
+      ...staged,
+      id: undefined,
+      clientDraftOwner: newClientDraftOwner(),
+      revision: 0,
+      lifecycleRevision: 0,
+      lifecycleStatus: "active",
+      archivedAt: null,
+      brief: {
+        ...staged.brief,
+        title: `${staged.brief.title || "未命名项目"}（冲突副本）`,
+      },
+    };
+    try {
+      const created = await createProjectFrom(
+        copy,
+        operation,
+        draftConflict.scope === "brief" ? undefined : draftConflict.scope,
+      );
+      if (!created) return;
+      discardDraftRecord(draftConflict.record);
+      currentDraft.current = undefined;
+      setDraftConflict(undefined);
+      setValidationIssues({});
+      setEditorNonce((value) => value + 1);
+    } catch (copyError) {
+      if (!isWorkspaceOperationCurrent(operation)) return;
+      const issues = validationIssuesFrom(copyError);
+      if (issues.length && draftConflict.scope !== "brief") {
+        setValidationIssues((current) => ({ ...current, [draftConflict.scope as ServerStageName]: issues }));
+      }
+      setError(`无法创建冲突副本：${messageFrom(copyError)}`);
+    } finally {
+      finishProjectSave(operation, saveGeneration);
+    }
+  };
+
+  const requestProjectRefresh = () => {
+    if (!project.id) { setError("空白项目尚无可刷新的服务器版本。"); return; }
+    requestNavigation({
+      project: project.id,
+      stage: activePage,
+      entity: routeEntity,
+      run: activePage === "trace" ? run?.id || "" : "",
+      history: "pop",
+      forceReload: true,
+    });
+  };
+
   const staleCount = project.staleStages.length;
   const currentNav = navigation.find((item) => item.id === activePage)!;
   const running = run?.status === "queued" || run?.status === "running" || run?.status === "cancel_requested";
+  const frozenProfileId = run ? String(run.providerSnapshot.profileId || "default") : "";
+  const frozenProfile = profiles.profiles.find((profile) => profile.profileId === frozenProfileId);
+  const frozenProfileNeedsKey = Boolean(run && run.providerSnapshot.textAuthMode !== "none" && !frozenProfile?.serverKeyAvailable && !providerSessionKeys.read(frozenProfileId));
+  // URL state is authoritative for workspace navigation.  `project.id` only
+  // becomes available after hydration, so it cannot be the source here.
+  const navigationProjectId = visibleRoute.current.project || project.id || "";
+  // A persisted URL project must not briefly expose the blank teaching draft
+  // while its canonical payload is in flight. Apart from misleading authors,
+  // that provisional editor can accept input which is then discarded when the
+  // real project's revision remounts the stage editor.
+  const workspaceHydrating = connection === "loading"
+    && Boolean(navigationProjectId)
+    && project.id !== navigationProjectId;
   const recoveredValue = <T,>(scope: DraftScope, canonical: T): T => restoredDraft?.scope === scope ? restoredDraft.payload as T : canonical;
   const projectReadOnly = project.lifecycleStatus === "archived" || Boolean(project.archivedAt);
   const stageOverview = editableStages.map((stage) => ({
@@ -990,16 +1199,16 @@ export default function App() {
   const page = useMemo(() => {
     switch (activePage) {
       case "brief": return <BriefPage key={`${editorRevisionKey(project, "brief")}:${editorNonce}`} value={recoveredValue("brief", project.brief)} saving={projectSaving || projectReadOnly} onSave={(brief) => commitProject({ brief })} onDraftChange={(value) => rememberDraft("brief", value)} />;
-      case "bible": return <StoryBiblePage key={`${editorRevisionKey(project, "story_bible")}:${editorNonce}`} value={recoveredValue("story_bible", project.storyBible)} stale={project.staleStages.includes("story_bible")} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: StoryBible) => commitStage("story_bible", value)} onDraftChange={(value) => rememberDraft("story_bible", value)} />;
-      case "graph": return <GraphPage key={`${editorRevisionKey(project, "story_graph")}:${editorNonce}`} value={recoveredValue("story_graph", project.storyGraph)} stale={project.staleStages.includes("story_graph")} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: StoryGraph) => commitStage("story_graph", value)} onDraftChange={(value) => rememberDraft("story_graph", value)} />;
-      case "beats": return <SceneBeatsPage key={`${editorRevisionKey(project, "scene_beats")}:${editorNonce}`} value={recoveredValue("scene_beats", project.sceneBeats)} stale={project.staleStages.includes("scene_beats")} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: SceneBeatPlan) => commitStage("scene_beats", value)} onDraftChange={(value) => rememberDraft("scene_beats", value)} />;
-      case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${editorNonce}`} projectId={project.id} revision={stageHeads.storyboard?.revision} contentHash={stageHeads.storyboard?.contentHash} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={projectSaving || projectReadOnly} entityId={routeEntity} onEntitySelect={selectRouteEntity} onSave={(value: Storyboard) => commitStage("storyboard", value)} onDraftChange={(value) => rememberDraft("storyboard", value)} />;
+      case "bible": return <StoryBiblePage key={`${editorRevisionKey(project, "story_bible")}:${editorNonce}`} value={recoveredValue("story_bible", project.storyBible)} stale={project.staleStages.includes("story_bible")} saving={projectSaving || projectReadOnly} entityId={routeEntity} referenceContext={{ sceneBeats: project.sceneBeats, storyboard: project.storyboard }} issues={validationIssues.story_bible} onEntitySelect={selectRouteEntity} onSave={(value: StoryBible) => commitStage("story_bible", value)} onDraftChange={(value) => rememberDraft("story_bible", value)} />;
+      case "graph": return <GraphPage key={`${editorRevisionKey(project, "story_graph")}:${editorNonce}`} value={recoveredValue("story_graph", project.storyGraph)} stale={project.staleStages.includes("story_graph")} saving={projectSaving || projectReadOnly} entityId={routeEntity} sceneReferences={project.sceneBeats.scenes.map((scene) => ({ id: scene.id, storyNodeId: scene.storyNodeId, title: scene.title }))} issues={validationIssues.story_graph} onEntitySelect={selectRouteEntity} onSave={(value: StoryGraph) => commitStage("story_graph", value)} onDraftChange={(value) => rememberDraft("story_graph", value)} />;
+      case "beats": return <SceneBeatsPage key={`${editorRevisionKey(project, "scene_beats")}:${editorNonce}`} value={recoveredValue("scene_beats", project.sceneBeats)} stale={project.staleStages.includes("scene_beats")} saving={projectSaving || projectReadOnly} entityId={routeEntity} referenceContext={{ nodes: project.storyGraph.nodes, characters: project.storyBible.characters, locations: project.storyBible.locations, props: project.storyBible.props, storyboard: { shots: project.storyboard.shots.map(({ id, sceneId, cueIds }) => ({ id, sceneId, cueIds })), shotBeatLinks: project.storyboard.shotBeatLinks.map(({ shotId, beatId }) => ({ shotId, beatId })) } }} issues={validationIssues.scene_beats} onEntitySelect={selectRouteEntity} onSave={(value: SceneBeatPlan) => commitStage("scene_beats", value)} onDraftChange={(value) => rememberDraft("scene_beats", value)} />;
+      case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${editorNonce}`} projectId={project.id} revision={stageHeads.storyboard?.revision} contentHash={stageHeads.storyboard?.contentHash} bible={project.storyBible} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={projectSaving || projectReadOnly} entityId={routeEntity} issues={validationIssues.storyboard} review={storyboardReview} onEntitySelect={selectRouteEntity} onNavigateIssue={(stage, entity) => requestNavigation({ project: navigationProjectId, stage, entity })} onReviewChange={setStoryboardReview} onSave={(value: Storyboard) => commitStage("storyboard", value)} onDraftChange={(value) => rememberDraft("storyboard", value)} />;
       case "trace": return <TracePage run={run} progress={runProgress} trace={trace} executionTrace={executionTrace} running={Boolean(running)} onRun={startRun} onResume={resumeRun} onCancel={cancelRun} />;
       case "quarantine": return <QuarantinePage items={project.quarantines} repairing={busy} onRepair={repair} onRebuildStage={rebuild} />;
     }
   // Commit callbacks intentionally read the current revision at invocation time.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePage, project, busy, projectSaving, run, runProgress, trace, executionTrace, mediaTasks, running, restoredDraft, editorNonce, projectReadOnly, rememberDraft, routeEntity, selectRouteEntity]);
+  }, [activePage, project, busy, projectSaving, run, runProgress, trace, executionTrace, mediaTasks, running, restoredDraft, editorNonce, projectReadOnly, rememberDraft, routeEntity, selectRouteEntity, validationIssues, storyboardReview, requestNavigation, navigationProjectId]);
 
   if (onboarding) return <>
     <WelcomeOnboarding onBlank={startBlankProject} onSample={openSampleProject} onDirectory={openDirectory} />
@@ -1012,17 +1221,19 @@ export default function App() {
       <div className="brand"><div className="brand-mark">PL</div><div><strong>Plotloom</strong><small>叙织 · PIPELINE WORKBENCH</small></div></div>
       <button className="project-switcher" onClick={openDirectory}><span>当前项目 · 切换</span><strong>{project.brief.title || "未命名项目"}</strong><small>{project.id || "unsaved teaching draft"} · r{project.revision}</small></button>
       <nav aria-label="工作台阶段">
-        {navigation.map((item) => <button key={item.id} className={activePage === item.id ? "active" : ""} onClick={() => requestNavigation({ project: project.id || "", stage: item.id, run: item.id === "trace" ? run?.id || "" : "" })}><span>{item.index}</span><div><strong>{item.label}</strong><small>{item.description}</small></div>{item.id === "quarantine" && project.quarantines.length > 0 && <i>{project.quarantines.length}</i>}</button>)}
+        {navigation.map((item) => <button key={item.id} className={activePage === item.id ? "active" : ""} onClick={() => requestNavigation({ project: navigationProjectId, stage: item.id, run: item.id === "trace" ? run?.id || "" : "" })}><span>{item.index}</span><div><strong>{item.label}</strong><small>{item.description}</small></div>{item.id === "quarantine" && project.quarantines.length > 0 && <i>{project.quarantines.length}</i>}</button>)}
       </nav>
       <div className="sidebar-footer"><Button variant="quiet" onClick={() => void openSettings()}>供应商与会话 Key</Button><small>API contract `/api/v2`</small></div>
     </aside>
     <div className="workspace-shell">
-      <header className="topbar"><div><span>{currentNav.index}</span><strong>{currentNav.label}</strong></div><div className="topbar-actions">{projectReadOnly && <Badge tone="warning">归档只读</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>{connection === "connected" ? "API 已连接" : connection === "loading" ? "正在连接" : connection === "error" ? "项目未加载" : connection === "blank" ? "空白项目" : "教学草案"}</Badge>{running && <Spinner label={trace.at(-1)?.stage ? stageLabels[trace.at(-1)!.stage] : "Pipeline"} />}{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}</div></header>
+      <header className="topbar"><div><span>{currentNav.index}</span><strong>{currentNav.label}</strong></div><div className="topbar-actions">{projectReadOnly && <Badge tone="warning">归档只读</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>{connection === "connected" ? "API 已连接" : connection === "loading" ? "正在连接" : connection === "error" ? "项目未加载" : connection === "blank" ? "空白项目" : "教学草案"}</Badge>{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}<Button variant="quiet" disabled={!project.id || connection === "loading"} onClick={requestProjectRefresh}>刷新服务器版本</Button>{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}</div></header>
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       <div className="workbench-grid">
-        <aside className="context-panel"><span className="eyebrow">Context</span><strong>{project.brief.title || "新项目"}</strong><small>{project.lifecycleStatus === "archived" || project.archivedAt ? "归档快照 · 仅供审阅" : project.id ? `项目 ${project.id}` : "空白项目；保存后建立规范项目"}</small><div className="context-stages">{navigation.slice(0, 5).map((item) => <button key={item.id} className={activePage === item.id ? "active" : ""} onClick={() => requestNavigation({ project: project.id || "", stage: item.id })}>{item.index} {item.label}</button>)}</div><div className="context-assets"><span className="eyebrow">Canon assets</span>{bibleAssets.map((asset) => <div key={asset.label}><strong>{asset.label} · {asset.items.length}</strong><small>{asset.items.length ? asset.items.slice(0, 3).map((item) => item.name).join("、") : "尚未定义"}{asset.items.length > 3 ? " …" : ""}</small></div>)}</div></aside>
-        <main id="workspace-main"><fieldset className="editor-host" disabled={projectReadOnly}>{page}</fieldset></main>
-        <aside className="workspace-inspector"><span className="eyebrow">Inspector</span><strong>{currentNav.label}</strong><dl><div><dt>项目版本</dt><dd>r{project.revision}</dd></div><div><dt>实体</dt><dd>{routeEntity || "未选择"}</dd></div></dl><div className="inspector-stages"><span className="eyebrow">Canonical stages</span>{stageOverview.map(({ stage, status }) => <div key={stage}><span>{stageLabels[stage]}</span><Badge tone={status === "ready" ? "ok" : status === "stale" ? "warning" : "neutral"}>{status.toUpperCase()}</Badge></div>)}</div><div className="inspector-run"><span className="eyebrow">Latest run</span>{run ? <><strong>{run.status} · {run.kind}</strong><small>{run.id}</small><small>{run.startedAt ? `开始 ${new Date(run.startedAt).toLocaleString()}` : `创建 ${new Date(run.createdAt).toLocaleString()}`}{run.finishedAt ? ` · 完成 ${new Date(run.finishedAt).toLocaleString()}` : ""}</small></> : <small>尚无运行记录</small>}</div>{projectReadOnly && <p>归档项目不可编辑或运行。请在项目目录中恢复后继续。</p>}</aside>
+        <aside className="context-panel"><span className="eyebrow">Context</span><strong>{project.brief.title || "新项目"}</strong><small>{project.lifecycleStatus === "archived" || project.archivedAt ? "归档快照 · 仅供审阅" : project.id ? `项目 ${project.id}` : navigationProjectId ? `加载项目 ${navigationProjectId}` : "空白项目；保存后建立规范项目"}</small><div className="context-stages">{navigation.slice(0, 5).map((item) => <button key={item.id} className={activePage === item.id ? "active" : ""} onClick={() => requestNavigation({ project: navigationProjectId, stage: item.id })}>{item.index} {item.label}</button>)}</div><div className="context-assets"><span className="eyebrow">Canon assets</span>{bibleAssets.map((asset) => <div key={asset.label}><strong>{asset.label} · {asset.items.length}</strong><small>{asset.items.length ? asset.items.slice(0, 3).map((item) => item.name).join("、") : "尚未定义"}{asset.items.length > 3 ? " …" : ""}</small></div>)}</div></aside>
+        <main id="workspace-main">{workspaceHydrating
+          ? <div className="workspace-hydrating" data-testid="workspace-hydrating" role="status"><Spinner label="正在加载项目" /><strong>正在加载项目…</strong><small>项目内容加载完成后才能编辑，当前导航选择会被保留。</small></div>
+          : <fieldset className="editor-host" disabled={projectReadOnly}>{page}</fieldset>}</main>
+        <WorkspaceInspector currentLabel={currentNav.label} project={project} routeEntity={routeEntity} stageOverview={stageOverview} run={run} progress={runProgress} review={storyboardReview} readOnly={projectReadOnly} frozenProfileId={frozenProfileId} frozenProfileNeedsKey={frozenProfileNeedsKey} onAuthorizeProfile={() => void openFrozenProfileSettings(frozenProfileId)} onOpenTrace={() => requestNavigation({ project: navigationProjectId, stage: "trace", run: run?.id || "" })} onResume={resumeRun} onCancel={cancelRun} onRepair={repair} onRebuild={(stage) => { setRebuildOpen(false); void rebuild(stage); }} />
       </div>
     </div>
     {settingsOpen && <SettingsDialog profiles={profiles} selectedProfileId={selectedProfileId} draft={profileDraft} sessionKey={sessionKey} busy={busy} onDraft={(draft) => { setProfileDraft(draft); setProfileDirty(true); }} onSessionKey={setSessionKey} onSelect={selectProfile} onCreate={() => createProfile(false)} onCopy={() => createProfile(true)} onDelete={deleteProfile} onActivate={activateProfile} onProbe={testProfile} onClose={() => setSettingsOpen(false)} onSave={saveSettings} />}
@@ -1031,7 +1242,7 @@ export default function App() {
     {pendingNavigation && !unsafeDraft && <DraftNavigationDialog onSave={() => void resolvePendingNavigation("save")} onDiscard={() => void resolvePendingNavigation("discard")} onCancel={() => void resolvePendingNavigation("cancel")} />}
     {pendingArchive && <DraftNavigationDialog onSave={() => void resolvePendingArchive("save")} onDiscard={() => void resolvePendingArchive("discard")} onCancel={() => void resolvePendingArchive("cancel")} />}
     {draftRecovery && <DraftRecoveryDialog onRestore={() => { currentDraft.current = { scope: draftRecovery.scope, payload: draftRecovery.payload }; setRestoredDraft(draftRecovery); setEditorNonce((value) => value + 1); setDraftRecovery(undefined); }} onDiscard={() => { discardDraft(project, draftRecovery.scope); setDraftRecovery(undefined); setRestoredDraft(undefined); setEditorNonce((value) => value + 1); }} />}
-    {draftConflict && <DraftConflictDialog onDiscard={() => { discardDraftRecord(draftConflict.record); setDraftConflict(undefined); setEditorNonce((value) => value + 1); }} />}
+    {draftConflict && <DraftConflictDialog serverReloaded={draftConflict.serverReloaded} busy={projectSaving} onReload={() => void reloadConflictServer()} onCopy={() => void copyConflictAsProject()} onDiscard={() => { discardDraftRecord(draftConflict.record); currentDraft.current = undefined; setDraftConflict(undefined); setEditorNonce((value) => value + 1); }} />}
     {unsafeDraft && <UnsafeDraftDialog reason={unsafeDraft.reason} onDiscard={() => {
       const pending = pendingNavigation;
       const { record, reason } = unsafeDraft;
@@ -1042,6 +1253,45 @@ export default function App() {
       if (!remaining && pending) { setPendingNavigation(undefined); applyNavigation(pending); }
     }} />}
   </div>;
+}
+
+function WorkspaceInspector({ currentLabel, project, routeEntity, stageOverview, run, progress, review, readOnly, frozenProfileId, frozenProfileNeedsKey, onAuthorizeProfile, onOpenTrace, onResume, onCancel, onRepair, onRebuild }: {
+  currentLabel: string;
+  project: WorkspaceProject;
+  routeEntity: string;
+  stageOverview: Array<{ stage: ServerStageName; status: string }>;
+  run?: PipelineRun;
+  progress?: RunProgress;
+  review: StoryboardReview | null;
+  readOnly: boolean;
+  frozenProfileId: string;
+  frozenProfileNeedsKey: boolean;
+  onAuthorizeProfile: () => void;
+  onOpenTrace: () => void;
+  onResume: () => Promise<void>;
+  onCancel: () => Promise<void>;
+  onRepair: (item: QuarantineItem) => Promise<void>;
+  onRebuild: (stage: ServerStageName) => void;
+}) {
+  const requiredGates = review?.gateEvaluation?.results.filter((gate) => gate.required) ?? [];
+  const failedRequiredGates = requiredGates.filter((gate) => gate.status !== "pass");
+  return <aside className="workspace-inspector" data-testid="workspace-inspector">
+    <span className="eyebrow">Inspector</span><strong>{currentLabel}</strong>
+    <dl><div><dt>项目版本</dt><dd>r{project.revision}</dd></div><div><dt>实体</dt><dd>{routeEntity || "未选择"}</dd></div></dl>
+    <div className="inspector-stages"><span className="eyebrow">Canonical stages</span>{stageOverview.map(({ stage, status }) => {
+      const stageProgress = progress?.stageProgress.find((candidate) => candidate.stage === stage);
+      return <div key={stage}><span>{stageLabels[stage]}{stageProgress && <small>{stageProgress.completedUnitCount}/{stageProgress.unitCount} units · {stageProgress.sealed ? "SEALED" : "OPEN"}</small>}</span><Badge tone={status === "ready" ? "ok" : status === "stale" ? "warning" : "neutral"}>{status.toUpperCase()}</Badge></div>;
+    })}</div>
+    <div className="inspector-run"><span className="eyebrow">Latest run</span>{run ? <><strong>{run.status} · {run.kind}</strong><small>{run.id}</small><small>{run.startedAt ? `开始 ${new Date(run.startedAt).toLocaleString()}` : `创建 ${new Date(run.createdAt).toLocaleString()}`}{run.finishedAt ? ` · 完成 ${new Date(run.finishedAt).toLocaleString()}` : ""}</small>{progress?.failureCode && <small className="danger-copy">{progress.failureCode}</small>}{frozenProfileNeedsKey && <div className="notice warning"><strong>冻结 Profile 缺少会话 Key</strong><span>{frozenProfileId}；补 Key 后继续，不会自动换模型。</span><Button variant="quiet" onClick={onAuthorizeProfile}>为冻结 Profile 补 Key</Button></div>}<Button variant="quiet" onClick={onOpenTrace}>按需打开 Prompt / 原始响应</Button></> : <small>尚无运行记录</small>}</div>
+    {progress && <details className="inspector-units" open={progress.status === "quarantined"}><summary>Work units · {progress.workUnits.length}</summary>{progress.workUnits.map((unit) => {
+      const attempt = unit.latestAttempt;
+      const quarantine = project.quarantines.find((item) => item.id === unit.workUnitId);
+      return <div className="inspector-unit" key={unit.workUnitId}><strong>{unit.stage} · #{unit.sequence}</strong><small>{unit.status} · seal {unit.sealed ? "yes" : "no"}</small><small>Attempt {attempt ? `${attempt.attemptNumber}/${unit.maxAttempts}` : `—/${unit.maxAttempts}`} · {formatDuration(attempt?.durationMs)} · token {attempt?.inputTokens ?? "—"}/{attempt?.outputTokens ?? "—"}</small>{attempt?.outcomeCode && <small>{attempt.outcomeCode}</small>}{unit.repairEligible && quarantine && <Button variant="quiet" disabled={readOnly} onClick={() => void onRepair(quarantine)}>修复这个 work unit</Button>}</div>;
+    })}</details>}
+    {progress && <div className="inspector-actions"><span className="eyebrow">Server-authorized actions</span>{progress.actions.canResume && <Button variant="quiet" disabled={readOnly} onClick={() => void onResume()}>继续运行</Button>}{progress.actions.canCancel && <Button variant="danger" disabled={readOnly} onClick={() => void onCancel()}>取消运行</Button>}{progress.actions.canRebuildStage && <Button variant="quiet" disabled={readOnly || !progress.failedStage} onClick={() => progress.failedStage && onRebuild(progress.failedStage)}>从失败阶段完整重建</Button>}</div>}
+    <div className="inspector-review"><span className="eyebrow">Gate & Approval</span>{review?.gateEvaluation ? <><strong>{failedRequiredGates.length ? `${failedRequiredGates.length} 个 required gate 未通过` : `${requiredGates.length} 个 required gate 已通过`}</strong><small>{review.gateEvaluation.gateSetVersion}</small></> : <small>尚无 Gate receipt</small>}{review?.activeApproval ? <><Badge tone="ok">APPROVED</Badge><small>{review.activeApproval.reviewer} · r{review.activeApproval.subjectRevision}</small></> : <Badge tone={failedRequiredGates.length ? "danger" : "neutral"}>UNAPPROVED</Badge>}</div>
+    {readOnly && <p>归档项目不可编辑或运行。请在项目目录中恢复后继续。</p>}
+  </aside>;
 }
 
 function SettingsDialog({ profiles, selectedProfileId, draft, sessionKey, busy, onDraft, onSessionKey, onSelect, onCreate, onCopy, onDelete, onActivate, onProbe, onClose, onSave }: { profiles: TextProviderProfilesResponse; selectedProfileId: string; draft: TextProviderProfileView; sessionKey: string; busy: boolean; onDraft: (draft: TextProviderProfileView) => void; onSessionKey: (key: string) => void; onSelect: (profileId: string) => Promise<void>; onCreate: () => Promise<void>; onCopy: () => Promise<void>; onDelete: () => Promise<void>; onActivate: () => Promise<void>; onProbe: () => Promise<void>; onClose: () => void; onSave: () => Promise<void> }) {
@@ -1082,8 +1332,8 @@ function DraftRecoveryDialog({ onRestore, onDiscard }: { onRestore: () => void; 
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-recovery-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>Session recovery</span><h2 id="draft-recovery-title">发现未保存草稿</h2></div></header><div className="modal-body"><div className="notice"><strong>可恢复</strong><span>此草稿保存在当前标签页 sessionStorage，尚未写入服务器。</span></div></div><footer><Button variant="quiet" onClick={onDiscard}>丢弃草稿</Button><Button variant="primary" onClick={onRestore}>恢复草稿</Button></footer></section></div>;
 }
 
-function DraftConflictDialog({ onDiscard }: { onDiscard: () => void }) {
-  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-conflict-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>Draft conflict</span><h2 id="draft-conflict-title">草稿版本已过期</h2></div></header><div className="modal-body"><div className="notice warning"><strong>仅可丢弃</strong><span>服务器项目已经更新。为避免用旧草稿覆盖新版本，此草稿不可恢复或保存。</span></div></div><footer><Button variant="danger" onClick={onDiscard}>丢弃过期草稿</Button></footer></section></div>;
+function DraftConflictDialog({ serverReloaded, busy, onReload, onCopy, onDiscard }: { serverReloaded: boolean; busy: boolean; onReload: () => void; onCopy: () => void; onDiscard: () => void }) {
+  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-conflict-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>Draft conflict</span><h2 id="draft-conflict-title">草稿版本已过期</h2></div></header><div className="modal-body"><div className="notice warning"><strong>草稿已保护，不会强制覆盖</strong><span>{serverReloaded ? "已重新加载服务器规范版本；冲突草稿仍保留，可复制成独立项目。" : "服务器项目已经更新。可先查看服务器版本，或把当前草稿及其连续阶段前缀复制成新项目。"}</span></div></div><footer><Button variant="quiet" disabled={busy || serverReloaded} onClick={onReload}>{serverReloaded ? "已加载服务器版本" : "重新加载服务器版本"}</Button><Button variant="primary" disabled={busy} onClick={onCopy}>{busy ? "正在复制…" : "复制草稿为新项目"}</Button><Button variant="danger" disabled={busy} onClick={onDiscard}>丢弃冲突草稿</Button></footer></section></div>;
 }
 
 function UnsafeDraftDialog({ reason, onDiscard }: { reason: "archived" | "unavailable"; onDiscard: () => void }) {

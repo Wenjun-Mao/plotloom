@@ -10,22 +10,23 @@
 
 | 观察面 | 当前判断 | 它真正说明什么 |
 |---|---:|---|
-| 规范领域与“输入 → 分镜”后端核心 | **约 97%** | 稳定 ID、四阶段 V2 合同、确定性 DAG 骨架、结构化对白/声音/实体状态、确定性时间线、版本化 Gate/Approval、内容绑定、命名 profile、显式有限纠错、领域分片、精确 work-unit repair、封存聚合和原子安装均已实现。M1 后端剩余工作主要是完整浏览器编辑与真实创作质量验收；ProductionSnapshot/ProductionUnit 属于 M2。 |
-| 可供创作者连续使用的本地 Alpha | **约 82%** | React 工作台已支持命名 profile、session-only key、预设、测试、生成、项目目录、草稿保护、生命周期操作、URL 导航、轻量逐 unit 进度、精确修复及 Gate/Approval 摘要；原子首次保存和双 profile 3× 验收均已通过。全部规范字段的类型化编辑、issue 定位和端到端隔离→修复→批准旅程仍未完成。 |
+| 规范领域与“输入 → 分镜”后端核心 | **约 97%** | 稳定 ID、四阶段 V2 合同、确定性 DAG 骨架、结构化对白/声音/实体状态、确定性时间线、版本化 Gate/Approval、内容绑定、命名 profile、显式有限纠错、领域分片、精确 work-unit repair、封存聚合和原子安装均已实现。M1 剩余出口主要是真实创作质量验收；ProductionSnapshot/ProductionUnit 属于 M2。 |
+| 可供创作者连续使用的本地 Alpha | **约 90%（M1-B1 本地完成）** | 四阶段的当前 V2 字段已有类型化编辑、稳定 ID 增删重排、显式关系迁移、字段级 issue 定位、项目目录/草稿/URL/生命周期、逐 unit 进度、冻结 Profile Key gate、精确修复和 Gate/Approval；完整本地 checkpoint 与真实 FastAPI 的精确 repair→批准→刷新旅程已通过。M1-C 的 18 条真实流水线和独立内容评审仍是 Alpha 出口。 |
 | 可独立发布的新仓库产品 | **约 65–70%** | Plotloom 已进入全新仓库，独立依赖、wheel、生产 UI、边界门和远端 CI 已建立；本地 E2E 竞态已修复，仍缺新远端收据、干净机器升级/恢复与图像/视频真实供应商 smoke。 |
 
 这些百分比是路线规划估计，不是测试覆盖率，也不能相加。可复核的当前基线是：
 
 - 已盘点 **35 项能力**：2 项达到 L6 真实运行验收，4 项达到 L5 本地产品/浏览器验证，16 项达到 L4 自动验证，3 项停在 L3 实现层，4 项已到 L2 合同层，1 项只有 L1 决策，5 项是明确的 Defer/Reject；是否完成仍取决于该行目标是 L4、L5、L6 还是 L7；
-- `uv run pytest -q`：M1-12A 工作树为 **305 passed / 9 个明确延后到 M2 的旧媒体执行规格 / 78 warnings**；
-- `npm --prefix frontend test`：**72 passed**；
+- `uv run pytest -q`：M1-B1 checkpoint 为 **318 passed / 9 个明确延后到 M2 的旧媒体执行规格 / 264 warnings**；
+- `npm --prefix frontend test`：**115 passed**；
+- M1-B1 已通过完整编辑器/应用 suite，以及真实 FastAPI、公开 HTTP fake-provider 的精确 repair → 原子安装 → Approval → 刷新旅程；加载态、URL hydrate 竞态、SceneBeat 下游引用披露和 secret-free `422` 都有回归；
 - Plotloom TypeScript、E2E TypeScript、Vite 生产构建与 wheel 安装 smoke 通过；
-- 浏览器回归现有 **14/14 个场景通过**：4 个首次保存、2 个 provider，以及 8 个项目目录/导航场景；后者覆盖显式 onboarding、双项目切换、前进/后退、草稿三向保护与刷新恢复、归档/恢复/安全永久删除、duplicate 幂等重放、entity/run URL 状态和延迟响应隔离。测试连接真实 FastAPI，但不会联系真实 provider。最新远端收据仍待 M1-C 统一推送后取得；
+- 浏览器回归现有 **21/21 个场景通过**：首次保存、命名 profile/session key、项目生命周期与导航、四阶段编辑、结构删除影响、冻结 profile 恢复、精确 repair、Approval 和刷新 lineage 均通过。测试连接真实 FastAPI；生成旅程只联系进程内公开 HTTP fake-provider。最新远端收据仍待 M1-C 统一推送后取得；
 - 经用户授权的[隔离 live smoke 收据](../verification/2026-09-02-local-text-smoke.md)使用服务公布的 `gemma4`：127.4 秒完成 6 次调用/6 个 work units，四阶段全部封存并一次安装，零验证失败；`.env` 中的配置名仍是未被服务公布的 `gemma-4-26B-A4B-it-Q4_K_M.gguf`，需另行对齐，且该收据不代表 Qwen、图像或视频已验收；
 - [M1.5 严格验收收据](../verification/2026-09-03-m15-conformance.jsonl)记录两个已保存真实 profile 各 3 次固定中文 Brief：6/6 run 原子成功，双方均为 12/12 阶段首次通过、最大 attempt 1、零 issue 与零 unknown outcome；profile、workload、run 与 topology 均以 hash/稳定 ID 存证，不保存 endpoint、模型名、IP、prompt、response 或密钥；
 - Plotloom-only wheel、模板、迁移树、静态 UI 与禁止 V1 依赖的提取演练包含在上述 Python gate 中；
 - [远端 CI run 33671097019](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019) 已在 `3bf4551` 成功完成前端、Python、wheel、安装 smoke 和浏览器步骤；
-- **当前发布阻断：**完成全部规范字段编辑与 issue 定位、M1-C 浏览器/真实文本/盲评验收、补新远端无 flaky 收据，以及干净机器安装/升级/恢复。图片/视频生产已按 ADR 0016 硬停，必须等 M2 的 ProductionSnapshot/ProductionUnit 合同完成后再做真实供应商 smoke；当前独立仓库仍不是发布候选。
+- **当前发布阻断：**完成 M1-C 的 18 条真实文本流水线与独立盲评验收，补新远端无 flaky 收据，以及干净机器安装/升级/恢复。图片/视频生产已按 ADR 0016 硬停，必须等 M2 的 ProductionSnapshot/ProductionUnit 合同完成后再做真实供应商 smoke；当前独立仓库仍不是发布候选。
 
 ## 比较对象和证据边界
 
@@ -75,13 +76,13 @@
 |---|---|---|---|---|---|---|
 | A01 | 项目简报与生成边界 | 表单直接表达片名、梗概、类型、画幅、视觉风格和生成规模，反馈短 | 从原文、集数、时长、题材和改编幅度开始，强调保留/删改取舍 | **Adapt** 两者输入，统一成严格 `ProjectBrief` | **L5/L5** | 合同与校验在 [`domain.py`](../../src/plotloom/domain.py)；stage-first 创建、hydrate 与刷新恢复稳定通过。Brief-first E2E 已改为等待 PATCH 成功响应，本地连续 30 次通过；最新远端收据仍是修复前 flaky，等待新 CI 收据。 |
 | A02 | 项目生命周期与工作区 | 本地项目保存、恢复快照、服务器备份和项目内素材形成连续工作区 | 独立工作目录和 JSON 便于审阅、Git diff 与交接 | **Rebuild** 为 Plotloom 项目服务 | **L5/L5** | [ADR 0014](../adr/0014-project-lifecycle-and-workbench.md) 固定并实现 active/archive 独立 lifecycle revision、跨进程原子 busy guard、安全永久删除、连续 READY 前缀 duplicate、显式保存与 sessionStorage 草稿恢复、URL/epoch 隔离及原创三栏工作台。真实 FastAPI 浏览器旅程覆盖 list/create/switch/archive/restore/delete/duplicate、草稿恢复、历史导航和 delayed-response 隔离。 |
-| A03 | 故事圣经、角色、地点、道具 | 角色卡和场景卡贴近媒体生成工作台 | cast/art 分开建立 C/S/P 资产和视觉、声音、连续性规格 | **Adapt** 为稳定 ID 的 `StoryBible` | **L4/L5** | 后端合同、引用校验和生成阶段已测；[`StoryBiblePage.tsx`](../../frontend/src/pages/StoryBiblePage.tsx) 只编辑部分字段，地点/道具、traits 等尚无完整 UI。 |
-| A04 | 互动剧情图、选择、汇流与结局 | `choices`/`next` 和播放器证明互动路线的产品价值 | 五阶段流程没有互动图，可作为明确反例边界 | **Rebuild** 为可达 DAG、state effects 和 join contracts | **L4/L5** | 图、环、可达、结局和汇流验证已测；[`GraphPage.tsx`](../../frontend/src/pages/GraphPage.tsx) 已有画布，但节点增删、边属性和 join contract 编辑不完整。 |
-| A05 | 戏剧场次、节拍与连续性 | 暴露动作、对白、首尾状态，但 V1 的 `scene` 实际近似 shot | `script.flow` 明确保留 action/line beat、场次和时长 | **Rebuild** 为稳定 `DramaticScene` + `Beat` + `ContinuityState` | **L4/L5** | 规范模型与跨引用/连续覆盖测试通过；[`SceneBeatsPage.tsx`](../../frontend/src/pages/SceneBeatsPage.tsx) 只覆盖部分字段和操作。 |
-| A06 | 分镜、镜头与节拍覆盖 | 单镜头编辑、媒体按钮和按路线预览形成短反馈回路 | segment/cut、时长和 exact-once coverage 提供清晰生产规格 | **Adapt** 为 `Shot` + many-to-many `ShotBeatLink`；主剪可另作派生投影 | **L4/L5** | Shot/coverage 合同和按路径分组已测；[`StoryboardPage.tsx`](../../frontend/src/pages/StoryboardPage.tsx) 尚不能完整增删重排、编辑全部镜头字段或可视化覆盖关系。 |
+| A03 | 故事圣经、角色、地点、道具 | 角色卡和场景卡贴近媒体生成工作台 | cast/art 分开建立 C/S/P 资产和视觉、声音、连续性规格 | **Adapt** 为稳定 ID 的 `StoryBible` | **L4/L5** | 当前 M1-B1 工作树的 [`StoryBiblePage.tsx`](../../frontend/src/pages/StoryBiblePage.tsx) 已编辑角色、地点、道具、traits、事实、问题、来源、状态和视觉/声音锚点；删除先呈现下游影响，`issues[].path` 可定位字段。focused editor tests 已通过；退出条件是完整 checkpoint gate。 |
+| A04 | 互动剧情图、选择、汇流与结局 | `choices`/`next` 和播放器证明互动路线的产品价值 | 五阶段流程没有互动图，可作为明确反例边界 | **Rebuild** 为可达 DAG、state effects 和 join contracts | **L4/L5** | 当前 [`GraphPage.tsx`](../../frontend/src/pages/GraphPage.tsx) 支持节点、边与汇流合同的增删和字段编辑；边重连、节点 kind 改动及删除先说明影响，稳定 ID 不因编辑丢失。ID/数组路径的 issue 会定位到对应实体/字段；退出条件是完整 checkpoint gate。 |
+| A05 | 戏剧场次、节拍与连续性 | 暴露动作、对白、首尾状态，但 V1 的 `scene` 实际近似 shot | `script.flow` 明确保留 action/line beat、场次和时长 | **Rebuild** 为稳定 `DramaticScene` + `Beat` + `ContinuityState` | **L4/L5** | 当前 [`SceneBeatsPage.tsx`](../../frontend/src/pages/SceneBeatsPage.tsx) 支持场景、Beat、DialogueCue 的增删重排和全部当前 V2 编辑字段；`Beat.sceneId` 与 `DialogueCue.beatId` 是先显示影响再确认的稳定-ID 迁移，而不是隐藏重建。focused editor tests 已通过；退出条件是完整 checkpoint gate。 |
+| A06 | 分镜、镜头与节拍覆盖 | 单镜头编辑、媒体按钮和按路线预览形成短反馈回路 | segment/cut、时长和 exact-once coverage 提供清晰生产规格 | **Adapt** 为 `Shot` + many-to-many `ShotBeatLink`；主剪可另作派生投影 | **L4/L5** | 当前 [`StoryboardPage.tsx`](../../frontend/src/pages/StoryboardPage.tsx) 支持镜头、AudioPlan、DialogueCue 调度、实体连续性状态和 `ShotBeatLink` 的编辑、增删与重排；Shot 跨场景移动明确列出 cue/link 影响并保持 ID。媒体仍是 ADR 0016 的明确占位，未伪造生产完成；退出条件是完整 checkpoint gate。 |
 | A07 | 线性分集短剧 | V1 有独立 serial 模式与分集导出 | shuohao 的集/场/段/切/秒数链对线性 AI 短剧更完整 | **Defer** 为规范模型的线性投影，不成为第二套核心 | **D** | [ADR 0003](../adr/0003-v2-strangler-architecture.md) 首发只做互动项目。重新开启条件：互动 Alpha 稳定，且 episode/linear projection ADR 获批。 |
 | A08 | 无 Key 教学样例与确定性 bootstrap | 本地模板无需供应商即可创建可操作草案，适合首次启动、演示和 E2E | 各阶段 deterministic seed 能复制已批准事实，但不会替 agent 创作语义 | **Adopt** 教学/测试价值，不把固定模板冒充生产生成器 | **L5/L5** | [`demo.ts`](../../frontend/src/demo.ts) 提供完整教学项目和 trace；真实浏览器已从无项目教学工作区保存完整四阶段前缀，并在刷新后恢复、呈现和继续编辑分镜。 |
-| A09 | 结构化对白、声音、时间线与资产状态 | V1 的镜头表单、角色/场景卡和媒体预览证明这些信息必须在同一工作流可见，但自由字符串与可变场景对象不可保留 | script/storyboard 的 speaker、动作/台词估时、声音、连续性、角色/地点/道具状态提供生产规格 | **Adapt** 为 `DialogueCue`、`AudioPlan`、场次顺序/时间线和稳定实体状态引用 | **L4/L5** | [ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md) 与迁移 0010 已实现 V2-only 当前作者合同、毫秒整数时长、版本化对白估时、结构化声音/实体状态、scene→beat→shot 连续性和确定性 scene/node/path timecode；Prompt、fragment binder、全局验证与测试已对齐。退出条件是 M1-B1 类型化编辑与真实浏览器旅程。 |
+| A09 | 结构化对白、声音、时间线与资产状态 | V1 的镜头表单、角色/场景卡和媒体预览证明这些信息必须在同一工作流可见，但自由字符串与可变场景对象不可保留 | script/storyboard 的 speaker、动作/台词估时、声音、连续性、角色/地点/道具状态提供生产规格 | **Adapt** 为 `DialogueCue`、`AudioPlan`、场次顺序/时间线和稳定实体状态引用 | **L4/L5** | [ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md) 与迁移 0010 已实现 V2-only 当前作者合同、毫秒整数时长、版本化对白估时、结构化声音/实体状态、scene→beat→shot 连续性和确定性 scene/node/path timecode；当前 M1-B1 工作树已在 Scene/Storyboard 编辑器呈现这些字段。Prompt、binder 与全局验证已对齐；退出条件是完整 checkpoint gate。 |
 
 ### B. LLM Prompt、响应与可解释生成
 
@@ -91,9 +92,9 @@
 | B02 | 响应抽取、schema 与语义验证 | 安装器已有重复 key、目标和规模检查 | 每层 validator/selftest 体现“模型输出不能直接成为主数据” | **Adapt/Rebuild** 为同一条 parse → schema → semantic 链 | **L4/L4** | [`generation/responses.py`](../../src/plotloom/generation/responses.py) 与 [`generation/validation.py`](../../src/plotloom/generation/validation.py) 有严格测试；只有 `message.content` 的字符串或显式 `text`/`output_text` part 可进入抽取，reasoning/未知 part 只作原始证据，且不会从任意说明文字截取 JSON。 |
 | B03 | 四阶段原子流水线与 stale 传播 | V1 一键生成体验可保留，但整树响应和可变安装不可保留 | 显式阶段交接可保留，但手工重跑不可作为 runtime | **Rebuild** 为连续阶段范围、不可变 snapshot、事务安装 | **L4/L4** | [`pipeline.py`](../../src/plotloom/pipeline.py) 与 repository 测试覆盖原子四阶段提交、并发编辑和下游 stale。 |
 | B04 | Revision、Prompt Inspector 与 provenance | V1 缺少“哪个输入/提示/响应生成此结果”的完整链 | 文件和 gate log 有局部来源，但没有统一 revision/hash 图 | **Rebuild** 为 Run/Attempt/Artifact/EntityRevision | **L4/L5** | 后端持久化完整 trace，前端 [`TracePage.tsx`](../../frontend/src/pages/TracePage.tsx) 可查看；下一步是浏览器 E2E 证明刷新后仍能完整追溯。 |
-| B05 | 隔离、人工修复与 AI 修复血缘 | V1 失败多停在提示或宽容安装 | shuohao 门能拒绝，但批准/修复未绑定精确版本 | **Rebuild** 为 quarantine 和证据冻结的 child run | **L4/L5** | [ADR 0015](../adr/0015-exact-work-unit-repair.md) 已实现不可变 child scope、服务端资格判定、成功 sibling/upstream fragment binding、仅目标 unit 重试、重新聚合、下游重规划和全范围原子安装；stale、cross-run、unknown、cancel、restart、篡改及永久删除均有对抗测试。下一出口是完成真实 FastAPI 浏览器隔离→精确修复→刷新复核旅程。 |
-| B06 | 确定性质量门与创作 eval | V1 测试覆盖运行路径，不能证明镜头好看 | 17 道门、逐门击穿 fixture 和失败统计思想很有价值 | **Adapt** 为带版本和证据的 `GateResult`；艺术质量单独人工评审 | **L4/L5** | `storyboard.v2` GateResult 由服务端从精确规范 revision 重算并与安装原子持久化，覆盖顺序、预算、对白归属/时长/调度、声音时间、实体引用/状态、PRIMARY/SUPPORTING coverage 及 beat/shot 连续性；required skipped 明确失败，伪造 receipt 被拒绝。退出条件是 field-path UI、浏览器击穿旅程和 M1-C 固定故事 rubric。 |
-| B07 | 人工批准点 | V1 的“保存/生成”是操作，不是版本化批准 | 阶段文件天然形成审阅点，但批准不绑定 revision | **Rebuild** 为精确 revision/hash 的 approval/decision；保存不等于批准 | **L4/L5** | 迁移 0010、repository 与 API 已实现不可变 approve/revoke ledger，绑定精确 storyboard revision、content hash、上游 revisions 与 gate-set；上游/head 变化自动使旧批准 stale，归档项目不可追加决定。工作台已能读取 Gate/Approval 和创建决定，退出条件是完整错误定位、刷新 lineage 与浏览器验收。Reviewer 当前是单机/私有 tailnet 工作台中的用户标签，不是认证身份。 |
+| B05 | 隔离、人工修复与 AI 修复血缘 | V1 失败多停在提示或宽容安装 | shuohao 门能拒绝，但批准/修复未绑定精确版本 | **Rebuild** 为 quarantine 和证据冻结的 child run | **L5/L5** | [ADR 0015](../adr/0015-exact-work-unit-repair.md) 已实现不可变 child scope、服务端资格判定、成功 sibling/upstream fragment binding、仅目标 unit 重试、重新聚合、下游重规划和全范围原子安装；stale、cross-run、unknown、cancel、restart、篡改及永久删除均有对抗测试。M1-B1 精确 repair Playwright 旅程以真实 FastAPI 与公开 HTTP fake-provider 证明：只有隔离 shard 重发、sibling hash 不变、四阶段原子安装、Approval 与刷新 lineage 均保持。完整 checkpoint 已通过。 |
+| B06 | 确定性质量门与创作 eval | V1 测试覆盖运行路径，不能证明镜头好看 | 17 道门、逐门击穿 fixture 和失败统计思想很有价值 | **Adapt** 为带版本和证据的 `GateResult`；艺术质量单独人工评审 | **L4/L5** | `storyboard.v2` GateResult 由服务端从精确规范 revision 重算并与安装原子持久化，覆盖顺序、预算、对白归属/时长/调度、声音时间、实体引用/状态、PRIMARY/SUPPORTING coverage 及 beat/shot 连续性；required skipped 明确失败，伪造 receipt 被拒绝。编辑器能按 `issues[].path` 选择并聚焦可编辑字段；退出条件是 M1-C 固定故事 rubric。 |
+| B07 | 人工批准点 | V1 的“保存/生成”是操作，不是版本化批准 | 阶段文件天然形成审阅点，但批准不绑定 revision | **Rebuild** 为精确 revision/hash 的 approval/decision；保存不等于批准 | **L5/L5** | 迁移 0010、repository 与 API 已实现不可变 approve/revoke ledger，绑定精确 storyboard revision、content hash、上游 revisions 与 gate-set；上游/head 变化自动使旧批准 stale，归档项目不可追加决定。工作台能读取 Gate/Approval、创建决定并在真实 exact-repair 浏览器旅程中刷新复核。Reviewer 当前是单机/私有 tailnet 工作台中的用户标签，不是认证身份。 |
 | B08 | Provider Profile、生成计划、分片工作单元与封存聚合 | V1 有用户可见规模限制和单次调用，但取消主要只是停止前端观察 | 五阶段按文件/批次控制规模，但没有在线、可恢复的 shard lifecycle | **Rebuild** 为冻结 `ProviderProfile` 的 `GenerationPlan → StagePlan → GenerationWorkUnit → SealedStageAggregate`，显式定义超时、未知结果、纠错和取消 | **L6/L6** | 命名且 revisioned 的**文本** profile、三个版本化预设、确定性最小 Story Graph 骨架、content-only binder、fragment local alias→selector/order UUIDv5、selector-owned parent 注入、封闭 PRIMARY beat→shot 映射、显式 join continuity keys、最多两次可见 correction、response-after-crash 本地续跑、0007 稳定 run failure code 和 secret-free conformance 收据均通过自动测试。planner 的输入数值是 byte estimate，精确 context 由 provider tokenizer 判定；0006 已安全终止旧非终态 run 并要求重提。[严格 3×2 收据](../verification/2026-09-03-m15-conformance.jsonl)证明两个指定 profile 各 3/3、固定 `workloadHash` 下各 `sampleOrdinal` 唯一，且双方均 12/12 阶段首次通过。M1-R 进一步证明 repair child 继承冻结 profile、只重试目标 unit、复用绑定经 hash 验证且下游 seal 不跨 dependency 复用。 |
 
 ### C. Provider、媒体生产与输出
@@ -115,10 +116,10 @@
 | ID | 能力 | Narrative Forge 可取之处 | shuohao-skills 可取之处 | Plotloom 决定 | 成熟度/目标 | 当前证据与下一退出条件 |
 |---|---|---|---|---|---|---|
 | D01 | SQLite、迁移与并发写入 | 项目文件、原子保存和备份易理解，但缺细粒度事务 | 分层 JSON 易 diff，但依赖操作者管理一致性 | **Rebuild** 为 repository、Alembic、optimistic revision | **L4/L5** | SQLite/WAL/外键、迁移、原子 rollback、startup reconciliation 及跨 repository 并发幂等测试通过；写锁耗尽会返回带 `Retry-After` 的可控 503。仍需安装版数据恢复演练和用户可见备份/导出。 |
-| D02 | React 工作台与完整用户旅程 | 浏览器内创作→媒体→预览的单一工作台是核心产品价值 | 分阶段操作和报告适合清晰导航 | **Adapt** 为七页 Plotloom 工作台 | **L5/L5**（M1-B0） | [ADR 0014](../adr/0014-project-lifecycle-and-workbench.md) 的项目目录、URL/epoch 导航、显式保存、sessionStorage 草稿恢复、生命周期操作和 Plotloom 原创三栏布局均已实现；真实 FastAPI 浏览器旅程覆盖项目切换、历史导航、冲突、归档/恢复/复制/删除和延迟响应隔离。精确 repair 和 Gate/Approval 已接入工作台，M1-B1 继续完成全部字段编辑、issue 聚焦和综合旅程。 |
+| D02 | React 工作台与完整用户旅程 | 浏览器内创作→媒体→预览的单一工作台是核心产品价值 | 分阶段操作和报告适合清晰导航 | **Adapt** 为七页 Plotloom 工作台 | **L5/L5**（M1-B0/M1-B1） | [ADR 0014](../adr/0014-project-lifecycle-and-workbench.md) 的项目目录、URL/epoch 导航、显式保存、sessionStorage 草稿恢复、生命周期操作和 Plotloom 原创三栏布局均已实现；M1-B1 补齐四阶段编辑、关系影响确认、issue 路径聚焦、逐 unit Inspector、冻结 profile key gate 与 Gate/Approval。真实 FastAPI exact-repair→Approval→刷新旅程及整套 checkpoint gate 均通过。 |
 | D03 | Plotloom 导入、导出、备份与可移植项目 | V1 project JSON/备份能带走作品，但直接安装 JSON、标题目录和无保留策略不安全 | 五层 JSON/Markdown/manifest 便于审阅交接 | **Rebuild** Plotloom canonical 格式；**Reject** 首发 legacy migration | **L1/L5** | [初始提取来源](../provenance/initial-extraction.md) 定义 Plotloom-only 数据边界；退出条件还必须覆盖格式版本、预检、hash/manifest、冲突策略、原子导入、稳定 project ID、备份保留/清理和空 data-dir 恢复。任何 V1/shuohao 导入只能在未来另立迁移 ADR。 |
 | D04 | 无 V1 依赖的提取、打包与新仓库 | V1 只作为比较和行为证据存在 | shuohao 的自包含边界提醒我们保持模块独立，但不复制其规则重复 | **Rebuild** 为单包、单 UI、可移动 roots | **L5/L7** | 全新 Plotloom 仓库、fresh history、依赖边界、独立 wheel/资源探测和生产 bundle 已建立；[远端 CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019) 已成功，但应先消除浏览器 flaky，再完成干净安装/升级/卸载数据策略与恢复收据。 |
-| D05 | E2E、真实供应商与创作质量验证 | V1 有浏览器/媒体/导出行为可作回归样例 | selftest 的击穿 fixture 纪律值得采用 | **Adapt** 为分层验证金字塔 | **L5/L6** | M1-12A 工作树已有 305 个 Python、72 个前端单元测试和 14 个真实 FastAPI 浏览器场景通过；9 个 pre-ProductionSnapshot provider-execution 规格明确冻结到 M2。首次保存竞态另有 30/30 与锁文件重装后 15/15 的重复证据，M1.5 双 profile 3× 固定故事验收为 6/6 run、双方 12/12 阶段首次通过。仍待精确修复/Approval 综合浏览器旅程、新远端 CI 和 M1-C 固定故事独立盲评；媒体 smoke 属于 M2。 |
+| D05 | E2E、真实供应商与创作质量验证 | V1 有浏览器/媒体/导出行为可作回归样例 | selftest 的击穿 fixture 纪律值得采用 | **Adapt** 为分层验证金字塔 | **L5/L6** | M1-B1 本地 checkpoint 已有 318 个 Python、115 个前端单元测试和 21 个真实 FastAPI 浏览器场景通过；9 个 pre-ProductionSnapshot provider-execution 规格明确冻结到 M2。新远端 CI 与 M1-C 三故事真实生成/独立盲评仍未完成；媒体 smoke 属于 M2。 |
 | D06 | 本地安全与远程部署边界 | loopback、URL 检查、secret-free config 和“远程必须私有”警告应保留 | 不是常驻 Web 服务，不能提供可直接采用的部署边界 | **Adapt local/Tailnet boundary / Defer public multi-user** | **L4/L4**（本地/Tailnet）/ **D**（公开部署） | 已实现并测试可信 HTTP(S) root、loopback/LAN/Tailnet、URL 凭据/query/fragment/非法端口拒绝、无重定向、`authMode=none` 不发送 Authorization、session/server key 边界和禁止媒体请求级 profile 覆盖。未加外部认证的远程实例必须保持私有。 |
 | D07 | 来源、许可证与可解释吸收 | 上游/fork/本地修订必须分开归属 | Apache NOTICE 和私有 shot-recipes 边界必须明确 | **Adopt** 固定版本与第三方治理 | **L4/L7** | [`SOURCES.md`](../storyboard-handbook/SOURCES.md)、[`THIRD_PARTY_NOTICES.md`](../storyboard-handbook/THIRD_PARTY_NOTICES.md)、根 `LICENSE`/`NOTICE` 已建立；新仓库发行前再做一次文件级 provenance 扫描。 |
 | D08 | 可插拔 shot recipe/镜头语汇 | V1 没有独立、版本化配方合同 | 公开 repo 有 `--shots` 接口、解析器和最小 fixture；完整卡库是私有材料 | **Defer interface / Reject private content as evidence** | **D/R** | 只可将自研或明确授权的卡作为未来 adapter 输入。私有库的内容、质量和覆盖永远不计入“已吸收”。 |
@@ -187,14 +188,15 @@
 ### M1-B：截图级连续创作工作台
 
 - [x] **M1-B0：**按 [ADR 0014](../adr/0014-project-lifecycle-and-workbench.md) 实现项目 list/create/switch/archive/restore/永久 delete/duplicate、空白/样例新建、显式保存与 `sessionStorage` 草稿恢复；URL 是导航事实源，异步请求按 epoch 隔离。跨进程 lifecycle revision、archive 只读/busy guard、永久删除确认、最大连续 READY 前缀复制及 delayed-response 浏览器旅程均有自动验证，并保留 1440×900 工作台视觉基线。
-- [ ] StoryBible、Graph、SceneBeatPlan、Storyboard 全合同字段的可理解编辑，包括节点/边、场次/节拍、镜头/ShotBeatLink 的增删重排。
-- [ ] 左侧资产上下文、中间场景/镜头列表和右侧完整 Inspector 连成一个工作区；无媒体明确显示占位。
-- [ ] 已展示 stage/work-unit 进度、失败路径、精确 repair/rebuild 和刷新后 run 观察；仍需 GateResult 及完整的 422/provider 可行动错误展示。
-- [ ] 完成隔离 → 修复 → 聚合 → 原子安装 → 刷新复核的浏览器旅程。
+- [x] **M1-B1 编辑合同：**StoryBible、Graph、SceneBeatPlan、Storyboard 的当前 V2 字段都有可理解的编辑器；稳定 ID 的节点/边、场次/节拍/DialogueCue、镜头/ShotBeatLink 支持增删重排。跨记录关系迁移先显示影响并确认，不隐藏级联。
+- [x] **M1-B1 工作台反馈：**左侧资产/项目上下文、中间 stage 编辑和右侧 Inspector 连成一个工作区；Inspector 显示 stage/work-unit、attempt、token、seal、失败码、Gate/Approval 与服务端授权动作。无媒体仍是明确占位。
+- [x] **M1-B1 可行动恢复：**server schema/domain `422` 保留草稿和 `issues[].path`，编辑器可选择并聚焦对应字段；刷新保留 URL entity/run。bearer run 缺其冻结 Profile 的 server/session key 时不自动恢复、不换 profile。
+- [x] **M1-B1 精确 repair 旅程：**真实 FastAPI + 公开 HTTP fake-provider 浏览器测试证明隔离 shard 经“修复这个 work unit”重试，成功 sibling hash 不变，四阶段重新封存并原子安装，Approval 后刷新仍可追溯。
+- [x] **M1-B1 checkpoint：**全量 Python、前端、类型、Vite/静态 bundle、Prompt Lab、wheel 安装和 9-worker 浏览器 gate 已通过；Approval hydrate 竞态在全量 gate 暴露后以 canonical loading contract 修复，并经并行重复验证。
 
 ### M1-C：Alpha 验收
 
-- [ ] fake-provider 覆盖分片缺失/重复/冲突、并发编辑、取消竞态、未知提交结果、重启、repair 和无部分安装。
+- [x] fake-provider 与确定性后端矩阵覆盖分片缺失/重复/聚合冲突、并发编辑、取消竞态、未知提交结果、重启、精确 repair 和无部分安装；真实浏览器 repair 旅程进一步证明 sibling reuse 与全范围原子安装。
 - [ ] 对两个已保存 profile 运行三份固定中文故事、每份重复三次，共 18 条真实全流水线；记录匿名 profile、prompt/schema/topology hash、成功率、耗时、token 和脱敏失败分布。
 - [ ] 从每个 profile × 故事确定性抽取 6 条样本，由 Codex 按叙事清楚度、分支因果、人物/空间/道具连续性、表演可读性、镜头语言、节奏和修改成本做独立工程门评审；结果绑定准确 snapshot，明确不冒充人类评审或产品 Approval。
 

@@ -9,6 +9,7 @@ from time import monotonic
 from typing import Annotated, Any, Callable, Literal, Mapping, Protocol
 
 from fastapi import FastAPI, HTTPException, Header, Query, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field, ValidationError, field_validator, model_validator
@@ -84,7 +85,7 @@ from .generation.providers import ProviderAdapter
 from .generation.responses import extract_assistant_text, parse_json_text
 from .generation.secrets import InMemorySecretVault, SecretLease
 from .generation.story_graph_topology import StoryGraphTopologyError
-from .validation import DomainValidationError, STORYBOARD_GATE_SET_VERSION
+from .validation import DomainValidationError, STORYBOARD_GATE_SET_VERSION, pydantic_issues
 
 
 class RunScheduler(Protocol):
@@ -832,6 +833,44 @@ def create_app(
             content={"code": "domain_validation", "message": str(error), "issues": error.issues},
         )
 
+    def schema_validation_response(issues: list[Mapping[str, Any]]) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content={
+                "code": "schema_validation",
+                "message": "validated payload does not match its current schema",
+                "issues": issues,
+            },
+        )
+
+    @app.exception_handler(ValidationError)
+    async def canonical_schema_validation_handler(_request: Request, error: ValidationError) -> JSONResponse:
+        return schema_validation_response(pydantic_issues(error))
+
+    @app.exception_handler(RequestValidationError)
+    async def request_schema_validation_handler(
+        _request: Request,
+        error: RequestValidationError,
+    ) -> JSONResponse:
+        # FastAPI's default response includes each rejected ``input`` value.
+        # That is unsafe for endpoints which defensively reject API-key-shaped
+        # fields, and it also bypasses the workbench's stable issue contract.
+        # Project only the three public fields we own and remove FastAPI's
+        # transport-level ``body`` prefix from author-facing paths.
+        issues = []
+        for item in error.errors():
+            location = [str(part) for part in item.get("loc", ())]
+            if location and location[0] == "body":
+                location = location[1:]
+            issues.append(
+                {
+                    "code": "schema_validation",
+                    "path": ".".join(location),
+                    "message": str(item.get("msg") or "invalid request value"),
+                }
+            )
+        return schema_validation_response(issues)
+
     @app.exception_handler(StoryGraphTopologyError)
     async def topology_planning_handler(
         _request: Request, error: StoryGraphTopologyError
@@ -1166,22 +1205,12 @@ def create_app(
             exclude_unset=True,
             exclude={"expected_profile_id", "expected_revision"},
         )
-        try:
-            profile, persisted_media = repo.update_provider_settings_projection(
-                expected_profile_id=body.expected_profile_id,
-                expected_profile_revision=body.expected_revision,
-                updates=updates,
-                defaults=public_defaults,
-            )
-        except ValidationError as error:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=error.errors(
-                    include_url=False,
-                    include_context=False,
-                    include_input=False,
-                ),
-            ) from error
+        profile, persisted_media = repo.update_provider_settings_projection(
+            expected_profile_id=body.expected_profile_id,
+            expected_profile_revision=body.expected_revision,
+            updates=updates,
+            defaults=public_defaults,
+        )
         media = _merge_provider_settings(persisted_media, public_defaults, availability)
         return provider_settings_projection(profile, media)
 
@@ -1207,15 +1236,8 @@ def create_app(
                 configuration=body.configuration,
                 copy_from_profile_id=body.copy_from_profile_id,
             )
-        except ValidationError as error:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=error.errors(
-                    include_url=False,
-                    include_context=False,
-                    include_input=False,
-                ),
-            ) from error
+        except ValidationError:
+            raise
         except ValueError as error:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -1247,15 +1269,8 @@ def create_app(
                     configuration=body.configuration,
                 )
             )
-        except ValidationError as error:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                detail=error.errors(
-                    include_url=False,
-                    include_context=False,
-                    include_input=False,
-                ),
-            ) from error
+        except ValidationError:
+            raise
         except ValueError as error:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,

@@ -229,6 +229,94 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
     }
 
 
+def test_canonical_schema_errors_are_actionable_422_issues(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    bible, *_ = all_stage_payloads()
+    payload = bible.model_dump(mode="json", by_alias=True)
+    payload["characters"] = [{
+        "id": "character-1",
+        "name": "测试角色",
+        "role": "lead",
+        "description": "用于验证字段路径",
+        "goal": "保留结构化错误",
+        "traits": [],
+        "visualAnchors": [],
+        "soundAnchors": [],
+        "voiceAnchors": [],
+        "allowedStates": [{"not": "a string"}],
+        "continuityRules": [],
+    }]
+    client = TestClient(create_app(repository), raise_server_exceptions=False)
+
+    response = client.patch(
+        f"/api/v2/projects/{project.id}/stages/story_bible",
+        json={"expectedRevision": 0, "payload": payload},
+    )
+
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "schema_validation"
+    assert any(
+        issue["code"] == "schema_validation"
+        and issue["path"] == "characters.0.allowedStates.0"
+        for issue in body["issues"]
+    )
+
+
+def test_request_schema_errors_are_actionable_and_never_echo_rejected_secrets(
+    repository: SQLiteRepository,
+    brief,
+) -> None:
+    client = TestClient(create_app(repository), raise_server_exceptions=False)
+    rejected_secret = "request-secret-must-never-be-echoed"
+
+    secret_response = client.post(
+        "/api/v2/text-provider-profiles",
+        json={
+            "profileId": "secret_test",
+            "displayName": "Secret test",
+            "configuration": {"apiKey": rejected_secret},
+        },
+    )
+    assert secret_response.status_code == 422
+    assert secret_response.json()["code"] == "schema_validation"
+    assert set(secret_response.json()) == {"code", "message", "issues"}
+    assert all(set(issue) == {"code", "path", "message"} for issue in secret_response.json()["issues"])
+    assert rejected_secret not in secret_response.text
+    assert "input" not in secret_response.text
+
+    settings = client.get("/api/v2/provider-settings").json()
+    numeric_response = client.put(
+        "/api/v2/provider-settings",
+        json={
+            "expectedProfileId": settings["profileId"],
+            "expectedRevision": settings["revision"],
+            "textMaxConcurrency": 0,
+        },
+    )
+    assert numeric_response.status_code == 422
+    assert numeric_response.json()["code"] == "schema_validation"
+    assert any(
+        issue["path"] == "textMaxConcurrency"
+        for issue in numeric_response.json()["issues"]
+    )
+
+    project = repository.create_project(brief)
+    revision_response = client.patch(
+        f"/api/v2/projects/{project.id}/stages/story_bible",
+        json={"expectedRevision": -1, "payload": {}},
+    )
+    assert revision_response.status_code == 422
+    assert revision_response.json()["code"] == "schema_validation"
+    assert any(
+        issue["path"] == "expectedRevision"
+        for issue in revision_response.json()["issues"]
+    )
+
+
 def test_run_progress_is_bounded_and_excludes_prompt_response_and_validation_payloads(
     repository: SQLiteRepository,
     brief,

@@ -90,8 +90,8 @@ export class PlotloomApiClient {
     });
   }
 
-  getProject(projectId: string): Promise<ProjectResource> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}`);
+  getProject(projectId: string, signal?: AbortSignal): Promise<ProjectResource> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}`, { signal });
   }
 
   listProjects(includeArchived = false, limit = 50, cursor?: string): Promise<ProjectListResponse> {
@@ -135,12 +135,12 @@ export class PlotloomApiClient {
     });
   }
 
-  getStages(projectId: string): Promise<StageEnvelopesResponse> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/stages`);
+  getStages(projectId: string, signal?: AbortSignal): Promise<StageEnvelopesResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/stages`, { signal });
   }
 
-  getStoryboardReview(projectId: string): Promise<StoryboardReview> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-review`);
+  getStoryboardReview(projectId: string, signal?: AbortSignal): Promise<StoryboardReview> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-review`, { signal });
   }
 
   decideStoryboardApproval(projectId: string, body: {
@@ -152,12 +152,12 @@ export class PlotloomApiClient {
     });
   }
 
-  getProjectRuns(projectId: string): Promise<ProjectRunsResponse> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/runs`);
+  getProjectRuns(projectId: string, signal?: AbortSignal): Promise<ProjectRunsResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/runs`, { signal });
   }
 
-  getProjectMediaTasks(projectId: string): Promise<ProjectMediaTasksResponse> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/media-tasks`);
+  getProjectMediaTasks(projectId: string, signal?: AbortSignal): Promise<ProjectMediaTasksResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/media-tasks`, { signal });
   }
 
   patchStage<T>(projectId: string, stage: ServerStageName, expectedRevision: number, content: T): Promise<StageHead> {
@@ -293,8 +293,8 @@ export class PlotloomApiClient {
     return this.request("/provider-settings", { method: "PUT", body: JSON.stringify(update) });
   }
 
-  getTextProviderProfiles(): Promise<TextProviderProfilesResponse> {
-    return this.request("/text-provider-profiles");
+  getTextProviderProfiles(signal?: AbortSignal): Promise<TextProviderProfilesResponse> {
+    return this.request("/text-provider-profiles", { signal });
   }
 
   createTextProviderProfile(body: TextProviderProfileCreate): Promise<TextProviderProfileView> {

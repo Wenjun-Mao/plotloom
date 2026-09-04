@@ -155,8 +155,8 @@ describe("App project/editor rehydration", () => {
     window.history.replaceState(null, "", "/?stage=bible");
     await renderSample(root);
 
-    await act(async () => (document.querySelector(".character-card textarea") as HTMLTextAreaElement).focus());
-    expect(window.location.search).toContain("entity=char_ruanxing");
+    await act(async () => button("编辑此角色").click());
+    expect(new URLSearchParams(window.location.search).get("entity")).toBe("bible:character:char_ruanxing");
   });
 
   it("appends stable directory pages using the server cursor", async () => {
@@ -520,7 +520,7 @@ describe("App project/editor rehydration", () => {
     await act(async () => setInput(document.querySelector(".beat-card textarea") as HTMLTextAreaElement, "实体焦点不应取消保存"));
     await act(async () => button("保存节拍").click());
     await act(async () => button("诊断双重故障").click());
-    expect(window.location.search).toContain("entity=scene_diagnose");
+    expect(new URLSearchParams(window.location.search).get("entity")).toBe("scene:scene_diagnose");
 
     await act(async () => pending.resolve({ ...stageEnvelopes({ scene_beats: demoProject.sceneBeats })[2].head, stage: "scene_beats", revision: 2, status: "ready" }));
     await flush();

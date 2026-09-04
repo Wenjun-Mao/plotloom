@@ -14,6 +14,8 @@ const loopbackHost = "127.0.0.1";
 export type Workbench = {
   apiOrigin: string;
   frontendOrigin: string;
+  /** A test-owned process, deliberately outside the Plotloom API surface. */
+  providerOrigin: string;
 };
 
 type WorkbenchWorkerFixtures = {
@@ -33,8 +35,16 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
     const databasePath = path.join(temporaryRoot, "plotloom.sqlite3");
     const backendPort = await reserveLoopbackPort();
     const frontendPort = await reserveLoopbackPort();
+    const providerPort = await reserveLoopbackPort();
     const apiOrigin = `http://${loopbackHost}:${backendPort}`;
     const frontendOrigin = `http://${loopbackHost}:${frontendPort}`;
+    const providerOrigin = `http://${loopbackHost}:${providerPort}`;
+    const provider = startProcess(
+      "external OpenAI-compatible fake",
+      process.execPath,
+      [path.join(configDirectory, "fixtures", "external-openai-provider.mjs"), "--port", String(providerPort)],
+      {},
+    );
     const backend = startProcess("FastAPI", "uv", ["run", "plotloom"], {
       PLOTLOOM_HOST: loopbackHost,
       PLOTLOOM_PORT: String(backendPort),
@@ -53,6 +63,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
 
     try {
       await mkdir(artifactRoot, { recursive: true });
+      await waitForHttp(`${providerOrigin}/control/status`, provider);
       await waitForHttp(`${apiOrigin}/openapi.json`, backend);
       frontend = startProcess(
         "Vite",
@@ -69,7 +80,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
         frontendRoot,
       );
       await waitForHttp(`${frontendOrigin}/v2/`, frontend);
-      await use({ apiOrigin, frontendOrigin });
+      await use({ apiOrigin, frontendOrigin, providerOrigin });
     } finally {
       try {
         await stopProcess(frontend);
@@ -77,7 +88,11 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
         try {
           await stopProcess(backend);
         } finally {
-          await rm(temporaryRoot, { recursive: true, force: true });
+          try {
+            await stopProcess(provider);
+          } finally {
+            await rm(temporaryRoot, { recursive: true, force: true });
+          }
         }
       }
     }
