@@ -2295,7 +2295,7 @@ def test_storyboard_invalid_entity_state_uses_frozen_bible_repair_fact(
         if "semantic.invalid_required_entity_state" in request.messages[1].content
         and '"allowedStates":["awake"]' in request.messages[1].content
     )
-    assert "验证器说明" in correction_prompt
+    assert "不得把未出现的错误类型、validator 文本" in correction_prompt
     assert "required entity state is not allowed" not in correction_prompt
 
 
@@ -2569,6 +2569,202 @@ def test_storyboard_timing_fact_rejects_unbound_or_rehashed_guidance_before_corr
     )
     correction = next(
         attempt for attempt in trace.attempts if attempt.source_attempt_id == rejected_attempt.id
+    )
+    assert correction.outcome_code == "contract.correction_source_changed"
+    assert len(provider.requests) == storyboard_index + 1
+    assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 0
+
+
+def test_continuity_fact_rejects_rebound_owner_before_correction_dispatch(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    """Self-consistent continuity evidence cannot detach from its response."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    rejected_index = 2
+    rejected = json.loads(responses[rejected_index])
+    rejected["scenes"][0]["entryState"]["sound"] = "寂静"
+    rejected["beats"][0]["entryState"]["sound"] = "纸张翻动声"
+    corrected = deepcopy(rejected)
+    corrected["beats"][0]["entryState"]["sound"] = "寂静"
+    responses[rejected_index : rejected_index + 1] = [
+        json.dumps(rejected, ensure_ascii=False),
+        json.dumps(corrected, ensure_ascii=False),
+    ]
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("continuity-owner-binding-secret")
+    engine = PipelineEngine(repository, RecordingResolver(provider), secrets)
+    original_add_artifact = repository.add_artifact
+    original_finish_attempt = repository.finish_attempt
+    tampered_artifact_ids: list[str] = []
+
+    def add_rebound_continuity_validation(artifact: Artifact) -> Artifact:
+        if artifact.kind == ArtifactKind.VALIDATION and isinstance(
+            artifact.content, dict
+        ):
+            content = deepcopy(artifact.content)
+            matching = [
+                item
+                for item in content.get("repairFacts", [])
+                if isinstance(item, dict)
+                and item.get("code")
+                == "semantic.continuity_beat_sequence_mismatch"
+            ]
+            if matching:
+                fact = matching[0]
+                fact["owner"]["id"] = "unbound-scene"
+                for boundary in fact["boundaries"]:
+                    for endpoint_name in ("source", "target"):
+                        endpoint = boundary[endpoint_name]
+                        if endpoint["kind"] == "scene":
+                            endpoint["id"] = "unbound-scene"
+                artifact = artifact.model_copy(
+                    update={"content": content, "content_hash": stable_hash(content)}
+                )
+                tampered_artifact_ids.append(artifact.id)
+        return original_add_artifact(artifact)
+
+    monkeypatch.setattr(repository, "add_artifact", add_rebound_continuity_validation)
+
+    def finish_rejection_then_lose_process(attempt_id, status, **kwargs):
+        result = original_finish_attempt(attempt_id, status, **kwargs)
+        if kwargs.get("outcome_code") == "semantic.continuity_beat_sequence_mismatch":
+            raise SimulatedProcessLoss()
+        return result
+
+    monkeypatch.setattr(
+        repository,
+        "finish_attempt",
+        finish_rejection_then_lose_process,
+    )
+    with pytest.raises(SimulatedProcessLoss):
+        engine.execute(
+            repository.start_run(run.id),
+            RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
+            Event(),
+        )
+    assert len(provider.requests) == rejected_index + 1
+
+    monkeypatch.setattr(repository, "finish_attempt", original_finish_attempt)
+    recovery = repository.reconcile_startup_jobs()
+    assert recovery.resubmit_run_ids == [run.id]
+    completed = _run(repository, engine, secrets, run.id)
+
+    assert tampered_artifact_ids
+    assert completed.status == RunStatus.FAILED
+    trace = repository.get_run_trace(run.id)
+    rejected_attempt = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.continuity_beat_sequence_mismatch"
+    )
+    correction = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.source_attempt_id == rejected_attempt.id
+    )
+    assert correction.outcome_code == "contract.correction_source_changed"
+    assert len(provider.requests) == rejected_index + 1
+    assert repository.get_stage_head(project.id, StageName.SCENE_BEATS).revision == 0
+
+
+def test_storyboard_continuity_fact_rejects_reordered_items_before_dispatch(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    """A self-consistent fake shot order is not evidence about the response."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        list(StageName),
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    scene_index = 2
+    scene_fragment = json.loads(responses[scene_index])
+    scene_fragment["scenes"][0]["entryState"]["sound"] = "寂静"
+    scene_fragment["scenes"][0]["exitState"]["sound"] = "寂静"
+    scene_fragment["beats"][0]["entryState"]["sound"] = "寂静"
+    scene_fragment["beats"][0]["exitState"]["sound"] = "寂静"
+    responses[scene_index] = json.dumps(scene_fragment, ensure_ascii=False)
+
+    storyboard_index = 2 + len(topology.nodes)
+    rejected = json.loads(responses[storyboard_index])
+    assert len(rejected["shots"]) == 2
+    rejected["shots"][0]["entryState"]["sound"] = "纸张翻动声"
+    corrected = deepcopy(rejected)
+    corrected["shots"][0]["entryState"]["sound"] = "寂静"
+    responses[storyboard_index : storyboard_index + 1] = [
+        json.dumps(rejected, ensure_ascii=False),
+        json.dumps(corrected, ensure_ascii=False),
+    ]
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("continuity-order-binding-secret")
+    original_add_artifact = repository.add_artifact
+    tampered_artifact_ids: list[str] = []
+
+    def add_reordered_continuity_validation(artifact: Artifact) -> Artifact:
+        if artifact.kind == ArtifactKind.VALIDATION and isinstance(
+            artifact.content, dict
+        ):
+            content = deepcopy(artifact.content)
+            matching = [
+                item
+                for item in content.get("repairFacts", [])
+                if isinstance(item, dict)
+                and item.get("code")
+                == "semantic.continuity_shot_sequence_mismatch"
+            ]
+            if matching:
+                fact = matching[0]
+                reversed_ids = list(reversed(fact["orderedItemIds"]))
+                fact["orderedItemIds"] = reversed_ids
+                # Preserve a syntactically and topologically valid fact under
+                # its own forged sequence so only source rebinding can reject it.
+                fact["boundaries"][0]["target"]["id"] = reversed_ids[0]
+                artifact = artifact.model_copy(
+                    update={"content": content, "content_hash": stable_hash(content)}
+                )
+                tampered_artifact_ids.append(artifact.id)
+        return original_add_artifact(artifact)
+
+    monkeypatch.setattr(repository, "add_artifact", add_reordered_continuity_validation)
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert tampered_artifact_ids
+    assert completed.status == RunStatus.FAILED
+    trace = repository.get_run_trace(run.id)
+    rejected_attempt = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.continuity_shot_sequence_mismatch"
+    )
+    correction = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.source_attempt_id == rejected_attempt.id
     )
     assert correction.outcome_code == "contract.correction_source_changed"
     assert len(provider.requests) == storyboard_index + 1
@@ -2888,6 +3084,19 @@ def test_v2_profile_stops_after_two_corrections_and_quarantines(
         "repair_previous_final",
         "reconstruct_from_schema",
     ]
+    primary_contract = prompt_artifacts[0].content["contract"]
+    correction_contracts = [artifact.content["contract"] for artifact in prompt_artifacts[1:]]
+    assert primary_contract["correction_policy_version"] == "bounded_correction.v18"
+    assert primary_contract["correction_directive_registry_version"] == "correction_directives.v1"
+    assert primary_contract["correction_evidence_projection_version"] == "correction_evidence_projection.v1"
+    assert primary_contract["correction_response_schema_version"] == "correction_response_schema.v1"
+    assert "correction_directive_set_hash" not in primary_contract
+    assert "correction_evidence_projection_hash" not in primary_contract
+    assert "correction_response_schema_hash" not in primary_contract
+    for contract in correction_contracts:
+        assert len(contract["correction_directive_set_hash"]) == 64
+        assert len(contract["correction_evidence_projection_hash"]) == 64
+        assert len(contract["correction_response_schema_hash"]) == 64
     assert repository.get_run_execution_trace(run.id).work_units[0].status == (
         WorkUnitStatus.QUARANTINED
     )

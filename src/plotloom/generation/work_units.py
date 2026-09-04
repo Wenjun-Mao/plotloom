@@ -52,6 +52,12 @@ from ..json_value_contract import (
 from ..validation import DomainValidationError, validate_story_graph
 from ..canonical_schema import AudioKind, NonBlankText, V2CoverageRole, V2ShotSize
 from .contracts import RenderedPrompt, ValidationIssue, ValidationReport
+from .correction_contract import (
+    CORRECTION_DIRECTIVE_REGISTRY_VERSION,
+    CORRECTION_EVIDENCE_PROJECTION_VERSION,
+    CORRECTION_POLICY_VERSION,
+    CORRECTION_RESPONSE_SCHEMA_VERSION,
+)
 from .dialogue_capacity import (
     DialogueCapacityNodeGuidance,
     DialogueCapacityPlanningError,
@@ -62,6 +68,7 @@ from .fragments import SceneBeatsFragment, StageFragment, StoryboardFragment
 from .fragment_semantics import (
     FragmentSemanticContextError,
     allowed_entity_states,
+    continuity_sequence_repair_boundaries,
     continuity_sequence_is_compatible,
     continuity_state_from_context,
     continuity_state_issues,
@@ -108,8 +115,7 @@ from .storyboard_timing_repair import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12o"
-CORRECTION_POLICY_VERSION = "bounded_correction.v17"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12p"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 AUDIO_EVENT_ID_BINDING_VERSION = "audio_event_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
@@ -551,6 +557,212 @@ class JoinStateEffectRepairFact(CamelModel):
         return self
 
 
+CONTINUITY_SEQUENCE_OWNERSHIP_POLICY_VERSION = "continuity_sequence.boundary_owner.v1"
+
+
+class ContinuityStateEndpoint(CamelModel):
+    """One state boundary identified without relying on an array index."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    kind: Literal["scene", "beat", "shot"]
+    id: NonBlankText
+    id_scope: Literal["response_local", "canonical_context"]
+    state: Literal["entry", "exit"]
+
+
+class ContinuityFactAssignment(CamelModel):
+    """Copy one finite JSON fact from a prior boundary to its successor."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    kind: Literal["fact"]
+    key: NonBlankText
+    expected_value: Any
+
+    @model_validator(mode="after")
+    def validate_finite_expected_value(self) -> "ContinuityFactAssignment":
+        finite_canonical_json(self.expected_value)
+        return self
+
+
+class ContinuityEntityStateAssignment(CamelModel):
+    """Copy an already-valid entity state without changing its identity."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    kind: Literal["entity_state"]
+    entity_type: EntityType
+    entity_id: NonBlankText
+    expected_state: NonBlankText
+
+
+class ContinuityScalarAssignment(CamelModel):
+    """Copy one shared visual/audio scalar at an incompatible boundary."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    kind: Literal["scalar"]
+    field: Literal["screenDirection", "lighting", "sound"]
+    expected_value: NonBlankText
+
+
+ContinuityRepairAssignment: TypeAlias = Annotated[
+    ContinuityFactAssignment
+    | ContinuityEntityStateAssignment
+    | ContinuityScalarAssignment,
+    Field(discriminator="kind"),
+]
+
+
+class ContinuityBoundaryRepair(CamelModel):
+    """All exact assignments at one left-to-right sequence boundary."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    source: ContinuityStateEndpoint
+    target: ContinuityStateEndpoint
+    assignments: tuple[ContinuityRepairAssignment, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_direction_and_unique_targets(self) -> "ContinuityBoundaryRepair":
+        if self.source == self.target:
+            raise ValueError("continuity boundary source and target must differ")
+        keys: list[tuple[str, str, str]] = []
+        for assignment in self.assignments:
+            if isinstance(assignment, ContinuityFactAssignment):
+                keys.append(("fact", assignment.key, ""))
+            elif isinstance(assignment, ContinuityEntityStateAssignment):
+                keys.append(("entity_state", assignment.entity_type.value, assignment.entity_id))
+            else:
+                keys.append(("scalar", assignment.field, ""))
+        if len(keys) != len(set(keys)):
+            raise ValueError("continuity boundary assignments must not overlap")
+        return self
+
+
+class ContinuitySequenceRepairFact(CamelModel):
+    """A complete exact repair plan for one incompatible local sequence.
+
+    The versioned ownership rule uses sequence order for Scene Beats.  For
+    Storyboard, frozen canonical scene context owns both outer boundaries.
+    It is deliberately a correction-only policy; canonical validation
+    continues to reject a mismatched response before any plan is derived.
+    """
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    code: Literal[
+        "semantic.continuity_beat_sequence_mismatch",
+        "semantic.continuity_shot_sequence_mismatch",
+    ]
+    path: tuple[str | int, ...]
+    ownership_policy_version: Literal[CONTINUITY_SEQUENCE_OWNERSHIP_POLICY_VERSION] = (
+        CONTINUITY_SEQUENCE_OWNERSHIP_POLICY_VERSION
+    )
+    sequence_kind: Literal["beat", "shot"]
+    owner: ContinuityStateEndpoint
+    ordered_item_ids: tuple[NonBlankText, ...] = Field(min_length=1)
+    boundaries: tuple[ContinuityBoundaryRepair, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_issue_identity_and_direction(self) -> "ContinuitySequenceRepairFact":
+        if len(self.ordered_item_ids) != len(set(self.ordered_item_ids)):
+            raise ValueError("continuity sequence item IDs must be unique")
+        if self.code == "semantic.continuity_beat_sequence_mismatch":
+            if (
+                self.sequence_kind != "beat"
+                or len(self.path) != 2
+                or self.path[0] != "scenes"
+                or not isinstance(self.path[1], int)
+                or isinstance(self.path[1], bool)
+                or self.path[1] < 0
+                or self.owner.kind != "scene"
+                or self.owner.id_scope != "response_local"
+                or self.owner.state != "entry"
+            ):
+                raise ValueError("beat continuity repair must identify one response-local scene")
+        elif (
+            self.sequence_kind != "shot"
+            or self.path != ("shots",)
+            or self.owner.kind != "scene"
+            or self.owner.id_scope != "canonical_context"
+            or self.owner.state != "entry"
+        ):
+            raise ValueError("shot continuity repair must identify the canonical selected scene")
+        legal_boundaries = _legal_continuity_repair_boundaries(
+            sequence_kind=self.sequence_kind,
+            owner=self.owner,
+            ordered_item_ids=self.ordered_item_ids,
+        )
+        for boundary in self.boundaries:
+            if (boundary.source, boundary.target) not in legal_boundaries:
+                raise ValueError(
+                    "continuity repair boundary is not adjacent in its owned sequence"
+                )
+        targets = [(boundary.target.kind, boundary.target.id, boundary.target.state) for boundary in self.boundaries]
+        if len(targets) != len(set(targets)):
+            raise ValueError("continuity sequence boundaries must not share a target state")
+        return self
+
+
+def _legal_continuity_repair_boundaries(
+    *,
+    sequence_kind: Literal["beat", "shot"],
+    owner: ContinuityStateEndpoint,
+    ordered_item_ids: tuple[str, ...],
+) -> set[tuple[ContinuityStateEndpoint, ContinuityStateEndpoint]]:
+    item_scope: Literal["response_local"] = "response_local"
+    item_entries = [
+        ContinuityStateEndpoint(
+            kind=sequence_kind,
+            id=item_id,
+            id_scope=item_scope,
+            state="entry",
+        )
+        for item_id in ordered_item_ids
+    ]
+    item_exits = [
+        ContinuityStateEndpoint(
+            kind=sequence_kind,
+            id=item_id,
+            id_scope=item_scope,
+            state="exit",
+        )
+        for item_id in ordered_item_ids
+    ]
+    legal = {
+        (item_exits[index], item_entries[index + 1])
+        for index in range(len(ordered_item_ids) - 1)
+    }
+    legal.add((owner, item_entries[0]))
+    if sequence_kind == "beat":
+        legal.add(
+            (
+                item_exits[-1],
+                ContinuityStateEndpoint(
+                    kind="scene",
+                    id=owner.id,
+                    id_scope="response_local",
+                    state="exit",
+                ),
+            )
+        )
+    else:
+        legal.add(
+            (
+                ContinuityStateEndpoint(
+                    kind="scene",
+                    id=owner.id,
+                    id_scope="canonical_context",
+                    state="exit",
+                ),
+                item_exits[-1],
+            )
+        )
+    return legal
+
+
 class EdgeStateEffectJsonRepairFact(CamelModel):
     """One frozen topology edge whose state value must become finite JSON.
 
@@ -604,6 +816,7 @@ class JoinEntryStateValueRepairFact(CamelModel):
     code: Literal[
         "semantic.join_entry_state_value_missing",
         "semantic.join_entry_state_value_mismatch",
+        "semantic.join_entry_state_value_not_json",
     ]
     path: tuple[str | int, ...]
     contract_version: str = Field(min_length=1)
@@ -746,12 +959,12 @@ class LegacyStoryboardTimingRepairPlanFact(CamelModel):
 
 
 CurrentSemanticRepairFact: TypeAlias = Annotated[
-    DialogueTimingRepairFact
-    | DialogueCapacityRepairFact
+    DialogueCapacityRepairFact
     | DialogueNodeBudgetRepairFact
     | StoryboardTimingRepairPlanFact
     | JoinAllowedDifferencesRepairFact
     | JoinStateEffectRepairFact
+    | ContinuitySequenceRepairFact
     | EdgeStateEffectJsonRepairFact
     | JoinReconciliationRepairFact
     | JoinEntryStateValueRepairFact
@@ -765,6 +978,7 @@ CurrentSemanticRepairFact: TypeAlias = Annotated[
 # correction contract.
 SemanticRepairFact: TypeAlias = (
     CurrentSemanticRepairFact
+    | DialogueTimingRepairFact
     | ShotDurationBudgetRepairFact
     | CueDurationFitRepairFact
     | LegacyStoryboardTimingRepairPlanFact
@@ -968,6 +1182,34 @@ class WorkUnitPromptContract(_FrozenModel):
 
     contract_version: str = WORK_UNIT_PROMPT_CONTRACT_VERSION
     correction_policy_version: str = CORRECTION_POLICY_VERSION
+    # Optional so terminal historical contracts round-trip without injecting
+    # identities that did not exist when they were sealed.  Current contracts
+    # set all three explicitly, including primary attempts, so a later
+    # correction cannot silently execute under a changed compiler.
+    correction_directive_registry_version: str | None = None
+    correction_evidence_projection_version: str | None = None
+    correction_response_schema_version: str | None = None
+    # These hashes are correction-variant provenance.  Primary attempts have
+    # no selected directives/evidence overlay; correction attempts require all
+    # three and bind the exact prompt projection plus narrowed response schema.
+    correction_directive_set_hash: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    correction_evidence_projection_hash: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    correction_response_schema_hash: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-f]{64}$",
+    )
     correction_ordinal: int | None = Field(default=None, ge=1, le=2)
     correction_strategy: Literal[
         "repair_previous_final", "reconstruct_from_schema"
@@ -1008,6 +1250,21 @@ class WorkUnitPromptContract(_FrozenModel):
     audio_event_id_binding_version: str | None = None
     storyboard_primary_coverage_binding_version: str | None = None
 
+    def snapshot_dump(self) -> dict[str, Any]:
+        """Serialize only the fields that belonged to the sealed contract.
+
+        Historical trace readers may parse an older contract for inspection,
+        but they must not inject later optional defaults when comparing or
+        hashing that evidence.  Current compilers explicitly set every current
+        identity field, so ``exclude_unset`` loses nothing for new attempts.
+        """
+
+        return self.model_dump(
+            mode="json",
+            by_alias=True,
+            exclude_unset=True,
+        )
+
     @model_validator(mode="after")
     def validate_correction_schedule(self) -> WorkUnitPromptContract:
         """Keep primary and correction provenance structurally unambiguous."""
@@ -1027,6 +1284,37 @@ class WorkUnitPromptContract(_FrozenModel):
                 raise ValueError(
                     "correction_strategy does not match correction_ordinal"
                 )
+        correction_versions = (
+            self.correction_directive_registry_version,
+            self.correction_evidence_projection_version,
+            self.correction_response_schema_version,
+        )
+        if self.contract_version == WORK_UNIT_PROMPT_CONTRACT_VERSION:
+            if self.correction_policy_version != CORRECTION_POLICY_VERSION:
+                raise ValueError(
+                    "current work-unit contracts require the current correction policy"
+                )
+            expected_versions = (
+                CORRECTION_DIRECTIVE_REGISTRY_VERSION,
+                CORRECTION_EVIDENCE_PROJECTION_VERSION,
+                CORRECTION_RESPONSE_SCHEMA_VERSION,
+            )
+            if correction_versions != expected_versions:
+                raise ValueError(
+                    "current work-unit contracts require the current correction compiler versions"
+                )
+        correction_hashes = (
+            self.correction_directive_set_hash,
+            self.correction_evidence_projection_hash,
+            self.correction_response_schema_hash,
+        )
+        has_all_correction_hashes = all(value is not None for value in correction_hashes)
+        if any(value is not None for value in correction_hashes) != has_all_correction_hashes:
+            raise ValueError("correction compiler hashes must be set together")
+        if has_ordinal != has_all_correction_hashes:
+            raise ValueError(
+                "correction attempts and correction compiler hashes must be set together"
+            )
         has_timing_version = self.dialogue_timing_profile_version is not None
         has_timing_hash = self.dialogue_timing_profile_hash is not None
         if has_timing_version != has_timing_hash:
@@ -1402,6 +1690,13 @@ def compile_work_unit_request(
                 "Scene Beats context does not match the StagePlan join state value contract"
             )
     contract = WorkUnitPromptContract(
+        contract_version=WORK_UNIT_PROMPT_CONTRACT_VERSION,
+        correction_policy_version=CORRECTION_POLICY_VERSION,
+        correction_directive_registry_version=CORRECTION_DIRECTIVE_REGISTRY_VERSION,
+        correction_evidence_projection_version=CORRECTION_EVIDENCE_PROJECTION_VERSION,
+        correction_response_schema_version=CORRECTION_RESPONSE_SCHEMA_VERSION,
+        correction_ordinal=None,
+        correction_strategy=None,
         stage_plan_hash=stage_plan.stage_plan_hash,
         work_unit_id=work_unit.unit_id,
         stage=work_unit.stage,
@@ -1417,6 +1712,7 @@ def compile_work_unit_request(
         work_unit_input_hash=work_unit.input_hash,
         dependency_hash=work_unit.dependency_hash,
         unit_dependency_hash=work_unit.unit_dependency_hash,
+        fragment_id_binding_version=FRAGMENT_ID_BINDING_VERSION,
         dialogue_timing_profile_version=(
             adapter.dialogue_timing_profile.version
             if isinstance(adapter, WorkUnitFragmentValidationAdapter)
@@ -2465,6 +2761,7 @@ def scene_beats_join_entry_repair_facts(
         in {
             "semantic.join_entry_state_value_missing",
             "semantic.join_entry_state_value_mismatch",
+            "semantic.join_entry_state_value_not_json",
         }
     )
     if not relevant:
@@ -2508,7 +2805,7 @@ def scene_beats_join_entry_repair_facts(
         current = output.scenes[path[1]].entry_state.facts
         if issue.code.endswith("missing") and state_key in current:
             continue
-        if issue.code.endswith("mismatch") and state_key in current:
+        if issue.code.endswith(("mismatch", "not_json")) and state_key in current:
             try:
                 if finite_json_values_equal(
                     current[state_key], expected_facts[state_key]
@@ -2801,6 +3098,259 @@ def storyboard_timing_repair_facts(
     )
 
 
+def continuity_sequence_repair_facts(
+    value: Any,
+    issues: tuple[ValidationIssue, ...],
+    *,
+    stage: StageName,
+    bible: StoryBibleV2 | None,
+    scoped_context: Mapping[str, Any] | None = None,
+) -> tuple[ContinuitySequenceRepairFact, ...]:
+    """Compile exact left-to-right continuity repairs for one fragment response.
+
+    This compiler deliberately accepts only schema-valid fragments and a
+    valid Story Bible.  It never repairs a one-sided declaration, notes, or a
+    malformed state; those cases lack an exact, safe ownership authority.
+    """
+
+    if bible is None:
+        return ()
+    if stage == StageName.SCENE_BEATS:
+        relevant = tuple(
+            issue
+            for issue in issues
+            if issue.code == "semantic.continuity_beat_sequence_mismatch"
+        )
+        if not relevant:
+            return ()
+        try:
+            output = SceneBeatsFragmentOutput.model_validate(value, by_alias=True, by_name=False)
+        except ValidationError:
+            return ()
+        scene_ids = [scene.local_scene_id for scene in output.scenes]
+        beat_ids = [beat.local_beat_id for beat in output.beats]
+        if len(scene_ids) != len(set(scene_ids)) or len(beat_ids) != len(set(beat_ids)):
+            return ()
+        facts: list[ContinuitySequenceRepairFact] = []
+        for issue in relevant:
+            path = issue.path
+            if (
+                len(path) != 2
+                or path[0] != "scenes"
+                or not isinstance(path[1], int)
+                or isinstance(path[1], bool)
+                or path[1] < 0
+                or path[1] >= len(output.scenes)
+            ):
+                continue
+            scene = output.scenes[path[1]]
+            ordered = sorted(
+                (beat for beat in output.beats if beat.scene_local_id == scene.local_scene_id),
+                key=lambda beat: beat.order,
+            )
+            if (
+                not ordered
+                or any(beat.scene_local_id not in set(scene_ids) for beat in output.beats)
+                or [beat.order for beat in ordered] != list(range(1, len(ordered) + 1))
+            ):
+                continue
+            differences = continuity_sequence_repair_boundaries(
+                scene.entry_state,
+                ordered,
+                scene.exit_state,
+                bible=bible,
+            )
+            if not differences:
+                continue
+            boundaries: list[ContinuityBoundaryRepair] = []
+            for difference in differences:
+                source, target = _scene_beats_continuity_boundary_endpoints(
+                    scene,
+                    ordered,
+                    difference.boundary_index,
+                )
+                assignments = tuple(
+                    _continuity_assignment_from_candidate(candidate)
+                    for candidate in difference.assignments
+                )
+                boundaries.append(
+                    ContinuityBoundaryRepair(
+                        source=source,
+                        target=target,
+                        assignments=assignments,
+                    )
+                )
+            facts.append(
+                ContinuitySequenceRepairFact(
+                    code=issue.code,
+                    path=path,
+                    sequence_kind="beat",
+                    owner=ContinuityStateEndpoint(
+                        kind="scene",
+                        id=scene.local_scene_id,
+                        id_scope="response_local",
+                        state="entry",
+                    ),
+                    ordered_item_ids=tuple(beat.local_beat_id for beat in ordered),
+                    boundaries=tuple(boundaries),
+                )
+            )
+        return tuple(facts)
+
+    if stage != StageName.STORYBOARD:
+        return ()
+    relevant = tuple(
+        issue
+        for issue in issues
+        if issue.code == "semantic.continuity_shot_sequence_mismatch"
+        and issue.path == ("shots",)
+    )
+    if not relevant or scoped_context is None:
+        return ()
+    try:
+        output = StoryboardFragmentOutput.model_validate(value, by_alias=True, by_name=False)
+        scene = scoped_context.get("dramatic_scene")
+        if not isinstance(scene, Mapping):
+            return ()
+        scene_id = scene.get("id")
+        if not isinstance(scene_id, str) or not scene_id:
+            return ()
+        scene_entry = continuity_state_from_context(scene, "entryState")
+        scene_exit = continuity_state_from_context(scene, "exitState")
+    except (ValidationError, FragmentSemanticContextError):
+        return ()
+    shot_ids = [shot.local_shot_id for shot in output.shots]
+    ordered = sorted(output.shots, key=lambda shot: shot.order)
+    if (
+        len(shot_ids) != len(set(shot_ids))
+        or not ordered
+        or [shot.order for shot in ordered] != list(range(1, len(ordered) + 1))
+    ):
+        return ()
+    differences = continuity_sequence_repair_boundaries(
+        scene_entry,
+        ordered,
+        scene_exit,
+        bible=bible,
+        final_boundary_source="sequence_exit",
+    )
+    if not differences:
+        return ()
+    boundaries = []
+    for difference in differences:
+        source, target = _storyboard_continuity_boundary_endpoints(
+            scene_id,
+            ordered,
+            difference.boundary_index,
+        )
+        boundaries.append(
+            ContinuityBoundaryRepair(
+                source=source,
+                target=target,
+                assignments=tuple(
+                    _continuity_assignment_from_candidate(candidate)
+                    for candidate in difference.assignments
+                ),
+            )
+        )
+    return tuple(
+        ContinuitySequenceRepairFact(
+            code=issue.code,
+            path=issue.path,
+            sequence_kind="shot",
+            owner=ContinuityStateEndpoint(
+                kind="scene",
+                id=scene_id,
+                id_scope="canonical_context",
+                state="entry",
+            ),
+            ordered_item_ids=tuple(shot.local_shot_id for shot in ordered),
+            boundaries=tuple(boundaries),
+        )
+        for issue in relevant
+    )
+
+
+def _continuity_assignment_from_candidate(candidate: Any) -> ContinuityRepairAssignment:
+    if candidate.kind == "fact":
+        assert candidate.fact_key is not None
+        return ContinuityFactAssignment(
+            kind="fact",
+            key=candidate.fact_key,
+            expected_value=candidate.expected_value,
+        )
+    if candidate.kind == "entity_state":
+        assert candidate.entity_type is not None and candidate.entity_id is not None
+        return ContinuityEntityStateAssignment(
+            kind="entity_state",
+            entity_type=candidate.entity_type,
+            entity_id=candidate.entity_id,
+            expected_state=candidate.expected_value,
+        )
+    assert candidate.scalar_field is not None
+    return ContinuityScalarAssignment(
+        kind="scalar",
+        field={
+            "screen_direction": "screenDirection",
+            "lighting": "lighting",
+            "sound": "sound",
+        }[candidate.scalar_field],
+        expected_value=candidate.expected_value,
+    )
+
+
+def _scene_beats_continuity_boundary_endpoints(
+    scene: DramaticSceneContent,
+    ordered: list[BeatContent],
+    boundary_index: int,
+) -> tuple[ContinuityStateEndpoint, ContinuityStateEndpoint]:
+    scene_entry = ContinuityStateEndpoint(
+        kind="scene", id=scene.local_scene_id, id_scope="response_local", state="entry"
+    )
+    scene_exit = ContinuityStateEndpoint(
+        kind="scene", id=scene.local_scene_id, id_scope="response_local", state="exit"
+    )
+    if boundary_index == 0:
+        return scene_entry, ContinuityStateEndpoint(
+            kind="beat", id=ordered[0].local_beat_id, id_scope="response_local", state="entry"
+        )
+    if boundary_index == len(ordered):
+        return ContinuityStateEndpoint(
+            kind="beat", id=ordered[-1].local_beat_id, id_scope="response_local", state="exit"
+        ), scene_exit
+    return ContinuityStateEndpoint(
+        kind="beat", id=ordered[boundary_index - 1].local_beat_id, id_scope="response_local", state="exit"
+    ), ContinuityStateEndpoint(
+        kind="beat", id=ordered[boundary_index].local_beat_id, id_scope="response_local", state="entry"
+    )
+
+
+def _storyboard_continuity_boundary_endpoints(
+    scene_id: str,
+    ordered: list[ShotContent],
+    boundary_index: int,
+) -> tuple[ContinuityStateEndpoint, ContinuityStateEndpoint]:
+    scene_entry = ContinuityStateEndpoint(
+        kind="scene", id=scene_id, id_scope="canonical_context", state="entry"
+    )
+    scene_exit = ContinuityStateEndpoint(
+        kind="scene", id=scene_id, id_scope="canonical_context", state="exit"
+    )
+    if boundary_index == 0:
+        return scene_entry, ContinuityStateEndpoint(
+            kind="shot", id=ordered[0].local_shot_id, id_scope="response_local", state="entry"
+        )
+    if boundary_index == len(ordered):
+        return scene_exit, ContinuityStateEndpoint(
+            kind="shot", id=ordered[-1].local_shot_id, id_scope="response_local", state="exit"
+        )
+    return ContinuityStateEndpoint(
+        kind="shot", id=ordered[boundary_index - 1].local_shot_id, id_scope="response_local", state="exit"
+    ), ContinuityStateEndpoint(
+        kind="shot", id=ordered[boundary_index].local_shot_id, id_scope="response_local", state="entry"
+    )
+
+
 def semantic_repair_facts(
     value: Any,
     issues: tuple[ValidationIssue, ...],
@@ -2813,6 +3363,7 @@ def semantic_repair_facts(
     join_state_value_requirements: Mapping[str, Any] | None = None,
     storyboard_timing_guidance: StoryboardTimingGuidance | None = None,
     story_graph_topology: StoryGraphTopology | None = None,
+    scoped_context: Mapping[str, Any] | None = None,
 ) -> tuple[SemanticRepairFact, ...]:
     """Route stable issues to versioned, stage-owned deterministic facts."""
 
@@ -2830,6 +3381,13 @@ def semantic_repair_facts(
             ),
         )
     if stage == StageName.STORYBOARD:
+        continuity_facts = continuity_sequence_repair_facts(
+            value,
+            issues,
+            stage=stage,
+            bible=bible,
+            scoped_context=scoped_context,
+        )
         entity_state_facts = (
             storyboard_required_entity_state_repair_facts(
                 value,
@@ -2850,11 +3408,19 @@ def semantic_repair_facts(
             else storyboard_audio_timing_repair_facts(value, issues)
         )
         return (
+            *continuity_facts,
             *entity_state_facts,
             *timing_facts,
             *audio_facts,
         )
     if stage == StageName.SCENE_BEATS:
+        continuity_facts = continuity_sequence_repair_facts(
+            value,
+            issues,
+            stage=stage,
+            bible=bible,
+            scoped_context=scoped_context,
+        )
         capacity_facts = (
             scene_beats_dialogue_capacity_repair_facts(
                 value,
@@ -2885,7 +3451,7 @@ def semantic_repair_facts(
             dialogue_timing_profile=dialogue_timing_profile,
             dialogue_capacity_guidance=dialogue_capacity_guidance,
         )
-        return (*capacity_facts, *join_facts, *node_budget_facts)
+        return (*continuity_facts, *capacity_facts, *join_facts, *node_budget_facts)
     return ()
 
 
@@ -2893,6 +3459,12 @@ def parse_semantic_repair_fact(value: Any) -> SemanticRepairFact:
     """Revalidate persisted repair evidence without adding current defaults."""
 
     if isinstance(value, Mapping):
+        if value.get("code") == "semantic.cue_duration_underestimated":
+            # Read-only evidence from the retired duration-estimate repair
+            # contract.  It remains inspectable but is deliberately outside
+            # ``CurrentSemanticRepairFact`` and therefore cannot authorize a
+            # newly compiled correction.
+            return DialogueTimingRepairFact.model_validate(value)
         if "plan" in value and value.get("code") in {
             "semantic.shot_duration_budget_exceeded",
             "semantic.cue_duration_exceeds_shot",
@@ -2916,6 +3488,18 @@ def serialize_semantic_repair_fact(fact: SemanticRepairFact) -> dict[str, Any]:
     payload = fact.model_dump(mode="json", by_alias=True, exclude_none=True)
     if isinstance(fact, JoinStateEffectRepairFact) and fact.has_expected_value:
         payload["expectedValue"] = fact.expected_value
+    if isinstance(fact, ContinuitySequenceRepairFact):
+        # ``exclude_none`` is correct for optional evidence fields, but a
+        # continuity fact assignment may deliberately copy JSON null.  Keep
+        # that value so persisted facts remain executable and round-trip.
+        for serialized_boundary, boundary in zip(
+            payload["boundaries"], fact.boundaries, strict=True
+        ):
+            for serialized_assignment, assignment in zip(
+                serialized_boundary["assignments"], boundary.assignments, strict=True
+            ):
+                if isinstance(assignment, ContinuityFactAssignment):
+                    serialized_assignment["expectedValue"] = assignment.expected_value
     return payload
 
 
@@ -2933,6 +3517,40 @@ def assert_semantic_repair_fact_matches_issue(
     if not any(issue.code == fact.code and issue.path == fact.path for issue in issues):
         raise ValueError(
             "deterministic repair fact has no matching stable validation issue"
+        )
+
+
+def assert_continuity_repair_fact_matches_source(
+    fact: SemanticRepairFact,
+    source_value: Any,
+    *,
+    stage: StageName,
+    bible: StoryBibleV2 | None,
+    scoped_context: Mapping[str, Any] | None = None,
+) -> None:
+    """Bind executable continuity authority back to the rejected response.
+
+    Internal endpoint adjacency is necessary but insufficient: a persisted
+    fact could otherwise name a different owner or reorder response-local
+    items while remaining self-consistent.  Recompiling the one exact fact
+    from the source value and frozen context proves that its owner, IDs,
+    sequence order, boundaries, and assignments all came from the response
+    that was actually rejected.
+    """
+
+    if not isinstance(fact, ContinuitySequenceRepairFact):
+        return
+    source_issue = ValidationIssue(code=fact.code, path=fact.path, message="")
+    expected = continuity_sequence_repair_facts(
+        source_value,
+        (source_issue,),
+        stage=stage,
+        bible=bible,
+        scoped_context=scoped_context,
+    )
+    if len(expected) != 1 or expected[0] != fact:
+        raise ValueError(
+            "continuity repair fact does not match the rejected response and frozen context"
         )
 
 

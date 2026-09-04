@@ -39,6 +39,14 @@ from .generation.contracts import (
     RequestExtension,
     ValidationIssue,
 )
+from .generation.correction_directives import (
+    CorrectionDirectivePlanError,
+    compile_correction_instruction_plan,
+)
+from .generation.correction_schema import (
+    CorrectionResponseSchemaError,
+    compile_correction_response_schema,
+)
 from .generation.exceptions import (
     ProviderCapabilityError,
     ProviderError,
@@ -67,6 +75,7 @@ from .generation.work_units import (
     WorkUnitContractError,
     compile_work_unit_request,
     parse_semantic_repair_fact,
+    assert_continuity_repair_fact_matches_source,
     assert_semantic_repair_fact_matches_issue,
     semantic_repair_facts,
     serialize_semantic_repair_fact,
@@ -114,6 +123,9 @@ _CORRECTION_VARIANT_CONTRACT_FIELDS = frozenset(
         "rendered_hash",
         "correction_ordinal",
         "correction_strategy",
+        "correction_directive_set_hash",
+        "correction_evidence_projection_hash",
+        "correction_response_schema_hash",
     }
 )
 
@@ -416,6 +428,8 @@ class DurableWorkUnitRunner:
                         work_unit_id=work_unit_id,
                         base_compiled=base_compiled,
                         source_attempt=source_attempt,
+                        dependencies=dependencies,
+                        extraction_policy=extraction_policy,
                     )
                 else:
                     self._assert_prior_prompt_contract(run.id, work_unit_id, compiled)
@@ -633,9 +647,7 @@ class DurableWorkUnitRunner:
                         "inputTokens": provider_response.usage.input_tokens,
                         "outputTokens": provider_response.usage.output_tokens,
                     },
-                    "contract": compiled.contract.model_dump(
-                        mode="json", by_alias=True
-                    ),
+                    "contract": compiled.contract.snapshot_dump(),
                 }
                 try:
                     self.repository.persist_attempt_response(
@@ -728,7 +740,8 @@ class DurableWorkUnitRunner:
                     stage=work_unit.stage,
                     bible=(
                         dependencies.get(StageName.STORY_BIBLE)
-                        if work_unit.stage == StageName.STORYBOARD
+                        if work_unit.stage
+                        in {StageName.SCENE_BEATS, StageName.STORYBOARD}
                         else None
                     ),
                     dialogue_capacity_guidance=(
@@ -761,6 +774,12 @@ class DurableWorkUnitRunner:
                     story_graph_topology=(
                         story_graph_topology
                         if work_unit.stage == StageName.STORY_GRAPH
+                        else None
+                    ),
+                    scoped_context=(
+                        getattr(compiled.validator, "scoped_context", None)
+                        if work_unit.stage
+                        in {StageName.SCENE_BEATS, StageName.STORYBOARD}
                         else None
                     ),
                 )
@@ -887,6 +906,8 @@ class DurableWorkUnitRunner:
         work_unit_id: str,
         base_compiled: CompiledWorkUnitRequest,
         source_attempt: GenerationAttempt,
+        dependencies: Mapping[StageName, StagePayloadV2],
+        extraction_policy: ExtractionPolicy,
     ) -> CompiledWorkUnitRequest:
         """Render one compact correction packet from durable final evidence.
 
@@ -909,6 +930,16 @@ class DurableWorkUnitRunner:
             ),
             None,
         )
+        prompt = next(
+            (
+                artifact
+                for artifact in trace.artifacts
+                if artifact.attempt_id == source_attempt.id
+                and artifact.work_unit_id == work_unit_id
+                and artifact.kind == ArtifactKind.PROMPT
+            ),
+            None,
+        )
         validation = next(
             (
                 artifact
@@ -919,8 +950,10 @@ class DurableWorkUnitRunner:
             ),
             None,
         )
-        if response is None or validation is None:
-            raise ValueError("correction source is missing durable response/validation evidence")
+        if prompt is None or response is None or validation is None:
+            raise ValueError(
+                "correction source is missing durable prompt/response/validation evidence"
+            )
         response_content = response.content if isinstance(response.content, Mapping) else {}
         raw_envelope = response_content.get("rawResponse")
         if not isinstance(raw_envelope, dict):
@@ -945,6 +978,14 @@ class DurableWorkUnitRunner:
             raise CorrectionSourceContractError(
                 "correction source has no frozen work-unit contract"
             )
+        prompt_content = prompt.content if isinstance(prompt.content, Mapping) else {}
+        if (
+            prompt_content.get("contract") != source_contract
+            or response_content.get("contract") != source_contract
+        ):
+            raise CorrectionSourceContractError(
+                "correction source artifacts disagree on their frozen work-unit contract"
+            )
         self._assert_correction_source_contract(
             source_attempt=source_attempt,
             source_contract=source_contract,
@@ -960,10 +1001,11 @@ class DurableWorkUnitRunner:
             issues.append({"code": issue.code, "path": list(issue.path)})
         if not issues:
             raise ValueError("correction source has no stable validation issues")
-        serialized_repair_facts = []
+        parsed_repair_facts: list[SemanticRepairFact] = []
         raw_repair_facts = validation_content.get("repairFacts", [])
         if not isinstance(raw_repair_facts, list):
             raise ValueError("correction source has malformed deterministic repair facts")
+        source_value: Any | None = None
         for item in raw_repair_facts:
             if not isinstance(item, Mapping):
                 raise ValueError("correction source has malformed deterministic repair facts")
@@ -975,9 +1017,52 @@ class DurableWorkUnitRunner:
                 fact,
                 source_contract=source_contract,
             )
-            serialized_repair_facts.append(
-                serialize_semantic_repair_fact(fact)
+            if fact.code in {
+                "semantic.continuity_beat_sequence_mismatch",
+                "semantic.continuity_shot_sequence_mismatch",
+            }:
+                if source_value is None:
+                    try:
+                        source_value = parse_json_text(
+                            previous_final_content,
+                            policy=extraction_policy,
+                        ).value
+                    except ResponseExtractionError as error:
+                        raise CorrectionSourceContractError(
+                            "continuity repair source can no longer be extracted"
+                        ) from error
+                try:
+                    assert_continuity_repair_fact_matches_source(
+                        fact,
+                        source_value,
+                        stage=work_unit.stage,
+                        bible=(
+                            dependencies.get(StageName.STORY_BIBLE)
+                            if work_unit.stage
+                            in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+                            else None
+                        ),
+                        scoped_context=(
+                            getattr(base_compiled.validator, "scoped_context", None)
+                            if work_unit.stage
+                            in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+                            else None
+                        ),
+                    )
+                except ValueError as error:
+                    raise CorrectionSourceContractError(str(error)) from error
+            parsed_repair_facts.append(fact)
+        try:
+            instruction_plan = compile_correction_instruction_plan(
+                validated_issues,
+                parsed_repair_facts,
             )
+            correction_schema = compile_correction_response_schema(
+                base_compiled.response_schema,
+                parsed_repair_facts,
+            )
+        except (CorrectionDirectivePlanError, CorrectionResponseSchemaError) as error:
+            raise CorrectionSourceContractError(str(error)) from error
         correction_ordinal = source_attempt.attempt_number
         correction_strategy = (
             "repair_previous_final"
@@ -987,13 +1072,15 @@ class DurableWorkUnitRunner:
         rendered = self.renderer.render(
             "work_unit_correction",
             {
-                "original_contract": base_compiled.contract.model_dump(
-                    mode="json", by_alias=True
-                ),
-                "response_schema": base_compiled.response_schema,
+                "original_contract": base_compiled.contract.snapshot_dump(),
+                "response_schema": correction_schema.schema,
                 "previous_final_content": previous_final_content,
                 "validation_issues": issues,
-                "semantic_repair_facts": serialized_repair_facts,
+                "repair_evidence_projection": instruction_plan.prompt_evidence,
+                "correction_directives": [
+                    directive.model_dump(mode="json")
+                    for directive in instruction_plan.directives
+                ],
                 "correction_ordinal": correction_ordinal,
                 "correction_strategy": correction_strategy,
             },
@@ -1020,8 +1107,9 @@ class DurableWorkUnitRunner:
                 f"{input_bytes} bytes, exceeding the frozen max_input_bytes "
                 f"budget of {work_unit.budget.max_input_bytes}"
             )
-        contract = base_compiled.contract.model_copy(
-            update={
+        contract = type(base_compiled.contract).model_validate(
+            {
+                **base_compiled.contract.snapshot_dump(),
                 "prompt_id": rendered.trace.prompt_id,
                 "prompt_version": rendered.trace.prompt_version,
                 "prompt_spec_hash": rendered.trace.spec_hash,
@@ -1029,13 +1117,18 @@ class DurableWorkUnitRunner:
                 "rendered_hash": rendered.trace.rendered_hash,
                 "correction_ordinal": correction_ordinal,
                 "correction_strategy": correction_strategy,
+                "correction_directive_set_hash": instruction_plan.directive_set_hash,
+                "correction_evidence_projection_hash": (
+                    instruction_plan.evidence_projection_hash
+                ),
+                "correction_response_schema_hash": correction_schema.schema_hash,
             }
         )
         return CompiledWorkUnitRequest(
             rendered=rendered,
             validator=base_compiled.validator,
             contract=contract,
-            response_schema=base_compiled.response_schema,
+            response_schema=correction_schema.schema,
         )
 
     @staticmethod
@@ -1097,9 +1190,19 @@ class DurableWorkUnitRunner:
     ) -> None:
         """Bind a correction to the exact executable contract that rejected it."""
 
-        current_contract = base_compiled.contract.model_dump(
-            mode="json", by_alias=True
-        )
+        current_contract = base_compiled.contract.snapshot_dump()
+        try:
+            parsed_source = type(base_compiled.contract).model_validate(
+                dict(source_contract)
+            )
+        except ValueError as error:
+            raise CorrectionSourceContractError(
+                "correction source work-unit contract is malformed"
+            ) from error
+        if parsed_source.snapshot_dump() != dict(source_contract):
+            raise CorrectionSourceContractError(
+                "correction source work-unit contract changed shape during validation"
+            )
         if source_attempt.attempt_kind == GenerationAttemptKind.PRIMARY:
             if dict(source_contract) != current_contract:
                 raise CorrectionSourceContractError(
@@ -1146,7 +1249,7 @@ class DurableWorkUnitRunner:
             "model": model,
             "attemptKind": attempt.attempt_kind.value,
             "sourceAttemptId": attempt.source_attempt_id,
-            "contract": compiled.contract.model_dump(mode="json", by_alias=True),
+            "contract": compiled.contract.snapshot_dump(),
         }
         self.repository.add_artifact(
             Artifact(
@@ -1169,7 +1272,7 @@ class DurableWorkUnitRunner:
         """Verify that a resumed attempt still means exactly the same request."""
 
         content = artifact.content if isinstance(artifact.content, Mapping) else {}
-        expected_contract = compiled.contract.model_dump(mode="json", by_alias=True)
+        expected_contract = compiled.contract.snapshot_dump()
         if (
             artifact.attempt_id != attempt.id
             or content.get("contract") != expected_contract
@@ -1195,7 +1298,7 @@ class DurableWorkUnitRunner:
         raw = content.get("rawResponse")
         if not isinstance(raw, dict):
             raise ValueError("durable provider response has no object envelope")
-        expected_contract = compiled.contract.model_dump(mode="json", by_alias=True)
+        expected_contract = compiled.contract.snapshot_dump()
         if content.get("contract") != expected_contract:
             raise ValueError(
                 "durable provider response does not match the frozen prompt contract"
@@ -1260,7 +1363,7 @@ class DurableWorkUnitRunner:
                 serialize_semantic_repair_fact(fact)
                 for fact in repair_facts
             ],
-            "contract": compiled.contract.model_dump(mode="json", by_alias=True),
+            "contract": compiled.contract.snapshot_dump(),
         }
         self.repository.add_artifact(
             Artifact(
@@ -1279,7 +1382,7 @@ class DurableWorkUnitRunner:
     ) -> None:
         """Refuse an undispatched recovery when its prompt/schema changed."""
 
-        expected = compiled.contract.model_dump(mode="json", by_alias=True)
+        expected = compiled.contract.snapshot_dump()
         previous_prompts = [
             artifact
             for artifact in self.repository.get_run_trace(run_id).artifacts

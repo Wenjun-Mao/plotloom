@@ -23,6 +23,11 @@ from plotloom.domain import (
 )
 from plotloom.generation.planning import create_generation_plan, plan_stage
 from plotloom.generation.contracts import ValidationIssue
+from plotloom.generation.correction_contract import (
+    CORRECTION_DIRECTIVE_REGISTRY_VERSION,
+    CORRECTION_EVIDENCE_PROJECTION_VERSION,
+    CORRECTION_RESPONSE_SCHEMA_VERSION,
+)
 from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.work_units import (
     BeatContent,
@@ -130,7 +135,22 @@ def _board_output(*, cue_ids: list[str] | None = None, audio_duration: int = 660
 def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None:
     compiled = _compiled(StageName.SCENE_BEATS)
     assert compiled.rendered.output.schema_id == "scene_beats.fragment.v11"
-    assert compiled.contract.contract_version == "m1.12o"
+    assert compiled.contract.contract_version == "m1.12p"
+    assert (
+        compiled.contract.correction_directive_registry_version
+        == CORRECTION_DIRECTIVE_REGISTRY_VERSION
+    )
+    assert (
+        compiled.contract.correction_evidence_projection_version
+        == CORRECTION_EVIDENCE_PROJECTION_VERSION
+    )
+    assert (
+        compiled.contract.correction_response_schema_version
+        == CORRECTION_RESPONSE_SCHEMA_VERSION
+    )
+    assert compiled.contract.correction_directive_set_hash is None
+    assert compiled.contract.correction_evidence_projection_hash is None
+    assert compiled.contract.correction_response_schema_hash is None
     assert "dialogueCues" in compiled.response_schema["properties"]
     assert '"dialogue"' not in str(compiled.response_schema)
     cue_schema = compiled.response_schema["properties"]["dialogueCues"]["items"]

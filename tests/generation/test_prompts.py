@@ -115,7 +115,9 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     correction_spec, _spec_hash, _source = repository.load("work_unit_correction")
     assert "对每条 schema.missing" in correction_spec.user
     assert "对每条 schema.extra_forbidden" in correction_spec.user
-    assert "semantic_repair_facts" in correction_spec.variables
+    assert "semantic_repair_facts" not in correction_spec.variables
+    assert "repair_evidence_projection" in correction_spec.variables
+    assert "correction_directives" in correction_spec.variables
     assert "speakerId 和 voiceOver" in correction_spec.user
     assert "恰好一个为非 null" in correction_spec.user
     assert "dialogue_timing_policy" not in scene_spec.variables
@@ -127,22 +129,10 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     assert "× measured 420" not in scene_spec.user
     graph_spec, _spec_hash, _source = repository.load("story_graph_content_fill")
     assert "allowedDifferences 必须是 requiredStateKeys 的子集" in graph_spec.user
-    assert "missingRequiredStateKeys" in correction_spec.user
-    assert "allowedStates" in correction_spec.user
-    assert "dialogue_capacity_guidance" in correction_spec.user
-    assert "AudioTimingRepairFact" in correction_spec.user
-    assert "repairAction=replace_duration" in correction_spec.user
-    assert "零基索引" in correction_spec.user
-    assert "semantic.primary_coverage" in correction_spec.user
-    assert "semantic.cue_not_covered_by_shot" in correction_spec.user
-    assert "PRIMARY 或 SUPPORTING" in correction_spec.user
+    assert "本轮适用的静态纠错指令" in correction_spec.user
+    assert "只执行上方本轮列出的静态指令" in correction_spec.user
     assert scene_spec.version == "3.11.0"
-    assert "DialogueNodeBudgetRepairFact" in correction_spec.user
-    assert "StoryboardTimingRepairPlanFact" in correction_spec.user
-    assert "JoinStateEffectRepairFact" in correction_spec.user
-    assert "EdgeStateEffectJsonRepairFact" in correction_spec.user
-    assert "hasExpectedValue" in correction_spec.user
-    assert correction_spec.version == "3.8.0"
+    assert correction_spec.version == "3.9.0"
     storyboard_fragment_spec, _spec_hash, _source = repository.load(
         "storyboard_fragment"
     )

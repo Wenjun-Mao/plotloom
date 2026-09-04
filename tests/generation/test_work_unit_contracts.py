@@ -26,6 +26,9 @@ from plotloom.generation.fragments import SceneBeatsFragment, StoryboardFragment
 from plotloom.generation.planning import create_generation_plan, plan_stage
 from plotloom.generation.prompts import PromptRenderer
 from plotloom.generation.contracts import ValidationIssue
+from plotloom.generation.correction_directives import (
+    compile_correction_instruction_plan,
+)
 from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.fragment_semantics import (
     continuity_state_issues,
@@ -419,6 +422,8 @@ def test_join_exact_json_null_survives_repair_fact_rendering() -> None:
     serialized = serialize_semantic_repair_fact(fact)
     assert serialized["hasExpectedValue"] is True
     assert "expectedValue" in serialized and serialized["expectedValue"] is None
+    issue = ValidationIssue(code=fact.code, message="stable", path=fact.path)
+    instruction_plan = compile_correction_instruction_plan([issue], [fact])
     rendered = PromptRenderer().render(
         "work_unit_correction",
         {
@@ -428,7 +433,11 @@ def test_join_exact_json_null_survives_repair_fact_rendering() -> None:
             "validation_issues": [
                 {"code": fact.code, "path": list(fact.path)}
             ],
-            "semantic_repair_facts": [serialized],
+            "repair_evidence_projection": instruction_plan.prompt_evidence,
+            "correction_directives": [
+                directive.model_dump(mode="json")
+                for directive in instruction_plan.directives
+            ],
             "correction_ordinal": 1,
             "correction_strategy": "repair_previous_final",
         },
@@ -601,6 +610,32 @@ def test_prompt_contract_requires_complete_correction_schedule() -> None:
                 **primary,
                 "correction_ordinal": 1,
                 "correction_strategy": "reconstruct_from_schema",
+            }
+        )
+
+    with pytest.raises(ValidationError, match="compiler hashes"):
+        WorkUnitPromptContract.model_validate(
+            {
+                **primary,
+                "correction_ordinal": 1,
+                "correction_strategy": "repair_previous_final",
+            }
+        )
+
+    with pytest.raises(ValidationError, match="current correction policy"):
+        WorkUnitPromptContract.model_validate(
+            {**primary, "correction_policy_version": "bounded_correction.future"}
+        )
+
+    with pytest.raises(ValidationError, match="string_pattern_mismatch"):
+        WorkUnitPromptContract.model_validate(
+            {
+                **primary,
+                "correction_ordinal": 1,
+                "correction_strategy": "repair_previous_final",
+                "correction_directive_set_hash": "g" * 64,
+                "correction_evidence_projection_hash": "0" * 64,
+                "correction_response_schema_hash": "0" * 64,
             }
         )
 
@@ -950,14 +985,15 @@ def test_storyboard_audio_event_ids_are_deterministic_and_contracts_preserve_his
     assert shot.audio_plan.events[0].id == canonical_audio_event_id(shot.id, 1)
     assert second.value.shots[0].audio_plan.events[0].id == shot.audio_plan.events[0].id
 
-    historical = compiled.contract.model_dump(
-        mode="json", by_alias=True, exclude_none=True
-    )
+    historical = compiled.contract.snapshot_dump()
     historical["contract_version"] = "m1.12j"
     historical["correction_policy_version"] = "bounded_correction.v14"
     historical.pop("audio_event_id_binding_version")
+    historical.pop("correction_directive_registry_version")
+    historical.pop("correction_evidence_projection_version")
+    historical.pop("correction_response_schema_version")
     parsed = WorkUnitPromptContract.model_validate(historical)
-    assert parsed.model_dump(mode="json", by_alias=True, exclude_none=True) == historical
+    assert parsed.snapshot_dump() == historical
 
 
 def test_v15_timing_plan_fact_remains_readable_without_guidance_injection() -> None:

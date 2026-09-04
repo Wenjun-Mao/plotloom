@@ -10,6 +10,12 @@ POSIX file locks) after the two intended profiles have been saved. The review
 directory must be an empty, local **absolute** directory outside that checkout.
 The runner rejects any path inside the checkout even if it is ignored by Git:
 
+Before starting the 18-run matrix, probe both profiles and verify that each
+provider reports an effective per-request (or per-slot) context at least as
+large as the profile's declared context. A multi-slot service may divide a
+process-wide context pool. Correct that service/profile mismatch first; a run
+truncated at the smaller physical limit is not Alpha evidence.
+
 ```sh
 uv run python scripts/alpha_acceptance.py \
   --profile local_profile_a \

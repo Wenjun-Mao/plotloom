@@ -72,6 +72,13 @@ the two intended saved profiles; for M1.5 they are the profiles representing
 the two current local models. Their frozen public `profileHash` values prove
 which configurations ran without exposing those fields in the receipt.
 
+Before a live qualification, verify that each provider's effective context for
+one request is at least its saved profile's declared context. In runtimes that
+split a total context pool across parallel slots, inspect the reported per-slot
+value rather than assuming the process-wide launch argument applies to every
+request. Fix the service or profile and re-probe first; a truncation-shaped
+failure is not a valid qualification sample.
+
 `issueCodes` are only Plotloom-owned stable validation, lifecycle, or run
 failure codes (including migration `0007`'s run-level classifications), never
 arbitrary provider error text. Automated tests inject a local fixture provider

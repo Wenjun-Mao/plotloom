@@ -7,7 +7,9 @@ V2 validation before a fragment can be sealed into an aggregate.
 
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from copy import deepcopy
+from dataclasses import dataclass
+from typing import Any, Literal, Mapping, Sequence
 
 from pydantic import ValidationError
 
@@ -23,6 +25,32 @@ from .contracts import ValidationIssue
 
 class FragmentSemanticContextError(ValueError):
     """Trusted fragment context is incomplete or no longer canonical-shaped."""
+
+
+@dataclass(frozen=True)
+class ContinuityAssignmentCandidate:
+    """One exact boundary-owner continuity assignment.
+
+    The work-unit layer binds these value-level differences to response-local
+    endpoint identities.  Keeping this comparison provider-free ensures the
+    repair compiler and the canonical validator share one definition of an
+    incompatible boundary.
+    """
+
+    kind: Literal["fact", "entity_state", "scalar"]
+    expected_value: Any
+    fact_key: str | None = None
+    entity_type: EntityType | None = None
+    entity_id: str | None = None
+    scalar_field: Literal["screen_direction", "lighting", "sound"] | None = None
+
+
+@dataclass(frozen=True)
+class ContinuityBoundaryDifference:
+    """All repairable differences at one ordered sequence boundary."""
+
+    boundary_index: int
+    assignments: tuple[ContinuityAssignmentCandidate, ...]
 
 
 def continuity_state_issues(
@@ -99,6 +127,119 @@ def continuity_sequence_is_compatible(
     return continuity_states_are_compatible(prior, exit_state)
 
 
+def continuity_sequence_repair_boundaries(
+    entry_state: ContinuityStateV2,
+    ordered_items: Sequence[Any],
+    exit_state: ContinuityStateV2,
+    *,
+    bible: StoryBibleV2,
+    final_boundary_source: Literal["last_item_exit", "sequence_exit"] = "last_item_exit",
+) -> tuple[ContinuityBoundaryDifference, ...] | None:
+    """Return every safe ordered repair boundary, or no authority.
+
+    A compatibility mismatch alone does not prove that either endpoint is a
+    valid repair source.  The caller may use this result only after every
+    participating state has finite facts, unique entity identities, and valid
+    Story Bible entity states.  ``None`` deliberately means fail closed;
+    callers must leave the more precise validation failures in place.
+    """
+
+    if not ordered_items:
+        return ()
+    states = [entry_state, exit_state]
+    for item in ordered_items:
+        states.extend((item.entry_state, item.exit_state))
+    if any(not _entity_states_are_unique(state) for state in states):
+        return None
+    if any(continuity_state_issues(state, bible=bible, path=()) for state in states):
+        return None
+
+    pairs: list[tuple[ContinuityStateV2, ContinuityStateV2]] = [
+        (entry_state, ordered_items[0].entry_state)
+    ]
+    pairs.extend(
+        (previous.exit_state, following.entry_state)
+        for previous, following in zip(ordered_items, ordered_items[1:])
+    )
+    if final_boundary_source == "last_item_exit":
+        pairs.append((ordered_items[-1].exit_state, exit_state))
+    else:
+        # Storyboard's enclosing scene is frozen canonical context.  It owns
+        # its exit boundary even though compatibility itself is symmetric.
+        pairs.append((exit_state, ordered_items[-1].exit_state))
+
+    differences: list[ContinuityBoundaryDifference] = []
+    for boundary_index, (source, target) in enumerate(pairs):
+        assignments = continuity_state_repair_assignments(source, target)
+        if assignments:
+            differences.append(
+                ContinuityBoundaryDifference(
+                    boundary_index=boundary_index,
+                    assignments=assignments,
+                )
+            )
+    return tuple(differences)
+
+
+def continuity_state_repair_assignments(
+    source: ContinuityStateV2,
+    target: ContinuityStateV2,
+) -> tuple[ContinuityAssignmentCandidate, ...]:
+    """Compile only incompatible shared declarations from source to target."""
+
+    assignments: list[ContinuityAssignmentCandidate] = []
+    for key in sorted(set(source.facts) & set(target.facts)):
+        source_value = source.facts[key]
+        target_value = target.facts[key]
+        try:
+            equal = finite_json_values_equal(source_value, target_value)
+        except CanonicalJsonValueError:
+            # The sequence compiler gates finite JSON before this comparison.
+            # Treat an unexpected violation as no repair authority.
+            return ()
+        if not equal:
+            assignments.append(
+                ContinuityAssignmentCandidate(
+                    kind="fact",
+                    fact_key=key,
+                    expected_value=deepcopy(source_value),
+                )
+            )
+
+    source_entities = {
+        (item.entity_type, item.entity_id): item.state for item in source.entity_states
+    }
+    target_entities = {
+        (item.entity_type, item.entity_id): item.state for item in target.entity_states
+    }
+    for entity_type, entity_id in sorted(
+        set(source_entities) & set(target_entities),
+        key=lambda item: (item[0].value, item[1]),
+    ):
+        if source_entities[(entity_type, entity_id)] != target_entities[(entity_type, entity_id)]:
+            assignments.append(
+                ContinuityAssignmentCandidate(
+                    kind="entity_state",
+                    entity_type=entity_type,
+                    entity_id=entity_id,
+                    expected_value=source_entities[(entity_type, entity_id)],
+                )
+            )
+
+    for field in ("screen_direction", "lighting", "sound"):
+        source_value = getattr(source, field)
+        target_value = getattr(target, field)
+        if source_value is not None and target_value is not None and source_value != target_value:
+            assignments.append(
+                ContinuityAssignmentCandidate(
+                    kind="scalar",
+                    scalar_field=field,
+                    expected_value=source_value,
+                )
+            )
+    return tuple(assignments)
+
+
 def continuity_states_are_compatible(
     left: ContinuityStateV2,
     right: ContinuityStateV2,
@@ -131,6 +272,11 @@ def continuity_states_are_compatible(
         or getattr(left, field) == getattr(right, field)
         for field in ("screen_direction", "lighting", "sound")
     )
+
+
+def _entity_states_are_unique(state: ContinuityStateV2) -> bool:
+    keys = [(item.entity_type, item.entity_id) for item in state.entity_states]
+    return len(keys) == len(set(keys))
 
 
 def continuity_state_from_context(

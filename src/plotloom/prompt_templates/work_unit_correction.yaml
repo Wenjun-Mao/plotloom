@@ -1,5 +1,5 @@
 id: work_unit_correction
-version: "3.8.0"
+version: "3.9.0"
 stage: correction
 description: Correct one rejected final response without changing its frozen contract.
 system: |-
@@ -25,24 +25,20 @@ user: |-
   【稳定验证问题】
   {{ validation_issues | tojson }}
 
-  【确定性语义修复事实】
-  {{ semantic_repair_facts | tojson }}
+  【版本化纠错证据投影】
+  {{ repair_evidence_projection | tojson }}
+
+  【本轮适用的静态纠错指令】
+  {% for directive in correction_directives %}
+  [{{ directive.id }}] {{ directive.text }}
+  {% else %}
+  本轮没有额外语义指令；只按目标 Schema 和稳定 code/path 重建。
+  {% endfor %}
 
   冻结合同、目标 Schema 和稳定验证问题是本次纠错的唯一权威；上一次最终回答只能提供待保留或待修复的候选内容。
   对每条 schema.missing，必须按 path 补出该属性，并递归检查其所属对象在 Schema 的 required 中列出的所有兄弟属性；即使值为空也必须按允许类型显式输出。对每条 schema.extra_forbidden，必须删除 path 指向的属性，除非另一个 schema.missing path 明确要求将其内容搬到合法字段。
   只要输出中存在 dialogueCues，每一项都必须同时显式写出 speakerId 和 voiceOver，并且恰好一个为非 null：角色发言使用合法 speakerId 且 voiceOver=null；旁白使用 speakerId=null 且 voiceOver 为非空身份标签。禁止两者同时为 null 或同时为非 null。
-  对 semantic.dialogue_exceeds_node_budget，只以同 code/path 的 DialogueNodeBudgetRepairFact 为权威：删除 removeLocalCueIds 中且仅其中的 cue；不要新建 cue，也不要改动保留 cue 的 text、language、delivery 或 beatLocalId。随后按 remainingCues 为每个保留 cue 写入完全相同的 order；不得自行计算字符、毫秒或选择另一种删减方案。若同一 cue 也有 DialogueCapacityRepairFact，已被本事实删除即为满足，不得再修改它。
-  对 semantic.scene_capacity_exceeded 或 schema.too_long，把 scenes 合并或删减到原始合同 dialogue_capacity_guidance.maxScenes 以内；对 semantic.dialogue_cue_count_exceeded，把 dialogueCues 精简到 maxDialogueCues 以内。对 semantic.dialogue_cue_capacity_exceeded，只以同 code/path 的 DialogueCapacityRepairFact 为权威：保留其 language，令 text 的 Unicode code point 数不超过 maxTextCodepoints；maxTextCodepoints=0 时删除该 cue。只能从 compatibleDeliveryLimits 中选择 delivery，且所选 delivery 的 maxTextCodepoints 仍是硬上限。不得从合同、验证器说明或上一回答重新推算容量。
-  对 semantic.audio_timing，只以同 code/path 的 AudioTimingRepairFact 为权威：找到 shotLocalId 对应的镜头和 eventIndex 指向的 event；eventIndex 是该 shot.audioPlan.events 数组的原始零基索引。不得改动其 startOffsetUnits、kind、description 或其他合法字段。repairAction=replace_duration 时，必须将 durationUnits 完整替换为 replacementDurationUnits；repairAction=remove_event 时，必须删除该 event。同一 shot 的所有 AudioTimingRepairFact 必须先按原始 eventIndex 从大到小作为一个操作序列执行（同一原始索引如同时出现 remove 与 replace 则合同无效，不得猜测）；不得自行计算、改变 shot.durationUnits 或从验证器说明推断时间。
-  对 semantic.invalid_required_entity_state，只根据同一 code/path 的确定性语义修复事实处理：保持其 entityType 和 entityId 逐字不变，并把 state 改为 allowedStates 中的一个完全相同字符串。不得发明同义词、更换实体或把验证器说明当作授权。
-  对 semantic.join_allowed_differences_must_be_required，只以同 code/path 的 JoinAllowedDifferencesRepairFact 为权威：找到 joinContractId 对应的对象，将 requiredStateKeys 完整替换为 expectedRequiredStateKeys，并将 allowedDifferences 完整替换为 expectedAllowedDifferences，数组顺序与字符串必须逐字符一致。对 newRequiredKeyIncomingEdges 的每个 stateKey，必须同时在其每一条 immutable incomingEdges.edgeId 的 stateEffects 中显式写入该键；不要修改拓扑 ID、端点或其他合法字段。missingRequiredStateKeys 只用于审计本次确定性追加，不得另行追加第二次。
-  对 semantic.join_state_effect_missing 或 semantic.join_state_effect_conflict，只以同 code/path 的 JoinStateEffectRepairFact 为权威：incomingEdges 是该汇流唯一可修改的直接入边集合。mode=convergent 时每条入边对 stateKey 必须使用逐结构完全相同的有限 JSON 值；hasExpectedValue=true 时逐结构复制 expectedValue（即使它是 JSON null）。mode=variant 时每条入边都必须显式写入有限 JSON 值但可不同。repairAction 只说明修复范围，不授权改变 join ID、edge ID、source/target 或 requiredStateKeys。不得从解释文字或隐藏推理猜测边端点。
-  对 semantic.state_effect_not_json，只以同 code/path 的 EdgeStateEffectJsonRepairFact 为权威：只将 edgeId 的 stateKey 值替换为有限 JSON（null、布尔、有限数字、字符串、数组或对象），保留原有叙事意图；不得猜测既有值、改变 edgeId、sourceNodeId、targetNodeId、stateKey，或修改任何其他边和拓扑。
-  对 semantic.join_allowed_difference_without_reconciliation，只以同 code/path 的 JoinReconciliationRepairFact 为权威：仅为 joinContractId 写入非空 reconciliation，明确说明 allowedDifferenceKeys 所列分支差异如何在汇流后保留或处理；不要删除这些键或重写拓扑。
-  对 semantic.join_entry_state_value_missing 或 semantic.join_entry_state_value_mismatch，只以同 code/path 的 JoinEntryStateValueRepairFact 为权威：在该 scene.entryState.facts 中用 stateKey 写入 expectedValue 的完整 JSON 结构。必须原样保留 tagged variant map、数组顺序及其中所有 edge/source ID；不得从上一回答、reconciliation 文字或任一路径自行选择替代值，也不得改动 scene 的其他连续性字段。
-  对 semantic.unknown_continuity_entity 或 semantic.invalid_continuity_entity_state，按 path 在 entryState 或 exitState 的 entityStates 项中修复：entityType、entityId 必须引用故事圣经中对应类型实体，state 必须逐字属于该实体 allowedStates；不要改写无关的 facts 或用自由文本代替状态。对 semantic.continuity_beat_sequence_mismatch 或 semantic.continuity_shot_sequence_mismatch，按 order 逐项检查 scene.entryState、每个 beat/shot 的 entryState 与 exitState、scene.exitState；相邻两端同时声明同一事实、实体状态、screenDirection、lighting 或 sound 时必须一致。
-  对 semantic.primary_coverage、semantic.unknown_link_shot、semantic.cross_unit_beat、semantic.duplicate_link 或 semantic.unlinked_shots，先从目标 Schema 重建 primaryShotLocalIdByBeat：必须逐个且仅一次包含 Schema 列出的每个 beat ID，每个值只能是本次 shots 中的 localShotId；再按需要重建 supportingBeatLinks，且每个 shot 至少通过 PRIMARY 或 SUPPORTING 覆盖一个本场景 beat。不得创建 Schema 之外的 beat ID、shotLocalId 或重复的 shot-to-beat 对。对 semantic.unknown_cue_ref、semantic.duplicate_cue_ref、semantic.unscheduled_cue_ref 或 semantic.cue_not_covered_by_shot，重建 cueIds：只能使用 Schema 允许的 cue ID，每个本场景 cue 恰好调度一次，并将它放入覆盖其所属 beat 的 shot；先修复上述 PRIMARY/SUPPORTING 覆盖关系，再修复 cueIds。不得新增对白文本或编造 cue ID。
-  对 semantic.shot_duration_budget_exceeded 或 semantic.cue_duration_exceeds_shot，只以同 code/path 且 guidanceHash 与原始工作单元合同一致的 StoryboardTimingRepairPlanFact 为权威。相同 planHash 的事实只执行一次：逐项找到 targetShots.localShotId 对应的既有 shot，完整替换其 order、durationUnits、cueIds；不得删除或新建 shot，不得修改任何未列字段或连续性。完整替换 primaryShotLocalIdByBeat 为 targetPrimaryLinks 的映射，并完整替换 supportingBeatLinks 为 targetSupportingLinks；不得自行移动 cue、改变 coverage、做整数运算或选择另一计划。每个 target shot 的 removeAudioEventIndexes 是其原始 audioPlan.events 的零基索引：对同一 shot 按从大到小删除这些 event，其他 audio 字段与 event 保持不变。计划已经包含完成修复所需的一切 audio 删除；出现该 plan 时不得同时应用 AudioTimingRepairFact。对 semantic.required_entity_not_in_shot，不得改变 requiredEntityStates 的 entityType/entityId/state 来逃避检查；应把该实体加入同一 shot 的相应 characterIds/locationId/propIds，或在保持叙事一致的前提下删除不需要的 requiredEntityStates 项。对 semantic.cue_canonical_order，按该场景 beat.order、再 cue.order 重排该 shot 的 cueIds。
+  只执行上方本轮列出的静态指令；不得把未出现的错误类型、validator 文本或上一回答中的说明当作额外授权。确定性值、ID、边集合、数组和操作范围只来自版本化纠错证据投影。
   {% if correction_strategy == "reconstruct_from_schema" %}
   这是最后一次纠错。不要复制上一回答的 JSON 语法；只把它当作语义素材，严格按照目标 Schema 从根对象重新构造一份完整 JSON，并逐项复核 ASCII 分隔符与字符串转义。
   {% else %}
@@ -62,9 +58,12 @@ variables:
   validation_issues:
     required: true
     description: Stable validation issue codes and paths only.
-  semantic_repair_facts:
+  repair_evidence_projection:
     required: true
-    description: Typed deterministic repair facts; never reasoning, secrets, or validator prose.
+    description: Versioned compact projection of typed facts; never reasoning, secrets, or validator prose.
+  correction_directives:
+    required: true
+    description: Static repository-owned directives selected only from validated issue codes.
   correction_ordinal:
     required: true
     description: One-based explicit correction ordinal owned by the runner.
@@ -73,5 +72,5 @@ variables:
     description: Trusted correction strategy selected by the bounded runner.
 output:
   format: json
-  schema_id: work_unit_correction.v16
+  schema_id: work_unit_correction.v17
   structured_output_mode: prefer

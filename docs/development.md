@@ -89,6 +89,12 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
 - Planner input estimates are UTF-8 byte bounds, despite the legacy field name
   `estimated_input_tokens`. They protect declared byte budgets only. The
   selected provider/model owns exact tokenization and context-window rejection.
+- A profile's `textContextWindowTokens` must match the provider's effective
+  capacity for one request. Some multi-slot runtimes divide a configured total
+  context pool across parallel slots; verify their runtime properties or probe
+  output after changing slot/concurrency settings. A response ending at that
+  smaller physical limit is a deployment/profile mismatch, not a reason to
+  relax extraction or add model-specific retry behavior.
 - Migration `0006` safely terminated old non-terminal runs whose plans predate
   the frozen profile/topology contract; operators must submit a fresh run.
   Migration `0007` persists stable run `failureCode` and `failedStage` for
@@ -103,6 +109,12 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
   deterministic model is not sent the same failed packet twice. Extraction
   correction requires ASCII JSON delimiters and escaping; the extractor does
   not silently rewrite full-width punctuation.
+- Current corrections use the issue-selected, versioned
+  directive/evidence/schema contract in
+  [ADR 0022](adr/0022-executable-correction-contracts.md). Primary attempts
+  freeze its compiler versions; each correction also freezes hashes of the
+  selected directives, compact evidence projection, and narrowed response
+  schema. Unknown semantic issue codes fail closed.
 - All structured prompts are presence-strict: every property named by a
   schema `required` array must be emitted, including explicit empty/null state
   fields. Native JSON Schema is a probed profile capability, not a replacement
