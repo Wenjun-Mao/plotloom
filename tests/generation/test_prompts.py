@@ -115,14 +115,20 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     assert "对每条 schema.missing" in correction_spec.user
     assert "对每条 schema.extra_forbidden" in correction_spec.user
     assert "semantic_repair_facts" in correction_spec.variables
+    assert "speakerId 和 voiceOver" in correction_spec.user
+    assert "恰好一个为非 null" in correction_spec.user
     assert "dialogue_timing_policy" not in scene_spec.variables
     assert "不要输出 estimatedDurationUnits" in scene_spec.user
     assert "node_timing_allocation" in scene_spec.variables
+    assert "dialogue_capacity_guidance" in scene_spec.variables
+    assert "maxTextCodepoints" in scene_spec.user
     assert "durationWeight" in scene_spec.user
     assert "× measured 420" not in scene_spec.user
     graph_spec, _spec_hash, _source = repository.load("story_graph_content_fill")
     assert "allowedDifferences 必须是 requiredStateKeys 的子集" in graph_spec.user
     assert "missingRequiredStateKeys" in correction_spec.user
+    assert "allowedStates" in correction_spec.user
+    assert "dialogue_capacity_guidance" in correction_spec.user
 
 
 def test_storyboard_schema_and_media_prompts_are_separate() -> None:

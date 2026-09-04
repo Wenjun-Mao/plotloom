@@ -42,10 +42,15 @@ from ..domain import (
     StageName,
     StoryBibleV2,
     StoryGraphV2,
-    default_dialogue_timing_profile,
 )
 from ..canonical_schema import NonBlankText, V2CoverageRole, V2ShotSize
 from .contracts import RenderedPrompt, ValidationIssue, ValidationReport
+from .dialogue_capacity import (
+    DialogueCapacityNodeGuidance,
+    DialogueCapacityPlanningError,
+    dialogue_timing_profile_hash,
+    plan_dialogue_capacity,
+)
 from .fragments import SceneBeatsFragment, StageFragment, StoryboardFragment
 from .json_schema import explicit_presence_json_schema, inline_local_json_references
 from .planning import (
@@ -76,11 +81,11 @@ from .story_graph_topology import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12e"
-CORRECTION_POLICY_VERSION = "bounded_correction.v6"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12f"
+CORRECTION_POLICY_VERSION = "bounded_correction.v7"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
-SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v7"
+SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v8"
 STORYBOARD_FRAGMENT_SCHEMA_ID = "storyboard.fragment.v4"
 
 
@@ -211,8 +216,50 @@ class JoinAllowedDifferencesRepairFact(CamelModel):
         return self
 
 
+class RequiredEntityStateRepairFact(CamelModel):
+    """Trusted Story Bible choices for one invalid Storyboard state.
+
+    The model-authored invalid value and validator prose are deliberately not
+    carried forward.  A correction receives only the immutable entity identity
+    and the exact allowed values from the frozen Story Bible dependency.
+    """
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    code: Literal["semantic.invalid_required_entity_state"]
+    path: tuple[str | int, ...]
+    entity_type: EntityType
+    entity_id: NonBlankText
+    allowed_states: tuple[NonBlankText, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_issue_identity_and_allowed_states(
+        self,
+    ) -> "RequiredEntityStateRepairFact":
+        if (
+            len(self.path) != 5
+            or self.path[0] != "shots"
+            or not isinstance(self.path[1], int)
+            or isinstance(self.path[1], bool)
+            or self.path[1] < 0
+            or self.path[2] != "requiredEntityStates"
+            or not isinstance(self.path[3], int)
+            or isinstance(self.path[3], bool)
+            or self.path[3] < 0
+            or self.path[4] != "state"
+        ):
+            raise ValueError(
+                "path must identify one requiredEntityStates state value"
+            )
+        if len(self.allowed_states) != len(set(self.allowed_states)):
+            raise ValueError("allowedStates must be unique")
+        return self
+
+
 SemanticRepairFact: TypeAlias = Annotated[
-    DialogueTimingRepairFact | JoinAllowedDifferencesRepairFact,
+    DialogueTimingRepairFact
+    | JoinAllowedDifferencesRepairFact
+    | RequiredEntityStateRepairFact,
     Field(discriminator="code"),
 ]
 _SEMANTIC_REPAIR_FACT_ADAPTER = TypeAdapter(SemanticRepairFact)
@@ -339,10 +386,12 @@ class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraphV2]):
 
 
 class WorkUnitPromptContract(_FrozenModel):
-    """Hash-only provenance for a compiled unit request.
+    """Compact public provenance for a compiled unit request.
 
     The fields identify the exact public prompt/schema contract without
     duplicating user text or server-managed canonical objects into traces.
+    Scene Beats additionally carries its small deterministic capacity guidance
+    so a later bounded correction can obey the same frozen limits.
     """
 
     contract_version: str = WORK_UNIT_PROMPT_CONTRACT_VERSION
@@ -370,6 +419,9 @@ class WorkUnitPromptContract(_FrozenModel):
     scene_timing_allocation_version: str | None = None
     scene_timing_allocation_hash: str | None = None
     node_duration_budget_units: int | None = Field(default=None, ge=1)
+    dialogue_capacity_policy_version: str | None = None
+    dialogue_capacity_plan_hash: str | None = None
+    dialogue_capacity_guidance: DialogueCapacityNodeGuidance | None = None
 
     @model_validator(mode="after")
     def validate_correction_schedule(self) -> WorkUnitPromptContract:
@@ -412,6 +464,24 @@ class WorkUnitPromptContract(_FrozenModel):
             raise ValueError("Scene Beats contracts require a scene timing allocation")
         if self.stage != StageName.SCENE_BEATS and has_timing_allocation:
             raise ValueError("scene timing allocations only belong to Scene Beats")
+        capacity_values = (
+            self.dialogue_capacity_policy_version,
+            self.dialogue_capacity_plan_hash,
+            self.dialogue_capacity_guidance,
+        )
+        has_capacity = all(value is not None for value in capacity_values)
+        if any(value is not None for value in capacity_values) != has_capacity:
+            raise ValueError("dialogue capacity fields must be set together")
+        if self.stage == StageName.SCENE_BEATS and not has_capacity:
+            raise ValueError("Scene Beats contracts require dialogue capacity")
+        if self.stage != StageName.SCENE_BEATS and has_capacity:
+            raise ValueError("dialogue capacity only belongs to Scene Beats")
+        if has_capacity:
+            assert self.dialogue_capacity_guidance is not None
+            if self.dialogue_capacity_guidance.node_id != self.selector_id:
+                raise ValueError(
+                    "dialogue capacity guidance must match the selected Story Graph node"
+                )
         return self
     unit_dependency_hash: str = Field(min_length=1)
     fragment_id_binding_version: str = FRAGMENT_ID_BINDING_VERSION
@@ -445,6 +515,7 @@ class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
         bible: StoryBibleV2,
         scoped_context: Mapping[str, Any],
         dialogue_timing_profile: DialogueTimingProfile | None,
+        dialogue_capacity_guidance: DialogueCapacityNodeGuidance | None,
     ) -> None:
         if work_unit.stage not in {StageName.SCENE_BEATS, StageName.STORYBOARD}:
             raise WorkUnitContractError("fragment adapter only supports sharded stages")
@@ -454,6 +525,7 @@ class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
         self.bible = bible
         self.scoped_context = dict(scoped_context)
         self.dialogue_timing_profile = dialogue_timing_profile
+        self.dialogue_capacity_guidance = dialogue_capacity_guidance
         self.model_type: type[FragmentOutput]
         if work_unit.stage == StageName.SCENE_BEATS:
             if dialogue_timing_profile is None:
@@ -464,9 +536,17 @@ class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
                 raise WorkUnitContractError(
                     "Scene Beats fragment adapter requires a frozen scene timing allocation"
                 )
+            if dialogue_capacity_guidance is None:
+                raise WorkUnitContractError(
+                    "Scene Beats fragment adapter requires frozen dialogue capacity guidance"
+                )
             self.model_type = SceneBeatsFragmentOutput
             self.schema_id = SCENE_BEATS_FRAGMENT_SCHEMA_ID
         else:
+            if dialogue_capacity_guidance is not None:
+                raise WorkUnitContractError(
+                    "dialogue capacity guidance only belongs to Scene Beats"
+                )
             self.model_type = StoryboardFragmentOutput
             self.schema_id = STORYBOARD_FRAGMENT_SCHEMA_ID
 
@@ -480,6 +560,7 @@ class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
             brief=self.brief,
             bible=self.bible,
             scoped_context=self.scoped_context,
+            dialogue_capacity_guidance=self.dialogue_capacity_guidance,
         )
         return inline_local_json_references(schema)
 
@@ -522,6 +603,7 @@ class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
             bible=self.bible,
             scoped_context=self.scoped_context,
             dialogue_timing_profile=self.dialogue_timing_profile,
+            dialogue_capacity_guidance=self.dialogue_capacity_guidance,
         )
         if semantic_issues:
             return ValidationReport(accepted=False, issues=semantic_issues)
@@ -577,6 +659,24 @@ def compile_work_unit_request(
             raise WorkUnitContractError(
                 "Scene Beats timing allocation does not match the frozen graph and brief"
             )
+        if (
+            stage_plan.dialogue_timing_profile is None
+            or stage_plan.dialogue_capacity_plan is None
+        ):
+            raise WorkUnitContractError(
+                "Scene Beats compilation requires frozen dialogue capacity inputs"
+            )
+        try:
+            expected_capacity = plan_dialogue_capacity(
+                scene_timing_allocation=expected_timing,
+                dialogue_timing_profile=stage_plan.dialogue_timing_profile,
+            )
+        except DialogueCapacityPlanningError as exc:
+            raise WorkUnitContractError(str(exc)) from exc
+        if stage_plan.dialogue_capacity_plan != expected_capacity:
+            raise WorkUnitContractError(
+                "Scene Beats dialogue capacity does not match the frozen timing inputs"
+            )
     snapshot_json = canonical_json(_json_value(canonical_snapshot))
     # Repository-backed plans use CanonicalSnapshot.snapshot_hash as their
     # immutable identity fingerprint.  The serialized byte count remains a
@@ -602,6 +702,8 @@ def compile_work_unit_request(
             work_unit,
             dependencies=dependencies,
             scene_timing_allocation=stage_plan.scene_timing_allocation,
+            dialogue_timing_profile=stage_plan.dialogue_timing_profile,
+            dialogue_capacity_plan=stage_plan.dialogue_capacity_plan,
         )
     except PlanningError as exc:
         raise WorkUnitContractError(str(exc)) from exc
@@ -650,13 +752,7 @@ def compile_work_unit_request(
             else None
         ),
         dialogue_timing_profile_hash=(
-            sha256_text(
-                canonical_json(
-                    adapter.dialogue_timing_profile.model_dump(
-                        mode="json", by_alias=True
-                    )
-                )
-            )
+            dialogue_timing_profile_hash(adapter.dialogue_timing_profile)
             if isinstance(adapter, WorkUnitFragmentValidationAdapter)
             and adapter.dialogue_timing_profile is not None
             else None
@@ -676,6 +772,23 @@ def compile_work_unit_request(
                 work_unit.selector.stable_id
             )
             if stage_plan.scene_timing_allocation is not None
+            else None
+        ),
+        dialogue_capacity_policy_version=(
+            stage_plan.dialogue_capacity_plan.policy_version
+            if stage_plan.dialogue_capacity_plan is not None
+            else None
+        ),
+        dialogue_capacity_plan_hash=(
+            stage_plan.dialogue_capacity_plan.capacity_plan_hash
+            if stage_plan.dialogue_capacity_plan is not None
+            else None
+        ),
+        dialogue_capacity_guidance=(
+            stage_plan.dialogue_capacity_plan.guidance_for(
+                work_unit.selector.stable_id
+            )
+            if stage_plan.dialogue_capacity_plan is not None
             else None
         ),
         storyboard_primary_coverage_binding_version=(
@@ -736,8 +849,16 @@ def _validator_for_unit(
         bible=bible,
         scoped_context=scoped_context,
         dialogue_timing_profile=(
-            default_dialogue_timing_profile()
+            stage_plan.dialogue_timing_profile
             if work_unit.stage == StageName.SCENE_BEATS
+            else None
+        ),
+        dialogue_capacity_guidance=(
+            stage_plan.dialogue_capacity_plan.guidance_for(
+                work_unit.selector.stable_id
+            )
+            if work_unit.stage == StageName.SCENE_BEATS
+            and stage_plan.dialogue_capacity_plan is not None
             else None
         ),
     )
@@ -784,6 +905,9 @@ def _prompt_variables(
             "continuity_requirements": _continuity_requirements(scoped_context),
             "beat_constraints": stage_constraints,
             "node_timing_allocation": scoped_context["scene_timing_allocation"],
+            "dialogue_capacity_guidance": scoped_context[
+                "dialogue_capacity_guidance"
+            ],
             "json_schema": schema,
         }
     return "storyboard_fragment", {
@@ -1057,11 +1181,16 @@ def _fragment_semantic_issues(
     bible: StoryBibleV2,
     scoped_context: Mapping[str, Any],
     dialogue_timing_profile: DialogueTimingProfile | None,
+    dialogue_capacity_guidance: DialogueCapacityNodeGuidance | None,
 ) -> tuple[ValidationIssue, ...]:
     if isinstance(output, SceneBeatsFragmentOutput):
         if dialogue_timing_profile is None:
             raise WorkUnitContractError(
                 "Scene Beats validation requires a frozen dialogue timing profile"
+            )
+        if dialogue_capacity_guidance is None:
+            raise WorkUnitContractError(
+                "Scene Beats validation requires frozen dialogue capacity guidance"
             )
         return _scene_beats_semantic_issues(
             output,
@@ -1069,6 +1198,7 @@ def _fragment_semantic_issues(
             bible=bible,
             scoped_context=scoped_context,
             dialogue_timing_profile=dialogue_timing_profile,
+            dialogue_capacity_guidance=dialogue_capacity_guidance,
         )
     return _storyboard_semantic_issues(output, work_unit=work_unit, brief=brief, bible=bible, scoped_context=scoped_context)
 
@@ -1139,16 +1269,101 @@ def story_graph_join_repair_facts(
     return tuple(facts)
 
 
+def storyboard_required_entity_state_repair_facts(
+    value: Any,
+    issues: tuple[ValidationIssue, ...],
+    *,
+    bible: StoryBibleV2,
+) -> tuple[RequiredEntityStateRepairFact, ...]:
+    """Project exact frozen Story Bible state choices into correction facts.
+
+    Facts are emitted only when the whole model response is schema-valid and
+    the persisted semantic issue points to the same parsed requirement.  This
+    keeps malformed indexes, unknown entities, and empty author vocabularies
+    fail-closed instead of turning them into guessed repair authority.
+    """
+
+    relevant_issues = tuple(
+        issue
+        for issue in issues
+        if issue.code == "semantic.invalid_required_entity_state"
+    )
+    if not relevant_issues:
+        return ()
+    try:
+        output = StoryboardFragmentOutput.model_validate(
+            value,
+            by_alias=True,
+            by_name=False,
+        )
+    except ValidationError:
+        return ()
+    entities_by_type = {
+        EntityType.CHARACTER: {item.id: item for item in bible.characters},
+        EntityType.LOCATION: {item.id: item for item in bible.locations},
+        EntityType.PROP: {item.id: item for item in bible.props},
+    }
+    facts: list[RequiredEntityStateRepairFact] = []
+    for issue in relevant_issues:
+        path = issue.path
+        if (
+            len(path) != 5
+            or path[0] != "shots"
+            or not isinstance(path[1], int)
+            or isinstance(path[1], bool)
+            or path[1] < 0
+            or path[2] != "requiredEntityStates"
+            or not isinstance(path[3], int)
+            or isinstance(path[3], bool)
+            or path[3] < 0
+            or path[4] != "state"
+        ):
+            continue
+        shot_index = path[1]
+        state_index = path[3]
+        if shot_index >= len(output.shots):
+            continue
+        requirements = output.shots[shot_index].required_entity_states
+        if state_index >= len(requirements):
+            continue
+        requirement = requirements[state_index]
+        entity = entities_by_type[requirement.entity_type].get(
+            requirement.entity_id
+        )
+        if entity is None:
+            continue
+        allowed_states = tuple(entity.allowed_states)
+        if not allowed_states or requirement.state in allowed_states:
+            continue
+        facts.append(
+            RequiredEntityStateRepairFact(
+                code=issue.code,
+                path=path,
+                entity_type=requirement.entity_type,
+                entity_id=requirement.entity_id,
+                allowed_states=allowed_states,
+            )
+        )
+    return tuple(facts)
+
+
 def semantic_repair_facts(
     value: Any,
     issues: tuple[ValidationIssue, ...],
     *,
     stage: StageName,
+    bible: StoryBibleV2 | None = None,
 ) -> tuple[SemanticRepairFact, ...]:
     """Route stable issues to versioned, stage-owned deterministic facts."""
 
     if stage == StageName.STORY_GRAPH:
         return story_graph_join_repair_facts(value, issues)
+    if stage == StageName.STORYBOARD and bible is not None:
+        return storyboard_required_entity_state_repair_facts(
+            value,
+            issues,
+            bible=bible,
+        )
     return ()
 
 
@@ -1182,12 +1397,33 @@ def _scene_beats_semantic_issues(
     bible: StoryBibleV2,
     scoped_context: Mapping[str, Any],
     dialogue_timing_profile: DialogueTimingProfile,
+    dialogue_capacity_guidance: DialogueCapacityNodeGuidance,
 ) -> tuple[ValidationIssue, ...]:
     issues: list[ValidationIssue] = []
     target = work_unit.selector.stable_id
     target_node = scoped_context.get("story_node", {})
     if target_node.get("id") != target:
         issues.append(_issue("context.selector", "storyNodeId", "trusted context does not match unit selector"))
+    if dialogue_capacity_guidance.node_id != target:
+        raise WorkUnitContractError(
+            "dialogue capacity guidance does not match the work-unit selector"
+        )
+    if len(output.scenes) > dialogue_capacity_guidance.max_scenes:
+        issues.append(
+            _issue(
+                "semantic.scene_capacity_exceeded",
+                "scenes",
+                "scene count exceeds the frozen dialogue capacity envelope",
+            )
+        )
+    if len(output.dialogue_cues) > dialogue_capacity_guidance.max_dialogue_cues:
+        issues.append(
+            _issue(
+                "semantic.dialogue_cue_count_exceeded",
+                "dialogueCues",
+                "dialogue cue count exceeds the frozen capacity envelope",
+            )
+        )
     scene_ids = [scene.local_scene_id for scene in output.scenes]
     if len(scene_ids) != len(set(scene_ids)):
         issues.append(_issue("semantic.duplicate_scene_id", "scenes", "fragment contains duplicate scene IDs"))
@@ -1257,7 +1493,7 @@ def _scene_beats_semantic_issues(
             beat.local_beat_id: beat.scene_local_id for beat in output.beats
         }
         cue_minimum_by_scene = {scene_id: 0 for scene_id in scene_ids}
-        for cue in output.dialogue_cues:
+        for cue_index, cue in enumerate(output.dialogue_cues):
             minimum = dialogue_timing_profile.estimate_text_duration_units(
                 text=cue.text,
                 language=cue.language,
@@ -1266,6 +1502,14 @@ def _scene_beats_semantic_issues(
             if minimum is None:
                 raise WorkUnitContractError(
                     "dialogue timing profile has no exact or wildcard rule"
+                )
+            if minimum > dialogue_capacity_guidance.per_cue_duration_budget_units:
+                issues.append(
+                    _issue(
+                        "semantic.dialogue_cue_capacity_exceeded",
+                        ("dialogueCues", cue_index, "text"),
+                        "trusted cue duration exceeds its frozen per-cue capacity",
+                    )
                 )
             scene_id = scene_by_beat[cue.beat_local_id]
             cue_minimum_by_scene[scene_id] += minimum
@@ -1445,6 +1689,7 @@ def _bind_fragment_foreign_keys(
     brief: ProjectBrief,
     bible: StoryBibleV2,
     scoped_context: Mapping[str, Any],
+    dialogue_capacity_guidance: DialogueCapacityNodeGuidance | None,
 ) -> None:
     """Expose trusted selector/foreign-key constraints in the model schema.
 
@@ -1460,6 +1705,16 @@ def _bind_fragment_foreign_keys(
     prop_ids = sorted(item.id for item in bible.props)
 
     if work_unit.stage == StageName.SCENE_BEATS:
+        if dialogue_capacity_guidance is None:
+            raise WorkUnitContractError(
+                "Scene Beats schema binding requires frozen dialogue capacity guidance"
+            )
+        schema["properties"]["scenes"]["maxItems"] = (
+            dialogue_capacity_guidance.max_scenes
+        )
+        schema["properties"]["dialogueCues"]["maxItems"] = (
+            dialogue_capacity_guidance.max_dialogue_cues
+        )
         scene_properties = definitions["DramaticSceneContent"]["properties"]
         _set_nullable_string_enum(scene_properties["locationId"], location_ids)
         _set_array_string_enum(scene_properties["characterIds"], character_ids)
@@ -1478,6 +1733,10 @@ def _bind_fragment_foreign_keys(
 
     if work_unit.stage != StageName.STORYBOARD:
         raise WorkUnitContractError("foreign-key binding only supports sharded stages")
+    if dialogue_capacity_guidance is not None:
+        raise WorkUnitContractError(
+            "dialogue capacity guidance only belongs to Scene Beats"
+        )
     schema["properties"]["shots"].update(
         {
             "minItems": brief.shots_per_scene_min,

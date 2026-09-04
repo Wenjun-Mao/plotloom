@@ -177,7 +177,7 @@ def test_scene_work_unit_prompt_only_contains_the_selected_node_and_public_schem
     assert compiled.contract.work_unit_id == unit.unit_id
     assert compiled.contract.stage_plan_hash == stage_plan.stage_plan_hash
     assert compiled.contract.prompt_id == "scene_beats_fragment"
-    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v7"
+    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v8"
     scene_properties = compiled.response_schema["properties"]["scenes"]["items"][
         "properties"
     ]

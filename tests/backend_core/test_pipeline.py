@@ -1343,6 +1343,179 @@ def test_graph_join_subset_rejection_uses_typed_repair_facts(
     }
 
 
+def test_storyboard_invalid_entity_state_uses_frozen_bible_repair_fact(
+    repository,
+    brief,
+) -> None:
+    """One invalid state is corrected from a path-bound Story Bible whitelist."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        list(StageName),
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+
+    bible = json.loads(responses[0])
+    bible["characters"] = [
+        {
+            "id": "speaker",
+            "name": "领航员",
+            "description": "在控制室苏醒的领航员",
+            "visualAnchors": [],
+            "soundAnchors": [],
+            "allowedStates": ["awake"],
+            "continuityRules": [],
+            "role": None,
+            "goal": "找回身份",
+            "traits": [],
+            "voiceAnchors": [],
+        }
+    ]
+    responses[0] = json.dumps(bible, ensure_ascii=False)
+    scene_start = 2
+    storyboard_start = scene_start + len(topology.nodes)
+    for index in range(scene_start, storyboard_start):
+        scene_fragment = json.loads(responses[index])
+        for scene in scene_fragment["scenes"]:
+            scene["characterIds"] = ["speaker"]
+        responses[index] = json.dumps(scene_fragment, ensure_ascii=False)
+
+    rejected = json.loads(responses[storyboard_start])
+    rejected["shots"][0]["characterIds"] = ["speaker"]
+    rejected["shots"][0]["requiredEntityStates"] = [
+        {
+            "entityType": "character",
+            "entityId": "speaker",
+            "state": "asleep",
+        }
+    ]
+    corrected = json.loads(json.dumps(rejected))
+    corrected["shots"][0]["requiredEntityStates"][0]["state"] = "awake"
+    responses[storyboard_start : storyboard_start + 1] = [
+        json.dumps(rejected, ensure_ascii=False),
+        json.dumps(corrected, ensure_ascii=False),
+    ]
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("entity-state-repair-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    rejected_attempt = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.invalid_required_entity_state"
+    )
+    correction = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.source_attempt_id == rejected_attempt.id
+    )
+    assert correction.status == AttemptStatus.SUCCEEDED
+    validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == rejected_attempt.id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert validation.content["repairFacts"] == [
+        {
+            "code": "semantic.invalid_required_entity_state",
+            "path": ["shots", 0, "requiredEntityStates", 0, "state"],
+            "entityType": "character",
+            "entityId": "speaker",
+            "allowedStates": ["awake"],
+        }
+    ]
+    correction_prompt = next(
+        request.messages[1].content
+        for request in provider.requests
+        if "semantic.invalid_required_entity_state" in request.messages[1].content
+        and '"allowedStates":["awake"]' in request.messages[1].content
+    )
+    assert "验证器说明" in correction_prompt
+    assert "required entity state is not allowed" not in correction_prompt
+
+
+def test_scene_beats_capacity_rejection_keeps_exact_frozen_guidance_in_correction(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    first_scene_index = 2
+    rejected = json.loads(responses[first_scene_index])
+    rejected["dialogueCues"] = [
+        {
+            "localCueId": "capacity-probe",
+            "beatLocalId": rejected["beats"][0]["localBeatId"],
+            "order": 1,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "长" * 300,
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "克制",
+        }
+    ]
+    corrected = json.loads(json.dumps(rejected))
+    corrected["dialogueCues"][0]["text"] = "走"
+    responses[first_scene_index : first_scene_index + 1] = [
+        json.dumps(rejected, ensure_ascii=False),
+        json.dumps(corrected, ensure_ascii=False),
+    ]
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("capacity-repair-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    trace = repository.get_run_trace(run.id)
+    rejected_attempt = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.dialogue_cue_capacity_exceeded"
+    )
+    correction = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.source_attempt_id == rejected_attempt.id
+    )
+    assert correction.status == AttemptStatus.SUCCEEDED
+    correction_prompt = next(
+        request.messages[1].content
+        for request in provider.requests
+        if "semantic.dialogue_cue_capacity_exceeded" in request.messages[1].content
+    )
+    assert '"dialogue_capacity_policy_version":"dialogue_capacity.v1"' in correction_prompt
+    assert '"maxTextCodepoints"' in correction_prompt
+    assert "capacity-repair-secret" not in correction_prompt
+
+
 def test_unexpected_validator_exception_stays_fail_closed_without_correction(
     repository,
     brief,

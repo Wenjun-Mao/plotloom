@@ -709,6 +709,11 @@ class DurableWorkUnitRunner:
                     extracted.value,
                     report.issues,
                     stage=work_unit.stage,
+                    bible=(
+                        dependencies.get(StageName.STORY_BIBLE)
+                        if work_unit.stage == StageName.STORYBOARD
+                        else None
+                    ),
                 )
                 if self._reject_or_continue(
                     run=run,

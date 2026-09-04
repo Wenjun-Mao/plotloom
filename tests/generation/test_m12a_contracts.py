@@ -23,10 +23,12 @@ from plotloom.generation.work_units import (
     BeatContent,
     DialogueCueContent,
     DramaticSceneContent,
+    RequiredEntityStateRepairFact,
     SceneBeatsFragmentOutput,
     ShotContent,
     StoryboardFragmentOutput,
     compile_work_unit_request,
+    storyboard_required_entity_state_repair_facts,
 )
 
 
@@ -102,8 +104,8 @@ def _board_output(*, cue_ids: list[str] | None = None, audio_duration: int = 660
 
 def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None:
     compiled = _compiled(StageName.SCENE_BEATS)
-    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v7"
-    assert compiled.contract.contract_version == "m1.12e"
+    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v8"
+    assert compiled.contract.contract_version == "m1.12f"
     assert "dialogueCues" in compiled.response_schema["properties"]
     assert '"dialogue"' not in str(compiled.response_schema)
     cue_schema = compiled.response_schema["properties"]["dialogueCues"]["items"]
@@ -117,6 +119,14 @@ def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None
     assert compiled.contract.scene_timing_allocation_version == "scene_timing_allocation.v1"
     assert compiled.contract.scene_timing_allocation_hash
     assert compiled.contract.node_duration_budget_units == 90_000
+    assert compiled.contract.dialogue_capacity_policy_version == "dialogue_capacity.v1"
+    assert compiled.contract.dialogue_capacity_plan_hash
+    assert compiled.contract.dialogue_capacity_guidance is not None
+    assert compiled.contract.dialogue_capacity_guidance.max_scenes == 2
+    assert compiled.contract.dialogue_capacity_guidance.max_dialogue_cues == 4
+    assert compiled.response_schema["properties"]["scenes"]["maxItems"] == 2
+    assert compiled.response_schema["properties"]["dialogueCues"]["maxItems"] == 4
+    assert "本节点冻结对白容量" in compiled.rendered.messages[1].content
     report = compiled.validator.validate(_scene_output(), context=SemanticValidationContext(stage="scene_beats"))
     assert report.accepted
     assert report.value.dialogue_cues[0].beat_id == report.value.beats[0].id
@@ -248,7 +258,7 @@ def test_m12a_rejects_dialogue_that_cannot_fit_frozen_node_budget() -> None:
     )
 
     assert report.accepted is False
-    assert "semantic.dialogue_exceeds_node_budget" in {
+    assert "semantic.dialogue_cue_capacity_exceeded" in {
         issue.code for issue in report.issues
     }
 
@@ -305,6 +315,99 @@ def test_m12a_rejects_audio_timing_and_unavailable_entity_state() -> None:
     assert "semantic.audio_timing" in {issue.code for issue in timing.issues}
     entity = board.validator.validate(_board_output(state="asleep"), context=SemanticValidationContext(stage="storyboard"))
     assert "semantic.invalid_required_entity_state" in {issue.code for issue in entity.issues}
+
+
+def test_m12a_invalid_entity_state_projects_only_frozen_allowed_choices() -> None:
+    _, bible, _, _, _ = _inputs()
+    board = _compiled(StageName.STORYBOARD)
+    output = _board_output(state="asleep")
+    report = board.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="storyboard"),
+    )
+
+    facts = storyboard_required_entity_state_repair_facts(
+        output,
+        report.issues,
+        bible=bible,
+    )
+
+    assert facts == (
+        RequiredEntityStateRepairFact(
+            code="semantic.invalid_required_entity_state",
+            path=("shots", 0, "requiredEntityStates", 0, "state"),
+            entity_type="character",
+            entity_id="speaker",
+            allowed_states=("awake",),
+        ),
+    )
+    assert set(facts[0].model_dump(mode="json", by_alias=True)) == {
+        "code",
+        "path",
+        "entityType",
+        "entityId",
+        "allowedStates",
+    }
+    assert "asleep" not in str(facts[0].model_dump(mode="json", by_alias=True))
+
+
+@pytest.mark.parametrize(
+    "issue_path",
+    (
+        ("shots", 1, "requiredEntityStates", 0, "state"),
+        ("shots", 0, "requiredEntityStates", 1, "state"),
+        ("shots", 0, "requiredEntityStates", 0, "entityId"),
+        ("shots", -1, "requiredEntityStates", 0, "state"),
+    ),
+)
+def test_m12a_entity_state_repair_fact_rejects_unbound_issue_paths(
+    issue_path: tuple[str | int, ...],
+) -> None:
+    from plotloom.generation.contracts import ValidationIssue
+
+    _, bible, _, _, _ = _inputs()
+    assert storyboard_required_entity_state_repair_facts(
+        _board_output(state="asleep"),
+        (
+            ValidationIssue(
+                code="semantic.invalid_required_entity_state",
+                message="untrusted prose",
+                path=issue_path,
+            ),
+        ),
+        bible=bible,
+    ) == ()
+
+
+def test_m12a_entity_state_repair_fact_fails_closed_without_state_vocabulary() -> None:
+    from plotloom.generation.contracts import ValidationIssue
+
+    _, bible, _, _, _ = _inputs()
+    empty_vocabulary = bible.model_copy(
+        update={
+            "characters": [
+                bible.characters[0].model_copy(update={"allowed_states": []})
+            ]
+        }
+    )
+    issue = ValidationIssue(
+        code="semantic.invalid_required_entity_state",
+        message="untrusted prose",
+        path=("shots", 0, "requiredEntityStates", 0, "state"),
+    )
+    assert storyboard_required_entity_state_repair_facts(
+        _board_output(state="asleep"),
+        (issue,),
+        bible=empty_vocabulary,
+    ) == ()
+
+    schema_invalid = _board_output(state="asleep")
+    del schema_invalid["shots"][0]["requiredEntityStates"][0]["entityId"]
+    assert storyboard_required_entity_state_repair_facts(
+        schema_invalid,
+        (issue,),
+        bible=bible,
+    ) == ()
 
 
 def test_m12a_storyboard_fragment_rejects_legacy_raw_dialogue_and_audio() -> None:

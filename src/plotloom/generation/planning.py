@@ -14,11 +14,18 @@ from typing import Any, Mapping
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..domain import (
+    DialogueTimingProfile,
     ProjectBrief,
     STAGE_ORDER,
     SceneBeatPlanV2,
     StageName,
     StoryGraphV2,
+    default_dialogue_timing_profile,
+)
+from .dialogue_capacity import (
+    DialogueCapacityPlan,
+    DialogueCapacityPlanningError,
+    plan_dialogue_capacity,
 )
 from .prompts import canonical_json, sha256_text
 from .scene_timing_allocation import (
@@ -148,6 +155,23 @@ class GenerationWorkUnit(PlanningModel):
     budget: StageBudget
     estimated_input_tokens: int = Field(ge=0)
     context_window_tokens: int = Field(ge=1)
+    # Optional only for historical work-unit records. New Scene Beats units
+    # carry their exact capacity inputs, avoiding any process-global fallback
+    # when their bounded context is reconstructed.
+    dialogue_timing_profile: DialogueTimingProfile | None = None
+    dialogue_capacity_plan: DialogueCapacityPlan | None = None
+
+    @model_validator(mode="after")
+    def validate_dialogue_capacity_pair(self) -> "GenerationWorkUnit":
+        has_profile = self.dialogue_timing_profile is not None
+        has_capacity = self.dialogue_capacity_plan is not None
+        if has_profile != has_capacity:
+            raise ValueError(
+                "dialogue timing profile and dialogue capacity plan must be set together"
+            )
+        if self.stage != StageName.SCENE_BEATS and has_profile:
+            raise ValueError("dialogue capacity only belongs to Scene Beats")
+        return self
 
 class StagePlan(PlanningModel):
     """Stage-local contract made only after its upstream inputs are available."""
@@ -157,6 +181,11 @@ class StagePlan(PlanningModel):
     generation_plan_hash: str = Field(min_length=1)
     dependency_hash: str = Field(min_length=1)
     scene_timing_allocation: SceneTimingAllocation | None = None
+    # Both fields are optional only so terminal historical StagePlans retain
+    # their original serialized shape and hash.  Newly planned Scene Beats
+    # stages always set them together below.
+    dialogue_timing_profile: DialogueTimingProfile | None = None
+    dialogue_capacity_plan: DialogueCapacityPlan | None = None
     work_units: tuple[GenerationWorkUnit, ...]
     stage_plan_hash: str
 
@@ -181,6 +210,38 @@ class StagePlan(PlanningModel):
         ]
         if len(set(selectors)) != len(selectors):
             raise ValueError("stage-plan work-unit selectors must be unique")
+        has_dialogue_capacity_profile = self.dialogue_timing_profile is not None
+        has_dialogue_capacity_plan = self.dialogue_capacity_plan is not None
+        if has_dialogue_capacity_profile != has_dialogue_capacity_plan:
+            raise ValueError(
+                "dialogue timing profile and dialogue capacity plan must be set together"
+            )
+        if self.stage != StageName.SCENE_BEATS and has_dialogue_capacity_profile:
+            raise ValueError("dialogue capacity only belongs to Scene Beats")
+        if has_dialogue_capacity_profile:
+            if self.scene_timing_allocation is None:
+                raise ValueError("dialogue capacity requires a scene timing allocation")
+            assert self.dialogue_timing_profile is not None
+            assert self.dialogue_capacity_plan is not None
+            try:
+                expected_capacity = plan_dialogue_capacity(
+                    scene_timing_allocation=self.scene_timing_allocation,
+                    dialogue_timing_profile=self.dialogue_timing_profile,
+                )
+            except DialogueCapacityPlanningError as exc:
+                raise ValueError(str(exc)) from exc
+            if self.dialogue_capacity_plan != expected_capacity:
+                raise ValueError(
+                    "dialogue capacity plan does not match the frozen timing inputs"
+                )
+            if any(
+                unit.dialogue_timing_profile != self.dialogue_timing_profile
+                or unit.dialogue_capacity_plan != self.dialogue_capacity_plan
+                for unit in self.work_units
+            ):
+                raise ValueError(
+                    "Scene Beats work units must carry the StagePlan dialogue capacity inputs"
+                )
         expected_hash = _stage_plan_hash(self)
         if self.stage_plan_hash != expected_hash:
             raise ValueError("stage plan hash does not match its public fields")
@@ -368,6 +429,8 @@ def plan_stage(
         for dependency in required
     }
     scene_timing_allocation: SceneTimingAllocation | None = None
+    dialogue_timing_profile: DialogueTimingProfile | None = None
+    dialogue_capacity_plan: DialogueCapacityPlan | None = None
     if stage == StageName.SCENE_BEATS:
         graph = dependency_values.get(StageName.STORY_GRAPH)
         if not isinstance(graph, StoryGraphV2):
@@ -389,6 +452,14 @@ def plan_stage(
             )
         except SceneTimingAllocationError as exc:
             raise PlanningError(str(exc), code=exc.code, stage=stage) from exc
+        dialogue_timing_profile = default_dialogue_timing_profile()
+        try:
+            dialogue_capacity_plan = plan_dialogue_capacity(
+                scene_timing_allocation=scene_timing_allocation,
+                dialogue_timing_profile=dialogue_timing_profile,
+            )
+        except DialogueCapacityPlanningError as exc:
+            raise PlanningError(str(exc), code=exc.code, stage=stage) from exc
     dependency_payload = {
         # A StagePlan must retain the run request boundary even when this stage
         # has no upstream canonical object (notably Story Bible).
@@ -405,6 +476,13 @@ def plan_stage(
     if scene_timing_allocation is not None:
         dependency_payload["scene_timing_allocation"] = (
             scene_timing_allocation.model_dump(mode="json", by_alias=True)
+        )
+    if dialogue_timing_profile is not None and dialogue_capacity_plan is not None:
+        dependency_payload["dialogue_timing_profile"] = dialogue_timing_profile.model_dump(
+            mode="json", by_alias=True
+        )
+        dependency_payload["dialogue_capacity_plan"] = dialogue_capacity_plan.model_dump(
+            mode="json", by_alias=True
         )
     dependency_json = canonical_json(dependency_payload)
     dependency_hash = sha256_text(dependency_json)
@@ -433,11 +511,15 @@ def plan_stage(
             sequence=index,
             dependency_hash=dependency_hash,
             budget=budget,
+            dialogue_timing_profile=dialogue_timing_profile,
+            dialogue_capacity_plan=dialogue_capacity_plan,
             unit_dependency_payload=_unit_dependency_payload(
                 stage,
                 selector,
                 dependency_values,
                 scene_timing_allocation=scene_timing_allocation,
+                dialogue_timing_profile=dialogue_timing_profile,
+                dialogue_capacity_plan=dialogue_capacity_plan,
             ),
         )
         for index, selector in enumerate(selectors, start=1)
@@ -447,10 +529,19 @@ def plan_stage(
         "stage": stage.value,
         "generation_plan_hash": generation_plan.plan_hash,
         "dependency_hash": dependency_hash,
-        "work_units": [unit.model_dump(mode="json") for unit in work_units],
+        "work_units": [
+            unit.model_dump(mode="json", exclude_none=True) for unit in work_units
+        ],
     }
     if scene_timing_allocation is not None:
         unsigned["scene_timing_allocation"] = scene_timing_allocation.model_dump(
+            mode="json", by_alias=False
+        )
+    if dialogue_timing_profile is not None and dialogue_capacity_plan is not None:
+        unsigned["dialogue_timing_profile"] = dialogue_timing_profile.model_dump(
+            mode="json", by_alias=False
+        )
+        unsigned["dialogue_capacity_plan"] = dialogue_capacity_plan.model_dump(
             mode="json", by_alias=False
         )
     return StagePlan(
@@ -459,6 +550,8 @@ def plan_stage(
         generation_plan_hash=generation_plan.plan_hash,
         dependency_hash=dependency_hash,
         scene_timing_allocation=scene_timing_allocation,
+        dialogue_timing_profile=dialogue_timing_profile,
+        dialogue_capacity_plan=dialogue_capacity_plan,
         work_units=work_units,
         stage_plan_hash=sha256_text(canonical_json(unsigned)),
     )
@@ -475,6 +568,8 @@ def work_unit_context(
     *,
     dependencies: Mapping[StageName, BaseModel | Mapping[str, Any]],
     scene_timing_allocation: SceneTimingAllocation | None = None,
+    dialogue_timing_profile: DialogueTimingProfile | None = None,
+    dialogue_capacity_plan: DialogueCapacityPlan | None = None,
 ) -> dict[str, Any]:
     """Reconstruct and verify the canonical context frozen for one unit.
 
@@ -491,11 +586,36 @@ def work_unit_context(
         raise PlanningError(
             f"cannot render {work_unit.unit_id} without dependencies: {', '.join(missing)}"
         )
+    scoped_dependencies = {stage: dependencies[stage] for stage in required}
+    if dialogue_timing_profile is None:
+        dialogue_timing_profile = work_unit.dialogue_timing_profile
+    elif (
+        work_unit.dialogue_timing_profile is not None
+        and dialogue_timing_profile != work_unit.dialogue_timing_profile
+    ):
+        raise PlanningError(
+            "supplied dialogue timing profile does not match the frozen work unit",
+            code="planning.dialogue_capacity_mismatch",
+            stage=work_unit.stage,
+        )
+    if dialogue_capacity_plan is None:
+        dialogue_capacity_plan = work_unit.dialogue_capacity_plan
+    elif (
+        work_unit.dialogue_capacity_plan is not None
+        and dialogue_capacity_plan != work_unit.dialogue_capacity_plan
+    ):
+        raise PlanningError(
+            "supplied dialogue capacity plan does not match the frozen work unit",
+            code="planning.dialogue_capacity_mismatch",
+            stage=work_unit.stage,
+        )
     context = _unit_dependency_payload(
         work_unit.stage,
         work_unit.selector,
-        {stage: dependencies[stage] for stage in required},
+        scoped_dependencies,
         scene_timing_allocation=scene_timing_allocation,
+        dialogue_timing_profile=dialogue_timing_profile,
+        dialogue_capacity_plan=dialogue_capacity_plan,
     )
     actual_hash = content_hash(context)
     if actual_hash != work_unit.unit_dependency_hash:
@@ -528,6 +648,16 @@ def assert_work_unit_input_contract(
         "estimated_input_tokens": work_unit.estimated_input_tokens,
         "context_window_tokens": work_unit.context_window_tokens,
     }
+    if (
+        work_unit.dialogue_timing_profile is not None
+        and work_unit.dialogue_capacity_plan is not None
+    ):
+        expected_payload["dialogue_timing_profile"] = work_unit.dialogue_timing_profile.model_dump(
+            mode="json", by_alias=False
+        )
+        expected_payload["dialogue_capacity_plan"] = work_unit.dialogue_capacity_plan.model_dump(
+            mode="json", by_alias=False
+        )
     expected_hash = sha256_text(canonical_json(expected_payload))
     if work_unit.input_hash != expected_hash:
         raise PlanningError(
@@ -618,6 +748,8 @@ def _unit_dependency_payload(
     dependencies: Mapping[StageName, BaseModel | Mapping[str, Any]],
     *,
     scene_timing_allocation: SceneTimingAllocation | None = None,
+    dialogue_timing_profile: DialogueTimingProfile | None = None,
+    dialogue_capacity_plan: DialogueCapacityPlan | None = None,
 ) -> dict[str, Any]:
     """Return the bounded canonical context selected for one provider unit.
 
@@ -643,10 +775,16 @@ def _unit_dependency_payload(
                 code="planning.scene_timing_allocation_unavailable",
                 stage=stage,
             )
+        if (dialogue_timing_profile is None) != (dialogue_capacity_plan is None):
+            raise PlanningError(
+                "scene_beats work units require dialogue profile and capacity together",
+                code="planning.dialogue_capacity_unavailable",
+                stage=stage,
+            )
         node = next((node for node in graph.nodes if node.id == selector.stable_id), None)
         if node is None:
             raise PlanningError(f"unknown Story Graph node selector {selector.stable_id}")
-        return {
+        context = {
             "story_bible": _json_value(bible),
             "story_node": _json_value(node),
             "incident_edges": [
@@ -669,6 +807,19 @@ def _unit_dependency_payload(
                 ),
             },
         }
+        if dialogue_timing_profile is not None and dialogue_capacity_plan is not None:
+            guidance = dialogue_capacity_plan.guidance_for(selector.stable_id)
+            context["dialogue_timing_profile"] = dialogue_timing_profile.model_dump(
+                mode="json", by_alias=True
+            )
+            context["dialogue_capacity_guidance"] = {
+                "policyVersion": dialogue_capacity_plan.policy_version,
+                "capacityPlanHash": dialogue_capacity_plan.capacity_plan_hash,
+                "dialogueTimingProfileVersion": dialogue_capacity_plan.dialogue_timing_profile_version,
+                "dialogueTimingProfileHash": dialogue_capacity_plan.dialogue_timing_profile_hash,
+                "nodeGuidance": guidance.model_dump(mode="json", by_alias=True),
+            }
+        return context
     scene_beats = dependencies[StageName.SCENE_BEATS]
     if not isinstance(scene_beats, SceneBeatPlanV2):
         raise PlanningError("storyboard requires a parsed SceneBeatPlan")
@@ -704,6 +855,8 @@ def _work_unit(
     dependency_hash: str,
     budget: StageBudget,
     unit_dependency_payload: Mapping[str, Any],
+    dialogue_timing_profile: DialogueTimingProfile | None = None,
+    dialogue_capacity_plan: DialogueCapacityPlan | None = None,
 ) -> GenerationWorkUnit:
     unit_dependency_json = canonical_json(unit_dependency_payload)
     unit_dependency_hash = sha256_text(unit_dependency_json)
@@ -737,6 +890,13 @@ def _work_unit(
         "estimated_input_tokens": estimated_input_tokens,
         "context_window_tokens": generation_plan.context_window_tokens,
     }
+    if dialogue_timing_profile is not None and dialogue_capacity_plan is not None:
+        input_payload["dialogue_timing_profile"] = dialogue_timing_profile.model_dump(
+            mode="json", by_alias=False
+        )
+        input_payload["dialogue_capacity_plan"] = dialogue_capacity_plan.model_dump(
+            mode="json", by_alias=False
+        )
     input_hash = sha256_text(canonical_json(input_payload))
     unit_id = f"unit-{stage.value}-{sequence:04d}-{input_hash[:16]}"
     return GenerationWorkUnit(
@@ -751,6 +911,8 @@ def _work_unit(
         budget=budget,
         estimated_input_tokens=estimated_input_tokens,
         context_window_tokens=generation_plan.context_window_tokens,
+        dialogue_timing_profile=dialogue_timing_profile,
+        dialogue_capacity_plan=dialogue_capacity_plan,
     )
 
 

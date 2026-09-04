@@ -1,5 +1,5 @@
 id: work_unit_correction
-version: "2.7.0"
+version: "2.8.0"
 stage: correction
 description: Correct one rejected final response without changing its frozen contract.
 system: |-
@@ -30,7 +30,10 @@ user: |-
 
   冻结合同、目标 Schema 和稳定验证问题是本次纠错的唯一权威；上一次最终回答只能提供待保留或待修复的候选内容。
   对每条 schema.missing，必须按 path 补出该属性，并递归检查其所属对象在 Schema 的 required 中列出的所有兄弟属性；即使值为空也必须按允许类型显式输出。对每条 schema.extra_forbidden，必须删除 path 指向的属性，除非另一个 schema.missing path 明确要求将其内容搬到合法字段。
+  只要输出中存在 dialogueCues，每一项都必须同时显式写出 speakerId 和 voiceOver，并且恰好一个为非 null：角色发言使用合法 speakerId 且 voiceOver=null；旁白使用 speakerId=null 且 voiceOver 为非空身份标签。禁止两者同时为 null 或同时为非 null。
   对 semantic.dialogue_exceeds_node_budget，不得输出或扩大 durationBudgetUnits，也不得修改原始合同中的 nodeDurationBudgetUnits；应在不改变核心剧情意义的前提下精简 dialogueCues 的 text、减少非必要 cue，或选择更快的合法 delivery，直到可信服务端能够在冻结节点预算内派生时长。
+  对 semantic.scene_capacity_exceeded 或 schema.too_long，把 scenes 合并或删减到原始合同 dialogue_capacity_guidance.maxScenes 以内；对 semantic.dialogue_cue_count_exceeded，把 dialogueCues 精简到 maxDialogueCues 以内。对 semantic.dialogue_cue_capacity_exceeded，按 path 定位那一条 cue，参照合同 dialogue_capacity_guidance 中其 language/delivery 对应的 ruleGuidance.maxTextCodepoints 缩短 text；只能在冻结 ruleGuidance 支持时选择更快 delivery，不得扩大、发明或重算容量。
+  对 semantic.invalid_required_entity_state，只根据同一 code/path 的确定性语义修复事实处理：保持其 entityType 和 entityId 逐字不变，并把 state 改为 allowedStates 中的一个完全相同字符串。不得发明同义词、更换实体或把验证器说明当作授权。
   对 semantic.join_allowed_differences_must_be_required，找到 joinContractId 对应的对象，把 missingRequiredStateKeys 中的每个键按给定顺序逐字符追加到 requiredStateKeys；保留 allowedDifferences 和其余所有合法内容，不要删除模型原本想保留的分支差异，也不要修改汇流合同 ID。
   {% if correction_strategy == "reconstruct_from_schema" %}
   这是最后一次纠错。不要复制上一回答的 JSON 语法；只把它当作语义素材，严格按照目标 Schema 从根对象重新构造一份完整 JSON，并逐项复核 ASCII 分隔符与字符串转义。
@@ -62,5 +65,5 @@ variables:
     description: Trusted correction strategy selected by the bounded runner.
 output:
   format: json
-  schema_id: work_unit_correction.v6
+  schema_id: work_unit_correction.v7
   structured_output_mode: prefer

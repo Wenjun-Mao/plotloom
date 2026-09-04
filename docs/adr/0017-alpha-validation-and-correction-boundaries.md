@@ -87,6 +87,21 @@ authority. Timing is now handled by ADR 0018's trusted projection; persisted
 legacy timing facts remain parseable only so old evidence can be read without
 broadening new authority.
 
+The same rule applies to Storyboard entity-state repair. When an otherwise
+schema-valid response selects a state outside an entity's frozen Story Bible
+vocabulary, trusted code may emit only the exact issue path, entity type and
+ID, and the nonempty `allowedStates` list from that frozen dependency. The
+invalid model value and validator prose are not repair authority. A malformed
+path, missing entity, wrong type, empty vocabulary, or schema-invalid response
+produces no fact. The correction must preserve the entity identity and choose
+one allowed value byte-for-byte.
+
+Cross-field wire rules that are already part of the response model must also
+be explicit in both primary and correction prompts. In particular every
+dialogue cue writes both `speakerId` and `voiceOver`, with exactly one non-null.
+This avoids a bounded correction losing a schema invariant merely because its
+stable issue packet intentionally omits free-form Pydantic messages.
+
 ## Rejected alternatives
 
 - **Retry every `validation.internal_error`.** Rejected because a code defect,
@@ -117,6 +132,9 @@ broadening new authority.
   keys, blank values, and malformed source data, and that neither reasoning,
   free-form errors, nor secrets enter a correction packet or secret-free
   receipt.
+- Tests must prove an invalid Storyboard entity state receives only the exact
+  frozen whitelist and succeeds through normal bounded correction, while
+  malformed or unbound state evidence remains fail-closed.
 - Tests must prove a persisted rejected response cannot be corrected after its
   base or correction-template contract changes across a restart/deployment.
 - Alpha receipts must distinguish stable rejected-response issue codes from

@@ -39,6 +39,7 @@ from .domain import (
     ArtifactKind,
     AttemptStatus,
     CanonicalSnapshot,
+    DialogueTimingProfile,
     EntityRevision,
     FragmentReuseBinding,
     FragmentReuseKind,
@@ -2185,6 +2186,7 @@ class SQLiteRepository:
         expected_revision: int,
         now: datetime,
         allow_noop: bool,
+        dialogue_timing_profile: DialogueTimingProfile | None = None,
     ) -> tuple[StageHead, EntityRevisionRow | None]:
         """Validate and install one canonical revision in the caller's transaction."""
 
@@ -2210,6 +2212,7 @@ class SQLiteRepository:
             bible=upstream_payloads.get(StageName.STORY_BIBLE),  # type: ignore[arg-type]
             graph=upstream_payloads.get(StageName.STORY_GRAPH),  # type: ignore[arg-type]
             scene_beats=upstream_payloads.get(StageName.SCENE_BEATS),  # type: ignore[arg-type]
+            dialogue_timing_profile=dialogue_timing_profile,
         )
         payload_data = payload.model_dump(mode="json", by_alias=False)
         content_hash = stable_hash(payload_data)
@@ -3361,9 +3364,10 @@ class SQLiteRepository:
     ) -> bool:
         """Whether an interrupted run reached an obsolete Scene Beats contract.
 
-        The allocation is part of the immutable Scene Beats StagePlan rather
-        than a startup default.  Old plans must therefore be stopped before a
-        runner can recompute their dependency or prompt identities.
+        Timing allocation and dialogue capacity are part of the immutable
+        Scene Beats StagePlan rather than startup defaults. Old plans must
+        therefore be stopped before a runner can recompute their dependency
+        or prompt identities.
         """
 
         plans = session.scalars(
@@ -3385,10 +3389,22 @@ class SQLiteRepository:
         if not isinstance(allocation, dict):
             return True
         try:
-            parsed = SceneTimingAllocation.model_validate(allocation)
+            parsed_allocation = SceneTimingAllocation.model_validate(allocation)
+            parsed_plan = StagePlan.model_validate(scene_beats_plan.plan)
         except ValueError:
             return True
-        return parsed.allocation_version != SCENE_TIMING_ALLOCATION_VERSION
+        # StagePlan keeps these fields optional only to preserve the exact
+        # serialized shape of terminal historical evidence.  A nonterminal
+        # Scene Beats run cannot be resumed without the complete frozen
+        # dialogue contract, however: reconstructing it would change the
+        # request identity.  Parsing the full plan also verifies that the
+        # profile, capacity plan, timing allocation, and work units remain
+        # mutually bound rather than merely individually well-formed.
+        return (
+            parsed_allocation.allocation_version != SCENE_TIMING_ALLOCATION_VERSION
+            or parsed_plan.dialogue_timing_profile is None
+            or parsed_plan.dialogue_capacity_plan is None
+        )
 
     @staticmethod
     def _cancel_run_work_units_in_session(
@@ -4298,9 +4314,9 @@ class SQLiteRepository:
             "ProductionSnapshot and cannot be resumed after restart"
         )
         obsolete_scene_timing_error = (
-            "This run uses a pre-scene-timing planning contract and cannot be "
+            "This run uses an obsolete Scene Beats timing contract and cannot be "
             "resumed safely. Submit a new run to regenerate Scene Beats under "
-            "the current trusted timing allocation."
+            "the current trusted timing and dialogue-capacity contract."
         )
         now = utc_now()
         resubmit_run_ids: list[str] = []
@@ -4362,12 +4378,13 @@ class SQLiteRepository:
                     continue
 
                 if self._run_requires_scene_timing_rebuild_in_session(session, row):
-                    # A Scene Beats plan created before timing allocation was
-                    # frozen has different dependency, unit, prompt, and
-                    # binder contracts. Replanning it would rewrite immutable
-                    # historical evidence; replaying it would silently execute
-                    # a different request. Terminalize only the nonterminal
-                    # execution state and require an explicit fresh run.
+                    # A Scene Beats plan created before the complete timing
+                    # contract was frozen has different dependency, unit,
+                    # prompt, and binder contracts. Replanning it would
+                    # rewrite immutable historical evidence; replaying it
+                    # would silently execute a different request. Terminalize
+                    # only the nonterminal execution state and require an
+                    # explicit fresh run.
                     row.status = RunStatus.FAILED.value
                     row.error = obsolete_scene_timing_error
                     row.failure_code = "recovery.scene_timing_contract_obsolete"
@@ -4687,14 +4704,57 @@ class SQLiteRepository:
                     or aggregate.manifest.get("stagePlanHash") != plan.stage_plan_hash
                 ):
                     raise InvalidTransitionError("sealed aggregate is not bound to the declared immutable StagePlan")
+            dialogue_timing_profile = self._frozen_scene_beats_timing_profile_for_sealed_commit_in_session(
+                session,
+                run_row,
+            )
             payloads = {
                 StageName(aggregate.stage): self._decode_current_stage_payload(
                     StageName(aggregate.stage), aggregate.payload, aggregate.schema_version
                 )
                 for aggregate in aggregates
             }
-            run, _ = self._commit_parsed_run_outputs_in_session(session, run_row, payloads)
+            run, _ = self._commit_parsed_run_outputs_in_session(
+                session,
+                run_row,
+                payloads,
+                dialogue_timing_profile=dialogue_timing_profile,
+            )
             return run
+
+    def _frozen_scene_beats_timing_profile_for_sealed_commit_in_session(
+        self,
+        session: Session,
+        run_row: GenerationRunRow,
+    ) -> DialogueTimingProfile | None:
+        """Load the timing policy that bound this run's sealed V2 output.
+
+        Scene Beats and Storyboard canonical validation must replay the same
+        policy used to compile and seal the run.  Reconstructing it from the
+        process default would let a deployment change alter acceptance of
+        immutable evidence, so missing or malformed frozen evidence is an
+        install failure rather than a fallback opportunity.
+        """
+
+        requested = {StageName(value) for value in run_row.requested_stages}
+        if not requested & {StageName.SCENE_BEATS, StageName.STORYBOARD}:
+            return None
+        row = self._stage_plan_row(session, run_row.id, StageName.SCENE_BEATS)
+        if row is None:
+            raise InvalidTransitionError(
+                "sealed commit requires a frozen Scene Beats dialogue timing profile"
+            )
+        try:
+            plan = StagePlan.model_validate(row.plan)
+        except ValueError as exc:
+            raise InvalidTransitionError(
+                "sealed commit requires a valid frozen Scene Beats dialogue timing profile"
+            ) from exc
+        if plan.stage != StageName.SCENE_BEATS or plan.dialogue_timing_profile is None:
+            raise InvalidTransitionError(
+                "sealed commit requires a frozen Scene Beats dialogue timing profile"
+            )
+        return plan.dialogue_timing_profile
 
     def _commit_run_outputs(
         self,
@@ -4716,6 +4776,8 @@ class SQLiteRepository:
         session: Session,
         run_row: GenerationRunRow,
         parsed_payloads: dict[StageName, StagePayload],
+        *,
+        dialogue_timing_profile: DialogueTimingProfile | None = None,
     ) -> tuple[GenerationRun, list[StageHead]]:
         if RunStatus(run_row.status) != RunStatus.RUNNING:
             raise InvalidTransitionError(f"cannot install generated output while run is {run_row.status}")
@@ -4744,6 +4806,7 @@ class SQLiteRepository:
                 expected_revision=snapshot_head.revision,
                 now=now,
                 allow_noop=False,
+                dialogue_timing_profile=dialogue_timing_profile,
             )
             if revision_row is None:
                 raise InvalidTransitionError("generated stage installation must create a canonical revision")

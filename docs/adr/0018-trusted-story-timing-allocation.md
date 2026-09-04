@@ -68,6 +68,51 @@ If dialogue minima cannot fit the frozen node cap, semantic validation returns
 remove nonessential dialogue or select a faster supported delivery. It may
 never increase the node or path allocation.
 
+### Dialogue capacity is planned before the provider call
+
+Trusted timing derivation alone does not tell a provider how much dialogue can
+fit. The first live Alpha preflight showed the resulting gap: primary Scene
+Beats responses repeatedly exceeded a node budget, while bounded corrections
+often succeeded only after the validator rejected them. The validator was
+correct, but the primary prompt lacked the deterministic capacity facts needed
+to satisfy it on the first attempt.
+
+The pure `dialogue_capacity.v1` planner therefore derives a conservative
+authoring envelope from the exact frozen scene allocation and dialogue timing
+profile. For every Story Graph node it permits at most two dramatic scenes and
+four dialogue cues. It reserves the one-unit minimum for both possible scenes,
+divides the remaining node budget equally across four cue slots, and projects
+each timing rule into an exact `maxTextCodepoints` value. The invariant is:
+
+```text
+scene floors + all permitted cue slots <= frozen node duration
+```
+
+The complete timing profile and capacity plan are frozen in both the Scene
+Beats StagePlan and each work unit. Their public versions and hashes, plus the
+selected node guidance, bind the request contract. The primary prompt receives
+the bounded guidance directly; the response schema enforces the global scene
+and cue counts; and local semantic validation applies the language/delivery
+rule to each cue before retaining the existing whole-node budget check as a
+defense in depth. A node too small to fund the fixed envelope fails with
+`dialogue_capacity.node_budget_too_small` before any provider call.
+
+The same frozen timing profile remains authoritative after model execution.
+`commit_sealed_run` validates the Scene Beats aggregate and evaluates the
+Storyboard gates with the profile parsed from that run's hash-valid Scene
+Beats StagePlan. It never consults the process default at install time. A
+sealed run that requests Scene Beats or Storyboard but lacks that same-run
+provenance fails closed before canonical mutation. Consequently a standalone
+Storyboard-only sealed run is not installable in this contract version; it
+must be submitted with Scene Beats so the timing authority is explicit. Manual
+canonical saves remain a separate authoring path and select the current
+versioned profile at the time of that save.
+
+The fixed limits are a versioned product policy, not a provider heuristic.
+Changing them requires a new capacity-policy version. Neither startup recovery
+nor compilation may reconstruct a missing historical capacity contract from a
+new process default.
+
 ## Rejected alternatives
 
 - **Keep exact timing arithmetic in the prompt.** Rejected because character
@@ -81,6 +126,14 @@ never increase the node or path allocation.
 - **Add provider- or model-specific timing instructions.** Rejected because
   the ownership error is common to every provider and belongs in the shared
   planner/binder contract.
+- **Rely on rejection-and-correction to teach the capacity.** Rejected because
+  deterministic limits belong in the primary contract, and first-pass quality
+  should not depend on consuming a correction attempt.
+- **Encode language/delivery conditionals with provider-specific JSON Schema.**
+  Rejected for this version because profile capability currently guarantees
+  only basic JSON Schema support. Global array limits are projected into the
+  schema; rule-specific text limits remain explicit prompt facts backed by the
+  same local semantic authority for every provider.
 - **Pad manual edits to the target.** Rejected because the target is an upper
   bound; shorter authored paths remain valid and should stay shorter.
 
@@ -94,12 +147,18 @@ never increase the node or path allocation.
   an impossible dialogue minimum is rejected before binding.
 - Tests prove planning uses the frozen Brief and compilation rejects an
   allocation derived from a different Brief or Story Graph.
+- Tests prove dialogue-capacity hashes are deterministic, each node envelope
+  satisfies its arithmetic bound, primary schemas carry the count limits, and
+  oversized cues are rejected against their exact frozen rule.
+- Tests change the process default after sealing and prove canonical Scene
+  Beats validation and Storyboard gates still replay the run's frozen profile;
+  missing or provenance-free sealed contracts mutate no canonical head.
 - Canonical validation rejects manual scene totals above a node's versioned
   cap while allowing shorter authored totals.
 - Historical terminal records remain readable. New or resumed execution may
   not reinterpret an older nonterminal contract as the new timing contract.
 - Startup recovery marks a nonterminal run that reached an obsolete Scene
-  Beats timing contract as failed with
+  Beats timing or dialogue-capacity contract as failed with
   `recovery.scene_timing_contract_obsolete`, preserves its plans/artifacts,
   and requires an explicit new submission.
 

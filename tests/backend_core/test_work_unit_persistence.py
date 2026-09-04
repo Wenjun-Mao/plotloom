@@ -8,6 +8,7 @@ import pytest
 from alembic import command
 from sqlalchemy import create_engine, select, text
 
+import plotloom.validation as validation_module
 from plotloom.domain import (
     Artifact,
     ArtifactKind,
@@ -21,7 +22,12 @@ from plotloom.domain import (
     WorkUnitStatus,
 )
 from plotloom.exceptions import InvalidTransitionError
-from plotloom.generation.fragments import StoryBibleFragment, StoryGraphFragment
+from plotloom.generation.fragments import (
+    SceneBeatsFragment,
+    StoryBibleFragment,
+    StoryboardFragment,
+    StoryGraphFragment,
+)
 from plotloom.generation.planning import StagePlan, _stage_plan_hash
 from plotloom.persistence import (
     GenerationWorkUnitRow,
@@ -150,6 +156,106 @@ def _seal_graph_unit(repository: SQLiteRepository, run_id: str, payload) -> str:
     return aggregate.id
 
 
+def _seal_partitioned_stage(
+    repository: SQLiteRepository,
+    run_id: str,
+    stage: StageName,
+    payload,
+) -> str:
+    """Persist valid fragment evidence for every Scene Beats/Storyboard unit."""
+
+    stage_plan = repository.get_or_create_stage_plan(run_id, stage)
+    work_units = [
+        unit
+        for unit in repository.list_generation_work_units(run_id)
+        if unit.stage == stage
+    ]
+    candidate_ids: list[str] = []
+    for index, (planned_unit, work_unit) in enumerate(
+        zip(stage_plan.work_units, work_units, strict=True), start=1
+    ):
+        attempt = repository.allocate_attempt_for_work_unit(
+            work_unit.id, provider="local", model="qwen"
+        )
+        repository.mark_attempt_dispatched(attempt.id)
+        prompt = {"messages": [{"role": "user", "content": f"make {stage.value}"}]}
+        repository.add_artifact(
+            Artifact(
+                run_id=run_id,
+                attempt_id=attempt.id,
+                work_unit_id=work_unit.id,
+                stage=stage,
+                kind=ArtifactKind.PROMPT,
+                content=prompt,
+                content_hash=stable_hash(prompt),
+            )
+        )
+        repository.persist_attempt_response(
+            attempt.id,
+            {"rawResponse": "{}"},
+            provider_request_id=f"partitioned-{stage.value}-{index}",
+        )
+        accepted = {"accepted": True, "issues": []}
+        repository.add_artifact(
+            Artifact(
+                run_id=run_id,
+                attempt_id=attempt.id,
+                work_unit_id=work_unit.id,
+                stage=stage,
+                kind=ArtifactKind.VALIDATION,
+                content=accepted,
+                content_hash=stable_hash(accepted),
+            )
+        )
+        selector = planned_unit.selector.stable_id
+        if stage == StageName.SCENE_BEATS:
+            fragment = SceneBeatsFragment(
+                stage_plan_hash=stage_plan.stage_plan_hash,
+                work_unit_id=work_unit.id,
+                story_node_id=selector,
+                scenes=tuple(scene for scene in payload.scenes if scene.story_node_id == selector),
+                beats=tuple(
+                    beat
+                    for beat in payload.beats
+                    if any(scene.id == beat.scene_id for scene in payload.scenes if scene.story_node_id == selector)
+                ),
+                dialogue_cues=(),
+            )
+        elif stage == StageName.STORYBOARD:
+            fragment = StoryboardFragment(
+                stage_plan_hash=stage_plan.stage_plan_hash,
+                work_unit_id=work_unit.id,
+                scene_id=selector,
+                shots=tuple(shot for shot in payload.shots if shot.scene_id == selector),
+                shot_beat_links=tuple(
+                    link
+                    for link in payload.shot_beat_links
+                    if any(shot.id == link.shot_id for shot in payload.shots if shot.scene_id == selector)
+                ),
+            )
+        else:
+            raise AssertionError(f"unsupported partitioned stage: {stage.value}")
+        candidate_data = fragment.model_dump(mode="json", by_alias=False)
+        candidate = repository.add_artifact(
+            Artifact(
+                run_id=run_id,
+                attempt_id=attempt.id,
+                work_unit_id=work_unit.id,
+                stage=stage,
+                kind=ArtifactKind.CANDIDATE,
+                content=candidate_data,
+                content_hash=stable_hash(candidate_data),
+            )
+        )
+        candidate_ids.append(candidate.id)
+        repository.finish_attempt(attempt.id, AttemptStatus.SUCCEEDED)
+    return repository.seal_stage_aggregate(
+        run_id,
+        stage,
+        candidate_artifact_ids=candidate_ids,
+    ).id
+
+
 def _replace_scene_beats_plan_with_obsolete_contract(
     repository: SQLiteRepository,
     run_id: str,
@@ -200,6 +306,46 @@ def _replace_scene_beats_plan_with_obsolete_contract(
         for unit in units:
             unit.dependency_hash = obsolete_dependency_hash
     return persisted
+
+
+def _replace_scene_beats_dialogue_contract_with_obsolete_contract(
+    repository: SQLiteRepository,
+    run_id: str,
+    *,
+    field: str,
+    replacement: object,
+) -> dict:
+    """Corrupt one frozen dialogue field without allowing recovery to rewrite it."""
+
+    current = repository.get_or_create_stage_plan(run_id, StageName.SCENE_BEATS)
+    persisted = current.model_dump(mode="json", by_alias=False)
+    if replacement is None:
+        persisted.pop(field)
+    else:
+        persisted[field] = replacement
+
+    with repository._write() as session:
+        plan_row = session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == run_id,
+                StagePlanRow.stage == StageName.SCENE_BEATS.value,
+            )
+        )
+        assert plan_row is not None
+        plan_row.plan = deepcopy(persisted)
+    return persisted
+
+
+def _persisted_scene_beats_plan(repository: SQLiteRepository, run_id: str) -> dict:
+    with repository._read() as session:
+        plan_row = session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == run_id,
+                StagePlanRow.stage == StageName.SCENE_BEATS.value,
+            )
+        )
+        assert plan_row is not None
+        return deepcopy(plan_row.plan)
 
 
 def test_run_plan_is_persisted_before_child_rows_and_trace_is_additive(repository, brief) -> None:
@@ -274,6 +420,116 @@ def test_sealed_aggregate_is_exact_and_commit_reads_only_sealed_payloads(reposit
     assert trace.work_units[0].status == WorkUnitStatus.SUCCEEDED
     with pytest.raises(InvalidTransitionError, match="already been committed|run is succeeded"):
         repository.commit_sealed_run(run.id, sealed_aggregate_ids=[aggregate_id])
+
+
+def test_sealed_scene_beats_and_storyboard_install_replays_frozen_timing_profile(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, storyboard = all_stage_payloads()
+    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, bible)
+    repository.update_stage(project.id, StageName.STORY_GRAPH, 0, graph)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.SCENE_BEATS, StageName.STORYBOARD],
+    )
+    repository.start_run(run.id)
+    scene_beats_aggregate_id = _seal_partitioned_stage(
+        repository, run.id, StageName.SCENE_BEATS, scene_beats
+    )
+    storyboard_aggregate_id = _seal_partitioned_stage(
+        repository, run.id, StageName.STORYBOARD, storyboard
+    )
+
+    def current_default_must_not_be_read():
+        raise AssertionError("canonical sealed installation must use the frozen StagePlan profile")
+
+    monkeypatch.setattr(
+        validation_module,
+        "default_dialogue_timing_profile",
+        current_default_must_not_be_read,
+    )
+
+    completed = repository.commit_sealed_run(
+        run.id,
+        sealed_aggregate_ids=[scene_beats_aggregate_id, storyboard_aggregate_id],
+    )
+
+    assert completed.status == RunStatus.SUCCEEDED
+    assert repository.get_stage_head(project.id, StageName.SCENE_BEATS).revision == 1
+    assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 1
+
+
+def test_sealed_scene_beats_commit_rejects_missing_frozen_timing_profile(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, _ = all_stage_payloads()
+    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, bible)
+    repository.update_stage(project.id, StageName.STORY_GRAPH, 0, graph)
+    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.SCENE_BEATS])
+    repository.start_run(run.id)
+    aggregate_id = _seal_partitioned_stage(
+        repository, run.id, StageName.SCENE_BEATS, scene_beats
+    )
+    with repository._write() as session:
+        row = session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == run.id,
+                StagePlanRow.stage == StageName.SCENE_BEATS.value,
+            )
+        )
+        assert row is not None
+        row.plan = {**row.plan, "dialogue_timing_profile": None}
+
+    with pytest.raises(
+        InvalidTransitionError,
+        match="valid frozen Scene Beats dialogue timing profile",
+    ):
+        repository.commit_sealed_run(run.id, sealed_aggregate_ids=[aggregate_id])
+
+    assert repository.get_stage_head(project.id, StageName.SCENE_BEATS).revision == 0
+
+
+def test_sealed_storyboard_only_commit_fails_closed_without_run_timing_provenance(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    project = repository.create_project(brief)
+    bible, graph, scene_beats, storyboard = all_stage_payloads()
+    for stage, payload in (
+        (StageName.STORY_BIBLE, bible),
+        (StageName.STORY_GRAPH, graph),
+        (StageName.SCENE_BEATS, scene_beats),
+    ):
+        repository.update_stage(project.id, stage, 0, payload)
+    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORYBOARD])
+    repository.start_run(run.id)
+    aggregate_id = _seal_partitioned_stage(
+        repository, run.id, StageName.STORYBOARD, storyboard
+    )
+
+    def current_default_must_not_be_read():
+        raise AssertionError("provenance-free sealed storyboard install must fail before default lookup")
+
+    monkeypatch.setattr(
+        validation_module,
+        "default_dialogue_timing_profile",
+        current_default_must_not_be_read,
+    )
+
+    with pytest.raises(
+        InvalidTransitionError,
+        match="frozen Scene Beats dialogue timing profile",
+    ):
+        repository.commit_sealed_run(run.id, sealed_aggregate_ids=[aggregate_id])
+
+    assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 0
 
 
 def test_work_unit_attempt_requires_dispatch_and_marks_unknown_outcomes(repository, brief) -> None:
@@ -739,6 +995,64 @@ def test_startup_recovery_terminates_obsolete_scene_timing_contract_without_rewr
     assert recovered_plan.model_dump(mode="json", by_alias=False) == legacy_plan
 
 
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("dialogue_timing_profile", None),
+        ("dialogue_capacity_plan", None),
+        ("dialogue_timing_profile", {}),
+        ("dialogue_capacity_plan", {}),
+    ],
+    ids=(
+        "missing-dialogue-timing-profile",
+        "missing-dialogue-capacity-plan",
+        "unparseable-dialogue-timing-profile",
+        "unparseable-dialogue-capacity-plan",
+    ),
+)
+def test_startup_recovery_terminates_nonterminal_scene_beats_with_obsolete_dialogue_contract(
+    repository,
+    brief,
+    field: str,
+    replacement: object,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+    )
+    repository.start_run(run.id)
+    _seal_bible_unit(repository, run.id, all_stage_payloads()[0])
+    _seal_graph_unit(repository, run.id, all_stage_payloads()[1])
+    obsolete_plan = _replace_scene_beats_dialogue_contract_with_obsolete_contract(
+        repository,
+        run.id,
+        field=field,
+        replacement=replacement,
+    )
+    artifact = repository.add_artifact(
+        Artifact(
+            run_id=run.id,
+            stage=StageName.SCENE_BEATS,
+            kind=ArtifactKind.PROMPT,
+            content={"obsolete": field},
+            content_hash=stable_hash({"obsolete": field}),
+        )
+    )
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert recovery.resubmit_run_ids == []
+    assert recovery.terminated_run_ids == [run.id]
+    recovered = repository.get_run(run.id)
+    assert recovered.status == RunStatus.FAILED
+    assert recovered.failure_code == "recovery.scene_timing_contract_obsolete"
+    assert recovered.failed_stage == StageName.SCENE_BEATS
+    assert repository.get_artifact(artifact.id).content == {"obsolete": field}
+    assert _persisted_scene_beats_plan(repository, run.id) == obsolete_plan
+
+
 def test_startup_recovery_does_not_rewrite_terminal_obsolete_scene_timing_history(
     repository,
     brief,
@@ -772,6 +1086,41 @@ def test_startup_recovery_does_not_rewrite_terminal_obsolete_scene_timing_histor
         if plan.stage == StageName.SCENE_BEATS
     )
     assert recovered_plan.model_dump(mode="json", by_alias=False) == legacy_plan
+
+
+def test_startup_recovery_does_not_rewrite_terminal_obsolete_dialogue_contract_history(
+    repository,
+    brief,
+) -> None:
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+    )
+    repository.start_run(run.id)
+    _seal_bible_unit(repository, run.id, all_stage_payloads()[0])
+    _seal_graph_unit(repository, run.id, all_stage_payloads()[1])
+    obsolete_plan = _replace_scene_beats_dialogue_contract_with_obsolete_contract(
+        repository,
+        run.id,
+        field="dialogue_capacity_plan",
+        replacement={},
+    )
+    repository.finish_run(
+        run.id,
+        error="historical terminal outcome",
+        failure_code="fixture.terminal",
+        failed_stage=StageName.SCENE_BEATS,
+    )
+
+    recovery = repository.reconcile_startup_jobs()
+
+    assert run.id not in recovery.terminated_run_ids
+    terminal = repository.get_run(run.id)
+    assert terminal.status == RunStatus.FAILED
+    assert terminal.failure_code == "fixture.terminal"
+    assert _persisted_scene_beats_plan(repository, run.id) == obsolete_plan
 
 
 def test_startup_recovery_preserves_failed_and_quarantined_unit_meanings(

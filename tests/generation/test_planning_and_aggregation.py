@@ -302,10 +302,17 @@ def test_run_plan_does_not_invent_future_selectors_and_stage_plans_are_determini
     assert all(unit.selector.kind == WorkUnitSelectorKind.STORY_NODE for unit in first.work_units)
     assert first.scene_timing_allocation is not None
     assert first.scene_timing_allocation.allocation_version == "scene_timing_allocation.v1"
+    assert first.dialogue_timing_profile is not None
+    assert first.dialogue_capacity_plan is not None
+    assert first.dialogue_capacity_plan.policy_version == "dialogue_capacity.v1"
+    assert first.dialogue_capacity_plan.guidance_for("start").max_scenes == 2
+    assert first.dialogue_capacity_plan.guidance_for("start").max_dialogue_cues == 4
     selected_context = work_unit_context(
         first.work_units[0],
         dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
         scene_timing_allocation=first.scene_timing_allocation,
+        dialogue_timing_profile=first.dialogue_timing_profile,
+        dialogue_capacity_plan=first.dialogue_capacity_plan,
     )
     assert selected_context["scene_timing_allocation"] == {
         "allocationVersion": "scene_timing_allocation.v1",
@@ -315,6 +322,30 @@ def test_run_plan_does_not_invent_future_selectors_and_stage_plans_are_determini
             first.work_units[0].selector.stable_id
         ),
     }
+    assert selected_context["dialogue_timing_profile"] == first.dialogue_timing_profile.model_dump(
+        mode="json", by_alias=True
+    )
+    assert selected_context["dialogue_capacity_guidance"]["capacityPlanHash"] == (
+        first.dialogue_capacity_plan.capacity_plan_hash
+    )
+    assert selected_context["dialogue_capacity_guidance"]["nodeGuidance"]["nodeId"] == "start"
+    # Existing callers need not pass the new fields: a new unit carries the
+    # frozen pair itself. It must not reconstruct that pair from a current
+    # process default.
+    assert work_unit_context(
+        first.work_units[0],
+        dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        scene_timing_allocation=first.scene_timing_allocation,
+    ) == selected_context
+    with pytest.raises(PlanningError, match="does not match the frozen work unit"):
+        work_unit_context(
+            first.work_units[0],
+            dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+            scene_timing_allocation=first.scene_timing_allocation,
+            dialogue_timing_profile=first.dialogue_timing_profile.model_copy(
+                update={"version": "dialogue.changed.v1"}
+            ),
+        )
 
     changed_story = _run_plan(canonical_snapshot={"brief": {"title": "另一个故事"}})
     changed_instructions = _run_plan(instructions="preserve a different constraint")

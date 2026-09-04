@@ -20,6 +20,7 @@ from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.work_units import (
     DialogueTimingRepairFact,
     JoinAllowedDifferencesRepairFact,
+    RequiredEntityStateRepairFact,
     assert_semantic_repair_fact_matches_issue,
     compile_work_unit_request,
     parse_semantic_repair_fact,
@@ -395,6 +396,17 @@ def test_semantic_repair_fact_union_revalidates_current_and_legacy_evidence() ->
     )
     assert isinstance(timing, DialogueTimingRepairFact)
 
+    entity_state = parse_semantic_repair_fact(
+        {
+            "code": "semantic.invalid_required_entity_state",
+            "path": ["shots", 0, "requiredEntityStates", 1, "state"],
+            "entityType": "character",
+            "entityId": "speaker",
+            "allowedStates": ["awake", "injured"],
+        }
+    )
+    assert isinstance(entity_state, RequiredEntityStateRepairFact)
+
     with pytest.raises(ValidationError):
         parse_semantic_repair_fact(
             {
@@ -411,6 +423,26 @@ def test_semantic_repair_fact_union_revalidates_current_and_legacy_evidence() ->
                 "path": ["bogus", 0],
                 "joinContractId": "join-1",
                 "missingRequiredStateKeys": ["route"],
+            }
+        )
+    with pytest.raises(ValidationError, match="path must identify"):
+        parse_semantic_repair_fact(
+            {
+                "code": "semantic.invalid_required_entity_state",
+                "path": ["shots", 0, "requiredEntityStates", 1, "entityId"],
+                "entityType": "character",
+                "entityId": "speaker",
+                "allowedStates": ["awake"],
+            }
+        )
+    with pytest.raises(ValidationError, match="allowedStates must be unique"):
+        parse_semantic_repair_fact(
+            {
+                "code": "semantic.invalid_required_entity_state",
+                "path": ["shots", 0, "requiredEntityStates", 1, "state"],
+                "entityType": "character",
+                "entityId": "speaker",
+                "allowedStates": ["awake", "awake"],
             }
         )
     with pytest.raises(ValueError, match="no matching stable validation issue"):

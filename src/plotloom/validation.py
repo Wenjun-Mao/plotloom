@@ -553,6 +553,7 @@ def validate_stage_payload(
     bible: StoryBible | StoryBibleV2 | None = None,
     graph: StoryGraph | StoryGraphV2 | None = None,
     scene_beats: SceneBeatPlan | SceneBeatPlanV2 | None = None,
+    dialogue_timing_profile: DialogueTimingProfile | None = None,
 ) -> GateEvaluation | None:
     """Validate one explicitly versioned canonical stage.
 
@@ -570,6 +571,7 @@ def validate_stage_payload(
             bible=bible,
             graph=graph,
             scene_beats=scene_beats,
+            dialogue_timing_profile=dialogue_timing_profile,
         )
     if schema_version != 1:
         raise ValueError(f"unsupported canonical schema version: {schema_version}")
@@ -604,6 +606,7 @@ def _validate_stage_payload_v2(
     bible: StoryBible | StoryBibleV2 | None,
     graph: StoryGraph | StoryGraphV2 | None,
     scene_beats: SceneBeatPlan | SceneBeatPlanV2 | None,
+    dialogue_timing_profile: DialogueTimingProfile | None,
 ) -> GateEvaluation | None:
     if stage == StageName.STORY_BIBLE:
         if not isinstance(payload, StoryBibleV2):
@@ -621,7 +624,11 @@ def _validate_stage_payload_v2(
             raise TypeError("V2 scene_beats requires SceneBeatPlanV2, StoryBibleV2, and StoryGraphV2")
         validate_scene_beat_coverage(payload, graph, bible, strict_v2=True)  # type: ignore[arg-type]
         _validate_v2_scene_order_and_continuity(payload, bible)
-        _validate_v2_dialogue_cues(payload, bible)
+        _validate_v2_dialogue_cues(
+            payload,
+            bible,
+            timing_profile=dialogue_timing_profile,
+        )
         _validate_v2_scene_timing_allocation(payload, graph, brief)
         return None
     if not isinstance(payload, StoryboardV2) or not isinstance(bible, StoryBibleV2) or not isinstance(scene_beats, SceneBeatPlanV2):
@@ -631,7 +638,7 @@ def _validate_stage_payload_v2(
         scene_beats,
         bible,
         brief,
-        timing_profile=default_dialogue_timing_profile(),
+        timing_profile=dialogue_timing_profile or default_dialogue_timing_profile(),
     )
     failed = [result for result in evaluation.results if not result.passed]
     if failed:
@@ -745,7 +752,12 @@ def _allowed_entity_states(
     }
 
 
-def _validate_v2_dialogue_cues(plan: SceneBeatPlanV2, bible: StoryBibleV2) -> None:
+def _validate_v2_dialogue_cues(
+    plan: SceneBeatPlanV2,
+    bible: StoryBibleV2,
+    *,
+    timing_profile: DialogueTimingProfile | None = None,
+) -> None:
     """Stage-local cue checks that do not require a storyboard schedule."""
 
     issues: list[ValidationIssue] = []
@@ -755,7 +767,7 @@ def _validate_v2_dialogue_cues(plan: SceneBeatPlanV2, bible: StoryBibleV2) -> No
     for cue_id in sorted(duplicate_ids):
         issues.append(_issue("duplicate_dialogue_cue_id", "dialogueCues", f"duplicate dialogue cue id: {cue_id}"))
     cues_by_beat: dict[str, list[DialogueCue]] = defaultdict(list)
-    timing_profile = default_dialogue_timing_profile()
+    timing_profile = timing_profile or default_dialogue_timing_profile()
     for cue in plan.dialogue_cues:
         cues_by_beat[cue.beat_id].append(cue)
         if cue.beat_id not in beats_by_id:
