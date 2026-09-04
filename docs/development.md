@@ -115,6 +115,11 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
   freeze its compiler versions; each correction also freezes hashes of the
   selected directives, compact evidence projection, and narrowed response
   schema. Unknown semantic issue codes fail closed.
+- The durable validation artifact always retains the complete issue list. A
+  correction may defer a derived continuity sequence issue only while a named
+  invalid-state or non-finite-value blocker prevents an exact boundary fact;
+  only the hashed executable subset enters that correction prompt/schema, and
+  the next attempt is validated from scratch.
 - All structured prompts are presence-strict: every property named by a
   schema `required` array must be emitted, including explicit empty/null state
   fields. Native JSON Schema is a probed profile capability, not a replacement

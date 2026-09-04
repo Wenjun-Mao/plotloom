@@ -125,6 +125,7 @@ _CORRECTION_VARIANT_CONTRACT_FIELDS = frozenset(
         "correction_strategy",
         "correction_directive_set_hash",
         "correction_evidence_projection_hash",
+        "correction_issue_selection_hash",
         "correction_response_schema_hash",
     }
 )
@@ -991,15 +992,13 @@ class DurableWorkUnitRunner:
             source_contract=source_contract,
             base_compiled=base_compiled,
         )
-        issues = []
         validated_issues: list[ValidationIssue] = []
         for item in validation_content.get("issues", []):
             if not isinstance(item, Mapping):
                 continue
             issue = ValidationIssue.model_validate(item)
             validated_issues.append(issue)
-            issues.append({"code": issue.code, "path": list(issue.path)})
-        if not issues:
+        if not validated_issues:
             raise ValueError("correction source has no stable validation issues")
         parsed_repair_facts: list[SemanticRepairFact] = []
         raw_repair_facts = validation_content.get("repairFacts", [])
@@ -1059,10 +1058,20 @@ class DurableWorkUnitRunner:
             )
             correction_schema = compile_correction_response_schema(
                 base_compiled.response_schema,
-                parsed_repair_facts,
+                [
+                    parsed_repair_facts[index]
+                    for index in instruction_plan.executable_fact_indexes
+                ],
             )
         except (CorrectionDirectivePlanError, CorrectionResponseSchemaError) as error:
             raise CorrectionSourceContractError(str(error)) from error
+        issues = [
+            {
+                "code": validated_issues[index].code,
+                "path": list(validated_issues[index].path),
+            }
+            for index in instruction_plan.executable_issue_indexes
+        ]
         correction_ordinal = source_attempt.attempt_number
         correction_strategy = (
             "repair_previous_final"
@@ -1121,6 +1130,9 @@ class DurableWorkUnitRunner:
                 "correction_evidence_projection_hash": (
                     instruction_plan.evidence_projection_hash
                 ),
+                "correction_issue_selection_hash": (
+                    instruction_plan.issue_selection_hash
+                ),
                 "correction_response_schema_hash": correction_schema.schema_hash,
             }
         )
@@ -1129,6 +1141,7 @@ class DurableWorkUnitRunner:
             validator=base_compiled.validator,
             contract=contract,
             response_schema=correction_schema.schema,
+            audit_issue_selection=instruction_plan.audit_issue_selection,
         )
 
     @staticmethod
@@ -1240,6 +1253,7 @@ class DurableWorkUnitRunner:
         adapter: ProviderAdapter,
         model: str,
     ) -> None:
+        self._assert_correction_audit_selection(compiled)
         content = {
             "trace": compiled.rendered.trace.model_dump(mode="json"),
             "messages": [message.model_dump(mode="json") for message in compiled.rendered.messages],
@@ -1251,6 +1265,8 @@ class DurableWorkUnitRunner:
             "sourceAttemptId": attempt.source_attempt_id,
             "contract": compiled.contract.snapshot_dump(),
         }
+        if compiled.audit_issue_selection is not None:
+            content["correctionIssueSelection"] = compiled.audit_issue_selection
         self.repository.add_artifact(
             Artifact(
                 run_id=run.id,
@@ -1271,6 +1287,7 @@ class DurableWorkUnitRunner:
     ) -> None:
         """Verify that a resumed attempt still means exactly the same request."""
 
+        DurableWorkUnitRunner._assert_correction_audit_selection(compiled)
         content = artifact.content if isinstance(artifact.content, Mapping) else {}
         expected_contract = compiled.contract.snapshot_dump()
         if (
@@ -1278,9 +1295,33 @@ class DurableWorkUnitRunner:
             or content.get("contract") != expected_contract
             or content.get("attemptKind") != attempt.attempt_kind.value
             or content.get("sourceAttemptId") != attempt.source_attempt_id
+            or content.get("correctionIssueSelection")
+            != compiled.audit_issue_selection
+            or ("correctionIssueSelection" in content)
+            != (compiled.audit_issue_selection is not None)
         ):
             raise ValueError(
                 "recoverable attempt prompt evidence does not match its frozen execution contract"
+            )
+
+    @staticmethod
+    def _assert_correction_audit_selection(
+        compiled: CompiledWorkUnitRequest,
+    ) -> None:
+        """Fail closed before persistence if audit evidence and contract diverge."""
+
+        selection = compiled.audit_issue_selection
+        selection_hash = compiled.contract.correction_issue_selection_hash
+        is_correction = compiled.contract.correction_ordinal is not None
+        if is_correction != (selection is not None) or is_correction != (
+            selection_hash is not None
+        ):
+            raise CorrectionSourceContractError(
+                "correction audit selection presence does not match its contract"
+            )
+        if selection is not None and stable_hash(selection) != selection_hash:
+            raise CorrectionSourceContractError(
+                "correction audit selection does not match its contract hash"
             )
 
     @staticmethod

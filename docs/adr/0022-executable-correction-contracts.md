@@ -41,13 +41,31 @@ cannot be satisfied by deleting the entity entry. The ordinary fragment and
 canonical validators remain mandatory after provider output and are never
 relaxed or replaced by an overlay.
 
-`WorkUnitPromptContract m1.12p` freezes the correction policy, directive
-registry, evidence projection, and response-schema compiler versions on the
-primary attempt. Each correction additionally freezes SHA-256 hashes of the
-selected directive set, evidence projection, and full narrowed schema. Resume
-and correction lineage compare those immutable snapshots and reject compiler
-drift. Terminal historical artifacts remain raw evidence; their absent fields
-are not injected, re-saved, or re-hashed.
+Some issues are derived from fields that are themselves invalid. The immutable
+validation artifact retains the complete issue list, while a versioned issue
+selection contract partitions code/path pairs into executable and deferred
+sets. In particular, a continuity sequence mismatch without an exact fact may
+be deferred only when the same rejection contains a continuity entity/state or
+finite-JSON blocker. The prompt and schema receive only executable authority;
+after that repair, ordinary revalidation either clears the sequence issue or
+produces its exact fact. Unsupported issues and missing facts without a named
+blocker still fail closed.
+
+Deferred issue identities and paths remain in the immutable validation
+evidence. The complete deterministic selection is persisted beside the
+rendered messages as audit-only prompt-artifact data, and its version and hash
+bind the executable/deferred partition, reason, and blockers. None of those
+deferred details are included in a model-visible message or response schema.
+The model-facing projection contains only executable code/path pairs and
+bindings whose indexes are local to that executable projection.
+
+`WorkUnitPromptContract m1.12q` freezes the correction policy, issue selector,
+directive registry, evidence projection, and response-schema compiler versions
+on the primary attempt. Each correction additionally freezes SHA-256 hashes of
+the issue selection, selected directive set, evidence projection, and full
+narrowed schema. Resume and correction lineage compare those immutable
+snapshots and reject compiler drift. Terminal historical artifacts remain raw
+evidence; their absent fields are not injected, re-saved, or re-hashed.
 
 ### Continuity repairs have one deterministic boundary owner
 
@@ -103,14 +121,16 @@ output as valid JSON.
 ## Consequences and guardrails
 
 - Tests cover directive selection, unknown-code rejection, lossless join-fact
-  grouping, deterministic overlay hashes, JSON null, and conflicting authority.
+  grouping, deterministic issue-selection and overlay hashes, deferred derived
+  continuity issues, JSON null, and conflicting authority.
 - Tests cover every continuity boundary, ordered-ID replay, foreign/non-adjacent
   rejection, source-response rebinding, exact fact/scalar assignment, and
   required entity presence.
 - Retired dialogue-duration witness facts remain parseable as historical
   evidence but are outside the current executable repair-fact union.
 - Pipeline tests prove current compiler versions are present on primary attempts,
-  correction hashes are present only on corrections, and recovery rejects drift.
+  correction hashes and inspectable audit selections are present only on
+  corrections, and recovery rejects drift.
 - Prompt and receipt fingerprints change with these contracts, so prior live
   qualification cannot be relabelled as evidence for this version.
 - Live Alpha qualification begins only after both saved profiles pass a fresh

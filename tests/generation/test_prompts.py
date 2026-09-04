@@ -132,7 +132,9 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     assert "本轮适用的静态纠错指令" in correction_spec.user
     assert "只执行上方本轮列出的静态指令" in correction_spec.user
     assert scene_spec.version == "3.11.0"
-    assert correction_spec.version == "3.9.0"
+    assert correction_spec.version == "3.10.0"
+    assert "issueSelection.executableIssues" in correction_spec.user
+    assert "deferredIssues" not in correction_spec.user
     storyboard_fragment_spec, _spec_hash, _source = repository.load(
         "storyboard_fragment"
     )

@@ -2771,6 +2771,154 @@ def test_storyboard_continuity_fact_rejects_reordered_items_before_dispatch(
     assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 0
 
 
+def test_scene_beats_second_correction_rebinds_new_continuity_fact(
+    repository,
+    brief,
+) -> None:
+    """A later exact fact binds to the correction response that produced it."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    bible = json.loads(responses[0])
+    bible["characters"] = [
+        {
+            "id": "hero",
+            "name": "主角",
+            "description": "在雾港苏醒的人",
+            "visualAnchors": [],
+            "soundAnchors": [],
+            "allowedStates": ["alert", "calm"],
+            "continuityRules": [],
+            "role": "lead",
+            "goal": "离开雾港",
+            "traits": [],
+            "voiceAnchors": [],
+        }
+    ]
+    responses[0] = json.dumps(bible, ensure_ascii=False)
+
+    rejected_index = 2
+    primary = json.loads(responses[rejected_index])
+    primary["scenes"][0]["characterIds"] = ["hero"]
+    primary["scenes"][0]["entryState"]["entityStates"] = [
+        {"entityType": "character", "entityId": "hero", "state": "alert"}
+    ]
+    primary["scenes"][0]["entryState"]["sound"] = "寂静"
+    primary["beats"][0]["entryState"]["entityStates"] = [
+        {"entityType": "character", "entityId": "hero", "state": "unknown"}
+    ]
+    primary["beats"][0]["entryState"]["sound"] = "纸张翻动声"
+
+    first_correction = deepcopy(primary)
+    first_correction["beats"][0]["entryState"]["entityStates"][0][
+        "state"
+    ] = "calm"
+    second_correction = deepcopy(first_correction)
+    second_correction["beats"][0]["entryState"]["entityStates"][0][
+        "state"
+    ] = "alert"
+    second_correction["beats"][0]["entryState"]["sound"] = "寂静"
+    responses[rejected_index : rejected_index + 1] = [
+        json.dumps(primary, ensure_ascii=False),
+        json.dumps(first_correction, ensure_ascii=False),
+        json.dumps(second_correction, ensure_ascii=False),
+    ]
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("second-continuity-correction-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    trace = repository.get_run_trace(run.id)
+    assert completed.status == RunStatus.SUCCEEDED, (
+        completed.failure_code,
+        [attempt.error for attempt in trace.attempts],
+    )
+    attempts = [
+        attempt
+        for attempt in trace.attempts
+        if attempt.work_unit_id
+        == next(
+            item.id
+            for item in repository.get_run_execution_trace(run.id).work_units
+            if item.stage == StageName.SCENE_BEATS
+        )
+    ]
+    assert [attempt.outcome_code for attempt in attempts] == [
+        "semantic.invalid_continuity_entity_state",
+        "semantic.continuity_beat_sequence_mismatch",
+        "response.accepted",
+    ]
+    assert [attempt.attempt_kind for attempt in attempts] == [
+        GenerationAttemptKind.PRIMARY,
+        GenerationAttemptKind.CORRECTION,
+        GenerationAttemptKind.CORRECTION,
+    ]
+    primary_validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == attempts[0].id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert [
+        issue["code"] for issue in primary_validation.content["issues"]
+    ] == [
+        "semantic.invalid_continuity_entity_state",
+        "semantic.continuity_beat_sequence_mismatch",
+    ]
+    assert primary_validation.content["repairFacts"] == []
+    first_prompt = provider.requests[rejected_index + 1].messages[1].content
+    assert '"executableIssues":[{"code":"semantic.invalid_continuity_entity_state"' in first_prompt
+    assert "semantic.continuity_beat_sequence_mismatch" not in first_prompt
+    assert '"deferredIssues"' not in first_prompt
+    assert '"allIssues"' not in first_prompt
+    first_schema = json.dumps(
+        provider.requests[rejected_index + 1].response_schema,
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    assert "semantic.continuity_beat_sequence_mismatch" not in first_schema
+    first_prompt_artifact = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == attempts[1].id
+        and artifact.kind == ArtifactKind.PROMPT
+    )
+    audit_selection = first_prompt_artifact.content["correctionIssueSelection"]
+    assert audit_selection["deferredIssues"][0]["code"] == (
+        "semantic.continuity_beat_sequence_mismatch"
+    )
+    assert stable_hash(audit_selection) == first_prompt_artifact.content[
+        "contract"
+    ]["correction_issue_selection_hash"]
+    second_validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == attempts[1].id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    assert [
+        fact["code"] for fact in second_validation.content["repairFacts"]
+    ] == ["semantic.continuity_beat_sequence_mismatch"]
+    second_prompt = provider.requests[rejected_index + 2].messages[1].content
+    assert '"deferredIssues"' not in second_prompt
+    assert '"allIssues"' not in second_prompt
+    assert '"code":"semantic.continuity_beat_sequence_mismatch"' in second_prompt
+    assert "ContinuitySequenceRepairFact" in second_prompt
+
+
 def test_scene_beats_capacity_rejection_keeps_exact_frozen_guidance_in_correction(
     repository,
     brief,
@@ -2966,6 +3114,61 @@ def test_recovery_refuses_to_correct_under_a_changed_base_contract(
     assert trace.attempts[1].attempt_kind == GenerationAttemptKind.CORRECTION
 
 
+def test_correction_audit_selection_hash_mismatch_prevents_provider_dispatch(
+    repository,
+    brief,
+    monkeypatch,
+) -> None:
+    project = repository.create_project(brief)
+    bible = all_stage_payloads()[0]
+    provider = QueueProvider(["not json", *_responses(bible)])
+    secrets = RunSecretBroker("audit-selection-hash-secret")
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        [StageName.STORY_BIBLE],
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    original_compile = work_unit_pipeline.compile_correction_instruction_plan
+
+    def compile_with_mismatched_audit_selection(*args, **kwargs):
+        plan = original_compile(*args, **kwargs)
+        return plan.model_copy(
+            update={
+                "audit_issue_selection": {
+                    **plan.audit_issue_selection,
+                    "unexpectedAuditMutation": True,
+                }
+            }
+        )
+
+    monkeypatch.setattr(
+        work_unit_pipeline,
+        "compile_correction_instruction_plan",
+        compile_with_mismatched_audit_selection,
+    )
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.FAILED
+    assert len(provider.requests) == 1
+    trace = repository.get_run_trace(run.id)
+    assert [attempt.outcome_code for attempt in trace.attempts] == [
+        "response.extraction",
+        "contract.correction_source_changed",
+    ]
+    assert [
+        artifact.kind
+        for artifact in trace.artifacts
+        if artifact.attempt_id == trace.attempts[1].id
+    ] == []
+
+
 def test_correction_treats_previous_final_as_untrusted_json_string(
     repository,
     brief,
@@ -3086,16 +3289,19 @@ def test_v2_profile_stops_after_two_corrections_and_quarantines(
     ]
     primary_contract = prompt_artifacts[0].content["contract"]
     correction_contracts = [artifact.content["contract"] for artifact in prompt_artifacts[1:]]
-    assert primary_contract["correction_policy_version"] == "bounded_correction.v18"
-    assert primary_contract["correction_directive_registry_version"] == "correction_directives.v1"
-    assert primary_contract["correction_evidence_projection_version"] == "correction_evidence_projection.v1"
+    assert primary_contract["correction_policy_version"] == "bounded_correction.v19"
+    assert primary_contract["correction_directive_registry_version"] == "correction_directives.v2"
+    assert primary_contract["correction_evidence_projection_version"] == "correction_evidence_projection.v2"
+    assert primary_contract["correction_issue_selection_version"] == "correction_issue_selection.v1"
     assert primary_contract["correction_response_schema_version"] == "correction_response_schema.v1"
     assert "correction_directive_set_hash" not in primary_contract
     assert "correction_evidence_projection_hash" not in primary_contract
+    assert "correction_issue_selection_hash" not in primary_contract
     assert "correction_response_schema_hash" not in primary_contract
     for contract in correction_contracts:
         assert len(contract["correction_directive_set_hash"]) == 64
         assert len(contract["correction_evidence_projection_hash"]) == 64
+        assert len(contract["correction_issue_selection_hash"]) == 64
         assert len(contract["correction_response_schema_hash"]) == 64
     assert repository.get_run_execution_trace(run.id).work_units[0].status == (
         WorkUnitStatus.QUARANTINED

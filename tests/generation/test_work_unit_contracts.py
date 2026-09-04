@@ -635,6 +635,7 @@ def test_prompt_contract_requires_complete_correction_schedule() -> None:
                 "correction_strategy": "repair_previous_final",
                 "correction_directive_set_hash": "g" * 64,
                 "correction_evidence_projection_hash": "0" * 64,
+                "correction_issue_selection_hash": "0" * 64,
                 "correction_response_schema_hash": "0" * 64,
             }
         )
@@ -991,6 +992,7 @@ def test_storyboard_audio_event_ids_are_deterministic_and_contracts_preserve_his
     historical.pop("audio_event_id_binding_version")
     historical.pop("correction_directive_registry_version")
     historical.pop("correction_evidence_projection_version")
+    historical.pop("correction_issue_selection_version")
     historical.pop("correction_response_schema_version")
     parsed = WorkUnitPromptContract.model_validate(historical)
     assert parsed.snapshot_dump() == historical

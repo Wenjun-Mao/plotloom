@@ -55,6 +55,7 @@ from .contracts import RenderedPrompt, ValidationIssue, ValidationReport
 from .correction_contract import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,
     CORRECTION_EVIDENCE_PROJECTION_VERSION,
+    CORRECTION_ISSUE_SELECTION_VERSION,
     CORRECTION_POLICY_VERSION,
     CORRECTION_RESPONSE_SCHEMA_VERSION,
 )
@@ -115,7 +116,7 @@ from .storyboard_timing_repair import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12p"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12q"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 AUDIO_EVENT_ID_BINDING_VERSION = "audio_event_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
@@ -1184,14 +1185,16 @@ class WorkUnitPromptContract(_FrozenModel):
     correction_policy_version: str = CORRECTION_POLICY_VERSION
     # Optional so terminal historical contracts round-trip without injecting
     # identities that did not exist when they were sealed.  Current contracts
-    # set all three explicitly, including primary attempts, so a later
+    # set all four explicitly, including primary attempts, so a later
     # correction cannot silently execute under a changed compiler.
     correction_directive_registry_version: str | None = None
     correction_evidence_projection_version: str | None = None
+    correction_issue_selection_version: str | None = None
     correction_response_schema_version: str | None = None
     # These hashes are correction-variant provenance.  Primary attempts have
     # no selected directives/evidence overlay; correction attempts require all
-    # three and bind the exact prompt projection plus narrowed response schema.
+    # four and bind the exact issue selection, prompt projection, and narrowed
+    # response schema.
     correction_directive_set_hash: str | None = Field(
         default=None,
         min_length=64,
@@ -1199,6 +1202,12 @@ class WorkUnitPromptContract(_FrozenModel):
         pattern=r"^[0-9a-f]{64}$",
     )
     correction_evidence_projection_hash: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    correction_issue_selection_hash: str | None = Field(
         default=None,
         min_length=64,
         max_length=64,
@@ -1287,6 +1296,7 @@ class WorkUnitPromptContract(_FrozenModel):
         correction_versions = (
             self.correction_directive_registry_version,
             self.correction_evidence_projection_version,
+            self.correction_issue_selection_version,
             self.correction_response_schema_version,
         )
         if self.contract_version == WORK_UNIT_PROMPT_CONTRACT_VERSION:
@@ -1297,6 +1307,7 @@ class WorkUnitPromptContract(_FrozenModel):
             expected_versions = (
                 CORRECTION_DIRECTIVE_REGISTRY_VERSION,
                 CORRECTION_EVIDENCE_PROJECTION_VERSION,
+                CORRECTION_ISSUE_SELECTION_VERSION,
                 CORRECTION_RESPONSE_SCHEMA_VERSION,
             )
             if correction_versions != expected_versions:
@@ -1306,6 +1317,7 @@ class WorkUnitPromptContract(_FrozenModel):
         correction_hashes = (
             self.correction_directive_set_hash,
             self.correction_evidence_projection_hash,
+            self.correction_issue_selection_hash,
             self.correction_response_schema_hash,
         )
         has_all_correction_hashes = all(value is not None for value in correction_hashes)
@@ -1417,6 +1429,9 @@ class CompiledWorkUnitRequest:
     validator: ValidationAdapter[Any]
     contract: WorkUnitPromptContract
     response_schema: dict[str, Any]
+    # Audit-only correction selection. The runner persists this beside the
+    # rendered messages but never sends it through a provider adapter.
+    audit_issue_selection: dict[str, Any] | None = None
 
 
 class WorkUnitFragmentValidationAdapter(ValidationAdapter[StageFragment]):
@@ -1694,6 +1709,7 @@ def compile_work_unit_request(
         correction_policy_version=CORRECTION_POLICY_VERSION,
         correction_directive_registry_version=CORRECTION_DIRECTIVE_REGISTRY_VERSION,
         correction_evidence_projection_version=CORRECTION_EVIDENCE_PROJECTION_VERSION,
+        correction_issue_selection_version=CORRECTION_ISSUE_SELECTION_VERSION,
         correction_response_schema_version=CORRECTION_RESPONSE_SCHEMA_VERSION,
         correction_ordinal=None,
         correction_strategy=None,

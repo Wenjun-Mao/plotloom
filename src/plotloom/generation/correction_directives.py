@@ -21,6 +21,7 @@ from .contracts import FrozenModel, ValidationIssue
 from .correction_contract import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,
     CORRECTION_EVIDENCE_PROJECTION_VERSION,
+    CORRECTION_ISSUE_SELECTION_VERSION,
 )
 
 
@@ -39,6 +40,12 @@ class CorrectionInstructionPlan(FrozenModel):
     registry_version: str
     directives: tuple[CorrectionDirective, ...]
     directive_set_hash: str
+    issue_selection_version: str
+    issue_selection_hash: str
+    audit_issue_selection: dict[str, Any]
+    executable_issue_indexes: tuple[int, ...]
+    deferred_issue_indexes: tuple[int, ...]
+    executable_fact_indexes: tuple[int, ...]
     evidence_projection_version: str
     evidence_projection_hash: str
     prompt_evidence: dict[str, Any]
@@ -269,12 +276,22 @@ _DIRECTIVES: tuple[_DirectiveDefinition, ...] = (
         ),
     ),
     _DirectiveDefinition(
-        id="continuity",
+        id="continuity_values",
         codes=(
             "semantic.unknown_continuity_entity",
             "semantic.invalid_continuity_entity_state",
             "semantic.continuity_fact_not_json",
             "semantic.continuity_delta_not_json",
+        ),
+        required_fact_models={},
+        text=(
+            "对 continuity entity/state 问题按 path 使用目标 Schema 允许的故事圣经实体和状态；"
+            "对 fact/delta not_json 只把该 path 的值改为有限 JSON，并保留原有叙事意图。"
+        ),
+    ),
+    _DirectiveDefinition(
+        id="continuity_sequence",
+        codes=(
             "semantic.continuity_beat_sequence_mismatch",
             "semantic.continuity_shot_sequence_mismatch",
         ),
@@ -283,8 +300,6 @@ _DIRECTIVES: tuple[_DirectiveDefinition, ...] = (
             "semantic.continuity_shot_sequence_mismatch": "ContinuitySequenceRepairFact",
         },
         text=(
-            "对 continuity entity/state 问题按 path 使用目标 Schema 允许的故事圣经实体和状态；"
-            "对 fact/delta not_json 只把该 path 的值改为有限 JSON，并保留原有叙事意图；"
             "对连续性序列问题只以同 code/path 的 ContinuitySequenceRepairFact 为权威："
             "按 boundaries 定位 response-local target，并逐项复制 assignments 的 exact value；"
             "不得修改 source、单侧声明、notes、未列字段、ID 或顺序。"
@@ -376,6 +391,21 @@ _DIRECTIVE_BY_CODE = {
     for code in directive.codes
 }
 
+_CONTINUITY_SEQUENCE_CODES = frozenset(
+    {
+        "semantic.continuity_beat_sequence_mismatch",
+        "semantic.continuity_shot_sequence_mismatch",
+    }
+)
+_CONTINUITY_SEQUENCE_BLOCKER_CODES = frozenset(
+    {
+        "semantic.unknown_continuity_entity",
+        "semantic.invalid_continuity_entity_state",
+        "semantic.continuity_fact_not_json",
+    }
+)
+_CONTINUITY_DEFERRAL_REASON = "authority.sequence_fact_blocked_by_invalid_state"
+
 
 def compile_correction_instruction_plan(
     issues: Sequence[ValidationIssue],
@@ -418,9 +448,24 @@ def compile_correction_instruction_plan(
         fact_payloads.append(payload)
         facts_by_issue.setdefault(key, []).append(index)
 
+    issue_index_by_key = {key: index for index, key in enumerate(issue_keys)}
     active_directives: set[str] = set()
-    for code, path in issue_keys:
+    executable_issue_indexes: list[int] = []
+    deferred_issue_indexes: list[int] = []
+    executable_fact_indexes: list[int] = []
+    deferred_issues: list[dict[str, Any]] = []
+    # Blocker matching is intentionally rejection-wide. The deterministic
+    # continuity fact compiler emits an exact fact whenever a mismatched
+    # sequence is safe; a blocker can therefore only make this selector more
+    # conservative, never authorize an unrelated repair.
+    blocker_indexes = [
+        index
+        for index, issue in enumerate(issues)
+        if issue.code in _CONTINUITY_SEQUENCE_BLOCKER_CODES
+    ]
+    for issue_index, (code, path) in enumerate(issue_keys):
         if _is_base_issue_code(code):
+            executable_issue_indexes.append(issue_index)
             continue
         directive = _DIRECTIVE_BY_CODE.get(code)
         if directive is None:
@@ -430,18 +475,119 @@ def compile_correction_instruction_plan(
         expected_model = directive.required_fact_models.get(code)
         if expected_model is not None:
             matching_indexes = facts_by_issue.get((code, path), [])
+            if len(matching_indexes) > 1:
+                raise CorrectionDirectivePlanError(
+                    f"correction issue {code} has duplicate {expected_model} authority"
+                )
             if not matching_indexes:
+                if code in _CONTINUITY_SEQUENCE_CODES and blocker_indexes:
+                    deferred_issue_indexes.append(issue_index)
+                    deferred_issues.append(
+                        {
+                            "code": code,
+                            "path": list(path),
+                            "reasonCode": _CONTINUITY_DEFERRAL_REASON,
+                            "blockingIssues": [
+                                {
+                                    "code": issues[index].code,
+                                    "path": list(issues[index].path),
+                                }
+                                for index in blocker_indexes
+                            ],
+                        }
+                    )
+                    continue
                 raise CorrectionDirectivePlanError(
                     f"correction issue {code} requires a matching {expected_model}"
                 )
+            executable_fact_indexes.extend(matching_indexes)
+        executable_issue_indexes.append(issue_index)
         active_directives.add(directive.id)
+
+    if not executable_issue_indexes:
+        raise CorrectionDirectivePlanError(
+            "correction has no issue with sufficient executable authority"
+        )
+
+    if set(executable_fact_indexes) != set(range(len(facts))):
+        raise CorrectionDirectivePlanError(
+            "correction contains repair facts outside its executable issue selection"
+        )
+
+    fact_bindings = [
+        {
+            "factIndex": fact_index,
+            "issueIndex": issue_index_by_key[
+                (
+                    str(fact_payloads[fact_index]["code"]),
+                    tuple(fact_payloads[fact_index]["path"]),
+                )
+            ],
+            "code": fact_payloads[fact_index]["code"],
+            "path": deepcopy(fact_payloads[fact_index]["path"]),
+            "model": type(facts[fact_index]).__name__,
+        }
+        for fact_index in executable_fact_indexes
+    ]
+    executable_issues = [
+        {
+            "code": issues[index].code,
+            "path": list(issues[index].path),
+        }
+        for index in executable_issue_indexes
+    ]
+    issue_selection = {
+        "version": CORRECTION_ISSUE_SELECTION_VERSION,
+        "allIssues": [
+            {"code": issue.code, "path": list(issue.path)} for issue in issues
+        ],
+        "executableIssues": executable_issues,
+        "deferredIssues": deferred_issues,
+        "factBindings": fact_bindings,
+    }
+
+    # Deferred identities and blocker details are audit evidence, not model
+    # authority. Rebase the visible bindings to the executable-only issue list
+    # so every prompt index resolves inside the projection the model receives.
+    prompt_issue_index_by_key = {
+        issue_keys[source_index]: prompt_index
+        for prompt_index, source_index in enumerate(executable_issue_indexes)
+    }
+    prompt_fact_bindings = [
+        {
+            "factIndex": prompt_fact_index,
+            "issueIndex": prompt_issue_index_by_key[
+                (
+                    str(fact_payloads[source_fact_index]["code"]),
+                    tuple(fact_payloads[source_fact_index]["path"]),
+                )
+            ],
+            "code": fact_payloads[source_fact_index]["code"],
+            "path": deepcopy(fact_payloads[source_fact_index]["path"]),
+            "model": type(facts[source_fact_index]).__name__,
+        }
+        for prompt_fact_index, source_fact_index in enumerate(
+            executable_fact_indexes
+        )
+    ]
+    prompt_issue_selection = {
+        "version": CORRECTION_ISSUE_SELECTION_VERSION,
+        "executableIssues": deepcopy(executable_issues),
+        "factBindings": prompt_fact_bindings,
+    }
 
     directives = tuple(
         CorrectionDirective(id=item.id, text=item.text)
         for item in _DIRECTIVES
         if item.id in active_directives
     )
-    prompt_evidence = _project_prompt_evidence(fact_payloads)
+    executable_fact_payloads = [
+        fact_payloads[index] for index in executable_fact_indexes
+    ]
+    prompt_evidence = _project_prompt_evidence(
+        executable_fact_payloads,
+        issue_selection=prompt_issue_selection,
+    )
     directive_set_hash = _sha256(
         {
             "registryVersion": CORRECTION_DIRECTIVE_REGISTRY_VERSION,
@@ -452,6 +598,12 @@ def compile_correction_instruction_plan(
         registry_version=CORRECTION_DIRECTIVE_REGISTRY_VERSION,
         directives=directives,
         directive_set_hash=directive_set_hash,
+        issue_selection_version=CORRECTION_ISSUE_SELECTION_VERSION,
+        issue_selection_hash=_sha256(issue_selection),
+        audit_issue_selection=deepcopy(issue_selection),
+        executable_issue_indexes=tuple(executable_issue_indexes),
+        deferred_issue_indexes=tuple(deferred_issue_indexes),
+        executable_fact_indexes=tuple(executable_fact_indexes),
         evidence_projection_version=CORRECTION_EVIDENCE_PROJECTION_VERSION,
         evidence_projection_hash=_sha256(prompt_evidence),
         prompt_evidence=prompt_evidence,
@@ -508,7 +660,11 @@ def _serialize_current_fact(fact: Any) -> dict[str, Any]:
     return deepcopy(payload)
 
 
-def _project_prompt_evidence(facts: Sequence[dict[str, Any]]) -> dict[str, Any]:
+def _project_prompt_evidence(
+    facts: Sequence[dict[str, Any]],
+    *,
+    issue_selection: Mapping[str, Any],
+) -> dict[str, Any]:
     grouped_indexes: set[int] = set()
     groups_by_key: dict[str, list[tuple[int, dict[str, Any]]]] = {}
     for index, fact in enumerate(facts):
@@ -567,6 +723,7 @@ def _project_prompt_evidence(facts: Sequence[dict[str, Any]]) -> dict[str, Any]:
     join_groups.sort(key=lambda item: item[0])
     return {
         "version": CORRECTION_EVIDENCE_PROJECTION_VERSION,
+        "issueSelection": deepcopy(dict(issue_selection)),
         "facts": [
             deepcopy(fact)
             for index, fact in enumerate(facts)
