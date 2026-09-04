@@ -25,7 +25,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import median
-from typing import Any, Literal, Protocol
+from typing import Any, Protocol
 
 from pydantic import (
     BaseModel,
@@ -38,6 +38,19 @@ from pydantic import (
 )
 from sqlalchemy.engine import make_url
 
+from .alpha_review_templates import (
+    CODEX_EXTERNAL_REVIEWER,
+    CODEX_EXTERNAL_REVIEW_FIELDS,
+    CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION,
+    CODEX_EXTERNAL_REVIEW_SCORE_FIELDS,
+    CodexExternalReviewer,
+    CodexExternalReviewRubricVersion,
+    COMMIT_SHA_PATTERN,
+    CONTENT_HASH_PATTERN,
+    OPAQUE_REVIEW_ID_PATTERN,
+    is_unfilled_codex_external_review_template,
+    write_codex_external_review_templates,
+)
 from .artifacts import LocalArtifactStore
 from .config import PlotloomSettings
 from .domain import (
@@ -83,7 +96,6 @@ ALPHA_EXPECTED_REVIEW_COUNT = ALPHA_PROFILE_COUNT * ALPHA_STORY_COUNT
 ALPHA_REQUIRED_FIRST_PASS_STAGES_PER_PROFILE = 30
 ALPHA_TOTAL_STAGES_PER_PROFILE = ALPHA_STORY_COUNT * ALPHA_REPEATS_PER_STORY * len(STAGE_ORDER)
 _SAFE_ISSUE_CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
-_COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$", re.IGNORECASE)
 _RECEIPT_FIELDS = frozenset({
     "commit",
     "contractHash",
@@ -100,28 +112,6 @@ _TOKEN_FIELDS = frozenset({"inputTokens", "outputTokens", "totalTokens"})
 _SCORE_FIELDS = frozenset({"firstPass", "maxAttemptsPerWorkUnit"})
 _FIRST_PASS_FIELDS = frozenset({"total", "accepted", "rejected", "outcomeUnknown", "cancelled", "notRun"})
 _REVIEW_MAPPING_FILENAME = "review-mapping.private.json"
-_REVIEW_ID = re.compile(r"^review-[0-9a-f]{32}$")
-_CONTENT_HASH = re.compile(r"^[0-9a-f]{64}$")
-_CODEX_EXTERNAL_REVIEWER = "codex_external_review"
-_CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION = "m1c_authoring_quality.v1"
-_EXTERNAL_REVIEW_FIELDS = frozenset({
-    "commit",
-    "contractHash",
-    "reviewId",
-    "contentHash",
-    "rubricVersion",
-    "reviewer",
-    "scores",
-    "fatalContradiction",
-})
-_EXTERNAL_REVIEW_SCORE_FIELDS = frozenset({
-    "narrativeClarity",
-    "branchCausality",
-    "continuity",
-    "performanceReadability",
-    "shotLanguage",
-    "pacingAndEditCost",
-})
 _SQLITE_PENDING_BYTE = 0x40000000
 _SQLITE_WAL_LOCK_OFFSET = 120
 
@@ -154,6 +144,14 @@ class _ReviewCandidate:
     content_hash: str
 
 
+@dataclass(frozen=True)
+class _AlphaSourceProvenance:
+    """The source checkout and immutable commit bound to one Alpha pack."""
+
+    checkout_root: Path
+    commit_sha: str
+
+
 class _ExternalReviewModel(BaseModel):
     """A closed, text-free receipt model for independent Codex review."""
 
@@ -167,36 +165,36 @@ class CodexExternalReview(_ExternalReviewModel):
     contract_hash: str = Field(alias="contractHash")
     review_id: str = Field(alias="reviewId")
     content_hash: str = Field(alias="contentHash")
-    rubric_version: Literal["m1c_authoring_quality.v1"] = Field(alias="rubricVersion")
-    reviewer: Literal["codex_external_review"]
+    rubric_version: CodexExternalReviewRubricVersion = Field(alias="rubricVersion")
+    reviewer: CodexExternalReviewer
     scores: dict[str, StrictInt]
     fatal_contradiction: StrictBool = Field(alias="fatalContradiction")
 
     @field_validator("commit")
     @classmethod
     def _validate_commit(cls, value: str) -> str:
-        if not _COMMIT_SHA.fullmatch(value):
+        if not COMMIT_SHA_PATTERN.fullmatch(value):
             raise ValueError("invalid commit")
         return value.lower()
 
     @field_validator("contract_hash", "content_hash")
     @classmethod
     def _validate_hash(cls, value: str) -> str:
-        if not _CONTENT_HASH.fullmatch(value):
+        if not CONTENT_HASH_PATTERN.fullmatch(value):
             raise ValueError("invalid hash")
         return value
 
     @field_validator("review_id")
     @classmethod
     def _validate_review_id(cls, value: str) -> str:
-        if not _REVIEW_ID.fullmatch(value):
+        if not OPAQUE_REVIEW_ID_PATTERN.fullmatch(value):
             raise ValueError("invalid opaque review ID")
         return value
 
     @field_validator("scores")
     @classmethod
     def _validate_scores(cls, value: dict[str, int]) -> dict[str, int]:
-        if set(value) != _EXTERNAL_REVIEW_SCORE_FIELDS:
+        if set(value) != CODEX_EXTERNAL_REVIEW_SCORE_FIELDS:
             raise ValueError("invalid rubric dimensions")
         if any(
             not isinstance(score, int)
@@ -211,11 +209,11 @@ class CodexExternalReview(_ExternalReviewModel):
 class CodexExternalReviewGate(_ExternalReviewModel):
     """Secret-free aggregate that is suitable for a tracked Alpha receipt."""
 
-    gate: Literal["codex_external_review"] = "codex_external_review"
+    gate: CodexExternalReviewer = CODEX_EXTERNAL_REVIEWER
     commit: str
     contract_hash: str = Field(alias="contractHash")
-    rubric_version: Literal["m1c_authoring_quality.v1"] = Field(alias="rubricVersion")
-    reviewer: Literal["codex_external_review"]
+    rubric_version: CodexExternalReviewRubricVersion = Field(alias="rubricVersion")
+    reviewer: CodexExternalReviewer
     review_count: int = Field(alias="reviewCount", ge=0)
     expected_review_count: int = Field(alias="expectedReviewCount", ge=0)
     issue_codes: tuple[str, ...] = Field(alias="issueCodes")
@@ -226,11 +224,11 @@ class CodexExternalReviewGate(_ExternalReviewModel):
 class CodexExternalReviewReceipt(_ExternalReviewModel):
     """Closed tracked receipt containing only validated blinded score sheets."""
 
-    receipt: Literal["codex_external_review"] = "codex_external_review"
+    receipt: CodexExternalReviewer = CODEX_EXTERNAL_REVIEWER
     commit: str
     contract_hash: str = Field(alias="contractHash")
-    rubric_version: Literal["m1c_authoring_quality.v1"] = Field(alias="rubricVersion")
-    reviewer: Literal["codex_external_review"]
+    rubric_version: CodexExternalReviewRubricVersion = Field(alias="rubricVersion")
+    reviewer: CodexExternalReviewer
     reviews: tuple[CodexExternalReview, ...]
     gate: CodexExternalReviewGate
 
@@ -497,15 +495,20 @@ def _content_only_review_payload(repository: SQLiteRepository, project_id: str) 
 
 
 def _source_checkout_root() -> Path:
-    """Resolve the checkout root without making Git state changes."""
+    """Resolve the Git root that owns this exact source module."""
 
+    source_root = Path(__file__).resolve().parents[2]
     completed = subprocess.run(
         ["git", "rev-parse", "--show-toplevel"],
         check=True,
         capture_output=True,
         text=True,
+        cwd=source_root,
     )
-    return Path(completed.stdout.strip()).resolve()
+    checkout_root = Path(completed.stdout.strip()).resolve()
+    if checkout_root != source_root:
+        raise ValueError("Alpha must run from its owning source checkout")
+    return checkout_root
 
 
 def _prepare_review_directory(review_directory: Path, *, checkout_root: Path) -> Path:
@@ -543,7 +546,7 @@ def _write_review_sample(
 ) -> Path:
     """Write a content-only blinded sample whose filename is an opaque ID."""
 
-    if not _REVIEW_ID.fullmatch(review_id):
+    if not OPAQUE_REVIEW_ID_PATTERN.fullmatch(review_id):
         raise ValueError("review sample needs an opaque review ID")
     path = review_directory / f"{review_id}.json"
     path.write_text(canonical_json(dict(payload)) + "\n", encoding="utf-8")
@@ -660,7 +663,7 @@ def load_private_review_manifest(mapping_path: Path) -> ReviewPackManifest:
     except (TypeError, ValueError) as error:
         raise ValueError("private review mapping has invalid commit") from error
     contract_hash = payload.get("contractHash")
-    if not isinstance(contract_hash, str) or not _CONTENT_HASH.fullmatch(contract_hash):
+    if not isinstance(contract_hash, str) or not CONTENT_HASH_PATTERN.fullmatch(contract_hash):
         raise ValueError("private review mapping has invalid contract hash")
     manifests: list[ReviewSampleManifest] = []
     for entry in payload["entries"]:
@@ -668,9 +671,9 @@ def load_private_review_manifest(mapping_path: Path) -> ReviewPackManifest:
             raise ValueError("private review mapping has invalid entry")
         review_id = entry.get("reviewId")
         content_hash = entry.get("contentHash")
-        if not isinstance(review_id, str) or not _REVIEW_ID.fullmatch(review_id):
+        if not isinstance(review_id, str) or not OPAQUE_REVIEW_ID_PATTERN.fullmatch(review_id):
             raise ValueError("private review mapping has invalid review ID")
-        if not isinstance(content_hash, str) or not _CONTENT_HASH.fullmatch(content_hash):
+        if not isinstance(content_hash, str) or not CONTENT_HASH_PATTERN.fullmatch(content_hash):
             raise ValueError("private review mapping has invalid content hash")
         manifests.append(ReviewSampleManifest(review_id=review_id, content_hash=content_hash))
     if len({item.review_id for item in manifests}) != len(manifests):
@@ -826,7 +829,7 @@ def _load_named_profiles(source_database_url: str, profile_ids: Iterable[str]) -
 
 
 def _validate_commit_sha(value: str) -> str:
-    if not _COMMIT_SHA.fullmatch(value):
+    if not COMMIT_SHA_PATTERN.fullmatch(value):
         raise ValueError("commit must be a 40-character hexadecimal Git commit SHA")
     return value.lower()
 
@@ -838,7 +841,11 @@ def _parse_commit_sha(value: str) -> str:
         raise argparse.ArgumentTypeError(str(error)) from error
 
 
-def _resolve_commit_sha(explicit_commit: str | None) -> str:
+def _resolve_commit_sha(
+    explicit_commit: str | None,
+    *,
+    checkout_root: Path | None = None,
+) -> str:
     if explicit_commit is not None:
         return _validate_commit_sha(explicit_commit)
     completed = subprocess.run(
@@ -846,8 +853,35 @@ def _resolve_commit_sha(explicit_commit: str | None) -> str:
         check=True,
         capture_output=True,
         text=True,
+        cwd=checkout_root,
     )
     return _validate_commit_sha(completed.stdout.strip())
+
+
+def _resolve_alpha_source_provenance(explicit_commit: str | None) -> _AlphaSourceProvenance:
+    """Bind an Alpha publication to this module's clean checkout and HEAD.
+
+    This belongs at the pack-publication boundary, rather than only at one CLI
+    wrapper, so every caller produces provenance for the code it executes.
+    Every Git command runs from the checkout discovered from this module; the
+    caller's CWD and the external review directory cannot affect the result.
+    """
+
+    checkout_root = _source_checkout_root()
+    status = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=all"],
+        check=True,
+        capture_output=True,
+        text=True,
+        cwd=checkout_root,
+    )
+    if status.stdout.strip():
+        raise ValueError("source checkout has uncommitted changes")
+
+    head_commit = _resolve_commit_sha(None, checkout_root=checkout_root)
+    if explicit_commit is not None and _validate_commit_sha(explicit_commit) != head_commit:
+        raise ValueError("explicit commit does not match source checkout HEAD")
+    return _AlphaSourceProvenance(checkout_root=checkout_root, commit_sha=head_commit)
 
 
 def _is_nonnegative_int(value: Any) -> bool:
@@ -869,7 +903,7 @@ def _receipt_score_value(sample: Mapping[str, Any], key: str) -> int:
 def _receipt_has_whitelisted_shape(sample: Any) -> bool:
     if not isinstance(sample, Mapping) or set(sample) != _RECEIPT_FIELDS:
         return False
-    if not isinstance(sample.get("commit"), str) or not _COMMIT_SHA.fullmatch(sample["commit"]):
+    if not isinstance(sample.get("commit"), str) or not COMMIT_SHA_PATTERN.fullmatch(sample["commit"]):
         return False
     if not isinstance(sample.get("contractHash"), str) or not re.fullmatch(r"[0-9a-f]{64}", sample["contractHash"]):
         return False
@@ -957,7 +991,7 @@ def alpha_qualification_issue_codes(receipts: Iterable[Mapping[str, Any]]) -> li
 def parse_codex_external_review(value: Any) -> CodexExternalReview:
     """Parse one untrusted score sheet through the closed, prose-free schema."""
 
-    if not isinstance(value, Mapping) or set(value) != _EXTERNAL_REVIEW_FIELDS:
+    if not isinstance(value, Mapping) or set(value) != CODEX_EXTERNAL_REVIEW_FIELDS:
         raise ValueError("codex external review has invalid secret-free shape")
     try:
         return CodexExternalReview.model_validate(value)
@@ -988,7 +1022,7 @@ def codex_external_review_gate(
         normalized_commit = ""
         issues.add("codex_external_review.expected_commit")
     contract_hash = review_pack.contract_hash
-    if not _CONTENT_HASH.fullmatch(contract_hash):
+    if not CONTENT_HASH_PATTERN.fullmatch(contract_hash):
         issues.add("codex_external_review.expected_contract_hash")
 
     parsed: list[CodexExternalReview] = []
@@ -1004,8 +1038,8 @@ def codex_external_review_gate(
     if (
         len(expected_by_id) != len(expected)
         or any(
-            not _REVIEW_ID.fullmatch(sample.review_id)
-            or not _CONTENT_HASH.fullmatch(sample.content_hash)
+            not OPAQUE_REVIEW_ID_PATTERN.fullmatch(sample.review_id)
+            or not CONTENT_HASH_PATTERN.fullmatch(sample.content_hash)
             for sample in expected
         )
     ):
@@ -1036,11 +1070,11 @@ def codex_external_review_gate(
         if any(any(score < 3 for score in review.scores.values()) for review in parsed):
             issues.add("codex_external_review.score_floor")
         if any(
-            sum(review.scores.values()) / len(_EXTERNAL_REVIEW_SCORE_FIELDS) < 3.5
+            sum(review.scores.values()) / len(CODEX_EXTERNAL_REVIEW_SCORE_FIELDS) < 3.5
             for review in parsed
         ):
             issues.add("codex_external_review.sample_average")
-        for dimension in sorted(_EXTERNAL_REVIEW_SCORE_FIELDS):
+        for dimension in sorted(CODEX_EXTERNAL_REVIEW_SCORE_FIELDS):
             dimension_medians[dimension] = float(median([
                 review.scores[dimension] for review in parsed
             ]))
@@ -1049,9 +1083,9 @@ def codex_external_review_gate(
 
     return CodexExternalReviewGate(
         commit=normalized_commit,
-        contractHash=(contract_hash if _CONTENT_HASH.fullmatch(contract_hash) else ""),
-        rubricVersion=_CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION,
-        reviewer=_CODEX_EXTERNAL_REVIEWER,
+        contractHash=(contract_hash if CONTENT_HASH_PATTERN.fullmatch(contract_hash) else ""),
+        rubricVersion=CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION,
+        reviewer=CODEX_EXTERNAL_REVIEWER,
         reviewCount=len(parsed),
         expectedReviewCount=ALPHA_EXPECTED_REVIEW_COUNT,
         issueCodes=tuple(sorted(issues)),
@@ -1074,9 +1108,11 @@ def codex_external_review_receipt(
 
     normalized_commit = _validate_commit_sha(review_pack.commit)
     contract_hash = review_pack.contract_hash
-    if not _CONTENT_HASH.fullmatch(contract_hash):
+    if not CONTENT_HASH_PATTERN.fullmatch(contract_hash):
         raise ValueError("invalid contract hash")
     raw_reviews = tuple(reviews)
+    if any(is_unfilled_codex_external_review_template(value) for value in raw_reviews):
+        raise ValueError("unfilled Codex external review template")
     safe_reviews: list[CodexExternalReview] = []
     for value in raw_reviews:
         try:
@@ -1090,8 +1126,8 @@ def codex_external_review_receipt(
     return CodexExternalReviewReceipt(
         commit=normalized_commit,
         contractHash=contract_hash,
-        rubricVersion=_CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION,
-        reviewer=_CODEX_EXTERNAL_REVIEWER,
+        rubricVersion=CODEX_EXTERNAL_REVIEW_RUBRIC_VERSION,
+        reviewer=CODEX_EXTERNAL_REVIEWER,
         reviews=tuple(safe_reviews),
         gate=gate,
     )
@@ -1116,9 +1152,13 @@ def run_alpha_acceptance(
     selected_ids = list(profile_ids)
     if len(selected_ids) != ALPHA_PROFILE_COUNT or len(set(selected_ids)) != ALPHA_PROFILE_COUNT:
         raise ValueError("Alpha requires exactly two distinct saved profile IDs")
-    resolved_commit_sha = _resolve_commit_sha(commit_sha)
+    provenance = _resolve_alpha_source_provenance(commit_sha)
+    resolved_commit_sha = provenance.commit_sha
     resolved_contract_hash = alpha_contract_hash()
-    review_destination = _prepare_review_directory(review_directory, checkout_root=_source_checkout_root())
+    review_destination = _prepare_review_directory(
+        review_directory,
+        checkout_root=provenance.checkout_root,
+    )
     profiles = _load_named_profiles(source_database_url, selected_ids)
     resolver = provider_resolver or SnapshotTextProviderResolver()
     if server_key_resolver is None:
@@ -1195,6 +1235,9 @@ def run_alpha_acceptance(
                                 runner.close()
                             secrets.close()
                             repository.close()
+        final_provenance = _resolve_alpha_source_provenance(resolved_commit_sha)
+        if final_provenance != provenance:
+            raise ValueError("source checkout provenance changed during Alpha")
         qualification = list(alpha_qualification_issue_codes(receipts))
         if len(review_candidates) != ALPHA_PROFILE_COUNT * ALPHA_STORY_COUNT:
             qualification.append("alpha.review_pack.count")
@@ -1210,6 +1253,12 @@ def run_alpha_acceptance(
             staging_directory,
             assignments,
             commit_sha=resolved_commit_sha,
+            contract_hash=resolved_contract_hash,
+        )
+        write_codex_external_review_templates(
+            staging_directory,
+            ((review_id, candidate.content_hash) for review_id, candidate in assignments),
+            commit=resolved_commit_sha,
             contract_hash=resolved_contract_hash,
         )
         review_paths = _publish_review_directory(
@@ -1241,8 +1290,8 @@ def main(arguments: list[str] | None = None) -> int:
     if len(options.profile_ids) != ALPHA_PROFILE_COUNT or len(set(options.profile_ids)) != ALPHA_PROFILE_COUNT:
         print("Alpha requires exactly two distinct saved profiles.", file=sys.stderr)
         return 2
-    settings = PlotloomSettings.from_env()
     try:
+        settings = PlotloomSettings.from_env()
         result = run_alpha_acceptance(
             source_database_url=options.source_database_url or settings.database_url,
             profile_ids=options.profile_ids,

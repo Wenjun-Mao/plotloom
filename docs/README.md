@@ -19,8 +19,10 @@
   [0015](adr/0015-exact-work-unit-repair.md),
   [0016](adr/0016-versioned-authoring-quality-gates-and-approval.md),
   [0017](adr/0017-alpha-validation-and-correction-boundaries.md),
-  [0018](adr/0018-trusted-story-timing-allocation.md), and
-  [0019](adr/0019-exact-fragment-and-join-state-contracts.md)
+  [0018](adr/0018-trusted-story-timing-allocation.md),
+  [0019](adr/0019-exact-fragment-and-join-state-contracts.md),
+  [0020](adr/0020-alpha-public-score-sheet-drafts.md), and
+  [0021](adr/0021-alpha-source-provenance.md)
 - [Initial extraction provenance](provenance/initial-extraction.md)
 - [Remote CI receipt for `3bf4551`](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019)
 - [Local text-provider smoke receipt](verification/2026-09-02-local-text-smoke.md)

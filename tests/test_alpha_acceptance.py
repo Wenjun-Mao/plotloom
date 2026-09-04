@@ -10,6 +10,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from plotloom import alpha_acceptance
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse, ProviderUsage
 from plotloom.persistence import SQLiteRepository
@@ -122,6 +124,28 @@ def _source_database(tmp_path: Path) -> Path:
     return path
 
 
+def _use_fixture_source_provenance(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    checks: list[str | None] | None = None,
+) -> alpha_acceptance._AlphaSourceProvenance:
+    """Keep fixture runs hermetic without adding a production bypass API."""
+
+    checkout_root = tmp_path / "fixture-source-checkout"
+    checkout_root.mkdir(exist_ok=True)
+    provenance = alpha_acceptance._AlphaSourceProvenance(
+        checkout_root=checkout_root,
+        commit_sha="a" * 40,
+    )
+    def resolve(commit: str | None) -> alpha_acceptance._AlphaSourceProvenance:
+        if checks is not None:
+            checks.append(commit)
+        return provenance
+
+    monkeypatch.setattr(alpha_acceptance, "_resolve_alpha_source_provenance", resolve)
+    return provenance
+
+
 def _file_state(path: Path) -> tuple[bytes, int, int, int] | None:
     if not path.exists():
         return None
@@ -138,6 +162,8 @@ def _profile_payload(profile_id: str, version: int) -> dict[str, Any]:
 
 def test_alpha_runs_full_18_cell_fixture_matrix_writes_blinded_reviews_and_cleans_up(tmp_path: Path, monkeypatch) -> None:
     source_path = _source_database(tmp_path)
+    provenance_checks: list[str | None] = []
+    _use_fixture_source_provenance(monkeypatch, tmp_path, provenance_checks)
     review_directory = tmp_path / "untracked-review"
     roots: list[Path] = []
     real_temporary_directory = tempfile.TemporaryDirectory
@@ -159,6 +185,7 @@ def test_alpha_runs_full_18_cell_fixture_matrix_writes_blinded_reviews_and_clean
     )
 
     assert len(result.receipts) == 18
+    assert provenance_checks == ["a" * 40, "a" * 40]
     assert result.qualification_issues == ()
     assert alpha_acceptance.alpha_qualification_issue_codes(result.receipts) == []
     assert {receipt["profileId"] for receipt in result.receipts} == {"profile-01", "profile-02"}
@@ -183,7 +210,9 @@ def test_alpha_runs_full_18_cell_fixture_matrix_writes_blinded_reviews_and_clean
     assert result.review_mapping_path.exists()
     assert stat.S_IMODE(result.review_mapping_path.stat().st_mode) == 0o600
     assert sorted(path.name for path in review_directory.iterdir()) == sorted(
-        [path.name for path in result.review_paths] + ["review-mapping.private.json"]
+        [path.name for path in result.review_paths]
+        + [f"{path.stem}.score-sheet.json" for path in result.review_paths]
+        + ["review-mapping.private.json"]
     )
     manifest = alpha_acceptance.load_private_review_manifest(result.review_mapping_path)
     assert manifest.commit == "a" * 40
@@ -206,13 +235,38 @@ def test_alpha_runs_full_18_cell_fixture_matrix_writes_blinded_reviews_and_clean
         review_text = review_path.read_text(encoding="utf-8")
         for forbidden in ("profileId", "provider", "fixture", "endpoint", "prompt", "response", "runId", "real_looking"):
             assert forbidden not in review_text
+        score_sheet = review_path.with_name(f"{review_path.stem}.score-sheet.json")
+        draft = json.loads(score_sheet.read_text(encoding="utf-8"))
+        assert set(draft) == {
+            "commit",
+            "contractHash",
+            "reviewId",
+            "contentHash",
+            "rubricVersion",
+            "reviewer",
+            "scores",
+            "fatalContradiction",
+        }
+        assert draft["reviewId"] == review_path.stem
+        assert draft["scores"] == {
+            "narrativeClarity": 0,
+            "branchCausality": 0,
+            "continuity": 0,
+            "performanceReadability": 0,
+            "shotLanguage": 0,
+            "pacingAndEditCost": 0,
+        }
+        assert draft["fatalContradiction"] == "PENDING"
+        for forbidden in ("profile", "story", "sample", "provider", "run", "prompt", "response"):
+            assert forbidden not in score_sheet.read_text(encoding="utf-8")
     mapping_text = result.review_mapping_path.read_text(encoding="utf-8")
     assert "fixture-provider" not in mapping_text
     assert "fixture-model" not in mapping_text
 
 
-def test_alpha_qualification_enforces_first_pass_and_unknown_outcome_invariants(tmp_path: Path) -> None:
+def test_alpha_qualification_enforces_first_pass_and_unknown_outcome_invariants(tmp_path: Path, monkeypatch) -> None:
     source_path = _source_database(tmp_path)
+    _use_fixture_source_provenance(monkeypatch, tmp_path)
     result = alpha_acceptance.run_alpha_acceptance(
         source_database_url=f"sqlite:///{source_path}",
         profile_ids=["real_looking_a", "real_looking_b"],
@@ -231,8 +285,9 @@ def test_alpha_qualification_enforces_first_pass_and_unknown_outcome_invariants(
     assert "alpha.profile-01.first_pass" in issues
 
 
-def test_alpha_refuses_to_overwrite_review_directory(tmp_path: Path) -> None:
+def test_alpha_refuses_to_overwrite_review_directory(tmp_path: Path, monkeypatch) -> None:
     review_directory = tmp_path / "reviews"
+    _use_fixture_source_provenance(monkeypatch, tmp_path)
     review_directory.mkdir()
     (review_directory / "keep.txt").write_text("do not replace", encoding="utf-8")
     try:
@@ -424,11 +479,12 @@ def test_source_profile_snapshot_rejects_a_recreated_shm_inode(tmp_path: Path, m
         writer.close()
 
 
-def test_alpha_rejects_relative_or_checkout_review_directories(tmp_path: Path) -> None:
+def test_alpha_rejects_relative_or_checkout_review_directories(tmp_path: Path, monkeypatch) -> None:
     source_path = _source_database(tmp_path)
+    provenance = _use_fixture_source_provenance(monkeypatch, tmp_path)
     for directory, expected_message in (
         (Path("relative-alpha-review"), "absolute path"),
-        (Path.cwd() / ".alpha-review-must-not-be-created", "outside the source checkout"),
+        (provenance.checkout_root / ".alpha-review-must-not-be-created", "outside the source checkout"),
     ):
         try:
             alpha_acceptance.run_alpha_acceptance(
@@ -461,7 +517,6 @@ def test_alpha_cli_returns_one_for_qualification_failure(tmp_path: Path, monkeyp
         "run_alpha_acceptance",
         lambda **_kwargs: alpha_acceptance.AlphaAcceptanceResult((receipt,), (), ("alpha.matrix.run_completion",)),
     )
-
     assert alpha_acceptance.main([
         "--profile", "one",
         "--profile", "two",
@@ -473,8 +528,150 @@ def test_alpha_cli_returns_one_for_qualification_failure(tmp_path: Path, monkeyp
     assert "Alpha qualification failed: alpha.matrix.run_completion" in captured.err
 
 
+def test_alpha_publication_provenance_binds_explicit_or_implicit_commit_to_clean_checkout(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    checkout_root = tmp_path / "source-checkout"
+    checkout_root.mkdir()
+    head = "a" * 40
+    calls: list[tuple[str, ...]] = []
+
+    monkeypatch.setattr(alpha_acceptance, "_source_checkout_root", lambda: checkout_root)
+
+    def git_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert kwargs["cwd"] == checkout_root
+        calls.append(tuple(command))
+        if command[1] == "status":
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        assert command == ["git", "rev-parse", "--verify", "HEAD^{commit}"]
+        return subprocess.CompletedProcess(command, 0, stdout=f"{head}\n", stderr="")
+
+    monkeypatch.setattr(alpha_acceptance.subprocess, "run", git_run)
+
+    assert alpha_acceptance._resolve_alpha_source_provenance(None) == alpha_acceptance._AlphaSourceProvenance(
+        checkout_root=checkout_root,
+        commit_sha=head,
+    )
+    assert alpha_acceptance._resolve_alpha_source_provenance(head.upper()) == alpha_acceptance._AlphaSourceProvenance(
+        checkout_root=checkout_root,
+        commit_sha=head,
+    )
+    assert calls == [
+        ("git", "status", "--porcelain", "--untracked-files=all"),
+        ("git", "rev-parse", "--verify", "HEAD^{commit}"),
+        ("git", "status", "--porcelain", "--untracked-files=all"),
+        ("git", "rev-parse", "--verify", "HEAD^{commit}"),
+    ]
+
+
+def test_alpha_source_checkout_is_bound_to_the_running_module(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    source_root = tmp_path / "source-checkout"
+    module_path = source_root / "src" / "plotloom" / "alpha_acceptance.py"
+    module_path.parent.mkdir(parents=True)
+    module_path.touch()
+    monkeypatch.setattr(alpha_acceptance, "__file__", str(module_path))
+
+    def git_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert command == ["git", "rev-parse", "--show-toplevel"]
+        assert kwargs["cwd"] == source_root
+        return subprocess.CompletedProcess(command, 0, stdout=f"{source_root}\n", stderr="")
+
+    monkeypatch.setattr(alpha_acceptance.subprocess, "run", git_run)
+    assert alpha_acceptance._source_checkout_root() == source_root
+
+    other_root = tmp_path / "unrelated-checkout"
+    monkeypatch.setattr(
+        alpha_acceptance.subprocess,
+        "run",
+        lambda command, **_kwargs: subprocess.CompletedProcess(
+            command, 0, stdout=f"{other_root}\n", stderr=""
+        ),
+    )
+    with pytest.raises(ValueError, match="owning source checkout"):
+        alpha_acceptance._source_checkout_root()
+
+
+def test_alpha_publication_provenance_rejects_dirty_checkout_or_mismatched_commit(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    checkout_root = tmp_path / "source-checkout"
+    checkout_root.mkdir()
+    head = "a" * 40
+    monkeypatch.setattr(alpha_acceptance, "_source_checkout_root", lambda: checkout_root)
+
+    def dirty_git_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert kwargs["cwd"] == checkout_root
+        assert command[1] == "status"
+        return subprocess.CompletedProcess(command, 0, stdout="?? src/plotloom/untracked_runtime.py\n", stderr="")
+
+    monkeypatch.setattr(alpha_acceptance.subprocess, "run", dirty_git_run)
+    try:
+        alpha_acceptance._resolve_alpha_source_provenance(head)
+    except ValueError as error:
+        assert str(error) == "source checkout has uncommitted changes"
+    else:
+        raise AssertionError("an untracked source file must be rejected")
+
+    def clean_git_run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        assert kwargs["cwd"] == checkout_root
+        if command[1] == "status":
+            return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+        return subprocess.CompletedProcess(command, 0, stdout=f"{head}\n", stderr="")
+
+    monkeypatch.setattr(alpha_acceptance.subprocess, "run", clean_git_run)
+    try:
+        alpha_acceptance._resolve_alpha_source_provenance("b" * 40)
+    except ValueError as error:
+        assert str(error) == "explicit commit does not match source checkout HEAD"
+    else:
+        raise AssertionError("a commit other than checkout HEAD must be rejected")
+
+
+def test_alpha_publication_enforces_provenance_before_creating_review_output(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        alpha_acceptance,
+        "_resolve_alpha_source_provenance",
+        lambda _commit: (_ for _ in ()).throw(ValueError("do not reveal this checkout path")),
+    )
+    review_directory = tmp_path / "outside-checkout-review"
+
+    with pytest.raises(ValueError, match="do not reveal"):
+        alpha_acceptance.run_alpha_acceptance(
+            source_database_url="sqlite:///unused.sqlite3",
+            profile_ids=["one", "two"],
+            review_directory=review_directory,
+            provider_resolver=_FixtureResolver(),
+        )
+
+    assert not review_directory.exists()
+
+
+def test_alpha_cli_hides_publication_setup_failure(tmp_path: Path, monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        alpha_acceptance,
+        "run_alpha_acceptance",
+        lambda **_kwargs: (_ for _ in ()).throw(ValueError("do not reveal this checkout path")),
+    )
+
+    assert alpha_acceptance.main([
+        "--profile", "one",
+        "--profile", "two",
+        "--review-directory", str(tmp_path / "outside-checkout-review"),
+    ]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "Alpha setup failed; inspect local configuration. Temporary evidence was removed.\n"
+    assert "do not reveal" not in captured.err
+
+
 def test_alpha_late_qualification_failure_never_publishes_partial_review_pack(tmp_path: Path, monkeypatch) -> None:
     source_path = _source_database(tmp_path)
+    _use_fixture_source_provenance(monkeypatch, tmp_path)
     review_directory = tmp_path / "review-pack"
     original_receipt_for = alpha_acceptance._receipt_for
     receipt_count = 0
