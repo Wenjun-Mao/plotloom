@@ -27,6 +27,7 @@ from .work_units import (
     JoinAllowedDifferencesRepairFact,
     JoinStateEffectRepairFact,
     SemanticRepairFact,
+    StoryboardTimingRepairPlanFact,
 )
 
 
@@ -66,6 +67,7 @@ def compile_correction_response_schema(
         dict[str, Any],
     ] = {}
     cue_order_fact: CueOrderRepairFact | None = None
+    timing_plan_fact: StoryboardTimingRepairPlanFact | None = None
     applied_codes: set[str] = set()
 
     for fact in facts:
@@ -171,6 +173,18 @@ def compile_correction_response_schema(
                     "conflicting cue-order repair facts target dialogueCues"
                 )
             cue_order_fact = fact
+            applied_codes.add(fact.code)
+            continue
+
+        if isinstance(fact, StoryboardTimingRepairPlanFact):
+            if (
+                timing_plan_fact is not None
+                and timing_plan_fact.plan != fact.plan
+            ):
+                raise CorrectionResponseSchemaError(
+                    "conflicting Storyboard timing repair facts carry different plans"
+                )
+            timing_plan_fact = fact
             applied_codes.add(fact.code)
 
     if join_arrays:
@@ -307,6 +321,71 @@ def compile_correction_response_schema(
         collection_schema["minItems"] = assignment_count
         collection_schema["maxItems"] = assignment_count
 
+    if timing_plan_fact is not None:
+        plan = timing_plan_fact.plan
+        collection_schema = _collection_schema(schema, "shots")
+        target_count = len(plan.target_shots)
+        _replace_collection_cardinality(
+            collection_schema,
+            target_count,
+            label="Storyboard timing target shot",
+        )
+        item_schema = _collection_item_schema(schema, "shots")
+        item_properties = _schema_properties(
+            item_schema,
+            label="shots item schema",
+        )
+        identity_schema = item_properties.get("localShotId")
+        if not isinstance(identity_schema, dict):
+            raise CorrectionResponseSchemaError(
+                "base response schema has no localShotId field contract"
+            )
+        target_ids = sorted(shot.local_shot_id for shot in plan.target_shots)
+        _set_string_enum(
+            identity_schema,
+            target_ids,
+            label="Storyboard timing target shot IDs",
+        )
+        branches = item_schema.setdefault("allOf", [])
+        if not isinstance(branches, list):
+            raise CorrectionResponseSchemaError(
+                "shots item schema has a non-list allOf"
+            )
+        for shot in sorted(plan.target_shots, key=lambda item: item.local_shot_id):
+            branches.append(
+                _selected_item_branch(
+                    "localShotId",
+                    shot.local_shot_id,
+                    {
+                        "order": {"const": shot.target_order},
+                        "durationUnits": {"const": shot.target_duration_units},
+                        "cueIds": {"const": list(shot.target_cue_ids)},
+                    },
+                )
+            )
+
+        root_properties = _schema_properties(schema, label="response schema")
+        _set_property_const(
+            root_properties,
+            "primaryShotLocalIdByBeat",
+            {
+                link.beat_id: link.shot_local_id
+                for link in plan.target_primary_links
+            },
+        )
+        _set_property_const(
+            root_properties,
+            "supportingBeatLinks",
+            [
+                {
+                    "shotLocalId": link.shot_local_id,
+                    "beatId": link.beat_id,
+                    "coverageWeight": link.coverage_weight,
+                }
+                for link in plan.target_supporting_links
+            ],
+        )
+
     return CorrectionResponseSchema(
         version=CORRECTION_RESPONSE_SCHEMA_VERSION,
         schema=schema,
@@ -403,6 +482,79 @@ def _collection_schema(schema: dict[str, Any], collection: str) -> dict[str, Any
             f"base response schema has an invalid {collection} collection contract"
         )
     return collection_schema
+
+
+def _schema_properties(
+    schema: dict[str, Any],
+    *,
+    label: str,
+) -> dict[str, Any]:
+    properties = schema.get("properties")
+    if not isinstance(properties, dict):
+        raise CorrectionResponseSchemaError(f"{label} has no properties contract")
+    return properties
+
+
+def _replace_collection_cardinality(
+    collection_schema: dict[str, Any],
+    count: int,
+    *,
+    label: str,
+) -> None:
+    existing_min = collection_schema.get("minItems")
+    existing_max = collection_schema.get("maxItems")
+    if isinstance(existing_min, int) and existing_min > count:
+        raise CorrectionResponseSchemaError(
+            f"{label} count conflicts with base minItems"
+        )
+    if isinstance(existing_max, int) and existing_max < count:
+        raise CorrectionResponseSchemaError(
+            f"{label} count conflicts with base maxItems"
+        )
+    collection_schema["minItems"] = count
+    collection_schema["maxItems"] = count
+
+
+def _set_property_const(
+    properties: dict[str, Any],
+    name: str,
+    value: Any,
+) -> None:
+    property_schema = properties.get(name)
+    if not isinstance(property_schema, dict):
+        raise CorrectionResponseSchemaError(
+            f"base response schema has no {name} field contract"
+        )
+    if "const" in property_schema and finite_canonical_json(
+        property_schema["const"]
+    ) != finite_canonical_json(value):
+        raise CorrectionResponseSchemaError(
+            f"base response schema has a conflicting {name} const"
+        )
+    property_schema["const"] = deepcopy(value)
+
+
+def _set_string_enum(
+    property_schema: dict[str, Any],
+    values: list[str],
+    *,
+    label: str,
+) -> None:
+    existing_enum = property_schema.get("enum")
+    if existing_enum is not None:
+        if not isinstance(existing_enum, list) or any(
+            value not in existing_enum for value in values
+        ):
+            raise CorrectionResponseSchemaError(
+                f"{label} conflict with the base enum"
+            )
+    if "const" in property_schema and (
+        len(values) != 1 or property_schema["const"] != values[0]
+    ):
+        raise CorrectionResponseSchemaError(
+            f"{label} conflict with the base const"
+        )
+    property_schema["enum"] = list(values)
 
 
 def _selected_item_branch(

@@ -23,6 +23,11 @@ from plotloom.generation.work_units import (
     JoinNewRequiredKeyIncomingEdges,
     JoinStateEffectRepairFact,
 )
+from plotloom.generation.storyboard_timing_repair import (
+    StoryboardTimingRepairPlanFact,
+    build_storyboard_timing_guidance,
+    build_storyboard_timing_repair_plan,
+)
 
 
 def _base_schema() -> dict[str, object]:
@@ -148,6 +153,103 @@ def _cue_order_fact() -> CueOrderRepairFact:
     )
 
 
+def _timing_plan_base_schema(
+    *, min_items: int = 0, max_items: int = 4
+) -> dict[str, object]:
+    return {
+        "type": "object",
+        "properties": {
+            "shots": {
+                "type": "array",
+                "minItems": min_items,
+                "maxItems": max_items,
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "localShotId": {"type": "string"},
+                        "order": {"type": "integer", "minimum": 1},
+                        "durationUnits": {"type": "integer", "minimum": 1},
+                        "cueIds": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["localShotId", "order", "durationUnits", "cueIds"],
+                },
+            },
+            "primaryShotLocalIdByBeat": {"type": "object"},
+            "supportingBeatLinks": {"type": "array", "items": {"type": "object"}},
+        },
+        "required": [
+            "shots",
+            "primaryShotLocalIdByBeat",
+            "supportingBeatLinks",
+        ],
+    }
+
+
+def _timing_plan_response() -> dict[str, object]:
+    return {
+        "shots": [
+            {
+                "localShotId": "shot-a",
+                "order": 1,
+                "durationUnits": 3,
+                "cueIds": ["cue-a"],
+                "audioPlan": {"events": []},
+            },
+            {
+                "localShotId": "shot-b",
+                "order": 2,
+                "durationUnits": 2,
+                "cueIds": ["cue-b"],
+                "audioPlan": {"events": []},
+            },
+        ],
+        "primaryShotLocalIdByBeat": {"beat-a": "shot-a", "beat-b": "shot-b"},
+        "supportingBeatLinks": [
+            {"shotLocalId": "shot-a", "beatId": "beat-b", "coverageWeight": 0.5}
+        ],
+    }
+
+
+def _timing_plan_fact(
+    *,
+    code: str = "semantic.cue_duration_exceeds_shot",
+    path: tuple[str | int, ...] = ("shots", 0, "cueIds"),
+    response: dict[str, object] | None = None,
+) -> StoryboardTimingRepairPlanFact:
+    guidance = build_storyboard_timing_guidance(
+        scene_id="scene-a",
+        scene_duration_budget_units=5,
+        min_shots=2,
+        configured_max_shots=2,
+        beats=[{"id": "beat-a", "order": 1}, {"id": "beat-b", "order": 2}],
+        cues=[
+            {
+                "id": "cue-a",
+                "beatId": "beat-a",
+                "order": 1,
+                "estimatedDurationUnits": 3,
+            },
+            {
+                "id": "cue-b",
+                "beatId": "beat-b",
+                "order": 1,
+                "estimatedDurationUnits": 2,
+            },
+        ],
+    )
+    plan = build_storyboard_timing_repair_plan(
+        response or _timing_plan_response(), guidance=guidance
+    )
+    assert plan is not None
+    return StoryboardTimingRepairPlanFact(
+        code=code,
+        path=path,
+        plan=plan,
+        guidance_hash=plan.guidance_hash,
+        plan_hash=plan.plan_hash,
+    )
+
+
 def _incoming() -> tuple[JoinIncomingEdgeRepairTarget, ...]:
     return (
         JoinIncomingEdgeRepairTarget(edge_id="edge-b", source_node_id="node-b"),
@@ -205,7 +307,7 @@ def test_join_array_projection_is_exact_deterministic_and_non_mutating() -> None
     first = compile_correction_response_schema(base, [_join_array_fact()])
     second = compile_correction_response_schema(base, [_join_array_fact()])
 
-    assert CORRECTION_RESPONSE_SCHEMA_VERSION == "correction_response_schema.v2"
+    assert CORRECTION_RESPONSE_SCHEMA_VERSION == "correction_response_schema.v3"
     assert base == original
     assert first.schema == second.schema
     assert first.schema_hash == second.schema_hash
@@ -396,3 +498,106 @@ def test_cue_order_overlay_rejects_conflicting_or_impossible_authority() -> None
             _cue_order_base_schema(max_items=1),
             [first],
         )
+
+
+def test_storyboard_timing_plan_overlay_is_exact_deterministic_and_non_mutating() -> None:
+    base = _timing_plan_base_schema()
+    original = deepcopy(base)
+    cue_fact = _timing_plan_fact()
+    total_fact = _timing_plan_fact(
+        code="semantic.shot_duration_budget_exceeded",
+        path=("shots",),
+    )
+
+    first = compile_correction_response_schema(base, [cue_fact, total_fact])
+    second = compile_correction_response_schema(base, [total_fact, cue_fact])
+
+    assert base == original
+    assert first.schema == second.schema
+    assert first.schema_hash == second.schema_hash
+    assert first.applied_fact_codes == (
+        "semantic.cue_duration_exceeds_shot",
+        "semantic.shot_duration_budget_exceeded",
+    )
+
+    shots = first.schema["properties"]["shots"]
+    assert shots["minItems"] == shots["maxItems"] == 2
+    item_schema = shots["items"]
+    assert item_schema["properties"]["localShotId"]["enum"] == ["shot-a", "shot-b"]
+    branches = item_schema["allOf"]
+    by_shot = {
+        branch["if"]["properties"]["localShotId"]["const"]: branch["then"]
+        for branch in branches
+    }
+    assert by_shot == {
+        "shot-a": {
+            "properties": {
+                "order": {"const": 1},
+                "durationUnits": {"const": 3},
+                "cueIds": {"const": ["cue-a"]},
+            },
+            "required": ["cueIds", "durationUnits", "order"],
+        },
+        "shot-b": {
+            "properties": {
+                "order": {"const": 2},
+                "durationUnits": {"const": 2},
+                "cueIds": {"const": ["cue-b"]},
+            },
+            "required": ["cueIds", "durationUnits", "order"],
+        },
+    }
+    root = first.schema["properties"]
+    assert root["primaryShotLocalIdByBeat"]["const"] == {
+        "beat-a": "shot-a",
+        "beat-b": "shot-b",
+    }
+    assert root["supportingBeatLinks"]["const"] == [
+        {
+            "shotLocalId": "shot-a",
+            "beatId": "beat-b",
+            "coverageWeight": 0.5,
+        }
+    ]
+
+
+def test_storyboard_timing_plan_overlay_rejects_conflicting_plan_or_base_cardinality() -> None:
+    first = _timing_plan_fact()
+    alternate_response = _timing_plan_response()
+    alternate_response["primaryShotLocalIdByBeat"] = {
+        "beat-a": "shot-b",
+        "beat-b": "shot-a",
+    }
+    alternate_response["supportingBeatLinks"] = [
+        {"shotLocalId": "shot-a", "beatId": "beat-a", "coverageWeight": 1.0},
+        {"shotLocalId": "shot-b", "beatId": "beat-b", "coverageWeight": 1.0},
+    ]
+    conflicting = _timing_plan_fact(
+        code="semantic.shot_duration_budget_exceeded",
+        path=("shots",),
+        response=alternate_response,
+    )
+
+    with pytest.raises(CorrectionResponseSchemaError):
+        compile_correction_response_schema(
+            _timing_plan_base_schema(),
+            [first, conflicting],
+        )
+
+    with pytest.raises(CorrectionResponseSchemaError):
+        compile_correction_response_schema(
+            _timing_plan_base_schema(min_items=3),
+            [first],
+        )
+    with pytest.raises(CorrectionResponseSchemaError):
+        compile_correction_response_schema(
+            _timing_plan_base_schema(max_items=1),
+            [first],
+        )
+
+    incompatible_ids = _timing_plan_base_schema()
+    incompatible_ids["properties"]["shots"]["items"]["properties"][  # type: ignore[index]
+        "localShotId"
+    ]["enum"] = ["other-shot"]
+    with pytest.raises(CorrectionResponseSchemaError, match="base enum"):
+        compile_correction_response_schema(incompatible_ids, [first])

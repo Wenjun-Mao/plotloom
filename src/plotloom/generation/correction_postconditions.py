@@ -22,6 +22,7 @@ from .work_units import (
     JoinAllowedDifferencesRepairFact,
     JoinStateEffectRepairFact,
     SemanticRepairFact,
+    StoryboardTimingRepairPlanFact,
 )
 
 
@@ -40,7 +41,7 @@ def validate_correction_postconditions(
 ) -> tuple[ValidationIssue, ...]:
     """Check executable exact repair facts against one decoded response.
 
-    Facts without a correction-schema exact overlay are deliberately ignored.
+    Facts without an application-level exact check are deliberately ignored.
     Any malformed response shape relevant to a supported fact is a mismatch;
     this avoids accepting an ambiguous repair after a provider bypasses or
     weakly implements a response schema.
@@ -60,6 +61,8 @@ def validate_correction_postconditions(
             valid = _continuity_sequence_satisfied(response, fact)
         elif isinstance(fact, CueOrderRepairFact):
             valid = _cue_order_satisfied(response, fact)
+        elif isinstance(fact, StoryboardTimingRepairPlanFact):
+            valid = _storyboard_timing_plan_satisfied(response, fact)
         else:
             continue
         if not valid:
@@ -240,6 +243,69 @@ def _cue_order_satisfied(response: Any, fact: CueOrderRepairFact) -> bool:
         actual_ids.add(cue_id)
         actual_beat_orders.add((beat_id, order))
     return actual_ids == set(expected_by_id)
+
+
+def _storyboard_timing_plan_satisfied(
+    response: Any,
+    fact: StoryboardTimingRepairPlanFact,
+) -> bool:
+    """Require the complete plan-owned timing and coverage replacement.
+
+    ``removeAudioEventIndexes`` is source-relative removal guidance, so it
+    cannot be proven from the replacement alone. Remaining audio timing is
+    still checked by the ordinary Storyboard validator. The fields below are
+    self-contained in the target plan and therefore form executable authority.
+    """
+
+    shots = _collection(response, "shots")
+    if shots is None or len(shots) != len(fact.plan.target_shots):
+        return False
+    expected_by_id = {
+        target.local_shot_id: target for target in fact.plan.target_shots
+    }
+    if len(expected_by_id) != len(fact.plan.target_shots):
+        return False
+    actual_ids: set[str] = set()
+    for shot in shots:
+        if not isinstance(shot, Mapping):
+            return False
+        local_shot_id = shot.get("localShotId")
+        if not isinstance(local_shot_id, str) or local_shot_id in actual_ids:
+            return False
+        target = expected_by_id.get(local_shot_id)
+        if target is None:
+            return False
+        if not _finite_equal(shot.get("order"), target.target_order):
+            return False
+        if not _finite_equal(
+            shot.get("durationUnits"), target.target_duration_units
+        ):
+            return False
+        if not _finite_equal(shot.get("cueIds"), list(target.target_cue_ids)):
+            return False
+        actual_ids.add(local_shot_id)
+    if actual_ids != set(expected_by_id):
+        return False
+
+    if not isinstance(response, Mapping):
+        return False
+    expected_primary = {
+        link.beat_id: link.shot_local_id
+        for link in fact.plan.target_primary_links
+    }
+    if not _finite_equal(
+        response.get("primaryShotLocalIdByBeat"), expected_primary
+    ):
+        return False
+    expected_supporting = [
+        {
+            "shotLocalId": link.shot_local_id,
+            "beatId": link.beat_id,
+            "coverageWeight": link.coverage_weight,
+        }
+        for link in fact.plan.target_supporting_links
+    ]
+    return _finite_equal(response.get("supportingBeatLinks"), expected_supporting)
 
 
 def _unique_collection_item(

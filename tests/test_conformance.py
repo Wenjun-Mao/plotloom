@@ -58,7 +58,7 @@ def _json_after(content: str, marker: str) -> Any:
 
 
 def test_fixed_workload_preserves_storyboard_capacity_for_multi_beat_scenes() -> None:
-    assert conformance.CONFORMANCE_WORKLOAD_VERSION == "fixed_chinese_interactive_story.v7"
+    assert conformance.CONFORMANCE_WORKLOAD_VERSION == "fixed_chinese_interactive_story.v8"
     assert conformance.FIXED_CHINESE_BRIEF.shots_per_scene_min == 1
     assert conformance.FIXED_CHINESE_BRIEF.shots_per_scene_max == 4
 

@@ -86,6 +86,7 @@ from .generation.work_units import (
 )
 from .generation.storyboard_timing_repair import (
     StoryboardTimingGuidance,
+    build_storyboard_timing_repair_plan,
     storyboard_timing_guidance_hash,
 )
 from .persistence import SQLiteRepository, stable_hash
@@ -738,7 +739,7 @@ class DurableWorkUnitRunner:
                 )
                 raise
 
-            if report.accepted and compiled.correction_repair_facts:
+            if compiled.correction_repair_facts:
                 postcondition_issues = validate_correction_postconditions(
                     extracted.value,
                     compiled.correction_repair_facts,
@@ -752,7 +753,7 @@ class DurableWorkUnitRunner:
                         error=(
                             "correction output violated frozen exact repair authority"
                         ),
-                        issues=postcondition_issues,
+                        issues=(*postcondition_issues, *report.issues),
                         transformations=extracted.transformations,
                         max_attempts=max_attempts,
                         allow_further_correction=False,
@@ -1040,25 +1041,35 @@ class DurableWorkUnitRunner:
             assert_semantic_repair_fact_matches_issue(
                 fact, tuple(validated_issues)
             )
+            if (
+                isinstance(fact, StoryboardTimingRepairPlanFact)
+                or fact.code
+                in {
+                    "semantic.continuity_beat_sequence_mismatch",
+                    "semantic.continuity_shot_sequence_mismatch",
+                    "semantic.cue_order",
+                }
+            ) and source_value is None:
+                try:
+                    source_value = parse_json_text(
+                        previous_final_content,
+                        policy=extraction_policy,
+                    ).value
+                except ResponseExtractionError as error:
+                    raise CorrectionSourceContractError(
+                        "semantic repair source can no longer be extracted"
+                    ) from error
             self._assert_timing_fact_guidance(
                 fact,
                 source_contract=source_contract,
+                source_value=source_value,
             )
             if fact.code in {
                 "semantic.continuity_beat_sequence_mismatch",
                 "semantic.continuity_shot_sequence_mismatch",
                 "semantic.cue_order",
             }:
-                if source_value is None:
-                    try:
-                        source_value = parse_json_text(
-                            previous_final_content,
-                            policy=extraction_policy,
-                        ).value
-                    except ResponseExtractionError as error:
-                        raise CorrectionSourceContractError(
-                            "semantic repair source can no longer be extracted"
-                        ) from error
+                assert source_value is not None
                 try:
                     if fact.code == "semantic.cue_order":
                         assert_cue_order_repair_fact_matches_source(
@@ -1186,13 +1197,14 @@ class DurableWorkUnitRunner:
         fact: SemanticRepairFact,
         *,
         source_contract: Mapping[str, Any],
+        source_value: Any | None,
     ) -> None:
-        """Reject a self-consistent timing plan from another frozen scope.
+        """Bind executable timing authority to its contract and source value.
 
         Artifact hashes make persisted evidence tamper-evident only when the
-        semantic fact is also bound back to the source prompt contract.  The
-        plan's internal hash alone cannot establish that its scene/cues were
-        those supplied to the rejected work unit.
+        semantic fact is also bound back to the source prompt contract and
+        rejected response. The plan's internal hash alone cannot establish
+        either provenance relationship.
         """
 
         timing_codes = {
@@ -1229,6 +1241,18 @@ class DurableWorkUnitRunner:
         if storyboard_timing_guidance_hash(guidance) != fact.guidance_hash:
             raise CorrectionSourceContractError(
                 "Storyboard timing repair fact does not match frozen source guidance"
+            )
+        if not isinstance(source_value, Mapping):
+            raise CorrectionSourceContractError(
+                "Storyboard timing repair fact has no structured source response"
+            )
+        expected_plan = build_storyboard_timing_repair_plan(
+            source_value,
+            guidance=guidance,
+        )
+        if expected_plan is None or expected_plan != fact.plan:
+            raise CorrectionSourceContractError(
+                "Storyboard timing repair fact does not match its rejected source response"
             )
 
     @staticmethod

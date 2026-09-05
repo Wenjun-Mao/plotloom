@@ -2462,7 +2462,119 @@ def test_storyboard_timing_plan_correction_seals_and_installs(repository, brief)
     assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 1
 
 
-@pytest.mark.parametrize("tamper_mode", ["other_guidance", "legacy_plan"])
+def test_storyboard_timing_plan_postcondition_quarantines_coverage_rewrite_without_later_retry(
+    repository,
+    brief,
+) -> None:
+    """Timing-plan authority is checked before a new semantic retry can hide it."""
+
+    project = repository.create_project(brief)
+    run = repository.create_run(
+        project.id,
+        RunKind.PIPELINE,
+        list(StageName),
+        provider_snapshot=_v2_profile_snapshot(),
+    )
+    topology = repository.get_story_graph_topology(run.id)
+    assert topology is not None
+    responses = _work_unit_responses(topology, brief)
+    first_scene_index = 2
+    first_scene = json.loads(responses[first_scene_index])
+    first_beat_id = first_scene["beats"][0]["localBeatId"]
+    first_scene["dialogueCues"] = [
+        {
+            "localCueId": "timing-probe",
+            "beatLocalId": first_beat_id,
+            "order": 1,
+            "speakerId": None,
+            "voiceOver": "narrator",
+            "text": "一二三四五六七八九十",
+            "language": "zh-CN",
+            "delivery": "natural",
+            "performanceNotes": "克制",
+        }
+    ]
+    responses[first_scene_index] = json.dumps(first_scene, ensure_ascii=False)
+
+    storyboard_index = 2 + len(topology.nodes)
+    original = json.loads(responses[storyboard_index])
+    canonical_scene_id = canonical_fragment_id(
+        "scene", topology.nodes[0].id, str(first_scene["scenes"][0]["order"])
+    )
+    canonical_beat_id = canonical_fragment_id(
+        "beat", canonical_scene_id, str(first_scene["beats"][0]["order"])
+    )
+    cue_id = canonical_fragment_id("dialogue-cue", canonical_beat_id, "1")
+    original["shots"][0]["cueIds"] = [cue_id]
+
+    # This candidate fixes the original cue-duration violation, but changes
+    # the frozen timing plan's coverage by making one pair both PRIMARY and
+    # SUPPORTING.  It remains structurally schema-valid and therefore proves
+    # the application-level postcondition is the acceptance boundary.
+    coverage_rewrite = json.loads(json.dumps(original))
+    coverage_rewrite["shots"][0]["durationUnits"] = 3300
+    coverage_rewrite["shots"][1]["durationUnits"] = 1
+    beat_id = next(iter(coverage_rewrite["primaryShotLocalIdByBeat"]))
+    coverage_rewrite["supportingBeatLinks"] = [
+        {
+            "shotLocalId": coverage_rewrite["primaryShotLocalIdByBeat"][beat_id],
+            "beatId": beat_id,
+            "coverageWeight": 1.0,
+        }
+    ]
+    responses[storyboard_index : storyboard_index + 1] = [
+        json.dumps(original, ensure_ascii=False),
+        json.dumps(coverage_rewrite, ensure_ascii=False),
+    ]
+    provider = QueueProvider(responses)
+    secrets = RunSecretBroker("timing-plan-postcondition-secret")
+
+    completed = _run(
+        repository,
+        PipelineEngine(repository, RecordingResolver(provider), secrets),
+        secrets,
+        run.id,
+    )
+
+    assert completed.status == RunStatus.QUARANTINED
+    # No third request is allowed after the exact timing replacement contract
+    # is violated, even though semantic validation also sees duplicate_link.
+    assert len(provider.requests) == storyboard_index + 2
+    trace = repository.get_run_trace(run.id)
+    rejected = next(
+        attempt
+        for attempt in trace.attempts
+        if attempt.outcome_code == "semantic.cue_duration_exceeds_shot"
+    )
+    attempts = [
+        attempt
+        for attempt in trace.attempts
+        if attempt.work_unit_id == rejected.work_unit_id
+    ]
+    assert [attempt.outcome_code for attempt in attempts] == [
+        "semantic.cue_duration_exceeds_shot",
+        "contract.correction_output_constraint_mismatch",
+    ]
+    correction_validation = next(
+        artifact
+        for artifact in trace.artifacts
+        if artifact.attempt_id == attempts[-1].id
+        and artifact.kind == ArtifactKind.VALIDATION
+    )
+    correction_issue_codes = [
+        issue["code"] for issue in correction_validation.content["issues"]
+    ]
+    assert correction_issue_codes[0] == (
+        "contract.correction_output_constraint_mismatch"
+    )
+    assert "semantic.duplicate_link" in correction_issue_codes
+    assert repository.get_stage_head(project.id, StageName.STORYBOARD).revision == 0
+
+
+@pytest.mark.parametrize(
+    "tamper_mode",
+    ["other_guidance", "same_guidance_plan", "legacy_plan"],
+)
 def test_storyboard_timing_fact_rejects_unbound_or_rehashed_guidance_before_correction_dispatch(
     repository,
     brief,
@@ -2535,6 +2647,17 @@ def test_storyboard_timing_fact_rejects_unbound_or_rehashed_guidance_before_corr
                 ).hexdigest()
                 plan["guidanceHash"] = guidance_hash
                 fact["guidanceHash"] = guidance_hash
+            elif tamper_mode == "same_guidance_plan":
+                shot_id_map = {
+                    shot["localShotId"]: f"forged-{shot['localShotId']}"
+                    for shot in plan["targetShots"]
+                }
+                for shot in plan["targetShots"]:
+                    shot["localShotId"] = shot_id_map[shot["localShotId"]]
+                for link in plan["targetPrimaryLinks"]:
+                    link["shotLocalId"] = shot_id_map[link["shotLocalId"]]
+                for link in plan["targetSupportingLinks"]:
+                    link["shotLocalId"] = shot_id_map[link["shotLocalId"]]
             else:
                 plan.pop("guidance")
                 plan.pop("guidanceHash")
@@ -3559,11 +3682,11 @@ def test_v2_profile_stops_after_two_corrections_and_quarantines(
     ]
     primary_contract = prompt_artifacts[0].content["contract"]
     correction_contracts = [artifact.content["contract"] for artifact in prompt_artifacts[1:]]
-    assert primary_contract["correction_policy_version"] == "bounded_correction.v20"
+    assert primary_contract["correction_policy_version"] == "bounded_correction.v21"
     assert primary_contract["correction_directive_registry_version"] == "correction_directives.v3"
     assert primary_contract["correction_evidence_projection_version"] == "correction_evidence_projection.v2"
     assert primary_contract["correction_issue_selection_version"] == "correction_issue_selection.v2"
-    assert primary_contract["correction_response_schema_version"] == "correction_response_schema.v2"
+    assert primary_contract["correction_response_schema_version"] == "correction_response_schema.v3"
     assert "correction_directive_set_hash" not in primary_contract
     assert "correction_evidence_projection_hash" not in primary_contract
     assert "correction_issue_selection_hash" not in primary_contract

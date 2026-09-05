@@ -26,6 +26,16 @@ repeated the error because `semantic.cue_order` had neither deterministic repair
 facts nor a narrowed response schema. The failure therefore belonged in the
 shared correction contract, not in tolerant validation or a model exception.
 
+A subsequent retained Storyboard preflight exposed a related acceptance gap.
+The deterministic timing planner produced a complete, hash-bound replacement
+for shot timing, cue placement, and beat coverage. The first correction fixed
+the original timing issue but changed plan-owned coverage and introduced a
+duplicate link. Because timing authority was prompt-only and exact
+postconditions ran only after semantic acceptance, Plotloom created a generic
+coverage correction that no longer carried the original timing plan. The final
+attempt then lost cue coverage. The planner and validator were correct; the
+missing contract was executable enforcement at correction acceptance.
+
 ## Decision
 
 ### Corrections execute an issue-selected, versioned contract
@@ -67,7 +77,7 @@ deferred details are included in a model-visible message or response schema.
 The model-facing projection contains only executable code/path pairs and
 bindings whose indexes are local to that executable projection.
 
-`WorkUnitPromptContract m1.12r` freezes the correction policy, issue selector,
+`WorkUnitPromptContract m1.12s` freezes the correction policy, issue selector,
 directive registry, evidence projection, and response-schema compiler versions
 on the primary attempt. Each correction additionally freezes SHA-256 hashes of
 the issue selection, selected directive set, evidence projection, and full
@@ -131,6 +141,33 @@ XOR, while the application postcondition enforces exact repair facts. A future
 provider-schema dialect contract may safely opt into richer lowering without
 changing canonical acceptance.
 
+### Storyboard timing plans are executable before semantic retry branching
+
+`StoryboardTimingRepairPlanFact` owns an exact replacement for target shot
+identity, order, duration, ordered cue IDs, PRIMARY coverage, and SUPPORTING
+coverage. Plotloom checks those fields against the decoded correction before it
+branches on ordinary semantic acceptance. A mismatch is terminal
+`contract.correction_output_constraint_mismatch`; it cannot create a descendant
+generic correction that silently drops the timing plan. A plan-following
+response still passes through the complete Storyboard validator, which may
+authorize a later correction for an unrelated issue.
+
+The response-schema compiler projects the same target cardinality, allowed shot
+IDs, per-shot values, and exact coverage collections as a decoding aid. It does
+not use richer collection-membership keywords to claim target presence or
+uniqueness under the generic provider capability; the application postcondition
+remains the trust boundary. Source-relative `removeAudioEventIndexes` cannot be
+proven from a replacement response alone, so remaining audio legality stays
+owned by the ordinary Storyboard validator rather than an inferred deletion.
+No response is patched server-side and no provider or model receives a special
+case.
+
+Immediately before correction compilation, Plotloom extracts the rejected final
+content and deterministically rebuilds the timing plan from that value and the
+frozen guidance. The persisted fact must equal the rebuilt plan in full. A
+self-consistent, re-hashed substitute plan for the same scene is therefore not
+trusted merely because it carries the expected guidance hash.
+
 ### Declared provider context must match effective per-request capacity
 
 The saved profile's `textContextWindowTokens` is a trusted execution claim, not
@@ -166,6 +203,9 @@ output as valid JSON.
 - Tests cover beat-local cue renumbering, complete membership postconditions, source
   rebinding, structural deferral, provider-independent postconditions, and
   rejection of conflicting authority.
+- Tests cover Storyboard timing-plan shot and coverage exactness, advisory
+  schema projection, pre-semantic postcondition precedence, terminal mismatch,
+  and the absence of a hidden descendant retry after plan violation.
 - Retired dialogue-duration witness facts remain parseable as historical
   evidence but are outside the current executable repair-fact union.
 - Pipeline tests prove current compiler versions are present on primary attempts,

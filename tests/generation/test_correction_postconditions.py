@@ -21,6 +21,11 @@ from plotloom.generation.work_units import (
     JoinStateEffectRepairFact,
     ShotDurationBudgetRepairFact,
 )
+from plotloom.generation.storyboard_timing_repair import (
+    StoryboardTimingRepairPlanFact,
+    build_storyboard_timing_guidance,
+    build_storyboard_timing_repair_plan,
+)
 
 
 def _incoming() -> tuple[JoinIncomingEdgeRepairTarget, ...]:
@@ -167,6 +172,114 @@ def _mismatch(path: tuple[str | int, ...]) -> tuple[ValidationIssue, ...]:
     )
 
 
+def _timing_plan_response() -> dict[str, object]:
+    """A fully specified response which the timing plan can safely replace."""
+
+    return {
+        "shots": [
+            {
+                "localShotId": "shot-a",
+                "order": 1,
+                "durationUnits": 3,
+                "cueIds": ["cue-a"],
+                "audioPlan": {"events": []},
+            },
+            {
+                "localShotId": "shot-b",
+                "order": 2,
+                "durationUnits": 2,
+                "cueIds": ["cue-b"],
+                "audioPlan": {"events": []},
+            },
+        ],
+        "primaryShotLocalIdByBeat": {"beat-a": "shot-a", "beat-b": "shot-b"},
+        "supportingBeatLinks": [
+            {"shotLocalId": "shot-a", "beatId": "beat-b", "coverageWeight": 0.5}
+        ],
+    }
+
+
+def _timing_plan_fact() -> StoryboardTimingRepairPlanFact:
+    guidance = build_storyboard_timing_guidance(
+        scene_id="scene-a",
+        scene_duration_budget_units=5,
+        min_shots=2,
+        configured_max_shots=2,
+        beats=[{"id": "beat-a", "order": 1}, {"id": "beat-b", "order": 2}],
+        cues=[
+            {
+                "id": "cue-a",
+                "beatId": "beat-a",
+                "order": 1,
+                "estimatedDurationUnits": 3,
+            },
+            {
+                "id": "cue-b",
+                "beatId": "beat-b",
+                "order": 1,
+                "estimatedDurationUnits": 2,
+            },
+        ],
+    )
+    plan = build_storyboard_timing_repair_plan(
+        _timing_plan_response(), guidance=guidance
+    )
+    assert plan is not None
+    return StoryboardTimingRepairPlanFact(
+        code="semantic.cue_duration_exceeds_shot",
+        path=("shots", 0, "cueIds"),
+        plan=plan,
+        guidance_hash=plan.guidance_hash,
+        plan_hash=plan.plan_hash,
+    )
+
+
+def _ordered_cue_timing_plan_fact() -> StoryboardTimingRepairPlanFact:
+    guidance = build_storyboard_timing_guidance(
+        scene_id="scene-ordered-cues",
+        scene_duration_budget_units=5,
+        min_shots=1,
+        configured_max_shots=1,
+        beats=[{"id": "beat-a", "order": 1}],
+        cues=[
+            {
+                "id": "cue-a",
+                "beatId": "beat-a",
+                "order": 1,
+                "estimatedDurationUnits": 2,
+            },
+            {
+                "id": "cue-b",
+                "beatId": "beat-a",
+                "order": 2,
+                "estimatedDurationUnits": 3,
+            },
+        ],
+    )
+    response = {
+        "shots": [
+            {
+                "localShotId": "shot-a",
+                "order": 1,
+                "durationUnits": 5,
+                "cueIds": ["cue-a", "cue-b"],
+                "audioPlan": {"events": []},
+            }
+        ],
+        "primaryShotLocalIdByBeat": {"beat-a": "shot-a"},
+        "supportingBeatLinks": [],
+    }
+    plan = build_storyboard_timing_repair_plan(response, guidance=guidance)
+    assert plan is not None
+    return StoryboardTimingRepairPlanFact(
+        code="semantic.cue_duration_exceeds_shot",
+        path=("shots", 0, "cueIds"),
+        plan=plan,
+        guidance_hash=plan.guidance_hash,
+        plan_hash=plan.plan_hash,
+    )
+
+
 def test_cue_postcondition_accepts_complete_exact_assignment() -> None:
     assert validate_correction_postconditions(_response(), [_cue_fact()]) == ()
 
@@ -202,6 +315,73 @@ def test_continuity_postcondition_requires_all_exact_response_local_assignments(
     response = deepcopy(_response())
     response["beats"][0]["entryState"]["entityStates"] = []  # type: ignore[index]
     assert validate_correction_postconditions(response, [fact]) == _mismatch(fact.path)
+
+
+def test_storyboard_timing_plan_postcondition_requires_exact_replacement_shape() -> None:
+    """A timing correction cannot alter plan-owned shots or coverage links."""
+
+    fact = _timing_plan_fact()
+    assert validate_correction_postconditions(_timing_plan_response(), [fact]) == ()
+
+    mutations = (
+        lambda response: response["shots"].pop(),
+        lambda response: response["shots"].__setitem__(
+            1,
+            {
+                **response["shots"][1],
+                "localShotId": "shot-renamed",
+            },
+        ),
+        lambda response: response["shots"][1].__setitem__("localShotId", "shot-a"),
+        lambda response: response["shots"][0].__setitem__("order", 2),
+        lambda response: response["shots"][0].__setitem__("durationUnits", 4),
+        lambda response: response["shots"][0].__setitem__("cueIds", ["cue-b"]),
+        lambda response: response["primaryShotLocalIdByBeat"].__setitem__(
+            "beat-a", "shot-b"
+        ),
+        lambda response: response.__setitem__(
+            "supportingBeatLinks",
+            [
+                {
+                    "shotLocalId": "shot-a",
+                    "beatId": "beat-b",
+                    "coverageWeight": 1.0,
+                }
+            ],
+        ),
+        lambda response: response.__setitem__("supportingBeatLinks", []),
+        lambda response: response.__setitem__(
+            "supportingBeatLinks",
+            response["supportingBeatLinks"] * 2,
+        ),
+    )
+    for mutate in mutations:
+        response = deepcopy(_timing_plan_response())
+        mutate(response)
+        assert validate_correction_postconditions(response, [fact]) == _mismatch(
+            fact.path
+        )
+
+
+def test_storyboard_timing_plan_postcondition_preserves_cue_order() -> None:
+    fact = _ordered_cue_timing_plan_fact()
+    response = {
+        "shots": [
+            {
+                "localShotId": "shot-a",
+                "order": 1,
+                "durationUnits": 5,
+                "cueIds": ["cue-b", "cue-a"],
+                "audioPlan": {"events": []},
+            }
+        ],
+        "primaryShotLocalIdByBeat": {"beat-a": "shot-a"},
+        "supportingBeatLinks": [],
+    }
+
+    assert validate_correction_postconditions(response, [fact]) == _mismatch(
+        fact.path
+    )
 
 
 def test_unsupported_fact_is_ignored_without_schema_or_provider_dependency() -> None:
