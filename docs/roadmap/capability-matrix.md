@@ -6,6 +6,8 @@
 >
 > **决策依据：**能力追踪采用 [ADR 0008](../adr/0008-capability-based-adoption-tracking.md)，当前独立仓库与身份边界采用 [ADR 0010](../adr/0010-plotloom-clean-repository.md)，运行与生产边界采用 [ADR 0011](../adr/0011-provider-profiles-and-generation-work-units.md)、[ADR 0012](../adr/0012-approved-storyboards-and-production-units.md)、[ADR 0013](../adr/0013-model-neutral-reliable-generation.md)、[ADR 0014](../adr/0014-project-lifecycle-and-workbench.md)、[ADR 0015](../adr/0015-exact-work-unit-repair.md)、[ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md)、[ADR 0017](../adr/0017-alpha-validation-and-correction-boundaries.md)、[ADR 0018](../adr/0018-trusted-story-timing-allocation.md) 和 [ADR 0019](../adr/0019-exact-fragment-and-join-state-contracts.md)。ADR 0003–0007 保留了重建阶段的历史架构证据。
 
+> **下一步执行（2026-09-07）：**见 [M1-C completion plan](m1c-completion-plan.md)。保留已完成的工作台、作者域与精确修复，先解决当前 cue-order/timing 合同问题，再完成真实持久化分镜 canary、正式 Alpha 验收与交付。此执行计划不把下方历史测试结果当作最新 HEAD 的新验收；开发工作遵循 [ADR 0023](../adr/0023-bounded-delivery-and-evidence.md)。
+
 ## 一眼看懂当前状态
 
 | 观察面 | 当前判断 | 它真正说明什么 |
