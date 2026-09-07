@@ -170,16 +170,33 @@ unless those checks were actually performed.
 
 Keep this block current at handoff; do not duplicate the product progress matrix.
 
-- **Current:** step 1 planned; execution has not started.
-- **Verified code baseline:** `ea2d6e1`, `codex/m1b-alpha` (2026-09-07 inspection).
-- **Next outcome:** decide current cue-order/timing ownership, then produce the
-  two real persisted canaries.
-- **Known gaps:** no fresh M1-C canary or qualification evidence from this planning
-  turn; no six-sample independent Alpha review yet.
-- **Checks in this turn:** planning-document consistency and local-link checks
-  only; application behavior was not retested.
-- **Usage:** historical audit is summarized in ADR 0023; checkpoint execution
-  deltas will be recorded when work runs. Missing/delayed usage is disclosed.
+- **Current:** step 1 complete (2026-09-07); ready to attempt step 2 under
+  the existing contracts. No runtime ownership change is proposed or accepted.
+- **Verified baseline:** `70475ada584fa9fdaf671dd0f598fe4a233cf577`, detached
+  worktree HEAD, clean before execution; parent `ea2d6e1` is the application
+  baseline. This checkpoint changes this record only and is committed locally;
+  no merge or push.
+- **Outcome/scope:** cue ordering and Storyboard timing ownership checked across
+  primary prompts, schemas, binding, validation, and correction. Stop at the
+  focused regression result and decision below; no new harness or review cycle.
+- **Checks:** `uv run --locked pytest -q
+  tests/generation/test_correction_schema.py
+  tests/generation/test_correction_postconditions.py
+  tests/backend_core/test_pipeline.py
+  -k 'cue or storyboard_timing_plan or storyboard_timing_fact'`:
+  **17 passed, 59 deselected**, 2.48 seconds; one existing Starlette warning
+  about deprecated TestClient/httpx integration. `uv` created `.venv` using the
+  checked lockfile. No full suite, frontend checks, or live providers were run.
+- **Next outcome:** resolve the two saved profiles and verify effective service
+  capacity, then attempt the two persisted application canaries in step 2.
+- **Known gaps:** Queue-provider regressions do not prove real-model compliance,
+  creative quality, browser persistence, or Alpha qualification. No temporary
+  failed-unit artifacts were needed or inspected; historical failure descriptions
+  below come from ADR 0022, not a newly reproduced live failure. The 18-run matrix
+  and six blind reviews remain outstanding.
+- **Usage:** task response count, fresh/cached input tokens, total/reasoning output
+  tokens, and cost deltas are unavailable in the exposed task usage records.
+  No instrumentation was added and no savings or enforced spending cap is claimed.
 - **Operating rules:** [ADR 0023](../adr/0023-bounded-delivery-and-evidence.md),
   surfaced through root `AGENTS.md`.
 
@@ -187,3 +204,59 @@ For a fresh execution task, pass this file, the verified baseline/worktree,
 and one step's outcome/scope/acceptance. Do not fork the full historical
 conversation. The task must discover only the code and evidence needed for
 that checkpoint and stop at its stated boundary.
+
+### Step 1 decision: retain the current ownership contract for the canary
+
+**Decision (2026-09-07):** the current fixes are sufficient to attempt the
+two-profile real canary without another rewrite. This is a regression-backed
+readiness decision, not a prediction that either provider will succeed. ADRs
+[0018](../adr/0018-trusted-story-timing-allocation.md),
+[0019](../adr/0019-exact-fragment-and-join-state-contracts.md), and
+[0022](../adr/0022-executable-correction-contracts.md) remain authoritative.
+
+| Field | Author/model creative intent | Uniquely derivable values / current code policy | Validation authority |
+|---|---|---|---|
+| Cue order | Model chooses cue text, beat membership, and relative order; author can edit canonical content. | Given safe membership, repair sorts by declared order then source array position and renumbers independently per beat. The tie-break is an explicit policy, not inferred narrative intent. Canonical cue IDs derive from beat ID and accepted order. | Primary prompt explicitly restarts at 1 per beat; schema requires positive order. Fragment/canonical validation requires contiguous beat-local order. Source-rebound correction facts and exact membership/order postconditions prohibit deletion, rename, duplication, or reassignment; mutable membership issues defer the fact. |
+| Shot order/timing | Model chooses shot sequence, pacing, action, and primary shot durations within the frozen scene cap; author owns the Brief target. | Binder derives shot identity, not order or duration. Frozen dialogue estimates and cue sums are arithmetic. Repair preserves shot identity/order but chooses minimum durations `max(1, scheduled cue sum)`; those minima are not uniquely correct creative pacing. Scene allocation already belongs to trusted code under ADR 0018. | Primary prompt states contiguous shot order, millisecond budget and cue/audio fit; schema binds feasible shot-count limits. Fragment and canonical timing checks remain mandatory. Exact correction postconditions run before semantic retry branching. |
+| Cue scheduling | Model chooses which shot presents each sealed cue; dialogue identity/text belong to the upstream scene. | Ordering within a chosen shot follows canonical beat/cue order. The timing repair planner redistributes frozen cues round-robin over ordered shots, even if the previous membership was valid. This is a deterministic replacement policy, not a uniquely derived creative assignment. | Primary enum plus local checks require each cue exactly once, canonical order within each shot, fit, and owning-beat coverage. Plan facts must match both frozen guidance and a fresh reconstruction from rejected source; postconditions require the exact ordered lists. |
+| Coverage | Model chooses each beat's PRIMARY shot and optional SUPPORTING relations/weights. | Binder materializes fixed link roles and PRIMARY weight 1 from model choices. Timing repair preserves existing maps and adds weight-1 SUPPORTING links required by relocated cues; code cannot infer visual meaning from those links. | Primary schema fixes beat keys; fragment/canonical checks enforce identity, one PRIMARY per beat, unique links, and shot/cue coverage. Unsafe source coverage gets no timing plan. Correction postconditions freeze full target maps. |
+
+**Root cause and evidence.** ADR 0022 records beat-global cue numbering without
+an executable repair assignment, and timing-plan coverage drift that could
+escape into a generic descendant correction. The current shared correction
+layer addresses those specific failures: source-derived facts, schema aids,
+provider-independent postconditions, and terminal plan-mismatch handling.
+The selected tests cover successful cue correction, membership tampering without
+native schema, source/fact rebinding rejection, exact timing schema and output
+shape (including cue order), successful timing correction through installation,
+and coverage rewrite quarantine without another retry. They also reject foreign
+or rehashed timing guidance. These are contract-layer failures, so neither a
+more tolerant canonical validator nor a provider exception is justified.
+
+**Agreement and limits.** The production fragment templates
+`scene_beats_fragment.yaml` and `storyboard_fragment.yaml` agree with
+`generation/work_units.py`'s response models, foreign-key/schema binding, fragment
+binder, and semantic checks on these fields. Correction directives and
+`correction_schema.py` provide the exact repair authority;
+`correction_postconditions.py` and `work_unit_pipeline.py` enforce it before
+retry branching. `validation.py` retains canonical acceptance authority.
+Native JSON Schema is advisory: the cue overlay freezes cardinality, not exact
+membership, and timing overlays cannot establish provider-independent compliance
+on their own. Remaining audio legality is validated normally; replacement output
+alone cannot prove that a source-indexed audio deletion was performed literally.
+
+**Why retain the round trip now.** Cue renumbering is the narrowest candidate
+for future trusted derivation, but moving it before binding changes the accepted
+response contract and order-derived canonical identity. It requires an explicit
+versioned ownership/evidence design, not a hidden normalization. Applying the
+entire timing plan automatically would additionally move cue placement, pacing,
+coverage additions, and audio removal across the creative boundary. Exact model
+reproduction does not prove those choices are narratively good either; the
+canary's content inspection must assess that. Passing structural checks must not
+be described as creative acceptance. No evidence here requires that broader
+ownership change before the direct product attempt.
+
+Keep original provider responses, validation facts, and historical contracts
+unchanged. If the canary exposes the same failure class, retain its failed unit
+and reassess the precise contract under the plan's stopping rule. Do not respond
+with another general harness, repeated broad review, or silent server repair.
