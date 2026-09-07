@@ -170,8 +170,9 @@ unless those checks were actually performed.
 
 Keep this block current at handoff; do not duplicate the product progress matrix.
 
-- **Current:** step 1 complete (2026-09-07); ready to attempt step 2 under
-  the existing contracts. No runtime ownership change is proposed or accepted.
+- **Current:** step 1 accepted; step 2 blocked at service-capacity readiness
+  (2026-09-07). Neither application canary was submitted. Existing ownership
+  contracts remain unchanged; see the step 2 disposition below.
 - **Verified baseline:** `70475ada584fa9fdaf671dd0f598fe4a233cf577`, detached
   worktree HEAD, clean before execution; parent `ea2d6e1` is the application
   baseline. This checkpoint changes this record only and is committed locally;
@@ -187,8 +188,8 @@ Keep this block current at handoff; do not duplicate the product progress matrix
   **17 passed, 59 deselected**, 2.48 seconds; one existing Starlette warning
   about deprecated TestClient/httpx integration. `uv` created `.venv` using the
   checked lockfile. No full suite, frontend checks, or live providers were run.
-- **Next outcome:** resolve the two saved profiles and verify effective service
-  capacity, then attempt the two persisted application canaries in step 2.
+- **Next outcome:** restore service readiness described below, then resume the
+  two persisted application canaries in step 2 without changing their profiles.
 - **Known gaps:** Queue-provider regressions do not prove real-model compliance,
   creative quality, browser persistence, or Alpha qualification. No temporary
   failed-unit artifacts were needed or inspected; historical failure descriptions
@@ -260,3 +261,50 @@ Keep original provider responses, validation facts, and historical contracts
 unchanged. If the canary exposes the same failure class, retain its failed unit
 and reassess the precise contract under the plan's stopping rule. Do not respond
 with another general harness, repeated broad review, or silent server repair.
+
+### Step 2 disposition: blocked before application submission
+
+Execution baseline: clean detached HEAD
+`dcecf6626c523fd82c039632ac29b5ec79c3005e`. One owner; no delegates. The earlier
+safe pause performed only read-only discovery; this authorized continuation
+reused that work. The observable target remained one persisted four-stage
+application storyboard per saved profile, with browser refresh verification.
+
+Profiles were resolved from the existing SQLite configuration at
+`/Users/wjmao/projects/HU/plotloom/data/plotloom.sqlite3` using SQLite read-only
+mode. Both saved profile revisions are 3. Credentials were resolved in memory
+through `PlotloomSettings.from_env` and `resolve_text_provider_api_key`, without
+printing dotenv contents or keys. Public evidence below omits endpoints, model
+response bodies, and credentials.
+
+| Saved profile | Public profile hash | Declared context | Direct service evidence | Disposition |
+|---|---|---|---|---|
+| `default` | `8993119dfaee23337da34e222ec1b0c91826bbf040f3297dc28ad728d2020047` | 32,768 | `/props` HTTP 200: default `n_ctx=8192`, `total_slots=4`; `/slots` HTTP 200: all four slots `n_ctx=8192`, all idle | Blocked: effective per-request capacity is one quarter of the saved claim. Server credential was available. |
+| `qwen36_35b` | `073239d25b61d5d91c53cfa21c7422e5b54d7086e35519dce83972ba1fa0fb5e` | 32,768 | Independent `/props` and `/slots` GETs both raised `ConnectTimeout` with a 12-second connect timeout | Blocked: service capacity and availability cannot be established. Saved authentication mode requires no credential. |
+
+Checks used the configured service origin, honored saved authentication, and
+disabled redirects. Only the selected numeric capacity/slot fields, HTTP status,
+and exception class were printed; full service response bodies were not retained.
+These were four read-only service metadata requests, not model generations.
+The existing final-content probe was inspected but not invoked: neither profile
+passed the prerequisite capacity check. Final-content readiness therefore remains
+unverified, rather than failed. There was no submission with an unknown outcome.
+
+No isolated data/artifact directory or project was created, because generation
+was blocked before that phase. There are no project/run/unit IDs, attempt counts,
+seals, installations, or browser artifacts to report. No application server or
+browser was started; the metadata-check process exited normally and no request
+remains in flight. No narrative/coverage/pacing assessment or persistence claim
+is possible. Shared profiles, services, root checkout, and user-level settings
+were not changed. Only this checkpoint documentation is committed locally;
+no merge or push and no regression suite were run for this diagnostic stop.
+
+The next action belongs at the service/deployment layer: the operator must
+provide at least 32,768 effective tokens per request for `default` and restore
+reachable metadata/capacity evidence for `qwen36_35b`. Then repeat the bounded
+readiness checks, invoke the existing final-content probes, and resume the same
+fixed-story application canaries. Do not silently lower saved profile capacity
+or alter slot configuration during this checkpoint. The 18-run matrix and six
+blind reviews remain separate, unperformed qualification work. Task response,
+fresh/cached input, total/reasoning output, and cost deltas are unavailable;
+no usage instrumentation was added.
