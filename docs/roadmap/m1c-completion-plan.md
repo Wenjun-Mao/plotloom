@@ -5,10 +5,15 @@ Planning baseline: `ea2d6e1` on `codex/m1b-alpha`, clean when inspected on
 acceptance runs were performed to write it. Later tasks must verify their
 actual HEAD and worktree before execution.
 
-The next product outcome is a real, persisted storyboard from each saved local
-text profile, visible after refreshing the existing workbench. The release
-outcome remains the approved 18-run Alpha matrix, six independent content
-reviews, and final verification/CI. The [capability matrix](capability-matrix.md)
+The next product outcome is the retained `default` llama canary's persisted
+storyboard, visible after refreshing the existing workbench. On 2026-09-07 the
+user approved [ADR 0024](../adr/0024-pluggable-text-backends-and-independent-qualification.md):
+pluggable backend availability and independent qualification. The vLLM
+`qwen36_35b` lane is deferred and is not retried. Release now requires the core
+gates plus independently qualified advertised backend configurations (at least
+one), rather than two available hosts together. Each backend still needs nine
+successful runs and three blinded reviews. The old 18-run/six-review gate keeps
+its historical meaning; it has not passed. The [capability matrix](capability-matrix.md)
 is the product progress authority; this file owns the execution order.
 
 ## Preserve the completed baseline
@@ -25,9 +30,10 @@ this checkpoint sequence.
 | Step | Observable outcome | Acceptance and stopping point |
 |---|---|---|
 | 1. Close the ownership question | A bounded decision about the existing cue-order and timing failures | Reproduce/check the relevant cases at current HEAD; decide whether current fixes suffice or specify one exact contract change |
-| 2. Demonstrate real creation | One new project per saved profile completes all four stages and retains its storyboard after browser refresh | Both canaries show atomic installation, valid lineage, bounded attempts, and persistent UI content |
+| 2. Demonstrate real creation | Finish the admitted `default` canary; a successful project retains its storyboard after browser refresh | Atomic installation, valid lineage, bounded attempts, persistent UI content; otherwise retain the concrete failure at the existing stopping boundary |
+| 2B. Make backend selection reversible | Explicit adapter selection and per-profile enable/disable, plus independently runnable qualification | Preserve old snapshots; disabled profiles reject new runs without affecting admitted work; single-backend mode cannot masquerade as legacy Alpha |
 | 3. Freeze a verified candidate | One reviewed, clean source commit suitable for formal acceptance | Focused findings closed and all required local release checks pass on the final candidate |
-| 4. Qualify the Alpha | The existing 18-run matrix and six blinded reviews pass | Receipts meet the unchanged acceptance rules and bind the source/content actually assessed |
+| 4. Qualify the supported backend | Nine fixed-story runs and three blinded reviews pass for `default` on the frozen candidate | Same per-backend reliability/quality thresholds; distinct versioned evidence; vLLM deferred |
 | 5. Deliver | Verified branch integration, push, final CI, and updated progress record | Remote state reconciled without force push, passing final CI, and a concise user-facing handoff |
 
 ### 1. Close the ownership question
@@ -66,13 +72,13 @@ next outcome; no second general harness or audit checkpoint intervenes.
 
 ### 2. Demonstrate real creation
 
-Resolve the two intended saved profiles by ID. Verify each service's effective
+Resolve only the intended enabled profile by ID (`default` first). Verify its effective
 per-request/per-slot context against its saved configuration before generation.
 Read keys through the existing secret path; retain only public profile hashes
 and safe diagnostics in shared evidence. HTTP/Tailscale remains supported.
 
-Use one of the existing fixed Chinese Alpha stories, unchanged for both
-profiles. Run each through the real application in an isolated development
+Use one of the existing fixed Chinese Alpha stories, retaining that choice for
+future backends. Run it through the real application in an isolated development
 data directory using existing configuration controls. Keep the resulting
 projects for local inspection; the disposable conformance runner alone cannot
 prove browser persistence. Exercise the existing workbench or application API
@@ -81,7 +87,7 @@ and browser, without adding a new application entry point.
 Confirm four stages sealed, one atomic canonical installation, at most primary
 plus two corrections per unit, no unknown submission outcome, and the selected
 project/storyboard visible after refresh. Show at least one resulting storyboard
-to the user. This is a canary, not the 18-run release receipt.
+to the user. This is a canary, not backend qualification or a legacy Alpha receipt.
 
 On failure, preserve available local evidence safely and identify the failing
 unit, stable issue, and responsible layer. Fix one shared failure class with
@@ -94,6 +100,42 @@ model-name exceptions or blindly resubmit `outcome_unknown` work.
 Capture available usage deltas at the end of steps 1 and 2 to calibrate response
 count, context size, and estimated cost per accepted result. Do not promise a
 percentage saving or silently enforce a made-up dollar budget.
+
+### 2B. Reversible backends and independent qualification
+
+Start after the current canary reaches its terminal checkpoint; do not edit its
+running checkout or frozen contracts. One implementation owner follows ADR 0024.
+The approved outcome is operational modularity, not another generation rewrite.
+
+1. Add explicit protocol adapter ID/version resolution using the existing ports.
+   Introduce a new snapshot schema for new runs; preserve exact V1/V2 decoding,
+   JSON and hashes. Do not dispatch based on `textProvider` labels or aliases.
+2. Add separately revisioned profile availability in persistence/API and the
+   settings UI. Enforce admission transactionally for all new run paths,
+   including new exact repair children. Already-admitted runs and their resume
+   retain frozen behavior; disable is not cancel. A disabled selected profile
+   yields an explicit unavailable state, not fallback to another backend.
+3. Separate optional runtime diagnostics from protocol generation. Keep
+   declared and observed capacity distinct; never use llama-specific endpoints
+   as a universal health contract. Do not contact the deferred vLLM host.
+4. Add a separately versioned single-backend qualification mode using the
+   existing application runner and fixed stories. Freeze nine expected runs
+   and three review identities; keep legacy two-profile mode exact. Bind
+   source, execution configuration, adapter and known deployment identity
+   without leaking private configuration in public receipts.
+
+Primary seams: `provider_profiles.py`, `persistence.py`, profile/run routes in
+`api.py`, `SnapshotTextProviderResolver` in `pipeline.py`, provider settings UI,
+and `alpha_acceptance.py`/review pack publication. Reuse profile repository/API,
+resolver, generation, and Alpha tests. Cover optimistic conflicts, disable vs
+enqueue races, disable of the selected/last backend, drain/resume/cancel,
+session-secret isolation, legacy hashes and exact old/new sample cardinality.
+
+Demonstrate disabling an unused profile, continuing creation with an enabled
+one, and re-enabling without deleting history. Keep `.env`, user-level
+`AGENTS.md`, server processes, prompts, validators and media out of scope.
+If canary evidence needs a generation fix, checkpoint that separately; do not
+hide it in this module change. Review once at a stable candidate, then step 3.
 
 ### 3. Freeze a verified candidate
 
@@ -125,10 +167,12 @@ checkout must be clean. Freeze one exact commit for step 4. Repeat affected
 verification if the candidate changes; correctness takes precedence over a
 literal run-count quota.
 
-### 4. Qualify the Alpha
+### 4. Qualify the supported backend
 
-Use the existing [Alpha runner](../alpha-acceptance.md) and its fixed stories:
-two saved profiles × three stories × three repetitions. Keep its source
+Use the new versioned single-backend mode described by ADR 0024, after step 2B
+implements and verifies it; the existing [Alpha CLI](../alpha-acceptance.md)
+still requires two profiles until then. Use the same fixed stories:
+one selected backend × three stories × three repetitions. Keep its source
 checkout unchanged for the entire run. An exact committed worktree may be used
 if the normal checkout must remain available for other work. Bind the running
 module and receipts to that same source identity.
@@ -139,12 +183,12 @@ agent to read unchanged progress. Capture terminal receipts and lifecycle
 state before any retry. Preserve the existing cleanup and secret boundaries;
 do not log keys or invent a new general monitoring framework.
 
-All 18 runs must complete and install atomically. Each profile needs at least
+All nine runs must complete and install atomically. The profile needs at least
 30/36 first-pass stages; no unit may exceed three attempts; unknown outcomes,
 secret leaks, and partial installations disqualify the gate. Token counts and
 latency remain observations, not provider disqualification criteria.
 
-After the matrix qualifies, send only the six blinded canonical content files
+After the matrix qualifies, send only the three blinded canonical content files
 and their score-sheet templates to an independent reviewer; withhold the
 private mapping and profile identities. Keep the existing rubric thresholds,
 record `codex_external_review`, and do not create a product Approval on the
@@ -169,6 +213,21 @@ unless those checks were actually performed.
 ## Active checkpoint record
 
 Keep this block current at handoff; do not duplicate the product progress matrix.
+
+**2026-09-07 approved amendment:** the `default` canary reached terminal
+quarantine at Story Graph after three attempts; Story Bible sealed, no canonical
+head was installed, and no outcome was unknown. Readiness passed at 32,768
+tokens per slot. Quarantine/lineage survived browser refresh, but no successful
+storyboard exists. The terminal evidence from execution commit `ee6239d` is
+preserved below. Next execute step 2B under ADR 0024; retain the required-key
+correction issue as a separate, bounded shared-contract fix before qualification.
+The service-readiness disposition below is historical evidence from before the
+operator's llama restart. vLLM remains preserved and deferred. This amendment
+changes the accepted plan only; module implementation and all new release
+evidence are pending. Current root baseline for this amendment: clean `481a20c`.
+
+The remaining entries are historical checkpoint-1/readiness evidence; the
+terminal canary record at the end supersedes their current/next-action entries:
 
 - **Current:** step 1 accepted; step 2 blocked at service-capacity readiness
   (2026-09-07). Neither application canary was submitted. Existing ownership
@@ -355,3 +414,82 @@ Both canaries remain unsubmitted, final-content readiness and browser
 persistence unverified. No retained application directory or project exists.
 Only this documentation changed; `git diff --check` passed. No full tests,
 merge, push, or formal Alpha run occurred. Usage/cost deltas remain unavailable.
+
+### Step 2 resumed default-only canary: terminal quarantine
+
+This result supersedes the earlier readiness blocker and in-progress entry for
+`default`. The user restarted llama-server and explicitly deferred `qwen36_35b`;
+the deferred service was not contacted in this continuation. Baseline was clean
+detached `481a20cc9f872a5d685f140cd1b9abd32da488f3`, which contains the earlier
+checkpoint records plus the independently completed package report. Only scope
+documentation changed while this source ran; no runtime code changed. The parent
+task is separately recording newly authorized per-backend qualification policy;
+this diagnostic does not qualify either the historical matrix or that new gate.
+
+**Readiness passed.** The unchanged `default` revision-3 profile hash was
+`8993119dfaee23337da34e222ec1b0c91826bbf040f3297dc28ad728d2020047`.
+Both llama metadata endpoints returned HTTP 200; the service reported one idle
+slot with `n_ctx=32768`, matching the saved profile. The existing application
+profile probe returned final content, no reasoning, `finishReason=stop`, no
+error, and 699 ms latency. Server credentials were resolved through the existing
+environment/session broker path, never copied into the profile or project.
+
+**One direct product attempt.** The unmodified `ALPHA_STORIES[0]` (`story-01`,
+`v1`, Chinese “雾港回声”) was submitted via the normal application API and
+`LifecycleJobRunner` in an isolated retained runtime. The saved public default
+profile row was copied from a read-only source connection, preserving its
+revision/hash. No canonical user projects were copied or changed.
+
+- Project: `9213e6e7-150d-4777-9a26-22e066c4b37c`.
+- Run: `93e3edd2-74a9-424a-914b-a30498ec0085`.
+- Start/end: `2026-09-08T00:21:14.059238Z` /
+  `2026-09-08T00:23:59.542801Z` (September 7 local time).
+- Terminal state: **quarantined**, `semantic.join_state_effect_missing`.
+- Story Bible: primary accepted and aggregate sealed. Story Graph unit
+  `unit-story_graph-0001-be7970d333a242ad`: primary missing join assignments,
+  first correction conflicting join values, second correction missing join
+  assignments again. Maximum attempts per unit: **3**; four total responses.
+- Scene Beats and Storyboard were never reached. Exactly one aggregate sealed;
+  all four canonical heads remain `missing`, revision 0, with no result revision
+  IDs. This verifies no partial installation, not a successful atomic install.
+- All responses finished with `stop`; no unknown outcome and no replay. A scan
+  of the retained API trace found no occurrence of the resolved server key.
+  Prompt/response/validation evidence is in SQLite; the artifact directory had
+  no separate files. This scoped key check is not a universal secret audit.
+
+**Narrow diagnosis.** The primary declared two required join keys, one allowed
+to vary, but omitted both on the two incoming edges. Correction 1 supplied both
+keys, but gave the convergent key two different values. Correction 2 made that
+key equal on both edges while deleting the already-valid varying key, leaving
+the join's required-key declaration unchanged. The ordinary validator correctly
+rejected it. The current correction schema projects only issue-selected keys;
+the final correction's executable overlay therefore covered the convergent key,
+while retention of the valid varying key depended on the preserve-content
+instruction. There was no transport truncation or capacity failure.
+
+The next bounded question is how a source-bound correction retains still-required
+join-key presence while fixing another join value. That is an unaccepted contract
+option, not an implemented fix or authority to choose branch values automatically.
+Keep the raw response sequence intact. At the parent's terminal-boundary request,
+no further provider run, repair, contract change, or broad review was attempted.
+
+**Retained inspection evidence.** Data directory:
+`/Users/wjmao/plotloom-canaries/2026-09-07-default`; database:
+`plotloom.sqlite3`. The real workbench at local port 8875 opened the project from
+its directory and retained its project URL, quarantined run, one sealed stage,
+and three-attempt Story Graph lineage after a browser reload. Snapshot:
+`.playwright-cli/page-2026-09-08T00-25-12-084Z.yml`; screenshot:
+`.playwright-cli/page-2026-09-08T00-25-22-524Z.png`, relative to the retained data
+directory. The initial root-URL 404 was resolved by using the existing `/v2/`
+mount; an initial client-side response-shape mistake occurred before generation
+submission and created no duplicate project/run. Neither required a product fix.
+There is no successful storyboard to display or assess for pacing/coverage.
+The local application and browser are retained for inspection; provider work is
+terminal and the completion observer exited. Shared source/configuration remains
+unchanged; no vLLM retry, merge, push, full suite, or formal qualification ran.
+
+**Usage:** four pipeline responses recorded **18,774 input** and **6,801 output**
+tokens (**25,575 total**); the readiness probe is not included. Cached versus fresh
+input and reasoning versus total output are unavailable in normalized receipts.
+Task-agent response/token deltas and cost are unavailable. `git diff --check`
+passed for this documentation-only checkpoint.

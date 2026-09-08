@@ -1,5 +1,13 @@
 # Three-story Alpha acceptance
 
+> **Policy update (2026-09-07):** [ADR 0024](adr/0024-pluggable-text-backends-and-independent-qualification.md)
+> approves independently qualifying each supported backend: nine runs, at least
+> 30/36 first-pass stages, and three blinded reviews with the existing quality
+> thresholds. Implementation is pending. This page's commands and 18-run/six-review
+> requirements describe the existing two-profile `alpha_chinese_three_story.v1`
+> mode; they remain exact and must not be used to label a nine-run result as a
+> legacy Alpha pass. The current llama canary is not qualification evidence.
+
 This is the repeatable Alpha acceptance runner. It is an operator run against
 two already-saved text-provider profiles and **does contact those configured
 providers**, so it can incur cost. Automated tests inject a fixture provider

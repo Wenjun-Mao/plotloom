@@ -6,14 +6,14 @@
 >
 > **决策依据：**能力追踪采用 [ADR 0008](../adr/0008-capability-based-adoption-tracking.md)，当前独立仓库与身份边界采用 [ADR 0010](../adr/0010-plotloom-clean-repository.md)，运行与生产边界采用 [ADR 0011](../adr/0011-provider-profiles-and-generation-work-units.md)、[ADR 0012](../adr/0012-approved-storyboards-and-production-units.md)、[ADR 0013](../adr/0013-model-neutral-reliable-generation.md)、[ADR 0014](../adr/0014-project-lifecycle-and-workbench.md)、[ADR 0015](../adr/0015-exact-work-unit-repair.md)、[ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md)、[ADR 0017](../adr/0017-alpha-validation-and-correction-boundaries.md)、[ADR 0018](../adr/0018-trusted-story-timing-allocation.md) 和 [ADR 0019](../adr/0019-exact-fragment-and-join-state-contracts.md)。ADR 0003–0007 保留了重建阶段的历史架构证据。
 
-> **下一步执行（2026-09-07）：**见 [M1-C completion plan](m1c-completion-plan.md)。保留已完成的工作台、作者域与精确修复，先解决当前 cue-order/timing 合同问题，再完成真实持久化分镜 canary、正式 Alpha 验收与交付。此执行计划不把下方历史测试结果当作最新 HEAD 的新验收；开发工作遵循 [ADR 0023](../adr/0023-bounded-delivery-and-evidence.md)。
+> **下一步执行（2026-09-07，已批准修订）：**先完成当前 `default` llama canary，再按 [ADR 0024](../adr/0024-pluggable-text-backends-and-independent-qualification.md) 实现 backend 可启停与独立验收。每个宣称支持的 backend 独立通过 9 条真实流水线、至少 30/36 阶段首次通过和 3 份盲评；至少一项 backend 合格，加上产品核心与 CI 门，才可交付 Alpha。`qwen36_35b` 保留但延后，不重试、不阻塞另一 backend。旧 18-run/six-review 收据含义不变且尚未通过。详见 [completion plan](m1c-completion-plan.md)；此处是计划修订，不宣称功能或验收完成。开发继续遵循 [ADR 0023](../adr/0023-bounded-delivery-and-evidence.md)。
 
 ## 一眼看懂当前状态
 
 | 观察面 | 当前判断 | 它真正说明什么 |
 |---|---:|---|
 | 规范领域与“输入 → 分镜”后端核心 | **约 97%** | 稳定 ID、四阶段 V2 合同、确定性 DAG 骨架、结构化对白/声音/实体状态、确定性时间线、版本化 Gate/Approval、内容绑定、命名 profile、显式有限纠错、领域分片、精确 work-unit repair、封存聚合和原子安装均已实现。M1 剩余出口主要是真实创作质量验收；ProductionSnapshot/ProductionUnit 属于 M2。 |
-| 可供创作者连续使用的本地 Alpha | **约 90%（M1-B1 本地完成）** | 四阶段的当前 V2 字段已有类型化编辑、稳定 ID 增删重排、显式关系迁移、字段级 issue 定位、项目目录/草稿/URL/生命周期、逐 unit 进度、冻结 Profile Key gate、精确修复和 Gate/Approval；完整本地 checkpoint 与真实 FastAPI 的精确 repair→批准→刷新旅程已通过。M1-C 的 18 条真实流水线和独立内容评审仍是 Alpha 出口。 |
+| 可供创作者连续使用的本地 Alpha | **约 90%（M1-B1 本地完成）** | 四阶段的当前 V2 字段已有类型化编辑、稳定 ID 增删重排、显式关系迁移、字段级 issue 定位、项目目录/草稿/URL/生命周期、逐 unit 进度、冻结 Profile Key gate、精确修复和 Gate/Approval；完整本地 checkpoint 与真实 FastAPI 的精确 repair→批准→刷新旅程已通过。M1-C 当前出口改为产品核心门加上所支持 backend 的独立真实验收与盲评；模块变更尚未实现。 |
 | 可独立发布的新仓库产品 | **约 65–70%** | Plotloom 已进入全新仓库，独立依赖、wheel、生产 UI、边界门和远端 CI 已建立；本地 E2E 竞态已修复，仍缺新远端收据、干净机器升级/恢复与图像/视频真实供应商 smoke。 |
 
 这些百分比是路线规划估计，不是测试覆盖率，也不能相加。可复核的当前基线是：
@@ -28,7 +28,7 @@
 - [M1.5 严格验收收据](../verification/2026-09-03-m15-conformance.jsonl)记录两个已保存真实 profile 各 3 次固定中文 Brief：6/6 run 原子成功，双方均为 12/12 阶段首次通过、最大 attempt 1、零 issue 与零 unknown outcome；profile、workload、run 与 topology 均以 hash/稳定 ID 存证，不保存 endpoint、模型名、IP、prompt、response 或密钥；
 - Plotloom-only wheel、模板、迁移树、静态 UI 与禁止 V1 依赖的提取演练包含在上述 Python gate 中；
 - [远端 CI run 33671097019](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019) 已在 `3bf4551` 成功完成前端、Python、wheel、安装 smoke 和浏览器步骤；
-- **当前发布阻断：**完成 M1-C 的 18 条真实文本流水线与独立盲评验收，补新远端无 flaky 收据，以及干净机器安装/升级/恢复。图片/视频生产已按 ADR 0016 硬停，必须等 M2 的 ProductionSnapshot/ProductionUnit 合同完成后再做真实供应商 smoke；当前独立仓库仍不是发布候选。
+- **当前发布阻断：**完成 ADR 0024 模块变更、产品核心门和至少一个受支持 backend 的 9-run/3-review 验收，补新远端无 flaky 收据，以及干净机器安装/升级/恢复。旧双 backend 验收不再是主机可用性的共同前置条件；尚无新的合格收据。图片/视频生产已按 ADR 0016 硬停，必须等 M2 的 ProductionSnapshot/ProductionUnit 合同完成后再做真实供应商 smoke；当前独立仓库仍不是发布候选。
 
 ## 比较对象和证据边界
 
@@ -200,8 +200,9 @@
 ### M1-C：Alpha 验收
 
 - [x] fake-provider 与确定性后端矩阵覆盖分片缺失/重复/聚合冲突、并发编辑、取消竞态、未知提交结果、重启、精确 repair 和无部分安装；真实浏览器 repair 旅程进一步证明 sibling reuse 与全范围原子安装。
-- [ ] 对两个已保存 profile 运行三份固定中文故事、每份重复三次，共 18 条真实全流水线；记录匿名 profile、prompt/schema/topology hash、成功率、耗时、token 和脱敏失败分布。
-- [ ] 从每个 profile × 故事确定性抽取 6 条样本，由 Codex 按叙事清楚度、分支因果、人物/空间/道具连续性、表演可读性、镜头语言、节奏和修改成本做独立工程门评审；结果绑定准确 snapshot，明确不冒充人类评审或产品 Approval。
+- [ ] ADR 0024：显式 protocol adapter 选择、profile 独立启停与兼容历史 snapshot；不复制生成核心、不按模型 alias 特判。
+- [ ] 对每个拟支持 backend 独立运行三份固定中文故事、每份重复三次，共 9 条真实全流水线；9/9 原子安装、至少 30/36 阶段首次通过，记录独立版本与脱敏证据。先验收 `default`，`qwen36_35b` 延后。
+- [ ] 对该 backend 每个故事固定抽取一条，共 3 份盲评，使用原 `codex_external_review` rubric 与分数门槛；结果绑定准确来源与 snapshot，不冒充人类评审或产品 Approval。旧双 profile 18-run/6-review 模式保留原义，尚未通过。
 
 ### M2：ProductionUnit 与媒体 Artifact 闭环
 
