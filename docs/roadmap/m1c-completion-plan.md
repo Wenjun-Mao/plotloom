@@ -5,8 +5,10 @@ Planning baseline: `ea2d6e1` on `codex/m1b-alpha`, clean when inspected on
 acceptance runs were performed to write it. Later tasks must verify their
 actual HEAD and worktree before execution.
 
-The next product outcome is the retained `default` llama canary's persisted
-storyboard, visible after refreshing the existing workbench. On 2026-09-07 the
+The next product outcome is a complete `default` llama storyboard that can be
+inspected, edited, and reopened in the workbench. The first retained canary
+quarantined at Story Graph; it is evidence to diagnose, not a successful result.
+On 2026-09-07 the
 user approved [ADR 0024](../adr/0024-pluggable-text-backends-and-independent-qualification.md):
 pluggable backend availability and independent qualification. The vLLM
 `qwen36_35b` lane is deferred and is not retried. Release now requires the core
@@ -15,6 +17,14 @@ one), rather than two available hosts together. Each backend still needs nine
 successful runs and three blinded reviews. The old 18-run/six-review gate keeps
 its historical meaning; it has not passed. The [capability matrix](capability-matrix.md)
 is the product progress authority; this file owns the execution order.
+
+**Approved execution adjustment (2026-09-07):** close the two concrete
+availability-review findings, integrate that small slice, then fix the observed
+join-correction failure and attempt one real four-stage canary with content
+inspection. Do not put adapter registry/V3 snapshots, runtime diagnostics, or
+qualification-runner expansion ahead of that creation journey. ADR 0024's
+architectural direction and per-backend quality thresholds remain accepted;
+this amendment changes their delivery order, not the meaning of old evidence.
 
 ## Preserve the completed baseline
 
@@ -31,7 +41,10 @@ this checkpoint sequence.
 |---|---|---|
 | 1. Close the ownership question | A bounded decision about the existing cue-order and timing failures | Reproduce/check the relevant cases at current HEAD; decide whether current fixes suffice or specify one exact contract change |
 | 2. Demonstrate real creation | Finish the admitted `default` canary; a successful project retains its storyboard after browser refresh | Atomic installation, valid lineage, bounded attempts, persistent UI content; otherwise retain the concrete failure at the existing stopping boundary |
-| 2B. Make backend selection reversible | Explicit adapter selection and per-profile enable/disable, plus independently runnable qualification | Preserve old snapshots; disabled profiles reject new runs without affecting admitted work; single-backend mode cannot masquerade as legacy Alpha |
+| 2B. Close the availability slice | Fix only the missing-profile admission bypass and availability-toggle draft loss; integrate | Targeted regression evidence, preserved historical hashes, no new scope |
+| 2C. Fix the observed join correction | A source-bound correction cannot drop a still-required state assignment while fixing another value | Reproduce retained failure in focused tests, one shared contract fix, no guessed creative values |
+| 2D. Demonstrate a usable storyboard | One real llama run completes all stages; storyboard is inspected, edited and reopened | Atomic installation, bounded lineage, readable coherent content, persistence; stop/reassess repeated failure |
+| 2E. Complete necessary backend modularity | Adapter selection and independent qualification after the creation journey succeeds | Preserve old contracts; independent mode cannot masquerade as legacy Alpha; no unnecessary plugin infrastructure |
 | 3. Freeze a verified candidate | One reviewed, clean source commit suitable for formal acceptance | Focused findings closed and all required local release checks pass on the final candidate |
 | 4. Qualify the supported backend | Nine fixed-story runs and three blinded reviews pass for `default` on the frozen candidate | Same per-backend reliability/quality thresholds; distinct versioned evidence; vLLM deferred |
 | 5. Deliver | Verified branch integration, push, final CI, and updated progress record | Remote state reconciled without force push, passing final CI, and a concise user-facing handoff |
@@ -101,20 +114,76 @@ Capture available usage deltas at the end of steps 1 and 2 to calibrate response
 count, context size, and estimated cost per accepted result. Do not promise a
 percentage saving or silently enforce a made-up dollar budget.
 
-### 2B. Reversible backends and independent qualification
+### 2B. Finish and integrate availability only
 
-Start after the current canary reaches its terminal checkpoint; do not edit its
-running checkout or frozen contracts. One implementation owner follows ADR 0024.
-The approved outcome is operational modularity, not another generation rewrite.
+Candidate `c654fff` implements revisioned enable/disable but is not yet accepted.
+The stable-candidate review identified two bounded findings:
+
+- The repository admitted a new V2 run with an unregistered profile snapshot.
+  Require the managed profile at fresh admission; seed isolated qualification
+  repositories normally instead of retaining a fail-open compatibility path.
+- Availability toggles reloaded the profile form and could discard unsaved
+  settings/session keys. Merge availability metadata only; retain the draft,
+  base configuration revision and typing during the request or a 409 conflict.
+
+Finish these corrections with focused backend and browser regressions, refreshed
+static assets, then integrate. Keep disabled/missing-profile admission distinct
+from draining already-admitted work. Do not add another general review; recheck
+the specific findings and any directly affected behavior. No registry, new
+snapshot schema, new qualification mode or live provider rerun belongs here.
+
+### 2C. Fix one observed join-correction failure
+
+Use the retained run `93e3edd2-74a9-424a-914b-a30498ec0085` and the terminal
+canary record below. Read local evidence only as needed; do not publish prompt
+or response bodies. The second correction fixed one join value while deleting
+another still-required assignment. Identify the exact primary/schema/correction
+agreement and source-preservation gap before editing.
+
+Reproduce that failure with a small fixture, state field ownership, and implement
+one provider-neutral contract fix with positive and tampering regressions. The
+model retains creative state values; trusted code may preserve only facts whose
+authority is established explicitly. Update the controlling ADR if that authority
+or prompt contract changes, preserve raw evidence and historical contracts, and
+never weaken the canonical validator or increase the correction limit.
+
+Stop at focused regression-backed readiness for step 2D. Do not build a new
+general repair framework, audit other domains, or claim model incapacity from
+this one failure. A broader ownership change requires a concrete re-scope.
+
+### 2D. One real creation journey before more infrastructure
+
+Commit the focused fix and run the same unmodified Chinese story with `default`
+through the normal application, with retained isolated data and fresh source
+identity. Keep the original failed run unchanged; do not relabel its repair
+lineage after a contract change. Recheck service readiness only as needed and
+never contact the deferred vLLM host.
+
+Success means four sealed stages, atomic installation, no unknown outcome,
+at most three attempts per unit, and the storyboard visible after refresh.
+Inspect the actual content for narrative clarity, branch causality, continuity,
+performance readability, shot choices/pacing, and editing effort. Exercise one
+ordinary edit/save/reopen without concealing the original generated content or
+its review. Present the storyboard and specific observations to the user; a
+schema pass alone is not creative acceptance. This is not the formal nine-run
+qualification or product Approval.
+
+If the same failure class persists after the targeted fix, stop with retained
+evidence and reassess that contract instead of retrying or expanding correction
+machinery. If another layer fails, record its exact issue and smallest useful
+next action; do not silently start an unlimited sequence of fixes and reruns.
+
+### 2E. Remaining backend modularity, after the creation journey
+
+This scope is deliberately deferred until step 2D establishes a usable result.
+One implementation owner follows ADR 0024. Implement only the remaining pieces
+needed for explicit backend selection and independent qualification; no new
+package/plugin system, story pipeline or duplicated enable/disable feature.
 
 1. Add explicit protocol adapter ID/version resolution using the existing ports.
    Introduce a new snapshot schema for new runs; preserve exact V1/V2 decoding,
    JSON and hashes. Do not dispatch based on `textProvider` labels or aliases.
-2. Add separately revisioned profile availability in persistence/API and the
-   settings UI. Enforce admission transactionally for all new run paths,
-   including new exact repair children. Already-admitted runs and their resume
-   retain frozen behavior; disable is not cancel. A disabled selected profile
-   yields an explicit unavailable state, not fallback to another backend.
+2. Reuse the accepted step 2B availability lifecycle without rewriting it.
 3. Separate optional runtime diagnostics from protocol generation. Keep
    declared and observed capacity distinct; never use llama-specific endpoints
    as a universal health contract. Do not contact the deferred vLLM host.
@@ -134,8 +203,8 @@ session-secret isolation, legacy hashes and exact old/new sample cardinality.
 Demonstrate disabling an unused profile, continuing creation with an enabled
 one, and re-enabling without deleting history. Keep `.env`, user-level
 `AGENTS.md`, server processes, prompts, validators and media out of scope.
-If canary evidence needs a generation fix, checkpoint that separately; do not
-hide it in this module change. Review once at a stable candidate, then step 3.
+Do not hide generation-contract fixes in this module change. Review once at a
+stable candidate, then step 3.
 
 ### 3. Freeze a verified candidate
 
@@ -169,7 +238,7 @@ literal run-count quota.
 
 ### 4. Qualify the supported backend
 
-Use the new versioned single-backend mode described by ADR 0024, after step 2B
+Use the new versioned single-backend mode described by ADR 0024, after step 2E
 implements and verifies it; the existing [Alpha CLI](../alpha-acceptance.md)
 still requires two profiles until then. Use the same fixed stories:
 one selected backend × three stories × three repetitions. Keep its source
@@ -219,12 +288,18 @@ quarantine at Story Graph after three attempts; Story Bible sealed, no canonical
 head was installed, and no outcome was unknown. Readiness passed at 32,768
 tokens per slot. Quarantine/lineage survived browser refresh, but no successful
 storyboard exists. The terminal evidence from execution commit `ee6239d` is
-preserved below. Next execute step 2B under ADR 0024; retain the required-key
-correction issue as a separate, bounded shared-contract fix before qualification.
+preserved below. Next close the two review findings in availability candidate
+`c654fff`, integrate it, then execute the shared join fix (2C) and one real
+creation/inspection journey (2D). Remaining module expansion (2E) waits.
 The service-readiness disposition below is historical evidence from before the
 operator's llama restart. vLLM remains preserved and deferred. This amendment
 changes the accepted plan only; module implementation and all new release
-evidence are pending. Current root baseline for this amendment: clean `481a20c`.
+evidence are pending. Current root baseline for this execution-order adjustment:
+clean `e0e3274`. The previous correction task left four uncommitted source-file
+edits after drifting to an old server question following context compaction;
+they are preserved in its worktree and are not considered verified. A fresh,
+bounded owner completes those exact findings; no concurrent writer or new
+provider call is authorized by that recovery.
 
 The remaining entries are historical checkpoint-1/readiness evidence; the
 terminal canary record at the end supersedes their current/next-action entries:

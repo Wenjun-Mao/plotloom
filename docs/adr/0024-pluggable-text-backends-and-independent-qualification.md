@@ -126,14 +126,24 @@ comparison remains useful optional evidence, not a host-availability dependency.
 
 ## Delivery and guardrails
 
-Finish the retained llama canary first; record its terminal evidence even if it
-fails. Then implement the focused adapter/lifecycle slice and independent
-qualification mode, with one stable-candidate review. Tests must cover registry
+**Execution-order amendment, approved 2026-09-07:** the retained llama canary
+failed at Story Graph. First close the two concrete availability-review findings
+and integrate that small slice. Next fix the observed shared join-correction
+failure with focused regressions and attempt one full llama creation journey,
+including storyboard content inspection and edit/save/reopen. Registry/V3
+snapshots, runtime diagnostics and qualification-mode expansion wait until that
+product outcome works. This reprioritization does not weaken the architecture
+or per-backend qualification thresholds and does not authorize a pipeline rewrite.
+
+Then complete only the remaining modularity needed for independent qualification,
+with one stable-candidate review. Tests must cover registry
 refusal, historical hash preservation, revision conflicts, disabled admission
 and drain/cancel races, no active-profile fallback, session-secret isolation,
 backend-specific diagnostics, and strict old/new qualification cardinalities.
 
-Freeze and verify the resulting candidate, run the llama qualification and
+If the same canary failure class persists after the focused fix, checkpoint and
+reassess the contract rather than starting another open-ended correction cycle.
+Freeze and verify the eventual candidate, run the llama qualification and
 three blinded reviews, and retain vLLM for later independent re-enablement.
 Do not claim implementation or release acceptance from this decision record.
 
