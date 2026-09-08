@@ -308,3 +308,50 @@ or alter slot configuration during this checkpoint. The 18-run matrix and six
 blind reviews remain separate, unperformed qualification work. Task response,
 fresh/cached input, total/reasoning output, and cost deltas are unavailable;
 no usage instrumentation was added.
+
+#### Targeted service-access follow-up
+
+At clean `0feea3b8a9e8f0bde49b8da8ec1a6488004ec9b4`, the user authorized
+continued scoped readiness diagnosis and safe reversible service fixes.
+Saved endpoints were resolved again in memory; they matched the two targets
+the user identified. No general repository or peer survey was repeated.
+
+- **`default`:** its exact Tailscale peer is online and answered a targeted
+  ping. The configured model TCP port is reachable, while TCP 22 actively
+  refuses connections. Batch-mode SSH with strict host-key checking also
+  returned connection refused. Existing SSH configuration supplied no alternate
+  matching host access. The previously observed 8,192-token slots therefore
+  remain a service configuration blocker, not a network-routing failure.
+- **`qwen36_35b`:** its exact Tailscale peer is offline (last seen
+  `2026-09-06T19:49:40.1Z`). Two targeted Tailscale pings received no reply;
+  both the configured model TCP port and TCP 22 timed out. The existing NVIDIA
+  Sync `Spark` SSH alias matches this same host, but its local hostname could
+  not resolve. Both target routes use the active Tailscale interface.
+- **Service-specific correction:** `/props` and `/slots` establish llama-server
+  capacity only. The second target is user-identified as vLLM; its earlier
+  connection timeouts establish no vLLM capacity fact, and those paths must not
+  be required after connectivity returns. Verify its context through applicable
+  model/server metadata or recovered launch configuration instead.
+
+No remote login succeeded. Consequently process ownership, other workloads,
+and recoverable original service launch configuration cannot be established.
+The prior idle llama slots are only a point-in-time observation and do not
+authorize restarting an otherwise uninspected shared service. No restart,
+profile edit, Tailscale/security change, or remote-access installation was
+attempted. All access-check processes exited; there is no in-flight generation.
+
+**Minimal operator actions:** on the llama-server host, recover the current
+launch configuration and check workload ownership; arrange a non-disruptive
+capacity change providing at least 32,768 tokens per slot (for four slots,
+131,072 total context if this runtime divides its pool equally), then verify
+the actual slot report. Alternatively provide existing authorized host access
+so that inspection and the scoped change can be completed here. On the vLLM
+host, restore the machine's existing network/Tailscale connection and running
+service; no capacity change is justified until its actual vLLM configuration
+is readable. This task cannot perform either host-local action through the
+currently available access paths.
+
+Both canaries remain unsubmitted, final-content readiness and browser
+persistence unverified. No retained application directory or project exists.
+Only this documentation changed; `git diff --check` passed. No full tests,
+merge, push, or formal Alpha run occurred. Usage/cost deltas remain unavailable.
