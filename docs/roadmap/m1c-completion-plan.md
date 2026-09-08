@@ -116,8 +116,10 @@ percentage saving or silently enforce a made-up dollar budget.
 
 ### 2B. Finish and integrate availability only
 
-Candidate `c654fff` implements revisioned enable/disable but is not yet accepted.
-The stable-candidate review identified two bounded findings:
+Availability candidate `c654fff` and corrections `cad23c8` are now accepted and
+integrated locally as `d28e2e7` and `be4bc6e`. The integrated runtime, frontend,
+tests and scripts match the tested corrected candidate exactly. The review
+identified and closed two bounded findings:
 
 - The repository admitted a new V2 run with an unregistered profile snapshot.
   Require the managed profile at fresh admission; seed isolated qualification
@@ -288,23 +290,27 @@ quarantine at Story Graph after three attempts; Story Bible sealed, no canonical
 head was installed, and no outcome was unknown. Readiness passed at 32,768
 tokens per slot. Quarantine/lineage survived browser refresh, but no successful
 storyboard exists. The terminal evidence from execution commit `ee6239d` is
-preserved below. Next close the two review findings in availability candidate
-`c654fff`, integrate it, then execute the shared join fix (2C) and one real
-creation/inspection journey (2D). Remaining module expansion (2E) waits.
+preserved below. Availability review findings are closed and integrated through
+`be4bc6e`; the integrated code matches tested candidate `cad23c8`. Next execute
+the shared join fix (2C) and one real creation/inspection journey (2D).
+Remaining module expansion (2E) waits.
 The service-readiness disposition below is historical evidence from before the
 operator's llama restart. vLLM remains preserved and deferred. This amendment
-changes the accepted plan only; module implementation and all new release
-evidence are pending. Current root baseline for this execution-order adjustment:
-clean `e0e3274`. The previous correction task left four uncommitted source-file
-edits after drifting to an old server question following context compaction;
-they are preserved in its worktree and are not considered verified. A fresh,
-bounded owner completes those exact findings; no concurrent writer or new
-provider call is authorized by that recovery.
+records the approved order; availability is now implemented, while remaining
+module expansion and all new release evidence are pending. The earlier four
+unfinished correction-file edits were preserved and completed by a fresh bounded
+owner after the old task drifted to an obsolete server question following context
+compaction. Recovery verification: 15 focused profile tests, 41 affected backend
+tests, 23 Alpha tests, 115 frontend tests, both typechecks, deterministic build,
+and four profile browser journeys passed. No new provider call or full release
+suite was run. Root worktree was clean at integration; usage/cost deltas remain
+unavailable. The next assignment must start from this current record rather
+than the old task's initial request.
 
 ### Step 2B: backend availability lifecycle
 
-**Outcome (2026-09-07):** availability-only lifecycle slice complete at local
-commit pending. A text provider profile now has independently revisioned
+**Initial candidate (2026-09-07):** availability-only lifecycle at `c654fff`,
+subsequently corrected by `cad23c8` as recorded below. A text provider profile has independently revisioned
 `enabled` control-plane state. The migration defaults existing profiles to
 enabled without changing their settings JSON, V1/V2 profile hashes, frozen run
 snapshots, plans, or receipts. Settings can disable/re-enable even the selected
