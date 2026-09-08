@@ -18,6 +18,8 @@ from plotloom.generation.work_units import (
     JoinAllowedDifferencesRepairFact,
     JoinIncomingEdgeRepairTarget,
     JoinNewRequiredKeyIncomingEdges,
+    JoinPreservedIncomingStateEffect,
+    JoinPreservedStateEffect,
     JoinStateEffectRepairFact,
     ShotDurationBudgetRepairFact,
 )
@@ -125,6 +127,19 @@ def _join_state_fact() -> JoinStateEffectRepairFact:
         repair_action="set_missing",
         has_expected_value=True,
         expected_value={"next": 1},
+        preserved_state_effects=(
+            JoinPreservedStateEffect(
+                state_key="variant",
+                incoming_effects=(
+                    JoinPreservedIncomingStateEffect(
+                        edge_id="edge-a", expected_value="left"
+                    ),
+                    JoinPreservedIncomingStateEffect(
+                        edge_id="edge-b", expected_value="right"
+                    ),
+                ),
+            ),
+        ),
     )
 
 
@@ -301,10 +316,22 @@ def test_join_postconditions_require_complete_arrays_state_presence_and_exact_va
 
     response = deepcopy(_response())
     response["edges"][1]["stateEffects"].pop("variant")  # type: ignore[index]
-    assert validate_correction_postconditions(response, facts) == _mismatch(_join_arrays_fact().path)
+    assert validate_correction_postconditions(response, [_join_arrays_fact()]) == _mismatch(
+        _join_arrays_fact().path
+    )
 
     response = deepcopy(_response())
     response["edges"][1]["stateEffects"]["route"] = {"next": 1.0}  # type: ignore[index]
+    assert validate_correction_postconditions(response, facts) == _mismatch(_join_state_fact().path)
+
+    response = deepcopy(_response())
+    response["edges"][1]["stateEffects"].pop("variant")  # type: ignore[index]
+    assert validate_correction_postconditions(response, [_join_state_fact()]) == _mismatch(
+        _join_state_fact().path
+    )
+
+    response = deepcopy(_response())
+    response["edges"][0]["stateEffects"]["variant"] = "rewritten"  # type: ignore[index]
     assert validate_correction_postconditions(response, facts) == _mismatch(_join_state_fact().path)
 
 

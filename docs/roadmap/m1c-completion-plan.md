@@ -664,3 +664,49 @@ separate join-correction defect. After integration, the approved next priority
 remains that shared join correction followed by one real llama canary and content
 inspection. Commit and final worktree state are recorded with this recovery
 handoff.
+
+### Step 2C correction: source-bound join sibling preservation
+
+**Outcome (2026-09-07):** the retained default canary's Story Graph failure is
+addressed as one shared correction-contract change. Its first correction made a
+required convergent key valid; the next correction deleted the other required,
+allowed-to-vary key because the prior contract projected only issue-selected
+keys. The ordinary validator correctly stopped that response at
+`semantic.join_state_effect_missing`; the defect was preservation authority,
+not a reason to choose branch values in trusted code or relax validation.
+
+`JoinStateEffectRepairFact` now carries exact per-edge
+`preservedStateEffects` for only the other required join keys that the rejected
+response already validates: complete frozen incoming-edge membership, finite
+canonical JSON (including null), and convergent equality where applicable.
+Keys with a missing, conflict, non-finite, or required-key-promotion issue in
+the same rejection remain unfrozen, including multiple simultaneous repairable
+keys. The compiler re-derives every persisted join fact from the rejected
+response, stable issues, and frozen topology before compiling a correction;
+source rebinding, unknown IDs, membership tampering, and changed sibling values
+fail closed. Schema projection and the provider-independent postcondition now
+enforce preservation. This remains preservation-only: no response is patched
+and no branch value is invented.
+
+The changed identifiers are `WorkUnitPromptContract m1.12t`,
+`bounded_correction.v22`, `correction_directives.v4`,
+`correction_evidence_projection.v3`, and `correction_response_schema.v4`.
+ADR 0022 records the ownership, cause, and historical-artifact boundary. The
+implementation is confined to join repair facts, correction directive/schema/
+postcondition compilation, correction source verification, focused regressions,
+and the ADR; existing failed retained run data remains unchanged.
+
+Checks: six focused generation contract suites **118 passed**; the focused
+Story Graph correction and compiler-version pipeline regressions **2 passed**
+(56 unrelated pipeline tests deselected), with `git diff --check` clean. The
+regression recreates a convergent conflict beside different valid allowed-variant
+values, then accepts a correction that changes only the convergent key. It also covers source
+rebinding, JSON null round-trip, schema and postcondition mutations, unknown
+edge rejection, and simultaneous repairable keys. No provider call, canary
+replay, profile/configuration change, full unrelated suite, merge, or push ran.
+
+**Remaining gap / next action:** this is focused-test readiness only. Root must
+review the changed contract before one new real llama canary and content
+inspection; the old failed run must not be relabelled or repaired in place. A
+repeat of this failure class on that new run requires reassessment rather than
+expanding correction scope.

@@ -148,6 +148,7 @@ def test_operationally_identical_join_effect_facts_are_losslessly_grouped() -> N
             ],
             "repairAction": "set_missing",
             "hasExpectedValue": False,
+            "preservedStateEffects": [],
             "sourceFactIndexes": [0, 1],
             "issuePaths": [
                 ["edges", "edge-a", "stateEffects", "shared"],

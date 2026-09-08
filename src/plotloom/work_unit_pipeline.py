@@ -73,11 +73,13 @@ from .generation.work_units import (
     AUDIO_EVENT_ID_BINDING_VERSION,
     FRAGMENT_ID_BINDING_VERSION,
     CompiledWorkUnitRequest,
+    JoinStateEffectRepairFact,
     SemanticRepairFact,
     StoryboardTimingRepairPlanFact,
     WorkUnitContractError,
     compile_work_unit_request,
     assert_cue_order_repair_fact_matches_source,
+    assert_join_state_effect_repair_fact_matches_source,
     parse_semantic_repair_fact,
     assert_continuity_repair_fact_matches_source,
     assert_semantic_repair_fact_matches_issue,
@@ -1043,6 +1045,7 @@ class DurableWorkUnitRunner:
             )
             if (
                 isinstance(fact, StoryboardTimingRepairPlanFact)
+                or isinstance(fact, JoinStateEffectRepairFact)
                 or fact.code
                 in {
                     "semantic.continuity_beat_sequence_mismatch",
@@ -1094,6 +1097,17 @@ class DurableWorkUnitRunner:
                                 else None
                             ),
                         )
+                except ValueError as error:
+                    raise CorrectionSourceContractError(str(error)) from error
+            if isinstance(fact, JoinStateEffectRepairFact):
+                assert source_value is not None
+                try:
+                    assert_join_state_effect_repair_fact_matches_source(
+                        fact,
+                        source_value,
+                        issues=tuple(validated_issues),
+                        topology=getattr(base_compiled.validator, "topology", None),
+                    )
                 except ValueError as error:
                     raise CorrectionSourceContractError(str(error)) from error
             parsed_repair_facts.append(fact)

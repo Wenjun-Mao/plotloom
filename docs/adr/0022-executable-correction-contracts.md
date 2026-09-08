@@ -77,13 +77,43 @@ deferred details are included in a model-visible message or response schema.
 The model-facing projection contains only executable code/path pairs and
 bindings whose indexes are local to that executable projection.
 
-`WorkUnitPromptContract m1.12s` freezes the correction policy, issue selector,
+`WorkUnitPromptContract m1.12t` freezes the correction policy, issue selector,
 directive registry, evidence projection, and response-schema compiler versions
 on the primary attempt. Each correction additionally freezes SHA-256 hashes of
 the issue selection, selected directive set, evidence projection, and full
 narrowed schema. Resume and correction lineage compare those immutable
 snapshots and reject compiler drift. Terminal historical artifacts remain raw
 evidence; their absent fields are not injected, re-saved, or re-hashed.
+
+### Join corrections retain only source-proven valid sibling assignments
+
+A retained Story Graph preflight showed that an issue-selected correction could
+repair one required join key while deleting a different required key that was
+already valid. The original fact/schema/postcondition contract named only the
+failed key, so the validator correctly rejected the deletion but the next
+correction had no executable authority to retain the sibling assignment.
+
+`JoinStateEffectRepairFact` now carries `preservedStateEffects` only for other
+required keys whose complete values already satisfy the rejected response's
+frozen join contract: every exact incoming edge is present, every value is
+finite canonical JSON (including an explicit JSON null), and a non-variant key
+has one canonical value across its incoming edges. Each preserved key binds the
+exact ordered incoming-edge membership and the exact per-edge value. The
+response-schema overlay and provider-independent postcondition require those
+assignments to remain unchanged while the issue-selected key is repaired.
+
+This is preservation authority, not branch-value selection. Any key with a
+missing, conflicting, non-finite, or allowed-difference-promotion issue in the
+same rejected response is excluded from preservation, so simultaneous repairs
+remain free to repair invalid fields and cannot receive contradictory frozen
+constraints. Immediately before compiling a correction, Plotloom re-extracts
+the rejected final and deterministically re-derives the whole join fact against
+the frozen topology and validation issues; a fabricated edge ID, changed value,
+or fact rebound to another source is rejected. The current policy/compiler
+identities are `bounded_correction.v22`, `correction_directives.v4`,
+`correction_evidence_projection.v3`, and `correction_response_schema.v4`.
+Older artifacts retain their original JSON, hashes, and seals; they are neither
+rewritten nor relabelled as evidence for this contract.
 
 ### Continuity repairs have one deterministic boundary owner
 
@@ -196,7 +226,9 @@ output as valid JSON.
 
 - Tests cover directive selection, unknown-code rejection, lossless join-fact
   grouping, deterministic issue-selection and overlay hashes, deferred derived
-  continuity issues, JSON null, and conflicting authority.
+  continuity issues, JSON null, and conflicting authority. Join preservation
+  tests cover source rebinding, frozen membership, per-edge variant values,
+  JSON null, and simultaneous repairable keys remaining unfrozen.
 - Tests cover every continuity boundary, ordered-ID replay, foreign/non-adjacent
   rejection, source-response rebinding, exact fact/scalar assignment, and
   required entity presence.

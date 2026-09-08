@@ -114,6 +114,14 @@ def compile_correction_response_schema(
                     state_key=fact.state_key,
                     expected_value=expected_value,
                 )
+            for preserved_effect in fact.preserved_state_effects:
+                for incoming_effect in preserved_effect.incoming_effects:
+                    _merge_edge_state_constraint(
+                        edge_state_requirements,
+                        edge_id=incoming_effect.edge_id,
+                        state_key=preserved_effect.state_key,
+                        expected_value=deepcopy(incoming_effect.expected_value),
+                    )
             applied_codes.add(fact.code)
             continue
 

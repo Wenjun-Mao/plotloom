@@ -98,6 +98,7 @@ from .story_graph_topology import (
     STORY_GRAPH_CONTENT_FILL_SCHEMA_ID,
     StoryGraphContentBindingError,
     StoryGraphContentFill,
+    StoryGraphJoinContentFill,
     StoryGraphTopology,
     bind_story_graph_content_fill,
     story_graph_content_fill_join_diagnostic_issues,
@@ -116,7 +117,7 @@ from .storyboard_timing_repair import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12s"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12t"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 AUDIO_EVENT_ID_BINDING_VERSION = "audio_event_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
@@ -573,6 +574,36 @@ class JoinAllowedDifferencesRepairFact(CamelModel):
         return self
 
 
+class JoinPreservedIncomingStateEffect(CamelModel):
+    """One source-validated state value retained on a frozen incoming edge."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    edge_id: NonBlankText
+    expected_value: Any
+
+    @model_validator(mode="after")
+    def validate_expected_value(self) -> "JoinPreservedIncomingStateEffect":
+        finite_canonical_json(self.expected_value)
+        return self
+
+
+class JoinPreservedStateEffect(CamelModel):
+    """One still-valid required key and its exact values on every incoming edge."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    state_key: NonBlankText
+    incoming_effects: tuple[JoinPreservedIncomingStateEffect, ...] = Field(min_length=2)
+
+    @model_validator(mode="after")
+    def validate_incoming_effects(self) -> "JoinPreservedStateEffect":
+        edge_ids = [effect.edge_id for effect in self.incoming_effects]
+        if len(edge_ids) != len(set(edge_ids)):
+            raise ValueError("preserved incoming edge effects must be unique")
+        return self
+
+
 class JoinStateEffectRepairFact(CamelModel):
     """Path-bound join edge repair guidance derived from frozen topology."""
 
@@ -596,6 +627,11 @@ class JoinStateEffectRepairFact(CamelModel):
     # represented by ``expectedValue is None`` alone.
     has_expected_value: bool = False
     expected_value: Any | None = None
+    # Sibling keys are authority only when this rejected response already
+    # satisfies their full join contract. Keys with their own repairable issue
+    # are deliberately absent, so simultaneous repairs never freeze invalid
+    # fields or contradict one another.
+    preserved_state_effects: tuple[JoinPreservedStateEffect, ...] = ()
 
     @model_validator(mode="after")
     def validate_join_effect_target(self) -> "JoinStateEffectRepairFact":
@@ -628,6 +664,17 @@ class JoinStateEffectRepairFact(CamelModel):
             # presence bit says so.  Accepting an explicit null here would
             # turn absence of repair authority into an ambiguous instruction.
             raise ValueError("expectedValue requires hasExpectedValue=true")
+        preserved_keys = [effect.state_key for effect in self.preserved_state_effects]
+        if len(preserved_keys) != len(set(preserved_keys)):
+            raise ValueError("preservedStateEffects must use unique state keys")
+        if self.state_key in preserved_keys:
+            raise ValueError("preservedStateEffects cannot constrain the repaired state key")
+        incoming_edge_ids = tuple(edge.edge_id for edge in self.incoming_edges)
+        for effect in self.preserved_state_effects:
+            if tuple(item.edge_id for item in effect.incoming_effects) != incoming_edge_ids:
+                raise ValueError(
+                    "preservedStateEffects must cover the exact ordered incoming edge set"
+                )
         return self
 
 
@@ -2515,6 +2562,108 @@ def _story_graph_join_repair_facts(
             return None
         return tuple(sorted(targets, key=lambda edge: (edge.edge_id, edge.source_node_id)))
 
+    incoming_by_join = {
+        join_id: targets
+        for join_id in topology_joins
+        if (targets := incoming_edges(join_id)) is not None
+    }
+    mutable_keys_by_join: dict[str, set[str]] = {
+        join_id: set() for join_id in incoming_by_join
+    }
+    for issue in issues:
+        path = issue.path
+        if (
+            issue.code == "semantic.join_allowed_differences_must_be_required"
+            and len(path) == 3
+            and path[0] == "joinContracts"
+            and isinstance(path[1], str)
+            and path[2] == "allowedDifferences"
+        ):
+            join = joins_by_id.get(path[1])
+            if join is not None:
+                required = set(join.required_state_keys)
+                mutable_keys_by_join.setdefault(join.id, set()).update(
+                    key for key in join.allowed_differences if key not in required
+                )
+            continue
+        if (
+            issue.code == "semantic.join_state_effect_conflict"
+            and len(path) == 4
+            and path[0] == "joinContracts"
+            and isinstance(path[1], str)
+            and path[2] == "requiredStateKeys"
+            and isinstance(path[3], str)
+        ):
+            mutable_keys_by_join.setdefault(path[1], set()).add(path[3])
+            continue
+        if (
+            issue.code
+            in {
+                "semantic.join_state_effect_missing",
+                "semantic.state_effect_not_json",
+            }
+            and len(path) == 4
+            and path[0] == "edges"
+            and isinstance(path[1], str)
+            and path[2] == "stateEffects"
+            and isinstance(path[3], str)
+        ):
+            edge = topology_edges.get(path[1])
+            if edge is None:
+                continue
+            for join_id, targets in incoming_by_join.items():
+                if edge.id in {target.edge_id for target in targets}:
+                    mutable_keys_by_join.setdefault(join_id, set()).add(path[3])
+                    break
+
+    def preserved_state_effects(
+        join: StoryGraphJoinContractContent,
+        targets: tuple[JoinIncomingEdgeRepairTarget, ...],
+    ) -> tuple[JoinPreservedStateEffect, ...]:
+        """Freeze only sibling keys already valid in the rejected response.
+
+        The rejected final is source authority for values that already satisfy
+        the complete join rule. It is never authority for a key that needs a
+        correction in this packet, so concurrent repairable keys stay mutable.
+        """
+
+        preserved: list[JoinPreservedStateEffect] = []
+        mutable_keys = mutable_keys_by_join.get(join.id, set())
+        for state_key in join.required_state_keys:
+            if state_key in mutable_keys:
+                continue
+            incoming_effects: list[JoinPreservedIncomingStateEffect] = []
+            serialized_values: list[str] = []
+            for target in targets:
+                fill_edge = edge_fill.get(target.edge_id)
+                if fill_edge is None or state_key not in fill_edge.state_effects:
+                    incoming_effects = []
+                    break
+                try:
+                    serialized_values.append(
+                        finite_canonical_json(fill_edge.state_effects[state_key])
+                    )
+                except (TypeError, ValueError):
+                    incoming_effects = []
+                    break
+                incoming_effects.append(
+                    JoinPreservedIncomingStateEffect(
+                        edge_id=target.edge_id,
+                        expected_value=deepcopy(fill_edge.state_effects[state_key]),
+                    )
+                )
+            if not incoming_effects:
+                continue
+            if state_key not in join.allowed_differences and len(set(serialized_values)) != 1:
+                continue
+            preserved.append(
+                JoinPreservedStateEffect(
+                    state_key=state_key,
+                    incoming_effects=tuple(incoming_effects),
+                )
+            )
+        return tuple(preserved)
+
     facts: list[SemanticRepairFact] = []
     for issue in relevant_issues:
         path = issue.path
@@ -2665,6 +2814,7 @@ def _story_graph_join_repair_facts(
             "incoming_edges": targets,
             "repair_action": action,
             "has_expected_value": has_expected_value,
+            "preserved_state_effects": preserved_state_effects(join, targets),
         }
         if has_expected_value:
             fact_input["expected_value"] = expected_value
@@ -3691,6 +3841,21 @@ def serialize_semantic_repair_fact(fact: SemanticRepairFact) -> dict[str, Any]:
     payload = fact.model_dump(mode="json", by_alias=True, exclude_none=True)
     if isinstance(fact, JoinStateEffectRepairFact) and fact.has_expected_value:
         payload["expectedValue"] = fact.expected_value
+    if isinstance(fact, JoinStateEffectRepairFact):
+        # A preserved sibling may deliberately be JSON null.  Unlike the
+        # repair target, every preserved assignment carries exact authority,
+        # so restore nulls stripped by ``exclude_none`` at every nested edge.
+        for serialized_effect, effect in zip(
+            payload.get("preservedStateEffects", []),
+            fact.preserved_state_effects,
+            strict=True,
+        ):
+            for serialized_incoming, incoming in zip(
+                serialized_effect["incomingEffects"],
+                effect.incoming_effects,
+                strict=True,
+            ):
+                serialized_incoming["expectedValue"] = incoming.expected_value
     if isinstance(fact, ContinuitySequenceRepairFact):
         # ``exclude_none`` is correct for optional evidence fields, but a
         # continuity fact assignment may deliberately copy JSON null.  Keep
@@ -3770,6 +3935,41 @@ def assert_cue_order_repair_fact_matches_source(
     if len(expected) != 1 or expected[0] != fact:
         raise ValueError(
             "cue-order repair fact does not match the rejected response"
+        )
+
+
+def assert_join_state_effect_repair_fact_matches_source(
+    fact: SemanticRepairFact,
+    source_value: Any,
+    *,
+    issues: tuple[ValidationIssue, ...],
+    topology: StoryGraphTopology | None,
+) -> None:
+    """Rebuild join preservation authority from the rejected source response.
+
+    A persisted fact can be syntactically valid while carrying values from a
+    different rejected response. Recompiling against the immutable topology
+    and complete stable issue set proves both the repaired key and every
+    preserved sibling assignment were actually valid source facts.
+    """
+
+    if not isinstance(fact, JoinStateEffectRepairFact):
+        return
+    expected = _story_graph_join_repair_facts(
+        source_value,
+        issues,
+        topology=topology,
+    )
+    matches = [
+        item
+        for item in expected
+        if isinstance(item, JoinStateEffectRepairFact)
+        and item.code == fact.code
+        and item.path == fact.path
+    ]
+    if len(matches) != 1 or matches[0] != fact:
+        raise ValueError(
+            "join state-effect repair fact does not match the rejected response and frozen topology"
         )
 
 

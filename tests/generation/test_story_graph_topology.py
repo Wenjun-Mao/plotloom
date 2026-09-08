@@ -21,8 +21,10 @@ from plotloom.generation.work_units import (
     DialogueTimingRepairFact,
     EdgeStateEffectJsonRepairFact,
     JoinAllowedDifferencesRepairFact,
+    JoinStateEffectRepairFact,
     RequiredEntityStateRepairFact,
     StoryGraphContentFillValidationAdapter,
+    assert_join_state_effect_repair_fact_matches_source,
     assert_semantic_repair_fact_matches_issue,
     compile_work_unit_request,
     parse_semantic_repair_fact,
@@ -133,6 +135,94 @@ def test_current_join_missing_fact_is_bound_to_frozen_direct_edges() -> None:
     ]
     assert missing.mode == "variant"
     assert missing.has_expected_value is False
+
+
+def test_join_repair_fact_preserves_only_valid_sibling_assignments_and_rebinds_source() -> None:
+    """A convergent repair cannot delete a valid variant sibling from its source."""
+
+    brief = _brief()
+    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    fill = _complete_fill(topology)
+    join = topology.joins[0]
+    incoming = sorted(
+        (
+            edge
+            for edge in topology.edges
+            if edge.target_node_id == join.join_node_id
+            and edge.source_node_id in join.incoming_node_ids
+        ),
+        key=lambda edge: (edge.id, edge.source_node_id),
+    )
+    fill["joinContracts"][0]["requiredStateKeys"] = ["route", "variant"]
+    fill["joinContracts"][0]["allowedDifferences"] = ["variant"]
+    edges = {edge["id"]: edge for edge in fill["edges"]}
+    for position, edge in enumerate(incoming, start=1):
+        edges[edge.id]["stateEffects"] = {
+            "route": f"conflict-{position}",
+            "variant": None if position == 1 else {"branch": position},
+        }
+
+    report = StoryGraphContentFillValidationAdapter(
+        topology=topology, brief=brief
+    ).validate(fill, context=SemanticValidationContext(stage="story_graph"))
+    assert [issue.code for issue in report.issues] == [
+        "semantic.join_state_effect_conflict"
+    ]
+    facts = semantic_repair_facts(
+        fill,
+        report.issues,
+        stage=StageName.STORY_GRAPH,
+        story_graph_topology=topology,
+    )
+    assert len(facts) == 1
+    fact = facts[0]
+    assert isinstance(fact, JoinStateEffectRepairFact)
+    assert fact.state_key == "route"
+    assert [effect.model_dump(mode="json", by_alias=True) for effect in fact.preserved_state_effects] == [
+        {
+            "stateKey": "variant",
+            "incomingEffects": [
+                {"edgeId": incoming[0].id, "expectedValue": None},
+                {"edgeId": incoming[1].id, "expectedValue": {"branch": 2}},
+            ],
+        },
+    ]
+    assert_join_state_effect_repair_fact_matches_source(
+        fact, fill, issues=report.issues, topology=topology
+    )
+
+    tampered = json.loads(json.dumps(fill))
+    tampered_edges = {edge["id"]: edge for edge in tampered["edges"]}
+    tampered_edges[incoming[1].id]["stateEffects"]["variant"] = {"branch": "foreign"}
+    with pytest.raises(ValueError, match="does not match the rejected response"):
+        assert_join_state_effect_repair_fact_matches_source(
+            fact, tampered, issues=report.issues, topology=topology
+        )
+
+
+def test_join_repair_facts_do_not_preserve_multiple_keys_that_need_repair() -> None:
+    brief = _brief()
+    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    fill = _complete_fill(topology)
+    join = topology.joins[0]
+    fill["joinContracts"][0]["requiredStateKeys"] = ["route", "variant"]
+    fill["joinContracts"][0]["allowedDifferences"] = ["variant"]
+    for edge in fill["edges"]:
+        if any(edge["id"] == candidate.id for candidate in topology.edges if candidate.target_node_id == join.join_node_id):
+            edge["stateEffects"] = {}
+
+    report = StoryGraphContentFillValidationAdapter(
+        topology=topology, brief=brief
+    ).validate(fill, context=SemanticValidationContext(stage="story_graph"))
+    facts = semantic_repair_facts(
+        fill,
+        report.issues,
+        stage=StageName.STORY_GRAPH,
+        story_graph_topology=topology,
+    )
+    join_facts = [fact for fact in facts if isinstance(fact, JoinStateEffectRepairFact)]
+    assert {fact.state_key for fact in join_facts} == {"route", "variant"}
+    assert all(fact.preserved_state_effects == () for fact in join_facts)
 
 
 def test_subset_join_diagnostics_include_existing_conflicts_but_not_promoted_missing_keys() -> None:

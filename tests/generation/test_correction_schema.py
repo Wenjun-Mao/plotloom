@@ -21,6 +21,8 @@ from plotloom.generation.work_units import (
     JoinAllowedDifferencesRepairFact,
     JoinIncomingEdgeRepairTarget,
     JoinNewRequiredKeyIncomingEdges,
+    JoinPreservedIncomingStateEffect,
+    JoinPreservedStateEffect,
     JoinStateEffectRepairFact,
 )
 from plotloom.generation.storyboard_timing_repair import (
@@ -291,6 +293,20 @@ def _join_state_fact(*, expected_value: object = None, has_expected: bool = Fals
     return JoinStateEffectRepairFact(**values)
 
 
+def _preserved_variant() -> tuple[JoinPreservedStateEffect, ...]:
+    return (
+        JoinPreservedStateEffect(
+            state_key="variant",
+            incoming_effects=(
+                JoinPreservedIncomingStateEffect(
+                    edge_id="edge-b", expected_value={"branch": 2}
+                ),
+                JoinPreservedIncomingStateEffect(edge_id="edge-a", expected_value=None),
+            ),
+        ),
+    )
+
+
 def _branch_by_id(schema: dict[str, object], collection: str, identity: str):
     items = schema["properties"][collection]["items"]  # type: ignore[index]
     return next(
@@ -307,7 +323,7 @@ def test_join_array_projection_is_exact_deterministic_and_non_mutating() -> None
     first = compile_correction_response_schema(base, [_join_array_fact()])
     second = compile_correction_response_schema(base, [_join_array_fact()])
 
-    assert CORRECTION_RESPONSE_SCHEMA_VERSION == "correction_response_schema.v3"
+    assert CORRECTION_RESPONSE_SCHEMA_VERSION == "correction_response_schema.v4"
     assert base == original
     assert first.schema == second.schema
     assert first.schema_hash == second.schema_hash
@@ -337,6 +353,51 @@ def test_exact_join_state_value_strengthens_presence_constraint() -> None:
         assert state_effects["required"] == ["route", "variant"]
         assert state_effects["properties"]["route"] == {"const": None}
         assert state_effects["properties"]["variant"] == {}
+
+
+def test_join_state_preservation_projects_source_bound_null_and_per_edge_values() -> None:
+    values = _join_state_fact().model_dump(mode="python")
+    values.pop("expected_value", None)
+    values["preserved_state_effects"] = _preserved_variant()
+    fact = JoinStateEffectRepairFact(**values)
+
+    projected = compile_correction_response_schema(_base_schema(), [fact])
+    edge_a = _branch_by_id(projected.schema, "edges", "edge-a")
+    edge_b = _branch_by_id(projected.schema, "edges", "edge-b")
+    state_a = edge_a["then"]["properties"]["stateEffects"]
+    state_b = edge_b["then"]["properties"]["stateEffects"]
+    assert state_a["required"] == ["route", "variant"]
+    assert state_b["required"] == ["route", "variant"]
+    assert state_a["properties"]["variant"] == {"const": None}
+    assert state_b["properties"]["variant"] == {"const": {"branch": 2}}
+
+
+def test_join_state_preservation_rejects_unknown_or_repaired_edge_constraints() -> None:
+    values = _join_state_fact().model_dump(mode="python")
+    values.pop("expected_value", None)
+    values["preserved_state_effects"] = (
+        JoinPreservedStateEffect(
+            state_key="route",
+            incoming_effects=(
+                JoinPreservedIncomingStateEffect(edge_id="edge-b", expected_value="x"),
+                JoinPreservedIncomingStateEffect(edge_id="edge-a", expected_value="x"),
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="repaired state key"):
+        JoinStateEffectRepairFact(**values)
+
+    values["preserved_state_effects"] = (
+        JoinPreservedStateEffect(
+            state_key="variant",
+            incoming_effects=(
+                JoinPreservedIncomingStateEffect(edge_id="edge-b", expected_value="x"),
+                JoinPreservedIncomingStateEffect(edge_id="unknown-edge", expected_value="x"),
+            ),
+        ),
+    )
+    with pytest.raises(ValueError, match="exact ordered incoming edge set"):
+        JoinStateEffectRepairFact(**values)
 
 
 def test_fact_order_does_not_change_projected_schema() -> None:

@@ -145,6 +145,23 @@ def _join_state_effect_satisfied(
             state_effects[fact.state_key], fact.expected_value
         ):
             return False
+    for preserved_effect in fact.preserved_state_effects:
+        for incoming_effect in preserved_effect.incoming_effects:
+            selected_edge = _unique_collection_item(
+                response, "edges", "id", incoming_effect.edge_id
+            )
+            if selected_edge is None:
+                return False
+            state_effects = selected_edge.get("stateEffects")
+            if (
+                not isinstance(state_effects, Mapping)
+                or preserved_effect.state_key not in state_effects
+                or not _finite_equal(
+                    state_effects[preserved_effect.state_key],
+                    incoming_effect.expected_value,
+                )
+            ):
+                return False
     return True
 
 

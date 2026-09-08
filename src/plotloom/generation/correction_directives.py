@@ -240,7 +240,9 @@ _DIRECTIVES: tuple[_DirectiveDefinition, ...] = (
             "只以同 code/path 的 JoinStateEffectRepairFact 为权威：incomingEdges 是唯一可修改的"
             "直接入边集合。mode=convergent 时每条入边对 stateKey 使用逐结构完全相同的有限 JSON 值；"
             "hasExpectedValue=true 时逐结构复制 expectedValue。mode=variant 时每条入边都显式写入"
-            "有限 JSON 值但可不同。"
+            "有限 JSON 值但可不同。preservedStateEffects 只列出已在被拒绝响应中验证通过的其他"
+            "requiredStateKeys：对每个 edgeId 逐结构保留其 expectedValue；不得删除、改写或把它"
+            "们当作本次修复的候选值。"
         ),
     ),
     _DirectiveDefinition(
@@ -693,6 +695,18 @@ def _serialize_current_fact(fact: Any) -> dict[str, Any]:
     # ``expectedValue: null`` is meaningful only with explicit authority.
     if payload.get("hasExpectedValue") is True and hasattr(fact, "expected_value"):
         payload["expectedValue"] = deepcopy(fact.expected_value)
+    if type(fact).__name__ == "JoinStateEffectRepairFact":
+        for serialized_effect, effect in zip(
+            payload.get("preservedStateEffects", []),
+            fact.preserved_state_effects,
+            strict=True,
+        ):
+            for serialized_incoming, incoming in zip(
+                serialized_effect["incomingEffects"],
+                effect.incoming_effects,
+                strict=True,
+            ):
+                serialized_incoming["expectedValue"] = deepcopy(incoming.expected_value)
     if type(fact).__name__ == "ContinuitySequenceRepairFact":
         for serialized_boundary, boundary in zip(
             payload.get("boundaries", []),
@@ -735,6 +749,7 @@ def _project_prompt_evidence(
                 "incomingEdges",
                 "repairAction",
                 "hasExpectedValue",
+                "preservedStateEffects",
             )
             if key in fact
         }
@@ -759,6 +774,7 @@ def _project_prompt_evidence(
                 "incomingEdges",
                 "repairAction",
                 "hasExpectedValue",
+                "preservedStateEffects",
             )
             if key in first
         }

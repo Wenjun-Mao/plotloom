@@ -658,11 +658,24 @@ def test_join_exact_json_null_survives_repair_fact_rendering() -> None:
             "repairAction": "set_missing",
             "hasExpectedValue": True,
             "expectedValue": None,
+            "preservedStateEffects": [
+                {
+                    "stateKey": "variant",
+                    "incomingEffects": [
+                        {"edgeId": "edge-a", "expectedValue": None},
+                        {"edgeId": "edge-b", "expectedValue": {"branch": 2}},
+                    ],
+                }
+            ],
         }
     )
     serialized = serialize_semantic_repair_fact(fact)
     assert serialized["hasExpectedValue"] is True
     assert "expectedValue" in serialized and serialized["expectedValue"] is None
+    assert serialized["preservedStateEffects"][0]["incomingEffects"][0] == {
+        "edgeId": "edge-a",
+        "expectedValue": None,
+    }
     issue = ValidationIssue(code=fact.code, message="stable", path=fact.path)
     instruction_plan = compile_correction_instruction_plan([issue], [fact])
     rendered = PromptRenderer().render(
@@ -685,6 +698,11 @@ def test_join_exact_json_null_survives_repair_fact_rendering() -> None:
     )
     assert '"hasExpectedValue":true' in rendered.messages[1].content
     assert '"expectedValue":null' in rendered.messages[1].content
+    projected = instruction_plan.prompt_evidence["facts"][0]
+    assert projected["preservedStateEffects"][0]["incomingEffects"][0] == {
+        "edgeId": "edge-a",
+        "expectedValue": None,
+    }
 
 
 @pytest.mark.parametrize("expected_value", [None, "unauthorized"])

@@ -136,7 +136,7 @@ def _board_output(*, cue_ids: list[str] | None = None, audio_duration: int = 660
 def test_m12a_scene_prompt_schema_and_binder_create_authoritative_cues() -> None:
     compiled = _compiled(StageName.SCENE_BEATS)
     assert compiled.rendered.output.schema_id == "scene_beats.fragment.v12"
-    assert compiled.contract.contract_version == "m1.12s"
+    assert compiled.contract.contract_version == "m1.12t"
     assert (
         compiled.contract.correction_directive_registry_version
         == CORRECTION_DIRECTIVE_REGISTRY_VERSION

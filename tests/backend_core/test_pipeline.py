@@ -2100,8 +2100,11 @@ def test_graph_join_convergent_conflict_uses_topology_bound_repair_and_installs(
     repository,
     brief,
 ) -> None:
-    """A conflict scopes edges without making either branch value authoritative."""
+    """A conflict repairs its key while retaining a valid variant sibling."""
 
+    repository.bootstrap_default_text_provider_profile(
+        TextProviderProfileSnapshot.model_validate(_v2_profile_snapshot())
+    )
     project = repository.create_project(brief)
     run = repository.create_run(
         project.id,
@@ -2114,15 +2117,18 @@ def test_graph_join_convergent_conflict_uses_topology_bound_repair_and_installs(
     complete = _work_unit_responses(topology, brief)
     rejected_graph = json.loads(complete[1])
     join, incoming = _join_incoming_edges(topology)
-    rejected_graph["joinContracts"][0]["requiredStateKeys"] = ["route"]
-    rejected_graph["joinContracts"][0]["allowedDifferences"] = []
+    rejected_graph["joinContracts"][0]["requiredStateKeys"] = ["route", "variant"]
+    rejected_graph["joinContracts"][0]["allowedDifferences"] = ["variant"]
     edges = _graph_edge_by_id(rejected_graph)
     for position, edge in enumerate(incoming, start=1):
-        edges[edge.id]["stateEffects"] = {"route": f"conflict-{position}"}
+        edges[edge.id]["stateEffects"] = {
+            "route": f"conflict-{position}",
+            "variant": {"branch": position},
+        }
     corrected_graph = json.loads(json.dumps(rejected_graph))
     corrected_edges = _graph_edge_by_id(corrected_graph)
     for edge in incoming:
-        corrected_edges[edge.id]["stateEffects"] = {"route": "reconciled"}
+        corrected_edges[edge.id]["stateEffects"]["route"] = "reconciled"
 
     provider = QueueProvider(
         [
@@ -2174,6 +2180,18 @@ def test_graph_join_convergent_conflict_uses_topology_bound_repair_and_installs(
             ],
             "repairAction": "make_all_equal",
             "hasExpectedValue": False,
+            "preservedStateEffects": [
+                {
+                    "stateKey": "variant",
+                    "incomingEffects": [
+                        {
+                            "edgeId": edge.id,
+                            "expectedValue": {"branch": position},
+                        }
+                        for position, edge in enumerate(incoming, start=1)
+                    ],
+                }
+            ],
         }
     ]
     assert "validation.internal_error" not in {
@@ -3631,6 +3649,9 @@ def test_v2_profile_stops_after_two_corrections_and_quarantines(
     repository,
     brief,
 ) -> None:
+    repository.bootstrap_default_text_provider_profile(
+        TextProviderProfileSnapshot.model_validate(_v2_profile_snapshot())
+    )
     project = repository.create_project(brief)
     provider = QueueProvider(["bad one", "bad two", "bad three", "unused"])
     secrets = RunSecretBroker("bounded-correction-secret")
@@ -3682,11 +3703,11 @@ def test_v2_profile_stops_after_two_corrections_and_quarantines(
     ]
     primary_contract = prompt_artifacts[0].content["contract"]
     correction_contracts = [artifact.content["contract"] for artifact in prompt_artifacts[1:]]
-    assert primary_contract["correction_policy_version"] == "bounded_correction.v21"
-    assert primary_contract["correction_directive_registry_version"] == "correction_directives.v3"
-    assert primary_contract["correction_evidence_projection_version"] == "correction_evidence_projection.v2"
+    assert primary_contract["correction_policy_version"] == "bounded_correction.v22"
+    assert primary_contract["correction_directive_registry_version"] == "correction_directives.v4"
+    assert primary_contract["correction_evidence_projection_version"] == "correction_evidence_projection.v3"
     assert primary_contract["correction_issue_selection_version"] == "correction_issue_selection.v2"
-    assert primary_contract["correction_response_schema_version"] == "correction_response_schema.v3"
+    assert primary_contract["correction_response_schema_version"] == "correction_response_schema.v4"
     assert "correction_directive_set_hash" not in primary_contract
     assert "correction_evidence_projection_hash" not in primary_contract
     assert "correction_issue_selection_hash" not in primary_contract
