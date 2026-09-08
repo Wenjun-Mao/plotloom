@@ -11,7 +11,7 @@ test("tests a profile only after saving public settings and keeps its key sessio
     stageMaxOutputTokens: { story_bible: 8192, story_graph: 8192, scene_beats: 4096, storyboard: 4096 },
     maxSemanticCorrections: 2, presetId: "custom", presetVersion: "1",
   };
-  const profile = { profileId: "default", displayName: "Default", configuration, revision: 1, createdAt: "now", updatedAt: "now", serverKeyAvailable: false };
+  const profile = { profileId: "default", displayName: "Default", configuration, revision: 1, enabled: true, availabilityRevision: 0, createdAt: "now", updatedAt: "now", serverKeyAvailable: false };
   const calls: Array<{ method: string; body: string; sessionKey: string | undefined }> = [];
   await page.route("**/api/v2/text-provider-profiles**", async (route) => {
     const request = route.request();
@@ -44,6 +44,33 @@ test("tests a profile only after saving public settings and keeps its key sessio
   expect(writes[1].body).toBe("");
   expect(writes[1].sessionKey).toBe("test-session-secret");
   await expect.poll(() => page.evaluate(() => ({ local: localStorage.length, session: sessionStorage.getItem("plotloom:provider-session-keys") }))).toEqual({ local: 0, session: JSON.stringify({ default: "test-session-secret" }) });
+});
+
+test("keeps a disabled selected profile visible while rejecting new run admission", async ({ page, request, workbench }) => {
+  await page.goto(`${workbench.frontendOrigin}/v2/`);
+  await page.getByRole("button", { name: "打开示例项目" }).click();
+  await page.getByRole("button", { name: "供应商与会话 Key" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+
+  const disabled = page.waitForResponse((response) => response.request().method() === "PUT"
+    && new URL(response.url()).pathname.endsWith("/text-provider-profiles/default/availability"));
+  await page.getByRole("button", { name: "停用后端" }).click();
+  expect((await disabled).ok()).toBeTruthy();
+  await expect(page.getByText("此后端当前不可用")).toBeVisible();
+  await expect(page.getByLabel("活动 Profile")).toHaveValue("default");
+  await expect(page.getByRole("button", { name: "设为活动" })).toBeDisabled();
+
+  const project = await request.post(`${workbench.apiOrigin}/api/v2/projects`, {
+    data: { brief: { title: "停用 admission", synopsis: "停用 Profile 不应接纳新运行。" } },
+  });
+  expect(project.ok()).toBeTruthy();
+  const projectId = (await project.json()).id as string;
+  const rejected = await request.post(
+    `${workbench.apiOrigin}/api/v2/projects/${projectId}/pipeline-runs`,
+    { data: { stages: ["story_bible"], providerProfileId: "default" } },
+  );
+  expect(rejected.status()).toBe(409);
+  expect((await rejected.json()).message).toContain("disabled");
 });
 
 test("persists a copied profile through the real API without persisting its browser key", async ({ page, request, workbench }) => {

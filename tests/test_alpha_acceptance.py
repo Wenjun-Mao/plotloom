@@ -330,6 +330,23 @@ def test_source_profile_loader_is_read_only_and_keeps_live_wal_visible(tmp_path:
         writer.close()
 
 
+def test_source_profile_loader_refuses_disabled_profile_without_rewriting_source(tmp_path: Path) -> None:
+    source_path = _source_database(tmp_path)
+    repository = SQLiteRepository(f"sqlite:///{source_path}")
+    try:
+        profile = repository.get_text_provider_profile("real_looking_a")
+        repository.set_text_provider_profile_enabled(
+            profile.profile_id, profile.availability_revision, enabled=False
+        )
+    finally:
+        repository.close()
+
+    with pytest.raises(ValueError, match="disabled text provider profile"):
+        alpha_acceptance._load_named_profiles(
+            f"sqlite:///{source_path}", ["real_looking_a"]
+        )
+
+
 def test_source_profile_loader_uses_consistent_snapshot_during_writer_checkpoint_pressure(tmp_path: Path) -> None:
     source_path = _source_database(tmp_path)
     updates_path = tmp_path / "profile-updates.json"

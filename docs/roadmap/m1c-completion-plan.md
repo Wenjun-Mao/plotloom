@@ -301,6 +301,48 @@ they are preserved in its worktree and are not considered verified. A fresh,
 bounded owner completes those exact findings; no concurrent writer or new
 provider call is authorized by that recovery.
 
+### Step 2B: backend availability lifecycle
+
+**Outcome (2026-09-07):** availability-only lifecycle slice complete at local
+commit pending. A text provider profile now has independently revisioned
+`enabled` control-plane state. The migration defaults existing profiles to
+enabled without changing their settings JSON, V1/V2 profile hashes, frozen run
+snapshots, plans, or receipts. Settings can disable/re-enable even the selected
+or last enabled profile; selection remains an unavailable preference and never
+falls back to another profile.
+
+New pipeline, rebuild, generic repair, and exact work-unit repair admissions
+are guarded in the repository lifecycle write transaction against the frozen
+profile's current availability. API prechecks provide prompt feedback but do not
+replace that transaction guard. Existing queued/running/resumed work and its
+already-admitted corrections remain governed by their frozen snapshot; cancel
+remains distinct. Qualification source loaders reject disabled saved profiles,
+while Alpha loading keeps pre-availability historical source databases readable
+as enabled. Credentials remain server/session-only and availability responses
+are secret-free.
+
+Focused checks: `uv run --locked pytest -q
+tests/backend_core/test_m15_profile_repository.py
+tests/backend_core/test_m15_migration_compatibility.py` (9 passed);
+`uv run --locked pytest -q tests/backend_core/test_api.py` (24 passed);
+`uv run --locked pytest -q tests/test_alpha_acceptance.py
+` (23 passed) and `uv run --locked pytest -q tests/test_conformance.py`
+(13 passed);
+`npm --prefix frontend test` (115 passed); `npm --prefix frontend run typecheck`;
+`npm --prefix frontend run build`; and
+`npx playwright test --config playwright.config.ts e2e/provider-profiles.spec.ts`
+(3 passed). The browser journey used real FastAPI plus its isolated external
+OpenAI-compatible fake provider: disabling the selected profile kept it visible,
+showed unavailable state, blocked activation, and rejected a new API run. No
+live provider, canary replay, full suite, or formal qualification ran.
+
+**Remaining gap / next action:** this slice deliberately does not add the
+adapter registry/V3 snapshot or single-backend qualification mode, and does not
+change prompts, validators, or the separate join-key correction defect. Re-enable
+still needs operator readiness evidence before a qualification attempt. vLLM
+remains deferred. Agent response/cost deltas and fresh-versus-cached/reasoning
+usage are unavailable; no instrumentation was added.
+
 The remaining entries are historical checkpoint-1/readiness evidence; the
 terminal canary record at the end supersedes their current/next-action entries:
 

@@ -228,6 +228,8 @@ class TextProviderProfile(_ProfileModel):
     display_name: str = Field(min_length=1, max_length=120)
     configuration: TextProviderProfileSnapshot
     revision: int = Field(ge=0)
+    enabled: bool = True
+    availability_revision: int = Field(ge=0)
     created_at: datetime
     updated_at: datetime
 

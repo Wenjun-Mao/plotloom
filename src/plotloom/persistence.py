@@ -11,6 +11,7 @@ from threading import RLock
 from typing import Any
 
 from sqlalchemy import (
+    Boolean,
     JSON,
     DateTime,
     ForeignKey,
@@ -623,6 +624,8 @@ class TextProviderProfileRow(Base):
     display_name: Mapped[str] = mapped_column(String(120), nullable=False)
     settings: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    availability_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -1087,6 +1090,8 @@ class SQLiteRepository:
             display_name=row.display_name,
             configuration=configuration,
             revision=row.revision,
+            enabled=row.enabled,
+            availability_revision=row.availability_revision,
             created_at=_stored_utc(row.created_at),
             updated_at=_stored_utc(row.updated_at),
         )
@@ -2469,6 +2474,7 @@ class SQLiteRepository:
                 "requested stages must be unique, ordered, and form one contiguous canonical range"
             )
         with self._lifecycle_write() as session:
+            self._assert_new_run_profile_enabled(session, normalized_provider_snapshot)
             if kind == RunKind.REPAIR and (
                 parent_run_id is None or repair_stage is None or repair_source is None
             ):
@@ -5751,6 +5757,7 @@ class SQLiteRepository:
                 )
 
             source = self._run_row(session, source_run_id)
+            self._assert_new_run_profile_enabled(session, source.provider_snapshot)
             target = session.get(GenerationWorkUnitRow, work_unit_id)
             if target is None:
                 raise NotFoundError(f"generation work unit not found: {work_unit_id}")
@@ -6373,6 +6380,8 @@ class SQLiteRepository:
                     display_name="Default",
                     settings=stored,
                     revision=revision,
+                    enabled=True,
+                    availability_revision=0,
                     created_at=now,
                     updated_at=now,
                 )
@@ -6480,6 +6489,8 @@ class SQLiteRepository:
                 display_name=normalized_name,
                 settings=parsed.model_dump(mode="json", by_alias=True),
                 revision=1,
+                enabled=True,
+                availability_revision=0,
                 created_at=now,
                 updated_at=now,
             )
@@ -6528,8 +6539,13 @@ class SQLiteRepository:
         expected_selection_revision: int,
     ) -> ProviderProfileSelection:
         with self._write() as session:
-            if session.get(TextProviderProfileRow, profile_id) is None:
+            profile = session.get(TextProviderProfileRow, profile_id)
+            if profile is None:
                 raise NotFoundError(f"text provider profile not found: {profile_id}")
+            if not profile.enabled:
+                raise InvalidTransitionError(
+                    "a disabled text provider profile cannot be activated; enable it first"
+                )
             row = session.get(ProviderProfileSelectionRow, 1)
             if row is None:
                 raise NotFoundError("text provider profile selection has not been initialized")
@@ -6544,6 +6560,52 @@ class SQLiteRepository:
                 row.revision += 1
                 row.updated_at = utc_now()
             return self._provider_profile_selection(row)
+
+    def set_text_provider_profile_enabled(
+        self,
+        profile_id: str,
+        expected_availability_revision: int,
+        *,
+        enabled: bool,
+    ) -> TextProviderProfile:
+        """Toggle future-admission availability without rewriting profile config."""
+
+        with self._write() as session:
+            row = session.get(TextProviderProfileRow, profile_id)
+            if row is None:
+                raise NotFoundError(f"text provider profile not found: {profile_id}")
+            if row.availability_revision != expected_availability_revision:
+                raise RevisionConflictError(
+                    f"text-provider-profile-availability:{profile_id}",
+                    expected_availability_revision,
+                    row.availability_revision,
+                )
+            if row.enabled != enabled:
+                row.enabled = enabled
+                row.availability_revision += 1
+                row.updated_at = utc_now()
+            return self._text_provider_profile(row)
+
+    @staticmethod
+    def _profile_id_from_snapshot(snapshot: Mapping[str, Any]) -> str | None:
+        value = snapshot.get("profileId") or snapshot.get("profile_id")
+        return value if isinstance(value, str) and value else None
+
+    def _assert_new_run_profile_enabled(
+        self, session: Session, provider_snapshot: Mapping[str, Any]
+    ) -> None:
+        """Reject only a fresh admission; admitted work retains frozen authority."""
+
+        profile_id = self._profile_id_from_snapshot(provider_snapshot)
+        if profile_id is None:
+            return
+        profile = session.get(TextProviderProfileRow, profile_id)
+        # Isolated historical/conformance repositories intentionally carry a
+        # frozen snapshot without importing the mutable source control plane.
+        if profile is not None and not profile.enabled:
+            raise InvalidTransitionError(
+                f"text provider profile {profile_id} is disabled; enable it before admitting a new run"
+            )
 
     def delete_text_provider_profile(
         self,

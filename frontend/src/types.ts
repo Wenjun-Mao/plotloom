@@ -715,6 +715,8 @@ export interface TextProviderProfileView {
   displayName: string;
   configuration: TextProviderProfileConfiguration;
   revision: number;
+  enabled: boolean;
+  availabilityRevision: number;
   createdAt: string;
   updatedAt: string;
   serverKeyAvailable: boolean;

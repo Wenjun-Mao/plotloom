@@ -811,17 +811,31 @@ def _load_named_profiles(source_database_url: str, profile_ids: Iterable[str]) -
         source = sqlite3.connect(f"{snapshot_path.as_uri()}?mode=ro", uri=True)
         try:
             source.execute("PRAGMA query_only=ON")
+            columns = {
+                str(column[1])
+                for column in source.execute("PRAGMA table_info(v2_text_provider_profiles)")
+            }
+            has_availability = "enabled" in columns
             profiles: list[TextProviderProfileSnapshot] = []
             for profile_id in profile_ids:
                 row = source.execute(
-                    "SELECT settings FROM v2_text_provider_profiles WHERE id = ?",
+                    (
+                        "SELECT settings, enabled FROM v2_text_provider_profiles WHERE id = ?"
+                        if has_availability
+                        else "SELECT settings FROM v2_text_provider_profiles WHERE id = ?"
+                    ),
                     (profile_id,),
                 ).fetchone()
                 if row is None:
                     raise ValueError(f"saved text provider profile not found: {profile_id}")
                 settings = row[0]
+                enabled = bool(row[1]) if has_availability else True
                 if not isinstance(settings, str):
                     raise ValueError("saved text provider profile has invalid settings")
+                if not enabled:
+                    raise ValueError(
+                        f"disabled text provider profile cannot start qualification: {profile_id}"
+                    )
                 profiles.append(TextProviderProfileSnapshot.model_validate(json.loads(settings)))
             return profiles
         finally:

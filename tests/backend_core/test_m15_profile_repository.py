@@ -182,3 +182,87 @@ def test_profile_api_is_secret_free_and_pipeline_honors_requested_profile() -> N
         assert run.json()["providerSnapshot"]["textModel"] == "model-quality"
     finally:
         repository.close()
+
+
+def test_profile_availability_is_revisioned_without_rewriting_snapshots_and_guards_admission() -> None:
+    repository = _bootstrapped_repository()
+    try:
+        initial = repository.get_text_provider_profile("default")
+        frozen_config = initial.configuration.model_dump(mode="json", by_alias=True)
+        project = repository.create_project(
+            ProjectBrief(title="排队", synopsis="已经接纳的运行应保留冻结 authority。")
+        )
+        admitted = repository.create_run(
+            project.id,
+            RunKind.PIPELINE,
+            [StageName.STORY_BIBLE],
+            provider_snapshot=frozen_config,
+        )
+
+        disabled = repository.set_text_provider_profile_enabled(
+            "default", initial.availability_revision, enabled=False
+        )
+        assert disabled.enabled is False
+        assert disabled.availability_revision == initial.availability_revision + 1
+        assert disabled.revision == initial.revision
+        assert disabled.configuration.model_dump(mode="json", by_alias=True) == frozen_config
+        assert repository.get_run(admitted.id).provider_snapshot == frozen_config
+
+        with pytest.raises(InvalidTransitionError, match="disabled"):
+            repository.create_run(
+                project.id,
+                RunKind.PIPELINE,
+                [StageName.STORY_BIBLE],
+                provider_snapshot=frozen_config,
+            )
+        with pytest.raises(InvalidTransitionError, match="disabled"):
+            repository.create_work_unit_repair_run(
+                admitted.id, "unneeded-after-admission-guard", idempotency_key="disabled-exact-repair"
+            )
+        with pytest.raises(RevisionConflictError):
+            repository.set_text_provider_profile_enabled(
+                "default", initial.availability_revision, enabled=True
+            )
+        reenabled = repository.set_text_provider_profile_enabled(
+            "default", disabled.availability_revision, enabled=True
+        )
+        assert reenabled.enabled is True
+        assert reenabled.revision == initial.revision
+        assert reenabled.configuration.profile_hash == initial.configuration.profile_hash
+    finally:
+        repository.close()
+
+
+def test_disabled_selected_profile_stays_selected_but_cannot_activate_or_admit_via_api() -> None:
+    repository = SQLiteRepository("sqlite://")
+    try:
+        app = create_app(repository, text_profile_default=_profile())
+        client = TestClient(app)
+        initial = client.get("/api/v2/text-provider-profiles/default").json()
+        disabled = client.put(
+            "/api/v2/text-provider-profiles/default/availability",
+            json={"expectedAvailabilityRevision": initial["availabilityRevision"], "enabled": False},
+        )
+        assert disabled.status_code == 200
+        assert disabled.json()["enabled"] is False
+        assert disabled.json()["revision"] == initial["revision"]
+        catalog = client.get("/api/v2/text-provider-profiles").json()
+        assert catalog["activeProfileId"] == "default"
+        assert catalog["profiles"][0]["enabled"] is False
+        assert client.post(
+            "/api/v2/text-provider-profiles/default/activate",
+            json={"expectedSelectionRevision": catalog["selectionRevision"]},
+        ).status_code == 409
+
+        project = client.post(
+            "/api/v2/projects",
+            json={"brief": {"title": "禁用", "synopsis": "禁用后不能创建新的生成运行。"}},
+        ).json()
+        rejected = client.post(
+            f"/api/v2/projects/{project['id']}/pipeline-runs",
+            json={"stages": ["story_bible"], "providerProfileId": "default"},
+        )
+        assert rejected.status_code == 409
+        assert "disabled" in rejected.json()["message"]
+    finally:
+        repository.close()

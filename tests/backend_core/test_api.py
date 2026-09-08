@@ -234,6 +234,7 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
         ("PUT", "/api/v2/text-provider-profiles/{profile_id}"),
         ("DELETE", "/api/v2/text-provider-profiles/{profile_id}"),
         ("POST", "/api/v2/text-provider-profiles/{profile_id}/activate"),
+        ("PUT", "/api/v2/text-provider-profiles/{profile_id}/availability"),
         ("POST", "/api/v2/text-provider-profiles/{profile_id}/probe"),
     }
 

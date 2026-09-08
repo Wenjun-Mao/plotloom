@@ -319,6 +319,13 @@ export class PlotloomApiClient {
     });
   }
 
+  setTextProviderProfileAvailability(profileId: string, expectedAvailabilityRevision: number, enabled: boolean): Promise<TextProviderProfileView> {
+    return this.request(`/text-provider-profiles/${encodeURIComponent(profileId)}/availability`, {
+      method: "PUT",
+      body: JSON.stringify({ expectedAvailabilityRevision, enabled }),
+    });
+  }
+
   probeTextProviderProfile(profileId: string, includeSessionKey = true): Promise<TextProviderProfileProbe> {
     return this.request(`/text-provider-profiles/${encodeURIComponent(profileId)}/probe`, { method: "POST" }, includeSessionKey, profileId);
   }

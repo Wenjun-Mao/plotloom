@@ -280,6 +280,8 @@ class TextProviderProfileView(CamelModel):
     display_name: str
     configuration: TextProviderProfileSnapshot
     revision: int
+    enabled: bool
+    availability_revision: int
     created_at: datetime
     updated_at: datetime
     server_key_available: bool
@@ -321,6 +323,11 @@ class TextProviderProfileUpdate(CamelModel):
 
 class TextProviderProfileActivate(CamelModel):
     expected_selection_revision: int = Field(ge=0)
+
+
+class TextProviderProfileAvailabilityUpdate(CamelModel):
+    expected_availability_revision: int = Field(ge=0)
+    enabled: bool
 
 
 class TextProviderProbeResponse(CamelModel):
@@ -660,6 +667,10 @@ def create_app(
             if profile_id is not None
             else active_text_profile()
         )
+        if not selected.enabled:
+            raise InvalidTransitionError(
+                f"text provider profile {selected.profile_id} is disabled; enable it before admitting a new run"
+            )
         return selected.configuration.model_dump(mode="json", by_alias=True)
 
     def profile_view(profile: TextProviderProfile) -> TextProviderProfileView:
@@ -1297,6 +1308,22 @@ def create_app(
     ) -> ProviderProfileSelection:
         return repo.activate_text_provider_profile(
             profile_id, body.expected_selection_revision
+        )
+
+    @app.put(
+        "/api/v2/text-provider-profiles/{profile_id}/availability",
+        response_model=TextProviderProfileView,
+    )
+    def set_text_provider_profile_availability(
+        profile_id: str,
+        body: TextProviderProfileAvailabilityUpdate,
+    ) -> TextProviderProfileView:
+        return profile_view(
+            repo.set_text_provider_profile_enabled(
+                profile_id,
+                body.expected_availability_revision,
+                enabled=body.enabled,
+            )
         )
 
     @app.post(

@@ -389,7 +389,14 @@ def _load_named_profiles(
 
     source = SQLiteRepository(source_database_url)
     try:
-        return [source.get_text_provider_profile(profile_id).configuration for profile_id in profile_ids]
+        profiles = [source.get_text_provider_profile(profile_id) for profile_id in profile_ids]
+        disabled = [profile.profile_id for profile in profiles if not profile.enabled]
+        if disabled:
+            raise ValueError(
+                "disabled text provider profiles cannot start qualification: "
+                + ", ".join(disabled)
+            )
+        return [profile.configuration for profile in profiles]
     finally:
         source.close()
 

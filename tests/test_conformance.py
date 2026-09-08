@@ -134,6 +134,22 @@ class _FixtureResolver:
         return self.provider, str(provider_snapshot["textModel"])
 
 
+def test_conformance_loader_refuses_disabled_saved_profile(tmp_path: Path) -> None:
+    source_path = tmp_path / "source.sqlite3"
+    source = SQLiteRepository(f"sqlite:///{source_path}")
+    try:
+        source.bootstrap_default_text_provider_profile(_profile("default"))
+        profile = source.get_text_provider_profile("default")
+        source.set_text_provider_profile_enabled(
+            "default", profile.availability_revision, enabled=False
+        )
+    finally:
+        source.close()
+
+    with pytest.raises(ValueError, match="disabled text provider profile"):
+        conformance._load_named_profiles(f"sqlite:///{source_path}", ["default"])
+
+
 def test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence(
     tmp_path: Path,
     monkeypatch,
