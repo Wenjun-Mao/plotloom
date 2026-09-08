@@ -6594,15 +6594,35 @@ class SQLiteRepository:
     def _assert_new_run_profile_enabled(
         self, session: Session, provider_snapshot: Mapping[str, Any]
     ) -> None:
-        """Reject only a fresh admission; admitted work retains frozen authority."""
+        """Guard fresh V2 admission without rewriting historical snapshot semantics.
+
+        A V1 snapshot can contain the old singleton ``profileId`` field, but
+        its JSON and hash deliberately remain on the pre-profile path and need
+        not have a mutable profile row. Reading it must not synthesize a V2
+        control-plane dependency. If that legacy name *does* resolve to an
+        existing row, however, it is still a current request for a disabled
+        backend and must not bypass its availability state.
+        """
 
         profile_id = self._profile_id_from_snapshot(provider_snapshot)
         if profile_id is None:
+            # ``validate_public_provider_snapshot`` has already validated V2
+            # snapshots, so this protects direct repository callers if that
+            # boundary changes rather than treating an anonymous V2 run as
+            # available.
+            if is_v2_snapshot(provider_snapshot):
+                raise InvalidTransitionError(
+                    "a managed V2 provider snapshot must name a registered profile before admitting a new run"
+                )
             return
         profile = session.get(TextProviderProfileRow, profile_id)
-        # Isolated historical/conformance repositories intentionally carry a
-        # frozen snapshot without importing the mutable source control plane.
-        if profile is not None and not profile.enabled:
+        if profile is None:
+            if not is_v2_snapshot(provider_snapshot):
+                return
+            raise InvalidTransitionError(
+                f"text provider profile {profile_id} is not registered; register it before admitting a new run"
+            )
+        if not profile.enabled:
             raise InvalidTransitionError(
                 f"text provider profile {profile_id} is disabled; enable it before admitting a new run"
             )

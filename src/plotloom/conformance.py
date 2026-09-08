@@ -38,7 +38,7 @@ from .pipeline import (
     SnapshotTextProviderResolver,
     TextProviderResolver,
 )
-from .provider_profiles import TextProviderProfileSnapshot
+from .provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, TextProviderProfileSnapshot
 from .providers import ProviderPorts
 from .runtime import RunContext
 from .generation.planning import PLANNING_POLICY_VERSION
@@ -57,6 +57,29 @@ from .generation.work_units import (
 DEFAULT_SAMPLE_COUNT = 3
 M15_REQUIRED_PROFILE_COUNT = 2
 CONFORMANCE_WORKLOAD_VERSION = "fixed_chinese_interactive_story.v8"
+
+
+def _seed_isolated_profile_for_admission(
+    repository: SQLiteRepository, profile: TextProviderProfileSnapshot
+) -> None:
+    """Create the disposable control-plane row required for guarded admission.
+
+    The source snapshot remains the request authority and receipt identity. The
+    temporary row exists only to apply the same enabled-profile admission rule
+    as the application repository; it is removed with the disposable database.
+    """
+
+    if profile.profile_id == DEFAULT_PROVIDER_PROFILE_ID:
+        repository.bootstrap_default_text_provider_profile(profile)
+        return
+    default_values = profile.model_dump(mode="json", by_alias=True)
+    default_values.update(profileId=DEFAULT_PROVIDER_PROFILE_ID, profileVersion=0, profileHash="")
+    repository.bootstrap_default_text_provider_profile(
+        TextProviderProfileSnapshot.model_validate(default_values)
+    )
+    repository.create_text_provider_profile(
+        profile.profile_id, profile.profile_id, configuration=profile
+    )
 # The fixed workload exercises the complete topology contract: three endings,
 # two decisions on every path, and one explicit JOIN. It is still bounded at
 # nine nodes and four shots per scene so repeated operator probes stay
@@ -459,12 +482,9 @@ def run_conformance(
                     sample_name = f"{profile.profile_id}-{sample_index + 1}"
                     database_path = root / f"{sample_name}.sqlite3"
                     artifact_root = root / f"{sample_name}-artifacts"
-                    profile_samples.append(
-                        (
-                            SQLiteRepository(f"sqlite:///{database_path}"),
-                            artifact_root,
-                        )
-                    )
+                    repository = SQLiteRepository(f"sqlite:///{database_path}")
+                    _seed_isolated_profile_for_admission(repository, profile)
+                    profile_samples.append((repository, artifact_root))
         except BaseException:
             for samples in prepared_samples.values():
                 for repository, _artifact_root in samples:

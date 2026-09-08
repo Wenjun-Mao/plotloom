@@ -82,7 +82,7 @@ from .pipeline import (
     SnapshotTextProviderResolver,
     TextProviderResolver,
 )
-from .provider_profiles import TextProviderProfileSnapshot
+from .provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, TextProviderProfileSnapshot
 from .providers import ProviderPorts
 from .runtime import RunContext
 
@@ -96,6 +96,24 @@ ALPHA_EXPECTED_REVIEW_COUNT = ALPHA_PROFILE_COUNT * ALPHA_STORY_COUNT
 ALPHA_REQUIRED_FIRST_PASS_STAGES_PER_PROFILE = 30
 ALPHA_TOTAL_STAGES_PER_PROFILE = ALPHA_STORY_COUNT * ALPHA_REPEATS_PER_STORY * len(STAGE_ORDER)
 _SAFE_ISSUE_CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
+
+
+def _seed_isolated_profile_for_admission(
+    repository: SQLiteRepository, profile: TextProviderProfileSnapshot
+) -> None:
+    """Make isolated qualification use the same profile-admission contract."""
+
+    if profile.profile_id == DEFAULT_PROVIDER_PROFILE_ID:
+        repository.bootstrap_default_text_provider_profile(profile)
+        return
+    default_values = profile.model_dump(mode="json", by_alias=True)
+    default_values.update(profileId=DEFAULT_PROVIDER_PROFILE_ID, profileVersion=0, profileHash="")
+    repository.bootstrap_default_text_provider_profile(
+        TextProviderProfileSnapshot.model_validate(default_values)
+    )
+    repository.create_text_provider_profile(
+        profile.profile_id, profile.profile_id, configuration=profile
+    )
 _RECEIPT_FIELDS = frozenset({
     "commit",
     "contractHash",
@@ -1203,6 +1221,7 @@ def run_alpha_acceptance(
                         database_path = root / f"{profile_alias}-{story.alias}-{repeat_ordinal}.sqlite3"
                         artifact_root = root / f"{profile_alias}-{story.alias}-{repeat_ordinal}-artifacts"
                         repository = SQLiteRepository(f"sqlite:///{database_path}")
+                        _seed_isolated_profile_for_admission(repository, profile)
                         secrets = RunSecretBroker(server_key_resolver=key_resolver)
                         runner: LifecycleJobRunner | None = None
                         try:

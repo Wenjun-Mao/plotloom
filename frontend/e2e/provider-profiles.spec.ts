@@ -1,4 +1,5 @@
 import { expect, test } from "./fixture";
+import type { Route } from "@playwright/test";
 
 test("tests a profile only after saving public settings and keeps its key session-only", async ({ page, workbench }) => {
   const configuration = {
@@ -71,6 +72,110 @@ test("keeps a disabled selected profile visible while rejecting new run admissio
   );
   expect(rejected.status()).toBe(409);
   expect((await rejected.json()).message).toContain("disabled");
+});
+
+test("merges availability without losing an unsaved profile draft, session key, or conflict state", async ({ page, request, workbench }) => {
+  type StoredProfile = {
+    revision: number;
+    availabilityRevision: number;
+    enabled: boolean;
+    configuration: { profileHash: string; textModel: string };
+  };
+  const profileUrl = `${workbench.apiOrigin}/api/v2/text-provider-profiles/default`;
+  const readProfile = async (): Promise<StoredProfile> => {
+    const response = await request.get(profileUrl);
+    expect(response.ok()).toBeTruthy();
+    return response.json() as Promise<StoredProfile>;
+  };
+  let before = await readProfile();
+  if (!before.enabled) {
+    const reenabledForScenario = await request.put(`${profileUrl}/availability`, {
+      data: { expectedAvailabilityRevision: before.availabilityRevision, enabled: true },
+    });
+    expect(reenabledForScenario.ok()).toBeTruthy();
+    before = await readProfile();
+  }
+
+  await page.goto(`${workbench.frontendOrigin}/v2/`);
+  await page.getByRole("button", { name: "打开示例项目" }).click();
+  await page.getByRole("button", { name: "供应商与会话 Key" }).click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.getByLabel("文本认证").selectOption("bearer");
+  await page.getByLabel("文本模型").fill("draft-model-before-toggle");
+  await page.getByLabel("此 Profile 的临时 API Key").fill("draft-key-before-toggle");
+
+  // The route still forwards the mutation to real FastAPI, but holds its
+  // response so this asserts edits made while availability is in flight.
+  let releaseAvailabilityResponse!: () => void;
+  let upstreamReceived!: () => void;
+  const responseHeld = new Promise<void>((resolve) => { releaseAvailabilityResponse = resolve; });
+  const upstreamReceivedPromise = new Promise<void>((resolve) => { upstreamReceived = resolve; });
+  const holdAvailability = async (route: Route) => {
+    const upstream = await route.fetch();
+    upstreamReceived();
+    await responseHeld;
+    await route.fulfill({ response: upstream });
+  };
+  await page.route("**/api/v2/text-provider-profiles/default/availability", holdAvailability);
+  const disabled = page.waitForResponse((response) => response.request().method() === "PUT"
+    && new URL(response.url()).pathname.endsWith("/text-provider-profiles/default/availability"));
+  await page.getByRole("button", { name: "停用后端" }).click();
+  await upstreamReceivedPromise;
+  await page.getByLabel("文本模型").fill("draft-model-during-toggle");
+  await page.getByLabel("此 Profile 的临时 API Key").fill("draft-key-during-toggle");
+  releaseAvailabilityResponse();
+  expect((await disabled).ok()).toBeTruthy();
+  await page.unroute("**/api/v2/text-provider-profiles/default/availability", holdAvailability);
+
+  await expect(page.getByText("此后端当前不可用")).toBeVisible();
+  await expect(page.getByLabel("文本模型")).toHaveValue("draft-model-during-toggle");
+  await expect(page.getByLabel("此 Profile 的临时 API Key")).toHaveValue("draft-key-during-toggle");
+  const afterDisable = await readProfile();
+  expect(afterDisable).toMatchObject({ revision: before.revision, enabled: false });
+  expect(afterDisable.configuration.profileHash).toBe(before.configuration.profileHash);
+  expect(afterDisable.configuration.textModel).toBe(before.configuration.textModel);
+
+  const reenabled = page.waitForResponse((response) => response.request().method() === "PUT"
+    && new URL(response.url()).pathname.endsWith("/text-provider-profiles/default/availability"));
+  await page.getByRole("button", { name: "启用后端" }).click();
+  expect((await reenabled).ok()).toBeTruthy();
+  await expect(page.getByLabel("文本模型")).toHaveValue("draft-model-during-toggle");
+  await expect(page.getByLabel("此 Profile 的临时 API Key")).toHaveValue("draft-key-during-toggle");
+  const afterReenable = await readProfile();
+  expect(afterReenable).toMatchObject({ revision: before.revision, enabled: true });
+  expect(afterReenable.configuration.profileHash).toBe(before.configuration.profileHash);
+  expect(afterReenable.configuration.textModel).toBe(before.configuration.textModel);
+
+  // Advance availability outside the tab. The stale in-tab toggle must report
+  // a 409 without reloading or discarding the still-unsaved public/key draft.
+  const externalDisable = await request.put(`${profileUrl}/availability`, {
+    data: { expectedAvailabilityRevision: afterReenable.availabilityRevision, enabled: false },
+  });
+  expect(externalDisable.ok()).toBeTruthy();
+  await page.getByLabel("文本模型").fill("draft-model-after-conflict");
+  await page.getByLabel("此 Profile 的临时 API Key").fill("draft-key-after-conflict");
+  const conflict = page.waitForResponse((response) => response.request().method() === "PUT"
+    && new URL(response.url()).pathname.endsWith("/text-provider-profiles/default/availability")
+    && response.status() === 409);
+  await page.getByRole("button", { name: "停用后端" }).click();
+  expect((await conflict).status()).toBe(409);
+  await expect(page.getByLabel("文本模型")).toHaveValue("draft-model-after-conflict");
+  await expect(page.getByLabel("此 Profile 的临时 API Key")).toHaveValue("draft-key-after-conflict");
+  const afterConflict = await readProfile();
+  expect(afterConflict).toMatchObject({ revision: before.revision, enabled: false });
+  expect(afterConflict.configuration.profileHash).toBe(before.configuration.profileHash);
+  expect(JSON.stringify(afterConflict)).not.toContain("draft-key-after-conflict");
+
+  await page.getByRole("button", { name: "保存设置" }).click();
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  const afterExplicitSave = await readProfile();
+  expect(afterExplicitSave.revision).toBe(before.revision + 1);
+  expect(afterExplicitSave.configuration.textModel).toBe("draft-model-after-conflict");
+  expect(afterExplicitSave.configuration.profileHash).not.toBe(before.configuration.profileHash);
+  expect(JSON.stringify(afterExplicitSave)).not.toContain("draft-key-after-conflict");
+  await expect.poll(() => page.evaluate(() => sessionStorage.getItem("plotloom:provider-session-keys"))).toBe(
+    JSON.stringify({ default: "draft-key-after-conflict" }),
+  );
 });
 
 test("persists a copied profile through the real API without persisting its browser key", async ({ page, request, workbench }) => {

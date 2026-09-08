@@ -4,7 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from plotloom.api import create_app
-from plotloom.domain import ProjectBrief, RunKind, StageName
+from plotloom.domain import ProjectBrief, ProviderSnapshot, RunKind, StageName
 from plotloom.exceptions import InvalidTransitionError, RevisionConflictError
 from plotloom.persistence import SQLiteRepository
 from plotloom.provider_profiles import (
@@ -216,6 +216,23 @@ def test_profile_availability_is_revisioned_without_rewriting_snapshots_and_guar
                 provider_snapshot=frozen_config,
             )
         with pytest.raises(InvalidTransitionError, match="disabled"):
+            repository.create_run(
+                project.id,
+                RunKind.REBUILD,
+                [StageName.STORY_BIBLE],
+                provider_snapshot=frozen_config,
+            )
+        # The admission guard runs before generic-repair lineage validation,
+        # so a disabled frozen profile cannot use an invalid repair request as
+        # a bypass.
+        with pytest.raises(InvalidTransitionError, match="disabled"):
+            repository.create_run(
+                project.id,
+                RunKind.REPAIR,
+                [StageName.STORY_BIBLE],
+                provider_snapshot=frozen_config,
+            )
+        with pytest.raises(InvalidTransitionError, match="disabled"):
             repository.create_work_unit_repair_run(
                 admitted.id, "unneeded-after-admission-guard", idempotency_key="disabled-exact-repair"
             )
@@ -229,6 +246,57 @@ def test_profile_availability_is_revisioned_without_rewriting_snapshots_and_guar
         assert reenabled.enabled is True
         assert reenabled.revision == initial.revision
         assert reenabled.configuration.profile_hash == initial.configuration.profile_hash
+    finally:
+        repository.close()
+
+
+def test_managed_v2_admission_requires_a_registered_profile_without_changing_v1_compatibility() -> None:
+    repository = SQLiteRepository("sqlite://")
+    try:
+        project = repository.create_project(
+            ProjectBrief(title="注册", synopsis="新 V2 运行必须绑定已注册的控制平面 Profile。")
+        )
+        unmanaged_v2 = _profile("unmanaged").model_dump(mode="json", by_alias=True)
+
+        for kind in (RunKind.PIPELINE, RunKind.REBUILD, RunKind.REPAIR):
+            with pytest.raises(InvalidTransitionError, match="not registered"):
+                repository.create_run(
+                    project.id,
+                    kind,
+                    [StageName.STORY_BIBLE],
+                    provider_snapshot=unmanaged_v2,
+                )
+
+        # V1 snapshots predate named-profile availability.  Preserve their
+        # exact canonical JSON/hash path and their ability to load without a
+        # synthetic V2 control-plane row.
+        historical_v1 = ProviderSnapshot(
+            text_provider="historic-compatible",
+            text_base_url="http://127.0.0.1:8081/v1",
+            text_model="historic-model",
+        ).model_dump(mode="json", by_alias=True)
+        admitted_v1 = repository.create_run(
+            project.id,
+            RunKind.PIPELINE,
+            [StageName.STORY_BIBLE],
+            provider_snapshot=historical_v1,
+        )
+        assert repository.get_run(admitted_v1.id).provider_snapshot == historical_v1
+
+        # Compatibility does not make an existing disabled named profile an
+        # admission bypass. The lookup is control-plane-only and leaves the
+        # V1 JSON/hash untouched.
+        default = repository.bootstrap_default_text_provider_profile(_profile())
+        repository.set_text_provider_profile_enabled(
+            "default", default.availability_revision, enabled=False
+        )
+        with pytest.raises(InvalidTransitionError, match="disabled"):
+            repository.create_run(
+                project.id,
+                RunKind.PIPELINE,
+                [StageName.STORY_BIBLE],
+                provider_snapshot=historical_v1,
+            )
     finally:
         repository.close()
 

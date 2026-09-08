@@ -610,3 +610,51 @@ tokens (**25,575 total**); the readiness probe is not included. Cached versus fr
 input and reasoning versus total output are unavailable in normalized receipts.
 Task-agent response/token deltas and cost are unavailable. `git diff --check`
 passed for this documentation-only checkpoint.
+
+### Step 2B recovery: profile admission and availability-draft corrections
+
+**Outcome (2026-09-07):** the availability slice was corrected before handoff.
+The repository transaction had treated a missing profile row as an isolated
+historical/conformance exception, which also admitted a new V2 snapshot for an
+unregistered profile. It now rejects every new managed V2 admission unless its
+named profile row exists and is enabled. This is enforced in the lifecycle write
+transaction for pipeline, rebuild, generic repair, and exact work-unit repair
+children; it does not affect already-admitted queue/run/resume work.
+
+V1 remains byte-for-byte on its original snapshot/hash path: a historical V1
+snapshot without a control-plane row is still admitted without synthesizing V2
+state. A V1 request that names an existing disabled row is nevertheless rejected
+as a fresh request for that disabled backend. Disposable conformance and Alpha
+repositories now seed the requested enabled profile explicitly, so they exercise
+the production admission contract rather than carrying a broad repository
+exception.
+
+The availability UI no longer reloads the profile catalog after a toggle.
+Instead it merges only returned `enabled` and `availabilityRevision` metadata
+into the catalog and current draft. Unsaved endpoint/model configuration,
+configuration revision/hash, `profileDirty`, and the profile-scoped tab-session
+key remain intact, including edits made while the request is pending and after a
+409 availability conflict. The regenerated workbench bundle is included.
+
+Files: `src/plotloom/persistence.py`, `src/plotloom/conformance.py`,
+`src/plotloom/alpha_acceptance.py`, `frontend/src/App.tsx`, regenerated
+`src/plotloom/static/workbench.js`, focused repository regression, and
+`frontend/e2e/provider-profiles.spec.ts`.
+
+Checks: focused profile/provider tests **15 passed**; affected
+conformance/migration/API tests **41 passed**; Alpha acceptance tests **23
+passed**; frontend unit tests **115 passed**; frontend and E2E typechecks
+passed; deterministic frontend build passed; the four real-FastAPI plus isolated
+external OpenAI-compatible fake-provider profile browser journeys **4 passed**.
+The new browser coverage holds a live availability response while typing a model
+and key, verifies disable and re-enable leave the persisted configuration
+revision/hash unchanged until explicit save, and induces a real 409 without
+discarding the draft or leaking the key. No live provider call, canary replay,
+full unrelated suite, or qualification run occurred.
+
+**Remaining gap / next action:** this bounded correction does not add adapter
+registry/V3 snapshots/qualification/runtime probes and does not address the
+separate join-correction defect. After integration, the approved next priority
+remains that shared join correction followed by one real llama canary and content
+inspection. Commit and final worktree state are recorded with this recovery
+handoff.

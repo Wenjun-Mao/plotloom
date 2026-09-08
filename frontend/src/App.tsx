@@ -999,8 +999,22 @@ export default function App() {
       const updated = await plotloomApi.setTextProviderProfileAvailability(
         profileDraft.profileId, profileDraft.availabilityRevision, profileDraft.enabled === false,
       );
-      const next = await plotloomApi.getTextProviderProfiles();
-      installProfiles(next, updated.profileId);
+      // Availability is independent control-plane state. Preserve unsaved
+      // configuration and the tab-only key, including edits made while this
+      // request was in flight; only merge the returned availability fields.
+      setProfiles((current) => {
+        const next = {
+          ...current,
+          profiles: current.profiles.map((profile) => profile.profileId === updated.profileId
+            ? { ...profile, enabled: updated.enabled, availabilityRevision: updated.availabilityRevision }
+            : profile),
+        };
+        profileCatalog.current = next;
+        return next;
+      });
+      setProfileDraft((current) => current.profileId === updated.profileId
+        ? { ...current, enabled: updated.enabled, availabilityRevision: updated.availabilityRevision }
+        : current);
     } catch (profileError) { setError(messageFrom(profileError)); }
     finally { setBusy(false); }
   };
