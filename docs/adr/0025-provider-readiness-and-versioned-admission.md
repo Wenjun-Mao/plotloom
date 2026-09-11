@@ -27,6 +27,11 @@ also configuration facts, not runtime readiness evidence.
   `adapterId`/`adapterVersion`. The first entry is the versioned
   OpenAI-compatible protocol adapter. Model names, endpoint shapes, IPs,
   runtime brands, and display labels never select adapter code.
+- The current registry has exactly one approved entry. Profile APIs publish it
+  and the settings UI names the selected immutable entry beside the provider
+  field; it is intentionally not editable until a future migration introduces
+  a persisted profile adapter-selection field. Endpoint and model inputs can
+  never substitute for that registry selection.
 - New admissions receive a V3 provider snapshot which freezes that exact
   adapter selection. V1 and V2 snapshot bytes, hashes, serialization and
   resolver behavior remain historical authority; they are neither migrated nor
