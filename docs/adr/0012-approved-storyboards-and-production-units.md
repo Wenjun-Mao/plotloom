@@ -70,6 +70,16 @@ between every text stage.
 
 ### Derived production units
 
+**2026-09-11 amendment — non-generative P0:**
+[ADR 0026](0026-story-to-playable-product-direction.md) permits controlled
+import/exploration without storyboard Approval and separately permits reviewed
+still-preview bindings/projections before provider production is implemented.
+The latter requires exact active Approval, reviewed selections, immutable asset
+hashes and coherent revision-frozen inputs. It is not a MediaTask or a complete
+ProductionSnapshot. This narrowly qualifies the blanket media boundary above;
+all provider production requirements below remain unchanged. P0 does not
+authorize exploratory provider generation or raw-Shot submission.
+
 A `ProductionUnit` is a versioned, content-addressed projection of one approved
 storyboard snapshot. It is not a fifth canonical story stage and is never edited
 to change narrative truth. A unit contains:

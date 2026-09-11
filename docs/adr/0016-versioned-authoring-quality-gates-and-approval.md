@@ -86,6 +86,15 @@ M2 must require an active exact approval and freeze the approval, canonical
 revisions, gate receipt, dialogue/audio schedule, reference artifacts, and
 compiler inputs into an immutable ProductionSnapshot.
 
+**2026-09-11 amendment:** [ADR 0026](0026-story-to-playable-product-direction.md)
+adds two explicit non-generative paths: import/exploration candidates without
+storyboard Approval, and reviewed still-preview bindings admitted against exact
+active Approval and frozen canonical/selection/artifact inputs. Only those
+bindings are excepted from the original blanket prohibition above. A preview
+is not a production task or snapshot; API/repository/worker provider hard stops
+remain closed. Tests must prove imported assets create no fabricated run and
+that the new paths cannot submit, poll or attach provider production results.
+
 ## Rejected alternatives
 
 - Silently upgrading V1 JSON with V2 defaults or free-text inference.

@@ -1,8 +1,10 @@
 # Story to playable Alpha: development roadmap
 
-Status: **review draft**, with user-confirmed product direction. This is a
-planning deliverable, not authorization to implement every milestone or evidence
-that media production is available. Technical proposals remain subject to review.
+Status: **direction amended after external review, 2026-09-11**. User-approved
+direction and P0 authority boundaries are recorded in ADR 0026. This is not
+authorization to implement every milestone or evidence of available media
+production. The bounded [P0 plan](p0-imported-still-preview-plan.md) revision 1 is Approved;
+later technical details remain subject to their own planning and acceptance.
 
 Source baseline: `9afbefd2f82a620d79b82cd6607571057f23a6c4`, locally clean on
 `codex/m1b-alpha` before this documentation change. Repository:
@@ -20,12 +22,14 @@ can edit details. Intermediate deliveries must be useful on their own.
 Read this roadmap first, then [ADR 0026](../adr/0026-story-to-playable-product-direction.md)
 for decision boundaries. The [capability matrix](capability-matrix.md) remains
 the implementation progress authority. The [M1-C completion plan](m1c-completion-plan.md)
-still owns text qualification; this draft does not waive its gates.
+still owns text qualification; this roadmap does not waive its gates.
 
 External review prompts are in
 [creative workflow review](story-to-playable-review/creative-workflow.md) and
 [architecture and delivery review](story-to-playable-review/architecture-delivery.md).
-They have not been dispatched.
+Both reports have been returned. Their [synthesis](story-to-playable-review/synthesis.md)
+records evidence limits and Use/Test/Park/Discard dispositions; the original
+review prompts retain their publication-time context.
 
 ## 1. Where we actually are
 
@@ -65,10 +69,13 @@ with completed qualification tooling.
 `Synopsis → editable storyboard → visual proposals → selected references →
 keyframes → audiovisual clips → sequential scene → pause-and-choose story`
 
-Start small: one protagonist, one principal location, three complementary
-keyframes (close-up, environment, action), then one audiovisual clip. Offer two
-or three visual directions using the same representative subject so comparison
-is meaningful. Test the chosen direction in shots before expanding the library.
+Start small: one protagonist, one principal location and three complementary
+keyframes showing one continuous dramatic moment. Close-up, environment and
+action are useful coverage choices, not a mandated sequence. Start with two
+comparable visual directions; add a third only if useful. Reuse selected frames
+as references when suitable rather than automatically building separate sheets.
+Generate one audiovisual clip, then test its neighbour before expanding scene
+production. One clip proves no cross-shot voice or action continuity.
 
 Visual proposals fill missing appearance, costume, lighting and sound intent in
 a versioned **visual brief**. They must not silently invent canonical narrative
@@ -80,9 +87,15 @@ compiler assembles selected intent, shot/cue/state references and capability
 constraints; it does not ask an image endpoint to write another prompt. Keep
 generated candidates separate from the creator's selected production inputs.
 
-Recommended review moments: choose a visual direction, review reference/keyframe
-consistency, then review the first audiovisual performance. Avoid mandatory
-approval clicks for every exploratory variation.
+Show proposed additions and what varies between alternatives; offer neither,
+keep current and refine one aspect. Separate selecting an unspecified portrayal
+from approving changes to narrative facts, including consequential sound cues.
+
+Recommended review moments: visual direction, keyframe consistency, then
+audiovisual performance across the cut and into the choice hold. A compact
+creator-readable continuity strip may expose existing facts, action boundaries
+and selected intent; it is not another authoring stage. Missing facts remain
+proposals. Avoid approval clicks for every exploratory variation.
 
 ## 4. Delivery sequence
 
@@ -92,9 +105,10 @@ before showing a picture. Exact task/file boundaries are planned at each slice.
 | Milestone | Observable deliverable | Exit evidence |
 |---|---|---|
 | Q — Text qualification closeout | One explicitly supported text configuration; other profiles remain independently experimental/deferred | Existing core gates, 9 fixed runs, three blinded reviews, source-bound receipt and fresh CI before claiming M1-C |
-| P0 — Imported visual pilot | Import real images generated here, compare/select references and three keyframes, reopen selections and see an in-app still sequence | Real FastAPI/browser journey; originals and bindings survive refresh; missing/stale media visibly distinguished |
+| P0 — Imported visual pilot | Import four real images, compare alternatives, select three consecutive shots in one scene and play a labelled still animatic | Real FastAPI/browser journey; exact approved projection, original bytes and selections survive refresh/restart; replacement/history, stale/revoked and missing/corrupt states distinguished |
 | P1 — Plotloom image generation | Generate and refine a keyframe through one real image backend from the same reference/selection workflow | Approved frozen input, actual dispatch and validated local image, explicit selection, persistence; unsupported combinations rejected before dispatch |
 | P2 — First audiovisual clip | Animate one selected keyframe with one short line and environmental sound; play it inside Plotloom | Real video downloaded and inspected, native audio present and reviewed, exact reference/shot/cue lineage retained |
+| P2 exit experiment — The adjoining shot | Add one neighbouring clip with the same character; test a distinct short cue if evaluating voice consistency | Normal-speed, muted and audio-only review across the cut and final hold; do not expand scene production until blocking continuity defects are resolved |
 | P3 — Sequential audiovisual scene | Play several selected clips in shot order inside Plotloom | Play/pause/seek and shot navigation; measured durations; no accidental repeated/cut dialogue; refresh retains selected sequence |
 | P4 — Playable branching Alpha | Follow a small story through choices and distinct outcomes, then restart/explore | Every reachable branch in the chosen complete story is playable; state and joins agree with canonical graph; pause-and-choose works |
 
@@ -109,20 +123,26 @@ the combined product is advertised as a qualified story-to-playable Alpha.
 - Controlled upload/import, not arbitrary server-path reads. Store original bytes
   with content hash, observed MIME/dimensions, origin and available rights metadata;
   label unknown provenance rather than fabricate it. Thumbnails are derivatives.
+- Reuse the existing byte store with separate managed-asset records. Deduplicate
+  bytes, not provenance; imports must not fabricate generation runs. Validate
+  actual raster content, bounded decoding and existing stored bytes before use.
 - Associate artifacts with stable character/location/prop/style/keyframe roles.
   Distinguish identity, design, composition and style reference intent. Byte
   preservation is guaranteed by storage; generated identity fidelity needs review.
 - Compare candidates and explicitly select them using revision-checked bindings.
   Replacement preserves history and marks affected derived work stale.
 - Provide a still-image sequence using authored durations, visibly labelled an
-  animatic, not a generated video. Bind production preview to a reviewed board;
-  distinguish exploratory reference comparison from production selection.
+  animatic, not a generated video. Capture exact applicable Approval, canonical
+  inputs, reviewed selection revisions and hashes in a coherent immutable still
+  projection. It is non-generative, not a complete ProductionSnapshot.
 - Keep offline viewing of imported assets possible; test missing/corrupt files,
   import limits, project isolation and safe referenced-file retention/deletion.
 
-P0 must resolve the proposed exploratory-approval boundary in ADR 0026 before
-implementation. Build only the artifact/selection/projection subset this journey
-uses. No paid-provider job system is needed to prove this first outcome.
+ADR 0026 now distinguishes import/exploration, reviewed still preview, and provider
+production. Build only the artifact/selection/projection subset this journey uses;
+provider API/repository/worker hard stops remain closed. Plan asset retention
+explicitly, including history and permanent deletion; do not build general GC.
+No paid-provider job system is needed to prove this first outcome.
 
 ### P1–P2: real generation without changing narrative authority
 
@@ -140,6 +160,9 @@ uses. No paid-provider job system is needed to prove this first outcome.
 - Track submission uncertainty separately from definite failure. Persist remote
   task identity when available; reconcile after restart. Browser cancellation
   is not proof of remote cancellation. Never blindly replay an unknown submission.
+- Keep execution outcome, ingestion state and cancellation intent distinct. Poll
+  exhaustion is not proof of remote failure; a retrieval retry must not regenerate.
+  Define dispatch authorization cutoff and atomic claim/idempotency before P1.
 - Download and validate output before claiming an offline-usable artifact. Retain
   task evidence and useful failure state when generation succeeded but ingest
   failed. Temporary provider URLs are not durable identities.
@@ -152,11 +175,15 @@ clear action and environmental sound. Listen/watch for speaker correctness,
 wording, language, lip synchronization, performance and unwanted sounds.
 Audio-track presence alone is not success. Native speech must not become a new
 authoritative DialogueCue merely because the model improvised it.
+Keep complete utterances within individual pilot clips. This is a diagnostic
+choice, not a permanent authoring restriction. Review the neighbouring clip for
+apparent recasting, repeated action/lines, changed voice and unsuitable sound cuts.
 
 ### P3: playback is not a full editor
 
 Selected clips play with simple cuts in storyboard order. Include play/pause,
-seeking, mute/volume and navigation to the shot. Use observed delivery durations
+seeking, mute/volume, navigation to the shot and a small “replay this cut” control.
+Use observed delivery durations
 for playback, keeping authored timing separate; never silently retime canonical
 shots to fit provider output. A mismatch requiring truncation, stretching or
 changed dialogue needs an explicit production decision.
@@ -188,19 +215,25 @@ integration tests plus human listening/viewing; neither substitutes for the othe
 - Restart resets session state; revisit/navigation must not reapply effects by
   accident. Provide keyboard-operable choices and clear loading/error feedback.
 - Complete mode requires current approved inputs and playable selected media for
-  every reachable shot, plus valid choices/joins/endings. Draft mode may inspect
+  every reachable depiction context, plus valid choices/joins/endings. A shot's
+  available dry-coat clip does not satisfy a wet-coat incoming path. Draft mode may inspect
   incomplete branches but declares gaps. Returning to an old manifest is historical
   preview, not approval of the current head.
 
 Recommended first branching pilot: one decision, two meaningfully different
 outcomes, reusing the initial scene. Add a small join-containing test fixture to
 exercise state correctness, without making a whole feature film the first trial.
+The existing join compiler supplies incoming-edge descriptors, not initial-state
+or arbitrary path-state runtime semantics. P4 must define those explicitly.
+Neutral framing can avoid depicting a difference but cannot erase it; when that
+difference matters again, require compatible media or authored reconciliation.
+Finish dialogue, action and necessary sound tails before the indefinite choice
+pause. Do not introduce persistent ambience as an unapproved playback change.
 
 ## 5. Decisions still open
 
 | Question | Current recommendation | When to settle |
 |---|---|---|
-| Exploratory refs before storyboard Approval? | Separate versioned exploratory snapshot; production still requires approved board and explicit selection | Before P0; amend governing ADRs, do not bypass current hard stop |
 | First image/video endpoint and spending policy? | Qualify one of each; user supplies/chooses account and approved live scope; no automatic batches | Before each real integration trial |
 | Must character voice be identical across clips? | Treat recognizability as a review target; make no guaranteed voice-lock claim without endpoint evidence | P2 evaluation, before expanding P3 |
 | Provider duration does not fit authored shot? | Expose discrepancy; explicit selection/edit or production timing decision, never hidden canonical rewrite | P2 contract |
@@ -260,7 +293,7 @@ only document/link/diff review.
 
 ## 8. Review and next action
 
-Two complementary independent consultations are requested by the user:
+Two complementary independent consultations were completed:
 
 - Creative workflow reviewer: simplify the path to cinematic, coherent scenes;
   challenge reference, selection, continuity and sound assumptions.
@@ -271,11 +304,10 @@ Keep reports unchanged and record synthesis separately, classifying insights as
 Use/Test/Park/Discard. Verify relied-upon claims proportionately. Reviewer
 agreement is not product acceptance or an instruction to rewrite existing code.
 
-Next: user provides each self-contained prompt to its reviewer using the
-[GitHub review entrypoint](story-to-playable-review/README.md). The user has
-authorized publishing source and review documents to GitHub; no `.env`, local
-databases, private media or credentials are included. Reviewers must state the
-exact source revision inspected, and report any access limitation rather than
-substituting `main`. Publishing the packet does not dispatch a consultation.
-After synthesis, accept/amend the proposed ADR boundaries and write only the
-first bounded implementation brief, not detailed speculative tasks for all P0–P4.
+The [synthesis](story-to-playable-review/synthesis.md) was reviewed and the user
+authorized these amendments and approved revision 1 of the bounded
+[P0 implementation plan](p0-imported-still-preview-plan.md). Next is the separate
+execution handoff. Q remains separately scoped and open. No extra consultation
+round, automatic live generation or detailed speculative task tree for P1–P4 is
+required. The prior GitHub packet remains identifiable by commit; these later
+amendments do not rewrite what the reviewers inspected.

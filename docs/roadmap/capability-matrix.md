@@ -10,11 +10,14 @@
 
 ## 一眼看懂当前状态
 
-**Next product direction (review draft):** [Story to playable Alpha](story-to-playable-alpha.md)
+**Next product direction (amended 2026-09-11):** [Story to playable Alpha](story-to-playable-alpha.md)
 records the agreed cinematic-realism, proposal/refinement, imported-reference,
 native-audio and in-app pause-and-choose direction. Its P0–P4 milestones are
-planned, not completed; C02/C03/C05/C06/C08/C09 maturity is unchanged. The draft
-does not waive M1-C qualification or the current production-media hard stop.
+planned, not completed; C02/C03/C05/C06/C08/C09 maturity is unchanged. ADR 0026
+now authorizes the non-generative imported/still-preview boundary as a design;
+the [P0 implementation plan](p0-imported-still-preview-plan.md) revision 1 is Approved,
+with implementation not yet dispatched.
+No M1-C qualification gate or provider-production hard stop is waived.
 
 | 观察面 | 当前判断 | 它真正说明什么 |
 |---|---:|---|
