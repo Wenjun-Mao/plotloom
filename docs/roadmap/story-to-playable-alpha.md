@@ -6,6 +6,12 @@ authorization to implement every milestone or evidence of available media
 production. The bounded [P0 plan](p0-imported-still-preview-plan.md) revision 1 is Approved;
 later technical details remain subject to their own planning and acceptance.
 
+**P1 direction amendment, 2026-09-11:** the user selected a Codex image specialist
+with manual job handoff as the first image backend. See
+[ADR 0028](../adr/0028-agent-operated-image-jobs.md) and the
+[P1 revision 2 draft](p1-image-generation-plan.md). Automatic dispatch and external
+image-provider qualification are not P1 prerequisites. This is not implemented.
+
 Source baseline: `9afbefd2f82a620d79b82cd6607571057f23a6c4`, locally clean on
 `codex/m1b-alpha` before this documentation change. Repository:
 <https://github.com/Wenjun-Mao/plotloom>. Review publication branch:
@@ -106,7 +112,7 @@ before showing a picture. Exact task/file boundaries are planned at each slice.
 |---|---|---|
 | Q — Text qualification closeout | One explicitly supported text configuration; other profiles remain independently experimental/deferred | Existing core gates, 9 fixed runs, three blinded reviews, source-bound receipt and fresh CI before claiming M1-C |
 | P0 — Imported visual pilot | Import four real images, compare alternatives, select three consecutive shots in one scene and play a labelled still animatic | Real FastAPI/browser journey; exact approved projection, original bytes and selections survive refresh/restart; replacement/history, stale/revoked and missing/corrupt states distinguished |
-| P1 — Plotloom image generation | Generate and refine a keyframe through one real image backend from the same reference/selection workflow | Approved frozen input, actual dispatch and validated local image, explicit selection, persistence; unsupported combinations rejected before dispatch |
+| P1 — Specialist-backed image jobs | Prepare/copy a frozen job to the Codex image specialist; Refresh to ingest, compare and select generated/refined keyframes | Approved job identity, observed imagegen execution, complete validated delivery, idempotent Refresh, explicit selection and restart persistence; no automatic bridge required |
 | P2 — First audiovisual clip | Animate one selected keyframe with one short line and environmental sound; play it inside Plotloom | Real video downloaded and inspected, native audio present and reviewed, exact reference/shot/cue lineage retained |
 | P2 exit experiment — The adjoining shot | Add one neighbouring clip with the same character; test a distinct short cue if evaluating voice consistency | Normal-speed, muted and audio-only review across the cut and final hold; do not expand scene production until blocking continuity defects are resolved |
 | P3 — Sequential audiovisual scene | Play several selected clips in shot order inside Plotloom | Play/pause/seek and shot navigation; measured durations; no accidental repeated/cut dialogue; refresh retains selected sequence |
@@ -145,6 +151,12 @@ explicitly, including history and permanent deletion; do not build general GC.
 No paid-provider job system is needed to prove this first outcome.
 
 ### P1–P2: real generation without changing narrative authority
+
+ADR 0028 specializes the principles below for P1: manual handoff replaces automatic
+submission; completed-file ingestion replaces provider downloading/polling. Named
+HTTP media profiles, remote lifecycle adapters and video capabilities are later
+integration work. Frozen production inputs, explicit selection and uncertainty
+boundaries remain mandatory.
 
 - Implement ADR 0012's production projection initially as one shot per unit,
   retaining future contiguous multi-shot support without implementing it now.
@@ -234,7 +246,8 @@ pause. Do not introduce persistent ambience as an unapproved playback change.
 
 | Question | Current recommendation | When to settle |
 |---|---|---|
-| First image/video endpoint and spending policy? | Qualify one of each; user supplies/chooses account and approved live scope; no automatic batches | Before each real integration trial |
+| First image execution route? | Settled: Codex built-in image specialist with manual job handoff; no external image API prerequisite | P1 access and real-output acceptance |
+| First video endpoint and spending policy? | Qualify one; user supplies/chooses account and approved live scope; no automatic batches | Before P2 real integration trial |
 | Must character voice be identical across clips? | Treat recognizability as a review target; make no guaranteed voice-lock claim without endpoint evidence | P2 evaluation, before expanding P3 |
 | Provider duration does not fit authored shot? | Expose discrepancy; explicit selection/edit or production timing decision, never hidden canonical rewrite | P2 contract |
 | Imported person's identity/likeness constraints? | Preserve original; record intended uses/rights and require review of generated fidelity | P0 import UX |
