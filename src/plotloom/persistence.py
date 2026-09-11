@@ -6480,9 +6480,13 @@ class SQLiteRepository:
         *,
         configuration: TextProviderProfileSnapshot | dict[str, Any] | None = None,
         copy_from_profile_id: str | None = None,
+        adapter_id: str | None = None,
+        adapter_version: str | None = None,
     ) -> TextProviderProfile:
         if (configuration is None) == (copy_from_profile_id is None):
             raise ValueError("provide exactly one of configuration or copy_from_profile_id")
+        if (adapter_id is None) != (adapter_version is None):
+            raise ValueError("adapter_id and adapter_version must be provided together")
         if re.fullmatch(PROFILE_ID_PATTERN, profile_id) is None:
             raise ValueError("profile_id must match [a-z][a-z0-9_]{0,62}")
         normalized_name = display_name.strip()
@@ -6508,8 +6512,14 @@ class SQLiteRepository:
                 revision=1,
                 enabled=True,
                 availability_revision=0,
-                adapter_id=(source.adapter_id if copy_from_profile_id is not None else "openai_compatible"),
-                adapter_version=(source.adapter_version if copy_from_profile_id is not None else "1"),
+                adapter_id=(
+                    adapter_id
+                    or (source.adapter_id if copy_from_profile_id is not None else "openai_compatible")
+                ),
+                adapter_version=(
+                    adapter_version
+                    or (source.adapter_version if copy_from_profile_id is not None else "1")
+                ),
                 created_at=now,
                 updated_at=now,
             )
@@ -6524,7 +6534,11 @@ class SQLiteRepository:
         *,
         display_name: str,
         configuration: TextProviderProfileSnapshot | dict[str, Any],
+        adapter_id: str | None = None,
+        adapter_version: str | None = None,
     ) -> TextProviderProfile:
+        if (adapter_id is None) != (adapter_version is None):
+            raise ValueError("adapter_id and adapter_version must be provided together")
         with self._write() as session:
             row = session.get(TextProviderProfileRow, profile_id)
             if row is None:
@@ -6544,11 +6558,20 @@ class SQLiteRepository:
             for key in ("profileVersion", "profileHash"):
                 current_without_version.pop(key, None)
                 proposed_without_version.pop(key, None)
-            if row.display_name == normalized_name and current_without_version == proposed_without_version:
+            next_adapter_id = adapter_id or row.adapter_id
+            next_adapter_version = adapter_version or row.adapter_version
+            if (
+                row.display_name == normalized_name
+                and current_without_version == proposed_without_version
+                and row.adapter_id == next_adapter_id
+                and row.adapter_version == next_adapter_version
+            ):
                 return self._text_provider_profile(row)
             row.revision += 1
             row.display_name = normalized_name
             row.settings = proposed.model_dump(mode="json", by_alias=True)
+            row.adapter_id = next_adapter_id
+            row.adapter_version = next_adapter_version
             row.updated_at = utc_now()
             return self._text_provider_profile(row)
 

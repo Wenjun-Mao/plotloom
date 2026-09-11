@@ -211,12 +211,12 @@ describe("PlotloomApiClient", () => {
       maxSemanticCorrections: 2, presetId: "custom" as const, presetVersion: "1",
     };
 
-    await client.updateTextProviderProfile("quality", 1, "Quality", configuration);
+    await client.updateTextProviderProfile("quality", 1, "Quality", configuration, "openai_compatible", "1");
     await client.probeTextProviderProfile("quality");
 
     const [, saveInit] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
     const [, probeInit] = fetcher.mock.calls[1] as unknown as [string, RequestInit];
-    expect(JSON.parse(String(saveInit.body))).toEqual({ expectedRevision: 1, displayName: "Quality", configuration });
+    expect(JSON.parse(String(saveInit.body))).toEqual({ expectedRevision: 1, displayName: "Quality", configuration, adapterId: "openai_compatible", adapterVersion: "1" });
     expect(String(saveInit.body)).not.toContain("probe-secret");
     expect(new Headers(saveInit.headers).has("X-Plotloom-Session-API-Key")).toBe(false);
     expect(new Headers(probeInit.headers).get("X-Plotloom-Session-API-Key")).toBe("probe-secret");

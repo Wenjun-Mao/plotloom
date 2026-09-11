@@ -878,6 +878,7 @@ describe("App project/editor rehydration", () => {
     vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
     const savedProfile = {
       profileId: "default", displayName: "Default", revision: 1, createdAt: "", updatedAt: "", serverKeyAvailable: false,
+      adapterId: "openai_compatible", adapterVersion: "1",
       configuration: { profileId: "default", textModel: "model", textAuthMode: "bearer" },
     } as never;
     vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue({
@@ -907,6 +908,7 @@ describe("App project/editor rehydration", () => {
     vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
     const savedProfile = {
       profileId: "default", displayName: "Default", revision: 1, createdAt: "", updatedAt: "", serverKeyAvailable: false,
+      adapterId: "openai_compatible", adapterVersion: "1",
       configuration: { profileId: "default", textModel: "model", textAuthMode: "none" },
     } as never;
     vi.spyOn(plotloomApi, "getTextProviderProfiles").mockResolvedValue({

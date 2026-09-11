@@ -658,6 +658,17 @@ def test_provider_and_media_request_reject_secret_fields(repository: SQLiteRepos
         },
     )
     assert unsafe_profile.status_code == 422
+    unsupported_adapter = client.put(
+        "/api/v2/text-provider-profiles/default",
+        json={
+            "expectedRevision": current_profile["revision"],
+            "displayName": current_profile["displayName"],
+            "configuration": current_profile["configuration"],
+            "adapterId": "untrusted_adapter",
+            "adapterVersion": "1",
+        },
+    )
+    assert unsupported_adapter.status_code == 422
     response = client.post(
         "/api/v2/projects/unknown/shots/unknown/media-tasks",
         json={"kind": "image", "publicSettings": {"nested": {"accessToken": "secret"}}},
@@ -701,6 +712,31 @@ def test_definite_preflight_failure_creates_no_pipeline_run(repository: SQLiteRe
     assert refused.status_code == 422
     assert "selected text backend is unreachable" in refused.json()["detail"]
     assert repository.list_project_runs(project["id"]) == []
+
+
+def test_profile_crud_round_trips_the_trusted_adapter_selection(
+    repository: SQLiteRepository,
+) -> None:
+    client = TestClient(create_app(repository))
+    current = client.get("/api/v2/text-provider-profiles/default").json()
+
+    saved = client.put(
+        "/api/v2/text-provider-profiles/default",
+        json={
+            "expectedRevision": current["revision"],
+            "displayName": current["displayName"],
+            "configuration": current["configuration"],
+            "adapterId": "openai_compatible",
+            "adapterVersion": "1",
+        },
+    )
+
+    assert saved.status_code == 200
+    assert saved.json()["adapterId"] == "openai_compatible"
+    assert saved.json()["adapterVersion"] == "1"
+    assert client.get("/api/v2/text-provider-profiles").json()["trustedAdapters"] == [
+        {"adapterId": "openai_compatible", "adapterVersion": "1"}
+    ]
 
 
 def test_provider_settings_merge_defaults_and_freeze_on_run(repository: SQLiteRepository, brief) -> None:

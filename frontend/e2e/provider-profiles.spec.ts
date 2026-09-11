@@ -13,14 +13,14 @@ test("tests a profile only after saving public settings and keeps its key sessio
     maxSemanticCorrections: 2, presetId: "custom", presetVersion: "1",
   };
   const readiness = { profileId: "default", profileRevision: 1, state: "unverified", reasonCode: "readiness.not_checked", observedAt: null };
-  const profile = { profileId: "default", displayName: "Default", configuration, revision: 1, enabled: true, availabilityRevision: 0, createdAt: "now", updatedAt: "now", serverKeyAvailable: false, readiness };
+  const profile = { profileId: "default", displayName: "Default", configuration, revision: 1, enabled: true, availabilityRevision: 0, adapterId: "openai_compatible", adapterVersion: "1", createdAt: "now", updatedAt: "now", serverKeyAvailable: false, readiness };
   const calls: Array<{ method: string; body: string; sessionKey: string | undefined }> = [];
   await page.route("**/api/v2/text-provider-profiles**", async (route) => {
     const request = route.request();
     calls.push({ method: request.method(), body: request.postData() || "", sessionKey: request.headers()["x-plotloom-session-api-key"] });
     const pathname = new URL(request.url()).pathname;
     if (request.method() === "GET") {
-      await route.fulfill({ json: { profiles: [profile], activeProfileId: "default", selectionRevision: 1, presets: {} } });
+      await route.fulfill({ json: { profiles: [profile], activeProfileId: "default", selectionRevision: 1, presets: {}, trustedAdapters: [{ adapterId: "openai_compatible", adapterVersion: "1" }] } });
     } else if (pathname.endsWith("/probe")) {
       await route.fulfill({ json: { ...readiness, state: "available", reasonCode: "readiness.models_verified", observedAt: "2026-09-10T12:00:00Z" } });
     } else {
@@ -32,6 +32,7 @@ test("tests a profile only after saving public settings and keeps its key sessio
   await page.getByRole("button", { name: "打开示例项目" }).click();
   await page.getByRole("button", { name: "供应商与会话 Key" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByLabel("受信任适配器")).toHaveValue("openai_compatible@1");
   await page.getByLabel("此 Profile 的临时 API Key").fill("test-session-secret");
   await page.getByRole("button", { name: "测试连接" }).click();
   await expect(page.getByText("后端已就绪：readiness.models_verified")).toBeVisible();
@@ -42,6 +43,7 @@ test("tests a profile only after saving public settings and keeps its key sessio
   expect(calls.some((call) => call.method === "GET")).toBe(true);
   expect(writes.map((call) => call.method)).toEqual(["PUT", "POST"]);
   expect(writes[0].body).not.toContain("test-session-secret");
+  expect(JSON.parse(writes[0].body)).toMatchObject({ adapterId: "openai_compatible", adapterVersion: "1" });
   expect(writes[0].sessionKey).toBeUndefined();
   expect(writes[1].body).toBe("");
   expect(writes[1].sessionKey).toBe("test-session-secret");

@@ -765,6 +765,8 @@ export interface TextProviderProfileCreate {
   displayName: string;
   configuration?: TextProviderProfileConfiguration;
   copyFromProfileId?: string;
+  adapterId?: string;
+  adapterVersion?: string;
 }
 
 export interface TextProviderProfileProbe {

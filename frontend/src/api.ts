@@ -301,10 +301,10 @@ export class PlotloomApiClient {
     return this.request("/text-provider-profiles", { method: "POST", body: JSON.stringify(body) });
   }
 
-  updateTextProviderProfile(profileId: string, expectedRevision: number, displayName: string, configuration: TextProviderProfileConfiguration): Promise<TextProviderProfileView> {
+  updateTextProviderProfile(profileId: string, expectedRevision: number, displayName: string, configuration: TextProviderProfileConfiguration, adapterId: string, adapterVersion: string): Promise<TextProviderProfileView> {
     return this.request(`/text-provider-profiles/${encodeURIComponent(profileId)}`, {
       method: "PUT",
-      body: JSON.stringify({ expectedRevision, displayName, configuration }),
+      body: JSON.stringify({ expectedRevision, displayName, configuration, adapterId, adapterVersion }),
     });
   }
 

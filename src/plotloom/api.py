@@ -299,11 +299,15 @@ class TextProviderProfileCreate(CamelModel):
     display_name: str = Field(min_length=1, max_length=120)
     configuration: dict[str, Any] | None = None
     copy_from_profile_id: str | None = Field(default=None, pattern=PROFILE_ID_PATTERN)
+    adapter_id: str | None = Field(default=None, min_length=1, max_length=120)
+    adapter_version: str | None = Field(default=None, min_length=1, max_length=40)
 
     @model_validator(mode="after")
     def require_one_configuration_source(self) -> "TextProviderProfileCreate":
         if (self.configuration is None) == (self.copy_from_profile_id is None):
             raise ValueError("provide exactly one of configuration or copyFromProfileId")
+        if (self.adapter_id is None) != (self.adapter_version is None):
+            raise ValueError("adapterId and adapterVersion must be provided together")
         if contains_secret_setting(self.configuration) or contains_secret_value(self.configuration):
             raise ValueError("text provider profiles must not contain secrets")
         return self
@@ -313,9 +317,13 @@ class TextProviderProfileUpdate(CamelModel):
     expected_revision: int = Field(ge=0)
     display_name: str = Field(min_length=1, max_length=120)
     configuration: dict[str, Any]
+    adapter_id: str | None = Field(default=None, min_length=1, max_length=120)
+    adapter_version: str | None = Field(default=None, min_length=1, max_length=40)
 
     @model_validator(mode="after")
     def reject_profile_secrets(self) -> "TextProviderProfileUpdate":
+        if (self.adapter_id is None) != (self.adapter_version is None):
+            raise ValueError("adapterId and adapterVersion must be provided together")
         if contains_secret_setting(self.configuration) or contains_secret_value(self.configuration):
             raise ValueError("text provider profiles must not contain secrets")
         return self
@@ -744,6 +752,17 @@ def create_app(
             },
             trusted_adapters=DEFAULT_TEXT_ADAPTER_REGISTRY.supported(),
         )
+
+    def require_trusted_adapter(adapter_id: str, adapter_version: str) -> None:
+        supported = {
+            (item["adapterId"], item["adapterVersion"])
+            for item in DEFAULT_TEXT_ADAPTER_REGISTRY.supported()
+        }
+        if (adapter_id, adapter_version) not in supported:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="unsupported text provider adapter selection",
+            )
 
     def text_submission_session_key(
         snapshot: Mapping[str, Any], request: Request
@@ -1406,11 +1425,18 @@ def create_app(
         body: TextProviderProfileCreate,
     ) -> TextProviderProfileView:
         try:
+            if body.adapter_id is not None and body.adapter_version is not None:
+                require_trusted_adapter(body.adapter_id, body.adapter_version)
+            elif body.copy_from_profile_id is not None:
+                copied = repo.get_text_provider_profile(body.copy_from_profile_id)
+                require_trusted_adapter(copied.adapter_id, copied.adapter_version)
             profile = repo.create_text_provider_profile(
                 body.profile_id,
                 body.display_name,
                 configuration=body.configuration,
                 copy_from_profile_id=body.copy_from_profile_id,
+                adapter_id=body.adapter_id,
+                adapter_version=body.adapter_version,
             )
         except ValidationError:
             raise
@@ -1438,12 +1464,18 @@ def create_app(
         body: TextProviderProfileUpdate,
     ) -> TextProviderProfileView:
         try:
+            current = repo.get_text_provider_profile(profile_id)
+            adapter_id = body.adapter_id or current.adapter_id
+            adapter_version = body.adapter_version or current.adapter_version
+            require_trusted_adapter(adapter_id, adapter_version)
             updated = repo.update_text_provider_profile(
-                    profile_id,
-                    body.expected_revision,
-                    display_name=body.display_name,
-                    configuration=body.configuration,
-                )
+                profile_id,
+                body.expected_revision,
+                display_name=body.display_name,
+                configuration=body.configuration,
+                adapter_id=adapter_id,
+                adapter_version=adapter_version,
+            )
             if updated.revision != body.expected_revision:
                 readiness_observations.pop(profile_id, None)
             return profile_view(updated)
