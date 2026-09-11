@@ -58,4 +58,7 @@ admission before blob publication, cross-project refusal, deduplicated-corrupt
 blob refusal, independent provenance, selection revision conflict behavior,
 intent/binding currentness, manifest/asset-hash corruption, immutable stale
 preview history, real file-SQLite browser refresh/restart/playback, and the
-permanent-delete guard.
+permanent-delete guard. The runtime's local-port preflight uses `SO_REUSEADDR`
+so a normal same-port restart is not rejected solely because the stopped
+listener remains briefly in `TIME_WAIT`; a hosting-provided `PORT` remains an
+exact-port contract and never falls back to a different listener.

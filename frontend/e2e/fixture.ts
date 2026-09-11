@@ -1,6 +1,6 @@
 import { test as base, expect } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, readdir, rm } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -16,6 +16,8 @@ export type Workbench = {
   frontendOrigin: string;
   /** A test-owned process, deliberately outside the Plotloom API surface. */
   providerOrigin: string;
+  /** Stops and starts the owned FastAPI process against its original data paths. */
+  restartBackend: () => Promise<void>;
 };
 
 type WorkbenchWorkerFixtures = {
@@ -30,7 +32,18 @@ type ManagedProcess = {
 
 export const test = base.extend<{}, WorkbenchWorkerFixtures>({
   workbench: [async ({}, use) => {
-    const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "plotloom-e2e-"));
+    const retainedPilotRoot = process.env.PLOTLOOM_P0_RESTART_PILOT_ROOT;
+    if (retainedPilotRoot && !path.isAbsolute(retainedPilotRoot)) {
+      throw new Error("PLOTLOOM_P0_RESTART_PILOT_ROOT must be an absolute path.");
+    }
+    const temporaryRoot = retainedPilotRoot ?? await mkdtemp(path.join(os.tmpdir(), "plotloom-e2e-"));
+    if (retainedPilotRoot) {
+      await mkdir(temporaryRoot, { recursive: true });
+      const existingEntries = await readdir(temporaryRoot);
+      if (existingEntries.length > 0) {
+        throw new Error(`Retained P0 restart pilot directory must be empty: ${temporaryRoot}`);
+      }
+    }
     const artifactRoot = path.join(temporaryRoot, "artifacts");
     const databasePath = path.join(temporaryRoot, "plotloom.sqlite3");
     const backendPort = await reserveLoopbackPort();
@@ -45,7 +58,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
       [path.join(configDirectory, "fixtures", "external-openai-provider.mjs"), "--port", String(providerPort)],
       {},
     );
-    const backend = startProcess("FastAPI", "uv", ["run", "plotloom"], {
+    const backendEnvironment = {
       PLOTLOOM_HOST: loopbackHost,
       PLOTLOOM_PORT: String(backendPort),
       // PORT deliberately disables the runtime's fallback range, so this test
@@ -58,7 +71,8 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
       IMAGE_MODEL_API_KEY: "",
       VIDEO_MODEL_API_KEY: "",
       ATLASCLOUD_API_KEY: "",
-    });
+    };
+    let backend = startProcess("FastAPI", "uv", ["run", "plotloom"], backendEnvironment);
     let frontend: ManagedProcess | undefined;
 
     try {
@@ -80,7 +94,17 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
         frontendRoot,
       );
       await waitForHttp(`${frontendOrigin}/v2/`, frontend);
-      await use({ apiOrigin, frontendOrigin, providerOrigin });
+      await use({
+        apiOrigin,
+        frontendOrigin,
+        providerOrigin,
+        restartBackend: async () => {
+          await stopProcess(backend);
+          await waitForHttpUnavailable(`${apiOrigin}/openapi.json`);
+          backend = startProcess("FastAPI", "uv", ["run", "plotloom"], backendEnvironment);
+          await waitForHttp(`${apiOrigin}/openapi.json`, backend);
+        },
+      });
     } finally {
       try {
         await stopProcess(frontend);
@@ -91,7 +115,9 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
           try {
             await stopProcess(provider);
           } finally {
-            await rm(temporaryRoot, { recursive: true, force: true });
+            if (!retainedPilotRoot) {
+              await rm(temporaryRoot, { recursive: true, force: true });
+            }
           }
         }
       }
@@ -136,6 +162,19 @@ async function reserveLoopbackPort(): Promise<number> {
   }
   await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   return address.port;
+}
+
+async function waitForHttpUnavailable(url: string): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    try {
+      await fetch(url);
+    } catch {
+      return;
+    }
+    await delay(50);
+  }
+  throw new Error(`FastAPI remained reachable after its owned process exited: ${url}`);
 }
 
 async function waitForHttp(url: string, process: ManagedProcess): Promise<void> {

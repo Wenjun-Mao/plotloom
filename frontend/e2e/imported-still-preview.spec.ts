@@ -52,12 +52,22 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByTestId("animatic-seek").fill("2");
     await expect(page.getByText("shot_p0_03 · 2000ms", { exact: false })).toBeVisible();
 
+    const beforeRestart = await captureRestartEvidence(request, workbench.apiOrigin, projectId);
+    // This terminates the owned FastAPI process and starts a new one with the
+    // same SQLite database and ArtifactStore directory; it is intentionally
+    // not a tab, navigation, or in-process state check.
+    await workbench.restartBackend();
     await page.reload();
     await expect(page.getByTestId("still-animatic")).toBeVisible();
-    const restarted = await page.context().newPage();
-    await restarted.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-    await expect(restarted.getByTestId("still-animatic")).toBeVisible();
-    await restarted.close();
+    const afterRestart = await captureRestartEvidence(request, workbench.apiOrigin, projectId);
+    expect(afterRestart.preview).toEqual(beforeRestart.preview);
+    expect(afterRestart.workbench.assets).toEqual(beforeRestart.workbench.assets);
+    expect(afterRestart.workbench.visualIntents).toEqual(beforeRestart.workbench.visualIntents);
+    expect(afterRestart.workbench.reviewedKeyframes).toEqual(beforeRestart.workbench.reviewedKeyframes);
+    expect(afterRestart.originalBytes).toEqual(beforeRestart.originalBytes);
+    const firstFrame = beforeRestart.preview.manifest.frames[0];
+    const renderedStill = page.getByAltText(`Shot ${firstFrame.shotId} reviewed still`);
+    await expect.poll(() => renderedStill.evaluate((image) => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
 
     // A replacement is explicit, makes the former receipt stale, and permits
     // a new current receipt after the creator freezes the replacement.
@@ -127,4 +137,50 @@ async function createCanonicalProject(request: import("@playwright/test").APIReq
   });
   expect(response.ok(), await response.text()).toBeTruthy();
   return (await response.json() as { id: string }).id;
+}
+
+type RestartEvidence = {
+  workbench: {
+    assets: Array<{ id: string; originalHash: string; provenance: unknown }>;
+    visualIntents: unknown[];
+    reviewedKeyframes: unknown[];
+  };
+  preview: {
+    id: string;
+    manifestHash: string;
+    state: string;
+    manifest: { frames: Array<{ assetId: string; shotId: string; visualIntentId: string | null; visualIntentRevision: number | null }> };
+  };
+  originalBytes: Record<string, string>;
+};
+
+async function captureRestartEvidence(
+  request: import("@playwright/test").APIRequestContext,
+  apiOrigin: string,
+  projectId: string,
+): Promise<RestartEvidence> {
+  const response = await request.get(`${apiOrigin}/api/v2/projects/${projectId}/visual-workbench`);
+  expect(response.ok(), await response.text()).toBeTruthy();
+  const workbench = await response.json() as {
+    assets: RestartEvidence["workbench"]["assets"];
+    visualIntents: unknown[];
+    reviewedKeyframes: unknown[];
+    previews: RestartEvidence["preview"][];
+  };
+  const preview = workbench.previews.find((candidate) => candidate.state === "current");
+  expect(preview).toBeDefined();
+  const originalBytes = Object.fromEntries(await Promise.all(workbench.assets.map(async (asset) => {
+    const original = await request.get(`${apiOrigin}/api/v2/projects/${projectId}/managed-assets/${asset.id}/original`);
+    expect(original.ok(), await original.text()).toBeTruthy();
+    return [asset.id, (await original.body()).toString("base64")];
+  })));
+  return {
+    workbench: {
+      assets: workbench.assets,
+      visualIntents: workbench.visualIntents,
+      reviewedKeyframes: workbench.reviewedKeyframes,
+    },
+    preview: preview!,
+    originalBytes,
+  };
 }

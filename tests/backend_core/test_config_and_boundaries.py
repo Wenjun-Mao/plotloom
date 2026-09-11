@@ -94,6 +94,28 @@ def test_local_port_falls_forward(monkeypatch) -> None:
         assert select_available_port("127.0.0.1", port, 19) == port + 1
 
 
+def test_local_port_probe_uses_restart_safe_reuseaddr(monkeypatch) -> None:
+    calls: list[tuple[int, int, int]] = []
+
+    class ProbeSocket:
+        def __enter__(self) -> "ProbeSocket":
+            return self
+
+        def __exit__(self, *_: object) -> None:
+            return None
+
+        def setsockopt(self, level: int, option: int, value: int) -> None:
+            calls.append((level, option, value))
+
+        def bind(self, address: tuple[str, int]) -> None:
+            assert address == ("127.0.0.1", 8775)
+
+    monkeypatch.setattr(socket, "socket", lambda *_: ProbeSocket())
+
+    assert select_available_port("127.0.0.1", 8775, 0) == 8775
+    assert calls == [(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)]
+
+
 def test_runtime_wires_text_and_media_workers_without_exposing_keys(tmp_path: Path) -> None:
     static_dir = tmp_path / "static"
     static_dir.mkdir()

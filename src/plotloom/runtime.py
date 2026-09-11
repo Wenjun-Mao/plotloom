@@ -57,6 +57,11 @@ def select_available_port(host: str, preferred_port: int, fallback_count: int) -
         if port > 65535:
             break
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            # The probe must use the same normal-restart semantics as the
+            # Uvicorn listener. Otherwise a just-stopped local server can
+            # leave the configured port in TIME_WAIT and make this preflight
+            # reject a replacement process that could safely bind it.
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             try:
                 probe.bind((host, port))
             except OSError:
