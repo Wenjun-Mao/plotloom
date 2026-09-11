@@ -31,6 +31,14 @@ instances against the same durable database. A matching replay returns the
 same authoritative aggregate, including its canonical stage envelopes; a key
 reused for a different request returns a conflict.
 
+The browser records first-save provenance only for the local teaching sample.
+That sample is a complete canonical workspace, so saving its Brief installs
+the full prefix through `storyboard` in the same creation request. A blank
+Brief-first workspace has no such provenance and remains a bare `{ "brief":
+... }` creation. This distinction is client workflow semantics, not a server
+exception: the server still accepts only a valid canonical prefix and never
+recognizes a teaching sample.
+
 SQLite connections explicitly use a bounded one-second `busy_timeout` for
 bootstrap writer acquisition. This lets normal overlap wait for the current
 bootstrap to commit, then resolve the durable idempotency record. If the wait
@@ -45,6 +53,8 @@ heads, every initial revision, and any idempotency binding. The migration makes
 the idempotency binding durable and unique, rather than relying on process-local
 retry state. Empty `initialStages` and requests without an idempotency key
 retain the prior create behavior, apart from the additive response aggregate.
+Teaching-sample provenance is cleared when the authoritative creation
+aggregate hydrates, so it cannot affect later edits, duplicates, or copies.
 Writer contention is deliberately bounded rather than surfacing a SQLite
 driver error or waiting indefinitely. Tests hold an actual cross-instance
 writer lock to cover both matching replay convergence and changed-body

@@ -97,6 +97,13 @@ async function renderSample(root: Root): Promise<void> {
   await flush();
 }
 
+async function renderBlank(root: Root): Promise<void> {
+  await act(async () => root.render(createElement(App)));
+  await flush();
+  await act(async () => button("创建空白项目").click());
+  await flush();
+}
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -343,9 +350,14 @@ describe("App project/editor rehydration", () => {
     expect(patch).toHaveBeenCalledWith("real-project", 7, expect.objectContaining({ title: "尚未保存的用户修改" }));
   });
 
-  it("replaces tutorial stages with empty contracts from an empty creation response", async () => {
-    const incoming = creationResponse("empty-project", demoProject.brief.title);
-    vi.spyOn(plotloomApi, "createProject").mockResolvedValue(incoming);
+  it("creates a complete canonical prefix when saving a teaching sample brief", async () => {
+    const incoming = creationResponse("sample-project", demoProject.brief.title, {
+      story_bible: demoProject.storyBible,
+      story_graph: demoProject.storyGraph,
+      scene_beats: demoProject.sceneBeats,
+      storyboard: demoProject.storyboard,
+    });
+    const create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue(incoming);
     vi.spyOn(plotloomApi, "getProject").mockResolvedValue(incoming);
     vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
 
@@ -354,9 +366,18 @@ describe("App project/editor rehydration", () => {
     await flush();
     await act(async () => button("故事圣经").click());
 
+    expect(create).toHaveBeenCalledWith({
+      brief: demoProject.brief,
+      initialStages: [
+        { stage: "story_bible", payload: demoProject.storyBible },
+        { stage: "story_graph", payload: demoProject.storyGraph },
+        { stage: "scene_beats", payload: demoProject.sceneBeats },
+        { stage: "storyboard", payload: demoProject.storyboard },
+      ],
+    }, expect.any(String));
     const logline = document.querySelector(".form-card textarea") as HTMLTextAreaElement;
-    expect(logline.value).toBe("");
-    expect(document.querySelectorAll(".character-card")).toHaveLength(0);
+    expect(logline.value).toBe(demoProject.storyBible.logline);
+    expect(document.querySelectorAll(".character-card")).not.toHaveLength(0);
     expect(plotloomApi.getProject).not.toHaveBeenCalled();
     expect(plotloomApi.getStages).not.toHaveBeenCalled();
   });
@@ -367,7 +388,7 @@ describe("App project/editor rehydration", () => {
     const loadProject = vi.spyOn(plotloomApi, "getProject");
     const loadStages = vi.spyOn(plotloomApi, "getStages");
 
-    await renderSample(root);
+    await renderBlank(root);
     const title = document.querySelector(".form-card input") as HTMLInputElement;
     await act(async () => setInput(title, "干净简报"));
     await act(async () => button("保存简报").click());
@@ -425,7 +446,7 @@ describe("App project/editor rehydration", () => {
       .mockRejectedValueOnce(new TypeError("network unavailable"))
       .mockRejectedValueOnce(new TypeError("network unavailable"));
 
-    await renderSample(root);
+    await renderBlank(root);
     const title = document.querySelector(".form-card input") as HTMLInputElement;
     await act(async () => setInput(title, "相同请求"));
     await act(async () => button("保存简报").click());

@@ -52,6 +52,15 @@ observations stay distinct from Approval applicability. The workbench refreshes
 when project, selected Shot, board revision or Approval changes, aborting
 superseded requests; it restores the persisted current per-Shot selection and
 intent context, while a compatibility note remains an explicit review act.
+Unsaved visual-intent edits live in browser `sessionStorage`, scoped by project,
+Shot and candidate, with the saved intent ID as their base. Switching context
+or refreshing cannot silently replace those drafts. A changed saved base
+keeps the draft visible and requires explicit discard/reload rather than an
+implicit rebase. Reviewed selection is disabled until the visible draft is
+saved or discarded; selection must never silently freeze older saved text
+while different edits are displayed. These drafts are not canonical records
+or a durable backup after the browser session ends. Passing gate details may
+be collapsed, but failed required gates remain exposed and still block Approval.
 Provider hard stops and ProductionSnapshot ownership are unchanged. Regression
 coverage exercises configured decode limits, invalid/animated JPEG/PNG input,
 admission before blob publication, cross-project refusal, deduplicated-corrupt

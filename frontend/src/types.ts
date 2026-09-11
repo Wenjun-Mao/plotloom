@@ -323,6 +323,12 @@ export interface WorkspaceProject {
    * unsaved workspace. It deliberately never crosses the API boundary.
    */
   clientDraftOwner?: string;
+  /**
+   * Local creation provenance for a teaching workspace. When set, its first
+   * save atomically installs the canonical prefix through this stage. This
+   * never crosses the API boundary or survives canonical hydration.
+   */
+  initialStageOnFirstSave?: ServerStageName;
   revision: number;
   updatedAt?: string;
   archivedAt?: string | null;

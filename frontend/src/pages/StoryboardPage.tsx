@@ -352,7 +352,11 @@ export function StoryboardPage({
     </>} />
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
     <div className="notice"><strong>媒体生产尚未开放</strong><span>现有媒体结果保持可读；新任务必须等待 Approval 与不可变 ProductionSnapshot。</span></div>
-    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} selectedShot={selectedShot} storyboardRevision={revision} review={review} readOnly={saving} />
+    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} selectedShot={selectedShot} storyboardRevision={revision} review={review} readOnly={saving} onSelectShot={selectShot} onReview={() => {
+      const panel = document.getElementById("storyboard-review");
+      panel?.scrollIntoView({ block: "start" });
+      panel?.focus({ preventScroll: true });
+    }} />
     {(issues.length > 0 || localError) && <Panel className="issue-summary"><strong>需要修正</strong>{localError && <p role="alert">{localError}</p>}{issues.map((issue) => <button key={`${issue.code}:${issue.path}`} onClick={() => focusIssue(issue)}>{issue.code} · {issue.path}<small>{issue.message}</small></button>)}</Panel>}
 
     {pendingSceneMigration && <ShotMigrationConfirmation impact={pendingSceneMigration} onCancel={() => setPendingSceneMigration(null)} onConfirm={() => { const migration = pendingSceneMigration; update((current) => migrateShotToScene(current, migration.shotId, migration.toSceneId)); setPendingSceneMigration(null); }} />}
@@ -415,17 +419,17 @@ export function StoryboardPage({
         </>}
       </Panel>
 
-      <Panel className="shot-inspector review-inspector">
+      <Panel className="shot-inspector review-inspector" id="storyboard-review" tabIndex={-1}>
         <div className="section-title"><span>Coverage & review</span><strong>{review?.activeApproval ? "已批准" : "等待批准"}</strong></div>
-        <div className="coverage-summary">{coverage.map((item) => <div key={item.beatId}><span>{item.beatId}</span><Badge tone={item.primaryShotIds.length === 1 ? "ok" : "danger"}>PRIMARY {item.primaryShotIds.length}</Badge><small>SUPPORTING {item.supportingShotIds.length}</small></div>)}</div>
         {reviewError && <div className="notice warning" role="alert">{reviewError}</div>}
         {!review?.gateEvaluation && <div className="notice"><strong>尚无 Gate receipt</strong><span>保存有效的 V2 分镜后，服务端会原子生成评审门。</span></div>}
-        {review?.gateEvaluation && <div className="gate-list">{review.gateEvaluation.results.map((gate) => <button key={gate.id} className={`gate-row ${gate.status}`} onClick={() => navigateGate(gate.entityPath)}><GateStatusBadge status={gate.status} /><span><strong>{gate.gateId}</strong><small>{gate.reason}{gate.entityPath.length ? ` · ${gate.entityPath.join(" › ")}` : ""}</small></span></button>)}</div>}
         {review?.activeApproval && <div className="notice"><strong>当前批准：{review.activeApproval.reviewer}</strong><span>revision {review.activeApproval.subjectRevision} · {review.activeApproval.createdAt}</span></div>}
         {review?.decisions.length ? <details><summary>Approval 历史 · {review.decisions.length}</summary>{review.decisions.map((closure) => <div className="approval-history" key={closure.decision.id}><strong>{closure.decision.decision.toUpperCase()} · {closure.decision.reviewer}</strong><small>{closure.active ? "ACTIVE" : closure.staleReasons.join("；")}</small></div>)}</details> : null}
         <Field label="审核人标签" hint="这是本地/私有工作台中的用户标签，不是已认证身份。"><input value={reviewer} onChange={(event) => setReviewer(event.target.value)} /></Field>
         <Field label="评审备注（可选）"><textarea rows={3} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} /></Field>
         <div className="button-row"><Button variant="primary" disabled={!reviewer.trim() || stale || !requiredGatesPass || Boolean(review?.activeApproval)} onClick={() => void decide("approve")}>批准当前分镜</Button><Button variant="quiet" disabled={!reviewer.trim() || !review?.activeApproval} onClick={() => void decide("revoke")}>撤销批准</Button></div>
+        <details open={coverage.some((item) => item.primaryShotIds.length !== 1)}><summary>节拍覆盖详情 · {coverage.length} 项</summary><div className="coverage-summary">{coverage.map((item) => <div key={item.beatId}><span>{item.beatId}</span><Badge tone={item.primaryShotIds.length === 1 ? "ok" : "danger"}>PRIMARY {item.primaryShotIds.length}</Badge><small>SUPPORTING {item.supportingShotIds.length}</small></div>)}</div></details>
+        {review?.gateEvaluation && <details open={!requiredGatesPass}><summary>质量门详情 · {review.gateEvaluation.results.length} 项 · {requiredGatesPass ? "必需门已通过" : "必需门未通过"}</summary><div className="gate-list">{review.gateEvaluation.results.map((gate) => <button key={gate.id} className={`gate-row ${gate.status}`} onClick={() => navigateGate(gate.entityPath)}><GateStatusBadge status={gate.status} /><span><strong>{gate.gateId}</strong><small>{gate.reason}{gate.entityPath.length ? ` · ${gate.entityPath.join(" › ")}` : ""}</small></span></button>)}</div></details>}
       </Panel>
     </div>
   </div>;

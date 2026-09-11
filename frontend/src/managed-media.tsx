@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ApprovalDecision, ManagedAsset, Shot, StillPreview, Storyboard, StoryboardReview, VisualIntent, VisualWorkbench } from "./types";
 import { plotloomApi } from "./api";
 import { Badge, Button, Field, Panel } from "./components";
+import { useVisualIntentDraft, type IntentDraft } from "./visual-intent-drafts";
 
 function previewKey(projectId: string): string { return `plotloom:still-preview:${projectId}`; }
 function stateTone(state: StillPreview["state"]): "ok" | "warning" | "danger" { return state === "current" ? "ok" : state === "stale" ? "warning" : "danger"; }
@@ -13,7 +14,6 @@ function stateGuidance(state: StillPreview["state"]): string | null {
   return null;
 }
 const emptyWorkbench: VisualWorkbench = { assets: [], selectionRevision: 0, visualIntents: [], reviewedKeyframes: [], previews: [] };
-type IntentDraft = { identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string };
 
 function draftFor(intent: VisualIntent | undefined, shot: Shot | undefined): IntentDraft {
   return {
@@ -24,8 +24,9 @@ function draftFor(intent: VisualIntent | undefined, shot: Shot | undefined): Int
   };
 }
 
-export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, storyboardRevision, review, readOnly }: {
+export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, storyboardRevision, review, readOnly, onSelectShot, onReview }: {
   projectId?: string; storyboard: Storyboard; selectedShot: Shot | undefined; storyboardRevision?: number; review: StoryboardReview | null | undefined; readOnly: boolean;
+  onSelectShot?: (id: string) => void; onReview?: () => void;
 }) {
   const [workbench, setWorkbench] = useState<VisualWorkbench>(emptyWorkbench);
   const [candidates, setCandidates] = useState<string[]>([]);
@@ -33,7 +34,6 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   const [origin, setOrigin] = useState("Local creator import");
   const [declaredAdditions, setDeclaredAdditions] = useState("reference only");
   const [compatibility, setCompatibility] = useState("");
-  const [intentDraft, setIntentDraft] = useState<IntentDraft>(() => draftFor(undefined, selectedShot));
   const [previewLength, setPreviewLength] = useState(3);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -74,6 +74,9 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   const missingPreviewShotIds = previewShotIds.filter((shotId) => !reviewedShotIds.has(shotId));
   const selectedBinding = selectedShot ? workbench.reviewedKeyframes.find((binding) => binding.shotId === selectedShot.id) : undefined;
   const activeIntent = workbench.visualIntents.find((intent) => intent.assetId === keptAssetId && intent.intent.role === "shot_keyframe");
+  const intentEditor = useVisualIntentDraft(projectId, selectedShot?.id, keptAssetId, activeIntent?.id, draftFor(activeIntent, selectedShot));
+  const intentDraft = intentEditor.value;
+  const setIntentDraft = intentEditor.update;
 
   useEffect(() => { setPreviewLength((current) => Math.max(1, Math.min(current, maxPreviewLength || 1))); }, [maxPreviewLength]);
   // A reviewed binding is durable per Shot. Restore it after a reload or a
@@ -85,7 +88,6 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     if (selectedBinding) setKeptAssetId(selectedBinding.assetId);
     else if (changedProject) setKeptAssetId("");
   }, [projectId, selectedBinding?.id]);
-  useEffect(() => { setIntentDraft(draftFor(activeIntent, selectedShot)); }, [activeIntent?.id, selectedShot?.id]);
   useEffect(() => {
     if (!playing || !preview) return;
     const frame = preview.manifest.frames[frameIndex];
@@ -109,17 +111,20 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   };
   const saveIntent = async () => {
     if (!projectId || !keptAssetId) return;
+    if (intentEditor.stale) { setError("已保存意图已有新版本；草稿仍保留，请先检查并重新载入。"); return; }
     const sourceRefs = intentDraft.sourceRefs.split("\n").map((item) => item.trim()).filter(Boolean);
     if (!sourceRefs.length) { setError("先记录至少一个来源引用，再保存可审核意图。"); return; }
     setBusy(true); setError("");
     try {
       await plotloomApi.createVisualIntent(projectId, keptAssetId, { role: "shot_keyframe", identityIntent: intentDraft.identityIntent, compositionIntent: intentDraft.compositionIntent, styleIntent: intentDraft.styleIntent, sourceRefs });
       await refresh();
+      intentEditor.clear();
     } catch (intentError) { setError(intentError instanceof Error ? intentError.message : "意图保存失败"); }
     finally { setBusy(false); }
   };
   const selectKeyframe = async () => {
     if (!projectId || !keptAssetId || !selectedShot || !currentApproval || !storyboardRevision || !activeIntent) return;
+    if (intentEditor.dirty) { setError("先保存或放弃意图草稿，再审核选择。"); return; }
     if (!compatibility.trim()) { setError("请记录此关键帧与已批准镜头的兼容性说明。"); return; }
     setBusy(true); setError("");
     try {
@@ -142,6 +147,14 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   return <Panel className="managed-media-workbench" data-testid="managed-media-workbench">
     <div className="section-title"><span>Imported stills · P0</span><strong>非生成式审核关键帧</strong></div>
     <p className="muted">原始字节、来源声明、可审核意图和精确批准绑定都会保留；此处不会创建生成任务或视频。</p>
+    <div className="button-row">
+      <Field label="当前媒体镜头"><select value={selectedShot?.id ?? ""} onChange={(event) => onSelectShot?.(event.target.value)} disabled={!storyboard.shots.length}>
+        {!storyboard.shots.length && <option value="">尚无镜头</option>}
+        {storyboard.shots.map((shot) => <option key={shot.id} value={shot.id}>{shot.title} · {shot.id}</option>)}
+      </select></Field>
+      <Button variant="quiet" onClick={onReview}>{currentApproval ? "查看分镜批准" : "前往分镜审核"}</Button>
+    </div>
+    {selectedShot && <small>当前镜头：{selectedShot.action} · {selectedShot.durationUnits}ms</small>}
     {error && <div className="notice warning" role="alert">{error}</div>}
     <div className="field-grid two compact">
       <Field label="来源声明"><input value={origin} disabled={readOnly || busy} onChange={(event) => setOrigin(event.target.value)} /></Field>
@@ -156,17 +169,22 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     {selectedBinding && <small data-testid="current-reviewed-keyframe">当前 Shot 已保存资产 {selectedBinding.assetId.slice(0, 8)} · intent r{selectedBinding.visualIntentRevision ?? "—"}</small>}
     {keptAssetId && <section className="intent-editor" aria-label="可审核视觉意图">
       <strong>为保留候选记录可审核意图 · shot_keyframe</strong>
+      {intentEditor.dirty && <div className="notice warning" role="status">
+        <span>{intentEditor.stale ? "已保存意图已有新版本；草稿未被覆盖。" : "有未保存的意图草稿；切换镜头或候选不会丢失。先保存再审核选择。"}</span>
+        <Button variant="quiet" onClick={intentEditor.clear}>放弃草稿，载入已保存意图</Button>
+      </div>}
+      {intentEditor.storageFailed && <small role="alert">浏览器暂时无法保存会话草稿，请保持本页打开并保存意图。</small>}
       <div className="field-grid two compact">
         <Field label="身份意图"><textarea rows={2} disabled={readOnly || busy} value={intentDraft.identityIntent} onChange={(event) => setIntentDraft((draft) => ({ ...draft, identityIntent: event.target.value }))} /></Field>
         <Field label="构图意图"><textarea rows={2} disabled={readOnly || busy} value={intentDraft.compositionIntent} onChange={(event) => setIntentDraft((draft) => ({ ...draft, compositionIntent: event.target.value }))} /></Field>
         <Field label="风格意图"><textarea rows={2} disabled={readOnly || busy} value={intentDraft.styleIntent} onChange={(event) => setIntentDraft((draft) => ({ ...draft, styleIntent: event.target.value }))} /></Field>
         <Field label="来源引用（每行一项）"><textarea data-testid="visual-intent-source-refs" rows={2} disabled={readOnly || busy} value={intentDraft.sourceRefs} onChange={(event) => setIntentDraft((draft) => ({ ...draft, sourceRefs: event.target.value }))} /></Field>
       </div>
-      <div className="button-row"><Button data-testid="save-visual-intent" variant="quiet" disabled={readOnly || busy} onClick={() => void saveIntent()}>{activeIntent ? `细化意图 r${activeIntent.revision}` : "保存意图"}</Button>{activeIntent && <small>已保存 r{activeIntent.revision}；审核选择会固定这一版本。</small>}</div>
+      <div className="button-row"><Button data-testid="save-visual-intent" variant="quiet" disabled={readOnly || busy || intentEditor.stale} onClick={() => void saveIntent()}>{activeIntent ? `细化意图 r${activeIntent.revision}` : "保存意图"}</Button>{activeIntent && <small>已保存 r{activeIntent.revision}；审核选择会固定这一版本。</small>}</div>
     </section>}
     <Field label="审核兼容性说明"><textarea rows={2} placeholder="说明此参考与当前已批准镜头为何兼容" disabled={readOnly || busy} value={compatibility} onChange={(event) => setCompatibility(event.target.value)} /></Field>
     <div className="button-row">
-      <Button variant="primary" data-testid="select-reviewed-keyframe" disabled={readOnly || busy || !keptAssetId || !selectedShot || !currentApproval || !activeIntent || !compatibility.trim()} onClick={() => void selectKeyframe()}>为当前 Shot 审核选择</Button>
+      <Button variant="primary" data-testid="select-reviewed-keyframe" disabled={readOnly || busy || intentEditor.dirty || !keptAssetId || !selectedShot || !currentApproval || !activeIntent || !compatibility.trim()} onClick={() => void selectKeyframe()}>为当前 Shot 审核选择</Button>
       <Field label="连续预览镜头数"><select data-testid="preview-subset-length" value={Math.min(previewLength, maxPreviewLength || 1)} disabled={readOnly || busy || !maxPreviewLength} onChange={(event) => setPreviewLength(Number(event.target.value))}>{Array.from({ length: maxPreviewLength }, (_, index) => index + 1).map((length) => <option value={length} key={length}>{length}</option>)}</select></Field>
       <Button variant="primary" data-testid="create-still-preview" disabled={readOnly || busy || !previewShotIds.length || !!missingPreviewShotIds.length || !currentApproval} onClick={() => void createPreview()}>创建连续 still animatic</Button>
     </div>

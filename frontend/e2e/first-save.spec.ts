@@ -35,14 +35,29 @@ test.describe("first-save project bootstrap", () => {
     await expect(page.getByLabel("故事前提")).toHaveValue(premise);
   });
 
-  test("keeps the ordinary Brief-first workflow and persists the later Story Bible edit", async ({ page, request, workbench }) => {
+  test("persists the complete teaching prefix when saving its Brief, then persists a later Story Bible edit", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await openSampleProject(page);
     const title = "E2E Brief-first project";
     await page.getByLabel("片名").fill(title);
+    const created = captureProjectCreate(page);
     await page.getByRole("button", { name: "保存简报" }).click();
+    const createRequest = await created;
     await expect(page).toHaveURL(/[?&]project=/);
     const projectId = currentProjectId(page);
+    const creationBody = createRequest.postDataJSON() as ProjectCreateBody;
+    expect(creationBody.initialStages.map((stage) => stage.stage)).toEqual([
+      "story_bible", "story_graph", "scene_beats", "storyboard",
+    ]);
+    for (const stage of ["story_bible", "story_graph", "scene_beats", "storyboard"]) {
+      await expectCanonicalStage(
+        request,
+        workbench.apiOrigin,
+        projectId,
+        stage,
+        creationBody.initialStages.find((candidate) => candidate.stage === stage)!.payload,
+      );
+    }
 
     await navigateToStage(page, "02 故事圣经");
     const logline = "E2E：先保存简报，再保存故事圣经。";
@@ -57,7 +72,7 @@ test.describe("first-save project bootstrap", () => {
     expect(stageResponse.ok()).toBeTruthy();
     const stageRequest = stageResponse.request();
     const submittedPayload = (stageRequest.postDataJSON() as { payload: unknown }).payload;
-    await expectCanonicalStage(request, workbench.apiOrigin, projectId, "story_bible", submittedPayload);
+    await expectCanonicalStage(request, workbench.apiOrigin, projectId, "story_bible", submittedPayload, 2);
 
     await page.reload();
     await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();
@@ -174,11 +189,12 @@ async function expectCanonicalStage(
   projectId: string,
   stageName: string,
   expectedPayload: unknown,
+  expectedRevision = 1,
 ): Promise<void> {
   const response = await request.get(`${apiOrigin}/api/v2/projects/${projectId}/stages`);
   expect(response.ok()).toBeTruthy();
   const body = await response.json() as { stages: Array<{ head: { stage: string; status: string; revision: number }; payload: unknown }> };
   const stage = body.stages.find((candidate) => candidate.head.stage === stageName);
-  expect(stage?.head).toMatchObject({ stage: stageName, status: "ready", revision: 1 });
+  expect(stage?.head).toMatchObject({ stage: stageName, status: "ready", revision: expectedRevision });
   expect(stage?.payload).toEqual(expectedPayload);
 }

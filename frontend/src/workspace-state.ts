@@ -50,7 +50,10 @@ export function hydrateWorkspaceProject(
     .map((envelope) => envelope.head.stage);
 
   return mergeProjectResponse(
-    { ...current, ...emptyStageContent },
+    // Creation provenance belongs only to an unsaved local workspace. A
+    // server aggregate is canonical and must not carry a second bootstrap
+    // instruction into later edits or duplicate/copy flows.
+    { ...current, initialStageOnFirstSave: undefined, ...emptyStageContent },
     {
       ...incoming,
       stageRevisions,

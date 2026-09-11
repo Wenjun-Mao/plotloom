@@ -559,7 +559,7 @@ export default function App() {
     const nextLocal = mergeProjectResponse(project, patch);
     try {
       if (!project.id) {
-        if (!await createProjectFrom(nextLocal, operation)) return;
+        if (!await createProjectFrom(nextLocal, operation, nextLocal.initialStageOnFirstSave)) return;
       } else {
         const updated = await plotloomApi.patchProject(project.id, project.revision, nextLocal.brief);
         // A successful write owns the draft at the revision it was sent
@@ -1087,7 +1087,10 @@ export default function App() {
     const nextRoute = { project: "", stage: route.stage, entity: "", run: "" };
     invalidateWorkspaceNavigation(nextRoute);
     localWorkspaceOwner.current = newClientDraftOwner();
-    setProject({ ...demoProject, clientDraftOwner: localWorkspaceOwner.current }); setStageHeads({}); setRun(demoRun); setRunProgress(undefined); setStoryboardReview(null); setValidationIssues({}); setTrace(demoTrace); setConnection("demo");
+    // A teaching sample is a complete, validated canonical workspace. Its
+    // first save must preserve that prefix even when the author starts on the
+    // Brief page; blank workspaces intentionally leave this unset.
+    setProject({ ...demoProject, clientDraftOwner: localWorkspaceOwner.current, initialStageOnFirstSave: "storyboard" }); setStageHeads({}); setRun(demoRun); setRunProgress(undefined); setStoryboardReview(null); setValidationIssues({}); setTrace(demoTrace); setConnection("demo");
     currentDraft.current = undefined; setDraftRecovery(undefined); setRestoredDraft(undefined); setDraftConflict(undefined); setUnsafeDraft(undefined); setActivePage(route.stage); setRouteEntity(""); setOnboarding(false);
     history.pushState(null, "", `${location.pathname}?stage=${encodeURIComponent(route.stage)}`);
     setDirectoryOpen(false);

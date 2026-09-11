@@ -400,6 +400,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 
 .review-inspector { display: grid; gap: 11px; align-content: start; }
 .review-inspector .field { margin: 0; }
+.review-inspector .notice { display: grid; overflow-wrap: anywhere; }
 .gate-list { display: grid; max-height: 420px; overflow: auto; border: 1px solid var(--line); background: var(--panel-3); }
 .gate-row { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 8px; width: 100%; padding: 9px 10px; border: 0; border-bottom: 1px solid var(--line); color: var(--muted); text-align: left; background: transparent; }
 .gate-row:last-child { border-bottom: 0; }
