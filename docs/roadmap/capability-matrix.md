@@ -2,33 +2,33 @@
 
 > **用途：**这是 Plotloom “从两个来源学到了什么、决定怎么处理、现在完成到哪一层、下一项证据是什么”的唯一进度总表。
 >
-> **快照日期：**2026-09-04。产品结论以固定版本为基线，不随远端分支漂移。
+> **快照日期：**2026-09-10。产品结论以固定版本为基线，不随远端分支漂移。
 >
 > **决策依据：**能力追踪采用 [ADR 0008](../adr/0008-capability-based-adoption-tracking.md)，当前独立仓库与身份边界采用 [ADR 0010](../adr/0010-plotloom-clean-repository.md)，运行与生产边界采用 [ADR 0011](../adr/0011-provider-profiles-and-generation-work-units.md)、[ADR 0012](../adr/0012-approved-storyboards-and-production-units.md)、[ADR 0013](../adr/0013-model-neutral-reliable-generation.md)、[ADR 0014](../adr/0014-project-lifecycle-and-workbench.md)、[ADR 0015](../adr/0015-exact-work-unit-repair.md)、[ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md)、[ADR 0017](../adr/0017-alpha-validation-and-correction-boundaries.md)、[ADR 0018](../adr/0018-trusted-story-timing-allocation.md) 和 [ADR 0019](../adr/0019-exact-fragment-and-join-state-contracts.md)。ADR 0003–0007 保留了重建阶段的历史架构证据。
 
-> **Next execution (2026-09-07, approved adjustment):** close the two availability-review findings, integrate that slice, fix the observed join-correction defect, then obtain and inspect one complete, persisted llama storyboard. Adapter registry/V3 snapshots, runtime diagnostics and qualification-runner expansion wait until that creation journey works. [ADR 0024](../adr/0024-pluggable-text-backends-and-independent-qualification.md) still requires each supported backend to pass 9/9 runs, at least 30/36 first-pass stages and three blinded reviews, plus core/CI gates for Alpha. vLLM remains deferred; old 18-run/six-review evidence is not relabelled. See the [completion plan](m1c-completion-plan.md). The first canary quarantined at Story Graph without partial installation; no successful storyboard or Alpha qualification is claimed. [ADR 0023](../adr/0023-bounded-delivery-and-evidence.md) continues to govern bounded delivery.
+> **Next execution (2026-09-10):** the join correction, usable `default` storyboard canary, explicit adapter/V3 snapshot boundary, two-plane readiness UI, and definite-failure admission guard are integrated locally through `96de4e3`. A one-shot non-generative live probe verified `qwen3527b` through `openai_compatible@1`; the user asked to defer another interactive trial. [ADR 0024](../adr/0024-pluggable-text-backends-and-independent-qualification.md) still requires the supported backend to pass 9/9 runs, at least 30/36 first-pass stages and three blinded reviews, plus core/CI gates for Alpha. vLLM remains deferred; old 18-run/six-review evidence is not relabelled. See the [completion plan](m1c-completion-plan.md) and [readiness receipt](../verification/2026-09-10-provider-readiness-offline-candidate.md). [ADR 0023](../adr/0023-bounded-delivery-and-evidence.md) continues to govern bounded delivery.
 
 ## 一眼看懂当前状态
 
 | 观察面 | 当前判断 | 它真正说明什么 |
 |---|---:|---|
 | 规范领域与“输入 → 分镜”后端核心 | **约 97%** | 稳定 ID、四阶段 V2 合同、确定性 DAG 骨架、结构化对白/声音/实体状态、确定性时间线、版本化 Gate/Approval、内容绑定、命名 profile、显式有限纠错、领域分片、精确 work-unit repair、封存聚合和原子安装均已实现。M1 剩余出口主要是真实创作质量验收；ProductionSnapshot/ProductionUnit 属于 M2。 |
-| 可供创作者连续使用的本地 Alpha | **约 90%（M1-B1 本地完成）** | 四阶段的当前 V2 字段已有类型化编辑、稳定 ID 增删重排、显式关系迁移、字段级 issue 定位、项目目录/草稿/URL/生命周期、逐 unit 进度、冻结 Profile Key gate、精确修复和 Gate/Approval；完整本地 checkpoint 与真实 FastAPI 的精确 repair→批准→刷新旅程已通过。M1-C 当前出口改为产品核心门加上所支持 backend 的独立真实验收与盲评；模块变更尚未实现。 |
+| 可供创作者连续使用的本地 Alpha | **约 92%（M1-B1 本地完成）** | 四阶段的当前 V2 字段已有类型化编辑、稳定 ID 增删重排、显式关系迁移、字段级 issue 定位、项目目录/草稿/URL/生命周期、逐 unit 进度、冻结 Profile Key gate、精确修复和 Gate/Approval；完整本地 checkpoint、真实 FastAPI 旅程和一条可编辑、刷新后持久的真实 llama 分镜已通过。显式 adapter/V3 snapshot 与两平面 readiness/admission 已实现；M1-C 当前出口是受支持 backend 的独立 9-run/3-review 验收与新远端 CI。 |
 | 可独立发布的新仓库产品 | **约 65–70%** | Plotloom 已进入全新仓库，独立依赖、wheel、生产 UI、边界门和远端 CI 已建立；本地 E2E 竞态已修复，仍缺新远端收据、干净机器升级/恢复与图像/视频真实供应商 smoke。 |
 
 这些百分比是路线规划估计，不是测试覆盖率，也不能相加。可复核的当前基线是：
 
 - 已盘点 **35 项能力**：2 项达到 L6 真实运行验收，4 项达到 L5 本地产品/浏览器验证，16 项达到 L4 自动验证，3 项停在 L3 实现层，4 项已到 L2 合同层，1 项只有 L1 决策，5 项是明确的 Defer/Reject；是否完成仍取决于该行目标是 L4、L5、L6 还是 L7；
-- `uv run pytest -q`：M1-C 根因修复 checkpoint 为 **342 passed / 9 个明确延后到 M2 的旧媒体执行规格 / 264 warnings**；
+- `uv run pytest -q`：provider-readiness 最终候选为 **524 passed / 9 skipped / 272 warnings**，无 deselection 或 waiver；
 - `npm --prefix frontend test`：**115 passed**；
 - M1-B1 已通过完整编辑器/应用 suite，以及真实 FastAPI、公开 HTTP fake-provider 的精确 repair → 原子安装 → Approval → 刷新旅程；加载态、URL hydrate 竞态、SceneBeat 下游引用披露和 secret-free `422` 都有回归；
 - Plotloom TypeScript、E2E TypeScript、Vite 生产构建与 wheel 安装 smoke 通过；
-- 浏览器回归现有 **21/21 个场景通过**：首次保存、命名 profile/session key、项目生命周期与导航、四阶段编辑、结构删除影响、冻结 profile 恢复、精确 repair、Approval 和刷新 lineage 均通过。测试连接真实 FastAPI；生成旅程只联系进程内公开 HTTP fake-provider。最新远端收据仍待 M1-C 统一推送后取得；
+- 浏览器回归现有 **23/23 个场景通过**：首次保存、命名 profile/session key、受信任 adapter 选择、两平面 readiness、项目生命周期与导航、四阶段编辑、结构删除影响、冻结 profile 恢复、精确 repair、Approval 和刷新 lineage 均通过。测试连接真实 FastAPI；自动生成旅程只联系进程内公开 HTTP fake-provider。最新远端收据仍待 M1-C 统一推送后取得；
 - 经用户授权的[隔离 live smoke 收据](../verification/2026-09-02-local-text-smoke.md)使用服务公布的 `gemma4`：127.4 秒完成 6 次调用/6 个 work units，四阶段全部封存并一次安装，零验证失败；`.env` 中的配置名仍是未被服务公布的 `gemma-4-26B-A4B-it-Q4_K_M.gguf`，需另行对齐，且该收据不代表 Qwen、图像或视频已验收；
 - [M1.5 严格验收收据](../verification/2026-09-03-m15-conformance.jsonl)记录两个已保存真实 profile 各 3 次固定中文 Brief：6/6 run 原子成功，双方均为 12/12 阶段首次通过、最大 attempt 1、零 issue 与零 unknown outcome；profile、workload、run 与 topology 均以 hash/稳定 ID 存证，不保存 endpoint、模型名、IP、prompt、response 或密钥；
 - Plotloom-only wheel、模板、迁移树、静态 UI 与禁止 V1 依赖的提取演练包含在上述 Python gate 中；
 - [远端 CI run 33671097019](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019) 已在 `3bf4551` 成功完成前端、Python、wheel、安装 smoke 和浏览器步骤；
-- **当前发布阻断：**完成 ADR 0024 模块变更、产品核心门和至少一个受支持 backend 的 9-run/3-review 验收，补新远端无 flaky 收据，以及干净机器安装/升级/恢复。旧双 backend 验收不再是主机可用性的共同前置条件；尚无新的合格收据。图片/视频生产已按 ADR 0016 硬停，必须等 M2 的 ProductionSnapshot/ProductionUnit 合同完成后再做真实供应商 smoke；当前独立仓库仍不是发布候选。
+- **当前发布阻断：**完成至少一个受支持 backend 的 9-run/3-review 验收，补新远端无 flaky 收据，以及干净机器安装/升级/恢复。ADR 0024 的当前 adapter/readiness/admission 模块已落地，但单次 live probe 和单次 usable canary 都不等于正式资格。旧双 backend 验收不再是主机可用性的共同前置条件；尚无新的合格收据。图片/视频生产已按 ADR 0016 硬停，必须等 M2 的 ProductionSnapshot/ProductionUnit 合同完成后再做真实供应商 smoke；当前独立仓库仍不是发布候选。
 
 ## 比较对象和证据边界
 
@@ -121,7 +121,7 @@
 | D02 | React 工作台与完整用户旅程 | 浏览器内创作→媒体→预览的单一工作台是核心产品价值 | 分阶段操作和报告适合清晰导航 | **Adapt** 为七页 Plotloom 工作台 | **L5/L5**（M1-B0/M1-B1） | [ADR 0014](../adr/0014-project-lifecycle-and-workbench.md) 的项目目录、URL/epoch 导航、显式保存、sessionStorage 草稿恢复、生命周期操作和 Plotloom 原创三栏布局均已实现；M1-B1 补齐四阶段编辑、关系影响确认、issue 路径聚焦、逐 unit Inspector、冻结 profile key gate 与 Gate/Approval。真实 FastAPI exact-repair→Approval→刷新旅程及整套 checkpoint gate 均通过。 |
 | D03 | Plotloom 导入、导出、备份与可移植项目 | V1 project JSON/备份能带走作品，但直接安装 JSON、标题目录和无保留策略不安全 | 五层 JSON/Markdown/manifest 便于审阅交接 | **Rebuild** Plotloom canonical 格式；**Reject** 首发 legacy migration | **L1/L5** | [初始提取来源](../provenance/initial-extraction.md) 定义 Plotloom-only 数据边界；退出条件还必须覆盖格式版本、预检、hash/manifest、冲突策略、原子导入、稳定 project ID、备份保留/清理和空 data-dir 恢复。任何 V1/shuohao 导入只能在未来另立迁移 ADR。 |
 | D04 | 无 V1 依赖的提取、打包与新仓库 | V1 只作为比较和行为证据存在 | shuohao 的自包含边界提醒我们保持模块独立，但不复制其规则重复 | **Rebuild** 为单包、单 UI、可移动 roots | **L5/L7** | 全新 Plotloom 仓库、fresh history、依赖边界、独立 wheel/资源探测和生产 bundle 已建立；[远端 CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019) 已成功，但应先消除浏览器 flaky，再完成干净安装/升级/卸载数据策略与恢复收据。 |
-| D05 | E2E、真实供应商与创作质量验证 | V1 有浏览器/媒体/导出行为可作回归样例 | selftest 的击穿 fixture 纪律值得采用 | **Adapt** 为分层验证金字塔 | **L5/L6** | M1-C 根因修复 checkpoint 已有 342 个 Python、115 个前端单元测试和 21 个真实 FastAPI 浏览器场景通过；9 个 pre-ProductionSnapshot provider-execution 规格明确冻结到 M2。新远端 CI 与 M1-C 三故事真实生成/独立盲评仍未完成；媒体 smoke 属于 M2。 |
+| D05 | E2E、真实供应商与创作质量验证 | V1 有浏览器/媒体/导出行为可作回归样例 | selftest 的击穿 fixture 纪律值得采用 | **Adapt** 为分层验证金字塔 | **L5/L6** | 当前候选有 524 个 Python 测试、115 个前端单元测试和 23 个真实 FastAPI 浏览器场景通过；9 个 pre-ProductionSnapshot provider-execution 规格明确冻结到 M2。单次 usable llama canary 与非生成 readiness probe 已通过，但新远端 CI 和 M1-C 三故事真实生成/独立盲评仍未完成；媒体 smoke 属于 M2。 |
 | D06 | 本地安全与远程部署边界 | loopback、URL 检查、secret-free config 和“远程必须私有”警告应保留 | 不是常驻 Web 服务，不能提供可直接采用的部署边界 | **Adapt local/Tailnet boundary / Defer public multi-user** | **L4/L4**（本地/Tailnet）/ **D**（公开部署） | 已实现并测试可信 HTTP(S) root、loopback/LAN/Tailnet、URL 凭据/query/fragment/非法端口拒绝、无重定向、`authMode=none` 不发送 Authorization、session/server key 边界和禁止媒体请求级 profile 覆盖。未加外部认证的远程实例必须保持私有。 |
 | D07 | 来源、许可证与可解释吸收 | 上游/fork/本地修订必须分开归属 | Apache NOTICE 和私有 shot-recipes 边界必须明确 | **Adopt** 固定版本与第三方治理 | **L4/L7** | [`SOURCES.md`](../storyboard-handbook/SOURCES.md)、[`THIRD_PARTY_NOTICES.md`](../storyboard-handbook/THIRD_PARTY_NOTICES.md)、根 `LICENSE`/`NOTICE` 已建立；新仓库发行前再做一次文件级 provenance 扫描。 |
 | D08 | 可插拔 shot recipe/镜头语汇 | V1 没有独立、版本化配方合同 | 公开 repo 有 `--shots` 接口、解析器和最小 fixture；完整卡库是私有材料 | **Defer interface / Reject private content as evidence** | **D/R** | 只可将自研或明确授权的卡作为未来 adapter 输入。私有库的内容、质量和覆盖永远不计入“已吸收”。 |
@@ -200,7 +200,7 @@
 ### M1-C：Alpha 验收
 
 - [x] fake-provider 与确定性后端矩阵覆盖分片缺失/重复/聚合冲突、并发编辑、取消竞态、未知提交结果、重启、精确 repair 和无部分安装；真实浏览器 repair 旅程进一步证明 sibling reuse 与全范围原子安装。
-- [~] ADR 0024：离线 candidate 已加入精确 `adapterId`/`adapterVersion` registry、V3 新运行快照、profile-scoped secret-free readiness、非生成 preflight 和 admission guard，并保持 V1/V2 hash/resolver 不变；仍待默认 backend 的人工 live retry，不能据此标记独立真实验收通过。详见 [provider-readiness verification ledger](../verification/2026-09-10-provider-readiness-offline-candidate.md)。
+- [x] ADR 0024 当前模块：精确 `adapterId`/`adapterVersion` registry 与 profile control plane、V3 新运行快照、profile-scoped secret-free readiness、非生成 preflight 和 admission guard 已实现，并保持 V1/V2 hash/resolver 不变。`default` 的单次 live probe 已返回 `readiness.models_verified`；这仍不等于独立真实验收。详见 [provider-readiness verification ledger](../verification/2026-09-10-provider-readiness-offline-candidate.md)。
 - [ ] 对每个拟支持 backend 独立运行三份固定中文故事、每份重复三次，共 9 条真实全流水线；9/9 原子安装、至少 30/36 阶段首次通过，记录独立版本与脱敏证据。先验收 `default`，`qwen36_35b` 延后。
 - [ ] 对该 backend 每个故事固定抽取一条，共 3 份盲评，使用原 `codex_external_review` rubric 与分数门槛；结果绑定准确来源与 snapshot，不冒充人类评审或产品 Approval。旧双 profile 18-run/6-review 模式保留原义，尚未通过。
 

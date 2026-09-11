@@ -285,6 +285,26 @@ unless those checks were actually performed.
 
 Keep this block current at handoff; do not duplicate the product progress matrix.
 
+**2026-09-10 current checkpoint:** steps 1, 2B, 2C, 2D, the bounded adapter
+portion of 2E, and the local candidate gate in step 3 are complete on
+`codex/m1b-alpha` through `96de4e3`. The retained `default` canary run
+`32984889-1f13-4252-bb21-68032560d15d` completed 20/20 sealed units, installed
+all four stages atomically, produced 9 scenes and 14 editable shots, and retained
+an ordinary edit after refresh. The final provider-readiness candidate freezes
+`openai_compatible@1` in V3 snapshots, preserves V1/V2 evidence, separates
+Plotloom service health from backend readiness, and refuses definite preflight
+failures before creating a run. Its unfiltered local gates are 524 Python tests
+passed with 9 skipped, 115 frontend tests passed, 23/23 browser journeys, a
+deterministic production bundle, and installed-wheel smoke. One bounded live
+model-list probe verified the `default` profile and `qwen3527b` alias as
+`readiness.models_verified`; no completion or new user trial was started. The
+vLLM lane remains deferred. The next release outcome is step 4's versioned
+single-backend 9-run/3-review qualification, followed by remote CI; neither is
+claimed here. The provider-readiness Flow run remains externally unresolved
+because its immutable write fence omitted `docs/verification`; the repository
+work was completed under the user's explicit source-only continuation and does
+not claim retroactive Flow compliance.
+
 **2026-09-07 approved amendment:** the `default` canary reached terminal
 quarantine at Story Graph after three attempts; Story Bible sealed, no canonical
 head was installed, and no outcome was unknown. Readiness passed at 32,768
