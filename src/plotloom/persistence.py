@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -672,6 +672,8 @@ class ReviewedShotBindingRow(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
     asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    visual_intent_id: Mapped[str | None] = mapped_column(ForeignKey("v2_visual_intents.id", ondelete="RESTRICT"), nullable=True)
+    visual_intent_revision: Mapped[int | None] = mapped_column(Integer(), nullable=True)
     storyboard_entity_revision_id: Mapped[str] = mapped_column(ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False)
     approval_id: Mapped[str] = mapped_column(ForeignKey("v2_approval_decisions.id", ondelete="RESTRICT"), nullable=False)
     shot_id: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -1710,21 +1712,24 @@ class SQLiteRepository:
         self,
         project_id: str,
         *,
-        original_uri: str,
         original_hash: str,
-        display_uri: str,
         display_hash: str,
         mime_type: str,
         byte_size: int,
         width: int,
         height: int,
         declaration: dict[str, Any],
+        publish: Callable[[], tuple[str, str]],
     ) -> dict[str, Any]:
         """Publish one independent project provenance record over stored bytes."""
 
         with self._lifecycle_write() as session:
             project = self._project_row(session, project_id)
             self._assert_active_project(project)
+            # Publish under the same lifecycle writer lease that admits the
+            # immutable metadata, so a rejected/archived project never leaves
+            # a newly written unowned blob behind.
+            original_uri, display_uri = publish()
             now = utc_now()
             asset = ManagedAssetRow(
                 id=new_id(), project_id=project_id, original_uri=original_uri,
@@ -1799,6 +1804,47 @@ class SQLiteRepository:
             session.flush()
             return {"id": row.id, "assetId": asset_id, "revision": row.revision, "intent": row.intent}
 
+    def list_visual_intents(self, project_id: str) -> list[dict[str, Any]]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            rows = session.scalars(
+                select(VisualIntentRow)
+                .where(VisualIntentRow.project_id == project_id)
+                .order_by(VisualIntentRow.asset_id, VisualIntentRow.revision.desc())
+            ).all()
+            # A single imported still can legitimately serve more than one
+            # authoring role.  Currentness is role-scoped, so do not hide the
+            # latest location reference behind a later shot-keyframe revision.
+            latest: dict[tuple[str, str | None], VisualIntentRow] = {}
+            for row in rows:
+                latest.setdefault((row.asset_id, row.intent.get("role")), row)
+            return [
+                {"id": row.id, "assetId": row.asset_id, "revision": row.revision, "intent": row.intent}
+                for row in latest.values()
+            ]
+
+    def list_current_reviewed_keyframes(self, project_id: str) -> list[dict[str, Any]]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            rows = session.scalars(
+                select(ReviewedShotBindingRow)
+                .where(ReviewedShotBindingRow.project_id == project_id)
+                .order_by(ReviewedShotBindingRow.selection_revision.desc())
+            ).all()
+            latest: dict[str, ReviewedShotBindingRow] = {}
+            for row in rows:
+                latest.setdefault(row.shot_id, row)
+            return [
+                {
+                    "id": row.id, "assetId": row.asset_id, "shotId": row.shot_id,
+                    "sceneId": row.scene_id, "selectionRevision": row.selection_revision,
+                    "visualIntentId": row.visual_intent_id,
+                    "visualIntentRevision": row.visual_intent_revision,
+                    "compatibilityNote": row.compatibility_note,
+                }
+                for row in latest.values()
+            ]
+
     def _approval_is_active_in_session(self, session: Session, decision_id: str) -> ApprovalDecisionRow:
         decision = session.get(ApprovalDecisionRow, decision_id)
         if decision is None:
@@ -1856,6 +1902,8 @@ class SQLiteRepository:
         storyboard_revision: int,
         approval_id: str,
         compatibility_note: str,
+        visual_intent_id: str,
+        visual_intent_revision: int,
     ) -> dict[str, Any]:
         """Append an immutable reviewed binding under one lifecycle writer lease."""
 
@@ -1875,6 +1923,12 @@ class SQLiteRepository:
             asset = session.get(ManagedAssetRow, asset_id)
             if asset is None or asset.project_id != project_id:
                 raise NotFoundError(f"managed asset not found: {asset_id}")
+            intent = session.get(VisualIntentRow, visual_intent_id)
+            if (
+                intent is None or intent.project_id != project_id or intent.asset_id != asset_id
+                or intent.revision != visual_intent_revision
+            ):
+                raise InvalidTransitionError("reviewed keyframe must bind an exact current-project visual intent")
             storyboard = self._load_stage_payload(session, project_id, StageName.STORYBOARD)
             shot = next((item for item in storyboard.shots if item.id == shot_id), None)
             if shot is None or shot.scene_id != scene_id:
@@ -1883,6 +1937,7 @@ class SQLiteRepository:
             state.updated_at = now
             binding = ReviewedShotBindingRow(
                 id=new_id(), project_id=project_id, asset_id=asset_id,
+                visual_intent_id=intent.id, visual_intent_revision=intent.revision,
                 storyboard_entity_revision_id=approval.entity_revision_id,
                 approval_id=approval.id, shot_id=shot_id, scene_id=scene_id,
                 storyboard_revision=storyboard_revision,
@@ -1894,7 +1949,8 @@ class SQLiteRepository:
             return {
                 "id": binding.id, "assetId": asset_id, "shotId": shot_id,
                 "sceneId": scene_id, "selectionRevision": state.revision,
-                "storyboardRevision": storyboard_revision,
+                "storyboardRevision": storyboard_revision, "visualIntentId": intent.id,
+                "visualIntentRevision": intent.revision,
             }
 
     def create_still_preview(
@@ -1949,18 +2005,27 @@ class SQLiteRepository:
                     or binding.approval_id != approval.id
                 ):
                     raise InvalidTransitionError("reviewed keyframe does not match the current approved storyboard")
+                intent = session.get(VisualIntentRow, binding.visual_intent_id)
+                if intent is None or intent.asset_id != binding.asset_id or intent.revision != binding.visual_intent_revision:
+                    raise InvalidTransitionError("reviewed keyframe is missing its exact visual intent")
                 asset = session.get(ManagedAssetRow, binding.asset_id)
                 if asset is None:
                     raise InvalidTransitionError("preview references unavailable managed media")
                 frames.append({
                     "shotId": shot_id, "assetId": asset.id, "displayHash": asset.display_hash,
                     "durationMs": by_id[shot_id].duration_units,
-                    "bindingId": binding.id,
+                    "bindingId": binding.id, "visualIntentId": intent.id,
+                    "visualIntentRevision": intent.revision,
                 })
             manifest = {
                 "projectionVersion": 1, "sceneId": scene_id, "shotIds": shot_ids,
                 "storyboardRevision": storyboard_revision, "storyboardEntityRevisionId": approval.entity_revision_id,
-                "approvalId": approval.id, "selectionRevision": state.revision, "frames": frames,
+                "approvalId": approval.id, "approvalGateSetVersion": approval.gate_set_version,
+                # Database JSON keys are canonical stage strings already;
+                # preserve them verbatim so the frozen receipt matches the
+                # approval-closure projection used by ``preview_view``.
+                "canonicalInputRevisions": dict(approval.canonical_input_revisions),
+                "selectionRevision": state.revision, "frames": frames,
             }
             preview = StillPreviewRow(
                 id=new_id(), project_id=project_id,
@@ -1991,6 +2056,48 @@ class SQLiteRepository:
             self._project_row(session, project_id)
             state = session.get(VisualSelectionStateRow, project_id)
             return state.revision if state is not None else 0
+
+    def reviewed_preview_dependencies_current(self, project_id: str, frame: dict[str, Any]) -> bool:
+        """Check only the frozen frame's reviewed binding and intent stream."""
+
+        with self._read() as session:
+            binding = session.get(ReviewedShotBindingRow, frame["bindingId"])
+            if (
+                binding is None or binding.project_id != project_id
+                or binding.asset_id != frame["assetId"]
+                or binding.visual_intent_id != frame.get("visualIntentId")
+                or binding.visual_intent_revision != frame.get("visualIntentRevision")
+            ):
+                return False
+            latest_binding = session.scalar(
+                select(ReviewedShotBindingRow)
+                .where(ReviewedShotBindingRow.project_id == project_id, ReviewedShotBindingRow.shot_id == binding.shot_id)
+                .order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1)
+            )
+            intent = session.get(VisualIntentRow, binding.visual_intent_id)
+            if intent is None:
+                return False
+            role = intent.intent.get("role")
+            latest_intent = next(
+                (
+                    candidate
+                    for candidate in session.scalars(
+                        select(VisualIntentRow)
+                        .where(
+                            VisualIntentRow.project_id == project_id,
+                            VisualIntentRow.asset_id == binding.asset_id,
+                        )
+                        .order_by(VisualIntentRow.revision.desc())
+                    )
+                    if candidate.intent.get("role") == role
+                ),
+                None,
+            )
+            return (
+                latest_binding is not None and latest_binding.id == binding.id
+                and latest_intent is not None and latest_intent.id == binding.visual_intent_id
+                and latest_intent.revision == binding.visual_intent_revision
+            )
 
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
         with self._lifecycle_write() as session:

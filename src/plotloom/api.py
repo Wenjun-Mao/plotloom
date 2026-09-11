@@ -67,6 +67,7 @@ from .artifacts import ArtifactStore, MemoryArtifactStore
 from .managed_media import (
     ImportDeclaration,
     ManagedMediaError,
+    ManagedMediaLimits,
     PreviewRequest,
     ReviewedSelectionRequest,
     VisualIntentInput,
@@ -607,6 +608,7 @@ def create_app(
     media_scheduler: MediaScheduler | None = None,
     media_prompt_compiler: MediaPromptCompiler | None = None,
     artifact_store: ArtifactStore | None = None,
+    managed_media_limits: ManagedMediaLimits | None = None,
     static_dir: Path | None = None,
     provider_defaults: ProviderSettings | None = None,
     key_availability: Mapping[str, bool] | None = None,
@@ -630,6 +632,7 @@ def create_app(
     # Runtime supplies LocalArtifactStore; the in-memory default keeps isolated
     # API tests deterministic without silently opening a filesystem root.
     app.state.artifact_store = artifact_store or MemoryArtifactStore()
+    app.state.managed_media_limits = managed_media_limits or ManagedMediaLimits()
     # Observations are intentionally application-lifetime state: no secrets,
     # no persistence, and no implication that a profile is qualified.
     readiness_observations: dict[str, TextBackendReadiness] = {}
@@ -1178,14 +1181,28 @@ def create_app(
         if state == "current":
             try:
                 closure = repo.get_approval_closure(str(manifest["approvalId"]))
-                if not closure.active:
+                expected_inputs = {
+                    stage.value: revision
+                    for stage, revision in closure.decision.canonical_input_revisions
+                }
+                if (
+                    manifest.get("approvalGateSetVersion") != closure.decision.gate_set_version
+                    or manifest.get("canonicalInputRevisions") != expected_inputs
+                ):
+                    state = "corrupt"
+                if state == "current" and not closure.active:
                     state = "revoked" if repo.approval_is_revoked(closure.decision.id) else "stale"
             except NotFoundError:
                 state = "stale"
-        if state == "current" and repo.visual_selection_revision(project_id) != manifest["selectionRevision"]:
-            state = "stale"
         for frame in manifest["frames"]:
+            # A receipt whose manifest no longer verifies is already unsafe to
+            # interpret. Do not let a secondary storage observation mask that
+            # stronger integrity failure with a different derived state.
+            if state == "corrupt":
+                break
             try:
+                if state == "current" and not repo.reviewed_preview_dependencies_current(project_id, frame):
+                    state = "stale"
                 stored = repo.get_managed_asset_storage(project_id, frame["assetId"])
                 if stored["displayHash"] != frame["displayHash"]:
                     state = "corrupt"
@@ -1218,23 +1235,26 @@ def create_app(
         declaration = ImportDeclaration(
             origin=origin, rights=rights, rights_note=rights_note, declared_additions=additions
         )
-        content = await image.read(8 * 1024 * 1024 + 1)
-        observed = inspect_import_image(content)
-        try:
-            original_uri, display_uri = publish_import(app.state.artifact_store, content, observed)
-        except (OSError, KeyError, ValueError) as error:
-            raise ManagedMediaError("corrupt_existing_blob", "stored media could not be verified") from error
+        limits = app.state.managed_media_limits
+        content = await image.read(limits.max_import_bytes + 1)
+        observed = inspect_import_image(content, limits)
+
+        def publish_under_admission() -> tuple[str, str]:
+            try:
+                return publish_import(app.state.artifact_store, content, observed)
+            except (OSError, KeyError, ValueError) as error:
+                raise ManagedMediaError("corrupt_existing_blob", "stored media could not be verified") from error
+
         return repo.record_managed_import(
             project_id,
-            original_uri=original_uri,
             original_hash=observed.content_hash,
-            display_uri=display_uri,
             display_hash=observed.display_hash,
             mime_type=observed.mime_type,
             byte_size=observed.byte_size,
             width=observed.width,
             height=observed.height,
             declaration=declaration.model_dump(mode="json", by_alias=True),
+            publish=publish_under_admission,
         )
 
     @app.get("/api/v2/projects/{project_id}/managed-assets")
@@ -1277,6 +1297,8 @@ def create_app(
         return {
             "assets": repo.list_managed_assets(project_id),
             "selectionRevision": repo.visual_selection_revision(project_id),
+            "visualIntents": repo.list_visual_intents(project_id),
+            "reviewedKeyframes": repo.list_current_reviewed_keyframes(project_id),
             "previews": [preview_view(project_id, preview) for preview in repo.list_still_previews(project_id)],
         }
 

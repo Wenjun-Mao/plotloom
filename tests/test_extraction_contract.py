@@ -262,6 +262,8 @@ def test_environment_template_is_plotloom_only() -> None:
         "PLOTLOOM_DATA_DIR",
         "PLOTLOOM_DATABASE_URL",
         "PLOTLOOM_ARTIFACT_ROOT",
+        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES",
+        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS",
     }.issubset(declared_names)
     assert not any(name.startswith(("DIRECTOR_", "NARRATIVE_FORGE_")) for name in declared_names)
     assert "IMAGE_EDIT_MODEL" not in declared_names

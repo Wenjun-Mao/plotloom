@@ -243,6 +243,32 @@ export interface StillPreviewFrame {
   displayHash: string;
   durationMs: number;
   bindingId: string;
+  visualIntentId: string | null;
+  visualIntentRevision: number | null;
+}
+
+export interface VisualIntent {
+  id: string;
+  assetId: string;
+  revision: number;
+  intent: {
+    role: "protagonist_reference" | "location_reference" | "shot_keyframe";
+    identityIntent?: string | null;
+    compositionIntent?: string | null;
+    styleIntent?: string | null;
+    sourceRefs: string[];
+  };
+}
+
+export interface ReviewedKeyframe {
+  id: string;
+  assetId: string;
+  shotId: string;
+  sceneId: string;
+  selectionRevision: number;
+  visualIntentId: string | null;
+  visualIntentRevision: number | null;
+  compatibilityNote: string;
 }
 
 export interface StillPreview {
@@ -254,6 +280,8 @@ export interface StillPreview {
     storyboardRevision: number;
     storyboardEntityRevisionId: string;
     approvalId: string;
+    approvalGateSetVersion: string;
+    canonicalInputRevisions: Record<string, number>;
     selectionRevision: number;
     frames: StillPreviewFrame[];
   };
@@ -265,6 +293,8 @@ export interface StillPreview {
 export interface VisualWorkbench {
   assets: ManagedAsset[];
   selectionRevision: number;
+  visualIntents: VisualIntent[];
+  reviewedKeyframes: ReviewedKeyframe[];
   previews: StillPreview[];
 }
 

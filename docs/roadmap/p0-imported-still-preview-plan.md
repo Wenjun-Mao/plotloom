@@ -1,15 +1,11 @@
 # P0 — Imported assets and reviewed still preview
 
-Revision: **1 / Approved**, 2026-09-11. User explicitly approved this plan,
-including the bounded retention/permanent-delete policy. Implementation has not
-been dispatched. Execution follows the separate frozen-assignment handoff below;
-approval does not authorize broader milestones, publication or Flow cleanup.
-
-Planning baseline: `d6e705ddb96aa1f048c5a46b9a934f89b854767b`, branch
-`codex/m1b-alpha`, with documentation-only review synthesis/amendments pending.
-Before dispatch, commit the accepted plan/amendments, resolve the exact clean
-source identity, and freeze the assignment's copy. Do not execute against an
-assumed mutable HEAD. No duplicate coordinator execution DAG is prescribed here.
+Revision: **2 / Approved correction candidate**, 2026-09-11. The original
+frozen assignment delivered commits `4dabfc5` and `dce8614`; the acceptance
+correction remains in the same Flow run and preserves those commits. The
+four-image/three-shot scenario remains the bounded fixture, while the product
+contract permits a creator-selected nonempty contiguous scene subset. No P1,
+provider, merge/push, or broad cleanup authority is implied.
 
 ## Outcome and stopping point
 

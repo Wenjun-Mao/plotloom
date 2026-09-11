@@ -2,7 +2,7 @@
 
 > **用途：**这是 Plotloom “从两个来源学到了什么、决定怎么处理、现在完成到哪一层、下一项证据是什么”的唯一进度总表。
 >
-> **快照日期：**2026-09-10。产品结论以固定版本为基线，不随远端分支漂移。
+> **快照日期：**2026-09-11。产品结论以固定版本为基线，不随远端分支漂移。
 >
 > **决策依据：**能力追踪采用 [ADR 0008](../adr/0008-capability-based-adoption-tracking.md)，当前独立仓库与身份边界采用 [ADR 0010](../adr/0010-plotloom-clean-repository.md)，运行与生产边界采用 [ADR 0011](../adr/0011-provider-profiles-and-generation-work-units.md)、[ADR 0012](../adr/0012-approved-storyboards-and-production-units.md)、[ADR 0013](../adr/0013-model-neutral-reliable-generation.md)、[ADR 0014](../adr/0014-project-lifecycle-and-workbench.md)、[ADR 0015](../adr/0015-exact-work-unit-repair.md)、[ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md)、[ADR 0017](../adr/0017-alpha-validation-and-correction-boundaries.md)、[ADR 0018](../adr/0018-trusted-story-timing-allocation.md) 和 [ADR 0019](../adr/0019-exact-fragment-and-join-state-contracts.md)。ADR 0003–0007 保留了重建阶段的历史架构证据。
 
@@ -15,17 +15,20 @@ records the agreed cinematic-realism, proposal/refinement, imported-reference,
 native-audio and in-app pause-and-choose direction. Its P0–P4 milestones are
 planned, not completed; C02/C03/C05/C06/C08/C09 maturity is unchanged. ADR 0026
 now authorizes the non-generative imported/still-preview boundary as a design;
-the [P0 implementation plan](p0-imported-still-preview-plan.md) revision 1 is Approved
-and implemented as a locally verified candidate.
+the [P0 implementation plan](p0-imported-still-preview-plan.md) revision 2 is
+Approved and implemented as a locally verified correction candidate.
 No M1-C qualification gate or provider-production hard stop is waived.
 
-**P0 checkpoint (2026-09-11):** managed JPEG/PNG imports, independent
-provenance, reviewed keyframe bindings, immutable three-shot still previews,
-stale/revoked/missing/corrupt projection states and media-bearing permanent
-delete refusal are implemented under [ADR 0027](../adr/0027-managed-imported-still-preview-contract.md).
-This is a non-generative local preview only; C02/C03/C05/C06/C08/C09 maturity
-and all provider-production hard stops remain unchanged pending the final
-browser and stable-candidate evidence.
+**P0 checkpoint (2026-09-11):** managed JPEG/PNG imports with configured
+decode bounds and lifecycle admission, independent provenance, exact
+intent-revision reviewed bindings, immutable contiguous still previews, and
+derived current/stale/revoked/missing/corrupt states are implemented under
+[ADR 0027](../adr/0027-managed-imported-still-preview-contract.md). The four
+image/three shot scenario is acceptance evidence rather than a product limit;
+unrelated selections do not stale a preview. A real file-SQLite browser journey
+now covers import/compare/intent/select/play/seek/reload/restart/replacement,
+reapproval blocking and media-bearing delete refusal. This remains a
+non-generative local preview only; provider-production hard stops are unchanged.
 
 | 观察面 | 当前判断 | 它真正说明什么 |
 |---|---:|---|
@@ -125,10 +128,10 @@ browser and stable-candidate evidence.
 | C03 | 视频生成 | V1 的 submit/poll 和逐镜视频是重要产品能力 | 不执行视频生成，反而清楚限定 storyboard 是生产规格 | **Adapt** 到同步/异步统一 adapter 和任务状态 | **L3/L6** | 异步 adapter 与历史测试规格保留，但与图片相同被 ProductionSnapshot 硬边界隔离；不存在从 raw Shot 到 provider 的临时绕路。M2 恢复条件包括冻结输入、关键帧 lineage、供应商取消/unknown 语义和播放质检。 |
 | C04 | 持久任务、重启恢复与浏览器观察 | V1 能本地轮询/恢复等待，但停止观察不等于远端取消 | 没有一等在线任务/run | **Rebuild** 为数据库事实和安全 reconciliation | **L4/L5** | 文本运行可继续同一未 dispatch attempt 或仅从持久 response 做本地验证，dispatched-without-response 保持 outcome unknown；仅靠 browser key 的安全运行重启后保持 queued，并由同一 profile 的 session key 显式 resume。所有 pre-ProductionSnapshot 非终态媒体任务在升级/重启时安全终止，绝不 resubmit/poll；历史终态结果保持可读。 |
 | C05 | Artifact、媒体落地与内容寻址 | V1 把媒体保存进项目 assets | shuohao 把主数据、报告和投产包分层 | **Adapt/Rebuild** 为 content-addressed ArtifactStore | **L3/L5** | prompt/response/validation/canonical artifacts 已原子、去重落地；媒体成功目前主要保存远端 `outputUri`，缺 MIME/大小/哈希校验、下载、离线可用和垃圾回收。 |
-| C06 | 互动预览与可播放导出 | 这是 V1 最应保留的优势之一：编辑后立即试玩并导出 | 不提供播放器或最终视频 | **Adopt outcome / Rebuild implementation** | **D** | 首个 Plotloom slice 明确未包含。重新开启条件：浏览器 Alpha 与本地媒体 ingest 达 L5。 |
+| C06 | 互动预览与可播放导出 | 这是 V1 最应保留的优势之一：编辑后立即试玩并导出 | 不提供播放器或最终视频 | **Adopt outcome / Rebuild implementation** | **L4/L5** | P0 已有非生成式、已审核 imported-still animatic：创作者可冻结一场景的任意非空连续子集，并按 authored duration 播放、暂停、seek、刷新/重启后读取；旧 receipt 保留且会显式 current/stale/revoked/missing/corrupt。它不包含分支 session、音频、视频、最终剪辑或导出；这些仍是 L5 前置。 |
 | C07 | 批量生成、最终剪辑与成片交付 | V1 有批量媒体和互动/分集导出，可作为行为参考 | export pack/manifest 适合可审阅投产交接，但不生成最终视频 | **Defer**，以后基于 Plotloom task/artifact/export contracts 重建 | **D** | 批量队列、取消、全局 timecode、配音/口型、剪辑、QC、最终成片都不计入当前完成度。 |
 | C08 | 已批准分镜到 ProductionUnit 与供应商编译 | V1 的单镜生成回路反馈短，但 Shot/Prompt/Task 边界不稳定 | segment/cut/frame 与 H3 投产包说明需要独立生产层，但线性位置和供应商字符串不能成为主数据 | **Adapt/Rebuild**：从 approved Storyboard 确定性派生 provider-neutral `ProductionUnit`，再由 adapter 编译 | **L2/L5** | [ADR 0012](../adr/0012-approved-storyboards-and-production-units.md) 已定义 canonical/derived 边界、时长/切点/帧计划和 stale；尚缺 planner、compiler、manifest、UI 及媒体前置验证。 |
-| C09 | 资产角色、参考血缘与受控人工导入 | V1 有角色设定图、场景参考、逐镜素材和本地保存，但任意路径/URL 边界过宽 | 角色/地点/道具锚点、状态变体及小样先审提供清晰的一致性方法 | **Adapt/Rebuild** 为稳定 asset role、`ShotReferencePlan` 和内容寻址 Artifact；人工导入走受控入口 | **L2/L5** | [ADR 0012](../adr/0012-approved-storyboards-and-production-units.md) 定义最小角色、hash/MIME/尺寸/时长、来源和 revision 绑定；尚缺实体、导入/下载安全、引用解析、小样批准和离线可用验收。 |
+| C09 | 资产角色、参考血缘与受控人工导入 | V1 有角色设定图、场景参考、逐镜素材和本地保存，但任意路径/URL 边界过宽 | 角色/地点/道具锚点、状态变体及小样先审提供清晰的一致性方法 | **Adapt/Rebuild** 为稳定 asset role、`ShotReferencePlan` 和内容寻址 Artifact；人工导入走受控入口 | **L4/L5** | P0 提供 project-scoped JPEG/PNG byte ingest、hash/MIME/dimension/provenance、独立 display derivative、版本化 identity/composition/style/source-ref intent，以及绑定精确 Approval 的 reviewed Shot selection；跨项目读/绑定、动画/损坏输入、归档/未找到项目 admission 和媒体项目永久删除均拒绝。仍缺角色/地点资产计划、受控下载、ProductionUnit 引用解析、媒体擦除与离线发布验收。 |
 
 ### D. 平台、工作台与独立发行
 
@@ -138,7 +141,7 @@ browser and stable-candidate evidence.
 | D02 | React 工作台与完整用户旅程 | 浏览器内创作→媒体→预览的单一工作台是核心产品价值 | 分阶段操作和报告适合清晰导航 | **Adapt** 为七页 Plotloom 工作台 | **L5/L5**（M1-B0/M1-B1） | [ADR 0014](../adr/0014-project-lifecycle-and-workbench.md) 的项目目录、URL/epoch 导航、显式保存、sessionStorage 草稿恢复、生命周期操作和 Plotloom 原创三栏布局均已实现；M1-B1 补齐四阶段编辑、关系影响确认、issue 路径聚焦、逐 unit Inspector、冻结 profile key gate 与 Gate/Approval。真实 FastAPI exact-repair→Approval→刷新旅程及整套 checkpoint gate 均通过。 |
 | D03 | Plotloom 导入、导出、备份与可移植项目 | V1 project JSON/备份能带走作品，但直接安装 JSON、标题目录和无保留策略不安全 | 五层 JSON/Markdown/manifest 便于审阅交接 | **Rebuild** Plotloom canonical 格式；**Reject** 首发 legacy migration | **L1/L5** | [初始提取来源](../provenance/initial-extraction.md) 定义 Plotloom-only 数据边界；退出条件还必须覆盖格式版本、预检、hash/manifest、冲突策略、原子导入、稳定 project ID、备份保留/清理和空 data-dir 恢复。任何 V1/shuohao 导入只能在未来另立迁移 ADR。 |
 | D04 | 无 V1 依赖的提取、打包与新仓库 | V1 只作为比较和行为证据存在 | shuohao 的自包含边界提醒我们保持模块独立，但不复制其规则重复 | **Rebuild** 为单包、单 UI、可移动 roots | **L5/L7** | 全新 Plotloom 仓库、fresh history、依赖边界、独立 wheel/资源探测和生产 bundle 已建立；[远端 CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/33671097019) 已成功，但应先消除浏览器 flaky，再完成干净安装/升级/卸载数据策略与恢复收据。 |
-| D05 | E2E、真实供应商与创作质量验证 | V1 有浏览器/媒体/导出行为可作回归样例 | selftest 的击穿 fixture 纪律值得采用 | **Adapt** 为分层验证金字塔 | **L5/L6** | 当前候选有 524 个 Python 测试、115 个前端单元测试和 23 个真实 FastAPI 浏览器场景通过；9 个 pre-ProductionSnapshot provider-execution 规格明确冻结到 M2。单次 usable llama canary 与非生成 readiness probe 已通过，但新远端 CI 和 M1-C 三故事真实生成/独立盲评仍未完成；媒体 smoke 属于 M2。 |
+| D05 | E2E、真实供应商与创作质量验证 | V1 有浏览器/媒体/导出行为可作回归样例 | selftest 的击穿 fixture 纪律值得采用 | **Adapt** 为分层验证金字塔 | **L5/L6** | 当前候选有 531 个 Python 测试、115 个前端单元测试和 24 个真实 FastAPI 浏览器场景通过；9 个 pre-ProductionSnapshot provider-execution 规格明确冻结到 M2。单次 usable llama canary 与非生成 readiness probe 已通过，但新远端 CI 和 M1-C 三故事真实生成/独立盲评仍未完成；媒体 smoke 属于 M2。 |
 | D06 | 本地安全与远程部署边界 | loopback、URL 检查、secret-free config 和“远程必须私有”警告应保留 | 不是常驻 Web 服务，不能提供可直接采用的部署边界 | **Adapt local/Tailnet boundary / Defer public multi-user** | **L4/L4**（本地/Tailnet）/ **D**（公开部署） | 已实现并测试可信 HTTP(S) root、loopback/LAN/Tailnet、URL 凭据/query/fragment/非法端口拒绝、无重定向、`authMode=none` 不发送 Authorization、session/server key 边界和禁止媒体请求级 profile 覆盖。未加外部认证的远程实例必须保持私有。 |
 | D07 | 来源、许可证与可解释吸收 | 上游/fork/本地修订必须分开归属 | Apache NOTICE 和私有 shot-recipes 边界必须明确 | **Adopt** 固定版本与第三方治理 | **L4/L7** | [`SOURCES.md`](../storyboard-handbook/SOURCES.md)、[`THIRD_PARTY_NOTICES.md`](../storyboard-handbook/THIRD_PARTY_NOTICES.md)、根 `LICENSE`/`NOTICE` 已建立；新仓库发行前再做一次文件级 provenance 扫描。 |
 | D08 | 可插拔 shot recipe/镜头语汇 | V1 没有独立、版本化配方合同 | 公开 repo 有 `--shots` 接口、解析器和最小 fixture；完整卡库是私有材料 | **Defer interface / Reject private content as evidence** | **D/R** | 只可将自研或明确授权的卡作为未来 adapter 输入。私有库的内容、质量和覆盖永远不计入“已吸收”。 |

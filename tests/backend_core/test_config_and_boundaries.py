@@ -18,12 +18,15 @@ def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> No
     (tmp_path / ".env").write_text(
         "PLOTLOOM_DATA_DIR=dotenv-data\nPLOTLOOM_PORT=8790\nPORT=8791\n"
         "TEXT_BASE_URL=http://127.0.0.1:8080/v1\nTEXT_AUTH_MODE=none\n"
-        "TEXT_MAX_OUTPUT_TOKENS=4096\nTEXT_CONNECT_TIMEOUT_SECONDS=4\n",
+        "TEXT_MAX_OUTPUT_TOKENS=4096\nTEXT_CONNECT_TIMEOUT_SECONDS=4\n"
+        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES=9000000\n"
+        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS=25000000\n",
         encoding="utf-8",
     )
     for name in (
         "PLOTLOOM_DATA_DIR", "PLOTLOOM_PORT", "PORT", "TEXT_BASE_URL",
         "TEXT_AUTH_MODE", "TEXT_MAX_OUTPUT_TOKENS", "TEXT_CONNECT_TIMEOUT_SECONDS",
+        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES", "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS",
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("PORT", "8899")
@@ -40,6 +43,8 @@ def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> No
     assert settings.text_auth_mode == "none"
     assert settings.text_max_output_tokens == 2048
     assert settings.text_connect_timeout_seconds == 4
+    assert settings.managed_media_max_import_bytes == 9_000_000
+    assert settings.managed_media_max_import_pixels == 25_000_000
 
 
 def test_installed_runtime_ignores_cwd_dotenv_and_uses_user_data_home(

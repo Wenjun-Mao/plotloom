@@ -71,6 +71,23 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
   profile's browser-session key.
 - Remote instances must remain private or use an external authentication layer.
 
+### Managed imported stills (P0)
+
+- The non-generative import endpoint accepts only JPEG/PNG bytes for an active,
+  saved project. It preserves the original and a separately hashed display
+  derivative in the configured artifact root; it never invokes a provider.
+- `PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES` defaults to `8388608` and accepts
+  values from `1` through `67108864`. `PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS`
+  defaults to `24000000` and accepts values from `1` through `100000000`.
+  Restart the server after changing either setting.
+- A reviewed keyframe freezes an explicit visual-intent revision and a current
+  storyboard Approval. A still preview can cover any nonempty contiguous subset
+  of one scene; the authored frame duration is played unchanged. The four-image/
+  three-shot P0 scenario is test evidence, not a runtime limit.
+- Media-bearing projects cannot be permanently deleted yet: the API refuses
+  with `project_managed_assets_present` before mutation. Do not attempt manual
+  blob cleanup; media-aware erasure is a follow-up.
+
 ## M1.5 generation contracts
 
 - A Story Graph run freezes topology before dispatch. For Scene Beats and

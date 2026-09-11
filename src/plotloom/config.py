@@ -106,6 +106,8 @@ class PlotloomSettings(BaseModel):
     media_workers: int = Field(default=2, ge=1, le=32)
     media_poll_interval_seconds: float = Field(default=2.0, ge=0.1, le=60.0)
     media_max_poll_attempts: int = Field(default=300, ge=1, le=10_000)
+    managed_media_max_import_bytes: int = Field(default=8 * 1024 * 1024, ge=1, le=64 * 1024 * 1024)
+    managed_media_max_import_pixels: int = Field(default=24_000_000, ge=1, le=100_000_000)
     text_provider: str = DEFAULT_TEXT_PROVIDER
     text_base_url: str = DEFAULT_TEXT_BASE_URL
     text_model: str = DEFAULT_TEXT_MODEL
@@ -203,6 +205,12 @@ class PlotloomSettings(BaseModel):
             ),
             media_max_poll_attempts=os.environ.get(
                 "PLOTLOOM_MEDIA_MAX_POLL_ATTEMPTS", "300"
+            ),
+            managed_media_max_import_bytes=os.environ.get(
+                "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES", str(8 * 1024 * 1024)
+            ),
+            managed_media_max_import_pixels=os.environ.get(
+                "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS", "24000000"
             ),
             text_provider=os.environ.get("TEXT_PROVIDER") or DEFAULT_TEXT_PROVIDER,
             text_base_url=os.environ.get("TEXT_BASE_URL") or DEFAULT_TEXT_BASE_URL,

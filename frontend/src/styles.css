@@ -249,7 +249,8 @@ input[readonly] { color: var(--dim); }
 .media-candidate-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .media-candidate { display: grid; gap: 6px; min-width: 0; padding: 7px; color: var(--muted); text-align: left; border: 1px solid var(--line); background: var(--panel-3); }
 .media-candidate.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.media-candidate img { width: 100%; height: 96px; object-fit: cover; background: #15191e; }
+.media-candidate > button:first-child { display: grid; gap: 4px; width: 100%; min-width: 0; padding: 0; border: 0; color: inherit; text-align: left; background: transparent; }
+.media-candidate img { width: 100%; height: 96px; pointer-events: none; object-fit: cover; background: #15191e; }
 .media-candidate strong { overflow: hidden; color: var(--text); font: 700 10px var(--mono); text-overflow: ellipsis; white-space: nowrap; }
 .media-candidate small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .preview-history { display: grid; gap: 6px; }

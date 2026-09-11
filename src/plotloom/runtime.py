@@ -99,6 +99,7 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
     from .domain import ProviderProfileCapabilities, ProviderSettings
     from .jobs import LifecycleJobRunner
     from .media import MediaPromptCompiler
+    from .managed_media import ManagedMediaLimits
     from .media_jobs import MediaJobRunner, MediaTaskSecretBroker
     from .pipeline import (
         PipelineEngine,
@@ -243,6 +244,10 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
         media_scheduler=media_runner,
         media_prompt_compiler=MediaPromptCompiler(),
         artifact_store=artifact_store,
+        managed_media_limits=ManagedMediaLimits(
+            max_import_bytes=settings.managed_media_max_import_bytes,
+            max_import_pixels=settings.managed_media_max_import_pixels,
+        ),
         static_dir=settings.static_dir,
         provider_defaults=provider_defaults,
         key_availability={

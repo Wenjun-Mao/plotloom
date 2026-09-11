@@ -13,14 +13,29 @@ from typing import Literal
 from warnings import catch_warnings, simplefilter
 
 from PIL import Image, ImageOps, UnidentifiedImageError
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from .artifacts import ArtifactStore
 from .domain import CamelModel
 
-MAX_IMPORT_BYTES = 8 * 1024 * 1024
-MAX_IMPORT_PIXELS = 24_000_000
 SUPPORTED_MEDIA_TYPES = {"JPEG": "image/jpeg", "PNG": "image/png"}
+
+
+@dataclass(frozen=True)
+class ManagedMediaLimits:
+    """Bounded import limits supplied by the runtime, never by a browser."""
+
+    max_import_bytes: int = 8 * 1024 * 1024
+    max_import_pixels: int = 24_000_000
+
+    def __post_init__(self) -> None:
+        if not 1 <= self.max_import_bytes <= 64 * 1024 * 1024:
+            raise ValueError("max_import_bytes must be between 1 byte and 64 MiB")
+        if not 1 <= self.max_import_pixels <= 100_000_000:
+            raise ValueError("max_import_pixels must be between 1 and 100,000,000")
+
+
+DEFAULT_MANAGED_MEDIA_LIMITS = ManagedMediaLimits()
 
 
 class ManagedMediaError(ValueError):
@@ -51,6 +66,35 @@ class VisualIntentInput(CamelModel):
     identity_intent: str | None = Field(default=None, max_length=2_000)
     composition_intent: str | None = Field(default=None, max_length=2_000)
     style_intent: str | None = Field(default=None, max_length=2_000)
+    source_refs: list[str] = Field(default_factory=list, max_length=32)
+
+    @field_validator("source_refs")
+    @classmethod
+    def normalize_source_refs(cls, value: list[str]) -> list[str]:
+        normalized = [item.strip() for item in value]
+        if any(not item for item in normalized):
+            raise ValueError("source_refs must not contain blank entries")
+        if any(len(item) > 2_000 for item in normalized):
+            raise ValueError("source_refs entries must be at most 2,000 characters")
+        if len(set(normalized)) != len(normalized):
+            raise ValueError("source_refs must not contain duplicates")
+        return normalized
+
+    @model_validator(mode="after")
+    def require_reviewable_context(self) -> "VisualIntentInput":
+        """Do not persist a role label as if it were a creator review intent."""
+
+        has_authored_direction = any(
+            value and value.strip()
+            for value in (self.identity_intent, self.composition_intent, self.style_intent)
+        )
+        if not has_authored_direction:
+            raise ValueError(
+                "visual intent requires identity, composition, or style direction"
+            )
+        if not self.source_refs:
+            raise ValueError("visual intent requires at least one source reference")
+        return self
 
 
 class ReviewedSelectionRequest(CamelModel):
@@ -61,14 +105,15 @@ class ReviewedSelectionRequest(CamelModel):
     storyboard_revision: int = Field(ge=1)
     approval_id: str = Field(min_length=1, max_length=36)
     compatibility_note: str = Field(min_length=1, max_length=2_000)
+    visual_intent_id: str = Field(min_length=1, max_length=36)
+    visual_intent_revision: int = Field(ge=1)
 
 
 class PreviewRequest(CamelModel):
     scene_id: str = Field(min_length=1, max_length=100)
-    # P0 is deliberately a three-shot planning instrument, not a general
-    # timeline API. Keep this invariant at the public boundary as well as in
-    # the workbench so an alternate caller cannot create a weaker preview.
-    shot_ids: list[str] = Field(min_length=3, max_length=3)
+    # A pilot commonly exercises three shots, but the product contract lets a
+    # creator freeze any nonempty contiguous subset of the current scene.
+    shot_ids: list[str] = Field(min_length=1, max_length=100)
     expected_selection_revision: int = Field(ge=1)
     storyboard_revision: int = Field(ge=1)
     approval_id: str = Field(min_length=1, max_length=36)
@@ -92,13 +137,16 @@ class ObservedImage:
     display_hash: str
 
 
-def inspect_import_image(content: bytes) -> ObservedImage:
+def inspect_import_image(
+    content: bytes,
+    limits: ManagedMediaLimits = DEFAULT_MANAGED_MEDIA_LIMITS,
+) -> ObservedImage:
     """Fully decode a bounded JPEG/PNG and make a safe display derivative."""
 
     if not content:
         raise ManagedMediaError("empty_media", "image upload is empty")
-    if len(content) > MAX_IMPORT_BYTES:
-        raise ManagedMediaError("media_too_large", f"image exceeds {MAX_IMPORT_BYTES} byte limit")
+    if len(content) > limits.max_import_bytes:
+        raise ManagedMediaError("media_too_large", f"image exceeds {limits.max_import_bytes} byte limit")
     try:
         # Pillow's metadata parser is intentionally used before ``load`` so a
         # declared pixel bomb cannot make us decode a large raster just to
@@ -110,8 +158,8 @@ def inspect_import_image(content: bytes) -> ObservedImage:
                 if image_format not in SUPPORTED_MEDIA_TYPES:
                     raise ManagedMediaError("unsupported_media", "only JPEG and PNG images are supported")
                 width, height = inspected.size
-                if width < 1 or height < 1 or width * height > MAX_IMPORT_PIXELS:
-                    raise ManagedMediaError("media_pixel_limit", f"image exceeds {MAX_IMPORT_PIXELS} pixel limit")
+                if width < 1 or height < 1 or width * height > limits.max_import_pixels:
+                    raise ManagedMediaError("media_pixel_limit", f"image exceeds {limits.max_import_pixels} pixel limit")
                 if getattr(inspected, "n_frames", 1) != 1:
                     raise ManagedMediaError("animated_media", "animated images are not supported")
                 inspected.verify()
@@ -125,8 +173,11 @@ def inspect_import_image(content: bytes) -> ObservedImage:
     except ManagedMediaError:
         raise
     except (Image.DecompressionBombError, Image.DecompressionBombWarning) as error:
-        raise ManagedMediaError("media_pixel_limit", f"image exceeds {MAX_IMPORT_PIXELS} pixel limit") from error
-    except (UnidentifiedImageError, OSError, ValueError) as error:
+        raise ManagedMediaError("media_pixel_limit", f"image exceeds {limits.max_import_pixels} pixel limit") from error
+    # ``verify`` can surface malformed chunk checksums as SyntaxError rather
+    # than OSError (notably for PNG IDAT data).  It is still untrusted input,
+    # so normalize it into the same public 422 contract.
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError) as error:
         raise ManagedMediaError("invalid_media", "image bytes could not be decoded") from error
     return ObservedImage(
         mime_type=SUPPORTED_MEDIA_TYPES[image_format],

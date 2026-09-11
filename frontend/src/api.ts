@@ -29,6 +29,7 @@ import type {
   ManagedAsset,
   StillPreview,
   VisualWorkbench,
+  VisualIntent,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -186,7 +187,8 @@ export class PlotloomApiClient {
   createVisualIntent(projectId: string, assetId: string, body: {
     role: "protagonist_reference" | "location_reference" | "shot_keyframe";
     identityIntent?: string; compositionIntent?: string; styleIntent?: string;
-  }): Promise<{ id: string; assetId: string; revision: number }> {
+    sourceRefs?: string[];
+  }): Promise<VisualIntent> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets/${encodeURIComponent(assetId)}/visual-intents`, {
       method: "POST", body: JSON.stringify(body),
     });
@@ -195,6 +197,7 @@ export class PlotloomApiClient {
   selectReviewedKeyframe(projectId: string, body: {
     assetId: string; shotId: string; sceneId: string; expectedSelectionRevision: number;
     storyboardRevision: number; approvalId: string; compatibilityNote: string;
+    visualIntentId: string; visualIntentRevision: number;
   }): Promise<{ id: string; selectionRevision: number }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/reviewed-keyframes`, { method: "POST", body: JSON.stringify(body) });
   }
