@@ -2,6 +2,17 @@
 
 ## Candidate and scope
 
+### 2026-09-11 source-only continuation authorization
+
+The user explicitly authorized one narrow continuation from clean
+`a214ef28dad3a457b22dd23e6e82547312cbcc26`: prove this P0 browser journey
+through an owned FastAPI stop/restart using the same file SQLite database and
+artifact directory. It must reuse the four already-generated inputs, retain
+one inspectable pilot data directory outside auto-deleted test temporaries, and
+stop owned services when complete. This authorization does not alter the
+frozen Flow run or its envelope, and does not authorize provider calls,
+regeneration, P1, Flow operations, merge/push, or changes to user data.
+
 - Initial correction: `72eddc6f3f1603774ad2b14ae235049427c1ea71`
   (`feat: harden reviewed still preview contracts`); final code candidate:
   `d5737604881e3cc5c18f9f3176dd9161749b3258` (`fix: block stale still
@@ -37,11 +48,17 @@ three-shot scene, approves the saved storyboard, imports the four files,
 compares and explicitly keeps candidates, records versioned intent with source
 references, and binds the retained still to all three shots. It creates a
 three-shot animatic, plays and seeks its exact authored 2000 ms third frame,
-reloads, and opens a new browser page to prove restart hydration. It replaces
-the first binding so the former preview is `STALE` and a newly frozen one is
-`CURRENT`; an authored board edit blocks reviewed selection until normal
-reapproval; archive then causes permanent deletion to refuse with
-`project_managed_assets_present`.
+then captures the current preview's exact ID and manifest hash, assets and
+provenance, visual-intent revisions, reviewed bindings, and each imported
+asset's original bytes. The fixture stops its owned FastAPI process, proves its
+API is unreachable, and starts a new FastAPI process on the same exact port,
+SQLite file, and ArtifactStore directory. After reload, the test requires those
+captured values and original bytes to be identical and requires the rendered
+still image to have decoded pixels. It does not use a new browser tab as a
+restart surrogate. It replaces the first binding so the former preview is
+`STALE` and a newly frozen one is `CURRENT`; an authored board edit blocks
+reviewed selection until normal reapproval; archive then causes permanent
+deletion to refuse with `project_managed_assets_present`.
 
 The supporting screenshot is a test-produced 1440×900 capture from that
 journey, not a mockup. Its SHA-256 is
@@ -61,6 +78,39 @@ journey, not a mockup. Its SHA-256 is
 | Full FastAPI/file-SQLite Playwright suite | 24 passed, including the P0 journey |
 | `uv build --wheel` and installed-wheel smoke | passed for `plotloom-0.1.0-py3-none-any.whl` |
 | Whitespace/diff integrity | `git diff --check` passed before candidate commit |
+
+## 2026-09-11 same-directory restart continuation
+
+- Starting clean source identity: `a214ef28dad3a457b22dd23e6e82547312cbcc26`.
+- Continuation implementation commit:
+  `bf435bef6970ccba04301c50a5ed69f43657ad2c`
+  (`fix: prove imported still persistence across backend restart`).
+- Root cause observed during the first real stop/restart: the runtime's port
+  preflight used a default socket, so a normally stopped listener in
+  `TIME_WAIT` could make its same configured `PORT` appear unavailable even
+  though Uvicorn can safely reuse it. The durable correction makes that
+  preflight use `SO_REUSEADDR`; it preserves the exact hosting-provided-port
+  contract and does not use a fallback listener.
+- Automated evidence: `uv run --locked pytest
+  tests/backend_core/test_config_and_boundaries.py -q` passed (6 tests), and
+  `npm --prefix frontend run typecheck:e2e` passed. The focused retained-pilot
+  command `PLOTLOOM_P0_RESTART_PILOT_ROOT=<retained path> npm --prefix frontend
+  run test:e2e -- e2e/imported-still-preview.spec.ts` passed (1 test). The
+  shared-fixture follow-up `npm --prefix frontend run test:e2e` passed (24
+  tests). The changed runtime also passed `uv run --locked pytest -q` (532
+  passed, 9 skipped, 272 existing/dependency warnings), `uv build --wheel`,
+  and `uv run --locked python scripts/smoke_installed_wheel.py dist`. These are
+  automated assertions, not a manual UX sign-off.
+- Retained manual-inspection data: `/Users/wjmao/.codex/plotloom-p0-restart-gJhJ0a`.
+  It contains only this test's file SQLite database and content-addressed
+  artifacts (four managed assets, two visual intents, five reviewed bindings,
+  and two immutable previews after the complete journey). It contains no
+  service endpoint or API key; the fixture stopped its owned FastAPI, Vite, and
+  fake-provider processes before retaining the directory.
+- Product evidence is now the real same-directory restart proof above. The
+  separate Flow operation remains started with its frozen envelope and prior
+  scope violation untouched; this continuation is deliberately **not** a
+  Flow-compliant completion claim.
 
 ## Review disposition
 
