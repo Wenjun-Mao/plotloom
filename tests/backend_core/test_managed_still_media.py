@@ -202,6 +202,18 @@ def test_imported_still_preview_is_immutable_and_lifecycle_safe(repository, brie
         revised_first_intent = _intent(client, project.id, assets[0]["id"])
         assert revised_first_intent["revision"] == 2
         assert client.get(f"/api/v2/projects/{project.id}/still-previews").json()["previews"][0]["state"] == "stale"
+        workbench = client.get(f"/api/v2/projects/{project.id}/visual-workbench").json()
+        assert shots[0] not in {binding["shotId"] for binding in workbench["reviewedKeyframes"]}
+        immediately_stale = client.post(
+            f"/api/v2/projects/{project.id}/still-previews",
+            json={
+                "sceneId": scene_id, "shotIds": shots,
+                "expectedSelectionRevision": selection_revision,
+                "storyboardRevision": board.revision, "approvalId": approval["id"],
+            },
+        )
+        assert immediately_stale.status_code == 409
+        assert immediately_stale.json()["code"] == "invalid_transition"
 
         # Preview rows and asset metadata are storage evidence, not trusted
         # projection inputs. Deliberately corrupt each and verify read-time

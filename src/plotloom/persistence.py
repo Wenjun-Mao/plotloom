@@ -1823,6 +1823,85 @@ class SQLiteRepository:
                 for row in latest.values()
             ]
 
+    @staticmethod
+    def _latest_visual_intent_for_role_in_session(
+        session: Session, project_id: str, asset_id: str, role: str | None
+    ) -> VisualIntentRow | None:
+        """Return the latest intent in the asset's role-specific stream."""
+
+        return next(
+            (
+                candidate
+                for candidate in session.scalars(
+                    select(VisualIntentRow)
+                    .where(
+                        VisualIntentRow.project_id == project_id,
+                        VisualIntentRow.asset_id == asset_id,
+                    )
+                    .order_by(VisualIntentRow.revision.desc())
+                )
+                if candidate.intent.get("role") == role
+            ),
+            None,
+        )
+
+    def _reviewed_binding_admission_eligible_in_session(
+        self,
+        session: Session,
+        project_id: str,
+        binding: ReviewedShotBindingRow,
+        *,
+        approval: ApprovalDecisionRow | None = None,
+    ) -> bool:
+        """Whether a binding can contribute to a new preview right now.
+
+        Historical rows deliberately remain readable.  New projections may use
+        only the latest binding for the Shot, latest intent in the bound
+        asset/role stream, and the current exact storyboard approval.
+        """
+
+        if binding.project_id != project_id:
+            return False
+        latest_binding = session.scalar(
+            select(ReviewedShotBindingRow)
+            .where(
+                ReviewedShotBindingRow.project_id == project_id,
+                ReviewedShotBindingRow.shot_id == binding.shot_id,
+            )
+            .order_by(ReviewedShotBindingRow.selection_revision.desc())
+            .limit(1)
+        )
+        if latest_binding is None or latest_binding.id != binding.id:
+            return False
+        intent = session.get(VisualIntentRow, binding.visual_intent_id)
+        if (
+            intent is None
+            or intent.project_id != project_id
+            or intent.asset_id != binding.asset_id
+            or intent.revision != binding.visual_intent_revision
+        ):
+            return False
+        latest_intent = self._latest_visual_intent_for_role_in_session(
+            session, project_id, binding.asset_id, intent.intent.get("role")
+        )
+        if (
+            latest_intent is None
+            or latest_intent.id != intent.id
+            or latest_intent.revision != intent.revision
+        ):
+            return False
+        if approval is None:
+            try:
+                approval = self._approval_is_active_in_session(session, binding.approval_id)
+            except (InvalidTransitionError, NotFoundError):
+                return False
+        return (
+            approval.project_id == project_id
+            and binding.approval_id == approval.id
+            and binding.storyboard_entity_revision_id == approval.entity_revision_id
+            and binding.storyboard_revision == approval.subject_revision
+        )
+
     def list_current_reviewed_keyframes(self, project_id: str) -> list[dict[str, Any]]:
         with self._read() as session:
             self._project_row(session, project_id)
@@ -1843,6 +1922,7 @@ class SQLiteRepository:
                     "compatibilityNote": row.compatibility_note,
                 }
                 for row in latest.values()
+                if self._reviewed_binding_admission_eligible_in_session(session, project_id, row)
             ]
 
     def _approval_is_active_in_session(self, session: Session, decision_id: str) -> ApprovalDecisionRow:
@@ -1929,6 +2009,11 @@ class SQLiteRepository:
                 or intent.revision != visual_intent_revision
             ):
                 raise InvalidTransitionError("reviewed keyframe must bind an exact current-project visual intent")
+            latest_intent = self._latest_visual_intent_for_role_in_session(
+                session, project_id, asset_id, intent.intent.get("role")
+            )
+            if latest_intent is None or latest_intent.id != intent.id:
+                raise InvalidTransitionError("reviewed keyframe must bind the current visual intent revision")
             storyboard = self._load_stage_payload(session, project_id, StageName.STORYBOARD)
             shot = next((item for item in storyboard.shots if item.id == shot_id), None)
             if shot is None or shot.scene_id != scene_id:
@@ -2008,6 +2093,12 @@ class SQLiteRepository:
                 intent = session.get(VisualIntentRow, binding.visual_intent_id)
                 if intent is None or intent.asset_id != binding.asset_id or intent.revision != binding.visual_intent_revision:
                     raise InvalidTransitionError("reviewed keyframe is missing its exact visual intent")
+                if not self._reviewed_binding_admission_eligible_in_session(
+                    session, project_id, binding, approval=approval
+                ):
+                    raise InvalidTransitionError(
+                        "reviewed keyframe is no longer current for preview admission"
+                    )
                 asset = session.get(ManagedAssetRow, binding.asset_id)
                 if asset is None:
                     raise InvalidTransitionError("preview references unavailable managed media")
@@ -2069,34 +2160,8 @@ class SQLiteRepository:
                 or binding.visual_intent_revision != frame.get("visualIntentRevision")
             ):
                 return False
-            latest_binding = session.scalar(
-                select(ReviewedShotBindingRow)
-                .where(ReviewedShotBindingRow.project_id == project_id, ReviewedShotBindingRow.shot_id == binding.shot_id)
-                .order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1)
-            )
-            intent = session.get(VisualIntentRow, binding.visual_intent_id)
-            if intent is None:
-                return False
-            role = intent.intent.get("role")
-            latest_intent = next(
-                (
-                    candidate
-                    for candidate in session.scalars(
-                        select(VisualIntentRow)
-                        .where(
-                            VisualIntentRow.project_id == project_id,
-                            VisualIntentRow.asset_id == binding.asset_id,
-                        )
-                        .order_by(VisualIntentRow.revision.desc())
-                    )
-                    if candidate.intent.get("role") == role
-                ),
-                None,
-            )
-            return (
-                latest_binding is not None and latest_binding.id == binding.id
-                and latest_intent is not None and latest_intent.id == binding.visual_intent_id
-                and latest_intent.revision == binding.visual_intent_revision
+            return self._reviewed_binding_admission_eligible_in_session(
+                session, project_id, binding
             )
 
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:

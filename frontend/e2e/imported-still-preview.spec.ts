@@ -81,9 +81,12 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByLabel("审核人标签").fill("P0 reapproval reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     await expect(page.getByText("当前批准：P0 reapproval reviewer", { exact: true })).toBeVisible();
+    await expect(page.getByText("尚缺 3 个审核关键帧", { exact: false })).toBeVisible();
+    await cards.nth(1).getByRole("button", { name: "保留此候选" }).click();
     await expect(page.getByText(/已保存 r1/)).toBeVisible();
     await page.getByLabel("审核兼容性说明").fill("Reapproved board compatibility is explicit, not inherited.");
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeEnabled();
+    await page.getByTestId("select-reviewed-keyframe").click();
 
     const project = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`);
     const projectBody = await project.json() as { lifecycleRevision: number; brief: { title: string } };
