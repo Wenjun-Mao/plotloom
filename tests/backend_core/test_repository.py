@@ -676,7 +676,7 @@ def test_file_sqlite_uses_alembic_foreign_keys_and_wal(tmp_path: Path) -> None:
             assert connection.execute(text("PRAGMA journal_mode")).scalar_one().lower() == "wal"
             assert (
                 connection.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-                    == "0014_reviewed_visual_intent_bindings"
+                    == "0015_agent_operated_image_jobs"
             )
     finally:
         repository.close()

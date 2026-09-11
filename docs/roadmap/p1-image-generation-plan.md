@@ -1,7 +1,10 @@
 # P1 — Codex image jobs with a manual handoff
 
-Status: **Approved — revision 2**, 2026-09-11. The user approved this revision
-and authorized implementation with “Looks good, go.” Supersedes
+Status: **Implemented locally — revision 2**, 2026-09-11. The user approved
+this revision and authorized implementation with “Looks good, go.” The bounded
+candidate has a real original and reference-based built-in-imagegen refinement
+through the manual exchange; see the [verification receipt](../verification/2026-09-11-p1-codex-image-jobs.md).
+This is not a production release or external-provider qualification. Supersedes
 the unapproved external-endpoint-first revision 1.
 
 ## Outcome and stopping point
@@ -58,7 +61,7 @@ Governing records: [roadmap](story-to-playable-alpha.md),
 ### Exchange boundary
 
 - Initial scope: one explicitly configured same-host exchange root accessible to
-  Plotloom and the specialist, with separate immutable inputs and delivery inboxes.
+  Plotloom and the specialist, with database-frozen input projections and delivery inboxes.
   No hard-coded developer home path. Package all required reference bytes.
 - Resolve registered jobs only under that root. Refuse path traversal, symlink
   escapes, cross-project mismatches and arbitrary browser-supplied URLs/paths.
@@ -80,6 +83,9 @@ Governing records: [roadmap](story-to-playable-alpha.md),
 - Treat delivery metadata/files as untrusted. Verify identity, confined paths,
   exact declared file set, bytes/hashes, observed MIME/dimensions and bounded raster
   decoding before atomic publication of managed candidate records.
+- A copied package is readable by the local specialist, not magically immutable.
+  Refresh must rederive and recheck its complete request/instruction/reference
+  projection against the frozen database request before it accepts any delivery.
 - Refresh is idempotent across concurrency/restart. Same delivery identity with
   different content is a conflict, not overwrite. Partial/invalid deliveries remain
   diagnosable without partially published candidates. Ingestion retry never generates.

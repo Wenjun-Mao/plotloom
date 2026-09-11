@@ -88,6 +88,24 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
   with `project_managed_assets_present` before mutation. Do not attempt manual
   blob cleanup; media-aware erasure is a follow-up.
 
+### Manual Codex image jobs (P1)
+
+- P1 has no provider key or automatic bridge. Set one explicit
+  `PLOTLOOM_IMAGE_EXCHANGE_ROOT` on the same host as Plotloom and the assigned
+  Codex specialist. Do not use the source checkout, SQLite directory, artifact
+  root, or a broad home directory as this exchange root.
+- The UI prepares an approved single-shot job, then **Copy assignment** exposes
+  one database-frozen `package/` projection and a separate `delivery/` inbox. The
+  specialist reads `package/request.json`, writes only complete JPEG/PNG files
+  under `delivery/outputs/`, and publishes `delivery/completion.json` last.
+  It must report the actual built-in-imagegen prompt, hashes, tool/task evidence,
+  and limitations without including credentials.
+- **Refresh deliveries** revalidates the confined package against its frozen
+  database request, then validates the delivery server-side. It never generates,
+  approves, selects, resends, or follows a browser-supplied path.
+  Invalid/partial/tampered delivery remains diagnosable; a late result is kept
+  as inapplicable history. Explicit P0 selection remains required before preview.
+
 ## M1.5 generation contracts
 
 - A Story Graph run freezes topology before dispatch. For Scene Beats and

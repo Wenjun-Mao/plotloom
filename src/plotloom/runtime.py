@@ -253,6 +253,7 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
             max_import_bytes=settings.managed_media_max_import_bytes,
             max_import_pixels=settings.managed_media_max_import_pixels,
         ),
+        image_exchange_root=settings.image_exchange_root,
         static_dir=settings.static_dir,
         provider_defaults=provider_defaults,
         key_availability={

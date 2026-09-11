@@ -298,6 +298,49 @@ export interface VisualWorkbench {
   previews: StillPreview[];
 }
 
+export interface ImageJobCandidate {
+  id: string;
+  assetId: string;
+  jobId: string;
+  outputFilename: string;
+  outputHash: string;
+  role: "original" | "refinement";
+  asset: ManagedAsset | null;
+  createdAt: string;
+}
+
+export interface ImageJobDelivery {
+  id: string;
+  deliveryId: string | null;
+  state: "accepted" | "inapplicable" | "rejected";
+  diagnosticCode: string | null;
+  manifestHash: string | null;
+  createdAt: string;
+  candidates: ImageJobCandidate[];
+}
+
+export interface ImageJob {
+  id: string;
+  projectId: string;
+  productionUnitId: string;
+  parentJobId: string | null;
+  parentCandidateAssetId: string | null;
+  request: { kind: "original" | "refinement"; visualProposal: Record<string, unknown> };
+  requestHash: string;
+  state: "prepared" | "exported" | "delivered" | "cancelled";
+  current: boolean;
+  exportedAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  createdAt: string;
+  deliveries: ImageJobDelivery[];
+}
+
+export interface ImageJobsResponse {
+  configured: boolean;
+  jobs: ImageJob[];
+}
+
 export interface QuarantineItem {
   /** Work-unit identity, never an attempt or an artifact id. */
   id: string;

@@ -159,6 +159,7 @@ from .exceptions import (
     StagePrerequisiteError,
     SchemaResetRequiredError,
 )
+from .image_job_contracts import ImageJobError
 from .schema import SchemaMigrator, sqlite_database_path
 from .validation import STORYBOARD_GATE_SET_VERSION, validate_stage_payload
 
@@ -696,6 +697,88 @@ class StillPreviewRow(Base):
     selection_revision: Mapped[int] = mapped_column(Integer, nullable=False)
     manifest: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ProductionUnitRow(Base):
+    """A single-shot approved projection frozen for P1 image work."""
+
+    __tablename__ = "v2_production_units"
+    __table_args__ = (Index("ix_v2_production_units_project_id_created_at", "project_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    approval_id: Mapped[str] = mapped_column(ForeignKey("v2_approval_decisions.id", ondelete="RESTRICT"), nullable=False)
+    storyboard_entity_revision_id: Mapped[str] = mapped_column(ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False)
+    shot_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    scene_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    storyboard_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    snapshot_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ImageJobRow(Base):
+    """One immutable manual assignment and its current applicability state."""
+
+    __tablename__ = "v2_image_jobs"
+    __table_args__ = (Index("ix_v2_image_jobs_project_id_created_at", "project_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(67), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    production_unit_id: Mapped[str] = mapped_column(ForeignKey("v2_production_units.id", ondelete="RESTRICT"), nullable=False)
+    parent_job_id: Mapped[str | None] = mapped_column(ForeignKey("v2_image_jobs.id", ondelete="RESTRICT"), nullable=True)
+    parent_candidate_asset_id: Mapped[str | None] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=True)
+    request: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancellation_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ImageJobDeliveryRow(Base):
+    """Immutable reconciliation evidence, including rejected/late packages."""
+
+    __tablename__ = "v2_image_job_deliveries"
+    __table_args__ = (
+        UniqueConstraint("job_id", "delivery_id", name="uq_v2_image_job_delivery_identity"),
+        Index("ix_v2_image_job_deliveries_job_id_created_at", "job_id", "created_at"),
+        Index(
+            "uq_v2_image_job_final_delivery",
+            "job_id",
+            unique=True,
+            sqlite_where=text("delivery_id IS NOT NULL"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    job_id: Mapped[str] = mapped_column(ForeignKey("v2_image_jobs.id", ondelete="RESTRICT"), nullable=False)
+    delivery_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    manifest: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    manifest_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    diagnostic_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ImageJobCandidateRow(Base):
+    """Link a managed original to the exact manual image delivery that produced it."""
+
+    __tablename__ = "v2_image_job_candidates"
+    __table_args__ = (
+        UniqueConstraint("delivery_id", "asset_id", name="uq_v2_image_job_candidate_delivery_asset"),
+        Index("ix_v2_image_job_candidates_job_id_created_at", "job_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    job_id: Mapped[str] = mapped_column(ForeignKey("v2_image_jobs.id", ondelete="RESTRICT"), nullable=False)
+    delivery_id: Mapped[str] = mapped_column(ForeignKey("v2_image_job_deliveries.id", ondelete="RESTRICT"), nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    output_filename: Mapped[str] = mapped_column(String(180), nullable=False)
+    output_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    role: Mapped[str] = mapped_column(String(24), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
@@ -2003,6 +2086,18 @@ class SQLiteRepository:
             asset = session.get(ManagedAssetRow, asset_id)
             if asset is None or asset.project_id != project_id:
                 raise NotFoundError(f"managed asset not found: {asset_id}")
+            generated_candidate = session.scalar(
+                select(ImageJobCandidateRow)
+                .where(ImageJobCandidateRow.asset_id == asset_id)
+                .order_by(ImageJobCandidateRow.created_at.desc())
+                .limit(1)
+            )
+            if generated_candidate is not None:
+                generated_job = session.get(ImageJobRow, generated_candidate.job_id)
+                if generated_job is None or not self._image_job_is_current_in_session(session, generated_job):
+                    raise InvalidTransitionError(
+                        "image-job candidate is no longer applicable and cannot be selected"
+                    )
             intent = session.get(VisualIntentRow, visual_intent_id)
             if (
                 intent is None or intent.project_id != project_id or intent.asset_id != asset_id
@@ -2163,6 +2258,337 @@ class SQLiteRepository:
             return self._reviewed_binding_admission_eligible_in_session(
                 session, project_id, binding
             )
+
+    @staticmethod
+    def _image_job_id() -> str:
+        return f"ij_{new_id().replace('-', '')}"
+
+    @staticmethod
+    def _image_job_dict(row: ImageJobRow, *, current: bool) -> dict[str, Any]:
+        return {
+            "id": row.id, "projectId": row.project_id, "productionUnitId": row.production_unit_id,
+            "parentJobId": row.parent_job_id, "parentCandidateAssetId": row.parent_candidate_asset_id,
+            "request": row.request, "requestHash": row.request_hash, "state": row.state,
+            "current": current,
+            "exportedAt": _stored_utc(row.exported_at).isoformat() if row.exported_at else None,
+            "cancelledAt": _stored_utc(row.cancelled_at).isoformat() if row.cancelled_at else None,
+            "cancellationReason": row.cancellation_reason,
+            "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    @staticmethod
+    def _production_unit_dict(row: ProductionUnitRow) -> dict[str, Any]:
+        return {
+            "id": row.id, "projectId": row.project_id, "approvalId": row.approval_id,
+            "shotId": row.shot_id, "sceneId": row.scene_id,
+            "storyboardRevision": row.storyboard_revision, "snapshot": row.snapshot,
+            "snapshotHash": row.snapshot_hash, "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    def _image_job_is_current_in_session(self, session: Session, job: ImageJobRow) -> bool:
+        if job.state == "cancelled":
+            return False
+        project = session.get(ProjectRow, job.project_id)
+        if project is None or ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ACTIVE:
+            return False
+        unit = session.get(ProductionUnitRow, job.production_unit_id)
+        if unit is None or unit.project_id != job.project_id:
+            return False
+        try:
+            approval = self._approval_is_active_in_session(session, unit.approval_id)
+        except (InvalidTransitionError, NotFoundError):
+            return False
+        return (
+            approval.project_id == job.project_id
+            and approval.entity_revision_id == unit.storyboard_entity_revision_id
+            and approval.subject_revision == unit.storyboard_revision
+        )
+
+    def prepare_image_job(
+        self,
+        project_id: str,
+        *,
+        approval_id: str,
+        shot_id: str,
+        storyboard_revision: int,
+        parent_candidate_asset_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Freeze an approved single-shot production unit and manual request."""
+
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            approval = self._approval_is_active_in_session(session, approval_id)
+            if approval.project_id != project_id or approval.subject_revision != storyboard_revision:
+                raise InvalidTransitionError("image job approval does not match the requested storyboard revision")
+            storyboard = self._load_stage_payload(session, project_id, StageName.STORYBOARD)
+            head = self._stage_row(session, project_id, StageName.STORYBOARD)
+            if head.revision != storyboard_revision or head.entity_revision_id != approval.entity_revision_id:
+                raise RevisionConflictError("storyboard", storyboard_revision, head.revision)
+            shot = next((item for item in storyboard.shots if item.id == shot_id), None)
+            if shot is None:
+                raise InvalidTransitionError("image job must target one current storyboard shot")
+
+            references: list[dict[str, Any]] = []
+            parent_job_id: str | None = None
+            if parent_candidate_asset_id is not None:
+                candidate = session.scalar(
+                    select(ImageJobCandidateRow)
+                    .where(ImageJobCandidateRow.asset_id == parent_candidate_asset_id)
+                    .order_by(ImageJobCandidateRow.created_at.desc()).limit(1)
+                )
+                parent_job = session.get(ImageJobRow, candidate.job_id) if candidate else None
+                asset = session.get(ManagedAssetRow, parent_candidate_asset_id)
+                if (
+                    candidate is None or parent_job is None or asset is None or asset.project_id != project_id
+                    or not self._image_job_is_current_in_session(session, parent_job)
+                ):
+                    raise InvalidTransitionError("refinement must name a current Plotloom image-job candidate")
+                parent_job_id = parent_job.id
+                references.append({
+                    "assetId": asset.id, "role": "parent_output", "required": True,
+                    "originalHash": asset.original_hash, "mimeType": asset.mime_type,
+                    "byteSize": asset.byte_size, "width": asset.width, "height": asset.height,
+                })
+
+            shot_payload = shot.model_dump(mode="json", by_alias=True)
+            visual_proposal = {
+                "title": shot.title, "action": shot.action, "composition": shot.composition,
+                "visualIntent": shot.visual_intent, "cameraAngle": shot.camera_angle,
+                "cameraMovement": shot.camera_movement,
+            }
+            snapshot = {
+                "snapshotVersion": 1, "compilerVersion": "plotloom.codex-image-job.v1",
+                "projectId": project_id, "approvalId": approval.id,
+                "approvalGateSetVersion": approval.gate_set_version,
+                "storyboardEntityRevisionId": approval.entity_revision_id,
+                "storyboardRevision": storyboard_revision,
+                "canonicalInputRevisions": dict(approval.canonical_input_revisions),
+                "shot": shot_payload, "visualProposal": visual_proposal, "references": references,
+                "audioContext": shot_payload.get("audioPlan", {}),
+            }
+            snapshot_hash = stable_hash(snapshot)
+            now = utc_now()
+            unit = ProductionUnitRow(
+                id=new_id(), project_id=project_id, approval_id=approval.id,
+                storyboard_entity_revision_id=approval.entity_revision_id, shot_id=shot.id,
+                scene_id=shot.scene_id, storyboard_revision=storyboard_revision,
+                snapshot=snapshot, snapshot_hash=snapshot_hash, created_at=now,
+            )
+            session.add(unit)
+            session.flush()
+            job_id = self._image_job_id()
+            request = {
+                "schemaVersion": 1, "jobId": job_id, "productionUnitId": unit.id,
+                "productionSnapshotHash": snapshot_hash, "executionContract": "codex_specialist.v1",
+                "kind": "refinement" if parent_candidate_asset_id else "original",
+                "visualProposal": visual_proposal, "frozenSnapshot": snapshot,
+            }
+            job = ImageJobRow(
+                id=job_id, project_id=project_id, production_unit_id=unit.id,
+                parent_job_id=parent_job_id, parent_candidate_asset_id=parent_candidate_asset_id,
+                request=request, request_hash=stable_hash(request), state="prepared", exported_at=None,
+                cancelled_at=None, cancellation_reason=None, created_at=now,
+            )
+            session.add(job)
+            session.flush()
+            return {"job": self._image_job_dict(job, current=True), "productionUnit": self._production_unit_dict(unit)}
+
+    def image_job_package_sources(self, project_id: str, job_id: str) -> dict[str, Any]:
+        with self._read() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            job = session.get(ImageJobRow, job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError(f"image job not found: {job_id}")
+            if job.state == "cancelled" or not self._image_job_is_current_in_session(session, job):
+                raise InvalidTransitionError("image job is no longer current and cannot be copied")
+            sources: list[dict[str, Any]] = []
+            for reference in job.request["frozenSnapshot"].get("references", []):
+                if reference.get("role") != "parent_output":
+                    continue
+                asset = session.get(ManagedAssetRow, reference.get("assetId"))
+                if (
+                    asset is None or asset.project_id != project_id
+                    or asset.original_hash != reference.get("originalHash")
+                ):
+                    raise InvalidTransitionError("frozen image-job reference bytes are unavailable")
+                sources.append({
+                    "role": reference["role"], "contentHash": asset.original_hash,
+                    "mimeType": asset.mime_type, "originalUri": asset.original_uri,
+                })
+            return {"job": self._image_job_dict(job, current=True), "references": sources}
+
+    def mark_image_job_exported(self, project_id: str, job_id: str) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            job = session.get(ImageJobRow, job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError(f"image job not found: {job_id}")
+            if job.state == "cancelled" or not self._image_job_is_current_in_session(session, job):
+                raise InvalidTransitionError("image job is no longer current and cannot be copied")
+            if job.exported_at is None:
+                job.exported_at = utc_now()
+                job.state = "exported"
+                session.flush()
+            return self._image_job_dict(job, current=True)
+
+    def cancel_image_job(self, project_id: str, job_id: str, reason: str) -> dict[str, Any]:
+        reason = reason.strip()
+        if not reason or len(reason) > 2_000:
+            raise ValueError("image job cancellation reason must be between 1 and 2,000 characters")
+        with self._lifecycle_write() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            job = session.get(ImageJobRow, job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError(f"image job not found: {job_id}")
+            if job.state != "cancelled":
+                job.state = "cancelled"
+                job.cancelled_at = utc_now()
+                job.cancellation_reason = reason
+                session.flush()
+            return self._image_job_dict(job, current=False)
+
+    def image_job_delivery_context(self, project_id: str, job_id: str) -> dict[str, Any]:
+        with self._read() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            job = session.get(ImageJobRow, job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError(f"image job not found: {job_id}")
+            return self._image_job_dict(job, current=self._image_job_is_current_in_session(session, job))
+
+    def record_image_job_delivery_rejection(self, project_id: str, job_id: str, code: str) -> None:
+        with self._lifecycle_write() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            job = session.get(ImageJobRow, job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError(f"image job not found: {job_id}")
+            session.add(ImageJobDeliveryRow(
+                id=new_id(), job_id=job_id, delivery_id=None, manifest=None, manifest_hash=None,
+                state="rejected", diagnostic_code=code, created_at=utc_now(),
+            ))
+
+    @staticmethod
+    def _image_candidate_dict(session: Session, row: ImageJobCandidateRow) -> dict[str, Any]:
+        asset = session.get(ManagedAssetRow, row.asset_id)
+        return {
+            "id": row.id, "assetId": row.asset_id, "jobId": row.job_id,
+            "outputFilename": row.output_filename, "outputHash": row.output_hash, "role": row.role,
+            "asset": SQLiteRepository._managed_asset_dict(asset) if asset else None,
+            "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    def record_image_job_delivery(
+        self, project_id: str, job_id: str, *, delivery_id: str, manifest: dict[str, Any],
+        manifest_hash: str, outputs: Sequence[dict[str, Any]],
+        publish: Callable[[dict[str, Any]], tuple[str, str]],
+    ) -> dict[str, Any]:
+        """Atomically admit one verified delivery, publishing only after admission.
+
+        The artifact callback runs under the lifecycle writer only after the
+        durable final-delivery, project-lifecycle, and currentness checks pass.
+        It keeps a duplicate, cancelled, revoked, or archived Refresh from
+        creating unowned content-addressed blobs before repository admission.
+        """
+
+        with self._lifecycle_write() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            job = session.get(ImageJobRow, job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError(f"image job not found: {job_id}")
+            existing = session.scalar(
+                select(ImageJobDeliveryRow)
+                .where(ImageJobDeliveryRow.job_id == job_id, ImageJobDeliveryRow.delivery_id == delivery_id)
+                .limit(1)
+            )
+            if existing is not None:
+                if existing.manifest_hash != manifest_hash:
+                    raise ImageJobError("delivery_conflict", "delivery identity was already recorded with different content")
+                candidates = session.scalars(
+                    select(ImageJobCandidateRow).where(ImageJobCandidateRow.delivery_id == existing.id)
+                    .order_by(ImageJobCandidateRow.created_at, ImageJobCandidateRow.id)
+                ).all()
+                return {"deliveryId": delivery_id, "state": existing.state, "diagnosticCode": existing.diagnostic_code,
+                        "idempotent": True, "candidates": [self._image_candidate_dict(session, item) for item in candidates]}
+            finalized = session.scalar(
+                select(ImageJobDeliveryRow)
+                .where(ImageJobDeliveryRow.job_id == job_id, ImageJobDeliveryRow.delivery_id.is_not(None))
+                .limit(1)
+            )
+            if finalized is not None:
+                raise ImageJobError("delivery_finalized", "image job already has a final delivery")
+            current = job.state in {"exported", "delivered"} and self._image_job_is_current_in_session(session, job)
+            delivery = ImageJobDeliveryRow(
+                id=new_id(), job_id=job_id, delivery_id=delivery_id, manifest=manifest,
+                manifest_hash=manifest_hash, state="accepted" if current else "inapplicable",
+                diagnostic_code=None if current else "late_or_stale_delivery", created_at=utc_now(),
+            )
+            session.add(delivery)
+            session.flush()
+            if not current:
+                return {"deliveryId": delivery_id, "state": delivery.state, "diagnosticCode": delivery.diagnostic_code,
+                        "idempotent": False, "candidates": []}
+            candidates: list[ImageJobCandidateRow] = []
+            for output in outputs:
+                original_uri, display_uri = publish(output)
+                asset = ManagedAssetRow(
+                    id=new_id(), project_id=project_id, original_uri=original_uri,
+                    original_hash=output["originalHash"], display_uri=display_uri,
+                    display_hash=output["displayHash"], mime_type=output["mimeType"], byte_size=output["byteSize"],
+                    width=output["width"], height=output["height"], created_at=utc_now(),
+                )
+                session.add(asset)
+                session.flush()
+                session.add(ManagedAssetProvenanceRow(
+                    id=new_id(), project_id=project_id, asset_id=asset.id,
+                    declaration={
+                        "origin": "codex_image_job", "rights": "unknown", "jobId": job.id,
+                        "rightsNote": None, "declaredAdditions": [],
+                        "deliveryId": delivery_id, "outputFilename": output["filename"],
+                        "actualPrompt": manifest["actualPrompt"], "toolEvidence": manifest["toolEvidence"],
+                        "limitations": manifest.get("limitations", []),
+                    }, created_at=utc_now(),
+                ))
+                candidate = ImageJobCandidateRow(
+                    id=new_id(), job_id=job.id, delivery_id=delivery.id, asset_id=asset.id,
+                    output_filename=output["filename"], output_hash=output["originalHash"],
+                    role=output["role"], created_at=utc_now(),
+                )
+                session.add(candidate)
+                candidates.append(candidate)
+            job.state = "delivered"
+            session.flush()
+            return {"deliveryId": delivery_id, "state": delivery.state, "diagnosticCode": None,
+                    "idempotent": False, "candidates": [self._image_candidate_dict(session, item) for item in candidates]}
+
+    def list_image_jobs(self, project_id: str) -> list[dict[str, Any]]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            jobs = session.scalars(
+                select(ImageJobRow).where(ImageJobRow.project_id == project_id)
+                .order_by(ImageJobRow.created_at.desc(), ImageJobRow.id.desc())
+            ).all()
+            result: list[dict[str, Any]] = []
+            for job in jobs:
+                deliveries = session.scalars(
+                    select(ImageJobDeliveryRow).where(ImageJobDeliveryRow.job_id == job.id)
+                    .order_by(ImageJobDeliveryRow.created_at.desc(), ImageJobDeliveryRow.id.desc())
+                ).all()
+                result.append({
+                    **self._image_job_dict(job, current=self._image_job_is_current_in_session(session, job)),
+                    "deliveries": [
+                        {
+                            "id": delivery.id, "deliveryId": delivery.delivery_id, "state": delivery.state,
+                            "diagnosticCode": delivery.diagnostic_code, "manifestHash": delivery.manifest_hash,
+                            "createdAt": _stored_utc(delivery.created_at).isoformat(),
+                            "candidates": [self._image_candidate_dict(session, candidate) for candidate in session.scalars(
+                                select(ImageJobCandidateRow).where(ImageJobCandidateRow.delivery_id == delivery.id)
+                                .order_by(ImageJobCandidateRow.created_at, ImageJobCandidateRow.id)
+                            ).all()],
+                        }
+                        for delivery in deliveries
+                    ],
+                })
+            return result
 
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
         with self._lifecycle_write() as session:

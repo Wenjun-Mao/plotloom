@@ -27,6 +27,8 @@ import type {
   StoryboardReview,
   ApprovalClosure,
   ManagedAsset,
+  ImageJob,
+  ImageJobsResponse,
   StillPreview,
   VisualWorkbench,
   VisualIntent,
@@ -166,6 +168,28 @@ export class PlotloomApiClient {
 
   getVisualWorkbench(projectId: string, signal?: AbortSignal): Promise<VisualWorkbench> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/visual-workbench`, { signal });
+  }
+
+  getImageJobs(projectId: string, signal?: AbortSignal): Promise<ImageJobsResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs`, { signal });
+  }
+
+  prepareImageJob(projectId: string, body: {
+    approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string;
+  }): Promise<{ job: ImageJob }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs`, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  copyImageJob(projectId: string, jobId: string): Promise<{ job: ImageJob; assignment: string; packagePath: string; deliveryPath: string }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs/${encodeURIComponent(jobId)}/copy`, { method: "POST" });
+  }
+
+  refreshImageJob(projectId: string, jobId: string): Promise<{ state: string; candidates: Array<{ assetId: string }> }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs/${encodeURIComponent(jobId)}/refresh`, { method: "POST" });
+  }
+
+  cancelImageJob(projectId: string, jobId: string, reason: string): Promise<ImageJob> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST", body: JSON.stringify({ reason }) });
   }
 
   importManagedAsset(projectId: string, file: File, declaration: {

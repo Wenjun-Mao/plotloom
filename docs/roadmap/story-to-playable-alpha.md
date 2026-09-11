@@ -10,7 +10,10 @@ later technical details remain subject to their own planning and acceptance.
 with manual job handoff as the first image backend. See
 [ADR 0028](../adr/0028-agent-operated-image-jobs.md) and the
 [approved P1 revision 2 plan](p1-image-generation-plan.md). Automatic dispatch and external
-image-provider qualification are not P1 prerequisites. This is not implemented.
+image-provider qualification are not P1 prerequisites. P1 is now implemented
+as a locally verified, manually operated Codex-job candidate; its scoped
+receipt is [2026-09-11 P1 Codex image jobs](../verification/2026-09-11-p1-codex-image-jobs.md).
+This does not qualify a general provider backend, P2, or an Alpha release.
 
 Source baseline: `9afbefd2f82a620d79b82cd6607571057f23a6c4`, locally clean on
 `codex/m1b-alpha` before this documentation change. Repository:

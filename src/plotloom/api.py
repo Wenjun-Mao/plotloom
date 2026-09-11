@@ -74,6 +74,8 @@ from .managed_media import (
     inspect_import_image,
     publish_import,
 )
+from .image_job_contracts import ImageJobCreateRequest, ImageJobError
+from .image_job_exchange import ImageJobExchange, PackageReference
 from .provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,
     PROFILE_ID_PATTERN,
@@ -453,6 +455,10 @@ class MediaTaskRequest(CamelModel):
         return self
 
 
+class ImageJobCancellationRequest(CamelModel):
+    reason: str = Field(min_length=1, max_length=2_000)
+
+
 class ProviderSettingsUpdate(CamelModel):
     expected_profile_id: str = Field(pattern=PROFILE_ID_PATTERN)
     expected_revision: int = Field(ge=0)
@@ -609,6 +615,7 @@ def create_app(
     media_prompt_compiler: MediaPromptCompiler | None = None,
     artifact_store: ArtifactStore | None = None,
     managed_media_limits: ManagedMediaLimits | None = None,
+    image_exchange_root: Path | None = None,
     static_dir: Path | None = None,
     provider_defaults: ProviderSettings | None = None,
     key_availability: Mapping[str, bool] | None = None,
@@ -633,6 +640,9 @@ def create_app(
     # API tests deterministic without silently opening a filesystem root.
     app.state.artifact_store = artifact_store or MemoryArtifactStore()
     app.state.managed_media_limits = managed_media_limits or ManagedMediaLimits()
+    app.state.image_job_exchange = ImageJobExchange(
+        image_exchange_root, limits=app.state.managed_media_limits
+    )
     # Observations are intentionally application-lifetime state: no secrets,
     # no persistence, and no implication that a profile is qualified.
     readiness_observations: dict[str, TextBackendReadiness] = {}
@@ -1013,6 +1023,14 @@ def create_app(
     async def managed_media_handler(_request: Request, error: ManagedMediaError) -> JSONResponse:
         return JSONResponse(status_code=422, content={"code": error.code, "message": str(error)})
 
+    @app.exception_handler(ImageJobError)
+    async def image_job_handler(_request: Request, error: ImageJobError) -> JSONResponse:
+        status_code = 409 if error.code in {
+            "image_exchange_not_configured", "image_exchange_invalid", "package_conflict",
+            "delivery_conflict", "delivery_finalized", "request_integrity",
+        } else 422
+        return JSONResponse(status_code=status_code, content={"code": error.code, "message": str(error)})
+
     @app.exception_handler(LifecycleContentionError)
     async def lifecycle_contention_handler(
         _request: Request, error: LifecycleContentionError
@@ -1301,6 +1319,128 @@ def create_app(
             "reviewedKeyframes": repo.list_current_reviewed_keyframes(project_id),
             "previews": [preview_view(project_id, preview) for preview in repo.list_still_previews(project_id)],
         }
+
+    @app.get("/api/v2/projects/{project_id}/image-jobs")
+    def get_image_jobs(project_id: str) -> dict[str, Any]:
+        return {
+            "configured": app.state.image_job_exchange.configured,
+            "jobs": repo.list_image_jobs(project_id),
+        }
+
+    @app.post("/api/v2/projects/{project_id}/image-jobs", status_code=status.HTTP_201_CREATED)
+    def prepare_image_job(project_id: str, body: ImageJobCreateRequest) -> dict[str, Any]:
+        # A job is useful only with its explicitly configured same-host
+        # transport. This check happens before durable admission, so a missing
+        # operator setting never creates a misleading copyable job.
+        app.state.image_job_exchange.validate_configured()
+        return repo.prepare_image_job(
+            project_id,
+            approval_id=body.approval_id,
+            shot_id=body.shot_id,
+            storyboard_revision=body.storyboard_revision,
+            parent_candidate_asset_id=body.parent_candidate_asset_id,
+        )
+
+    @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/copy")
+    def copy_image_job(project_id: str, job_id: str) -> dict[str, Any]:
+        source = repo.image_job_package_sources(project_id, job_id)
+        references: list[PackageReference] = []
+        for index, reference in enumerate(source["references"]):
+            try:
+                content = app.state.artifact_store.get(reference["originalUri"])
+            except (FileNotFoundError, KeyError, OSError, ValueError) as error:
+                raise InvalidTransitionError("frozen image-job reference bytes are unavailable") from error
+            if sha256(content).hexdigest() != reference["contentHash"]:
+                raise InvalidTransitionError("frozen image-job reference bytes are unavailable")
+            suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
+            references.append(PackageReference(
+                role=reference["role"],
+                filename=f"reference-{index + 1}-{reference['contentHash'][:16]}{suffix}",
+                content_hash=reference["contentHash"], content=content,
+            ))
+        package = app.state.image_job_exchange.write_package(
+            job_id=job_id, request=source["job"]["request"],
+            request_hash=source["job"]["requestHash"], references=references,
+        )
+        job = repo.mark_image_job_exported(project_id, job_id)
+        return {
+            "job": job,
+            "assignment": (
+                f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json; "
+                f"use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}."
+            ),
+            "packagePath": package["packagePath"],
+            "deliveryPath": package["deliveryPath"],
+        }
+
+    @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/refresh")
+    def refresh_image_job(project_id: str, job_id: str) -> dict[str, Any]:
+        context = repo.image_job_delivery_context(project_id, job_id)
+        try:
+            # Copy is a same-user filesystem handoff, not a security boundary.
+            # Rebuild the exact package projection from the frozen database
+            # request before treating a delivery as attributable to this job.
+            # This closes the interval between Copy and Refresh without giving
+            # the browser or specialist authority over the canonical request.
+            references: list[tuple[str, str, str]] = []
+            frozen_references = context["request"]["frozenSnapshot"].get("references", [])
+            for index, reference in enumerate(
+                item for item in frozen_references if item.get("role") == "parent_output"
+            ):
+                suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
+                references.append((
+                    reference["role"],
+                    f"reference-{index + 1}-{reference['originalHash'][:16]}{suffix}",
+                    reference["originalHash"],
+                ))
+            app.state.image_job_exchange.verify_package(
+                job_id=job_id,
+                request=context["request"],
+                request_hash=context["requestHash"],
+                references=references,
+            )
+            delivery = app.state.image_job_exchange.read_delivery(
+                job_id=job_id, request_hash=context["requestHash"]
+            )
+        except ImageJobError as error:
+            # A manifest/path failure and a malformed or over-limit raster are
+            # all untrusted delivery attempts worth preserving for the creator.
+            # Exchange configuration/identifier failures happen before any
+            # delivery can be read, so they are operator diagnostics instead.
+            if error.code not in {
+                "image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id",
+            }:
+                repo.record_image_job_delivery_rejection(project_id, job_id, error.code)
+            raise
+        outputs: list[dict[str, Any]] = []
+        for output in delivery.outputs:
+            outputs.append({
+                "filename": output.filename, "role": output.role,
+                "originalHash": output.observed.content_hash,
+                "displayHash": output.observed.display_hash,
+                "mimeType": output.observed.mime_type, "byteSize": output.observed.byte_size,
+                "width": output.observed.width, "height": output.observed.height,
+                "content": output.content, "observed": output.observed,
+            })
+
+        def publish_under_admission(output: dict[str, Any]) -> tuple[str, str]:
+            try:
+                return publish_import(app.state.artifact_store, output["content"], output["observed"])
+            except (ManagedMediaError, OSError, KeyError, ValueError) as error:
+                raise ImageJobError("delivery_storage_failed", "validated delivery could not be stored") from error
+
+        return repo.record_image_job_delivery(
+            project_id, job_id, delivery_id=delivery.manifest.delivery_id,
+            manifest=delivery.manifest.model_dump(mode="json", by_alias=True),
+            manifest_hash=delivery.manifest_hash, outputs=outputs,
+            publish=publish_under_admission,
+        )
+
+    @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/cancel")
+    def cancel_image_job(
+        project_id: str, job_id: str, body: ImageJobCancellationRequest
+    ) -> dict[str, Any]:
+        return repo.cancel_image_job(project_id, job_id, body.reason)
 
     @app.patch("/api/v2/projects/{project_id}/stages/{stage}", response_model=StageHead)
     def patch_stage(project_id: str, stage: StageName, body: StagePatchRequest) -> StageHead:

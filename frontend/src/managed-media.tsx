@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ApprovalDecision, ManagedAsset, Shot, StillPreview, Storyboard, StoryboardReview, VisualIntent, VisualWorkbench } from "./types";
+import type { ApprovalDecision, ImageJob, ManagedAsset, Shot, StillPreview, Storyboard, StoryboardReview, VisualIntent, VisualWorkbench } from "./types";
 import { plotloomApi } from "./api";
 import { Badge, Button, Field, Panel } from "./components";
 import { useVisualIntentDraft, type IntentDraft } from "./visual-intent-drafts";
@@ -29,6 +29,9 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   onSelectShot?: (id: string) => void; onReview?: () => void;
 }) {
   const [workbench, setWorkbench] = useState<VisualWorkbench>(emptyWorkbench);
+  const [imageJobs, setImageJobs] = useState<ImageJob[]>([]);
+  const [imageExchangeConfigured, setImageExchangeConfigured] = useState(false);
+  const [copiedAssignment, setCopiedAssignment] = useState("");
   const [candidates, setCandidates] = useState<string[]>([]);
   const [keptAssetId, setKeptAssetId] = useState("");
   const [origin, setOrigin] = useState("Local creator import");
@@ -47,9 +50,14 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   const refresh = useCallback(async (signal?: AbortSignal) => {
     if (!projectId) return;
     const sequence = ++requestSequence.current;
-    const next = await plotloomApi.getVisualWorkbench(projectId, signal);
+    const [next, jobs] = await Promise.all([
+      plotloomApi.getVisualWorkbench(projectId, signal),
+      plotloomApi.getImageJobs(projectId, signal),
+    ]);
     if (signal?.aborted || sequence !== requestSequence.current) return;
     setWorkbench(next);
+    setImageJobs(jobs.jobs);
+    setImageExchangeConfigured(jobs.configured);
     const saved = window.localStorage.getItem(previewKey(projectId));
     const preferred = next.previews.find((item) => item.id === saved) ?? next.previews[0];
     setPreviewId(preferred?.id ?? "");
@@ -128,7 +136,15 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     if (!compatibility.trim()) { setError("请记录此关键帧与已批准镜头的兼容性说明。"); return; }
     setBusy(true); setError("");
     try {
-      await plotloomApi.selectReviewedKeyframe(projectId, { assetId: keptAssetId, shotId: selectedShot.id, sceneId: selectedShot.sceneId, expectedSelectionRevision: workbench.selectionRevision, storyboardRevision, approvalId: currentApproval.id, compatibilityNote: compatibility.trim(), visualIntentId: activeIntent.id, visualIntentRevision: activeIntent.revision });
+      const selected = await plotloomApi.selectReviewedKeyframe(projectId, { assetId: keptAssetId, shotId: selectedShot.id, sceneId: selectedShot.sceneId, expectedSelectionRevision: workbench.selectionRevision, storyboardRevision, approvalId: currentApproval.id, compatibilityNote: compatibility.trim(), visualIntentId: activeIntent.id, visualIntentRevision: activeIntent.revision });
+      // A shot change can supersede the read refresh that follows a successful
+      // selection. The mutation response is the authoritative revision, so
+      // advance the local concurrency token before enabling the next shot.
+      // The full refresh below still owns bindings, intents, and preview state.
+      setWorkbench((current) => ({
+        ...current,
+        selectionRevision: Math.max(current.selectionRevision, selected.selectionRevision),
+      }));
       await refresh();
     } catch (selectionError) { setError(selectionError instanceof Error ? selectionError.message : "选择失败"); }
     finally { setBusy(false); }
@@ -143,10 +159,45 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     } catch (previewError) { setError(previewError instanceof Error ? previewError.message : "预览创建失败"); }
     finally { setBusy(false); }
   };
+  const prepareImageJob = async (parentCandidateAssetId?: string) => {
+    if (!projectId || !selectedShot || !currentApproval || !storyboardRevision) return;
+    setBusy(true); setError(""); setCopiedAssignment("");
+    try {
+      await plotloomApi.prepareImageJob(projectId, {
+        approvalId: currentApproval.id, shotId: selectedShot.id, storyboardRevision, parentCandidateAssetId,
+      });
+      await refresh();
+    } catch (jobError) { setError(jobError instanceof Error ? jobError.message : "无法准备 image job"); }
+    finally { setBusy(false); }
+  };
+  const copyImageJob = async (jobId: string) => {
+    if (!projectId) return;
+    setBusy(true); setError("");
+    try {
+      const copied = await plotloomApi.copyImageJob(projectId, jobId);
+      setCopiedAssignment(copied.assignment);
+      await refresh();
+    } catch (jobError) { setError(jobError instanceof Error ? jobError.message : "无法复制 specialist assignment"); }
+    finally { setBusy(false); }
+  };
+  const refreshImageJob = async (jobId: string) => {
+    if (!projectId) return;
+    setBusy(true); setError("");
+    try { await plotloomApi.refreshImageJob(projectId, jobId); await refresh(); }
+    catch (jobError) { setError(jobError instanceof Error ? jobError.message : "无法刷新 specialist delivery"); }
+    finally { setBusy(false); }
+  };
+  const cancelImageJob = async (jobId: string) => {
+    if (!projectId) return;
+    setBusy(true); setError("");
+    try { await plotloomApi.cancelImageJob(projectId, jobId, "creator cancelled manual image job"); await refresh(); }
+    catch (jobError) { setError(jobError instanceof Error ? jobError.message : "无法取消 image job"); }
+    finally { setBusy(false); }
+  };
 
   return <Panel className="managed-media-workbench" data-testid="managed-media-workbench">
     <div className="section-title"><span>Imported stills · P0</span><strong>非生成式审核关键帧</strong></div>
-    <p className="muted">原始字节、来源声明、可审核意图和精确批准绑定都会保留；此处不会创建生成任务或视频。</p>
+    <p className="muted">原始字节、来源声明、可审核意图和精确批准绑定都会保留。P0 导入不生成媒体；P1 image jobs 通过受限的手动 Codex 交接单独运行。</p>
     <div className="button-row">
       <Field label="当前媒体镜头"><select value={selectedShot?.id ?? ""} onChange={(event) => onSelectShot?.(event.target.value)} disabled={!storyboard.shots.length}>
         {!storyboard.shots.length && <option value="">尚无镜头</option>}
@@ -156,6 +207,34 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     </div>
     {selectedShot && <small>当前镜头：{selectedShot.action} · {selectedShot.durationUnits}ms</small>}
     {error && <div className="notice warning" role="alert">{error}</div>}
+    <section className="image-job-panel" data-testid="image-job-panel">
+      <div className="section-title"><span>Codex image jobs · P1</span><strong>Prepare → Copy → Generate → Refresh → Select</strong></div>
+      {!imageExchangeConfigured && <div className="notice warning">尚未配置同机 exchange root。设置 <code>PLOTLOOM_IMAGE_EXCHANGE_ROOT</code> 后重启服务；不会回退到外部 API。</div>}
+      <p className="muted">仅当前 storyboard Approval 可以冻结单镜头请求。Copy 不代表执行或批准；Refresh 只验证 specialist 已完成的受限 delivery。</p>
+      <div className="button-row">
+        <Button data-testid="prepare-image-job" variant="primary" disabled={readOnly || busy || !imageExchangeConfigured || !selectedShot || !currentApproval || !storyboardRevision} onClick={() => void prepareImageJob()}>准备原始 image job</Button>
+      </div>
+      {copiedAssignment && <Field label="复制给 Codex image specialist"><textarea data-testid="image-job-assignment" readOnly rows={3} value={copiedAssignment} /></Field>}
+      <div className="image-job-history">
+        {imageJobs.map((job) => <article key={job.id} className="image-job-card" data-testid={`image-job-${job.id}`}>
+          <div><strong>{job.request.kind === "refinement" ? "参考细化" : "原始图"} · {job.id.slice(0, 15)}</strong> <Badge tone={job.current ? "ok" : "warning"}>{job.current ? job.state.toUpperCase() : "INAPPLICABLE"}</Badge></div>
+          <small>冻结请求 {job.requestHash.slice(0, 12)} · {job.deliveries.length ? `${job.deliveries.length} delivery receipt` : "等待 delivery"}</small>
+          <div className="button-row">
+            <Button data-testid={`copy-image-job-${job.id}`} variant="quiet" disabled={readOnly || busy || !job.current || job.state === "cancelled"} onClick={() => void copyImageJob(job.id)}>Copy assignment</Button>
+            <Button data-testid={`refresh-image-job-${job.id}`} variant="quiet" disabled={readOnly || busy} onClick={() => void refreshImageJob(job.id)}>Refresh delivery</Button>
+            <Button variant="danger" disabled={readOnly || busy || job.state === "cancelled"} onClick={() => void cancelImageJob(job.id)}>取消</Button>
+          </div>
+          {job.deliveries.map((delivery) => <div className="image-job-delivery" key={delivery.id}>
+            <small>{delivery.deliveryId ?? "rejected before identity"} · {delivery.state}{delivery.diagnosticCode ? ` · ${delivery.diagnosticCode}` : ""}</small>
+            {delivery.candidates.map((candidate) => <div className="button-row" key={candidate.id}>
+              <small>候选 {candidate.assetId.slice(0, 8)} · {candidate.role}</small>
+              <Button variant="quiet" disabled={readOnly || busy || !job.current || !selectedShot || !currentApproval} onClick={() => void prepareImageJob(candidate.assetId)}>以此候选准备参考细化</Button>
+            </div>)}
+          </div>)}
+        </article>)}
+        {!imageJobs.length && <small>尚无 P1 job。准备后可复制 assignment 给内置 imagegen specialist。</small>}
+      </div>
+    </section>
     <div className="field-grid two compact">
       <Field label="来源声明"><input value={origin} disabled={readOnly || busy} onChange={(event) => setOrigin(event.target.value)} /></Field>
       <Field label="已知新增内容（每行一项）"><input value={declaredAdditions} disabled={readOnly || busy} onChange={(event) => setDeclaredAdditions(event.target.value)} /></Field>

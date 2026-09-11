@@ -99,6 +99,10 @@ class PlotloomSettings(BaseModel):
     database_url: str
     artifact_root: Path
     static_dir: Path
+    # P1 is intentionally unavailable until an operator names the one
+    # same-host handoff location. It is a transport setting, not provider
+    # configuration and never contains a credential.
+    image_exchange_root: Path | None = None
     host: str = "127.0.0.1"
     port: int = Field(default=8775, ge=1, le=65535)
     port_fallback_count: int = Field(default=19, ge=0, le=100)
@@ -185,6 +189,10 @@ class PlotloomSettings(BaseModel):
         ).expanduser()
         if not static_dir.is_absolute():
             static_dir = (root / static_dir).resolve()
+        image_exchange_value = (os.environ.get("PLOTLOOM_IMAGE_EXCHANGE_ROOT") or "").strip()
+        image_exchange_root = Path(image_exchange_value).expanduser() if image_exchange_value else None
+        if image_exchange_root is not None and not image_exchange_root.is_absolute():
+            image_exchange_root = (root / image_exchange_root).resolve()
 
         hosting_port = os.environ.get("PORT")
         configured_port = hosting_port or os.environ.get("PLOTLOOM_PORT", "8775")
@@ -195,6 +203,7 @@ class PlotloomSettings(BaseModel):
             database_url=database_url,
             artifact_root=artifact_root.resolve(),
             static_dir=static_dir.resolve(),
+            image_exchange_root=image_exchange_root.resolve() if image_exchange_root is not None else None,
             host=os.environ.get("PLOTLOOM_HOST", os.environ.get("HOST", "127.0.0.1")),
             port=configured_port,
             port_fallback_count=0 if hosting_port is not None else 19,

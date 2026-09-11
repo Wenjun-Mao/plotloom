@@ -256,6 +256,12 @@ input[readonly] { color: var(--dim); }
 .preview-history { display: grid; gap: 6px; }
 .preview-history > button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 7px 9px; color: var(--muted); text-align: left; border: 1px solid var(--line); background: var(--panel-3); font: 10px var(--mono); }
 .preview-history > button.selected { border-color: var(--accent); color: var(--text); }
+.image-job-panel { display: grid; gap: 8px; padding: 10px; border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line)); background: var(--panel-3); }
+.image-job-panel > .muted { margin: 0; }
+.image-job-history { display: grid; gap: 7px; }
+.image-job-card { display: grid; gap: 5px; padding: 8px; border: 1px solid var(--line); background: var(--panel-2); }
+.image-job-card > div:first-child { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.image-job-delivery { display: grid; gap: 4px; padding: 6px; border-left: 2px solid var(--line); color: var(--muted); }
 .still-animatic { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--accent); background: #11161c; }
 .still-animatic > div:first-child { display: flex; align-items: center; gap: 8px; font-size: 11px; }
 .still-animatic > img { width: min(100%, 560px); max-height: 290px; object-fit: contain; justify-self: center; background: #080b0e; }

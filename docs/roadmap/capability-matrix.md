@@ -12,8 +12,8 @@
 
 **Next product direction (amended 2026-09-11):** [Story to playable Alpha](story-to-playable-alpha.md)
 records the agreed cinematic-realism, proposal/refinement, imported-reference,
-native-audio and in-app pause-and-choose direction. Its P0–P4 milestones are
-planned, not completed; C02/C03/C05/C06/C08/C09 maturity is unchanged. ADR 0026
+native-audio and in-app pause-and-choose direction. P0 is implemented and P1 is
+implemented as a bounded manual Codex-image-job candidate; P2–P4 remain planned. ADR 0026
 now authorizes the non-generative imported/still-preview boundary as a design;
 the [P0 implementation plan](p0-imported-still-preview-plan.md) revision 2 is
 Approved and implemented as a locally verified correction candidate.
@@ -30,9 +30,20 @@ now covers import/compare/intent/select/play/seek/reload/restart/replacement,
 reapproval blocking and media-bearing delete refusal. This remains a
 non-generative local preview only; provider-production hard stops are unchanged.
 
+**P1 checkpoint (2026-09-11):** a narrowly scoped, same-host manual exchange
+now binds an approved single-shot `ProductionUnit`/frozen snapshot to an opaque
+Codex image job, confined package/reference files, and an untrusted versioned
+delivery manifest. Real built-in image generation produced one original and one
+reference-based refinement; FastAPI/file-SQLite browser selection, still-preview
+replacement, and restart persistence were observed. Candidate publication is
+hash-validated, idempotent and explicit-review-only; cancellation, stale
+authority, cross-project identity and symlink/path escapes remain blocked. This
+does not revive legacy `MediaTask` provider dispatch, expose credentials, or
+qualify external image/video providers. See [the P1 receipt](../verification/2026-09-11-p1-codex-image-jobs.md).
+
 | 观察面 | 当前判断 | 它真正说明什么 |
 |---|---:|---|
-| 规范领域与“输入 → 分镜”后端核心 | **约 97%** | 稳定 ID、四阶段 V2 合同、确定性 DAG 骨架、结构化对白/声音/实体状态、确定性时间线、版本化 Gate/Approval、内容绑定、命名 profile、显式有限纠错、领域分片、精确 work-unit repair、封存聚合和原子安装均已实现。M1 剩余出口主要是真实创作质量验收；ProductionSnapshot/ProductionUnit 属于 M2。 |
+| 规范领域与“输入 → 分镜”后端核心 | **约 97%** | 稳定 ID、四阶段 V2 合同、确定性 DAG 骨架、结构化对白/声音/实体状态、确定性时间线、版本化 Gate/Approval、内容绑定、命名 profile、显式有限纠错、领域分片、精确 work-unit repair、封存聚合和原子安装均已实现。M1 剩余出口主要是真实创作质量验收；P1 已有单镜头受控 `ProductionUnit`/Snapshot，广义多媒体生产层仍属 M2。 |
 | 可供创作者连续使用的本地 Alpha | **约 92%（M1-B1 本地完成）** | 四阶段的当前 V2 字段已有类型化编辑、稳定 ID 增删重排、显式关系迁移、字段级 issue 定位、项目目录/草稿/URL/生命周期、逐 unit 进度、冻结 Profile Key gate、精确修复和 Gate/Approval；完整本地 checkpoint、真实 FastAPI 旅程和一条可编辑、刷新后持久的真实 llama 分镜已通过。显式 adapter/V3 snapshot 与两平面 readiness/admission 已实现；M1-C 当前出口是受支持 backend 的独立 9-run/3-review 验收与新远端 CI。 |
 | 可独立发布的新仓库产品 | **约 65–70%** | Plotloom 已进入全新仓库，独立依赖、wheel、生产 UI、边界门和远端 CI 已建立；本地 E2E 竞态已修复，仍缺新远端收据、干净机器升级/恢复与图像/视频真实供应商 smoke。 |
 
@@ -124,13 +135,13 @@ non-generative local preview only; provider-production hard stops are unchanged.
 | ID | 能力 | Narrative Forge 可取之处 | shuohao-skills 可取之处 | Plotloom 决定 | 成熟度/目标 | 当前证据与下一退出条件 |
 |---|---|---|---|---|---|---|
 | C01 | Provider 设置与秘密边界 | 文本/图像/视频可分别选 provider/model/base URL；服务器 key 与会话覆盖实用 | 供应商调用主要交给运行 agent，不适合作为产品秘密模型 | **Rebuild** 严格 public settings + server key/session lease | **L6/L6** | API、数据库、trace、日志、URL root 与按 profile 分区的 sessionStorage 边界均有测试；`authMode=none` 不读取/发送 key，rebuild/repair/resume 不会串用 profile key。两个当前文本 profile 已通过真实 3× conformance，receipt 只含稳定 ID/hash、状态、issue、耗时与 token；图像/视频 smoke 不属于 M1.5。 |
-| C02 | 关键帧图像生成 | 多供应商、逐镜按钮、参考图和项目资产闭环 | 可选 imagegen 与 frame prompt/缺图占位体现“文本交付不被图片阻断” | **Adapt** 到冻结 ProductionSnapshot 的 `MediaTask` | **L3/L6** | 旧 adapter/runner 代码和 fake 测试作为 M2 输入保留，但当前 API、repository 与 runner 在任何 lookup、写入、提交或轮询前返回 `production_pipeline_not_ready`；历史终态结果只读。M2 必须先实现批准快照、引用解析和本地 Artifact，再恢复真实生成。 |
+| C02 | 关键帧图像生成 | 多供应商、逐镜按钮、参考图和项目资产闭环 | 可选 imagegen 与 frame prompt/缺图占位体现“文本交付不被图片阻断” | **Adapt** 到冻结 ProductionSnapshot 的 manual `ImageJob` | **L6/L6 (P1 manual Codex route)** | P1 implements an approved one-shot ProductionUnit/Snapshot, same-host package/reference exchange, declared Codex built-in-imagegen delivery, validation, explicit selection, and a real original plus refinement browser journey. Legacy provider `MediaTask` execution remains blocked; M2 is required for automatic or external-provider image generation. |
 | C03 | 视频生成 | V1 的 submit/poll 和逐镜视频是重要产品能力 | 不执行视频生成，反而清楚限定 storyboard 是生产规格 | **Adapt** 到同步/异步统一 adapter 和任务状态 | **L3/L6** | 异步 adapter 与历史测试规格保留，但与图片相同被 ProductionSnapshot 硬边界隔离；不存在从 raw Shot 到 provider 的临时绕路。M2 恢复条件包括冻结输入、关键帧 lineage、供应商取消/unknown 语义和播放质检。 |
-| C04 | 持久任务、重启恢复与浏览器观察 | V1 能本地轮询/恢复等待，但停止观察不等于远端取消 | 没有一等在线任务/run | **Rebuild** 为数据库事实和安全 reconciliation | **L4/L5** | 文本运行可继续同一未 dispatch attempt 或仅从持久 response 做本地验证，dispatched-without-response 保持 outcome unknown；仅靠 browser key 的安全运行重启后保持 queued，并由同一 profile 的 session key 显式 resume。所有 pre-ProductionSnapshot 非终态媒体任务在升级/重启时安全终止，绝不 resubmit/poll；历史终态结果保持可读。 |
-| C05 | Artifact、媒体落地与内容寻址 | V1 把媒体保存进项目 assets | shuohao 把主数据、报告和投产包分层 | **Adapt/Rebuild** 为 content-addressed ArtifactStore | **L3/L5** | prompt/response/validation/canonical artifacts 已原子、去重落地；媒体成功目前主要保存远端 `outputUri`，缺 MIME/大小/哈希校验、下载、离线可用和垃圾回收。 |
+| C04 | 持久任务、重启恢复与浏览器观察 | V1 能本地轮询/恢复等待，但停止观察不等于远端取消 | 没有一等在线任务/run | **Rebuild** 为数据库事实和安全 reconciliation | **L5/L5 (P1 manual route)** | Text-run guarantees remain as before. P1 stores copy/cancel/delivery/candidate history and on refresh/restart reopens delivered jobs, current candidates and stale/current previews without resubmitting a specialist task; late, revoked and cancelled delivery is retained but inapplicable. Legacy asynchronous media tasks remain safely stopped. |
+| C05 | Artifact、媒体落地与内容寻址 | V1 把媒体保存进项目 assets | shuohao 把主数据、报告和投产包分层 | **Adapt/Rebuild** 为 content-addressed ArtifactStore | **L5/L5 (P1 still outputs)** | P1 validates bounded decoded JPEG/PNG bytes, stores content-addressed originals plus display derivatives, and records output/manifest hashes, prompt/tool evidence and limitations before publishing selectable candidates. Remote URI trust, video and lifecycle deletion semantics remain M2 work. |
 | C06 | 互动预览与可播放导出 | 这是 V1 最应保留的优势之一：编辑后立即试玩并导出 | 不提供播放器或最终视频 | **Adopt outcome / Rebuild implementation** | **L4/L5** | P0 已有非生成式、已审核 imported-still animatic：创作者可冻结一场景的任意非空连续子集，并按 authored duration 播放、暂停、seek、刷新/重启后读取；旧 receipt 保留且会显式 current/stale/revoked/missing/corrupt。它不包含分支 session、音频、视频、最终剪辑或导出；这些仍是 L5 前置。 |
 | C07 | 批量生成、最终剪辑与成片交付 | V1 有批量媒体和互动/分集导出，可作为行为参考 | export pack/manifest 适合可审阅投产交接，但不生成最终视频 | **Defer**，以后基于 Plotloom task/artifact/export contracts 重建 | **D** | 批量队列、取消、全局 timecode、配音/口型、剪辑、QC、最终成片都不计入当前完成度。 |
-| C08 | 已批准分镜到 ProductionUnit 与供应商编译 | V1 的单镜生成回路反馈短，但 Shot/Prompt/Task 边界不稳定 | segment/cut/frame 与 H3 投产包说明需要独立生产层，但线性位置和供应商字符串不能成为主数据 | **Adapt/Rebuild**：从 approved Storyboard 确定性派生 provider-neutral `ProductionUnit`，再由 adapter 编译 | **L2/L5** | [ADR 0012](../adr/0012-approved-storyboards-and-production-units.md) 已定义 canonical/derived 边界、时长/切点/帧计划和 stale；尚缺 planner、compiler、manifest、UI 及媒体前置验证。 |
+| C08 | 已批准分镜到 ProductionUnit 与供应商编译 | V1 的单镜生成回路反馈短，但 Shot/Prompt/Task 边界不稳定 | segment/cut/frame 与 H3 投产包说明需要独立生产层，但线性位置和供应商字符串不能成为主数据 | **Adapt/Rebuild**：从 approved Storyboard 确定性派生 provider-neutral `ProductionUnit`，再由 adapter 编译 | **L5/L5 (P1 single-shot)** | P1 deterministically freezes an active Approval, exact storyboard entity/revision, one canonical Shot, visual proposal, references and hash before packaging a `codex_specialist.v1` assignment. Required refinement reference bytes are copied and rechecked; raw-Shot/browser-prompt bypasses are rejected. Multi-shot planning and general adapter compilation remain M2. |
 | C09 | 资产角色、参考血缘与受控人工导入 | V1 有角色设定图、场景参考、逐镜素材和本地保存，但任意路径/URL 边界过宽 | 角色/地点/道具锚点、状态变体及小样先审提供清晰的一致性方法 | **Adapt/Rebuild** 为稳定 asset role、`ShotReferencePlan` 和内容寻址 Artifact；人工导入走受控入口 | **L4/L5** | P0 提供 project-scoped JPEG/PNG byte ingest、hash/MIME/dimension/provenance、独立 display derivative、版本化 identity/composition/style/source-ref intent，以及绑定精确 Approval 的 reviewed Shot selection；跨项目读/绑定、动画/损坏输入、归档/未找到项目 admission 和媒体项目永久删除均拒绝。仍缺角色/地点资产计划、受控下载、ProductionUnit 引用解析、媒体擦除与离线发布验收。 |
 
 ### D. 平台、工作台与独立发行
