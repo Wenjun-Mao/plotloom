@@ -1450,14 +1450,18 @@ def validate_public_provider_snapshot(value: Any) -> dict[str, Any]:
 
     candidate = {} if value is None else value
     if isinstance(candidate, dict) and (
-        candidate.get("profileSchemaVersion") == 2
-        or candidate.get("profile_schema_version") == 2
+        candidate.get("profileSchemaVersion") in {2, 3}
+        or candidate.get("profile_schema_version") in {2, 3}
     ):
         # Local import keeps the domain module usable by the pure profile
         # contract without introducing a module import cycle.
-        from .provider_profiles import TextProviderProfileSnapshot
+        from .provider_profiles import TextProviderProfileSnapshot, TextProviderProfileSnapshotV3
 
-        snapshot = TextProviderProfileSnapshot.model_validate(candidate)
+        snapshot = (
+            TextProviderProfileSnapshotV3.model_validate(candidate)
+            if candidate.get("profileSchemaVersion", candidate.get("profile_schema_version")) == 3
+            else TextProviderProfileSnapshot.model_validate(candidate)
+        )
         return snapshot.model_dump(mode="json", by_alias=True)
     snapshot = ProviderSnapshot.model_validate(candidate)
     return snapshot.model_dump(mode="json", by_alias=True)

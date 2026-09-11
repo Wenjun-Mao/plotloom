@@ -720,6 +720,15 @@ export interface TextProviderProfileView {
   createdAt: string;
   updatedAt: string;
   serverKeyAvailable: boolean;
+  readiness: TextBackendReadiness;
+}
+
+export interface TextBackendReadiness {
+  profileId: string;
+  profileRevision: number;
+  state: "disabled" | "missing_configuration" | "unverified" | "checking" | "available" | "unreachable" | "authentication_failed" | "model_mismatch" | "capability_mismatch";
+  reasonCode: string;
+  observedAt: string | null;
 }
 
 export interface TextProviderProfilesResponse {
@@ -757,10 +766,8 @@ export interface TextProviderProfileCreate {
 
 export interface TextProviderProfileProbe {
   profileId: string;
-  model: string | null;
-  finalContentPresent: boolean;
-  reasoningPresent: boolean;
-  finishReason: string | null;
-  latencyMs: number;
-  errorCode: string | null;
+  profileRevision: number;
+  state: TextBackendReadiness["state"];
+  reasonCode: string;
+  observedAt: string | null;
 }

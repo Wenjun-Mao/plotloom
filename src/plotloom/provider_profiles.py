@@ -27,6 +27,9 @@ from .domain import validate_public_api_root
 PROFILE_ID_PATTERN = r"^[a-z][a-z0-9_]{0,62}$"
 DEFAULT_PROVIDER_PROFILE_ID = "default"
 PROFILE_SCHEMA_VERSION_V2 = 2
+PROFILE_SCHEMA_VERSION_V3 = 3
+OPENAI_COMPATIBLE_ADAPTER_ID = "openai_compatible"
+OPENAI_COMPATIBLE_ADAPTER_VERSION = "1"
 PRESET_VERSION_V1 = "1"
 _PROFILE_ID_RE = re.compile(PROFILE_ID_PATTERN)
 
@@ -211,7 +214,14 @@ class TextProviderProfileSnapshot(_ProfileModel):
                     raise ValueError(
                         f"{field} differs from preset {self.preset_id.value}; use preset_id=custom"
                     )
-        expected_hash = v2_profile_hash(self)
+        # V3 inherits the execution fields but has a distinct, additive hash
+        # contract.  Keeping this branch here prevents V3 validation from
+        # accidentally normalizing a V2 snapshot.
+        expected_hash = (
+            v3_profile_hash(self)  # type: ignore[arg-type]
+            if self.profile_schema_version == PROFILE_SCHEMA_VERSION_V3
+            else v2_profile_hash(self)
+        )
         if self.profile_hash and self.profile_hash != expected_hash:
             raise ValueError("provider profile hash does not match its public fields")
         object.__setattr__(self, "profile_hash", expected_hash)
@@ -219,6 +229,31 @@ class TextProviderProfileSnapshot(_ProfileModel):
 
     def request_contract(self) -> tuple[RequestExtension, ReasoningMode, ExtractionPolicy]:
         return self.request_extension, self.reasoning_mode, self.extraction_policy.to_generation_policy()
+
+
+class TextProviderProfileSnapshotV3(TextProviderProfileSnapshot):
+    """New-run snapshot contract with an explicit trusted adapter selection.
+
+    This deliberately does not alter ``TextProviderProfileSnapshot``: V2
+    snapshots are sealed evidence and must retain their old hash contract.
+    """
+
+    profile_schema_version: Literal[3] = PROFILE_SCHEMA_VERSION_V3
+    adapter_id: str = Field(
+        default=OPENAI_COMPATIBLE_ADAPTER_ID, min_length=1, max_length=120
+    )
+    adapter_version: str = Field(
+        default=OPENAI_COMPATIBLE_ADAPTER_VERSION, min_length=1, max_length=40
+    )
+    profile_hash: str = ""
+
+    @model_validator(mode="after")
+    def validate_v3_hash(self) -> "TextProviderProfileSnapshotV3":
+        expected_hash = v3_profile_hash(self)
+        if self.profile_hash and self.profile_hash != expected_hash:
+            raise ValueError("provider profile hash does not match its V3 public fields")
+        object.__setattr__(self, "profile_hash", expected_hash)
+        return self
 
 
 class TextProviderProfile(_ProfileModel):
@@ -280,6 +315,21 @@ def v2_profile_hash(snapshot: TextProviderProfileSnapshot | Mapping[str, Any]) -
     return _canonical_hash(payload)
 
 
+def v3_profile_hash(snapshot: TextProviderProfileSnapshotV3 | Mapping[str, Any]) -> str:
+    """Hash the V3 contract only; never route V1/V2 evidence through this."""
+
+    if isinstance(snapshot, TextProviderProfileSnapshotV3):
+        payload = snapshot.model_dump(mode="json", by_alias=False, exclude={"profile_hash"})
+    else:
+        data = dict(snapshot)
+        data.pop("profileHash", None)
+        data.pop("profile_hash", None)
+        payload = TextProviderProfileSnapshotV3.model_validate(data).model_dump(
+            mode="json", by_alias=False, exclude={"profile_hash"}
+        )
+    return _canonical_hash(payload)
+
+
 _V1_FIELD_ALIASES: dict[str, str] = {
     "profileId": "profile_id", "textProvider": "text_provider", "textBaseUrl": "text_base_url",
     "textModel": "text_model", "textAuthMode": "text_auth_mode",
@@ -303,6 +353,12 @@ def is_v2_snapshot(value: Mapping[str, Any]) -> bool:
     ) == PROFILE_SCHEMA_VERSION_V2
 
 
+def is_v3_snapshot(value: Mapping[str, Any]) -> bool:
+    return value.get("profileSchemaVersion") == PROFILE_SCHEMA_VERSION_V3 or value.get(
+        "profile_schema_version"
+    ) == PROFILE_SCHEMA_VERSION_V3
+
+
 def legacy_v1_profile_hash(snapshot: Mapping[str, Any]) -> str:
     """Reproduce the original V1 hash without injecting V2 defaults or fields."""
 
@@ -324,13 +380,17 @@ def legacy_v1_profile_hash(snapshot: Mapping[str, Any]) -> str:
     return _canonical_hash(normalized)
 
 
-def validate_frozen_text_snapshot(value: Mapping[str, Any]) -> TextProviderProfileSnapshot | dict[str, Any]:
+def validate_frozen_text_snapshot(
+    value: Mapping[str, Any],
+) -> TextProviderProfileSnapshot | TextProviderProfileSnapshotV3 | dict[str, Any]:
     """Validate V2 or retain a historic V1 payload with its original contract.
 
     Returning the V1 mapping unchanged is intentional: callers must not amend
     historic durable JSON merely by reading it through a newer model.
     """
 
+    if is_v3_snapshot(value):
+        return TextProviderProfileSnapshotV3.model_validate(value)
     if is_v2_snapshot(value):
         return TextProviderProfileSnapshot.model_validate(value)
     expected = legacy_v1_profile_hash(value)

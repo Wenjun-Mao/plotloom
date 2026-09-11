@@ -81,6 +81,43 @@ def test_openai_compatible_adapter_sends_native_schema_when_supported() -> None:
     assert response.request_id == "completion-1"
 
 
+def test_openai_compatible_readiness_uses_models_without_a_completion() -> None:
+    session = _session()
+    session.get.return_value = Mock(
+        status_code=200,
+        headers={},
+        json=Mock(return_value={"data": [{"id": "test-model"}]}),
+    )
+    adapter = OpenAICompatibleAdapter(
+        name="openai-compatible", base_url="https://api.example.test/v1", session=session
+    )
+    _, lease = secret_lease()
+
+    result = adapter.check_readiness("test-model", lease)
+
+    assert result.state == "available"
+    assert result.reason_code == "readiness.models_verified"
+    session.post.assert_not_called()
+    assert session.get.call_args.args[0].endswith("/models")
+
+
+def test_openai_compatible_readiness_classifies_missing_model() -> None:
+    session = _session()
+    session.get.return_value = Mock(
+        status_code=200, headers={}, json=Mock(return_value={"data": [{"id": "other"}]})
+    )
+    adapter = OpenAICompatibleAdapter(
+        name="openai-compatible", base_url="https://api.example.test/v1", session=session
+    )
+    _, lease = secret_lease()
+
+    result = adapter.check_readiness("test-model", lease)
+
+    assert (result.state, result.reason_code) == (
+        "model_mismatch", "readiness.expected_model_absent"
+    )
+
+
 def test_adapter_redacts_an_echoed_outbound_secret_but_keeps_usage_counters() -> None:
     session = _session()
     session.post.return_value.json.return_value.update(

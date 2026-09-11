@@ -30,6 +30,7 @@ from plotloom.persistence import (
     stable_hash,
 )
 from plotloom.pipeline import RunSecretBroker
+from plotloom.text_adapters import ReadinessResult
 
 from .conftest import all_stage_payloads
 
@@ -88,6 +89,19 @@ class ServerKeyProbeResolver:
 
     def resolve(self, provider_snapshot):
         return self.adapter, str(provider_snapshot["textModel"])
+
+
+class UnreachablePreflightAdapter:
+    name = "controlled-preflight"
+    capabilities = ProviderCapabilities()
+
+    def check_readiness(self, expected_model, secret):
+        assert expected_model
+        assert secret is not None
+        return ReadinessResult("unreachable", "readiness.transport_unreachable", True)
+
+    def generate(self, request, secret):
+        raise AssertionError("admission must reject before generation")
 
 
 class JsonSchemaProbeAdapter:
@@ -666,6 +680,29 @@ def test_provider_and_media_request_reject_secret_fields(repository: SQLiteRepos
     assert response.status_code == 422
 
 
+def test_definite_preflight_failure_creates_no_pipeline_run(repository: SQLiteRepository, brief) -> None:
+    adapter = UnreachablePreflightAdapter()
+    client = TestClient(
+        create_app(
+            repository,
+            text_provider_resolver=ServerKeyProbeResolver(adapter),
+        )
+    )
+    project = client.post(
+        "/api/v2/projects", json={"brief": brief.model_dump(mode="json", by_alias=True)}
+    ).json()
+
+    refused = client.post(
+        f"/api/v2/projects/{project['id']}/pipeline-runs",
+        json={"stages": ["story_bible"]},
+        headers={"X-Plotloom-Session-API-Key": "session-only"},
+    )
+
+    assert refused.status_code == 422
+    assert "selected text backend is unreachable" in refused.json()["detail"]
+    assert repository.list_project_runs(project["id"]) == []
+
+
 def test_provider_settings_merge_defaults_and_freeze_on_run(repository: SQLiteRepository, brief) -> None:
     defaults = ProviderSettings(
         text_provider="server-default",
@@ -731,7 +768,8 @@ def test_provider_settings_merge_defaults_and_freeze_on_run(repository: SQLiteRe
     frozen = client.get(f"/api/v2/runs/{run['id']}").json()["providerSnapshot"]
     assert frozen["textModel"] == "saved-model"
     assert "browser-only-secret" not in str(frozen)
-    assert frozen["profileHash"] == updated.json()["profileHash"]
+    assert frozen["profileSchemaVersion"] == 3
+    assert frozen["profileHash"] != updated.json()["profileHash"]
     listed = client.get(f"/api/v2/projects/{project['id']}/runs").json()["runs"]
     assert [item["id"] for item in listed] == [run["id"]]
 
@@ -755,9 +793,9 @@ def test_profile_probe_uses_its_server_key_without_a_browser_override(
         response = client.post("/api/v2/text-provider-profiles/default/probe")
 
         assert response.status_code == 200
-        assert response.json()["errorCode"] is None
-        assert response.json()["finalContentPresent"] is True
-        assert adapter.observed_keys == ["server-profile-key"]
+        assert response.json()["state"] == "unverified"
+        assert response.json()["reasonCode"] == "readiness.check_unsupported"
+        assert adapter.observed_keys == []
         assert "server-profile-key" not in response.text
     finally:
         secrets.close()
@@ -792,15 +830,9 @@ def test_profile_probe_exercises_a_declared_json_schema_capability(
         response = client.post("/api/v2/text-provider-profiles/default/probe")
 
         assert response.status_code == 200
-        assert response.json()["errorCode"] is None
-        assert adapter.requests[0].response_schema == {
-            "type": "object",
-            "properties": {"ok": {"type": "string", "enum": ["yes"]}},
-            "required": ["ok"],
-            "additionalProperties": False,
-        }
-        assert adapter.requests[0].response_schema_name == "plotloom_profile_probe"
-        assert adapter.requests[0].messages[1].content == "Set ok to yes."
+        assert response.json()["state"] == "unverified"
+        assert response.json()["reasonCode"] == "readiness.check_unsupported"
+        assert adapter.requests == []
     finally:
         secrets.close()
 

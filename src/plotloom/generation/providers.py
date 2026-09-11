@@ -204,6 +204,60 @@ class OpenAICompatibleAdapter:
             outcome_code=(None if final_content is not None else "response.missing_final_content"),
         )
 
+    def check_readiness(self, expected_model: str, secret: SecretLease | None) -> Any:
+        """Check the standard model-list endpoint without generating content.
+
+        This request has no creative payload and is safe to classify as a
+        failed preflight.  It deliberately performs one request only.
+        """
+
+        # Imported lazily to keep the generation transport independent of the
+        # registry module that calls this optional capability.
+        from ..text_adapters import ReadinessResult
+
+        if not self.capabilities.chat_completions:
+            return ReadinessResult("capability_mismatch", "readiness.chat_completions_required", True)
+        headers = {"Accept": "application/json"}
+        if self.auth_mode == "bearer":
+            if secret is None:
+                return ReadinessResult("authentication_failed", "readiness.credential_unavailable", True)
+            with secret.reveal() as api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+                return self._check_models(headers, expected_model)
+        return self._check_models(headers, expected_model)
+
+    def _check_models(self, headers: dict[str, str], expected_model: str) -> Any:
+        from ..text_adapters import ReadinessResult
+
+        try:
+            response = self._session.get(
+                f"{self.base_url}/models",
+                headers=headers,
+                timeout=(self.connect_timeout_seconds, self.connect_timeout_seconds),
+                allow_redirects=False,
+            )
+        except (requests.Timeout, requests.ConnectionError):
+            return ReadinessResult("unreachable", "readiness.transport_unreachable", True)
+        except requests.RequestException:
+            return ReadinessResult("unreachable", "readiness.transport_unreachable", True)
+        status_code = int(getattr(response, "status_code", 0) or 0)
+        if status_code in {401, 403}:
+            return ReadinessResult("authentication_failed", "readiness.authentication_rejected", True)
+        if not 200 <= status_code < 300:
+            return ReadinessResult("unreachable", f"readiness.http_{status_code}", True)
+        try:
+            payload = response.json()
+        except (ValueError, requests.JSONDecodeError):
+            return ReadinessResult("unreachable", "readiness.models_invalid_response", True)
+        entries = payload.get("data") if isinstance(payload, dict) else None
+        models = {
+            item.get("id") for item in entries
+            if isinstance(item, dict) and isinstance(item.get("id"), str)
+        } if isinstance(entries, list) else set()
+        if expected_model not in models:
+            return ReadinessResult("model_mismatch", "readiness.expected_model_absent", True)
+        return ReadinessResult("available", "readiness.models_verified", True)
+
     def _apply_request_extension(
         self,
         payload: dict[str, Any],

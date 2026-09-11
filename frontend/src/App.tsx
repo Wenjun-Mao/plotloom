@@ -127,7 +127,7 @@ function defaultTextProfile(): TextProviderProfileView {
     stageMaxOutputTokens: { story_bible: 8192, story_graph: 8192, scene_beats: 4096, storyboard: 4096 },
     maxSemanticCorrections: 2, presetId: "custom", presetVersion: "1",
   };
-  return { profileId: "default", displayName: "Default", configuration, revision: 0, enabled: true, availabilityRevision: 0, createdAt: "", updatedAt: "", serverKeyAvailable: false };
+  return { profileId: "default", displayName: "Default", configuration, revision: 0, enabled: true, availabilityRevision: 0, createdAt: "", updatedAt: "", serverKeyAvailable: false, readiness: { profileId: "default", profileRevision: 0, state: "unverified", reasonCode: "readiness.not_checked", observedAt: null } };
 }
 
 function profileFromLegacySettings(settings: ProviderSettings): TextProviderProfileView {
@@ -253,11 +253,26 @@ export default function App() {
   };
 
   const installProfiles = useCallback((next: TextProviderProfilesResponse, selectedId = next.activeProfileId) => {
-    const selected = next.profiles.find((profile) => profile.profileId === selectedId) || next.profiles[0];
+    // Rolling upgrades may serve the previous profile shape briefly.  Absence
+    // is not readiness: present it as an explicit unverified observation.
+    const normalized: TextProviderProfilesResponse = {
+      ...next,
+      profiles: next.profiles.map((profile) => ({
+        ...profile,
+        readiness: profile.readiness || {
+          profileId: profile.profileId,
+          profileRevision: profile.revision,
+          state: profile.enabled === false ? "disabled" : "unverified",
+          reasonCode: profile.enabled === false ? "readiness.profile_disabled" : "readiness.not_checked",
+          observedAt: null,
+        },
+      })),
+    };
+    const selected = normalized.profiles.find((profile) => profile.profileId === selectedId) || normalized.profiles[0];
     if (!selected) return;
     profilesLoaded.current = true;
-    profileCatalog.current = next;
-    setProfiles(next); setSelectedProfileId(selected.profileId); setProfileDraft(selected);
+    profileCatalog.current = normalized;
+    setProfiles(normalized); setSelectedProfileId(selected.profileId); setProfileDraft(selected);
     setSessionKey(providerSessionKeys.read(selected.profileId)); setProfileDirty(false);
   }, []);
 
@@ -1036,7 +1051,8 @@ export default function App() {
     try {
       const saved = await saveCurrentProfile();
       const probe = await plotloomApi.probeTextProviderProfile(saved.profileId, saved.configuration.textAuthMode === "bearer");
-      setError(probe.errorCode ? `连接测试失败：${probe.errorCode}` : `连接测试完成：${probe.model || saved.configuration.textModel} · ${probe.latencyMs}ms`);
+      await refreshProfiles();
+      setError(probe.state === "available" ? `后端已就绪：${probe.reasonCode}` : `后端状态：${probe.state} · ${probe.reasonCode}`);
     } catch (profileError) { setError(messageFrom(profileError)); }
     finally { setBusy(false); }
   };
@@ -1253,7 +1269,7 @@ export default function App() {
       <div className="sidebar-footer"><Button variant="quiet" onClick={() => void openSettings()}>供应商与会话 Key</Button><small>API contract `/api/v2`</small></div>
     </aside>
     <div className="workspace-shell">
-      <header className="topbar"><div><span>{currentNav.index}</span><strong>{currentNav.label}</strong></div><div className="topbar-actions">{projectReadOnly && <Badge tone="warning">归档只读</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>{connection === "connected" ? "API 已连接" : connection === "loading" ? "正在连接" : connection === "error" ? "项目未加载" : connection === "blank" ? "空白项目" : "教学草案"}</Badge>{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}<Button variant="quiet" disabled={!project.id || connection === "loading"} onClick={requestProjectRefresh}>刷新服务器版本</Button>{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}</div></header>
+      <header className="topbar"><div><span>{currentNav.index}</span><strong>{currentNav.label}</strong></div><div className="topbar-actions">{projectReadOnly && <Badge tone="warning">归档只读</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><Badge tone={profileDraft.readiness?.state === "available" ? "ok" : ["unreachable", "authentication_failed", "model_mismatch", "capability_mismatch"].includes(profileDraft.readiness?.state || "unverified") ? "danger" : "warning"}>文本后端：{profileDraft.readiness?.state || "unverified"} · {profileDraft.profileId} · {profileDraft.readiness?.reasonCode || "readiness.not_checked"}{profileDraft.readiness?.observedAt ? ` · ${new Date(profileDraft.readiness.observedAt).toLocaleString()}` : " · 未检测"}</Badge>{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}<Button variant="quiet" disabled={!project.id || connection === "loading"} onClick={requestProjectRefresh}>刷新服务器版本</Button>{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}</div></header>
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       <div className="workbench-grid">
         <aside className="context-panel"><span className="eyebrow">Context</span><strong>{project.brief.title || "新项目"}</strong><small>{project.lifecycleStatus === "archived" || project.archivedAt ? "归档快照 · 仅供审阅" : project.id ? `项目 ${project.id}` : navigationProjectId ? `加载项目 ${navigationProjectId}` : "空白项目；保存后建立规范项目"}</small><div className="context-stages">{navigation.slice(0, 5).map((item) => <button key={item.id} className={activePage === item.id ? "active" : ""} onClick={() => requestNavigation({ project: navigationProjectId, stage: item.id })}>{item.index} {item.label}</button>)}</div><div className="context-assets"><span className="eyebrow">Canon assets</span>{bibleAssets.map((asset) => <div key={asset.label}><strong>{asset.label} · {asset.items.length}</strong><small>{asset.items.length ? asset.items.slice(0, 3).map((item) => item.name).join("、") : "尚未定义"}{asset.items.length > 3 ? " …" : ""}</small></div>)}</div></aside>

@@ -52,7 +52,13 @@ from .exceptions import (
     SchemaResetRequiredError,
 )
 from .persistence import SQLiteRepository, stable_hash
-from .provider_profiles import TextProviderProfileSnapshot, is_v2_snapshot
+from .provider_profiles import (
+    TextProviderProfileSnapshot,
+    TextProviderProfileSnapshotV3,
+    is_v2_snapshot,
+    is_v3_snapshot,
+)
+from .text_adapters import DEFAULT_TEXT_ADAPTER_REGISTRY
 from .runtime import GenerationEngine, RunContext, RunExecutionResult
 from .work_unit_pipeline import DurableWorkUnitRunner
 
@@ -191,7 +197,10 @@ class SnapshotTextProviderResolver:
     """
 
     def resolve(self, provider_snapshot: Mapping[str, Any]) -> tuple[ProviderAdapter, str]:
-        snapshot: ProviderSnapshot | TextProviderProfileSnapshot
+        snapshot: ProviderSnapshot | TextProviderProfileSnapshot | TextProviderProfileSnapshotV3
+        if is_v3_snapshot(provider_snapshot):
+            snapshot = TextProviderProfileSnapshotV3.model_validate(provider_snapshot)
+            return DEFAULT_TEXT_ADAPTER_REGISTRY.resolve(snapshot), snapshot.text_model
         if is_v2_snapshot(provider_snapshot):
             snapshot = TextProviderProfileSnapshot.model_validate(provider_snapshot)
         else:
@@ -345,7 +354,9 @@ class PipelineEngine(GenerationEngine):
                         "exact repair scope identity does not match its child run"
                     )
                 profile: ProviderSnapshot | TextProviderProfileSnapshot
-                if is_v2_snapshot(run.provider_snapshot):
+                if is_v3_snapshot(run.provider_snapshot):
+                    profile = TextProviderProfileSnapshotV3.model_validate(run.provider_snapshot)
+                elif is_v2_snapshot(run.provider_snapshot):
                     profile = TextProviderProfileSnapshot.model_validate(run.provider_snapshot)
                 else:
                     profile = ProviderSnapshot.model_validate(run.provider_snapshot)
@@ -380,7 +391,9 @@ class PipelineEngine(GenerationEngine):
                 )
             return self._execute_legacy_repair(run, context, cancellation)
         profile: ProviderSnapshot | TextProviderProfileSnapshot
-        if is_v2_snapshot(run.provider_snapshot):
+        if is_v3_snapshot(run.provider_snapshot):
+            profile = TextProviderProfileSnapshotV3.model_validate(run.provider_snapshot)
+        elif is_v2_snapshot(run.provider_snapshot):
             profile = TextProviderProfileSnapshot.model_validate(run.provider_snapshot)
         else:
             profile = ProviderSnapshot.model_validate(run.provider_snapshot)
@@ -401,7 +414,9 @@ class PipelineEngine(GenerationEngine):
     ) -> RunExecutionResult:
         del context  # provider/artifact ports are used by media; text uses typed adapters here.
         profile: ProviderSnapshot | TextProviderProfileSnapshot
-        if is_v2_snapshot(run.provider_snapshot):
+        if is_v3_snapshot(run.provider_snapshot):
+            profile = TextProviderProfileSnapshotV3.model_validate(run.provider_snapshot)
+        elif is_v2_snapshot(run.provider_snapshot):
             profile = TextProviderProfileSnapshot.model_validate(run.provider_snapshot)
         else:
             profile = ProviderSnapshot.model_validate(run.provider_snapshot)

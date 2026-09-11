@@ -139,9 +139,11 @@ from .provider_profiles import (
     TextProviderCapabilities,
     TextProviderProfile,
     TextProviderProfileSnapshot,
+    TextProviderProfileSnapshotV3,
     V2ExtractionPolicy,
     execution_preset,
     is_v2_snapshot,
+    is_v3_snapshot,
 )
 from .exceptions import (
     BootstrapContentionError,
@@ -2545,8 +2547,12 @@ class SQLiteRepository:
                 )
             profile_hash = str(run.provider_snapshot.get("profileHash") or stable_hash(run.provider_snapshot))
             stage_budgets: dict[StageName, StageBudget] | None = None
-            if is_v2_snapshot(run.provider_snapshot):
-                v2_profile = TextProviderProfileSnapshot.model_validate(run.provider_snapshot)
+            if is_v2_snapshot(run.provider_snapshot) or is_v3_snapshot(run.provider_snapshot):
+                v2_profile = (
+                    TextProviderProfileSnapshotV3.model_validate(run.provider_snapshot)
+                    if is_v3_snapshot(run.provider_snapshot)
+                    else TextProviderProfileSnapshot.model_validate(run.provider_snapshot)
+                )
                 stage_budgets = {
                     stage: StageBudget(
                         **{
@@ -4014,10 +4020,13 @@ class SQLiteRepository:
     def _run_max_attempts(row: GenerationRunRow) -> int:
         """Read the frozen correction budget without synthesizing V2 history."""
 
-        if is_v2_snapshot(row.provider_snapshot):
-            return 1 + TextProviderProfileSnapshot.model_validate(
-                row.provider_snapshot
-            ).max_semantic_corrections
+        if is_v2_snapshot(row.provider_snapshot) or is_v3_snapshot(row.provider_snapshot):
+            profile = (
+                TextProviderProfileSnapshotV3.model_validate(row.provider_snapshot)
+                if is_v3_snapshot(row.provider_snapshot)
+                else TextProviderProfileSnapshot.model_validate(row.provider_snapshot)
+            )
+            return 1 + profile.max_semantic_corrections
         # Historical snapshots have no V2 execution contract.  Their old
         # stage-level attempt behavior must not acquire a new implicit limit.
         return 1
@@ -5850,8 +5859,12 @@ class SQLiteRepository:
                     )
             profile_hash = str(child.provider_snapshot.get("profileHash") or stable_hash(child.provider_snapshot))
             stage_budgets: dict[StageName, StageBudget] | None = None
-            if is_v2_snapshot(child.provider_snapshot):
-                v2_profile = TextProviderProfileSnapshot.model_validate(child.provider_snapshot)
+            if is_v2_snapshot(child.provider_snapshot) or is_v3_snapshot(child.provider_snapshot):
+                v2_profile = (
+                    TextProviderProfileSnapshotV3.model_validate(child.provider_snapshot)
+                    if is_v3_snapshot(child.provider_snapshot)
+                    else TextProviderProfileSnapshot.model_validate(child.provider_snapshot)
+                )
                 stage_budgets = {
                     stage: StageBudget(
                         **{
@@ -6610,15 +6623,22 @@ class SQLiteRepository:
             # snapshots, so this protects direct repository callers if that
             # boundary changes rather than treating an anonymous V2 run as
             # available.
-            if is_v2_snapshot(provider_snapshot):
+            if is_v3_snapshot(provider_snapshot):
                 raise InvalidTransitionError(
-                    "a managed V2 provider snapshot must name a registered profile before admitting a new run"
+                    "a managed V3 provider snapshot must name a registered profile before admitting a new run"
                 )
             return
         profile = session.get(TextProviderProfileRow, profile_id)
         if profile is None:
-            if not is_v2_snapshot(provider_snapshot):
+            # The historic direct test/runtime path used an unmaterialized
+            # default V2 profile. Preserve that exact compatibility path;
+            # named V2 and every V3 admission remain control-plane bound.
+            if profile_id == DEFAULT_PROVIDER_PROFILE_ID and not is_v3_snapshot(provider_snapshot):
                 return
+            if not is_v3_snapshot(provider_snapshot):
+                raise InvalidTransitionError(
+                    f"text provider profile {profile_id} is not registered; register it before admitting a new run"
+                )
             raise InvalidTransitionError(
                 f"text provider profile {profile_id} is not registered; register it before admitting a new run"
             )

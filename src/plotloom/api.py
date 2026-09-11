@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 from pathlib import Path
 from time import monotonic
@@ -70,19 +70,14 @@ from .provider_profiles import (
     TextProviderCapabilities,
     TextProviderProfile,
     TextProviderProfileSnapshot,
+    TextProviderProfileSnapshotV3,
     V2ExtractionPolicy,
     execution_preset,
     preset_values,
 )
-from .generation.contracts import GenerationRequest, PromptMessage, ProviderCapabilities
-from .generation.exceptions import (
-    ProviderCapabilityError,
-    ProviderError,
-    ResponseExtractionError,
-    SecretLeaseError,
-)
+from .generation.contracts import ProviderCapabilities
+from .generation.exceptions import SecretLeaseError
 from .generation.providers import ProviderAdapter
-from .generation.responses import extract_assistant_text, parse_json_text
 from .generation.secrets import InMemorySecretVault, SecretLease
 from .generation.story_graph_topology import StoryGraphTopologyError
 from .validation import DomainValidationError, STORYBOARD_GATE_SET_VERSION, pydantic_issues
@@ -285,6 +280,7 @@ class TextProviderProfileView(CamelModel):
     created_at: datetime
     updated_at: datetime
     server_key_available: bool
+    readiness: "TextBackendReadiness"
 
 
 class TextProviderProfilesResponse(CamelModel):
@@ -330,14 +326,19 @@ class TextProviderProfileAvailabilityUpdate(CamelModel):
     enabled: bool
 
 
-class TextProviderProbeResponse(CamelModel):
+class TextBackendReadiness(CamelModel):
     profile_id: str
-    model: str | None = None
-    final_content_present: bool = False
-    reasoning_present: bool = False
-    finish_reason: str | None = None
-    latency_ms: int = Field(ge=0)
-    error_code: str | None = None
+    profile_revision: int
+    state: Literal[
+        "disabled", "missing_configuration", "unverified", "checking", "available",
+        "unreachable", "authentication_failed", "model_mismatch", "capability_mismatch",
+    ]
+    reason_code: str
+    observed_at: datetime | None = None
+
+
+class TextProviderProbeResponse(TextBackendReadiness):
+    """The explicit probe returns the same secret-free observation shown in UI."""
 
 
 def _session_api_key(request: Request) -> str | None:
@@ -600,6 +601,9 @@ def create_app(
     app.state.repository = repo
     app.state.run_scheduler = run_scheduler
     app.state.media_scheduler = media_scheduler
+    # Observations are intentionally application-lifetime state: no secrets,
+    # no persistence, and no implication that a profile is qualified.
+    readiness_observations: dict[str, TextBackendReadiness] = {}
 
     def has_server_key(profile_id: str) -> bool:
         if profile_key_available is not None:
@@ -671,12 +675,51 @@ def create_app(
             raise InvalidTransitionError(
                 f"text provider profile {selected.profile_id} is disabled; enable it before admitting a new run"
             )
-        return selected.configuration.model_dump(mode="json", by_alias=True)
+        # Existing V2 profile settings keep their exact stored/hash contract.
+        # Only a newly admitted run gets the additive V3 frozen adapter fields.
+        values = selected.configuration.model_dump(
+            mode="python", by_alias=False, exclude={"profile_hash"}
+        )
+        values.update(
+            profile_schema_version=3,
+            profile_id=selected.profile_id,
+            profile_version=selected.revision,
+            profile_hash="",
+        )
+        return TextProviderProfileSnapshotV3.model_validate(values).model_dump(
+            mode="json", by_alias=True
+        )
+
+    def readiness_for(profile: TextProviderProfile) -> TextBackendReadiness:
+        if not profile.enabled:
+            return TextBackendReadiness(
+                profile_id=profile.profile_id, profile_revision=profile.revision,
+                state="disabled", reason_code="readiness.profile_disabled",
+            )
+        observation = readiness_observations.get(profile.profile_id)
+        if observation is None or observation.profile_revision != profile.revision:
+            return TextBackendReadiness(
+                profile_id=profile.profile_id, profile_revision=profile.revision,
+                state="unverified", reason_code="readiness.not_checked",
+            )
+        return observation
+
+    def store_readiness(
+        profile: TextProviderProfile, state: str, reason_code: str
+    ) -> TextBackendReadiness:
+        observation = TextBackendReadiness(
+            profile_id=profile.profile_id, profile_revision=profile.revision,
+            state=state, reason_code=reason_code,
+            observed_at=datetime.now(timezone.utc),
+        )
+        readiness_observations[profile.profile_id] = observation
+        return observation
 
     def profile_view(profile: TextProviderProfile) -> TextProviderProfileView:
         return TextProviderProfileView(
             **profile.model_dump(mode="python"),
             server_key_available=has_server_key(profile.profile_id),
+            readiness=readiness_for(profile),
         )
 
     def profiles_response() -> TextProviderProfilesResponse:
@@ -740,6 +783,76 @@ def create_app(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="this queued run needs its profile's browser-session key",
             ) from error
+
+    def check_text_backend(profile: TextProviderProfile, request: Request) -> TextBackendReadiness:
+        """Perform one optional non-generative adapter preflight.
+
+        A missing cheap check is explicitly unverified.  The temporary browser
+        lease is never stored in the observation or profile state.
+        """
+
+        if not profile.enabled:
+            return readiness_for(profile)
+        # Lightweight embedding/tests that do not install a runtime resolver
+        # cannot claim a protocol preflight.  They remain explicitly
+        # unverified; the production runtime always injects its resolver.
+        if text_provider_resolver is None:
+            return store_readiness(profile, "unverified", "readiness.check_unsupported")
+        snapshot = provider_snapshot(profile.profile_id)
+        temporary_vault: InMemorySecretVault | None = None
+        lease: SecretLease | None = None
+        try:
+            if snapshot["textAuthMode"] == ProviderAuthMode.BEARER.value:
+                session_key = _session_api_key(request)
+                if session_key is not None:
+                    temporary_vault = InMemorySecretVault()
+                    temporary_vault.put("preflight", session_key)
+                    lease = temporary_vault.lease("preflight", ttl_seconds=60, max_uses=1)
+                elif text_secret_source is not None:
+                    lease = text_secret_source.lease_for_profile(
+                        profile.profile_id, auth_mode=ProviderAuthMode.BEARER
+                    )
+                else:
+                    return store_readiness(
+                        profile, "authentication_failed", "readiness.credential_unavailable"
+                    )
+            adapter, _model = text_provider_resolver.resolve(snapshot)
+            checker = getattr(adapter, "check_readiness", None)
+            if checker is None:
+                return store_readiness(profile, "unverified", "readiness.check_unsupported")
+            result = checker(str(snapshot["textModel"]), lease)
+            return store_readiness(profile, result.state, result.reason_code)
+        except SecretLeaseError:
+            return store_readiness(profile, "authentication_failed", "readiness.credential_unavailable")
+        except ValueError:
+            return store_readiness(profile, "capability_mismatch", "readiness.adapter_unsupported")
+        except Exception:
+            # A preflight has no creative request body, so its failed request
+            # is a definite inability to establish readiness, not an unknown
+            # generation outcome.  Keep all transport details server-private.
+            return store_readiness(profile, "unreachable", "readiness.preflight_failed")
+        finally:
+            if lease is not None:
+                lease.revoke()
+            if temporary_vault is not None:
+                temporary_vault.clear()
+
+    def admit_text_backend(profile_id: str | None, request: Request) -> dict[str, Any]:
+        selected = repo.get_text_provider_profile(profile_id) if profile_id else active_text_profile()
+        snapshot = provider_snapshot(selected.profile_id)
+        observation = check_text_backend(selected, request)
+        if observation.state in {
+            "disabled", "missing_configuration", "unreachable", "authentication_failed",
+            "model_mismatch", "capability_mismatch",
+        }:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail=(
+                    f"selected text backend is {observation.state} "
+                    f"({observation.reason_code}); re-probe or correct this profile before creating a run"
+                ),
+            )
+        return snapshot
 
     @app.exception_handler(NotFoundError)
     async def not_found_handler(_request: Request, error: NotFoundError) -> JSONResponse:
@@ -1036,7 +1149,7 @@ def create_app(
         status_code=status.HTTP_202_ACCEPTED,
     )
     def create_pipeline_run(project_id: str, body: PipelineRunRequest, request: Request) -> GenerationRun:
-        snapshot = provider_snapshot(body.provider_profile_id)
+        snapshot = admit_text_backend(body.provider_profile_id, request)
         if run_scheduler is not None:
             # Fail before creating a durable run if no credential can possibly
             # reach a bearer-authenticated provider.
@@ -1059,7 +1172,7 @@ def create_app(
     def create_rebuild(project_id: str, body: RebuildRequest, request: Request) -> GenerationRun:
         start_index = STAGE_ORDER.index(body.from_stage)
         end_index = STAGE_ORDER.index(body.through_stage) if body.through_stage else len(STAGE_ORDER) - 1
-        snapshot = provider_snapshot(body.provider_profile_id)
+        snapshot = admit_text_backend(body.provider_profile_id, request)
         if run_scheduler is not None:
             text_submission_session_key(snapshot, request)
         run = repo.create_run(
@@ -1143,7 +1256,7 @@ def create_app(
         deprecated=True,
     )
     def create_repair(run_id: str, body: RepairRequest, request: Request) -> GenerationRun:
-        snapshot = provider_snapshot(body.provider_profile_id)
+        snapshot = admit_text_backend(body.provider_profile_id, request)
         if run_scheduler is not None:
             text_submission_session_key(snapshot, request)
         run = repo.create_repair_run(
@@ -1173,6 +1286,14 @@ def create_app(
         # Validate credentials against the source run's frozen profile before
         # creating a durable child. The active UI profile is not authority.
         source = repo.get_run(run_id)
+        frozen_profile_id = str(
+            source.provider_snapshot.get("profileId")
+            or source.provider_snapshot.get("profile_id")
+            or DEFAULT_PROVIDER_PROFILE_ID
+        )
+        # Exact repair keeps the source's frozen snapshot but still refuses a
+        # definitely doomed new child before persistence.
+        admit_text_backend(frozen_profile_id, request)
         if run_scheduler is not None:
             text_submission_session_key(source.provider_snapshot, request)
         normalized_key = _normalize_idempotency_key(idempotency_key)
@@ -1254,6 +1375,7 @@ def create_app(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="invalid text provider profile configuration",
             ) from error
+        readiness_observations.pop(profile.profile_id, None)
         return profile_view(profile)
 
     @app.get(
@@ -1272,14 +1394,14 @@ def create_app(
         body: TextProviderProfileUpdate,
     ) -> TextProviderProfileView:
         try:
-            return profile_view(
-                repo.update_text_provider_profile(
+            updated = repo.update_text_provider_profile(
                     profile_id,
                     body.expected_revision,
                     display_name=body.display_name,
                     configuration=body.configuration,
                 )
-            )
+            readiness_observations.pop(profile_id, None)
+            return profile_view(updated)
         except ValidationError:
             raise
         except ValueError as error:
@@ -1318,13 +1440,13 @@ def create_app(
         profile_id: str,
         body: TextProviderProfileAvailabilityUpdate,
     ) -> TextProviderProfileView:
-        return profile_view(
-            repo.set_text_provider_profile_enabled(
+        updated = repo.set_text_provider_profile_enabled(
                 profile_id,
                 body.expected_availability_revision,
                 enabled=body.enabled,
             )
-        )
+        readiness_observations.pop(profile_id, None)
+        return profile_view(updated)
 
     @app.post(
         "/api/v2/text-provider-profiles/{profile_id}/probe",
@@ -1335,120 +1457,8 @@ def create_app(
         request: Request,
     ) -> TextProviderProbeResponse:
         profile = repo.get_text_provider_profile(profile_id)
-        snapshot = profile.configuration
-        started = monotonic()
-        temporary_vault: InMemorySecretVault | None = None
-        lease: SecretLease | None = None
-        try:
-            if snapshot.text_auth_mode == "bearer":
-                session_key = _session_api_key(request)
-                if session_key is not None:
-                    temporary_vault = InMemorySecretVault()
-                    temporary_vault.put("probe", session_key)
-                    lease = temporary_vault.lease("probe", ttl_seconds=60, max_uses=1)
-                elif text_secret_source is not None:
-                    lease = text_secret_source.lease_for_profile(
-                        profile_id,
-                        auth_mode=ProviderAuthMode.BEARER,
-                    )
-                else:
-                    raise SecretLeaseError("no credential is available for this profile")
-            resolver = text_provider_resolver
-            if resolver is None:
-                from .pipeline import SnapshotTextProviderResolver
-
-                resolver = SnapshotTextProviderResolver()
-            adapter, model = resolver.resolve(
-                snapshot.model_dump(mode="json", by_alias=True)
-            )
-            extension, reasoning, _extraction = snapshot.request_contract()
-            probe_schema = (
-                {
-                    "type": "object",
-                    "properties": {
-                        "ok": {"type": "string", "enum": ["yes"]},
-                    },
-                    "required": ["ok"],
-                    "additionalProperties": False,
-                }
-                if snapshot.text_capabilities.json_schema
-                else None
-            )
-            response = adapter.generate(
-                GenerationRequest(
-                    messages=(
-                        PromptMessage(
-                            role="system",
-                            content=(
-                                "Return only the requested JSON object."
-                                if probe_schema is not None
-                                else "Return one short final answer to confirm this connection."
-                            ),
-                        ),
-                        PromptMessage(
-                            role="user",
-                            content=(
-                                "Set ok to yes."
-                                if probe_schema is not None
-                                else "Reply with OK."
-                            ),
-                        ),
-                    ),
-                    model=model,
-                    temperature=0,
-                    max_output_tokens=min(1024, snapshot.text_max_output_tokens),
-                    response_schema=probe_schema,
-                    response_schema_name=(
-                        "plotloom_profile_probe" if probe_schema is not None else None
-                    ),
-                    request_extension=extension,
-                    reasoning_mode=reasoning,
-                ),
-                lease,
-            )
-            if probe_schema is not None:
-                try:
-                    probe_value = parse_json_text(
-                        extract_assistant_text(response)
-                    ).value
-                except ResponseExtractionError:
-                    probe_value = None
-                if probe_value != {"ok": "yes"}:
-                    return TextProviderProbeResponse(
-                        profile_id=profile_id,
-                        model=response.model,
-                        final_content_present=response.final_content is not None,
-                        reasoning_present=response.reasoning_present,
-                        finish_reason=response.finish_reason,
-                        latency_ms=max(0, round((monotonic() - started) * 1000)),
-                        error_code="probe.json_schema_invalid",
-                    )
-            return TextProviderProbeResponse(
-                profile_id=profile_id,
-                model=response.model,
-                final_content_present=response.final_content is not None,
-                reasoning_present=response.reasoning_present,
-                finish_reason=response.finish_reason,
-                latency_ms=max(0, round((monotonic() - started) * 1000)),
-                error_code=response.outcome_code,
-            )
-        except SecretLeaseError:
-            error_code = "secret.unavailable"
-        except ProviderCapabilityError:
-            error_code = "provider.capability_unsupported"
-        except ProviderError:
-            error_code = "provider.request_failed"
-        except Exception:  # keep endpoint/IP/body details out of this diagnostic response
-            error_code = "probe.failed"
-        finally:
-            if lease is not None:
-                lease.revoke()
-            if temporary_vault is not None:
-                temporary_vault.clear()
-        return TextProviderProbeResponse(
-            profile_id=profile_id,
-            latency_ms=max(0, round((monotonic() - started) * 1000)),
-            error_code=error_code,
+        return TextProviderProbeResponse.model_validate(
+            check_text_backend(profile, request).model_dump(mode="python")
         )
 
     if static_dir is not None:
