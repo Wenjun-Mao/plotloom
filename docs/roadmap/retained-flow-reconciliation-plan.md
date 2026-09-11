@@ -1,8 +1,20 @@
 # Retained Flow reconciliation before P0
 
-Revision 1 — **Approved bounded handoff / stopped at scope guard**, 2026-09-11.
-User approved prepare/apply only if no discard, replacement, archive or deletion
-is required. This does not authorize broader metadata cleanup or source changes.
+Revision 2 — **Approved bounded metadata retirement**, 2026-09-11.
+After the initial no-deletion guard stopped execution, the user separately
+approved a verified byte-preserving backup outside repository/Flow roots and
+the plugin-managed retirement of exactly `.git/codex-flow/v0.9.12` and
+`.git/codex-flow/refresh-v1`. This supersedes only the earlier metadata-deletion
+restriction. No discard/replacement of work, task archive, source/ref/worktree
+deletion, manual journal editing, or broad unplug is authorized.
+
+Before apply, inspect the prepared handoff for empty decisions, replacements
+and cleanup, preserve the prepared record separately, and verify the backup.
+Retain returned transition evidence separately because the original backup
+cannot contain later retirement records. Shared `assignments-v1` and reporting
+authority remain live and preserved; authenticated retirement annotations are
+permitted, their deletion is not. Backups are recovery evidence, not authority
+to restore an old namespace into live Flow state. Stop on any unexpected scope.
 
 ### Execution preflight finding
 
@@ -13,12 +25,13 @@ removal after state/identity checks. This includes retired runtime/journal files
 not just a state flag. It does not imply source/worktree deletion, but exceeds
 the explicit no-deletion guard. No prepare/apply or other Flow mutation ran.
 
-Execution is stopped pending maintainer confirmation of the required retirement
+The initial execution stopped pending maintainer confirmation of the required retirement
 and separate user authorization if no non-deleting path exists. A prospective
 expansion would preserve an exact backup outside the repository/Flow roots and
 permit only the plugin's validated retirement of these exact metadata targets;
 it would not authorize task archive, worktree/ref deletion, product reset or
-manual journal editing. No such expansion is approved by this record.
+manual journal editing. That expansion is now approved above after the maintainer
+confirmed there is no non-deleting clean-start option in stable v0.9.13.
 
 ## Outcome
 
@@ -180,9 +193,10 @@ After this support checkpoint, start P0 rather than another infrastructure audit
 
 ## Current handoff
 
-This planning checkpoint performed read-only inspection and wrote only this
-Draft. No refresh preparation/apply, run closure, assignment acceptance, archive,
-cleanup, or P0 source mutation occurred. No tests or live providers were run;
-usage/cost deltas are unavailable. Maintainer clarification is now incorporated.
-Next action is approval of R2's bounded no-replacement handoff proposal, with the
-R1 task-state check retained as a mandatory guard before mutation.
+At revision 2 approval, no refresh preparation/apply, run closure, assignment
+acceptance, archive, cleanup, or P0 source mutation has occurred. Fresh inspection
+still reports a clean source checkout at `96de4e3` and `refresh-ready`. Next:
+verified external backup, prepare/inspect/apply the exact no-replacement handoff,
+verify preserved Git/reporting state, then resume the existing P0 coordinator.
+No product tests or live providers are part of this support checkpoint;
+usage/cost deltas are unavailable.
