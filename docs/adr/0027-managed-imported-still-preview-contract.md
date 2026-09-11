@@ -37,5 +37,5 @@ only upload bytes, never local paths or remote URLs. Missing/corrupt byte-store
 observations stay distinct from Approval applicability. Provider hard stops and
 ProductionSnapshot ownership are unchanged. Regression coverage exercises
 decode limits, deduplicated-corrupt blob refusal, independent provenance,
-selection revision conflict behavior, immutable stale preview history and the
-permanent-delete guard.
+selection revision conflict behavior, manifest/asset-hash corruption,
+immutable stale preview history and the permanent-delete guard.

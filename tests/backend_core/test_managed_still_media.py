@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from io import BytesIO
+from struct import pack
+from zlib import crc32
 
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -9,7 +11,7 @@ from plotloom.api import create_app
 from plotloom.artifacts import MemoryArtifactStore
 from plotloom.canonical_schema import ShotBeatLinkV2, StoryboardV2, V2CoverageRole
 from plotloom.domain import STAGE_ORDER, StageName
-from plotloom.persistence import SQLiteRepository
+from plotloom.persistence import ManagedAssetRow, SQLiteRepository, StillPreviewRow
 
 from .conftest import all_stage_payloads
 
@@ -18,6 +20,15 @@ def _png(red: int, green: int, blue: int) -> bytes:
     output = BytesIO()
     Image.new("RGB", (12, 8), (red, green, blue)).save(output, format="PNG")
     return output.getvalue()
+
+
+def _oversized_png_header() -> bytes:
+    """A parseable PNG header whose raster exceeds P0's pixel budget."""
+
+    payload = b"IHDR" + pack(">IIBBBBB", 5_000, 5_000, 8, 2, 0, 0, 0)
+    header = pack(">I", 13) + payload + pack(">I", crc32(payload) & 0xFFFFFFFF)
+    end = b"IEND"
+    return b"\x89PNG\r\n\x1a\n" + header + pack(">I", 0) + end + pack(">I", crc32(end) & 0xFFFFFFFF)
 
 
 def _complete_project_with_three_shots(repository: SQLiteRepository, brief):
@@ -131,6 +142,19 @@ def test_imported_still_preview_is_immutable_and_lifecycle_safe(repository, brie
         assert frozen["state"] == "current"
         assert [frame["shotId"] for frame in frozen["manifest"]["frames"]] == shots
         assert client.get(f"/api/v2/projects/{project.id}/managed-assets/{assets[0]['id']}/original").content == _png(20, 20, 120)
+
+        # Preview rows and asset metadata are storage evidence, not trusted
+        # projection inputs. Deliberately corrupt each and verify read-time
+        # derivation rejects the frozen preview without rewriting its history.
+        with repository._write() as session:  # noqa: SLF001 - durable corruption fixture
+            session.get(StillPreviewRow, frozen["id"]).manifest_hash = "0" * 64
+        assert client.get(f"/api/v2/projects/{project.id}/still-previews").json()["previews"][0]["state"] == "corrupt"
+        with repository._write() as session:  # noqa: SLF001 - durable corruption fixture
+            session.get(StillPreviewRow, frozen["id"]).manifest_hash = frozen["manifestHash"]
+            session.get(ManagedAssetRow, assets[0]["id"]).display_hash = "f" * 64
+        assert client.get(f"/api/v2/projects/{project.id}/still-previews").json()["previews"][0]["state"] == "corrupt"
+        with repository._write() as session:  # noqa: SLF001 - durable corruption fixture
+            session.get(ManagedAssetRow, assets[0]["id"]).display_hash = assets[0]["displayHash"]
 
         replacement = client.post(
             f"/api/v2/projects/{project.id}/reviewed-keyframes",
@@ -254,4 +278,11 @@ def test_decode_boundaries_reject_invalid_or_unsupported_uploads(repository, bri
                 data={"origin": "boundary fixture", "rights": "unknown"},
             )
             assert response.status_code == 422
+        oversized = client.post(
+            f"/api/v2/projects/{project.id}/managed-assets",
+            files={"image": ("oversized.png", _oversized_png_header(), "image/png")},
+            data={"origin": "pixel-boundary fixture", "rights": "unknown"},
+        )
+        assert oversized.status_code == 422
+        assert oversized.json()["code"] == "media_pixel_limit"
         assert client.get(f"/api/v2/projects/{project.id}/managed-assets").json()["assets"] == []

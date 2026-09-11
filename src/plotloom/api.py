@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 from datetime import datetime, timezone
+from hashlib import sha256
 import json
 from pathlib import Path
 from time import monotonic
@@ -61,7 +62,7 @@ from .exceptions import (
     SchemaResetRequiredError,
     StagePrerequisiteError,
 )
-from .persistence import ApprovalClosure, ApprovalDecision, SQLiteRepository
+from .persistence import ApprovalClosure, ApprovalDecision, SQLiteRepository, stable_hash
 from .artifacts import ArtifactStore, MemoryArtifactStore
 from .managed_media import (
     ImportDeclaration,
@@ -1171,18 +1172,28 @@ def create_app(
         """Derived applicability never mutates the frozen preview manifest."""
 
         state = "current"
-        try:
-            closure = repo.get_approval_closure(str(preview["manifest"]["approvalId"]))
-            if not closure.active:
-                state = "revoked" if repo.approval_is_revoked(closure.decision.id) else "stale"
-        except NotFoundError:
+        manifest = preview["manifest"]
+        if stable_hash(manifest) != preview["manifestHash"]:
+            state = "corrupt"
+        if state == "current":
+            try:
+                closure = repo.get_approval_closure(str(manifest["approvalId"]))
+                if not closure.active:
+                    state = "revoked" if repo.approval_is_revoked(closure.decision.id) else "stale"
+            except NotFoundError:
+                state = "stale"
+        if state == "current" and repo.visual_selection_revision(project_id) != manifest["selectionRevision"]:
             state = "stale"
-        if state == "current" and repo.visual_selection_revision(project_id) != preview["manifest"]["selectionRevision"]:
-            state = "stale"
-        for frame in preview["manifest"]["frames"]:
+        for frame in manifest["frames"]:
             try:
                 stored = repo.get_managed_asset_storage(project_id, frame["assetId"])
-                app.state.artifact_store.get(stored["displayUri"])
+                if stored["displayHash"] != frame["displayHash"]:
+                    state = "corrupt"
+                    break
+                content = app.state.artifact_store.get(stored["displayUri"])
+                if sha256(content).hexdigest() != frame["displayHash"]:
+                    state = "corrupt"
+                    break
             except (FileNotFoundError, KeyError):
                 state = "missing"
                 break

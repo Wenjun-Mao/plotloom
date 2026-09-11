@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from hashlib import sha256
 from io import BytesIO
 from typing import Literal
+from warnings import catch_warnings, simplefilter
 
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import Field, field_validator
@@ -99,18 +100,23 @@ def inspect_import_image(content: bytes) -> ObservedImage:
     if len(content) > MAX_IMPORT_BYTES:
         raise ManagedMediaError("media_too_large", f"image exceeds {MAX_IMPORT_BYTES} byte limit")
     try:
-        with Image.open(BytesIO(content)) as inspected:
-            image_format = inspected.format
-            if image_format not in SUPPORTED_MEDIA_TYPES:
-                raise ManagedMediaError("unsupported_media", "only JPEG and PNG images are supported")
-            if getattr(inspected, "n_frames", 1) != 1:
-                raise ManagedMediaError("animated_media", "animated images are not supported")
-            inspected.verify()
+        # Pillow's metadata parser is intentionally used before ``load`` so a
+        # declared pixel bomb cannot make us decode a large raster just to
+        # discover it exceeds Plotloom's stricter product limit.
+        with catch_warnings():
+            simplefilter("error", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(content)) as inspected:
+                image_format = inspected.format
+                if image_format not in SUPPORTED_MEDIA_TYPES:
+                    raise ManagedMediaError("unsupported_media", "only JPEG and PNG images are supported")
+                width, height = inspected.size
+                if width < 1 or height < 1 or width * height > MAX_IMPORT_PIXELS:
+                    raise ManagedMediaError("media_pixel_limit", f"image exceeds {MAX_IMPORT_PIXELS} pixel limit")
+                if getattr(inspected, "n_frames", 1) != 1:
+                    raise ManagedMediaError("animated_media", "animated images are not supported")
+                inspected.verify()
         with Image.open(BytesIO(content)) as decoded:
             decoded.load()
-            width, height = decoded.size
-            if width < 1 or height < 1 or width * height > MAX_IMPORT_PIXELS:
-                raise ManagedMediaError("media_pixel_limit", f"image exceeds {MAX_IMPORT_PIXELS} pixel limit")
             display = ImageOps.exif_transpose(decoded).convert("RGB")
             display.thumbnail((2048, 2048))
             output = BytesIO()
@@ -118,6 +124,8 @@ def inspect_import_image(content: bytes) -> ObservedImage:
             display_bytes = output.getvalue()
     except ManagedMediaError:
         raise
+    except (Image.DecompressionBombError, Image.DecompressionBombWarning) as error:
+        raise ManagedMediaError("media_pixel_limit", f"image exceeds {MAX_IMPORT_PIXELS} pixel limit") from error
     except (UnidentifiedImageError, OSError, ValueError) as error:
         raise ManagedMediaError("invalid_media", "image bytes could not be decoded") from error
     return ObservedImage(
