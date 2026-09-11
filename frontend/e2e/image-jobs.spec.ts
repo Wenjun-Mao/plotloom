@@ -8,6 +8,7 @@ import { expect, test } from "./fixture";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
+const usabilityScreenshot = path.join(repositoryRoot, "docs/verification/supporting/p1-image-workflow-usability-1440x900.png");
 
 type ImageJob = {
   id: string;
@@ -21,6 +22,12 @@ test.describe("P1 self-contained copied image brief", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test("prepares, copies, refreshes, refines, and invalidates a copied brief after an intent revision", async ({ page, request, workbench }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: { writeText: async (value: string) => window.sessionStorage.setItem("copied-image-job", value) },
+      });
+    });
     const projectId = await createCanonicalProject(request, workbench.apiOrigin);
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
     await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /05 分镜工作台/ }).click();
@@ -28,20 +35,56 @@ test.describe("P1 self-contained copied image brief", () => {
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     await expect(page.getByText("当前批准：P1 self-contained browser reviewer", { exact: true })).toBeVisible();
 
-    await page.getByTestId("image-job-presentation-change").fill(
-      "Render the approved arrival shot with clear practical control-room lighting and readable facial detail.",
-    );
+    const originalDirection = "Render the approved arrival shot with clear practical control-room lighting and readable facial detail.";
+    const shotPicker = page.getByLabel("当前媒体镜头");
+    const originalShotId = await shotPicker.inputValue();
+    const alternateShotId = await shotPicker.locator("option").nth(1).getAttribute("value");
+    await page.getByTestId("image-job-presentation-change").fill(originalDirection);
+    if (alternateShotId && alternateShotId !== originalShotId) {
+      await shotPicker.selectOption(alternateShotId);
+      await expect(page.getByTestId("image-job-presentation-change")).toHaveValue("");
+      await shotPicker.selectOption(originalShotId);
+      await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(originalDirection);
+    }
+    await page.reload();
+    await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(originalDirection);
+    await page.evaluate(() => {
+      const key = "plotloom:image-job-direction-drafts:v1";
+      const drafts = JSON.parse(window.sessionStorage.getItem(key) || "{}");
+      const first = Object.keys(drafts)[0];
+      if (first) drafts[first].contextId = "obsolete-context";
+      window.sessionStorage.setItem(key, JSON.stringify(drafts));
+    });
+    await page.reload();
+    await expect(page.getByTestId("image-job-direction-stale")).toBeVisible();
+    await page.getByRole("button", { name: "确认后恢复到当前上下文" }).click();
+    await expect(page.getByTestId("image-job-direction-stale")).toHaveCount(0);
+    const otherProjectId = await createCanonicalProject(request, workbench.apiOrigin);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${otherProjectId}&stage=storyboard`);
+    await expect(page.getByTestId("image-job-presentation-change")).toHaveValue("");
+    await page.getByTestId("image-job-presentation-change").fill("This direction must remain isolated in the other project.");
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
+    await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(originalDirection);
     await prepareImageJob(page, projectId, "prepare-image-job");
     const original = await latestImageJob(request, workbench.apiOrigin, projectId);
     await expect(page.getByTestId(`image-job-${original.id}`)).toBeVisible();
     await copyImageJob(page, projectId, original.id);
     await expect(page.getByTestId("image-job-assignment")).toContainText("completion-manifest.example.json");
+    await expect(page.getByTestId("image-job-copy-status")).toContainText("已复制到系统剪贴板");
+    await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("copied-image-job"))).toContain("Codex image specialist assignment");
+    await page.getByTestId(`refresh-image-job-${original.id}`).click();
+    await expect(page.getByTestId(`image-job-${original.id}`)).toContainText("尚未收到 delivery");
+    expect((await imageJob(request, workbench.apiOrigin, projectId, original.id)).deliveries).toEqual([]);
+    await page.evaluate(() => Object.defineProperty(navigator, "clipboard", { configurable: true, value: undefined }));
+    await copyImageJob(page, projectId, original.id);
+    await expect(page.getByTestId("image-job-copy-status")).toContainText("手动复制");
+    await page.getByTestId("select-image-job-assignment").click();
 
     const originalPackage = path.join(workbench.imageExchangeRoot, "jobs", original.id, "package");
     const originalRequest = await readJson(path.join(originalPackage, "request.json"));
     expect(originalRequest).toMatchObject({ schemaVersion: 2, packageVersion: 2, jobId: original.id });
     expect(originalRequest.frozenSnapshot.creatorDirection).toEqual({
-      presentationChange: "Render the approved arrival shot with clear practical control-room lighting and readable facial detail.",
+      presentationChange: originalDirection,
     });
     expect(originalRequest.frozenSnapshot.resolvedContext).toMatchObject({
       scene: { id: "scene_arrival" },
@@ -66,10 +109,18 @@ test.describe("P1 self-contained copied image brief", () => {
     await page.getByLabel("审核兼容性说明").fill("The accepted original candidate matches the approved arrival shot.");
     await page.getByTestId("select-reviewed-keyframe").click();
     await expect(page.getByTestId("current-reviewed-keyframe")).toContainText("intent r1");
+    await page.getByTestId("preview-subset-length").selectOption("1");
+    await page.getByTestId("create-still-preview").click();
+    await expect(page.getByTestId("still-animatic")).toBeVisible();
+    await page.reload();
+    await expect(page.getByTestId("still-animatic")).toBeVisible();
 
     const refinementDirection = "Keep the reviewed parent framing; improve facial clarity under practical control-panel lighting.";
+    await page.getByTestId(`prepare-refinement-${originalCandidate}`).click();
+    await page.getByTestId("image-job-target").selectOption(`refinement:${originalCandidate}`);
+    await expect(page.getByTestId("image-job-presentation-change")).toHaveValue("");
     await page.getByTestId("image-job-presentation-change").fill(refinementDirection);
-    await prepareImageJob(page, projectId, `prepare-refinement-${originalCandidate}`);
+    await prepareImageJob(page, projectId, "prepare-image-job");
     const refinement = await latestImageJob(request, workbench.apiOrigin, projectId);
     expect(refinement.request.kind).toBe("refinement");
     await copyImageJob(page, projectId, refinement.id);
@@ -92,7 +143,7 @@ test.describe("P1 self-contained copied image brief", () => {
     // VisualIntent through the normal browser editor. Its Refresh must retain
     // the late receipt as inapplicable rather than publish changed-brief bytes.
     await page.getByTestId("image-job-presentation-change").fill("Retain the parent composition while balancing the practical lights.");
-    await prepareImageJob(page, projectId, `prepare-refinement-${originalCandidate}`);
+    await prepareImageJob(page, projectId, "prepare-image-job");
     const staleRefinement = await latestImageJob(request, workbench.apiOrigin, projectId);
     await copyImageJob(page, projectId, staleRefinement.id);
     await page.getByTestId("visual-intent-source-refs").fill("retained P0 image fixture revised after copied refinement");
@@ -104,6 +155,26 @@ test.describe("P1 self-contained copied image brief", () => {
     const staleResult = await imageJob(request, workbench.apiOrigin, projectId, staleRefinement.id);
     expect(staleResult.deliveries[0]).toMatchObject({ state: "inapplicable", candidates: [] });
     await expect(page.getByTestId(`image-job-${staleRefinement.id}`)).toContainText("INAPPLICABLE");
+
+    // A delivery with a changed manifest must be rejected through the same
+    // browser Refresh path; absence is the only non-error waiting state.
+    await page.getByTestId("image-job-target").selectOption("original");
+    await page.getByTestId("image-job-presentation-change").fill("Browser-check the manifest integrity before accepting this original delivery.");
+    await prepareImageJob(page, projectId, "prepare-image-job");
+    const tampered = await latestImageJob(request, workbench.apiOrigin, projectId);
+    await copyImageJob(page, projectId, tampered.id);
+    await writeDelivery(workbench.imageExchangeRoot, tampered, "tampered-browser-001", "original");
+    const tamperedManifest = path.join(workbench.imageExchangeRoot, "jobs", tampered.id, "delivery", "completion.json");
+    const tamperedContents = await readJson(tamperedManifest);
+    tamperedContents.requestHash = "0".repeat(64);
+    await writeFile(tamperedManifest, JSON.stringify(tamperedContents), "utf8");
+    const rejectedRefresh = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/image-jobs/${tampered.id}/refresh`);
+    await page.getByTestId(`refresh-image-job-${tampered.id}`).click();
+    expect((await rejectedRefresh).status()).toBeGreaterThanOrEqual(400);
+    await expect(page.getByRole("alert")).toBeVisible();
+    await expect.poll(async () => (await imageJob(request, workbench.apiOrigin, projectId, tampered.id)).deliveries[0]?.state).toBe("rejected");
+    await page.screenshot({ path: usabilityScreenshot });
   });
 });
 

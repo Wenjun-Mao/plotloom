@@ -184,7 +184,7 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs/${encodeURIComponent(jobId)}/copy`, { method: "POST" });
   }
 
-  refreshImageJob(projectId: string, jobId: string): Promise<{ state: string; candidates: Array<{ assetId: string }> }> {
+  refreshImageJob(projectId: string, jobId: string): Promise<{ state: "awaiting_delivery" | "accepted" | "inapplicable"; candidates: Array<{ assetId: string }> }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs/${encodeURIComponent(jobId)}/refresh`, { method: "POST" });
   }
 

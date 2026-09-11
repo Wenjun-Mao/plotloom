@@ -1418,6 +1418,10 @@ def create_app(
             }:
                 repo.record_image_job_delivery_rejection(project_id, job_id, error.code)
             raise
+        if delivery is None:
+            # Copy intentionally creates no completion marker. This is not a
+            # rejected delivery and must not manufacture immutable history.
+            return {"state": "awaiting_delivery", "candidates": [], "idempotent": False}
         outputs: list[dict[str, Any]] = []
         for output in delivery.outputs:
             outputs.append({

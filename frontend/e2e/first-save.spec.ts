@@ -107,6 +107,10 @@ test.describe("first-save project bootstrap", () => {
       "storyboard",
       submittedStoryboard!.payload,
     );
+    // Bootstrap persists the Gate receipt transactionally. The first project
+    // view must fetch it immediately, rather than misleading the creator
+    // until a manual reload.
+    await expect(page.getByText(/质量门详情/)).toBeVisible();
 
     await page.reload();
     await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();

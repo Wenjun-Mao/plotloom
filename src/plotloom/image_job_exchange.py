@@ -468,8 +468,14 @@ class ImageJobExchange:
         finally:
             os.close(package_fd)
 
-    def read_delivery(self, *, job_id: str, request_hash: str) -> ValidatedDelivery:
-        """Read a completed untrusted package without publishing anything."""
+    def read_delivery(self, *, job_id: str, request_hash: str) -> ValidatedDelivery | None:
+        """Read a completed untrusted package, or report that no delivery exists yet.
+
+        An absent delivery directory (or an empty inbox) is the normal state
+        after Copy.  It is deliberately distinct from an incomplete package:
+        once a writer has placed any entry in the inbox, Refresh continues to
+        fail closed instead of treating a partial handoff as harmless waiting.
+        """
 
         root = self._root()
         if not is_image_job_id(job_id):
@@ -477,8 +483,21 @@ class ImageJobExchange:
         # Descriptor-relative, no-follow reads bind every ancestor and the
         # final file before inspecting it. A delivery writer can change files
         # while preparing, but cannot swap this read outside the exchange root.
-        delivery_fd = self._open_directory(root, ("jobs", job_id, "delivery"))
         try:
+            delivery_fd = self._open_directory(root, ("jobs", job_id, "delivery"))
+        except ImageJobError as error:
+            if error.code == "delivery_incomplete":
+                return None
+            raise
+        try:
+            names = self._directory_names(delivery_fd)
+            if not names:
+                return None
+            if COMPLETION_FILENAME not in names:
+                raise ImageJobError(
+                    "delivery_partial",
+                    "delivery has files but no completion manifest",
+                )
             raw = self._read_regular_at(delivery_fd, COMPLETION_FILENAME, max_bytes=1_000_000)
             try:
                 payload = json.loads(raw)
@@ -487,7 +506,7 @@ class ImageJobExchange:
                 raise ImageJobError("delivery_manifest_invalid", "completion manifest does not match the image-job contract") from error
             if manifest.job_id != job_id or manifest.request_hash != request_hash:
                 raise ImageJobError("delivery_identity_mismatch", "completion manifest does not belong to this frozen image job")
-            if self._directory_names(delivery_fd) != {COMPLETION_FILENAME, "outputs"}:
+            if names != {COMPLETION_FILENAME, "outputs"}:
                 raise ImageJobError("delivery_partial", "delivery contains undeclared files")
 
             outputs_fd = self._open_directory(root, ("jobs", job_id, "delivery", "outputs"))

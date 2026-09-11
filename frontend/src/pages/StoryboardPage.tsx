@@ -351,7 +351,7 @@ export function StoryboardPage({
       <Button variant="primary" disabled={saving} onClick={() => void onSave(storyboard)}>{saving ? "正在保存…" : "保存分镜"}</Button>
     </>} />
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
-    <div className="notice"><strong>媒体生产尚未开放</strong><span>现有媒体结果保持可读；新任务必须等待 Approval 与不可变 ProductionSnapshot。</span></div>
+    <div className="notice"><strong>媒体能力</strong><span>P0 可导入并审核 stills，P1 可在下方通过同机手动 Codex image handoff 准备已批准镜头；两者都要求显式选择。视频生产尚未实现，历史任务仅供查看。</span></div>
     <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} selectedShot={selectedShot} storyboardRevision={revision} review={review} readOnly={saving} onSelectShot={selectShot} onReview={() => {
       const panel = document.getElementById("storyboard-review");
       panel?.scrollIntoView({ block: "start" });
@@ -375,7 +375,7 @@ export function StoryboardPage({
                   <div className="shot-frame">{imageTask?.outputUri ? <img src={imageTask.outputUri} alt={`${shot.title} 历史关键帧`} /> : <span>{String(shot.order).padStart(2, "0")}</span>}{stale && <Badge tone="warning">STALE</Badge>}</div>
                   <div className="shot-copy"><strong>{shot.title}</strong><small>{shot.shotSize} · {shot.durationUnits}ms · {shotLinks.length} links</small><p>{shot.action}</p></div>
                 </button>
-                <div className="media-controls"><Button variant="quiet" disabled>图片生产未就绪</Button><Button variant="quiet" disabled>视频生产未就绪</Button></div>
+                <div className="media-controls"><small>P1 图片：在下方完成 Gate receipt、Approval 和手动交接。</small><small>视频：尚未实现。</small></div>
               </article>;
             })}
           </div>

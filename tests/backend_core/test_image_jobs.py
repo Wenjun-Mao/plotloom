@@ -151,6 +151,25 @@ def test_image_job_requires_nonblank_creator_direction_before_admission(reposito
         assert client.get(f"/api/v2/projects/{project.id}/image-jobs").json()["jobs"] == []
 
 
+def test_image_job_refresh_reports_absent_delivery_as_waiting_without_a_receipt(repository, brief, tmp_path: Path) -> None:
+    project, scene_id = _complete_project_with_three_shots(repository, brief)
+    app = create_app(repository, artifact_store=MemoryArtifactStore(), image_exchange_root=tmp_path / "exchange")
+    with TestClient(app) as client:
+        _review, approval = _approval(client, project.id)
+        board = repository.get_stage_head(project.id, StageName.STORYBOARD)
+        job = _prepare(client, project.id, approval, _shot_id(repository, project.id, scene_id), board.revision)["job"]
+        copied = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/copy")
+        assert copied.status_code == 200, copied.text
+
+        waiting = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh")
+        assert waiting.status_code == 200, waiting.text
+        assert waiting.json() == {"state": "awaiting_delivery", "candidates": [], "idempotent": False}
+
+        listed = client.get(f"/api/v2/projects/{project.id}/image-jobs").json()["jobs"]
+        assert listed[0]["state"] == "exported"
+        assert listed[0]["deliveries"] == []
+
+
 def test_legacy_v1_package_remains_recheckable_without_a_template(tmp_path: Path) -> None:
     request = {"schemaVersion": 1, "jobId": "ij_" + "a" * 20, "kind": "original"}
     request_hash = sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest()

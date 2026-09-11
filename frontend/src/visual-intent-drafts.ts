@@ -4,6 +4,7 @@ export type IntentDraft = { identityIntent: string; compositionIntent: string; s
 type Entry = { baseId: string | null; value: IntentDraft };
 type Drafts = Record<string, Entry>;
 const storageKey = "plotloom:visual-intent-drafts:v1";
+const imageJobStorageKey = "plotloom:image-job-direction-drafts:v1";
 const fields = ["identityIntent", "compositionIntent", "styleIntent", "sourceRefs"] as const;
 
 function readDrafts(): Drafts {
@@ -52,4 +53,75 @@ export function useVisualIntentDraft(projectId: string | undefined, shotId: stri
     } }));
   };
   return { value, update, clear, dirty, stale, storageFailed };
+}
+
+export type ImageJobDraftTarget =
+  | { kind: "original" }
+  | { kind: "refinement"; parentCandidateAssetId: string };
+
+type ImageJobDraftEntry = { contextId: string; value: string };
+type ImageJobDrafts = Record<string, ImageJobDraftEntry>;
+
+function readImageJobDrafts(): ImageJobDrafts {
+  try {
+    const value: unknown = JSON.parse(window.sessionStorage.getItem(imageJobStorageKey) ?? "{}");
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry
+      && typeof entry.contextId === "string" && typeof entry.value === "string"));
+  } catch { return {}; }
+}
+
+/**
+ * A direction belongs to the exact manual-job target and approved context. It
+ * is session-only, so changing shots or returning after navigation can never
+ * silently reuse a direction for another job.
+ */
+export function useImageJobDirectionDraft(
+  projectId: string | undefined,
+  shotId: string | undefined,
+  target: ImageJobDraftTarget,
+  contextId: string,
+) {
+  const [drafts, setDrafts] = useState<ImageJobDrafts>(readImageJobDrafts);
+  const [storageFailed, setStorageFailed] = useState(false);
+  const targetId = target.kind === "original" ? "original" : `refinement:${target.parentCandidateAssetId}`;
+  const key = JSON.stringify([projectId, shotId, targetId]);
+  const entry = drafts[key];
+  const stale = Boolean(entry && entry.contextId !== contextId);
+  const value = entry?.value ?? "";
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(imageJobStorageKey, JSON.stringify(drafts));
+      setStorageFailed(false);
+    } catch { setStorageFailed(true); }
+  }, [drafts]);
+  useEffect(() => {
+    if (!Object.keys(drafts).length) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [drafts]);
+
+  const update = (next: string) => {
+    if (!projectId || !shotId) return;
+    setDrafts((current) => ({ ...current, [key]: {
+      contextId: current[key]?.contextId ?? contextId,
+      value: next,
+    } }));
+  };
+  const clear = () => setDrafts((current) => {
+    const next = { ...current };
+    delete next[key];
+    return next;
+  });
+  // Recovery is deliberate: it retains the text but rebases it only after the
+  // creator has seen that its Approval, storyboard, or reviewed target changed.
+  const recoverForCurrentContext = () => setDrafts((current) => {
+    const currentEntry = current[key];
+    if (!currentEntry) return current;
+    return { ...current, [key]: { ...currentEntry, contextId } };
+  });
+
+  return { value, update, clear, recoverForCurrentContext, dirty: Boolean(entry?.value.trim()), stale, storageFailed, targetId };
 }

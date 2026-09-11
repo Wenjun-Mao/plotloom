@@ -533,6 +533,13 @@ export default function App() {
     setTrace([]);
     setMediaTasks({});
     setConnection("connected");
+    // Initial-stage creation persists a storyboard Gate receipt in the same
+    // transaction. Hydrating stages alone used to leave the review panel blank
+    // until a later navigation, falsely suggesting the receipt was absent.
+    if (created.id && created.stages.some((stage) => stage.head.stage === "storyboard" && stage.head.status === "ready")) {
+      const review = await plotloomApi.getStoryboardReview(created.id).catch(() => null);
+      if (review) setStoryboardReview(review);
+    }
     if (created.id) {
       const query = new URLSearchParams(location.search);
       query.set("project", created.id);
