@@ -1,6 +1,6 @@
 # Retained Flow reconciliation before P0
 
-Revision 2 — **Approved bounded metadata retirement**, 2026-09-11.
+Revision 2 — **Bounded metadata retirement complete**, 2026-09-11.
 After the initial no-deletion guard stopped execution, the user separately
 approved a verified byte-preserving backup outside repository/Flow roots and
 the plugin-managed retirement of exactly `.git/codex-flow/v0.9.12` and
@@ -193,10 +193,37 @@ After this support checkpoint, start P0 rather than another infrastructure audit
 
 ## Current handoff
 
-At revision 2 approval, no refresh preparation/apply, run closure, assignment
-acceptance, archive, cleanup, or P0 source mutation has occurred. Fresh inspection
-still reports a clean source checkout at `96de4e3` and `refresh-ready`. Next:
-verified external backup, prepare/inspect/apply the exact no-replacement handoff,
-verify preserved Git/reporting state, then resume the existing P0 coordinator.
-No product tests or live providers are part of this support checkpoint;
-usage/cost deltas are unavailable.
+Recovery completed through stable v0.9.13 at 2026-09-11T15:14:21.606Z.
+
+- A private external backup of the complete pre-transition Flow tree was verified
+  by file size/SHA-256 manifest and a second source comparison (264 entries,
+  including directories). Location:
+  `/Users/wjmao/plotloom-flow-backups/2026-09-11-handoff.xuiFqt`.
+- The first prepare request incorrectly named the separate P0 coordinator as
+  the refresh target. It failed before mutation: refresh must stay in the source
+  coordinator task. Byte comparison confirmed no Flow change. The corrected
+  request retained the source coordinator identity; P0 remains separate.
+- Prepared handoff
+  `refresh-v1-9d39010be81057526986069c9f708b56a2fc3ed6ed8e38f4d344f8e364d68c73`
+  had empty decisions, replacements and cleanup. The prepared result is retained
+  outside Flow along with both requests and process results.
+- Apply returned `consumed-clean-start`, handoff state `consumed`, source terminal
+  status `abandoned` by `snapshot-abandon`. This is lifecycle retirement, not a
+  claim that source-only corrections passed the old immutable contract.
+- The plugin removed only `v0.9.12` and `refresh-v1`. The pre-transition metadata
+  is recoverable from the verified backup, but must not be restored as live Flow
+  authority. `apply-result.json` preserves the later transition receipt separately.
+- Before/after verification passed for all refs, worktree registrations, and
+  HEAD/status of primary, `754b`, `357b` and `cd58`. No source, branch, checkout or
+  task was deleted or archived. Primary was clean at `c46b8d6` during the operation.
+- No shared records disappeared. The sole changed shared file was the old
+  assignment record, with authenticated execution retirement retained. Reporting
+  and P0 preparation remain present. A verified post-transition copy is retained.
+- Fresh inspection from P0 checkout `357b` returned `route: fresh`, non-mutating.
+  The existing P0 coordinator can now activate ordinary fresh work without a
+  refresh ID; the approved P0 revision 1 preparation remains unchanged.
+
+Next: resume the existing P0 coordinator for the imported still preview journey.
+No product tests, live providers, merge or push ran in this support checkpoint.
+Old assignment acceptance is not claimed by retirement. Usage/cost deltas are
+unavailable.
