@@ -124,3 +124,30 @@ returns `409 invalid_transition`; the browser regression proves board-edit
 reapproval exposes missing keyframes and requires an explicit new selection.
 The reviewer reported no other findings. The finding is resolved and was
 reverified by the completed checks above.
+
+## Director product acceptance — 2026-09-11
+
+Accepted as the bounded **local P0 product checkpoint**, reviewing candidate
+`abf8e7b` (implementation `bf435bef6970ccba04301c50a5ed69f43657ad2c`).
+The remaining actual-backend-restart and approved-plan-identity findings are
+resolved. This is source-only product acceptance under the explicit exception
+above, not assignment acceptance, a Flow completion receipt, or release approval.
+
+Director checks on the clean candidate:
+
+- Reviewed the real process stop/start fixture and exact before/after assertions;
+  reran `npm --prefix frontend run test:e2e -- e2e/imported-still-preview.spec.ts`:
+  E2E typecheck passed and **1 browser journey passed** (8.7 seconds total).
+- Opened the retained pilot SQLite database with `mode=ro`:
+  `PRAGMA integrity_check` returned `ok`. Counts matched the receipt: four assets,
+  four provenance records, two visual intents, five bindings and two previews.
+- Reviewed the retained 1440×900 screenshot and restored revision-1 plan identity.
+- `git diff --check` and `git diff --exit-code -- src/plotloom/static` passed.
+  The broader 532/9 Python, 24-browser and wheel results above are coordinator
+  verification; the director did not redundantly rerun those full gates.
+
+No Flow state was changed, no task/worktree was archived or removed, and nothing
+was merged or pushed. The started Flow operation and historical write-envelope
+violation remain unresolved. P1–P4, provider generation, cinematic quality and
+Alpha qualification are not accepted by this checkpoint. Response/token/cost
+deltas are unavailable.
