@@ -102,6 +102,9 @@ retention and unchanged provider hard stops. Playback graph equivalence and
 exactly-once choice effects belong to P4, not P0. Existing historical contracts
 must remain readable and unchanged.
 
+The implemented P0 storage, endpoint, selection and lifecycle details are
+recorded in [ADR 0027](0027-managed-imported-still-preview-contract.md).
+
 ## Follow-up
 
 See [the roadmap](../roadmap/story-to-playable-alpha.md) for milestones, open

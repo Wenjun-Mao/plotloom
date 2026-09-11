@@ -242,6 +242,7 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
         run_scheduler=run_runner,
         media_scheduler=media_runner,
         media_prompt_compiler=MediaPromptCompiler(),
+        artifact_store=artifact_store,
         static_dir=settings.static_dir,
         provider_defaults=provider_defaults,
         key_availability={

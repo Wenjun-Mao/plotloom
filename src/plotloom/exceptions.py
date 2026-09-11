@@ -76,6 +76,15 @@ class ProjectBusyError(PlotloomError):
         super().__init__("project has non-terminal runs, work units, or media tasks")
 
 
+class ProjectManagedAssetsPresentError(InvalidTransitionError):
+    """Permanent deletion has no safe media-erasure implementation yet."""
+
+    code = "project_managed_assets_present"
+
+    def __init__(self) -> None:
+        super().__init__(self.code)
+
+
 class LifecycleContentionError(PlotloomError):
     """A lifecycle command could not acquire SQLite's cross-process writer lease."""
 

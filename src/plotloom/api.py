@@ -8,9 +8,9 @@ from pathlib import Path
 from time import monotonic
 from typing import Annotated, Any, Callable, Literal, Mapping, Protocol
 
-from fastapi import FastAPI, HTTPException, Header, Query, Request, status
+from fastapi import FastAPI, File, Form, HTTPException, Header, Query, Request, UploadFile, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import Field, ValidationError, field_validator, model_validator
 
@@ -55,12 +55,23 @@ from .exceptions import (
     NotFoundError,
     ProductionPipelineNotReadyError,
     ProjectBusyError,
+    ProjectManagedAssetsPresentError,
     RepairEligibilityError,
     RevisionConflictError,
     SchemaResetRequiredError,
     StagePrerequisiteError,
 )
 from .persistence import ApprovalClosure, ApprovalDecision, SQLiteRepository
+from .artifacts import ArtifactStore, MemoryArtifactStore
+from .managed_media import (
+    ImportDeclaration,
+    ManagedMediaError,
+    PreviewRequest,
+    ReviewedSelectionRequest,
+    VisualIntentInput,
+    inspect_import_image,
+    publish_import,
+)
 from .provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,
     PROFILE_ID_PATTERN,
@@ -594,6 +605,7 @@ def create_app(
     run_scheduler: RunScheduler | None = None,
     media_scheduler: MediaScheduler | None = None,
     media_prompt_compiler: MediaPromptCompiler | None = None,
+    artifact_store: ArtifactStore | None = None,
     static_dir: Path | None = None,
     provider_defaults: ProviderSettings | None = None,
     key_availability: Mapping[str, bool] | None = None,
@@ -613,6 +625,10 @@ def create_app(
     app.state.repository = repo
     app.state.run_scheduler = run_scheduler
     app.state.media_scheduler = media_scheduler
+    # Imports use a separate byte-store dependency from generation evidence.
+    # Runtime supplies LocalArtifactStore; the in-memory default keeps isolated
+    # API tests deterministic without silently opening a filesystem root.
+    app.state.artifact_store = artifact_store or MemoryArtifactStore()
     # Observations are intentionally application-lifetime state: no secrets,
     # no persistence, and no implication that a profile is qualified.
     readiness_observations: dict[str, TextBackendReadiness] = {}
@@ -983,6 +999,16 @@ def create_app(
     async def project_busy_handler(_request: Request, error: ProjectBusyError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"code": "project_busy", "message": str(error)})
 
+    @app.exception_handler(ProjectManagedAssetsPresentError)
+    async def project_managed_assets_present_handler(
+        _request: Request, error: ProjectManagedAssetsPresentError
+    ) -> JSONResponse:
+        return JSONResponse(status_code=409, content={"code": error.code, "message": str(error)})
+
+    @app.exception_handler(ManagedMediaError)
+    async def managed_media_handler(_request: Request, error: ManagedMediaError) -> JSONResponse:
+        return JSONResponse(status_code=422, content={"code": error.code, "message": str(error)})
+
     @app.exception_handler(LifecycleContentionError)
     async def lifecycle_contention_handler(
         _request: Request, error: LifecycleContentionError
@@ -1140,6 +1166,108 @@ def create_app(
     @app.get("/api/v2/projects/{project_id}/media-tasks", response_model=ProjectMediaTasksResponse)
     def get_project_media_tasks(project_id: str) -> ProjectMediaTasksResponse:
         return ProjectMediaTasksResponse(tasks=repo.list_project_media_tasks(project_id))
+
+    def preview_view(project_id: str, preview: dict[str, Any]) -> dict[str, Any]:
+        """Derived applicability never mutates the frozen preview manifest."""
+
+        state = "current"
+        try:
+            closure = repo.get_approval_closure(str(preview["manifest"]["approvalId"]))
+            if not closure.active:
+                state = "revoked" if repo.approval_is_revoked(closure.decision.id) else "stale"
+        except NotFoundError:
+            state = "stale"
+        if state == "current" and repo.visual_selection_revision(project_id) != preview["manifest"]["selectionRevision"]:
+            state = "stale"
+        for frame in preview["manifest"]["frames"]:
+            try:
+                stored = repo.get_managed_asset_storage(project_id, frame["assetId"])
+                app.state.artifact_store.get(stored["displayUri"])
+            except (FileNotFoundError, KeyError):
+                state = "missing"
+                break
+            except (ValueError, OSError):
+                state = "corrupt"
+                break
+        return {**preview, "state": state}
+
+    @app.post("/api/v2/projects/{project_id}/managed-assets", status_code=status.HTTP_201_CREATED)
+    async def import_managed_asset(
+        project_id: str,
+        image: Annotated[UploadFile, File(description="JPEG or PNG original bytes")],
+        origin: Annotated[str, Form(min_length=1, max_length=2_000)],
+        rights: Annotated[Literal["known", "unknown"], Form()] = "unknown",
+        rights_note: Annotated[str | None, Form(max_length=2_000)] = None,
+        declared_additions_json: Annotated[str | None, Form()] = None,
+    ) -> dict[str, Any]:
+        try:
+            additions = json.loads(declared_additions_json) if declared_additions_json else []
+        except json.JSONDecodeError as error:
+            raise ManagedMediaError("invalid_declaration", "declared additions must be JSON") from error
+        declaration = ImportDeclaration(
+            origin=origin, rights=rights, rights_note=rights_note, declared_additions=additions
+        )
+        content = await image.read(8 * 1024 * 1024 + 1)
+        observed = inspect_import_image(content)
+        try:
+            original_uri, display_uri = publish_import(app.state.artifact_store, content, observed)
+        except (OSError, KeyError, ValueError) as error:
+            raise ManagedMediaError("corrupt_existing_blob", "stored media could not be verified") from error
+        return repo.record_managed_import(
+            project_id,
+            original_uri=original_uri,
+            original_hash=observed.content_hash,
+            display_uri=display_uri,
+            display_hash=observed.display_hash,
+            mime_type=observed.mime_type,
+            byte_size=observed.byte_size,
+            width=observed.width,
+            height=observed.height,
+            declaration=declaration.model_dump(mode="json", by_alias=True),
+        )
+
+    @app.get("/api/v2/projects/{project_id}/managed-assets")
+    def get_managed_assets(project_id: str) -> dict[str, Any]:
+        return {"assets": repo.list_managed_assets(project_id), "selectionRevision": repo.visual_selection_revision(project_id)}
+
+    @app.get("/api/v2/projects/{project_id}/managed-assets/{asset_id}/{variant}")
+    def serve_managed_asset(
+        project_id: str, asset_id: str, variant: Literal["display", "original"]
+    ) -> Response:
+        stored = repo.get_managed_asset_storage(project_id, asset_id)
+        uri = stored["displayUri"] if variant == "display" else stored["originalUri"]
+        try:
+            content = app.state.artifact_store.get(uri)
+        except (FileNotFoundError, KeyError):
+            raise HTTPException(status_code=410, detail={"code": "managed_asset_missing"})
+        except (ValueError, OSError):
+            raise HTTPException(status_code=409, detail={"code": "managed_asset_corrupt"})
+        return Response(content=content, media_type="image/png" if variant == "display" else stored["mimeType"])
+
+    @app.post("/api/v2/projects/{project_id}/managed-assets/{asset_id}/visual-intents", status_code=status.HTTP_201_CREATED)
+    def add_visual_intent(project_id: str, asset_id: str, body: VisualIntentInput) -> dict[str, Any]:
+        return repo.create_visual_intent(project_id, asset_id, body.model_dump(mode="json", by_alias=True))
+
+    @app.post("/api/v2/projects/{project_id}/reviewed-keyframes", status_code=status.HTTP_201_CREATED)
+    def select_reviewed_keyframe(project_id: str, body: ReviewedSelectionRequest) -> dict[str, Any]:
+        return repo.select_reviewed_keyframe(project_id, **body.model_dump(mode="python", by_alias=False))
+
+    @app.post("/api/v2/projects/{project_id}/still-previews", status_code=status.HTTP_201_CREATED)
+    def create_still_preview(project_id: str, body: PreviewRequest) -> dict[str, Any]:
+        preview = repo.create_still_preview(project_id, **body.model_dump(mode="python", by_alias=False))
+        return preview_view(project_id, preview)
+
+    @app.get("/api/v2/projects/{project_id}/still-previews")
+    def get_still_previews(project_id: str) -> dict[str, Any]:
+        return {"previews": [preview_view(project_id, preview) for preview in repo.list_still_previews(project_id)]}
+
+    @app.get("/api/v2/projects/{project_id}/visual-workbench")
+    def get_visual_workbench(project_id: str) -> dict[str, Any]:
+        return {
+            "assets": repo.list_managed_assets(project_id),
+            "selectionRevision": repo.visual_selection_revision(project_id),
+            "previews": [preview_view(project_id, preview) for preview in repo.list_still_previews(project_id)],
+        }
 
     @app.patch("/api/v2/projects/{project_id}/stages/{stage}", response_model=StageHead)
     def patch_stage(project_id: str, stage: StageName, body: StagePatchRequest) -> StageHead:

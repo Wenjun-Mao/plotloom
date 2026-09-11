@@ -244,6 +244,20 @@ input[readonly] { color: var(--dim); }
 .shot-copy p { min-height: 43px; margin: 8px 0 0; color: var(--muted); font-size: 11px; }
 .media-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
 .media-controls .button { min-width: 0; padding-inline: 5px; font-size: 10px; }
+.managed-media-workbench { display: grid; gap: 11px; margin-top: 14px; }
+.managed-media-workbench > .muted { margin: 0; color: var(--muted); font-size: 11px; }
+.media-candidate-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.media-candidate { display: grid; gap: 6px; min-width: 0; padding: 7px; color: var(--muted); text-align: left; border: 1px solid var(--line); background: var(--panel-3); }
+.media-candidate.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.media-candidate img { width: 100%; height: 96px; object-fit: cover; background: #15191e; }
+.media-candidate strong { overflow: hidden; color: var(--text); font: 700 10px var(--mono); text-overflow: ellipsis; white-space: nowrap; }
+.media-candidate small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preview-history { display: grid; gap: 6px; }
+.preview-history > button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 7px 9px; color: var(--muted); text-align: left; border: 1px solid var(--line); background: var(--panel-3); font: 10px var(--mono); }
+.preview-history > button.selected { border-color: var(--accent); color: var(--text); }
+.still-animatic { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--accent); background: #11161c; }
+.still-animatic > div:first-child { display: flex; align-items: center; gap: 8px; font-size: 11px; }
+.still-animatic > img { width: min(100%, 560px); max-height: 290px; object-fit: contain; justify-self: center; background: #080b0e; }
 .shot-inspector { position: sticky; top: 72px; max-height: calc(100vh - 90px); padding: 17px; overflow-y: auto; }
 .stale-reasons { display: grid; gap: 5px; padding: 10px; margin-bottom: 12px; border-left: 3px solid var(--accent); color: var(--muted); background: rgba(233,180,91,.07); font-size: 10px; }
 .stale-reasons strong { color: var(--accent); }

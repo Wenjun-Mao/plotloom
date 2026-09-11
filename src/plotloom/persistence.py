@@ -152,6 +152,7 @@ from .exceptions import (
     LifecycleContentionError,
     NotFoundError,
     ProjectBusyError,
+    ProjectManagedAssetsPresentError,
     ProductionPipelineNotReadyError,
     RepairEligibilityError,
     RevisionConflictError,
@@ -608,6 +609,92 @@ class MediaTaskRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class ManagedAssetRow(Base):
+    """One project-scoped declaration over immutable imported bytes."""
+
+    __tablename__ = "v2_managed_assets"
+    __table_args__ = (Index("ix_v2_managed_assets_project_id_created_at", "project_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    original_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    original_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    display_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    display_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    mime_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    width: Mapped[int] = mapped_column(Integer, nullable=False)
+    height: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ManagedAssetProvenanceRow(Base):
+    """An immutable origin declaration, intentionally separate from byte identity."""
+
+    __tablename__ = "v2_managed_asset_provenance"
+    __table_args__ = (Index("ix_v2_managed_asset_provenance_asset_id", "asset_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    declaration: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class VisualIntentRow(Base):
+    __tablename__ = "v2_visual_intents"
+    __table_args__ = (Index("ix_v2_visual_intents_project_id_asset_id", "project_id", "asset_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    intent: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class VisualSelectionStateRow(Base):
+    __tablename__ = "v2_visual_selection_states"
+
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ReviewedShotBindingRow(Base):
+    __tablename__ = "v2_reviewed_shot_bindings"
+    __table_args__ = (
+        Index("ix_v2_reviewed_shot_bindings_project_shot_revision", "project_id", "shot_id", "selection_revision"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    storyboard_entity_revision_id: Mapped[str] = mapped_column(ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False)
+    approval_id: Mapped[str] = mapped_column(ForeignKey("v2_approval_decisions.id", ondelete="RESTRICT"), nullable=False)
+    shot_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    scene_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    storyboard_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    selection_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    compatibility_note: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class StillPreviewRow(Base):
+    __tablename__ = "v2_still_previews"
+    __table_args__ = (Index("ix_v2_still_previews_project_id_created_at", "project_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    storyboard_entity_revision_id: Mapped[str] = mapped_column(ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False)
+    approval_id: Mapped[str] = mapped_column(ForeignKey("v2_approval_decisions.id", ondelete="RESTRICT"), nullable=False)
+    scene_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    selection_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class ProviderSettingsRow(Base):
@@ -1569,6 +1656,16 @@ class SQLiteRepository:
                 raise InvalidTransitionError("confirmation title does not match the project title")
             if self._project_is_busy_in_session(session, project_id):
                 raise ProjectBusyError()
+            # The byte store is shared and content addressed.  Until a
+            # media-aware whole-project erasure contract exists, deleting the
+            # relational project first would orphan protected originals and
+            # immutable preview history.  Refuse before any delete mutation.
+            if session.scalar(
+                select(ManagedAssetRow.id)
+                .where(ManagedAssetRow.project_id == project_id)
+                .limit(1)
+            ) is not None:
+                raise ProjectManagedAssetsPresentError()
 
             # Generation-run repair lineage uses a self-referential RESTRICT
             # foreign key.  Deleting leaf runs first preserves that durable
@@ -1594,6 +1691,306 @@ class SQLiteRepository:
                 session.flush()
                 remaining_run_ids -= leaves
             session.delete(project)
+
+    @staticmethod
+    def _managed_asset_dict(row: ManagedAssetRow) -> dict[str, Any]:
+        return {
+            "id": row.id,
+            "projectId": row.project_id,
+            "originalHash": row.original_hash,
+            "displayHash": row.display_hash,
+            "mimeType": row.mime_type,
+            "byteSize": row.byte_size,
+            "width": row.width,
+            "height": row.height,
+            "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    def record_managed_import(
+        self,
+        project_id: str,
+        *,
+        original_uri: str,
+        original_hash: str,
+        display_uri: str,
+        display_hash: str,
+        mime_type: str,
+        byte_size: int,
+        width: int,
+        height: int,
+        declaration: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Publish one independent project provenance record over stored bytes."""
+
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            now = utc_now()
+            asset = ManagedAssetRow(
+                id=new_id(), project_id=project_id, original_uri=original_uri,
+                original_hash=original_hash, display_uri=display_uri,
+                display_hash=display_hash, mime_type=mime_type, byte_size=byte_size,
+                width=width, height=height, created_at=now,
+            )
+            session.add(asset)
+            # These rows intentionally have no ORM relationship (their
+            # history stays one-way immutable), so establish the asset FK
+            # before adding the independent provenance declaration.
+            session.flush()
+            session.add(ManagedAssetProvenanceRow(
+                id=new_id(), project_id=project_id, asset_id=asset.id,
+                declaration=declaration, created_at=now,
+            ))
+            session.flush()
+            return self._managed_asset_dict(asset)
+
+    def get_managed_asset_storage(self, project_id: str, asset_id: str) -> dict[str, Any]:
+        with self._read() as session:
+            asset = session.get(ManagedAssetRow, asset_id)
+            if asset is None or asset.project_id != project_id:
+                raise NotFoundError(f"managed asset not found: {asset_id}")
+            return {
+                **self._managed_asset_dict(asset),
+                "originalUri": asset.original_uri,
+                "displayUri": asset.display_uri,
+            }
+
+    def list_managed_assets(self, project_id: str) -> list[dict[str, Any]]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            rows = session.scalars(
+                select(ManagedAssetRow)
+                .where(ManagedAssetRow.project_id == project_id)
+                .order_by(ManagedAssetRow.created_at, ManagedAssetRow.id)
+            ).all()
+            result = []
+            for row in rows:
+                provenance = session.scalar(
+                    select(ManagedAssetProvenanceRow)
+                    .where(ManagedAssetProvenanceRow.asset_id == row.id)
+                    .order_by(ManagedAssetProvenanceRow.created_at)
+                    .limit(1)
+                )
+                result.append({
+                    **self._managed_asset_dict(row),
+                    "provenance": provenance.declaration if provenance else None,
+                })
+            return result
+
+    def create_visual_intent(
+        self, project_id: str, asset_id: str, intent: dict[str, Any]
+    ) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            asset = session.get(ManagedAssetRow, asset_id)
+            if asset is None or asset.project_id != project_id:
+                raise NotFoundError(f"managed asset not found: {asset_id}")
+            previous = session.scalar(
+                select(VisualIntentRow.revision)
+                .where(VisualIntentRow.project_id == project_id, VisualIntentRow.asset_id == asset_id)
+                .order_by(VisualIntentRow.revision.desc()).limit(1)
+            ) or 0
+            row = VisualIntentRow(
+                id=new_id(), project_id=project_id, asset_id=asset_id,
+                revision=previous + 1, intent=intent, created_at=utc_now(),
+            )
+            session.add(row)
+            session.flush()
+            return {"id": row.id, "assetId": asset_id, "revision": row.revision, "intent": row.intent}
+
+    def _approval_is_active_in_session(self, session: Session, decision_id: str) -> ApprovalDecisionRow:
+        decision = session.get(ApprovalDecisionRow, decision_id)
+        if decision is None:
+            raise NotFoundError(f"approval decision not found: {decision_id}")
+        if decision.decision != "approve":
+            raise InvalidTransitionError("reviewed selection requires an active approval")
+        latest = session.scalar(
+            select(ApprovalDecisionRow)
+            .where(
+                ApprovalDecisionRow.entity_revision_id == decision.entity_revision_id,
+                ApprovalDecisionRow.subject_type == decision.subject_type,
+                ApprovalDecisionRow.subject_id == decision.subject_id,
+            )
+            .order_by(ApprovalDecisionRow.created_at.desc(), ApprovalDecisionRow.id.desc())
+            .limit(1)
+        )
+        if latest is None or latest.id != decision.id:
+            raise InvalidTransitionError("reviewed selection approval is revoked or superseded")
+        revision = session.get(EntityRevisionRow, decision.entity_revision_id)
+        head = self._stage_row(session, decision.project_id, StageName.STORYBOARD)
+        if revision is None or (
+            head.status != StageStatus.READY.value
+            or head.entity_revision_id != decision.entity_revision_id
+            or head.content_hash != decision.content_hash
+            or revision.revision != decision.subject_revision
+        ):
+            raise InvalidTransitionError("reviewed selection approval is stale")
+        gates = session.scalars(
+            select(GateResultRow).where(
+                GateResultRow.entity_revision_id == decision.entity_revision_id,
+                GateResultRow.gate_set_version == decision.gate_set_version,
+            )
+        ).all()
+        if not gates or any(not self._gate_result(gate).passed for gate in gates):
+            raise InvalidTransitionError("reviewed selection approval gates are no longer passing")
+        return decision
+
+    @staticmethod
+    def _selection_state_in_session(session: Session, project_id: str, now: datetime) -> VisualSelectionStateRow:
+        state = session.get(VisualSelectionStateRow, project_id)
+        if state is None:
+            state = VisualSelectionStateRow(project_id=project_id, revision=0, updated_at=now)
+            session.add(state)
+            session.flush()
+        return state
+
+    def select_reviewed_keyframe(
+        self,
+        project_id: str,
+        *,
+        asset_id: str,
+        shot_id: str,
+        scene_id: str,
+        expected_selection_revision: int,
+        storyboard_revision: int,
+        approval_id: str,
+        compatibility_note: str,
+    ) -> dict[str, Any]:
+        """Append an immutable reviewed binding under one lifecycle writer lease."""
+
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            now = utc_now()
+            state = self._selection_state_in_session(session, project_id, now)
+            if state.revision != expected_selection_revision:
+                raise RevisionConflictError("visual-selection", expected_selection_revision, state.revision)
+            approval = self._approval_is_active_in_session(session, approval_id)
+            if approval.project_id != project_id or approval.subject_revision != storyboard_revision:
+                raise InvalidTransitionError("approval does not match the requested storyboard revision")
+            head = self._stage_row(session, project_id, StageName.STORYBOARD)
+            if head.revision != storyboard_revision or head.entity_revision_id != approval.entity_revision_id:
+                raise RevisionConflictError("storyboard", storyboard_revision, head.revision)
+            asset = session.get(ManagedAssetRow, asset_id)
+            if asset is None or asset.project_id != project_id:
+                raise NotFoundError(f"managed asset not found: {asset_id}")
+            storyboard = self._load_stage_payload(session, project_id, StageName.STORYBOARD)
+            shot = next((item for item in storyboard.shots if item.id == shot_id), None)
+            if shot is None or shot.scene_id != scene_id:
+                raise InvalidTransitionError("reviewed keyframe must target a current shot in its declared scene")
+            state.revision += 1
+            state.updated_at = now
+            binding = ReviewedShotBindingRow(
+                id=new_id(), project_id=project_id, asset_id=asset_id,
+                storyboard_entity_revision_id=approval.entity_revision_id,
+                approval_id=approval.id, shot_id=shot_id, scene_id=scene_id,
+                storyboard_revision=storyboard_revision,
+                selection_revision=state.revision, compatibility_note=compatibility_note,
+                created_at=now,
+            )
+            session.add(binding)
+            session.flush()
+            return {
+                "id": binding.id, "assetId": asset_id, "shotId": shot_id,
+                "sceneId": scene_id, "selectionRevision": state.revision,
+                "storyboardRevision": storyboard_revision,
+            }
+
+    def create_still_preview(
+        self,
+        project_id: str,
+        *,
+        scene_id: str,
+        shot_ids: list[str],
+        expected_selection_revision: int,
+        storyboard_revision: int,
+        approval_id: str,
+    ) -> dict[str, Any]:
+        """Freeze one coherent, contiguous reviewed still sequence."""
+
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            state = self._selection_state_in_session(session, project_id, utc_now())
+            if state.revision != expected_selection_revision:
+                raise RevisionConflictError("visual-selection", expected_selection_revision, state.revision)
+            approval = self._approval_is_active_in_session(session, approval_id)
+            if approval.project_id != project_id or approval.subject_revision != storyboard_revision:
+                raise InvalidTransitionError("approval does not match the requested storyboard revision")
+            storyboard = self._load_stage_payload(session, project_id, StageName.STORYBOARD)
+            scene_shots = sorted(
+                (item for item in storyboard.shots if item.scene_id == scene_id), key=lambda item: item.order
+            )
+            ordered_ids = [item.id for item in scene_shots]
+            try:
+                start = ordered_ids.index(shot_ids[0])
+            except ValueError as error:
+                raise InvalidTransitionError("preview shots must belong to the requested current scene") from error
+            if ordered_ids[start : start + len(shot_ids)] != shot_ids:
+                raise InvalidTransitionError("preview shots must be one contiguous scene subset in storyboard order")
+            bindings = session.scalars(
+                select(ReviewedShotBindingRow)
+                .where(ReviewedShotBindingRow.project_id == project_id, ReviewedShotBindingRow.shot_id.in_(shot_ids))
+                .order_by(ReviewedShotBindingRow.selection_revision.desc())
+            ).all()
+            latest: dict[str, ReviewedShotBindingRow] = {}
+            for binding in bindings:
+                latest.setdefault(binding.shot_id, binding)
+            if set(latest) != set(shot_ids):
+                raise InvalidTransitionError("preview has missing reviewed keyframes")
+            frames = []
+            by_id = {shot.id: shot for shot in scene_shots}
+            for shot_id in shot_ids:
+                binding = latest[shot_id]
+                if (
+                    binding.scene_id != scene_id
+                    or binding.storyboard_entity_revision_id != approval.entity_revision_id
+                    or binding.approval_id != approval.id
+                ):
+                    raise InvalidTransitionError("reviewed keyframe does not match the current approved storyboard")
+                asset = session.get(ManagedAssetRow, binding.asset_id)
+                if asset is None:
+                    raise InvalidTransitionError("preview references unavailable managed media")
+                frames.append({
+                    "shotId": shot_id, "assetId": asset.id, "displayHash": asset.display_hash,
+                    "durationMs": by_id[shot_id].duration_units,
+                    "bindingId": binding.id,
+                })
+            manifest = {
+                "projectionVersion": 1, "sceneId": scene_id, "shotIds": shot_ids,
+                "storyboardRevision": storyboard_revision, "storyboardEntityRevisionId": approval.entity_revision_id,
+                "approvalId": approval.id, "selectionRevision": state.revision, "frames": frames,
+            }
+            preview = StillPreviewRow(
+                id=new_id(), project_id=project_id,
+                storyboard_entity_revision_id=approval.entity_revision_id,
+                approval_id=approval.id, scene_id=scene_id,
+                selection_revision=state.revision, manifest=manifest,
+                manifest_hash=stable_hash(manifest), created_at=utc_now(),
+            )
+            session.add(preview)
+            session.flush()
+            return {"id": preview.id, "manifest": preview.manifest, "manifestHash": preview.manifest_hash, "createdAt": _stored_utc(preview.created_at).isoformat()}
+
+    def list_still_previews(self, project_id: str) -> list[dict[str, Any]]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            previews = session.scalars(
+                select(StillPreviewRow)
+                .where(StillPreviewRow.project_id == project_id)
+                .order_by(StillPreviewRow.created_at.desc(), StillPreviewRow.id.desc())
+            ).all()
+            return [
+                {"id": item.id, "manifest": item.manifest, "manifestHash": item.manifest_hash, "createdAt": _stored_utc(item.created_at).isoformat()}
+                for item in previews
+            ]
+
+    def visual_selection_revision(self, project_id: str) -> int:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            state = session.get(VisualSelectionStateRow, project_id)
+            return state.revision if state is not None else 0
 
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
         with self._lifecycle_write() as session:
@@ -2164,6 +2561,30 @@ class SQLiteRepository:
                 ):
                     reasons.append("required gate results are absent or no longer passing")
             return ApprovalClosure(decision=decision, active=not reasons, stale_reasons=tuple(reasons))
+
+    def approval_is_revoked(self, decision_id: str) -> bool:
+        """Return whether the exact approved revision was subsequently revoked.
+
+        A preview remains an immutable historical projection after revocation,
+        but consumers need to distinguish that explicit human decision from an
+        ordinary stale canonical head.
+        """
+
+        with self._read() as session:
+            decision = session.get(ApprovalDecisionRow, decision_id)
+            if decision is None:
+                raise NotFoundError(f"approval decision not found: {decision_id}")
+            latest = session.scalar(
+                select(ApprovalDecisionRow)
+                .where(
+                    ApprovalDecisionRow.entity_revision_id == decision.entity_revision_id,
+                    ApprovalDecisionRow.subject_type == decision.subject_type,
+                    ApprovalDecisionRow.subject_id == decision.subject_id,
+                )
+                .order_by(ApprovalDecisionRow.created_at.desc(), ApprovalDecisionRow.id.desc())
+                .limit(1)
+            )
+            return latest is not None and latest.decision == "revoke"
 
     def _load_stage_payload(self, session: Session, project_id: str, stage: StageName) -> StagePayload:
         head = self._stage_row(session, project_id, stage)

@@ -50,6 +50,7 @@ import {
   type EntityOption,
 } from "../structured-fields";
 import { Badge, Button, EmptyState, Field, PageHeader, Panel } from "../components";
+import { ManagedMediaWorkbench } from "../managed-media";
 
 const shotSizes: Array<{ value: Shot["shotSize"]; label: string }> = [
   { value: "extreme_wide", label: "大远景" },
@@ -351,6 +352,7 @@ export function StoryboardPage({
     </>} />
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
     <div className="notice"><strong>媒体生产尚未开放</strong><span>现有媒体结果保持可读；新任务必须等待 Approval 与不可变 ProductionSnapshot。</span></div>
+    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} selectedShot={selectedShot} storyboardRevision={revision} review={review} readOnly={saving} />
     {(issues.length > 0 || localError) && <Panel className="issue-summary"><strong>需要修正</strong>{localError && <p role="alert">{localError}</p>}{issues.map((issue) => <button key={`${issue.code}:${issue.path}`} onClick={() => focusIssue(issue)}>{issue.code} · {issue.path}<small>{issue.message}</small></button>)}</Panel>}
 
     {pendingSceneMigration && <ShotMigrationConfirmation impact={pendingSceneMigration} onCancel={() => setPendingSceneMigration(null)} onConfirm={() => { const migration = pendingSceneMigration; update((current) => migrateShotToScene(current, migration.shotId, migration.toSceneId)); setPendingSceneMigration(null); }} />}

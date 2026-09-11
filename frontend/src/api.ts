@@ -26,6 +26,9 @@ import type {
   RunTrace,
   StoryboardReview,
   ApprovalClosure,
+  ManagedAsset,
+  StillPreview,
+  VisualWorkbench,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -66,7 +69,7 @@ export class PlotloomApiClient {
   ): Promise<T> {
     const headers = new Headers(init.headers);
     headers.set("Accept", "application/json");
-    if (init.body) headers.set("Content-Type", "application/json");
+    if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
     if (includeSessionKey) {
       const ephemeralKey = providerSessionKeys.read(sessionProfileId);
       if (ephemeralKey) headers.set("X-Plotloom-Session-API-Key", ephemeralKey);
@@ -158,6 +161,49 @@ export class PlotloomApiClient {
 
   getProjectMediaTasks(projectId: string, signal?: AbortSignal): Promise<ProjectMediaTasksResponse> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/media-tasks`, { signal });
+  }
+
+  getVisualWorkbench(projectId: string, signal?: AbortSignal): Promise<VisualWorkbench> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/visual-workbench`, { signal });
+  }
+
+  importManagedAsset(projectId: string, file: File, declaration: {
+    origin: string; rights: "known" | "unknown"; rightsNote?: string; declaredAdditions?: string[];
+  }): Promise<ManagedAsset> {
+    const form = new FormData();
+    form.set("image", file);
+    form.set("origin", declaration.origin);
+    form.set("rights", declaration.rights);
+    if (declaration.rightsNote) form.set("rights_note", declaration.rightsNote);
+    form.set("declared_additions_json", JSON.stringify(declaration.declaredAdditions ?? []));
+    return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`, { method: "POST", body: form });
+  }
+
+  managedAssetUrl(projectId: string, assetId: string, variant: "display" | "original" = "display"): string {
+    return `${this.base}/projects/${encodeURIComponent(projectId)}/managed-assets/${encodeURIComponent(assetId)}/${variant}`;
+  }
+
+  createVisualIntent(projectId: string, assetId: string, body: {
+    role: "protagonist_reference" | "location_reference" | "shot_keyframe";
+    identityIntent?: string; compositionIntent?: string; styleIntent?: string;
+  }): Promise<{ id: string; assetId: string; revision: number }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets/${encodeURIComponent(assetId)}/visual-intents`, {
+      method: "POST", body: JSON.stringify(body),
+    });
+  }
+
+  selectReviewedKeyframe(projectId: string, body: {
+    assetId: string; shotId: string; sceneId: string; expectedSelectionRevision: number;
+    storyboardRevision: number; approvalId: string; compatibilityNote: string;
+  }): Promise<{ id: string; selectionRevision: number }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/reviewed-keyframes`, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  createStillPreview(projectId: string, body: {
+    sceneId: string; shotIds: string[]; expectedSelectionRevision: number;
+    storyboardRevision: number; approvalId: string;
+  }): Promise<StillPreview> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/still-previews`, { method: "POST", body: JSON.stringify(body) });
   }
 
   patchStage<T>(projectId: string, stage: ServerStageName, expectedRevision: number, content: T): Promise<StageHead> {

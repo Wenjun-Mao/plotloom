@@ -224,6 +224,50 @@ export interface ShotBeatLink {
   coverageWeight: number;
 }
 
+export interface ManagedAsset {
+  id: string;
+  projectId: string;
+  originalHash: string;
+  displayHash: string;
+  mimeType: string;
+  byteSize: number;
+  width: number;
+  height: number;
+  createdAt: string;
+  provenance: { origin: string; rights: "known" | "unknown"; rightsNote: string | null; declaredAdditions: string[] } | null;
+}
+
+export interface StillPreviewFrame {
+  shotId: string;
+  assetId: string;
+  displayHash: string;
+  durationMs: number;
+  bindingId: string;
+}
+
+export interface StillPreview {
+  id: string;
+  manifest: {
+    projectionVersion: number;
+    sceneId: string;
+    shotIds: string[];
+    storyboardRevision: number;
+    storyboardEntityRevisionId: string;
+    approvalId: string;
+    selectionRevision: number;
+    frames: StillPreviewFrame[];
+  };
+  manifestHash: string;
+  createdAt: string;
+  state: "current" | "stale" | "revoked" | "missing" | "corrupt";
+}
+
+export interface VisualWorkbench {
+  assets: ManagedAsset[];
+  selectionRevision: number;
+  previews: StillPreview[];
+}
+
 export interface QuarantineItem {
   /** Work-unit identity, never an attempt or an artifact id. */
   id: string;

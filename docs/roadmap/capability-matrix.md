@@ -15,9 +15,17 @@ records the agreed cinematic-realism, proposal/refinement, imported-reference,
 native-audio and in-app pause-and-choose direction. Its P0–P4 milestones are
 planned, not completed; C02/C03/C05/C06/C08/C09 maturity is unchanged. ADR 0026
 now authorizes the non-generative imported/still-preview boundary as a design;
-the [P0 implementation plan](p0-imported-still-preview-plan.md) revision 1 is Approved,
-with implementation not yet dispatched.
+the [P0 implementation plan](p0-imported-still-preview-plan.md) revision 1 is Approved
+and implemented as a locally verified candidate.
 No M1-C qualification gate or provider-production hard stop is waived.
+
+**P0 checkpoint (2026-09-11):** managed JPEG/PNG imports, independent
+provenance, reviewed keyframe bindings, immutable three-shot still previews,
+stale/revoked/missing/corrupt projection states and media-bearing permanent
+delete refusal are implemented under [ADR 0027](../adr/0027-managed-imported-still-preview-contract.md).
+This is a non-generative local preview only; C02/C03/C05/C06/C08/C09 maturity
+and all provider-production hard stops remain unchanged pending the final
+browser and stable-candidate evidence.
 
 | 观察面 | 当前判断 | 它真正说明什么 |
 |---|---:|---|
