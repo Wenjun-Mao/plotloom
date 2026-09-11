@@ -717,6 +717,8 @@ export interface TextProviderProfileView {
   revision: number;
   enabled: boolean;
   availabilityRevision: number;
+  adapterId: string;
+  adapterVersion: string;
   createdAt: string;
   updatedAt: string;
   serverKeyAvailable: boolean;

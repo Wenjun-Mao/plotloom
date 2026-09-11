@@ -278,6 +278,8 @@ class TextProviderProfileView(CamelModel):
     revision: int
     enabled: bool
     availability_revision: int
+    adapter_id: str
+    adapter_version: str
     created_at: datetime
     updated_at: datetime
     server_key_available: bool
@@ -687,6 +689,8 @@ def create_app(
             profile_id=selected.profile_id,
             profile_version=selected.revision,
             profile_hash="",
+            adapter_id=selected.adapter_id,
+            adapter_version=selected.adapter_version,
         )
         return TextProviderProfileSnapshotV3.model_validate(values).model_dump(
             mode="json", by_alias=True

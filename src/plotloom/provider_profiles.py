@@ -265,6 +265,8 @@ class TextProviderProfile(_ProfileModel):
     revision: int = Field(ge=0)
     enabled: bool = True
     availability_revision: int = Field(ge=0)
+    adapter_id: str = OPENAI_COMPATIBLE_ADAPTER_ID
+    adapter_version: str = OPENAI_COMPATIBLE_ADAPTER_VERSION
     created_at: datetime
     updated_at: datetime
 

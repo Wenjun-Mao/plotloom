@@ -127,7 +127,7 @@ function defaultTextProfile(): TextProviderProfileView {
     stageMaxOutputTokens: { story_bible: 8192, story_graph: 8192, scene_beats: 4096, storyboard: 4096 },
     maxSemanticCorrections: 2, presetId: "custom", presetVersion: "1",
   };
-  return { profileId: "default", displayName: "Default", configuration, revision: 0, enabled: true, availabilityRevision: 0, createdAt: "", updatedAt: "", serverKeyAvailable: false, readiness: { profileId: "default", profileRevision: 0, state: "unverified", reasonCode: "readiness.not_checked", observedAt: null } };
+  return { profileId: "default", displayName: "Default", configuration, revision: 0, enabled: true, availabilityRevision: 0, adapterId: "openai_compatible", adapterVersion: "1", createdAt: "", updatedAt: "", serverKeyAvailable: false, readiness: { profileId: "default", profileRevision: 0, state: "unverified", reasonCode: "readiness.not_checked", observedAt: null } };
 }
 
 function profileFromLegacySettings(settings: ProviderSettings): TextProviderProfileView {

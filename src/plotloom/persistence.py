@@ -628,6 +628,8 @@ class TextProviderProfileRow(Base):
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     availability_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    adapter_id: Mapped[str] = mapped_column(String(120), nullable=False, default="openai_compatible")
+    adapter_version: Mapped[str] = mapped_column(String(40), nullable=False, default="1")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
@@ -1094,6 +1096,8 @@ class SQLiteRepository:
             revision=row.revision,
             enabled=row.enabled,
             availability_revision=row.availability_revision,
+            adapter_id=row.adapter_id,
+            adapter_version=row.adapter_version,
             created_at=_stored_utc(row.created_at),
             updated_at=_stored_utc(row.updated_at),
         )
@@ -6504,6 +6508,8 @@ class SQLiteRepository:
                 revision=1,
                 enabled=True,
                 availability_revision=0,
+                adapter_id=(source.adapter_id if copy_from_profile_id is not None else "openai_compatible"),
+                adapter_version=(source.adapter_version if copy_from_profile_id is not None else "1"),
                 created_at=now,
                 updated_at=now,
             )

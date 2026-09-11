@@ -1990,11 +1990,12 @@ def test_graph_join_missing_convergent_null_uses_exact_expected_value_and_instal
             "mode": "convergent",
             "incomingEdges": [
                 {"edgeId": edge.id, "sourceNodeId": edge.source_node_id}
-                for edge in incoming
+                for edge in sorted(incoming, key=lambda edge: edge.id)
             ],
-            "repairAction": "set_missing",
-            "hasExpectedValue": True,
-            "expectedValue": None,
+                "repairAction": "set_missing",
+                "hasExpectedValue": True,
+                "preservedStateEffects": [],
+                "expectedValue": None,
         }
     ]
     assert "validation.internal_error" not in {
