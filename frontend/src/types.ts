@@ -736,6 +736,7 @@ export interface TextProviderProfilesResponse {
   activeProfileId: string;
   selectionRevision: number;
   presets: Record<Exclude<TextProviderPresetId, "custom">, TextProviderPresetValues>;
+  trustedAdapters?: Array<{ adapterId: string; adapterVersion: string }>;
 }
 
 /** The optimistic-concurrency result of selecting the server's active profile. */

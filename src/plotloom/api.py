@@ -80,6 +80,7 @@ from .generation.exceptions import SecretLeaseError
 from .generation.providers import ProviderAdapter
 from .generation.secrets import InMemorySecretVault, SecretLease
 from .generation.story_graph_topology import StoryGraphTopologyError
+from .text_adapters import DEFAULT_TEXT_ADAPTER_REGISTRY
 from .validation import DomainValidationError, STORYBOARD_GATE_SET_VERSION, pydantic_issues
 
 
@@ -288,6 +289,7 @@ class TextProviderProfilesResponse(CamelModel):
     active_profile_id: str
     selection_revision: int
     presets: dict[str, dict[str, Any]]
+    trusted_adapters: list[dict[str, str]]
 
 
 class TextProviderProfileCreate(CamelModel):
@@ -736,6 +738,7 @@ def create_app(
                     PresetId.FINAL_ONLY_V1,
                 )
             },
+            trusted_adapters=DEFAULT_TEXT_ADAPTER_REGISTRY.supported(),
         )
 
     def text_submission_session_key(
@@ -784,25 +787,49 @@ def create_app(
                 detail="this queued run needs its profile's browser-session key",
             ) from error
 
-    def check_text_backend(profile: TextProviderProfile, request: Request) -> TextBackendReadiness:
+    def check_text_backend(
+        profile: TextProviderProfile,
+        request: Request,
+        *,
+        snapshot: Mapping[str, Any] | None = None,
+        record_observation: bool = True,
+    ) -> TextBackendReadiness:
         """Perform one optional non-generative adapter preflight.
 
         A missing cheap check is explicitly unverified.  The temporary browser
         lease is never stored in the observation or profile state.
         """
 
-        if not profile.enabled:
+        if not profile.enabled and snapshot is None:
             return readiness_for(profile)
+        frozen_snapshot = snapshot or provider_snapshot(profile.profile_id)
+
+        def observed(state: str, reason_code: str) -> TextBackendReadiness:
+            if record_observation:
+                return store_readiness(profile, state, reason_code)
+            return TextBackendReadiness(
+                profile_id=str(
+                    frozen_snapshot.get("profileId")
+                    or frozen_snapshot.get("profile_id")
+                    or profile.profile_id
+                ),
+                profile_revision=int(
+                    frozen_snapshot.get("profileVersion")
+                    or frozen_snapshot.get("profile_version")
+                    or profile.revision
+                ),
+                state=state,
+                reason_code=reason_code,
+            )
         # Lightweight embedding/tests that do not install a runtime resolver
         # cannot claim a protocol preflight.  They remain explicitly
         # unverified; the production runtime always injects its resolver.
         if text_provider_resolver is None:
-            return store_readiness(profile, "unverified", "readiness.check_unsupported")
-        snapshot = provider_snapshot(profile.profile_id)
+            return observed("unverified", "readiness.check_unsupported")
         temporary_vault: InMemorySecretVault | None = None
         lease: SecretLease | None = None
         try:
-            if snapshot["textAuthMode"] == ProviderAuthMode.BEARER.value:
+            if frozen_snapshot["textAuthMode"] == ProviderAuthMode.BEARER.value:
                 session_key = _session_api_key(request)
                 if session_key is not None:
                     temporary_vault = InMemorySecretVault()
@@ -813,34 +840,43 @@ def create_app(
                         profile.profile_id, auth_mode=ProviderAuthMode.BEARER
                     )
                 else:
-                    return store_readiness(
-                        profile, "authentication_failed", "readiness.credential_unavailable"
-                    )
-            adapter, _model = text_provider_resolver.resolve(snapshot)
+                    return observed("authentication_failed", "readiness.credential_unavailable")
+            adapter, _model = text_provider_resolver.resolve(frozen_snapshot)
             checker = getattr(adapter, "check_readiness", None)
             if checker is None:
-                return store_readiness(profile, "unverified", "readiness.check_unsupported")
-            result = checker(str(snapshot["textModel"]), lease)
-            return store_readiness(profile, result.state, result.reason_code)
+                return observed("unverified", "readiness.check_unsupported")
+            result = checker(str(frozen_snapshot["textModel"]), lease)
+            return observed(result.state, result.reason_code)
         except SecretLeaseError:
-            return store_readiness(profile, "authentication_failed", "readiness.credential_unavailable")
+            return observed("authentication_failed", "readiness.credential_unavailable")
         except ValueError:
-            return store_readiness(profile, "capability_mismatch", "readiness.adapter_unsupported")
+            return observed("capability_mismatch", "readiness.adapter_unsupported")
         except Exception:
             # A preflight has no creative request body, so its failed request
             # is a definite inability to establish readiness, not an unknown
             # generation outcome.  Keep all transport details server-private.
-            return store_readiness(profile, "unreachable", "readiness.preflight_failed")
+            return observed("unreachable", "readiness.preflight_failed")
         finally:
             if lease is not None:
                 lease.revoke()
             if temporary_vault is not None:
                 temporary_vault.clear()
 
-    def admit_text_backend(profile_id: str | None, request: Request) -> dict[str, Any]:
+    def admit_text_backend(
+        profile_id: str | None,
+        request: Request,
+        *,
+        frozen_snapshot: Mapping[str, Any] | None = None,
+    ) -> dict[str, Any]:
         selected = repo.get_text_provider_profile(profile_id) if profile_id else active_text_profile()
-        snapshot = provider_snapshot(selected.profile_id)
-        observation = check_text_backend(selected, request)
+        snapshot = dict(frozen_snapshot) if frozen_snapshot is not None else provider_snapshot(selected.profile_id)
+        frozen_revision = snapshot.get("profileVersion") or snapshot.get("profile_version")
+        observation = check_text_backend(
+            selected,
+            request,
+            snapshot=snapshot,
+            record_observation=(frozen_revision is None or int(frozen_revision) == selected.revision),
+        )
         if observation.state in {
             "disabled", "missing_configuration", "unreachable", "authentication_failed",
             "model_mismatch", "capability_mismatch",
@@ -1293,7 +1329,11 @@ def create_app(
         )
         # Exact repair keeps the source's frozen snapshot but still refuses a
         # definitely doomed new child before persistence.
-        admit_text_backend(frozen_profile_id, request)
+        admit_text_backend(
+            frozen_profile_id,
+            request,
+            frozen_snapshot=source.provider_snapshot,
+        )
         if run_scheduler is not None:
             text_submission_session_key(source.provider_snapshot, request)
         normalized_key = _normalize_idempotency_key(idempotency_key)
@@ -1462,6 +1502,38 @@ def create_app(
         return TextProviderProbeResponse.model_validate(
             check_text_backend(profile, request).model_dump(mode="python")
         )
+
+    def observe_definite_generation_failure(run: GenerationRun) -> None:
+        """Reflect only certain provider failures into ephemeral readiness."""
+
+        code = run.failure_code or ""
+        if code == "provider.outcome_unknown" or not (
+            code == "provider.request_not_sent" or code.startswith("provider.http_")
+        ):
+            return
+        profile_id = str(
+            run.provider_snapshot.get("profileId")
+            or run.provider_snapshot.get("profile_id")
+            or DEFAULT_PROVIDER_PROFILE_ID
+        )
+        try:
+            profile = repo.get_text_provider_profile(profile_id)
+        except NotFoundError:
+            return
+        frozen_revision = (
+            run.provider_snapshot.get("profileVersion")
+            or run.provider_snapshot.get("profile_version")
+        )
+        if frozen_revision is not None and int(frozen_revision) != profile.revision:
+            return
+        if code in {"provider.http_401", "provider.http_403"}:
+            store_readiness(profile, "authentication_failed", "readiness.generation_authentication_rejected")
+        else:
+            store_readiness(profile, "unreachable", "readiness.generation_transport_failed")
+
+    set_completion_observer = getattr(run_scheduler, "set_completion_observer", None)
+    if callable(set_completion_observer):
+        set_completion_observer(observe_definite_generation_failure)
 
     if static_dir is not None:
         app.mount("/v2", StaticFiles(directory=static_dir, html=True, check_dir=False), name="v2-static")

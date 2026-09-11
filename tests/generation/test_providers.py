@@ -118,6 +118,22 @@ def test_openai_compatible_readiness_classifies_missing_model() -> None:
     )
 
 
+def test_openai_compatible_readiness_keeps_an_unsupported_model_list_unverified() -> None:
+    session = _session()
+    session.get.return_value = Mock(status_code=404, headers={}, json=Mock())
+    adapter = OpenAICompatibleAdapter(
+        name="openai-compatible", base_url="https://api.example.test/v1", session=session
+    )
+    _, lease = secret_lease()
+
+    result = adapter.check_readiness("test-model", lease)
+
+    assert (result.state, result.reason_code, result.checked) == (
+        "unverified", "readiness.models_unsupported", False
+    )
+    session.post.assert_not_called()
+
+
 def test_adapter_redacts_an_echoed_outbound_secret_but_keeps_usage_counters() -> None:
     session = _session()
     session.post.return_value.json.return_value.update(

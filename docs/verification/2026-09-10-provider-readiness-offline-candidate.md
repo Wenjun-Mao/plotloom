@@ -18,7 +18,7 @@ time, and remediation.
 
 ## Offline evidence
 
-- `uv run pytest -q tests/generation/test_provider_profiles.py tests/generation/test_providers.py tests/backend_core/test_api.py` — 55 passed.
+- `uv run pytest -q tests/generation/test_provider_profiles.py tests/generation/test_providers.py tests/backend_core/test_api.py` — 56 passed.
 - `npm --prefix frontend run typecheck` — passed.
 - `npm --prefix frontend test -- --run` — 115 passed.
 - `npm --prefix frontend run build` — passed; generated workbench assets were
@@ -60,3 +60,15 @@ The candidate persists only public profile configuration, V3 adapter identity,
 and safe readiness state/reason/time. Browser and server credentials are leased
 only for the probe or dispatch and are never included in a profile, snapshot
 observation, trace, log, UI response, or this ledger.
+
+## Independent review follow-up
+
+Independent review found that exact repair had preflighted mutable profile
+configuration even though it executes its source run's frozen snapshot. The
+repair path now preflights the exact frozen snapshot and only records its result
+against the current profile when its revision still matches. It also found that
+an optional unsupported `/models` endpoint was incorrectly terminal; `404`,
+`405`, and a non-model-list response now remain `unverified`. The profile list
+now publishes the finite trusted-adapter registry used for V3 admission, and a
+completed worker reports certain provider transport/auth failures to the
+ephemeral readiness plane only when the frozen profile revision remains current.

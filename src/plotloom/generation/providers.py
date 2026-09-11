@@ -243,17 +243,25 @@ class OpenAICompatibleAdapter:
         status_code = int(getattr(response, "status_code", 0) or 0)
         if status_code in {401, 403}:
             return ReadinessResult("authentication_failed", "readiness.authentication_rejected", True)
+        # `/models` is an optional OpenAI-compatible extension.  A service
+        # that does not implement it has not proved its chat endpoint broken;
+        # retain an explicitly unverified state and let ordinary dispatch own
+        # the generation outcome.
+        if status_code in {404, 405}:
+            return ReadinessResult("unverified", "readiness.models_unsupported", False)
         if not 200 <= status_code < 300:
             return ReadinessResult("unreachable", f"readiness.http_{status_code}", True)
         try:
             payload = response.json()
         except (ValueError, requests.JSONDecodeError):
-            return ReadinessResult("unreachable", "readiness.models_invalid_response", True)
+            return ReadinessResult("unverified", "readiness.models_unsupported", False)
         entries = payload.get("data") if isinstance(payload, dict) else None
+        if not isinstance(entries, list):
+            return ReadinessResult("unverified", "readiness.models_unsupported", False)
         models = {
             item.get("id") for item in entries
             if isinstance(item, dict) and isinstance(item.get("id"), str)
-        } if isinstance(entries, list) else set()
+        }
         if expected_model not in models:
             return ReadinessResult("model_mismatch", "readiness.expected_model_absent", True)
         return ReadinessResult("available", "readiness.models_verified", True)

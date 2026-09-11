@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor
 from threading import Event, RLock
-from typing import Protocol
+from typing import Callable, Protocol
 
 from .domain import GenerationRun, RunStatus
 from .exceptions import (
@@ -31,11 +31,13 @@ class LifecycleJobRunner:
         *,
         max_workers: int = 2,
         secret_registrar: "RunSecretRegistrar | None" = None,
+        completion_observer: Callable[[GenerationRun], None] | None = None,
     ) -> None:
         self.repository = repository
         self.engine = engine
         self.context = context
         self.secret_registrar = secret_registrar
+        self._completion_observer = completion_observer
         self._executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="plotloom")
         self._cancellations: dict[str, Event] = {}
         self._futures: dict[str, Future[GenerationRun]] = {}
@@ -99,6 +101,21 @@ class LifecycleJobRunner:
         with self._lock:
             if self._futures.get(run_id) is completed:
                 self._futures.pop(run_id, None)
+            observer = self._completion_observer
+        if observer is None or completed.cancelled():
+            return
+        try:
+            observer(completed.result())
+        except Exception:
+            # An observation is non-durable UI state and must never turn a
+            # completed canonical run into a failed worker callback.
+            return
+
+    def set_completion_observer(
+        self, observer: Callable[[GenerationRun], None] | None
+    ) -> None:
+        with self._lock:
+            self._completion_observer = observer
 
     def request_cancel(self, run_id: str) -> GenerationRun:
         run = self.repository.cancel_run(run_id)

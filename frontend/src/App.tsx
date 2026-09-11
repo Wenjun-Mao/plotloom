@@ -158,6 +158,7 @@ function profileFromLegacySettings(settings: ProviderSettings): TextProviderProf
 
 const fallbackProfiles = (): TextProviderProfilesResponse => ({
   profiles: [defaultTextProfile()], activeProfileId: "default", selectionRevision: 0,
+  trustedAdapters: [{ adapterId: "openai_compatible", adapterVersion: "1" }],
   presets: {
     compatible_v1: { presetId: "compatible_v1", presetVersion: "1", requestExtension: "none", reasoningMode: "provider_default", textContextWindowTokens: 32768, textMaxOutputTokens: 8192, stageMaxOutputTokens: { story_bible: 8192, story_graph: 8192, scene_beats: 4096, storyboard: 4096 }, textAttemptTimeoutSeconds: 300, maxSemanticCorrections: 2 },
     quality_reasoning_v1: { presetId: "quality_reasoning_v1", presetVersion: "1", requestExtension: "chat_template_kwargs", reasoningMode: "enabled", textContextWindowTokens: 131072, textMaxOutputTokens: 32768, stageMaxOutputTokens: { story_bible: 32768, story_graph: 32768, scene_beats: 32768, storyboard: 32768 }, textAttemptTimeoutSeconds: 900, maxSemanticCorrections: 2 },
