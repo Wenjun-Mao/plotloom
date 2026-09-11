@@ -1400,7 +1400,8 @@ def create_app(
                     display_name=body.display_name,
                     configuration=body.configuration,
                 )
-            readiness_observations.pop(profile_id, None)
+            if updated.revision != body.expected_revision:
+                readiness_observations.pop(profile_id, None)
             return profile_view(updated)
         except ValidationError:
             raise
@@ -1445,7 +1446,8 @@ def create_app(
                 body.expected_availability_revision,
                 enabled=body.enabled,
             )
-        readiness_observations.pop(profile_id, None)
+        if updated.availability_revision != body.expected_availability_revision:
+            readiness_observations.pop(profile_id, None)
         return profile_view(updated)
 
     @app.post(

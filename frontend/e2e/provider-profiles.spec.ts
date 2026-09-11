@@ -12,7 +12,8 @@ test("tests a profile only after saving public settings and keeps its key sessio
     stageMaxOutputTokens: { story_bible: 8192, story_graph: 8192, scene_beats: 4096, storyboard: 4096 },
     maxSemanticCorrections: 2, presetId: "custom", presetVersion: "1",
   };
-  const profile = { profileId: "default", displayName: "Default", configuration, revision: 1, enabled: true, availabilityRevision: 0, createdAt: "now", updatedAt: "now", serverKeyAvailable: false };
+  const readiness = { profileId: "default", profileRevision: 1, state: "unverified", reasonCode: "readiness.not_checked", observedAt: null };
+  const profile = { profileId: "default", displayName: "Default", configuration, revision: 1, enabled: true, availabilityRevision: 0, createdAt: "now", updatedAt: "now", serverKeyAvailable: false, readiness };
   const calls: Array<{ method: string; body: string; sessionKey: string | undefined }> = [];
   await page.route("**/api/v2/text-provider-profiles**", async (route) => {
     const request = route.request();
@@ -21,7 +22,7 @@ test("tests a profile only after saving public settings and keeps its key sessio
     if (request.method() === "GET") {
       await route.fulfill({ json: { profiles: [profile], activeProfileId: "default", selectionRevision: 1, presets: {} } });
     } else if (pathname.endsWith("/probe")) {
-      await route.fulfill({ json: { profileId: "default", model: "example-model", finalContentPresent: true, reasoningPresent: false, finishReason: "stop", latencyMs: 4, errorCode: null } });
+      await route.fulfill({ json: { ...readiness, state: "available", reasonCode: "readiness.models_verified", observedAt: "2026-09-10T12:00:00Z" } });
     } else {
       await route.fulfill({ json: { ...profile, revision: 2 } });
     }
@@ -33,7 +34,7 @@ test("tests a profile only after saving public settings and keeps its key sessio
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByLabel("此 Profile 的临时 API Key").fill("test-session-secret");
   await page.getByRole("button", { name: "测试连接" }).click();
-  await expect(page.getByText("连接测试完成：example-model · 4ms")).toBeVisible();
+  await expect(page.getByText("后端已就绪：readiness.models_verified")).toBeVisible();
 
   // Profile hydration is intentionally eager and React development mode can
   // replay that read; only the action boundary is order-sensitive here.

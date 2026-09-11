@@ -164,7 +164,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     // normal browser reload is the public way to obtain the server's complete
     // resulting dependency projection before a review decision is offered.
     await page.reload();
-    await expect(page.getByText("API 已连接", { exact: true })).toBeVisible();
+    await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();
     await expectCanonicalHeads(request, workbench.apiOrigin, projectId);
 
     await navigateToStage(page, "02 故事圣经");

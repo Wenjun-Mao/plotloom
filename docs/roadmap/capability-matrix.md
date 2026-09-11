@@ -200,7 +200,7 @@
 ### M1-C：Alpha 验收
 
 - [x] fake-provider 与确定性后端矩阵覆盖分片缺失/重复/聚合冲突、并发编辑、取消竞态、未知提交结果、重启、精确 repair 和无部分安装；真实浏览器 repair 旅程进一步证明 sibling reuse 与全范围原子安装。
-- [ ] ADR 0024：显式 protocol adapter 选择、profile 独立启停与兼容历史 snapshot；不复制生成核心、不按模型 alias 特判。
+- [~] ADR 0024：离线 candidate 已加入精确 `adapterId`/`adapterVersion` registry、V3 新运行快照、profile-scoped secret-free readiness、非生成 preflight 和 admission guard，并保持 V1/V2 hash/resolver 不变；仍待默认 backend 的人工 live retry，不能据此标记独立真实验收通过。详见 [provider-readiness verification ledger](../verification/2026-09-10-provider-readiness-offline-candidate.md)。
 - [ ] 对每个拟支持 backend 独立运行三份固定中文故事、每份重复三次，共 9 条真实全流水线；9/9 原子安装、至少 30/36 阶段首次通过，记录独立版本与脱敏证据。先验收 `default`，`qwen36_35b` 延后。
 - [ ] 对该 backend 每个故事固定抽取一条，共 3 份盲评，使用原 `codex_external_review` rubric 与分数门槛；结果绑定准确来源与 snapshot，不冒充人类评审或产品 Approval。旧双 profile 18-run/6-review 模式保留原义，尚未通过。
 

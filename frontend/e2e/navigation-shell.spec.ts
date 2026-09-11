@@ -54,7 +54,7 @@ test.describe("M1-B0 query navigation shell", () => {
     });
 
     await page.reload();
-    await expect(page.getByText("正在连接", { exact: true })).toBeVisible();
+    await expect(page.getByText("Plotloom 服务：连接中", { exact: true })).toBeVisible();
     await page
       .getByRole("navigation", { name: "工作台阶段" })
       .getByRole("button", { name: /^02 故事圣经/ })

@@ -8,7 +8,7 @@ test.describe("first-save project bootstrap", () => {
   test("creates the Story Bible prefix in one request, hydrates it, and restores it after reload", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await openSampleProject(page);
-    await expect(page.getByText("教学草案", { exact: true })).toBeVisible();
+    await expect(page.getByText("Plotloom 服务：未连接", { exact: true })).toBeVisible();
     await navigateToStage(page, "02 故事圣经");
 
     const logline = "E2E：未保存工作台从故事圣经开始建立规范项目。";
@@ -29,7 +29,7 @@ test.describe("first-save project bootstrap", () => {
     await expectCanonicalStage(request, workbench.apiOrigin, projectId, "story_bible", submittedBible!.payload);
 
     await page.reload();
-    await expect(page.getByText("API 已连接", { exact: true })).toBeVisible();
+    await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();
     await navigateToStage(page, "02 故事圣经");
     await expect(page.getByLabel("Logline")).toHaveValue(logline);
     await expect(page.getByLabel("故事前提")).toHaveValue(premise);
@@ -60,7 +60,7 @@ test.describe("first-save project bootstrap", () => {
     await expectCanonicalStage(request, workbench.apiOrigin, projectId, "story_bible", submittedPayload);
 
     await page.reload();
-    await expect(page.getByText("API 已连接", { exact: true })).toBeVisible();
+    await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();
     await navigateToStage(page, "02 故事圣经");
     await expect(page.getByLabel("Logline")).toHaveValue(logline);
   });
@@ -94,7 +94,7 @@ test.describe("first-save project bootstrap", () => {
     );
 
     await page.reload();
-    await expect(page.getByText("API 已连接", { exact: true })).toBeVisible();
+    await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();
     await navigateToStage(page, "05 分镜工作台");
     await expect(page.getByLabel("动作")).toHaveValue(action);
   });

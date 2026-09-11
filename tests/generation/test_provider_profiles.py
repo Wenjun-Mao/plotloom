@@ -14,11 +14,13 @@ from plotloom.provider_profiles import (
     StageMaxOutputTokens,
     TextProviderCapabilities,
     TextProviderProfileSnapshot,
+    TextProviderProfileSnapshotV3,
     V2ExtractionPolicy,
     execution_preset,
     legacy_v1_profile_hash,
     validate_frozen_text_snapshot,
 )
+from plotloom.text_adapters import TextAdapterRegistry
 
 
 def _v2_snapshot(**overrides: object) -> TextProviderProfileSnapshot:
@@ -116,6 +118,25 @@ def test_v1_hash_uses_the_original_field_contract_without_v2_normalization() -> 
     accepted = validate_frozen_text_snapshot(stored)
     assert accepted == stored
     assert "profileSchemaVersion" not in accepted
+
+
+def test_v3_snapshot_freezes_exact_adapter_without_rewriting_v2_evidence() -> None:
+    v2 = _v2_snapshot()
+    historical_v2 = v2.model_dump(mode="json", by_alias=True)
+    values = v2.model_dump(mode="python", by_alias=False, exclude={"profile_hash"})
+    values.update(profile_schema_version=3, adapter_id="openai_compatible", adapter_version="1")
+    v3 = TextProviderProfileSnapshotV3.model_validate(values)
+
+    assert v2.model_dump(mode="json", by_alias=True) == historical_v2
+    assert validate_frozen_text_snapshot(historical_v2).model_dump(mode="json", by_alias=True) == historical_v2
+    frozen_v3 = validate_frozen_text_snapshot(v3.model_dump(mode="json", by_alias=True)).model_dump(mode="json", by_alias=True)
+    assert frozen_v3["adapterId"] == "openai_compatible"
+    assert frozen_v3["adapterVersion"] == "1"
+    assert frozen_v3["profileHash"] != historical_v2["profileHash"]
+
+    registry = TextAdapterRegistry({("another_adapter", "1"): lambda _snapshot: None})
+    with pytest.raises(ValueError, match="unsupported text adapter"):
+        registry.resolve(v3)
 
 
 def test_profile_key_resolution_is_namespaced_and_default_keeps_legacy_fallbacks() -> None:

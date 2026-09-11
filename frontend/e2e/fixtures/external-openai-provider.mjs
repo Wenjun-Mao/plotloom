@@ -171,6 +171,17 @@ const server = createServer(async (request, response) => {
     setResponseHold(body.enabled);
     return sendJson(response, 200, { holdResponses: state.holdResponses });
   }
+  // The production adapter's readiness path is intentionally non-generative.
+  // Keep this external fake protocol-shaped so browser journeys prove that a
+  // successful preflight never adds a chat-completion request.
+  if (request.method === "GET" && url.pathname === "/v1/models") {
+    return sendJson(response, 200, {
+      data: [
+        { id: "external-fake-v1" },
+        { id: "frozen-browser-key-model" },
+      ],
+    });
+  }
   if (request.method !== "POST" || url.pathname !== "/v1/chat/completions") return sendJson(response, 404, { error: "not found" });
   const chunks = [];
   for await (const chunk of request) chunks.push(chunk);
