@@ -20,8 +20,9 @@ from .image_job_contracts import ImageDeliveryManifest, ImageJobError, is_image_
 from .managed_media import ManagedMediaLimits, ObservedImage, inspect_import_image
 
 
-PACKAGE_VERSION = 1
+PACKAGE_VERSION = 2
 COMPLETION_FILENAME = "completion.json"
+COMPLETION_TEMPLATE_FILENAME = "completion-manifest.example.json"
 
 
 @dataclass(frozen=True)
@@ -224,6 +225,92 @@ class ImageJobExchange:
             except FileNotFoundError:
                 pass
 
+    @staticmethod
+    def _package_version(request: dict[str, Any]) -> int:
+        """Keep copied v1 packages readable while making v2 self-contained."""
+
+        schema_version = request.get("schemaVersion")
+        if schema_version == 1:
+            return 1
+        if schema_version == 2:
+            return PACKAGE_VERSION
+        raise ImageJobError("request_integrity", "frozen image request schema is unsupported")
+
+    @classmethod
+    def _package_projection(
+        cls,
+        *,
+        root: Path,
+        job_id: str,
+        request: dict[str, Any],
+        request_hash: str,
+        reference_entries: list[dict[str, str]],
+    ) -> tuple[dict[str, Any], bytes, bytes | None, set[str]]:
+        """Derive the complete, recheckable package from frozen database data."""
+
+        package_version = cls._package_version(request)
+        job_root = root / "jobs" / job_id
+        package = job_root / "package"
+        if package_version == 1:
+            delivery_instruction = (
+                "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. "
+                "Do not write SQLite, modify this package, or include sensitive values."
+            )
+            instructions = (
+                f"Plotloom image job {job_id}\n"
+                f"Read: {package / 'request.json'}\n"
+                f"Deliver only under: {job_root / 'delivery'}\n"
+                "Use Codex built-in image generation. Preserve the supplied narrative facts, disclose the actual prompt, "
+                "and publish completion.json only after every declared output is complete.\n"
+            ).encode("utf-8")
+            template: bytes | None = None
+        else:
+            delivery_instruction = (
+                "Read completion-manifest.example.json before preparing delivery. Write complete JPEG or PNG files to "
+                "delivery/outputs, then use that exact field shape to publish delivery/completion.json once. Do not write "
+                "SQLite, modify this package, or include sensitive values."
+            )
+            instructions = (
+                f"Plotloom image job {job_id}\n"
+                f"Read: {package / 'request.json'}\n"
+                f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n"
+                f"Deliver only under: {job_root / 'delivery'}\n"
+                "Use Codex built-in image generation. The request contains the frozen creator direction, selected reviewed "
+                "VisualIntent when this is a refinement, and the resolved authored shot context. Preserve those facts, disclose "
+                "the exact actual prompt, and publish completion.json only after every declared output is complete.\n"
+            ).encode("utf-8")
+            template = _canonical_json({
+                "schemaVersion": 1,
+                "jobId": job_id,
+                "requestHash": request_hash,
+                "deliveryId": "replace-with-specialist-delivery-id",
+                "actualPrompt": "replace-with-the-exact-prompt-submitted-to-Codex-imagegen",
+                "outputs": [{
+                    "filename": "candidate.png",
+                    "sha256": "0" * 64,
+                    "role": request.get("kind", "original"),
+                }],
+                "toolEvidence": {
+                    "tool": "codex_imagegen",
+                    "taskId": "replace-with-Codex-task-id",
+                    "available": True,
+                },
+                "limitations": [],
+            })
+        package_request = dict(request)
+        package_request.update({
+            "packageVersion": package_version,
+            "requestHash": request_hash,
+            "references": reference_entries,
+            "deliveryInstruction": delivery_instruction,
+        })
+        expected_entries = {"request.json", "COPY_ASSIGNMENT.txt"}
+        if template is not None:
+            expected_entries.add(COMPLETION_TEMPLATE_FILENAME)
+        if reference_entries:
+            expected_entries.add("references")
+        return package_request, instructions, template, expected_entries
+
     def write_package(
         self,
         *,
@@ -243,7 +330,6 @@ class ImageJobExchange:
             raise ImageJobError("invalid_job_id", "image job identifier is invalid")
         job_root = root / "jobs" / job_id
         package = job_root / "package"
-        request_path = package / "request.json"
         reference_values = tuple(references)
         reference_entries: list[dict[str, str]] = []
         for reference in reference_values:
@@ -256,30 +342,17 @@ class ImageJobExchange:
                 "filename": f"references/{reference.filename}",
                 "sha256": reference.content_hash,
             })
-        package_request = dict(request)
-        package_request.update({
-            "packageVersion": PACKAGE_VERSION,
-            "requestHash": request_hash,
-            "references": reference_entries,
-            "deliveryInstruction": (
-                "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. "
-                "Do not write SQLite, modify this package, or include sensitive values."
-            ),
-        })
         # The request hash covers the immutable request itself, not this mutable
         # transport projection. Verify it before writing or trusting a prior Copy.
         if sha256(_canonical_json(request)).hexdigest() != request_hash:
             raise ImageJobError("request_integrity", "frozen image request hash is invalid")
-        instructions = (
-            f"Plotloom image job {job_id}\n"
-            f"Read: {request_path}\n"
-            f"Deliver only under: {job_root / 'delivery'}\n"
-            "Use Codex built-in image generation. Preserve the supplied narrative facts, disclose the actual prompt, "
-            "and publish completion.json only after every declared output is complete.\n"
+        package_request, instructions, template, expected_entries = self._package_projection(
+            root=root,
+            job_id=job_id,
+            request=request,
+            request_hash=request_hash,
+            reference_entries=reference_entries,
         )
-        expected_entries = {"request.json", "COPY_ASSIGNMENT.txt"}
-        if reference_values:
-            expected_entries.add("references")
         package_fd = self._open_directory(root, ("jobs", job_id, "package"), create=True, package=True)
         try:
             names = self._directory_names(package_fd, package=True)
@@ -294,8 +367,12 @@ class ImageJobExchange:
                     raise ImageJobError("package_conflict", "existing package request is malformed") from error
                 if existing_request != package_request:
                     raise ImageJobError("package_conflict", "existing package does not match the frozen image request")
-                if self._read_regular_at(package_fd, "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions.encode("utf-8"):
+                if self._read_regular_at(package_fd, "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
                     raise ImageJobError("package_conflict", "existing package instructions do not match the frozen image request")
+                if template is not None and self._read_regular_at(
+                    package_fd, COMPLETION_TEMPLATE_FILENAME, max_bytes=20_000, package=True
+                ) != template:
+                    raise ImageJobError("package_conflict", "existing package completion template does not match the frozen request")
                 if reference_values:
                     references_fd = self._open_child_directory(package_fd, "references", package=True)
                     try:
@@ -317,7 +394,9 @@ class ImageJobExchange:
                         self._atomic_write_at(references_fd, reference.filename, reference.content)
                 finally:
                     os.close(references_fd)
-            self._atomic_write_at(package_fd, "COPY_ASSIGNMENT.txt", instructions.encode("utf-8"))
+            if template is not None:
+                self._atomic_write_at(package_fd, COMPLETION_TEMPLATE_FILENAME, template)
+            self._atomic_write_at(package_fd, "COPY_ASSIGNMENT.txt", instructions)
             self._atomic_write_at(package_fd, "request.json", _canonical_json(package_request))
         finally:
             os.close(package_fd)
@@ -348,27 +427,13 @@ class ImageJobExchange:
             {"role": role, "filename": f"references/{filename}", "sha256": content_hash}
             for role, filename, content_hash in reference_values
         ]
-        package_request = dict(request)
-        package_request.update({
-            "packageVersion": PACKAGE_VERSION,
-            "requestHash": request_hash,
-            "references": reference_entries,
-            "deliveryInstruction": (
-                "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. "
-                "Do not write SQLite, modify this package, or include sensitive values."
-            ),
-        })
-        package = root / "jobs" / job_id / "package"
-        instructions = (
-            f"Plotloom image job {job_id}\n"
-            f"Read: {package / 'request.json'}\n"
-            f"Deliver only under: {root / 'jobs' / job_id / 'delivery'}\n"
-            "Use Codex built-in image generation. Preserve the supplied narrative facts, disclose the actual prompt, "
-            "and publish completion.json only after every declared output is complete.\n"
-        ).encode("utf-8")
-        expected_entries = {"request.json", "COPY_ASSIGNMENT.txt"}
-        if reference_values:
-            expected_entries.add("references")
+        package_request, instructions, template, expected_entries = self._package_projection(
+            root=root,
+            job_id=job_id,
+            request=request,
+            request_hash=request_hash,
+            reference_entries=reference_entries,
+        )
         package_fd = self._open_directory(root, ("jobs", job_id, "package"), package=True)
         try:
             if self._directory_names(package_fd, package=True) != expected_entries:
@@ -383,6 +448,10 @@ class ImageJobExchange:
                 raise ImageJobError("package_conflict", "existing package does not match the frozen image request")
             if self._read_regular_at(package_fd, "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
                 raise ImageJobError("package_conflict", "existing package instructions do not match the frozen image request")
+            if template is not None and self._read_regular_at(
+                package_fd, COMPLETION_TEMPLATE_FILENAME, max_bytes=20_000, package=True
+            ) != template:
+                raise ImageJobError("package_conflict", "existing package completion template does not match the frozen request")
             if reference_values:
                 references_fd = self._open_child_directory(package_fd, "references", package=True)
                 try:

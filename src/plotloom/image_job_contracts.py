@@ -28,12 +28,28 @@ class ImageJobError(ValueError):
 
 
 class ImageJobCreateRequest(CamelModel):
-    """Browser input is limited to canonical identifiers already in Plotloom."""
+    """Browser input for one frozen, creator-reviewed image-job brief."""
 
     approval_id: str = Field(min_length=1, max_length=36)
     shot_id: str = Field(min_length=1, max_length=100)
     storyboard_revision: int = Field(ge=1)
     parent_candidate_asset_id: str | None = Field(default=None, max_length=36)
+    presentation_change: str = Field(min_length=1, max_length=4_000)
+
+    @field_validator("presentation_change")
+    @classmethod
+    def creator_direction_is_nonblank(cls, value: str) -> str:
+        """Keep creator direction explicit without granting narrative authority.
+
+        The browser may describe the intended presentation or refinement, but
+        it cannot supply canonical facts, a VisualIntent identity, or a path.
+        Those remain resolved by trusted code when the job is prepared.
+        """
+
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("presentationChange must not be blank")
+        return normalized
 
 
 class ImageJobOutput(CamelModel):

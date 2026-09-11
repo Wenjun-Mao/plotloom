@@ -11,10 +11,13 @@ from PIL import Image
 
 from plotloom.api import create_app
 from plotloom.artifacts import MemoryArtifactStore
+from plotloom.canonical_schema import CharacterV2, DialogueCue, LocationV2, PropV2, RequiredEntityState
 from plotloom.domain import StageName
+from plotloom.image_job_exchange import ImageJobExchange
 from plotloom.managed_media import ManagedMediaLimits, inspect_import_image, publish_import
 from plotloom.persistence import SQLiteRepository
 
+from .conftest import all_stage_payloads
 from .test_managed_still_media import _approval, _complete_project_with_three_shots, _intent
 
 
@@ -33,7 +36,11 @@ def _shot_id(repository: SQLiteRepository, project_id: str, scene_id: str) -> st
 def _prepare(client: TestClient, project_id: str, approval: dict, shot_id: str, revision: int, **extra: str) -> dict:
     response = client.post(
         f"/api/v2/projects/{project_id}/image-jobs",
-        json={"approvalId": approval["id"], "shotId": shot_id, "storyboardRevision": revision, **extra},
+        json={
+            "approvalId": approval["id"], "shotId": shot_id, "storyboardRevision": revision,
+            "presentationChange": "Keep the reviewed presentation readable and faithful to this approved shot.",
+            **extra,
+        },
     )
     assert response.status_code == 201, response.text
     return response.json()
@@ -57,6 +64,56 @@ def _complete_delivery(delivery: Path, job: dict, *, delivery_id: str, content: 
     (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
 
 
+def _complete_project_with_resolved_image_context(repository: SQLiteRepository, brief):
+    """Build a canonical fixture whose frozen brief must resolve real facts."""
+
+    bible, graph, scene_beats, storyboard = all_stage_payloads()
+    scene = scene_beats.scenes[0]
+    beat = scene_beats.beats[0]
+    character = CharacterV2(
+        id="captain", name="林默", role="领航员", description="刚苏醒的领航员",
+        visual_anchors=["银色应急服"], sound_anchors=["浅促呼吸"], allowed_states=["steady"],
+        continuity_rules=["头盔始终握在左手"], goal="确认飞船航线", traits=["克制"],
+        voice_anchors=["低声"],
+    )
+    location = LocationV2(
+        id="bridge", name="舰桥", description="低照度舰桥", visual_anchors=["实用控制台灯"],
+        sound_anchors=["循环通风"], allowed_states=["powered"], continuity_rules=["主屏保持离线"],
+    )
+    prop = PropV2(
+        id="helmet", name="头盔", description="损伤的飞行头盔", visual_anchors=["划痕面罩"],
+        sound_anchors=["扣环轻响"], allowed_states=["held"], continuity_rules=["始终在左手"],
+    )
+    cue = DialogueCue(
+        id="wake-cue", beat_id=beat.id, order=1, speaker_id=character.id, voice_over=None,
+        text="a", language="*", delivery="natural", performance_notes="压低声音",
+        estimated_duration_units=70,
+    )
+    scene = scene.model_copy(update={
+        "location_id": location.id, "character_ids": [character.id], "duration_budget_units": 100,
+    })
+    scene_beats = scene_beats.model_copy(update={
+        "scenes": [scene, *scene_beats.scenes[1:]],
+        "dialogue_cues": [cue],
+    })
+    first_shot = storyboard.shots[0].model_copy(update={
+        "duration_units": 70,
+        "character_ids": [character.id], "location_id": location.id, "prop_ids": [prop.id],
+        "cue_ids": [cue.id],
+        "required_entity_states": [
+            RequiredEntityState(entity_type="character", entity_id=character.id, state="steady"),
+            RequiredEntityState(entity_type="prop", entity_id=prop.id, state="held"),
+        ],
+    })
+    second_shot = storyboard.shots[1].model_copy(update={"duration_units": 30})
+    storyboard = storyboard.model_copy(update={"shots": [first_shot, second_shot, *storyboard.shots[2:]]})
+    bible = bible.model_copy(update={"characters": [character], "locations": [location], "props": [prop]})
+    project = repository.create_project(brief)
+    for stage, payload in zip((StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS, StageName.STORYBOARD), (bible, graph, scene_beats, storyboard), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+    return repository.get_project(project.id), scene.id
+
+
 def test_image_job_requires_a_configured_same_host_exchange_before_admission(repository, brief) -> None:
     project, scene_id = _complete_project_with_three_shots(repository, brief)
     app = create_app(repository, artifact_store=MemoryArtifactStore())
@@ -68,6 +125,7 @@ def test_image_job_requires_a_configured_same_host_exchange_before_admission(rep
             json={
                 "approvalId": approval["id"], "shotId": _shot_id(repository, project.id, scene_id),
                 "storyboardRevision": board.revision,
+                "presentationChange": "Prepare the approved shot as reviewed.",
             },
         )
         assert unavailable.status_code == 409 and unavailable.json()["code"] == "image_exchange_not_configured"
@@ -76,8 +134,39 @@ def test_image_job_requires_a_configured_same_host_exchange_before_admission(rep
         }
 
 
-def test_manual_image_job_prepare_copy_refresh_select_and_refine(repository, brief, tmp_path: Path) -> None:
+def test_image_job_requires_nonblank_creator_direction_before_admission(repository, brief, tmp_path: Path) -> None:
     project, scene_id = _complete_project_with_three_shots(repository, brief)
+    app = create_app(repository, artifact_store=MemoryArtifactStore(), image_exchange_root=tmp_path / "exchange")
+    with TestClient(app) as client:
+        _review, approval = _approval(client, project.id)
+        board = repository.get_stage_head(project.id, StageName.STORYBOARD)
+        missing_direction = client.post(
+            f"/api/v2/projects/{project.id}/image-jobs",
+            json={
+                "approvalId": approval["id"], "shotId": _shot_id(repository, project.id, scene_id),
+                "storyboardRevision": board.revision, "presentationChange": "   ",
+            },
+        )
+        assert missing_direction.status_code == 422
+        assert client.get(f"/api/v2/projects/{project.id}/image-jobs").json()["jobs"] == []
+
+
+def test_legacy_v1_package_remains_recheckable_without_a_template(tmp_path: Path) -> None:
+    request = {"schemaVersion": 1, "jobId": "ij_" + "a" * 20, "kind": "original"}
+    request_hash = sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    exchange = ImageJobExchange(tmp_path / "exchange", limits=ManagedMediaLimits())
+    copied = exchange.write_package(
+        job_id=request["jobId"], request=request, request_hash=request_hash, references=[],
+    )
+    package = Path(copied["packagePath"])
+    assert {item.name for item in package.iterdir()} == {"COPY_ASSIGNMENT.txt", "request.json"}
+    exchange.verify_package(
+        job_id=request["jobId"], request=request, request_hash=request_hash, references=[],
+    )
+
+
+def test_manual_image_job_prepare_copy_refresh_select_and_refine(repository, brief, tmp_path: Path) -> None:
+    project, scene_id = _complete_project_with_resolved_image_context(repository, brief)
     store = MemoryArtifactStore()
     app = create_app(repository, artifact_store=store, image_exchange_root=tmp_path / "exchange")
     with TestClient(app) as client:
@@ -87,6 +176,15 @@ def test_manual_image_job_prepare_copy_refresh_select_and_refine(repository, bri
         prepared = _prepare(client, project.id, approval, shot_id, board.revision)
         original = prepared["job"]
         assert original["request"]["frozenSnapshot"]["references"] == []
+        frozen_snapshot = original["request"]["frozenSnapshot"]
+        assert original["request"]["schemaVersion"] == 2
+        assert frozen_snapshot["creatorDirection"] == {
+            "presentationChange": "Keep the reviewed presentation readable and faithful to this approved shot.",
+        }
+        assert [item["id"] for item in frozen_snapshot["resolvedContext"]["characters"]] == ["captain"]
+        assert [item["id"] for item in frozen_snapshot["resolvedContext"]["locations"]] == ["bridge"]
+        assert [item["id"] for item in frozen_snapshot["resolvedContext"]["props"]] == ["helmet"]
+        assert [item["id"] for item in frozen_snapshot["resolvedContext"]["dialogueCues"]] == ["wake-cue"]
 
         copied = client.post(f"/api/v2/projects/{project.id}/image-jobs/{original['id']}/copy")
         assert copied.status_code == 200, copied.text
@@ -94,6 +192,12 @@ def test_manual_image_job_prepare_copy_refresh_select_and_refine(repository, bri
         delivery = Path(copied.json()["deliveryPath"])
         request = json.loads((package / "request.json").read_text())
         assert request["jobId"] == original["id"]
+        assert request["packageVersion"] == 2
+        completion_template = json.loads((package / "completion-manifest.example.json").read_text())
+        assert completion_template["jobId"] == original["id"]
+        assert completion_template["requestHash"] == original["requestHash"]
+        assert completion_template["outputs"][0]["role"] == "original"
+        assert "completion-manifest.example.json" in (package / "COPY_ASSIGNMENT.txt").read_text()
         serialized_package = json.dumps(request).lower()
         assert not any(forbidden in serialized_package for forbidden in (
             "credentials", "api_key", "authorization", "bearer", "secret",
@@ -149,11 +253,19 @@ def test_manual_image_job_prepare_copy_refresh_select_and_refine(repository, bri
         refinement = _prepare(
             client, project.id, approval, shot_id, board.revision,
             parentCandidateAssetId=candidate["assetId"],
+            presentationChange="Keep the parent framing; improve facial clarity under practical control-panel lighting.",
         )["job"]
         copied_refinement = client.post(f"/api/v2/projects/{project.id}/image-jobs/{refinement['id']}/copy")
         assert copied_refinement.status_code == 200, copied_refinement.text
         refinement_request = json.loads((Path(copied_refinement.json()["packagePath"]) / "request.json").read_text())
         assert refinement_request["references"][0]["role"] == "parent_output"
+        reviewed_intent = refinement_request["frozenSnapshot"]["reviewedVisualIntent"]
+        assert reviewed_intent["bindingId"] == selection.json()["id"]
+        assert reviewed_intent["visualIntentId"] == intent["id"]
+        assert reviewed_intent["visualIntentRevision"] == intent["revision"]
+        assert refinement_request["frozenSnapshot"]["creatorDirection"] == {
+            "presentationChange": "Keep the parent framing; improve facial clarity under practical control-panel lighting.",
+        }
         reference_path = Path(copied_refinement.json()["packagePath"]) / refinement_request["references"][0]["filename"]
         original_reference = reference_path.read_bytes()
         reference_path.write_bytes(b"tampered reference")
@@ -173,6 +285,28 @@ def test_manual_image_job_prepare_copy_refresh_select_and_refine(repository, bri
         refinement_return = client.post(f"/api/v2/projects/{project.id}/image-jobs/{refinement['id']}/refresh")
         assert refinement_return.status_code == 200
         assert refinement_return.json()["candidates"][0]["role"] == "refinement"
+
+        stale_refinement = _prepare(
+            client, project.id, approval, shot_id, board.revision,
+            parentCandidateAssetId=candidate["assetId"],
+            presentationChange="Hold the same composition while refining the practical-lighting balance.",
+        )["job"]
+        stale_copy = client.post(f"/api/v2/projects/{project.id}/image-jobs/{stale_refinement['id']}/copy")
+        assert stale_copy.status_code == 200, stale_copy.text
+        # An edited role-specific VisualIntent deliberately invalidates the
+        # copied refinement before its late delivery can publish an asset.
+        revised_intent = _intent(client, project.id, candidate["assetId"])
+        assert revised_intent["revision"] == 2
+        _complete_delivery(
+            Path(stale_copy.json()["deliveryPath"]), stale_refinement,
+            delivery_id="refinement-stale-001", content=_png((80, 30, 10)), role="refinement",
+        )
+        stale_return = client.post(f"/api/v2/projects/{project.id}/image-jobs/{stale_refinement['id']}/refresh")
+        assert stale_return.status_code == 200
+        assert stale_return.json() == {
+            "deliveryId": "refinement-stale-001", "state": "inapplicable",
+            "diagnosticCode": "late_or_stale_delivery", "idempotent": False, "candidates": [],
+        }
 
 
 def test_image_job_rejects_partial_tampered_and_conflicting_delivery(repository, brief, tmp_path: Path) -> None:
@@ -264,6 +398,7 @@ def test_image_job_rejects_forged_authority_cross_project_and_browser_paths(repo
             f"/api/v2/projects/{project.id}/image-jobs",
             json={
                 "approvalId": approval["id"], "shotId": shot_id, "storyboardRevision": board.revision,
+                "presentationChange": "Keep the approved presentation.",
                 "deliveryPath": "/arbitrary/operator/path", "prompt": "replace frozen facts",
             },
         )
@@ -271,7 +406,10 @@ def test_image_job_rejects_forged_authority_cross_project_and_browser_paths(repo
 
         forged = client.post(
             f"/api/v2/projects/{project.id}/image-jobs",
-            json={"approvalId": other_approval["id"], "shotId": shot_id, "storyboardRevision": board.revision},
+            json={
+                "approvalId": other_approval["id"], "shotId": shot_id, "storyboardRevision": board.revision,
+                "presentationChange": "Keep the approved presentation.",
+            },
         )
         assert forged.status_code == 409 and forged.json()["code"] == "invalid_transition"
 

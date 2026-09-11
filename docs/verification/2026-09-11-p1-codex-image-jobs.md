@@ -4,6 +4,16 @@ Date: 2026-09-11
 Scope: approved P1 manual Codex image-job path only; no automatic bridge, external
 image API, provider credential, or production release is claimed.
 
+> **Historical-pilot limitation (recorded 2026-09-11):** the original and
+> refinement below remain valid evidence of the manual transport and observed
+> built-in ImageGen execution. The copied refinement request did not itself
+> include the later facial-clarity/practical-lighting change or resolved authored
+> character/location/prop/cue context; that direction was supplied to the
+> specialist out of band. It must not be treated as proof that the copied brief
+> was self-contained. The follow-up [v2 copied-brief correction receipt](2026-09-11-p1-self-contained-brief-correction.md)
+> records the regression using these retained asset files and makes no new
+> ImageGen or creative-acceptance claim.
+
 ## Contract and implementation
 
 [ADR 0028](../adr/0028-agent-operated-image-jobs.md) assigns canonical facts,

@@ -2298,11 +2298,112 @@ class SQLiteRepository:
             approval = self._approval_is_active_in_session(session, unit.approval_id)
         except (InvalidTransitionError, NotFoundError):
             return False
-        return (
+        if not (
             approval.project_id == job.project_id
             and approval.entity_revision_id == unit.storyboard_entity_revision_id
             and approval.subject_revision == unit.storyboard_revision
+        ):
+            return False
+
+        # V1 original jobs predate the reviewed-keyframe refinement binding and
+        # intentionally retain their historical currentness rule.  V2
+        # refinements freeze an exact creator-reviewed VisualIntent, so a new
+        # intent revision after Copy makes the resulting delivery inapplicable
+        # rather than silently applying it to a changed presentation contract.
+        reviewed_intent = unit.snapshot.get("reviewedVisualIntent")
+        if reviewed_intent is None:
+            return True
+        if not isinstance(reviewed_intent, dict):
+            return False
+        binding_id = reviewed_intent.get("bindingId")
+        if not isinstance(binding_id, str):
+            return False
+        binding = session.get(ReviewedShotBindingRow, binding_id)
+        if binding is None:
+            return False
+        if (
+            binding.project_id != job.project_id
+            or binding.shot_id != unit.shot_id
+            or binding.asset_id != reviewed_intent.get("assetId")
+            or binding.selection_revision != reviewed_intent.get("selectionRevision")
+            or binding.visual_intent_id != reviewed_intent.get("visualIntentId")
+            or binding.visual_intent_revision != reviewed_intent.get("visualIntentRevision")
+        ):
+            return False
+        return self._reviewed_binding_admission_eligible_in_session(
+            session, job.project_id, binding, approval=approval
         )
+
+    @staticmethod
+    def _image_job_resolved_context(
+        *,
+        shot: Any,
+        storyboard: Any,
+        story_bible: Any,
+        scene_beats: Any,
+    ) -> dict[str, Any]:
+        """Resolve just the authored facts a specialist needs for one Shot.
+
+        The frozen projection deliberately travels only through canonical
+        objects already admitted by the approved storyboard.  It does not
+        expose project-wide notes, provider configuration, or any filesystem
+        location.  Models from the retained V1 schema do not carry V2 dialogue
+        and state links, so their corresponding narrow lists are empty.
+        """
+
+        def dump(value: Any) -> dict[str, Any]:
+            return value.model_dump(mode="json", by_alias=True)
+
+        def ordered_unique(values: Sequence[str | None]) -> list[str]:
+            seen: set[str] = set()
+            result: list[str] = []
+            for value in values:
+                if value is not None and value not in seen:
+                    seen.add(value)
+                    result.append(value)
+            return result
+
+        scene = next((item for item in scene_beats.scenes if item.id == shot.scene_id), None)
+        linked_beat_ids = ordered_unique([
+            link.beat_id for link in storyboard.shot_beat_links if link.shot_id == shot.id
+        ])
+        beats_by_id = {item.id: item for item in scene_beats.beats}
+        beats = [beats_by_id[beat_id] for beat_id in linked_beat_ids if beat_id in beats_by_id]
+        cue_ids = ordered_unique(list(getattr(shot, "cue_ids", [])))
+        cues_by_id = {
+            item.id: item for item in getattr(scene_beats, "dialogue_cues", [])
+        }
+        cues = [cues_by_id[cue_id] for cue_id in cue_ids if cue_id in cues_by_id]
+
+        required_entity_states = list(getattr(shot, "required_entity_states", []))
+        character_ids = ordered_unique([
+            *list(getattr(shot, "character_ids", [])),
+            *([] if scene is None else list(getattr(scene, "character_ids", []))),
+            *(cue.speaker_id for cue in cues),
+            *(state.entity_id for state in required_entity_states if state.entity_type == "character"),
+        ])
+        prop_ids = ordered_unique([
+            *list(getattr(shot, "prop_ids", [])),
+            *(state.entity_id for state in required_entity_states if state.entity_type == "prop"),
+        ])
+        location_ids = ordered_unique([
+            getattr(shot, "location_id", None),
+            None if scene is None else getattr(scene, "location_id", None),
+            *(state.entity_id for state in required_entity_states if state.entity_type == "location"),
+        ])
+        characters_by_id = {item.id: item for item in story_bible.characters}
+        props_by_id = {item.id: item for item in story_bible.props}
+        locations_by_id = {item.id: item for item in story_bible.locations}
+
+        return {
+            "scene": dump(scene) if scene is not None else None,
+            "beats": [dump(item) for item in beats],
+            "dialogueCues": [dump(item) for item in cues],
+            "characters": [dump(characters_by_id[item_id]) for item_id in character_ids if item_id in characters_by_id],
+            "locations": [dump(locations_by_id[item_id]) for item_id in location_ids if item_id in locations_by_id],
+            "props": [dump(props_by_id[item_id]) for item_id in prop_ids if item_id in props_by_id],
+            "requiredEntityStates": [dump(item) for item in required_entity_states],
+        }
 
     def prepare_image_job(
         self,
@@ -2312,6 +2413,7 @@ class SQLiteRepository:
         shot_id: str,
         storyboard_revision: int,
         parent_candidate_asset_id: str | None = None,
+        presentation_change: str,
     ) -> dict[str, Any]:
         """Freeze an approved single-shot production unit and manual request."""
 
@@ -2322,6 +2424,8 @@ class SQLiteRepository:
             if approval.project_id != project_id or approval.subject_revision != storyboard_revision:
                 raise InvalidTransitionError("image job approval does not match the requested storyboard revision")
             storyboard = self._load_stage_payload(session, project_id, StageName.STORYBOARD)
+            story_bible = self._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
+            scene_beats = self._load_stage_payload(session, project_id, StageName.SCENE_BEATS)
             head = self._stage_row(session, project_id, StageName.STORYBOARD)
             if head.revision != storyboard_revision or head.entity_revision_id != approval.entity_revision_id:
                 raise RevisionConflictError("storyboard", storyboard_revision, head.revision)
@@ -2331,6 +2435,7 @@ class SQLiteRepository:
 
             references: list[dict[str, Any]] = []
             parent_job_id: str | None = None
+            reviewed_visual_intent: dict[str, Any] | None = None
             if parent_candidate_asset_id is not None:
                 candidate = session.scalar(
                     select(ImageJobCandidateRow)
@@ -2344,7 +2449,37 @@ class SQLiteRepository:
                     or not self._image_job_is_current_in_session(session, parent_job)
                 ):
                     raise InvalidTransitionError("refinement must name a current Plotloom image-job candidate")
+                binding = session.scalar(
+                    select(ReviewedShotBindingRow)
+                    .where(
+                        ReviewedShotBindingRow.project_id == project_id,
+                        ReviewedShotBindingRow.shot_id == shot_id,
+                    )
+                    .order_by(ReviewedShotBindingRow.selection_revision.desc())
+                    .limit(1)
+                )
+                if (
+                    binding is None
+                    or binding.asset_id != parent_candidate_asset_id
+                    or not self._reviewed_binding_admission_eligible_in_session(
+                        session, project_id, binding, approval=approval
+                    )
+                ):
+                    raise InvalidTransitionError(
+                        "refinement must name the current creator-reviewed keyframe for this shot"
+                    )
+                intent = session.get(VisualIntentRow, binding.visual_intent_id)
+                if intent is None:
+                    raise InvalidTransitionError("refinement reviewed VisualIntent is unavailable")
                 parent_job_id = parent_job.id
+                reviewed_visual_intent = {
+                    "bindingId": binding.id,
+                    "assetId": binding.asset_id,
+                    "selectionRevision": binding.selection_revision,
+                    "visualIntentId": intent.id,
+                    "visualIntentRevision": intent.revision,
+                    "intent": intent.intent,
+                }
                 references.append({
                     "assetId": asset.id, "role": "parent_output", "required": True,
                     "originalHash": asset.original_hash, "mimeType": asset.mime_type,
@@ -2357,16 +2492,27 @@ class SQLiteRepository:
                 "visualIntent": shot.visual_intent, "cameraAngle": shot.camera_angle,
                 "cameraMovement": shot.camera_movement,
             }
+            resolved_context = self._image_job_resolved_context(
+                shot=shot,
+                storyboard=storyboard,
+                story_bible=story_bible,
+                scene_beats=scene_beats,
+            )
             snapshot = {
-                "snapshotVersion": 1, "compilerVersion": "plotloom.codex-image-job.v1",
+                "snapshotVersion": 2, "compilerVersion": "plotloom.codex-image-job.v2",
                 "projectId": project_id, "approvalId": approval.id,
                 "approvalGateSetVersion": approval.gate_set_version,
                 "storyboardEntityRevisionId": approval.entity_revision_id,
                 "storyboardRevision": storyboard_revision,
                 "canonicalInputRevisions": dict(approval.canonical_input_revisions),
-                "shot": shot_payload, "visualProposal": visual_proposal, "references": references,
+                "shot": shot_payload, "visualProposal": visual_proposal,
+                "creatorDirection": {"presentationChange": presentation_change},
+                "resolvedContext": resolved_context,
+                "references": references,
                 "audioContext": shot_payload.get("audioPlan", {}),
             }
+            if reviewed_visual_intent is not None:
+                snapshot["reviewedVisualIntent"] = reviewed_visual_intent
             snapshot_hash = stable_hash(snapshot)
             now = utc_now()
             unit = ProductionUnitRow(
@@ -2379,7 +2525,7 @@ class SQLiteRepository:
             session.flush()
             job_id = self._image_job_id()
             request = {
-                "schemaVersion": 1, "jobId": job_id, "productionUnitId": unit.id,
+                "schemaVersion": 2, "jobId": job_id, "productionUnitId": unit.id,
                 "productionSnapshotHash": snapshot_hash, "executionContract": "codex_specialist.v1",
                 "kind": "refinement" if parent_candidate_asset_id else "original",
                 "visualProposal": visual_proposal, "frozenSnapshot": snapshot,

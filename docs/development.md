@@ -94,17 +94,26 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
   `PLOTLOOM_IMAGE_EXCHANGE_ROOT` on the same host as Plotloom and the assigned
   Codex specialist. Do not use the source checkout, SQLite directory, artifact
   root, or a broad home directory as this exchange root.
-- The UI prepares an approved single-shot job, then **Copy assignment** exposes
-  one database-frozen `package/` projection and a separate `delivery/` inbox. The
-  specialist reads `package/request.json`, writes only complete JPEG/PNG files
-  under `delivery/outputs/`, and publishes `delivery/completion.json` last.
-  It must report the actual built-in-imagegen prompt, hashes, tool/task evidence,
-  and limitations without including credentials.
+- The UI requires a nonblank creator-reviewed presentation/refinement change
+  before it prepares an approved single-shot job. It freezes that change with
+  canonical facts; use the normal storyboard editor and reapproval for narrative
+  changes. A reference refinement is available only for the current reviewed
+  keyframe of that Shot.
+- **Copy assignment** exposes one database-frozen `package/` projection and a
+  separate `delivery/` inbox. For v2 jobs the specialist reads both
+  `package/request.json` and `package/completion-manifest.example.json`; the
+  request includes the resolved narrow entity/cue/state context and, for a
+  refinement, the exact reviewed VisualIntent revision. It writes only complete
+  JPEG/PNG files under `delivery/outputs/`, then publishes
+  `delivery/completion.json` last. It must report the actual built-in-imagegen
+  prompt, hashes, tool/task evidence, and limitations without credentials.
 - **Refresh deliveries** revalidates the confined package against its frozen
   database request, then validates the delivery server-side. It never generates,
   approves, selects, resends, or follows a browser-supplied path.
   Invalid/partial/tampered delivery remains diagnosable; a late result is kept
-  as inapplicable history. Explicit P0 selection remains required before preview.
+  as inapplicable history. Editing the selected role-specific VisualIntent after
+  Copy also makes a refinement inapplicable. Explicit P0 selection remains
+  required before preview.
 
 ## M1.5 generation contracts
 

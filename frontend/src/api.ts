@@ -175,7 +175,7 @@ export class PlotloomApiClient {
   }
 
   prepareImageJob(projectId: string, body: {
-    approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string;
+    approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string; presentationChange: string;
   }): Promise<{ job: ImageJob }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs`, { method: "POST", body: JSON.stringify(body) });
   }

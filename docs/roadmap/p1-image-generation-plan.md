@@ -1,11 +1,21 @@
 # P1 — Codex image jobs with a manual handoff
 
-Status: **Implemented locally — revision 2**, 2026-09-11. The user approved
-this revision and authorized implementation with “Looks good, go.” The bounded
-candidate has a real original and reference-based built-in-imagegen refinement
-through the manual exchange; see the [verification receipt](../verification/2026-09-11-p1-codex-image-jobs.md).
-This is not a production release or external-provider qualification. Supersedes
-the unapproved external-endpoint-first revision 1.
+Status: **Approved — revision 2**, 2026-09-11. This is the approved scope; it
+does not by itself claim implementation, director acceptance, a production
+release, or external-provider qualification. It supersedes the unapproved
+external-endpoint-first revision 1.
+
+## Implementation and acceptance status
+
+The prior local candidate at `fe7c1ca` established a real original and
+reference-based built-in-imagegen refinement through the manual exchange; see
+the [initial receipt](../verification/2026-09-11-p1-codex-image-jobs.md). Its
+copied refinement brief, however, did not itself carry the later supplied
+facial-clarity/practical-lighting direction or the resolved authored context.
+The self-contained copied-brief correction is an implementation candidate with
+its own [regression receipt](../verification/2026-09-11-p1-self-contained-brief-correction.md).
+**Director acceptance remains pending**; the retained asset regression does not
+represent a new ImageGen execution or creative approval.
 
 ## Outcome and stopping point
 
@@ -46,15 +56,22 @@ Governing records: [roadmap](story-to-playable-alpha.md),
 
 - Implement minimal one-shot ProductionUnit/Snapshot admission, not a raw-Shot
   shortcut or renamed P0 preview. Freeze canonical hashes/revisions, current
-  Approval/gates, selected intent, references/roles/verified bytes, compiler version
-  and the versioned `codex_specialist` execution contract. Retain cue/audio context
-  without claiming still-image output produces audio.
+  Approval/gates, the creator-reviewed presentation/refinement change, selected
+  refinement intent/binding revision, references/roles/verified bytes, compiler
+  version and the versioned `codex_specialist` execution contract. Include only
+  the resolved character/location/prop/state/beat/cue context required by the
+  target Shot; retain cue/audio context without claiming still-image output
+  produces audio.
 - Derive an editable visual proposal from authored fields; no new LLM service.
   Narrative changes use canonical editing and reapproval. Zero-reference jobs are
   valid when none are required. Required references/edit targets cannot be dropped.
 - Persist immutable inputs and a collision-resistant opaque job ID before Copy
   assignment becomes available. Repeated copying returns the same job, not a new
   generation. Refinement creates a new job referencing its parent output/hash.
+- A refinement may use only the current creator-reviewed keyframe for that Shot.
+  Trusted code, not the browser, resolves and freezes its VisualIntent ID and
+  revision. A later revision in that role-specific intent stream makes the copied
+  job inapplicable; it can retain a late receipt but cannot publish a candidate.
 - The copied assignment includes the ID, a configured locator and a short reading/
   delivery instruction. An ID is a lookup key, not a credential or success receipt.
 
@@ -66,6 +83,10 @@ Governing records: [roadmap](story-to-playable-alpha.md),
 - Resolve registered jobs only under that root. Refuse path traversal, symlink
   escapes, cross-project mismatches and arbitrary browser-supplied URLs/paths.
   Specialist writes only its assigned inbox, never SQLite or canonical records.
+- A v2 copied package includes the self-contained request, `COPY_ASSIGNMENT.txt`,
+  and a versioned `completion-manifest.example.json` template. Copy assignment
+  explicitly names that template. Historical v1 packages remain recheckable as
+  their original projection; no stored job is rewritten.
 - Different-machine use needs deliberate package transfer or shared-path mapping.
   Report unavailable locations honestly; do not assume paths are shared or expose
   a local server. Packaging/sync automation is not part of initial P1.

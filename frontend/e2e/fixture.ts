@@ -14,6 +14,8 @@ const loopbackHost = "127.0.0.1";
 export type Workbench = {
   apiOrigin: string;
   frontendOrigin: string;
+  /** Test-owned same-host exchange root for the manual P1 file handoff. */
+  imageExchangeRoot: string;
   /** A test-owned process, deliberately outside the Plotloom API surface. */
   providerOrigin: string;
   /** Stops and starts the owned FastAPI process against its original data paths. */
@@ -45,6 +47,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
       }
     }
     const artifactRoot = path.join(temporaryRoot, "artifacts");
+    const imageExchangeRoot = path.join(temporaryRoot, "image-exchange");
     const databasePath = path.join(temporaryRoot, "plotloom.sqlite3");
     const backendPort = await reserveLoopbackPort();
     const frontendPort = await reserveLoopbackPort();
@@ -66,6 +69,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
       PORT: String(backendPort),
       PLOTLOOM_DATABASE_URL: `sqlite:///${databasePath}`,
       PLOTLOOM_ARTIFACT_ROOT: artifactRoot,
+      PLOTLOOM_IMAGE_EXCHANGE_ROOT: imageExchangeRoot,
       PLOTLOOM_DATA_DIR: temporaryRoot,
       TEXT_MODEL_API_KEY: "",
       IMAGE_MODEL_API_KEY: "",
@@ -77,6 +81,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
 
     try {
       await mkdir(artifactRoot, { recursive: true });
+      await mkdir(imageExchangeRoot, { recursive: true });
       await waitForHttp(`${providerOrigin}/control/status`, provider);
       await waitForHttp(`${apiOrigin}/openapi.json`, backend);
       frontend = startProcess(
@@ -97,6 +102,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
       await use({
         apiOrigin,
         frontendOrigin,
+        imageExchangeRoot,
         providerOrigin,
         restartBackend: async () => {
           await stopProcess(backend);

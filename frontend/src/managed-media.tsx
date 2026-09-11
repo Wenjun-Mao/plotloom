@@ -32,6 +32,7 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   const [imageJobs, setImageJobs] = useState<ImageJob[]>([]);
   const [imageExchangeConfigured, setImageExchangeConfigured] = useState(false);
   const [copiedAssignment, setCopiedAssignment] = useState("");
+  const [imageJobPresentationChange, setImageJobPresentationChange] = useState("");
   const [candidates, setCandidates] = useState<string[]>([]);
   const [keptAssetId, setKeptAssetId] = useState("");
   const [origin, setOrigin] = useState("Local creator import");
@@ -161,10 +162,15 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   };
   const prepareImageJob = async (parentCandidateAssetId?: string) => {
     if (!projectId || !selectedShot || !currentApproval || !storyboardRevision) return;
+    if (!imageJobPresentationChange.trim()) {
+      setError("请先说明这次原始图或参考细化要冻结的画面呈现变化。");
+      return;
+    }
     setBusy(true); setError(""); setCopiedAssignment("");
     try {
       await plotloomApi.prepareImageJob(projectId, {
         approvalId: currentApproval.id, shotId: selectedShot.id, storyboardRevision, parentCandidateAssetId,
+        presentationChange: imageJobPresentationChange.trim(),
       });
       await refresh();
     } catch (jobError) { setError(jobError instanceof Error ? jobError.message : "无法准备 image job"); }
@@ -210,9 +216,10 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     <section className="image-job-panel" data-testid="image-job-panel">
       <div className="section-title"><span>Codex image jobs · P1</span><strong>Prepare → Copy → Generate → Refresh → Select</strong></div>
       {!imageExchangeConfigured && <div className="notice warning">尚未配置同机 exchange root。设置 <code>PLOTLOOM_IMAGE_EXCHANGE_ROOT</code> 后重启服务；不会回退到外部 API。</div>}
-      <p className="muted">仅当前 storyboard Approval 可以冻结单镜头请求。Copy 不代表执行或批准；Refresh 只验证 specialist 已完成的受限 delivery。</p>
+      <p className="muted">仅当前 storyboard Approval 可以冻结单镜头请求。先写明创作者审核过的画面呈现或细化变化；叙事事实仍只来自已批准分镜。Copy 不代表执行或批准；Refresh 只验证 specialist 已完成的受限 delivery。</p>
+      <Field label="冻结的画面呈现 / 细化变化"><textarea data-testid="image-job-presentation-change" rows={3} value={imageJobPresentationChange} disabled={readOnly || busy} onChange={(event) => setImageJobPresentationChange(event.target.value)} placeholder="例如：保持父图构图，在实用控制台灯下提升面部清晰度。" /></Field>
       <div className="button-row">
-        <Button data-testid="prepare-image-job" variant="primary" disabled={readOnly || busy || !imageExchangeConfigured || !selectedShot || !currentApproval || !storyboardRevision} onClick={() => void prepareImageJob()}>准备原始 image job</Button>
+        <Button data-testid="prepare-image-job" variant="primary" disabled={readOnly || busy || !imageExchangeConfigured || !selectedShot || !currentApproval || !storyboardRevision || !imageJobPresentationChange.trim()} onClick={() => void prepareImageJob()}>准备原始 image job</Button>
       </div>
       {copiedAssignment && <Field label="复制给 Codex image specialist"><textarea data-testid="image-job-assignment" readOnly rows={3} value={copiedAssignment} /></Field>}
       <div className="image-job-history">
@@ -228,7 +235,7 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
             <small>{delivery.deliveryId ?? "rejected before identity"} · {delivery.state}{delivery.diagnosticCode ? ` · ${delivery.diagnosticCode}` : ""}</small>
             {delivery.candidates.map((candidate) => <div className="button-row" key={candidate.id}>
               <small>候选 {candidate.assetId.slice(0, 8)} · {candidate.role}</small>
-              <Button variant="quiet" disabled={readOnly || busy || !job.current || !selectedShot || !currentApproval} onClick={() => void prepareImageJob(candidate.assetId)}>以此候选准备参考细化</Button>
+              <Button data-testid={`prepare-refinement-${candidate.assetId}`} variant="quiet" disabled={readOnly || busy || !job.current || !selectedShot || !currentApproval || !imageJobPresentationChange.trim() || selectedBinding?.assetId !== candidate.assetId} onClick={() => void prepareImageJob(candidate.assetId)}>以此已审核候选准备参考细化</Button>
             </div>)}
           </div>)}
         </article>)}

@@ -1339,6 +1339,7 @@ def create_app(
             shot_id=body.shot_id,
             storyboard_revision=body.storyboard_revision,
             parent_candidate_asset_id=body.parent_candidate_asset_id,
+            presentation_change=body.presentation_change,
         )
 
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/copy")
@@ -1363,10 +1364,15 @@ def create_app(
             request_hash=source["job"]["requestHash"], references=references,
         )
         job = repo.mark_image_job_exported(project_id, job_id)
+        completion_template = (
+            f" and {package['packagePath']}/completion-manifest.example.json"
+            if job["request"].get("schemaVersion") == 2 else ""
+        )
         return {
             "job": job,
             "assignment": (
-                f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json; "
+                f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json"
+                f"{completion_template}; "
                 f"use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}."
             ),
             "packagePath": package["packagePath"],

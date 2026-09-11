@@ -2,11 +2,12 @@
 
 ## Status
 
-Implemented locally and under bounded verification, 2026-09-11. The
-[P1 revision 2 plan](../roadmap/p1-image-generation-plan.md) is the approved
-scope. P1 opens only this guarded manual Codex-job path; legacy direct-provider
-media execution remains stopped. The source-bound verification receipt is
-[2026-09-11 P1 Codex image jobs](../verification/2026-09-11-p1-codex-image-jobs.md).
+Implementation candidate under bounded verification; **director acceptance is
+pending**, 2026-09-11. The [P1 revision 2 plan](../roadmap/p1-image-generation-plan.md)
+remains the approved scope. P1 opens only this guarded manual Codex-job path;
+legacy direct-provider media execution remains stopped. The initial source-bound
+receipt is [2026-09-11 P1 Codex image jobs](../verification/2026-09-11-p1-codex-image-jobs.md),
+with the copied-brief correction recorded separately.
 
 ## Context
 
@@ -29,12 +30,14 @@ or assumed sharing of absolute paths between machines.
 
 ### P1 ownership contract (implementation amendment)
 
-The author owns canonical storyboard facts, reviewed visual decisions, and an
-explicit Approval. Trusted Plotloom code alone derives the frozen single-shot
-ProductionUnit/Snapshot, visual proposal, reference roles and bytes, request hash,
-and copyable assignment. The browser can name an approved shot or an existing
-candidate to refine, but cannot supply a prompt, a filesystem path, a URL, an
-approval substitute, or a reference-byte declaration.
+The author owns canonical storyboard facts, reviewed visual decisions, an
+explicit Approval, and one explicit presentation/refinement change for each
+prepared job. Trusted Plotloom code alone derives the frozen single-shot
+ProductionUnit/Snapshot, visual proposal, reference roles and bytes, request
+hash, and copyable assignment. The browser can name an approved shot or an
+existing candidate to refine and submit the nonblank presentation change, but
+cannot supply a prompt, a filesystem path, a URL, a VisualIntent identity,
+an approval substitute, or a reference-byte declaration.
 
 The image specialist owns built-in tool operation and a truthful delivery
 manifest: the actual prompt passed to the tool, output filenames/hashes/roles,
@@ -75,6 +78,30 @@ retaining ADR 0012/0016 frozen-input and Approval requirements. P0 previews are 
 relabelled as ProductionSnapshots. Ad-hoc images keep import provenance; actual
 job-linked specialist outputs use the new lineage. Future automation preserves
 the same request/delivery/selection contract.
+
+### Self-contained copied-brief amendment (v2)
+
+Every newly prepared v2 request freezes the creator presentation/refinement
+change inside the hashed snapshot. A refinement additionally freezes the exact
+current reviewed-keyframe binding, role-specific VisualIntent ID/revision and
+intent payload. Trusted code resolves the narrow authored context needed to act
+on that Shot: linked scene/beat/cue records, referenced characters, locations,
+props and required entity states. It excludes unrelated project data and all
+secrets. Canonical narrative changes still require ordinary stage editing and
+reapproval; this field cannot silently alter them.
+
+The currentness rule revalidates the frozen binding and intent after Copy. A new
+role-specific VisualIntent revision invalidates that refinement job; Refresh
+records a complete late delivery as inapplicable and publishes no candidate.
+This belongs in the repository currentness contract because it prevents a
+changed creator decision from being bypassed by an already-copied instruction.
+
+V2 packages add the discoverable, revalidated
+`completion-manifest.example.json` alongside the frozen request and copy
+instruction; the assignment names it explicitly. The template shows the exact
+versioned completion field shape but is not a delivery. Existing v1 job packages
+continue to verify against their original projection, so persistence requires no
+migration or rewrite.
 
 ## Alternatives and consequences
 
