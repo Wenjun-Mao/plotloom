@@ -1,7 +1,7 @@
 # P1 — Codex image jobs with a manual handoff
 
-Status: **Draft — revision 2**, 2026-09-11. The user approved the manual-handoff
-direction; this technical revision awaits approval before dispatch. Supersedes
+Status: **Approved — revision 2**, 2026-09-11. The user approved this revision
+and authorized implementation with “Looks good, go.” Supersedes
 the unapproved external-endpoint-first revision 1.
 
 ## Outcome and stopping point
@@ -144,8 +144,8 @@ user data deletion/reset or V1 reuse. Future transports can reuse this protocol.
 
 ## Execution authority and escalation
 
-This is Draft technical revision 2, not a coordinator launch or implementation
-instruction. After approval, prepare one fixed assignment and fresh supported Flow
+This approved technical revision authorizes one coordinator delivery. Prepare
+one fixed assignment and fresh supported Flow
 run with the complete source/test/migration/static/config/ADR/roadmap/verification
 write scope admitted. Do not reuse the blocked run. Coordinator owns breakdown;
 director owns intent/acceptance. Routine tests/fixes do not require user confirmation.

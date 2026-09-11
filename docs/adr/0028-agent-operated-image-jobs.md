@@ -3,8 +3,9 @@
 ## Status
 
 Direction accepted by the user, 2026-09-11. Not implemented. The
-[P1 revision 2 plan](../roadmap/p1-image-generation-plan.md) is Draft; this ADR
-does not lift current runtime media hard stops or authorize implementation.
+[P1 revision 2 plan](../roadmap/p1-image-generation-plan.md) is Approved for
+implementation. Current runtime media hard stops remain until its guarded path
+is implemented and verified.
 
 ## Context
 
