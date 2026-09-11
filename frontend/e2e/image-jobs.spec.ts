@@ -8,7 +8,8 @@ import { expect, test } from "./fixture";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
-const usabilityScreenshot = path.join(repositoryRoot, "docs/verification/supporting/p1-image-workflow-usability-1440x900.png");
+// Verification runs must not overwrite the reviewed, tracked evidence image.
+const usabilityScreenshot = path.join(repositoryRoot, "test-results/p1-image-workflow-usability-1440x900.png");
 
 type ImageJob = {
   id: string;
