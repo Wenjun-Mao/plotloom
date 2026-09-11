@@ -28,6 +28,19 @@ this amendment changes their delivery order, not the meaning of old evidence.
 
 ## Preserve the completed baseline
 
+Planning addendum: the user has requested review of the next product direction
+before further execution. [Story to playable Alpha](story-to-playable-alpha.md)
+contains that roadmap and two independent-review prompts. Its proposed import
+pilot can use an existing reviewed storyboard without representing text
+qualification as complete. This is a docs-only planning checkpoint; the gates
+and historical evidence below retain their original meaning.
+
+The planning checkpoint started from clean `9afbefd` and changed documentation
+only. New-document local links and whitespace were checked; no application suite,
+generation, remote publication or consultant dispatch was performed. Usage/cost
+deltas are unavailable. Next action is review and synthesis, not implementation
+of every proposed milestone.
+
 Project lifecycle, navigation/drafts, four-stage editing, exact work-unit repair,
 structured authoring, and Gate/Approval are implemented. Keep them intact and
 reuse their tests. Older passing counts and M1.5 receipts do not establish that

@@ -10,6 +10,12 @@
 
 ## 一眼看懂当前状态
 
+**Next product direction (review draft):** [Story to playable Alpha](story-to-playable-alpha.md)
+records the agreed cinematic-realism, proposal/refinement, imported-reference,
+native-audio and in-app pause-and-choose direction. Its P0–P4 milestones are
+planned, not completed; C02/C03/C05/C06/C08/C09 maturity is unchanged. The draft
+does not waive M1-C qualification or the current production-media hard stop.
+
 | 观察面 | 当前判断 | 它真正说明什么 |
 |---|---:|---|
 | 规范领域与“输入 → 分镜”后端核心 | **约 97%** | 稳定 ID、四阶段 V2 合同、确定性 DAG 骨架、结构化对白/声音/实体状态、确定性时间线、版本化 Gate/Approval、内容绑定、命名 profile、显式有限纠错、领域分片、精确 work-unit repair、封存聚合和原子安装均已实现。M1 剩余出口主要是真实创作质量验收；ProductionSnapshot/ProductionUnit 属于 M2。 |
