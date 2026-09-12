@@ -42,6 +42,16 @@ delivery manifest. This attestation is delivery evidence, not a claim of
 automatic visual fidelity. Package and delivery validation fails closed on
 tampering, missing role/hash attestations, or unsupported version contracts.
 
+New P1.5 packages additionally opt into a versioned pre-generation specialist
+pin. Before ImageGen, the project skill runs the repository preflight, which
+accepts only supported package/contract/skill versions, records the clean
+committed execution code and skill hash once, and refuses re-pinning. Refresh
+requires completion provenance to match that pin. This is an operational
+attestation—not proof of the time an operator generated local bytes—so it does
+not elevate matching untrusted delivery files into automatic execution proof.
+Historic v3 packages retain their original verification behavior and are not
+retroactively required to contain the newer pin.
+
 A selected v3 generated keyframe with visible characters requires a recorded
 human same-person review before it can enter a still preview. The review binds
 the selected keyframe to exact frozen decision revisions and image hashes,

@@ -21,8 +21,10 @@ from .managed_media import ManagedMediaLimits, ObservedImage, inspect_import_ima
 
 
 PACKAGE_VERSION = 3
+PINNED_PACKAGE_VERSION = 4
 COMPLETION_FILENAME = "completion.json"
 COMPLETION_TEMPLATE_FILENAME = "completion-manifest.example.json"
+EXECUTOR_PIN_FILENAME = "executor-pin.json"
 
 
 @dataclass(frozen=True)
@@ -235,7 +237,7 @@ class ImageJobExchange:
         if schema_version == 2:
             return 2
         if schema_version == 3:
-            return PACKAGE_VERSION
+            return PINNED_PACKAGE_VERSION if request.get("specialistPreflight", {}).get("version") == "p1.5-pin.v1" else PACKAGE_VERSION
         raise ImageJobError("request_integrity", "frozen image request schema is unsupported")
 
     @classmethod
@@ -315,7 +317,8 @@ class ImageJobExchange:
                 f"Plotloom {'character-reference proposal' if proposal else 'identity-aware image job'} {job_id}\n"
                 f"Read: {package / 'request.json'}\n"
                 f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n"
-                f"Deliver only under: {job_root / 'delivery'}\n"
+                + (f"Before ImageGen, run: uv run python scripts/pin_image_specialist.py --package {package}\n" if package_version == PINNED_PACKAGE_VERSION else "")
+                + f"Deliver only under: {job_root / 'delivery'}\n"
                 + (
                     "Use Codex built-in image generation. View every supplied character_identity reference and preserve "
                     "that person while the frozen canonical shot state controls costume, pose, expression, lighting, and "
@@ -345,7 +348,7 @@ class ImageJobExchange:
                 },
                 "executorProvenance": {
                     "codeRevision": "replace-with-pinned-commit",
-                    "skillVersion": "plotloom-image-specialist.v1",
+                    "skillVersion": request.get("specialistPreflight", {}).get("skillVersion", "plotloom-image-specialist.v2"),
                     "skillHash": "0" * 64,
                     "model": None,
                     "reasoningEffort": None,
@@ -536,6 +539,7 @@ class ImageJobExchange:
         request_hash: str,
         required_reference_hashes: Iterable[str] = (),
         require_executor_provenance: bool = False,
+        require_executor_pin: bool = False,
     ) -> ValidatedDelivery | None:
         """Read a completed untrusted package, or report that no delivery exists yet.
 
@@ -591,7 +595,38 @@ class ImageJobExchange:
                     "delivery_executor_provenance_missing",
                     "identity-aware delivery must record the observed code and specialist skill provenance",
                 )
-            if names != {COMPLETION_FILENAME, "outputs"}:
+            if require_executor_pin:
+                if not require_executor_provenance:
+                    raise ImageJobError("delivery_executor_pin_invalid", "executor pin requires executor provenance")
+                if EXECUTOR_PIN_FILENAME not in names:
+                    raise ImageJobError(
+                        "delivery_executor_pin_missing",
+                        "identity-aware delivery must include the pre-generation executor pin",
+                    )
+                try:
+                    pin = json.loads(self._read_regular_at(
+                        delivery_fd, EXECUTOR_PIN_FILENAME, max_bytes=20_000
+                    ))
+                except (json.JSONDecodeError, TypeError) as error:
+                    raise ImageJobError("delivery_executor_pin_invalid", "executor pin is not valid JSON") from error
+                provenance = manifest.executor_provenance
+                expected_pin = {
+                    "jobId": job_id,
+                    "requestHash": request_hash,
+                    "executionContract": "codex_specialist.v2",
+                    "skillVersion": provenance.skill_version,
+                    "codeRevision": provenance.code_revision,
+                    "skillHash": provenance.skill_hash,
+                }
+                if pin != expected_pin:
+                    raise ImageJobError(
+                        "delivery_executor_pin_mismatch",
+                        "completion provenance must match the pre-generation executor pin",
+                    )
+            expected_delivery_names = {COMPLETION_FILENAME, "outputs"}
+            if require_executor_pin:
+                expected_delivery_names.add(EXECUTOR_PIN_FILENAME)
+            if names != expected_delivery_names:
                 raise ImageJobError("delivery_partial", "delivery contains undeclared files")
 
             outputs_fd = self._open_directory(root, ("jobs", job_id, "delivery", "outputs"))

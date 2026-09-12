@@ -87,13 +87,18 @@ def _complete_identity_delivery(delivery: Path, job: dict, *, delivery_id: str, 
         "referenceUse": {"viewedReferenceHashes": hashes, "identityNotes": "Fixture attestation only; creator review remains required."},
         "executorProvenance": {
             "codeRevision": "a" * 40,
-            "skillVersion": "plotloom-image-specialist.v1",
+            "skillVersion": "plotloom-image-specialist.v2",
             "skillHash": "b" * 64,
             "model": "fixture",
             "reasoningEffort": "none",
         },
         "limitations": ["fixture delivery is not a real ImageGen visual result"],
     }
+    (delivery / "executor-pin.json").write_text(json.dumps({
+        "jobId": job["id"], "requestHash": job["requestHash"],
+        "executionContract": "codex_specialist.v2", "skillVersion": "plotloom-image-specialist.v2",
+        "codeRevision": "a" * 40, "skillHash": "b" * 64,
+    }), encoding="utf-8")
     (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
 
 
@@ -657,7 +662,7 @@ def test_identity_reference_job_is_explicitly_reviewed_and_stales_on_replacement
         copied = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/copy")
         assert copied.status_code == 200, copied.text
         request = json.loads((Path(copied.json()["packagePath"]) / "request.json").read_text())
-        assert request["packageVersion"] == 3
+        assert request["packageVersion"] == 4
         assert request["references"][0]["role"] == "character_identity:captain"
         _complete_identity_delivery(Path(copied.json()["deliveryPath"]), job, delivery_id="identity-001", content=_png((40, 90, 140)))
         candidate = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh").json()["candidates"][0]
@@ -833,12 +838,17 @@ def test_character_reference_proposal_delivery_retains_candidate_without_auto_se
         delivery = Path(copied.json()["deliveryPath"])
         (delivery / "outputs").mkdir(parents=True)
         (delivery / "outputs" / "proposal.png").write_bytes(content)
+        provenance = {"codeRevision": "c" * 40, "skillVersion": "plotloom-image-specialist.v2", "skillHash": "d" * 64}
+        (delivery / "executor-pin.json").write_text(json.dumps({
+            "jobId": proposal["id"], "requestHash": proposal["requestHash"],
+            "executionContract": "codex_specialist.v2", **provenance,
+        }), encoding="utf-8")
         (delivery / "completion.json").write_text(json.dumps({
             "schemaVersion": 2, "jobId": proposal["id"], "requestHash": proposal["requestHash"], "deliveryId": "proposal-001",
             "actualPrompt": "A cinematic realistic appearance study for the frozen character context.",
             "outputs": [{"filename": "proposal.png", "sha256": sha256(content).hexdigest(), "role": "original"}],
             "toolEvidence": {"tool": "codex_imagegen", "taskId": "proposal-fixture", "available": True},
-            "executorProvenance": {"codeRevision": "c" * 40, "skillVersion": "plotloom-image-specialist.v1", "skillHash": "d" * 64},
+            "executorProvenance": provenance,
         }), encoding="utf-8")
         accepted = client.post(f"/api/v2/projects/{project.id}/character-reference-proposals/{proposal['id']}/refresh")
         assert accepted.status_code == 200 and accepted.json()["state"] == "accepted"

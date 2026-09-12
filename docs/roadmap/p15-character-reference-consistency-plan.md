@@ -13,6 +13,12 @@ corrections: reviewer attribution, proposal-refinement UI, frozen-reference visu
 comparison, and remaining entrypoint/story-first evidence. Preserve the existing
 pilot; do not repeat generation merely to repair these gaps.
 
+Correction candidate status is recorded separately in the
+[P1.5 correction receipt](../verification/2026-09-12-p15-corrections.md). It is
+implementation/verification evidence only: stable gates and independent director
+review remain required, and it does not revise the retained pilot history or claim
+milestone/Flow completion.
+
 The user has suspended Flow development/recovery pending a replacement plugin.
 The execution instructions below describe the original approved assignment;
 do not redispatch it or repair its frozen lifecycle. Future delivery starts from

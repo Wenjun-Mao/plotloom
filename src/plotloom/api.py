@@ -1413,6 +1413,7 @@ def create_app(
             )
             delivery = app.state.image_job_exchange.read_delivery(
                 job_id=proposal_id, request_hash=context["requestHash"], require_executor_provenance=True,
+                require_executor_pin=context["request"].get("specialistPreflight", {}).get("version") == "p1.5-pin.v1",
             )
         except ImageJobError as error:
             if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id"}:
@@ -1550,6 +1551,7 @@ def create_app(
                 job_id=job_id, request_hash=context["requestHash"],
                 required_reference_hashes=identity_reference_hashes,
                 require_executor_provenance=context["request"].get("schemaVersion") == 3,
+                require_executor_pin=context["request"].get("specialistPreflight", {}).get("version") == "p1.5-pin.v1",
             )
         except ImageJobError as error:
             # A manifest/path failure and a malformed or over-limit raster are
