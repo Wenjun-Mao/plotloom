@@ -188,6 +188,8 @@ generation vs ingestion status, no unexpected network replays, player controls,
 audible-track support and same-storage restart. Mock clips prove plumbing only.
 On stable code: `uv run pytest -q`; frontend unit, typecheck, build/static
 freshness, `npm --prefix frontend run test:e2e`; wheel build/installed smoke.
+The browser job explicitly installs and version-checks portable `ffmpeg` and
+`ffprobe`; runner images do not provide an implicit P2 media-decode contract.
 Run focused checks during development; full gates once stable and when material
 changes require them, not after every prompt trial.
 

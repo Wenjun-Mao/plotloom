@@ -46,7 +46,26 @@ test("P2 fake Wan clip survives file-SQLite restart with native range playback",
   const panel = page.getByTestId("video-pilot-panel");
   await panel.getByRole("button", { name: "冻结当前审核关键帧" }).click();
   await panel.getByRole("button", { name: "提交一次" }).click();
+  const reconcilePost = page.waitForResponse((response) => {
+    const pathname = new URL(response.url()).pathname;
+    return response.request().method() === "POST"
+      && pathname.startsWith(`/api/v2/projects/${projectId}/video-jobs/`)
+      && pathname.endsWith("/reconcile");
+  });
   await panel.getByRole("button", { name: "获取结果" }).click();
+  // Assert the durable ingestion result before asking the browser to render
+  // media. A missing media tool now reports this response/state directly,
+  // rather than presenting only a later native-player timeout.
+  const reconciledResponse = await reconcilePost;
+  expect(reconciledResponse.ok()).toBeTruthy();
+  const reconciled = await reconciledResponse.json() as {
+    state: string; error: string | null;
+    observed: { videoCodec: string; audioCodec: string | null } | null;
+  };
+  expect(reconciled).toMatchObject({
+    state: "ingested", error: null,
+    observed: { videoCodec: "h264", audioCodec: "aac" },
+  });
   const player = panel.locator("video");
   await expect(player).toBeVisible();
   const source = await player.getAttribute("src");
