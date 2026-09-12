@@ -238,6 +238,31 @@ def test_legacy_v1_package_remains_recheckable_without_a_template(tmp_path: Path
     )
 
 
+def test_legacy_v3_package_keeps_its_unpinned_skill_template(tmp_path: Path) -> None:
+    """New preflight must not rewrite a frozen v3 package's expected bytes."""
+
+    request = {
+        "schemaVersion": 3, "jobId": "ij_" + "b" * 20,
+        "executionContract": "codex_specialist.v2", "kind": "original",
+        "frozenSnapshot": {},
+    }
+    request_hash = sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    exchange = ImageJobExchange(tmp_path / "exchange", limits=ManagedMediaLimits())
+    copied = exchange.write_package(
+        job_id=request["jobId"], request=request, request_hash=request_hash, references=[],
+    )
+    package = Path(copied["packagePath"])
+    package_request = json.loads((package / "request.json").read_text())
+    template = json.loads((package / "completion-manifest.example.json").read_text())
+    assert package_request["packageVersion"] == 3
+    assert "specialistPreflight" not in package_request
+    assert template["executorProvenance"]["skillVersion"] == "plotloom-image-specialist.v1"
+    assert "pin_image_specialist.py" not in (package / "COPY_ASSIGNMENT.txt").read_text()
+    exchange.verify_package(
+        job_id=request["jobId"], request=request, request_hash=request_hash, references=[],
+    )
+
+
 def test_manual_image_job_prepare_copy_refresh_select_and_refine(repository, brief, tmp_path: Path) -> None:
     project, scene_id = _complete_project_with_resolved_image_context(repository, brief)
     store = MemoryArtifactStore()

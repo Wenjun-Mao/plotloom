@@ -48,6 +48,12 @@ def main() -> int:
     if not skill.is_file():
         raise SystemExit("Unsupported checkout: Plotloom image-specialist skill is missing.")
     revision = subprocess.check_output(["git", "-C", str(repository), "rev-parse", "HEAD"], text=True).strip()
+    for source in PINNED_SOURCES:
+        if subprocess.call(
+            ["git", "-C", str(repository), "cat-file", "-e", f"{revision}:{source.as_posix()}"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        ) != 0:
+            raise SystemExit("Unsupported checkout: pinned specialist source is not committed at HEAD.")
     if subprocess.call(["git", "-C", str(repository), "diff", "--quiet", "HEAD", "--", *(str(item) for item in PINNED_SOURCES)]) != 0:
         raise SystemExit("Unsupported checkout: pinned specialist code or skill has uncommitted changes.")
     pin = {
@@ -61,9 +67,11 @@ def main() -> int:
     delivery = package.parent / "delivery"
     delivery.mkdir(parents=True, exist_ok=True)
     target = delivery / "executor-pin.json"
-    if target.exists():
-        raise SystemExit("Executor pin already exists; do not overwrite or re-pin a prepared delivery.")
-    target.write_text(canonical_json(pin), encoding="utf-8")
+    try:
+        with target.open("x", encoding="utf-8") as output:
+            output.write(canonical_json(pin))
+    except FileExistsError as error:
+        raise SystemExit("Executor pin already exists; do not overwrite or re-pin a prepared delivery.") from error
     print(target)
     return 0
 

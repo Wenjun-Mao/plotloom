@@ -348,7 +348,7 @@ class ImageJobExchange:
                 },
                 "executorProvenance": {
                     "codeRevision": "replace-with-pinned-commit",
-                    "skillVersion": request.get("specialistPreflight", {}).get("skillVersion", "plotloom-image-specialist.v2"),
+                    "skillVersion": request.get("specialistPreflight", {}).get("skillVersion", "plotloom-image-specialist.v1"),
                     "skillHash": "0" * 64,
                     "model": None,
                     "reasoningEffort": None,
