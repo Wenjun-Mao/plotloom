@@ -4,6 +4,20 @@ Status: **Approved revision 1**. The user approved implementation with “go”,
 including the repository skill and replaceable specialist execution boundary.
 No implementation or visual qualification is claimed by this document.
 
+## Current checkpoint — user-directed consolidation
+
+Implementation candidate `09f0397` is merged into local main for safekeeping and
+a clean restart, not accepted as complete. The
+[director review](../verification/2026-09-12-p15-director-review.md) owns the open
+corrections: reviewer attribution, proposal-refinement UI, frozen-reference visual
+comparison, and remaining entrypoint/story-first evidence. Preserve the existing
+pilot; do not repeat generation merely to repair these gaps.
+
+The user has suspended Flow development/recovery pending a replacement plugin.
+The execution instructions below describe the original approved assignment;
+do not redispatch it or repair its frozen lifecycle. Future delivery starts from
+the consolidated main under a newly selected workflow. Video remains out of scope.
+
 Baseline: clean, pushed `main` at
 `05f73b63d078b4993f3b646b31ef09342f939012`. P1 manual original/refinement jobs and
 usability corrections are integrated. See ADRs 0028 and 0029.

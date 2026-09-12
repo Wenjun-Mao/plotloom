@@ -1,5 +1,12 @@
 # P1.5 character-reference pilot — bounded visual qualification receipt
 
+> Director correction: this is retained coordinator evidence, not accepted
+> milestone completion. References below to “human” review are unsupported;
+> the observed review was agent-operated and must be attributed as Codex review.
+> See the [director review and open corrections](2026-09-12-p15-director-review.md).
+> Candidate `09f0397` was subsequently merged into local main only as a saved
+> checkpoint. Original pilot records remain unchanged.
+
 Date: 2026-09-12
 Scope: one fictional protagonist, three original built-in-ImageGen stills, explicit
 creator selection and human review. This is a local development qualification;

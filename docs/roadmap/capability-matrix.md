@@ -15,7 +15,10 @@ records the agreed cinematic-realism, proposal/refinement, imported-reference,
 native-audio and in-app pause-and-choose direction. P0 and the bounded P1 manual
 Codex-image-job workflow are integrated on pushed `main` through `05f73b6`.
 [P1.5 character references and cross-shot identity](p15-character-reference-consistency-plan.md)
-is approved for implementation, before video. P2–P4 remain planned. ADR 0026
+is implemented as an incomplete checkpoint through `09f0397` on local main;
+[director-review corrections](../verification/2026-09-12-p15-director-review.md)
+remain before acceptance/video. Flow recovery is suspended pending its replacement;
+the next work starts clean from main. P2–P4 remain planned. ADR 0026
 now authorizes the non-generative imported/still-preview boundary as a design;
 the [P0 implementation plan](p0-imported-still-preview-plan.md) revision 2 is
 Approved and implemented as a locally verified correction candidate.
