@@ -5,6 +5,17 @@
 Accepted for P1.5 implementation, 2026-09-12. Visual qualification remains a
 separate acceptance gate; this decision does not authorize video.
 
+Director closeout, 2026-09-12: implementation/correction and bounded visual
+evidence are merged through `4eb98d4`. The
+[creator rehearsal](../verification/2026-09-12-p15-creator-rehearsal.md) and
+[controlled framing trial](../verification/2026-09-12-p15-controlled-shot-framing-trial.md)
+close the workflow and distinct-shot identity checkpoint, not universal
+continuity or production approval. The trial's probable glove-side mismatch
+remains unaccepted and is excluded from P2 input; off-frame details are
+unobservable, not verified. The separately planned
+[P2 boundary](0031-bounded-wan-video-production.md) requires fresh exact-input
+review before dispatch; it does not inherit approval from this closeout.
+
 ## Context
 
 P1's resolved image context mixed scene membership, dialogue speakers and

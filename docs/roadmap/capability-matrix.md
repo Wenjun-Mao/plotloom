@@ -2,13 +2,29 @@
 
 > **用途：**这是 Plotloom “从两个来源学到了什么、决定怎么处理、现在完成到哪一层、下一项证据是什么”的唯一进度总表。
 >
-> **快照日期：**2026-09-11。产品结论以固定版本为基线，不随远端分支漂移。
+> **快照日期：**2026-09-12。当前基线为 pushed `4eb98d4`。下方旧盘点数字是历史证据，不是本轮重新验收。
 >
 > **决策依据：**能力追踪采用 [ADR 0008](../adr/0008-capability-based-adoption-tracking.md)，当前独立仓库与身份边界采用 [ADR 0010](../adr/0010-plotloom-clean-repository.md)，运行与生产边界采用 [ADR 0011](../adr/0011-provider-profiles-and-generation-work-units.md)、[ADR 0012](../adr/0012-approved-storyboards-and-production-units.md)、[ADR 0013](../adr/0013-model-neutral-reliable-generation.md)、[ADR 0014](../adr/0014-project-lifecycle-and-workbench.md)、[ADR 0015](../adr/0015-exact-work-unit-repair.md)、[ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md)、[ADR 0017](../adr/0017-alpha-validation-and-correction-boundaries.md)、[ADR 0018](../adr/0018-trusted-story-timing-allocation.md) 和 [ADR 0019](../adr/0019-exact-fragment-and-join-state-contracts.md)。ADR 0003–0007 保留了重建阶段的历史架构证据。
 
 > **Next execution (2026-09-10):** the join correction, usable `default` storyboard canary, explicit adapter/V3 snapshot boundary, two-plane readiness UI, and definite-failure admission guard are integrated locally through `96de4e3`. A one-shot non-generative live probe verified `qwen3527b` through `openai_compatible@1`; the user asked to defer another interactive trial. [ADR 0024](../adr/0024-pluggable-text-backends-and-independent-qualification.md) still requires the supported backend to pass 9/9 runs, at least 30/36 first-pass stages and three blinded reviews, plus core/CI gates for Alpha. vLLM remains deferred; old 18-run/six-review evidence is not relabelled. See the [completion plan](m1c-completion-plan.md) and [readiness receipt](../verification/2026-09-10-provider-readiness-offline-candidate.md). [ADR 0023](../adr/0023-bounded-delivery-and-evidence.md) continues to govern bounded delivery.
 
 ## 一眼看懂当前状态
+
+**Current director disposition (2026-09-12; supersedes the historical checkpoint
+text below):** P0/P1 plus corrections are accepted and pushed. P1.5 reference
+workflow and bounded identity/framing review are closed through `4eb98d4`;
+[CI passed](https://github.com/Wenjun-Mao/plotloom/actions/runs/34675931283).
+The [creator rehearsal](../verification/2026-09-12-p15-creator-rehearsal.md)
+demonstrated real image delivery, explicit selection and restart persistence;
+the [framing trial](../verification/2026-09-12-p15-controlled-shot-framing-trial.md)
+demonstrated distinct crops/viewpoints with consistent appearance, but not full
+state continuity. Its probable glove-side mismatch is excluded from video input.
+Next is the [P2 Wan plan](p2-wan-audiovisual-pilot-plan.md): one clip, then an
+adjoining clip, under a single 100-second allowance. P2 is not implemented;
+P3/P4 and Q text qualification remain open. Current CI is no longer pending.
+No new aggregate percentage or L-level census is asserted by this update.
+
+### Historical checkpoint summaries (2026-09-10–11)
 
 **Next product direction (amended 2026-09-11):** [Story to playable Alpha](story-to-playable-alpha.md)
 records the agreed cinematic-realism, proposal/refinement, imported-reference,

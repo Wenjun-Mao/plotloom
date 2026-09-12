@@ -1,6 +1,18 @@
 # Story to playable Alpha: development roadmap
 
-Status: **direction amended after external review, 2026-09-11**. User-approved
+Status: **progress reconciled; P2 plan prepared, 2026-09-12**.
+
+Current baseline: pushed `4eb98d4`, with
+[green CI](https://github.com/Wenjun-Mao/plotloom/actions/runs/34675931283).
+P0/P1 and their corrections are accepted and merged. P1.5 workflow and bounded
+identity/framing review are closed; its known profile glove-side defect remains
+excluded from video inputs. No universal visual-fidelity or Alpha claim is made.
+Next: [P2 Wan audiovisual pilot](p2-wan-audiovisual-pilot-plan.md), Wan only,
+100 requested seconds including retries and unknown submissions. No paid video
+has been generated. The initial external-review context below is historical;
+this paragraph and section 1 supersede its candidate/acceptance-pending status.
+
+**Historical review context (2026-09-11):** User-approved
 direction and P0 authority boundaries are recorded in ADR 0026. This is not
 authorization to implement every milestone or evidence of available media
 production. The bounded [P0 plan](p0-imported-still-preview-plan.md) revision 1 is Approved;
@@ -46,10 +58,11 @@ review prompts retain their publication-time context.
 
 | Area | Established baseline | Not established |
 |---|---|---|
-| Text authoring | Project lifecycle, session drafts, four-stage editors, deterministic graph, bounded correction, exact unit repair, atomic installation, structured dialogue/audio/state, gates and Approval | Formal independent M1-C qualification and fresh remote CI |
+| Text authoring | Project lifecycle, drafts, four-stage editors, deterministic graph, correction/repair, atomic installation, structured dialogue/audio/state, gates and Approval | Formal independent M1-C text-quality qualification |
 | Real creation | A prior llama canary produced an editable, persistent storyboard; later readiness probe verified restored connectivity | A probe is not generation; one canary is not qualification |
-| Local verification | Existing ledger records 524 Python passes/9 skips, 115 frontend passes, 23 browser journeys, build and installed-wheel smoke | These are retained results, not tests rerun for this document; skipped historical media specs do not prove production |
-| Media | Historical adapter/worker code and production ADRs provide starting points | New media is deliberately blocked pending approved production snapshots; managed binary assets, candidate selection and playable preview remain to build |
+| Verification | Current `4eb98d4` CI passed; framing change passed 18 image-job tests and skill validation | Historical counts are not current qualification; this documentation pass reruns no product suite |
+| Images/still previews | Managed imports, manual specialist jobs, references, explicit review/selection and restart-persistent previews implemented and exercised | General automatic image backend and universal likeness/state fidelity |
+| Video | Wan-only direction and 100-second pilot allowance settled | Submission/recovery, video ingestion, native-audio review and clip playback remain P2 work |
 
 Evidence: [readiness ledger](../verification/2026-09-10-provider-readiness-offline-candidate.md).
 The earlier canary was at a different source revision and is not relabelled as
@@ -253,7 +266,7 @@ pause. Do not introduce persistent ambience as an unapproved playback change.
 | Question | Current recommendation | When to settle |
 |---|---|---|
 | First image execution route? | Settled: Codex built-in image specialist with manual job handoff; no external image API prerequisite | P1 access and real-output acceptance |
-| First video endpoint and spending policy? | Qualify one; user supplies/chooses account and approved live scope; no automatic batches | Before P2 real integration trial |
+| First video endpoint and spending policy? | Settled: AtlasCloud Wan 3.0 only, 100 requested seconds total; start 5s/720p/audio; no fallback | Enforce allowance and verify current rate before first paid call; see P2 plan |
 | Must character voice be identical across clips? | Treat recognizability as a review target; make no guaranteed voice-lock claim without endpoint evidence | P2 evaluation, before expanding P3 |
 | Provider duration does not fit authored shot? | Expose discrepancy; explicit selection/edit or production timing decision, never hidden canonical rewrite | P2 contract |
 | Imported person's identity/likeness constraints? | Preserve original; record intended uses/rights and require review of generated fidelity | P0 import UX |
