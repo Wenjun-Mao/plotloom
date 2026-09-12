@@ -30,6 +30,13 @@ current Approval/reference ownership and cannot safely establish these propertie
 - Upload approved bytes without exposing local/Tailscale services. Confine and
   validate public-provider downloads, preserve managed bytes, and retry retrieval
   without regenerating. Existing legacy provider-production hard stops remain.
+- Atlas's hosted upload reference is the adopted upload-response authority: a
+  successful upload is a JSON object containing a top-level HTTPS `url`. The
+  adapter sends multipart field `file` to `POST /api/v1/model/uploadMedia` and
+  rejects every other 2xx response shape. In particular, `data.url` is not a
+  compatibility path; an Atlas-maintained skills repository currently shows the
+  conflicting `data.download_url` shape, which requires an explicit future
+  contract decision rather than permissive parsing.
 - After the durable dispatch claim, persist only allowlisted diagnostic evidence:
   phase, a safe code, and (when received) an HTTP status. Provider bodies,
   signed URLs, credentials, and exception text are never diagnostic evidence.
@@ -45,6 +52,11 @@ allowance mechanism (not a concurrency-safe pilot limit). Reject building a
 general video editor before one usable clip. Conservative seconds accounting can
 stop earlier than actual billing requires; this is intentional and not a dollar
 cap. User approval is required to enlarge it.
+
+Reject accepting every plausible nested upload URL: it would make an application
+error response indistinguishable from a successful upload and would conceal a
+provider contract conflict. A separately authorized, evidence-preserving
+qualification is required before extending the strict response allowlist.
 
 P1.5 identity/framing evidence permits planning this pilot, not approval of the
 known glove-side-defective profile output. Input review excludes that candidate.

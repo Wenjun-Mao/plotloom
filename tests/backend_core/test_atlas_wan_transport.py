@@ -103,6 +103,69 @@ def test_dispatch_transport_uncertainty_and_bad_upload_envelope_are_secret_safe(
     assert "secret" not in str(malformed.value)
 
 
+def test_upload_uses_documented_multipart_field_and_top_level_url(monkeypatch) -> None:
+    captured: dict[str, object] = {}
+
+    class Response:
+        status_code = 200
+
+        @staticmethod
+        def json() -> dict[str, str]:
+            return {"url": "https://uploads.atlas.example/keyframe.png"}
+
+    transport = AtlasCloudWanTransport("top-secret-key")
+    monkeypatch.setattr(
+        transport._session,
+        "request",
+        lambda method, url, **kwargs: (captured.update(method=method, url=url, **kwargs) or Response()),
+    )
+
+    assert transport.upload(b"approved-image", mime_type="image/png") == "https://uploads.atlas.example/keyframe.png"
+    assert captured["method"] == "POST"
+    assert captured["url"] == "https://api.atlascloud.ai/api/v1/model/uploadMedia"
+    assert captured["files"] == {"file": ("approved-keyframe", b"approved-image", "image/png")}
+    assert "json" not in captured
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"data": {"url": "https://signed.example/?token=secret"}},
+        {"data": {"download_url": "https://signed.example/?token=secret"}},
+        {"error": {"message": "upload rejected: token=secret"}},
+    ],
+)
+def test_upload_rejects_undocumented_nested_urls_and_error_envelopes(monkeypatch, payload) -> None:
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return payload
+
+    transport = AtlasCloudWanTransport("top-secret-key")
+    monkeypatch.setattr(transport._session, "request", lambda *_args, **_kwargs: Response())
+    with pytest.raises(WanDispatchError) as rejected:
+        transport.upload(b"image", mime_type="image/png")
+    assert rejected.value.diagnostic.code == "invalid_upload_url"
+    assert "signed" not in str(rejected.value) and "secret" not in str(rejected.value)
+
+
+def test_upload_rejects_non_object_json_envelopes(monkeypatch) -> None:
+    class Response:
+        status_code = 200
+
+        @staticmethod
+        def json() -> list[str]:
+            return ["https://signed.example/?token=secret"]
+
+    transport = AtlasCloudWanTransport("top-secret-key")
+    monkeypatch.setattr(transport._session, "request", lambda *_args, **_kwargs: Response())
+    with pytest.raises(WanDispatchError) as rejected:
+        transport.upload(b"image", mime_type="image/png")
+    assert rejected.value.diagnostic.code == "invalid_envelope"
+    assert "signed" not in str(rejected.value) and "secret" not in str(rejected.value)
+
+
 @pytest.mark.parametrize(
     ("phase", "code", "status"),
     [

@@ -52,10 +52,10 @@ class AtlasCloudWanTransport:
 
     def upload(self, image: bytes, *, mime_type: str) -> str:
         payload = self._authorized("upload", "POST", "uploadMedia", files={"file": ("approved-keyframe", image, mime_type)})
-        data = payload.get("data")
-        # Official upload examples use top-level ``url``; retain the explicit
-        # documented nested form too, never recursive envelope guessing.
-        url = payload.get("url") if isinstance(payload.get("url"), str) else (data.get("url") if isinstance(data, dict) else None)
+        # The current hosted Atlas upload reference uses only the top-level
+        # ``url`` response member. Do not treat a successful HTTP envelope as
+        # a successful upload when it carries a different, undocumented shape.
+        url = payload.get("url")
         if not isinstance(url, str) or not url.startswith("https://"):
             raise WanDispatchError(WanDispatchDiagnostic("upload", "invalid_upload_url"))
         return url
