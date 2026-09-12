@@ -33,9 +33,9 @@ quality claim.
 | Profile medium | `ij_b8569b5958b445feb9e5acbdeacaf463` / `8fd0c9eb6d1346f76ed3c89973838c91ca90b897c34029703b00d478d3a73eef` | `4ad5e12a307f2b3604b17ca7b2505f490cc8d71b91891f26f82e101a05c2b6a1` | `exec-f3d2473c-5083-40f9-b418-2e0e132a9b26` | `f68e8036326a7a227e0a88e9f3e66014645b4cf080f7433dda7d3287ab64b3be` | `/Users/wjmao/projects/HU/plotloom-shot-trial-Rj57hk/image-exchange/jobs/ij_b8569b5958b445feb9e5acbdeacaf463/delivery/completion.json` |
 | Environmental wide | `ij_6b17a44ad60a482390a979aba5175fee` / `e5eeead964133977d60c2e8e284fbe4cb10c701c5e289675e9e9709fc92b6196` | `4ad5e12a307f2b3604b17ca7b2505f490cc8d71b91891f26f82e101a05c2b6a1` | `exec-8cd5b362-da17-455c-a594-4f37d4337879` | `258f5358b1f9d47310b51bf5448d0c5b5e1f1c76faf4e0d688a938706ef59f75` | `/Users/wjmao/projects/HU/plotloom-shot-trial-Rj57hk/image-exchange/jobs/ij_6b17a44ad60a482390a979aba5175fee/delivery/completion.json` |
 
-The table's delivery paths are relative to the isolated runtime root. Each
-completion records the exact prompt, reference-use attestation, executor pin,
-and the following delivery limitations:
+The table's delivery paths are absolute paths within the isolated runtime root.
+Each completion records the exact prompt, reference-use attestation, executor
+pin, and the following delivery limitations:
 
 - Close: one generated candidate only; it is not storyboard Approval, reference
   selection, or a reviewed keyframe.
@@ -84,10 +84,13 @@ Constraints: The dark-gloved right hand is actively and carefully turning the fr
 Avoid: any three-quarter pose, frontal face, frontal camera angle, transferred reference composition, transferred reference lighting, transferred reference setting, transferred reference action, exaggerated drama, or distorted hands.
 ```
 
-The profile framing is distinct and identity anchors remain recognizable. The
-right-hand glove continuity is **not accepted**: Mara faces screen-right, and
-the conspicuous dark-gloved arm is the foreground/near arm, which is visually
-more consistent with the left arm in the stated camera view. The still lacks an
+The profile framing is distinct and identity anchors remain recognizable. Its
+prompt language is itself ambiguous: it asks for a camera from Mara's left but
+also a “left-facing-profile silhouette,” without defining how that
+camera-relative instruction maps to screen direction; the actual result faces
+screen-right. The right-hand glove continuity is **not accepted**: the
+conspicuous dark-gloved arm is the foreground/near arm, which is visually more
+consistent with the left arm in the stated camera view. The still lacks an
 unambiguous anatomical cue, so its side is uncertain and a right/left mismatch
 is plausible. This trial did not regenerate it.
 
@@ -116,13 +119,16 @@ glove-side verification is not claimed.
 
 This controlled result demonstrates three materially distinct reference-
 conditioned compositions from the same frozen identity reference: tight close,
-true profile medium, and environmental wide. It does **not** isolate a single
-cause for that improvement: both the new noncontradictory author briefs and the
-explicit specialist role-boundary instruction changed together. The profile
-glove-side uncertainty remains a concrete continuity gap for any future
-acceptance work; it was retained rather than concealed or retried.
+profile medium, and environmental wide. It does **not** isolate a single cause
+for that improvement: both the clarified author briefs and the explicit
+specialist role-boundary instruction changed together. The profile prompt's
+camera/screen-direction ambiguity and its glove-side uncertainty remain
+concrete continuity gaps for any future acceptance work; they were retained
+rather than concealed or retried.
 
 Focused verification before the trial: the image-specialist skill passed
 `quick_validate.py`, and `uv run pytest tests/backend_core/test_image_jobs.py -q`
 passed 18 tests (with one existing Starlette deprecation warning). Each real
 delivery's server-side Refresh admission returned `accepted`.
+
+Usage and cost telemetry were unavailable for these built-in ImageGen calls.
