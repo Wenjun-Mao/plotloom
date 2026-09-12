@@ -105,10 +105,19 @@ export function useImageJobDirectionDraft(
 
   const update = (next: string) => {
     if (!projectId || !shotId) return;
-    setDrafts((current) => ({ ...current, [key]: {
-      contextId: current[key]?.contextId ?? contextId,
-      value: next,
-    } }));
+    setDrafts((current) => {
+      // Empty direction text is clean, not an unsent draft. Removing the
+      // exact entry prevents an invisible value from retaining unload guards.
+      if (!next.trim()) {
+        const cleaned = { ...current };
+        delete cleaned[key];
+        return cleaned;
+      }
+      return { ...current, [key]: {
+        contextId: current[key]?.contextId ?? contextId,
+        value: next,
+      } };
+    });
   };
   const clear = () => setDrafts((current) => {
     const next = { ...current };

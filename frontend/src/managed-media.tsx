@@ -281,7 +281,7 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
       </select></Field>
       <Field label="冻结的画面呈现 / 细化变化"><textarea data-testid="image-job-presentation-change" rows={3} value={imageJobDirection.value} disabled={readOnly || busy} onChange={(event) => imageJobDirection.update(event.target.value)} placeholder="例如：保持父图构图，在实用控制台灯下提升面部清晰度。" /></Field>
       {imageJobDirection.stale && <div className="notice warning" role="status" data-testid="image-job-direction-stale">这个会话草稿来自旧的 Approval、分镜或参考上下文。文本已保留但不会自动提交。<Button variant="quiet" onClick={imageJobDirection.recoverForCurrentContext}>确认后恢复到当前上下文</Button><Button variant="quiet" onClick={imageJobDirection.clear}>放弃此草稿</Button></div>}
-      {imageJobDirection.dirty && !imageJobDirection.stale && <small data-testid="image-job-direction-draft">未发送方向仅保存在当前浏览器会话；切换镜头、目标或刷新后可按其原始上下文恢复。</small>}
+      {imageJobDirection.dirty && !imageJobDirection.stale && <div className="button-row"><small data-testid="image-job-direction-draft">未发送方向仅保存在当前浏览器会话；切换镜头、目标或刷新后可按其原始上下文恢复。</small><Button data-testid="discard-image-job-direction" variant="quiet" onClick={imageJobDirection.clear}>放弃此草稿</Button></div>}
       {imageJobDirection.storageFailed && <small role="alert">浏览器暂时无法保存方向草稿；请保持本页打开并在准备前复制文本。</small>}
       <div className="button-row">
         <Button data-testid="prepare-image-job" variant="primary" disabled={readOnly || busy || !!imageJobPrerequisite || imageJobDirection.stale || !imageJobDirection.value.trim()} onClick={() => void prepareImageJob()}>准备{imageJobTarget.kind === "refinement" ? "参考细化" : "原始"} image job</Button>

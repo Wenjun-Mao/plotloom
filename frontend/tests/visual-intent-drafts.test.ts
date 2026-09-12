@@ -105,3 +105,25 @@ it("requires explicit recovery when an image direction's approval context change
   await act(async () => directionEditor.clear());
   expect(directionEditor.value).toBe("");
 });
+
+it("removes empty directions without warning and preserves other exact targets", async () => {
+  await renderDirection();
+  await act(async () => directionEditor.update("original direction"));
+  await renderDirection({ target: "candidate-1" });
+  await act(async () => directionEditor.update("refinement direction"));
+  await act(async () => directionEditor.update("   "));
+
+  expect(directionEditor.value).toBe("");
+  expect(directionEditor.dirty).toBe(false);
+  const whileOriginalRemains = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(whileOriginalRemains);
+  expect(whileOriginalRemains.defaultPrevented).toBe(true);
+
+  await renderDirection();
+  expect(directionEditor.value).toBe("original direction");
+  await act(async () => directionEditor.clear());
+  const clean = new Event("beforeunload", { cancelable: true });
+  window.dispatchEvent(clean);
+  expect(clean.defaultPrevented).toBe(false);
+  expect(sessionStorage.getItem("plotloom:image-job-direction-drafts:v1")).toBe("{}");
+});

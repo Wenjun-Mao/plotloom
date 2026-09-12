@@ -538,6 +538,10 @@ export default function App() {
     // until a later navigation, falsely suggesting the receipt was absent.
     if (created.id && created.stages.some((stage) => stage.head.stage === "storyboard" && stage.head.status === "ready")) {
       const review = await plotloomApi.getStoryboardReview(created.id).catch(() => null);
+      // Gate hydration is an additional asynchronous boundary after creation.
+      // Navigation or a newer save may have taken ownership while it was in
+      // flight, so this creation must not complete its route or save updates.
+      if (!isWorkspaceOperationCurrent(operation)) return false;
       if (review) setStoryboardReview(review);
     }
     if (created.id) {

@@ -42,6 +42,10 @@ test.describe("P1 self-contained copied image brief", () => {
     const originalShotId = await shotPicker.inputValue();
     const alternateShotId = await shotPicker.locator("option").nth(1).getAttribute("value");
     await page.getByTestId("image-job-presentation-change").fill(originalDirection);
+    await page.getByTestId("discard-image-job-direction").click();
+    await expect(page.getByTestId("image-job-presentation-change")).toHaveValue("");
+    await expect(page.getByTestId("discard-image-job-direction")).toHaveCount(0);
+    await page.getByTestId("image-job-presentation-change").fill(originalDirection);
     if (alternateShotId && alternateShotId !== originalShotId) {
       await shotPicker.selectOption(alternateShotId);
       await expect(page.getByTestId("image-job-presentation-change")).toHaveValue("");

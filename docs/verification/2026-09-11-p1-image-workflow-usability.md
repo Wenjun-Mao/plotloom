@@ -54,3 +54,26 @@ missing cross-project/tampered-browser coverage and non-verbatim plan copy;
 both findings were corrected and the targeted journey rerun. Character identity
 references remain an assessment/design follow-up in
 [ADR 0029](../adr/0029-manual-image-handoff-usability-and-identity-references.md).
+
+## Source-only acceptance correction
+
+The user explicitly authorized this final, source-only correction after the
+prior coordination assignment was superseded. No Flow run or report route was
+created or changed for this slice.
+
+- First-save Gate hydration now rechecks the original workspace operation after
+  its asynchronous receipt read. A delayed receipt can no longer finish an old
+  creation by changing the URL, review, or save state after navigation/newer
+  work takes ownership.
+- Empty image-direction text now removes only its exact session draft entry.
+  The normal, non-stale draft affordance exposes explicit discard; other
+  project/shot/refinement entries and stale recovery are unchanged.
+
+Focused regressions passed: `tests/app-state.test.ts` and
+`tests/visual-intent-drafts.test.ts` (45 tests), plus
+`frontend/e2e/image-jobs.spec.ts` (1 test). The stable correction candidate
+passed the full Python suite (543 passed, 9 skipped), frontend unit suite (13
+files, 124 tests), frontend and E2E typechecks, full browser suite (25 tests),
+frontend build/static regeneration, wheel build, and installed-wheel smoke.
+A bounded independent Terra review found no remaining issues in this correction
+scope.

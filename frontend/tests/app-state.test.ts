@@ -382,6 +382,47 @@ describe("App project/editor rehydration", () => {
     expect(plotloomApi.getStages).not.toHaveBeenCalled();
   });
 
+  it("does not let delayed first-save Gate hydration retire a newer stage save", async () => {
+    const created = creationResponse("gate-race-project", demoProject.brief.title, {
+      story_bible: demoProject.storyBible,
+      story_graph: demoProject.storyGraph,
+      scene_beats: demoProject.sceneBeats,
+      storyboard: demoProject.storyboard,
+    });
+    const delayedReview = deferred<never>();
+    const delayedPatch = deferred<StageEnvelope["head"]>();
+    vi.spyOn(plotloomApi, "createProject").mockResolvedValue(created);
+    vi.spyOn(plotloomApi, "getProject").mockResolvedValue(created);
+    vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: created.stages });
+    vi.spyOn(plotloomApi, "getStoryboardReview")
+      .mockReturnValueOnce(delayedReview.promise)
+      .mockResolvedValue(null as never);
+    vi.spyOn(plotloomApi, "patchStage").mockReturnValue(delayedPatch.promise);
+
+    await renderSample(root);
+    await act(async () => button("分镜工作台").click());
+    await act(async () => button("保存分镜").click());
+    await flush();
+    window.history.pushState(null, "", "/?project=gate-race-project&stage=bible");
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    await flush();
+    const logline = document.querySelector(".form-card textarea") as HTMLTextAreaElement;
+    await act(async () => setInput(logline, "新路由中的未完成保存"));
+    await act(async () => button("保存故事圣经").click());
+    expect(plotloomApi.patchStage).toHaveBeenCalledOnce();
+    await flush();
+    expect(button("正在保存…").disabled).toBe(true);
+
+    await act(async () => delayedReview.resolve({} as never));
+    await flush();
+
+    expect(window.location.search).toContain("project=gate-race-project");
+    expect(window.location.search).toContain("stage=bible");
+    expect((document.querySelector(".form-card textarea") as HTMLTextAreaElement).value).toBe("新路由中的未完成保存");
+    expect(button("正在保存…").disabled).toBe(true);
+    await act(async () => delayedPatch.resolve(created.stages[0]!.head));
+  });
+
   it("creates a clean unsaved brief without initial stages and hydrates only from the create response", async () => {
     const created = creationResponse("brief-project", "干净简报");
     const create = vi.spyOn(plotloomApi, "createProject").mockResolvedValue(created);
