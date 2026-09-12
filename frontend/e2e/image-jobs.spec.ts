@@ -37,6 +37,19 @@ test.describe("P1 self-contained copied image brief", () => {
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     await expect(page.getByText("当前批准：P1 self-contained browser reviewer", { exact: true })).toBeVisible();
 
+    // P1.5 v3 jobs are reference-conditioned for visible characters. Create
+    // that creator decision through the workbench before requesting a job;
+    // the retained file is fixture evidence, not a generated pilot result.
+    await page.getByLabel("来源声明").fill("Retained P0 fixture used as a P1.5 identity-reference regression input");
+    await page.getByTestId("managed-image-upload").setInputFiles(retainedStill);
+    const referenceAssetId = await page.getByTestId("reference-primary-asset").locator("option").nth(1).getAttribute("value");
+    expect(referenceAssetId).toBeTruthy();
+    await page.getByTestId("reference-primary-asset").selectOption(referenceAssetId!);
+    await page.getByTestId("reference-reviewer").fill("P1.5 browser reference reviewer");
+    await page.getByTestId("reference-notes").fill("Stable facial and build guidance only; pose, wardrobe, and lighting remain owned by each frozen shot.");
+    await page.getByTestId("select-character-reference").click();
+    await expect(page.getByTestId("character-reference-char_ruanxing")).toContainText("r1");
+
     const originalDirection = "Render the approved arrival shot with clear practical control-room lighting and readable facial detail.";
     const shotPicker = page.getByLabel("当前媒体镜头");
     const originalShotId = await shotPicker.inputValue();
@@ -75,7 +88,7 @@ test.describe("P1 self-contained copied image brief", () => {
     const original = await latestImageJob(request, workbench.apiOrigin, projectId);
     await expect(page.getByTestId(`image-job-${original.id}`)).toBeVisible();
     await copyImageJob(page, projectId, original.id);
-    await expect(page.getByTestId("image-job-assignment")).toContainText("completion-manifest.example.json");
+    await expect(page.getByTestId("image-job-assignment")).toContainText("use built-in imagegen");
     await expect(page.getByTestId("image-job-copy-status")).toContainText("已复制到系统剪贴板");
     await expect.poll(() => page.evaluate(() => window.sessionStorage.getItem("copied-image-job"))).toContain("Codex image specialist assignment");
     await page.getByTestId(`refresh-image-job-${original.id}`).click();
@@ -88,7 +101,10 @@ test.describe("P1 self-contained copied image brief", () => {
 
     const originalPackage = path.join(workbench.imageExchangeRoot, "jobs", original.id, "package");
     const originalRequest = await readJson(path.join(originalPackage, "request.json"));
-    expect(originalRequest).toMatchObject({ schemaVersion: 2, packageVersion: 2, jobId: original.id });
+    expect(originalRequest).toMatchObject({ schemaVersion: 3, packageVersion: 3, jobId: original.id });
+    expect(originalRequest.references).toEqual(expect.arrayContaining([
+      expect.objectContaining({ role: "character_identity:char_ruanxing" }),
+    ]));
     expect(originalRequest.frozenSnapshot.creatorDirection).toEqual({
       presentationChange: originalDirection,
     });
@@ -115,6 +131,7 @@ test.describe("P1 self-contained copied image brief", () => {
     await page.getByLabel("审核兼容性说明").fill("The accepted original candidate matches the approved arrival shot.");
     await page.getByTestId("select-reviewed-keyframe").click();
     await expect(page.getByTestId("current-reviewed-keyframe")).toContainText("intent r1");
+    await recordSamePersonReview(page, "char_ruanxing");
     await page.getByTestId("preview-subset-length").selectOption("1");
     await page.getByTestId("create-still-preview").click();
     await expect(page.getByTestId("still-animatic")).toBeVisible();
@@ -132,7 +149,10 @@ test.describe("P1 self-contained copied image brief", () => {
     await copyImageJob(page, projectId, refinement.id);
     const refinementPackage = path.join(workbench.imageExchangeRoot, "jobs", refinement.id, "package");
     const refinementRequest = await readJson(path.join(refinementPackage, "request.json"));
-    expect(refinementRequest.references).toEqual([expect.objectContaining({ role: "parent_output" })]);
+    expect(refinementRequest.references).toEqual(expect.arrayContaining([
+      expect.objectContaining({ role: "character_identity:char_ruanxing" }),
+      expect.objectContaining({ role: "parent_output" }),
+    ]));
     expect(refinementRequest.frozenSnapshot.creatorDirection).toEqual({ presentationChange: refinementDirection });
     expect(refinementRequest.frozenSnapshot.reviewedVisualIntent).toMatchObject({
       assetId: originalCandidate, selectionRevision: 1, visualIntentRevision: 1,
@@ -221,6 +241,17 @@ async function copyImageJob(page: import("@playwright/test").Page, projectId: st
   expect(response.ok(), await response.text()).toBeTruthy();
 }
 
+async function recordSamePersonReview(page: import("@playwright/test").Page, characterId: string): Promise<void> {
+  const panel = page.getByTestId("same-person-review-panel");
+  await expect(panel).toBeVisible();
+  await panel.getByLabel("身份对比说明").fill("Human reviewer confirms the stable face, build, and visible character anchors.");
+  await panel.getByLabel("镜头状态说明").fill("Wardrobe, action, and lighting are reviewed as frozen shot state, not durable identity.");
+  await panel.getByLabel("复核备注").fill("P1.5 browser regression review; no automated face-recognition claim.");
+  await panel.getByTestId(`same-person-judgment-${characterId}`).selectOption("pass");
+  await panel.getByTestId("record-same-person-review").click();
+  await expect(panel.getByText("当前复核", { exact: false })).toBeVisible();
+}
+
 async function latestImageJob(request: import("@playwright/test").APIRequestContext, apiOrigin: string, projectId: string): Promise<ImageJob> {
   const response = await request.get(`${apiOrigin}/api/v2/projects/${projectId}/image-jobs`);
   expect(response.ok(), await response.text()).toBeTruthy();
@@ -242,16 +273,32 @@ async function imageJob(request: import("@playwright/test").APIRequestContext, a
 async function writeDelivery(root: string, job: ImageJob, deliveryId: string, role: "original" | "refinement"): Promise<void> {
   const content = await readFile(retainedStill);
   const outputRoot = path.join(root, "jobs", job.id, "delivery", "outputs");
+  const packageRequest = await readJson(path.join(root, "jobs", job.id, "package", "request.json"));
+  const identityReferenceHashes = packageRequest.references
+    .filter((reference: { role: string }) => reference.role.startsWith("character_identity:"))
+    .map((reference: { sha256: string }) => reference.sha256);
+  const identityAware = packageRequest.packageVersion === 3 && identityReferenceHashes.length > 0;
   await mkdir(outputRoot, { recursive: true });
   await writeFile(path.join(outputRoot, "candidate.png"), content);
   await writeFile(path.join(root, "jobs", job.id, "delivery", "completion.json"), JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: identityAware ? 2 : 1,
     jobId: job.id,
     requestHash: job.requestHash,
     deliveryId,
     actualPrompt: "Regression delivery built from the retained P0 image file; no new ImageGen call was made.",
     outputs: [{ filename: "candidate.png", sha256: createHash("sha256").update(content).digest("hex"), role }],
     toolEvidence: { tool: "codex_imagegen", taskId: "p1-browser-regression-retained-asset", available: true },
+    ...(identityAware ? {
+      referenceUse: {
+        viewedReferenceHashes: identityReferenceHashes,
+        identityNotes: "Fixture attestation only; creator review remains required.",
+      },
+      executorProvenance: {
+        codeRevision: "a".repeat(40),
+        skillVersion: "plotloom-image-specialist.v1",
+        skillHash: "b".repeat(64),
+      },
+    } : {}),
     limitations: ["Retained asset regression only; no new image generation was requested."],
   }), "utf8");
 }

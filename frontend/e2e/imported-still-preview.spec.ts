@@ -22,11 +22,12 @@ test.describe("P0 imported still preview journey", () => {
     // Four independent provenance records make the comparison surface real;
     // the production contract itself has no fixed import-count limit.
     await page.getByLabel("来源声明").fill("Direct development-session images generated with imagegen on 2026-09-11");
+    const candidateCards = page.getByLabel("候选图像比较").locator(".media-candidate");
     for (let index = 0; index < 4; index += 1) {
       await page.getByTestId("managed-image-upload").setInputFiles(developmentStillPaths[index]);
-      await expect(page.locator(".media-candidate")).toHaveCount(index + 1);
+      await expect(candidateCards).toHaveCount(index + 1);
     }
-    const cards = page.locator(".media-candidate");
+    const cards = candidateCards;
     // Keeping each real image is an explicit comparison action; it adds the
     // candidate without treating the last imported file as a hidden default.
     await cards.nth(0).getByRole("button", { name: "保留此候选" }).click();
