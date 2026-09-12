@@ -95,6 +95,10 @@ Focused pilot checks completed:
   (`548 passed, 9 skipped`), frontend typecheck, unit tests (`124 passed`), and
   production build before this visual qualification.
 
+One fresh, read-only Terra review then inspected the committed candidate,
+reference/currentness contracts, receipt, and focused tests. It reported no
+material findings; the review changed no source or pilot state.
+
 This receipt qualifies one-character still-image feasibility only. It leaves
 video, motion/voice continuity, automatic execution, external providers, and a
 live multi-character visual pilot outside the accepted scope.
