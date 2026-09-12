@@ -245,6 +245,8 @@ export interface StillPreviewFrame {
   bindingId: string;
   visualIntentId: string | null;
   visualIntentRevision: number | null;
+  identityReviewId?: string;
+  identityReferenceDecisionIds?: string[];
 }
 
 export interface VisualIntent {
@@ -295,7 +297,105 @@ export interface VisualWorkbench {
   selectionRevision: number;
   visualIntents: VisualIntent[];
   reviewedKeyframes: ReviewedKeyframe[];
+  characterReferences: CharacterReferencesResponse;
+  samePersonReviews: SamePersonReviewsResponse;
   previews: StillPreview[];
+}
+
+export interface CharacterReferenceState {
+  characterId: string;
+  revision: number;
+  activeDecisionId: string | null;
+  current: boolean;
+}
+
+export interface CharacterReferenceDecision {
+  id: string;
+  projectId: string;
+  characterId: string;
+  referenceRevision: number;
+  characterContext: Record<string, unknown>;
+  characterContextHash: string;
+  primaryAssetId: string;
+  complementaryAssetIds: string[];
+  assetHashes: Array<{ assetId: string; originalHash: string }>;
+  reviewer: string;
+  notes: string;
+  current: boolean;
+  revokedAt: string | null;
+  revokedBy: string | null;
+  revocationReason: string | null;
+  createdAt: string;
+}
+
+export interface CharacterReferencesResponse {
+  states: CharacterReferenceState[];
+  decisions: CharacterReferenceDecision[];
+}
+
+export interface SamePersonComparison {
+  characterId: string;
+  judgment: "pass" | "fail";
+  identityNotes: string;
+  stateNotes: string;
+}
+
+export interface SamePersonReview {
+  id: string;
+  projectId: string;
+  bindingId: string;
+  reviewRevision: number;
+  referenceBindings: Array<{ characterId: string; referenceDecisionId: string; referenceRevision: number; assetHashes: string[] }>;
+  comparisons: SamePersonComparison[];
+  reviewer: string;
+  notes: string;
+  current: boolean;
+  createdAt: string;
+}
+
+export interface SamePersonReviewsResponse {
+  revision: number;
+  reviews: SamePersonReview[];
+}
+
+export interface CharacterReferenceProposalCandidate {
+  id: string;
+  assetId: string;
+  proposalId: string;
+  outputFilename: string;
+  outputHash: string;
+  role: "original" | "refinement";
+  asset: ManagedAsset | null;
+  createdAt: string;
+}
+
+export interface CharacterReferenceProposal {
+  id: string;
+  projectId: string;
+  characterId: string;
+  parentCandidateAssetId: string | null;
+  request: Record<string, unknown>;
+  requestHash: string;
+  state: "prepared" | "exported" | "delivered" | "cancelled";
+  current: boolean;
+  exportedAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  createdAt: string;
+  deliveries: Array<{
+    id: string;
+    deliveryId: string | null;
+    state: "accepted" | "inapplicable" | "rejected";
+    diagnosticCode: string | null;
+    manifestHash: string | null;
+    createdAt: string;
+    candidates: CharacterReferenceProposalCandidate[];
+  }>;
+}
+
+export interface CharacterReferenceProposalsResponse {
+  configured: boolean;
+  proposals: CharacterReferenceProposal[];
 }
 
 export interface ImageJobCandidate {
@@ -325,7 +425,20 @@ export interface ImageJob {
   productionUnitId: string;
   parentJobId: string | null;
   parentCandidateAssetId: string | null;
-  request: { kind: "original" | "refinement"; visualProposal: Record<string, unknown> };
+  request: {
+    schemaVersion?: number;
+    kind: "original" | "refinement";
+    visualProposal?: Record<string, unknown>;
+    frozenSnapshot?: {
+      visibleCharacterIds?: string[];
+      characterIdentity?: Array<{
+        characterId: string;
+        referenceDecisionId: string;
+        referenceRevision: number;
+        assets: Array<{ assetId: string; originalHash: string }>;
+      }>;
+    };
+  };
   requestHash: string;
   state: "prepared" | "exported" | "delivered" | "cancelled";
   current: boolean;

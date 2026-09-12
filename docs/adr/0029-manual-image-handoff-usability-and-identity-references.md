@@ -27,15 +27,15 @@ separately, including the prerequisites for each. First-save hydration reads
 the existing storyboard review/Gate receipt rather than inventing a new gate or
 approval action.
 
-Cross-shot character consistency remains a future contract. A subsequent
-assessment will design approved project-level identity references, frozen
-reference revisions, multi-character mapping, user-provided originals, and
-visual cross-shot review. It must separate stable identity from state, costume,
-composition, and style before adding a schema or generation behavior.
+Cross-shot character consistency is now governed by [ADR 0030](0030-character-reference-decisions-and-cross-shot-review.md).
+It replaces this assessment-only boundary with explicit project-level identity
+references, frozen reference revisions, role mapping and human review while
+retaining the separation between durable identity and shot state, costume,
+composition and style.
 
-The next bounded scope is approved in the
-[P1.5 plan](../roadmap/p15-character-reference-consistency-plan.md).
-It is not an implemented identity guarantee or an amendment authorizing video.
+The bounded implementation is recorded in the
+[P1.5 plan](../roadmap/p15-character-reference-consistency-plan.md). It remains
+an acceptance-pending identity guarantee and does not authorize video.
 
 The agreed specialist direction is a versioned, repository-scoped skill with
 replaceable executor tasks. Plotloom retains job/asset authority; task history is

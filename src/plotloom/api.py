@@ -74,7 +74,14 @@ from .managed_media import (
     inspect_import_image,
     publish_import,
 )
-from .image_job_contracts import ImageJobCreateRequest, ImageJobError
+from .image_job_contracts import (
+    CharacterReferenceDecisionRequest,
+    CharacterReferenceProposalRequest,
+    CharacterReferenceRevocationRequest,
+    ImageJobCreateRequest,
+    ImageJobError,
+    SamePersonReviewRequest,
+)
 from .image_job_exchange import ImageJobExchange, PackageReference
 from .provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,
@@ -1317,6 +1324,8 @@ def create_app(
             "selectionRevision": repo.visual_selection_revision(project_id),
             "visualIntents": repo.list_visual_intents(project_id),
             "reviewedKeyframes": repo.list_current_reviewed_keyframes(project_id),
+            "characterReferences": repo.list_character_reference_decisions(project_id),
+            "samePersonReviews": repo.list_same_person_reviews(project_id),
             "previews": [preview_view(project_id, preview) for preview in repo.list_still_previews(project_id)],
         }
 
@@ -1326,6 +1335,126 @@ def create_app(
             "configured": app.state.image_job_exchange.configured,
             "jobs": repo.list_image_jobs(project_id),
         }
+
+    @app.get("/api/v2/projects/{project_id}/character-references")
+    def get_character_references(project_id: str) -> dict[str, Any]:
+        return repo.list_character_reference_decisions(project_id)
+
+    @app.post("/api/v2/projects/{project_id}/character-references", status_code=status.HTTP_201_CREATED)
+    def select_character_reference(
+        project_id: str, body: CharacterReferenceDecisionRequest
+    ) -> dict[str, Any]:
+        return repo.create_character_reference_decision(
+            project_id, **body.model_dump(mode="python", by_alias=False)
+        )
+
+    @app.post("/api/v2/projects/{project_id}/character-references/{character_id}/revoke")
+    def revoke_character_reference(
+        project_id: str, character_id: str, body: CharacterReferenceRevocationRequest
+    ) -> dict[str, Any]:
+        return repo.revoke_character_reference_decision(
+            project_id, character_id=character_id, **body.model_dump(mode="python", by_alias=False)
+        )
+
+    @app.get("/api/v2/projects/{project_id}/character-reference-proposals")
+    def get_character_reference_proposals(project_id: str) -> dict[str, Any]:
+        return {"configured": app.state.image_job_exchange.configured, "proposals": repo.list_character_reference_proposals(project_id)}
+
+    @app.post("/api/v2/projects/{project_id}/character-reference-proposals", status_code=status.HTTP_201_CREATED)
+    def prepare_character_reference_proposal(
+        project_id: str, body: CharacterReferenceProposalRequest
+    ) -> dict[str, Any]:
+        app.state.image_job_exchange.validate_configured()
+        return repo.prepare_character_reference_proposal(
+            project_id, **body.model_dump(mode="python", by_alias=False)
+        )
+
+    @app.post("/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/copy")
+    def copy_character_reference_proposal(project_id: str, proposal_id: str) -> dict[str, Any]:
+        source = repo.character_reference_proposal_package_sources(project_id, proposal_id)
+        references: list[PackageReference] = []
+        for index, reference in enumerate(source["references"]):
+            try:
+                content = app.state.artifact_store.get(reference["originalUri"])
+            except (FileNotFoundError, KeyError, OSError, ValueError) as error:
+                raise InvalidTransitionError("frozen proposal reference bytes are unavailable") from error
+            if sha256(content).hexdigest() != reference["contentHash"]:
+                raise InvalidTransitionError("frozen proposal reference bytes are unavailable")
+            suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
+            references.append(PackageReference(
+                role=reference["role"], filename=f"reference-{index + 1}-{reference['contentHash'][:16]}{suffix}",
+                content_hash=reference["contentHash"], content=content,
+            ))
+        proposal = source["proposal"]
+        package = app.state.image_job_exchange.write_package(
+            job_id=proposal_id, request=proposal["request"], request_hash=proposal["requestHash"], references=references,
+        )
+        proposal = repo.mark_character_reference_proposal_exported(project_id, proposal_id)
+        return {
+            "proposal": proposal,
+            "assignment": (
+                f"Codex character-reference proposal assignment for {proposal_id}: read {package['packagePath']}/request.json "
+                f"and {package['packagePath']}/completion-manifest.example.json; use built-in imagegen; write JPEG/PNG outputs "
+                f"and completion.json only under {package['deliveryPath']}. This is exploratory and cannot approve a reference."
+            ),
+            "packagePath": package["packagePath"], "deliveryPath": package["deliveryPath"],
+        }
+
+    @app.post("/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/refresh")
+    def refresh_character_reference_proposal(project_id: str, proposal_id: str) -> dict[str, Any]:
+        context = repo.character_reference_proposal_delivery_context(project_id, proposal_id)
+        try:
+            references: list[tuple[str, str, str]] = []
+            for index, reference in enumerate(context["request"]["frozenSnapshot"].get("references", [])):
+                suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
+                references.append((reference["role"], f"reference-{index + 1}-{reference['originalHash'][:16]}{suffix}", reference["originalHash"]))
+            app.state.image_job_exchange.verify_package(
+                job_id=proposal_id, request=context["request"], request_hash=context["requestHash"], references=references,
+            )
+            delivery = app.state.image_job_exchange.read_delivery(
+                job_id=proposal_id, request_hash=context["requestHash"], require_executor_provenance=True,
+            )
+        except ImageJobError as error:
+            if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id"}:
+                repo.record_character_reference_proposal_rejection(project_id, proposal_id, error.code)
+            raise
+        if delivery is None:
+            return {"state": "awaiting_delivery", "candidates": [], "idempotent": False}
+        outputs = [{
+            "filename": output.filename, "role": output.role, "originalHash": output.observed.content_hash,
+            "displayHash": output.observed.display_hash, "mimeType": output.observed.mime_type,
+            "byteSize": output.observed.byte_size, "width": output.observed.width, "height": output.observed.height,
+            "content": output.content, "observed": output.observed,
+        } for output in delivery.outputs]
+
+        def publish_under_admission(output: dict[str, Any]) -> tuple[str, str]:
+            try:
+                return publish_import(app.state.artifact_store, output["content"], output["observed"])
+            except (ManagedMediaError, OSError, KeyError, ValueError) as error:
+                raise ImageJobError("delivery_storage_failed", "validated proposal delivery could not be stored") from error
+
+        return repo.record_character_reference_proposal_delivery(
+            project_id, proposal_id, delivery_id=delivery.manifest.delivery_id,
+            manifest=delivery.manifest.model_dump(mode="json", by_alias=True), manifest_hash=delivery.manifest_hash,
+            outputs=outputs, publish=publish_under_admission,
+        )
+
+    @app.get("/api/v2/projects/{project_id}/same-person-reviews")
+    def get_same_person_reviews(project_id: str) -> dict[str, Any]:
+        return repo.list_same_person_reviews(project_id)
+
+    @app.post("/api/v2/projects/{project_id}/same-person-reviews", status_code=status.HTTP_201_CREATED)
+    def record_same_person_review(project_id: str, body: SamePersonReviewRequest) -> dict[str, Any]:
+        # The persisted comparison receipt deliberately mirrors the frozen
+        # package's camel-case character identity map.
+        return repo.record_same_person_review(
+            project_id,
+            binding_id=body.binding_id,
+            expected_review_revision=body.expected_review_revision,
+            reviewer=body.reviewer,
+            comparisons=[item.model_dump(mode="json", by_alias=True) for item in body.comparisons],
+            notes=body.notes,
+        )
 
     @app.post("/api/v2/projects/{project_id}/image-jobs", status_code=status.HTTP_201_CREATED)
     def prepare_image_job(project_id: str, body: ImageJobCreateRequest) -> dict[str, Any]:
@@ -1340,6 +1469,7 @@ def create_app(
             storyboard_revision=body.storyboard_revision,
             parent_candidate_asset_id=body.parent_candidate_asset_id,
             presentation_change=body.presentation_change,
+            contract_version=body.contract_version,
         )
 
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/copy")
@@ -1355,7 +1485,11 @@ def create_app(
                 raise InvalidTransitionError("frozen image-job reference bytes are unavailable")
             suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
             references.append(PackageReference(
-                role=reference["role"],
+                role=(
+                    f"character_identity:{reference['characterId']}"
+                    if reference["role"] == "character_identity" and reference.get("characterId")
+                    else reference["role"]
+                ),
                 filename=f"reference-{index + 1}-{reference['contentHash'][:16]}{suffix}",
                 content_hash=reference["contentHash"], content=content,
             ))
@@ -1390,15 +1524,22 @@ def create_app(
             # the browser or specialist authority over the canonical request.
             references: list[tuple[str, str, str]] = []
             frozen_references = context["request"]["frozenSnapshot"].get("references", [])
+            identity_reference_hashes: list[str] = []
             for index, reference in enumerate(
-                item for item in frozen_references if item.get("role") == "parent_output"
+                item for item in frozen_references if item.get("role") in {"parent_output", "character_identity"}
             ):
                 suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
                 references.append((
-                    reference["role"],
+                    (
+                        f"character_identity:{reference['characterId']}"
+                        if reference["role"] == "character_identity" and reference.get("characterId")
+                        else reference["role"]
+                    ),
                     f"reference-{index + 1}-{reference['originalHash'][:16]}{suffix}",
                     reference["originalHash"],
                 ))
+                if reference["role"] == "character_identity":
+                    identity_reference_hashes.append(reference["originalHash"])
             app.state.image_job_exchange.verify_package(
                 job_id=job_id,
                 request=context["request"],
@@ -1406,7 +1547,9 @@ def create_app(
                 references=references,
             )
             delivery = app.state.image_job_exchange.read_delivery(
-                job_id=job_id, request_hash=context["requestHash"]
+                job_id=job_id, request_hash=context["requestHash"],
+                required_reference_hashes=identity_reference_hashes,
+                require_executor_provenance=context["request"].get("schemaVersion") == 3,
             )
         except ImageJobError as error:
             # A manifest/path failure and a malformed or over-limit raster are

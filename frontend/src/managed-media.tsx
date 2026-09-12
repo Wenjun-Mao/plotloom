@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ApprovalDecision, ImageJob, ManagedAsset, Shot, StillPreview, Storyboard, StoryboardReview, VisualIntent, VisualWorkbench } from "./types";
+import type { ApprovalDecision, CharacterReferenceProposal, ImageJob, ManagedAsset, SamePersonComparison, Shot, StillPreview, StoryBible, Storyboard, StoryboardReview, VisualIntent, VisualWorkbench } from "./types";
 import { plotloomApi } from "./api";
 import { Badge, Button, Field, Panel } from "./components";
 import { useImageJobDirectionDraft, useVisualIntentDraft, type ImageJobDraftTarget, type IntentDraft } from "./visual-intent-drafts";
@@ -13,7 +13,10 @@ function stateGuidance(state: StillPreview["state"]): string | null {
   if (state === "corrupt") return "冻结历史的完整性校验失败；停止使用并调查存储或 receipt。";
   return null;
 }
-const emptyWorkbench: VisualWorkbench = { assets: [], selectionRevision: 0, visualIntents: [], reviewedKeyframes: [], previews: [] };
+const emptyWorkbench: VisualWorkbench = {
+  assets: [], selectionRevision: 0, visualIntents: [], reviewedKeyframes: [],
+  characterReferences: { states: [], decisions: [] }, samePersonReviews: { revision: 0, reviews: [] }, previews: [],
+};
 
 function draftFor(intent: VisualIntent | undefined, shot: Shot | undefined): IntentDraft {
   return {
@@ -24,12 +27,21 @@ function draftFor(intent: VisualIntent | undefined, shot: Shot | undefined): Int
   };
 }
 
-export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, storyboardRevision, review, readOnly, onSelectShot, onReview }: {
-  projectId?: string; storyboard: Storyboard; selectedShot: Shot | undefined; storyboardRevision?: number; review: StoryboardReview | null | undefined; readOnly: boolean;
+function identityMappingForAsset(assetId: string | undefined, jobs: ImageJob[]) {
+  if (!assetId) return [];
+  const job = jobs.find((candidateJob) => candidateJob.deliveries.some((delivery) =>
+    delivery.candidates.some((candidate) => candidate.assetId === assetId),
+  ));
+  return job?.request.frozenSnapshot?.characterIdentity ?? [];
+}
+
+export function ManagedMediaWorkbench({ projectId, storyboard, bible, selectedShot, storyboardRevision, storyBibleRevision, review, readOnly, onSelectShot, onReview }: {
+  projectId?: string; storyboard: Storyboard; bible: StoryBible; selectedShot: Shot | undefined; storyboardRevision?: number; storyBibleRevision?: number; review: StoryboardReview | null | undefined; readOnly: boolean;
   onSelectShot?: (id: string) => void; onReview?: () => void;
 }) {
   const [workbench, setWorkbench] = useState<VisualWorkbench>(emptyWorkbench);
   const [imageJobs, setImageJobs] = useState<ImageJob[]>([]);
+  const [characterProposals, setCharacterProposals] = useState<CharacterReferenceProposal[]>([]);
   const [imageExchangeConfigured, setImageExchangeConfigured] = useState(false);
   const [copiedAssignment, setCopiedAssignment] = useState("");
   const [copiedAssignmentStatus, setCopiedAssignmentStatus] = useState<"copied" | "manual" | "">("");
@@ -40,6 +52,16 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   const [origin, setOrigin] = useState("Local creator import");
   const [declaredAdditions, setDeclaredAdditions] = useState("reference only");
   const [compatibility, setCompatibility] = useState("");
+  const [referenceCharacterId, setReferenceCharacterId] = useState("");
+  const [referencePrimaryAssetId, setReferencePrimaryAssetId] = useState("");
+  const [referenceComplementaryAssetIds, setReferenceComplementaryAssetIds] = useState<string[]>([]);
+  const [referenceReviewer, setReferenceReviewer] = useState("creator");
+  const [referenceNotes, setReferenceNotes] = useState("");
+  const [proposalCharacterId, setProposalCharacterId] = useState("");
+  const [proposalDirection, setProposalDirection] = useState("");
+  const [samePersonReviewer, setSamePersonReviewer] = useState("creator");
+  const [samePersonNotes, setSamePersonNotes] = useState("");
+  const [samePersonComparisons, setSamePersonComparisons] = useState<SamePersonComparison[]>([]);
   const [previewLength, setPreviewLength] = useState(3);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -54,13 +76,15 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   const refresh = useCallback(async (signal?: AbortSignal) => {
     if (!projectId) return;
     const sequence = ++requestSequence.current;
-    const [next, jobs] = await Promise.all([
+    const [next, jobs, proposals] = await Promise.all([
       plotloomApi.getVisualWorkbench(projectId, signal),
       plotloomApi.getImageJobs(projectId, signal),
+      plotloomApi.getCharacterReferenceProposals(projectId, signal),
     ]);
     if (signal?.aborted || sequence !== requestSequence.current) return;
     setWorkbench(next);
     setImageJobs(jobs.jobs);
+    setCharacterProposals(proposals.proposals);
     setImageExchangeConfigured(jobs.configured);
     const saved = window.localStorage.getItem(previewKey(projectId));
     const preferred = next.previews.find((item) => item.id === saved) ?? next.previews[0];
@@ -85,6 +109,19 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
   const reviewedShotIds = useMemo(() => new Set(workbench.reviewedKeyframes.map((binding) => binding.shotId)), [workbench.reviewedKeyframes]);
   const missingPreviewShotIds = previewShotIds.filter((shotId) => !reviewedShotIds.has(shotId));
   const selectedBinding = selectedShot ? workbench.reviewedKeyframes.find((binding) => binding.shotId === selectedShot.id) : undefined;
+  const assetById = useMemo(() => new Map(workbench.assets.map((asset) => [asset.id, asset])), [workbench.assets]);
+  const referenceStateByCharacter = useMemo(() => new Map(workbench.characterReferences.states.map((state) => [state.characterId, state])), [workbench.characterReferences.states]);
+  const currentReferenceByCharacter = useMemo(() => new Map(workbench.characterReferences.decisions
+    .filter((decision) => decision.current)
+    .map((decision) => [decision.characterId, decision])), [workbench.characterReferences.decisions]);
+  const selectedIdentityMapping = useMemo(() => identityMappingForAsset(selectedBinding?.assetId, imageJobs), [imageJobs, selectedBinding?.assetId]);
+  const currentReviewByBinding = useMemo(() => new Map(workbench.samePersonReviews.reviews
+    .filter((item) => item.current)
+    .map((item) => [item.bindingId, item])), [workbench.samePersonReviews.reviews]);
+  const identityReviewMissingShotIds = previewShotIds.filter((shotId) => {
+    const binding = workbench.reviewedKeyframes.find((item) => item.shotId === shotId);
+    return identityMappingForAsset(binding?.assetId, imageJobs).length > 0 && !currentReviewByBinding.has(binding?.id ?? "");
+  });
   const activeIntent = workbench.visualIntents.find((intent) => intent.assetId === keptAssetId && intent.intent.role === "shot_keyframe");
   const intentEditor = useVisualIntentDraft(projectId, selectedShot?.id, keptAssetId, activeIntent?.id, draftFor(activeIntent, selectedShot));
   const intentDraft = intentEditor.value;
@@ -112,11 +149,23 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
         ? "先选择一个镜头。"
         : !currentApproval || !storyboardRevision
           ? "先保存有效分镜、检查 Gate receipt，再显式批准当前分镜。"
+          : selectedShot.characterIds.some((characterId) => !currentReferenceByCharacter.has(characterId))
+            ? `当前 Shot 的可见角色缺少已选择的身份参考：${selectedShot.characterIds.filter((characterId) => !currentReferenceByCharacter.has(characterId)).join("、")}。`
           : imageJobTarget.kind === "refinement" && !targetCandidate
             ? "参考细化只能使用当前镜头已审核选择的当前 P1 候选。"
             : null;
 
   useEffect(() => { setPreviewLength((current) => Math.max(1, Math.min(current, maxPreviewLength || 1))); }, [maxPreviewLength]);
+  useEffect(() => {
+    if (!referenceCharacterId && bible.characters[0]) setReferenceCharacterId(bible.characters[0].id);
+    if (!proposalCharacterId && bible.characters[0]) setProposalCharacterId(bible.characters[0].id);
+  }, [bible.characters, proposalCharacterId, referenceCharacterId]);
+  useEffect(() => {
+    setSamePersonComparisons(selectedIdentityMapping.map((item) => ({
+      characterId: item.characterId, judgment: "pass", identityNotes: "Face, build, and stable visual anchors match the selected reference.",
+      stateNotes: "Current shot state is judged separately from durable identity.",
+    })));
+  }, [selectedBinding?.id, selectedIdentityMapping]);
   // A reviewed binding is durable per Shot. Restore it after a reload or a
   // parent review refresh rather than making the creator rediscover which
   // candidate and intent revision were already selected.
@@ -208,7 +257,7 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
       await plotloomApi.prepareImageJob(projectId, {
         approvalId: currentApproval.id, shotId: selectedShot.id, storyboardRevision,
         parentCandidateAssetId: imageJobTarget.kind === "refinement" ? imageJobTarget.parentCandidateAssetId : undefined,
-        presentationChange: imageJobDirection.value.trim(),
+        presentationChange: imageJobDirection.value.trim(), contractVersion: 3,
       });
       imageJobDirection.clear();
       await refresh();
@@ -254,6 +303,74 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     catch (jobError) { setError(jobError instanceof Error ? jobError.message : "无法取消 image job"); }
     finally { setBusy(false); }
   };
+  const selectCharacterReference = async () => {
+    if (!projectId || !referenceCharacterId || !referencePrimaryAssetId) return;
+    const state = referenceStateByCharacter.get(referenceCharacterId);
+    setBusy(true); setError("");
+    try {
+      await plotloomApi.selectCharacterReference(projectId, {
+        characterId: referenceCharacterId, primaryAssetId: referencePrimaryAssetId,
+        complementaryAssetIds: referenceComplementaryAssetIds, expectedReferenceRevision: state?.revision ?? 0,
+        reviewer: referenceReviewer.trim(), notes: referenceNotes.trim(),
+      });
+      setReferenceNotes(""); setReferenceComplementaryAssetIds([]);
+      await refresh();
+    } catch (referenceError) { setError(referenceError instanceof Error ? referenceError.message : "无法选择角色身份参考"); }
+    finally { setBusy(false); }
+  };
+  const revokeCharacterReference = async (characterId: string) => {
+    if (!projectId) return;
+    const state = referenceStateByCharacter.get(characterId);
+    if (!state) return;
+    setBusy(true); setError("");
+    try {
+      await plotloomApi.revokeCharacterReference(projectId, characterId, {
+        expectedReferenceRevision: state.revision, reviewer: referenceReviewer.trim(),
+        reason: "Creator revoked this identity reference before preparing further image work.",
+      });
+      await refresh();
+    } catch (referenceError) { setError(referenceError instanceof Error ? referenceError.message : "无法撤销角色身份参考"); }
+    finally { setBusy(false); }
+  };
+  const prepareCharacterReferenceProposal = async () => {
+    if (!projectId || !proposalCharacterId || !storyBibleRevision || !proposalDirection.trim()) return;
+    setBusy(true); setError("");
+    try {
+      await plotloomApi.prepareCharacterReferenceProposal(projectId, {
+        characterId: proposalCharacterId, storyBibleRevision, visualDirection: proposalDirection.trim(),
+      });
+      setProposalDirection(""); await refresh();
+    } catch (proposalError) { setError(proposalError instanceof Error ? proposalError.message : "无法准备角色参考 proposal"); }
+    finally { setBusy(false); }
+  };
+  const copyCharacterReferenceProposal = async (proposalId: string) => {
+    if (!projectId) return;
+    setBusy(true); setError("");
+    try {
+      const copied = await plotloomApi.copyCharacterReferenceProposal(projectId, proposalId);
+      setCopiedAssignment(copied.assignment); setCopiedAssignmentStatus("manual"); await refresh();
+    } catch (proposalError) { setError(proposalError instanceof Error ? proposalError.message : "无法复制角色参考 assignment"); }
+    finally { setBusy(false); }
+  };
+  const refreshCharacterReferenceProposal = async (proposalId: string) => {
+    if (!projectId) return;
+    setBusy(true); setError("");
+    try { await plotloomApi.refreshCharacterReferenceProposal(projectId, proposalId); await refresh(); }
+    catch (proposalError) { setError(proposalError instanceof Error ? proposalError.message : "无法检查角色参考 delivery"); }
+    finally { setBusy(false); }
+  };
+  const recordSamePersonReview = async () => {
+    if (!projectId || !selectedBinding || !selectedIdentityMapping.length || !samePersonReviewer.trim() || !samePersonNotes.trim()) return;
+    setBusy(true); setError("");
+    try {
+      await plotloomApi.recordSamePersonReview(projectId, {
+        bindingId: selectedBinding.id, expectedReviewRevision: workbench.samePersonReviews.revision,
+        reviewer: samePersonReviewer.trim(), comparisons: samePersonComparisons, notes: samePersonNotes.trim(),
+      });
+      setSamePersonNotes(""); await refresh();
+    } catch (reviewError) { setError(reviewError instanceof Error ? reviewError.message : "无法记录同一人物复核"); }
+    finally { setBusy(false); }
+  };
 
   return <Panel className="managed-media-workbench" data-testid="managed-media-workbench">
     <div className="section-title"><span>Imported stills · P0</span><strong>非生成式审核关键帧</strong></div>
@@ -267,10 +384,49 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     </div>
     {selectedShot && <small>当前镜头：{selectedShot.action} · {selectedShot.durationUnits}ms</small>}
     {error && <div className="notice warning" role="alert">{error}</div>}
+    <section className="image-job-panel" data-testid="character-reference-panel">
+      <div className="section-title"><span>Character references · P1.5</span><strong>Explicit selection → role-mapped generation → human review</strong></div>
+      <p className="muted">身份参考是项目内、可撤销且版本化的决定。它不改写角色 canon，也不替代镜头的状态、服装、构图或叙事事实；只有当前 Shot.characterIds 会进入 image job。</p>
+      <div className="field-grid two compact">
+        <Field label="角色"><select data-testid="reference-character" value={referenceCharacterId} disabled={readOnly || busy} onChange={(event) => setReferenceCharacterId(event.target.value)}>
+          {bible.characters.map((character) => <option key={character.id} value={character.id}>{character.name} · {character.id}</option>)}
+        </select></Field>
+        <Field label="主身份参考"><select data-testid="reference-primary-asset" value={referencePrimaryAssetId} disabled={readOnly || busy} onChange={(event) => setReferencePrimaryAssetId(event.target.value)}>
+          <option value="">选择已导入 JPEG / PNG</option>{workbench.assets.map((asset) => <option key={asset.id} value={asset.id}>{asset.id.slice(0, 8)} · {asset.width}×{asset.height}</option>)}
+        </select></Field>
+        <Field label="辅助参考（最多 2 项）"><select multiple data-testid="reference-complementary-assets" value={referenceComplementaryAssetIds} disabled={readOnly || busy} onChange={(event) => setReferenceComplementaryAssetIds(Array.from(event.currentTarget.selectedOptions).map((option) => option.value).filter((assetId) => assetId !== referencePrimaryAssetId).slice(0, 2))}>
+          {workbench.assets.filter((asset) => asset.id !== referencePrimaryAssetId).map((asset) => <option key={asset.id} value={asset.id}>{asset.id.slice(0, 8)} · {asset.width}×{asset.height}</option>)}
+        </select></Field>
+        <Field label="审阅者"><input data-testid="reference-reviewer" value={referenceReviewer} disabled={readOnly || busy} onChange={(event) => setReferenceReviewer(event.target.value)} /></Field>
+      </div>
+      <Field label="选择说明"><textarea data-testid="reference-notes" rows={2} value={referenceNotes} disabled={readOnly || busy} placeholder="说明用于跨镜头一致性的身份特征；不要把镜头状态写成身份。" onChange={(event) => setReferenceNotes(event.target.value)} /></Field>
+      <div className="button-row"><Button data-testid="select-character-reference" variant="primary" disabled={readOnly || busy || !referenceCharacterId || !referencePrimaryAssetId || !referenceReviewer.trim() || !referenceNotes.trim()} onClick={() => void selectCharacterReference()}>选择身份参考</Button><small>每次选择会产生新版本；旧决定及其冻结引用保持可审计。</small></div>
+      <div className="media-candidate-grid" aria-label="当前角色身份参考比较">
+        {bible.characters.map((character) => {
+          const decision = currentReferenceByCharacter.get(character.id);
+          const primary = decision ? assetById.get(decision.primaryAssetId) : undefined;
+          return <article key={character.id} className="media-candidate" data-testid={`character-reference-${character.id}`}>
+            {primary && projectId ? <img src={plotloomApi.managedAssetUrl(projectId, primary.id)} alt={`${character.name} primary identity reference`} /> : <div className="notice warning">尚未选择身份参考</div>}
+            <strong>{character.name} · {decision?.current ? `r${decision.referenceRevision}` : "missing"}</strong>
+            <small>{decision?.notes ?? "P1.5 image job 会在准备时拒绝可见角色缺少参考的镜头。"}</small>
+            {decision && <div className="button-row"><small>{decision.assetHashes.length} 项冻结源 · {decision.reviewer}</small><Button variant="danger" disabled={readOnly || busy} onClick={() => void revokeCharacterReference(character.id)}>撤销</Button></div>}
+          </article>;
+        })}
+      </div>
+      <details className="image-job-history"><summary>Story-first reference proposal（不创建 Shot、Approval 或自动选择）</summary>
+        <div className="field-grid two compact">
+          <Field label="角色"><select data-testid="proposal-character" value={proposalCharacterId} disabled={readOnly || busy} onChange={(event) => setProposalCharacterId(event.target.value)}>{bible.characters.map((character) => <option key={character.id} value={character.id}>{character.name} · {character.id}</option>)}</select></Field>
+          <Field label="Story Bible revision"><input readOnly value={storyBibleRevision ?? "尚未保存"} /></Field>
+        </div>
+        <Field label="探索性视觉方向"><textarea data-testid="proposal-direction" rows={2} value={proposalDirection} disabled={readOnly || busy} placeholder="探索角色的稳定外观锚点；这不是 storyboard request。" onChange={(event) => setProposalDirection(event.target.value)} /></Field>
+        <div className="button-row"><Button data-testid="prepare-character-proposal" variant="quiet" disabled={readOnly || busy || !storyBibleRevision || !proposalCharacterId || !proposalDirection.trim()} onClick={() => void prepareCharacterReferenceProposal()}>准备 proposal assignment</Button><small>生成结果只进入候选池；创作者仍须显式把已导入资产选择为身份参考。</small></div>
+        {characterProposals.map((proposal) => <article key={proposal.id} className="image-job-card"><strong>{proposal.characterId} · {proposal.state.toUpperCase()}</strong><small> · {proposal.current ? "current" : "inapplicable"} · {proposal.requestHash.slice(0, 12)}</small><div className="button-row"><Button variant="quiet" disabled={readOnly || busy || !proposal.current} onClick={() => void copyCharacterReferenceProposal(proposal.id)}>Copy proposal assignment</Button><Button variant="quiet" disabled={readOnly || busy} onClick={() => void refreshCharacterReferenceProposal(proposal.id)}>检查 delivery</Button></div></article>)}
+      </details>
+    </section>
     <section className="image-job-panel" data-testid="image-job-panel">
-      <div className="section-title"><span>Codex image jobs · P1</span><strong>Prepare → Copy → Generate → Refresh → Select</strong></div>
+      <div className="section-title"><span>Codex image jobs · P1.5</span><strong>Prepare → Copy → Generate → Refresh → Select</strong></div>
       {!imageExchangeConfigured && <div className="notice warning">尚未配置同机 exchange root。设置 <code>PLOTLOOM_IMAGE_EXCHANGE_ROOT</code> 后重启服务；不会回退到外部 API。</div>}
-      <p className="muted">P1 只提供手动 image handoff：当前 storyboard Approval 冻结单镜头请求，Copy 导出 assignment，specialist 在同机 inbox 交付，创作者再显式选择。它不生成、批准或选择；视频仍未实现。</p>
+      <p className="muted">P1.5 只提供手动 image handoff：当前 storyboard Approval 冻结单镜头请求和角色角色映射，Copy 导出 assignment，specialist 在同机 inbox 交付，创作者再显式选择。它不生成、批准或选择；视频仍未实现。</p>
       {imageJobPrerequisite && <div className="notice warning" data-testid="image-job-prerequisite">{imageJobPrerequisite}</div>}
       <Field label="请求目标"><select data-testid="image-job-target" value={imageJobTarget.kind === "original" ? "original" : `refinement:${imageJobTarget.parentCandidateAssetId}`} disabled={readOnly || busy} onChange={(event) => {
         const value = event.target.value;
@@ -319,6 +475,22 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     </div>
     <div className="button-row"><small>{candidates.length === 2 ? "正在比较两个候选：显式保留一个、都不选，或细化其意图。" : "最多选择两个候选进行对比。"}</small><Button variant="quiet" disabled={!candidates.length && !keptAssetId} onClick={() => { setCandidates([]); setKeptAssetId(""); }}>两者都不选</Button></div>
     {selectedBinding && <small data-testid="current-reviewed-keyframe">当前 Shot 已保存资产 {selectedBinding.assetId.slice(0, 8)} · intent r{selectedBinding.visualIntentRevision ?? "—"}</small>}
+    {selectedBinding && selectedIdentityMapping.length > 0 && <section className="intent-editor" data-testid="same-person-review-panel" aria-label="跨镜头同一人物人工复核">
+      <strong>跨镜头同一人物人工复核 · required before still preview</strong>
+      <p className="muted">逐一查看冻结的 primary/complementary 身份参考与当前候选。此复核不使用人脸识别，也不替代服装、道具或镜头状态的作者权威。</p>
+      <div className="field-grid two compact">
+        <Field label="审阅者"><input value={samePersonReviewer} disabled={readOnly || busy} onChange={(event) => setSamePersonReviewer(event.target.value)} /></Field>
+        <Field label="当前引用"><input readOnly value={selectedIdentityMapping.map((item) => `${item.characterId} · r${item.referenceRevision}`).join(" / ")} /></Field>
+      </div>
+      {samePersonComparisons.map((comparison, index) => <div className="field-grid two compact" key={comparison.characterId}>
+        <Field label={`${comparison.characterId} 身份判断`}><select data-testid={`same-person-judgment-${comparison.characterId}`} value={comparison.judgment} disabled={readOnly || busy} onChange={(event) => setSamePersonComparisons((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, judgment: event.target.value as "pass" | "fail" } : item))}><option value="pass">pass</option><option value="fail">fail</option></select></Field>
+        <Field label="身份对比说明"><input value={comparison.identityNotes} disabled={readOnly || busy} onChange={(event) => setSamePersonComparisons((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, identityNotes: event.target.value } : item))} /></Field>
+        <Field label="镜头状态说明"><input value={comparison.stateNotes} disabled={readOnly || busy} onChange={(event) => setSamePersonComparisons((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, stateNotes: event.target.value } : item))} /></Field>
+      </div>)}
+      <Field label="复核备注"><textarea rows={2} value={samePersonNotes} disabled={readOnly || busy} placeholder="记录人眼判断和任何可见限制。" onChange={(event) => setSamePersonNotes(event.target.value)} /></Field>
+      {currentReviewByBinding.get(selectedBinding.id) ? <small className="notice">当前复核 {currentReviewByBinding.get(selectedBinding.id)?.id.slice(0, 8)} 已覆盖此 keyframe；身份引用或审核 keyframe 变化时会自动过期。</small> : <div className="notice warning">此身份感知 keyframe 尚无当前复核，因此不能进入 still animatic。</div>}
+      <div className="button-row"><Button data-testid="record-same-person-review" variant="primary" disabled={readOnly || busy || !samePersonReviewer.trim() || !samePersonNotes.trim() || samePersonComparisons.some((item) => !item.identityNotes.trim() || !item.stateNotes.trim())} onClick={() => void recordSamePersonReview()}>记录人工复核</Button></div>
+    </section>}
     {keptAssetId && <section className="intent-editor" aria-label="可审核视觉意图">
       <strong>为保留候选记录可审核意图 · shot_keyframe</strong>
       {intentEditor.dirty && <div className="notice warning" role="status">
@@ -338,10 +510,10 @@ export function ManagedMediaWorkbench({ projectId, storyboard, selectedShot, sto
     <div className="button-row">
       <Button variant="primary" data-testid="select-reviewed-keyframe" disabled={readOnly || busy || intentEditor.dirty || !keptAssetId || !selectedShot || !currentApproval || !activeIntent || !compatibility.trim()} onClick={() => void selectKeyframe()}>为当前 Shot 审核选择</Button>
       <Field label="连续预览镜头数"><select data-testid="preview-subset-length" value={Math.min(previewLength, maxPreviewLength || 1)} disabled={readOnly || busy || !maxPreviewLength} onChange={(event) => setPreviewLength(Number(event.target.value))}>{Array.from({ length: maxPreviewLength }, (_, index) => index + 1).map((length) => <option value={length} key={length}>{length}</option>)}</select></Field>
-      <Button variant="primary" data-testid="create-still-preview" disabled={readOnly || busy || !previewShotIds.length || !!missingPreviewShotIds.length || !currentApproval} onClick={() => void createPreview()}>创建连续 still animatic</Button>
+      <Button variant="primary" data-testid="create-still-preview" disabled={readOnly || busy || !previewShotIds.length || !!missingPreviewShotIds.length || !!identityReviewMissingShotIds.length || !currentApproval} onClick={() => void createPreview()}>创建连续 still animatic</Button>
     </div>
     {!currentApproval && <small className="notice warning">需要当前 storyboard Approval；导入、比较和意图细化仍可继续。</small>}
-    {!!previewShotIds.length && <small>{previewShotIds.join(" → ")} · {missingPreviewShotIds.length ? `尚缺 ${missingPreviewShotIds.length} 个审核关键帧：${missingPreviewShotIds.join("、")}` : "所有镜头已有当前审核关键帧，可冻结预览。"}</small>}
+    {!!previewShotIds.length && <small>{previewShotIds.join(" → ")} · {missingPreviewShotIds.length ? `尚缺 ${missingPreviewShotIds.length} 个审核关键帧：${missingPreviewShotIds.join("、")}` : identityReviewMissingShotIds.length ? `尚缺 ${identityReviewMissingShotIds.length} 个身份感知关键帧的人工复核：${identityReviewMissingShotIds.join("、")}` : "所有镜头已有当前审核关键帧和所需身份复核，可冻结预览。"}</small>}
     <div className="preview-history"><strong>冻结预览历史</strong>{workbench.previews.map((item) => <button key={item.id} className={item.id === previewId ? "selected" : ""} onClick={() => selectPreview(item.id)}>{item.manifest.shotIds.join(" → ")} <Badge tone={stateTone(item.state)}>{item.state.toUpperCase()}</Badge></button>)}</div>
     {preview && <AnimaticPlayer preview={preview} projectId={projectId} frameIndex={frameIndex} playing={playing} onSeek={setFrameIndex} onPlay={() => setPlaying((current) => !current)} />}
   </Panel>;

@@ -35,6 +35,9 @@ class ImageJobCreateRequest(CamelModel):
     storyboard_revision: int = Field(ge=1)
     parent_candidate_asset_id: str | None = Field(default=None, max_length=36)
     presentation_change: str = Field(min_length=1, max_length=4_000)
+    # V2 remains the historical/default wire contract so an older client never
+    # silently starts claiming cross-shot identity. P1.5 clients opt into V3.
+    contract_version: Literal[2, 3] = 2
 
     @field_validator("presentation_change")
     @classmethod
@@ -50,6 +53,69 @@ class ImageJobCreateRequest(CamelModel):
         if not normalized:
             raise ValueError("presentationChange must not be blank")
         return normalized
+
+
+class CharacterReferenceDecisionRequest(CamelModel):
+    """An explicit, revision-checked choice of project-owned identity assets."""
+
+    character_id: str = Field(min_length=1, max_length=128)
+    primary_asset_id: str = Field(min_length=1, max_length=36)
+    complementary_asset_ids: list[str] = Field(default_factory=list, max_length=2)
+    expected_reference_revision: int = Field(ge=0)
+    reviewer: str = Field(min_length=1, max_length=160)
+    notes: str = Field(min_length=1, max_length=2_000)
+
+    @model_validator(mode="after")
+    def reference_assets_are_distinct(self) -> "CharacterReferenceDecisionRequest":
+        assets = [self.primary_asset_id, *self.complementary_asset_ids]
+        if len(assets) != len(set(assets)):
+            raise ValueError("character reference assets must be distinct")
+        return self
+
+
+class CharacterReferenceRevocationRequest(CamelModel):
+    expected_reference_revision: int = Field(ge=1)
+    reviewer: str = Field(min_length=1, max_length=160)
+    reason: str = Field(min_length=1, max_length=2_000)
+
+
+class CharacterReferenceProposalRequest(CamelModel):
+    """Exploratory, story-first appearance work with no storyboard Approval."""
+
+    character_id: str = Field(min_length=1, max_length=128)
+    story_bible_revision: int = Field(ge=1)
+    visual_direction: str = Field(min_length=1, max_length=4_000)
+    parent_candidate_asset_id: str | None = Field(default=None, max_length=36)
+
+    @field_validator("visual_direction")
+    @classmethod
+    def proposal_direction_is_nonblank(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("visualDirection must not be blank")
+        return normalized
+
+
+class SamePersonReviewItem(CamelModel):
+    character_id: str = Field(min_length=1, max_length=128)
+    judgment: Literal["pass", "fail"]
+    identity_notes: str = Field(min_length=1, max_length=2_000)
+    state_notes: str = Field(min_length=1, max_length=2_000)
+
+
+class SamePersonReviewRequest(CamelModel):
+    binding_id: str = Field(min_length=1, max_length=36)
+    expected_review_revision: int = Field(ge=0)
+    reviewer: str = Field(min_length=1, max_length=160)
+    comparisons: list[SamePersonReviewItem] = Field(min_length=1, max_length=8)
+    notes: str = Field(min_length=1, max_length=2_000)
+
+    @model_validator(mode="after")
+    def character_reviews_are_distinct(self) -> "SamePersonReviewRequest":
+        character_ids = [item.character_id for item in self.comparisons]
+        if len(character_ids) != len(set(character_ids)):
+            raise ValueError("same-person comparisons must name each character once")
+        return self
 
 
 class ImageJobOutput(CamelModel):
@@ -76,16 +142,44 @@ class ImageToolEvidence(CamelModel):
     available: Literal[True] = True
 
 
+class ImageReferenceUse(CamelModel):
+    """A specialist attestation, never a substitute for creator visual review."""
+
+    viewed_reference_hashes: list[str] = Field(min_length=1, max_length=24)
+    identity_notes: str = Field(min_length=1, max_length=2_000)
+
+    @field_validator("viewed_reference_hashes")
+    @classmethod
+    def reference_hashes_are_distinct(cls, value: list[str]) -> list[str]:
+        if len(value) != len(set(value)):
+            raise ValueError("viewedReferenceHashes must not contain duplicates")
+        if any(re.fullmatch(SHA256_PATTERN, item) is None for item in value):
+            raise ValueError("viewedReferenceHashes must contain SHA-256 values")
+        return value
+
+
+class ImageExecutorProvenance(CamelModel):
+    """Observed executor details retained beside, never inside, creative authority."""
+
+    code_revision: str = Field(min_length=7, max_length=64, pattern=r"^[a-f0-9]+$")
+    skill_version: str = Field(min_length=1, max_length=80)
+    skill_hash: str = Field(pattern=SHA256_PATTERN)
+    model: str | None = Field(default=None, max_length=128)
+    reasoning_effort: str | None = Field(default=None, max_length=32)
+
+
 class ImageDeliveryManifest(CamelModel):
     """The specialist's completion declaration; bytes remain untrusted."""
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[1, 2] = 1
     job_id: str = Field(pattern=JOB_ID_PATTERN)
     request_hash: str = Field(pattern=SHA256_PATTERN)
     delivery_id: str = Field(pattern=DELIVERY_ID_PATTERN)
     actual_prompt: str = Field(min_length=1, max_length=20_000)
     outputs: list[ImageJobOutput] = Field(min_length=1, max_length=4)
     tool_evidence: ImageToolEvidence
+    reference_use: ImageReferenceUse | None = None
+    executor_provenance: ImageExecutorProvenance | None = None
     limitations: list[str] = Field(default_factory=list, max_length=32)
 
     @field_validator("limitations")

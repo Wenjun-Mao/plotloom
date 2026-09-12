@@ -64,7 +64,50 @@ def _complete_delivery(delivery: Path, job: dict, *, delivery_id: str, content: 
     (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
 
 
-def _complete_project_with_resolved_image_context(repository: SQLiteRepository, brief):
+def _complete_identity_delivery(delivery: Path, job: dict, *, delivery_id: str, content: bytes) -> None:
+    """A retained raster fixture for P1.5 validation; never a visual-pilot claim."""
+
+    outputs = delivery / "outputs"
+    outputs.mkdir(parents=True, exist_ok=True)
+    filename = "identity-candidate.png"
+    (outputs / filename).write_bytes(content)
+    hashes = [
+        item["originalHash"]
+        for item in job["request"]["frozenSnapshot"]["references"]
+        if item["role"] == "character_identity"
+    ]
+    manifest = {
+        "schemaVersion": 2,
+        "jobId": job["id"],
+        "requestHash": job["requestHash"],
+        "deliveryId": delivery_id,
+        "actualPrompt": "A cinematic rendering that preserves the viewed approved character identity.",
+        "outputs": [{"filename": filename, "sha256": sha256(content).hexdigest(), "role": "original"}],
+        "toolEvidence": {"tool": "codex_imagegen", "taskId": "p15-fixture-specialist", "available": True},
+        "referenceUse": {"viewedReferenceHashes": hashes, "identityNotes": "Fixture attestation only; creator review remains required."},
+        "executorProvenance": {
+            "codeRevision": "a" * 40,
+            "skillVersion": "plotloom-image-specialist.v1",
+            "skillHash": "b" * 64,
+            "model": "fixture",
+            "reasoningEffort": "none",
+        },
+        "limitations": ["fixture delivery is not a real ImageGen visual result"],
+    }
+    (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+
+def _import_asset(client: TestClient, project_id: str, color: tuple[int, int, int], *, origin: str = "creator reference") -> dict:
+    response = client.post(
+        f"/api/v2/projects/{project_id}/managed-assets",
+        files={"image": ("reference.png", _png(color), "image/png")},
+        data={"origin": origin, "rights": "unknown", "declared_additions_json": "[]"},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def _complete_project_with_resolved_image_context(repository: SQLiteRepository, brief, *, include_engineer: bool = False):
     """Build a canonical fixture whose frozen brief must resolve real facts."""
 
     bible, graph, scene_beats, storyboard = all_stage_payloads()
@@ -75,6 +118,12 @@ def _complete_project_with_resolved_image_context(repository: SQLiteRepository, 
         visual_anchors=["银色应急服"], sound_anchors=["浅促呼吸"], allowed_states=["steady"],
         continuity_rules=["头盔始终握在左手"], goal="确认飞船航线", traits=["克制"],
         voice_anchors=["低声"],
+    )
+    engineer = CharacterV2(
+        id="engineer", name="周岚", role="工程师", description="维护飞船核心的工程师",
+        visual_anchors=["琥珀色护目镜"], sound_anchors=["工具扣轻响"], allowed_states=["steady"],
+        continuity_rules=["右腕始终佩戴识别带"], goal="保持反应堆稳定", traits=["果断"],
+        voice_anchors=["清晰短句"],
     )
     location = LocationV2(
         id="bridge", name="舰桥", description="低照度舰桥", visual_anchors=["实用控制台灯"],
@@ -90,7 +139,7 @@ def _complete_project_with_resolved_image_context(repository: SQLiteRepository, 
         estimated_duration_units=70,
     )
     scene = scene.model_copy(update={
-        "location_id": location.id, "character_ids": [character.id], "duration_budget_units": 100,
+        "location_id": location.id, "character_ids": [character.id, engineer.id] if include_engineer else [character.id], "duration_budget_units": 100,
     })
     scene_beats = scene_beats.model_copy(update={
         "scenes": [scene, *scene_beats.scenes[1:]],
@@ -98,7 +147,7 @@ def _complete_project_with_resolved_image_context(repository: SQLiteRepository, 
     })
     first_shot = storyboard.shots[0].model_copy(update={
         "duration_units": 70,
-        "character_ids": [character.id], "location_id": location.id, "prop_ids": [prop.id],
+        "character_ids": [character.id, engineer.id] if include_engineer else [character.id], "location_id": location.id, "prop_ids": [prop.id],
         "cue_ids": [cue.id],
         "required_entity_states": [
             RequiredEntityState(entity_type="character", entity_id=character.id, state="steady"),
@@ -107,7 +156,7 @@ def _complete_project_with_resolved_image_context(repository: SQLiteRepository, 
     })
     second_shot = storyboard.shots[1].model_copy(update={"duration_units": 30})
     storyboard = storyboard.model_copy(update={"shots": [first_shot, second_shot, *storyboard.shots[2:]]})
-    bible = bible.model_copy(update={"characters": [character], "locations": [location], "props": [prop]})
+    bible = bible.model_copy(update={"characters": [character, engineer] if include_engineer else [character], "locations": [location], "props": [prop]})
     project = repository.create_project(brief)
     for stage, payload in zip((StageName.STORY_BIBLE, StageName.STORY_GRAPH, StageName.SCENE_BEATS, StageName.STORYBOARD), (bible, graph, scene_beats, storyboard), strict=True):
         repository.update_stage(project.id, stage, 0, payload)
@@ -563,3 +612,235 @@ def test_archived_project_cannot_refresh_or_publish_an_image_delivery(repository
         refresh = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh")
         assert refresh.status_code == 409 and refresh.json()["code"] == "invalid_transition"
         assert store._items == {}  # noqa: SLF001 - archive blocks all P1 publication
+
+
+def test_identity_reference_job_is_explicitly_reviewed_and_stales_on_replacement(repository, brief, tmp_path: Path) -> None:
+    """P1.5 fixture proof: decisions, not image hashes, govern identity currentness."""
+
+    project, scene_id = _complete_project_with_resolved_image_context(repository, brief)
+    store = MemoryArtifactStore()
+    app = create_app(repository, artifact_store=store, image_exchange_root=tmp_path / "exchange")
+    with TestClient(app) as client:
+        _review, approval = _approval(client, project.id)
+        board = repository.get_stage_head(project.id, StageName.STORYBOARD)
+        shot_id = _shot_id(repository, project.id, scene_id)
+        payload = {
+            "approvalId": approval["id"], "shotId": shot_id, "storyboardRevision": board.revision,
+            "presentationChange": "Close portrait for cross-shot identity review.", "contractVersion": 3,
+        }
+        missing = client.post(f"/api/v2/projects/{project.id}/image-jobs", json=payload)
+        assert missing.status_code == 422 and missing.json()["code"] == "identity_reference_missing"
+
+        def imported(color: tuple[int, int, int], origin: str) -> dict:
+            response = client.post(
+                f"/api/v2/projects/{project.id}/managed-assets",
+                files={"image": ("reference.png", _png(color), "image/png")},
+                data={"origin": origin, "rights": "unknown", "declared_additions_json": "[]"},
+            )
+            assert response.status_code == 201, response.text
+            return response.json()
+
+        reference = imported((50, 80, 120), "creator primary reference")
+        selected = client.post(
+            f"/api/v2/projects/{project.id}/character-references",
+            json={
+                "characterId": "captain", "primaryAssetId": reference["id"], "complementaryAssetIds": [],
+                "expectedReferenceRevision": 0, "reviewer": "creator", "notes": "Stable face and build; not an outfit or framing mandate.",
+            },
+        )
+        assert selected.status_code == 201, selected.text
+        job = client.post(f"/api/v2/projects/{project.id}/image-jobs", json=payload).json()["job"]
+        frozen = job["request"]["frozenSnapshot"]
+        assert frozen["visibleCharacterIds"] == ["captain"]
+        assert frozen["characterIdentity"][0]["referenceDecisionId"] == selected.json()["id"]
+        assert [entry["role"] for entry in frozen["references"]] == ["character_identity"]
+        copied = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/copy")
+        assert copied.status_code == 200, copied.text
+        request = json.loads((Path(copied.json()["packagePath"]) / "request.json").read_text())
+        assert request["packageVersion"] == 3
+        assert request["references"][0]["role"] == "character_identity:captain"
+        _complete_identity_delivery(Path(copied.json()["deliveryPath"]), job, delivery_id="identity-001", content=_png((40, 90, 140)))
+        candidate = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh").json()["candidates"][0]
+        intent = client.post(
+            f"/api/v2/projects/{project.id}/managed-assets/{candidate['assetId']}/visual-intents",
+            json={"role": "shot_keyframe", "identityIntent": "captain identity", "compositionIntent": "close portrait", "styleIntent": "cinematic", "sourceRefs": ["P1.5 fixture"]},
+        ).json()
+        binding = client.post(
+            f"/api/v2/projects/{project.id}/reviewed-keyframes",
+            json={
+                "assetId": candidate["assetId"], "shotId": shot_id, "sceneId": scene_id, "expectedSelectionRevision": 0,
+                "storyboardRevision": board.revision, "approvalId": approval["id"], "compatibilityNote": "creator selected candidate",
+                "visualIntentId": intent["id"], "visualIntentRevision": intent["revision"],
+            },
+        )
+        assert binding.status_code == 201, binding.text
+        preview_payload = {"sceneId": scene_id, "shotIds": [shot_id], "expectedSelectionRevision": 1, "storyboardRevision": board.revision, "approvalId": approval["id"]}
+        assert client.post(f"/api/v2/projects/{project.id}/still-previews", json=preview_payload).status_code == 409
+        review = client.post(
+            f"/api/v2/projects/{project.id}/same-person-reviews",
+            json={
+                "bindingId": binding.json()["id"], "expectedReviewRevision": 0, "reviewer": "creator",
+                "comparisons": [{"characterId": "captain", "judgment": "pass", "identityNotes": "Face and build match.", "stateNotes": "Shot state remains authored."}],
+                "notes": "Human visual review; not a face-recognition score.",
+            },
+        )
+        assert review.status_code == 201, review.text
+        preview = client.post(f"/api/v2/projects/{project.id}/still-previews", json=preview_payload)
+        assert preview.status_code == 201 and preview.json()["state"] == "current"
+        assert preview.json()["manifest"]["frames"][0]["identityReviewId"] == review.json()["id"]
+        replacement = imported((120, 80, 50), "replacement reference")
+        replaced = client.post(
+            f"/api/v2/projects/{project.id}/character-references",
+            json={
+                "characterId": "captain", "primaryAssetId": replacement["id"], "complementaryAssetIds": [],
+                "expectedReferenceRevision": 1, "reviewer": "creator", "notes": "Explicit replacement keeps old decision history.",
+            },
+        )
+        assert replaced.status_code == 201, replaced.text
+        assert client.get(f"/api/v2/projects/{project.id}/image-jobs").json()["jobs"][0]["current"] is False
+        assert client.get(f"/api/v2/projects/{project.id}/same-person-reviews").json()["reviews"][0]["current"] is False
+        assert client.get(f"/api/v2/projects/{project.id}/still-previews").json()["previews"][0]["state"] == "stale"
+        assert len(client.get(f"/api/v2/projects/{project.id}/character-references").json()["decisions"]) == 2
+
+
+def test_character_reference_proposal_is_story_first_and_never_auto_selects(repository, brief, tmp_path: Path) -> None:
+    project, _scene_id = _complete_project_with_resolved_image_context(repository, brief)
+    app = create_app(repository, artifact_store=MemoryArtifactStore(), image_exchange_root=tmp_path / "exchange")
+    with TestClient(app) as client:
+        bible = repository.get_stage_head(project.id, StageName.STORY_BIBLE)
+        proposal = client.post(
+            f"/api/v2/projects/{project.id}/character-reference-proposals",
+            json={"characterId": "captain", "storyBibleRevision": bible.revision, "visualDirection": "Cinematic realistic character appearance proposal."},
+        )
+        assert proposal.status_code == 201, proposal.text
+        frozen = proposal.json()["proposal"]["request"]["frozenSnapshot"]
+        assert frozen["target"] == "character_reference_proposal"
+        assert "approvalId" not in frozen and "shotId" not in frozen
+        assert client.get(f"/api/v2/projects/{project.id}/character-references").json()["decisions"] == []
+
+
+def test_character_reference_decisions_are_project_scoped_and_revision_checked(repository, brief, tmp_path: Path) -> None:
+    project, _scene_id = _complete_project_with_resolved_image_context(repository, brief)
+    other_project, _other_scene_id = _complete_project_with_resolved_image_context(repository, brief)
+    app = create_app(repository, artifact_store=MemoryArtifactStore(), image_exchange_root=tmp_path / "exchange")
+    with TestClient(app) as client:
+        primary = _import_asset(client, project.id, (10, 40, 70))
+        created = client.post(
+            f"/api/v2/projects/{project.id}/character-references",
+            json={
+                "characterId": "captain", "primaryAssetId": primary["id"], "complementaryAssetIds": [],
+                "expectedReferenceRevision": 0, "reviewer": "creator", "notes": "Primary identity reference.",
+            },
+        )
+        assert created.status_code == 201, created.text
+        stale = client.post(
+            f"/api/v2/projects/{project.id}/character-references",
+            json={
+                "characterId": "captain", "primaryAssetId": primary["id"], "complementaryAssetIds": [],
+                "expectedReferenceRevision": 0, "reviewer": "creator", "notes": "Conflicting stale request.",
+            },
+        )
+        assert stale.status_code == 409 and stale.json()["code"] == "revision_conflict"
+        cross_project = client.post(
+            f"/api/v2/projects/{other_project.id}/character-references",
+            json={
+                "characterId": "captain", "primaryAssetId": primary["id"], "complementaryAssetIds": [],
+                "expectedReferenceRevision": 0, "reviewer": "creator", "notes": "This must never cross project scope.",
+            },
+        )
+        assert cross_project.status_code == 404
+        revoked = client.post(
+            f"/api/v2/projects/{project.id}/character-references/captain/revoke",
+            json={"expectedReferenceRevision": 1, "reviewer": "creator", "reason": "Retire this view."},
+        )
+        assert revoked.status_code == 200 and revoked.json()["current"] is False
+        history = client.get(f"/api/v2/projects/{project.id}/character-references").json()
+        assert history["states"] == [{"characterId": "captain", "revision": 2, "activeDecisionId": None, "current": False}]
+        assert history["decisions"][0]["id"] == created.json()["id"]
+
+
+def test_v3_maps_two_visible_characters_and_excludes_offscreen_context(repository, brief, tmp_path: Path) -> None:
+    project, scene_id = _complete_project_with_resolved_image_context(repository, brief, include_engineer=True)
+    app = create_app(repository, artifact_store=MemoryArtifactStore(), image_exchange_root=tmp_path / "exchange")
+    with TestClient(app) as client:
+        _review, approval = _approval(client, project.id)
+        board = repository.get_stage_head(project.id, StageName.STORYBOARD)
+        for character_id, color in (("captain", (30, 50, 70)), ("engineer", (80, 100, 120))):
+            reference = _import_asset(client, project.id, color, origin=f"{character_id} reference")
+            selected = client.post(
+                f"/api/v2/projects/{project.id}/character-references",
+                json={
+                    "characterId": character_id, "primaryAssetId": reference["id"], "complementaryAssetIds": [],
+                    "expectedReferenceRevision": 0, "reviewer": "creator", "notes": f"{character_id} durable identity.",
+                },
+            )
+            assert selected.status_code == 201, selected.text
+        job = _prepare(
+            client, project.id, approval, _shot_id(repository, project.id, scene_id), board.revision,
+            contractVersion=3,
+        )["job"]
+        frozen = job["request"]["frozenSnapshot"]
+        assert frozen["visibleCharacterIds"] == ["captain", "engineer"]
+        assert [item["characterId"] for item in frozen["characterIdentity"]] == ["captain", "engineer"]
+        copied = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/copy")
+        assert copied.status_code == 200, copied.text
+        package = json.loads((Path(copied.json()["packagePath"]) / "request.json").read_text())
+        assert [item["role"] for item in package["references"]] == [
+            "character_identity:captain", "character_identity:engineer",
+        ]
+        delivery = Path(copied.json()["deliveryPath"])
+        _complete_identity_delivery(delivery, job, delivery_id="missing-engineer-attestation", content=_png((20, 30, 40)))
+        manifest_path = delivery / "completion.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest["referenceUse"]["viewedReferenceHashes"] = manifest["referenceUse"]["viewedReferenceHashes"][:1]
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        rejected = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh")
+        assert rejected.status_code == 422 and rejected.json()["code"] == "delivery_reference_use_mismatch"
+        _complete_identity_delivery(delivery, job, delivery_id="two-character-001", content=_png((20, 30, 40)))
+        accepted = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh")
+        assert accepted.status_code == 200 and accepted.json()["state"] == "accepted"
+
+    # This direct compiler check isolates the original defect: the scene,
+    # dialogue and required character state retain captain as story context,
+    # but an authored character-free Shot never projects captain as visible.
+    with repository._read() as session:  # noqa: SLF001 - compiler contract inspection
+        board_payload = repository._load_stage_payload(session, project.id, StageName.STORYBOARD)  # noqa: SLF001
+        bible_payload = repository._load_stage_payload(session, project.id, StageName.STORY_BIBLE)  # noqa: SLF001
+        beats_payload = repository._load_stage_payload(session, project.id, StageName.SCENE_BEATS)  # noqa: SLF001
+    context = SQLiteRepository._image_job_resolved_context(  # noqa: SLF001 - focused visibility contract
+        shot=board_payload.shots[0].model_copy(update={"character_ids": []}), storyboard=board_payload,
+        story_bible=bible_payload, scene_beats=beats_payload,
+    )
+    assert context["characters"] == []
+    assert context["scene"]["characterIds"] == ["captain", "engineer"]
+    assert context["dialogueCues"][0]["speakerId"] == "captain"
+
+
+def test_character_reference_proposal_delivery_retains_candidate_without_auto_selection(repository, brief, tmp_path: Path) -> None:
+    project, _scene_id = _complete_project_with_resolved_image_context(repository, brief)
+    app = create_app(repository, artifact_store=MemoryArtifactStore(), image_exchange_root=tmp_path / "exchange")
+    with TestClient(app) as client:
+        bible = repository.get_stage_head(project.id, StageName.STORY_BIBLE)
+        proposal = client.post(
+            f"/api/v2/projects/{project.id}/character-reference-proposals",
+            json={"characterId": "captain", "storyBibleRevision": bible.revision, "visualDirection": "Cinematic realistic explorer portrait."},
+        ).json()["proposal"]
+        copied = client.post(f"/api/v2/projects/{project.id}/character-reference-proposals/{proposal['id']}/copy")
+        assert copied.status_code == 200, copied.text
+        template = json.loads((Path(copied.json()["packagePath"]) / "completion-manifest.example.json").read_text())
+        assert template["schemaVersion"] == 2 and "referenceUse" not in template
+        content = _png((90, 50, 30))
+        delivery = Path(copied.json()["deliveryPath"])
+        (delivery / "outputs").mkdir(parents=True)
+        (delivery / "outputs" / "proposal.png").write_bytes(content)
+        (delivery / "completion.json").write_text(json.dumps({
+            "schemaVersion": 2, "jobId": proposal["id"], "requestHash": proposal["requestHash"], "deliveryId": "proposal-001",
+            "actualPrompt": "A cinematic realistic appearance study for the frozen character context.",
+            "outputs": [{"filename": "proposal.png", "sha256": sha256(content).hexdigest(), "role": "original"}],
+            "toolEvidence": {"tool": "codex_imagegen", "taskId": "proposal-fixture", "available": True},
+            "executorProvenance": {"codeRevision": "c" * 40, "skillVersion": "plotloom-image-specialist.v1", "skillHash": "d" * 64},
+        }), encoding="utf-8")
+        accepted = client.post(f"/api/v2/projects/{project.id}/character-reference-proposals/{proposal['id']}/refresh")
+        assert accepted.status_code == 200 and accepted.json()["state"] == "accepted"
+        assert len(accepted.json()["candidates"]) == 1
+        assert client.get(f"/api/v2/projects/{project.id}/character-references").json()["decisions"] == []

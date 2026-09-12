@@ -115,6 +115,27 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
   Copy also makes a refinement inapplicable. Explicit P0 selection remains
   required before preview.
 
+### Character references and cross-shot review (P1.5)
+
+- See [ADR 0030](adr/0030-character-reference-decisions-and-cross-shot-review.md).
+  Create a project-scoped reference decision from managed assets before preparing
+  a v3 job for a Shot whose `characterIds` are nonempty. One primary and up to
+  two complementary assets are frozen by asset hash, canonical character context
+  and explicit reviewer decision; rename alone does not transfer identity.
+- A v3 package maps every visible character to distinct `character_identity`
+  references. The specialist must view them and attest exact viewed hashes plus
+  code/skill provenance in the version-2 completion manifest. `parent_output`
+  remains a refinement reference, never a replacement identity contract.
+- Character-reference proposals are exploratory and Story-Bible scoped. They
+  never create a Shot, Approval, selected reference or reviewed keyframe. Use
+  the repository skill at `.agents/skills/plotloom-image-specialist` only with
+  the frozen package and write completion data only in its delivery directory.
+- A selected v3 generated keyframe with visible characters needs an explicit
+  human same-person review before a still animatic can be created. Replacing or
+  revoking a reference makes dependent jobs, reviews and previews stale while
+  retaining their historical evidence. V2/P0 history remains readable and does
+  not claim identity review retroactively.
+
 ## M1.5 generation contracts
 
 - A Story Graph run freezes topology before dispatch. For Scene Beats and

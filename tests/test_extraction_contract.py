@@ -47,6 +47,7 @@ FORBIDDEN_REPOSITORY_PATHS = {
     "projects",
 }
 ALLOWED_REPOSITORY_ROOTS = {
+    ".agents",
     ".env.example",
     ".github",
     ".gitignore",

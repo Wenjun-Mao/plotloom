@@ -782,6 +782,119 @@ class ImageJobCandidateRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class CharacterReferenceStateRow(Base):
+    """The mutable pointer/revision over immutable reference decisions."""
+
+    __tablename__ = "v2_character_reference_states"
+
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True
+    )
+    character_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    active_decision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CharacterReferenceDecisionRow(Base):
+    """An append-only asset/hash/context reference decision for one character."""
+
+    __tablename__ = "v2_character_reference_decisions"
+    __table_args__ = (
+        UniqueConstraint("project_id", "character_id", "reference_revision", name="uq_v2_character_reference_revision"),
+        Index("ix_v2_character_reference_decisions_project_character", "project_id", "character_id", "reference_revision"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    character_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    reference_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    character_context: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    character_context_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    primary_asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    complementary_asset_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    asset_hashes: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
+    reviewer: Mapped[str] = mapped_column(String(160), nullable=False)
+    notes: Mapped[str] = mapped_column(Text, nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_by: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    revocation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CharacterReferenceProposalRow(Base):
+    """A non-Approval exploratory character appearance request."""
+
+    __tablename__ = "v2_character_reference_proposals"
+    __table_args__ = (Index("ix_v2_character_reference_proposals_project_created", "project_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(67), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    character_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    parent_candidate_asset_id: Mapped[str | None] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=True)
+    request: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CharacterReferenceProposalDeliveryRow(Base):
+    __tablename__ = "v2_character_reference_proposal_deliveries"
+    __table_args__ = (
+        UniqueConstraint("proposal_id", "delivery_id", name="uq_v2_character_proposal_delivery_identity"),
+        Index("uq_v2_character_proposal_final_delivery", "proposal_id", unique=True, sqlite_where=text("delivery_id IS NOT NULL")),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    proposal_id: Mapped[str] = mapped_column(ForeignKey("v2_character_reference_proposals.id", ondelete="RESTRICT"), nullable=False)
+    delivery_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    manifest: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    manifest_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    diagnostic_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class CharacterReferenceProposalCandidateRow(Base):
+    __tablename__ = "v2_character_reference_proposal_candidates"
+    __table_args__ = (UniqueConstraint("delivery_id", "asset_id", name="uq_v2_character_proposal_candidate_asset"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    proposal_id: Mapped[str] = mapped_column(ForeignKey("v2_character_reference_proposals.id", ondelete="RESTRICT"), nullable=False)
+    delivery_id: Mapped[str] = mapped_column(ForeignKey("v2_character_reference_proposal_deliveries.id", ondelete="RESTRICT"), nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    output_filename: Mapped[str] = mapped_column(String(180), nullable=False)
+    output_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    role: Mapped[str] = mapped_column(String(24), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SamePersonReviewStateRow(Base):
+    __tablename__ = "v2_same_person_review_states"
+
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SamePersonReviewRow(Base):
+    __tablename__ = "v2_same_person_reviews"
+    __table_args__ = (Index("ix_v2_same_person_reviews_project_binding_revision", "project_id", "binding_id", "review_revision"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    binding_id: Mapped[str] = mapped_column(ForeignKey("v2_reviewed_shot_bindings.id", ondelete="RESTRICT"), nullable=False)
+    review_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    reference_bindings: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    comparisons: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    reviewer: Mapped[str] = mapped_column(String(160), nullable=False)
+    notes: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class ProviderSettingsRow(Base):
     __tablename__ = "v2_provider_settings"
 
@@ -2197,12 +2310,22 @@ class SQLiteRepository:
                 asset = session.get(ManagedAssetRow, binding.asset_id)
                 if asset is None:
                     raise InvalidTransitionError("preview references unavailable managed media")
-                frames.append({
+                frame: dict[str, Any] = {
                     "shotId": shot_id, "assetId": asset.id, "displayHash": asset.display_hash,
                     "durationMs": by_id[shot_id].duration_units,
                     "bindingId": binding.id, "visualIntentId": intent.id,
                     "visualIntentRevision": intent.revision,
-                })
+                }
+                identity_mapping = self._identity_mapping_for_binding_in_session(session, binding)
+                if identity_mapping:
+                    review = self.current_same_person_review_for_binding(session, project_id, binding)
+                    if review is None:
+                        raise InvalidTransitionError(
+                            "identity-aware reviewed keyframe needs a current explicit same-person review before preview admission"
+                        )
+                    frame["identityReviewId"] = review.id
+                    frame["identityReferenceDecisionIds"] = [item["referenceDecisionId"] for item in identity_mapping]
+                frames.append(frame)
             manifest = {
                 "projectionVersion": 1, "sceneId": scene_id, "shotIds": shot_ids,
                 "storyboardRevision": storyboard_revision, "storyboardEntityRevisionId": approval.entity_revision_id,
@@ -2255,9 +2378,605 @@ class SQLiteRepository:
                 or binding.visual_intent_revision != frame.get("visualIntentRevision")
             ):
                 return False
-            return self._reviewed_binding_admission_eligible_in_session(
-                session, project_id, binding
+            if not self._reviewed_binding_admission_eligible_in_session(session, project_id, binding):
+                return False
+            review_id = frame.get("identityReviewId")
+            if review_id is None:
+                # Historic/P0 frames and V3 character-free shots have no
+                # same-person dependency. A visible V3 cast must have had a
+                # review attached during preview admission.
+                return not self._identity_mapping_for_binding_in_session(session, binding)
+            review = session.get(SamePersonReviewRow, review_id)
+            return review is not None and self._same_person_review_is_current_in_session(session, project_id, review)
+
+    @staticmethod
+    def _character_reference_context(character: Any) -> dict[str, Any]:
+        """Freeze only identity-relevant canonical facts; display-name edits do not transfer identity."""
+
+        payload = character.model_dump(mode="json", by_alias=True)
+        return {
+            "characterId": payload["id"],
+            "description": payload["description"],
+            "visualAnchors": payload["visualAnchors"],
+            "traits": payload["traits"],
+            "continuityRules": payload["continuityRules"],
+            "allowedStates": payload["allowedStates"],
+        }
+
+    @staticmethod
+    def _character_reference_state_in_session(
+        session: Session, project_id: str, character_id: str, now: datetime
+    ) -> CharacterReferenceStateRow:
+        state = session.get(CharacterReferenceStateRow, (project_id, character_id))
+        if state is None:
+            state = CharacterReferenceStateRow(
+                project_id=project_id, character_id=character_id, revision=0,
+                active_decision_id=None, updated_at=now,
             )
+            session.add(state)
+            session.flush()
+        return state
+
+    @staticmethod
+    def _reference_decision_dict(row: CharacterReferenceDecisionRow, *, current: bool) -> dict[str, Any]:
+        return {
+            "id": row.id, "projectId": row.project_id, "characterId": row.character_id,
+            "referenceRevision": row.reference_revision, "characterContext": row.character_context,
+            "characterContextHash": row.character_context_hash, "primaryAssetId": row.primary_asset_id,
+            "complementaryAssetIds": list(row.complementary_asset_ids), "assetHashes": list(row.asset_hashes),
+            "reviewer": row.reviewer, "notes": row.notes, "current": current,
+            "revokedAt": _stored_utc(row.revoked_at).isoformat() if row.revoked_at else None,
+            "revokedBy": row.revoked_by, "revocationReason": row.revocation_reason,
+            "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    def _current_character_reference_in_session(
+        self, session: Session, project_id: str, character: Any
+    ) -> CharacterReferenceDecisionRow | None:
+        state = session.get(CharacterReferenceStateRow, (project_id, character.id))
+        if state is None or state.active_decision_id is None:
+            return None
+        decision = session.get(CharacterReferenceDecisionRow, state.active_decision_id)
+        if decision is None or decision.project_id != project_id or decision.character_id != character.id:
+            return None
+        if decision.revoked_at is not None:
+            return None
+        context = self._character_reference_context(character)
+        if decision.character_context_hash != stable_hash(context):
+            return None
+        asset_ids = [decision.primary_asset_id, *list(decision.complementary_asset_ids)]
+        assets = [session.get(ManagedAssetRow, asset_id) for asset_id in asset_ids]
+        if any(asset is None or asset.project_id != project_id for asset in assets):
+            return None
+        by_id = {item["assetId"]: item["originalHash"] for item in decision.asset_hashes}
+        if any(asset is None or by_id.get(asset.id) != asset.original_hash for asset in assets):
+            return None
+        return decision
+
+    def create_character_reference_decision(
+        self,
+        project_id: str,
+        *,
+        character_id: str,
+        primary_asset_id: str,
+        complementary_asset_ids: list[str],
+        expected_reference_revision: int,
+        reviewer: str,
+        notes: str,
+    ) -> dict[str, Any]:
+        """Select, never infer, a compact stable-identity reference set."""
+
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            bible = self._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
+            character = next((item for item in bible.characters if item.id == character_id), None)
+            if character is None:
+                raise InvalidTransitionError("character reference must name a current canonical character")
+            now = utc_now()
+            state = self._character_reference_state_in_session(session, project_id, character_id, now)
+            if state.revision != expected_reference_revision:
+                raise RevisionConflictError("character-reference", expected_reference_revision, state.revision)
+            asset_ids = [primary_asset_id, *complementary_asset_ids]
+            if len(asset_ids) > 3 or len(asset_ids) != len(set(asset_ids)):
+                raise InvalidTransitionError("character reference requires one primary and at most two distinct complementary assets")
+            assets = [session.get(ManagedAssetRow, asset_id) for asset_id in asset_ids]
+            if any(asset is None or asset.project_id != project_id for asset in assets):
+                raise NotFoundError("character reference asset not found in this project")
+            context = self._character_reference_context(character)
+            state.revision += 1
+            state.updated_at = now
+            decision = CharacterReferenceDecisionRow(
+                id=new_id(), project_id=project_id, character_id=character_id,
+                reference_revision=state.revision, character_context=context,
+                character_context_hash=stable_hash(context), primary_asset_id=primary_asset_id,
+                complementary_asset_ids=complementary_asset_ids,
+                asset_hashes=[{"assetId": asset.id, "originalHash": asset.original_hash} for asset in assets if asset is not None],
+                reviewer=reviewer.strip(), notes=notes.strip(), revoked_at=None, revoked_by=None,
+                revocation_reason=None, created_at=now,
+            )
+            session.add(decision)
+            session.flush()
+            state.active_decision_id = decision.id
+            session.flush()
+            return self._reference_decision_dict(decision, current=True) | {"stateRevision": state.revision}
+
+    def revoke_character_reference_decision(
+        self,
+        project_id: str,
+        *,
+        character_id: str,
+        expected_reference_revision: int,
+        reviewer: str,
+        reason: str,
+    ) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            now = utc_now()
+            state = self._character_reference_state_in_session(session, project_id, character_id, now)
+            if state.revision != expected_reference_revision:
+                raise RevisionConflictError("character-reference", expected_reference_revision, state.revision)
+            if state.active_decision_id is None:
+                raise InvalidTransitionError("character has no active reference decision to revoke")
+            decision = session.get(CharacterReferenceDecisionRow, state.active_decision_id)
+            if decision is None or decision.project_id != project_id:
+                raise InvalidTransitionError("active character reference decision is unavailable")
+            decision.revoked_at = now
+            decision.revoked_by = reviewer.strip()
+            decision.revocation_reason = reason.strip()
+            state.revision += 1
+            state.active_decision_id = None
+            state.updated_at = now
+            session.flush()
+            return self._reference_decision_dict(decision, current=False) | {"stateRevision": state.revision}
+
+    def list_character_reference_decisions(self, project_id: str) -> dict[str, Any]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            bible = self._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
+            characters = {item.id: item for item in bible.characters}
+            rows = session.scalars(
+                select(CharacterReferenceDecisionRow)
+                .where(CharacterReferenceDecisionRow.project_id == project_id)
+                .order_by(CharacterReferenceDecisionRow.created_at.desc(), CharacterReferenceDecisionRow.id.desc())
+            ).all()
+            states = session.scalars(
+                select(CharacterReferenceStateRow).where(CharacterReferenceStateRow.project_id == project_id)
+            ).all()
+            state_by_character = {item.character_id: item for item in states}
+            return {
+                "states": [{
+                    "characterId": character_id, "revision": state.revision,
+                    "activeDecisionId": state.active_decision_id,
+                    "current": self._current_character_reference_in_session(session, project_id, characters[character_id]) is not None
+                    if character_id in characters else False,
+                } for character_id, state in sorted(state_by_character.items())],
+                "decisions": [self._reference_decision_dict(
+                    row,
+                    current=(
+                        row.revoked_at is None
+                        and row.character_id in characters
+                        and state_by_character.get(row.character_id) is not None
+                        and state_by_character[row.character_id].active_decision_id == row.id
+                        and self._current_character_reference_in_session(session, project_id, characters[row.character_id]) is not None
+                    ),
+                ) for row in rows],
+            }
+
+    @staticmethod
+    def _proposal_dict(row: CharacterReferenceProposalRow, *, current: bool) -> dict[str, Any]:
+        return {
+            "id": row.id, "projectId": row.project_id, "characterId": row.character_id,
+            "parentCandidateAssetId": row.parent_candidate_asset_id, "request": row.request,
+            "requestHash": row.request_hash, "state": row.state, "current": current,
+            "exportedAt": _stored_utc(row.exported_at).isoformat() if row.exported_at else None,
+            "cancelledAt": _stored_utc(row.cancelled_at).isoformat() if row.cancelled_at else None,
+            "cancellationReason": row.cancellation_reason,
+            "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    def _proposal_is_current_in_session(
+        self, session: Session, proposal: CharacterReferenceProposalRow
+    ) -> bool:
+        if proposal.state == "cancelled":
+            return False
+        project = session.get(ProjectRow, proposal.project_id)
+        if project is None or ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ACTIVE:
+            return False
+        try:
+            bible = self._load_stage_payload(session, proposal.project_id, StageName.STORY_BIBLE)
+        except (NotFoundError, SchemaResetRequiredError):
+            return False
+        character = next((item for item in bible.characters if item.id == proposal.character_id), None)
+        snapshot = proposal.request.get("frozenSnapshot")
+        if character is None or not isinstance(snapshot, dict):
+            return False
+        return snapshot.get("characterContextHash") == stable_hash(self._character_reference_context(character))
+
+    def prepare_character_reference_proposal(
+        self,
+        project_id: str,
+        *,
+        character_id: str,
+        story_bible_revision: int,
+        visual_direction: str,
+        parent_candidate_asset_id: str | None,
+    ) -> dict[str, Any]:
+        """Freeze a story-first exploratory request without creating a fake Shot or Approval."""
+
+        with self._lifecycle_write() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            head = self._stage_row(session, project_id, StageName.STORY_BIBLE)
+            if head.revision != story_bible_revision:
+                raise RevisionConflictError("story-bible", story_bible_revision, head.revision)
+            bible = self._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
+            character = next((item for item in bible.characters if item.id == character_id), None)
+            if character is None:
+                raise InvalidTransitionError("character reference proposal must name a current canonical character")
+            references: list[dict[str, Any]] = []
+            if parent_candidate_asset_id is not None:
+                candidate = session.scalar(
+                    select(CharacterReferenceProposalCandidateRow)
+                    .where(CharacterReferenceProposalCandidateRow.asset_id == parent_candidate_asset_id)
+                    .order_by(CharacterReferenceProposalCandidateRow.created_at.desc()).limit(1)
+                )
+                parent = session.get(CharacterReferenceProposalRow, candidate.proposal_id) if candidate else None
+                asset = session.get(ManagedAssetRow, parent_candidate_asset_id)
+                if (
+                    candidate is None or parent is None or asset is None or asset.project_id != project_id
+                    or parent.character_id != character_id or not self._proposal_is_current_in_session(session, parent)
+                ):
+                    raise InvalidTransitionError("proposal refinement must name a current candidate for the same character")
+                references.append({
+                    "assetId": asset.id, "role": "parent_output", "required": True,
+                    "originalHash": asset.original_hash, "mimeType": asset.mime_type,
+                    "byteSize": asset.byte_size, "width": asset.width, "height": asset.height,
+                })
+            context = self._character_reference_context(character)
+            job_id = self._image_job_id()
+            snapshot = {
+                "snapshotVersion": 3, "compilerVersion": "plotloom.character-reference-proposal.v1",
+                "projectId": project_id, "target": "character_reference_proposal",
+                "characterId": character_id, "storyBibleRevision": story_bible_revision,
+                "storyBibleEntityRevisionId": head.entity_revision_id,
+                "characterContext": context, "characterContextHash": stable_hash(context),
+                "visualDirection": visual_direction.strip(), "references": references,
+                "authority": "exploratory_only_no_storyboard_approval_or_keyframe_selection",
+            }
+            request = {
+                "schemaVersion": 3, "jobId": job_id, "executionContract": "codex_specialist.v2",
+                "kind": "refinement" if parent_candidate_asset_id else "original",
+                "target": "character_reference_proposal", "frozenSnapshot": snapshot,
+            }
+            proposal = CharacterReferenceProposalRow(
+                id=job_id, project_id=project_id, character_id=character_id,
+                parent_candidate_asset_id=parent_candidate_asset_id, request=request,
+                request_hash=stable_hash(request), state="prepared", exported_at=None,
+                cancelled_at=None, cancellation_reason=None, created_at=utc_now(),
+            )
+            session.add(proposal)
+            session.flush()
+            return {"proposal": self._proposal_dict(proposal, current=True)}
+
+    def character_reference_proposal_package_sources(self, project_id: str, proposal_id: str) -> dict[str, Any]:
+        with self._read() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            proposal = session.get(CharacterReferenceProposalRow, proposal_id)
+            if proposal is None or proposal.project_id != project_id:
+                raise NotFoundError("character reference proposal not found")
+            if not self._proposal_is_current_in_session(session, proposal):
+                raise InvalidTransitionError("character reference proposal is no longer current and cannot be copied")
+            sources: list[dict[str, Any]] = []
+            for reference in proposal.request["frozenSnapshot"].get("references", []):
+                asset = session.get(ManagedAssetRow, reference.get("assetId"))
+                if asset is None or asset.project_id != project_id or asset.original_hash != reference.get("originalHash"):
+                    raise InvalidTransitionError("frozen proposal reference bytes are unavailable")
+                sources.append({
+                    "role": reference["role"], "contentHash": asset.original_hash,
+                    "mimeType": asset.mime_type, "originalUri": asset.original_uri,
+                })
+            return {"proposal": self._proposal_dict(proposal, current=True), "references": sources}
+
+    def mark_character_reference_proposal_exported(self, project_id: str, proposal_id: str) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            proposal = session.get(CharacterReferenceProposalRow, proposal_id)
+            if proposal is None or proposal.project_id != project_id:
+                raise NotFoundError("character reference proposal not found")
+            if not self._proposal_is_current_in_session(session, proposal):
+                raise InvalidTransitionError("character reference proposal is no longer current and cannot be copied")
+            if proposal.exported_at is None:
+                proposal.exported_at = utc_now()
+                proposal.state = "exported"
+                session.flush()
+            return self._proposal_dict(proposal, current=True)
+
+    def character_reference_proposal_delivery_context(self, project_id: str, proposal_id: str) -> dict[str, Any]:
+        with self._read() as session:
+            proposal = session.get(CharacterReferenceProposalRow, proposal_id)
+            if proposal is None or proposal.project_id != project_id:
+                raise NotFoundError("character reference proposal not found")
+            return self._proposal_dict(proposal, current=self._proposal_is_current_in_session(session, proposal))
+
+    def record_character_reference_proposal_rejection(self, project_id: str, proposal_id: str, code: str) -> None:
+        with self._lifecycle_write() as session:
+            proposal = session.get(CharacterReferenceProposalRow, proposal_id)
+            if proposal is None or proposal.project_id != project_id:
+                raise NotFoundError("character reference proposal not found")
+            session.add(CharacterReferenceProposalDeliveryRow(
+                id=new_id(), proposal_id=proposal_id, delivery_id=None, manifest=None, manifest_hash=None,
+                state="rejected", diagnostic_code=code, created_at=utc_now(),
+            ))
+
+    def record_character_reference_proposal_delivery(
+        self,
+        project_id: str,
+        proposal_id: str,
+        *,
+        delivery_id: str,
+        manifest: dict[str, Any],
+        manifest_hash: str,
+        outputs: list[dict[str, Any]],
+        publish: Callable[[dict[str, Any]], tuple[str, str]],
+    ) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            proposal = session.get(CharacterReferenceProposalRow, proposal_id)
+            if proposal is None or proposal.project_id != project_id:
+                raise NotFoundError("character reference proposal not found")
+            existing = session.scalar(
+                select(CharacterReferenceProposalDeliveryRow)
+                .where(CharacterReferenceProposalDeliveryRow.proposal_id == proposal_id, CharacterReferenceProposalDeliveryRow.delivery_id == delivery_id)
+                .limit(1)
+            )
+            if existing is not None:
+                if existing.manifest_hash != manifest_hash:
+                    raise ImageJobError("delivery_conflict", "proposal delivery identity was already recorded with different content")
+                candidates = session.scalars(
+                    select(CharacterReferenceProposalCandidateRow)
+                    .where(CharacterReferenceProposalCandidateRow.delivery_id == existing.id)
+                    .order_by(CharacterReferenceProposalCandidateRow.created_at, CharacterReferenceProposalCandidateRow.id)
+                ).all()
+                return {"deliveryId": delivery_id, "state": existing.state, "diagnosticCode": existing.diagnostic_code,
+                        "idempotent": True, "candidates": [self._proposal_candidate_dict(session, item) for item in candidates]}
+            finalized = session.scalar(
+                select(CharacterReferenceProposalDeliveryRow)
+                .where(CharacterReferenceProposalDeliveryRow.proposal_id == proposal_id, CharacterReferenceProposalDeliveryRow.delivery_id.is_not(None))
+                .limit(1)
+            )
+            if finalized is not None:
+                raise ImageJobError("delivery_finalized", "character proposal already has a final delivery")
+            current = proposal.state in {"exported", "delivered"} and self._proposal_is_current_in_session(session, proposal)
+            delivery = CharacterReferenceProposalDeliveryRow(
+                id=new_id(), proposal_id=proposal_id, delivery_id=delivery_id, manifest=manifest,
+                manifest_hash=manifest_hash, state="accepted" if current else "inapplicable",
+                diagnostic_code=None if current else "late_or_stale_delivery", created_at=utc_now(),
+            )
+            session.add(delivery)
+            session.flush()
+            if not current:
+                return {"deliveryId": delivery_id, "state": delivery.state, "diagnosticCode": delivery.diagnostic_code,
+                        "idempotent": False, "candidates": []}
+            candidates: list[CharacterReferenceProposalCandidateRow] = []
+            for output in outputs:
+                original_uri, display_uri = publish(output)
+                asset = ManagedAssetRow(
+                    id=new_id(), project_id=project_id, original_uri=original_uri,
+                    original_hash=output["originalHash"], display_uri=display_uri,
+                    display_hash=output["displayHash"], mime_type=output["mimeType"], byte_size=output["byteSize"],
+                    width=output["width"], height=output["height"], created_at=utc_now(),
+                )
+                session.add(asset)
+                session.flush()
+                session.add(ManagedAssetProvenanceRow(
+                    id=new_id(), project_id=project_id, asset_id=asset.id,
+                    declaration={
+                        "origin": "character_reference_proposal", "rights": "unknown", "proposalId": proposal.id,
+                        "rightsNote": None, "declaredAdditions": [], "deliveryId": delivery_id,
+                        "outputFilename": output["filename"], "actualPrompt": manifest["actualPrompt"],
+                        "toolEvidence": manifest["toolEvidence"], "executorProvenance": manifest.get("executorProvenance"),
+                        "limitations": manifest.get("limitations", []),
+                    }, created_at=utc_now(),
+                ))
+                candidate = CharacterReferenceProposalCandidateRow(
+                    id=new_id(), proposal_id=proposal.id, delivery_id=delivery.id, asset_id=asset.id,
+                    output_filename=output["filename"], output_hash=output["originalHash"],
+                    role=output["role"], created_at=utc_now(),
+                )
+                session.add(candidate)
+                candidates.append(candidate)
+            proposal.state = "delivered"
+            session.flush()
+            return {"deliveryId": delivery_id, "state": delivery.state, "diagnosticCode": None,
+                    "idempotent": False, "candidates": [self._proposal_candidate_dict(session, item) for item in candidates]}
+
+    @staticmethod
+    def _proposal_candidate_dict(session: Session, row: CharacterReferenceProposalCandidateRow) -> dict[str, Any]:
+        asset = session.get(ManagedAssetRow, row.asset_id)
+        return {
+            "id": row.id, "assetId": row.asset_id, "proposalId": row.proposal_id,
+            "outputFilename": row.output_filename, "outputHash": row.output_hash, "role": row.role,
+            "asset": SQLiteRepository._managed_asset_dict(asset) if asset is not None else None,
+            "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    def list_character_reference_proposals(self, project_id: str) -> list[dict[str, Any]]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            proposals = session.scalars(
+                select(CharacterReferenceProposalRow).where(CharacterReferenceProposalRow.project_id == project_id)
+                .order_by(CharacterReferenceProposalRow.created_at.desc(), CharacterReferenceProposalRow.id.desc())
+            ).all()
+            result: list[dict[str, Any]] = []
+            for proposal in proposals:
+                deliveries = session.scalars(
+                    select(CharacterReferenceProposalDeliveryRow)
+                    .where(CharacterReferenceProposalDeliveryRow.proposal_id == proposal.id)
+                    .order_by(CharacterReferenceProposalDeliveryRow.created_at.desc(), CharacterReferenceProposalDeliveryRow.id.desc())
+                ).all()
+                result.append({
+                    **self._proposal_dict(proposal, current=self._proposal_is_current_in_session(session, proposal)),
+                    "deliveries": [{
+                        "id": delivery.id, "deliveryId": delivery.delivery_id, "state": delivery.state,
+                        "diagnosticCode": delivery.diagnostic_code, "manifestHash": delivery.manifest_hash,
+                        "createdAt": _stored_utc(delivery.created_at).isoformat(),
+                        "candidates": [self._proposal_candidate_dict(session, item) for item in session.scalars(
+                            select(CharacterReferenceProposalCandidateRow)
+                            .where(CharacterReferenceProposalCandidateRow.delivery_id == delivery.id)
+                            .order_by(CharacterReferenceProposalCandidateRow.created_at, CharacterReferenceProposalCandidateRow.id)
+                        ).all()],
+                    } for delivery in deliveries],
+                })
+            return result
+
+    @staticmethod
+    def _same_person_review_state_in_session(
+        session: Session, project_id: str, now: datetime
+    ) -> SamePersonReviewStateRow:
+        state = session.get(SamePersonReviewStateRow, project_id)
+        if state is None:
+            state = SamePersonReviewStateRow(project_id=project_id, revision=0, updated_at=now)
+            session.add(state)
+            session.flush()
+        return state
+
+    @staticmethod
+    def _same_person_review_dict(row: SamePersonReviewRow, *, current: bool) -> dict[str, Any]:
+        return {
+            "id": row.id, "projectId": row.project_id, "bindingId": row.binding_id,
+            "reviewRevision": row.review_revision, "referenceBindings": list(row.reference_bindings),
+            "comparisons": list(row.comparisons), "reviewer": row.reviewer, "notes": row.notes,
+            "current": current, "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    def _identity_mapping_for_binding_in_session(
+        self, session: Session, binding: ReviewedShotBindingRow
+    ) -> list[dict[str, Any]] | None:
+        candidate = session.scalar(
+            select(ImageJobCandidateRow)
+            .where(ImageJobCandidateRow.asset_id == binding.asset_id)
+            .order_by(ImageJobCandidateRow.created_at.desc()).limit(1)
+        )
+        if candidate is None:
+            return None
+        job = session.get(ImageJobRow, candidate.job_id)
+        if job is None or job.request.get("schemaVersion") != 3:
+            return None
+        snapshot = job.request.get("frozenSnapshot")
+        mapping = snapshot.get("characterIdentity") if isinstance(snapshot, dict) else None
+        if not isinstance(mapping, list) or any(not isinstance(item, dict) for item in mapping):
+            return None
+        return mapping
+
+    def _same_person_review_is_current_in_session(
+        self, session: Session, project_id: str, review: SamePersonReviewRow
+    ) -> bool:
+        binding = session.get(ReviewedShotBindingRow, review.binding_id)
+        if binding is None or binding.project_id != project_id:
+            return False
+        try:
+            approval = self._approval_is_active_in_session(session, binding.approval_id)
+        except (InvalidTransitionError, NotFoundError):
+            return False
+        if not self._reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval):
+            return False
+        mapping = self._identity_mapping_for_binding_in_session(session, binding)
+        if mapping is None:
+            return False
+        if any(item.get("judgment") != "pass" for item in review.comparisons):
+            return False
+        expected = {item.get("characterId"): item for item in mapping}
+        review_refs = {item.get("characterId"): item for item in review.reference_bindings}
+        if set(expected) != set(review_refs):
+            return False
+        try:
+            bible = self._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
+        except (NotFoundError, SchemaResetRequiredError):
+            return False
+        characters = {item.id: item for item in bible.characters}
+        for character_id, frozen in expected.items():
+            character = characters.get(character_id)
+            current = self._current_character_reference_in_session(session, project_id, character) if character else None
+            reviewed = review_refs[character_id]
+            if (
+                current is None
+                or current.id != frozen.get("referenceDecisionId")
+                or current.reference_revision != frozen.get("referenceRevision")
+                or reviewed.get("referenceDecisionId") != current.id
+                or reviewed.get("referenceRevision") != current.reference_revision
+                or reviewed.get("assetHashes") != [item.get("originalHash") for item in frozen.get("assets", [])]
+            ):
+                return False
+        return True
+
+    def record_same_person_review(
+        self,
+        project_id: str,
+        *,
+        binding_id: str,
+        expected_review_revision: int,
+        reviewer: str,
+        comparisons: list[dict[str, Any]],
+        notes: str,
+    ) -> dict[str, Any]:
+        """Persist an explicit human judgment about a v3 generated keyframe."""
+
+        with self._lifecycle_write() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            binding = session.get(ReviewedShotBindingRow, binding_id)
+            if binding is None or binding.project_id != project_id:
+                raise NotFoundError("reviewed keyframe binding not found")
+            mapping = self._identity_mapping_for_binding_in_session(session, binding)
+            if mapping is None:
+                raise InvalidTransitionError("same-person review is only required for identity-aware generated keyframes")
+            expected_ids = [item["characterId"] for item in mapping]
+            comparison_ids = [item["characterId"] for item in comparisons]
+            if comparison_ids != expected_ids:
+                raise InvalidTransitionError("same-person review must cover each frozen visible character in role-mapped order")
+            now = utc_now()
+            state = self._same_person_review_state_in_session(session, project_id, now)
+            if state.revision != expected_review_revision:
+                raise RevisionConflictError("same-person-review", expected_review_revision, state.revision)
+            reference_bindings = [{
+                "characterId": item["characterId"], "referenceDecisionId": item["referenceDecisionId"],
+                "referenceRevision": item["referenceRevision"],
+                "assetHashes": [asset["originalHash"] for asset in item["assets"]],
+            } for item in mapping]
+            state.revision += 1
+            state.updated_at = now
+            review = SamePersonReviewRow(
+                id=new_id(), project_id=project_id, binding_id=binding_id, review_revision=state.revision,
+                reference_bindings=reference_bindings, comparisons=comparisons, reviewer=reviewer.strip(),
+                notes=notes.strip(), created_at=now,
+            )
+            session.add(review)
+            session.flush()
+            return self._same_person_review_dict(review, current=self._same_person_review_is_current_in_session(session, project_id, review)) | {"stateRevision": state.revision}
+
+    def list_same_person_reviews(self, project_id: str) -> dict[str, Any]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            state = session.get(SamePersonReviewStateRow, project_id)
+            rows = session.scalars(
+                select(SamePersonReviewRow).where(SamePersonReviewRow.project_id == project_id)
+                .order_by(SamePersonReviewRow.created_at.desc(), SamePersonReviewRow.id.desc())
+            ).all()
+            return {"revision": state.revision if state else 0, "reviews": [
+                self._same_person_review_dict(row, current=self._same_person_review_is_current_in_session(session, project_id, row))
+                for row in rows
+            ]}
+
+    def current_same_person_review_for_binding(
+        self, session: Session, project_id: str, binding: ReviewedShotBindingRow
+    ) -> SamePersonReviewRow | None:
+        mapping = self._identity_mapping_for_binding_in_session(session, binding)
+        if mapping is None:
+            return None
+        rows = session.scalars(
+            select(SamePersonReviewRow)
+            .where(SamePersonReviewRow.project_id == project_id, SamePersonReviewRow.binding_id == binding.id)
+            .order_by(SamePersonReviewRow.review_revision.desc())
+        ).all()
+        return next((row for row in rows if self._same_person_review_is_current_in_session(session, project_id, row)), None)
 
     @staticmethod
     def _image_job_id() -> str:
@@ -2311,28 +3030,72 @@ class SQLiteRepository:
         # intent revision after Copy makes the resulting delivery inapplicable
         # rather than silently applying it to a changed presentation contract.
         reviewed_intent = unit.snapshot.get("reviewedVisualIntent")
-        if reviewed_intent is None:
+        if reviewed_intent is not None:
+            if not isinstance(reviewed_intent, dict):
+                return False
+            binding_id = reviewed_intent.get("bindingId")
+            if not isinstance(binding_id, str):
+                return False
+            binding = session.get(ReviewedShotBindingRow, binding_id)
+            if binding is None:
+                return False
+            if (
+                binding.project_id != job.project_id
+                or binding.shot_id != unit.shot_id
+                or binding.asset_id != reviewed_intent.get("assetId")
+                or binding.selection_revision != reviewed_intent.get("selectionRevision")
+                or binding.visual_intent_id != reviewed_intent.get("visualIntentId")
+                or binding.visual_intent_revision != reviewed_intent.get("visualIntentRevision")
+            ):
+                return False
+            if not self._reviewed_binding_admission_eligible_in_session(
+                session, job.project_id, binding, approval=approval
+            ):
+                return False
+
+        # V3 freezes one explicit reference decision per visible character.
+        # This runs after refinement validation so a parent image cannot
+        # override or mask an invalid identity dependency.
+        if unit.snapshot.get("snapshotVersion") != 3:
             return True
-        if not isinstance(reviewed_intent, dict):
+        identity = unit.snapshot.get("characterIdentity")
+        frozen_shot = unit.snapshot.get("shot")
+        if not isinstance(identity, list) or not isinstance(frozen_shot, dict):
             return False
-        binding_id = reviewed_intent.get("bindingId")
-        if not isinstance(binding_id, str):
-            return False
-        binding = session.get(ReviewedShotBindingRow, binding_id)
-        if binding is None:
-            return False
+        visible = frozen_shot.get("characterIds")
         if (
-            binding.project_id != job.project_id
-            or binding.shot_id != unit.shot_id
-            or binding.asset_id != reviewed_intent.get("assetId")
-            or binding.selection_revision != reviewed_intent.get("selectionRevision")
-            or binding.visual_intent_id != reviewed_intent.get("visualIntentId")
-            or binding.visual_intent_revision != reviewed_intent.get("visualIntentRevision")
+            not isinstance(visible, list)
+            or any(not isinstance(item, dict) for item in identity)
+            or [item.get("characterId") for item in identity] != visible
         ):
             return False
-        return self._reviewed_binding_admission_eligible_in_session(
-            session, job.project_id, binding, approval=approval
-        )
+        try:
+            bible = self._load_stage_payload(session, job.project_id, StageName.STORY_BIBLE)
+        except (NotFoundError, SchemaResetRequiredError):
+            return False
+        characters = {item.id: item for item in bible.characters}
+        for mapping in identity:
+            if not isinstance(mapping, dict):
+                return False
+            character = characters.get(mapping.get("characterId"))
+            if character is None:
+                return False
+            decision = self._current_character_reference_in_session(session, job.project_id, character)
+            if (
+                decision is None
+                or decision.id != mapping.get("referenceDecisionId")
+                or decision.reference_revision != mapping.get("referenceRevision")
+                or decision.character_context_hash != mapping.get("characterContextHash")
+            ):
+                return False
+            expected_assets = [decision.primary_asset_id, *list(decision.complementary_asset_ids)]
+            frozen_assets = mapping.get("assets")
+            if not isinstance(frozen_assets, list) or [item.get("assetId") for item in frozen_assets if isinstance(item, dict)] != expected_assets:
+                return False
+            hashes = {item["assetId"]: item["originalHash"] for item in decision.asset_hashes}
+            if any(not isinstance(item, dict) or hashes.get(item.get("assetId")) != item.get("originalHash") for item in frozen_assets):
+                return False
+        return True
 
     @staticmethod
     def _image_job_resolved_context(
@@ -2376,12 +3139,11 @@ class SQLiteRepository:
         cues = [cues_by_id[cue_id] for cue_id in cue_ids if cue_id in cues_by_id]
 
         required_entity_states = list(getattr(shot, "required_entity_states", []))
-        character_ids = ordered_unique([
-            *list(getattr(shot, "character_ids", [])),
-            *([] if scene is None else list(getattr(scene, "character_ids", []))),
-            *(cue.speaker_id for cue in cues),
-            *(state.entity_id for state in required_entity_states if state.entity_type == "character"),
-        ])
+        # `Shot.character_ids` is the authoritative on-screen cast. Scene
+        # members, dialogue speakers, and state references remain useful
+        # narrative context but cannot silently become visible people in an
+        # image request or identity-reference mapping.
+        character_ids = ordered_unique(list(getattr(shot, "character_ids", [])))
         prop_ids = ordered_unique([
             *list(getattr(shot, "prop_ids", [])),
             *(state.entity_id for state in required_entity_states if state.entity_type == "prop"),
@@ -2414,6 +3176,7 @@ class SQLiteRepository:
         storyboard_revision: int,
         parent_candidate_asset_id: str | None = None,
         presentation_change: str,
+        contract_version: int = 2,
     ) -> dict[str, Any]:
         """Freeze an approved single-shot production unit and manual request."""
 
@@ -2433,7 +3196,49 @@ class SQLiteRepository:
             if shot is None:
                 raise InvalidTransitionError("image job must target one current storyboard shot")
 
+            if contract_version not in {2, 3}:
+                raise InvalidTransitionError("image job contract version is unsupported")
+
             references: list[dict[str, Any]] = []
+            identity_mappings: list[dict[str, Any]] = []
+            if contract_version == 3:
+                characters_by_id = {item.id: item for item in story_bible.characters}
+                for character_id in shot.character_ids:
+                    character = characters_by_id.get(character_id)
+                    if character is None:
+                        raise InvalidTransitionError("shot character membership is not resolvable in the current story bible")
+                    decision = self._current_character_reference_in_session(session, project_id, character)
+                    if decision is None:
+                        raise ImageJobError(
+                            "identity_reference_missing",
+                            f"shot character {character_id} needs an explicitly current character reference before an identity-aware job can be prepared",
+                        )
+                    asset_ids = [decision.primary_asset_id, *list(decision.complementary_asset_ids)]
+                    assets = [session.get(ManagedAssetRow, asset_id) for asset_id in asset_ids]
+                    if any(asset is None or asset.project_id != project_id for asset in assets):
+                        raise ImageJobError("identity_reference_missing", "character reference asset is unavailable")
+                    identity_assets: list[dict[str, Any]] = []
+                    for ordinal, asset in enumerate(assets):
+                        assert asset is not None
+                        entry = {
+                            "assetId": asset.id, "role": "character_identity", "characterId": character_id,
+                            "referenceDecisionId": decision.id, "referenceRevision": decision.reference_revision,
+                            "view": "primary" if ordinal == 0 else "complementary",
+                            "originalHash": asset.original_hash, "mimeType": asset.mime_type,
+                            "byteSize": asset.byte_size, "width": asset.width, "height": asset.height,
+                        }
+                        references.append(entry)
+                        identity_assets.append({
+                            "assetId": asset.id, "originalHash": asset.original_hash,
+                            "view": entry["view"],
+                        })
+                    identity_mappings.append({
+                        "characterId": character_id, "referenceDecisionId": decision.id,
+                        "referenceRevision": decision.reference_revision,
+                        "characterContextHash": decision.character_context_hash,
+                        "assets": identity_assets,
+                    })
+
             parent_job_id: str | None = None
             reviewed_visual_intent: dict[str, Any] | None = None
             if parent_candidate_asset_id is not None:
@@ -2486,6 +3291,12 @@ class SQLiteRepository:
                     "byteSize": asset.byte_size, "width": asset.width, "height": asset.height,
                 })
 
+            if len(references) > 9:
+                raise ImageJobError(
+                    "identity_reference_excessive",
+                    "identity-aware job has more than nine frozen reference attachments; reduce the authored visible cast or reference views",
+                )
+
             shot_payload = shot.model_dump(mode="json", by_alias=True)
             visual_proposal = {
                 "title": shot.title, "action": shot.action, "composition": shot.composition,
@@ -2499,7 +3310,7 @@ class SQLiteRepository:
                 scene_beats=scene_beats,
             )
             snapshot = {
-                "snapshotVersion": 2, "compilerVersion": "plotloom.codex-image-job.v2",
+                "snapshotVersion": contract_version, "compilerVersion": f"plotloom.codex-image-job.v{contract_version}",
                 "projectId": project_id, "approvalId": approval.id,
                 "approvalGateSetVersion": approval.gate_set_version,
                 "storyboardEntityRevisionId": approval.entity_revision_id,
@@ -2511,6 +3322,9 @@ class SQLiteRepository:
                 "references": references,
                 "audioContext": shot_payload.get("audioPlan", {}),
             }
+            if contract_version == 3:
+                snapshot["visibleCharacterIds"] = list(shot.character_ids)
+                snapshot["characterIdentity"] = identity_mappings
             if reviewed_visual_intent is not None:
                 snapshot["reviewedVisualIntent"] = reviewed_visual_intent
             snapshot_hash = stable_hash(snapshot)
@@ -2525,8 +3339,9 @@ class SQLiteRepository:
             session.flush()
             job_id = self._image_job_id()
             request = {
-                "schemaVersion": 2, "jobId": job_id, "productionUnitId": unit.id,
-                "productionSnapshotHash": snapshot_hash, "executionContract": "codex_specialist.v1",
+                "schemaVersion": contract_version, "jobId": job_id, "productionUnitId": unit.id,
+                "productionSnapshotHash": snapshot_hash,
+                "executionContract": "codex_specialist.v2" if contract_version == 3 else "codex_specialist.v1",
                 "kind": "refinement" if parent_candidate_asset_id else "original",
                 "visualProposal": visual_proposal, "frozenSnapshot": snapshot,
             }
@@ -2550,7 +3365,7 @@ class SQLiteRepository:
                 raise InvalidTransitionError("image job is no longer current and cannot be copied")
             sources: list[dict[str, Any]] = []
             for reference in job.request["frozenSnapshot"].get("references", []):
-                if reference.get("role") != "parent_output":
+                if reference.get("role") not in {"parent_output", "character_identity"}:
                     continue
                 asset = session.get(ManagedAssetRow, reference.get("assetId"))
                 if (
@@ -2561,6 +3376,7 @@ class SQLiteRepository:
                 sources.append({
                     "role": reference["role"], "contentHash": asset.original_hash,
                     "mimeType": asset.mime_type, "originalUri": asset.original_uri,
+                    "characterId": reference.get("characterId"),
                 })
             return {"job": self._image_job_dict(job, current=True), "references": sources}
 

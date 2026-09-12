@@ -20,7 +20,7 @@ from .image_job_contracts import ImageDeliveryManifest, ImageJobError, is_image_
 from .managed_media import ManagedMediaLimits, ObservedImage, inspect_import_image
 
 
-PACKAGE_VERSION = 2
+PACKAGE_VERSION = 3
 COMPLETION_FILENAME = "completion.json"
 COMPLETION_TEMPLATE_FILENAME = "completion-manifest.example.json"
 
@@ -233,6 +233,8 @@ class ImageJobExchange:
         if schema_version == 1:
             return 1
         if schema_version == 2:
+            return 2
+        if schema_version == 3:
             return PACKAGE_VERSION
         raise ImageJobError("request_integrity", "frozen image request schema is unsupported")
 
@@ -264,7 +266,7 @@ class ImageJobExchange:
                 "and publish completion.json only after every declared output is complete.\n"
             ).encode("utf-8")
             template: bytes | None = None
-        else:
+        elif package_version == 2:
             delivery_instruction = (
                 "Read completion-manifest.example.json before preparing delivery. Write complete JPEG or PNG files to "
                 "delivery/outputs, then use that exact field shape to publish delivery/completion.json once. Do not write "
@@ -297,6 +299,65 @@ class ImageJobExchange:
                 },
                 "limitations": [],
             })
+        else:
+            proposal = request.get("target") == "character_reference_proposal"
+            delivery_instruction = (
+                "Read completion-manifest.example.json before preparing delivery. "
+                + (
+                    "View every role-mapped character_identity reference before generation and report its hashes in referenceUse. "
+                    if not proposal else
+                    "This is an exploratory character-reference proposal; it cannot approve or select a reference. "
+                )
+                + "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. Do not write "
+                "SQLite, modify this package, or include sensitive values."
+            )
+            instructions = (
+                f"Plotloom {'character-reference proposal' if proposal else 'identity-aware image job'} {job_id}\n"
+                f"Read: {package / 'request.json'}\n"
+                f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n"
+                f"Deliver only under: {job_root / 'delivery'}\n"
+                + (
+                    "Use Codex built-in image generation. View every supplied character_identity reference and preserve "
+                    "that person while the frozen canonical shot state controls costume, pose, expression, lighting, and "
+                    "camera. parent_output is a separate edit guide and never replaces character identity. "
+                    if not proposal else
+                    "Use Codex built-in image generation for the frozen Story Bible character context. This result is an "
+                    "exploratory candidate only: do not claim an approved Shot, storyboard Approval, or selected reference. "
+                )
+                + "Disclose the "
+                "exact actual prompt and publish completion.json only after every declared output is complete.\n"
+            ).encode("utf-8")
+            template_payload: dict[str, Any] = {
+                "schemaVersion": 2,
+                "jobId": job_id,
+                "requestHash": request_hash,
+                "deliveryId": "replace-with-specialist-delivery-id",
+                "actualPrompt": "replace-with-the-exact-prompt-submitted-to-Codex-imagegen",
+                "outputs": [{
+                    "filename": "candidate.png",
+                    "sha256": "0" * 64,
+                    "role": request.get("kind", "original"),
+                }],
+                "toolEvidence": {
+                    "tool": "codex_imagegen",
+                    "taskId": "replace-with-Codex-task-id",
+                    "available": True,
+                },
+                "executorProvenance": {
+                    "codeRevision": "replace-with-pinned-commit",
+                    "skillVersion": "plotloom-image-specialist.v1",
+                    "skillHash": "0" * 64,
+                    "model": None,
+                    "reasoningEffort": None,
+                },
+                "limitations": [],
+            }
+            if not proposal:
+                template_payload["referenceUse"] = {
+                    "viewedReferenceHashes": ["replace-with-every-character-identity-hash"],
+                    "identityNotes": "describe how identity was preserved; this attestation is not creator approval",
+                }
+            template = _canonical_json(template_payload)
         package_request = dict(request)
         package_request.update({
             "packageVersion": package_version,
@@ -468,7 +529,14 @@ class ImageJobExchange:
         finally:
             os.close(package_fd)
 
-    def read_delivery(self, *, job_id: str, request_hash: str) -> ValidatedDelivery | None:
+    def read_delivery(
+        self,
+        *,
+        job_id: str,
+        request_hash: str,
+        required_reference_hashes: Iterable[str] = (),
+        require_executor_provenance: bool = False,
+    ) -> ValidatedDelivery | None:
         """Read a completed untrusted package, or report that no delivery exists yet.
 
         An absent delivery directory (or an empty inbox) is the normal state
@@ -506,6 +574,23 @@ class ImageJobExchange:
                 raise ImageJobError("delivery_manifest_invalid", "completion manifest does not match the image-job contract") from error
             if manifest.job_id != job_id or manifest.request_hash != request_hash:
                 raise ImageJobError("delivery_identity_mismatch", "completion manifest does not belong to this frozen image job")
+            required_hashes = tuple(required_reference_hashes)
+            if required_hashes:
+                if manifest.schema_version != 2 or manifest.reference_use is None:
+                    raise ImageJobError(
+                        "delivery_reference_use_missing",
+                        "identity-aware delivery must attest to every viewed character reference",
+                    )
+                if set(manifest.reference_use.viewed_reference_hashes) != set(required_hashes):
+                    raise ImageJobError(
+                        "delivery_reference_use_mismatch",
+                        "identity-aware delivery reference attestation does not match the frozen identity set",
+                    )
+            if require_executor_provenance and manifest.executor_provenance is None:
+                raise ImageJobError(
+                    "delivery_executor_provenance_missing",
+                    "identity-aware delivery must record the observed code and specialist skill provenance",
+                )
             if names != {COMPLETION_FILENAME, "outputs"}:
                 raise ImageJobError("delivery_partial", "delivery contains undeclared files")
 

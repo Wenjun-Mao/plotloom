@@ -29,6 +29,12 @@ import type {
   ManagedAsset,
   ImageJob,
   ImageJobsResponse,
+  CharacterReferencesResponse,
+  CharacterReferenceDecision,
+  CharacterReferenceProposalsResponse,
+  CharacterReferenceProposal,
+  SamePersonReviewsResponse,
+  SamePersonReview,
   StillPreview,
   VisualWorkbench,
   VisualIntent,
@@ -175,7 +181,7 @@ export class PlotloomApiClient {
   }
 
   prepareImageJob(projectId: string, body: {
-    approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string; presentationChange: string;
+    approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string; presentationChange: string; contractVersion?: 2 | 3;
   }): Promise<{ job: ImageJob }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs`, { method: "POST", body: JSON.stringify(body) });
   }
@@ -190,6 +196,52 @@ export class PlotloomApiClient {
 
   cancelImageJob(projectId: string, jobId: string, reason: string): Promise<ImageJob> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST", body: JSON.stringify({ reason }) });
+  }
+
+  getCharacterReferences(projectId: string, signal?: AbortSignal): Promise<CharacterReferencesResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/character-references`, { signal });
+  }
+
+  selectCharacterReference(projectId: string, body: {
+    characterId: string; primaryAssetId: string; complementaryAssetIds: string[]; expectedReferenceRevision: number; reviewer: string; notes: string;
+  }): Promise<CharacterReferenceDecision> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/character-references`, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  revokeCharacterReference(projectId: string, characterId: string, body: {
+    expectedReferenceRevision: number; reviewer: string; reason: string;
+  }): Promise<CharacterReferenceDecision> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/character-references/${encodeURIComponent(characterId)}/revoke`, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  getCharacterReferenceProposals(projectId: string, signal?: AbortSignal): Promise<CharacterReferenceProposalsResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals`, { signal });
+  }
+
+  prepareCharacterReferenceProposal(projectId: string, body: {
+    characterId: string; storyBibleRevision: number; visualDirection: string; parentCandidateAssetId?: string;
+  }): Promise<{ proposal: CharacterReferenceProposal }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals`, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  copyCharacterReferenceProposal(projectId: string, proposalId: string): Promise<{ proposal: CharacterReferenceProposal; assignment: string; packagePath: string; deliveryPath: string }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals/${encodeURIComponent(proposalId)}/copy`, { method: "POST" });
+  }
+
+  refreshCharacterReferenceProposal(projectId: string, proposalId: string): Promise<{ state: "awaiting_delivery" | "accepted" | "inapplicable"; candidates: CharacterReferenceProposal["deliveries"][number]["candidates"] }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals/${encodeURIComponent(proposalId)}/refresh`, { method: "POST" });
+  }
+
+  getSamePersonReviews(projectId: string, signal?: AbortSignal): Promise<SamePersonReviewsResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/same-person-reviews`, { signal });
+  }
+
+  recordSamePersonReview(projectId: string, body: {
+    bindingId: string; expectedReviewRevision: number; reviewer: string;
+    comparisons: Array<{ characterId: string; judgment: "pass" | "fail"; identityNotes: string; stateNotes: string }>;
+    notes: string;
+  }): Promise<SamePersonReview> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/same-person-reviews`, { method: "POST", body: JSON.stringify(body) });
   }
 
   importManagedAsset(projectId: string, file: File, declaration: {
