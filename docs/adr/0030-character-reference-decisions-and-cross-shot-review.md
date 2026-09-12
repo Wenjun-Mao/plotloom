@@ -36,6 +36,12 @@ refinement role and cannot supersede identity or canonical shot state. Missing
 references fail admission; character-free shots remain valid without a reference.
 V2 requests and manifests retain their historic projection and behavior.
 
+`character_identity` references establish durable character identity only. The
+frozen Shot owns pose, action, composition, crop, camera, lighting, and setting;
+the specialist must not transfer those visual choices from an identity reference.
+It also must not reframe a requested shot or add otherwise out-of-frame hands or
+props merely to make a continuity fact visible.
+
 The specialist must view every role-mapped identity reference and truthfully
 attest the exact viewed hashes plus executor code/skill provenance in a v2
 delivery manifest. This attestation is delivery evidence, not a claim of
@@ -52,8 +58,8 @@ not elevate matching untrusted delivery files into automatic execution proof.
 Historic v3 packages retain their original verification behavior and are not
 retroactively required to contain the newer pin.
 
-A selected v3 generated keyframe with visible characters requires a recorded
-human same-person review before it can enter a still preview. The review binds
+A selected v3 generated keyframe with visible characters requires a recorded,
+attributed same-person review before it can enter a still preview. The review binds
 the selected keyframe to exact frozen decision revisions and image hashes,
 separates identity judgment from shot state, and has no face-recognition or
 Approval authority. Replacing/revoking a reference, changing relevant character
