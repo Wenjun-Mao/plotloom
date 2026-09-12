@@ -191,6 +191,10 @@ def test_known_remote_failure_is_terminal_and_cancelled_known_id_is_polled_not_a
         failed = make("terminal-failure-key")
         client.post(f"/api/v2/projects/{project.id}/video-jobs/{failed['id']}/submit")
         assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{failed['id']}/reconcile").json()["state"] == "failed"
+        provider.poll = lambda _id: {}  # type: ignore[method-assign]
+        malformed = make("malformed-poll-key")
+        client.post(f"/api/v2/projects/{project.id}/video-jobs/{malformed['id']}/submit")
+        assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{malformed['id']}/reconcile").json()["state"] == "retrieve_needed"
         # Restore a completion response: cancel retains the known ID and polls,
         # but must never retrieve or publish it.
         provider.poll = lambda _id: {"data": {"status": "completed", "outputs": ["https://cdn.example/clip.mp4"]}}  # type: ignore[method-assign]

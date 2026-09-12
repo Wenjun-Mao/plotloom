@@ -9,6 +9,10 @@ class VideoProviderError(RuntimeError):
     pass
 
 
+class RemotePredictionFailed(VideoProviderError):
+    """The provider explicitly reported a known prediction terminal failure."""
+
+
 @dataclass(frozen=True)
 class WanCapabilities:
     provider: str = "atlascloud"
@@ -63,8 +67,10 @@ class AtlasWanAdapter:
         if not isinstance(data, dict):
             raise VideoProviderError("Atlas prediction response is not a documented object")
         status = data.get("status")
+        if not isinstance(status, str):
+            raise VideoProviderError("Atlas prediction response has no documented status")
         if status in {"failed", "error", "cancelled", "canceled"}:
-            raise VideoProviderError("Atlas prediction reported failure")
+            raise RemotePredictionFailed("Atlas prediction reported failure")
         if status not in {"completed", "succeeded", "success"}:
             return None
         outputs = data.get("outputs")

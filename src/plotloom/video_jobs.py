@@ -7,7 +7,7 @@ from typing import Any, Callable
 from .artifacts import ArtifactStore
 from .persistence import SQLiteRepository
 from .video_ingestion import ObservedVideo, assert_public_https_url, probe_video
-from .video_provider import AtlasWanAdapter, VideoProviderError, VideoProviderPort
+from .video_provider import AtlasWanAdapter, RemotePredictionFailed, VideoProviderPort
 
 
 class VideoJobService:
@@ -90,7 +90,7 @@ class VideoJobService:
                 observed={"durationSeconds": observed.duration_seconds, "width": observed.width, "height": observed.height,
                     "videoCodec": observed.video_codec, "audioCodec": observed.audio_codec},
             )
-        except VideoProviderError:
+        except RemotePredictionFailed:
             return self.repository.record_video_remote_failed(project_id, video_job_id, "remote_prediction_failed")
         except Exception as error:
             # A known prediction is still recoverable; this never regenerates.
