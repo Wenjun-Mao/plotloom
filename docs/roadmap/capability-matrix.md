@@ -12,9 +12,10 @@
 
 **Next product direction (amended 2026-09-11):** [Story to playable Alpha](story-to-playable-alpha.md)
 records the agreed cinematic-realism, proposal/refinement, imported-reference,
-native-audio and in-app pause-and-choose direction. P0 is implemented and P1 has
-a bounded manual Codex-image-job implementation candidate pending director acceptance;
-P2–P4 remain planned. ADR 0026
+native-audio and in-app pause-and-choose direction. P0 and the bounded P1 manual
+Codex-image-job workflow are integrated on pushed `main` through `05f73b6`.
+[P1.5 character references and cross-shot identity](p15-character-reference-consistency-plan.md)
+is approved for implementation, before video. P2–P4 remain planned. ADR 0026
 now authorizes the non-generative imported/still-preview boundary as a design;
 the [P0 implementation plan](p0-imported-still-preview-plan.md) revision 2 is
 Approved and implemented as a locally verified correction candidate.
@@ -40,7 +41,9 @@ self-contained. The correction freezes creator direction, resolved shot context
 and selected intent revision; a real FastAPI/file-SQLite browser regression uses
 retained assets to prove Copy/Refresh and post-Copy invalidation without claiming
 a new generation. Candidate publication remains hash-validated, idempotent and
-explicit-review-only. **Director acceptance is pending.** This does not revive
+explicit-review-only. **P1 and its brief/usability corrections are accepted and
+integrated through `05f73b6`; cross-shot identity is not yet implemented or
+qualified.** This does not revive
 legacy `MediaTask` provider dispatch, expose credentials, or qualify external
 image/video providers. See the [initial receipt](../verification/2026-09-11-p1-codex-image-jobs.md)
 and [correction receipt](../verification/2026-09-11-p1-self-contained-brief-correction.md).

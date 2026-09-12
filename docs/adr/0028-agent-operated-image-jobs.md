@@ -2,8 +2,8 @@
 
 ## Status
 
-Implementation candidate under bounded verification; **director acceptance is
-pending**, 2026-09-11. The [P1 revision 2 plan](../roadmap/p1-image-generation-plan.md)
+Accepted and integrated, including brief/usability corrections, on pushed `main`
+through `05f73b6`, 2026-09-11. The [P1 revision 2 plan](../roadmap/p1-image-generation-plan.md)
 remains the approved scope. P1 opens only this guarded manual Codex-job path;
 legacy direct-provider media execution remains stopped. The initial source-bound
 receipt is [2026-09-11 P1 Codex image jobs](../verification/2026-09-11-p1-codex-image-jobs.md),

@@ -33,9 +33,21 @@ reference revisions, multi-character mapping, user-provided originals, and
 visual cross-shot review. It must separate stable identity from state, costume,
 composition, and style before adding a schema or generation behavior.
 
+The next bounded scope is approved in the
+[P1.5 plan](../roadmap/p15-character-reference-consistency-plan.md).
+It is not an implemented identity guarantee or an amendment authorizing video.
+
+The agreed specialist direction is a versioned, repository-scoped skill with
+replaceable executor tasks. Plotloom retains job/asset authority; task history is
+optional. Development may use explicit branches/worktrees; production uses an
+approved main revision pinned for each job. Executor model selection is separate
+from the frozen creative contract. The P1.5 plan records implementation and
+fresh-task acceptance details; this boundary is not yet implemented.
+
 ## Consequences
 
-No draft becomes canonical until Prepare, no export implies specialist action,
+Prepare freezes presentation direction as a job input, not a canonical story edit;
+no export implies specialist action,
 and no waiting response implies valid output. P1 makes no same-person fidelity
 claim. The existing immutable request, delivery, Approval, and selection
 contracts remain unchanged.
