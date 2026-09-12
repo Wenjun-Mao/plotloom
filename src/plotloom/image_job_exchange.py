@@ -16,7 +16,7 @@ from typing import Any, Iterable
 
 from pydantic import ValidationError
 
-from .image_job_contracts import ImageDeliveryManifest, ImageJobError, is_image_job_id
+from .image_job_contracts import ImageDeliveryManifest, ImageExecutorProvenance, ImageJobError, is_image_job_id
 from .managed_media import ManagedMediaLimits, ObservedImage, inspect_import_image
 
 
@@ -540,6 +540,7 @@ class ImageJobExchange:
         required_reference_hashes: Iterable[str] = (),
         require_executor_provenance: bool = False,
         require_executor_pin: bool = False,
+        expected_executor_skill_version: str | None = None,
     ) -> ValidatedDelivery | None:
         """Read a completed untrusted package, or report that no delivery exists yet.
 
@@ -566,6 +567,15 @@ class ImageJobExchange:
             if not names:
                 return None
             if COMPLETION_FILENAME not in names:
+                if require_executor_pin and names == {EXECUTOR_PIN_FILENAME}:
+                    self._validated_executor_pin(
+                        delivery_fd, job_id=job_id, request_hash=request_hash,
+                        expected_skill_version=expected_executor_skill_version,
+                    )
+                    # A valid pre-generation pin is the one intentional partial
+                    # delivery state for v4 packages. It records that the
+                    # specialist is operating, not that output exists yet.
+                    return None
                 raise ImageJobError(
                     "delivery_partial",
                     "delivery has files but no completion manifest",
@@ -603,12 +613,10 @@ class ImageJobExchange:
                         "delivery_executor_pin_missing",
                         "identity-aware delivery must include the pre-generation executor pin",
                     )
-                try:
-                    pin = json.loads(self._read_regular_at(
-                        delivery_fd, EXECUTOR_PIN_FILENAME, max_bytes=20_000
-                    ))
-                except (json.JSONDecodeError, TypeError) as error:
-                    raise ImageJobError("delivery_executor_pin_invalid", "executor pin is not valid JSON") from error
+                pin = self._validated_executor_pin(
+                    delivery_fd, job_id=job_id, request_hash=request_hash,
+                    expected_skill_version=expected_executor_skill_version,
+                )
                 provenance = manifest.executor_provenance
                 expected_pin = {
                     "jobId": job_id,
@@ -660,3 +668,36 @@ class ImageJobExchange:
             manifest_hash=sha256(_canonical_json(manifest.model_dump(mode="json", by_alias=True))).hexdigest(),
             outputs=tuple(outputs),
         )
+
+    def _validated_executor_pin(
+        self, delivery_fd: int, *, job_id: str, request_hash: str,
+        expected_skill_version: str | None,
+    ) -> dict[str, str]:
+        """Validate the narrow v4 pre-generation marker before accepting waiting."""
+
+        try:
+            pin = json.loads(self._read_regular_at(
+                delivery_fd, EXECUTOR_PIN_FILENAME, max_bytes=20_000
+            ))
+        except (json.JSONDecodeError, TypeError) as error:
+            raise ImageJobError("delivery_executor_pin_invalid", "executor pin is not valid JSON") from error
+        expected_keys = {
+            "jobId", "requestHash", "executionContract", "skillVersion",
+            "codeRevision", "skillHash",
+        }
+        if not isinstance(pin, dict) or set(pin) != expected_keys:
+            raise ImageJobError("delivery_executor_pin_invalid", "executor pin has an unsupported shape")
+        if pin.get("jobId") != job_id or pin.get("requestHash") != request_hash:
+            raise ImageJobError("delivery_executor_pin_mismatch", "executor pin does not belong to this frozen image job")
+        if pin.get("executionContract") != "codex_specialist.v2":
+            raise ImageJobError("delivery_executor_pin_invalid", "executor pin has an unsupported execution contract")
+        if expected_skill_version is not None and pin.get("skillVersion") != expected_skill_version:
+            raise ImageJobError("delivery_executor_pin_invalid", "executor pin has an unsupported specialist skill version")
+        try:
+            ImageExecutorProvenance.model_validate({
+                "codeRevision": pin["codeRevision"], "skillVersion": pin["skillVersion"],
+                "skillHash": pin["skillHash"],
+            })
+        except (KeyError, ValidationError) as error:
+            raise ImageJobError("delivery_executor_pin_invalid", "executor pin provenance is invalid") from error
+        return pin

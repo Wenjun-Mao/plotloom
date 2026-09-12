@@ -13,6 +13,7 @@ from plotloom.api import create_app
 from plotloom.artifacts import MemoryArtifactStore
 from plotloom.canonical_schema import CharacterV2, DialogueCue, LocationV2, PropV2, RequiredEntityState
 from plotloom.domain import StageName
+from plotloom.image_job_contracts import ImageJobError
 from plotloom.image_job_exchange import ImageJobExchange
 from plotloom.managed_media import ManagedMediaLimits, inspect_import_image, publish_import
 from plotloom.persistence import SQLiteRepository
@@ -261,6 +262,61 @@ def test_legacy_v3_package_keeps_its_unpinned_skill_template(tmp_path: Path) -> 
     exchange.verify_package(
         job_id=request["jobId"], request=request, request_hash=request_hash, references=[],
     )
+
+
+def test_v4_executor_pin_is_the_only_awaiting_partial_delivery(tmp_path: Path) -> None:
+    """A pre-generation marker is waiting; all other partial states fail closed."""
+
+    job_id = "ij_" + "c" * 20
+    request = {"schemaVersion": 3, "jobId": job_id, "kind": "original"}
+    request_hash = sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    exchange = ImageJobExchange(tmp_path / "exchange", limits=ManagedMediaLimits())
+    copied = exchange.write_package(
+        job_id=job_id,
+        request=request,
+        request_hash=request_hash,
+        references=[],
+    )
+    delivery = Path(copied["deliveryPath"])
+    delivery.mkdir(parents=True)
+    pin = {
+        "jobId": job_id,
+        "requestHash": request_hash,
+        "executionContract": "codex_specialist.v2",
+        "skillVersion": "plotloom-image-specialist.v2",
+        "codeRevision": "a" * 40,
+        "skillHash": "b" * 64,
+    }
+    (delivery / "executor-pin.json").write_text(json.dumps(pin), encoding="utf-8")
+    assert exchange.read_delivery(
+        job_id=job_id, request_hash=request_hash, require_executor_pin=True,
+        expected_executor_skill_version="plotloom-image-specialist.v2",
+    ) is None
+
+    pin["jobId"] = "ij_" + "e" * 20
+    (delivery / "executor-pin.json").write_text(json.dumps(pin), encoding="utf-8")
+    try:
+        exchange.read_delivery(
+            job_id=job_id, request_hash=request_hash, require_executor_pin=True,
+            expected_executor_skill_version="plotloom-image-specialist.v2",
+        )
+    except ImageJobError as error:
+        assert error.code == "delivery_executor_pin_mismatch"
+    else:
+        raise AssertionError("wrong-job executor pin must not become an awaiting delivery")
+
+    pin["jobId"] = job_id
+    (delivery / "executor-pin.json").write_text(json.dumps(pin), encoding="utf-8")
+    (delivery / "unexpected.txt").write_text("partial", encoding="utf-8")
+    try:
+        exchange.read_delivery(
+            job_id=job_id, request_hash=request_hash, require_executor_pin=True,
+            expected_executor_skill_version="plotloom-image-specialist.v2",
+        )
+    except ImageJobError as error:
+        assert error.code == "delivery_partial"
+    else:
+        raise AssertionError("undeclared partial delivery must remain rejected")
 
 
 def test_manual_image_job_prepare_copy_refresh_select_and_refine(repository, brief, tmp_path: Path) -> None:
@@ -689,6 +745,16 @@ def test_identity_reference_job_is_explicitly_reviewed_and_stales_on_replacement
         request = json.loads((Path(copied.json()["packagePath"]) / "request.json").read_text())
         assert request["packageVersion"] == 4
         assert request["references"][0]["role"] == "character_identity:captain"
+        delivery_root = Path(copied.json()["deliveryPath"])
+        delivery_root.mkdir(parents=True)
+        (delivery_root / "executor-pin.json").write_text(json.dumps({
+            "jobId": job["id"], "requestHash": job["requestHash"],
+            "executionContract": "codex_specialist.v2", "skillVersion": "plotloom-image-specialist.v2",
+            "codeRevision": "a" * 40, "skillHash": "b" * 64,
+        }), encoding="utf-8")
+        awaiting = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh")
+        assert awaiting.status_code == 200 and awaiting.json()["state"] == "awaiting_delivery"
+        assert client.get(f"/api/v2/projects/{project.id}/image-jobs").json()["jobs"][0]["deliveries"] == []
         _complete_identity_delivery(Path(copied.json()["deliveryPath"]), job, delivery_id="identity-001", content=_png((40, 90, 140)))
         candidate = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh").json()["candidates"][0]
         intent = client.post(

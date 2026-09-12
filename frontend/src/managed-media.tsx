@@ -253,6 +253,10 @@ export function ManagedMediaWorkbench({
     () => identityMappingForAsset(selectedBinding?.assetId, imageJobs),
     [imageJobs, selectedBinding?.assetId],
   );
+  const retainedIdentityMapping = useMemo(
+    () => identityMappingForAsset(keptAssetId, imageJobs),
+    [imageJobs, keptAssetId],
+  );
   const currentReviewByBinding = useMemo(
     () =>
       new Map(
@@ -1725,6 +1729,76 @@ export function ManagedMediaWorkbench({
           </div>
         </section>
       )}
+      {!selectedBinding &&
+        keptAssetId &&
+        retainedIdentityMapping.length > 0 && (
+          <section
+            className="intent-editor"
+            data-testid="frozen-reference-history"
+            aria-label="历史候选的冻结身份参考"
+          >
+            <strong>历史候选的冻结身份参考 · inapplicable/history</strong>
+            <p className="muted">
+              当前 reference 已替换或关联选择已失效。该候选与其冻结
+              primary/complementary 参考仍可检查；它不会改用当前
+              reference，也不能重新进入 preview。
+            </p>
+            <div className="frozen-review-comparison">
+              <article className="media-candidate">
+                {projectId && assetById.get(keptAssetId) ? (
+                  <>
+                    <img
+                      src={plotloomApi.managedAssetUrl(projectId, keptAssetId)}
+                      alt="historic selected candidate"
+                    />
+                    <strong>
+                      historic candidate · {keptAssetId.slice(0, 8)}
+                    </strong>
+                  </>
+                ) : (
+                  <small>Historic candidate bytes are unavailable.</small>
+                )}
+              </article>
+              {retainedIdentityMapping.flatMap((mapping) =>
+                mapping.assets.map((asset, index) => {
+                  const frozenAsset = assetById.get(asset.assetId);
+                  return (
+                    <article
+                      className="media-candidate"
+                      key={`historic:${mapping.referenceDecisionId}:${asset.assetId}`}
+                      data-testid={`frozen-reference-history-${asset.assetId}`}
+                    >
+                      {projectId && frozenAsset ? (
+                        <img
+                          src={plotloomApi.managedAssetUrl(
+                            projectId,
+                            frozenAsset.id,
+                          )}
+                          alt={`${mapping.characterId} historic frozen ${index === 0 ? "primary" : "complementary"} reference`}
+                        />
+                      ) : (
+                        <small>
+                          Frozen asset {asset.assetId.slice(0, 8)} is
+                          unavailable.
+                        </small>
+                      )}
+                      <strong>
+                        {mapping.characterId} ·{" "}
+                        {index === 0 ? "primary" : `complementary ${index}`} ·
+                        frozen r{mapping.referenceRevision}
+                      </strong>
+                      <small>
+                        historic decision{" "}
+                        {mapping.referenceDecisionId.slice(0, 8)} ·{" "}
+                        {asset.originalHash.slice(0, 12)}
+                      </small>
+                    </article>
+                  );
+                }),
+              )}
+            </div>
+          </section>
+        )}
       {keptAssetId && (
         <section className="intent-editor" aria-label="可审核视觉意图">
           <strong>为保留候选记录可审核意图 · shot_keyframe</strong>

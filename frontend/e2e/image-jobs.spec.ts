@@ -15,6 +15,10 @@ const retainedStill = path.join(
   repositoryRoot,
   "docs/verification/supporting/p0-generated/01-arrival.png",
 );
+const retainedComplementary = path.join(
+  repositoryRoot,
+  "docs/verification/supporting/p15-reference-replacement-stale.png",
+);
 // Verification runs must not overwrite the reviewed, tracked evidence image.
 const usabilityScreenshot = path.join(
   tmpdir(),
@@ -170,7 +174,7 @@ test.describe("P1 self-contained copied image brief", () => {
     page,
     request,
     workbench,
-  }) => {
+  }, testInfo) => {
     await page.addInitScript(() => {
       Object.defineProperty(navigator, "clipboard", {
         configurable: true,
@@ -217,8 +221,20 @@ test.describe("P1 self-contained copied image brief", () => {
       .getAttribute("value");
     expect(referenceAssetId).toBeTruthy();
     await page
+      .getByTestId("managed-image-upload")
+      .setInputFiles(retainedComplementary);
+    const complementaryAssetId = await page
+      .getByTestId("reference-complementary-assets")
+      .locator("option")
+      .nth(1)
+      .getAttribute("value");
+    expect(complementaryAssetId).toBeTruthy();
+    await page
       .getByTestId("reference-primary-asset")
       .selectOption(referenceAssetId!);
+    await page
+      .getByTestId("reference-complementary-assets")
+      .selectOption([complementaryAssetId!]);
     await page
       .getByTestId("reference-reviewer")
       .fill("P1.5 browser reference reviewer");
@@ -414,6 +430,21 @@ test.describe("P1 self-contained copied image brief", () => {
       "intent r1",
     );
     await recordSamePersonReview(page, "char_ruanxing");
+    const frozenComparison = page.getByTestId("frozen-reference-comparison");
+    await expect(
+      frozenComparison.getByTestId(`frozen-reference-${referenceAssetId}`),
+    ).toBeVisible();
+    await expect(
+      frozenComparison.getByTestId(`frozen-reference-${complementaryAssetId}`),
+    ).toBeVisible();
+    const frozenComparisonScreenshot = testInfo.outputPath(
+      "p15-frozen-reference-comparison-1440x900.png",
+    );
+    await frozenComparison.screenshot({ path: frozenComparisonScreenshot });
+    await testInfo.attach("p15 frozen reference comparison", {
+      path: frozenComparisonScreenshot,
+      contentType: "image/png",
+    });
     await page.getByTestId("preview-subset-length").selectOption("1");
     await page.getByTestId("create-still-preview").click();
     await expect(page.getByTestId("still-animatic")).toBeVisible();
@@ -597,6 +628,30 @@ test.describe("P1 self-contained copied image brief", () => {
             .deliveries[0]?.state,
       )
       .toBe("rejected");
+    // Replacing the current reference does not rewrite this selected historic
+    // candidate's frozen role-mapped source set.
+    await page
+      .getByTestId("reference-primary-asset")
+      .selectOption(originalCandidate);
+    await page
+      .getByTestId("reference-notes")
+      .fill(
+        "Explicit replacement; historic jobs must retain their original frozen reference images.",
+      );
+    await page.getByTestId("select-character-reference").click();
+    await expect(
+      page.getByTestId("character-reference-char_ruanxing"),
+    ).toContainText("r2");
+    await expect(
+      page
+        .getByTestId("frozen-reference-history")
+        .getByTestId(`frozen-reference-history-${referenceAssetId}`),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByTestId("frozen-reference-history")
+        .getByTestId(`frozen-reference-history-${complementaryAssetId}`),
+    ).toBeVisible();
     await page.screenshot({ path: usabilityScreenshot });
   });
 });
