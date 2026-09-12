@@ -2501,21 +2501,45 @@ class SQLiteRepository:
             return False
         review_id = snapshot.get("samePersonReviewId")
         if identity:
-            review = session.get(SamePersonReviewRow, review_id)
-            if review is None or not self._same_person_review_is_current_in_session(session, row.project_id, review):
+            try:
+                bible = self._load_stage_payload(session, row.project_id, StageName.STORY_BIBLE)
+            except (NotFoundError, SchemaResetRequiredError):
                 return False
-            if review.binding_id != binding.id:
-                return False
-            reviewed = {item.get("characterId"): item for item in review.reference_bindings}
-            if [item.get("characterId") for item in identity] != list(reviewed):
-                return False
-            if any(
-                not isinstance(item, dict)
-                or reviewed.get(item.get("characterId"), {}).get("referenceDecisionId") != item.get("referenceDecisionId")
-                or reviewed.get(item.get("characterId"), {}).get("referenceRevision") != item.get("referenceRevision")
-                for item in identity
-            ):
-                return False
+            characters = {character.id: character for character in bible.characters}
+            for frozen in identity:
+                if not isinstance(frozen, dict):
+                    return False
+                character = characters.get(frozen.get("characterId"))
+                current = self._current_character_reference_in_session(session, row.project_id, character) if character else None
+                if (
+                    current is None
+                    or current.id != frozen.get("referenceDecisionId")
+                    or current.reference_revision != frozen.get("referenceRevision")
+                    or current.character_context_hash != frozen.get("characterContextHash")
+                ):
+                    return False
+                expected_assets = {item["assetId"]: item["originalHash"] for item in current.asset_hashes}
+                frozen_assets = frozen.get("assets")
+                if (
+                    not isinstance(frozen_assets, list)
+                    or len(frozen_assets) != len(expected_assets)
+                    or any(
+                        not isinstance(item, dict)
+                        or expected_assets.get(item.get("assetId")) != item.get("originalHash")
+                        for item in frozen_assets
+                    )
+                ):
+                    return False
+            # A generated V3 keyframe additionally needs its independent
+            # human same-person review. An imported, explicitly selected
+            # keyframe has no generated-person comparison to perform; its
+            # current character-reference decision is its review lineage.
+            if review_id is not None:
+                review = session.get(SamePersonReviewRow, review_id)
+                if review is None or not self._same_person_review_is_current_in_session(session, row.project_id, review):
+                    return False
+                if binding is None or review.binding_id != binding.id:
+                    return False
         return bool(
             approval.project_id == row.project_id
             and approval.entity_revision_id == snapshot.get("storyboardEntityRevisionId")
@@ -2568,9 +2592,27 @@ class SQLiteRepository:
             if intent is None:
                 raise InvalidTransitionError("selected keyframe visual intent is unavailable")
             context = self._image_job_resolved_context(shot=shot, storyboard=storyboard, story_bible=story_bible, scene_beats=scene_beats)
-            identity_lineage = self._identity_mapping_for_binding_in_session(session, binding) or []
+            generated_identity = self._identity_mapping_for_binding_in_session(session, binding)
+            identity_lineage = generated_identity
+            if identity_lineage is None:
+                characters = {character.id: character for character in story_bible.characters}
+                identity_lineage = []
+                for character_id in shot.character_ids:
+                    character = characters.get(character_id)
+                    decision = self._current_character_reference_in_session(session, project_id, character) if character else None
+                    if decision is None:
+                        raise InvalidTransitionError(
+                            "video job needs a current explicit character reference for each visible character"
+                        )
+                    identity_lineage.append({
+                        "characterId": character_id,
+                        "referenceDecisionId": decision.id,
+                        "referenceRevision": decision.reference_revision,
+                        "characterContextHash": decision.character_context_hash,
+                        "assets": list(decision.asset_hashes),
+                    })
             same_person_review = self.current_same_person_review_for_binding(session, project_id, binding)
-            if identity_lineage and same_person_review is None:
+            if generated_identity and same_person_review is None:
                 raise InvalidTransitionError("identity-aware keyframe requires a current explicit same-person review before video admission")
             snapshot = {
                 "snapshotVersion": 1, "compilerVersion": "p2-wan-v1", "approvalId": approval.id,

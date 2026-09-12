@@ -8,6 +8,7 @@ from PIL import Image
 
 from plotloom.api import create_app
 from plotloom.artifacts import MemoryArtifactStore
+from plotloom.canonical_schema import CharacterV2
 from plotloom.domain import STAGE_ORDER, StageName
 from plotloom.persistence import SQLiteRepository
 from plotloom.video_ingestion import ObservedVideo
@@ -166,6 +167,51 @@ def test_p2_download_boundary_rejects_private_and_probe_failures() -> None:
             pass
         else:
             raise AssertionError(f"private candidate URL admitted: {url}")
+
+
+def test_p2_imported_keyframe_freezes_visible_character_reference_lineage(repository, brief) -> None:
+    """A retained still needs a real reference decision, not an empty identity snapshot."""
+
+    project = repository.create_project(brief)
+    bible, graph, beats, storyboard = all_stage_payloads()
+    captain = CharacterV2(
+        id="captain", name="Mara", role="archivist", description="A controlled municipal archivist.",
+        visual_anchors=["dark braid"], sound_anchors=["quiet breath"], allowed_states=["steady"],
+        continuity_rules=["hands remain below the close frame"], goal="protect the record",
+        traits=["measured"], voice_anchors=["low controlled voice"],
+    )
+    bible.characters = [captain]
+    beats.scenes[0].character_ids = [captain.id]
+    storyboard.shots[0].character_ids = [captain.id]
+    for stage, payload in zip(STAGE_ORDER, (bible, graph, beats, storyboard), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+    with TestClient(create_app(repository)) as client:
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        keyframe = client.get(f"/api/v2/projects/{project.id}/managed-assets").json()["assets"][0]
+        reference = client.post(f"/api/v2/projects/{project.id}/character-references", json={
+            "characterId": captain.id, "primaryAssetId": keyframe["id"], "complementaryAssetIds": [],
+            "expectedReferenceRevision": 0, "reviewer": "P2 fixture reviewer",
+            "notes": "Explicit retained-keyframe identity review.",
+        })
+        assert reference.status_code == 201, reference.text
+        prepared = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
+            "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
+            "expectedSelectionRevision": selection_revision, "idempotencyKey": "imported-reference-lineage",
+        })
+        assert prepared.status_code == 201, prepared.text
+        frozen = prepared.json()["snapshot"]["identityLineage"]
+        assert frozen == [{
+            "characterId": captain.id, "referenceDecisionId": reference.json()["id"],
+            "referenceRevision": 1, "characterContextHash": reference.json()["characterContextHash"],
+            "assets": reference.json()["assetHashes"],
+        }]
+        replacement = client.post(f"/api/v2/projects/{project.id}/character-references", json={
+            "characterId": captain.id, "primaryAssetId": keyframe["id"], "complementaryAssetIds": [],
+            "expectedReferenceRevision": 1, "reviewer": "P2 fixture reviewer",
+            "notes": "A later decision intentionally makes the prepared clip stale.",
+        })
+        assert replacement.status_code == 201, replacement.text
+        assert client.get(f"/api/v2/projects/{project.id}/video-jobs").json()["jobs"][0]["current"] is False
 
 
 def test_known_remote_failure_is_terminal_and_cancelled_known_id_is_polled_not_adopted(repository, brief) -> None:
