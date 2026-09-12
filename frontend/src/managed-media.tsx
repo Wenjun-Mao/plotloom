@@ -15,6 +15,7 @@ import type {
 } from "./types";
 import { plotloomApi } from "./api";
 import { Badge, Button, Field, Panel } from "./components";
+import { VideoPilotPanel } from "./video-pilot";
 import {
   useImageJobDirectionDraft,
   useVisualIntentDraft,
@@ -1991,6 +1992,7 @@ export function ManagedMediaWorkbench({
           onPlay={() => setPlaying((current) => !current)}
         />
       )}
+      <VideoPilotPanel projectId={projectId} shot={selectedShot} approvalId={review?.activeApproval?.id} storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision} readOnly={readOnly} />
     </Panel>
   );
 }

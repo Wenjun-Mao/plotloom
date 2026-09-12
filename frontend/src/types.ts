@@ -302,6 +302,28 @@ export interface VisualWorkbench {
   previews: StillPreview[];
 }
 
+export interface VideoPilotBudget {
+  limitSeconds: number;
+  reservedSeconds: number;
+  remainingSeconds: number;
+  attempts: Array<{ videoJobId: string; event: string; seconds: number; createdAt: string }>;
+}
+
+export interface VideoJob {
+  id: string;
+  projectId: string;
+  state: "prepared" | "dispatching" | "submitted" | "outcome_unknown" | "retrieve_needed" | "ingested" | "cancelled" | "failed";
+  cancelRequestedAt: string | null;
+  requestedSeconds: number;
+  current: boolean;
+  selected: boolean;
+  providerPredictionId: string | null;
+  outputHash: string | null;
+  observed: { durationSeconds: number; width: number; height: number; videoCodec: string; audioCodec: string | null } | null;
+  error: string | null;
+  snapshot: Record<string, unknown>;
+}
+
 export interface CharacterReferenceState {
   characterId: string;
   revision: number;

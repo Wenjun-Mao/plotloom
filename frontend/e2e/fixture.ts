@@ -76,7 +76,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
       VIDEO_MODEL_API_KEY: "",
       ATLASCLOUD_API_KEY: "",
     };
-    let backend = startProcess("FastAPI", "uv", ["run", "plotloom"], backendEnvironment);
+    let backend = startProcess("FastAPI", "uv", ["run", "python", "frontend/e2e/fake_video_runtime.py"], backendEnvironment);
     let frontend: ManagedProcess | undefined;
 
     try {
@@ -107,7 +107,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
         restartBackend: async () => {
           await stopProcess(backend);
           await waitForHttpUnavailable(`${apiOrigin}/openapi.json`);
-          backend = startProcess("FastAPI", "uv", ["run", "plotloom"], backendEnvironment);
+          backend = startProcess("FastAPI", "uv", ["run", "python", "frontend/e2e/fake_video_runtime.py"], backendEnvironment);
           await waitForHttp(`${apiOrigin}/openapi.json`, backend);
         },
       });

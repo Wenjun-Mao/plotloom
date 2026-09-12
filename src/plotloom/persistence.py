@@ -700,6 +700,68 @@ class StillPreviewRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+# P2 intentionally has its own lifecycle.  These rows are not MediaTask rows:
+# historical raw-Shot media submission remains disabled by MediaJobRunner.
+class VideoPilotLedgerRow(Base):
+    __tablename__ = "v2_video_pilot_ledger"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    limit_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    reserved_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class VideoPilotLedgerEventRow(Base):
+    __tablename__ = "v2_video_pilot_ledger_events"
+    __table_args__ = (Index("ix_v2_video_pilot_ledger_events_ledger_created", "ledger_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    ledger_id: Mapped[str] = mapped_column(ForeignKey("v2_video_pilot_ledger.id", ondelete="RESTRICT"), nullable=False)
+    video_job_id: Mapped[str] = mapped_column(String(67), nullable=False)
+    event: Mapped[str] = mapped_column(String(48), nullable=False)
+    seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class VideoJobRow(Base):
+    __tablename__ = "v2_video_jobs"
+    __table_args__ = (
+        UniqueConstraint("project_id", "idempotency_key", name="uq_v2_video_jobs_project_idempotency"),
+        Index("ix_v2_video_jobs_project_created", "project_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(67), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    snapshot_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    requested_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    state: Mapped[str] = mapped_column(String(32), nullable=False)
+    provider_prediction_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    output_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    output_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    observed: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancel_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class VideoReviewRow(Base):
+    __tablename__ = "v2_video_reviews"
+    __table_args__ = (Index("ix_v2_video_reviews_job_created", "video_job_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    video_job_id: Mapped[str] = mapped_column(ForeignKey("v2_video_jobs.id", ondelete="RESTRICT"), nullable=False)
+    reviewer: Mapped[str] = mapped_column(String(160), nullable=False)
+    decision: Mapped[str] = mapped_column(String(16), nullable=False)
+    note: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class ProductionUnitRow(Base):
     """A single-shot approved projection frozen for P1 image work."""
 
@@ -2388,6 +2450,288 @@ class SQLiteRepository:
                 return not self._identity_mapping_for_binding_in_session(session, binding)
             review = session.get(SamePersonReviewRow, review_id)
             return review is not None and self._same_person_review_is_current_in_session(session, project_id, review)
+
+    # The one P2 ledger ID is deliberately not project-scoped.  A new project,
+    # process, or repository instance therefore cannot reset the pilot cap.
+    _P2_LEDGER_ID = "wan-3.0-pilot-100-requested-seconds"
+
+    @staticmethod
+    def _video_job_id() -> str:
+        return f"vj_{new_id().replace('-', '')}"
+
+    @staticmethod
+    def _video_job_dict(row: VideoJobRow, *, current: bool, selected: bool = False) -> dict[str, Any]:
+        return {
+            "id": row.id, "projectId": row.project_id, "state": row.state,
+            "requestHash": row.request_hash, "snapshot": row.snapshot,
+            "snapshotHash": row.snapshot_hash, "requestedSeconds": row.requested_seconds,
+            "providerPredictionId": row.provider_prediction_id,
+            "outputHash": row.output_hash, "observed": row.observed, "error": row.error,
+            "current": current, "selected": selected,
+            "createdAt": _stored_utc(row.created_at).isoformat(),
+            "dispatchedAt": _stored_utc(row.dispatched_at).isoformat() if row.dispatched_at else None,
+            "cancelRequestedAt": _stored_utc(row.cancel_requested_at).isoformat() if row.cancel_requested_at else None,
+        }
+
+    @staticmethod
+    def _video_ledger_in_session(session: Session, now: datetime) -> VideoPilotLedgerRow:
+        row = session.get(VideoPilotLedgerRow, SQLiteRepository._P2_LEDGER_ID)
+        if row is None:
+            row = VideoPilotLedgerRow(
+                id=SQLiteRepository._P2_LEDGER_ID, limit_seconds=100,
+                reserved_seconds=0, created_at=now, updated_at=now,
+            )
+            session.add(row)
+            session.flush()
+        return row
+
+    def _video_job_current_in_session(self, session: Session, row: VideoJobRow) -> bool:
+        project = session.get(ProjectRow, row.project_id)
+        snapshot = row.snapshot
+        if project is None or ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ACTIVE:
+            return False
+        try:
+            approval = self._approval_is_active_in_session(session, str(snapshot["approvalId"]))
+        except (KeyError, InvalidTransitionError, NotFoundError):
+            return False
+        binding = session.get(ReviewedShotBindingRow, snapshot.get("keyframe", {}).get("bindingId"))
+        asset = session.get(ManagedAssetRow, snapshot.get("keyframe", {}).get("assetId"))
+        identity = snapshot.get("identityLineage", [])
+        if not isinstance(identity, list):
+            return False
+        review_id = snapshot.get("samePersonReviewId")
+        if identity:
+            review = session.get(SamePersonReviewRow, review_id)
+            if review is None or not self._same_person_review_is_current_in_session(session, row.project_id, review):
+                return False
+            if review.binding_id != binding.id:
+                return False
+            reviewed = {item.get("characterId"): item for item in review.reference_bindings}
+            if [item.get("characterId") for item in identity] != list(reviewed):
+                return False
+            if any(
+                not isinstance(item, dict)
+                or reviewed.get(item.get("characterId"), {}).get("referenceDecisionId") != item.get("referenceDecisionId")
+                or reviewed.get(item.get("characterId"), {}).get("referenceRevision") != item.get("referenceRevision")
+                for item in identity
+            ):
+                return False
+        return bool(
+            approval.project_id == row.project_id
+            and approval.entity_revision_id == snapshot.get("storyboardEntityRevisionId")
+            and binding is not None and asset is not None
+            and binding.project_id == row.project_id
+            and binding.shot_id == snapshot.get("shot", {}).get("id")
+            and binding.selection_revision == snapshot.get("keyframe", {}).get("selectionRevision")
+            and asset.original_hash == snapshot.get("keyframe", {}).get("originalHash")
+            and self._reviewed_binding_admission_eligible_in_session(session, row.project_id, binding, approval=approval)
+        )
+
+    def video_budget(self) -> dict[str, Any]:
+        with self._read() as session:
+            row = session.get(VideoPilotLedgerRow, self._P2_LEDGER_ID)
+            if row is None:
+                return {"limitSeconds": 100, "reservedSeconds": 0, "remainingSeconds": 100, "attempts": []}
+            events = session.scalars(select(VideoPilotLedgerEventRow).where(VideoPilotLedgerEventRow.ledger_id == row.id).order_by(VideoPilotLedgerEventRow.created_at, VideoPilotLedgerEventRow.id)).all()
+            return {"limitSeconds": row.limit_seconds, "reservedSeconds": row.reserved_seconds, "remainingSeconds": row.limit_seconds - row.reserved_seconds, "attempts": [{"videoJobId": event.video_job_id, "event": event.event, "seconds": event.seconds, "createdAt": _stored_utc(event.created_at).isoformat()} for event in events]}
+
+    def prepare_video_job(
+        self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int,
+        expected_selection_revision: int, idempotency_key: str, requested_seconds: int = 5,
+        resolution: str = "720p", audio: bool = True,
+    ) -> dict[str, Any]:
+        """Freeze current audiovisual lineage and atomically reserve the shared cap."""
+        if requested_seconds != 5 or resolution != "720p" or audio is not True:
+            raise InvalidTransitionError("P2 only admits Wan 5-second 720p native-audio requests")
+        with self._lifecycle_write() as session:
+            now = utc_now()
+            self._assert_active_project(self._project_row(session, project_id))
+            approval = self._approval_is_active_in_session(session, approval_id)
+            if approval.project_id != project_id or approval.subject_revision != storyboard_revision:
+                raise InvalidTransitionError("video job approval does not match current storyboard")
+            state = self._selection_state_in_session(session, project_id, now)
+            if state.revision != expected_selection_revision:
+                raise RevisionConflictError("visual-selection", expected_selection_revision, state.revision)
+            storyboard = self._load_stage_payload(session, project_id, StageName.STORYBOARD)
+            story_bible = self._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
+            scene_beats = self._load_stage_payload(session, project_id, StageName.SCENE_BEATS)
+            shot = next((item for item in storyboard.shots if item.id == shot_id), None)
+            if shot is None:
+                raise InvalidTransitionError("video job must target one current storyboard shot")
+            binding = session.scalar(select(ReviewedShotBindingRow).where(ReviewedShotBindingRow.project_id == project_id, ReviewedShotBindingRow.shot_id == shot_id).order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1))
+            if binding is None or not self._reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval):
+                raise InvalidTransitionError("video job needs the current reviewed selected keyframe")
+            asset = session.get(ManagedAssetRow, binding.asset_id)
+            if asset is None or asset.project_id != project_id:
+                raise InvalidTransitionError("selected keyframe bytes are unavailable")
+            intent = session.get(VisualIntentRow, binding.visual_intent_id)
+            if intent is None:
+                raise InvalidTransitionError("selected keyframe visual intent is unavailable")
+            context = self._image_job_resolved_context(shot=shot, storyboard=storyboard, story_bible=story_bible, scene_beats=scene_beats)
+            identity_lineage = self._identity_mapping_for_binding_in_session(session, binding) or []
+            same_person_review = self.current_same_person_review_for_binding(session, project_id, binding)
+            if identity_lineage and same_person_review is None:
+                raise InvalidTransitionError("identity-aware keyframe requires a current explicit same-person review before video admission")
+            snapshot = {
+                "snapshotVersion": 1, "compilerVersion": "p2-wan-v1", "approvalId": approval.id,
+                "approvalGateSetVersion": approval.gate_set_version, "storyboardEntityRevisionId": approval.entity_revision_id,
+                "storyboardRevision": storyboard_revision, "canonicalInputRevisions": dict(approval.canonical_input_revisions),
+                "shot": shot.model_dump(mode="json", by_alias=True), "resolvedContext": context,
+                "keyframe": {"bindingId": binding.id, "selectionRevision": binding.selection_revision,
+                    "assetId": asset.id, "originalHash": asset.original_hash, "mimeType": asset.mime_type,
+                    "width": asset.width, "height": asset.height, "visualIntentId": intent.id,
+                    "visualIntentRevision": intent.revision, "intent": intent.intent},
+                "identityLineage": identity_lineage,
+                "samePersonReviewId": same_person_review.id if same_person_review is not None else None,
+                "provider": {"provider": "atlascloud", "model": "alibaba/wan-3.0/image-to-video", "capabilityVersion": 1, "imageField": "image"},
+                "request": {"durationSeconds": requested_seconds, "resolution": resolution, "audio": audio},
+            }
+            fingerprint = stable_hash({"snapshot": snapshot, "idempotencyKey": idempotency_key})
+            existing = session.scalar(select(VideoJobRow).where(VideoJobRow.project_id == project_id, VideoJobRow.idempotency_key == idempotency_key))
+            if existing is not None:
+                if existing.request_hash != fingerprint:
+                    raise IdempotencyConflictError("video-job idempotency key was reused with different frozen input")
+                return self._video_job_dict(existing, current=self._video_job_current_in_session(session, existing)) | {"idempotent": True}
+            ledger = self._video_ledger_in_session(session, now)
+            if ledger.reserved_seconds + requested_seconds > ledger.limit_seconds:
+                raise InvalidTransitionError("P2 requested-second allowance would be exceeded")
+            job = VideoJobRow(id=self._video_job_id(), project_id=project_id, idempotency_key=idempotency_key,
+                request_hash=fingerprint, snapshot=snapshot, snapshot_hash=stable_hash(snapshot), requested_seconds=requested_seconds,
+                state="prepared", provider_prediction_id=None, output_uri=None, output_hash=None, observed=None, error=None,
+                created_at=now, updated_at=now, dispatched_at=None, cancel_requested_at=None)
+            ledger.reserved_seconds += requested_seconds
+            ledger.updated_at = now
+            session.add(job)
+            session.add(VideoPilotLedgerEventRow(id=new_id(), ledger_id=ledger.id, video_job_id=job.id, event="reserved", seconds=requested_seconds, created_at=now))
+            session.flush()
+            return self._video_job_dict(job, current=True) | {"idempotent": False}
+
+    def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:
+        """Cross the durable dispatch boundary before any POST; never retry it."""
+        with self._lifecycle_write() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError("video job not found")
+            if job.state != "prepared":
+                raise InvalidTransitionError("video job cannot be submitted again; reconcile its existing attempt")
+            if not self._video_job_current_in_session(session, job):
+                raise InvalidTransitionError("video job frozen inputs are stale; prepare a new attempt")
+            now = utc_now()
+            job.state, job.dispatched_at, job.updated_at = "dispatching", now, now
+            ledger = self._video_ledger_in_session(session, now)
+            session.add(VideoPilotLedgerEventRow(id=new_id(), ledger_id=ledger.id, video_job_id=job.id, event="dispatch_claimed", seconds=job.requested_seconds, created_at=now))
+            return self._video_job_dict(job, current=True)
+
+    def record_video_submission(self, project_id: str, video_job_id: str, prediction_id: str) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError("video job not found")
+            if job.state != "dispatching" or job.provider_prediction_id is not None:
+                raise InvalidTransitionError("video submission cannot be recorded from this state")
+            job.provider_prediction_id, job.state, job.updated_at = prediction_id, "submitted", utc_now()
+            return self._video_job_dict(job, current=self._video_job_current_in_session(session, job))
+
+    def record_video_outcome_unknown(self, project_id: str, video_job_id: str, message: str) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError("video job not found")
+            if job.state != "dispatching":
+                raise InvalidTransitionError("only a dispatching video job can have unknown outcome")
+            job.state, job.error, job.updated_at = "outcome_unknown", message[:2_000], utc_now()
+            return self._video_job_dict(job, current=False)
+
+    def record_video_output(self, project_id: str, video_job_id: str, *, uri: str, digest: str, observed: dict[str, Any]) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError("video job not found")
+            if job.state not in {"submitted", "retrieve_needed"}:
+                raise InvalidTransitionError("video output can only be ingested from a known submitted attempt")
+            job.output_uri, job.output_hash, job.observed, job.state, job.updated_at = uri, digest, observed, "ingested", utc_now()
+            return self._video_job_dict(job, current=self._video_job_current_in_session(session, job))
+
+    def record_video_retrieve_needed(self, project_id: str, video_job_id: str, message: str) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError("video job not found")
+            if job.state not in {"submitted", "retrieve_needed"}:
+                raise InvalidTransitionError("only a known submitted video can await retrieval")
+            job.state, job.error, job.updated_at = "retrieve_needed", message[:2_000], utc_now()
+            return self._video_job_dict(job, current=self._video_job_current_in_session(session, job))
+
+    def record_video_remote_failed(self, project_id: str, video_job_id: str, code: str) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError("video job not found")
+            if job.state not in {"submitted", "retrieve_needed"}:
+                raise InvalidTransitionError("only a known submitted video can record remote failure")
+            job.state, job.error, job.updated_at = "failed", code, utc_now()
+            return self._video_job_dict(job, current=False)
+
+    def recover_video_dispatches(self) -> list[str]:
+        """A restart never replays a POST whose durable claim was entered."""
+        with self._lifecycle_write() as session:
+            rows = session.scalars(select(VideoJobRow).where(VideoJobRow.state == "dispatching")).all()
+            now = utc_now()
+            for row in rows:
+                row.state, row.error, row.updated_at = "outcome_unknown", "restart_dispatch_outcome_unknown", now
+            return [row.id for row in rows]
+
+    def cancel_video_job(self, project_id: str, video_job_id: str) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError("video job not found")
+            if job.state == "prepared":
+                # Only this proven pre-dispatch path releases a reservation.
+                ledger = self._video_ledger_in_session(session, utc_now())
+                ledger.reserved_seconds -= job.requested_seconds
+                ledger.updated_at = utc_now()
+                session.add(VideoPilotLedgerEventRow(id=new_id(), ledger_id=ledger.id, video_job_id=job.id, event="released_before_dispatch", seconds=-job.requested_seconds, created_at=utc_now()))
+                job.state = "cancelled"
+            elif job.state in {"dispatching", "submitted", "retrieve_needed", "outcome_unknown"}:
+                # Cancellation is local adoption intent, not a fabricated
+                # remote state. Keep the known task state recoverable.
+                job.cancel_requested_at = utc_now()
+            job.updated_at = utc_now()
+            return self._video_job_dict(job, current=False)
+
+    def list_video_jobs(self, project_id: str) -> list[dict[str, Any]]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            rows = session.scalars(select(VideoJobRow).where(VideoJobRow.project_id == project_id).order_by(VideoJobRow.created_at.desc(), VideoJobRow.id.desc())).all()
+            decisions = session.scalars(select(VideoReviewRow).where(VideoReviewRow.video_job_id.in_([row.id for row in rows])).order_by(VideoReviewRow.created_at.desc(), VideoReviewRow.id.desc())).all()
+            latest: dict[str, VideoReviewRow] = {}
+            jobs_by_id = {row.id: row for row in rows}
+            latest_by_shot: dict[str, VideoReviewRow] = {}
+            for decision in decisions:
+                latest.setdefault(decision.video_job_id, decision)
+                source = jobs_by_id.get(decision.video_job_id)
+                if source is not None:
+                    latest_by_shot.setdefault(str(source.snapshot.get("shot", {}).get("id")), decision)
+            return [self._video_job_dict(row, current=self._video_job_current_in_session(session, row), selected=(latest_by_shot.get(str(row.snapshot.get("shot", {}).get("id"))) is not None and latest_by_shot[str(row.snapshot.get("shot", {}).get("id"))].video_job_id == row.id and latest_by_shot[str(row.snapshot.get("shot", {}).get("id"))].decision == "select" and self._video_job_current_in_session(session, row))) for row in rows]
+
+    def get_video_output_storage(self, project_id: str, video_job_id: str) -> dict[str, Any]:
+        with self._read() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id or job.state != "ingested" or not job.output_uri or not job.output_hash:
+                raise NotFoundError("locally ingested video candidate not found")
+            return {"uri": job.output_uri, "hash": job.output_hash, "mimeType": "video/mp4"}
+
+    def review_video_job(self, project_id: str, video_job_id: str, *, reviewer: str, decision: str, note: str) -> dict[str, Any]:
+        with self._lifecycle_write() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError("video job not found")
+            if job.state != "ingested" or not self._video_job_current_in_session(session, job):
+                raise InvalidTransitionError("only a current locally ingested video candidate can be reviewed")
+            review = VideoReviewRow(id=new_id(), video_job_id=job.id, reviewer=reviewer, decision=decision, note=note, created_at=utc_now())
+            session.add(review)
+            return {"id": review.id, "videoJobId": job.id, "reviewer": reviewer, "decision": decision, "note": note, "createdAt": _stored_utc(review.created_at).isoformat()}
 
     @staticmethod
     def _character_reference_context(character: Any) -> dict[str, Any]:

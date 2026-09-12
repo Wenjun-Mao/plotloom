@@ -1,7 +1,7 @@
 # P2: bounded Wan audiovisual pilot
 
-Revision 1 — prepared 2026-09-12. **Implementation plan for review**, not an
-implementation or video-acceptance receipt. User-selected provider, model and
+Revision 1 — prepared 2026-09-12; **approved for P2 checkpoint 1 implementation**.
+This remains not an implementation or video-acceptance receipt. User-selected provider, model and
 100-second live allowance are settled; this planning turn makes no paid calls.
 Baseline: pushed `4eb98d4dca6c0a73f91d876bf7e406a8d757bed9`, clean main;
 [CI passed](https://github.com/Wenjun-Mao/plotloom/actions/runs/34675931283).

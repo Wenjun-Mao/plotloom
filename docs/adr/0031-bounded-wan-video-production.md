@@ -1,6 +1,6 @@
 # ADR 0031: Bounded Wan video production
 
-Status: proposed implementation contract, 2026-09-12. Provider/model and the
+Status: approved implementation contract, 2026-09-12. Provider/model and the
 100-second pilot allowance are user-approved; the detailed
 [P2 plan](../roadmap/p2-wan-audiovisual-pilot-plan.md) is prepared for review.
 

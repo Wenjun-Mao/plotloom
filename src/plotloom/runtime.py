@@ -98,7 +98,7 @@ def recover_runtime_jobs(
     return plan
 
 
-def build_runtime_app(settings: PlotloomSettings) -> object:
+def build_runtime_app(settings: PlotloomSettings, *, test_video_provider: object | None = None) -> object:
     from .api import create_app
     from .artifacts import LocalArtifactStore
     from .domain import ProviderProfileCapabilities, ProviderSettings
@@ -106,6 +106,8 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
     from .media import MediaPromptCompiler
     from .managed_media import ManagedMediaLimits
     from .media_jobs import MediaJobRunner, MediaTaskSecretBroker
+    from .video_jobs import VideoJobService
+    from .atlas_wan_transport import AtlasCloudWanTransport
     from .pipeline import (
         PipelineEngine,
         RunSecretBroker,
@@ -228,9 +230,17 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
         poll_interval_seconds=settings.media_poll_interval_seconds,
         max_poll_attempts=settings.media_max_poll_attempts,
     )
+    # Paid transport requires an explicit local opt-in in addition to a
+    # server key; ordinary test/development runtimes expose only preparation.
+    video_provider = test_video_provider or (
+        AtlasCloudWanTransport(settings.video_api_key.get_secret_value())
+        if settings.wan_p2_enabled and settings.video_api_key is not None else None
+    )
+    video_job_service = VideoJobService(repository, artifact_store, video_provider) if video_provider is not None else None
     @asynccontextmanager
     async def runtime_lifespan(_app: Any):
         try:
+            _app.state.video_startup_recovery = repository.recover_video_dispatches()
             _app.state.startup_recovery = recover_runtime_jobs(
                 repository,
                 run_runner,
@@ -248,6 +258,7 @@ def build_runtime_app(settings: PlotloomSettings) -> object:
         run_scheduler=run_runner,
         media_scheduler=media_runner,
         media_prompt_compiler=MediaPromptCompiler(),
+        video_job_service=video_job_service,
         artifact_store=artifact_store,
         managed_media_limits=ManagedMediaLimits(
             max_import_bytes=settings.managed_media_max_import_bytes,

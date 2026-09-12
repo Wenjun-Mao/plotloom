@@ -38,6 +38,8 @@ import type {
   StillPreview,
   VisualWorkbench,
   VisualIntent,
+  VideoJob,
+  VideoPilotBudget,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -395,6 +397,17 @@ export class PlotloomApiClient {
   getMediaTask(taskId: string): Promise<MediaTask> {
     return this.request(`/media-tasks/${encodeURIComponent(taskId)}`);
   }
+
+  getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
+  getVideoJobs(projectId: string): Promise<{ jobs: VideoJob[] }> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`); }
+  prepareVideoJob(projectId: string, body: { approvalId: string; shotId: string; storyboardRevision: number; expectedSelectionRevision: number; idempotencyKey: string }): Promise<VideoJob> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`, { method: "POST", body: JSON.stringify(body) });
+  }
+  submitVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/submit`, { method: "POST" }); }
+  reconcileVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/reconcile`, { method: "POST" }); }
+  cancelVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }); }
+  reviewVideoJob(projectId: string, id: string, decision: "select" | "reject", reviewer: string, note: string): Promise<unknown> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/review`, { method: "POST", body: JSON.stringify({ decision, reviewer, note }) }); }
+  videoJobMediaUrl(projectId: string, id: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/media`; }
 
   getProviderSettings(): Promise<ProviderSettings> {
     return this.request("/provider-settings");

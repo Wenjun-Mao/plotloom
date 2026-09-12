@@ -112,6 +112,7 @@ class PlotloomSettings(BaseModel):
     media_max_poll_attempts: int = Field(default=300, ge=1, le=10_000)
     managed_media_max_import_bytes: int = Field(default=8 * 1024 * 1024, ge=1, le=64 * 1024 * 1024)
     managed_media_max_import_pixels: int = Field(default=24_000_000, ge=1, le=100_000_000)
+    wan_p2_enabled: bool = False
     text_provider: str = DEFAULT_TEXT_PROVIDER
     text_base_url: str = DEFAULT_TEXT_BASE_URL
     text_model: str = DEFAULT_TEXT_MODEL
@@ -221,6 +222,7 @@ class PlotloomSettings(BaseModel):
             managed_media_max_import_pixels=os.environ.get(
                 "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS", "24000000"
             ),
+            wan_p2_enabled=os.environ.get("PLOTLOOM_ENABLE_WAN_P2", "false"),
             text_provider=os.environ.get("TEXT_PROVIDER") or DEFAULT_TEXT_PROVIDER,
             text_base_url=os.environ.get("TEXT_BASE_URL") or DEFAULT_TEXT_BASE_URL,
             text_model=os.environ.get("TEXT_MODEL") or DEFAULT_TEXT_MODEL,

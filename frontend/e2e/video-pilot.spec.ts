@@ -1,0 +1,42 @@
+import { expect, test } from "./fixture";
+import { demoProject } from "../src/demo";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
+
+test("P2 fake Wan clip survives file-SQLite restart with native range playback", async ({ page, request, workbench }) => {
+  const created = await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: demoProject.brief, initialStages: [
+    { stage: "story_bible", payload: demoProject.storyBible }, { stage: "story_graph", payload: demoProject.storyGraph },
+    { stage: "scene_beats", payload: demoProject.sceneBeats }, { stage: "storyboard", payload: demoProject.storyboard },
+  ] } });
+  expect(created.ok()).toBeTruthy();
+  const projectId = (await created.json()).id as string;
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
+  await page.getByLabel("审核人标签").fill("P2 fake browser reviewer");
+  await page.getByRole("button", { name: "批准当前分镜" }).click();
+  await page.getByLabel("来源声明").fill("P2 local fake fixture");
+  await page.getByTestId("managed-image-upload").setInputFiles(still);
+  await page.getByRole("button", { name: "保留此候选" }).click();
+  await page.getByTestId("visual-intent-source-refs").fill("P2 fixture source");
+  await page.getByTestId("save-visual-intent").click();
+  await page.getByLabel("审核兼容性说明").fill("Current approved first shot keyframe.");
+  await page.getByTestId("select-reviewed-keyframe").click();
+  const panel = page.getByTestId("video-pilot-panel");
+  await panel.getByRole("button", { name: "冻结当前审核关键帧" }).click();
+  await panel.getByRole("button", { name: "提交一次" }).click();
+  await panel.getByRole("button", { name: "获取结果" }).click();
+  const player = panel.locator("video");
+  await expect(player).toBeVisible();
+  const source = await player.getAttribute("src");
+  expect(source).toContain("/video-jobs/");
+  const before = await request.get(`${workbench.apiOrigin}${source}`, { headers: { Range: "bytes=0-15" } });
+  expect(before.status()).toBe(206);
+  await workbench.restartBackend();
+  await page.reload();
+  await expect(page.getByTestId("video-pilot-panel").locator("video")).toBeVisible();
+  const after = await request.get(`${workbench.apiOrigin}${source}`, { headers: { Range: "bytes=0-15" } });
+  expect(after.status()).toBe(206);
+  expect(await after.body()).toEqual(await before.body());
+});
