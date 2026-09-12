@@ -42,3 +42,32 @@ approved identity reference SHA-256
 The canonical on-screen cue is “I can keep it safe.” in measured English, with
 quiet archive ventilation and distant paper rustle, no music; hands and reel
 remain outside the close frame.
+
+## Offline implementation verification and disposition
+
+Implementation through `98e310c`, including the recovery UI in `8f70f6c`:
+
+- Full Python: **558 passed, 9 skipped** after imported-reference admission
+  changes; subsequent changes were UI, tests and documentation only.
+- Frontend unit: **126 passed**; typecheck and production build passed.
+- Full real FastAPI/file-SQLite browser suite: **27 passed**. The first final
+  run exposed a test synchronization race (26 passed, one failed); `98e310c`
+  waits for the actual successful selection response before reading its asset.
+  The focused test and then the full suite passed without sleeps or a waiver.
+- Generated static freshness, wheel build and isolated installed-wheel smoke
+  passed. Existing Vite bundle-size warning remains, not a new build failure.
+- Director review corrected transport recovery classification, credential-free
+  download handling, frozen identity lineage, selection applicability and
+  retrieval/cancellation UI. Old-project successful responses/actions are
+  prevented from replacing a newly selected project's video state.
+
+This accepts the **offline implementation checkpoint only**, not P2 creative
+or audiovisual completion. The isolated ledger and artifacts are retained;
+owned live-pilot services were stopped. No Flow lifecycle changes or unrelated
+worktree cleanup were needed. Root/subagent token and cost deltas were unavailable.
+
+The remaining dispatch-diagnostic gap is explicit: no safe evidence identifies
+whether upload, generation submission or response parsing failed. Preserve the
+unknown attempt, seek provider-side reconciliation where possible, and add
+allowlisted phase/status evidence before separately authorizing another attempt.
+Do not infer that the existing provider request is safe to replay.

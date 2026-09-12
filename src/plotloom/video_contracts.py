@@ -43,4 +43,3 @@ class VideoReviewRequest(CamelModel):
         if not value:
             raise ValueError("review text must not be blank")
         return value
-

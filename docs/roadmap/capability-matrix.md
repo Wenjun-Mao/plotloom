@@ -19,9 +19,17 @@ demonstrated real image delivery, explicit selection and restart persistence;
 the [framing trial](../verification/2026-09-12-p15-controlled-shot-framing-trial.md)
 demonstrated distinct crops/viewpoints with consistent appearance, but not full
 state continuity. Its probable glove-side mismatch is excluded from video input.
-Next is the [P2 Wan plan](p2-wan-audiovisual-pilot-plan.md): one clip, then an
-adjoining clip, under a single 100-second allowance. P2 is not implemented;
-P3/P4 and Q text qualification remain open. Current CI is no longer pending.
+The [P2 Wan plan](p2-wan-audiovisual-pilot-plan.md) now has an offline
+implementation: frozen approval/keyframe/reference inputs, shared 100-second
+ledger, explicit submission/reconciliation, managed video ingestion and player.
+The [first live attempt](../verification/2026-09-12-p2-wan-pilot-attempt-receipt.md)
+ended `outcome_unknown` without a prediction ID or media. Five seconds remain
+conservatively reserved; 95 remain. No replay or second request was made.
+P2 audiovisual acceptance and adjoining-clip review are **open**, not passed.
+Next: resolve the unknown attempt where possible and retain sanitized transport
+phase/status evidence before another separately approved request. P3/P4 and Q
+text qualification remain open. The CI link above covers the prior baseline,
+not the P2 changes.
 No new aggregate percentage or L-level census is asserted by this update.
 
 ### Historical checkpoint summaries (2026-09-10–11)
