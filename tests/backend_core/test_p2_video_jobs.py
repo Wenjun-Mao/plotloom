@@ -90,9 +90,17 @@ def test_fake_fastapi_p2_path_is_idempotent_budgeted_and_range_playable(reposito
         assert media.status_code == 206 and media.content == b"offline"
         reviewed = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/review", json={"reviewer": "P2 browser fixture", "decision": "select", "note": "Explicit fake-candidate selection."})
         assert reviewed.status_code == 201
+        # A later review of another attempt for the same Shot controls the
+        # selection projection; historical selects stay evidence, not truth.
+        second_body = {**body, "idempotencyKey": "p2-browser-fake-second-attempt"}
+        second = client.post(f"/api/v2/projects/{project.id}/video-jobs", json=second_body).json()
+        client.post(f"/api/v2/projects/{project.id}/video-jobs/{second['id']}/submit")
+        client.post(f"/api/v2/projects/{project.id}/video-jobs/{second['id']}/reconcile")
+        assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{second['id']}/review", json={"reviewer": "P2 browser fixture", "decision": "reject", "note": "Latest same-shot review rejects this candidate."}).status_code == 201
+        assert not any(item["selected"] for item in client.get(f"/api/v2/projects/{project.id}/video-jobs").json()["jobs"])
         # A second click cannot replay a paid POST after the durable boundary.
         assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").status_code == 409
-        assert len(provider.submits) == 1
+        assert len(provider.submits) == 2
 
 
 def test_p2_cap_claims_are_atomic_and_cancel_only_releases_before_dispatch(repository, brief) -> None:
