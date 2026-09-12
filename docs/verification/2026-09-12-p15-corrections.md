@@ -136,7 +136,31 @@ unchanged.
 
 ## Status
 
-This correction candidate passed its stable full verification gate and remains
-subject to independent director review. It does not
-claim P1.5 acceptance, human review, Flow completion, external ImageGen
-execution, video readiness, or a new visual pilot.
+The bounded correction is accepted by director code/visual review at product
+commit `1d46964`. It remains on `codex/p15-corrections`, not merged or pushed.
+This is not a new ImageGen pilot, human review, Flow completion, video readiness,
+or a waiver of the separate Alpha qualification gates.
+
+## Director closeout
+
+The director stayed attached to the implementation agent, collected its terminal
+result, reviewed the changed contracts/UI, and reopened only specific findings:
+legacy template compatibility, committed/exclusive pin checks, valid-pin waiting
+semantics, frozen-history browser coverage, and image cropping in the comparison.
+No unattended worker or notification mechanism was used for this resumed turn.
+
+Independently reran the final image-job suite at `1d46964`: **18 passed**, one
+dependency deprecation warning. `git diff --check` passed and the candidate
+worktree was clean. Viewed the tracked 1440×900 browser evidence: all three
+comparison images are fully visible with candidate/primary/complementary labels.
+This screenshot uses retained fixtures, not a newly generated likeness test.
+
+Broad gate results above are implementation-agent evidence at the stated earlier
+revision, not independently repeated final-revision results. Final targeted UI,
+build/static and wheel results are reported in the follow-up sections. The
+missing retained full Python pass/skip summary remains an evidence limitation;
+test collection is not represented as an execution result.
+
+Next action is an explicit integration decision for this correction branch.
+Existing retained three-shot visual evidence remains separate; production model
+comparisons and all video work are still deferred.
