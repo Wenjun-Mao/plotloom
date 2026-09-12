@@ -2530,10 +2530,11 @@ class SQLiteRepository:
                     )
                 ):
                     return False
-            # A generated V3 keyframe additionally needs its independent
-            # human same-person review. An imported, explicitly selected
-            # keyframe has no generated-person comparison to perform; its
-            # current character-reference decision is its review lineage.
+            # A generated V3 keyframe additionally needs its independent,
+            # explicitly attributed same-person review. An imported selected
+            # keyframe follows the separate provenance path: its attributed
+            # keyframe-selection comparison and current character-reference
+            # decision are frozen together below.
             if review_id is not None:
                 review = session.get(SamePersonReviewRow, review_id)
                 if review is None or not self._same_person_review_is_current_in_session(session, row.project_id, review):
