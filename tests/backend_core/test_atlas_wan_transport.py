@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import pytest
+import requests
 
 from plotloom.atlas_wan_transport import AtlasCloudWanTransport
 from plotloom.video_ingestion import VideoIngestionError
+from plotloom.video_provider import WanDispatchDiagnostic, WanDispatchError
 
 
 class _Response:
@@ -46,3 +48,70 @@ def test_download_enforces_total_deadline_and_closes_response(monkeypatch) -> No
     with pytest.raises(VideoIngestionError, match="deadline"):
         AtlasCloudWanTransport("secret", timeout_seconds=1).download("https://cdn.example/clip.mp4")
     assert response.released
+
+
+@pytest.mark.parametrize(
+    ("method", "phase", "status"),
+    [("upload", "upload", 401), ("submit", "submit", 429)],
+)
+def test_dispatch_http_rejections_preserve_only_allowlisted_evidence(monkeypatch, method, phase, status) -> None:
+    class Response:
+        status_code = status
+        text = "credential=do-not-persist"
+
+        def json(self):
+            return {"detail": self.text}
+
+    transport = AtlasCloudWanTransport("top-secret-key")
+    monkeypatch.setattr(transport._session, "request", lambda *_args, **_kwargs: Response())
+    with pytest.raises(WanDispatchError) as raised:
+        if method == "upload":
+            transport.upload(b"image", mime_type="image/png")
+        else:
+            transport.submit({"prompt": "never expose this prompt"})
+    assert raised.value.diagnostic.phase == phase
+    assert raised.value.diagnostic.code == "http_rejected"
+    assert raised.value.diagnostic.status_code == status
+    assert str(raised.value) == f"dispatch_{phase}_http_rejected_status_{status}"
+    assert "secret" not in str(raised.value) and "credential" not in str(raised.value)
+
+
+def test_dispatch_transport_uncertainty_and_bad_upload_envelope_are_secret_safe(monkeypatch) -> None:
+    transport = AtlasCloudWanTransport("top-secret-key")
+    monkeypatch.setattr(
+        transport._session,
+        "request",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(requests.ConnectionError("https://signed.example/?token=secret")),
+    )
+    with pytest.raises(WanDispatchError) as unavailable:
+        transport.upload(b"image", mime_type="image/png")
+    assert unavailable.value.diagnostic.code == "transport_unavailable"
+    assert unavailable.value.diagnostic.status_code is None
+    assert "signed" not in str(unavailable.value) and "secret" not in str(unavailable.value)
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {"url": "http://provider.example/not-https?token=secret"}
+
+    monkeypatch.setattr(transport._session, "request", lambda *_args, **_kwargs: Response())
+    with pytest.raises(WanDispatchError) as malformed:
+        transport.upload(b"image", mime_type="image/png")
+    assert malformed.value.diagnostic.code == "invalid_upload_url"
+    assert str(malformed.value) == "dispatch_upload_invalid_upload_url"
+    assert "secret" not in str(malformed.value)
+
+
+@pytest.mark.parametrize(
+    ("phase", "code", "status"),
+    [
+        ("https://signed.example/?token=secret", "http_rejected", 401),
+        ("upload", "provider detail: secret", 401),
+        ("upload", "http_rejected", True),
+        ("upload", "http_rejected", 99),
+    ],
+)
+def test_diagnostic_allowlist_rejects_untrusted_runtime_values(phase, code, status) -> None:
+    with pytest.raises(ValueError):
+        WanDispatchDiagnostic(phase, code, status)  # type: ignore[arg-type]

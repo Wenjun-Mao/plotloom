@@ -7,7 +7,14 @@ from typing import Any, Callable
 from .artifacts import ArtifactStore
 from .persistence import SQLiteRepository
 from .video_ingestion import ObservedVideo, assert_public_https_url, probe_video
-from .video_provider import AtlasWanAdapter, RemotePredictionFailed, VideoProviderPort
+from .video_provider import (
+    AtlasWanAdapter,
+    RemotePredictionFailed,
+    VideoProviderError,
+    VideoProviderPort,
+    WanDispatchDiagnostic,
+    WanDispatchError,
+)
 
 
 class VideoJobService:
@@ -45,20 +52,36 @@ class VideoJobService:
                 return self.repository.cancel_video_job(project_id, video_job_id)
         job = self.repository.claim_video_dispatch(project_id, video_job_id)
         try:
-            keyframe = job["snapshot"]["keyframe"]
-            stored = self.repository.get_managed_asset_storage(project_id, keyframe["assetId"])
-            image = self.artifacts.get(stored["originalUri"])
-            if sha256(image).hexdigest() != keyframe["originalHash"]:
-                # Treat a store/hash mismatch as preflight. Dispatch cannot
-                # start, but the durable claim remains conservative because
-                # the caller cannot prove where a failure happened.
-                raise ValueError("approved_keyframe_integrity_failed")
+            try:
+                keyframe = job["snapshot"]["keyframe"]
+                stored = self.repository.get_managed_asset_storage(project_id, keyframe["assetId"])
+                image = self.artifacts.get(stored["originalUri"])
+                if sha256(image).hexdigest() != keyframe["originalHash"]:
+                    # Treat a store/hash mismatch as preflight. Dispatch cannot
+                    # start, but the durable claim remains conservative because
+                    # the caller cannot prove where a failure happened.
+                    raise WanDispatchError(WanDispatchDiagnostic("keyframe_read", "local_precondition_failed"))
+            except WanDispatchError:
+                raise
+            except Exception as error:
+                raise WanDispatchError(WanDispatchDiagnostic("keyframe_read", "local_precondition_failed")) from error
             uploaded = self.provider.upload(image, mime_type=keyframe["mimeType"])
-            payload = self.adapter.compile(
-                prompt=self._prompt(job["snapshot"]), image_url=uploaded,
-                duration=job["requestedSeconds"], resolution=job["snapshot"]["request"]["resolution"], audio=True,
-            )
-            prediction = self.adapter.prediction_id(self.provider.submit(payload))
+            try:
+                payload = self.adapter.compile(
+                    prompt=self._prompt(job["snapshot"]), image_url=uploaded,
+                    duration=job["requestedSeconds"], resolution=job["snapshot"]["request"]["resolution"], audio=True,
+                )
+            except VideoProviderError as error:
+                raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
+            submitted = self.provider.submit(payload)
+            try:
+                prediction = self.adapter.prediction_id(submitted)
+            except VideoProviderError as error:
+                raise WanDispatchError(WanDispatchDiagnostic("submit_response_parse", "invalid_envelope")) from error
+        except WanDispatchError as error:
+            # The state stays outcome_unknown because a claimed remote POST is
+            # not safely replayable. The code only identifies the local phase.
+            return self.repository.record_video_outcome_unknown(project_id, video_job_id, error.diagnostic.outcome_error)
         except Exception:
             # It is unsafe to infer that the remote POST did not begin.
             return self.repository.record_video_outcome_unknown(project_id, video_job_id, "dispatch_outcome_unknown")

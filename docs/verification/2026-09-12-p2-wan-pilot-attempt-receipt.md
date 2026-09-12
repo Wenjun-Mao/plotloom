@@ -71,3 +71,33 @@ whether upload, generation submission or response parsing failed. Preserve the
 unknown attempt, seek provider-side reconciliation where possible, and add
 allowlisted phase/status evidence before separately authorizing another attempt.
 Do not infer that the existing provider request is safe to replay.
+
+## P2 dispatch-diagnostic checkpoint
+
+Candidate implementation records a typed, finite diagnostic at the Atlas
+transport/service boundary. The only persisted representation is a stable code
+such as `dispatch_upload_http_rejected_status_401`; it contains a phase, an
+allowlisted code, and optional HTTP status, never a provider body, exception
+message, credential, or temporary URL. Upload failures, submit failures,
+transport uncertainty, and malformed responses remain `outcome_unknown` after
+the durable claim and retain their five-second reservation. This does not alter
+the historical job `vj_22de3a4aac36446aa33597240963524a`: it remains
+`dispatch_outcome_unknown`, no prediction ID, and 5/100 seconds reserved.
+
+The remaining direct product attempt is exactly one upload-only probe against
+the approved frozen tight-close keyframe. It must not call `generateVideo`, poll
+the historical job, change the isolated ledger, or persist the returned temporary
+URL. Its receipt will contain only phase, status when available, safe code, and
+elapsed time (or a precise precondition blocker).
+
+### Upload-only probe disposition
+
+No upload was sent. The server configuration resolved the approved keyframe as
+an RGB PNG at 1371×1148 with the recorded hash, the server video credential was
+present, and the Atlas upload base URL was configured. Its explicit P2 runtime
+gate was disabled (`wan_p2_enabled=false`). Enabling that gate for an external
+request is an operator decision outside this assignment, so the bounded probe
+stopped at `phase=preflight`, `status=absent`,
+`safe_code=wan_p2_runtime_disabled`, `elapsed=0`. No `uploadMedia`,
+`generateVideo`, poll, historical-job mutation, or ledger mutation occurred;
+the ledger remains 5/100 seconds reserved.

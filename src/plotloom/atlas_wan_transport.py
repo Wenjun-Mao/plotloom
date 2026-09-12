@@ -12,7 +12,7 @@ import requests
 from urllib3 import HTTPSConnectionPool, Timeout
 
 from .video_ingestion import VideoIngestionError, assert_public_https_url
-from .video_provider import VideoProviderError
+from .video_provider import DispatchPhase, WanDispatchDiagnostic, WanDispatchError, VideoProviderError
 
 
 class AtlasCloudWanTransport:
@@ -35,33 +35,36 @@ class AtlasCloudWanTransport:
         if not shutil.which("ffprobe") or not shutil.which("ffmpeg"):
             raise VideoProviderError("wan_media_probe_unavailable")
 
-    def _authorized(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
-        response = self._session.request(method, urljoin(self.base_url, path), headers={"Authorization": f"Bearer {self._api_key}"}, timeout=self.timeout_seconds, allow_redirects=False, **kwargs)
+    def _authorized(self, phase: DispatchPhase, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
+        try:
+            response = self._session.request(method, urljoin(self.base_url, path), headers={"Authorization": f"Bearer {self._api_key}"}, timeout=self.timeout_seconds, allow_redirects=False, **kwargs)
+        except requests.RequestException as error:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "transport_unavailable")) from error
         if response.status_code < 200 or response.status_code >= 300:
-            raise VideoProviderError(f"wan_http_{response.status_code}")
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "http_rejected", response.status_code))
         try:
             payload = response.json()
         except ValueError as error:
-            raise VideoProviderError("wan_invalid_json") from error
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_json")) from error
         if not isinstance(payload, dict):
-            raise VideoProviderError("wan_invalid_envelope")
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         return payload
 
     def upload(self, image: bytes, *, mime_type: str) -> str:
-        payload = self._authorized("POST", "uploadMedia", files={"file": ("approved-keyframe", image, mime_type)})
+        payload = self._authorized("upload", "POST", "uploadMedia", files={"file": ("approved-keyframe", image, mime_type)})
         data = payload.get("data")
         # Official upload examples use top-level ``url``; retain the explicit
         # documented nested form too, never recursive envelope guessing.
         url = payload.get("url") if isinstance(payload.get("url"), str) else (data.get("url") if isinstance(data, dict) else None)
         if not isinstance(url, str) or not url.startswith("https://"):
-            raise VideoProviderError("wan_upload_envelope_invalid")
+            raise WanDispatchError(WanDispatchDiagnostic("upload", "invalid_upload_url"))
         return url
 
     def submit(self, payload: dict[str, Any]) -> dict[str, Any]:
-        return self._authorized("POST", "generateVideo", json=payload)
+        return self._authorized("submit", "POST", "generateVideo", json=payload)
 
     def poll(self, prediction_id: str) -> dict[str, Any]:
-        return self._authorized("GET", f"prediction/{prediction_id}")
+        return self._authorized("poll", "GET", f"prediction/{prediction_id}")
 
     def download(self, url: str) -> bytes:
         assert_public_https_url(url)

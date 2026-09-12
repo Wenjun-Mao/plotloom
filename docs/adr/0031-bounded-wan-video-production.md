@@ -30,6 +30,12 @@ current Approval/reference ownership and cannot safely establish these propertie
 - Upload approved bytes without exposing local/Tailscale services. Confine and
   validate public-provider downloads, preserve managed bytes, and retry retrieval
   without regenerating. Existing legacy provider-production hard stops remain.
+- After the durable dispatch claim, persist only allowlisted diagnostic evidence:
+  phase, a safe code, and (when received) an HTTP status. Provider bodies,
+  signed URLs, credentials, and exception text are never diagnostic evidence.
+  This does not make a failed upload or malformed submission response replayable:
+  every post-claim diagnosis remains `outcome_unknown` and retains its requested
+  seconds. Historical unknown outcomes remain unchanged.
 
 ## Alternatives and consequences
 

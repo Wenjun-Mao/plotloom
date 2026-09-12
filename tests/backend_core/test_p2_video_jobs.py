@@ -14,6 +14,7 @@ from plotloom.persistence import SQLiteRepository
 from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_ingestion import VideoIngestionError, assert_public_https_url
 from plotloom.video_jobs import VideoJobService
+from plotloom.video_provider import WanDispatchDiagnostic, WanDispatchError
 
 from .conftest import all_stage_payloads
 
@@ -157,6 +158,61 @@ def test_p2_unknown_post_and_private_download_never_replay_or_publish(repository
         assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").json()["state"] == "outcome_unknown"
         assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").status_code == 409
         assert len(provider.submits) == 1 and client.get("/api/v2/video-pilot-budget").json()["reservedSeconds"] == 5
+
+
+def test_p2_upload_diagnostic_keeps_unknown_outcome_and_budget_without_provider_text(repository, brief) -> None:
+    project = repository.create_project(brief)
+    bible, graph, beats, storyboard = all_stage_payloads()
+    for stage, payload in zip(STAGE_ORDER, (bible, graph, beats, storyboard), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+
+    class RejectedUploadWan(FakeWan):
+        def upload(self, image: bytes, *, mime_type: str) -> str:
+            raise WanDispatchError(WanDispatchDiagnostic("upload", "http_rejected", 401))
+
+    artifacts, provider = MemoryArtifactStore(), RejectedUploadWan()
+    service = VideoJobService(repository, artifacts, provider, probe=lambda _: ObservedVideo(5, 1280, 720, "h264", "aac"))
+    with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        job = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
+            "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
+            "expectedSelectionRevision": selection_revision, "idempotencyKey": "diagnostic-upload-key",
+        }).json()
+        submitted = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").json()
+        assert submitted["state"] == "outcome_unknown"
+        assert submitted["error"] == "dispatch_upload_http_rejected_status_401"
+        assert "secret" not in submitted["error"]
+        assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").status_code == 409
+        assert not provider.submits
+        assert client.get("/api/v2/video-pilot-budget").json()["reservedSeconds"] == 5
+
+
+def test_p2_submit_response_diagnostic_never_treats_a_post_as_replayable(repository, brief) -> None:
+    project = repository.create_project(brief)
+    bible, graph, beats, storyboard = all_stage_payloads()
+    for stage, payload in zip(STAGE_ORDER, (bible, graph, beats, storyboard), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+
+    class MalformedSubmitWan(FakeWan):
+        def submit(self, payload: dict) -> dict:
+            self.submits.append(payload)
+            return {"data": {"detail": "provider response with a signed-url=secret"}}
+
+    artifacts, provider = MemoryArtifactStore(), MalformedSubmitWan()
+    service = VideoJobService(repository, artifacts, provider, probe=lambda _: ObservedVideo(5, 1280, 720, "h264", "aac"))
+    with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        job = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
+            "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
+            "expectedSelectionRevision": selection_revision, "idempotencyKey": "diagnostic-submit-response-key",
+        }).json()
+        submitted = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").json()
+        assert submitted["state"] == "outcome_unknown"
+        assert submitted["error"] == "dispatch_submit_response_parse_invalid_envelope"
+        assert "secret" not in submitted["error"]
+        assert len(provider.submits) == 1
+        assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").status_code == 409
+        assert client.get("/api/v2/video-pilot-budget").json()["reservedSeconds"] == 5
 
 
 def test_p2_download_boundary_rejects_private_and_probe_failures() -> None:

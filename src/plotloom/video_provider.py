@@ -2,11 +2,65 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, ClassVar, Literal, Protocol
 
 
 class VideoProviderError(RuntimeError):
     pass
+
+
+DispatchPhase = Literal["keyframe_read", "upload", "request_compile", "submit", "submit_response_parse", "poll"]
+DispatchCode = Literal[
+    "transport_unavailable",
+    "http_rejected",
+    "invalid_json",
+    "invalid_envelope",
+    "invalid_upload_url",
+    "local_precondition_failed",
+]
+
+
+@dataclass(frozen=True)
+class WanDispatchDiagnostic:
+    """Allowlisted evidence for a claimed dispatch that cannot reveal provider data."""
+
+    phase: DispatchPhase
+    code: DispatchCode
+    status_code: int | None = None
+
+    _phases: ClassVar[frozenset[str]] = frozenset({
+        "keyframe_read", "upload", "request_compile", "submit", "submit_response_parse", "poll",
+    })
+    _codes: ClassVar[frozenset[str]] = frozenset({
+        "transport_unavailable", "http_rejected", "invalid_json", "invalid_envelope",
+        "invalid_upload_url", "local_precondition_failed",
+    })
+
+    def __post_init__(self) -> None:
+        # These values are persisted after a claimed remote dispatch. Runtime
+        # validation, rather than type annotations alone, keeps that boundary
+        # closed to response text, signed URLs, and unexpected exception data.
+        if self.phase not in self._phases:
+            raise ValueError("dispatch phase is not allowlisted")
+        if self.code not in self._codes:
+            raise ValueError("dispatch code is not allowlisted")
+        if self.status_code is not None and (type(self.status_code) is not int or not 100 <= self.status_code <= 599):
+            raise ValueError("dispatch HTTP status must be an HTTP status code")
+
+    @property
+    def outcome_error(self) -> str:
+        """Stable persistence code; deliberately excludes exception text and URLs."""
+
+        status = f"_status_{self.status_code}" if self.status_code is not None else ""
+        return f"dispatch_{self.phase}_{self.code}{status}"
+
+
+class WanDispatchError(VideoProviderError):
+    """A safe dispatch diagnosis suitable for the durable unknown-outcome record."""
+
+    def __init__(self, diagnostic: WanDispatchDiagnostic) -> None:
+        self.diagnostic = diagnostic
+        super().__init__(diagnostic.outcome_error)
 
 
 class RemotePredictionFailed(VideoProviderError):
