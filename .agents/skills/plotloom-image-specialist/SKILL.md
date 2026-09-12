@@ -22,7 +22,10 @@ Use this skill only for a single Plotloom package path explicitly supplied by th
 3. Write only JPEG or PNG outputs below the package’s `delivery/outputs/` directory. Do not edit source code, database files, canonical story data, package inputs, or any path outside the delivery directory.
 4. Copy the manifest example to `delivery/completion.json` and fill it truthfully:
    - actual prompt and output byte hashes;
-   - ImageGen tool evidence actually returned by the run;
+   - the manifest's normalized `toolEvidence.tool` value, exactly
+     `codex_imagegen`, for a built-in ImageGen run. It is the package contract
+     label, not the raw runtime tool identifier; retain the actual task ID and
+     `available: true` alongside it;
    - `referenceUse.viewedReferenceHashes` containing exactly the frozen hashes for every `character_identity` reference, plus concise role-aware notes;
    - `executorProvenance.codeRevision` from the checked-out commit and `skillHash` from this `SKILL.md`; record model/reasoning fields only when actually known.
 5. Re-read the final manifest and compare its `jobId` and `requestHash` to `request.json`. The only success signal is a complete, hash-valid delivery receipt. Tell the coordinator the package and completion paths; do not claim Approval, reference selection, or a reviewed keyframe.
