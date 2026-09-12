@@ -253,6 +253,9 @@ input[readonly] { color: var(--dim); }
 .media-candidate img { width: 100%; height: 96px; pointer-events: none; object-fit: cover; background: #15191e; }
 .media-candidate strong { overflow: hidden; color: var(--text); font: 700 10px var(--mono); text-overflow: ellipsis; white-space: nowrap; }
 .media-candidate small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frozen-review-comparison { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; align-items: start; }
+/* This is evidence review, not a thumbnail gallery: show every frozen source in full. */
+.frozen-review-comparison .media-candidate img { height: 200px; object-fit: contain; }
 .preview-history { display: grid; gap: 6px; }
 .preview-history > button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 7px 9px; color: var(--muted); text-align: left; border: 1px solid var(--line); background: var(--panel-3); font: 10px var(--mono); }
 .preview-history > button.selected { border-color: var(--accent); color: var(--text); }

@@ -66,12 +66,11 @@ the companion three-shot browser preview is
 These are retained pilot evidence, not new generated images or a replacement for
 the correction browser test.
 
-The corrected panel capture from the focused browser run is available in this
-candidate's local Playwright output at
-`frontend/test-results/image-jobs-P1-self-contain-fb917-ef-after-an-intent-revision/p15-frozen-reference-comparison-1440x900.png`.
-It uses two distinct retained raster fixtures, labels the primary and
-complementary frozen references, and is test output rather than a new generated
-asset.
+The corrected, tracked 1440×900 browser capture is
+[`p15-frozen-reference-comparison-viewport-1440x900.png`](supporting/p15-frozen-reference-comparison-viewport-1440x900.png).
+It uses two distinct retained raster fixtures, shows the candidate, primary,
+and complementary images in full, and is browser test evidence rather than a
+new generated asset.
 
 ## Verification on the compatibility candidate
 
@@ -117,6 +116,23 @@ replacement.
 The full Python/frontend-unit/build/full-browser/wheel gates in the preceding
 table predate only this final narrow delta; they remain accurate results for
 `87d5637`, not claims that those broad commands were rerun afterward.
+
+## Final visual QA follow-up
+
+The comparison surface had inherited the generic candidate-card thumbnail rule
+(`height: 96px; object-fit: cover`), which cropped the candidate and frozen
+reference faces. The root cause was presentation-only and belongs in scoped
+comparison CSS, not in the frozen-reference data contract or global gallery
+layout. `.frozen-review-comparison` now uses a three-card responsive grid with
+200px `object-fit: contain` images; ordinary candidate-card thumbnails are
+unchanged.
+
+- `cd frontend && npm run typecheck && npm run test:e2e -- image-jobs.spec.ts`
+  — typecheck passed; **2 passed**. The journey asserts exactly three
+  comparison images at 1440×900, `object-fit: contain`, each wider than 180px
+  and at least 200px high, then records the tracked viewport capture above.
+- `cd frontend && npm run build` — passed; regenerated tracked
+  `src/plotloom/static/workbench.css` for the scoped CSS change.
 
 ## Status
 

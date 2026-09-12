@@ -437,10 +437,20 @@ test.describe("P1 self-contained copied image brief", () => {
     await expect(
       frozenComparison.getByTestId(`frozen-reference-${complementaryAssetId}`),
     ).toBeVisible();
+    const frozenImages = frozenComparison.locator("img");
+    await expect(frozenImages).toHaveCount(3);
+    for (let index = 0; index < 3; index += 1) {
+      const image = frozenImages.nth(index);
+      await expect(image).toHaveCSS("object-fit", "contain");
+      const box = await image.boundingBox();
+      expect(box?.width).toBeGreaterThan(180);
+      expect(box?.height).toBeGreaterThanOrEqual(200);
+    }
+    await frozenComparison.scrollIntoViewIfNeeded();
     const frozenComparisonScreenshot = testInfo.outputPath(
-      "p15-frozen-reference-comparison-1440x900.png",
+      "p15-frozen-reference-comparison-viewport-1440x900.png",
     );
-    await frozenComparison.screenshot({ path: frozenComparisonScreenshot });
+    await page.screenshot({ path: frozenComparisonScreenshot });
     await testInfo.attach("p15 frozen reference comparison", {
       path: frozenComparisonScreenshot,
       contentType: "image/png",
