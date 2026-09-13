@@ -1,7 +1,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { VideoPilotPanel } from "../src/video-pilot";
+import { VideoPilotPanel, selectedSceneVideos } from "../src/video-pilot";
 import { plotloomApi } from "../src/api";
 import type { Shot, VideoJob } from "../src/types";
 
@@ -21,6 +21,14 @@ function job(projectId: string, shotId: string): VideoJob {
     id: `job-${projectId}`, projectId, state: "prepared", cancelRequestedAt: null,
     requestedSeconds: 5, current: true, selected: false, providerPredictionId: null,
     outputHash: null, observed: null, error: null, snapshot: { shot: { id: shotId, title: `Shot ${shotId}` } },
+  };
+}
+
+function selectedJob(id: string, order: number, overrides: Partial<VideoJob> = {}): VideoJob {
+  return {
+    ...job("project", `shot-${order}`), id, state: "ingested", selected: true,
+    snapshot: { shot: { id: `shot-${order}`, title: `Shot ${order}`, sceneId: "scene", order } },
+    ...overrides,
   };
 }
 
@@ -63,4 +71,14 @@ it("keeps retrieval available after a known-ID cancel intent", async () => {
   await render("project", "shot");
   const retrieve = [...host.querySelectorAll("button")].find((item) => item.textContent === "获取结果");
   expect(retrieve?.disabled).toBe(false);
+});
+
+it("orders only current explicitly selected ingested candidates for one scene", () => {
+  const first = selectedJob("first", 1);
+  const second = selectedJob("second", 2);
+  const stale = selectedJob("stale", 3, { current: false });
+  const pending = selectedJob("pending", 4, { state: "submitted" });
+  const unselected = selectedJob("unselected", 5, { selected: false });
+  const otherScene = selectedJob("other", 1, { snapshot: { shot: { id: "other", sceneId: "other-scene", order: 1 } } });
+  expect(selectedSceneVideos([second, stale, otherScene, pending, unselected, first], "scene").map((item) => item.id)).toEqual(["first", "second"]);
 });

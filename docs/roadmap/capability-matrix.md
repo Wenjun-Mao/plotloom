@@ -10,6 +10,21 @@
 
 ## 一眼看懂当前状态
 
+**P2 reviewed two-shot continuation (2026-09-13; supersedes the older P2
+execution note immediately below):** the retained first Wan candidate now has
+an attributable user AtlasCloud review and explicit normal selection. One and
+only one adjoining five-second 720p native-audio Wan request was admitted from
+a frozen, identity-aware profile keyframe; it ingested as a separate local
+candidate, while the historical unknown request remains immutable. The durable
+shared ledger is **15/100 requested seconds reserved**. The product can now
+order only current, explicitly selected, ingested shots for restartable local
+sequence playback with final-frame hold. The adjoining clip is deliberately
+**unselected** because genuine audio and normal-speed temporal review were not
+available in this execution environment; its named local review pack and safe
+contact sheet are retained. This is a bounded partial P2 result, not P3
+readiness or cross-shot voice/continuity qualification. See the
+[reviewed two-shot receipt](../verification/2026-09-13-p2-reviewed-two-shot-checkpoint.md).
+
 **Current director disposition (2026-09-12; supersedes the historical checkpoint
 text below):** P0/P1 plus corrections are accepted and pushed. P1.5 reference
 workflow and bounded identity/framing review are closed through `4eb98d4`;

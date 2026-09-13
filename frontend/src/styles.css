@@ -122,6 +122,8 @@ input:focus, textarea:focus, select:focus { border-color: #856f49; box-shadow: 0
 input[readonly] { color: var(--dim); }
 .range-summary { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; margin-bottom: 10px; border: 1px solid rgba(103,205,165,.22); color: var(--muted); background: rgba(103,205,165,.05); }
 .range-summary strong { color: var(--success); font: 800 20px var(--mono); }
+.video-sequence { display: grid; gap: 8px; padding: 12px; margin: 12px 0; border: 1px solid rgba(103,205,165,.35); border-radius: 6px; background: rgba(103,205,165,.05); }
+.video-sequence video { width: min(100%, 720px); max-height: 460px; background: #000; }
 
 .button { min-height: 36px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 5px; color: var(--text); background: var(--panel-2); font-weight: 700; }
 .button:hover { border-color: var(--line-strong); filter: brightness(1.1); }
