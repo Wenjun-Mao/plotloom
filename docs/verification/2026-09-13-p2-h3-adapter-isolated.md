@@ -30,11 +30,14 @@ mismatching output to `retrieve_needed` with
 | Wheel build and isolated installed-wheel smoke | passed |
 | `git diff --check` | passed before packaging |
 
-`uv run --locked pytest -q` executed 606 passing tests and 9 skips.  Its one
-failure is intentionally not waived here: the shared-main extraction contract
-does not yet declare the independently-added top-level `services/` gateway
-root.  A separate shared-main owner is correcting that repository-policy
-baseline; this isolated branch must not duplicate the correction.
+The branch was then rebased onto the shared-main storage-cleanup and narrow
+`services/minimax_h3_gateway` admission fixes.  Its first combined E2E run
+revealed a real compatibility regression: browser fixtures still attested
+`plotloom-image-specialist.v2` after the package contract advanced to v3.
+The product correctly rejected those deliveries.  The fixtures now write v3;
+the two affected P1/P1.5 journeys and the entire 28-journey browser suite
+pass.  The rebased unfiltered Python suite passes with **632 passed, 9
+skipped**.  No test is deselected or waived.
 
 ## Local probe correlation
 
