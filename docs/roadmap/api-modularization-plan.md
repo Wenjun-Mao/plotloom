@@ -1,7 +1,9 @@
 # API modularization proposal
 
-**Status:** proposal for director review.  This is an audit-only record, not
-authorization to change application code.
+**Status:** director-approved and implemented as a behavior-preserving API
+modularization checkpoint. The project-folder storage destination is already
+decided by the approved storage plan; only its production cutover timing
+remains deferred.
 
 ## Checkpoint
 
@@ -233,6 +235,28 @@ change.
   storage, and whether any media/preview helper becomes truly shared.  Those
   are runtime/storage decisions, not behavior-preserving extraction details,
   and need source evidence plus an ADR if their contract changes.
+
+## Implementation receipt
+
+The public `plotloom.api` package façade preserves the historic factory import
+surface. Normal composition lives in `api/application.py` and delegates
+explicit dependencies to focused projects, text-profile, generation, video,
+managed-media, image-job, and error registrars. The limited project-folder
+composition lives in `api/project_folder.py` with its direct-storage media and
+image-job registrars; it is not a storage-mode switch or a shared router
+abstraction.
+
+The initial moved model module is larger than the target because it preserves
+the existing public DTO/helper import surface in one mechanical extraction.
+Its DTO, serializer, and protocol families are the next internal split before
+adding new API contract fields; no new API surface should be added there. The
+same rule applies to the retained project-folder composition, whose direct
+storage lifecycle is intentionally not merged with normal routes.
+
+Focused baseline and post-move characterization covered normal route/OpenAPI
+contracts and project-folder storage behavior. The stable candidate still
+requires the repository's full locked Python, frontend, wheel, install-smoke,
+and browser gates before release.
 
 ## Audit closeout
 
