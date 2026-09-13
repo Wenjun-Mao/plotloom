@@ -125,7 +125,7 @@ def build_runtime_app(settings: PlotloomSettings, *, test_video_provider: object
     from .generation.contracts import ReasoningMode, RequestExtension
 
     repository = SQLiteRepository(settings.database_url)
-    artifact_store = LocalArtifactStore(settings.artifact_root)
+    artifact_store = LocalArtifactStore(settings.artifact_root, legacy_roots=settings.artifact_legacy_roots)
     run_secrets = RunSecretBroker(
         settings.text_api_key.get_secret_value() if settings.text_api_key else None,
         server_key_resolver=lambda profile_id: (

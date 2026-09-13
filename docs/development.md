@@ -92,8 +92,17 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
 
 - P1 has no provider key or automatic bridge. Set one explicit
   `PLOTLOOM_IMAGE_EXCHANGE_ROOT` on the same host as Plotloom and the assigned
-  Codex specialist. Do not use the source checkout, SQLite directory, artifact
-  root, or a broad home directory as this exchange root.
+  Codex specialist. For a source checkout, use the ignored local root
+  `data/image-exchange`; `data/plotloom.sqlite3`, `data/artifacts/`, local
+  `data/review-packs/`, and that exchange are the active project-local storage
+  entrypoints. Do not use a source path outside `data/`, a database directory,
+  artifact root, or a broad home directory as this exchange root.
+- A verified retained-data relocation may set
+  `PLOTLOOM_LEGACY_ARTIFACT_ROOTS` to the exact former artifact root (multiple
+  roots use the platform path separator). This is a read-only compatibility
+  allowlist: immutable `file://` records under that root resolve to the same
+  relative bytes below the configured current artifact root. It does not permit
+  arbitrary file URIs and does not rewrite database history.
 - The UI requires a nonblank creator-reviewed presentation/refinement change
   before it prepares an approved single-shot job. It freezes that change with
   canonical facts; use the normal storyboard editor and reapproval for narrative
@@ -130,6 +139,12 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
   never create a Shot, Approval, selected reference or reviewed keyframe. Use
   the repository skill at `.agents/skills/plotloom-image-specialist` only with
   the frozen package and write completion data only in its delivery directory.
+- Built-in ImageGen may stage files under user-level Codex storage. After a
+  complete package delivery, the specialist skill copies each exact returned
+  path into `delivery/outputs/`, validates the full manifest and hashes, and
+  removes only that exact direct staging file. It never glob-deletes staging
+  directories; unsafe, ambiguous, incomplete, or mismatched files remain and
+  are reported.
 - A selected v3 generated keyframe with visible characters needs an explicit
   human same-person review before a still animatic can be created. Replacing or
   revoking a reference makes dependent jobs, reviews and previews stale while

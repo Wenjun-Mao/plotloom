@@ -20,13 +20,14 @@ def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> No
         "TEXT_BASE_URL=http://127.0.0.1:8080/v1\nTEXT_AUTH_MODE=none\n"
         "TEXT_MAX_OUTPUT_TOKENS=4096\nTEXT_CONNECT_TIMEOUT_SECONDS=4\n"
         "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES=9000000\n"
-        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS=25000000\n",
+        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS=25000000\n"
+        f"PLOTLOOM_LEGACY_ARTIFACT_ROOTS=old-artifacts{os.pathsep} old-artifacts-two \n",
         encoding="utf-8",
     )
     for name in (
         "PLOTLOOM_DATA_DIR", "PLOTLOOM_PORT", "PORT", "TEXT_BASE_URL",
         "TEXT_AUTH_MODE", "TEXT_MAX_OUTPUT_TOKENS", "TEXT_CONNECT_TIMEOUT_SECONDS",
-        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES", "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS",
+        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES", "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS", "PLOTLOOM_LEGACY_ARTIFACT_ROOTS",
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("PORT", "8899")
@@ -38,6 +39,10 @@ def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> No
     assert settings.data_dir == (tmp_path / "dotenv-data").resolve()
     assert settings.database_url.endswith("/dotenv-data/plotloom.sqlite3")
     assert settings.artifact_root == (tmp_path / "dotenv-data" / "artifacts").resolve()
+    assert settings.artifact_legacy_roots == (
+        (tmp_path / "old-artifacts").resolve(),
+        (tmp_path / "old-artifacts-two").resolve(),
+    )
     assert settings.static_dir == (Path(__file__).resolve().parents[2] / "src/plotloom/static").resolve()
     assert settings.text_base_url == "http://127.0.0.1:8080/v1"
     assert settings.text_auth_mode == "none"

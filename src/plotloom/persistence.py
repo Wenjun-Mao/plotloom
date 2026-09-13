@@ -3032,7 +3032,7 @@ class SQLiteRepository:
             }
             request = {
                 "schemaVersion": 3, "jobId": job_id, "executionContract": "codex_specialist.v2",
-                "specialistPreflight": {"version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v2", "executionContract": "codex_specialist.v2"},
+                "specialistPreflight": {"version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v3", "executionContract": "codex_specialist.v2"},
                 "kind": "refinement" if parent_candidate_asset_id else "original",
                 "target": "character_reference_proposal", "frozenSnapshot": snapshot,
             }
@@ -3734,7 +3734,7 @@ class SQLiteRepository:
                 "visualProposal": visual_proposal, "frozenSnapshot": snapshot,
             }
             if contract_version == 3:
-                request["specialistPreflight"] = {"version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v2", "executionContract": "codex_specialist.v2"}
+                request["specialistPreflight"] = {"version": "p1.5-pin.v1", "skillVersion": "plotloom-image-specialist.v3", "executionContract": "codex_specialist.v2"}
             job = ImageJobRow(
                 id=job_id, project_id=project_id, production_unit_id=unit.id,
                 parent_job_id=parent_job_id, parent_candidate_asset_id=parent_candidate_asset_id,

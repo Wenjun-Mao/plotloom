@@ -28,3 +28,19 @@ def test_artifact_hash_and_traversal_are_rejected(tmp_path: Path) -> None:
     outside.write_bytes(b"data")
     with pytest.raises(ValueError):
         store.get(outside.as_uri())
+
+
+def test_local_artifacts_map_only_an_explicit_legacy_root(tmp_path: Path) -> None:
+    old_root = tmp_path / "old-artifacts"
+    current_root = tmp_path / "current-artifacts"
+    content = b"retained media"
+    digest = hashlib.sha256(content).hexdigest()
+    old_uri = old_root / digest[:2] / digest
+    current_path = current_root / digest[:2] / digest
+    current_path.parent.mkdir(parents=True)
+    current_path.write_bytes(content)
+    store = LocalArtifactStore(current_root, legacy_roots=[old_root])
+
+    assert store.get(old_uri.as_uri()) == content
+    with pytest.raises(ValueError):
+        store.get((tmp_path / "unlisted-artifacts" / digest[:2] / digest).as_uri())

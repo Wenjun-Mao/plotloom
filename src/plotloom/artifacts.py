@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from threading import RLock
-from typing import Protocol, runtime_checkable
+from typing import Iterable, Protocol, runtime_checkable
 from urllib.parse import unquote, urlparse
 
 
@@ -21,11 +21,15 @@ def _content_hash(content: bytes) -> str:
 
 
 class LocalArtifactStore:
-    """Content-addressed store with atomic publication and natural deduplication."""
+    """Content-addressed storage with an explicit, read-only relocation bridge."""
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, *, legacy_roots: Iterable[Path] = ()) -> None:
         self.root = root.resolve()
         self.root.mkdir(parents=True, exist_ok=True)
+        self.legacy_roots = tuple(
+            root for root in dict.fromkeys(item.resolve() for item in legacy_roots)
+            if root != self.root
+        )
 
     def _path_for_hash(self, digest: str) -> Path:
         if len(digest) != 64 or any(character not in "0123456789abcdef" for character in digest):
@@ -58,7 +62,18 @@ class LocalArtifactStore:
         parsed = urlparse(uri)
         if parsed.scheme != "file" or parsed.netloc not in {"", "localhost"}:
             raise ValueError("local artifact URI must use file://")
-        path = Path(unquote(parsed.path)).resolve()
+        original = Path(unquote(parsed.path))
+        if not original.is_absolute():
+            raise ValueError("local artifact URI must use an absolute path")
+        path = original.resolve()
+        if self.root not in path.parents:
+            for legacy_root in self.legacy_roots:
+                try:
+                    relative = path.relative_to(legacy_root)
+                except ValueError:
+                    continue
+                path = (self.root / relative).resolve()
+                break
         if self.root not in path.parents:
             raise ValueError("artifact URI is outside configured root")
         content = path.read_bytes()

@@ -98,6 +98,10 @@ class PlotloomSettings(BaseModel):
     data_dir: Path
     database_url: str
     artifact_root: Path
+    # Old immutable records retain their original file URI. A named source
+    # root can be mapped read-only into ``artifact_root`` after a verified
+    # relocation; it never grants arbitrary filesystem reads.
+    artifact_legacy_roots: tuple[Path, ...] = ()
     static_dir: Path
     # P1 is intentionally unavailable until an operator names the one
     # same-host handoff location. It is a transport setting, not provider
@@ -184,6 +188,14 @@ class PlotloomSettings(BaseModel):
         ).expanduser()
         if not artifact_root.is_absolute():
             artifact_root = (root / artifact_root).resolve()
+        legacy_artifact_values = tuple(
+            value.strip() for value in (os.environ.get("PLOTLOOM_LEGACY_ARTIFACT_ROOTS") or "").split(os.pathsep)
+            if value.strip()
+        )
+        artifact_legacy_roots = tuple(
+            (Path(value).expanduser() if Path(value).expanduser().is_absolute() else root / value).resolve()
+            for value in legacy_artifact_values
+        )
         static_dir = Path(
             os.environ.get("PLOTLOOM_STATIC_DIR")
             or Path(__file__).resolve().parent / "static"
@@ -203,6 +215,7 @@ class PlotloomSettings(BaseModel):
             data_dir=data_dir,
             database_url=database_url,
             artifact_root=artifact_root.resolve(),
+            artifact_legacy_roots=artifact_legacy_roots,
             static_dir=static_dir.resolve(),
             image_exchange_root=image_exchange_root.resolve() if image_exchange_root is not None else None,
             host=os.environ.get("PLOTLOOM_HOST", os.environ.get("HOST", "127.0.0.1")),

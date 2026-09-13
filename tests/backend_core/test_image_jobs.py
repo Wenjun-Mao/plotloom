@@ -88,7 +88,7 @@ def _complete_identity_delivery(delivery: Path, job: dict, *, delivery_id: str, 
         "referenceUse": {"viewedReferenceHashes": hashes, "identityNotes": "Fixture attestation only; creator review remains required."},
         "executorProvenance": {
             "codeRevision": "a" * 40,
-            "skillVersion": "plotloom-image-specialist.v2",
+            "skillVersion": "plotloom-image-specialist.v3",
             "skillHash": "b" * 64,
             "model": "fixture",
             "reasoningEffort": "none",
@@ -97,7 +97,7 @@ def _complete_identity_delivery(delivery: Path, job: dict, *, delivery_id: str, 
     }
     (delivery / "executor-pin.json").write_text(json.dumps({
         "jobId": job["id"], "requestHash": job["requestHash"],
-        "executionContract": "codex_specialist.v2", "skillVersion": "plotloom-image-specialist.v2",
+        "executionContract": "codex_specialist.v2", "skillVersion": "plotloom-image-specialist.v3",
         "codeRevision": "a" * 40, "skillHash": "b" * 64,
     }), encoding="utf-8")
     (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
@@ -283,14 +283,14 @@ def test_v4_executor_pin_is_the_only_awaiting_partial_delivery(tmp_path: Path) -
         "jobId": job_id,
         "requestHash": request_hash,
         "executionContract": "codex_specialist.v2",
-        "skillVersion": "plotloom-image-specialist.v2",
+        "skillVersion": "plotloom-image-specialist.v3",
         "codeRevision": "a" * 40,
         "skillHash": "b" * 64,
     }
     (delivery / "executor-pin.json").write_text(json.dumps(pin), encoding="utf-8")
     assert exchange.read_delivery(
         job_id=job_id, request_hash=request_hash, require_executor_pin=True,
-        expected_executor_skill_version="plotloom-image-specialist.v2",
+        expected_executor_skill_version="plotloom-image-specialist.v3",
     ) is None
 
     pin["jobId"] = "ij_" + "e" * 20
@@ -298,7 +298,7 @@ def test_v4_executor_pin_is_the_only_awaiting_partial_delivery(tmp_path: Path) -
     try:
         exchange.read_delivery(
             job_id=job_id, request_hash=request_hash, require_executor_pin=True,
-            expected_executor_skill_version="plotloom-image-specialist.v2",
+            expected_executor_skill_version="plotloom-image-specialist.v3",
         )
     except ImageJobError as error:
         assert error.code == "delivery_executor_pin_mismatch"
@@ -311,12 +311,37 @@ def test_v4_executor_pin_is_the_only_awaiting_partial_delivery(tmp_path: Path) -
     try:
         exchange.read_delivery(
             job_id=job_id, request_hash=request_hash, require_executor_pin=True,
-            expected_executor_skill_version="plotloom-image-specialist.v2",
+            expected_executor_skill_version="plotloom-image-specialist.v3",
         )
     except ImageJobError as error:
         assert error.code == "delivery_partial"
     else:
         raise AssertionError("undeclared partial delivery must remain rejected")
+
+
+def test_frozen_v2_executor_pin_remains_a_valid_awaiting_delivery(tmp_path: Path) -> None:
+    """A historical v2 package keeps its frozen expected skill version."""
+
+    job_id = "ij_" + "f" * 20
+    request_hash = "d" * 64
+    delivery = tmp_path / "exchange" / "jobs" / job_id / "delivery"
+    delivery.mkdir(parents=True)
+    (delivery / "executor-pin.json").write_text(json.dumps({
+        "jobId": job_id,
+        "requestHash": request_hash,
+        "executionContract": "codex_specialist.v2",
+        "skillVersion": "plotloom-image-specialist.v2",
+        "codeRevision": "a" * 40,
+        "skillHash": "b" * 64,
+    }), encoding="utf-8")
+    exchange = ImageJobExchange(tmp_path / "exchange", limits=ManagedMediaLimits())
+
+    assert exchange.read_delivery(
+        job_id=job_id,
+        request_hash=request_hash,
+        require_executor_pin=True,
+        expected_executor_skill_version="plotloom-image-specialist.v2",
+    ) is None
 
 
 def test_manual_image_job_prepare_copy_refresh_select_and_refine(repository, brief, tmp_path: Path) -> None:
@@ -749,7 +774,7 @@ def test_identity_reference_job_is_explicitly_reviewed_and_stales_on_replacement
         delivery_root.mkdir(parents=True)
         (delivery_root / "executor-pin.json").write_text(json.dumps({
             "jobId": job["id"], "requestHash": job["requestHash"],
-            "executionContract": "codex_specialist.v2", "skillVersion": "plotloom-image-specialist.v2",
+            "executionContract": "codex_specialist.v2", "skillVersion": "plotloom-image-specialist.v3",
             "codeRevision": "a" * 40, "skillHash": "b" * 64,
         }), encoding="utf-8")
         awaiting = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh")
@@ -929,7 +954,7 @@ def test_character_reference_proposal_delivery_retains_candidate_without_auto_se
         delivery = Path(copied.json()["deliveryPath"])
         (delivery / "outputs").mkdir(parents=True)
         (delivery / "outputs" / "proposal.png").write_bytes(content)
-        provenance = {"codeRevision": "c" * 40, "skillVersion": "plotloom-image-specialist.v2", "skillHash": "d" * 64}
+        provenance = {"codeRevision": "c" * 40, "skillVersion": "plotloom-image-specialist.v3", "skillHash": "d" * 64}
         (delivery / "executor-pin.json").write_text(json.dumps({
             "jobId": proposal["id"], "requestHash": proposal["requestHash"],
             "executionContract": "codex_specialist.v2", **provenance,
