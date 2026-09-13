@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AuthoringDraft, MediaTask, PipelineRun, ProjectListItem, ProjectResource, ProviderSettings, QuarantineItem, RunExecutionTrace, RunProgress, SceneBeatPlan, ServerStageName, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, StoryboardReview, TextBackendReadiness, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, ValidationIssue, WorkspaceProject } from "./types";
+import type { AuthoringDraft, CanonicalDraftConsumption, MediaTask, PipelineRun, ProjectListItem, ProjectResource, ProviderSettings, QuarantineItem, RunExecutionTrace, RunProgress, SceneBeatPlan, ServerStageName, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, StoryboardReview, TextBackendReadiness, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, ValidationIssue, WorkspaceProject } from "./types";
 import { plotloomApi, ApiError } from "./api";
 import { providerSessionKeys } from "./session-key";
 import { defaultProviderSettings, demoProject, demoRun, demoTrace, emptyStageContent } from "./demo";
@@ -42,6 +42,26 @@ function authoringDraftKey(projectId: string, scope: DraftScope): string {
 
 function sameDraftPayload(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function canonicalDraftConsumption(
+  draft: AuthoringDraft | undefined,
+  scope: DraftScope,
+  canonicalRevision: number,
+  payload: unknown,
+): CanonicalDraftConsumption | undefined {
+  if (
+    !draft
+    || draft.baseCanonicalRevision !== canonicalRevision
+    || !sameDraftPayload(draft.payload, payload)
+  ) {
+    return undefined;
+  }
+  return {
+    editorScope: scope,
+    entityId: "root",
+    draftRevision: draft.draftRevision,
+  };
 }
 
 const navigation: { id: PageId; index: string; label: string; description: string }[] = [
@@ -695,11 +715,12 @@ export default function App() {
       } else {
         if (durableDraftsEnabledRef.current && getDraft(project, "brief") && !await flushAuthoringDraft("brief")) return;
         const serverDraft = serverAuthoringDrafts.current.get(authoringDraftKey(project.id, "brief"));
-        const consumedDraft = serverDraft
-          && serverDraft.baseCanonicalRevision === project.revision
-          && sameDraftPayload(serverDraft.payload, nextLocal.brief)
-          ? { editorScope: "brief" as const, entityId: "root", draftRevision: serverDraft.draftRevision }
-          : undefined;
+        const consumedDraft = canonicalDraftConsumption(
+          serverDraft,
+          "brief",
+          project.revision,
+          nextLocal.brief,
+        );
         const saved: { project: ProjectResource; consumedDraftRevision?: number } = consumedDraft
           ? await plotloomApi.patchProjectWithDraft(project.id, project.revision, nextLocal.brief, consumedDraft)
           : { project: await plotloomApi.patchProject(project.id, project.revision, nextLocal.brief) };
@@ -746,11 +767,12 @@ export default function App() {
       }
       if (durableDraftsEnabledRef.current && getDraft(project, stage) && !await flushAuthoringDraft(stage)) return;
       const serverDraft = serverAuthoringDrafts.current.get(authoringDraftKey(project.id, stage));
-      const consumedDraft = serverDraft
-        && serverDraft.baseCanonicalRevision === project.stageRevisions[stage]
-        && sameDraftPayload(serverDraft.payload, content)
-        ? { editorScope: stage, entityId: "root", draftRevision: serverDraft.draftRevision }
-        : undefined;
+      const consumedDraft = canonicalDraftConsumption(
+        serverDraft,
+        stage,
+        project.stageRevisions[stage],
+        content,
+      );
       const saved: { stage: StageHead; consumedDraftRevision?: number } = consumedDraft
         ? await plotloomApi.patchStageWithDraft(project.id, stage, project.stageRevisions[stage], content, consumedDraft)
         : { stage: await plotloomApi.patchStage(project.id, stage, project.stageRevisions[stage], content) };

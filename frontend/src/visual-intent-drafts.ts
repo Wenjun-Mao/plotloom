@@ -8,14 +8,30 @@ const storageKey = "plotloom:visual-intent-drafts:v1";
 const imageJobStorageKey = "plotloom:image-job-direction-drafts:v1";
 const fields = ["identityIntent", "compositionIntent", "styleIntent", "sourceRefs"] as const;
 
-function readDrafts(): Drafts {
+function readSessionDrafts<EntryValue>(
+  key: string,
+  isEntry: (value: unknown) => value is EntryValue,
+): Record<string, EntryValue> {
   try {
-    const value: unknown = JSON.parse(window.sessionStorage.getItem(storageKey) ?? "{}");
+    const value: unknown = JSON.parse(window.sessionStorage.getItem(key) ?? "{}");
     if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-    return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry
-      && (entry.baseId === null || typeof entry.baseId === "string")
-      && entry.value && fields.every((field) => typeof entry.value[field] === "string")));
+    const entries = Object.entries(value);
+    return Object.fromEntries(
+      entries.filter((entry): entry is [string, EntryValue] => isEntry(entry[1])),
+    );
   } catch { return {}; }
+}
+
+function isIntentDraftEntry(value: unknown): value is Entry {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as Partial<Entry>;
+  return (entry.baseId === null || typeof entry.baseId === "string")
+    && Boolean(entry.value)
+    && fields.every((field) => typeof entry.value?.[field] === "string");
+}
+
+function readDrafts(): Drafts {
+  return readSessionDrafts(storageKey, isIntentDraftEntry);
 }
 
 /** Drafts belong to a project/shot/candidate, never to the currently visible form. */
@@ -193,13 +209,20 @@ export type ImageJobDraftTarget =
 type ImageJobDraftEntry = { contextId: string; value: string };
 type ImageJobDrafts = Record<string, ImageJobDraftEntry>;
 
+function isImageJobDraftEntry(value: unknown): value is ImageJobDraftEntry {
+  if (!value || typeof value !== "object") return false;
+  const entry = value as Partial<ImageJobDraftEntry>;
+  return typeof entry.contextId === "string" && typeof entry.value === "string";
+}
+
 function readImageJobDrafts(): ImageJobDrafts {
-  try {
-    const value: unknown = JSON.parse(window.sessionStorage.getItem(imageJobStorageKey) ?? "{}");
-    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-    return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry
-      && typeof entry.contextId === "string" && typeof entry.value === "string"));
-  } catch { return {}; }
+  return readSessionDrafts(imageJobStorageKey, isImageJobDraftEntry);
+}
+
+export function imageJobTargetId(target: ImageJobDraftTarget): string {
+  if (target.kind === "refinement") return `refinement:${target.parentCandidateAssetId}`;
+  if (target.kind === "keyframe_adaptation") return `keyframe_adaptation:${target.profileId}`;
+  return "original";
 }
 
 /**
@@ -225,11 +248,7 @@ export function useImageJobDirectionDraft(
   const [serverConflict, setServerConflict] = useState(false);
   const serverConflictRef = useRef(false);
   const requestEpochRef = useRef(0);
-  const targetId = target.kind === "original"
-    ? "original"
-    : target.kind === "refinement"
-      ? `refinement:${target.parentCandidateAssetId}`
-      : `keyframe_adaptation:${target.profileId}`;
+  const targetId = imageJobTargetId(target);
   const key = JSON.stringify([projectId, shotId, targetId]);
   const entityId = `${shotId ?? "unsaved"}:${targetId}`;
   const entry = drafts[key];

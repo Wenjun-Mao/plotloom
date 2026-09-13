@@ -2390,6 +2390,15 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 detail="media action must consume its exact editor draft",
             )
 
+    def image_job_target_id(body: ProjectFolderImageJobCreateRequest) -> str:
+        """Name the exact manual-job target that owns an image-direction draft."""
+
+        if body.parent_candidate_asset_id is not None:
+            return f"refinement:{body.parent_candidate_asset_id}"
+        if body.keyframe_adaptation_profile_id is not None:
+            return f"keyframe_adaptation:{body.keyframe_adaptation_profile_id}"
+        return "original"
+
     @app.exception_handler(ProjectStorageConflictError)
     async def project_storage_conflict_handler(
         _request: Request, error: ProjectStorageConflictError
@@ -2422,9 +2431,15 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
         _request: Request, error: ProjectStorageError
     ) -> JSONResponse:
         missing = str(error).startswith("project not found")
+        if missing:
+            response_status = status.HTTP_404_NOT_FOUND
+            code = "not_found"
+        else:
+            response_status = status.HTTP_422_UNPROCESSABLE_CONTENT
+            code = "project_storage_error"
         return JSONResponse(
-            status_code=status.HTTP_404_NOT_FOUND if missing else status.HTTP_422_UNPROCESSABLE_CONTENT,
-            content={"code": "not_found" if missing else "project_storage_error", "message": str(error)},
+            status_code=response_status,
+            content={"code": code, "message": str(error)},
         )
 
     @app.exception_handler(RevisionConflictError)
@@ -2903,13 +2918,7 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
 
     @app.post("/api/v2/projects/{project_id}/image-jobs", status_code=status.HTTP_201_CREATED)
     def prepare_project_image_job(project_id: str, body: ProjectFolderImageJobCreateRequest) -> dict[str, Any]:
-        target_id = (
-            "original"
-            if body.parent_candidate_asset_id is None and body.keyframe_adaptation_profile_id is None
-            else f"refinement:{body.parent_candidate_asset_id}"
-            if body.parent_candidate_asset_id is not None
-            else f"keyframe_adaptation:{body.keyframe_adaptation_profile_id}"
-        )
+        target_id = image_job_target_id(body)
         required_entity_id = f"{body.shot_id}:{target_id}"
         require_media_draft_scope(
             body.consumed_draft,

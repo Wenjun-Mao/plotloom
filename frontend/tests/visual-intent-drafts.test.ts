@@ -1,7 +1,7 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it } from "vitest";
-import { useImageJobDirectionDraft, useVisualIntentDraft, type IntentDraft } from "../src/visual-intent-drafts";
+import { imageJobTargetId, useImageJobDirectionDraft, useVisualIntentDraft, type IntentDraft } from "../src/visual-intent-drafts";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const saved: IntentDraft = { identityIntent: "identity", compositionIntent: "composition", styleIntent: "saved", sourceRefs: "source" };
@@ -74,6 +74,24 @@ it("ignores corrupt stored entries without losing valid entries", async () => {
     [JSON.stringify(["project", "shot", "asset"])]: { baseId: null, value: { ...saved, styleIntent: "restored" } },
   }));
   await render(); expect(editor.value.styleIntent).toBe("restored");
+});
+
+it("ignores corrupt image-direction entries without losing a valid entry", async () => {
+  sessionStorage.setItem("plotloom:image-job-direction-drafts:v1", JSON.stringify({
+    bad: { contextId: 123, value: {} },
+    [JSON.stringify(["project", "shot", "original"])]: {
+      contextId: "approval-1",
+      value: "restored direction",
+    },
+  }));
+  await renderDirection();
+  expect(directionEditor.value).toBe("restored direction");
+});
+
+it("names each image direction target deterministically", () => {
+  expect(imageJobTargetId({ kind: "original" })).toBe("original");
+  expect(imageJobTargetId({ kind: "refinement", parentCandidateAssetId: "candidate-1" })).toBe("refinement:candidate-1");
+  expect(imageJobTargetId({ kind: "keyframe_adaptation", profileId: "portrait", profileLabel: "Portrait" })).toBe("keyframe_adaptation:portrait");
 });
 
 it("isolates manual image directions by project, shot, and original/refinement target across remounts", async () => {

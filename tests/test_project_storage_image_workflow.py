@@ -199,6 +199,45 @@ def test_project_owned_image_handoff_isolated_across_restart_and_stales_after_in
     )
     assert selected.status_code == 201, selected.text
 
+    # Adaptation direction has a distinct target identity, so its receipt can
+    # neither consume the original direction nor a candidate refinement.
+    adaptation_profile_id = "minimax_h3_fp8_turbo4_portrait_576x1024_v1"
+    adaptation_draft = client.put(
+        f"/api/v2/projects/{first_id}/authoring-drafts",
+        json={
+            "editorScope": "image_direction",
+            "entityId": f"{shot['id']}:keyframe_adaptation:{adaptation_profile_id}",
+            "baseCanonicalRevision": storyboard["head"]["revision"],
+            "expectedDraftRevision": 0,
+            "payload": {
+                "shotId": shot["id"],
+                "targetId": f"keyframe_adaptation:{adaptation_profile_id}",
+                "contextId": "fixture-adaptation",
+                "presentationChange": "Recompose the reviewed fixture for the portrait frame.",
+            },
+        },
+    )
+    assert adaptation_draft.status_code == 200, adaptation_draft.text
+    adaptation = client.post(
+        f"/api/v2/projects/{first_id}/image-jobs",
+        json={
+            "approvalId": approval["id"],
+            "shotId": shot["id"],
+            "storyboardRevision": storyboard["head"]["revision"],
+            "contractVersion": 3,
+            "keyframeAdaptationProfileId": adaptation_profile_id,
+            "presentationChange": "Recompose the reviewed fixture for the portrait frame.",
+            "contextId": "fixture-adaptation",
+            "consumedDraft": {
+                "editorScope": "image_direction",
+                "entityId": f"{shot['id']}:keyframe_adaptation:{adaptation_profile_id}",
+                "draftRevision": adaptation_draft.json()["draftRevision"],
+            },
+        },
+    )
+    assert adaptation.status_code == 201, adaptation.text
+    assert adaptation.json()["job"]["request"]["kind"] == "keyframe_adaptation"
+
     stale_job = client.post(
         f"/api/v2/projects/{first_id}/image-jobs",
         json={
@@ -215,7 +254,9 @@ def test_project_owned_image_handoff_isolated_across_restart_and_stales_after_in
         },
     )
     assert stale_job.status_code == 409, stale_job.text
-    assert client.get(f"/api/v2/projects/{first_id}/image-jobs").json()["jobs"] == []
+    assert [job["id"] for job in client.get(f"/api/v2/projects/{first_id}/image-jobs").json()["jobs"]] == [
+        adaptation.json()["job"]["id"],
+    ]
 
     original = client.post(
         f"/api/v2/projects/{first_id}/image-jobs",
@@ -324,7 +365,11 @@ def test_project_owned_image_handoff_isolated_across_restart_and_stales_after_in
     reopened_client = TestClient(create_project_folder_authoring_app(reopened))
     assert reopened_client.get(f"/api/v2/projects/{first_id}/managed-assets/{candidate['id']}/original").content == _png((90, 42, 12))
     jobs = reopened_client.get(f"/api/v2/projects/{first_id}/image-jobs").json()["jobs"]
-    assert {job["id"] for job in jobs} == {original_job["id"], refinement_job["id"]}
+    assert {job["id"] for job in jobs} == {
+        adaptation.json()["job"]["id"],
+        original_job["id"],
+        refinement_job["id"],
+    }
     store = reopened.projects.open(first_id)
     try:
         stored = store.repository.get_managed_asset_storage(first_id, candidate["id"])
