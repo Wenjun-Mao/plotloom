@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { VideoPilotPanel, selectedSceneVideos } from "../src/video-pilot";
 import { plotloomApi } from "../src/api";
-import type { Shot, VideoJob } from "../src/types";
+import type { Shot, VideoBackend, VideoJob } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -48,6 +48,11 @@ async function render(projectId: string, shotId: string, sceneId?: string) {
 beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   vi.spyOn(plotloomApi, "getVideoPilotBudget").mockResolvedValue({ limitSeconds: 100, reservedSeconds: 0, remainingSeconds: 100, attempts: [] });
+  vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
+    enabled: true, adapterId: "atlas_wan", adapterVersion: "1", provider: "atlascloud",
+    model: "alibaba/wan-3.0/image-to-video", durationSeconds: 5, resolution: "720p",
+    nativeAudio: true, requiresAspectPolicy: false, tracksPaidWanPilot: true,
+  } satisfies VideoBackend);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
 
@@ -72,6 +77,33 @@ it("keeps retrieval available after a known-ID cancel intent", async () => {
   await render("project", "shot");
   const retrieve = [...host.querySelectorAll("button")].find((item) => item.textContent === "获取结果");
   expect(retrieve?.disabled).toBe(false);
+});
+
+it("requires an explicit visible no-stretch policy before freezing an H3 keyframe", async () => {
+  vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
+    enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "1", provider: "minimax_h3_gateway",
+    model: "minimax_h3_fp8_turbo4_480p", durationSeconds: 5, resolution: "480p",
+    width: 864, height: 480, fps: 24, frameCount: 124, nativeAudio: true,
+    requiresAspectPolicy: true, tracksPaidWanPilot: false,
+  });
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });
+  const prepare = vi.spyOn(plotloomApi, "prepareVideoJob").mockResolvedValue(job("project", "shot"));
+  await render("project", "shot");
+
+  expect(host.textContent).toContain("MiniMax H3 本地视频候选");
+  const freeze = [...host.querySelectorAll("button")].find((item) => item.textContent === "冻结当前审核关键帧");
+  expect(freeze?.disabled).toBe(true);
+  const policy = host.querySelector("select") as HTMLSelectElement;
+  await act(async () => {
+    policy.value = "contain_pad";
+    policy.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  expect(freeze?.disabled).toBe(false);
+  await act(async () => { freeze?.click(); await Promise.resolve(); });
+  expect(prepare).toHaveBeenCalledWith("project", expect.objectContaining({
+    resolution: "480p", requestedDurationSeconds: 5, audio: true, aspectPolicy: "contain_pad",
+  }));
+  expect(host.textContent).not.toContain("100 秒额度");
 });
 
 it("orders only current explicitly selected ingested candidates for one scene", () => {

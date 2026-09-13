@@ -226,6 +226,7 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
         ("GET", "/api/v2/projects/{project_id}/runs"),
             ("GET", "/api/v2/projects/{project_id}/media-tasks"),
             ("GET", "/api/v2/video-pilot-budget"),
+            ("GET", "/api/v2/video-backend"),
             ("GET", "/api/v2/projects/{project_id}/video-jobs"),
             ("POST", "/api/v2/projects/{project_id}/video-jobs"),
             ("POST", "/api/v2/projects/{project_id}/video-jobs/{video_job_id}/submit"),

@@ -309,6 +309,23 @@ export interface VideoPilotBudget {
   attempts: Array<{ videoJobId: string; event: string; seconds: number; createdAt: string }>;
 }
 
+export interface VideoBackend {
+  enabled: boolean;
+  adapterId?: string;
+  adapterVersion?: string;
+  provider?: string;
+  model?: string;
+  durationSeconds?: number;
+  resolution?: string;
+  width?: number | null;
+  height?: number | null;
+  fps?: number | null;
+  frameCount?: number | null;
+  nativeAudio?: boolean;
+  requiresAspectPolicy?: boolean;
+  tracksPaidWanPilot?: boolean;
+}
+
 export interface VideoJob {
   id: string;
   projectId: string;
@@ -319,7 +336,10 @@ export interface VideoJob {
   selected: boolean;
   providerPredictionId: string | null;
   outputHash: string | null;
-  observed: { durationSeconds: number; width: number; height: number; videoCodec: string; audioCodec: string | null } | null;
+  observed: {
+    durationSeconds: number; width: number; height: number; videoCodec: string; audioCodec: string | null;
+    frameRate?: number | null; frameCount?: number | null;
+  } | null;
   error: string | null;
   snapshot: Record<string, unknown>;
 }

@@ -6,6 +6,7 @@ import socket
 import sys
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 import plotloom.config as config_module
@@ -149,6 +150,63 @@ def test_runtime_wires_text_and_media_workers_without_exposing_keys(tmp_path: Pa
 
     assert hasattr(app.state, "run_runner")
     assert hasattr(app.state, "media_runner")
+
+
+def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(tmp_path: Path) -> None:
+    static_dir = tmp_path / "static"
+    static_dir.mkdir()
+    (static_dir / "index.html").write_text("<h1>Plotloom</h1>", encoding="utf-8")
+    settings = PlotloomSettings(
+        repo_root=tmp_path,
+        data_dir=tmp_path / "data",
+        database_url=f"sqlite:///{tmp_path / 'data' / 'state.sqlite3'}",
+        artifact_root=tmp_path / "data" / "artifacts",
+        static_dir=static_dir,
+        h3_gateway_enabled=True,
+        video_provider="minimax_h3_gateway",
+        video_base_url="http://100.64.1.2:8090",
+        video_model="minimax_h3_fp8_turbo4_480p",
+        video_api_key="h3-server-only-secret",
+    )
+    app = build_runtime_app(settings)
+
+    with TestClient(app) as client:
+        response = client.get("/api/v2/video-backend")
+        assert response.status_code == 200
+        assert response.json() == {
+            "enabled": True,
+            "adapterId": "minimax_h3_gateway",
+            "adapterVersion": "1",
+            "provider": "minimax_h3_gateway",
+            "model": "minimax_h3_fp8_turbo4_480p",
+            "durationSeconds": 5,
+            "resolution": "480p",
+            "width": 864,
+            "height": 480,
+            "fps": 24,
+            "frameCount": 124,
+            "nativeAudio": True,
+            "requiresAspectPolicy": True,
+            "tracksPaidWanPilot": False,
+        }
+        assert "h3-server-only-secret" not in response.text
+
+
+def test_runtime_rejects_h3_profile_drift_before_serving(tmp_path: Path) -> None:
+    settings = PlotloomSettings(
+        repo_root=tmp_path,
+        data_dir=tmp_path / "data",
+        database_url=f"sqlite:///{tmp_path / 'data' / 'state.sqlite3'}",
+        artifact_root=tmp_path / "data" / "artifacts",
+        static_dir=tmp_path,
+        h3_gateway_enabled=True,
+        video_provider="minimax_h3_gateway",
+        video_base_url="http://100.64.1.2:8090",
+        video_model="unreviewed-model",
+        video_api_key="h3-server-only-secret",
+    )
+    with pytest.raises(RuntimeError, match="trusted MiniMax H3 provider and profile"):
+        build_runtime_app(settings)
 
 
 def test_plotloom_has_no_legacy_imports() -> None:

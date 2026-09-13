@@ -41,6 +41,25 @@ Vite 默认使用 `5173`，并把 `/api/v2` 代理到 `127.0.0.1:8775`。可用 
 
 应用没有内置身份认证。远程部署必须保持私有，或在 Plotloom 外部加认证层。
 
+### 私有 MiniMax-H3 视频端点
+
+Spark 上的 H3 使用一个带 bearer key 的私有网关，ComfyUI 本身只监听
+`127.0.0.1`。在 `.env` 中填写网关的 Tailscale `VIDEO_BASE_URL`、
+`VIDEO_MODEL_API_KEY`，并严格设置：
+
+```dotenv
+PLOTLOOM_ENABLE_H3_GATEWAY=true
+VIDEO_PROVIDER=minimax_h3_gateway
+VIDEO_MODEL=minimax_h3_fp8_turbo4_480p
+```
+
+它是固定的 864×480、124 帧 / 24 fps、约 5.17 秒、带原生音频 profile。工作台会
+要求明确选择关键帧的比例处理方式，绝不会无提示拉伸画面；实际下载的文件也必须
+匹配这个冻结 profile，不能因“能播放”就被采用。H3 使用本地网关的队列容量，不
+占用历史 Atlas Wan 的付费 100 秒额度；但仍会冻结关键帧、角色引用、审批、seed
+和 adapter 版本。AAC 轨道不等于对白已通过，候选必须由人回放审核。
+不要把 Spark 网关公开到互联网。
+
 ## 验证
 
 ```sh

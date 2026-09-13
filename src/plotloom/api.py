@@ -1206,18 +1206,45 @@ def create_app(
     def get_video_pilot_budget() -> dict[str, Any]:
         return repo.video_budget()
 
+    @app.get("/api/v2/video-backend")
+    def get_video_backend() -> dict[str, Any]:
+        service = app.state.video_job_service
+        if service is None:
+            return {"enabled": False}
+        return service.public_capability()
+
     @app.get("/api/v2/projects/{project_id}/video-jobs")
     def get_video_jobs(project_id: str) -> dict[str, Any]:
         return {"jobs": repo.list_video_jobs(project_id)}
 
     @app.post("/api/v2/projects/{project_id}/video-jobs", status_code=status.HTTP_201_CREATED)
     def prepare_video_job(project_id: str, body: VideoJobRequest) -> dict[str, Any]:
+        service = app.state.video_job_service
+        if service is not None:
+            return service.prepare(
+                project_id,
+                approval_id=body.approval_id,
+                shot_id=body.shot_id,
+                storyboard_revision=body.storyboard_revision,
+                expected_selection_revision=body.expected_selection_revision,
+                idempotency_key=body.idempotency_key,
+                requested_seconds=body.requested_duration_seconds,
+                resolution=body.resolution,
+                audio=body.audio,
+                aspect_policy=body.aspect_policy,
+                seed=body.seed,
+            )
+        # Offline fixtures retain the original V1 preparation behaviour.  A
+        # real runtime cannot enter this branch because submission is already
+        # unavailable without a trusted adapter.
         return repo.prepare_video_job(
             project_id, approval_id=body.approval_id, shot_id=body.shot_id,
             storyboard_revision=body.storyboard_revision,
             expected_selection_revision=body.expected_selection_revision,
             idempotency_key=body.idempotency_key,
-            requested_seconds=body.requested_duration_seconds, resolution=body.resolution, audio=body.audio,
+            requested_seconds=5 if body.requested_duration_seconds is None else body.requested_duration_seconds,
+            resolution="720p" if body.resolution is None else body.resolution,
+            audio=True if body.audio is None else body.audio,
         )
 
     def require_video_service() -> VideoJobService:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from hashlib import sha256
+from secrets import randbits
 from typing import Any, Callable
 
 from .artifacts import ArtifactStore
@@ -9,7 +10,11 @@ from .persistence import SQLiteRepository
 from .video_ingestion import ObservedVideo, assert_public_https_url, probe_video
 from .video_provider import (
     AtlasWanAdapter,
+    MiniMaxH3GatewayAdapter,
+    RemoteOutcomeUnknown,
     RemotePredictionFailed,
+    VideoAdapterPort,
+    VideoOutputContractError,
     VideoProviderError,
     VideoProviderPort,
     WanDispatchDiagnostic,
@@ -20,9 +25,108 @@ from .video_provider import (
 class VideoJobService:
     """Never retries POST; recovery only polls known prediction IDs."""
 
-    def __init__(self, repository: SQLiteRepository, artifacts: ArtifactStore, provider: VideoProviderPort, *, probe: Callable[[bytes], ObservedVideo] = probe_video) -> None:
+    def __init__(
+        self,
+        repository: SQLiteRepository,
+        artifacts: ArtifactStore,
+        provider: VideoProviderPort,
+        *,
+        adapter: VideoAdapterPort | None = None,
+        probe: Callable[[bytes], ObservedVideo] = probe_video,
+    ) -> None:
         self.repository, self.artifacts, self.provider, self.probe = repository, artifacts, provider, probe
-        self.adapter = AtlasWanAdapter()
+        self.adapter = adapter or AtlasWanAdapter()
+
+    def prepare(
+        self,
+        project_id: str,
+        *,
+        approval_id: str,
+        shot_id: str,
+        storyboard_revision: int,
+        expected_selection_revision: int,
+        idempotency_key: str,
+        requested_seconds: int | None,
+        resolution: str | None,
+        audio: bool | None,
+        aspect_policy: str | None,
+        seed: int | None,
+    ) -> dict[str, Any]:
+        """Freeze the adapter-owned request before any durable dispatch claim."""
+
+        if isinstance(self.adapter, MiniMaxH3GatewayAdapter):
+            contract = self.adapter.production_contract(
+                requested_seconds=requested_seconds,
+                resolution=resolution,
+                audio=audio,
+                aspect_policy=aspect_policy,
+                seed=seed if seed is not None else randbits(63),
+            )
+            return self.repository.prepare_video_job(
+                project_id,
+                approval_id=approval_id,
+                shot_id=shot_id,
+                storyboard_revision=storyboard_revision,
+                expected_selection_revision=expected_selection_revision,
+                idempotency_key=idempotency_key,
+                production_contract=contract,
+            )
+
+        # Keep V1 Atlas snapshots byte-for-byte shaped as before.  It has no
+        # aspect-policy or seed concept, so reject an attempt to smuggle H3
+        # fields into that older documented request.
+        if aspect_policy is not None or seed is not None:
+            raise VideoProviderError("Atlas Wan does not accept H3 aspect policy or seed")
+        return self.repository.prepare_video_job(
+            project_id,
+            approval_id=approval_id,
+            shot_id=shot_id,
+            storyboard_revision=storyboard_revision,
+            expected_selection_revision=expected_selection_revision,
+            idempotency_key=idempotency_key,
+            requested_seconds=5 if requested_seconds is None else requested_seconds,
+            resolution="720p" if resolution is None else resolution,
+            audio=True if audio is None else audio,
+        )
+
+    def public_capability(self) -> dict[str, Any]:
+        """Secret-free capability projection used by the workbench."""
+
+        if isinstance(self.adapter, MiniMaxH3GatewayAdapter):
+            caps = self.adapter.capabilities
+            return {
+                "enabled": True,
+                "adapterId": caps.adapter_id,
+                "adapterVersion": caps.adapter_version,
+                "provider": caps.provider,
+                "model": caps.model,
+                "durationSeconds": caps.duration_seconds,
+                "resolution": caps.resolution,
+                "width": caps.width,
+                "height": caps.height,
+                "fps": caps.fps,
+                "frameCount": caps.frame_count,
+                "nativeAudio": caps.native_audio,
+                "requiresAspectPolicy": True,
+                "tracksPaidWanPilot": False,
+            }
+        caps = self.adapter.capabilities
+        return {
+            "enabled": True,
+            "adapterId": self.adapter.adapter_id,
+            "adapterVersion": self.adapter.adapter_version,
+            "provider": caps.provider,
+            "model": caps.model,
+            "durationSeconds": caps.durations[0],
+            "resolution": caps.resolutions[0],
+            "width": None,
+            "height": None,
+            "fps": None,
+            "frameCount": None,
+            "nativeAudio": caps.native_audio,
+            "requiresAspectPolicy": False,
+            "tracksPaidWanPilot": True,
+        }
 
     @staticmethod
     def _prompt(snapshot: dict[str, Any]) -> str:
@@ -68,8 +172,11 @@ class VideoJobService:
             uploaded = self.provider.upload(image, mime_type=keyframe["mimeType"])
             try:
                 payload = self.adapter.compile(
-                    prompt=self._prompt(job["snapshot"]), image_url=uploaded,
-                    duration=job["requestedSeconds"], resolution=job["snapshot"]["request"]["resolution"], audio=True,
+                    prompt=self._prompt(job["snapshot"]), uploaded_asset=uploaded,
+                    duration=job["requestedSeconds"], resolution=job["snapshot"]["request"]["resolution"],
+                    audio=job["snapshot"]["request"]["audio"],
+                    aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
+                    seed=job["snapshot"]["request"].get("seed"),
                 )
             except VideoProviderError as error:
                 raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
@@ -102,23 +209,33 @@ class VideoJobService:
             # never downloads, ingests, or adopts a candidate.
             if job.get("cancelRequestedAt"):
                 return job
-            assert_public_https_url(output)
+            self.adapter.validate_output_reference(output)
+            if isinstance(self.adapter, AtlasWanAdapter):
+                assert_public_https_url(output)
             content = self.provider.download(output)
             observed = self.probe(content)
             if observed.audio_codec is None:
                 raise ValueError("audio_track_missing")
+            self.adapter.validate_observed_output(observed)
             uri = self.artifacts.put(content)
             return self.repository.record_video_output(
                 project_id, video_job_id, uri=uri, digest=sha256(content).hexdigest(),
                 observed={"durationSeconds": observed.duration_seconds, "width": observed.width, "height": observed.height,
-                    "videoCodec": observed.video_codec, "audioCodec": observed.audio_codec},
+                    "videoCodec": observed.video_codec, "audioCodec": observed.audio_codec,
+                    "frameRate": observed.frame_rate, "frameCount": observed.frame_count},
             )
         except RemotePredictionFailed:
             return self.repository.record_video_remote_failed(project_id, video_job_id, "remote_prediction_failed")
+        except RemoteOutcomeUnknown:
+            return self.repository.record_video_outcome_unknown(project_id, video_job_id, "remote_outcome_unknown")
         except Exception as error:
             # A known prediction is still recoverable; this never regenerates.
             # Never persist provider body, URL, or exception text: those can
             # contain signed URLs and credentials.  Stable code is enough for
             # the operator to retry retrieval or inspect local safe evidence.
-            code = "audio_track_missing" if str(error) == "audio_track_missing" else "retrieval_or_probe_failed"
+            code = (
+                "audio_track_missing" if str(error) == "audio_track_missing"
+                else error.code if isinstance(error, VideoOutputContractError)
+                else "retrieval_or_probe_failed"
+            )
             return self.repository.record_video_retrieve_needed(project_id, video_job_id, code)

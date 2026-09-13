@@ -27,6 +27,10 @@ class ObservedVideo:
     video_codec: str
     audio_codec: str | None
     container: str = "mp4"
+    # Frame metadata is optional for legacy providers, but a fixed local
+    # profile may make it part of its frozen acceptance contract.
+    frame_rate: float | None = None
+    frame_count: int | None = None
 
 
 def assert_public_https_url(url: str) -> None:
@@ -70,6 +74,8 @@ def probe_video(content: bytes, *, ffprobe: str = "ffprobe", timeout_seconds: fl
         width, height = int(video["width"]), int(video["height"])
         codec = str(video["codec_name"])
         container = str(payload["format"]["format_name"])
+        frame_rate = _parse_frame_rate(video.get("avg_frame_rate"))
+        frame_count = _parse_frame_count(video.get("nb_frames"))
     except (KeyError, StopIteration, TypeError, ValueError, json.JSONDecodeError) as error:
         raise VideoIngestionError("ffprobe output did not establish playable video metadata") from error
     audio_codec = str(audio["codec_name"]) if audio else None
@@ -93,4 +99,25 @@ def probe_video(content: bytes, *, ffprobe: str = "ffprobe", timeout_seconds: fl
         )
     if decoded.returncode != 0:
         raise VideoIngestionError("ffmpeg could not fully decode the downloaded video")
-    return ObservedVideo(duration, width, height, codec, audio_codec, container)
+    return ObservedVideo(
+        duration, width, height, codec, audio_codec, container, frame_rate, frame_count
+    )
+
+
+def _parse_frame_rate(value: object) -> float | None:
+    if not isinstance(value, str) or "/" not in value:
+        return None
+    numerator, denominator = value.split("/", 1)
+    try:
+        parsed = float(numerator) / float(denominator)
+    except (TypeError, ValueError, ZeroDivisionError):
+        return None
+    return parsed if math.isfinite(parsed) and parsed > 0 else None
+
+
+def _parse_frame_count(value: object) -> int | None:
+    try:
+        parsed = int(value)  # ffprobe emits a decimal string or "N/A".
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed >= 0 else None

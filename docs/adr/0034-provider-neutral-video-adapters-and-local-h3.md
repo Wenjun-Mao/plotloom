@@ -44,6 +44,12 @@ aspect policies; its initial workbench default is visible as
 remote identity.  A submit with an uncertain outcome remains
 `outcome_unknown` and is never replayed.
 
+Before a known H3 output becomes an ingested candidate, Plotloom probes its
+bytes and verifies that the delivered H.264/AAC file is exactly 864x480,
+24 fps, and 124 frames, with duration within one frame of the frozen profile.
+A browser-playable file that misses this profile becomes `retrieve_needed`
+with the stable `h3_output_profile_mismatch` code; it cannot be selected.
+
 H3 is enabled only by explicit server configuration and a server-held bearer
 key.  The browser never receives the key, cannot alter its endpoint, and does
 not select a backend per request.  Existing provider-settings fields remain a

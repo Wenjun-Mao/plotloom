@@ -14,6 +14,7 @@ from .providers import ProviderPorts
 
 if TYPE_CHECKING:
     from .config import PlotloomSettings
+    from .video_provider import VideoAdapterPort, VideoProviderPort
 
 
 class RunExecutionResult(CamelModel):
@@ -98,7 +99,12 @@ def recover_runtime_jobs(
     return plan
 
 
-def build_runtime_app(settings: PlotloomSettings, *, test_video_provider: object | None = None) -> object:
+def build_runtime_app(
+    settings: PlotloomSettings,
+    *,
+    test_video_provider: VideoProviderPort | None = None,
+    test_video_adapter: VideoAdapterPort | None = None,
+) -> object:
     from .api import create_app
     from .artifacts import LocalArtifactStore
     from .domain import ProviderProfileCapabilities, ProviderSettings
@@ -108,6 +114,8 @@ def build_runtime_app(settings: PlotloomSettings, *, test_video_provider: object
     from .media_jobs import MediaJobRunner, MediaTaskSecretBroker
     from .video_jobs import VideoJobService
     from .atlas_wan_transport import AtlasCloudWanTransport
+    from .minimax_h3_transport import MiniMaxH3GatewayTransport
+    from .video_provider import MiniMaxH3GatewayAdapter
     from .pipeline import (
         PipelineEngine,
         RunSecretBroker,
@@ -230,13 +238,39 @@ def build_runtime_app(settings: PlotloomSettings, *, test_video_provider: object
         poll_interval_seconds=settings.media_poll_interval_seconds,
         max_poll_attempts=settings.media_max_poll_attempts,
     )
-    # Paid transport requires an explicit local opt-in in addition to a
-    # server key; ordinary test/development runtimes expose only preparation.
-    video_provider = test_video_provider or (
-        AtlasCloudWanTransport(settings.video_api_key.get_secret_value())
-        if settings.wan_p2_enabled and settings.video_api_key is not None else None
-    )
-    video_job_service = VideoJobService(repository, artifact_store, video_provider) if video_provider is not None else None
+    # A runtime selects one trusted server-owned backend.  Browser provider
+    # labels/settings cannot route to a different endpoint or adapter.
+    if settings.wan_p2_enabled and settings.h3_gateway_enabled:
+        raise RuntimeError("enable either Wan P2 or the H3 gateway, not both")
+    if test_video_provider is not None:
+        video_job_service = VideoJobService(
+            repository, artifact_store, test_video_provider, adapter=test_video_adapter
+        )
+    elif settings.h3_gateway_enabled:
+        if settings.video_api_key is None:
+            raise RuntimeError("H3 gateway requires VIDEO_MODEL_API_KEY")
+        if (
+            settings.video_provider != "minimax_h3_gateway"
+            or settings.video_model != "minimax_h3_fp8_turbo4_480p"
+        ):
+            raise RuntimeError("H3 gateway runtime must use the trusted MiniMax H3 provider and profile")
+        video_job_service = VideoJobService(
+            repository,
+            artifact_store,
+            MiniMaxH3GatewayTransport(
+                settings.video_api_key.get_secret_value(),
+                base_url=settings.video_base_url,
+            ),
+            adapter=MiniMaxH3GatewayAdapter(),
+        )
+    elif settings.wan_p2_enabled and settings.video_api_key is not None:
+        video_job_service = VideoJobService(
+            repository,
+            artifact_store,
+            AtlasCloudWanTransport(settings.video_api_key.get_secret_value()),
+        )
+    else:
+        video_job_service = None
     @asynccontextmanager
     async def runtime_lifespan(_app: Any):
         try:

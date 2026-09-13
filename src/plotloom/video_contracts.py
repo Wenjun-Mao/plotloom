@@ -1,4 +1,4 @@
-"""P2 Wan video-job wire contracts, kept outside the canonical story model.
+"""P2 video-job wire contracts, kept outside the canonical story model.
 
 These values describe a paid production attempt.  They deliberately cannot be
 used to mutate a Shot, DialogueCue, or AudioPlan.
@@ -18,9 +18,15 @@ class VideoJobRequest(CamelModel):
     storyboard_revision: int = Field(ge=1)
     expected_selection_revision: int = Field(ge=1)
     idempotency_key: str = Field(min_length=8, max_length=255)
-    requested_duration_seconds: Literal[5] = 5
-    resolution: Literal["720p"] = "720p"
-    audio: Literal[True] = True
+    # The active trusted adapter fills its observed defaults.  H3 additionally
+    # requires the caller to choose how a non-16:9 source frame is prepared;
+    # legacy Wan preparation keeps its historic defaults when no adapter is
+    # active in an offline fixture.
+    requested_duration_seconds: Literal[5] | None = None
+    resolution: Literal["720p", "480p"] | None = None
+    audio: Literal[True] | None = None
+    aspect_policy: Literal["cover_center_crop", "contain_pad", "reject_mismatch"] | None = None
+    seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
 
     @field_validator("idempotency_key")
     @classmethod

@@ -39,6 +39,7 @@ import type {
   VisualWorkbench,
   VisualIntent,
   VideoJob,
+  VideoBackend,
   VideoPilotBudget,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
@@ -399,8 +400,13 @@ export class PlotloomApiClient {
   }
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
+  getVideoBackend(): Promise<VideoBackend> { return this.request("/video-backend"); }
   getVideoJobs(projectId: string): Promise<{ jobs: VideoJob[] }> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`); }
-  prepareVideoJob(projectId: string, body: { approvalId: string; shotId: string; storyboardRevision: number; expectedSelectionRevision: number; idempotencyKey: string }): Promise<VideoJob> {
+  prepareVideoJob(projectId: string, body: {
+    approvalId: string; shotId: string; storyboardRevision: number; expectedSelectionRevision: number; idempotencyKey: string;
+    requestedDurationSeconds?: number; resolution?: string; audio?: true;
+    aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch"; seed?: number;
+  }): Promise<VideoJob> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`, { method: "POST", body: JSON.stringify(body) });
   }
   submitVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/submit`, { method: "POST" }); }

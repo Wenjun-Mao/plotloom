@@ -125,6 +125,7 @@ from .generation.scene_timing_allocation import (
     SceneTimingAllocation,
 )
 from .join_state_values import JOIN_STATE_VALUE_CONTRACT_VERSION
+from .video_provider import VideoProductionContract
 from .generation.story_graph_topology import (
     StoryGraphTopology,
     plan_story_graph_topology,
@@ -2485,6 +2486,29 @@ class SQLiteRepository:
             session.flush()
         return row
 
+    @staticmethod
+    def _video_job_tracks_paid_wan_pilot(row: VideoJobRow) -> bool:
+        """Preserve V1 Wan accounting without charging local backends.
+
+        Historical snapshots have no adapter or cost-policy fields.  Their
+        exact documented Atlas capability record is the compatibility signal;
+        unknown future contracts fail closed for accounting rather than being
+        silently treated as paid Wan work.
+        """
+
+        provider = row.snapshot.get("provider")
+        if not isinstance(provider, dict):
+            return False
+        if provider.get("costPolicy") == "wan_paid_pilot_v1":
+            return True
+        return (
+            "costPolicy" not in provider
+            and provider.get("provider") == "atlascloud"
+            and provider.get("model") == "alibaba/wan-3.0/image-to-video"
+            and provider.get("capabilityVersion") == 1
+            and provider.get("imageField") == "image"
+        )
+
     def _video_job_current_in_session(self, session: Session, row: VideoJobRow) -> bool:
         project = session.get(ProjectRow, row.project_id)
         snapshot = row.snapshot
@@ -2564,10 +2588,29 @@ class SQLiteRepository:
         self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int,
         expected_selection_revision: int, idempotency_key: str, requested_seconds: int = 5,
         resolution: str = "720p", audio: bool = True,
+        production_contract: VideoProductionContract | None = None,
     ) -> dict[str, Any]:
         """Freeze current audiovisual lineage and atomically reserve the shared cap."""
-        if requested_seconds != 5 or resolution != "720p" or audio is not True:
-            raise InvalidTransitionError("P2 only admits Wan 5-second 720p native-audio requests")
+        if production_contract is None:
+            if requested_seconds != 5 or resolution != "720p" or audio is not True:
+                raise InvalidTransitionError("P2 only admits Wan 5-second 720p native-audio requests")
+            compiler_version = "p2-wan-v1"
+            provider_snapshot = {
+                "provider": "atlascloud", "model": "alibaba/wan-3.0/image-to-video",
+                "capabilityVersion": 1, "imageField": "image",
+            }
+            request_snapshot = {
+                "durationSeconds": requested_seconds, "resolution": resolution, "audio": audio,
+            }
+            tracks_paid_wan_pilot = True
+        else:
+            requested_seconds = production_contract.requested_seconds
+            resolution = production_contract.resolution
+            audio = production_contract.audio
+            compiler_version = "p2-video-adapters-v1"
+            provider_snapshot = production_contract.provider_snapshot()
+            request_snapshot = production_contract.request_snapshot()
+            tracks_paid_wan_pilot = production_contract.tracks_paid_wan_pilot
         with self._lifecycle_write() as session:
             now = utc_now()
             self._assert_active_project(self._project_row(session, project_id))
@@ -2616,7 +2659,8 @@ class SQLiteRepository:
             if generated_identity and same_person_review is None:
                 raise InvalidTransitionError("identity-aware keyframe requires a current explicit same-person review before video admission")
             snapshot = {
-                "snapshotVersion": 1, "compilerVersion": "p2-wan-v1", "approvalId": approval.id,
+                "snapshotVersion": 1 if production_contract is None else 2,
+                "compilerVersion": compiler_version, "approvalId": approval.id,
                 "approvalGateSetVersion": approval.gate_set_version, "storyboardEntityRevisionId": approval.entity_revision_id,
                 "storyboardRevision": storyboard_revision, "canonicalInputRevisions": dict(approval.canonical_input_revisions),
                 "shot": shot.model_dump(mode="json", by_alias=True), "resolvedContext": context,
@@ -2626,8 +2670,8 @@ class SQLiteRepository:
                     "visualIntentRevision": intent.revision, "intent": intent.intent},
                 "identityLineage": identity_lineage,
                 "samePersonReviewId": same_person_review.id if same_person_review is not None else None,
-                "provider": {"provider": "atlascloud", "model": "alibaba/wan-3.0/image-to-video", "capabilityVersion": 1, "imageField": "image"},
-                "request": {"durationSeconds": requested_seconds, "resolution": resolution, "audio": audio},
+                "provider": provider_snapshot,
+                "request": request_snapshot,
             }
             fingerprint = stable_hash({"snapshot": snapshot, "idempotencyKey": idempotency_key})
             existing = session.scalar(select(VideoJobRow).where(VideoJobRow.project_id == project_id, VideoJobRow.idempotency_key == idempotency_key))
@@ -2635,17 +2679,21 @@ class SQLiteRepository:
                 if existing.request_hash != fingerprint:
                     raise IdempotencyConflictError("video-job idempotency key was reused with different frozen input")
                 return self._video_job_dict(existing, current=self._video_job_current_in_session(session, existing)) | {"idempotent": True}
-            ledger = self._video_ledger_in_session(session, now)
-            if ledger.reserved_seconds + requested_seconds > ledger.limit_seconds:
-                raise InvalidTransitionError("P2 requested-second allowance would be exceeded")
+            ledger: VideoPilotLedgerRow | None = None
+            if tracks_paid_wan_pilot:
+                ledger = self._video_ledger_in_session(session, now)
+                if ledger.reserved_seconds + requested_seconds > ledger.limit_seconds:
+                    raise InvalidTransitionError("P2 requested-second allowance would be exceeded")
             job = VideoJobRow(id=self._video_job_id(), project_id=project_id, idempotency_key=idempotency_key,
                 request_hash=fingerprint, snapshot=snapshot, snapshot_hash=stable_hash(snapshot), requested_seconds=requested_seconds,
                 state="prepared", provider_prediction_id=None, output_uri=None, output_hash=None, observed=None, error=None,
                 created_at=now, updated_at=now, dispatched_at=None, cancel_requested_at=None)
-            ledger.reserved_seconds += requested_seconds
-            ledger.updated_at = now
+            if ledger is not None:
+                ledger.reserved_seconds += requested_seconds
+                ledger.updated_at = now
             session.add(job)
-            session.add(VideoPilotLedgerEventRow(id=new_id(), ledger_id=ledger.id, video_job_id=job.id, event="reserved", seconds=requested_seconds, created_at=now))
+            if ledger is not None:
+                session.add(VideoPilotLedgerEventRow(id=new_id(), ledger_id=ledger.id, video_job_id=job.id, event="reserved", seconds=requested_seconds, created_at=now))
             session.flush()
             return self._video_job_dict(job, current=True) | {"idempotent": False}
 
@@ -2661,8 +2709,9 @@ class SQLiteRepository:
                 raise InvalidTransitionError("video job frozen inputs are stale; prepare a new attempt")
             now = utc_now()
             job.state, job.dispatched_at, job.updated_at = "dispatching", now, now
-            ledger = self._video_ledger_in_session(session, now)
-            session.add(VideoPilotLedgerEventRow(id=new_id(), ledger_id=ledger.id, video_job_id=job.id, event="dispatch_claimed", seconds=job.requested_seconds, created_at=now))
+            if self._video_job_tracks_paid_wan_pilot(job):
+                ledger = self._video_ledger_in_session(session, now)
+                session.add(VideoPilotLedgerEventRow(id=new_id(), ledger_id=ledger.id, video_job_id=job.id, event="dispatch_claimed", seconds=job.requested_seconds, created_at=now))
             return self._video_job_dict(job, current=True)
 
     def record_video_submission(self, project_id: str, video_job_id: str, prediction_id: str) -> dict[str, Any]:
@@ -2680,8 +2729,8 @@ class SQLiteRepository:
             job = session.get(VideoJobRow, video_job_id)
             if job is None or job.project_id != project_id:
                 raise NotFoundError("video job not found")
-            if job.state != "dispatching":
-                raise InvalidTransitionError("only a dispatching video job can have unknown outcome")
+            if job.state not in {"dispatching", "submitted"}:
+                raise InvalidTransitionError("only a dispatched video job can have unknown outcome")
             job.state, job.error, job.updated_at = "outcome_unknown", message[:2_000], utc_now()
             return self._video_job_dict(job, current=False)
 
@@ -2731,10 +2780,11 @@ class SQLiteRepository:
                 raise NotFoundError("video job not found")
             if job.state == "prepared":
                 # Only this proven pre-dispatch path releases a reservation.
-                ledger = self._video_ledger_in_session(session, utc_now())
-                ledger.reserved_seconds -= job.requested_seconds
-                ledger.updated_at = utc_now()
-                session.add(VideoPilotLedgerEventRow(id=new_id(), ledger_id=ledger.id, video_job_id=job.id, event="released_before_dispatch", seconds=-job.requested_seconds, created_at=utc_now()))
+                if self._video_job_tracks_paid_wan_pilot(job):
+                    ledger = self._video_ledger_in_session(session, utc_now())
+                    ledger.reserved_seconds -= job.requested_seconds
+                    ledger.updated_at = utc_now()
+                    session.add(VideoPilotLedgerEventRow(id=new_id(), ledger_id=ledger.id, video_job_id=job.id, event="released_before_dispatch", seconds=-job.requested_seconds, created_at=utc_now()))
                 job.state = "cancelled"
             elif job.state in {"dispatching", "submitted", "retrieve_needed", "outcome_unknown"}:
                 # Cancellation is local adoption intent, not a fabricated

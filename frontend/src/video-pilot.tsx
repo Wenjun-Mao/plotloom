@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Shot, VideoJob, VideoPilotBudget } from "./types";
+import type { Shot, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import { Button, Panel } from "./components";
 
@@ -119,7 +119,9 @@ function OrderedVideoPlayback({ projectId, jobs }: { projectId: string; jobs: Vi
 
 export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevision, selectionRevision, readOnly }: { projectId?: string; shot?: Shot; approvalId?: string; storyboardRevision?: number; selectionRevision: number; readOnly: boolean }) {
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
+  const [backend, setBackend] = useState<VideoBackend | null>(null);
   const [jobs, setJobs] = useState<VideoJob[]>([]);
+  const [aspectPolicy, setAspectPolicy] = useState<"" | "cover_center_crop" | "contain_pad" | "reject_mismatch">("");
   const [error, setError] = useState("");
   const refreshToken = useRef(0);
   const currentProjectRef = useRef(projectId);
@@ -129,21 +131,34 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     const requestedProjectId = projectId;
     if (requestedProjectId !== currentProjectRef.current) return;
     const token = ++refreshToken.current;
-    const [nextBudget, nextJobs] = await Promise.all([plotloomApi.getVideoPilotBudget(), plotloomApi.getVideoJobs(requestedProjectId)]);
+    const [nextBudget, nextBackend, nextJobs] = await Promise.all([
+      plotloomApi.getVideoPilotBudget(), plotloomApi.getVideoBackend(), plotloomApi.getVideoJobs(requestedProjectId),
+    ]);
     // A slow response from a formerly selected project cannot replace the
     // currently visible project's recovery controls or budget.
     if (token !== refreshToken.current || requestedProjectId !== currentProjectRef.current) return;
-    setBudget(nextBudget); setJobs(nextJobs.jobs);
+    setBudget(nextBudget); setBackend(nextBackend); setJobs(nextJobs.jobs);
   };
   useEffect(() => {
-    setBudget(null); setJobs([]); setError("");
+    setBudget(null); setBackend(null); setJobs([]); setError("");
     void refresh().catch((reason) => setError(reason instanceof Error ? reason.message : "无法读取视频试点状态"));
     return () => { refreshToken.current += 1; };
   }, [projectId]);
   const prepare = async () => {
     if (!projectId || !shot || !approvalId || !storyboardRevision) return;
+    if (backend?.requiresAspectPolicy && !aspectPolicy) return;
     setError("");
-    try { await plotloomApi.prepareVideoJob(projectId, { approvalId, shotId: shot.id, storyboardRevision, expectedSelectionRevision: selectionRevision, idempotencyKey: crypto.randomUUID() }); await refresh(); }
+    const request = {
+      approvalId, shotId: shot.id, storyboardRevision, expectedSelectionRevision: selectionRevision,
+      idempotencyKey: crypto.randomUUID(),
+      ...(backend?.enabled ? {
+        requestedDurationSeconds: backend.durationSeconds,
+        resolution: backend.resolution,
+        audio: backend.nativeAudio ? true as const : undefined,
+      } : {}),
+      ...(backend?.requiresAspectPolicy ? { aspectPolicy: aspectPolicy as "cover_center_crop" | "contain_pad" | "reject_mismatch" } : {}),
+    };
+    try { await plotloomApi.prepareVideoJob(projectId, request); await refresh(); }
     catch (reason) { setError(reason instanceof Error ? reason.message : "无法冻结视频请求"); }
   };
   const act = async (operation: () => Promise<unknown>, fallback: string) => {
@@ -160,9 +175,23 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   // State refreshes are asynchronous. Never use an old project's retained
   // jobs to construct URLs under the newly selected project identity.
   const selectedSequence = selectedSceneVideos(jobs.filter((job) => job.projectId === projectId), shot?.sceneId);
-  return <Panel data-testid="video-pilot-panel"><strong>P2 Wan 视频试点</strong><p>仅 5 秒 / 720p / 原生音频。提交后本地保守计入共享 100 秒额度；不会自动重试或回退。</p>
-    <small>额度：{budget ? `${budget.reservedSeconds}/${budget.limitSeconds} 秒已保留，余 ${budget.remainingSeconds} 秒` : "读取中"}</small>
-    <div className="button-row"><Button disabled={readOnly || !projectId || !shot || !approvalId || !storyboardRevision} onClick={() => void prepare()}>冻结当前审核关键帧</Button></div>
+  const h3 = backend?.enabled && backend.adapterId === "minimax_h3_gateway";
+  const h3NeedsAspectChoice = Boolean(backend?.requiresAspectPolicy);
+  const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3NeedsAspectChoice && !aspectPolicy);
+  return <Panel data-testid="video-pilot-panel"><strong>{h3 ? "MiniMax H3 本地视频候选" : "P2 Wan 视频试点"}</strong>
+    {h3
+      ? <p>固定 Spark H3 profile：{backend.width}×{backend.height} / 约 {backend.durationSeconds?.toFixed(2)} 秒 / 原生音频。提交后由私有网关容量控制；不会计入 Wan 付费秒数，也不会自动重试。</p>
+      : <p>仅 5 秒 / 720p / 原生音频。提交后本地保守计入共享 100 秒额度；不会自动重试或回退。</p>}
+    {backend?.enabled === false && <small className="notice warning">当前运行时未启用经审核的视频后端；不能冻结或提交新候选。</small>}
+    {h3NeedsAspectChoice && <label><span>关键帧比例处理（必选）</span><select value={aspectPolicy} onChange={(event) => setAspectPolicy(event.target.value as typeof aspectPolicy)} disabled={readOnly}>
+      <option value="">请选择，绝不静默拉伸</option>
+      <option value="cover_center_crop">居中裁切以填满 16:9</option>
+      <option value="contain_pad">完整保留并以黑边填充 16:9</option>
+      <option value="reject_mismatch">比例不符时拒绝提交</option>
+    </select></label>}
+    {backend?.tracksPaidWanPilot !== false && <small>额度：{budget ? `${budget.reservedSeconds}/${budget.limitSeconds} 秒已保留，余 ${budget.remainingSeconds} 秒` : "读取中"}</small>}
+    {h3 && <small>原生音频并不自动构成可接受对白；需在候选回放中人工检查可懂度、口型、表演与跨镜连续性。</small>}
+    <div className="button-row"><Button disabled={cannotPrepare} onClick={() => void prepare()}>冻结当前审核关键帧</Button></div>
     {shot && <small>仅显示当前镜头：{shot.title}（{shot.id}）</small>}
     {error && <small className="notice warning">{error}</small>}
     {projectId && selectedSequence.length > 0 && <OrderedVideoPlayback projectId={projectId} jobs={selectedSequence} />}

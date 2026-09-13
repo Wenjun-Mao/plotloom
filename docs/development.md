@@ -151,6 +151,32 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
   retaining their historical evidence. V2/P0 history remains readable and does
   not claim identity review retroactively.
 
+### Private MiniMax-H3 video gateway (P2-H3)
+
+- The Spark deployment is a private, bearer-authenticated gateway in front of
+  loopback-only ComfyUI. Plotloom never sends it a ComfyUI graph, model path,
+  or browser-provided endpoint. See [ADR 0033](adr/0033-private-minimax-h3-gateway.md)
+  and [ADR 0034](adr/0034-provider-neutral-video-adapters-and-local-h3.md).
+- Enable exactly one reviewed video backend at a time. For H3, set
+  `PLOTLOOM_ENABLE_H3_GATEWAY=true`, `VIDEO_PROVIDER=minimax_h3_gateway`,
+  `VIDEO_MODEL=minimax_h3_fp8_turbo4_480p`, the private Tailnet
+  `VIDEO_BASE_URL`, and a server-only `VIDEO_MODEL_API_KEY`; restart Plotloom.
+  The browser never sees or stores that key.
+- The first H3 profile is fixed at 864x480 / 124 frames / 24 fps (about 5.17
+  seconds) with native audio. The workbench requires an explicit keyframe
+  aspect policy: centred crop, letterbox/pillarbox, or reject mismatch. It
+  never silently stretches a reference frame. Before publication, Plotloom
+  probes the received file and rejects a browser-playable output that misses
+  this frozen H.264/AAC profile as `h3_output_profile_mismatch`.
+- H3 is local capacity-bound by its gateway queue and does not reserve or
+  reset the historical paid Wan 100-second ledger. It still freezes an
+  adapter/version/request/seed/identity/approval snapshot and never retries an
+  uncertain submission.
+- A native AAC track does not make dialogue accepted. Review the resulting
+  candidate for intelligibility, lip sync, performance, and cross-shot
+  continuity before explicit selection. The one-line Mandarin probe is bounded
+  evidence only; it is not a general voice-consistency claim.
+
 ## M1.5 generation contracts
 
 - A Story Graph run freezes topology before dispatch. For Scene Beats and

@@ -14,7 +14,7 @@ from plotloom.persistence import SQLiteRepository
 from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_ingestion import VideoIngestionError, assert_public_https_url
 from plotloom.video_jobs import VideoJobService
-from plotloom.video_provider import WanDispatchDiagnostic, WanDispatchError
+from plotloom.video_provider import MiniMaxH3GatewayAdapter, WanDispatchDiagnostic, WanDispatchError
 
 from .conftest import all_stage_payloads
 
@@ -38,6 +38,42 @@ class FakeWan:
     def download(self, url: str) -> bytes:
         assert url == "https://cdn.example/clip.mp4"
         return b"offline-playable-fixture"
+
+
+class FakeH3Gateway:
+    """The exact public H3 envelope, without a ComfyUI or network dependency."""
+
+    def __init__(self, *, outcome_unknown: bool = False) -> None:
+        self.outcome_unknown = outcome_unknown
+        self.submits: list[dict] = []
+        self.preflight_calls = 0
+
+    def preflight(self) -> None:
+        self.preflight_calls += 1
+
+    def upload(self, image: bytes, *, mime_type: str) -> str:
+        assert image and mime_type == "image/png"
+        return "asset_0123456789abcdef0123456789abcdef"
+
+    def submit(self, payload: dict) -> dict:
+        self.submits.append(payload)
+        return {
+            "id": "h3_0123456789abcdef0123456789abcdef", "status": "submitted",
+            "profileId": "minimax_h3_fp8_turbo4_480p", "aspectPolicy": payload["aspectPolicy"],
+            "error": None, "outputReady": False,
+        }
+
+    def poll(self, prediction_id: str) -> dict:
+        assert prediction_id == "h3_0123456789abcdef0123456789abcdef"
+        return {
+            "id": prediction_id, "status": "outcome_unknown" if self.outcome_unknown else "succeeded",
+            "profileId": "minimax_h3_fp8_turbo4_480p", "aspectPolicy": "cover_center_crop",
+            "error": None, "outputReady": not self.outcome_unknown,
+        }
+
+    def download(self, reference: str) -> bytes:
+        assert reference == "h3_0123456789abcdef0123456789abcdef"
+        return b"offline-h3-playable-fixture"
 
 
 def png() -> bytes:
@@ -78,6 +114,17 @@ def test_fake_fastapi_p2_path_is_idempotent_budgeted_and_range_playable(reposito
         prepared = client.post(f"/api/v2/projects/{project.id}/video-jobs", json=body)
         assert prepared.status_code == 201, prepared.text
         job = prepared.json()
+        # Adapter V2 must not retroactively change the persisted V1 Atlas
+        # shape: old snapshots and their hashes remain historical evidence.
+        assert job["snapshot"]["snapshotVersion"] == 1
+        assert job["snapshot"]["compilerVersion"] == "p2-wan-v1"
+        assert job["snapshot"]["provider"] == {
+            "provider": "atlascloud", "model": "alibaba/wan-3.0/image-to-video",
+            "capabilityVersion": 1, "imageField": "image",
+        }
+        assert job["snapshot"]["request"] == {
+            "durationSeconds": 5, "resolution": "720p", "audio": True,
+        }
         duplicate = client.post(f"/api/v2/projects/{project.id}/video-jobs", json=body)
         assert duplicate.status_code == 201 and duplicate.json()["id"] == job["id"]
         assert client.get("/api/v2/video-pilot-budget").json()["reservedSeconds"] == 5
@@ -103,6 +150,159 @@ def test_fake_fastapi_p2_path_is_idempotent_budgeted_and_range_playable(reposito
         # A second click cannot replay a paid POST after the durable boundary.
         assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").status_code == 409
         assert len(provider.submits) == 2
+
+
+def test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget(repository, brief) -> None:
+    project = repository.create_project(brief)
+    bible, graph, beats, storyboard = all_stage_payloads()
+    for stage, payload in zip(STAGE_ORDER, (bible, graph, beats, storyboard), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+    artifacts, provider = MemoryArtifactStore(), FakeH3Gateway()
+    service = VideoJobService(
+        repository,
+        artifacts,
+        provider,
+        adapter=MiniMaxH3GatewayAdapter(),
+        probe=lambda _: ObservedVideo(5.167, 864, 480, "h264", "aac", frame_rate=24, frame_count=124),
+    )
+    with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        body = {
+            "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
+            "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-browser-idempotency",
+            "aspectPolicy": "cover_center_crop", "seed": 81,
+        }
+        prepared = client.post(f"/api/v2/projects/{project.id}/video-jobs", json=body)
+        assert prepared.status_code == 201, prepared.text
+        job = prepared.json()
+        assert job["snapshot"]["snapshotVersion"] == 2
+        assert job["snapshot"]["compilerVersion"] == "p2-video-adapters-v1"
+        assert job["snapshot"]["provider"] == {
+            "adapterId": "minimax_h3_gateway", "adapterVersion": "1",
+            "provider": "minimax_h3_gateway", "model": "minimax_h3_fp8_turbo4_480p",
+            "capabilityVersion": 1, "costPolicy": "local_capacity_v1",
+        }
+        assert job["snapshot"]["request"] == {
+            "durationSeconds": 5, "resolution": "480p", "audio": True,
+            "aspectPolicy": "cover_center_crop", "seed": 81,
+        }
+        assert client.get("/api/v2/video-pilot-budget").json()["reservedSeconds"] == 0
+        assert client.get("/api/v2/video-backend").json()["adapterId"] == "minimax_h3_gateway"
+        submitted = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit")
+        assert submitted.status_code == 200 and submitted.json()["state"] == "submitted"
+        assert provider.preflight_calls == 1
+        assert provider.submits == [{
+            "assetId": "asset_0123456789abcdef0123456789abcdef",
+            "prompt": service._prompt(job["snapshot"]),
+            "profileId": "minimax_h3_fp8_turbo4_480p",
+            "aspectPolicy": "cover_center_crop", "seed": 81,
+        }]
+        ingested = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/reconcile")
+        assert ingested.status_code == 200 and ingested.json()["state"] == "ingested"
+
+
+def test_h3_known_gateway_outcome_unknown_is_never_replayed(repository, brief) -> None:
+    project = repository.create_project(brief)
+    bible, graph, beats, storyboard = all_stage_payloads()
+    for stage, payload in zip(STAGE_ORDER, (bible, graph, beats, storyboard), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+    artifacts, provider = MemoryArtifactStore(), FakeH3Gateway(outcome_unknown=True)
+    service = VideoJobService(
+        repository,
+        artifacts,
+        provider,
+        adapter=MiniMaxH3GatewayAdapter(),
+        probe=lambda _: ObservedVideo(5.167, 864, 480, "h264", "aac", frame_rate=24, frame_count=124),
+    )
+    with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        job = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
+            "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
+            "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-outcome-unknown",
+            "aspectPolicy": "contain_pad", "seed": 82,
+        }).json()
+        client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit")
+        unknown = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/reconcile")
+        assert unknown.status_code == 200 and unknown.json()["state"] == "outcome_unknown"
+        assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").status_code == 409
+        assert len(provider.submits) == 1
+
+
+def test_h3_rejects_a_playable_output_that_violates_the_frozen_profile(repository, brief) -> None:
+    project = repository.create_project(brief)
+    bible, graph, beats, storyboard = all_stage_payloads()
+    for stage, payload in zip(STAGE_ORDER, (bible, graph, beats, storyboard), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+    artifacts, provider = MemoryArtifactStore(), FakeH3Gateway()
+    service = VideoJobService(
+        repository,
+        artifacts,
+        provider,
+        adapter=MiniMaxH3GatewayAdapter(),
+        # This is browser-playable H.264/AAC but not the frozen 864x480,
+        # 124-frame H3 output, so it cannot be published as that profile.
+        probe=lambda _: ObservedVideo(5.167, 1280, 720, "h264", "aac", frame_rate=24, frame_count=124),
+    )
+    with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        job = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
+            "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
+            "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-profile-mismatch",
+            "aspectPolicy": "cover_center_crop", "seed": 83,
+        }).json()
+        assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").status_code == 200
+        rejected = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/reconcile")
+        assert rejected.status_code == 200
+        assert rejected.json()["state"] == "retrieve_needed"
+        assert rejected.json()["error"] == "h3_output_profile_mismatch"
+
+
+def test_h3_stale_identity_lineage_cannot_cross_the_submit_boundary(repository, brief) -> None:
+    project = repository.create_project(brief)
+    bible, graph, beats, storyboard = all_stage_payloads()
+    character = CharacterV2(
+        id="h3_character", name="Mara", role="archivist", description="A controlled archivist.",
+        visual_anchors=["dark braid"], sound_anchors=["quiet breath"], allowed_states=["steady"],
+        continuity_rules=["hands remain below the close frame"], goal="protect the record",
+        traits=["measured"], voice_anchors=["low controlled voice"],
+    )
+    bible.characters = [character]
+    beats.scenes[0].character_ids = [character.id]
+    storyboard.shots[0].character_ids = [character.id]
+    for stage, payload in zip(STAGE_ORDER, (bible, graph, beats, storyboard), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+    artifacts, provider = MemoryArtifactStore(), FakeH3Gateway()
+    service = VideoJobService(
+        repository,
+        artifacts,
+        provider,
+        adapter=MiniMaxH3GatewayAdapter(),
+        probe=lambda _: ObservedVideo(5.167, 864, 480, "h264", "aac", frame_rate=24, frame_count=124),
+    )
+    with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        keyframe = client.get(f"/api/v2/projects/{project.id}/managed-assets").json()["assets"][0]
+        character_id = character.id
+        initial = client.post(f"/api/v2/projects/{project.id}/character-references", json={
+            "characterId": character_id, "primaryAssetId": keyframe["id"], "complementaryAssetIds": [],
+            "expectedReferenceRevision": 0, "reviewer": "H3 fixture reviewer", "notes": "Initial reference.",
+        })
+        assert initial.status_code == 201, initial.text
+        prepared = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
+            "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
+            "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-stale-lineage",
+            "aspectPolicy": "cover_center_crop", "seed": 84,
+        })
+        assert prepared.status_code == 201, prepared.text
+        replacement = client.post(f"/api/v2/projects/{project.id}/character-references", json={
+            "characterId": character_id, "primaryAssetId": keyframe["id"], "complementaryAssetIds": [],
+            "expectedReferenceRevision": initial.json()["referenceRevision"], "reviewer": "H3 fixture reviewer",
+            "notes": "Replacement makes the frozen candidate stale.",
+        })
+        assert replacement.status_code == 201, replacement.text
+        job_id = prepared.json()["id"]
+        assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job_id}/submit").status_code == 409
+        assert provider.submits == []
 
 
 def test_p2_cap_claims_are_atomic_and_cancel_only_releases_before_dispatch(repository, brief) -> None:

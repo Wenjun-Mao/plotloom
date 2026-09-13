@@ -32,9 +32,18 @@ type ManagedProcess = {
   output: () => string;
 };
 
-export const test = base.extend<{}, WorkbenchWorkerFixtures>({
+type E2eVideoAdapter = "wan" | "h3";
+
+export const test = createWorkbenchTest("wan");
+export const h3Test = createWorkbenchTest("h3");
+
+function createWorkbenchTest(videoAdapter: E2eVideoAdapter) {
+  return base.extend<{}, WorkbenchWorkerFixtures>({
   workbench: [async ({}, use) => {
-    const retainedPilotRoot = process.env.PLOTLOOM_P0_RESTART_PILOT_ROOT;
+    // Only the Wan restart pilot has an operator-selected retained root. H3
+    // stays isolated per worker so its fixed-profile fixture cannot overwrite
+    // a retained P0 evidence directory.
+    const retainedPilotRoot = videoAdapter === "wan" ? process.env.PLOTLOOM_P0_RESTART_PILOT_ROOT : undefined;
     if (retainedPilotRoot && !path.isAbsolute(retainedPilotRoot)) {
       throw new Error("PLOTLOOM_P0_RESTART_PILOT_ROOT must be an absolute path.");
     }
@@ -75,6 +84,7 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
       IMAGE_MODEL_API_KEY: "",
       VIDEO_MODEL_API_KEY: "",
       ATLASCLOUD_API_KEY: "",
+      PLOTLOOM_E2E_VIDEO_ADAPTER: videoAdapter,
     };
     let backend = startProcess("FastAPI", "uv", ["run", "python", "frontend/e2e/fake_video_runtime.py"], backendEnvironment);
     let frontend: ManagedProcess | undefined;
@@ -129,7 +139,8 @@ export const test = base.extend<{}, WorkbenchWorkerFixtures>({
       }
     }
   }, { scope: "worker" }],
-});
+  });
+}
 
 export { expect };
 
