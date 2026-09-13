@@ -36,5 +36,7 @@ frozen profile.
   rather than a caller-provided graph or a resolution heuristic.
 - Plotloom and the independently deployed gateway retain matching allowlists
   as a deliberate trust boundary; tests compare their safe public descriptors.
-- Each profile needs Spark evidence before it is called production-ready.
-  Existing evidence applies only to the legacy 864×480 profile.
+- A bounded Spark probe has confirmed all six selectable profiles produce the
+  exact declared media contract. See the [profile catalog receipt](../verification/2026-09-13-h3-profile-catalog-probe.md).
+  This promotes operational availability only, not creative or production
+  quality.

@@ -328,17 +328,21 @@ What has been directly evidenced:
   intelligible and lip-synced;
 - a real temporary Plotloom → gateway → MP4 ingestion path completed once
   without resubmission and produced an unselected candidate.
+- all six selectable H3 catalog geometries delivered their exact H.264/AAC,
+  124-frame, 24-fps media contract in a bounded Spark probe.
 
 See the secret-free records:
 
 - [Mandarin dialogue probe](../verification/2026-09-13-h3-mandarin-dialogue-probe.md)
 - [adapter and live-ingestion verification](../verification/2026-09-13-p2-h3-adapter-isolated.md)
+- [v2 profile catalog probe](../verification/2026-09-13-h3-profile-catalog-probe.md)
 
 These are not proof of universal dialogue quality, voice locking, same-person
 continuity, cross-shot motion/lighting continuity, production readiness, or
-any new catalog profile's performance. Each selectable geometry needs a
-separate bounded Spark probe before it can be promoted beyond an available
-candidate.
+comparative creative performance at any catalog geometry. The catalog
+geometry/media contract is evidenced; the next intended review is still
+required before a profile is treated as a useful sequential-storytelling
+baseline.
 The next intended product checkpoint is a retained, human-reviewed pair of
 adjoining shots from the same selected character reference. Only that review
 can establish whether this H3 baseline is useful for sequential storytelling.
