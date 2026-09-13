@@ -3,12 +3,12 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from threading import RLock
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy import (
     Boolean,
@@ -100,6 +100,7 @@ from .domain import (
     utc_now,
     contains_secret_setting,
     contains_secret_value,
+    is_secret_setting_name,
     validate_public_provider_snapshot,
 )
 from .generation.aggregation import aggregate_stage_fragments
@@ -1007,10 +1008,52 @@ class StoryGraphTopologyRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+# This intentionally names the bounded canonical-text port instead of using
+# ``Base.metadata`` wholesale.  A project database needs only canonical heads,
+# text-run lifecycle/repair evidence, and the project-local media-task state
+# consulted by conservative startup recovery.  Profiles, selection, global
+# accounting, and the unrelated image/video/review application surface remain
+# outside this schema until their own project-owned ports are delivered.
+PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset(
+    {
+        "v2_projects",
+        "v2_entity_revisions",
+        "v2_stage_heads",
+        "v2_gate_results",
+        "v2_generation_runs",
+        "v2_generation_attempts",
+        "v2_artifacts",
+        "v2_generation_plans",
+        "v2_generation_stage_plans",
+        "v2_generation_work_units",
+        "v2_sealed_stage_aggregates",
+        "v2_generation_work_unit_repair_scopes",
+        "v2_generation_fragment_reuse_bindings",
+        "v2_generation_work_unit_repair_idempotency",
+        "v2_generation_story_graph_topologies",
+        "v2_media_tasks",
+    }
+)
+
+
 def _json_data(value: Any) -> Any:
     if hasattr(value, "model_dump"):
         return value.model_dump(mode="json", by_alias=False)
     return value
+
+
+def _contains_unredacted_secret_setting(value: Any) -> bool:
+    """Allow explicit redaction markers while rejecting secret-shaped fields."""
+
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if is_secret_setting_name(key) and child != "[redacted]":
+                return True
+            if _contains_unredacted_secret_setting(child):
+                return True
+    elif isinstance(value, (list, tuple)):
+        return any(_contains_unredacted_secret_setting(child) for child in value)
+    return False
 
 
 def stable_hash(value: Any) -> str:
@@ -1033,11 +1076,15 @@ class SQLiteRepository:
         *,
         create_schema: bool = True,
         sqlite_busy_timeout_ms: int = 1_000,
+        schema_scope: Literal["full", "project"] = "full",
     ) -> None:
         if sqlite_busy_timeout_ms < 1:
             raise ValueError("sqlite_busy_timeout_ms must be at least 1")
+        if schema_scope not in {"full", "project"}:
+            raise ValueError("schema_scope must be 'full' or 'project'")
         self._sqlite_busy_timeout_ms = sqlite_busy_timeout_ms
         self._bootstrap_retry_after_seconds = max(1, (sqlite_busy_timeout_ms + 999) // 1_000)
+        self._schema_scope = schema_scope
         engine_options: dict[str, Any] = {"future": True}
         database_path = sqlite_database_path(database_url)
         if database_url.startswith("sqlite"):
@@ -1046,7 +1093,7 @@ class SQLiteRepository:
             engine_options["poolclass"] = StaticPool
         elif database_path is not None:
             database_path.parent.mkdir(parents=True, exist_ok=True)
-            if create_schema:
+            if create_schema and schema_scope == "full":
                 SchemaMigrator(database_url).upgrade()
         self.engine = create_engine(database_url, **engine_options)
         if database_url.startswith("sqlite"):
@@ -1074,8 +1121,17 @@ class SQLiteRepository:
 
         self._sessions = sessionmaker(bind=self.engine, expire_on_commit=False, class_=Session)
         self._write_lock = RLock()
-        if create_schema and database_path is None:
-            Base.metadata.create_all(self.engine)
+        if create_schema and (database_path is None or schema_scope == "project"):
+            Base.metadata.create_all(self.engine, tables=self._schema_tables())
+
+    def _schema_tables(self) -> list[Any]:
+        if self._schema_scope == "full":
+            return list(Base.metadata.sorted_tables)
+        return [
+            table
+            for table in Base.metadata.sorted_tables
+            if table.name in PROJECT_TEXT_PIPELINE_TABLE_NAMES
+        ]
 
     def close(self) -> None:
         self.engine.dispose()
@@ -6581,6 +6637,7 @@ class SQLiteRepository:
     ) -> Artifact:
         """Atomically retain raw response evidence before parsing or validation."""
 
+        self._assert_secret_free_artifact_content(content)
         with self._write() as session:
             attempt = session.get(GenerationAttemptRow, attempt_id)
             if attempt is None:
@@ -8745,7 +8802,24 @@ class SQLiteRepository:
                     unit.status = WorkUnitStatus(failure_disposition.value).value
             return self._attempt(row)
 
+    @staticmethod
+    def _assert_secret_free_artifact_content(content: Any) -> None:
+        """Reject recognizable credential values before immutable evidence lands.
+
+        Provider adapters normally redact response envelopes before this layer.
+        This second boundary protects direct callers and alternate adapters.
+        Redacted field names (for example ``apiKey: [redacted]``) remain useful
+        diagnostics; only a value that matches the established secret policy is
+        rejected here.
+        """
+
+        if contains_secret_value(content) or (
+            contains_secret_setting(content) and _contains_unredacted_secret_setting(content)
+        ):
+            raise InvalidTransitionError("artifact evidence must not contain secret-shaped values")
+
     def add_artifact(self, artifact: Artifact) -> Artifact:
+        self._assert_secret_free_artifact_content(artifact.content)
         with self._write() as session:
             self._run_row(session, artifact.run_id)
             attempt: GenerationAttemptRow | None = None
@@ -9579,4 +9653,117 @@ class SQLiteRepository:
             return (
                 self._text_provider_profile(profile_row),
                 ProviderSettings.model_validate(persisted_result),
+            )
+
+
+class ProjectSQLiteRepository(SQLiteRepository):
+    """A one-project canonical repository with no application control tables.
+
+    The pipeline and lifecycle runner keep their normal repository contract.
+    This adapter supplies the missing ownership boundary: its schema excludes
+    installation profiles/accounting and every project route is bound to the
+    immutable project-home identity.
+    """
+
+    def __init__(
+        self,
+        database_url: str,
+        *,
+        project_id: str,
+        create_schema: bool = True,
+        sqlite_busy_timeout_ms: int = 1_000,
+    ) -> None:
+        if not project_id:
+            raise ValueError("project_id is required for a project repository")
+        self.project_id = project_id
+        self._admitted_provider_snapshot_hash: str | None = None
+        super().__init__(
+            database_url,
+            create_schema=create_schema,
+            sqlite_busy_timeout_ms=sqlite_busy_timeout_ms,
+            schema_scope="project",
+        )
+
+    @contextmanager
+    def admit_provider_snapshot(self, provider_snapshot: dict[str, Any]) -> Iterator[None]:
+        """Authorize one application-selected public profile for fresh work.
+
+        The authorization is process-local and short lived.  The immutable
+        public snapshot still belongs on each run; selection and credentials do
+        not belong in the project database.
+        """
+
+        snapshot_hash = stable_hash(provider_snapshot)
+        previous = self._admitted_provider_snapshot_hash
+        self._admitted_provider_snapshot_hash = snapshot_hash
+        try:
+            yield
+        finally:
+            self._admitted_provider_snapshot_hash = previous
+
+    def initialize_project(self, project: Project) -> Project:
+        """Create the one project row selected by the immutable folder manifest."""
+
+        if project.id != self.project_id:
+            raise InvalidTransitionError("project repository identity does not match project initialization")
+        with self._bootstrap_write() as session:
+            existing = session.scalar(select(ProjectRow.id).limit(1))
+            if existing is not None:
+                raise InvalidTransitionError("project repository has already been initialized")
+            row = ProjectRow(
+                id=project.id,
+                revision=project.revision,
+                lifecycle_revision=project.lifecycle_revision,
+                lifecycle_status=project.lifecycle_status.value,
+                archived_at=project.archived_at,
+                brief=project.brief.model_dump(mode="json", by_alias=False),
+                created_at=project.created_at,
+                updated_at=project.updated_at,
+            )
+            session.add(row)
+            for stage in STAGE_ORDER:
+                session.add(
+                    StageHeadRow(
+                        id=f"{project.id}:{stage.value}",
+                        project_id=project.id,
+                        stage=stage.value,
+                        status=StageStatus.MISSING.value,
+                        revision=0,
+                        entity_revision_id=None,
+                        content_hash=None,
+                        schema_version=CURRENT_STAGE_SCHEMA_VERSION,
+                        input_revisions={},
+                        stale_reasons=[],
+                        updated_at=project.updated_at,
+                    )
+                )
+        return self.get_project(project.id)
+
+    def create_project(self, *args: Any, **kwargs: Any) -> ProjectCreation:
+        raise InvalidTransitionError(
+            "project repositories are initialized only by their project-home manifest"
+        )
+
+    def duplicate_project(self, *args: Any, **kwargs: Any) -> ProjectDuplicateResult:
+        raise InvalidTransitionError("a project repository cannot create a second project")
+
+    def _project_row(self, session: Session, project_id: str) -> ProjectRow:
+        if project_id != self.project_id:
+            raise NotFoundError("project does not belong to this project repository")
+        return SQLiteRepository._project_row(session, project_id)
+
+    def _run_row(self, session: Session, run_id: str) -> GenerationRunRow:
+        row = SQLiteRepository._run_row(session, run_id)
+        if row.project_id != self.project_id:
+            raise NotFoundError("generation run does not belong to this project repository")
+        return row
+
+    def _assert_new_run_profile_enabled(
+        self,
+        _session: Session,
+        provider_snapshot: Mapping[str, Any],
+    ) -> None:
+        if self._admitted_provider_snapshot_hash != stable_hash(dict(provider_snapshot)):
+            raise InvalidTransitionError(
+                "project generation requires an application-admitted provider snapshot"
             )

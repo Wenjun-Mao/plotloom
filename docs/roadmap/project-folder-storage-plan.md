@@ -263,3 +263,24 @@ This is not a cutover and introduces no shipped legacy/new selectable mode.
 The retained runtime, pilot data, provider calls, gateway, and old storage paths
 remain unchanged. Exact remaining work is recorded in the checkpoint receipt:
 [project-folder-storage-checkpoint-1](../verification/2026-09-13-project-folder-storage-checkpoint-1.md).
+
+## Checkpoint 2A correction record (2026-09-13)
+
+Baseline `460ff5685e0f25168d30f20f38fbf060c99bb0c7` was retained as a rejected
+construction result, not an accepted storage design. Its temporary mixed
+`SQLiteRepository`, private project-ID rebinding, and success-only evidence
+projection made the temporary harness the actual lifecycle authority. The
+replacement runs the existing `PipelineEngine` and `LifecycleJobRunner`
+directly against each project's `project.sqlite3` through a bound canonical-text
+repository. The project schema is intentionally bounded: it keeps text run,
+repair, canonical, and startup-recovery facts while provider profiles,
+selection, global accounting, and unrelated media/review surfaces remain
+application-owned or outside this checkpoint.
+
+Focused fixtures now prove two independently reopened project homes, direct
+four-stage success, durable failed/cancelled/quarantined/outcome-unknown
+evidence with no partial canonical heads, stale exact-repair refusal,
+foreign-project rejection, secret-free bearer/none broker operation, and no
+automatic replay after an interrupted dispatch. The retained runtime and data
+remain unwired; no migration, import, cutover, provider call, or live network
+work is authorized by this correction. See [the 2A direct receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2a-direct.md).

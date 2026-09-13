@@ -2,8 +2,10 @@
 
 ## Status
 
-Accepted, 2026-09-13. Checkpoint 1 construction is implemented but deliberately
-not wired into the retained runtime or pilot data.
+Accepted, 2026-09-13. Checkpoint 2A replaces the rejected `460ff56`
+construction result with a direct project-owned text-generation repository. It
+remains deliberately unwired from the retained runtime and pilot data; this is
+not a storage cutover or migration.
 
 ## Context
 
@@ -16,23 +18,35 @@ configuration or credentials.
 
 The approved storage plan requires one authoritative database and owned bytes
 per project directory, with provider-profile selection and global accounting
-remaining installation-owned. This first checkpoint must prove that boundary
-without mutating retained pilot data or adding a selectable legacy/new runtime.
+remaining installation-owned. The original 2A attempt ran `PipelineEngine` in
+a temporary mixed `SQLiteRepository`, rewrote its allocated project ID, and
+copied only a successful result into a second project schema. That made the
+temporary database—not `project.sqlite3`—the lifecycle authority. Failed,
+cancelled, quarantined, crash-interrupted, and outcome-unknown evidence could
+therefore disappear at the projection boundary.
 
 ## Decision
 
-Introduce an unwired construction seam in `plotloom.project_storage`:
+Introduce an unwired composition seam in `plotloom.project_storage`:
 
 - `ProjectDirectoryRegistry` creates exclusively allocated UTC-and-UUID project
   homes below an explicit outputs root. It discovers live projects only through
   validated immutable `project.json` manifests; hidden operational directories
   are not projects.
 - Each `ProjectStore` owns one `project.sqlite3` and immutable
-  content-addressed files under `assets/<hash-prefix>/<hash>`. Stored artifact
-  references are confined relative paths and are hash-verified on read. The
-  initial vertical slice persists project creation, optimistic brief editing,
-  and an offline deterministic-provider result. It has no credential, queue,
-  HTTP, gateway, or provider-accounting path.
+  content-addressed files under `assets/<hash-prefix>/<hash>`. Its bound
+  `ProjectSQLiteRepository` uses the existing canonical `PipelineEngine` and
+  `LifecycleJobRunner` directly. Admission, plans, work units, attempts,
+  response/candidate artifacts, seals, repair scopes, bindings, canonical
+  heads, and every terminal disposition are written to this database as they
+  occur. Stored artifact references are confined relative paths and
+  hash-verified on read.
+- The project schema is a named canonical-text subset, not a clone of the
+  mixed application repository. It contains canonical/review-gate state and
+  text-run/recovery/repair tables (plus the project-local media-task rows read
+  by conservative startup recovery). It excludes provider settings/profiles,
+  profile selection, global ledger tables, and unrelated image/video/review
+  surfaces until their project-owned ports are separately delivered.
 - `ApplicationStore` owns only reusable public provider profiles, their selected
   preference, and global accounting reservations in a separately located
   `application.sqlite3`. It rejects credential-shaped configuration. It has no
@@ -45,26 +59,23 @@ Introduce an unwired construction seam in `plotloom.project_storage`:
 The manifest contains only storage format version, immutable project ID,
 creation time, and the fixed relative database location. Mutable title, status,
 canonical content, provider configuration, credentials, and absolute file paths
-are prohibited from it. The project database records no provider profile or
-accounting state in this checkpoint.
+are prohibited from it. The project database records only the selected public
+profile snapshot frozen on each run, never mutable profile selection,
+credentials, or accounting state. A process-local profile admission scope and
+`RunSecretBroker` support both bearer and none authentication modes; raw
+artifact persistence rejects recognizable secret-shaped values after adapter
+redaction.
 
 ## Consequences
 
-The construction seam demonstrates two independently reopenable project homes
-without the former shared project database. It also gives later routing work an
-ownership-safe target rather than a second runtime mode.
-
-Checkpoint 2 starts by replacing the construction-only fake run with an
-isolated execution of the existing four-stage text pipeline. Its project schema
-owns canonical revisions and heads plus the complete secret-free run evidence:
-run snapshots, plans, work units, attempts, artifacts, seals, and exact repair
-scope/reuse lineage. A complete child run is installed in one project-database
-transaction only after every canonical stage is sealed. A stale project revision,
-failed/quarantined run, incomplete seal set, or mismatched project/run identity
-therefore cannot partially install canonical output. The application-owned
-selected public text profile (including adapter identity/version where supplied)
-is frozen verbatim in each actual run; credentials are resolved only by the
-ephemeral secret broker and are never projected into either store.
+Two independently reopenable project homes can run the actual deterministic
+four-stage fixture without the former shared project database. A successful
+run still commits its complete canonical stage range atomically from sealed
+aggregates. Unlike the rejected result, a failed, cancelled, quarantined, or
+outcome-unknown run is retained in the same project home without partial
+canonical heads. Exact repair reopens the quarantined parent directly from
+project-owned scope, binding, and artifact evidence; stale scope/hash/artifact
+checks fail closed and no automatic repair/replay occurs.
 
 The remainder of checkpoint 2 must route the complete existing project workflow
 (authoring, image/video handoff, reviews, lifecycle, drafts, close, and all
@@ -83,9 +94,13 @@ the breaking runtime cutover after writer quiescence and verified inventory.
 - Reuse the old shared repository once per project: it would keep application
   profiles and accounting schema in project folders, contradicting the intended
   ownership boundary.
+- Execute in a disposable mixed repository and project a success afterward:
+  it loses terminal/crash evidence and requires identity rebinding, so it
+  cannot be the durable lifecycle authority.
 - Put profiles, credentials, or accounting reservations in `project.json`: a
   copied project would leak secrets or duplicate installation-global state.
 
 ## Verification
 
-See the [checkpoint 1 receipt](../verification/2026-09-13-project-folder-storage-checkpoint-1.md).
+See the [direct 2A receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2a-direct.md)
+and the historical [checkpoint 1 receipt](../verification/2026-09-13-project-folder-storage-checkpoint-1.md).

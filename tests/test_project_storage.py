@@ -11,8 +11,10 @@ from pydantic import ValidationError
 from tests.test_alpha_acceptance import _FixtureResolver, _profile
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import RunKind, RunStatus, STAGE_ORDER
+from plotloom.domain import Artifact, ArtifactKind, RunKind, RunStatus, STAGE_ORDER, WorkUnitStatus
+from plotloom.exceptions import InvalidTransitionError, NotFoundError, RepairEligibilityError
 from plotloom.generation.contracts import ProviderResponse, ProviderUsage
+from plotloom.pipeline import RunSecretBroker
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import (
     OwnedArtifact,
@@ -23,6 +25,7 @@ from plotloom.project_storage import (
     ProjectStorageError,
 )
 from plotloom.provider_profiles import TextProviderProfileSnapshotV3
+from plotloom.persistence import stable_hash
 
 
 def _fixture_profile(*, max_semantic_corrections: int = 2) -> TextProviderProfileSnapshotV3:
@@ -103,6 +106,70 @@ class _RejectFirstResolver:
         return self.provider, str(provider_snapshot["textModel"])
 
 
+class _FailingProvider:
+    """A deterministic provider failure that must remain in the project trace."""
+
+    name = "failing-fixture"
+    capabilities = _FixtureResolver().provider.capabilities
+
+    def generate(self, request, secret) -> ProviderResponse:
+        raise RuntimeError("fixture provider failed before a response")
+
+
+class _FailingResolver:
+    def __init__(self) -> None:
+        self.provider = _FailingProvider()
+
+    def resolve(self, provider_snapshot):
+        return self.provider, str(provider_snapshot["textModel"])
+
+
+class _InterruptingProvider:
+    """Leaves a committed dispatch marker without a provider result."""
+
+    name = "interrupting-fixture"
+    capabilities = _FixtureResolver().provider.capabilities
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def generate(self, request, secret) -> ProviderResponse:
+        self.calls += 1
+        raise KeyboardInterrupt("fixture process interruption after dispatch")
+
+
+class _InterruptingResolver:
+    def __init__(self) -> None:
+        self.provider = _InterruptingProvider()
+
+    def resolve(self, provider_snapshot):
+        return self.provider, str(provider_snapshot["textModel"])
+
+
+class _BearerRecordingProvider:
+    def __init__(self) -> None:
+        self.delegate = _FixtureResolver().provider
+        self.name = self.delegate.name
+        self.capabilities = self.delegate.capabilities
+        self.observed_secrets: list[str] = []
+
+    def generate(self, request, secret) -> ProviderResponse:
+        assert secret is not None
+        with secret.reveal() as value:
+            self.observed_secrets.append(value)
+        # The deterministic fixture is intentionally a no-auth provider; this
+        # wrapper proves the broker lease reached the adapter boundary first.
+        return self.delegate.generate(request, None)
+
+
+class _BearerRecordingResolver:
+    def __init__(self) -> None:
+        self.provider = _BearerRecordingProvider()
+
+    def resolve(self, provider_snapshot):
+        return self.provider, str(provider_snapshot["textModel"])
+
+
 def _table_names(path: Path) -> set[str]:
     with sqlite3.connect(path) as connection:
         rows = connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'").fetchall()
@@ -167,15 +234,21 @@ def test_two_project_homes_run_actual_four_stage_pipeline_and_reopen_by_project_
     project_tables = _table_names(first.home / "project.sqlite3")
     application_tables = _table_names(tmp_path / "application" / "application.sqlite3")
     assert {
-        "project_state",
-        "canonical_entity_revisions",
-        "canonical_stage_heads",
-        "generation_run_evidence",
-        "generation_attempt_evidence",
-        "generation_work_unit_evidence",
-        "sealed_stage_aggregate_evidence",
+        "v2_projects",
+        "v2_entity_revisions",
+        "v2_stage_heads",
+        "v2_generation_runs",
+        "v2_generation_attempts",
+        "v2_generation_work_units",
+        "v2_sealed_stage_aggregates",
     }.issubset(project_tables)
-    assert "application_profiles" not in project_tables
+    assert {
+        "v2_provider_settings",
+        "v2_text_provider_profiles",
+        "v2_provider_profile_selection",
+        "v2_video_pilot_ledger",
+        "v2_video_pilot_ledger_events",
+    }.isdisjoint(project_tables)
     assert {"application_profiles", "application_preferences", "global_accounting"}.issubset(
         application_tables
     )
@@ -219,34 +292,163 @@ def test_exact_repair_lineage_is_project_owned_and_reopenable(tmp_path: Path) ->
     assert [item.head.stage for item in reopened.canonical_stages()] == list(STAGE_ORDER)
 
 
-def test_stale_or_failed_repair_evidence_cannot_partially_install(tmp_path: Path) -> None:
+def test_stale_exact_repair_and_foreign_project_routes_are_rejected(tmp_path: Path) -> None:
     storage = ProjectFolderStorage(
         outputs_root=tmp_path / "outputs",
         application_data_root=tmp_path / "application",
     )
-    stale_project = storage.projects.create(FIXED_CHINESE_BRIEF)
-    evidence = ProjectPipelineExecutor(_FixtureResolver()).collect(
-        stale_project,
-        profile=_fixture_profile(),
+    first = storage.projects.create(FIXED_CHINESE_BRIEF)
+    second = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"title": "第二个雾港"}))
+    parent = ProjectPipelineExecutor(_RejectFinalStoryboardResolver()).execute(
+        first,
+        profile=_fixture_profile(max_semantic_corrections=0),
     )
-    stale_project.update_brief(
-        FIXED_CHINESE_BRIEF.model_copy(update={"title": "编辑后的雾港"}),
+    assert parent.status == RunStatus.QUARANTINED
+    target = next(
+        item
+        for item in first.repository.list_generation_work_units(parent.id)
+        if item.status == WorkUnitStatus.QUARANTINED
+    )
+    first.update_brief(
+        FIXED_CHINESE_BRIEF.model_copy(update={"title": "已编辑的雾港"}),
         expected_revision=1,
     )
-    with pytest.raises(ProjectStorageConflictError, match="stale"):
-        stale_project.install_generation_evidence(evidence)
-    assert stale_project.canonical_stages() == []
-    assert stale_project.generation_runs() == []
+    with pytest.raises(RepairEligibilityError, match="repair"):
+        with first.repository.admit_provider_snapshot(
+            _fixture_profile(max_semantic_corrections=0).model_dump(mode="json", by_alias=True)
+        ):
+            first.repository.create_work_unit_repair_run(
+                parent.id,
+                target.id,
+                idempotency_key="stale-project-repair",
+            )
+    with pytest.raises(NotFoundError, match="does not belong"):
+        with first.repository.admit_provider_snapshot(
+            _fixture_profile().model_dump(mode="json", by_alias=True)
+        ):
+            first.repository.create_run(
+                second.project().id,
+                RunKind.PIPELINE,
+                STAGE_ORDER,
+                provider_snapshot=_fixture_profile().model_dump(mode="json", by_alias=True),
+            )
 
-    failed_project = storage.projects.create(FIXED_CHINESE_BRIEF)
-    with pytest.raises(ProjectStorageError, match="pipeline result is failed"):
-        ProjectPipelineExecutor(_RejectFirstResolver()).collect(
-            failed_project,
-            profile=_fixture_profile(max_semantic_corrections=0),
-            exact_repair=True,
+
+def test_profile_bound_bearer_and_none_modes_do_not_leak_or_persist_secret_artifacts(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    project = storage.projects.create(FIXED_CHINESE_BRIEF)
+    bearer_values = _fixture_profile().model_dump(mode="json", by_alias=True)
+    bearer_values["textAuthMode"] = "bearer"
+    bearer_values["profileHash"] = ""
+    bearer_profile = TextProviderProfileSnapshotV3.model_validate(bearer_values)
+    resolver = _BearerRecordingResolver()
+    secret = "project-storage-bearer-secret"
+    broker = RunSecretBroker(server_profile_keys={bearer_profile.profile_id: secret})
+    try:
+        completed = ProjectPipelineExecutor(resolver).execute(
+            project,
+            profile=bearer_profile,
+            secret_broker=broker,
         )
+    finally:
+        broker.close()
+
+    assert completed.status == RunStatus.SUCCEEDED
+    assert resolver.provider.observed_secrets
+    assert secret not in project.run_trace(completed.id).model_dump_json()
+    assert secret.encode("utf-8") not in (project.home / "project.sqlite3").read_bytes()
+    with pytest.raises(InvalidTransitionError, match="secret-shaped"):
+        project.repository.add_artifact(
+            Artifact(
+                run_id=completed.id,
+                kind=ArtifactKind.PROMPT,
+                content={"unexpected": "sk-project-storage-leak"},
+                content_hash=stable_hash({"unexpected": "sk-project-storage-leak"}),
+            )
+        )
+    with pytest.raises(InvalidTransitionError, match="secret-shaped"):
+        project.repository.add_artifact(
+            Artifact(
+                run_id=completed.id,
+                kind=ArtifactKind.PROMPT,
+                content={"apiKey": "not-an-allowed-evidence-value"},
+                content_hash=stable_hash({"apiKey": "not-an-allowed-evidence-value"}),
+            )
+        )
+
+
+def test_terminal_evidence_is_project_owned_without_partial_canonical_heads(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    failed_project = storage.projects.create(FIXED_CHINESE_BRIEF)
+    failed = ProjectPipelineExecutor(_FailingResolver()).execute(
+        failed_project,
+        profile=_fixture_profile(),
+    )
+    quarantined_project = storage.projects.create(FIXED_CHINESE_BRIEF)
+    quarantined = ProjectPipelineExecutor(_RejectFirstResolver()).execute(
+        quarantined_project,
+        profile=_fixture_profile(max_semantic_corrections=0),
+    )
+    cancelled_project = storage.projects.create(FIXED_CHINESE_BRIEF)
+    with cancelled_project.repository.admit_provider_snapshot(
+        _fixture_profile().model_dump(mode="json", by_alias=True)
+    ):
+        queued = cancelled_project.repository.create_run(
+            cancelled_project.project().id,
+            RunKind.PIPELINE,
+            STAGE_ORDER,
+            provider_snapshot=_fixture_profile().model_dump(mode="json", by_alias=True),
+        )
+    cancelled = cancelled_project.repository.cancel_run(queued.id)
+
+    assert failed.status == RunStatus.FAILED
+    assert quarantined.status == RunStatus.QUARANTINED
+    assert cancelled.status == RunStatus.CANCELLED
+    assert failed_project.run_trace(failed.id).attempts
+    assert quarantined_project.run_execution_trace(quarantined.id).work_units
+    assert cancelled_project.run_trace(cancelled.id).run.status == RunStatus.CANCELLED
     assert failed_project.canonical_stages() == []
-    assert failed_project.generation_runs() == []
+    assert quarantined_project.canonical_stages() == []
+    assert cancelled_project.canonical_stages() == []
+    assert [run.id for run in failed_project.generation_runs()] == [failed.id]
+    assert [run.id for run in quarantined_project.generation_runs()] == [quarantined.id]
+
+
+def test_interrupted_dispatch_reopens_as_outcome_unknown_without_replay(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    project = storage.projects.create(FIXED_CHINESE_BRIEF)
+    resolver = _InterruptingResolver()
+
+    with pytest.raises(KeyboardInterrupt):
+        ProjectPipelineExecutor(resolver).execute(project, profile=_fixture_profile())
+
+    interrupted = project.generation_runs()[0]
+    assert interrupted.status == RunStatus.RUNNING
+    assert resolver.provider.calls == 1
+
+    reopened = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    ).projects.open(project.project().id)
+    recovery = reopened.repository.reconcile_startup_jobs()
+    trace = reopened.run_trace(interrupted.id)
+
+    assert recovery.resubmit_run_ids == []
+    assert resolver.provider.calls == 1
+    assert any(attempt.outcome_unknown for attempt in trace.attempts)
+    assert trace.run.status == RunStatus.FAILED
+    assert reopened.canonical_stages() == []
 
 
 def test_project_storage_confines_artifacts_and_rejects_secret_profile_configuration(
