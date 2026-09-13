@@ -326,8 +326,11 @@ ComfyUI output or the gateway data directory. See [ADR 0039](../adr/0039-h3-gate
 The `output_expired` job record—and its stored prompt—remains for 30 further
 days, then the gateway removes that job row from SQLite. After this second
 deadline, a gateway status or output request returns `job_not_found`; there is
-no MP4 to retrieve or recreate. This record policy does not delete uploaded
-input assets, which need a separate deliberate retention decision.
+no MP4 to retrieve or recreate. The gateway also removes that job's prepared
+ComfyUI input and deletes its gateway-uploaded keyframe copy only after no
+other gateway job references it. A shared keyframe therefore remains for its
+last linked video. This applies only to transient gateway copies, never to a
+Plotloom project asset or character reference.
 
 An `outcome_unknown` means the gateway cannot establish whether the submission
 reached ComfyUI. Treat it as non-replayable. Diagnose it using the gateway

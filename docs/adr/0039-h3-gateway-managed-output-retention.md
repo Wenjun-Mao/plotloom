@@ -28,9 +28,11 @@ broad directory cleanup or deletes arbitrary ComfyUI files.
 An `output_expired` row remains as a short audit record for 30 further days.
 It then becomes eligible for conditional deletion from the gateway's `jobs`
 table, removing its stored prompt and control-plane history. At that point the
-MP4 is already absent. Uploaded input assets are deliberately outside this
-rule: they have their own lifecycle and are never deleted as a side effect of
-purging an expired video job.
+MP4 is already absent. The gateway also removes that job's per-job prepared
+ComfyUI input. Its uploaded keyframe copy is removed only when no gateway job
+references it any longer; a shared keyframe stays until the last linked video
+record is purged. These are gateway-owned transfer copies only. This policy
+never deletes Plotloom's canonical project stills or character references.
 
 At the first upgrade to this contract, the worker adopts each pre-retention
 `succeeded` job whose frozen ComfyUI output descriptor still identifies a
@@ -57,4 +59,5 @@ gateway retained and later cleaned up.
 Regression coverage proves copy-then-remove handoff, restart-safe pending
 transfer, secret-free status, targeted 72-hour expiry, preservation of
 unrelated files, additive database migration and legacy-output adoption, and
-client handling of the expired-output state and 30-day job-record purge.
+client handling of the expired-output state, 30-day job-record purge, and
+reference-aware gateway-keyframe cleanup.

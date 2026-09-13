@@ -275,7 +275,7 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     assert output.json() == {"error": "gateway_output_expired"}
 
 
-def test_expired_job_record_is_purged_30_days_later_without_touching_input_asset(tmp_path: Path) -> None:
+def test_expired_job_record_purge_removes_its_exclusive_gateway_keyframe(tmp_path: Path) -> None:
     client, _ = _client(tmp_path)
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
@@ -284,6 +284,8 @@ def test_expired_job_record_is_purged_30_days_later_without_touching_input_asset
     ).json()
     asset_path = tmp_path / "data" / "assets" / f"{asset['assetId']}.png"
     job = _queue_job(client, headers, asset["assetId"], prompt="Retain a short audit row")
+    prepared_input = tmp_path / "comfy-input" / f"{job['id']}.png"
+    assert prepared_input.is_file()
     client.app.state.gateway.store.mark_output_expired(
         job["id"], error_code="gateway_output_expired"
     )
@@ -297,9 +299,53 @@ def test_expired_job_record_is_purged_30_days_later_without_touching_input_asset
     assert client.app.state.gateway.cleanup_expired_job_records() == 1
     assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).status_code == 404
     assert client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers).status_code == 404
-    # This policy removes only stale output-job records; a future asset policy
-    # can be chosen separately without risking shared uploaded references.
+    assert prepared_input.exists() is False
+    assert asset_path.exists() is False
+    with client.app.state.gateway.store._connect() as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM assets WHERE id = ?", (asset["assetId"],)
+        ).fetchone()[0] == 0
+
+
+def test_shared_gateway_keyframe_remains_until_its_last_linked_video_is_purged(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("shared.png", _png(864, 480), "image/png")},
+    ).json()
+    asset_path = tmp_path / "data" / "assets" / f"{asset['assetId']}.png"
+    first = _queue_job(client, headers, asset["assetId"], prompt="First use")
+    second = _queue_job(client, headers, asset["assetId"], prompt="Second use")
+    first_input = tmp_path / "comfy-input" / f"{first['id']}.png"
+    second_input = tmp_path / "comfy-input" / f"{second['id']}.png"
+
+    client.app.state.gateway.store.mark_output_expired(
+        first["id"], error_code="gateway_output_expired"
+    )
+    with client.app.state.gateway.store._connect() as connection:
+        connection.execute(
+            "UPDATE jobs SET output_expired_at = datetime('now', '-30 days', '-1 second') "
+            "WHERE id = ?",
+            (first["id"],),
+        )
+    assert client.app.state.gateway.cleanup_expired_job_records() == 1
+    assert first_input.exists() is False
+    assert second_input.is_file()
     assert asset_path.is_file()
+
+    client.app.state.gateway.store.mark_output_expired(
+        second["id"], error_code="gateway_output_expired"
+    )
+    with client.app.state.gateway.store._connect() as connection:
+        connection.execute(
+            "UPDATE jobs SET output_expired_at = datetime('now', '-30 days', '-1 second') "
+            "WHERE id = ?",
+            (second["id"],),
+        )
+    assert client.app.state.gateway.cleanup_expired_job_records() == 1
+    assert second_input.exists() is False
+    assert asset_path.exists() is False
 
 
 def test_gateway_store_migrates_an_existing_queue_database_additively(tmp_path: Path) -> None:
@@ -331,6 +377,9 @@ def test_gateway_store_migrates_an_existing_queue_database_additively(tmp_path: 
         "idempotency_key", "request_hash", "managed_output_name", "output_sha256",
         "output_size_bytes", "output_expires_at", "output_expired_at",
     } <= columns
+    with sqlite3.connect(path) as connection:
+        asset_columns = {row[1] for row in connection.execute("PRAGMA table_info(assets)")}
+    assert "purge_pending" in asset_columns
 
 
 def test_dispatcher_adopts_a_legacy_completed_output_without_resubmitting_h3(tmp_path: Path) -> None:

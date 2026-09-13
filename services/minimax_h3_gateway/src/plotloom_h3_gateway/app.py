@@ -107,6 +107,7 @@ class GatewayStore:
                 CREATE TABLE IF NOT EXISTS assets (
                   id TEXT PRIMARY KEY, mime_type TEXT NOT NULL, width INTEGER NOT NULL,
                   height INTEGER NOT NULL, sha256 TEXT NOT NULL, path TEXT NOT NULL,
+                  purge_pending INTEGER NOT NULL DEFAULT 0,
                   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
                 CREATE TABLE IF NOT EXISTS jobs (
@@ -133,6 +134,14 @@ class GatewayStore:
             str(row["name"])
             for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
         }
+        asset_columns = {
+            str(row["name"])
+            for row in connection.execute("PRAGMA table_info(assets)").fetchall()
+        }
+        if "purge_pending" not in asset_columns:
+            connection.execute(
+                "ALTER TABLE assets ADD COLUMN purge_pending INTEGER NOT NULL DEFAULT 0"
+            )
         if "idempotency_key" not in columns:
             connection.execute("ALTER TABLE jobs ADD COLUMN idempotency_key TEXT")
         if "request_hash" not in columns:
@@ -168,7 +177,9 @@ class GatewayStore:
 
     def get_asset(self, asset_id: str) -> dict[str, Any]:
         with self._connect() as connection:
-            row = connection.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
+            row = connection.execute(
+                "SELECT * FROM assets WHERE id = ? AND purge_pending = 0", (asset_id,)
+            ).fetchone()
         if row is None:
             raise GatewayError("asset_not_found", 404)
         return dict(row)
@@ -203,6 +214,13 @@ class GatewayStore:
                         raise GatewayError("idempotency_conflict", 409)
                     connection.commit()
                     return existing, False
+            asset = connection.execute(
+                "SELECT id FROM assets WHERE id = ? AND purge_pending = 0",
+                (values["asset_id"],),
+            ).fetchone()
+            if asset is None:
+                connection.rollback()
+                raise GatewayError("asset_not_found", 404)
             connection.execute(
                 """INSERT INTO jobs
                 (id, asset_id, profile_id, aspect_policy, prompt, seed, prepared_input_name,
@@ -325,33 +343,73 @@ class GatewayStore:
             )
         return self.get_job(job_id)
 
-    def list_purgeable_expired_job_records(self) -> list[str]:
+    def list_purgeable_expired_job_records(self) -> list[dict[str, Any]]:
         """Return only expired-output records past their short audit window."""
 
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT id FROM jobs WHERE status = 'output_expired' "
+                "SELECT * FROM jobs WHERE status = 'output_expired' "
                 "AND output_expired_at IS NOT NULL "
                 "AND output_expired_at <= datetime('now', ?) ORDER BY rowid ASC",
                 (f"-{EXPIRED_JOB_RECORD_RETENTION_DAYS} days",),
             ).fetchall()
-        return [str(row["id"]) for row in rows]
+        return [dict(row) for row in rows]
 
-    def purge_expired_job_record(self, job_id: str) -> bool:
+    def purge_expired_job_record(self, job_id: str) -> str | None:
         """Delete one due job row, leaving assets to their separate policy.
 
         The conditional makes repeated worker passes and a concurrent status
-        read harmless.  This is deliberately narrower than filesystem cleanup:
-        the managed MP4 was already removed at output expiry, and gateway input
-        assets are not implicitly destroyed by an audit-record retention rule.
+        read harmless. The caller uses the returned asset ID to begin a
+        separate reference-aware asset cleanup; deleting a job never assumes
+        that its uploaded keyframe was exclusive.
         """
 
         with self._connect() as connection:
+            row = connection.execute(
+                "SELECT asset_id FROM jobs WHERE id = ? AND status = 'output_expired' "
+                "AND output_expired_at IS NOT NULL "
+                "AND output_expired_at <= datetime('now', ?)",
+                (job_id, f"-{EXPIRED_JOB_RECORD_RETENTION_DAYS} days"),
+            ).fetchone()
+            if row is None:
+                return None
             deleted = connection.execute(
                 "DELETE FROM jobs WHERE id = ? AND status = 'output_expired' "
                 "AND output_expired_at IS NOT NULL "
                 "AND output_expired_at <= datetime('now', ?)",
                 (job_id, f"-{EXPIRED_JOB_RECORD_RETENTION_DAYS} days"),
+            )
+        if deleted.rowcount != 1:
+            return None
+        return str(row["asset_id"])
+
+    def claim_unreferenced_asset_for_purge(self, asset_id: str) -> bool:
+        """Make a final unreferenced upload unavailable before file removal."""
+
+        with self._connect() as connection:
+            claimed = connection.execute(
+                "UPDATE assets SET purge_pending = 1 WHERE id = ? "
+                "AND purge_pending = 0 AND NOT EXISTS "
+                "(SELECT 1 FROM jobs WHERE asset_id = ?)",
+                (asset_id, asset_id),
+            )
+        return claimed.rowcount == 1
+
+    def list_pending_asset_purges(self) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM assets WHERE purge_pending = 1 ORDER BY rowid ASC"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def delete_pending_unreferenced_asset(self, asset_id: str) -> bool:
+        """Finish a previously claimed asset purge after its file is gone."""
+
+        with self._connect() as connection:
+            deleted = connection.execute(
+                "DELETE FROM assets WHERE id = ? AND purge_pending = 1 "
+                "AND NOT EXISTS (SELECT 1 FROM jobs WHERE asset_id = ?)",
+                (asset_id, asset_id),
             )
         return deleted.rowcount == 1
 
@@ -601,11 +659,42 @@ class H3Gateway:
         return removed
 
     def cleanup_expired_job_records(self) -> int:
-        """Drop only output-expired audit rows after their 30-day window."""
+        """Purge due job rows and their no-longer-referenced gateway inputs."""
 
         removed = 0
-        for job_id in self.store.list_purgeable_expired_job_records():
-            if self.store.purge_expired_job_record(job_id):
+        for job in self.store.list_purgeable_expired_job_records():
+            input_path = self._prepared_input_path(job)
+            try:
+                if input_path is not None:
+                    input_path.unlink(missing_ok=True)
+            except OSError:
+                # Keep the job record as the durable retry marker. It is safer
+                # to retain a stale prompt than to lose its tracked input.
+                continue
+            asset_id = self.store.purge_expired_job_record(str(job["id"]))
+            if asset_id is not None:
+                removed += 1
+                self.store.claim_unreferenced_asset_for_purge(asset_id)
+        self.cleanup_pending_asset_purges()
+        return removed
+
+    def cleanup_pending_asset_purges(self) -> int:
+        """Delete only gateway-owned uploads after their last job is gone."""
+
+        removed = 0
+        for asset in self.store.list_pending_asset_purges():
+            path = self._gateway_asset_path(asset)
+            if path is None:
+                # A corrupted legacy path must never turn cleanup into an
+                # arbitrary filesystem delete. The pending DB row preserves
+                # the evidence for an operator instead.
+                continue
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                # The pending row makes this a safe later retry after a restart.
+                continue
+            if self.store.delete_pending_unreferenced_asset(str(asset["id"])):
                 removed += 1
         return removed
 
@@ -704,6 +793,42 @@ class H3Gateway:
         if expected is None or job.get("managed_output_name") != expected.name:
             return None
         return expected
+
+    def _prepared_input_path(self, job: dict[str, Any]) -> Path | None:
+        job_id = str(job.get("id", ""))
+        expected_name = f"{job_id}.png"
+        if self._managed_output_path_for_job(job_id) is None:
+            return None
+        if job.get("prepared_input_name") != expected_name:
+            return None
+        candidate = self.settings.comfy_input_dir / expected_name
+        try:
+            root = self.settings.comfy_input_dir.resolve()
+            resolved = candidate.resolve(strict=False)
+        except OSError:
+            return None
+        if root not in resolved.parents or candidate.is_symlink():
+            return None
+        return candidate
+
+    def _gateway_asset_path(self, asset: dict[str, Any]) -> Path | None:
+        asset_id = asset.get("id")
+        stored_path = asset.get("path")
+        if not isinstance(asset_id, str) or not isinstance(stored_path, str):
+            return None
+        if len(asset_id) != 38 or not asset_id.startswith("asset_"):
+            return None
+        candidate = Path(stored_path)
+        if candidate.name not in {f"{asset_id}{suffix}" for suffix in (".jpg", ".png", ".webp")}:
+            return None
+        try:
+            root = self.assets_dir.resolve()
+            resolved = candidate.resolve(strict=False)
+        except OSError:
+            return None
+        if resolved.parent != root or candidate.is_symlink():
+            return None
+        return candidate
 
     def _comfy_queue_depth(self) -> int:
         payload = self._get_json("/queue", code="comfy_unavailable")
