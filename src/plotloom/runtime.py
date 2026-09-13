@@ -114,8 +114,7 @@ def build_runtime_app(
     from .media_jobs import MediaJobRunner, MediaTaskSecretBroker
     from .video_jobs import VideoJobService
     from .atlas_wan_transport import AtlasCloudWanTransport
-    from .minimax_h3_transport import MiniMaxH3GatewayTransport
-    from .video_provider import MiniMaxH3GatewayAdapter
+    from .video_backends.minimax_h3 import MiniMaxH3GatewayAdapter, MiniMaxH3GatewayTransport
     from .pipeline import (
         PipelineEngine,
         RunSecretBroker,

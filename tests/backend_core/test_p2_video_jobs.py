@@ -14,7 +14,8 @@ from plotloom.persistence import SQLiteRepository
 from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_ingestion import VideoIngestionError, assert_public_https_url
 from plotloom.video_jobs import VideoJobService
-from plotloom.video_provider import MiniMaxH3GatewayAdapter, WanDispatchDiagnostic, WanDispatchError
+from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
+from plotloom.video_provider import WanDispatchDiagnostic, WanDispatchError
 
 from .conftest import all_stage_payloads
 

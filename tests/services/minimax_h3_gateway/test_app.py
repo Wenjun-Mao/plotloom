@@ -7,7 +7,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 from PIL import Image
 
-from plotloom.h3_gateway.app import GatewaySettings, create_app
+from plotloom_h3_gateway.app import GatewaySettings, create_app
 
 
 class _Response:

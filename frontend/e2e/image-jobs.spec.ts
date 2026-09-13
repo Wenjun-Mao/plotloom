@@ -85,7 +85,14 @@ test.describe("P1.5 story-first character references", () => {
     await panel.getByTestId("story-first-prepare-proposal").click();
     expect((await prepared).status()).toBe(201);
     const first = await latestProposal(request, workbench.apiOrigin, projectId);
+    const copiedOriginal = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname ===
+          `/api/v2/projects/${projectId}/character-reference-proposals/${first.id}/copy`,
+    );
     await panel.getByTestId(`story-first-copy-${first.id}`).click();
+    expect((await copiedOriginal).ok()).toBeTruthy();
     await writeProposalDelivery(
       workbench.imageExchangeRoot,
       first,
@@ -135,7 +142,14 @@ test.describe("P1.5 story-first character references", () => {
       projectId,
     );
     expect(refinement.parentCandidateAssetId).toBe(originalCandidate);
+    const copiedRefinement = page.waitForResponse(
+      (response) =>
+        response.request().method() === "POST" &&
+        new URL(response.url()).pathname ===
+          `/api/v2/projects/${projectId}/character-reference-proposals/${refinement.id}/copy`,
+    );
     await panel.getByTestId(`story-first-copy-${refinement.id}`).click();
+    expect((await copiedRefinement).ok()).toBeTruthy();
     await writeProposalDelivery(
       workbench.imageExchangeRoot,
       refinement,

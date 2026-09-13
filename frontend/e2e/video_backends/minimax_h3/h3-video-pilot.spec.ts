@@ -1,9 +1,9 @@
-import { expect, h3Test as test } from "./fixture";
-import { demoProject } from "../src/demo";
+import { expect, h3Test as test } from "../../fixture";
+import { demoProject } from "../../../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
 
 test("H3 browser path requires an explicit no-stretch policy and persists its fixed profile", async ({ page, request, workbench }) => {

@@ -2,15 +2,13 @@
 from __future__ import annotations
 
 from hashlib import sha256
-from secrets import randbits
 from typing import Any, Callable
 
 from .artifacts import ArtifactStore
 from .persistence import SQLiteRepository
-from .video_ingestion import ObservedVideo, assert_public_https_url, probe_video
+from .video_ingestion import ObservedVideo, probe_video
 from .video_provider import (
     AtlasWanAdapter,
-    MiniMaxH3GatewayAdapter,
     RemoteOutcomeUnknown,
     RemotePredictionFailed,
     VideoAdapterPort,
@@ -54,14 +52,14 @@ class VideoJobService:
     ) -> dict[str, Any]:
         """Freeze the adapter-owned request before any durable dispatch claim."""
 
-        if isinstance(self.adapter, MiniMaxH3GatewayAdapter):
-            contract = self.adapter.production_contract(
-                requested_seconds=requested_seconds,
-                resolution=resolution,
-                audio=audio,
-                aspect_policy=aspect_policy,
-                seed=seed if seed is not None else randbits(63),
-            )
+        contract = self.adapter.production_contract(
+            requested_seconds=requested_seconds,
+            resolution=resolution,
+            audio=audio,
+            aspect_policy=aspect_policy,
+            seed=seed,
+        )
+        if contract is not None:
             return self.repository.prepare_video_job(
                 project_id,
                 approval_id=approval_id,
@@ -72,11 +70,9 @@ class VideoJobService:
                 production_contract=contract,
             )
 
-        # Keep V1 Atlas snapshots byte-for-byte shaped as before.  It has no
-        # aspect-policy or seed concept, so reject an attempt to smuggle H3
-        # fields into that older documented request.
-        if aspect_policy is not None or seed is not None:
-            raise VideoProviderError("Atlas Wan does not accept H3 aspect policy or seed")
+        # Adapters that return no production contract retain their historical
+        # snapshot projection. Atlas's adapter has already rejected fields it
+        # does not support before this compatibility path is reached.
         return self.repository.prepare_video_job(
             project_id,
             approval_id=approval_id,
@@ -92,41 +88,7 @@ class VideoJobService:
     def public_capability(self) -> dict[str, Any]:
         """Secret-free capability projection used by the workbench."""
 
-        if isinstance(self.adapter, MiniMaxH3GatewayAdapter):
-            caps = self.adapter.capabilities
-            return {
-                "enabled": True,
-                "adapterId": caps.adapter_id,
-                "adapterVersion": caps.adapter_version,
-                "provider": caps.provider,
-                "model": caps.model,
-                "durationSeconds": caps.duration_seconds,
-                "resolution": caps.resolution,
-                "width": caps.width,
-                "height": caps.height,
-                "fps": caps.fps,
-                "frameCount": caps.frame_count,
-                "nativeAudio": caps.native_audio,
-                "requiresAspectPolicy": True,
-                "tracksPaidWanPilot": False,
-            }
-        caps = self.adapter.capabilities
-        return {
-            "enabled": True,
-            "adapterId": self.adapter.adapter_id,
-            "adapterVersion": self.adapter.adapter_version,
-            "provider": caps.provider,
-            "model": caps.model,
-            "durationSeconds": caps.durations[0],
-            "resolution": caps.resolutions[0],
-            "width": None,
-            "height": None,
-            "fps": None,
-            "frameCount": None,
-            "nativeAudio": caps.native_audio,
-            "requiresAspectPolicy": False,
-            "tracksPaidWanPilot": True,
-        }
+        return self.adapter.public_capability()
 
     @staticmethod
     def _prompt(snapshot: dict[str, Any]) -> str:
@@ -210,8 +172,6 @@ class VideoJobService:
             if job.get("cancelRequestedAt"):
                 return job
             self.adapter.validate_output_reference(output)
-            if isinstance(self.adapter, AtlasWanAdapter):
-                assert_public_https_url(output)
             content = self.provider.download(output)
             observed = self.probe(content)
             if observed.audio_codec is None:

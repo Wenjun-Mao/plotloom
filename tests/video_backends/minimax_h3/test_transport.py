@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from plotloom.minimax_h3_transport import MiniMaxH3GatewayTransport
+from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayTransport
 from plotloom.video_provider import WanDispatchError
 
 

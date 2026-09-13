@@ -14,13 +14,13 @@ from urllib.parse import quote, urljoin, urlparse
 
 import requests
 
-from .video_provider import (
-    MINIMAX_H3_480P,
+from ...video_provider import (
     DispatchPhase,
     VideoProviderError,
     WanDispatchDiagnostic,
     WanDispatchError,
 )
+from .adapter import MINIMAX_H3_480P
 
 
 class MiniMaxH3GatewayTransport:

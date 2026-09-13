@@ -10,7 +10,7 @@ RUN pip install --no-cache-dir \
     requests==2.34.2 \
     uvicorn[standard]==0.52.4
 
-COPY src/plotloom/h3_gateway /app/src/plotloom/h3_gateway
+COPY services/minimax_h3_gateway/src/plotloom_h3_gateway /app/src/plotloom_h3_gateway
 
 ENV PYTHONPATH=/app/src
-CMD ["python", "-m", "plotloom.h3_gateway"]
+CMD ["python", "-m", "plotloom_h3_gateway"]

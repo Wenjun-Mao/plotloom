@@ -62,11 +62,13 @@ loggable URL credential.
 The implementation and decision records are:
 
 - Gateway service: [`services/minimax_h3_gateway`](../../services/minimax_h3_gateway/)
-- Frozen workflow: [`minimax_h3_fp8_turbo4_480p.json`](../../src/plotloom/h3_gateway/profiles/minimax_h3_fp8_turbo4_480p.json)
-- Plotloom adapter: [`video_provider.py`](../../src/plotloom/video_provider.py)
-  and [`minimax_h3_transport.py`](../../src/plotloom/minimax_h3_transport.py)
+- Frozen workflow: [`minimax_h3_fp8_turbo4_480p.json`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_fp8_turbo4_480p.json)
+- Plotloom adapter: [`adapter.py`](../../src/plotloom/video_backends/minimax_h3/adapter.py)
+  and [`transport.py`](../../src/plotloom/video_backends/minimax_h3/transport.py)
 - Boundary decisions: [ADR 0033](../adr/0033-private-minimax-h3-gateway.md)
-  and [ADR 0034](../adr/0034-provider-neutral-video-adapters-and-local-h3.md)
+  and [ADR 0034](../adr/0034-provider-neutral-video-adapters-and-local-h3.md);
+  [ADR 0035](../adr/0035-backend-owned-video-modules.md) records the module
+  and service-package ownership boundary.
 
 ## 3. Before deployment
 
