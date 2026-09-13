@@ -48,6 +48,7 @@ class FakeH3Gateway:
         self.outcome_unknown = outcome_unknown
         self.submits: list[dict] = []
         self.preflight_calls = 0
+        self.profile_id: str | None = None
 
     def preflight(self) -> None:
         self.preflight_calls += 1
@@ -58,9 +59,10 @@ class FakeH3Gateway:
 
     def submit(self, payload: dict) -> dict:
         self.submits.append(payload)
+        self.profile_id = payload["profileId"]
         return {
             "id": "h3_0123456789abcdef0123456789abcdef", "status": "submitted",
-            "profileId": "minimax_h3_fp8_turbo4_480p", "aspectPolicy": payload["aspectPolicy"],
+            "profileId": payload["profileId"], "aspectPolicy": payload["aspectPolicy"],
             "error": None, "outputReady": False,
         }
 
@@ -68,7 +70,7 @@ class FakeH3Gateway:
         assert prediction_id == "h3_0123456789abcdef0123456789abcdef"
         return {
             "id": prediction_id, "status": "outcome_unknown" if self.outcome_unknown else "succeeded",
-            "profileId": "minimax_h3_fp8_turbo4_480p", "aspectPolicy": "cover_center_crop",
+            "profileId": self.profile_id, "aspectPolicy": "cover_center_crop",
             "error": None, "outputReady": not self.outcome_unknown,
         }
 
@@ -164,7 +166,7 @@ def test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget(r
         artifacts,
         provider,
         adapter=MiniMaxH3GatewayAdapter(),
-        probe=lambda _: ObservedVideo(5.167, 864, 480, "h264", "aac", frame_rate=24, frame_count=124),
+        probe=lambda _: ObservedVideo(5.167, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124),
     )
     with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
         approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
@@ -176,16 +178,18 @@ def test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget(r
         prepared = client.post(f"/api/v2/projects/{project.id}/video-jobs", json=body)
         assert prepared.status_code == 201, prepared.text
         job = prepared.json()
-        assert job["snapshot"]["snapshotVersion"] == 2
-        assert job["snapshot"]["compilerVersion"] == "p2-video-adapters-v1"
+        assert job["snapshot"]["snapshotVersion"] == 3
+        assert job["snapshot"]["compilerVersion"] == "p2-video-adapters-v2"
         assert job["snapshot"]["provider"] == {
-            "adapterId": "minimax_h3_gateway", "adapterVersion": "1",
-            "provider": "minimax_h3_gateway", "model": "minimax_h3_fp8_turbo4_480p",
-            "capabilityVersion": 1, "costPolicy": "local_capacity_v1",
+            "adapterId": "minimax_h3_gateway", "adapterVersion": "2",
+            "provider": "minimax_h3_gateway", "model": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+            "capabilityVersion": 2, "costPolicy": "local_capacity_v1",
         }
         assert job["snapshot"]["request"] == {
-            "durationSeconds": 5, "resolution": "480p", "audio": True,
+            "durationSeconds": 5, "resolution": "576x1024", "audio": True,
             "aspectPolicy": "cover_center_crop", "seed": 81,
+            "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "profileVersion": 1,
+            "width": 576, "height": 1024,
         }
         assert client.get("/api/v2/video-pilot-budget").json()["reservedSeconds"] == 0
         assert client.get("/api/v2/video-backend").json()["adapterId"] == "minimax_h3_gateway"
@@ -195,7 +199,7 @@ def test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget(r
         assert provider.submits == [{
             "assetId": "asset_0123456789abcdef0123456789abcdef",
             "prompt": service._prompt(job["snapshot"]),
-            "profileId": "minimax_h3_fp8_turbo4_480p",
+            "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
             "aspectPolicy": "cover_center_crop", "seed": 81,
         }]
         ingested = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/reconcile")

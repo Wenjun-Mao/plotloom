@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
 
-test("H3 browser path requires an explicit no-stretch policy and persists its fixed profile", async ({ page, request, workbench }) => {
+test("H3 browser path freezes a selected no-stretch catalog profile", async ({ page, request, workbench }) => {
   const created = await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: demoProject.brief, initialStages: [
     { stage: "story_bible", payload: demoProject.storyBible }, { stage: "story_graph", payload: demoProject.storyGraph },
     { stage: "scene_beats", payload: demoProject.sceneBeats }, { stage: "storyboard", payload: demoProject.storyboard },
@@ -48,13 +48,17 @@ test("H3 browser path requires an explicit no-stretch policy and persists its fi
 
   const backend = await request.get(`${workbench.apiOrigin}/api/v2/video-backend`);
   expect(await backend.json()).toMatchObject({
-    enabled: true, adapterId: "minimax_h3_gateway", width: 864, height: 480,
+    enabled: true, adapterId: "minimax_h3_gateway", width: 576, height: 1024,
     frameCount: 124, nativeAudio: true, requiresAspectPolicy: true, tracksPaidWanPilot: false,
+    defaultProfileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
   });
   const panel = page.getByTestId("video-pilot-panel");
   await expect(panel.getByText("MiniMax H3 本地视频候选")).toBeVisible();
   const aspect = panel.getByLabel("关键帧比例处理（必选）");
+  const profile = panel.getByLabel("H3 输出 Profile（必选）");
+  await expect(profile).toHaveValue("minimax_h3_fp8_turbo4_portrait_576x1024_v1");
   await expect(panel.getByRole("button", { name: "冻结当前审核关键帧" })).toBeDisabled();
+  await profile.selectOption("minimax_h3_fp8_turbo4_portrait_704x1280_v1");
   await aspect.selectOption("contain_pad");
 
   const preparedPost = page.waitForResponse((response) => (
@@ -65,7 +69,8 @@ test("H3 browser path requires an explicit no-stretch policy and persists its fi
   const preparedResponse = await preparedPost;
   expect(preparedResponse.ok()).toBeTruthy();
   expect(preparedResponse.request().postDataJSON()).toMatchObject({
-    requestedDurationSeconds: 5, resolution: "480p", audio: true, aspectPolicy: "contain_pad",
+    requestedDurationSeconds: 5, resolution: "704x1280", audio: true, aspectPolicy: "contain_pad",
+    profileId: "minimax_h3_fp8_turbo4_portrait_704x1280_v1",
   });
   const prepared = await preparedResponse.json() as { id: string; snapshot: { request: object } };
   expect(prepared.snapshot.request).toMatchObject({ aspectPolicy: "contain_pad" });
@@ -90,7 +95,7 @@ test("H3 browser path requires an explicit no-stretch policy and persists its fi
     return ((await jobs.json()) as { jobs: Array<{ id: string; selected: boolean; observed: object }> }).jobs.find((job) => job.id === prepared.id);
   }).toMatchObject({
     selected: true,
-    observed: { width: 864, height: 480, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 124 },
+    observed: { width: 704, height: 1280, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 124 },
   });
   expect(await request.get(`${workbench.apiOrigin}/api/v2/video-pilot-budget`).then((response) => response.json())).toMatchObject({ reservedSeconds: 0 });
 

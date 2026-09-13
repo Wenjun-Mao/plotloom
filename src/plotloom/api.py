@@ -1233,6 +1233,7 @@ def create_app(
                 audio=body.audio,
                 aspect_policy=body.aspect_policy,
                 seed=body.seed,
+                profile_id=body.profile_id,
             )
         # Offline fixtures retain the original V1 preparation behaviour.  A
         # real runtime cannot enter this branch because submission is already

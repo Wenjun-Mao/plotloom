@@ -7,7 +7,9 @@ from typing import Any
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from plotloom.video_backends.minimax_h3 import H3_PROFILES
 from plotloom_h3_gateway.app import GatewaySettings, create_app
+from plotloom_h3_gateway.profile_catalog import H3_GATEWAY_PROFILES
 
 
 class _Response:
@@ -54,7 +56,7 @@ def _object_info() -> dict[str, object]:
         "VAELoader": ("vae_name", ["minimax_h3_video_vae_fp16.safetensors", "minimax_h3_audio_vae_fp32.safetensors"]),
         "LoraLoaderModelOnly": ("lora_name", "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"),
     }
-    result: dict[str, object] = {"MiniMaxH3ImageToVideo": {}}
+    result: dict[str, object] = {"MiniMaxH3ImageToVideo": {}, "PrimitiveInt": {}}
     for node_type, (name, options) in required.items():
         values = options if isinstance(options, list) else [options]
         result[node_type] = {"input": {"required": {name: [values]}}}
@@ -77,6 +79,14 @@ def _png(width: int = 1371, height: int = 1148) -> bytes:
     buffer = BytesIO()
     image.save(buffer, "PNG")
     return buffer.getvalue()
+
+
+def test_gateway_and_plotloom_catalogs_match_exactly() -> None:
+    """Independent packages must agree before a profile can enter production."""
+
+    assert [item.public_descriptor() for item in H3_GATEWAY_PROFILES] == [
+        item.public_descriptor() for item in H3_PROFILES
+    ]
 
 
 def test_upload_requires_bearer_key(tmp_path: Path) -> None:
@@ -106,6 +116,49 @@ def test_job_uses_frozen_profile_and_crop_policy_without_stretching(tmp_path: Pa
     prepared = next((tmp_path / "comfy-input").glob("*.png"))
     with Image.open(prepared) as image:
         assert image.size == (864, 480)
+
+
+def test_catalog_profile_uses_exact_portrait_dimensions_and_health_is_secret_free(tmp_path: Path) -> None:
+    client, session = _client(tmp_path)
+    health = client.get("/health")
+    assert health.status_code == 200
+    assert health.json()["profileContractVersion"] == 2
+    profiles = health.json()["profiles"]
+    assert len(profiles) == 7
+    assert all("lora" not in item and "path" not in item for item in profiles)
+    profile_id = "minimax_h3_fp8_turbo4_portrait_704x1280_v1"
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers, files={"image": ("portrait.png", _png(), "image/png")},
+    ).json()
+    response = client.post(
+        "/v1/video-jobs", headers=headers,
+        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "profileId": profile_id,
+              "aspectPolicy": "contain_pad", "seed": 12},
+    )
+    assert response.status_code == 202
+    assert response.json()["profileId"] == profile_id
+    workflow = session.submissions[0]["prompt"]
+    assert workflow["115"] == {"class_type": "PrimitiveInt", "inputs": {"value": 704}}
+    assert workflow["116"] == {"class_type": "PrimitiveInt", "inputs": {"value": 1280}}
+    prepared = next((tmp_path / "comfy-input").glob("*.png"))
+    with Image.open(prepared) as image:
+        assert image.size == (704, 1280)
+
+
+def test_gateway_rejects_unknown_profile_before_creating_a_job(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers, files={"image": ("portrait.png", _png(), "image/png")},
+    ).json()
+    response = client.post(
+        "/v1/video-jobs", headers=headers,
+        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "profileId": "minimax_h3_unreviewed_1",
+              "aspectPolicy": "contain_pad"},
+    )
+    assert response.status_code == 422
+    assert response.json() == {"error": "profile_not_supported"}
 
 
 def test_reject_policy_refuses_aspect_mismatch_before_comfy_submit(tmp_path: Path) -> None:

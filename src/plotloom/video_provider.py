@@ -106,6 +106,12 @@ class VideoProductionContract:
     aspect_policy: str | None
     seed: int | None
     tracks_paid_wan_pilot: bool
+    # Optional profile metadata is used by gateway-owned catalog adapters.
+    # Wan V1/V2 snapshots intentionally omit it byte-for-byte.
+    profile_id: str | None = None
+    profile_version: int | None = None
+    width: int | None = None
+    height: int | None = None
 
     def __post_init__(self) -> None:
         if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", self.adapter_id):
@@ -120,6 +126,21 @@ class VideoProductionContract:
             raise ValueError("video resolution is required")
         if self.seed is not None and not 0 <= self.seed <= 2**63 - 1:
             raise ValueError("video seed is invalid")
+        profile_parts = (self.profile_id, self.profile_version, self.width, self.height)
+        if any(part is not None for part in profile_parts):
+            if (
+                not isinstance(self.profile_id, str)
+                or not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", self.profile_id)
+                or not isinstance(self.profile_version, int)
+                or self.profile_version < 1
+                or not isinstance(self.width, int)
+                or not isinstance(self.height, int)
+                or self.width < 32
+                or self.height < 32
+                or self.width % 32
+                or self.height % 32
+            ):
+                raise ValueError("video profile contract is invalid")
 
     def provider_snapshot(self) -> dict[str, Any]:
         return {
@@ -141,6 +162,13 @@ class VideoProductionContract:
             request["aspectPolicy"] = self.aspect_policy
         if self.seed is not None:
             request["seed"] = self.seed
+        if self.profile_id is not None:
+            request |= {
+                "profileId": self.profile_id,
+                "profileVersion": self.profile_version,
+                "width": self.width,
+                "height": self.height,
+            }
         return request
 
 
@@ -178,15 +206,16 @@ class VideoAdapterPort(Protocol):
         audio: bool,
         aspect_policy: str | None,
         seed: int | None,
+        profile_id: str | None,
     ) -> dict[str, Any]: ...
 
-    def prediction_id(self, payload: dict[str, Any]) -> str: ...
+    def prediction_id(self, payload: dict[str, Any], *, expected_profile_id: str | None = None) -> str: ...
 
-    def completed_output(self, payload: dict[str, Any]) -> str | None: ...
+    def completed_output(self, payload: dict[str, Any], *, expected_profile_id: str | None = None) -> str | None: ...
 
     def validate_output_reference(self, value: str) -> None: ...
 
-    def validate_observed_output(self, observed: ObservedVideo) -> None: ...
+    def validate_observed_output(self, observed: ObservedVideo, *, profile_id: str | None = None) -> None: ...
 
     def production_contract(
         self,
@@ -196,6 +225,7 @@ class VideoAdapterPort(Protocol):
         audio: bool | None,
         aspect_policy: str | None,
         seed: int | None,
+        profile_id: str | None,
     ) -> VideoProductionContract | None: ...
 
     def public_capability(self) -> dict[str, Any]: ...
@@ -223,11 +253,12 @@ class AtlasWanAdapter:
         audio: bool | None,
         aspect_policy: str | None,
         seed: int | None,
+        profile_id: str | None = None,
     ) -> None:
         # V1 Wan snapshots have no seed or aspect-policy fields. Keep that
         # historical request projection exact rather than allowing future
         # backend fields to leak into it.
-        if aspect_policy is not None or seed is not None:
+        if aspect_policy is not None or seed is not None or profile_id is not None:
             raise VideoProviderError("Atlas Wan does not accept H3 aspect policy or seed")
         return None
 
@@ -260,18 +291,21 @@ class AtlasWanAdapter:
         audio: bool,
         aspect_policy: str | None = None,
         seed: int | None = None,
+        profile_id: str | None = None,
     ) -> dict[str, Any]:
         caps = self.capabilities
         if duration not in caps.durations or resolution not in caps.resolutions or audio is not True:
             raise VideoProviderError("Wan P2 capability mismatch")
-        if aspect_policy is not None or seed is not None:
+        if aspect_policy is not None or seed is not None or profile_id is not None:
             raise VideoProviderError("Wan P2 request includes unsupported H3 fields")
         if not uploaded_asset.startswith("https://"):
             raise VideoProviderError("uploaded image URL must be HTTPS")
         return {"model": caps.model, "prompt": prompt, "image": uploaded_asset, "duration": duration, "resolution": resolution, "audio": True}
 
     @staticmethod
-    def prediction_id(payload: dict[str, Any]) -> str:
+    def prediction_id(payload: dict[str, Any], *, expected_profile_id: str | None = None) -> str:
+        if expected_profile_id is not None:
+            raise VideoProviderError("Wan P2 response includes an unsupported profile")
         data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
         value = data.get("id") if isinstance(data, dict) else None
         if not isinstance(value, str) or not value.strip():
@@ -279,7 +313,9 @@ class AtlasWanAdapter:
         return value
 
     @staticmethod
-    def completed_output(payload: dict[str, Any]) -> str | None:
+    def completed_output(payload: dict[str, Any], *, expected_profile_id: str | None = None) -> str | None:
+        if expected_profile_id is not None:
+            raise VideoProviderError("Wan P2 response includes an unsupported profile")
         data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
         if not isinstance(data, dict):
             raise VideoProviderError("Atlas prediction response is not a documented object")
@@ -303,7 +339,9 @@ class AtlasWanAdapter:
         assert_public_https_url(value)
 
     @staticmethod
-    def validate_observed_output(_observed: ObservedVideo) -> None:
+    def validate_observed_output(_observed: ObservedVideo, *, profile_id: str | None = None) -> None:
         # Browser-playability and native-audio checks remain shared ingestion
         # requirements. Atlas has no separately evidenced fixed frame profile.
+        if profile_id is not None:
+            raise VideoProviderError("Wan P2 output includes an unsupported profile")
         return None

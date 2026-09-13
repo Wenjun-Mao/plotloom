@@ -114,7 +114,11 @@ def build_runtime_app(
     from .media_jobs import MediaJobRunner, MediaTaskSecretBroker
     from .video_jobs import VideoJobService
     from .atlas_wan_transport import AtlasCloudWanTransport
-    from .video_backends.minimax_h3 import MiniMaxH3GatewayAdapter, MiniMaxH3GatewayTransport
+    from .video_backends.minimax_h3 import (
+        H3_PROFILES_BY_ID,
+        MiniMaxH3GatewayAdapter,
+        MiniMaxH3GatewayTransport,
+    )
     from .pipeline import (
         PipelineEngine,
         RunSecretBroker,
@@ -250,9 +254,12 @@ def build_runtime_app(
             raise RuntimeError("H3 gateway requires VIDEO_MODEL_API_KEY")
         if (
             settings.video_provider != "minimax_h3_gateway"
-            or settings.video_model != "minimax_h3_fp8_turbo4_480p"
+            or settings.video_model not in {
+                "minimax_h3_gateway_catalog_v2",
+                *H3_PROFILES_BY_ID,
+            }
         ):
-            raise RuntimeError("H3 gateway runtime must use the trusted MiniMax H3 provider and profile")
+            raise RuntimeError("H3 gateway runtime must use the trusted MiniMax H3 catalog")
         video_job_service = VideoJobService(
             repository,
             artifact_store,

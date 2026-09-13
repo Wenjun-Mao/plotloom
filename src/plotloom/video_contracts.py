@@ -23,10 +23,11 @@ class VideoJobRequest(CamelModel):
     # legacy Wan preparation keeps its historic defaults when no adapter is
     # active in an offline fixture.
     requested_duration_seconds: Literal[5] | None = None
-    resolution: Literal["720p", "480p"] | None = None
+    resolution: str | None = Field(default=None, min_length=3, max_length=32)
     audio: Literal[True] | None = None
     aspect_policy: Literal["cover_center_crop", "contain_pad", "reject_mismatch"] | None = None
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
+    profile_id: str | None = Field(default=None, min_length=3, max_length=63, pattern=r"^[a-z][a-z0-9_]{0,62}$")
 
     @field_validator("idempotency_key")
     @classmethod

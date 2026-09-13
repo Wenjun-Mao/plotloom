@@ -20,11 +20,11 @@ from ...video_provider import (
     WanDispatchDiagnostic,
     WanDispatchError,
 )
-from .adapter import MINIMAX_H3_480P
+from .adapter import H3_PROFILE_CONTRACT_VERSION, H3_PROFILES_BY_ID
 
 
 class MiniMaxH3GatewayTransport:
-    """Bearer-authenticated, no-retry transport for one private H3 profile."""
+    """Bearer-authenticated, no-retry transport for the fixed H3 catalog."""
 
     _ASSET_ID = re.compile(r"^asset_[0-9a-f]{32}$")
     _JOB_ID = re.compile(r"^h3_[0-9a-f]{32}$")
@@ -80,7 +80,8 @@ class MiniMaxH3GatewayTransport:
         if (
             not isinstance(payload, dict)
             or payload.get("status") != "ok"
-            or payload.get("profiles") != [MINIMAX_H3_480P.model]
+            or payload.get("profileContractVersion") != H3_PROFILE_CONTRACT_VERSION
+            or payload.get("profiles") != [profile.public_descriptor() for profile in H3_PROFILES_BY_ID.values()]
             or type(payload.get("maxQueueDepth")) is not int
             or payload["maxQueueDepth"] < 1
         ):
@@ -204,7 +205,7 @@ class MiniMaxH3GatewayTransport:
         identifier = value.get("id")
         if not isinstance(identifier, str) or not cls._JOB_ID.fullmatch(identifier) or (expected_id is not None and identifier != expected_id):
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
-        if value.get("profileId") != MINIMAX_H3_480P.model:
+        if value.get("profileId") not in H3_PROFILES_BY_ID:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("status") not in {"reserved", "submitted", "running", "succeeded", "failed", "outcome_unknown", "cancelled"}:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))

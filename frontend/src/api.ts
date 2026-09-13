@@ -405,7 +405,7 @@ export class PlotloomApiClient {
   prepareVideoJob(projectId: string, body: {
     approvalId: string; shotId: string; storyboardRevision: number; expectedSelectionRevision: number; idempotencyKey: string;
     requestedDurationSeconds?: number; resolution?: string; audio?: true;
-    aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch"; seed?: number;
+    aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch"; seed?: number; profileId?: string;
   }): Promise<VideoJob> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`, { method: "POST", body: JSON.stringify(body) });
   }

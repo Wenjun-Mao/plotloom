@@ -324,6 +324,24 @@ export interface VideoBackend {
   nativeAudio?: boolean;
   requiresAspectPolicy?: boolean;
   tracksPaidWanPilot?: boolean;
+  profileContractVersion?: number;
+  defaultProfileId?: string;
+  profiles?: VideoBackendProfile[];
+}
+
+export interface VideoBackendProfile {
+  id: string;
+  version: number;
+  label: string;
+  orientation: "landscape" | "portrait";
+  tier: "legacy" | "fast" | "standard" | "high_resolution";
+  width: number;
+  height: number;
+  durationSeconds: number;
+  fps: number;
+  frameCount: number;
+  nativeAudio: boolean;
+  selectable: boolean;
 }
 
 export interface VideoJob {

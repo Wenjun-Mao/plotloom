@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayTransport
+from plotloom.video_backends.minimax_h3 import H3_PROFILES, MiniMaxH3GatewayTransport
+from plotloom.video_backends.minimax_h3.adapter import H3_PROFILE_CONTRACT_VERSION
 from plotloom.video_provider import WanDispatchError
 
 
@@ -38,7 +39,10 @@ class _GatewaySession:
     def request(self, method: str, url: str, **kwargs: object) -> _Response:
         self.calls.append((method, url, dict(kwargs)))
         if url.endswith("/health"):
-            return _Response(200, {"status": "ok", "profiles": ["minimax_h3_fp8_turbo4_480p"], "maxQueueDepth": 2})
+            return _Response(200, {
+                "status": "ok", "profileContractVersion": H3_PROFILE_CONTRACT_VERSION,
+                "profiles": [profile.public_descriptor() for profile in H3_PROFILES], "maxQueueDepth": 2,
+            })
         if url.endswith("/v1/assets"):
             return _Response(200, {"assetId": _ASSET_ID, "mimeType": "image/png", "width": 864, "height": 480, "sha256": "a" * 64})
         if url.endswith("/v1/video-jobs"):

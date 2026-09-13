@@ -18,7 +18,15 @@ from fastapi.responses import Response
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field
 
-PROFILE_ID = "minimax_h3_fp8_turbo4_480p"
+from .profile_catalog import (
+    H3_GATEWAY_PROFILES,
+    LEGACY_PROFILE_ID,
+    PROFILE_CONTRACT_VERSION,
+    TURBO_4STEP_LORA,
+    GatewayProfile,
+    profile,
+)
+
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_PIXELS = 30_000_000
 ALLOWED_IMAGE_MIME_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
@@ -67,10 +75,10 @@ class CreateJobRequest(BaseModel):
     asset_id: str = Field(alias="assetId", min_length=3, max_length=80)
     prompt: str = Field(min_length=1, max_length=8_000)
     aspect_policy: AspectPolicy = Field(alias="aspectPolicy")
-    profile_id: Literal["minimax_h3_fp8_turbo4_480p"] = Field(
-        default=PROFILE_ID,
-        alias="profileId",
-    )
+    # Omission keeps the old direct-gateway API behaviour. Plotloom's v2 UI
+    # always sends an explicit current catalog choice, whose default is the
+    # new portrait-fast profile.
+    profile_id: str = Field(default=LEGACY_PROFILE_ID, alias="profileId", min_length=3, max_length=63, pattern=r"^[a-z][a-z0-9_]{0,62}$")
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
 
 
@@ -167,11 +175,16 @@ class H3Gateway:
         self.assets_dir.mkdir(parents=True, exist_ok=True)
         self.store = GatewayStore(self.settings.data_dir / "gateway.sqlite3")
         self.session = session or requests.Session()
-        self.profile = _load_profile()
+        self.legacy_template = _load_legacy_template()
 
     def health(self) -> dict[str, Any]:
         self._preflight()
-        return {"status": "ok", "profiles": [PROFILE_ID], "maxQueueDepth": self.settings.max_queue_depth}
+        return {
+            "status": "ok",
+            "profileContractVersion": PROFILE_CONTRACT_VERSION,
+            "profiles": [item.public_descriptor() for item in H3_GATEWAY_PROFILES],
+            "maxQueueDepth": self.settings.max_queue_depth,
+        }
 
     def add_asset(self, content: bytes, *, mime_type: str) -> dict[str, Any]:
         if mime_type not in ALLOWED_IMAGE_MIME_TYPES:
@@ -200,6 +213,10 @@ class H3Gateway:
         if max(self.store.active_job_count(), self._comfy_queue_depth()) >= self.settings.max_queue_depth:
             raise GatewayError("queue_capacity_reached", 429)
         self._preflight()
+        try:
+            selected_profile = profile(request.profile_id)
+        except KeyError as error:
+            raise GatewayError("profile_not_supported", 422) from error
         asset = self.store.get_asset(request.asset_id)
         job_id = f"h3_{uuid.uuid4().hex}"
         seed = request.seed if request.seed is not None else int.from_bytes(os.urandom(8), "big") >> 1
@@ -212,12 +229,15 @@ class H3Gateway:
         try:
             _prepare_input(
                 source=Path(asset["path"]), destination=self.settings.comfy_input_dir / input_name,
-                target_width=int(self.profile["output"]["width"]),
-                target_height=int(self.profile["output"]["height"]), policy=request.aspect_policy,
+                target_width=selected_profile.width,
+                target_height=selected_profile.height, policy=request.aspect_policy,
             )
         except GatewayError as error:
             return self.store.update_job(job_id, status="failed", error_code=error.code)
-        workflow = _render_workflow(self.profile["prompt"], prompt=request.prompt, input_name=input_name, seed=seed)
+        workflow = _render_workflow(
+            self.legacy_template["prompt"], profile=selected_profile,
+            prompt=request.prompt, input_name=input_name, seed=seed,
+        )
         try:
             response = self.session.post(
                 f"{self.settings.comfy_url}/prompt",
@@ -294,7 +314,7 @@ class H3Gateway:
             ("CLIPLoader", "clip_name", "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"),
             ("VAELoader", "vae_name", "minimax_h3_video_vae_fp16.safetensors"),
             ("VAELoader", "vae_name", "minimax_h3_audio_vae_fp32.safetensors"),
-            ("LoraLoaderModelOnly", "lora_name", "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"),
+            ("LoraLoaderModelOnly", "lora_name", TURBO_4STEP_LORA),
         )
         for node_type, input_name, expected in required:
             try:
@@ -303,7 +323,7 @@ class H3Gateway:
                 raise GatewayError("comfy_profile_unavailable", 503) from error
             if not isinstance(options, list) or expected not in options:
                 raise GatewayError("comfy_profile_unavailable", 503)
-        if "MiniMaxH3ImageToVideo" not in object_info:
+        if "MiniMaxH3ImageToVideo" not in object_info or "PrimitiveInt" not in object_info:
             raise GatewayError("comfy_profile_unavailable", 503)
 
     def _get_json(self, path: str, *, code: str) -> object:
@@ -360,13 +380,25 @@ def create_app(settings: GatewaySettings | None = None, *, session: requests.Ses
     return app
 
 
-def _load_profile() -> dict[str, Any]:
-    path = Path(__file__).with_name("profiles") / f"{PROFILE_ID}.json"
+def _load_legacy_template() -> dict[str, Any]:
+    path = Path(__file__).with_name("profiles") / f"{LEGACY_PROFILE_ID}.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def _render_workflow(template: dict[str, Any], *, prompt: str, input_name: str, seed: int) -> dict[str, Any]:
+def _render_workflow(
+    template: dict[str, Any], *, profile: GatewayProfile, prompt: str, input_name: str, seed: int,
+) -> dict[str, Any]:
     workflow = copy.deepcopy(template)
+
+    # New catalog entries use hard-coded PrimitiveInt nodes, never a caller
+    # supplied size or ResolutionSelector heuristic. The old one-profile
+    # graph remains untouched for historical jobs.
+    if profile.explicit_dimensions:
+        workflow["115"] = {"class_type": "PrimitiveInt", "inputs": {"value": profile.width}}
+        workflow["116"] = {"class_type": "PrimitiveInt", "inputs": {"value": profile.height}}
+        workflow["105:104"]["inputs"] |= {
+            "width": ["115", 0], "height": ["116", 0],
+        }
 
     def replace(value: Any) -> Any:
         if isinstance(value, dict):

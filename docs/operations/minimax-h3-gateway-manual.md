@@ -12,22 +12,26 @@ unsafe or easily stale deployment recipe.
 ## 1. What this system is—and is not
 
 Plotloom uses MiniMax-H3 through a small authenticated gateway running on
-Spark. The gateway owns exactly one ComfyUI workflow profile:
+Spark. The gateway owns a small reviewed profile catalog, not arbitrary
+dimensions or ComfyUI graphs:
 
-| Property | Frozen initial value |
-| --- | --- |
-| Profile ID | `minimax_h3_fp8_turbo4_480p` |
-| Output | 864 × 480, H.264 video with AAC audio |
-| Timing | 124 frames at 24 fps (about 5.167 seconds) |
-| Inference baseline | MiniMax-H3 FL2VA FP8, NVFP4 Qwen encoder, 4-step Turbo |
-| Input | one PNG, JPEG, or WebP approved keyframe |
-| Capacity | a durable local gateway queue; not the Atlas Wan paid-seconds ledger |
+| Tier | Landscape | Portrait |
+| --- | --- | --- |
+| Fast | 832×480 | 576×1024 |
+| Standard | 960×544 | 608×1088 |
+| High resolution | 1280×704 | 704×1280 |
+
+Every selectable entry uses MiniMax-H3 FL2VA FP8, the official 4-step 768p
+Turbo LoRA, one approved PNG/JPEG/WebP keyframe, and 124 frames at 24 fps
+(about 5.167 seconds) with H.264/AAC output. Portrait 576×1024 is Plotloom's
+new-job default. “High resolution” means more pixels only; it is not a
+creative-quality or production-ready claim.
 
 It is **not** a general ComfyUI proxy. Neither Plotloom nor a browser can send
 arbitrary graph JSON, custom node names, model paths, seed overrides outside a
 frozen job, dimensions, duration, or a provider endpoint. The gateway accepts
-only a reference asset, an approved prompt, an explicit input-aspect policy,
-and the one profile above.
+only a reference asset, an approved prompt, one catalog profile ID, and an
+explicit input-aspect policy.
 
 The gateway can create a video with an AAC track. It does not mean dialogue,
 lip sync, performance, voice continuity, character continuity, or a creative
@@ -45,7 +49,7 @@ browser ◄──── reviewed MP4 candidate ◄────┤
   no endpoint or key                      ▼
                                       ComfyUI :8188
                                       bound to 127.0.0.1
-                                      fixed H3 profile + local models
+                                      reviewed H3 profile catalog + local models
 ```
 
 The browser talks only to Plotloom. Plotloom's H3 transport accepts a
@@ -62,10 +66,11 @@ loggable URL credential.
 The implementation and decision records are:
 
 - Gateway service: [`services/minimax_h3_gateway`](../../services/minimax_h3_gateway/)
-- Frozen workflow: [`minimax_h3_fp8_turbo4_480p.json`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_fp8_turbo4_480p.json)
+- Gateway catalog: [`profile_catalog.py`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profile_catalog.py)
+- Legacy workflow template: [`minimax_h3_fp8_turbo4_480p.json`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_fp8_turbo4_480p.json)
 - Plotloom adapter: [`adapter.py`](../../src/plotloom/video_backends/minimax_h3/adapter.py)
   and [`transport.py`](../../src/plotloom/video_backends/minimax_h3/transport.py)
-- Boundary decisions: [ADR 0033](../adr/0033-private-minimax-h3-gateway.md)
+- Boundary decisions: [ADR 0033](../adr/0033-private-minimax-h3-gateway.md) and [ADR 0036](../adr/0036-minimax-h3-profile-catalog.md)
   and [ADR 0034](../adr/0034-provider-neutral-video-adapters-and-local-h3.md);
   [ADR 0035](../adr/0035-backend-owned-video-modules.md) records the module
   and service-package ownership boundary.
@@ -160,14 +165,15 @@ An expected health response is structurally equivalent to:
 ```json
 {
   "status": "ok",
-  "profiles": ["minimax_h3_fp8_turbo4_480p"],
+  "profileContractVersion": 2,
+  "profiles": [{"id": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "width": 576, "height": 1024, "selectable": true}],
   "maxQueueDepth": 2
 }
 ```
 
 `/health` intentionally performs a ComfyUI/profile preflight. A running
 container is therefore not enough: do not enable Plotloom until `/health`
-returns `ok` with exactly that profile.
+returns `ok` with the full reviewed catalog and contract version.
 
 For an ordinary restart after configuration-free changes:
 
@@ -191,7 +197,7 @@ PLOTLOOM_ENABLE_WAN_P2=false
 PLOTLOOM_ENABLE_H3_GATEWAY=true
 VIDEO_PROVIDER=minimax_h3_gateway
 VIDEO_BASE_URL=http://100.x.y.z:8090
-VIDEO_MODEL=minimax_h3_fp8_turbo4_480p
+VIDEO_MODEL=minimax_h3_gateway_catalog_v2
 VIDEO_AUTH_MODE=bearer
 VIDEO_MODEL_API_KEY=the-same-value-as-H3_API_KEY
 ```
@@ -199,12 +205,12 @@ VIDEO_MODEL_API_KEY=the-same-value-as-H3_API_KEY
 Restart Plotloom after changing `.env`. A host environment variable takes
 precedence over `.env`, so investigate both if the running service reports an
 unexpected backend. Never expose the endpoint or key in the browser. The
-workbench may display the active profile and capability, but it cannot choose
-an arbitrary backend.
+workbench may select a reviewed catalog profile and display its capability,
+but it cannot choose an arbitrary backend, graph, or dimension.
 
 The public API's `GET /api/v2/video-backend` is the safe way to check what
-Plotloom believes is enabled. It must identify the H3 adapter and fixed
-profile but never return the secret.
+Plotloom believes is enabled. It must identify the H3 adapter and reviewed
+profile catalog but never return the secret.
 
 To disable H3 safely, set `PLOTLOOM_ENABLE_H3_GATEWAY=false` and restart
 Plotloom. Do not delete the gateway's state merely because it is disabled:
@@ -226,8 +232,8 @@ The production sequence is intentional and one-way:
 4. Plotloom polls only the known gateway job ID. It retrieves the MP4 only
    through that gateway ID—never from a provider-controlled output URL.
 5. It probes the downloaded bytes. The candidate is eligible only if it is
-   H.264/AAC, 864×480, 24 fps, 124 frames, and within one frame of the frozen
-   duration. A merely playable mismatch becomes `retrieve_needed` with
+   H.264/AAC, the exact frozen width/height, 24 fps, 124 frames, and within
+   one frame of the frozen duration. A merely playable mismatch becomes `retrieve_needed` with
    `h3_output_profile_mismatch` and cannot be selected.
 6. The resulting candidate is unselected. A human reviews visual continuity,
    dialogue/audio quality, and creative suitability before an explicit
@@ -253,7 +259,7 @@ The following is a private service contract; it is not a browser API.
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `GET /health` | no bearer header | Checks ComfyUI and the fixed profile; returns status, profile list, queue depth |
+| `GET /health` | no bearer header | Checks ComfyUI and the reviewed catalog; returns status, contract version, safe profile descriptors, queue depth |
 | `POST /v1/assets` | bearer | Uploads one PNG/JPEG/WebP, maximum 20 MiB and 30 megapixels |
 | `POST /v1/video-jobs` | bearer | Creates one job from `assetId`, prompt, `profileId`, `aspectPolicy`, optional seed |
 | `GET /v1/video-jobs/{id}` | bearer | Refreshes a known job |
@@ -278,7 +284,7 @@ case.”
 | `/health` returns `comfy_profile_unavailable` | node or exact model/LoRA/VAE name is missing from ComfyUI | fix ComfyUI's installed profile/model mapping under `/home/wjmao/models`; do not edit a running gateway workflow to bypass the check |
 | `401 unauthorized` | bearer mismatch between caller and gateway | rotate/align `H3_API_KEY` and Plotloom's `VIDEO_MODEL_API_KEY`, then restart both services as needed |
 | `queue_capacity_reached` | H3 or ComfyUI queue is at configured capacity | wait or raise capacity only after measuring memory/throughput; do not add client retries that create duplicate work |
-| `input_aspect_mismatch` | `reject_mismatch` received a non-16:9 image | choose a different explicit policy or supply a 16:9 keyframe |
+| `input_aspect_mismatch` | `reject_mismatch` received a keyframe whose ratio differs from the selected profile | choose a different explicit policy or supply a matching keyframe |
 | `outcome_unknown` | request/response path failed after the durable record was created | inspect the known gateway job and ComfyUI history; never automatically replay |
 | `comfy_output_missing` / `comfy_output_unavailable` | ComfyUI did not save the one expected MP4 or output retention removed it | inspect the known job and output retention; preserve evidence, do not claim a candidate was ingested |
 | `h3_output_profile_mismatch` in Plotloom | received MP4 did not match the frozen codec/frame profile | retain the evidence, inspect ComfyUI/profile drift, and correct the profile boundary rather than accepting the file |
@@ -316,7 +322,7 @@ source revision and retain the existing gateway state volume.
 
 What has been directly evidenced:
 
-- the private gateway's fixed profile can generate H.264/AAC at the advertised
+- the legacy 864×480 H3 profile can generate H.264/AAC at its advertised
   frame profile;
 - one Mandarin line under one prompt and keyframe was watched by a reviewer as
   intelligible and lip-synced;
@@ -329,7 +335,10 @@ See the secret-free records:
 - [adapter and live-ingestion verification](../verification/2026-09-13-p2-h3-adapter-isolated.md)
 
 These are not proof of universal dialogue quality, voice locking, same-person
-continuity, cross-shot motion/lighting continuity, or production readiness.
+continuity, cross-shot motion/lighting continuity, production readiness, or
+any new catalog profile's performance. Each selectable geometry needs a
+separate bounded Spark probe before it can be promoted beyond an available
+candidate.
 The next intended product checkpoint is a retained, human-reviewed pair of
 adjoining shots from the same selected character reference. Only that review
 can establish whether this H3 baseline is useful for sequential storytelling.
@@ -338,7 +347,7 @@ can establish whether this H3 baseline is useful for sequential storytelling.
 
 Before an operator declares the H3 path usable after a restart or handoff:
 
-- [ ] ComfyUI is loopback-only and `/health` reports exactly the fixed profile.
+- [ ] ComfyUI is loopback-only and `/health` reports contract version 2 and the full reviewed catalog.
 - [ ] H3 model artefacts remain under `/home/wjmao/models` and are visible to
       ComfyUI under the exact required names.
 - [ ] Gateway is bound to Spark's Tailnet address, not `0.0.0.0`.

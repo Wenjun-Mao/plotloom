@@ -2607,7 +2607,10 @@ class SQLiteRepository:
             requested_seconds = production_contract.requested_seconds
             resolution = production_contract.resolution
             audio = production_contract.audio
-            compiler_version = "p2-video-adapters-v1"
+            compiler_version = (
+                "p2-video-adapters-v2" if production_contract.profile_id is not None
+                else "p2-video-adapters-v1"
+            )
             provider_snapshot = production_contract.provider_snapshot()
             request_snapshot = production_contract.request_snapshot()
             tracks_paid_wan_pilot = production_contract.tracks_paid_wan_pilot
@@ -2659,7 +2662,11 @@ class SQLiteRepository:
             if generated_identity and same_person_review is None:
                 raise InvalidTransitionError("identity-aware keyframe requires a current explicit same-person review before video admission")
             snapshot = {
-                "snapshotVersion": 1 if production_contract is None else 2,
+                "snapshotVersion": (
+                    1 if production_contract is None
+                    else 3 if production_contract.profile_id is not None
+                    else 2
+                ),
                 "compilerVersion": compiler_version, "approvalId": approval.id,
                 "approvalGateSetVersion": approval.gate_set_version, "storyboardEntityRevisionId": approval.entity_revision_id,
                 "storyboardRevision": storyboard_revision, "canonicalInputRevisions": dict(approval.canonical_input_revisions),

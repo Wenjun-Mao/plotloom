@@ -49,6 +49,7 @@ class VideoJobService:
         audio: bool | None,
         aspect_policy: str | None,
         seed: int | None,
+        profile_id: str | None,
     ) -> dict[str, Any]:
         """Freeze the adapter-owned request before any durable dispatch claim."""
 
@@ -58,6 +59,7 @@ class VideoJobService:
             audio=audio,
             aspect_policy=aspect_policy,
             seed=seed,
+            profile_id=profile_id,
         )
         if contract is not None:
             return self.repository.prepare_video_job(
@@ -107,6 +109,15 @@ class VideoJobService:
         # This is an exact frozen compiler projection, not a browser prompt.
         return "\n".join(filter(None, [str(shot.get("visualIntent", "")), f"Action: {shot.get('action', '')}", f"Motion: {shot.get('motionIntent', '')}", cue_text, audio_text]))
 
+    @staticmethod
+    def _profile_id(snapshot: dict[str, Any]) -> str | None:
+        """Read only the frozen profile, never a current browser selection."""
+
+        request = snapshot.get("request")
+        if isinstance(request, dict) and isinstance(request.get("profileId"), str):
+            return request["profileId"]
+        return None
+
     def submit(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         preflight = getattr(self.provider, "preflight", None)
         if callable(preflight):
@@ -139,12 +150,15 @@ class VideoJobService:
                     audio=job["snapshot"]["request"]["audio"],
                     aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
                     seed=job["snapshot"]["request"].get("seed"),
+                    profile_id=self._profile_id(job["snapshot"]),
                 )
             except VideoProviderError as error:
                 raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
             submitted = self.provider.submit(payload)
             try:
-                prediction = self.adapter.prediction_id(submitted)
+                prediction = self.adapter.prediction_id(
+                    submitted, expected_profile_id=self._profile_id(job["snapshot"])
+                )
             except VideoProviderError as error:
                 raise WanDispatchError(WanDispatchDiagnostic("submit_response_parse", "invalid_envelope")) from error
         except WanDispatchError as error:
@@ -164,7 +178,10 @@ class VideoJobService:
         if job["state"] not in {"submitted", "retrieve_needed"} or not job["providerPredictionId"]:
             return job
         try:
-            output = self.adapter.completed_output(self.provider.poll(job["providerPredictionId"]))
+            profile_id = self._profile_id(job["snapshot"])
+            output = self.adapter.completed_output(
+                self.provider.poll(job["providerPredictionId"]), expected_profile_id=profile_id
+            )
             if output is None:
                 return job
             # A cancel intent retains known-ID reconciliation evidence but
@@ -176,7 +193,7 @@ class VideoJobService:
             observed = self.probe(content)
             if observed.audio_codec is None:
                 raise ValueError("audio_track_missing")
-            self.adapter.validate_observed_output(observed)
+            self.adapter.validate_observed_output(observed, profile_id=profile_id)
             uri = self.artifacts.put(content)
             return self.repository.record_video_output(
                 project_id, video_job_id, uri=uri, digest=sha256(content).hexdigest(),

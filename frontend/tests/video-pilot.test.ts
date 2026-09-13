@@ -81,10 +81,16 @@ it("keeps retrieval available after a known-ID cancel intent", async () => {
 
 it("requires an explicit visible no-stretch policy before freezing an H3 keyframe", async () => {
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
-    enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "1", provider: "minimax_h3_gateway",
-    model: "minimax_h3_fp8_turbo4_480p", durationSeconds: 5, resolution: "480p",
-    width: 864, height: 480, fps: 24, frameCount: 124, nativeAudio: true,
+    enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "2", provider: "minimax_h3_gateway",
+    model: "minimax_h3_fp8_turbo4_portrait_576x1024_v1", durationSeconds: 5, resolution: "576x1024",
+    width: 576, height: 1024, fps: 24, frameCount: 124, nativeAudio: true,
     requiresAspectPolicy: true, tracksPaidWanPilot: false,
+    defaultProfileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+    profiles: [{
+      id: "minimax_h3_fp8_turbo4_portrait_576x1024_v1", version: 1, label: "Portrait · Fast · 576 × 1024",
+      orientation: "portrait", tier: "fast", width: 576, height: 1024, durationSeconds: 5,
+      fps: 24, frameCount: 124, nativeAudio: true, selectable: true,
+    }],
   });
   vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });
   const prepare = vi.spyOn(plotloomApi, "prepareVideoJob").mockResolvedValue(job("project", "shot"));
@@ -93,7 +99,7 @@ it("requires an explicit visible no-stretch policy before freezing an H3 keyfram
   expect(host.textContent).toContain("MiniMax H3 本地视频候选");
   const freeze = [...host.querySelectorAll("button")].find((item) => item.textContent === "冻结当前审核关键帧");
   expect(freeze?.disabled).toBe(true);
-  const policy = host.querySelector("select") as HTMLSelectElement;
+  const policy = [...host.querySelectorAll("select")].find((item) => item.getAttribute("aria-label") !== "H3 输出 Profile（必选）") as HTMLSelectElement;
   await act(async () => {
     policy.value = "contain_pad";
     policy.dispatchEvent(new Event("change", { bubbles: true }));
@@ -101,7 +107,8 @@ it("requires an explicit visible no-stretch policy before freezing an H3 keyfram
   expect(freeze?.disabled).toBe(false);
   await act(async () => { freeze?.click(); await Promise.resolve(); });
   expect(prepare).toHaveBeenCalledWith("project", expect.objectContaining({
-    resolution: "480p", requestedDurationSeconds: 5, audio: true, aspectPolicy: "contain_pad",
+    resolution: "576x1024", requestedDurationSeconds: 5, audio: true, aspectPolicy: "contain_pad",
+    profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
   }));
   expect(host.textContent).not.toContain("100 秒额度");
 });

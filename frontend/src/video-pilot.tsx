@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { Shot, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import { Button, Panel } from "./components";
-import { H3AspectPolicy, MiniMaxH3AspectPolicyField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, isMiniMaxH3Backend } from "./video-backends/minimax-h3";
+import { H3AspectPolicy, MiniMaxH3AspectPolicyField, MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, isMiniMaxH3Backend, selectableH3Profiles, selectedH3Profile } from "./video-backends/minimax-h3";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
 
@@ -123,6 +123,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const [backend, setBackend] = useState<VideoBackend | null>(null);
   const [jobs, setJobs] = useState<VideoJob[]>([]);
   const [aspectPolicy, setAspectPolicy] = useState<H3AspectPolicy>("");
+  const [h3ProfileId, setH3ProfileId] = useState("");
   const [error, setError] = useState("");
   const refreshToken = useRef(0);
   const currentProjectRef = useRef(projectId);
@@ -141,22 +142,34 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     setBudget(nextBudget); setBackend(nextBackend); setJobs(nextJobs.jobs);
   };
   useEffect(() => {
-    setBudget(null); setBackend(null); setJobs([]); setError("");
+    setBudget(null); setBackend(null); setJobs([]); setError(""); setH3ProfileId("");
     void refresh().catch((reason) => setError(reason instanceof Error ? reason.message : "无法读取视频试点状态"));
     return () => { refreshToken.current += 1; };
   }, [projectId]);
+  useEffect(() => {
+    if (!isMiniMaxH3Backend(backend)) return;
+    const profiles = selectableH3Profiles(backend);
+    if (profiles.some((profile) => profile.id === h3ProfileId)) return;
+    setH3ProfileId(backend?.defaultProfileId && profiles.some((profile) => profile.id === backend.defaultProfileId)
+      ? backend.defaultProfileId
+      : profiles[0]?.id ?? "");
+  }, [backend, h3ProfileId]);
   const prepare = async () => {
     if (!projectId || !shot || !approvalId || !storyboardRevision) return;
     if (backend?.requiresAspectPolicy && !aspectPolicy) return;
+    const h3 = isMiniMaxH3Backend(backend);
+    const profile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
+    if (h3 && !profile) return;
     setError("");
     const request = {
       approvalId, shotId: shot.id, storyboardRevision, expectedSelectionRevision: selectionRevision,
       idempotencyKey: crypto.randomUUID(),
       ...(backend?.enabled ? {
-        requestedDurationSeconds: backend.durationSeconds,
-        resolution: backend.resolution,
+        requestedDurationSeconds: profile?.durationSeconds ?? backend.durationSeconds,
+        resolution: profile ? `${profile.width}x${profile.height}` : backend.resolution,
         audio: backend.nativeAudio ? true as const : undefined,
       } : {}),
+      ...(profile ? { profileId: profile.id } : {}),
       ...(backend?.requiresAspectPolicy ? { aspectPolicy: aspectPolicy as Exclude<H3AspectPolicy, ""> } : {}),
     };
     try { await plotloomApi.prepareVideoJob(projectId, request); await refresh(); }
@@ -177,13 +190,16 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   // jobs to construct URLs under the newly selected project identity.
   const selectedSequence = selectedSceneVideos(jobs.filter((job) => job.projectId === projectId), shot?.sceneId);
   const h3 = isMiniMaxH3Backend(backend);
+  const h3Profiles = selectableH3Profiles(backend);
+  const selectedProfile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
   const h3NeedsAspectChoice = Boolean(backend?.requiresAspectPolicy);
-  const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3NeedsAspectChoice && !aspectPolicy);
+  const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && !selectedProfile) || (h3NeedsAspectChoice && !aspectPolicy);
   return <Panel data-testid="video-pilot-panel"><strong>{h3 ? "MiniMax H3 本地视频候选" : "P2 Wan 视频试点"}</strong>
     {h3 && backend
-      ? <MiniMaxH3Summary backend={backend} />
+      ? <MiniMaxH3Summary backend={backend} profile={selectedProfile} />
       : <p>仅 5 秒 / 720p / 原生音频。提交后本地保守计入共享 100 秒额度；不会自动重试或回退。</p>}
     {backend?.enabled === false && <small className="notice warning">当前运行时未启用经审核的视频后端；不能冻结或提交新候选。</small>}
+    {h3 && <MiniMaxH3ProfileField profiles={h3Profiles} value={h3ProfileId} onChange={setH3ProfileId} disabled={readOnly} />}
     {h3NeedsAspectChoice && <MiniMaxH3AspectPolicyField value={aspectPolicy} onChange={setAspectPolicy} disabled={readOnly} />}
     {backend?.tracksPaidWanPilot !== false && <small>额度：{budget ? `${budget.reservedSeconds}/${budget.limitSeconds} 秒已保留，余 ${budget.remainingSeconds} 秒` : "读取中"}</small>}
     {h3 && <MiniMaxH3ReviewNotice />}
