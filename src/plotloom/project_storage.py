@@ -17,14 +17,43 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import sqlite3
-from typing import Any, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from .domain import CamelModel, Project, ProjectBrief, contains_secret_setting, contains_secret_value, new_id, utc_now
+from .domain import (
+    Artifact,
+    CamelModel,
+    EntityRevision,
+    FragmentReuseBinding,
+    GenerationAttempt,
+    GenerationPlanTrace,
+    GenerationRun,
+    GenerationWorkUnitTrace,
+    Project,
+    ProjectBrief,
+    RunExecutionTrace,
+    RunTrace,
+    SealedStageAggregateTrace,
+    STAGE_ORDER,
+    StageEnvelope,
+    StageHead,
+    StagePlanTrace,
+    WorkUnitRepairScope,
+    contains_secret_setting,
+    contains_secret_value,
+    utc_now,
+)
+
+if TYPE_CHECKING:
+    from .project_generation_storage import ProjectGenerationEvidence
 
 
-PROJECT_STORAGE_FORMAT_VERSION = 1
+# Checkpoint 2A replaces checkpoint 1's synthetic run schema with canonical
+# revisions and durable generation lineage. It is intentionally a fresh,
+# incompatible project-home format rather than an implicit migration or a
+# dual-read compatibility path.
+PROJECT_STORAGE_FORMAT_VERSION = 2
 PROJECT_DATABASE_RELATIVE_PATH = "project.sqlite3"
 PROJECT_MANIFEST_FILENAME = "project.json"
 
@@ -125,56 +154,6 @@ class OwnedArtifact(CamelModel):
     @classmethod
     def validate_relative_path(cls, value: str) -> str:
         return _relative_owned_path(value).as_posix()
-
-
-class ProjectFolderRun(CamelModel):
-    """The narrow, deterministic run evidence used by this construction slice."""
-
-    id: str = Field(default_factory=new_id)
-    project_id: str
-    project_revision: int = Field(ge=1)
-    provider_id: str = Field(min_length=1, max_length=120)
-    provider_version: str = Field(min_length=1, max_length=120)
-    input_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
-    output: OwnedArtifact
-    created_at: datetime = Field(default_factory=utc_now)
-
-    @model_validator(mode="after")
-    def reject_secret_provider_identity(self) -> "ProjectFolderRun":
-        if contains_secret_value(self.provider_id) or contains_secret_value(self.provider_version):
-            raise ValueError("project run provider identity must be public")
-        return self
-
-
-class ProjectRunProvider(Protocol):
-    """Pure provider seam for the checkpoint's isolated run path.
-
-    Production provider dispatch remains intentionally unwired until all run
-    state can be routed through a project handle in checkpoint two.
-    """
-
-    provider_id: str
-    provider_version: str
-
-    def generate(self, project: Project) -> tuple[str, bytes]: ...
-
-
-@dataclass(frozen=True)
-class DeterministicFakeProvider:
-    """Offline provider used to prove persistence, not model quality or dispatch."""
-
-    provider_id: str = "deterministic_fake"
-    provider_version: str = "1"
-
-    def generate(self, project: Project) -> tuple[str, bytes]:
-        response = {
-            "contractVersion": 1,
-            "projectId": project.id,
-            "projectRevision": project.revision,
-            "title": project.brief.title,
-            "synopsis": project.brief.synopsis,
-        }
-        return "application/json", _canonical_json(response).encode("utf-8")
 
 
 class ApplicationProfile(CamelModel):
@@ -360,6 +339,37 @@ class ApplicationStore:
                 "WHERE preference_key = 'selected_profile')"
             ).fetchone()
         return self._profile_from_row(row) if row is not None else None
+
+    def save_text_profile(
+        self,
+        profile: "TextProviderProfileSnapshot | TextProviderProfileSnapshotV3",
+        *,
+        expected_revision: int | None = None,
+    ) -> ApplicationProfile:
+        """Persist only public text-profile configuration in application storage."""
+
+        return self.save_profile(
+            profile.profile_id,
+            profile.model_dump(mode="json", by_alias=True),
+            expected_revision=expected_revision,
+        )
+
+    def selected_text_profile(self) -> "TextProviderProfileSnapshot | TextProviderProfileSnapshotV3":
+        """Resolve the selected public profile; credentials stay outside storage."""
+
+        from .provider_profiles import TextProviderProfileSnapshot, TextProviderProfileSnapshotV3
+
+        selected = self.selected_profile()
+        if selected is None:
+            raise ProjectStorageError("no application text provider profile is selected")
+        try:
+            if selected.configuration.get("profileSchemaVersion") == 3:
+                return TextProviderProfileSnapshotV3.model_validate(selected.configuration)
+            return TextProviderProfileSnapshot.model_validate(selected.configuration)
+        except ValueError as error:
+            raise ProjectStorageCorruptionError(
+                "selected application profile is not a valid secret-free text profile"
+            ) from error
 
     def record_accounting(self, entry: GlobalAccountingEntry) -> GlobalAccountingEntry:
         with self._write() as connection:
@@ -557,18 +567,67 @@ class ProjectStore:
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 );
-                CREATE TABLE IF NOT EXISTS project_runs (
+                CREATE TABLE IF NOT EXISTS canonical_entity_revisions (
                     id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL REFERENCES project_state(project_id) ON DELETE RESTRICT,
-                    project_revision INTEGER NOT NULL CHECK (project_revision >= 1),
-                    provider_id TEXT NOT NULL,
-                    provider_version TEXT NOT NULL,
-                    input_hash TEXT NOT NULL,
-                    output_hash TEXT NOT NULL,
-                    output_path TEXT NOT NULL,
-                    output_media_type TEXT NOT NULL,
-                    output_size_bytes INTEGER NOT NULL CHECK (output_size_bytes >= 0),
-                    created_at TEXT NOT NULL
+                    stage TEXT NOT NULL,
+                    revision INTEGER NOT NULL CHECK (revision >= 1),
+                    evidence_json TEXT NOT NULL,
+                    UNIQUE(project_id, stage, revision)
+                );
+                CREATE TABLE IF NOT EXISTS canonical_stage_heads (
+                    project_id TEXT NOT NULL REFERENCES project_state(project_id) ON DELETE RESTRICT,
+                    stage TEXT NOT NULL,
+                    entity_revision_id TEXT REFERENCES canonical_entity_revisions(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL,
+                    PRIMARY KEY(project_id, stage)
+                );
+                CREATE TABLE IF NOT EXISTS generation_run_evidence (
+                    id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL REFERENCES project_state(project_id) ON DELETE RESTRICT,
+                    parent_run_id TEXT REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS generation_attempt_evidence (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS generation_artifact_evidence (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS generation_plan_evidence (
+                    run_id TEXT PRIMARY KEY REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS generation_stage_plan_evidence (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS generation_work_unit_evidence (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    stage_plan_id TEXT NOT NULL REFERENCES generation_stage_plan_evidence(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS sealed_stage_aggregate_evidence (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    stage_plan_id TEXT NOT NULL REFERENCES generation_stage_plan_evidence(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS work_unit_repair_scope_evidence (
+                    child_run_id TEXT PRIMARY KEY REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    parent_run_id TEXT NOT NULL REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS generation_fragment_reuse_binding_evidence (
+                    id TEXT PRIMARY KEY,
+                    child_run_id TEXT NOT NULL REFERENCES generation_run_evidence(id) ON DELETE RESTRICT,
+                    evidence_json TEXT NOT NULL
                 );
                 """
             )
@@ -586,24 +645,6 @@ class ProjectStore:
             updated_at=row["updated_at"],
         )
 
-    @staticmethod
-    def _run_from_row(row: sqlite3.Row) -> ProjectFolderRun:
-        return ProjectFolderRun(
-            id=row["id"],
-            project_id=row["project_id"],
-            project_revision=row["project_revision"],
-            provider_id=row["provider_id"],
-            provider_version=row["provider_version"],
-            input_hash=row["input_hash"],
-            output=OwnedArtifact(
-                content_hash=row["output_hash"],
-                relative_path=row["output_path"],
-                media_type=row["output_media_type"],
-                size_bytes=row["output_size_bytes"],
-            ),
-            created_at=row["created_at"],
-        )
-
     def _validate_opened_project(self) -> None:
         if not self.database_path.exists() or not self.database_path.is_file():
             raise ProjectStorageCorruptionError("project database is missing or not a regular file")
@@ -615,7 +656,7 @@ class ProjectStore:
                 ).fetchone()
                 if row is not None:
                     mismatched_run = connection.execute(
-                        "SELECT id FROM project_runs WHERE project_id != ? LIMIT 1",
+                        "SELECT id FROM generation_run_evidence WHERE project_id != ? LIMIT 1",
                         (self.manifest.project_id,),
                     ).fetchone()
         except sqlite3.DatabaseError as error:
@@ -669,72 +710,241 @@ class ProjectStore:
                 raise ProjectStorageConflictError("project revision changed during update")
         return next_project
 
-    def run(self, provider: ProjectRunProvider) -> ProjectFolderRun:
-        """Persist a pure-provider result beneath this project only.
+    def install_generation_evidence(self, evidence: "ProjectGenerationEvidence") -> GenerationRun:
+        """Atomically install only a complete, current canonical pipeline result.
 
-        The construction slice accepts only a caller-supplied pure provider.
-        It intentionally has no credential, queue, HTTP, or global-accounting
-        path; those ownership-aware integrations belong to later checkpoints.
+        The existing durable runner executes in a disposable harness so this
+        new-format seam can remain unwired.  This projection is deliberately
+        strict: a result is copied to its project home only after the same
+        domain contracts have produced every sealed stage and its full
+        secret-free lineage.  The transaction is the only canonical commit
+        point in this storage format.
         """
 
-        project = self.project()
-        provider_id = str(provider.provider_id).strip()
-        provider_version = str(provider.provider_version).strip()
-        if not provider_id or not provider_version:
-            raise ValueError("provider identity and version must be non-empty")
-        if contains_secret_value(provider_id) or contains_secret_value(provider_version):
-            raise ValueError("project run provider identity must be public")
-        media_type, contents = provider.generate(project)
-        if not isinstance(media_type, str) or not media_type.strip() or not isinstance(contents, bytes):
-            raise ValueError("project run providers must return a media type and bytes")
-        input_payload = {
-            "projectId": project.id,
-            "projectRevision": project.revision,
-            "brief": project.brief.model_dump(mode="json", by_alias=True),
-            "providerId": provider_id,
-            "providerVersion": provider_version,
-        }
-        artifact = self._artifacts.put(contents, media_type=media_type.strip())
-        run = ProjectFolderRun(
-            project_id=project.id,
-            project_revision=project.revision,
-            provider_id=provider_id,
-            provider_version=provider_version,
-            input_hash=_sha256(_canonical_json(input_payload).encode("utf-8")),
-            output=artifact,
-        )
+        current = self.project()
+        evidence.validate_for_install(project=current)
         with self._write() as connection:
+            existing = connection.execute(
+                "SELECT 1 FROM canonical_stage_heads WHERE project_id = ? LIMIT 1",
+                (current.id,),
+            ).fetchone()
+            if existing is not None:
+                raise ProjectStorageConflictError("canonical pipeline evidence is already installed")
+            row = connection.execute(
+                "SELECT project_id, revision, lifecycle_revision, lifecycle_status, archived_at, brief_json, created_at, updated_at "
+                "FROM project_state WHERE singleton = 1"
+            ).fetchone()
+            if row is None:
+                raise ProjectStorageCorruptionError("project database has no project state")
+            latest = self._project_from_row(row)
+            evidence.validate_for_install(project=latest)
+            self._insert_generation_evidence(connection, evidence)
+        return evidence.install_run
+
+    def _insert_generation_evidence(
+        self,
+        connection: sqlite3.Connection,
+        evidence: "ProjectGenerationEvidence",
+    ) -> None:
+        for revision in evidence.entity_revisions:
             connection.execute(
-                "INSERT INTO project_runs "
-                "(id, project_id, project_revision, provider_id, provider_version, input_hash, output_hash, output_path, output_media_type, output_size_bytes, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO canonical_entity_revisions (id, project_id, stage, revision, evidence_json) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (
+                    revision.id,
+                    revision.project_id,
+                    revision.stage.value,
+                    revision.revision,
+                    _canonical_json(revision.model_dump(mode="json", by_alias=False)),
+                ),
+            )
+        for envelope in evidence.stages:
+            connection.execute(
+                "INSERT INTO canonical_stage_heads (project_id, stage, entity_revision_id, evidence_json) "
+                "VALUES (?, ?, ?, ?)",
+                (
+                    self.manifest.project_id,
+                    envelope.head.stage.value,
+                    envelope.head.entity_revision_id,
+                    _canonical_json(envelope.head.model_dump(mode="json", by_alias=False)),
+                ),
+            )
+        for trace in evidence.run_traces:
+            run = trace.run
+            connection.execute(
+                "INSERT INTO generation_run_evidence (id, project_id, parent_run_id, evidence_json) VALUES (?, ?, ?, ?)",
                 (
                     run.id,
                     run.project_id,
-                    run.project_revision,
-                    run.provider_id,
-                    run.provider_version,
-                    run.input_hash,
-                    run.output.content_hash,
-                    run.output.relative_path,
-                    run.output.media_type,
-                    run.output.size_bytes,
-                    run.created_at.isoformat(),
+                    run.parent_run_id,
+                    _canonical_json(run.model_dump(mode="json", by_alias=False)),
                 ),
             )
-        return run
+            for attempt in trace.attempts:
+                connection.execute(
+                    "INSERT INTO generation_attempt_evidence (id, run_id, evidence_json) VALUES (?, ?, ?)",
+                    (attempt.id, attempt.run_id, _canonical_json(attempt.model_dump(mode="json", by_alias=False))),
+                )
+            for artifact in trace.artifacts:
+                connection.execute(
+                    "INSERT INTO generation_artifact_evidence (id, run_id, evidence_json) VALUES (?, ?, ?)",
+                    (artifact.id, artifact.run_id, _canonical_json(artifact.model_dump(mode="json", by_alias=False))),
+                )
+        for item in evidence.execution_traces:
+            trace = item.trace
+            if trace.generation_plan is not None:
+                connection.execute(
+                    "INSERT INTO generation_plan_evidence (run_id, evidence_json) VALUES (?, ?)",
+                    (item.run_id, _canonical_json(trace.generation_plan.model_dump(mode="json", by_alias=False))),
+                )
+            for stage_plan in trace.stage_plans:
+                connection.execute(
+                    "INSERT INTO generation_stage_plan_evidence (id, run_id, evidence_json) VALUES (?, ?, ?)",
+                    (stage_plan.id, item.run_id, _canonical_json(stage_plan.model_dump(mode="json", by_alias=False))),
+                )
+            for unit in trace.work_units:
+                connection.execute(
+                    "INSERT INTO generation_work_unit_evidence (id, run_id, stage_plan_id, evidence_json) VALUES (?, ?, ?, ?)",
+                    (unit.id, item.run_id, unit.stage_plan_id, _canonical_json(unit.model_dump(mode="json", by_alias=False))),
+                )
+            for seal in trace.sealed_aggregates:
+                connection.execute(
+                    "INSERT INTO sealed_stage_aggregate_evidence (id, run_id, stage_plan_id, evidence_json) VALUES (?, ?, ?, ?)",
+                    (seal.id, item.run_id, seal.stage_plan_id, _canonical_json(seal.model_dump(mode="json", by_alias=False))),
+                )
+        for scope in evidence.repair_scopes:
+            connection.execute(
+                "INSERT INTO work_unit_repair_scope_evidence (child_run_id, parent_run_id, evidence_json) VALUES (?, ?, ?)",
+                (scope.child_run_id, scope.parent_run_id, _canonical_json(scope.model_dump(mode="json", by_alias=False))),
+            )
+        for binding in evidence.fragment_reuse_bindings:
+            connection.execute(
+                "INSERT INTO generation_fragment_reuse_binding_evidence (id, child_run_id, evidence_json) VALUES (?, ?, ?)",
+                (binding.id, binding.child_run_id, _canonical_json(binding.model_dump(mode="json", by_alias=False))),
+            )
 
-    def runs(self) -> list[ProjectFolderRun]:
+    def canonical_stages(self) -> list[StageEnvelope]:
+        with self._read() as connection:
+            rows = {
+                row["stage"]: row
+                for row in connection.execute(
+                    "SELECT stage, entity_revision_id, evidence_json FROM canonical_stage_heads WHERE project_id = ?",
+                    (self.manifest.project_id,),
+                ).fetchall()
+            }
+            if not rows:
+                return []
+            envelopes: list[StageEnvelope] = []
+            for stage in STAGE_ORDER:
+                row = rows.get(stage.value)
+                if row is None:
+                    raise ProjectStorageCorruptionError("canonical stage evidence is incomplete")
+                head = StageHead.model_validate(json.loads(row["evidence_json"]))
+                revision_row = connection.execute(
+                    "SELECT evidence_json FROM canonical_entity_revisions WHERE id = ?",
+                    (row["entity_revision_id"],),
+                ).fetchone()
+                if revision_row is None:
+                    raise ProjectStorageCorruptionError("canonical stage head references a missing revision")
+                revision = EntityRevision.model_validate(json.loads(revision_row["evidence_json"]))
+                envelopes.append(StageEnvelope(head=head, payload=revision.payload))
+        return envelopes
+
+    def generation_runs(self) -> list[GenerationRun]:
         with self._read() as connection:
             rows = connection.execute(
-                "SELECT id, project_id, project_revision, provider_id, provider_version, input_hash, "
-                "output_hash, output_path, output_media_type, output_size_bytes, created_at "
-                "FROM project_runs ORDER BY created_at, id"
+                "SELECT evidence_json FROM generation_run_evidence ORDER BY rowid"
             ).fetchall()
-        runs = [self._run_from_row(row) for row in rows]
+        runs = [GenerationRun.model_validate(json.loads(row["evidence_json"])) for row in rows]
         if any(run.project_id != self.manifest.project_id for run in runs):
             raise ProjectStorageCorruptionError("project database contains a run for another project")
         return runs
+
+    def run_trace(self, run_id: str) -> RunTrace:
+        with self._read() as connection:
+            run_row = connection.execute(
+                "SELECT evidence_json FROM generation_run_evidence WHERE id = ?", (run_id,)
+            ).fetchone()
+            if run_row is None:
+                raise ProjectStorageError(f"generation run not found: {run_id}")
+            run = GenerationRun.model_validate(json.loads(run_row["evidence_json"]))
+            attempts = [
+                GenerationAttempt.model_validate(json.loads(row["evidence_json"]))
+                for row in connection.execute(
+                    "SELECT evidence_json FROM generation_attempt_evidence WHERE run_id = ? ORDER BY rowid",
+                    (run_id,),
+                ).fetchall()
+            ]
+            artifacts = [
+                Artifact.model_validate(json.loads(row["evidence_json"]))
+                for row in connection.execute(
+                    "SELECT evidence_json FROM generation_artifact_evidence WHERE run_id = ? ORDER BY rowid",
+                    (run_id,),
+                ).fetchall()
+            ]
+        return RunTrace(run=run, attempts=attempts, artifacts=artifacts, snapshot_is_current=True)
+
+    def run_execution_trace(self, run_id: str) -> RunExecutionTrace:
+        with self._read() as connection:
+            if connection.execute(
+                "SELECT 1 FROM generation_run_evidence WHERE id = ?", (run_id,)
+            ).fetchone() is None:
+                raise ProjectStorageError(f"generation run not found: {run_id}")
+            plan_row = connection.execute(
+                "SELECT evidence_json FROM generation_plan_evidence WHERE run_id = ?", (run_id,)
+            ).fetchone()
+            topology = None
+            stage_plans = [
+                StagePlanTrace.model_validate(json.loads(row["evidence_json"]))
+                for row in connection.execute(
+                    "SELECT evidence_json FROM generation_stage_plan_evidence WHERE run_id = ? ORDER BY rowid",
+                    (run_id,),
+                ).fetchall()
+            ]
+            units = [
+                GenerationWorkUnitTrace.model_validate(json.loads(row["evidence_json"]))
+                for row in connection.execute(
+                    "SELECT evidence_json FROM generation_work_unit_evidence WHERE run_id = ? ORDER BY rowid",
+                    (run_id,),
+                ).fetchall()
+            ]
+            seals = [
+                SealedStageAggregateTrace.model_validate(json.loads(row["evidence_json"]))
+                for row in connection.execute(
+                    "SELECT evidence_json FROM sealed_stage_aggregate_evidence WHERE run_id = ? ORDER BY rowid",
+                    (run_id,),
+                ).fetchall()
+            ]
+        return RunExecutionTrace(
+            generation_plan=(
+                GenerationPlanTrace.model_validate(json.loads(plan_row["evidence_json"]))
+                if plan_row is not None
+                else None
+            ),
+            story_graph_topology=topology,
+            stage_plans=stage_plans,
+            work_units=units,
+            sealed_aggregates=seals,
+        )
+
+    def repair_scope(self, child_run_id: str) -> WorkUnitRepairScope:
+        with self._read() as connection:
+            row = connection.execute(
+                "SELECT evidence_json FROM work_unit_repair_scope_evidence WHERE child_run_id = ?",
+                (child_run_id,),
+            ).fetchone()
+        if row is None:
+            raise ProjectStorageError(f"repair scope not found: {child_run_id}")
+        return WorkUnitRepairScope.model_validate(json.loads(row["evidence_json"]))
+
+    def fragment_reuse_bindings(self, child_run_id: str) -> list[FragmentReuseBinding]:
+        with self._read() as connection:
+            rows = connection.execute(
+                "SELECT evidence_json FROM generation_fragment_reuse_binding_evidence "
+                "WHERE child_run_id = ? ORDER BY rowid",
+                (child_run_id,),
+            ).fetchall()
+        return [FragmentReuseBinding.model_validate(json.loads(row["evidence_json"])) for row in rows]
 
     def read_artifact(self, artifact: OwnedArtifact) -> bytes:
         return self._artifacts.read(artifact)
@@ -819,3 +1029,25 @@ class ProjectFolderStorage:
             )
         self.projects = ProjectDirectoryRegistry(outputs_root)
         self.application = ApplicationStore(application_data_root)
+
+    def execute_selected_text_pipeline(
+        self,
+        project_id: str,
+        *,
+        provider_resolver: "TextProviderResolver",
+        exact_repair: bool = False,
+    ) -> GenerationRun:
+        """Run a selected public profile through the unwired project-folder seam.
+
+        The resolver receives only the snapshot frozen in each run.  Any
+        credential lookup remains its ephemeral broker concern and cannot be
+        persisted by this composition root.
+        """
+
+        from .project_generation_storage import ProjectPipelineExecutor
+
+        return ProjectPipelineExecutor(provider_resolver).execute(
+            self.projects.open(project_id),
+            profile=self.application.selected_text_profile(),
+            exact_repair=exact_repair,
+        )

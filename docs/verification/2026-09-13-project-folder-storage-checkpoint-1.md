@@ -35,10 +35,8 @@ the current runtime remains unchanged.
 - `uv run python -m compileall -q src/plotloom/project_storage.py` plus a
   temporary direct create/edit/run/reopen smoke completed successfully.
 - The unfiltered Python suite was run in complete native groups because the
-  terminal stream has a 30-second cutoff: 308 backend-core passed; 244
-  generation/media/service/video passed with 9 skipped; 68 fast root tests
-  passed; 13 conformance tests passed; and 23 Alpha-acceptance tests passed.
-  `uv run pytest --collect-only -q` reported 665 collected tests.
+  terminal stream has a 30-second cutoff: 656 passed and 9 skipped (665
+  collected).
 - `uv build --wheel --out-dir /tmp/plotloom-project-storage-wheel` succeeded,
   and a fresh temporary virtual environment installed that wheel and created,
   ran, discovered, and reopened two isolated project homes.
@@ -66,8 +64,9 @@ routing to a project handle. It must freeze public profile metadata into
 project-owned run evidence while keeping profile selection, credentials, and
 global accounting installation-owned.
 
-Checkpoint 3 must add close, consistent snapshots, restore, integrity checks,
-and recovery behavior. Checkpoint 4 must quiesce writers, preserve an exact
+Checkpoint 2 must add close alongside the complete project-owned workflow.
+Checkpoint 3 must add consistent snapshots, restore, integrity checks, and
+recovery behavior. Checkpoint 4 must quiesce writers, preserve an exact
 legacy archive/inventory, export permitted application state, change runtime
 configuration to new roots, and remove redundant old working copies only after
 verification. None of those actions occurred here.

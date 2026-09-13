@@ -54,16 +54,26 @@ The construction seam demonstrates two independently reopenable project homes
 without the former shared project database. It also gives later routing work an
 ownership-safe target rather than a second runtime mode.
 
-Checkpoint 2 must route the complete existing project workflow (authoring,
-canonical stages/runs, text repair, image/video handoff, reviews, lifecycle,
-drafts, and all delayed-work lookups) through project handles. Before production
-dispatch it must freeze the public application-owned profile into project-owned
-run evidence and coordinate its globally unique accounting reservation without
-placing credentials in either database. It must not route a production operation
-through this narrow fake-provider helper.
+Checkpoint 2 starts by replacing the construction-only fake run with an
+isolated execution of the existing four-stage text pipeline. Its project schema
+owns canonical revisions and heads plus the complete secret-free run evidence:
+run snapshots, plans, work units, attempts, artifacts, seals, and exact repair
+scope/reuse lineage. A complete child run is installed in one project-database
+transaction only after every canonical stage is sealed. A stale project revision,
+failed/quarantined run, incomplete seal set, or mismatched project/run identity
+therefore cannot partially install canonical output. The application-owned
+selected public text profile (including adapter identity/version where supplied)
+is frozen verbatim in each actual run; credentials are resolved only by the
+ephemeral secret broker and are never projected into either store.
 
-Checkpoint 3 remains responsible for close, snapshot, restore, integrity and
-failure recovery. Checkpoint 4 alone may archive the retained data and perform
+The remainder of checkpoint 2 must route the complete existing project workflow
+(authoring, image/video handoff, reviews, lifecycle, drafts, close, and all
+delayed-work lookups) through project handles and coordinate globally unique
+accounting reservations without placing credentials in either database. It must
+not route a production operation through the old narrow fake-provider helper.
+
+Checkpoint 3 remains responsible for snapshot, restore, integrity and failure
+recovery. Checkpoint 4 alone may archive the retained data and perform
 the breaking runtime cutover after writer quiescence and verified inventory.
 
 ## Rejected alternatives
