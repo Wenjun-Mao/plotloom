@@ -12,8 +12,9 @@ let host: HTMLDivElement;
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => { resolve = done; });
-  return { promise, resolve };
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((done, fail) => { resolve = done; reject = fail; });
+  return { promise, resolve, reject };
 }
 
 function job(projectId: string, shotId: string): VideoJob {
@@ -32,15 +33,15 @@ function selectedJob(id: string, order: number, overrides: Partial<VideoJob> = {
   };
 }
 
-function props(projectId: string, shotId: string) {
+function props(projectId: string, shotId: string, sceneId?: string) {
   return {
-    projectId, shot: { id: shotId, title: `Shot ${shotId}` } as Shot,
+    projectId, shot: { id: shotId, title: `Shot ${shotId}`, sceneId } as Shot,
     approvalId: "approval", storyboardRevision: 1, selectionRevision: 1, readOnly: false,
   };
 }
 
-async function render(projectId: string, shotId: string) {
-  await act(async () => root.render(createElement(VideoPilotPanel, props(projectId, shotId))));
+async function render(projectId: string, shotId: string, sceneId?: string) {
+  await act(async () => root.render(createElement(VideoPilotPanel, props(projectId, shotId, sceneId))));
   await act(async () => { await Promise.resolve(); });
 }
 
@@ -81,4 +82,75 @@ it("orders only current explicitly selected ingested candidates for one scene", 
   const unselected = selectedJob("unselected", 5, { selected: false });
   const otherScene = selectedJob("other", 1, { snapshot: { shot: { id: "other", sceneId: "other-scene", order: 1 } } });
   expect(selectedSceneVideos([second, stale, otherScene, pending, unselected, first], "scene").map((item) => item.id)).toEqual(["first", "second"]);
+});
+
+it("scopes selected playback by project, scene, and current selected membership", async () => {
+  const oldFirst = selectedJob("old-first", 1, { projectId: "old" });
+  const oldSecond = selectedJob("old-second", 2, { projectId: "old" });
+  const oldThird = selectedJob("old-third", 3, { projectId: "old", selected: false, snapshot: { shot: { id: "shot-3", title: "Third", sceneId: "scene", order: 3 } } });
+  const otherScene = selectedJob("other-scene", 1, { projectId: "old", snapshot: { shot: { id: "other-scene", title: "Other", sceneId: "other", order: 1 } } });
+  const newFirst = selectedJob("new-first", 1, { projectId: "new", snapshot: { shot: { id: "new-shot", title: "New", sceneId: "scene", order: 1 } } });
+  let oldJobs = [oldFirst, oldSecond, oldThird, otherScene];
+  const membershipReview = deferred<unknown>();
+  vi.spyOn(plotloomApi, "getVideoJobs").mockImplementation(async (projectId) => ({
+    jobs: projectId === "old" ? oldJobs : [newFirst],
+  }));
+  vi.spyOn(plotloomApi, "reviewVideoJob").mockImplementation(async () => {
+    oldJobs = [oldFirst, oldSecond, { ...oldThird, selected: true }, otherScene];
+    return membershipReview.promise;
+  });
+
+  await render("old", "shot-1", "scene");
+  expect(host.querySelector('[data-testid="video-sequence-job-old-first"]')).not.toBeNull();
+  await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent === "下一镜头")?.click(); });
+  expect(host.querySelector('[data-testid="video-sequence-job-old-second"]')).not.toBeNull();
+
+  // A selected-member addition changes the exact scope even though the
+  // project, scene, and previously active job are unchanged. It must reset
+  // without borrowing that prior position or its pending autoplay.
+  await render("old", "shot-3", "scene");
+  await act(async () => {
+    (host.querySelector('[data-testid="video-job-old-third"] button') as HTMLButtonElement | null)?.click();
+    await Promise.resolve();
+  });
+  membershipReview.resolve(undefined);
+  await act(async () => { await membershipReview.promise; await Promise.resolve(); await Promise.resolve(); });
+  expect(host.querySelector('[data-testid="video-sequence-job-old-first"]')).not.toBeNull();
+  expect(host.querySelector('[data-testid="video-sequence-job-old-second"]')).toBeNull();
+
+  await render("new", "new-shot", "scene");
+  expect(host.querySelector('[data-testid="video-sequence-job-new-first"]')).not.toBeNull();
+  expect(host.querySelector('[data-testid="video-sequence-job-old-second"]')).toBeNull();
+  await render("new", "new-shot", "other");
+  expect(host.querySelector("[data-testid^=video-sequence-job]")).toBeNull();
+});
+
+it("autoplays only the next current source, holds the final frame, and reports current rather than stale play rejection", async () => {
+  const first = selectedJob("first", 1);
+  const second = selectedJob("second", 2);
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [first, second] });
+  const delayedAutomaticPlay = deferred<void>();
+  const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockReturnValueOnce(delayedAutomaticPlay.promise);
+
+  await render("project", "shot-1", "scene");
+  const firstPlayer = host.querySelector('[data-testid="video-sequence-job-first"]') as HTMLVideoElement;
+  await act(async () => { firstPlayer.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
+  expect(host.querySelector('[data-testid="video-sequence-job-second"]')).not.toBeNull();
+  expect(play).toHaveBeenCalledTimes(1);
+
+  await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent === "上一镜头")?.click(); });
+  expect(host.querySelector('[data-testid="video-sequence-job-first"]')).not.toBeNull();
+  await act(async () => { delayedAutomaticPlay.reject(new Error("old source rejected")); await Promise.resolve(); });
+  expect(host.querySelector('[role="status"]')).toBeNull();
+
+  await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent === "下一镜头")?.click(); });
+
+  const secondPlayer = host.querySelector('[data-testid="video-sequence-job-second"]') as HTMLVideoElement;
+  await act(async () => { secondPlayer.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
+  expect(host.querySelector('[data-testid="video-sequence-job-second"]')).not.toBeNull();
+  expect(play).toHaveBeenCalledTimes(1);
+
+  play.mockRejectedValueOnce(new Error("gesture required"));
+  await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent === "播放当前")?.click(); await Promise.resolve(); });
+  expect(host.querySelector('[role="status"]')?.textContent).toContain("gesture required");
 });

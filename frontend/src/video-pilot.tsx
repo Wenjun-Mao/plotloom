@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Shot, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import { Button, Panel } from "./components";
@@ -31,53 +31,88 @@ function jobStatus(job: VideoJob): string {
 
 function OrderedVideoPlayback({ projectId, jobs }: { projectId: string; jobs: VideoJob[] }) {
   const player = useRef<HTMLVideoElement>(null);
-  const [index, setIndex] = useState(0);
-  const [autoplayNext, setAutoplayNext] = useState(false);
-  const current = jobs[index] ?? jobs[0];
+  const identityFor = (job: VideoJob) => `${projectId}:${job.id}`;
+  // A position is meaningful only inside one exact selected sequence. Keeping
+  // the active source as an identity (rather than a numeric position) stops a
+  // changed project, scene, or selection membership from borrowing playback.
+  const scopeIdentity = `${projectId}:${jobs.map((job) => job.id).join("|")}`;
+  const renderedScopeRef = useRef(scopeIdentity);
+  const scopeChanged = renderedScopeRef.current !== scopeIdentity;
+  renderedScopeRef.current = scopeIdentity;
+  const [activeIdentity, setActiveIdentity] = useState(() => jobs[0] ? identityFor(jobs[0]) : "");
+  const [autoplayIdentity, setAutoplayIdentity] = useState<string | null>(null);
+  const [playbackError, setPlaybackError] = useState("");
+  const current = jobs.find((job) => identityFor(job) === activeIdentity) ?? jobs[0];
+  const currentIdentity = current ? identityFor(current) : "";
+  const currentIdentityRef = useRef(currentIdentity);
+  currentIdentityRef.current = currentIdentity;
+  const index = current ? jobs.findIndex((job) => job.id === current.id) : 0;
 
   useEffect(() => {
-    if (index >= jobs.length) setIndex(0);
-  }, [index, jobs.length]);
+    // Scope changes are an explicit stop/reset boundary. In particular, they
+    // must never turn a stale ended event into autoplay for a new selection.
+    setActiveIdentity(jobs[0] ? identityFor(jobs[0]) : "");
+    setAutoplayIdentity(null);
+    setPlaybackError("");
+  }, [scopeIdentity]);
+
+  const attemptPlayback = useCallback((video: HTMLVideoElement, identity: string, automatic: boolean) => {
+    setPlaybackError("");
+    void video.play().catch((reason: unknown) => {
+      // A late rejection from an unmounted or superseded source is historical,
+      // not an error in the current reviewed candidate.
+      if (player.current !== video || currentIdentityRef.current !== identity) return;
+      const detail = reason instanceof Error && reason.message ? `：${reason.message}` : "";
+      setPlaybackError(`${automatic ? "无法自动播放下一镜头" : "无法播放当前镜头"}${detail}`);
+    });
+  }, []);
 
   useEffect(() => {
-    if (!autoplayNext || !player.current || !current) return;
-    setAutoplayNext(false);
-    void player.current.play().catch(() => undefined);
-  }, [autoplayNext, current?.id]);
+    if (scopeChanged || !autoplayIdentity || autoplayIdentity !== currentIdentity || !player.current) return;
+    const video = player.current;
+    setAutoplayIdentity(null);
+    attemptPlayback(video, currentIdentity, true);
+  }, [attemptPlayback, autoplayIdentity, currentIdentity, scopeChanged]);
 
   if (!current) return null;
   const play = (restart: boolean) => {
     if (!player.current) return;
     if (restart) player.current.currentTime = 0;
-    void player.current.play().catch(() => undefined);
+    attemptPlayback(player.current, currentIdentity, false);
   };
-  const advance = () => {
+  const advance = (endedIdentity: string | undefined) => {
+    if (endedIdentity !== currentIdentity) return;
     if (index + 1 >= jobs.length) {
       // Do not reset: native video retains its final decoded frame until the
       // reviewer explicitly restarts or seeks, preserving cut-end inspection.
       return;
     }
-    setAutoplayNext(true);
-    setIndex((value) => value + 1);
+    const nextIdentity = identityFor(jobs[index + 1]);
+    setAutoplayIdentity(nextIdentity);
+    setActiveIdentity(nextIdentity);
+    setPlaybackError("");
   };
   const shot = frozenShot(current);
   return <section className="video-sequence" data-testid="video-sequence-player">
     <strong>已选择镜头顺序播放</strong>
     <small>{jobs.map((item) => frozenShot(item).title || frozenShot(item).id || item.id).join(" → ")}</small>
     <video
+      key={currentIdentity}
       controls
       preload="metadata"
       ref={player}
       src={plotloomApi.videoJobMediaUrl(projectId, current.id)}
       data-testid={`video-sequence-job-${current.id}`}
-      onEnded={advance}
+      data-playback-identity={currentIdentity}
+      onEnded={(event) => advance(event.currentTarget.dataset.playbackIdentity)}
     />
     <small>当前 {index + 1}/{jobs.length}：{shot.title || shot.id}。最后一帧停留，需明确重启才会从头播放。</small>
+    {playbackError && <small className="notice warning" role="status">{playbackError}</small>}
     <div className="button-row">
       <Button onClick={() => play(false)}>播放当前</Button>
       <Button onClick={() => play(true)}>重启当前</Button>
-      <Button disabled={index === 0} onClick={() => { setAutoplayNext(false); setIndex((value) => value - 1); }}>上一镜头</Button>
-      <Button disabled={index + 1 >= jobs.length} onClick={() => { setAutoplayNext(false); setIndex((value) => value + 1); }}>下一镜头</Button>
+      <Button disabled={index === 0} onClick={() => { setAutoplayIdentity(null); setPlaybackError(""); setActiveIdentity(identityFor(jobs[index - 1])); }}>上一镜头</Button>
+      <Button disabled={index + 1 >= jobs.length} onClick={() => { setAutoplayIdentity(null); setPlaybackError(""); setActiveIdentity(identityFor(jobs[index + 1])); }}>下一镜头</Button>
     </div>
   </section>;
 }
@@ -122,7 +157,9 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     catch (reason) { setError(reason instanceof Error ? reason.message : fallback); }
   };
   const visibleJobs = shot ? jobs.filter((job) => frozenShot(job).id === shot.id) : [];
-  const selectedSequence = selectedSceneVideos(jobs, shot?.sceneId);
+  // State refreshes are asynchronous. Never use an old project's retained
+  // jobs to construct URLs under the newly selected project identity.
+  const selectedSequence = selectedSceneVideos(jobs.filter((job) => job.projectId === projectId), shot?.sceneId);
   return <Panel data-testid="video-pilot-panel"><strong>P2 Wan 视频试点</strong><p>仅 5 秒 / 720p / 原生音频。提交后本地保守计入共享 100 秒额度；不会自动重试或回退。</p>
     <small>额度：{budget ? `${budget.reservedSeconds}/${budget.limitSeconds} 秒已保留，余 ${budget.remainingSeconds} 秒` : "读取中"}</small>
     <div className="button-row"><Button disabled={readOnly || !projectId || !shot || !approvalId || !storyboardRevision} onClick={() => void prepare()}>冻结当前审核关键帧</Button></div>
