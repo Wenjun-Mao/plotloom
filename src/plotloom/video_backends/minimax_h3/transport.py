@@ -82,8 +82,11 @@ class MiniMaxH3GatewayTransport:
             or payload.get("status") != "ok"
             or payload.get("profileContractVersion") != H3_PROFILE_CONTRACT_VERSION
             or payload.get("profiles") != [profile.public_descriptor() for profile in H3_PROFILES_BY_ID.values()]
-            or type(payload.get("maxQueueDepth")) is not int
-            or payload["maxQueueDepth"] < 1
+            or type(payload.get("queuedJobs")) is not int
+            or payload["queuedJobs"] < 0
+            or type(payload.get("activeDispatches")) is not int
+            or payload["activeDispatches"] not in {0, 1}
+            or payload.get("dispatchConcurrency") != 1
         ):
             raise VideoProviderError("h3_gateway_profile_unavailable")
 
@@ -106,8 +109,13 @@ class MiniMaxH3GatewayTransport:
             raise WanDispatchError(WanDispatchDiagnostic("upload", "invalid_envelope"))
         return asset_id
 
-    def submit(self, payload: dict[str, Any]) -> dict[str, Any]:
-        result = self._request_json("submit", "POST", "v1/video-jobs", json=payload)
+    def submit(
+        self, payload: dict[str, Any], *, idempotency_key: str | None = None
+    ) -> dict[str, Any]:
+        request = dict(payload)
+        if idempotency_key is not None:
+            request["idempotencyKey"] = idempotency_key
+        result = self._request_json("submit", "POST", "v1/video-jobs", json=request)
         self._validate_job_envelope(result, phase="submit_response_parse")
         return result
 
@@ -207,7 +215,7 @@ class MiniMaxH3GatewayTransport:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("profileId") not in H3_PROFILES_BY_ID:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
-        if value.get("status") not in {"reserved", "submitted", "running", "succeeded", "failed", "outcome_unknown", "cancelled"}:
+        if value.get("status") not in {"reserved", "queued", "submitting", "submitted", "running", "succeeded", "failed", "outcome_unknown", "cancelled"}:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("aspectPolicy") not in {"cover_center_crop", "contain_pad", "reject_mismatch"}:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))

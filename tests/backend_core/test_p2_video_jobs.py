@@ -28,7 +28,8 @@ class FakeWan:
         assert image and mime_type == "image/png"
         return "https://upload.example/keyframe"
 
-    def submit(self, payload: dict) -> dict:
+    def submit(self, payload: dict, *, idempotency_key: str | None = None) -> dict:
+        _ = idempotency_key
         self.submits.append(payload)
         return {"data": {"id": "prediction-1"}}
 
@@ -47,6 +48,7 @@ class FakeH3Gateway:
     def __init__(self, *, outcome_unknown: bool = False) -> None:
         self.outcome_unknown = outcome_unknown
         self.submits: list[dict] = []
+        self.idempotency_keys: list[str | None] = []
         self.preflight_calls = 0
         self.profile_id: str | None = None
 
@@ -57,8 +59,9 @@ class FakeH3Gateway:
         assert image and mime_type == "image/png"
         return "asset_0123456789abcdef0123456789abcdef"
 
-    def submit(self, payload: dict) -> dict:
+    def submit(self, payload: dict, *, idempotency_key: str | None = None) -> dict:
         self.submits.append(payload)
+        self.idempotency_keys.append(idempotency_key)
         self.profile_id = payload["profileId"]
         return {
             "id": "h3_0123456789abcdef0123456789abcdef", "status": "submitted",
@@ -214,6 +217,7 @@ def test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget(r
             "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
             "aspectPolicy": "reject_mismatch", "seed": 81,
         }]
+        assert provider.idempotency_keys == [job["id"]]
         ingested = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/reconcile")
         assert ingested.status_code == 200 and ingested.json()["state"] == "ingested"
 
@@ -422,7 +426,8 @@ def test_p2_unknown_post_and_private_download_never_replay_or_publish(repository
     for stage, payload in zip(STAGE_ORDER, (bible, graph, beats, storyboard), strict=True):
         repository.update_stage(project.id, stage, 0, payload)
     class AmbiguousWan(FakeWan):
-        def submit(self, payload: dict) -> dict:
+        def submit(self, payload: dict, *, idempotency_key: str | None = None) -> dict:
+            _ = idempotency_key
             self.submits.append(payload)
             raise TimeoutError("post outcome is unknown")
     artifacts, provider = MemoryArtifactStore(), AmbiguousWan()
@@ -469,7 +474,8 @@ def test_p2_submit_response_diagnostic_never_treats_a_post_as_replayable(reposit
         repository.update_stage(project.id, stage, 0, payload)
 
     class MalformedSubmitWan(FakeWan):
-        def submit(self, payload: dict) -> dict:
+        def submit(self, payload: dict, *, idempotency_key: str | None = None) -> dict:
+            _ = idempotency_key
             self.submits.append(payload)
             return {"data": {"detail": "provider response with a signed-url=secret"}}
 

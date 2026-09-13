@@ -70,10 +70,11 @@ The implementation and decision records are:
 - Legacy workflow template: [`minimax_h3_fp8_turbo4_480p.json`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_fp8_turbo4_480p.json)
 - Plotloom adapter: [`adapter.py`](../../src/plotloom/video_backends/minimax_h3/adapter.py)
   and [`transport.py`](../../src/plotloom/video_backends/minimax_h3/transport.py)
-- Boundary decisions: [ADR 0033](../adr/0033-private-minimax-h3-gateway.md) and [ADR 0036](../adr/0036-minimax-h3-profile-catalog.md)
+- Boundary decisions: [ADR 0033](../adr/0033-private-minimax-h3-gateway.md), [ADR 0036](../adr/0036-minimax-h3-profile-catalog.md)
   and [ADR 0034](../adr/0034-provider-neutral-video-adapters-and-local-h3.md);
   [ADR 0035](../adr/0035-backend-owned-video-modules.md) records the module
-  and service-package ownership boundary.
+  and service-package ownership boundary, while [ADR 0038](../adr/0038-h3-gateway-durable-fifo-dispatch.md)
+  records the gateway-owned FIFO worker.
 
 ## 3. Before deployment
 
@@ -140,7 +141,9 @@ H3_API_KEY=replace-with-a-long-random-secret
 
 # ComfyUI stays loopback-only.
 H3_COMFY_URL=http://127.0.0.1:8188
-H3_MAX_QUEUE_DEPTH=2
+# H3 dispatch is always serial. Queue length is intentionally unlimited.
+H3_WORKER_POLL_SECONDS=0.5
+H3_DISPATCH_WORKER_ENABLED=true
 
 # Private, persistent host paths.
 H3_GATEWAY_DATA_HOST_DIR=/home/wjmao/services/plotloom-h3-gateway/data
@@ -167,7 +170,9 @@ An expected health response is structurally equivalent to:
   "status": "ok",
   "profileContractVersion": 2,
   "profiles": [{"id": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "width": 576, "height": 1024, "selectable": true}],
-  "maxQueueDepth": 2
+  "queuedJobs": 0,
+  "activeDispatches": 0,
+  "dispatchConcurrency": 1
 }
 ```
 
@@ -231,9 +236,11 @@ The production sequence is intentional and one-way:
    also offers reviewed crop and ImageGen adaptation preparation before this
    point. The snapshot freezes the keyframe, character references, approval,
    adapter/version, profile, prompt, seed, and input policy.
-3. Plotloom preflights the gateway, uploads the frozen keyframe, and makes one
-   durable submission. It never retries a submission whose outcome might be
-   unknown.
+3. Plotloom checks the gateway contract, uploads the frozen keyframe, and
+   creates one durable gateway job. The gateway accepts it into its local FIFO
+   queue without waiting for H3. Its one worker is the only component that
+   may later submit to ComfyUI, and it never retries a submission whose
+   outcome might be unknown.
 4. Plotloom polls only the known gateway job ID. It retrieves the MP4 only
    through that gateway ID—never from a provider-controlled output URL.
 5. It probes the downloaded bytes. The candidate is eligible only if it is
@@ -266,16 +273,23 @@ The following is a private service contract; it is not a browser API.
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `GET /health` | no bearer header | Checks ComfyUI and the reviewed catalog; returns status, contract version, safe profile descriptors, queue depth |
+| `GET /health` | no bearer header | Checks ComfyUI and the reviewed catalog; returns status, contract version, safe profile descriptors, queued count and fixed concurrency |
 | `POST /v1/assets` | bearer | Uploads one PNG/JPEG/WebP, maximum 20 MiB and 30 megapixels |
-| `POST /v1/video-jobs` | bearer | Creates one job from `assetId`, prompt, `profileId`, `aspectPolicy`, optional seed |
+| `POST /v1/video-jobs` | bearer | Prepares and durably queues one job from `assetId`, prompt, `profileId`, `aspectPolicy`, optional seed and optional `idempotencyKey` |
 | `GET /v1/video-jobs/{id}` | bearer | Refreshes a known job |
+| `POST /v1/video-jobs/{id}/cancel` | bearer | Cancels only a job that is still `queued` |
 | `GET /v1/video-jobs/{id}/output` | bearer | Streams the known completed MP4 |
 
 Job response fields are deliberately closed: `id`, `status`, `profileId`,
 `aspectPolicy`, `error`, and `outputReady`. Valid states are `reserved`,
-`submitted`, `running`, `succeeded`, `failed`, `cancelled`, and
-`outcome_unknown`.
+`queued`, `submitting`, `submitted`, `running`, `succeeded`, `failed`,
+`cancelled`, and `outcome_unknown`. New jobs return `queued`; the gateway's
+single worker owns the only transition that can submit to ComfyUI.
+
+The gateway deliberately imposes no job-count limit. It serializes H3 work and
+persists FIFO order in gateway SQLite; it does not treat ComfyUI's generic
+backlog as its own queue. If ComfyUI has trusted external work, the worker
+waits before submitting the next gateway job. See [ADR 0038](../adr/0038-h3-gateway-durable-fifo-dispatch.md).
 
 An `outcome_unknown` means the gateway cannot establish whether the submission
 reached ComfyUI. Treat it as non-replayable. Diagnose it using the gateway
@@ -290,7 +304,8 @@ case.”
 | `/health` returns `comfy_unavailable` | ComfyUI is down, not loopback-reachable, or not responding | restore ComfyUI at `127.0.0.1:8188`, then repeat health check |
 | `/health` returns `comfy_profile_unavailable` | node or exact model/LoRA/VAE name is missing from ComfyUI | fix ComfyUI's installed profile/model mapping under `/home/wjmao/models`; do not edit a running gateway workflow to bypass the check |
 | `401 unauthorized` | bearer mismatch between caller and gateway | rotate/align `H3_API_KEY` and Plotloom's `VIDEO_MODEL_API_KEY`, then restart both services as needed |
-| `queue_capacity_reached` | H3 or ComfyUI queue is at configured capacity | wait or raise capacity only after measuring memory/throughput; do not add client retries that create duplicate work |
+| `job_not_cancellable` | job may already have crossed into ComfyUI | retain and poll the known job; only `queued` work can be cancelled safely |
+| `idempotency_conflict` | a caller reused a key for changed request data | use the original matching request/key or a new key; do not retry by altering a frozen job |
 | `input_aspect_mismatch` | `reject_mismatch` received a keyframe whose ratio differs from the selected profile | choose a different explicit policy or supply a matching keyframe |
 | `outcome_unknown` | request/response path failed after the durable record was created | inspect the known gateway job and ComfyUI history; never automatically replay |
 | `comfy_output_missing` / `comfy_output_unavailable` | ComfyUI did not save the one expected MP4 or output retention removed it | inspect the known job and output retention; preserve evidence, do not claim a candidate was ingested |

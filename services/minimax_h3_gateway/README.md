@@ -13,11 +13,18 @@ the exact limits of verified behavior.
 The local service contract is intentionally small:
 
 1. `POST /v1/assets` uploads one PNG, JPEG, or WebP reference frame.
-2. `POST /v1/video-jobs` creates an asynchronous job using one reviewed,
-   allowlisted profile and mandatory `cover_center_crop`, `contain_pad`, or
-   `reject_mismatch` policy.
+2. `POST /v1/video-jobs` prepares and durably queues one reviewed,
+   allowlisted-profile job. It returns `202` and a job ID without waiting for
+   H3; `idempotencyKey` is optional but required for caller retry deduplication.
 3. `GET /v1/video-jobs/{id}` reports a known job; `GET .../output` proxies its
    completed MP4.
+4. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
+5. `GET /health` exposes safe readiness and queue counts.
+
+The gateway owns one FIFO dispatch worker. Its queue is intentionally not
+length-capped: H3 receives one job at a time, while any further jobs remain
+durably queued. This is a concurrency guarantee, not a retention policy; see
+[ADR 0038](../../docs/adr/0038-h3-gateway-durable-fifo-dispatch.md).
 
 Keep ComfyUI on `127.0.0.1:8188`, bind this gateway only to Spark's Tailscale
 address, and keep its bearer key server-side. Do not replace the documented

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from plotloom.video_backends.minimax_h3 import H3_PROFILES, MiniMaxH3GatewayTransport
+from plotloom.video_backends.minimax_h3 import (
+    H3_PROFILES,
+    MiniMaxH3GatewayAdapter,
+    MiniMaxH3GatewayTransport,
+)
 from plotloom.video_backends.minimax_h3.adapter import H3_PROFILE_CONTRACT_VERSION
 from plotloom.video_provider import WanDispatchError
 
@@ -41,12 +45,13 @@ class _GatewaySession:
         if url.endswith("/health"):
             return _Response(200, {
                 "status": "ok", "profileContractVersion": H3_PROFILE_CONTRACT_VERSION,
-                "profiles": [profile.public_descriptor() for profile in H3_PROFILES], "maxQueueDepth": 2,
+                "profiles": [profile.public_descriptor() for profile in H3_PROFILES],
+                "queuedJobs": 0, "activeDispatches": 0, "dispatchConcurrency": 1,
             })
         if url.endswith("/v1/assets"):
             return _Response(200, {"assetId": _ASSET_ID, "mimeType": "image/png", "width": 864, "height": 480, "sha256": "a" * 64})
         if url.endswith("/v1/video-jobs"):
-            return _Response(202, _job("submitted", False))
+            return _Response(202, _job("queued", False))
         if url.endswith(f"/v1/video-jobs/{_JOB_ID}"):
             return _Response(200, _job("succeeded", True))
         raise AssertionError(url)
@@ -74,16 +79,23 @@ def test_h3_transport_uses_only_the_fixed_gateway_envelopes() -> None:
 
     transport.preflight()
     asset = transport.upload(b"png", mime_type="image/png")
-    submitted = transport.submit({"assetId": asset, "prompt": "one line", "profileId": "minimax_h3_fp8_turbo4_480p", "aspectPolicy": "cover_center_crop", "seed": 1})
+    submitted = transport.submit(
+        {"assetId": asset, "prompt": "one line", "profileId": "minimax_h3_fp8_turbo4_480p", "aspectPolicy": "cover_center_crop", "seed": 1},
+        idempotency_key="plotloom-video-job-1",
+    )
     polled = transport.poll(_JOB_ID)
     media = transport.download(_JOB_ID)
 
     assert transport._session.trust_env is False
     assert submitted["id"] == _JOB_ID and polled["outputReady"] is True
+    assert MiniMaxH3GatewayAdapter.completed_output(
+        submitted, expected_profile_id="minimax_h3_fp8_turbo4_480p"
+    ) is None
     assert media == b"mp4"
     assert all(call[2].get("allow_redirects") is False for call in session.calls)
     assert session.calls[0][2]["headers"] == {}
     assert session.calls[1][2]["headers"] == {"Authorization": "Bearer test-key"}
+    assert session.calls[2][2]["json"]["idempotencyKey"] == "plotloom-video-job-1"
 
 
 def test_h3_transport_rejects_public_and_malformed_gateway_roots() -> None:

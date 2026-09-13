@@ -6,7 +6,9 @@ import hmac
 import json
 import os
 import sqlite3
+import threading
 import uuid
+from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
@@ -50,8 +52,9 @@ class GatewaySettings:
     data_dir: Path
     comfy_input_dir: Path
     comfy_url: str = "http://127.0.0.1:8188"
-    max_queue_depth: int = 2
     request_timeout_seconds: float = 30.0
+    worker_poll_seconds: float = 0.5
+    dispatch_worker_enabled: bool = True
 
     @classmethod
     def from_environment(cls) -> "GatewaySettings":
@@ -63,7 +66,9 @@ class GatewaySettings:
             data_dir=Path(os.environ.get("H3_GATEWAY_DATA_DIR", "/var/lib/plotloom-h3-gateway")),
             comfy_input_dir=Path(os.environ.get("H3_COMFY_INPUT_DIR", "/comfy/input")),
             comfy_url=os.environ.get("H3_COMFY_URL", "http://127.0.0.1:8188").rstrip("/"),
-            max_queue_depth=int(os.environ.get("H3_MAX_QUEUE_DEPTH", "2")),
+            worker_poll_seconds=float(os.environ.get("H3_WORKER_POLL_SECONDS", "0.5")),
+            dispatch_worker_enabled=os.environ.get("H3_DISPATCH_WORKER_ENABLED", "true").strip().lower()
+            not in {"0", "false", "no", "off"},
         )
 
 
@@ -80,6 +85,9 @@ class CreateJobRequest(BaseModel):
     # new portrait-fast profile.
     profile_id: str = Field(default=LEGACY_PROFILE_ID, alias="profileId", min_length=3, max_length=63, pattern=r"^[a-z][a-z0-9_]{0,62}$")
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
+    # Plotloom uses its durable local video-job ID here. Direct trusted callers
+    # may omit it, preserving the prior API, but then cannot retry safely.
+    idempotency_key: str | None = Field(default=None, alias="idempotencyKey", min_length=8, max_length=255)
 
 
 class GatewayStore:
@@ -100,6 +108,7 @@ class GatewayStore:
                   id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES assets(id),
                   profile_id TEXT NOT NULL, aspect_policy TEXT NOT NULL, prompt TEXT NOT NULL,
                   seed INTEGER NOT NULL, prepared_input_name TEXT NOT NULL, status TEXT NOT NULL,
+                  idempotency_key TEXT, request_hash TEXT,
                   comfy_prompt_id TEXT, output_filename TEXT, output_subfolder TEXT,
                   output_type TEXT, error_code TEXT,
                   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -107,6 +116,24 @@ class GatewayStore:
                 );
                 """
             )
+            self._migrate(connection)
+
+    @staticmethod
+    def _migrate(connection: sqlite3.Connection) -> None:
+        """Apply additive gateway-local schema changes without rewriting jobs."""
+
+        columns = {
+            str(row["name"])
+            for row in connection.execute("PRAGMA table_info(jobs)").fetchall()
+        }
+        if "idempotency_key" not in columns:
+            connection.execute("ALTER TABLE jobs ADD COLUMN idempotency_key TEXT")
+        if "request_hash" not in columns:
+            connection.execute("ALTER TABLE jobs ADD COLUMN request_hash TEXT")
+        connection.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS jobs_idempotency_key_unique "
+            "ON jobs(idempotency_key) WHERE idempotency_key IS NOT NULL"
+        )
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._path)
@@ -129,21 +156,100 @@ class GatewayStore:
             raise GatewayError("asset_not_found", 404)
         return dict(row)
 
-    def active_job_count(self) -> int:
-        with self._connect() as connection:
-            return int(connection.execute(
-                "SELECT COUNT(*) FROM jobs WHERE status IN ('reserved', 'submitted', 'running')"
-            ).fetchone()[0])
+    def queue_counts(self) -> tuple[int, int]:
+        """Return queued and active work without exposing prompts or assets."""
 
-    def create_job(self, values: dict[str, Any]) -> dict[str, Any]:
         with self._connect() as connection:
+            queued = int(connection.execute(
+                "SELECT COUNT(*) FROM jobs WHERE status = 'queued'"
+            ).fetchone()[0])
+            active = int(connection.execute(
+                "SELECT COUNT(*) FROM jobs WHERE status IN ('submitting', 'submitted', 'running')"
+            ).fetchone()[0])
+        return queued, active
+
+    def reserve_job(self, values: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+        """Persist a no-provider-call reservation or return an idempotent job."""
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            key = values.get("idempotency_key")
+            if isinstance(key, str):
+                row = connection.execute(
+                    "SELECT * FROM jobs WHERE idempotency_key = ?", (key,)
+                ).fetchone()
+                if row is not None:
+                    existing = dict(row)
+                    if existing.get("request_hash") != values.get("request_hash"):
+                        connection.rollback()
+                        raise GatewayError("idempotency_conflict", 409)
+                    connection.commit()
+                    return existing, False
             connection.execute(
                 """INSERT INTO jobs
-                (id, asset_id, profile_id, aspect_policy, prompt, seed, prepared_input_name, status)
-                VALUES (:id, :asset_id, :profile_id, :aspect_policy, :prompt, :seed, :prepared_input_name, 'reserved')""",
+                (id, asset_id, profile_id, aspect_policy, prompt, seed, prepared_input_name,
+                 status, idempotency_key, request_hash)
+                VALUES (:id, :asset_id, :profile_id, :aspect_policy, :prompt, :seed,
+                        :prepared_input_name, 'reserved', :idempotency_key, :request_hash)""",
                 values,
             )
-        return self.get_job(values["id"])
+            connection.commit()
+        return self.get_job(values["id"]), True
+
+    def claim_next_queued(self) -> dict[str, Any] | None:
+        """Claim one FIFO job before the only possible outbound ComfyUI POST."""
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            row = connection.execute(
+                "SELECT * FROM jobs WHERE status = 'queued' ORDER BY rowid ASC LIMIT 1"
+            ).fetchone()
+            if row is None:
+                connection.commit()
+                return None
+            job_id = str(row["id"])
+            updated = connection.execute(
+                "UPDATE jobs SET status = 'submitting', updated_at = CURRENT_TIMESTAMP "
+                "WHERE id = ? AND status = 'queued'",
+                (job_id,),
+            )
+            if updated.rowcount != 1:
+                connection.rollback()
+                return None
+            connection.commit()
+        return self.get_job(job_id)
+
+    def recover_interrupted_dispatches(self) -> None:
+        """Never replay a job that may have crossed an outbound-call boundary."""
+
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE jobs SET status = 'outcome_unknown', "
+                "error_code = COALESCE(error_code, 'gateway_restart_before_known_submission'), "
+                "updated_at = CURRENT_TIMESTAMP "
+                "WHERE status IN ('reserved', 'submitting')"
+            )
+
+    def list_active_jobs(self) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM jobs WHERE status IN ('submitted', 'running') ORDER BY rowid ASC"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def cancel_queued_job(self, job_id: str) -> dict[str, Any]:
+        with self._connect() as connection:
+            updated = connection.execute(
+                "UPDATE jobs SET status = 'cancelled', error_code = 'cancelled_while_queued', "
+                "updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'queued'",
+                (job_id,),
+            )
+            if updated.rowcount != 1:
+                row = connection.execute("SELECT status FROM jobs WHERE id = ?", (job_id,)).fetchone()
+                if row is None:
+                    raise GatewayError("job_not_found", 404)
+                raise GatewayError("job_not_cancellable", 409)
+        return self.get_job(job_id)
 
     def get_job(self, job_id: str) -> dict[str, Any]:
         with self._connect() as connection:
@@ -166,24 +272,28 @@ class GatewayStore:
 
 class H3Gateway:
     def __init__(self, settings: GatewaySettings, *, session: requests.Session | Any | None = None) -> None:
-        if settings.max_queue_depth < 1:
-            raise ValueError("max_queue_depth must be at least one")
+        if settings.worker_poll_seconds <= 0:
+            raise ValueError("worker_poll_seconds must be positive")
         self.settings = settings
         self.settings.data_dir.mkdir(parents=True, exist_ok=True)
         self.settings.comfy_input_dir.mkdir(parents=True, exist_ok=True)
         self.assets_dir = self.settings.data_dir / "assets"
         self.assets_dir.mkdir(parents=True, exist_ok=True)
         self.store = GatewayStore(self.settings.data_dir / "gateway.sqlite3")
+        self.store.recover_interrupted_dispatches()
         self.session = session or requests.Session()
         self.legacy_template = _load_legacy_template()
 
     def health(self) -> dict[str, Any]:
         self._preflight()
+        queued, active = self.store.queue_counts()
         return {
             "status": "ok",
             "profileContractVersion": PROFILE_CONTRACT_VERSION,
             "profiles": [item.public_descriptor() for item in H3_GATEWAY_PROFILES],
-            "maxQueueDepth": self.settings.max_queue_depth,
+            "queuedJobs": queued,
+            "activeDispatches": active,
+            "dispatchConcurrency": 1,
         }
 
     def add_asset(self, content: bytes, *, mime_type: str) -> dict[str, Any]:
@@ -210,9 +320,10 @@ class H3Gateway:
         )
 
     def create_job(self, request: CreateJobRequest) -> dict[str, Any]:
-        if max(self.store.active_job_count(), self._comfy_queue_depth()) >= self.settings.max_queue_depth:
-            raise GatewayError("queue_capacity_reached", 429)
-        self._preflight()
+        # Admission deliberately has no ComfyUI round trip. The gateway can
+        # validate its own catalog, asset and image preparation while H3 is
+        # busy or temporarily unavailable; the worker performs the live
+        # preflight immediately before the only outbound dispatch.
         try:
             selected_profile = profile(request.profile_id)
         except KeyError as error:
@@ -221,11 +332,21 @@ class H3Gateway:
         job_id = f"h3_{uuid.uuid4().hex}"
         seed = request.seed if request.seed is not None else int.from_bytes(os.urandom(8), "big") >> 1
         input_name = f"{job_id}.png"
-        job = self.store.create_job({
+        request_hash = sha256(json.dumps({
+            "assetId": request.asset_id,
+            "prompt": request.prompt,
+            "aspectPolicy": request.aspect_policy,
+            "profileId": request.profile_id,
+            "seed": request.seed,
+        }, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+        job, created = self.store.reserve_job({
             "id": job_id, "asset_id": asset["id"], "profile_id": request.profile_id,
             "aspect_policy": request.aspect_policy, "prompt": request.prompt, "seed": seed,
             "prepared_input_name": input_name,
+            "idempotency_key": request.idempotency_key, "request_hash": request_hash,
         })
+        if not created:
+            return job
         try:
             _prepare_input(
                 source=Path(asset["path"]), destination=self.settings.comfy_input_dir / input_name,
@@ -234,25 +355,67 @@ class H3Gateway:
             )
         except GatewayError as error:
             return self.store.update_job(job_id, status="failed", error_code=error.code)
-        workflow = _render_workflow(
-            self.legacy_template["prompt"], profile=selected_profile,
-            prompt=request.prompt, input_name=input_name, seed=seed,
-        )
+        return self.store.update_job(job_id, status="queued")
+
+    def dispatch_once(self) -> dict[str, Any] | None:
+        """Advance at most one FIFO job through the only H3 dispatch lane."""
+
+        for active in self.store.list_active_jobs():
+            self.refresh_job(str(active["id"]))
+        if self.store.list_active_jobs():
+            return None
+        try:
+            # Do not stack a gateway job behind unrelated trusted ComfyUI work.
+            if self._comfy_queue_depth() > 0:
+                return None
+            self._preflight()
+        except GatewayError:
+            # A post-admission outage leaves queued work durable for a later
+            # worker pass; it is not a failed generation attempt.
+            return None
+        job = self.store.claim_next_queued()
+        if job is None:
+            return None
+        try:
+            selected_profile = profile(str(job["profile_id"]))
+            workflow = _render_workflow(
+                self.legacy_template["prompt"], profile=selected_profile,
+                prompt=str(job["prompt"]), input_name=str(job["prepared_input_name"]),
+                seed=int(job["seed"]),
+            )
+        except (KeyError, TypeError, ValueError):
+            # This is a local immutable-contract failure; no ComfyUI call was
+            # attempted, so it is safe and accurate to mark it failed.
+            return self.store.update_job(
+                str(job["id"]), status="failed", error_code="dispatch_local_precondition_failed"
+            )
         try:
             response = self.session.post(
                 f"{self.settings.comfy_url}/prompt",
-                json={"prompt": workflow, "client_id": job_id},
+                json={"prompt": workflow, "client_id": job["id"]},
                 timeout=self.settings.request_timeout_seconds,
             )
             response.raise_for_status()
             payload = response.json()
-        except (requests.RequestException, ValueError) as error:
-            # The request may have reached ComfyUI. It is never safe to auto-replay.
-            return self.store.update_job(job_id, status="outcome_unknown", error_code="submit_outcome_unknown")
+        except (requests.RequestException, ValueError):
+            # The durable state changed before the call, so a transport failure
+            # or process death must never cause automatic replay.
+            return self.store.update_job(
+                str(job["id"]), status="outcome_unknown", error_code="submit_outcome_unknown"
+            )
         prompt_id = payload.get("prompt_id") if isinstance(payload, dict) else None
         if not isinstance(prompt_id, str) or not prompt_id:
-            return self.store.update_job(job_id, status="outcome_unknown", error_code="submit_response_invalid")
-        return self.store.update_job(job_id, status="submitted", comfy_prompt_id=prompt_id)
+            return self.store.update_job(
+                str(job["id"]), status="outcome_unknown", error_code="submit_response_invalid"
+            )
+        return self.store.update_job(
+            str(job["id"]), status="submitted", comfy_prompt_id=prompt_id
+        )
+
+    def cancel_job(self, job_id: str) -> dict[str, Any]:
+        """Only jobs that have not entered ComfyUI can be cancelled safely."""
+
+        return self.store.cancel_queued_job(job_id)
 
     def refresh_job(self, job_id: str) -> dict[str, Any]:
         job = self.store.get_job(job_id)
@@ -335,9 +498,56 @@ class H3Gateway:
             raise GatewayError(code, 503) from error
 
 
+class GatewayDispatchWorker:
+    """One process-local worker that advances the durable FIFO queue.
+
+    SQLite claims protect the queue record itself. The deployment contract is
+    deliberately one gateway process per data directory, which is the only
+    supported way to ensure one H3/ComfyUI dispatch lane.
+    """
+
+    def __init__(self, gateway: H3Gateway) -> None:
+        self._gateway = gateway
+        self._stopped = threading.Event()
+        self._thread = threading.Thread(
+            target=self._run, name="plotloom-h3-dispatch", daemon=True
+        )
+
+    def start(self) -> None:
+        self._thread.start()
+
+    def stop(self) -> None:
+        self._stopped.set()
+        self._thread.join(timeout=max(1.0, self._gateway.settings.request_timeout_seconds + 1.0))
+
+    def _run(self) -> None:
+        while not self._stopped.is_set():
+            try:
+                self._gateway.dispatch_once()
+            except Exception:
+                # Job status and health provide the safe operator-facing
+                # evidence. Never log prompts, asset paths, or server values.
+                pass
+            self._stopped.wait(self._gateway.settings.worker_poll_seconds)
+
+
 def create_app(settings: GatewaySettings | None = None, *, session: requests.Session | Any | None = None) -> FastAPI:
     gateway = H3Gateway(settings or GatewaySettings.from_environment(), session=session)
-    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="1.0")
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        worker = GatewayDispatchWorker(gateway)
+        app.state.dispatch_worker = worker
+        if gateway.settings.dispatch_worker_enabled:
+            worker.start()
+        try:
+            yield
+        finally:
+            if gateway.settings.dispatch_worker_enabled:
+                worker.stop()
+
+    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="1.0", lifespan=lifespan)
+    app.state.gateway = gateway
 
     def authorize(authorization: str | None = Header(default=None)) -> None:
         expected = f"Bearer {gateway.settings.api_key}"
@@ -372,6 +582,10 @@ def create_app(settings: GatewaySettings | None = None, *, session: requests.Ses
     @app.get("/v1/video-jobs/{job_id}", dependencies=[Depends(authorize)])
     def get_video_job(job_id: str) -> dict[str, Any]:
         return _job_response(gateway.refresh_job(job_id))
+
+    @app.post("/v1/video-jobs/{job_id}/cancel", dependencies=[Depends(authorize)])
+    def cancel_video_job(job_id: str) -> dict[str, Any]:
+        return _job_response(gateway.cancel_job(job_id))
 
     @app.get("/v1/video-jobs/{job_id}/output", dependencies=[Depends(authorize)])
     def get_output(job_id: str) -> Response:

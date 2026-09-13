@@ -15,7 +15,8 @@ class OfflineWanFake:
         assert image and mime_type.startswith("image/")
         return "https://upload.example/offline-keyframe"
 
-    def submit(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def submit(self, payload: dict[str, Any], *, idempotency_key: str | None = None) -> dict[str, Any]:
+        _ = idempotency_key
         assert payload["image"] == "https://upload.example/offline-keyframe"
         return {"data": {"id": "offline-prediction-1"}}
 

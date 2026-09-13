@@ -18,11 +18,14 @@ class OfflineH3GatewayFake:
         assert image and mime_type.startswith("image/")
         return "asset_0123456789abcdef0123456789abcdef"
 
-    def submit(self, payload: dict[str, object]) -> dict[str, object]:
+    def submit(
+        self, payload: dict[str, object], *, idempotency_key: str | None = None
+    ) -> dict[str, object]:
         assert payload["assetId"] == "asset_0123456789abcdef0123456789abcdef"
         assert isinstance(payload["profileId"], str) and payload["profileId"] in H3_PROFILES_BY_ID
         assert payload["aspectPolicy"] in {"cover_center_crop", "contain_pad", "reject_mismatch"}
         assert isinstance(payload["seed"], int)
+        assert isinstance(idempotency_key, str) and idempotency_key
         self.profile_id = payload["profileId"]
         return {
             "id": "h3_0123456789abcdef0123456789abcdef", "status": "submitted",

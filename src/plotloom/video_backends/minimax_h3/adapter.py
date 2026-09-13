@@ -247,7 +247,7 @@ class MiniMaxH3GatewayAdapter:
             raise RemotePredictionFailed("H3 gateway reported terminal failure")
         if status == "outcome_unknown":
             raise RemoteOutcomeUnknown("H3 gateway cannot establish Comfy submission outcome")
-        if status in {"reserved", "submitted", "running"}:
+        if status in {"reserved", "queued", "submitting", "submitted", "running"}:
             return None
         if status != "succeeded" or payload.get("outputReady") is not True:
             raise VideoProviderError("H3 completed response is invalid")

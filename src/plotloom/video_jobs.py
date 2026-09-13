@@ -156,7 +156,7 @@ class VideoJobService:
                 )
             except VideoProviderError as error:
                 raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
-            submitted = self.provider.submit(payload)
+            submitted = self.provider.submit(payload, idempotency_key=video_job_id)
             try:
                 prediction = self.adapter.prediction_id(
                     submitted, expected_profile_id=self._profile_id(job["snapshot"])

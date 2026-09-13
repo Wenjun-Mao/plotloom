@@ -143,7 +143,12 @@ class AtlasCloudWanTransport:
             )
         )
 
-    def submit(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def submit(
+        self, payload: dict[str, Any], *, idempotency_key: str | None = None
+    ) -> dict[str, Any]:
+        # Atlas's documented payload has no idempotency field. Plotloom still
+        # supplies its durable ID to adapters that support it (notably H3).
+        _ = idempotency_key
         return self._authorized("submit", "POST", "generateVideo", json=payload)
 
     def poll(self, prediction_id: str) -> dict[str, Any]:
