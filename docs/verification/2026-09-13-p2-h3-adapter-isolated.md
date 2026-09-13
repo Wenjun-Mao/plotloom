@@ -46,12 +46,35 @@ probe implementation, producing H.264/AAC, 864x480, 24 fps, 124 frames, and
 5.167 seconds.  Its creative observation remains bounded in
 [the dialogue probe record](2026-09-13-h3-mandarin-dialogue-probe.md): one
 reviewed line was intelligible and lip-synced under one prompt/keyframe.  No
-new live gateway submission, candidate selection, voice-lock claim, or
-cross-shot acceptance was made during adapter verification.
+additional live gateway submission, candidate selection, voice-lock claim, or
+cross-shot acceptance was made before the dedicated adapter probe below.
 
-## Remaining integration condition
+## Live Plotloom-to-gateway probe
 
-Before this branch can be proposed for `main`, rebase it onto the corrected
-shared baseline, rerun the unfiltered Python suite, and then run the normal
-merge/push review.  The private gateway remains a trusted server setting; no
-browser, project, or artifact stores its endpoint credentials.
+After the rebased static gates passed, one temporary FastAPI/SQLite/artifact
+runtime exercised the actual private gateway through the adapter.  It used a
+tracked still as an approved keyframe, `cover_center_crop`, and a server-made
+seed.  It did not select, retain, or attach the result to a user project.
+
+- Frozen snapshot hash:
+  `1e8e333cd46c87c7ebf68aab0c5b61decab1f76a9bc3b9bac1c6d1220bc5b72b`.
+- Temporary Plotloom job ID: `vj_373e999ec8dd4d459e42f242c90e9c67`.
+- Result SHA-256:
+  `b2fa6f323f358241e097ca69f19e9519950897dc034c944250bc94a48d2e47b8`.
+- Observed output: H.264/AAC, 864x480, 24 fps, 124 frames, 5.167 seconds.
+- Final state: `ingested`, `selected: false`; no resubmission occurred.
+
+The private endpoint, bearer key, raw prompt, source project ID, and video
+bytes were intentionally not retained in this receipt.  The isolated runtime
+and its temporary database/artifact directories were removed after the check.
+
+## Integration status and next boundary
+
+The branch was rebased onto the corrected shared baseline, passed the
+unfiltered suite, and was fast-forwarded to `main` before this live receipt
+was added.  The private gateway remains a trusted server setting; no browser,
+project, or artifact stores its endpoint credentials.
+
+The next product boundary is creative review of a deliberately retained,
+human-selected candidate across adjoining shots.  This adapter probe does not
+claim that result, character continuity, or voice continuity.
