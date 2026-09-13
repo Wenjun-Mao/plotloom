@@ -32,11 +32,23 @@ disposition of each old root.
 
 The repository-scoped image-specialist skill records only exact tool-returned
 paths for its own Codex task. Its helper accepts direct, non-symlink children of
-the declared task staging root, copies them to the package delivery, validates
+the declared task staging root. The task identifier must be a single path-safe
+component; path separators, whitespace, traversal values, and absolute values
+are refused before it can contribute to that root. The helper copies them to the package delivery, validates
 the complete manifest identity, exact output set, and byte hashes, then unlinks
 only those same paths. Missing sources are idempotent only if the durable output
 already validates. Foreign paths, symlinks, incomplete manifests, extra outputs,
 or incompatible existing files refuse cleanup.
+
+The cleanup transaction opens task staging, delivery, and delivery-output
+directories without following symlinks. They must be private (`0700`-equivalent)
+and current-user-owned. It holds their advisory exclusive locks in that order
+while it reads metadata through descriptor-relative no-follow opens, verifies,
+copies, re-verifies, and unlinks. The specialist creates private delivery
+directories at preflight; generation must be complete before cleanup. This is a
+same-host cooperative-writer boundary: same-UID hostile writers that disregard
+locks are outside the contract because portable POSIX cannot conditionally unlink
+a path only if it still names a previously verified inode.
 
 New P1.5 packages name `plotloom-image-specialist.v3`; v2 frozen packages stay
 historical and validate under their frozen request contract.

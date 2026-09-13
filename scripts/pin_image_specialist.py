@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import stat
 import subprocess
 from pathlib import Path
 
@@ -22,6 +24,21 @@ PINNED_SOURCES = (SKILL_PATH, Path("scripts/cleanup_imagegen_staging.py"), Path(
 
 def canonical_json(value: object) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+
+
+def _private_directory(path: Path, *, label: str) -> None:
+    """Create the specialist's mutable transaction directories as private."""
+
+    path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    details = path.lstat()
+    if (
+        path.is_symlink()
+        or not stat.S_ISDIR(details.st_mode)
+        or details.st_uid != os.geteuid()
+        or stat.S_IMODE(details.st_mode) & (stat.S_IRWXG | stat.S_IRWXO)
+        or (stat.S_IMODE(details.st_mode) & stat.S_IRWXU) != stat.S_IRWXU
+    ):
+        raise SystemExit(f"Unsupported delivery: {label} must be a private current-user directory.")
 
 
 def main() -> int:
@@ -65,7 +82,8 @@ def main() -> int:
         "skillHash": hashlib.sha256(skill.read_bytes()).hexdigest(),
     }
     delivery = package.parent / "delivery"
-    delivery.mkdir(parents=True, exist_ok=True)
+    _private_directory(delivery, label="delivery")
+    _private_directory(delivery / "outputs", label="delivery outputs")
     target = delivery / "executor-pin.json"
     try:
         with target.open("x", encoding="utf-8") as output:

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 from hashlib import sha256
 from pathlib import Path
@@ -42,6 +44,9 @@ def _delivery(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, content: bytes
     monkeypatch.setenv("CODEX_THREAD_ID", "fixture-task")
     staging = codex_home / "generated_images" / "fixture-task"
     staging.mkdir(parents=True)
+    os.chmod(staging, 0o700)
+    os.chmod(package.parent / "delivery", 0o700)
+    os.chmod(output_root, 0o700)
     staged = staging / "candidate.png"
     staged.write_bytes(content)
     return package, staging, staged
@@ -135,6 +140,15 @@ def test_cleanup_rejects_another_real_staging_directory(tmp_path: Path, monkeypa
     assert foreign.exists()
 
 
+@pytest.mark.parametrize("task_id", ["../outside", "/tmp/outside", "fixture/task", r"fixture\\task", "fixture:task", "fixture task", " fixture-task", "fixture-task ", ".", ".."])
+def test_cleanup_rejects_path_shaped_task_ids(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cleanup_module, task_id: str) -> None:
+    monkeypatch.setenv("CODEX_HOME", str(tmp_path / "codex-home"))
+    monkeypatch.setenv("CODEX_THREAD_ID", task_id)
+
+    with pytest.raises(cleanup_module.CleanupError, match="path-safe task identifier"):
+        cleanup_module._task_staging_root()
+
+
 def test_cleanup_rejects_a_symlinked_delivery_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cleanup_module) -> None:
     package, staging, staged = _delivery(tmp_path, monkeypatch)
     delivery = package.parent / "delivery"
@@ -148,3 +162,36 @@ def test_cleanup_rejects_a_symlinked_delivery_directory(tmp_path: Path, monkeypa
     with pytest.raises(cleanup_module.CleanupError, match="delivery must be a real directory"):
         cleanup_module.cleanup_staging(package=package, staging_root=staging, staged_paths=[staged])
     assert staged.exists()
+
+
+@pytest.mark.parametrize("directory_name", ["staging", "delivery", "outputs"])
+def test_cleanup_refuses_non_private_transaction_directories(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cleanup_module, directory_name: str) -> None:
+    package, staging, staged = _delivery(tmp_path, monkeypatch)
+    directories = {
+        "staging": staging,
+        "delivery": package.parent / "delivery",
+        "outputs": package.parent / "delivery" / "outputs",
+    }
+    os.chmod(directories[directory_name], 0o755)
+
+    with pytest.raises(cleanup_module.CleanupError, match="private to the current user"):
+        cleanup_module.cleanup_staging(package=package, staging_root=staging, staged_paths=[staged])
+    assert staged.exists()
+
+
+def test_cleanup_refuses_a_concurrent_staging_transaction(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, cleanup_module) -> None:
+    package, staging, staged = _delivery(tmp_path, monkeypatch)
+    holder = subprocess.Popen(
+        [sys.executable, "-c", "import fcntl, os, sys; fd = os.open(sys.argv[1], os.O_RDONLY); fcntl.flock(fd, fcntl.LOCK_EX); print('locked', flush=True); sys.stdin.readline()", str(staging)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        assert holder.stdout is not None and holder.stdout.readline().strip() == "locked"
+        with pytest.raises(cleanup_module.CleanupError, match="busy"):
+            cleanup_module.cleanup_staging(package=package, staging_root=staging, staged_paths=[staged])
+        assert staged.exists()
+    finally:
+        assert holder.stdin is not None
+        holder.communicate("\n", timeout=5)
