@@ -246,3 +246,20 @@ own disk. Safe snapshots are local recovery copies, not off-machine backups.
 Folder portability does not promise simultaneous writable copies or cloud sync.
 Seven-day retention, archive deletion, legacy import and broader collaboration
 remain explicitly outside this implementation.
+
+## Checkpoint 1 record (2026-09-13)
+
+Baseline `1141269772c2303deab4a860f5f402ce54fe7a18` was clean. The bounded
+construction result is [ADR 0040](../adr/0040-project-folder-storage-boundary.md):
+an unwired `project_storage` composition seam with a manifest-discovered project
+directory registry, one project SQLite database plus confined owned assets per
+project, and a separately rooted application store for public profile selection
+and global accounting. Focused temporary-root tests prove two projects can edit,
+run an offline deterministic fake, and reopen after the former shared project
+database is unavailable. They also prove artifact confinement and reject
+credential-shaped profile configuration.
+
+This is not a cutover and introduces no shipped legacy/new selectable mode.
+The retained runtime, pilot data, provider calls, gateway, and old storage paths
+remain unchanged. Exact remaining work is recorded in the checkpoint receipt:
+[project-folder-storage-checkpoint-1](../verification/2026-09-13-project-folder-storage-checkpoint-1.md).
