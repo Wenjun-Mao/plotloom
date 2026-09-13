@@ -152,17 +152,23 @@ class H3Gateway:
 
     def read_output(self, job_id: str) -> bytes:
         job = self.refresh_job(job_id)
-        if job["status"] == "output_expired":
-            raise GatewayError("gateway_output_expired", 410)
         if job["status"] != "succeeded":
             raise GatewayError("output_not_ready", 409)
         return self.files.read_output(job)
 
+    def output_is_ready(self, job: dict[str, Any]) -> bool:
+        if job["status"] != "succeeded":
+            return False
+        if not self.store.output_is_retained(str(job["id"])):
+            return False
+        path = self.files.managed_output_path(job)
+        return path is not None and path.is_file() and not path.is_symlink()
+
     def cleanup_expired_outputs(self) -> int:
         return self.files.cleanup_expired_outputs()
 
-    def cleanup_expired_job_records(self) -> int:
-        return self.files.cleanup_expired_job_records()
+    def cleanup_due_job_records(self) -> int:
+        return self.files.cleanup_due_job_records()
 
     def cleanup_expired_gateway_keyframes(self) -> int:
         return self.files.cleanup_expired_gateway_keyframes()

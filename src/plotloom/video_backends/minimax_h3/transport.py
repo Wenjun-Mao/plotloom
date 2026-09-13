@@ -217,7 +217,7 @@ class MiniMaxH3GatewayTransport:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("status") not in {
             "reserved", "queued", "submitting", "submitted", "running",
-            "transfer_pending", "succeeded", "output_expired", "failed",
+            "transfer_pending", "succeeded", "failed",
             "outcome_unknown", "cancelled",
         }:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))

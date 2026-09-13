@@ -34,7 +34,7 @@ def create_app(
             if gateway.settings.dispatch_worker_enabled:
                 worker.stop()
 
-    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="1.1", lifespan=lifespan)
+    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="1.2", lifespan=lifespan)
     app.state.gateway = gateway
 
     def authorize(authorization: str | None = Header(default=None)) -> None:
@@ -68,15 +68,15 @@ def create_app(
 
     @app.post("/v1/video-jobs", dependencies=[Depends(authorize)], status_code=202)
     def create_video_job(request: CreateJobRequest) -> dict[str, Any]:
-        return _job_response(gateway.create_job(request))
+        return _job_response(gateway, gateway.create_job(request))
 
     @app.get("/v1/video-jobs/{job_id}", dependencies=[Depends(authorize)])
     def get_video_job(job_id: str) -> dict[str, Any]:
-        return _job_response(gateway.refresh_job(job_id))
+        return _job_response(gateway, gateway.refresh_job(job_id))
 
     @app.post("/v1/video-jobs/{job_id}/cancel", dependencies=[Depends(authorize)])
     def cancel_video_job(job_id: str) -> dict[str, Any]:
-        return _job_response(gateway.cancel_job(job_id))
+        return _job_response(gateway, gateway.cancel_job(job_id))
 
     @app.get("/v1/video-jobs/{job_id}/output", dependencies=[Depends(authorize)])
     def get_output(job_id: str) -> Response:
@@ -85,12 +85,12 @@ def create_app(
     return app
 
 
-def _job_response(job: dict[str, Any]) -> dict[str, Any]:
+def _job_response(gateway: H3Gateway, job: dict[str, Any]) -> dict[str, Any]:
     return {
         "id": job["id"],
         "status": job["status"],
         "profileId": job["profile_id"],
         "aspectPolicy": job["aspect_policy"],
         "error": job["error_code"],
-        "outputReady": job["status"] == "succeeded",
+        "outputReady": gateway.output_is_ready(job),
     }

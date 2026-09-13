@@ -107,7 +107,7 @@ def test_h3_transport_rejects_public_and_malformed_gateway_roots() -> None:
 def test_h3_adapter_reports_a_retained_output_expiry_without_reinterpreting_it_as_success() -> None:
     with pytest.raises(VideoOutputContractError, match="h3_gateway_output_expired"):
         MiniMaxH3GatewayAdapter.completed_output(
-            _job("output_expired", False),
+            _job("succeeded", False),
             expected_profile_id="minimax_h3_fp8_turbo4_480p",
         )
 

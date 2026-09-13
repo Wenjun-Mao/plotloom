@@ -249,10 +249,10 @@ class MiniMaxH3GatewayAdapter:
             raise RemoteOutcomeUnknown("H3 gateway cannot establish Comfy submission outcome")
         if status in {"reserved", "queued", "submitting", "submitted", "running", "transfer_pending"}:
             return None
-        if status == "output_expired":
-            raise VideoOutputContractError("h3_gateway_output_expired")
-        if status != "succeeded" or payload.get("outputReady") is not True:
+        if status != "succeeded":
             raise VideoProviderError("H3 completed response is invalid")
+        if payload.get("outputReady") is not True:
+            raise VideoOutputContractError("h3_gateway_output_expired")
         return cls.prediction_id(payload, expected_profile_id=expected_profile_id)
 
     @classmethod

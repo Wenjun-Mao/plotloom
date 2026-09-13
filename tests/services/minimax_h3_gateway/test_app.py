@@ -324,9 +324,9 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     assert asset_path.exists() is False
     expired = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
     assert expired.json() == {
-        "id": job["id"], "status": "output_expired",
+        "id": job["id"], "status": "succeeded",
         "profileId": "minimax_h3_fp8_turbo4_480p",
-        "aspectPolicy": "reject_mismatch", "error": "gateway_output_expired",
+        "aspectPolicy": "reject_mismatch", "error": None,
         "outputReady": False,
     }
     output = client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers)
@@ -334,7 +334,7 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     assert output.json() == {"error": "gateway_output_expired"}
 
 
-def test_expired_job_record_purge_keeps_only_the_30_day_control_plane_window(tmp_path: Path) -> None:
+def test_expired_job_record_purge_uses_a_30_day_total_handoff_window(tmp_path: Path) -> None:
     client, _ = _client(tmp_path)
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
@@ -345,20 +345,33 @@ def test_expired_job_record_purge_keeps_only_the_30_day_control_plane_window(tmp
     job = _queue_job(client, headers, asset["assetId"], prompt="Retain a short audit row")
     prepared_input = _prepared_input_path(client, job["id"])
     assert prepared_input.is_file()
-    client.app.state.gateway.store.mark_output_expired(
-        job["id"], error_code="gateway_output_expired"
+    client.app.state.gateway.store.mark_managed_output(
+        job["id"],
+        output_name=f"2026-01-01T00-00-00Z_{job['id']}.mp4",
+        digest="0" * 64,
+        size_bytes=1,
     )
-    assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 2
-    assert prepared_input.exists() is False
-    assert asset_path.exists() is False
     with client.app.state.gateway.store._connect() as connection:
         connection.execute(
-            "UPDATE jobs SET output_expired_at = datetime('now', '-30 days', '-1 second') "
+            "UPDATE jobs SET output_expires_at = datetime('now', '-26 days') "
             "WHERE id = ?",
             (job["id"],),
         )
 
-    assert client.app.state.gateway.cleanup_expired_job_records() == 1
+    assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 2
+    assert prepared_input.exists() is False
+    assert asset_path.exists() is False
+
+    # The row's deadline is anchored to successful handoff/output expiry.
+    assert client.app.state.gateway.cleanup_due_job_records() == 0
+    with client.app.state.gateway.store._connect() as connection:
+        connection.execute(
+            "UPDATE jobs SET output_expires_at = datetime('now', '-27 days', '-1 second') "
+            "WHERE id = ?",
+            (job["id"],),
+        )
+
+    assert client.app.state.gateway.cleanup_due_job_records() == 1
     assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).status_code == 404
     assert client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers).status_code == 404
     with client.app.state.gateway.store._connect() as connection:
@@ -416,17 +429,23 @@ def test_shared_gateway_keyframe_remains_until_its_last_linked_video_expires(tmp
     first_input = _prepared_input_path(client, first["id"])
     second_input = _prepared_input_path(client, second["id"])
 
-    client.app.state.gateway.store.mark_output_expired(
-        first["id"], error_code="gateway_output_expired"
-    )
+    with client.app.state.gateway.store._connect() as connection:
+        connection.execute(
+            "UPDATE jobs SET status = 'succeeded', output_expires_at = datetime('now', '-1 second') "
+            "WHERE id = ?",
+            (first["id"],),
+        )
     assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 1
     assert first_input.exists() is False
     assert second_input.is_file()
     assert asset_path.is_file()
 
-    client.app.state.gateway.store.mark_output_expired(
-        second["id"], error_code="gateway_output_expired"
-    )
+    with client.app.state.gateway.store._connect() as connection:
+        connection.execute(
+            "UPDATE jobs SET status = 'succeeded', output_expires_at = datetime('now', '-1 second') "
+            "WHERE id = ?",
+            (second["id"],),
+        )
     assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 2
     assert second_input.exists() is False
     assert asset_path.exists() is False
@@ -459,7 +478,7 @@ def test_gateway_store_migrates_an_existing_queue_database_additively(tmp_path: 
         columns = {row[1] for row in connection.execute("PRAGMA table_info(jobs)")}
     assert {
         "idempotency_key", "request_hash", "managed_output_name", "output_sha256",
-        "output_size_bytes", "output_expires_at", "output_expired_at",
+        "output_size_bytes", "output_expires_at",
     } <= columns
     with sqlite3.connect(path) as connection:
         asset_columns = {row[1] for row in connection.execute("PRAGMA table_info(assets)")}

@@ -75,9 +75,10 @@ class GatewayFiles:
         )
 
     def read_output(self, job: dict[str, Any]) -> bytes:
+        if not self.store.output_is_retained(str(job["id"])):
+            raise GatewayError("gateway_output_expired", 410)
         path = self.managed_output_path(job)
         if path is None or not path.is_file() or path.is_symlink():
-            self.store.mark_output_expired(str(job["id"]), error_code="gateway_output_missing")
             raise GatewayError("gateway_output_missing", 410)
         try:
             return path.read_bytes()
@@ -91,7 +92,6 @@ class GatewayFiles:
         for job in self.store.list_expired_managed_outputs():
             path = self.managed_output_path(job)
             if path is None or path.is_symlink():
-                self.store.mark_output_expired(str(job["id"]), error_code="gateway_output_storage_invalid")
                 continue
             try:
                 path.unlink(missing_ok=True)
@@ -99,17 +99,23 @@ class GatewayFiles:
                 # Keep the completed record and retry later. Cleanup never
                 # expands beyond this exact, database-owned managed file.
                 continue
-            self.store.mark_output_expired(str(job["id"]), error_code="gateway_output_expired")
             removed += 1
         self.cleanup_expired_gateway_inputs_and_assets()
         return removed
 
-    def cleanup_expired_job_records(self) -> int:
-        """Purge only due control-plane records after their audit interval."""
+    def cleanup_due_job_records(self) -> int:
+        """Purge only due succeeded-job records at the 30-day total deadline."""
 
         removed = 0
-        for job in self.store.list_purgeable_expired_job_records():
-            if self.store.purge_expired_job_record(str(job["id"])):
+        for job in self.store.list_purgeable_completed_job_records():
+            path = self.managed_output_path(job)
+            if path is None or path.is_symlink():
+                continue
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                continue
+            if self.store.purge_completed_job_record(str(job["id"])):
                 removed += 1
         self.cleanup_pending_asset_purges()
         return removed
@@ -124,7 +130,7 @@ class GatewayFiles:
         """Release transfer-only keyframes once their last video has expired."""
 
         prepared_removed = 0
-        for job in self.store.list_output_expired_jobs():
+        for job in self.store.list_expired_managed_outputs():
             input_path = self.prepared_input_path(job)
             try:
                 if input_path is not None and input_path.exists():

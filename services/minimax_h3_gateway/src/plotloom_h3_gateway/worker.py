@@ -30,7 +30,7 @@ class GatewayDispatchWorker:
             for operation in (
                 self._gateway.cleanup_expired_outputs,
                 self._gateway.cleanup_expired_gateway_keyframes,
-                self._gateway.cleanup_expired_job_records,
+                self._gateway.cleanup_due_job_records,
                 self._gateway.dispatch_once,
             ):
                 try:

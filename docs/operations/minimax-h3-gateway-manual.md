@@ -292,7 +292,8 @@ The following is a private service contract; it is not a browser API.
 Job response fields are deliberately closed: `id`, `status`, `profileId`,
 `aspectPolicy`, `error`, and `outputReady`. Valid states are `reserved`,
 `queued`, `submitting`, `submitted`, `running`, `transfer_pending`,
-`succeeded`, `output_expired`, `failed`, `cancelled`, and `outcome_unknown`.
+`succeeded`, `failed`, `cancelled`, and `outcome_unknown`. A retained job can
+remain `succeeded` with `outputReady: false` after its MP4 expires.
 New jobs return `queued`; the gateway's single worker owns the only transition
 that can submit to ComfyUI.
 
@@ -320,23 +321,22 @@ Deploy this as a clean gateway-state cutover: reset prior gateway SQLite and
 managed files instead of carrying a second filename convention.
 
 Gateway-managed MP4s are deleted 72 hours after that handoff. Their SQLite job
-record, digest and expiry evidence remain with `output_expired`. An output not
-retrieved by then is reported as `h3_gateway_output_expired` to Plotloom; it is
-not recreated or silently accepted. The cleanup loop considers only exact
-database-owned gateway output names—it never performs a broad cleanup of
+record remains `succeeded`, but its `outputReady` flag is false and an output
+not retrieved by then is reported as `h3_gateway_output_expired` to Plotloom.
+It is not recreated or silently accepted. The cleanup loop considers only
+exact database-owned gateway output names—it never performs a broad cleanup of
 ComfyUI output or the gateway data directory. See [ADR 0039](../adr/0039-h3-gateway-managed-output-retention.md).
 
-The `output_expired` job record—and its stored prompt—remains for 30 further
-days, then the gateway removes that job row from SQLite. After this second
-deadline, a gateway status or output request returns `job_not_found`; there is
-no MP4 to retrieve or recreate. At the earlier 72-hour MP4 expiry, the gateway
-already removes that job's prepared ComfyUI input and deletes its
-gateway-uploaded keyframe copy only after no linked gateway video remains
-unexpired. A shared keyframe therefore remains until its last linked MP4
-expires. The database keeps only a small inaccessible metadata row until the
-last linked 30-day audit record is gone, to preserve SQLite foreign-key
-integrity. This applies only to transient gateway copies, never to a Plotloom
-project asset or character reference.
+The succeeded job record—and its stored prompt—remains only until 30 days after
+the original successful handoff. After that total deadline, a gateway status
+or output request returns `job_not_found`; there is no MP4 to retrieve or
+recreate. At the earlier 72-hour MP4 expiry, the gateway already removes that
+job's prepared ComfyUI input and may delete a keyframe when no linked gateway
+video remains unexpired. Independently, no gateway-uploaded keyframe survives
+beyond 30 days from upload. The database keeps only a small inaccessible
+metadata row while a job still requires it for SQLite foreign-key integrity.
+This applies only to transient gateway copies, never to a Plotloom project
+asset or character reference.
 
 An `outcome_unknown` means the gateway cannot establish whether the submission
 reached ComfyUI. Treat it as non-replayable. Diagnose it using the gateway

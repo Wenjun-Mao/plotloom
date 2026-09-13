@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from .contracts import (
-    EXPIRED_JOB_RECORD_RETENTION_DAYS,
     GATEWAY_KEYFRAME_RETENTION_DAYS,
+    GATEWAY_JOB_RECORD_RETENTION_DAYS,
     MANAGED_OUTPUT_RETENTION_HOURS,
     GatewayError,
 )
@@ -36,7 +36,7 @@ class GatewayStore:
                   comfy_prompt_id TEXT, output_filename TEXT, output_subfolder TEXT,
                   output_type TEXT, managed_output_name TEXT, output_sha256 TEXT,
                   output_size_bytes INTEGER, output_expires_at TEXT,
-                  output_expired_at TEXT, error_code TEXT,
+                  error_code TEXT,
                   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
@@ -64,8 +64,6 @@ class GatewayStore:
             connection.execute("ALTER TABLE jobs ADD COLUMN output_size_bytes INTEGER")
         if "output_expires_at" not in columns:
             connection.execute("ALTER TABLE jobs ADD COLUMN output_expires_at TEXT")
-        if "output_expired_at" not in columns:
-            connection.execute("ALTER TABLE jobs ADD COLUMN output_expired_at TEXT")
         connection.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS jobs_idempotency_key_unique "
             "ON jobs(idempotency_key) WHERE idempotency_key IS NOT NULL"
@@ -221,42 +219,40 @@ class GatewayStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def mark_output_expired(self, job_id: str, *, error_code: str) -> dict[str, Any]:
-        with self._connect() as connection:
-            connection.execute(
-                "UPDATE jobs SET status = 'output_expired', error_code = ?, "
-                "output_expired_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP "
-                "WHERE id = ?",
-                (error_code, job_id),
-            )
-        return self.get_job(job_id)
+    def output_is_retained(self, job_id: str) -> bool:
+        """Whether a succeeded job remains within its three-day MP4 window."""
 
-    def list_output_expired_jobs(self) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT 1 FROM jobs WHERE id = ? AND status = 'succeeded' "
+                "AND output_expires_at IS NOT NULL AND output_expires_at > CURRENT_TIMESTAMP",
+                (job_id,),
+            ).fetchone()
+        return row is not None
+
+    def list_purgeable_completed_job_records(self) -> list[dict[str, Any]]:
+        """Return completed rows whose total handoff-to-deletion window elapsed."""
+
+        audit_hours = GATEWAY_JOB_RECORD_RETENTION_DAYS * 24 - MANAGED_OUTPUT_RETENTION_HOURS
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT * FROM jobs WHERE status = 'output_expired' ORDER BY rowid ASC"
+                "SELECT * FROM jobs WHERE status = 'succeeded' "
+                "AND output_expires_at IS NOT NULL "
+                "AND output_expires_at <= datetime('now', ?) ORDER BY rowid ASC",
+                (f"-{audit_hours} hours",),
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def list_purgeable_expired_job_records(self) -> list[dict[str, Any]]:
-        with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM jobs WHERE status = 'output_expired' "
-                "AND output_expired_at IS NOT NULL "
-                "AND output_expired_at <= datetime('now', ?) ORDER BY rowid ASC",
-                (f"-{EXPIRED_JOB_RECORD_RETENTION_DAYS} days",),
-            ).fetchall()
-        return [dict(row) for row in rows]
+    def purge_completed_job_record(self, job_id: str) -> bool:
+        """Delete one job row after its total handoff-to-deletion window."""
 
-    def purge_expired_job_record(self, job_id: str) -> bool:
-        """Delete one due job row after its post-output audit interval."""
-
+        audit_hours = GATEWAY_JOB_RECORD_RETENTION_DAYS * 24 - MANAGED_OUTPUT_RETENTION_HOURS
         with self._connect() as connection:
             deleted = connection.execute(
-                "DELETE FROM jobs WHERE id = ? AND status = 'output_expired' "
-                "AND output_expired_at IS NOT NULL "
-                "AND output_expired_at <= datetime('now', ?)",
-                (job_id, f"-{EXPIRED_JOB_RECORD_RETENTION_DAYS} days"),
+                "DELETE FROM jobs WHERE id = ? AND status = 'succeeded' "
+                "AND output_expires_at IS NOT NULL "
+                "AND output_expires_at <= datetime('now', ?)",
+                (job_id, f"-{audit_hours} hours"),
             )
         return deleted.rowcount == 1
 
@@ -267,7 +263,9 @@ class GatewayStore:
             claimed = connection.execute(
                 "UPDATE assets SET purge_pending = 1 WHERE id = ? "
                 "AND purge_pending = 0 AND NOT EXISTS "
-                "(SELECT 1 FROM jobs WHERE asset_id = ? AND status != 'output_expired')",
+                "(SELECT 1 FROM jobs WHERE asset_id = ? AND ("
+                "status != 'succeeded' OR output_expires_at IS NULL "
+                "OR output_expires_at > CURRENT_TIMESTAMP))",
                 (asset_id, asset_id),
             )
         return claimed.rowcount == 1

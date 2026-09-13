@@ -35,23 +35,24 @@ unsafe source/destination fails closed.
 
 Each managed output is retained for exactly 72 hours from successful gateway
 handoff. The worker deletes only a named, database-owned managed file whose
-deadline has passed, then changes its job to `output_expired`. Job metadata,
-digest, expiry evidence, and error code remain; the gateway never performs a
-broad directory cleanup or deletes arbitrary ComfyUI files.
+deadline has passed. The job remains `succeeded` as audit metadata, but its
+`outputReady` flag becomes false and its output endpoint reports the stable
+expiry error. The gateway never performs a broad directory cleanup or deletes
+arbitrary ComfyUI files.
 
-An `output_expired` row remains as a short audit record for 30 further days.
-It then becomes eligible for conditional deletion from the gateway's `jobs`
-table, removing its stored prompt and control-plane history. At that point the
-MP4 is already absent. At MP4 expiry—not at this later row cleanup—the gateway
-also removes that job's per-job prepared ComfyUI input and may release its
-keyframe earlier. Independently, no uploaded gateway keyframe survives beyond
-30 days after allocation, whether or not a job used it or a managed MP4 remains
-retained. These are gateway-owned transfer copies only; this policy never
-deletes Plotloom's canonical project stills or character references. SQLite
-marks the due keyframe metadata `purge_pending` before filesystem deletion, so
-it cannot enter another job. If a job still has a foreign-key reference, that
-small metadata row remains inaccessible until the final job audit record is
-removed.
+The succeeded job row remains only until 30 days after successful gateway
+handoff, then becomes eligible for conditional deletion from the gateway's
+`jobs` table, removing its stored prompt and control-plane history. At that
+point the MP4 has been absent for 27 days. At the earlier MP4 deadline, the
+gateway also removes that job's per-job prepared ComfyUI input and may release
+its keyframe earlier. Independently, no uploaded gateway keyframe survives
+beyond 30 days after allocation, whether or not a job used it or a managed MP4
+remains retained. These are gateway-owned transfer copies only; this policy
+never deletes Plotloom's canonical project stills or character references.
+SQLite marks the due keyframe metadata `purge_pending` before filesystem
+deletion, so it cannot enter another job. If a job still has a foreign-key
+reference, that small metadata row remains inaccessible until the final job
+record is removed.
 
 ## Consequences
 
@@ -59,9 +60,10 @@ removed.
   ComfyUI endpoint or provider URL.
 - The gateway deployment needs a writable mount of ComfyUI's output directory
   as well as its existing input mount.
-- After 72 hours, a delayed retrieval is reported as
-  `h3_gateway_output_expired`; it is not silently treated as a new generation
-  or a valid candidate.
+- From 72 hours until the 30-day total deadline, a job remains `succeeded`
+  with `outputReady: false`; a delayed retrieval reports
+  `h3_gateway_output_expired`. It is not silently treated as a new generation
+  or a valid candidate. After 30 days, the job is no longer known.
 - Output retention is distinct from Plotloom's longer-term selected-candidate
   artifact policy and from input-asset retention.
 
@@ -69,7 +71,7 @@ removed.
 
 Regression coverage proves copy-then-remove handoff, restart-safe pending
 transfer, secret-free status, targeted 72-hour expiry, preservation of
-unrelated files, client handling of the expired-output state, 30-day job-record purge, and
-age-based keyframe cleanup, including a keyframe linked to an existing job. It
-also proves that new asset, prepared-input, and managed-output names carry the
-readable UTC prefix.
+unrelated files, client handling of the expired-output state, a 30-day total
+job-record deadline, and age-based keyframe cleanup, including a keyframe
+linked to an existing job. It also proves that new asset, prepared-input, and
+managed-output names carry the readable UTC prefix.
