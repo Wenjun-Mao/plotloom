@@ -5,12 +5,14 @@ import copy
 import hmac
 import json
 import os
+import re
 import shutil
 import sqlite3
 import threading
 import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 from typing import Any, Literal
@@ -37,6 +39,15 @@ EXPIRED_JOB_RECORD_RETENTION_DAYS = 30
 ALLOWED_IMAGE_MIME_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
 AspectPolicy = Literal["cover_center_crop", "contain_pad", "reject_mismatch"]
 
+# Gateway-owned files are intended to be inspectable by an operator without
+# sacrificing the opaque IDs used by the API and SQLite relationships.  Colons
+# are deliberately avoided so the same names remain portable across common
+# mounted filesystems.
+_UTC_FILENAME_TIMESTAMP = "%Y-%m-%dT%H-%M-%SZ"
+_TIMESTAMP_PREFIX = r"\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z"
+_H3_JOB_ID = re.compile(r"h3_[0-9a-f]{32}\Z")
+_ASSET_ID = re.compile(r"asset_[0-9a-f]{32}\Z")
+
 
 class GatewayError(RuntimeError):
     """A stable gateway failure that is safe to expose to a trusted caller."""
@@ -45,6 +56,26 @@ class GatewayError(RuntimeError):
         self.code = code
         self.status_code = status_code
         super().__init__(code)
+
+
+def _timestamped_storage_name(object_id: str, suffix: str) -> str:
+    """Create a portable UTC filename while keeping its stable owner ID."""
+
+    timestamp = datetime.now(timezone.utc).strftime(_UTC_FILENAME_TIMESTAMP)
+    return f"{timestamp}_{object_id}{suffix}"
+
+
+def _is_owned_storage_name(name: object, *, object_id: str, suffixes: tuple[str, ...]) -> bool:
+    """Validate a gateway-owned, timestamped filename for one stable ID."""
+
+    if not isinstance(name, str):
+        return False
+    for suffix in suffixes:
+        if re.fullmatch(
+            rf"{_TIMESTAMP_PREFIX}_{re.escape(object_id)}{re.escape(suffix)}", name
+        ):
+            return True
+    return False
 
 
 @dataclass(frozen=True)
@@ -274,21 +305,6 @@ class GatewayStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def list_unmanaged_succeeded_jobs(self) -> list[dict[str, Any]]:
-        """Return legacy completed jobs that predate gateway-owned output storage.
-
-        A successful current job always has a managed output name.  This narrow
-        query therefore identifies only rows created before that invariant was
-        introduced; it never broadens normal output cleanup or dispatch.
-        """
-
-        with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM jobs WHERE status = 'succeeded' "
-                "AND managed_output_name IS NULL ORDER BY rowid ASC"
-            ).fetchall()
-        return [dict(row) for row in rows]
-
     def cancel_queued_job(self, job_id: str) -> dict[str, Any]:
         with self._connect() as connection:
             updated = connection.execute(
@@ -475,7 +491,7 @@ class H3Gateway:
             raise GatewayError("image_pixels_exceed_limit", 422)
         asset_id = f"asset_{uuid.uuid4().hex}"
         suffix = {"image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp"}[mime_type]
-        path = self.assets_dir / f"{asset_id}{suffix}"
+        path = self.assets_dir / _timestamped_storage_name(asset_id, suffix)
         path.write_bytes(content)
         return self.store.put_asset(
             asset_id=asset_id, mime_type=mime_type, width=width, height=height,
@@ -494,7 +510,7 @@ class H3Gateway:
         asset = self.store.get_asset(request.asset_id)
         job_id = f"h3_{uuid.uuid4().hex}"
         seed = request.seed if request.seed is not None else int.from_bytes(os.urandom(8), "big") >> 1
-        input_name = f"{job_id}.png"
+        input_name = _timestamped_storage_name(job_id, ".png")
         request_hash = sha256(json.dumps({
             "assetId": request.asset_id,
             "prompt": request.prompt,
@@ -523,11 +539,6 @@ class H3Gateway:
     def dispatch_once(self) -> dict[str, Any] | None:
         """Advance at most one FIFO job through the only H3 dispatch lane."""
 
-        # An upgrade must not turn previously reachable completed outputs into
-        # silent 410s.  Adopt only legacy completed records with no managed
-        # name; their frozen Comfy descriptor determines the exact source.
-        for completed in self.store.list_unmanaged_succeeded_jobs():
-            self._adopt_legacy_completed_output(completed)
         for active in self.store.list_active_jobs():
             self.refresh_job(str(active["id"]))
         if self.store.list_active_jobs():
@@ -587,8 +598,6 @@ class H3Gateway:
 
     def refresh_job(self, job_id: str) -> dict[str, Any]:
         job = self.store.get_job(job_id)
-        if job["status"] == "succeeded" and job.get("managed_output_name") is None:
-            return self._adopt_legacy_completed_output(job)
         if job["status"] == "transfer_pending":
             return self._transfer_completed_output(job)
         if job["status"] not in {"submitted", "running"}:
@@ -615,6 +624,10 @@ class H3Gateway:
             job_id, status="transfer_pending", error_code="gateway_output_transfer_pending",
             output_filename=descriptor["filename"], output_subfolder=descriptor["subfolder"],
             output_type=descriptor["type"],
+            # Persist the destination before copying. This freezes a
+            # restart-safe handoff target rather than deriving a different
+            # timestamp after a process loss.
+            managed_output_name=_timestamped_storage_name(job_id, ".mp4"),
         )
         return self._transfer_completed_output(pending)
 
@@ -714,7 +727,7 @@ class H3Gateway:
         """Copy, verify, then remove ComfyUI's exact expected output file."""
 
         source = self._comfy_output_path(job)
-        destination = self._managed_output_path_for_job(str(job["id"]))
+        destination = self._managed_output_path(job)
         if source is None or destination is None:
             return self.store.update_job(
                 str(job["id"]), status="failed", error_code="gateway_output_storage_invalid"
@@ -754,27 +767,6 @@ class H3Gateway:
             size_bytes=size_bytes,
         )
 
-    def _adopt_legacy_completed_output(self, job: dict[str, Any]) -> dict[str, Any]:
-        """Move one pre-retention completed output into the current contract.
-
-        The old gateway treated ComfyUI output as the delivery store.  Its
-        frozen filename/subfolder/type fields are enough to adopt a remaining
-        file without re-querying ComfyUI or re-running H3.  If that old source
-        is already gone, say so explicitly rather than pretending it was
-        retained and later expired by this gateway.
-        """
-
-        source = self._comfy_output_path(job)
-        if source is None or not source.is_file() or source.is_symlink():
-            return self.store.mark_output_expired(
-                str(job["id"]), error_code="gateway_legacy_output_unavailable"
-            )
-        pending = self.store.update_job(
-            str(job["id"]), status="transfer_pending",
-            error_code="gateway_output_transfer_pending",
-        )
-        return self._transfer_completed_output(pending)
-
     def _comfy_output_path(self, job: dict[str, Any]) -> Path | None:
         filename = job.get("output_filename")
         subfolder = job.get("output_subfolder")
@@ -795,25 +787,25 @@ class H3Gateway:
             return None
         return candidate
 
-    def _managed_output_path_for_job(self, job_id: str) -> Path | None:
-        if not job_id.startswith("h3_") or len(job_id) != 35:
-            return None
-        return self.managed_outputs_dir / f"{job_id}.mp4"
-
     def _managed_output_path(self, job: dict[str, Any]) -> Path | None:
-        expected = self._managed_output_path_for_job(str(job.get("id", "")))
-        if expected is None or job.get("managed_output_name") != expected.name:
+        job_id = str(job.get("id", ""))
+        name = job.get("managed_output_name")
+        if (
+            _H3_JOB_ID.fullmatch(job_id) is None
+            or not _is_owned_storage_name(name, object_id=job_id, suffixes=(".mp4",))
+        ):
             return None
-        return expected
+        return self.managed_outputs_dir / str(name)
 
     def _prepared_input_path(self, job: dict[str, Any]) -> Path | None:
         job_id = str(job.get("id", ""))
-        expected_name = f"{job_id}.png"
-        if self._managed_output_path_for_job(job_id) is None:
+        name = job.get("prepared_input_name")
+        if (
+            _H3_JOB_ID.fullmatch(job_id) is None
+            or not _is_owned_storage_name(name, object_id=job_id, suffixes=(".png",))
+        ):
             return None
-        if job.get("prepared_input_name") != expected_name:
-            return None
-        candidate = self.settings.comfy_input_dir / expected_name
+        candidate = self.settings.comfy_input_dir / str(name)
         try:
             root = self.settings.comfy_input_dir.resolve()
             resolved = candidate.resolve(strict=False)
@@ -828,10 +820,12 @@ class H3Gateway:
         stored_path = asset.get("path")
         if not isinstance(asset_id, str) or not isinstance(stored_path, str):
             return None
-        if len(asset_id) != 38 or not asset_id.startswith("asset_"):
+        if _ASSET_ID.fullmatch(asset_id) is None:
             return None
         candidate = Path(stored_path)
-        if candidate.name not in {f"{asset_id}{suffix}" for suffix in (".jpg", ".png", ".webp")}:
+        if not _is_owned_storage_name(
+            candidate.name, object_id=asset_id, suffixes=(".jpg", ".png", ".webp")
+        ):
             return None
         try:
             root = self.assets_dir.resolve()

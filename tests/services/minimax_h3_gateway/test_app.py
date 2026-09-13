@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import sqlite3
 import threading
 from io import BytesIO
@@ -99,6 +100,24 @@ def _write_comfy_output(tmp_path: Path, *, filename: str, content: bytes) -> Pat
     path = tmp_path / "comfy-output" / "video" / filename
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(content)
+    return path
+
+
+def _stored_asset_path(client: TestClient, asset_id: str) -> Path:
+    return Path(client.app.state.gateway.store.get_asset(asset_id)["path"])
+
+
+def _prepared_input_path(client: TestClient, job_id: str) -> Path:
+    job = client.app.state.gateway.store.get_job(job_id)
+    path = client.app.state.gateway._prepared_input_path(job)
+    assert path is not None
+    return path
+
+
+def _managed_output_path(client: TestClient, job_id: str) -> Path:
+    job = client.app.state.gateway.store.get_job(job_id)
+    path = client.app.state.gateway._managed_output_path(job)
+    assert path is not None
     return path
 
 
@@ -226,12 +245,48 @@ def test_completed_job_proxies_only_its_single_mp4_output(tmp_path: Path) -> Non
     status = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
     assert status.json()["status"] == "succeeded"
     assert source.exists() is False
-    managed = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
+    managed = _managed_output_path(client, job["id"])
     assert managed.read_bytes() == b"synthetic-mp4"
     output = client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers)
     assert output.status_code == 200
     assert output.headers["content-type"] == "video/mp4"
     assert output.content == b"synthetic-mp4"
+
+
+def test_new_gateway_files_use_human_readable_utc_timestamps(tmp_path: Path) -> None:
+    client, session = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+    ).json()
+    asset_path = _stored_asset_path(client, asset["assetId"])
+    assert re.fullmatch(
+        rf"\d{{4}}-\d{{2}}-\d{{2}}T\d{{2}}-\d{{2}}-\d{{2}}Z_{asset['assetId']}\.png",
+        asset_path.name,
+    )
+
+    job = _queue_job(client, headers, asset["assetId"], prompt="Name every file")
+    prepared = _prepared_input_path(client, job["id"])
+    assert re.fullmatch(
+        rf"\d{{4}}-\d{{2}}-\d{{2}}T\d{{2}}-\d{{2}}-\d{{2}}Z_{job['id']}\.png",
+        prepared.name,
+    )
+    assert _dispatch_once(client)["status"] == "submitted"
+    session.history["comfy-1"] = {
+        "comfy-1": {
+            "status": {"status_str": "success", "completed": True},
+            "outputs": {"92": {"images": [{"filename": "named.mp4", "subfolder": "video", "type": "output"}]}},
+        }
+    }
+    _write_comfy_output(tmp_path, filename="named.mp4", content=b"named-video")
+    assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()["status"] == "succeeded"
+    output = _managed_output_path(client, job["id"])
+    assert re.fullmatch(
+        rf"\d{{4}}-\d{{2}}-\d{{2}}T\d{{2}}-\d{{2}}-\d{{2}}Z_{job['id']}\.mp4",
+        output.name,
+    )
+    assert output.read_bytes() == b"named-video"
 
 
 def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(tmp_path: Path) -> None:
@@ -251,9 +306,9 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     }
     _write_comfy_output(tmp_path, filename="expiry.mp4", content=b"owned-video")
     assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()["status"] == "succeeded"
-    managed = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
-    prepared_input = tmp_path / "comfy-input" / f"{job['id']}.png"
-    asset_path = tmp_path / "data" / "assets" / f"{asset['assetId']}.png"
+    managed = _managed_output_path(client, job["id"])
+    prepared_input = _prepared_input_path(client, job["id"])
+    asset_path = _stored_asset_path(client, asset["assetId"])
     unrelated = tmp_path / "data" / "outputs" / "unrelated.mp4"
     unrelated.write_bytes(b"do-not-delete")
     with client.app.state.gateway.store._connect() as connection:
@@ -286,9 +341,9 @@ def test_expired_job_record_purge_keeps_only_the_30_day_control_plane_window(tmp
         "/v1/assets", headers=headers,
         files={"image": ("landscape.png", _png(864, 480), "image/png")},
     ).json()
-    asset_path = tmp_path / "data" / "assets" / f"{asset['assetId']}.png"
+    asset_path = _stored_asset_path(client, asset["assetId"])
     job = _queue_job(client, headers, asset["assetId"], prompt="Retain a short audit row")
-    prepared_input = tmp_path / "comfy-input" / f"{job['id']}.png"
+    prepared_input = _prepared_input_path(client, job["id"])
     assert prepared_input.is_file()
     client.app.state.gateway.store.mark_output_expired(
         job["id"], error_code="gateway_output_expired"
@@ -319,11 +374,11 @@ def test_shared_gateway_keyframe_remains_until_its_last_linked_video_expires(tmp
         "/v1/assets", headers=headers,
         files={"image": ("shared.png", _png(864, 480), "image/png")},
     ).json()
-    asset_path = tmp_path / "data" / "assets" / f"{asset['assetId']}.png"
+    asset_path = _stored_asset_path(client, asset["assetId"])
     first = _queue_job(client, headers, asset["assetId"], prompt="First use")
     second = _queue_job(client, headers, asset["assetId"], prompt="Second use")
-    first_input = tmp_path / "comfy-input" / f"{first['id']}.png"
-    second_input = tmp_path / "comfy-input" / f"{second['id']}.png"
+    first_input = _prepared_input_path(client, first["id"])
+    second_input = _prepared_input_path(client, second["id"])
 
     client.app.state.gateway.store.mark_output_expired(
         first["id"], error_code="gateway_output_expired"
@@ -375,58 +430,6 @@ def test_gateway_store_migrates_an_existing_queue_database_additively(tmp_path: 
     assert "purge_pending" in asset_columns
 
 
-def test_dispatcher_adopts_a_legacy_completed_output_without_resubmitting_h3(tmp_path: Path) -> None:
-    client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
-    ).json()
-    job = _queue_job(client, headers, asset["assetId"], prompt="Adopt a completed clip")
-    client.app.state.gateway.store.update_job(
-        job["id"], status="succeeded", error_code=None,
-        output_filename="legacy.mp4", output_subfolder="video", output_type="output",
-    )
-    source = _write_comfy_output(tmp_path, filename="legacy.mp4", content=b"legacy-video")
-
-    # The worker handles the migration without an HTTP output read or a new
-    # ComfyUI submission, preserving the original completed job identity.
-    assert _dispatch_once(client) is None
-    adopted = client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()
-    assert adopted["status"] == "succeeded"
-    assert adopted["outputReady"] is True
-    assert session.submissions == []
-    assert source.exists() is False
-    managed = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
-    assert managed.read_bytes() == b"legacy-video"
-    with client.app.state.gateway.store._connect() as connection:
-        expires_at = connection.execute(
-            "SELECT output_expires_at FROM jobs WHERE id = ?", (job["id"],)
-        ).fetchone()[0]
-    assert expires_at is not None
-
-
-def test_legacy_completed_output_missing_from_comfyui_is_explicitly_unavailable(tmp_path: Path) -> None:
-    client, _ = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
-    ).json()
-    job = _queue_job(client, headers, asset["assetId"], prompt="Missing legacy clip")
-    client.app.state.gateway.store.update_job(
-        job["id"], status="succeeded", error_code=None,
-        output_filename="gone.mp4", output_subfolder="video", output_type="output",
-    )
-
-    response = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
-    assert response.json()["status"] == "output_expired"
-    assert response.json()["error"] == "gateway_legacy_output_unavailable"
-    output = client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers)
-    assert output.status_code == 410
-    assert output.json() == {"error": "gateway_output_expired"}
-
-
 def test_restart_finishes_a_frozen_pending_output_handoff_without_new_submission(tmp_path: Path) -> None:
     headers = {"Authorization": "Bearer test-key"}
     settings = GatewaySettings(
@@ -442,12 +445,13 @@ def test_restart_finishes_a_frozen_pending_output_handoff_without_new_submission
     ).json()
     job = _queue_job(first_client, headers, asset["assetId"], prompt="Resume transfer")
     assert _dispatch_once(first_client)["status"] == "submitted"
+    managed_name = f"2026-09-13T12-00-00Z_{job['id']}.mp4"
     first_app.state.gateway.store.update_job(
         job["id"], status="transfer_pending",
         error_code="gateway_output_transfer_pending", output_filename="resumable.mp4",
-        output_subfolder="video", output_type="output",
+        output_subfolder="video", output_type="output", managed_output_name=managed_name,
     )
-    destination = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
+    destination = tmp_path / "data" / "outputs" / managed_name
     destination.write_bytes(b"copied-before-restart")
 
     restarted_session = _ComfySession()
@@ -466,12 +470,13 @@ def test_pending_handoff_rejects_a_replaced_comfyui_source(tmp_path: Path) -> No
         files={"image": ("landscape.png", _png(864, 480), "image/png")},
     ).json()
     job = _queue_job(client, headers, asset["assetId"], prompt="Verify source")
+    managed_name = f"2026-09-13T12-00-00Z_{job['id']}.mp4"
     client.app.state.gateway.store.update_job(
         job["id"], status="transfer_pending",
         error_code="gateway_output_transfer_pending", output_filename="replaced.mp4",
-        output_subfolder="video", output_type="output",
+        output_subfolder="video", output_type="output", managed_output_name=managed_name,
     )
-    destination = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
+    destination = tmp_path / "data" / "outputs" / managed_name
     destination.write_bytes(b"original-copy")
     source = _write_comfy_output(tmp_path, filename="replaced.mp4", content=b"changed-after-copy")
 

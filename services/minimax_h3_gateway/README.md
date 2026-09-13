@@ -31,6 +31,12 @@ the mounted ComfyUI output directory into gateway-managed storage, then
 removes the ComfyUI source. It retains that managed copy for 72 hours; see
 [ADR 0039](../../docs/adr/0039-h3-gateway-managed-output-retention.md).
 
+New gateway-owned keyframes, prepared inputs, and completed clips use a
+portable UTC timestamp prefix (`YYYY-MM-DDTHH-MM-SSZ_`) before their stable
+`asset_…` or `h3_…` ID. The ID remains the API identifier; the timestamp is
+there for on-host inspection. Deploy the naming contract with a clean gateway
+state rather than preserving UUID-only files.
+
 Keep ComfyUI on `127.0.0.1:8188`, bind this gateway only to Spark's Tailscale
 address, and keep its bearer key server-side. Do not replace the documented
 profile catalog with an SSH-only edit: profile changes require a new versioned

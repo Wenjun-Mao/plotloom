@@ -6,6 +6,9 @@ ComfyUI's output directory is a renderer workspace, not a dependable handoff
 location. Serving completed clips from its `/view` route tied Plotloom's known
 gateway jobs to ComfyUI's local retention and made ownership ambiguous.
 
+Anonymous UUID-only filenames also made the gateway's private asset, prepared
+input, and output directories needlessly hard for an operator to inspect.
+
 ## Decision
 
 The gateway owns completed H3 MP4s under its persistent data directory. It
@@ -13,6 +16,17 @@ receives a single validated ComfyUI output descriptor, copies that exact file
 into gateway storage atomically, hashes it, and removes the source from the
 mounted ComfyUI output directory. Only after source removal succeeds does the
 job become `succeeded` and downloadable through the gateway.
+
+Every newly stored gateway file begins with its UTC allocation timestamp in
+the portable form `YYYY-MM-DDTHH-MM-SSZ_`, followed by its immutable API ID:
+`…_asset_<uuid>.png` for uploads, `…_h3_<uuid>.png` for prepared ComfyUI
+inputs, and `…_h3_<uuid>.mp4` for managed outputs. The ID remains the
+collision-safe owner and public API reference; the timestamp is operational
+metadata only. A managed-output name is persisted when the job first enters
+`transfer_pending`, before a copy begins, so restart recovery always resumes
+the same destination. This is a clean state cutover: operators reset prior
+gateway SQLite and managed files before deploying it rather than retaining a
+second filename contract.
 
 If a process stops during the handoff, the durable job remains
 `transfer_pending`. A later gateway pass resumes only the frozen descriptor
@@ -38,14 +52,6 @@ stills or character references. SQLite retains a small inaccessible
 foreign-key reference; it deletes that row only after the last job record is
 gone.
 
-At the first upgrade to this contract, the worker adopts each pre-retention
-`succeeded` job whose frozen ComfyUI output descriptor still identifies a
-regular source file. It uses the same copy/verify/remove handoff and never
-submits H3 again. If an older source was already removed before the upgrade,
-the record becomes explicitly unavailable with
-`gateway_legacy_output_unavailable`; it is not misrepresented as a file this
-gateway retained and later cleaned up.
-
 ## Consequences
 
 - Plotloom retrieves MP4 bytes only from gateway-managed storage, never a
@@ -62,6 +68,6 @@ gateway retained and later cleaned up.
 
 Regression coverage proves copy-then-remove handoff, restart-safe pending
 transfer, secret-free status, targeted 72-hour expiry, preservation of
-unrelated files, additive database migration and legacy-output adoption, and
-client handling of the expired-output state, 30-day job-record purge, and
-reference-aware keyframe cleanup at MP4 expiry.
+unrelated files, client handling of the expired-output state, 30-day job-record purge, and
+reference-aware keyframe cleanup at MP4 expiry. It also proves that new asset,
+prepared-input, and managed-output names carry the readable UTC prefix.
