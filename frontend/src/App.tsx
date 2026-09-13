@@ -221,7 +221,7 @@ export default function App() {
   const [directoryLoading, setDirectoryLoading] = useState(false);
   const [routeEntity, setRouteEntity] = useState(() => routeFromLocation().entity);
   const [draftRecovery, setDraftRecovery] = useState<{ scope: DraftScope; payload: unknown; source: DraftRecoverySource } | undefined>();
-  const [restoredDraft, setRestoredDraft] = useState<{ scope: DraftScope; payload: unknown } | undefined>();
+  const [restoredDraft, setRestoredDraft] = useState<{ scope: DraftScope; payload: unknown; source: DraftRecoverySource } | undefined>();
   const [draftConflict, setDraftConflict] = useState<DraftConflictState | undefined>();
   const [unsafeDraft, setUnsafeDraft] = useState<{ record: DraftRecord; reason: "archived" | "unavailable" } | undefined>();
   const [pendingNavigation, setPendingNavigation] = useState<NavigationTarget | undefined>();
@@ -554,7 +554,20 @@ export default function App() {
           }
         }
         return false;
-      } finally { draftAutosaveFlights.current.delete(key); }
+      } finally {
+        draftAutosaveFlights.current.delete(key);
+        // A timer can fire while this request is in flight. Its call joins the
+        // flight, so queue one follow-up only when newer typing survived the
+        // acknowledgement. This keeps sessionStorage an unacknowledged safety
+        // buffer rather than a place where a successful save can strand data.
+        const newerLocal = getDraft(project, scope);
+        if (newerLocal && newerLocal.localRevision !== local.localRevision && !draftAutosaveTimers.current.has(key)) {
+          draftAutosaveTimers.current.set(key, window.setTimeout(() => {
+            draftAutosaveTimers.current.delete(key);
+            void flushAuthoringDraft(scope);
+          }, 0));
+        }
+      }
     })();
     draftAutosaveFlights.current.set(key, request);
     return request;
@@ -763,10 +776,17 @@ export default function App() {
   const rememberDraft = useCallback((scope: DraftScope, payload: unknown) => {
     if (project.archivedAt) return;
     currentDraft.current = { scope, payload };
-    putDraft(project, scope, payload);
+    const local = getDraft(project, scope);
+    const recoveredServerDraft = project.id && restoredDraft?.scope === scope && restoredDraft.source === "server"
+      ? serverAuthoringDrafts.current.get(authoringDraftKey(project.id, scope))
+      : undefined;
+    // A recovered server draft is already the acknowledged CAS base even
+    // before the user makes the first post-recovery edit. Seed that first
+    // session-only buffer from the durable receipt, never revision zero.
+    putDraft(project, scope, payload, local?.serverDraftRevision ?? recoveredServerDraft?.draftRevision ?? 0);
     scheduleAuthoringDraftAutosave(scope);
-    if (restoredDraft?.scope === scope) setRestoredDraft({ scope, payload });
-  }, [project, restoredDraft?.scope, scheduleAuthoringDraftAutosave]);
+    if (restoredDraft?.scope === scope) setRestoredDraft({ ...restoredDraft, payload });
+  }, [project, restoredDraft, scheduleAuthoringDraftAutosave]);
 
   const applyNavigation = useCallback((next: NavigationTarget) => {
     const route = { project: next.project, stage: next.stage, entity: next.entity, run: next.run };

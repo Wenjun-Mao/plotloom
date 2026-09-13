@@ -66,8 +66,10 @@ Introduce an unwired composition seam in `plotloom.project_storage`:
   request through the exact manifest-discovered `ProjectStore`. Its draft PUT
   requires both the current canonical base and exact draft revision. A 409
   leaves the losing client buffer intact. Canonical PATCH remains explicit and
-  receives a draft-consumption receipt: only the exact acknowledged draft
-  revision is removed, while a newer concurrent buffer remains available.
+  consumes a draft in the same project-SQLite transaction only when its scope,
+  entity, draft revision, base canonical revision, and normalized canonical
+  payload all match the draft receipt. A newer or different buffer remains
+  available rather than being silently consumed.
 
 The manifest contains only storage format version, immutable project ID,
 creation time, and the fixed relative database location. Mutable title, status,
@@ -94,9 +96,11 @@ Checkpoint 2B proves a real browser can create a project home, load and edit
 Brief/four-stage canonical contracts through the same project handles, retain
 server acknowledgements across a process restart, and preserve a stale-tab
 losing buffer. Idle (750 ms), blur, and stage/project-navigation flushes use
-the same request path. The browser's session storage is only an
+the same request path; typing that arrives during a request queues a follow-up
+save after its acknowledgement. The browser's session storage is only an
 unacknowledged-edit safety buffer; a server acknowledgement in
-`project.sqlite3` is recovery authority.
+`project.sqlite3` is recovery authority and seeds the next post-recovery CAS
+edit.
 
 The remainder of checkpoint 2 must route visual-intent and media-direction
 drafts, image/video handoff, reviews, lifecycle, close, and all delayed-work

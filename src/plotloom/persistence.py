@@ -4338,6 +4338,91 @@ class SQLiteRepository:
                     head.updated_at = row.updated_at
             return self._project(row)
 
+    def _consume_exact_authoring_draft_in_session(
+        self,
+        session: Session,
+        project: ProjectRow,
+        *,
+        editor_scope: AuthoringDraftScope,
+        entity_id: str,
+        expected_draft_revision: int,
+        canonical_base_revision: int,
+        canonical_payload: dict[str, Any],
+    ) -> None:
+        """Bind canonical Save to the precise acknowledged authoring buffer.
+
+        A draft revision is a receipt for both its canonical input revision and
+        its validated editor payload. Checking all three in the same write
+        transaction prevents a request from consuming an unrelated buffer.
+        """
+
+        row = session.scalar(
+            select(AuthoringDraftRow).where(
+                AuthoringDraftRow.project_id == project.id,
+                AuthoringDraftRow.editor_scope == editor_scope,
+                AuthoringDraftRow.entity_id == entity_id,
+            )
+        )
+        actual_revision = row.draft_revision if row is not None else 0
+        if row is None or row.draft_revision != expected_draft_revision:
+            raise RevisionConflictError(
+                f"authoring draft {editor_scope}/{entity_id}",
+                expected_draft_revision,
+                actual_revision,
+            )
+        if row.base_canonical_revision != canonical_base_revision:
+            raise RevisionConflictError(
+                f"authoring draft canonical base {editor_scope}",
+                canonical_base_revision,
+                row.base_canonical_revision,
+            )
+        if row.payload != canonical_payload:
+            raise RevisionConflictError(
+                f"authoring draft payload {editor_scope}/{entity_id}",
+                expected_draft_revision,
+                row.draft_revision,
+            )
+        session.delete(row)
+
+    def update_project_consuming_authoring_draft(
+        self,
+        project_id: str,
+        expected_revision: int,
+        brief: ProjectBrief,
+        *,
+        entity_id: str,
+        expected_draft_revision: int,
+    ) -> Project:
+        """Atomically save a brief and consume the exact acknowledged draft."""
+
+        canonical_payload = brief.model_dump(mode="json", by_alias=True)
+        with self._lifecycle_write() as session:
+            row = self._project_row(session, project_id)
+            self._assert_active_project(row)
+            if row.revision != expected_revision:
+                raise RevisionConflictError("project", expected_revision, row.revision)
+            self._consume_exact_authoring_draft_in_session(
+                session,
+                row,
+                editor_scope="brief",
+                entity_id=entity_id,
+                expected_draft_revision=expected_draft_revision,
+                canonical_base_revision=row.revision,
+                canonical_payload=canonical_payload,
+            )
+            brief_data = brief.model_dump(mode="json", by_alias=False)
+            if row.brief != brief_data:
+                row.brief = brief_data
+                row.revision += 1
+                row.updated_at = utc_now()
+                for stage in STAGE_ORDER:
+                    head = self._stage_row(session, project_id, stage)
+                    if head.status != StageStatus.MISSING.value:
+                        head.status = StageStatus.STALE.value
+                        head.stale_reasons = ["project brief revision changed"]
+                        head.updated_at = row.updated_at
+            return self._project(row)
+
     @staticmethod
     def _authoring_draft(row: AuthoringDraftRow) -> AuthoringDraft:
         return AuthoringDraft(
@@ -5197,6 +5282,46 @@ class SQLiteRepository:
                 allow_noop=True,
             )
             return head
+
+    def update_stage_consuming_authoring_draft(
+        self,
+        project_id: str,
+        stage: StageName,
+        expected_revision: int,
+        payload: StagePayload | dict[str, Any],
+        *,
+        entity_id: str,
+        expected_draft_revision: int,
+    ) -> StageHead:
+        """Atomically install a stage and consume its exact authoring draft."""
+
+        parsed = stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(payload)
+        canonical_payload = parsed.model_dump(mode="json", by_alias=True)
+        with self._lifecycle_write() as session:
+            project_row = self._project_row(session, project_id)
+            self._assert_active_project(project_row)
+            head = self._stage_row(session, project_id, stage)
+            if head.revision != expected_revision:
+                raise RevisionConflictError(f"stage:{stage.value}", expected_revision, head.revision)
+            self._consume_exact_authoring_draft_in_session(
+                session,
+                project_row,
+                editor_scope=stage.value,
+                entity_id=entity_id,
+                expected_draft_revision=expected_draft_revision,
+                canonical_base_revision=head.revision,
+                canonical_payload=canonical_payload,
+            )
+            updated, _ = self._install_stage_in_session(
+                session,
+                project_row,
+                stage,
+                parsed,
+                expected_revision=expected_revision,
+                now=utc_now(),
+                allow_noop=True,
+            )
+            return updated
 
     @staticmethod
     def _snapshot_fingerprint(

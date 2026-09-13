@@ -66,5 +66,9 @@ Result: passed.
   environment. Wheel SHA-256:
   `ac3d3e6853f0e8e75ad34cfbea89e0c22a250e70ab1c0b4401f79610cf550d84`.
 
-One attended read-only Terra review remains required before release. Its result
-and any remediation will be appended before the source receipt is finalized.
+An attended read-only Terra review was later performed against the associated
+2B candidate. It found three draft-layer P1 issues—post-recovery CAS seeding,
+in-flight autosave queuing, and binding canonical consumption to the
+acknowledged payload—rather than a defect in this 2A direct-repository result.
+Their remediation and re-review belong to the 2B receipt; this historical 2A
+receipt makes no claim about later test outcomes.

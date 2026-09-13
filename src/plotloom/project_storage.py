@@ -529,6 +529,29 @@ class ProjectStore:
         except RevisionConflictError as error:
             raise ProjectStorageConflictError("project revision is stale") from error
 
+    def update_brief_consuming_authoring_draft(
+        self,
+        brief: ProjectBrief,
+        *,
+        expected_revision: int,
+        entity_id: str,
+        expected_draft_revision: int,
+    ) -> Project:
+        """Commit only the exact draft receipt that supplied this brief."""
+
+        if expected_revision < 1:
+            raise ValueError("expected_revision must be at least one")
+        try:
+            return self.repository.update_project_consuming_authoring_draft(
+                self.manifest.project_id,
+                expected_revision,
+                brief,
+                entity_id=entity_id,
+                expected_draft_revision=expected_draft_revision,
+            )
+        except RevisionConflictError as error:
+            raise ProjectStorageConflictError("canonical save draft receipt is stale") from error
+
     def update_stage(
         self,
         stage: StageName,
@@ -545,6 +568,29 @@ class ProjectStore:
             )
         except RevisionConflictError as error:
             raise ProjectStorageConflictError(f"{stage.value} revision is stale") from error
+
+    def update_stage_consuming_authoring_draft(
+        self,
+        stage: StageName,
+        payload: dict[str, Any],
+        *,
+        expected_revision: int,
+        entity_id: str,
+        expected_draft_revision: int,
+    ) -> StageHead:
+        """Commit only the exact draft receipt that supplied this stage."""
+
+        try:
+            return self.repository.update_stage_consuming_authoring_draft(
+                self.manifest.project_id,
+                stage,
+                expected_revision,
+                payload,
+                entity_id=entity_id,
+                expected_draft_revision=expected_draft_revision,
+            )
+        except RevisionConflictError as error:
+            raise ProjectStorageConflictError("canonical save draft receipt is stale") from error
 
     def authoring_drafts(self) -> list[AuthoringDraft]:
         return self.repository.list_authoring_drafts(self.manifest.project_id)

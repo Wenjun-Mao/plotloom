@@ -587,7 +587,23 @@ def test_project_folder_authoring_api_persists_isolated_cas_drafts_and_exact_sav
     assert client.get(f"/api/v2/projects/{first_id}/authoring-drafts").json()[0]["payload"]["title"] == "仅服务器草稿"
 
     # Explicit canonical Save is the only operation that changes canonical
-    # content.  It consumes the exact draft receipt and nothing newer.
+    # content. It must consume the exact payload and base revision that its
+    # receipt acknowledges; a matching revision alone cannot delete a draft.
+    mismatched = client.patch(
+        f"/api/v2/projects/{first_id}",
+        json={
+            "expectedRevision": 1,
+            "brief": FIXED_CHINESE_BRIEF.model_copy(update={"title": "不是已确认的草稿"}).model_dump(
+                mode="json", by_alias=True
+            ),
+            "consumedDraft": {"editorScope": "brief", "entityId": "root", "draftRevision": 1},
+        },
+    )
+    assert mismatched.status_code == 409
+    assert client.get(f"/api/v2/projects/{first_id}").json()["brief"]["title"] == FIXED_CHINESE_BRIEF.title
+    assert client.get(f"/api/v2/projects/{first_id}/authoring-drafts").json()[0]["payload"]["title"] == "仅服务器草稿"
+
+    # The matching canonical content consumes that exact draft receipt.
     committed = client.patch(
         f"/api/v2/projects/{first_id}",
         json={

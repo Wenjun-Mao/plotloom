@@ -2334,12 +2334,10 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 stages=store.repository.list_stage_envelopes(project_id),
             )
 
-    def consume_canonical_draft(
-        store: Any,
+    def assert_canonical_draft_scope(
         consumption: CanonicalDraftConsumption | None,
         *,
         required_scope: AuthoringDraftScope,
-        response: Response,
     ) -> None:
         if consumption is None:
             return
@@ -2348,16 +2346,6 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="canonical save may consume only its own editor draft",
             )
-        consumed = store.discard_authoring_draft(
-            editor_scope=consumption.editor_scope,
-            entity_id=consumption.entity_id,
-            expected_draft_revision=consumption.draft_revision,
-        )
-        # A newer draft can arrive while canonical Save is in flight.  The
-        # receipt lets the browser retire only what this request really owned.
-        response.headers["X-Plotloom-Draft-Consumed-Revision"] = (
-            str(consumption.draft_revision) if consumed else ""
-        )
 
     @app.exception_handler(ProjectStorageConflictError)
     async def project_storage_conflict_handler(
@@ -2456,18 +2444,21 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
         response: Response,
     ) -> Project:
         with opened_project(project_id) as store:
-            if body.consumed_draft is not None and body.consumed_draft.editor_scope != "brief":
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                    detail="canonical save may consume only its own editor draft",
+            assert_canonical_draft_scope(body.consumed_draft, required_scope="brief")
+            if body.consumed_draft is None:
+                updated = store.update_brief(body.brief, expected_revision=body.expected_revision)
+            else:
+                updated = store.update_brief_consuming_authoring_draft(
+                    body.brief,
+                    expected_revision=body.expected_revision,
+                    entity_id=body.consumed_draft.entity_id,
+                    expected_draft_revision=body.consumed_draft.draft_revision,
                 )
-            updated = store.update_brief(body.brief, expected_revision=body.expected_revision)
-            consume_canonical_draft(
-                store,
-                body.consumed_draft,
-                required_scope="brief",
-                response=response,
-            )
+                # The repository consumed this receipt in the same SQLite
+                # transaction that installed canonical content.
+                response.headers["X-Plotloom-Draft-Consumed-Revision"] = str(
+                    body.consumed_draft.draft_revision
+                )
             return updated
 
     @app.get("/api/v2/projects/{project_id}/stages", response_model=StageEnvelopesResponse)
@@ -2483,18 +2474,20 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
         response: Response,
     ) -> StageHead:
         with opened_project(project_id) as store:
-            if body.consumed_draft is not None and body.consumed_draft.editor_scope != stage.value:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                    detail="canonical save may consume only its own editor draft",
+            assert_canonical_draft_scope(body.consumed_draft, required_scope=stage.value)
+            if body.consumed_draft is None:
+                updated = store.update_stage(stage, body.payload, expected_revision=body.expected_revision)
+            else:
+                updated = store.update_stage_consuming_authoring_draft(
+                    stage,
+                    body.payload,
+                    expected_revision=body.expected_revision,
+                    entity_id=body.consumed_draft.entity_id,
+                    expected_draft_revision=body.consumed_draft.draft_revision,
                 )
-            updated = store.update_stage(stage, body.payload, expected_revision=body.expected_revision)
-            consume_canonical_draft(
-                store,
-                body.consumed_draft,
-                required_scope=stage.value,
-                response=response,
-            )
+                response.headers["X-Plotloom-Draft-Consumed-Revision"] = str(
+                    body.consumed_draft.draft_revision
+                )
             return updated
 
     @app.get("/api/v2/projects/{project_id}/authoring-drafts", response_model=list[AuthoringDraft])

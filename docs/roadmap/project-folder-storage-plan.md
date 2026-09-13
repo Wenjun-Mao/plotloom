@@ -294,12 +294,14 @@ timestamp. The project-folder authoring factory resolves every route through
 the exact manifest-discovered handle; it does not store or return profile,
 credential, session-key, or arbitrary UI/session objects. A canonical save is
 still explicit and can consume only the exact server-acknowledged draft
-revision. Stale draft saves receive 409 without overwriting either client
-buffer.
+revision whose canonical base and normalized payload also match the requested
+canonical mutation. Stale draft saves receive 409 without overwriting either
+client buffer.
 
 The shared retained runtime remains unchanged. The test-only factory and the
-existing workbench components prove 750 ms autosave, blur/navigation flushing,
-two-tab conflict preservation, canonical non-mutation until explicit Save, and
-server-draft recovery after a file-SQLite process restart. Visual-intent/media
-drafts, close/quiescence, snapshots/restore, live routing, and all retained-data
-cutover work remain deferred. See [the 2B receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2b-authoring-drafts.md).
+existing workbench components prove 750 ms autosave, post-flight save queuing,
+blur/navigation flushing, two-tab conflict preservation, canonical non-mutation
+until explicit Save, and editable server-draft recovery after a file-SQLite
+process restart. Visual-intent/media drafts, close/quiescence, snapshots/restore,
+live routing, and all retained-data cutover work remain deferred. See [the 2B
+receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2b-authoring-drafts.md).
