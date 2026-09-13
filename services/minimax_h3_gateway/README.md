@@ -56,6 +56,21 @@ Plotloom production contract. Until such an extraction is explicitly approved,
 gateway source changes, profile changes, and their operator documentation are
 reviewed and versioned here with Plotloom.
 
+## Runtime layout
+
+The gateway package keeps one responsibility per module:
+
+- `api.py` owns FastAPI routing and authentication;
+- `gateway.py` coordinates durable jobs without owning transport or files;
+- `comfy.py` owns the narrow ComfyUI readiness/history/submission transport;
+- `media.py` owns uploaded keyframes, prepared inputs, MP4 handoff and cleanup;
+- `store.py` owns the SQLite control plane;
+- `workflow.py`, `naming.py`, and `contracts.py` own the frozen workflow,
+  timestamped naming, and public settings/contracts respectively.
+
+`app.py` is intentionally only a compatibility export surface. Keep new logic
+in the responsible module rather than growing that façade.
+
 For new H3 work, Plotloom normally sends an aspect-matched keyframe with
 `reject_mismatch`. An explicit author-owned `allowLetterbox` mode instead
 freezes gateway `contain_pad`; this gateway receives the documented
