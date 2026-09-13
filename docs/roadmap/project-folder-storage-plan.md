@@ -284,3 +284,22 @@ foreign-project rejection, secret-free bearer/none broker operation, and no
 automatic replay after an interrupted dispatch. The retained runtime and data
 remain unwired; no migration, import, cutover, provider call, or live network
 work is authorized by this correction. See [the 2A direct receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2a-direct.md).
+
+## Checkpoint 2B authoring-draft record (2026-09-13)
+
+The direct project composition now owns an allowlisted Brief/four-stage draft
+row in each format-4 `project.sqlite3`. The row is keyed by editor scope and
+entity ID and carries base canonical revision, draft CAS revision, payload, and
+timestamp. The project-folder authoring factory resolves every route through
+the exact manifest-discovered handle; it does not store or return profile,
+credential, session-key, or arbitrary UI/session objects. A canonical save is
+still explicit and can consume only the exact server-acknowledged draft
+revision. Stale draft saves receive 409 without overwriting either client
+buffer.
+
+The shared retained runtime remains unchanged. The test-only factory and the
+existing workbench components prove 750 ms autosave, blur/navigation flushing,
+two-tab conflict preservation, canonical non-mutation until explicit Save, and
+server-draft recovery after a file-SQLite process restart. Visual-intent/media
+drafts, close/quiescence, snapshots/restore, live routing, and all retained-data
+cutover work remain deferred. See [the 2B receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2b-authoring-drafts.md).

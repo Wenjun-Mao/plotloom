@@ -3,9 +3,10 @@
 ## Status
 
 Accepted, 2026-09-13. Checkpoint 2A replaces the rejected `460ff56`
-construction result with a direct project-owned text-generation repository. It
-remains deliberately unwired from the retained runtime and pilot data; this is
-not a storage cutover or migration.
+construction result with a direct project-owned text-generation repository.
+Checkpoint 2B advances that same unwired composition with durable canonical
+authoring drafts. It remains deliberately unwired from the retained runtime
+and pilot data; this is not a storage cutover or migration.
 
 ## Context
 
@@ -55,6 +56,18 @@ Introduce an unwired composition seam in `plotloom.project_storage`:
   outputs and application roots. This format has no old/new selection flag and
   does not modify `PlotloomSettings`, `build_runtime_app`, or the current shared
   `SQLiteRepository` callers.
+- Format 4 adds `v2_authoring_drafts` to the bounded project schema. A row is
+  keyed by project, allowlisted editor scope, and entity ID; it stores only a
+  canonical-schema payload, base canonical revision, draft CAS revision, and
+  update time. It cannot contain browser/session objects, profiles, keys, or
+  arbitrary UI state. Existing format-3 construction folders are rejected;
+  this checkpoint provides no silent schema mutation, importer, or reader.
+- The test-only `create_project_folder_authoring_app` resolves every authoring
+  request through the exact manifest-discovered `ProjectStore`. Its draft PUT
+  requires both the current canonical base and exact draft revision. A 409
+  leaves the losing client buffer intact. Canonical PATCH remains explicit and
+  receives a draft-consumption receipt: only the exact acknowledged draft
+  revision is removed, while a newer concurrent buffer remains available.
 
 The manifest contains only storage format version, immutable project ID,
 creation time, and the fixed relative database location. Mutable title, status,
@@ -77,11 +90,21 @@ canonical heads. Exact repair reopens the quarantined parent directly from
 project-owned scope, binding, and artifact evidence; stale scope/hash/artifact
 checks fail closed and no automatic repair/replay occurs.
 
-The remainder of checkpoint 2 must route the complete existing project workflow
-(authoring, image/video handoff, reviews, lifecycle, drafts, close, and all
-delayed-work lookups) through project handles and coordinate globally unique
-accounting reservations without placing credentials in either database. It must
-not route a production operation through the old narrow fake-provider helper.
+Checkpoint 2B proves a real browser can create a project home, load and edit
+Brief/four-stage canonical contracts through the same project handles, retain
+server acknowledgements across a process restart, and preserve a stale-tab
+losing buffer. Idle (750 ms), blur, and stage/project-navigation flushes use
+the same request path. The browser's session storage is only an
+unacknowledged-edit safety buffer; a server acknowledgement in
+`project.sqlite3` is recovery authority.
+
+The remainder of checkpoint 2 must route visual-intent and media-direction
+drafts, image/video handoff, reviews, lifecycle, close, and all delayed-work
+lookups through project handles and coordinate globally unique accounting
+reservations without placing credentials in either database. Close/quiescence,
+snapshot/restore, and live runtime cutover remain out of this checkpoint. It
+must not route a production operation through the old narrow fake-provider
+helper.
 
 Checkpoint 3 remains responsible for snapshot, restore, integrity and failure
 recovery. Checkpoint 4 alone may archive the retained data and perform
@@ -102,5 +125,6 @@ the breaking runtime cutover after writer quiescence and verified inventory.
 
 ## Verification
 
-See the [direct 2A receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2a-direct.md)
+See the [direct 2A receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2a-direct.md),
+the [2B authoring-draft receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2b-authoring-drafts.md),
 and the historical [checkpoint 1 receipt](../verification/2026-09-13-project-folder-storage-checkpoint-1.md).

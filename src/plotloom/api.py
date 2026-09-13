@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from hashlib import sha256
 import json
@@ -18,6 +19,8 @@ from pydantic import Field, ValidationError, field_validator, model_validator
 from .domain import (
     PUBLIC_PROVIDER_SETTING_FIELDS,
     STAGE_ORDER,
+    AuthoringDraft,
+    AuthoringDraftScope,
     CamelModel,
     GenerationRun,
     GateEvaluation,
@@ -64,6 +67,11 @@ from .exceptions import (
     StagePrerequisiteError,
 )
 from .persistence import ApprovalClosure, ApprovalDecision, SQLiteRepository, stable_hash
+from .project_storage import (
+    ProjectFolderStorage,
+    ProjectStorageConflictError,
+    ProjectStorageError,
+)
 from .artifacts import ArtifactStore, MemoryArtifactStore
 from .managed_media import (
     ImportDeclaration,
@@ -154,6 +162,7 @@ class ProjectCreateRequest(CamelModel):
 class ProjectPatchRequest(CamelModel):
     expected_revision: int = Field(ge=1)
     brief: ProjectBrief
+    consumed_draft: "CanonicalDraftConsumption | None" = None
 
 
 class LifecycleRequest(CamelModel):
@@ -202,6 +211,29 @@ class ProjectMediaTasksResponse(CamelModel):
 class StagePatchRequest(CamelModel):
     expected_revision: int = Field(ge=0)
     payload: dict[str, Any]
+    consumed_draft: "CanonicalDraftConsumption | None" = None
+
+
+class CanonicalDraftConsumption(CamelModel):
+    """The exact server-acknowledged buffer a canonical save may consume."""
+
+    editor_scope: AuthoringDraftScope
+    entity_id: str = Field(min_length=1, max_length=160)
+    draft_revision: int = Field(ge=1)
+
+
+class AuthoringDraftUpsertRequest(CamelModel):
+    editor_scope: AuthoringDraftScope
+    entity_id: str = Field(min_length=1, max_length=160)
+    base_canonical_revision: int = Field(ge=0)
+    expected_draft_revision: int = Field(ge=0)
+    payload: dict[str, Any]
+
+
+class AuthoringDraftDiscardRequest(CamelModel):
+    editor_scope: AuthoringDraftScope
+    entity_id: str = Field(min_length=1, max_length=160)
+    expected_draft_revision: int = Field(ge=1)
 
 
 class StoryboardApprovalRequest(CamelModel):
@@ -2270,5 +2302,243 @@ def create_app(
 
     if static_dir is not None:
         app.mount("/v2", StaticFiles(directory=static_dir, html=True, check_dir=False), name="v2-static")
+
+    return app
+
+
+def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAPI:
+    """Compose the 2B authoring slice directly over project-folder storage.
+
+    This deliberately small factory exists only for the bounded storage
+    checkpoint and its browser evidence.  The retained runtime continues to
+    use ``create_app`` until a later cutover explicitly replaces its full
+    lifecycle composition; this is not a browser-selectable storage mode.
+    """
+
+    app = FastAPI(title="Plotloom project-folder authoring", version="2.0.0-storage-2b")
+    app.state.project_folder_storage = storage
+
+    @contextmanager
+    def opened_project(project_id: str):
+        store = storage.projects.open(project_id)
+        try:
+            yield store
+        finally:
+            store.close()
+
+    def creation_response(project_id: str) -> ProjectCreation:
+        with opened_project(project_id) as store:
+            project = store.project()
+            return ProjectCreation(
+                **project.model_dump(mode="python"),
+                stages=store.repository.list_stage_envelopes(project_id),
+            )
+
+    def consume_canonical_draft(
+        store: Any,
+        consumption: CanonicalDraftConsumption | None,
+        *,
+        required_scope: AuthoringDraftScope,
+        response: Response,
+    ) -> None:
+        if consumption is None:
+            return
+        if consumption.editor_scope != required_scope:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="canonical save may consume only its own editor draft",
+            )
+        consumed = store.discard_authoring_draft(
+            editor_scope=consumption.editor_scope,
+            entity_id=consumption.entity_id,
+            expected_draft_revision=consumption.draft_revision,
+        )
+        # A newer draft can arrive while canonical Save is in flight.  The
+        # receipt lets the browser retire only what this request really owned.
+        response.headers["X-Plotloom-Draft-Consumed-Revision"] = (
+            str(consumption.draft_revision) if consumed else ""
+        )
+
+    @app.exception_handler(ProjectStorageConflictError)
+    async def project_storage_conflict_handler(
+        _request: Request, error: ProjectStorageConflictError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "revision_conflict", "message": str(error)},
+        )
+
+    @app.exception_handler(ProjectStorageError)
+    async def project_storage_error_handler(
+        _request: Request, error: ProjectStorageError
+    ) -> JSONResponse:
+        missing = str(error).startswith("project not found")
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND if missing else status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={"code": "not_found" if missing else "project_storage_error", "message": str(error)},
+        )
+
+    @app.exception_handler(RevisionConflictError)
+    async def authoring_revision_conflict_handler(
+        _request: Request, error: RevisionConflictError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "revision_conflict", "message": str(error)},
+        )
+
+    @app.exception_handler(ValueError)
+    async def authoring_validation_handler(
+        _request: Request, error: ValueError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={"code": "authoring_draft_invalid", "message": str(error)},
+        )
+
+    @app.get("/api/v2/authoring-draft-capabilities")
+    def authoring_draft_capabilities() -> dict[str, bool]:
+        return {"durableProjectDrafts": True}
+
+    @app.post("/api/v2/projects", response_model=ProjectCreation, status_code=status.HTTP_201_CREATED)
+    def create_project(body: ProjectCreateRequest) -> ProjectCreation:
+        store = storage.projects.create(body.brief)
+        project_id = store.manifest.project_id
+        try:
+            for initial_stage in body.initial_stages:
+                store.update_stage(
+                    initial_stage.stage,
+                    initial_stage.payload,
+                    expected_revision=0,
+                )
+        finally:
+            store.close()
+        return creation_response(project_id)
+
+    @app.get("/api/v2/projects", response_model=ProjectListResponse)
+    def list_projects(
+        project_status: Annotated[
+            Literal["active", "archived", "all"], Query(alias="status")
+        ] = "active",
+        limit: int = Query(default=50, ge=1, le=200),
+        cursor: str | None = None,
+    ) -> ProjectListResponse:
+        # Project-folder discovery is bounded by the explicit storage root;
+        # cursor and archive lifecycle are deferred with the rest of close/
+        # restore work, so this 2B composition exposes active homes only.
+        del cursor
+        if project_status == "archived":
+            return ProjectListResponse(projects=[])
+        summaries: list[ProjectSummary] = []
+        for home in storage.projects.discover()[:limit]:
+            with opened_project(home.manifest.project_id) as store:
+                project = store.project()
+                summaries.append(
+                    ProjectSummary(
+                        **project.model_dump(mode="python"),
+                        stage_statuses={
+                            head.stage: head.status
+                            for head in store.repository.list_stage_heads(project.id)
+                        },
+                    )
+                )
+        return ProjectListResponse(projects=summaries)
+
+    @app.get("/api/v2/projects/{project_id}", response_model=Project)
+    def get_project(project_id: str) -> Project:
+        with opened_project(project_id) as store:
+            return store.project()
+
+    @app.patch("/api/v2/projects/{project_id}", response_model=Project)
+    def patch_project(
+        project_id: str,
+        body: ProjectPatchRequest,
+        response: Response,
+    ) -> Project:
+        with opened_project(project_id) as store:
+            if body.consumed_draft is not None and body.consumed_draft.editor_scope != "brief":
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="canonical save may consume only its own editor draft",
+                )
+            updated = store.update_brief(body.brief, expected_revision=body.expected_revision)
+            consume_canonical_draft(
+                store,
+                body.consumed_draft,
+                required_scope="brief",
+                response=response,
+            )
+            return updated
+
+    @app.get("/api/v2/projects/{project_id}/stages", response_model=StageEnvelopesResponse)
+    def get_stages(project_id: str) -> StageEnvelopesResponse:
+        with opened_project(project_id) as store:
+            return StageEnvelopesResponse(stages=store.repository.list_stage_envelopes(project_id))
+
+    @app.patch("/api/v2/projects/{project_id}/stages/{stage}", response_model=StageHead)
+    def patch_stage(
+        project_id: str,
+        stage: StageName,
+        body: StagePatchRequest,
+        response: Response,
+    ) -> StageHead:
+        with opened_project(project_id) as store:
+            if body.consumed_draft is not None and body.consumed_draft.editor_scope != stage.value:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="canonical save may consume only its own editor draft",
+                )
+            updated = store.update_stage(stage, body.payload, expected_revision=body.expected_revision)
+            consume_canonical_draft(
+                store,
+                body.consumed_draft,
+                required_scope=stage.value,
+                response=response,
+            )
+            return updated
+
+    @app.get("/api/v2/projects/{project_id}/authoring-drafts", response_model=list[AuthoringDraft])
+    def list_authoring_drafts(project_id: str) -> list[AuthoringDraft]:
+        with opened_project(project_id) as store:
+            return store.authoring_drafts()
+
+    @app.put("/api/v2/projects/{project_id}/authoring-drafts", response_model=AuthoringDraft)
+    def save_authoring_draft(
+        project_id: str,
+        body: AuthoringDraftUpsertRequest,
+    ) -> AuthoringDraft:
+        with opened_project(project_id) as store:
+            return store.save_authoring_draft(
+                editor_scope=body.editor_scope,
+                entity_id=body.entity_id,
+                base_canonical_revision=body.base_canonical_revision,
+                expected_draft_revision=body.expected_draft_revision,
+                payload=body.payload,
+            )
+
+    @app.delete("/api/v2/projects/{project_id}/authoring-drafts", status_code=status.HTTP_204_NO_CONTENT)
+    def discard_authoring_draft(
+        project_id: str,
+        body: AuthoringDraftDiscardRequest,
+    ) -> Response:
+        with opened_project(project_id) as store:
+            consumed = store.discard_authoring_draft(
+                editor_scope=body.editor_scope,
+                entity_id=body.entity_id,
+                expected_draft_revision=body.expected_draft_revision,
+            )
+        return Response(status_code=status.HTTP_204_NO_CONTENT, headers={
+            "X-Plotloom-Draft-Consumed-Revision": str(body.expected_draft_revision) if consumed else "",
+        })
+
+    @app.get("/api/v2/projects/{project_id}/runs", response_model=ProjectRunsResponse)
+    def get_project_runs(project_id: str) -> ProjectRunsResponse:
+        with opened_project(project_id) as store:
+            return ProjectRunsResponse(runs=store.generation_runs())
+
+    @app.get("/api/v2/projects/{project_id}/media-tasks", response_model=ProjectMediaTasksResponse)
+    def get_project_media_tasks(project_id: str) -> ProjectMediaTasksResponse:
+        with opened_project(project_id):
+            return ProjectMediaTasksResponse(tasks=[])
 
     return app

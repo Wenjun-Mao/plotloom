@@ -94,6 +94,18 @@ class StageName(str, Enum):
     STORYBOARD = "storyboard"
 
 
+# A draft is intentionally scoped to one persisted editor surface.  It is not
+# a browser/session snapshot and it is not a second canonical representation.
+# The concrete payload is validated by the repository against this allowlist.
+AuthoringDraftScope = Literal[
+    "brief",
+    "story_bible",
+    "story_graph",
+    "scene_beats",
+    "storyboard",
+]
+
+
 STAGE_ORDER: tuple[StageName, ...] = (
     StageName.STORY_BIBLE,
     StageName.STORY_GRAPH,
@@ -617,6 +629,23 @@ class StageEnvelope(CamelModel):
     # preserve fields it must never author. Historical V1 payloads remain
     # available through immutable revision/run evidence readers.
     payload: StagePayloadV2 | None = None
+
+
+class AuthoringDraft(CamelModel):
+    """One server-acknowledged editor buffer below a project home.
+
+    Draft revisions are deliberately independent from canonical revisions:
+    canonical Save is an explicit operation that may consume only the exact
+    acknowledged draft revision it was based on.
+    """
+
+    project_id: str
+    editor_scope: AuthoringDraftScope
+    entity_id: str = Field(min_length=1, max_length=160)
+    base_canonical_revision: Annotated[int, Field(ge=0)]
+    draft_revision: Annotated[int, Field(ge=1)]
+    payload: dict[str, Any]
+    updated_at: datetime = Field(default_factory=utc_now)
 
 
 class CanonicalSnapshot(CamelModel):

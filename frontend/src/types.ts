@@ -579,6 +579,24 @@ export interface ProjectResource {
   lifecycleStatus: "active" | "archived";
 }
 
+/** One bounded server-acknowledged editor draft in project.sqlite3. */
+export type AuthoringDraftScope = "brief" | ServerStageName;
+export interface AuthoringDraft {
+  projectId: string;
+  editorScope: AuthoringDraftScope;
+  entityId: string;
+  baseCanonicalRevision: number;
+  draftRevision: number;
+  payload: Record<string, unknown>;
+  updatedAt: string;
+}
+
+export interface CanonicalDraftConsumption {
+  editorScope: AuthoringDraftScope;
+  entityId: string;
+  draftRevision: number;
+}
+
 export interface LatestRunSummary {
   id: string;
   kind: PipelineRun["kind"];

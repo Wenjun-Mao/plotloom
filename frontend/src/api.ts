@@ -6,6 +6,9 @@ import type {
   ProjectDuplicateResponse,
   PipelineRun,
   ProjectBrief,
+  AuthoringDraft,
+  AuthoringDraftScope,
+  CanonicalDraftConsumption,
   ProjectMediaTasksResponse,
   ProjectListResponse,
   ProjectResource,
@@ -97,6 +100,25 @@ export class PlotloomApiClient {
     return body as T;
   }
 
+  /** Preserve an exact draft-consumption receipt without widening canonical bodies. */
+  private async requestWithResponse<T>(
+    path: string,
+    init: RequestInit = {},
+  ): Promise<{ body: T; response: Response }> {
+    const headers = new Headers(init.headers);
+    headers.set("Accept", "application/json");
+    if (init.body && !(init.body instanceof FormData)) headers.set("Content-Type", "application/json");
+    const response = await this.fetcher(`${this.base}${path}`, { ...init, headers });
+    const body = await response.json().catch(() => undefined);
+    if (!response.ok) {
+      const message = body && typeof body === "object" && "message" in body
+        ? String(body.message)
+        : `Plotloom API request failed (${response.status})`;
+      throw new ApiError(message, response.status, body);
+    }
+    return { body: body as T, response };
+  }
+
   createProject(request: ProjectCreationRequest, idempotencyKey: string): Promise<ProjectCreationResponse> {
     return this.request("/projects", {
       method: "POST",
@@ -148,6 +170,20 @@ export class PlotloomApiClient {
       method: "PATCH",
       body: JSON.stringify({ expectedRevision, brief }),
     });
+  }
+
+  async patchProjectWithDraft(
+    projectId: string,
+    expectedRevision: number,
+    brief: ProjectBrief,
+    consumedDraft: CanonicalDraftConsumption,
+  ): Promise<{ project: ProjectResource; consumedDraftRevision?: number }> {
+    const result = await this.requestWithResponse<ProjectResource>(`/projects/${encodeURIComponent(projectId)}`, {
+      method: "PATCH",
+      body: JSON.stringify({ expectedRevision, brief, consumedDraft }),
+    });
+    const receipt = result.response.headers.get("X-Plotloom-Draft-Consumed-Revision");
+    return { project: result.body, consumedDraftRevision: receipt ? Number(receipt) : undefined };
   }
 
   getStages(projectId: string, signal?: AbortSignal): Promise<StageEnvelopesResponse> {
@@ -299,6 +335,52 @@ export class PlotloomApiClient {
       method: "PATCH",
       body: JSON.stringify({ expectedRevision, payload: content }),
     });
+  }
+
+  async patchStageWithDraft<T>(
+    projectId: string,
+    stage: ServerStageName,
+    expectedRevision: number,
+    content: T,
+    consumedDraft: CanonicalDraftConsumption,
+  ): Promise<{ stage: StageHead; consumedDraftRevision?: number }> {
+    const result = await this.requestWithResponse<StageHead>(`/projects/${encodeURIComponent(projectId)}/stages/${stage}`, {
+      method: "PATCH",
+      body: JSON.stringify({ expectedRevision, payload: content, consumedDraft }),
+    });
+    const receipt = result.response.headers.get("X-Plotloom-Draft-Consumed-Revision");
+    return { stage: result.body, consumedDraftRevision: receipt ? Number(receipt) : undefined };
+  }
+
+  getAuthoringDraftCapability(): Promise<{ durableProjectDrafts: boolean }> {
+    return this.request("/authoring-draft-capabilities");
+  }
+
+  getAuthoringDrafts(projectId: string, signal?: AbortSignal): Promise<AuthoringDraft[]> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/authoring-drafts`, { signal });
+  }
+
+  saveAuthoringDraft(
+    projectId: string,
+    body: {
+      editorScope: AuthoringDraftScope; entityId: string; baseCanonicalRevision: number;
+      expectedDraftRevision: number; payload: Record<string, unknown>;
+    },
+  ): Promise<AuthoringDraft> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/authoring-drafts`, {
+      method: "PUT", body: JSON.stringify(body),
+    });
+  }
+
+  async discardAuthoringDraft(
+    projectId: string,
+    body: { editorScope: AuthoringDraftScope; entityId: string; expectedDraftRevision: number },
+  ): Promise<number | undefined> {
+    const result = await this.requestWithResponse<void>(`/projects/${encodeURIComponent(projectId)}/authoring-drafts`, {
+      method: "DELETE", body: JSON.stringify(body),
+    });
+    const receipt = result.response.headers.get("X-Plotloom-Draft-Consumed-Revision");
+    return receipt ? Number(receipt) : undefined;
   }
 
   startRun(

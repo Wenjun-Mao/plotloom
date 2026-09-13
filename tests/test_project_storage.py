@@ -6,11 +6,13 @@ from pathlib import Path
 import sqlite3
 
 import pytest
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 from tests.test_alpha_acceptance import _FixtureResolver, _profile
 
 from plotloom.conformance import FIXED_CHINESE_BRIEF
+from plotloom.api import create_project_folder_authoring_app
 from plotloom.domain import Artifact, ArtifactKind, RunKind, RunStatus, STAGE_ORDER, WorkUnitStatus
 from plotloom.exceptions import InvalidTransitionError, NotFoundError, RepairEligibilityError
 from plotloom.generation.contracts import ProviderResponse, ProviderUsage
@@ -523,3 +525,159 @@ def test_project_storage_rejects_cross_project_links_and_hidden_operational_home
         first.project().id,
         second.project().id,
     }
+
+
+def test_project_folder_authoring_api_persists_isolated_cas_drafts_and_exact_save_receipts(
+    tmp_path: Path,
+) -> None:
+    """The 2B factory must use project.sqlite3, never a shared projection."""
+
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    client = TestClient(create_project_folder_authoring_app(storage))
+    first = client.post(
+        "/api/v2/projects",
+        json={"brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True)},
+    )
+    second = client.post(
+        "/api/v2/projects",
+        json={
+            "brief": FIXED_CHINESE_BRIEF.model_copy(update={"title": "第二个草稿项目"}).model_dump(
+                mode="json", by_alias=True
+            )
+        },
+    )
+    assert first.status_code == 201
+    assert second.status_code == 201
+    first_id = first.json()["id"]
+    second_id = second.json()["id"]
+
+    draft_brief = FIXED_CHINESE_BRIEF.model_copy(update={"title": "仅服务器草稿"})
+    saved = client.put(
+        f"/api/v2/projects/{first_id}/authoring-drafts",
+        json={
+            "editorScope": "brief",
+            "entityId": "root",
+            "baseCanonicalRevision": 1,
+            "expectedDraftRevision": 0,
+            "payload": draft_brief.model_dump(mode="json", by_alias=True),
+        },
+    )
+    assert saved.status_code == 200
+    assert saved.json()["draftRevision"] == 1
+    assert client.get(f"/api/v2/projects/{second_id}/authoring-drafts").json() == []
+
+    # A second tab cannot replace a server-acknowledged buffer using the old
+    # draft CAS revision.  Its losing content remains a browser concern.
+    stale = client.put(
+        f"/api/v2/projects/{first_id}/authoring-drafts",
+        json={
+            "editorScope": "brief",
+            "entityId": "root",
+            "baseCanonicalRevision": 1,
+            "expectedDraftRevision": 0,
+            "payload": FIXED_CHINESE_BRIEF.model_copy(update={"title": "失去的标签页"}).model_dump(
+                mode="json", by_alias=True
+            ),
+        },
+    )
+    assert stale.status_code == 409
+    assert client.get(f"/api/v2/projects/{first_id}/authoring-drafts").json()[0]["payload"]["title"] == "仅服务器草稿"
+
+    # Explicit canonical Save is the only operation that changes canonical
+    # content.  It consumes the exact draft receipt and nothing newer.
+    committed = client.patch(
+        f"/api/v2/projects/{first_id}",
+        json={
+            "expectedRevision": 1,
+            "brief": draft_brief.model_dump(mode="json", by_alias=True),
+            "consumedDraft": {"editorScope": "brief", "entityId": "root", "draftRevision": 1},
+        },
+    )
+    assert committed.status_code == 200
+    assert committed.json()["brief"]["title"] == "仅服务器草稿"
+    assert committed.headers["X-Plotloom-Draft-Consumed-Revision"] == "1"
+    assert client.get(f"/api/v2/projects/{first_id}/authoring-drafts").json() == []
+
+    # Reopening a process sees only the durable project-local SQLite draft.
+    reopened_storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    reopened_client = TestClient(create_project_folder_authoring_app(reopened_storage))
+    reopened_draft = reopened_client.put(
+        f"/api/v2/projects/{first_id}/authoring-drafts",
+        json={
+            "editorScope": "brief",
+            "entityId": "root",
+            "baseCanonicalRevision": 2,
+            "expectedDraftRevision": 0,
+            "payload": FIXED_CHINESE_BRIEF.model_copy(update={"title": "重启后草稿"}).model_dump(
+                mode="json", by_alias=True
+            ),
+        },
+    )
+    assert reopened_draft.status_code == 200
+    after_restart = TestClient(
+        create_project_folder_authoring_app(
+            ProjectFolderStorage(
+                outputs_root=tmp_path / "outputs",
+                application_data_root=tmp_path / "application",
+            )
+        )
+    ).get(f"/api/v2/projects/{first_id}/authoring-drafts")
+    assert after_restart.status_code == 200
+    assert after_restart.json()[0]["payload"]["title"] == "重启后草稿"
+    assert "v2_authoring_drafts" in _table_names(
+        storage.projects.open(first_id).home / "project.sqlite3"
+    )
+
+
+def test_project_folder_authoring_drafts_allow_only_the_brief_and_four_canonical_editor_shapes(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    project = storage.projects.create(FIXED_CHINESE_BRIEF)
+    completed = ProjectPipelineExecutor(_FixtureResolver()).execute(project, profile=_fixture_profile())
+    assert completed.status == RunStatus.SUCCEEDED
+    client = TestClient(create_project_folder_authoring_app(storage))
+    project_id = project.project().id
+    stages = client.get(f"/api/v2/projects/{project_id}/stages").json()["stages"]
+
+    brief_draft = client.put(
+        f"/api/v2/projects/{project_id}/authoring-drafts",
+        json={
+            "editorScope": "brief", "entityId": "root", "baseCanonicalRevision": 1,
+            "expectedDraftRevision": 0,
+            "payload": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True),
+        },
+    )
+    assert brief_draft.status_code == 200
+    for stage in stages:
+        response = client.put(
+            f"/api/v2/projects/{project_id}/authoring-drafts",
+            json={
+                "editorScope": stage["head"]["stage"], "entityId": "root",
+                "baseCanonicalRevision": stage["head"]["revision"],
+                "expectedDraftRevision": 0, "payload": stage["payload"],
+            },
+        )
+        assert response.status_code == 200
+    assert {draft["editorScope"] for draft in client.get(
+        f"/api/v2/projects/{project_id}/authoring-drafts"
+    ).json()} == {"brief", "story_bible", "story_graph", "scene_beats", "storyboard"}
+
+    rejected = client.put(
+        f"/api/v2/projects/{project_id}/authoring-drafts",
+        json={
+            "editorScope": "brief", "entityId": "root", "baseCanonicalRevision": 1,
+            "expectedDraftRevision": 1,
+            "payload": {"apiKey": "not-allowed"},
+        },
+    )
+    assert rejected.status_code == 422

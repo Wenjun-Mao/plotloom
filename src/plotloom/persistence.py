@@ -37,6 +37,8 @@ from .domain import (
     TERMINAL_RUN_STATUSES,
     TERMINAL_WORK_UNIT_STATUSES,
     Artifact,
+    AuthoringDraft,
+    AuthoringDraftScope,
     ArtifactKind,
     AttemptStatus,
     CanonicalSnapshot,
@@ -279,6 +281,24 @@ class StageHeadRow(Base):
     schema_version: Mapped[int] = mapped_column(Integer, nullable=False)
     input_revisions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False)
     stale_reasons: Mapped[list[str]] = mapped_column(JSON, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class AuthoringDraftRow(Base):
+    """Mutable, allowlisted editor state owned by exactly one project DB."""
+
+    __tablename__ = "v2_authoring_drafts"
+    __table_args__ = (UniqueConstraint("project_id", "editor_scope", "entity_id"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_projects.id", ondelete="CASCADE"), index=True
+    )
+    editor_scope: Mapped[str] = mapped_column(String(32), nullable=False)
+    entity_id: Mapped[str] = mapped_column(String(160), nullable=False)
+    base_canonical_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    draft_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
@@ -1019,6 +1039,7 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset(
         "v2_projects",
         "v2_entity_revisions",
         "v2_stage_heads",
+        "v2_authoring_drafts",
         "v2_gate_results",
         "v2_generation_runs",
         "v2_generation_attempts",
@@ -4316,6 +4337,136 @@ class SQLiteRepository:
                     head.stale_reasons = ["project brief revision changed"]
                     head.updated_at = row.updated_at
             return self._project(row)
+
+    @staticmethod
+    def _authoring_draft(row: AuthoringDraftRow) -> AuthoringDraft:
+        return AuthoringDraft(
+            project_id=row.project_id,
+            editor_scope=row.editor_scope,
+            entity_id=row.entity_id,
+            base_canonical_revision=row.base_canonical_revision,
+            draft_revision=row.draft_revision,
+            payload=row.payload,
+            updated_at=_stored_utc(row.updated_at),
+        )
+
+    @staticmethod
+    def _validate_authoring_draft_payload(
+        editor_scope: AuthoringDraftScope,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Keep draft storage at the authoring contract, never UI/session shape."""
+
+        if contains_secret_setting(payload) or contains_secret_value(payload):
+            raise ValueError("authoring drafts must not contain credentials or secret-shaped values")
+        if editor_scope == "brief":
+            return ProjectBrief.model_validate(payload).model_dump(mode="json", by_alias=True)
+        stage = StageName(editor_scope)
+        return stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(
+            payload
+        ).model_dump(mode="json", by_alias=True)
+
+    @staticmethod
+    def _authoring_draft_base_revision(
+        session: Session,
+        project: ProjectRow,
+        editor_scope: AuthoringDraftScope,
+    ) -> int:
+        if editor_scope == "brief":
+            return project.revision
+        return SQLiteRepository._stage_row(session, project.id, StageName(editor_scope)).revision
+
+    def list_authoring_drafts(self, project_id: str) -> list[AuthoringDraft]:
+        with self._read() as session:
+            self._project_row(session, project_id)
+            rows = session.scalars(
+                select(AuthoringDraftRow)
+                .where(AuthoringDraftRow.project_id == project_id)
+                .order_by(AuthoringDraftRow.editor_scope, AuthoringDraftRow.entity_id)
+            ).all()
+            return [self._authoring_draft(row) for row in rows]
+
+    def upsert_authoring_draft(
+        self,
+        project_id: str,
+        *,
+        editor_scope: AuthoringDraftScope,
+        entity_id: str,
+        base_canonical_revision: int,
+        expected_draft_revision: int,
+        payload: dict[str, Any],
+    ) -> AuthoringDraft:
+        """CAS one bounded editor buffer against its exact canonical owner."""
+
+        validated_payload = self._validate_authoring_draft_payload(editor_scope, payload)
+        with self._lifecycle_write() as session:
+            project = self._project_row(session, project_id)
+            self._assert_active_project(project)
+            current_base = self._authoring_draft_base_revision(session, project, editor_scope)
+            if base_canonical_revision != current_base:
+                raise RevisionConflictError(
+                    f"authoring draft canonical base {editor_scope}",
+                    base_canonical_revision,
+                    current_base,
+                )
+            row = session.scalar(
+                select(AuthoringDraftRow).where(
+                    AuthoringDraftRow.project_id == project_id,
+                    AuthoringDraftRow.editor_scope == editor_scope,
+                    AuthoringDraftRow.entity_id == entity_id,
+                )
+            )
+            current_draft_revision = row.draft_revision if row is not None else 0
+            if expected_draft_revision != current_draft_revision:
+                raise RevisionConflictError(
+                    f"authoring draft {editor_scope}/{entity_id}",
+                    expected_draft_revision,
+                    current_draft_revision,
+                )
+            now = utc_now()
+            if row is None:
+                row = AuthoringDraftRow(
+                    id=new_id(),
+                    project_id=project_id,
+                    editor_scope=editor_scope,
+                    entity_id=entity_id,
+                    base_canonical_revision=base_canonical_revision,
+                    draft_revision=1,
+                    payload=validated_payload,
+                    updated_at=now,
+                )
+                session.add(row)
+            else:
+                row.base_canonical_revision = base_canonical_revision
+                row.draft_revision += 1
+                row.payload = validated_payload
+                row.updated_at = now
+            session.flush()
+            return self._authoring_draft(row)
+
+    def discard_authoring_draft(
+        self,
+        project_id: str,
+        *,
+        editor_scope: AuthoringDraftScope,
+        entity_id: str,
+        expected_draft_revision: int,
+    ) -> bool:
+        """Consume only one exact acknowledged draft; preserve newer typing."""
+
+        with self._lifecycle_write() as session:
+            self._project_row(session, project_id)
+            row = session.scalar(
+                select(AuthoringDraftRow).where(
+                    AuthoringDraftRow.project_id == project_id,
+                    AuthoringDraftRow.editor_scope == editor_scope,
+                    AuthoringDraftRow.entity_id == entity_id,
+                )
+            )
+            if row is None or row.draft_revision != expected_draft_revision:
+                return False
+            session.delete(row)
+            return True
 
     def list_stage_heads(self, project_id: str) -> list[StageHead]:
         with self._read() as session:

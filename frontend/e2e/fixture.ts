@@ -36,8 +36,12 @@ type E2eVideoAdapter = "wan" | "h3";
 
 export const test = createWorkbenchTest("wan");
 export const h3Test = createWorkbenchTest("h3");
+export const projectFolderTest = createWorkbenchTest("wan", "frontend/e2e/project_folder_authoring_runtime.py");
 
-function createWorkbenchTest(videoAdapter: E2eVideoAdapter) {
+function createWorkbenchTest(
+  videoAdapter: E2eVideoAdapter,
+  backendEntrypoint = "frontend/e2e/fake_video_runtime.py",
+) {
   return base.extend<{}, WorkbenchWorkerFixtures>({
   workbench: [async ({}, use) => {
     // Only the Wan restart pilot has an operator-selected retained root. H3
@@ -85,8 +89,12 @@ function createWorkbenchTest(videoAdapter: E2eVideoAdapter) {
       VIDEO_MODEL_API_KEY: "",
       ATLASCLOUD_API_KEY: "",
       PLOTLOOM_E2E_VIDEO_ADAPTER: videoAdapter,
+      ...(backendEntrypoint.endsWith("project_folder_authoring_runtime.py") ? {
+        PLOTLOOM_E2E_OUTPUTS_DIR: path.join(temporaryRoot, "outputs"),
+        PLOTLOOM_E2E_APPLICATION_DATA_DIR: path.join(temporaryRoot, "application"),
+      } : {}),
     };
-    let backend = startProcess("FastAPI", "uv", ["run", "python", "frontend/e2e/fake_video_runtime.py"], backendEnvironment);
+    let backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], backendEnvironment);
     let frontend: ManagedProcess | undefined;
 
     try {
@@ -117,7 +125,7 @@ function createWorkbenchTest(videoAdapter: E2eVideoAdapter) {
         restartBackend: async () => {
           await stopProcess(backend);
           await waitForHttpUnavailable(`${apiOrigin}/openapi.json`);
-          backend = startProcess("FastAPI", "uv", ["run", "python", "frontend/e2e/fake_video_runtime.py"], backendEnvironment);
+          backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], backendEnvironment);
           await waitForHttp(`${apiOrigin}/openapi.json`, backend);
         },
       });

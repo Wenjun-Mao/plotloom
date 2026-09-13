@@ -22,6 +22,8 @@ from pydantic import Field, field_validator, model_validator
 from sqlalchemy.exc import SQLAlchemyError
 
 from .domain import (
+    AuthoringDraft,
+    AuthoringDraftScope,
     CamelModel,
     FragmentReuseBinding,
     GenerationRun,
@@ -31,6 +33,8 @@ from .domain import (
     RunTrace,
     STAGE_ORDER,
     StageEnvelope,
+    StageHead,
+    StageName,
     StageStatus,
     WorkUnitRepairScope,
     contains_secret_setting,
@@ -45,9 +49,10 @@ if TYPE_CHECKING:
     from .provider_profiles import TextProviderProfileSnapshot, TextProviderProfileSnapshotV3
 
 
-# Checkpoint 2A deliberately replaces the rejected projection schema.  Opening
-# a former construction-seam home is a format error, never an implicit import.
-PROJECT_STORAGE_FORMAT_VERSION = 3
+# Checkpoint 2B adds durable authoring-draft rows to the direct project schema.
+# A 2A folder is rejected rather than silently receiving an unreviewed schema
+# mutation; no importer/compatibility path exists before the planned cutover.
+PROJECT_STORAGE_FORMAT_VERSION = 4
 PROJECT_DATABASE_RELATIVE_PATH = "project.sqlite3"
 PROJECT_MANIFEST_FILENAME = "project.json"
 
@@ -523,6 +528,61 @@ class ProjectStore:
             return self.repository.update_project(self.manifest.project_id, expected_revision, brief)
         except RevisionConflictError as error:
             raise ProjectStorageConflictError("project revision is stale") from error
+
+    def update_stage(
+        self,
+        stage: StageName,
+        payload: dict[str, Any],
+        *,
+        expected_revision: int,
+    ) -> StageHead:
+        try:
+            return self.repository.update_stage(
+                self.manifest.project_id,
+                stage,
+                expected_revision,
+                payload,
+            )
+        except RevisionConflictError as error:
+            raise ProjectStorageConflictError(f"{stage.value} revision is stale") from error
+
+    def authoring_drafts(self) -> list[AuthoringDraft]:
+        return self.repository.list_authoring_drafts(self.manifest.project_id)
+
+    def save_authoring_draft(
+        self,
+        *,
+        editor_scope: AuthoringDraftScope,
+        entity_id: str,
+        base_canonical_revision: int,
+        expected_draft_revision: int,
+        payload: dict[str, Any],
+    ) -> AuthoringDraft:
+        try:
+            return self.repository.upsert_authoring_draft(
+                self.manifest.project_id,
+                editor_scope=editor_scope,
+                entity_id=entity_id,
+                base_canonical_revision=base_canonical_revision,
+                expected_draft_revision=expected_draft_revision,
+                payload=payload,
+            )
+        except RevisionConflictError as error:
+            raise ProjectStorageConflictError("authoring draft is stale") from error
+
+    def discard_authoring_draft(
+        self,
+        *,
+        editor_scope: AuthoringDraftScope,
+        entity_id: str,
+        expected_draft_revision: int,
+    ) -> bool:
+        return self.repository.discard_authoring_draft(
+            self.manifest.project_id,
+            editor_scope=editor_scope,
+            entity_id=entity_id,
+            expected_draft_revision=expected_draft_revision,
+        )
 
     def canonical_stages(self) -> list[StageEnvelope]:
         envelopes = self.repository.list_stage_envelopes(self.manifest.project_id)

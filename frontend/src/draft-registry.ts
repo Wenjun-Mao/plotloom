@@ -8,6 +8,10 @@ export interface DraftRecord {
   projectId: string;
   scope: DraftScope;
   baseRevision: number;
+  /** Last durable server revision this unacknowledged buffer must CAS from. */
+  serverDraftRevision: number;
+  /** Guards a delayed autosave acknowledgement against newer local typing. */
+  localRevision: number;
   payload: unknown;
   updatedAt: string;
 }
@@ -44,13 +48,55 @@ export function getDraft(project: WorkspaceProject, scope: DraftScope): DraftRec
   return readAll()[draftKey(project, scope)];
 }
 
-export function putDraft(project: WorkspaceProject, scope: DraftScope, payload: unknown): DraftRecord {
+export function putDraft(
+  project: WorkspaceProject,
+  scope: DraftScope,
+  payload: unknown,
+  serverDraftRevision = getDraft(project, scope)?.serverDraftRevision ?? 0,
+): DraftRecord {
   const key = draftKey(project, scope);
   const projectId = draftOwner(project);
   const baseRevision = scope === "brief" ? project.revision : project.stageRevisions[scope];
-  const record: DraftRecord = { key, projectId, scope, baseRevision, payload, updatedAt: new Date().toISOString() };
+  const previous = getDraft(project, scope);
+  const record: DraftRecord = {
+    key, projectId, scope, baseRevision, serverDraftRevision,
+    localRevision: (previous?.localRevision ?? 0) + 1,
+    payload, updatedAt: new Date().toISOString(),
+  };
   writeAll({ ...readAll(), [key]: record });
   return record;
+}
+
+/** Acknowledged content leaves sessionStorage; only unsent safety remains there. */
+export function acknowledgeDraft(
+  project: WorkspaceProject,
+  scope: DraftScope,
+  localRevision: number,
+  serverDraftRevision: number,
+): void {
+  const current = getDraft(project, scope);
+  if (!current) return;
+  if (current.localRevision === localRevision) {
+    discardDraft(project, scope);
+    return;
+  }
+  // A newer local buffer exists. Keep it, but CAS its next save from the
+  // newly acknowledged server revision instead of replaying the older one.
+  const all = readAll();
+  all[current.key] = { ...current, serverDraftRevision };
+  writeAll(all);
+}
+
+export function setDraftServerRevision(
+  project: WorkspaceProject,
+  scope: DraftScope,
+  serverDraftRevision: number,
+): void {
+  const current = getDraft(project, scope);
+  if (!current) return;
+  const all = readAll();
+  all[current.key] = { ...current, serverDraftRevision };
+  writeAll(all);
 }
 
 export function discardDraft(project: WorkspaceProject, scope: DraftScope): void {

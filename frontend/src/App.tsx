@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { MediaTask, PipelineRun, ProjectListItem, ProviderSettings, QuarantineItem, RunExecutionTrace, RunProgress, SceneBeatPlan, ServerStageName, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, StoryboardReview, TextBackendReadiness, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, ValidationIssue, WorkspaceProject } from "./types";
+import type { AuthoringDraft, MediaTask, PipelineRun, ProjectListItem, ProjectResource, ProviderSettings, QuarantineItem, RunExecutionTrace, RunProgress, SceneBeatPlan, ServerStageName, StageEnvelope, StageHead, StoryBible, StoryGraph, Storyboard, StoryboardReview, TextBackendReadiness, TextProviderPresetId, TextProviderProfileConfiguration, TextProviderProfilesResponse, TextProviderProfileView, TraceEvent, ValidationIssue, WorkspaceProject } from "./types";
 import { plotloomApi, ApiError } from "./api";
 import { providerSessionKeys } from "./session-key";
 import { defaultProviderSettings, demoProject, demoRun, demoTrace, emptyStageContent } from "./demo";
-import { discardDraft, discardDraftRecord, findProjectDrafts, findRevisionConflict, getDraft, hasDraft, putDraft, type DraftRecord, type DraftScope } from "./draft-registry";
+import { acknowledgeDraft, discardDraft, discardDraftRecord, findProjectDrafts, findRevisionConflict, getDraft, hasDraft, putDraft, type DraftRecord, type DraftScope } from "./draft-registry";
 import { markDownstreamStale, mergeProjectResponse, stageLabels, traceEvents } from "./model";
 import { initialStagesThrough, projectCreationBody, projectCreationRequest, workspaceWithStageDraft } from "./project-creation";
 import { editorRevisionKey, hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromProgress } from "./workspace-state";
@@ -31,6 +31,17 @@ interface DraftConflictState {
   record: DraftRecord;
   workspace: WorkspaceProject;
   serverReloaded: boolean;
+}
+
+type DraftRecoverySource = "server" | "session" | "reconcile";
+type DurableDraftStatus = "idle" | "saving" | "saved" | "failed" | "conflict";
+
+function authoringDraftKey(projectId: string, scope: DraftScope): string {
+  return `${projectId}:${scope}:root`;
+}
+
+function sameDraftPayload(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
 }
 
 const navigation: { id: PageId; index: string; label: string; description: string }[] = [
@@ -209,12 +220,14 @@ export default function App() {
   const [nextProjectCursor, setNextProjectCursor] = useState<string | null>(null);
   const [directoryLoading, setDirectoryLoading] = useState(false);
   const [routeEntity, setRouteEntity] = useState(() => routeFromLocation().entity);
-  const [draftRecovery, setDraftRecovery] = useState<{ scope: DraftScope; payload: unknown } | undefined>();
+  const [draftRecovery, setDraftRecovery] = useState<{ scope: DraftScope; payload: unknown; source: DraftRecoverySource } | undefined>();
   const [restoredDraft, setRestoredDraft] = useState<{ scope: DraftScope; payload: unknown } | undefined>();
   const [draftConflict, setDraftConflict] = useState<DraftConflictState | undefined>();
   const [unsafeDraft, setUnsafeDraft] = useState<{ record: DraftRecord; reason: "archived" | "unavailable" } | undefined>();
   const [pendingNavigation, setPendingNavigation] = useState<NavigationTarget | undefined>();
   const [editorNonce, setEditorNonce] = useState(0);
+  const [durableDraftsEnabled, setDurableDraftsEnabled] = useState(false);
+  const [durableDraftStatus, setDurableDraftStatus] = useState<DurableDraftStatus>("idle");
   const [onboarding, setOnboarding] = useState(() => !routeFromLocation().project);
   const [pendingArchive, setPendingArchive] = useState<ProjectListItem | undefined>();
   const pollingRunEpochs = useRef(new Map<string, number>());
@@ -232,6 +245,10 @@ export default function App() {
   const repairKeyByUnit = useRef(new Map<string, string>());
   const traceEvidenceEpoch = useRef(0);
   const projectLoadController = useRef<AbortController | undefined>(undefined);
+  const durableDraftsEnabledRef = useRef(false);
+  const serverAuthoringDrafts = useRef(new Map<string, AuthoringDraft>());
+  const draftAutosaveTimers = useRef(new Map<string, number>());
+  const draftAutosaveFlights = useRef(new Map<string, Promise<boolean>>());
   const loadedTraceEvidenceFor = useRef<string | undefined>(undefined);
   const loadingTraceEvidenceFor = useRef<string | undefined>(undefined);
   useEffect(() => { profileCatalog.current = profiles; }, [profiles]);
@@ -303,11 +320,14 @@ export default function App() {
     projectLoadController.current = controller;
     setConnection("loading");
     try {
-      const [incoming, stageResponse, runResponse, mediaResponse] = await Promise.all([
+      const [incoming, stageResponse, runResponse, mediaResponse, authoringDrafts] = await Promise.all([
         plotloomApi.getProject(projectId, controller.signal),
         plotloomApi.getStages(projectId, controller.signal),
         plotloomApi.getProjectRuns(projectId, controller.signal),
         plotloomApi.getProjectMediaTasks(projectId, controller.signal),
+        durableDraftsEnabledRef.current
+          ? plotloomApi.getAuthoringDrafts(projectId, controller.signal)
+          : Promise.resolve([] as AuthoringDraft[]),
       ]);
       const storyboardHead = stageResponse.stages.find((envelope) => envelope.head.stage === "storyboard")?.head;
       const reviewResponse = storyboardHead?.revision
@@ -357,6 +377,9 @@ export default function App() {
       setTrace([]);
       setExecutionTrace(undefined);
       setMediaTasks(newestMediaTasksByShot(mediaResponse.tasks));
+      serverAuthoringDrafts.current = new Map(
+        authoringDrafts.map((draft) => [authoringDraftKey(projectId, draft.editorScope), draft]),
+      );
       setConnection("connected");
       setOnboarding(false);
       setError(requestedRunMissing ? `运行 ${requestedRunId} 不属于当前项目或已不存在。` : automaticResumeBlocked);
@@ -400,6 +423,20 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadProject]);
   useEffect(() => { void refreshProfiles().catch(() => undefined); }, [refreshProfiles]);
+  useEffect(() => {
+    void plotloomApi.getAuthoringDraftCapability()
+      .then((capability) => {
+        durableDraftsEnabledRef.current = capability.durableProjectDrafts === true;
+        setDurableDraftsEnabled(durableDraftsEnabledRef.current);
+        if (durableDraftsEnabledRef.current && visibleRoute.current.project) {
+          const epoch = invalidateWorkspaceNavigation({ ...visibleRoute.current });
+          void loadProject(visibleRoute.current.project, epoch);
+        }
+      })
+      // The retained runtime intentionally does not expose this test-only
+      // storage composition.  Absence is not a user-switchable mode.
+      .catch(() => { durableDraftsEnabledRef.current = false; setDurableDraftsEnabled(false); });
+  }, [loadProject]);
   const loadTraceEvidence = useCallback(async (runId: string, projectId: string) => {
     if (loadedTraceEvidenceFor.current === runId || loadingTraceEvidenceFor.current === runId) return;
     loadingTraceEvidenceFor.current = runId;
@@ -483,6 +520,61 @@ export default function App() {
     const refreshEpoch = invalidateWorkspaceNavigation({ ...visibleRoute.current });
     void loadProject(projectId, refreshEpoch);
   };
+
+  const flushAuthoringDraft = useCallback(async (scope: DraftScope): Promise<boolean> => {
+    if (!durableDraftsEnabledRef.current || !project.id || project.archivedAt) return true;
+    const local = getDraft(project, scope);
+    if (!local) return true;
+    const key = authoringDraftKey(project.id, scope);
+    const existingFlight = draftAutosaveFlights.current.get(key);
+    if (existingFlight) return existingFlight;
+    const operation = captureWorkspaceOperation();
+    const request = (async (): Promise<boolean> => {
+      if (isWorkspaceOperationCurrent(operation)) setDurableDraftStatus("saving");
+      try {
+        const saved = await plotloomApi.saveAuthoringDraft(project.id!, {
+          editorScope: scope,
+          entityId: "root",
+          baseCanonicalRevision: local.baseRevision,
+          expectedDraftRevision: local.serverDraftRevision,
+          payload: local.payload as Record<string, unknown>,
+        });
+        serverAuthoringDrafts.current.set(key, saved);
+        acknowledgeDraft(project, scope, local.localRevision, saved.draftRevision);
+        if (isWorkspaceOperationCurrent(operation)) setDurableDraftStatus("saved");
+        return true;
+      } catch (draftError) {
+        if (isWorkspaceOperationCurrent(operation)) {
+          if (draftError instanceof ApiError && draftError.status === 409) {
+            setDurableDraftStatus("conflict");
+            setDraftConflict({ scope, record: local, workspace: project, serverReloaded: false });
+          } else {
+            setDurableDraftStatus("failed");
+            setError(`草稿未保存：${messageFrom(draftError)}`);
+          }
+        }
+        return false;
+      } finally { draftAutosaveFlights.current.delete(key); }
+    })();
+    draftAutosaveFlights.current.set(key, request);
+    return request;
+  }, [project]);
+
+  const scheduleAuthoringDraftAutosave = useCallback((scope: DraftScope) => {
+    if (!durableDraftsEnabledRef.current || !project.id) return;
+    const key = authoringDraftKey(project.id, scope);
+    const existingTimer = draftAutosaveTimers.current.get(key);
+    if (existingTimer !== undefined) window.clearTimeout(existingTimer);
+    draftAutosaveTimers.current.set(key, window.setTimeout(() => {
+      draftAutosaveTimers.current.delete(key);
+      void flushAuthoringDraft(scope);
+    }, 750));
+  }, [flushAuthoringDraft, project.id]);
+
+  useEffect(() => () => {
+    draftAutosaveTimers.current.forEach((timer) => window.clearTimeout(timer));
+    draftAutosaveTimers.current.clear();
+  }, []);
 
   const beginProjectSave = (): number | undefined => {
     if (project.archivedAt) { setError("归档项目为只读；请先在项目目录中恢复它。"); return undefined; }
@@ -572,10 +664,23 @@ export default function App() {
       if (!project.id) {
         if (!await createProjectFrom(nextLocal, operation, nextLocal.initialStageOnFirstSave)) return;
       } else {
-        const updated = await plotloomApi.patchProject(project.id, project.revision, nextLocal.brief);
-        // A successful write owns the draft at the revision it was sent
-        // from, even if the user has already navigated elsewhere.
-        discardDraft(project, "brief");
+        if (durableDraftsEnabledRef.current && getDraft(project, "brief") && !await flushAuthoringDraft("brief")) return;
+        const serverDraft = serverAuthoringDrafts.current.get(authoringDraftKey(project.id, "brief"));
+        const consumedDraft = serverDraft
+          && serverDraft.baseCanonicalRevision === project.revision
+          && sameDraftPayload(serverDraft.payload, nextLocal.brief)
+          ? { editorScope: "brief" as const, entityId: "root", draftRevision: serverDraft.draftRevision }
+          : undefined;
+        const saved: { project: ProjectResource; consumedDraftRevision?: number } = consumedDraft
+          ? await plotloomApi.patchProjectWithDraft(project.id, project.revision, nextLocal.brief, consumedDraft)
+          : { project: await plotloomApi.patchProject(project.id, project.revision, nextLocal.brief) };
+        const updated = saved.project;
+        if (consumedDraft && saved.consumedDraftRevision === consumedDraft.draftRevision) {
+          serverAuthoringDrafts.current.delete(authoringDraftKey(project.id, "brief"));
+          setDurableDraftStatus("idle");
+        } else if (!durableDraftsEnabledRef.current) {
+          discardDraft(project, "brief");
+        }
         if (!isWorkspaceOperationCurrent(operation)) {
           refreshStaleAcceptedProject(project.id);
           return;
@@ -610,11 +715,23 @@ export default function App() {
         discardDraft(project, stage); currentDraft.current = undefined; setRestoredDraft(undefined);
         return;
       }
-      const envelope = await plotloomApi.patchStage(project.id, stage, project.stageRevisions[stage], content);
-      // Do not repaint a newer route, but remove the exact draft whose base
-      // revision the server has accepted. A later visit always reloads its
-      // canonical aggregate instead of reviving this stale session draft.
-      discardDraft(project, stage);
+      if (durableDraftsEnabledRef.current && getDraft(project, stage) && !await flushAuthoringDraft(stage)) return;
+      const serverDraft = serverAuthoringDrafts.current.get(authoringDraftKey(project.id, stage));
+      const consumedDraft = serverDraft
+        && serverDraft.baseCanonicalRevision === project.stageRevisions[stage]
+        && sameDraftPayload(serverDraft.payload, content)
+        ? { editorScope: stage, entityId: "root", draftRevision: serverDraft.draftRevision }
+        : undefined;
+      const saved: { stage: StageHead; consumedDraftRevision?: number } = consumedDraft
+        ? await plotloomApi.patchStageWithDraft(project.id, stage, project.stageRevisions[stage], content, consumedDraft)
+        : { stage: await plotloomApi.patchStage(project.id, stage, project.stageRevisions[stage], content) };
+      const envelope = saved.stage;
+      if (consumedDraft && saved.consumedDraftRevision === consumedDraft.draftRevision) {
+        serverAuthoringDrafts.current.delete(authoringDraftKey(project.id, stage));
+        setDurableDraftStatus("idle");
+      } else if (!durableDraftsEnabledRef.current) {
+        discardDraft(project, stage);
+      }
       if (!isWorkspaceOperationCurrent(operation)) {
         refreshStaleAcceptedProject(project.id);
         return;
@@ -647,8 +764,9 @@ export default function App() {
     if (project.archivedAt) return;
     currentDraft.current = { scope, payload };
     putDraft(project, scope, payload);
+    scheduleAuthoringDraftAutosave(scope);
     if (restoredDraft?.scope === scope) setRestoredDraft({ scope, payload });
-  }, [project, restoredDraft?.scope]);
+  }, [project, restoredDraft?.scope, scheduleAuthoringDraftAutosave]);
 
   const applyNavigation = useCallback((next: NavigationTarget) => {
     const route = { project: next.project, stage: next.stage, entity: next.entity, run: next.run };
@@ -683,11 +801,18 @@ export default function App() {
       return;
     }
     if (scope && hasDraft(project, scope)) {
+      if (durableDraftsEnabledRef.current && project.id) {
+        void flushAuthoringDraft(scope).then((saved) => {
+          if (saved) applyNavigation(normalized);
+          else setPendingNavigation(normalized);
+        });
+        return;
+      }
       setPendingNavigation(normalized);
       return;
     }
     applyNavigation(normalized);
-  }, [activePage, applyNavigation, project, unsafeDraft]);
+  }, [activePage, applyNavigation, flushAuthoringDraft, project, unsafeDraft]);
 
   const selectRouteEntity = useCallback((entity: string) => {
     const next = { ...visibleRoute.current, entity };
@@ -755,12 +880,21 @@ export default function App() {
     }
     if (!scope || currentDraft.current || draftRecovery || draftConflict || unsafeDraft || restoredDraft) return;
     const saved = getDraft(project, scope);
-    if (saved) setDraftRecovery({ scope, payload: saved.payload });
+    const serverDraft = project.id && durableDraftsEnabled
+      ? serverAuthoringDrafts.current.get(authoringDraftKey(project.id, scope))
+      : undefined;
+    if (serverDraft) {
+      setDraftRecovery({
+        scope,
+        payload: saved?.payload ?? serverDraft.payload,
+        source: saved ? "reconcile" : "server",
+      });
+    } else if (saved) setDraftRecovery({ scope, payload: saved.payload, source: "session" });
     else {
       const conflict = findRevisionConflict(project, scope);
       if (conflict) setDraftConflict({ scope, record: conflict, workspace: project, serverReloaded: false });
     }
-  }, [activePage, draftConflict, draftRecovery, editorNonce, project, restoredDraft, unsafeDraft]);
+  }, [activePage, draftConflict, draftRecovery, durableDraftsEnabled, editorNonce, project, restoredDraft, unsafeDraft]);
 
   async function pollRun(runId: string, projectIdToRefresh = project.id) {
     const pollingEpoch = loadEpoch.current;
@@ -1297,13 +1431,16 @@ export default function App() {
       <div className="sidebar-footer"><Button variant="quiet" onClick={() => void openSettings()}>供应商与会话 Key</Button><small>API contract `/api/v2`</small></div>
     </aside>
     <div className="workspace-shell">
-      <header className="topbar"><div><span>{currentNav.index}</span><strong>{currentNav.label}</strong></div><div className="topbar-actions">{projectReadOnly && <Badge tone="warning">归档只读</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><Badge tone={profileDraft.readiness?.state === "available" ? "ok" : ["unreachable", "authentication_failed", "model_mismatch", "capability_mismatch"].includes(profileDraft.readiness?.state || "unverified") ? "danger" : "warning"}>文本后端：{profileDraft.readiness?.state || "unverified"} · {profileDraft.profileId} · {profileDraft.readiness?.reasonCode || "readiness.not_checked"}{profileDraft.readiness?.observedAt ? ` · ${new Date(profileDraft.readiness.observedAt).toLocaleString()}` : " · 未检测"}</Badge>{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}<Button variant="quiet" disabled={!project.id || connection === "loading"} onClick={requestProjectRefresh}>刷新服务器版本</Button>{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}</div></header>
+      <header className="topbar"><div><span>{currentNav.index}</span><strong>{currentNav.label}</strong></div><div className="topbar-actions">{projectReadOnly && <Badge tone="warning">归档只读</Badge>}{durableDraftsEnabled && <Badge tone={durableDraftStatus === "saved" ? "ok" : durableDraftStatus === "failed" || durableDraftStatus === "conflict" ? "danger" : durableDraftStatus === "saving" ? "accent" : "warning"}>草稿：{durableDraftStatus === "saving" ? "正在保存" : durableDraftStatus === "saved" ? "已保存" : durableDraftStatus === "failed" ? "保存失败" : durableDraftStatus === "conflict" ? "冲突" : "等待编辑"}</Badge>}<Badge tone={connection === "connected" ? "ok" : connection === "loading" ? "accent" : "warning"}>Plotloom 服务：{connection === "connected" ? "已连接" : connection === "loading" ? "连接中" : "未连接"}</Badge><Badge tone={profileDraft.readiness?.state === "available" ? "ok" : ["unreachable", "authentication_failed", "model_mismatch", "capability_mismatch"].includes(profileDraft.readiness?.state || "unverified") ? "danger" : "warning"}>文本后端：{profileDraft.readiness?.state || "unverified"} · {profileDraft.profileId} · {profileDraft.readiness?.reasonCode || "readiness.not_checked"}{profileDraft.readiness?.observedAt ? ` · ${new Date(profileDraft.readiness.observedAt).toLocaleString()}` : " · 未检测"}</Badge>{running && <Spinner label={runProgress?.failedStage ? stageLabels[runProgress.failedStage] : "Pipeline"} />}<Button variant="quiet" disabled={!project.id || connection === "loading"} onClick={requestProjectRefresh}>刷新服务器版本</Button>{staleCount > 0 && <Button variant="quiet" disabled={projectReadOnly} onClick={() => setRebuildOpen(true)}>{staleCount} 个阶段待重建</Button>}</div></header>
       {error && <div className="global-error"><ErrorNotice message={error} /><button aria-label="关闭错误" onClick={() => setError("")}>×</button></div>}
       <div className="workbench-grid">
         <aside className="context-panel"><span className="eyebrow">Context</span><strong>{project.brief.title || "新项目"}</strong><small>{project.lifecycleStatus === "archived" || project.archivedAt ? "归档快照 · 仅供审阅" : project.id ? `项目 ${project.id}` : navigationProjectId ? `加载项目 ${navigationProjectId}` : "空白项目；保存后建立规范项目"}</small><div className="context-stages">{navigation.slice(0, 5).map((item) => <button key={item.id} className={activePage === item.id ? "active" : ""} onClick={() => requestNavigation({ project: navigationProjectId, stage: item.id })}>{item.index} {item.label}</button>)}</div><div className="context-assets"><span className="eyebrow">Canon assets</span>{bibleAssets.map((asset) => <div key={asset.label}><strong>{asset.label} · {asset.items.length}</strong><small>{asset.items.length ? asset.items.slice(0, 3).map((item) => item.name).join("、") : "尚未定义"}{asset.items.length > 3 ? " …" : ""}</small></div>)}</div></aside>
         <main id="workspace-main">{workspaceHydrating
           ? <div className="workspace-hydrating" data-testid="workspace-hydrating" role="status"><Spinner label="正在加载项目" /><strong>正在加载项目…</strong><small>项目内容加载完成后才能编辑，当前导航选择会被保留。</small></div>
-          : <fieldset className="editor-host" disabled={projectReadOnly}>{page}</fieldset>}</main>
+          : <fieldset className="editor-host" disabled={projectReadOnly} onBlurCapture={() => {
+            const scope = stageForPage(activePage);
+            if (scope) void flushAuthoringDraft(scope);
+          }}>{page}</fieldset>}</main>
         <WorkspaceInspector currentLabel={currentNav.label} project={project} routeEntity={routeEntity} stageOverview={stageOverview} run={run} progress={runProgress} review={storyboardReview} readOnly={projectReadOnly} frozenProfileId={frozenProfileId} frozenProfileNeedsKey={frozenProfileNeedsKey} onAuthorizeProfile={() => void openFrozenProfileSettings(frozenProfileId)} onOpenTrace={() => requestNavigation({ project: navigationProjectId, stage: "trace", run: run?.id || "" })} onResume={resumeRun} onCancel={cancelRun} onRepair={repair} onRebuild={(stage) => { setRebuildOpen(false); void rebuild(stage); }} />
       </div>
     </div>
@@ -1312,7 +1449,24 @@ export default function App() {
     {directoryOpen && <ProjectDirectoryDialog projects={projects} showArchived={showArchived} error={directoryError} loading={directoryLoading} hasMore={Boolean(nextProjectCursor)} onLoadMore={loadMoreProjects} onArchived={(next) => { setShowArchived(next); void refreshProjectDirectory(next); }} onBlank={startBlankProject} onSample={openSampleProject} onOpen={(item) => { setDirectoryOpen(false); requestNavigation({ project: item.id, stage: "brief" }); }} onAction={mutateProjectLifecycle} onClose={() => setDirectoryOpen(false)} />}
     {pendingNavigation && !unsafeDraft && <DraftNavigationDialog onSave={() => void resolvePendingNavigation("save")} onDiscard={() => void resolvePendingNavigation("discard")} onCancel={() => void resolvePendingNavigation("cancel")} />}
     {pendingArchive && <DraftNavigationDialog onSave={() => void resolvePendingArchive("save")} onDiscard={() => void resolvePendingArchive("discard")} onCancel={() => void resolvePendingArchive("cancel")} />}
-    {draftRecovery && <DraftRecoveryDialog onRestore={() => { currentDraft.current = { scope: draftRecovery.scope, payload: draftRecovery.payload }; setRestoredDraft(draftRecovery); setEditorNonce((value) => value + 1); setDraftRecovery(undefined); }} onDiscard={() => { discardDraft(project, draftRecovery.scope); setDraftRecovery(undefined); setRestoredDraft(undefined); setEditorNonce((value) => value + 1); }} />}
+    {draftRecovery && <DraftRecoveryDialog source={draftRecovery.source} onRestore={() => {
+      currentDraft.current = { scope: draftRecovery.scope, payload: draftRecovery.payload };
+      setRestoredDraft(draftRecovery);
+      if (draftRecovery.source !== "server") scheduleAuthoringDraftAutosave(draftRecovery.scope);
+      setEditorNonce((value) => value + 1); setDraftRecovery(undefined);
+    }} onDiscard={() => {
+      const recovery = draftRecovery;
+      discardDraft(project, recovery.scope);
+      const serverDraft = project.id && serverAuthoringDrafts.current.get(authoringDraftKey(project.id, recovery.scope));
+      if (serverDraft && project.id) {
+        void plotloomApi.discardAuthoringDraft(project.id, {
+          editorScope: recovery.scope, entityId: "root", expectedDraftRevision: serverDraft.draftRevision,
+        }).then((receipt) => {
+          if (receipt === serverDraft.draftRevision) serverAuthoringDrafts.current.delete(authoringDraftKey(project.id!, recovery.scope));
+        }).catch((discardError) => setError(`草稿未丢弃：${messageFrom(discardError)}`));
+      }
+      currentDraft.current = undefined; setDraftRecovery(undefined); setRestoredDraft(undefined); setEditorNonce((value) => value + 1);
+    }} />}
     {draftConflict && <DraftConflictDialog serverReloaded={draftConflict.serverReloaded} busy={projectSaving} onReload={() => void reloadConflictServer()} onCopy={() => void copyConflictAsProject()} onDiscard={() => { discardDraftRecord(draftConflict.record); currentDraft.current = undefined; setDraftConflict(undefined); setEditorNonce((value) => value + 1); }} />}
     {unsafeDraft && <UnsafeDraftDialog reason={unsafeDraft.reason} onDiscard={() => {
       const pending = pendingNavigation;
@@ -1402,8 +1556,13 @@ function DraftNavigationDialog({ onSave, onDiscard, onCancel }: { onSave: () => 
   return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-navigation-title"><button className="modal-backdrop" aria-label="继续编辑" onClick={onCancel} /><section className="modal-card compact"><header><div><span>Unsaved draft</span><h2 id="draft-navigation-title">保存当前草稿？</h2></div></header><div className="modal-body"><div className="notice warning"><strong>即将切换工作台</strong><span>当前阶段有未保存修改。保存会显式写入项目；丢弃只移除本标签页草稿。</span></div></div><footer><Button variant="quiet" onClick={onCancel}>取消</Button><Button variant="danger" onClick={onDiscard}>丢弃</Button><Button variant="primary" onClick={onSave}>保存并切换</Button></footer></section></div>;
 }
 
-function DraftRecoveryDialog({ onRestore, onDiscard }: { onRestore: () => void; onDiscard: () => void }) {
-  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-recovery-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>Session recovery</span><h2 id="draft-recovery-title">发现未保存草稿</h2></div></header><div className="modal-body"><div className="notice"><strong>可恢复</strong><span>此草稿保存在当前标签页 sessionStorage，尚未写入服务器。</span></div></div><footer><Button variant="quiet" onClick={onDiscard}>丢弃草稿</Button><Button variant="primary" onClick={onRestore}>恢复草稿</Button></footer></section></div>;
+function DraftRecoveryDialog({ source, onRestore, onDiscard }: { source: DraftRecoverySource; onRestore: () => void; onDiscard: () => void }) {
+  const detail = source === "server"
+    ? "此草稿已安全保存在项目目录的 project.sqlite3；规范内容尚未改变。"
+    : source === "reconcile"
+      ? "当前标签页有尚未确认的输入，服务器也有项目草稿。恢复会保留本标签页内容供比较和重新保存。"
+      : "此草稿只在当前标签页 sessionStorage 中，尚未得到服务器确认。";
+  return <div className="modal" role="dialog" aria-modal="true" aria-labelledby="draft-recovery-title"><button className="modal-backdrop" aria-label="保留提示" /><section className="modal-card compact"><header><div><span>{source === "server" ? "Server draft" : "Session recovery"}</span><h2 id="draft-recovery-title">发现未保存草稿</h2></div></header><div className="modal-body"><div className="notice"><strong>规范内容保持不变</strong><span>{detail}</span></div></div><footer><Button variant="quiet" onClick={onDiscard}>丢弃草稿</Button><Button variant="primary" onClick={onRestore}>恢复草稿</Button></footer></section></div>;
 }
 
 function DraftConflictDialog({ serverReloaded, busy, onReload, onCopy, onDiscard }: { serverReloaded: boolean; busy: boolean; onReload: () => void; onCopy: () => void; onDiscard: () => void }) {
