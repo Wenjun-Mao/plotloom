@@ -850,7 +850,7 @@ async function writeDelivery(
             },
             executorProvenance: {
               codeRevision: "a".repeat(40),
-              skillVersion: "plotloom-image-specialist.v2",
+              skillVersion: "plotloom-image-specialist.v3",
               skillHash: "b".repeat(64),
             },
           }
@@ -868,7 +868,7 @@ async function writeDelivery(
         jobId: job.id,
         requestHash: job.requestHash,
         executionContract: "codex_specialist.v2",
-        skillVersion: "plotloom-image-specialist.v2",
+        skillVersion: "plotloom-image-specialist.v3",
         codeRevision: "a".repeat(40),
         skillHash: "b".repeat(64),
       }),
@@ -905,7 +905,7 @@ async function writeProposalDelivery(
   await writeFile(path.join(delivery, "outputs", "candidate.png"), content);
   const provenance = {
     codeRevision: "a".repeat(40),
-    skillVersion: "plotloom-image-specialist.v2",
+    skillVersion: "plotloom-image-specialist.v3",
     skillHash: "b".repeat(64),
   };
   await writeFile(
