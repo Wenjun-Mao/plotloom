@@ -1,0 +1,12 @@
+services:
+  gateway:
+    build:
+      context: ../..
+      dockerfile: services/minimax_h3_gateway/Dockerfile
+    container_name: plotloom-h3-gateway
+    env_file: .env
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - ${H3_GATEWAY_DATA_HOST_DIR}:/var/lib/plotloom-h3-gateway
+      - ${H3_COMFY_INPUT_HOST_DIR}:/comfy/input
