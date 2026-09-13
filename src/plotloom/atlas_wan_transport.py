@@ -52,13 +52,96 @@ class AtlasCloudWanTransport:
 
     def upload(self, image: bytes, *, mime_type: str) -> str:
         payload = self._authorized("upload", "POST", "uploadMedia", files={"file": ("approved-keyframe", image, mime_type)})
-        # The current hosted Atlas upload reference uses only the top-level
-        # ``url`` response member. Do not treat a successful HTTP envelope as
-        # a successful upload when it carries a different, undocumented shape.
-        url = payload.get("url")
-        if not isinstance(url, str) or not url.startswith("https://"):
+        url = self._upload_url(payload)
+        if url is None:
             raise WanDispatchError(WanDispatchDiagnostic("upload", "invalid_upload_url"))
         return url
+
+    @staticmethod
+    def _upload_url(payload: dict[str, Any]) -> str | None:
+        """Accept only the two documented Atlas upload envelopes.
+
+        A response can be a successful HTTP envelope while still being an
+        application error.  This parser deliberately does not search nested
+        objects or use ``data.url`` as a compatibility fallback.
+        """
+
+        if payload.get("error") is not None:
+            return None
+
+        candidates: list[str] = []
+        if "url" in payload:
+            url = AtlasCloudWanTransport._valid_upload_url(payload["url"])
+            if url is None:
+                return None
+            candidates.append(url)
+
+        if "data" in payload:
+            data = payload["data"]
+            if not isinstance(data, dict):
+                return None
+            if "download_url" in data:
+                url = AtlasCloudWanTransport._valid_upload_url(data["download_url"])
+                if url is None:
+                    return None
+                candidates.append(url)
+
+        if not candidates or any(url != candidates[0] for url in candidates[1:]):
+            return None
+        return candidates[0]
+
+    @staticmethod
+    def _valid_upload_url(value: object) -> str | None:
+        if not isinstance(value, str) or not value:
+            return None
+        if any(
+            character.isspace() or ord(character) < 32 or 127 <= ord(character) <= 159
+            for character in value
+        ):
+            return None
+        try:
+            parsed = urlparse(value)
+            # Accessing ``port`` makes urllib reject non-numeric and out of
+            # range ports.  A trailing colon has no port value, but is also
+            # not a complete authority for this contract.
+            _ = parsed.port
+        except ValueError:
+            return None
+        if (
+            parsed.scheme != "https"
+            or not AtlasCloudWanTransport._has_valid_hostname(parsed.hostname)
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.netloc.endswith(":")
+        ):
+            return None
+        return value
+
+    @staticmethod
+    def _has_valid_hostname(hostname: str | None) -> bool:
+        if not hostname:
+            return False
+        try:
+            ipaddress.ip_address(hostname)
+            return True
+        except ValueError:
+            pass
+        try:
+            ascii_hostname = hostname.encode("idna").decode("ascii")
+        except UnicodeError:
+            return False
+        labels = ascii_hostname.removesuffix(".").split(".")
+        return bool(
+            ascii_hostname
+            and len(ascii_hostname) <= 253
+            and all(
+                0 < len(label) <= 63
+                and label[0] != "-"
+                and label[-1] != "-"
+                and all(character.isascii() and (character.isalnum() or character == "-") for character in label)
+                for label in labels
+            )
+        )
 
     def submit(self, payload: dict[str, Any]) -> dict[str, Any]:
         return self._authorized("submit", "POST", "generateVideo", json=payload)

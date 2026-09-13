@@ -128,14 +128,39 @@ def test_upload_uses_documented_multipart_field_and_top_level_url(monkeypatch) -
 
 
 @pytest.mark.parametrize(
+    ("payload", "expected_url"),
+    [
+        ({"url": "https://uploads.atlas.example/keyframe.png?signature=preserved"}, "https://uploads.atlas.example/keyframe.png?signature=preserved"),
+        ({"data": {"download_url": "https://uploads.atlas.example/keyframe.png?signature=preserved"}}, "https://uploads.atlas.example/keyframe.png?signature=preserved"),
+        ({"url": "https://uploads.atlas.example/keyframe.png?signature=preserved", "data": {"download_url": "https://uploads.atlas.example/keyframe.png?signature=preserved"}}, "https://uploads.atlas.example/keyframe.png?signature=preserved"),
+        ({"url": "https://uploads.atlas.example/keyframe.png", "error": None}, "https://uploads.atlas.example/keyframe.png"),
+    ],
+)
+def test_upload_accepts_only_explicit_hosted_and_skills_envelopes(monkeypatch, payload, expected_url) -> None:
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return payload
+
+    transport = AtlasCloudWanTransport("top-secret-key")
+    monkeypatch.setattr(transport._session, "request", lambda *_args, **_kwargs: Response())
+    assert transport.upload(b"image", mime_type="image/png") == expected_url
+
+
+@pytest.mark.parametrize(
     "payload",
     [
         {"data": {"url": "https://signed.example/?token=secret"}},
-        {"data": {"download_url": "https://signed.example/?token=secret"}},
-        {"error": {"message": "upload rejected: token=secret"}},
+        {"data": {"nested": {"download_url": "https://signed.example/?token=secret"}}},
+        {"url": "https://uploads.atlas.example/keyframe.png", "data": "not-an-object"},
+        {"url": "", "data": {"download_url": "https://uploads.atlas.example/keyframe.png"}},
+        {"url": "https://uploads.atlas.example/keyframe.png", "data": {"download_url": None}},
+        {"url": "https://uploads.atlas.example/keyframe.png", "data": {"download_url": "https://other.example/keyframe.png"}},
+        {"url": "https://uploads.atlas.example/keyframe.png", "error": {"message": "upload rejected: token=secret"}},
     ],
 )
-def test_upload_rejects_undocumented_nested_urls_and_error_envelopes(monkeypatch, payload) -> None:
+def test_upload_rejects_unrelated_malformed_conflicting_and_error_envelopes(monkeypatch, payload) -> None:
     class Response:
         status_code = 200
 
@@ -148,6 +173,41 @@ def test_upload_rejects_undocumented_nested_urls_and_error_envelopes(monkeypatch
         transport.upload(b"image", mime_type="image/png")
     assert rejected.value.diagnostic.code == "invalid_upload_url"
     assert "signed" not in str(rejected.value) and "secret" not in str(rejected.value)
+
+
+@pytest.mark.parametrize(
+    ("payload", "secret"),
+    [
+        ({"url": None}, "none-secret"),
+        ({"url": 7}, "number-secret"),
+        ({"url": ""}, "empty-secret"),
+        ({"url": "http://uploads.example/keyframe?token=insecure-secret"}, "insecure-secret"),
+        ({"url": "https://?token=hostless-secret"}, "hostless-secret"),
+        ({"url": "https://user:credential-secret@uploads.example/keyframe"}, "credential-secret"),
+        ({"url": "https://uploads.example/keyframe\n?token=control-secret"}, "control-secret"),
+        ({"url": "https://uploads.example\\wrong-host?token=backslash-secret"}, "backslash-secret"),
+        ({"url": "https://uploads_example/keyframe?token=underscore-secret"}, "underscore-secret"),
+        ({"url": "https://uploads.example:not-a-port/keyframe?token=port-secret"}, "port-secret"),
+        ({"url": "https://uploads.example:/keyframe?token=trailing-port-secret"}, "trailing-port-secret"),
+        ({"data": {"download_url": None}}, "nested-none-secret"),
+        ({"data": {"download_url": "https://uploads.example:70000/keyframe?token=nested-port-secret"}}, "nested-port-secret"),
+        ({"data": None}, "null-data-secret"),
+        ({"data": []}, "list-data-secret"),
+    ],
+)
+def test_upload_rejects_malformed_explicit_values_without_echoing_secrets(monkeypatch, payload, secret) -> None:
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return payload
+
+    transport = AtlasCloudWanTransport("top-secret-key")
+    monkeypatch.setattr(transport._session, "request", lambda *_args, **_kwargs: Response())
+    with pytest.raises(WanDispatchError) as rejected:
+        transport.upload(b"image", mime_type="image/png")
+    assert rejected.value.diagnostic.code == "invalid_upload_url"
+    assert secret not in str(rejected.value) and "top-secret-key" not in str(rejected.value)
 
 
 def test_upload_rejects_non_object_json_envelopes(monkeypatch) -> None:
