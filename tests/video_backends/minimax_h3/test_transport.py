@@ -8,7 +8,7 @@ from plotloom.video_backends.minimax_h3 import (
     MiniMaxH3GatewayTransport,
 )
 from plotloom.video_backends.minimax_h3.adapter import H3_PROFILE_CONTRACT_VERSION
-from plotloom.video_provider import WanDispatchError
+from plotloom.video_provider import VideoOutputContractError, WanDispatchError
 
 
 _ASSET_ID = "asset_0123456789abcdef0123456789abcdef"
@@ -102,6 +102,14 @@ def test_h3_transport_rejects_public_and_malformed_gateway_roots() -> None:
     for base_url in ("https://example.com", "http://8.8.8.8", "http://100.64.1.2:8090/not-root", "https://user:pass@100.64.1.2:8090"):
         with pytest.raises(ValueError):
             MiniMaxH3GatewayTransport("test-key", base_url=base_url)
+
+
+def test_h3_adapter_reports_a_retained_output_expiry_without_reinterpreting_it_as_success() -> None:
+    with pytest.raises(VideoOutputContractError, match="h3_gateway_output_expired"):
+        MiniMaxH3GatewayAdapter.completed_output(
+            _job("output_expired", False),
+            expected_profile_id="minimax_h3_fp8_turbo4_480p",
+        )
 
 
 def test_h3_transport_rejects_unrecognised_response_shape_before_job_id_use() -> None:

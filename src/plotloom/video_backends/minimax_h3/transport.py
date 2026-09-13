@@ -215,7 +215,11 @@ class MiniMaxH3GatewayTransport:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("profileId") not in H3_PROFILES_BY_ID:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
-        if value.get("status") not in {"reserved", "queued", "submitting", "submitted", "running", "succeeded", "failed", "outcome_unknown", "cancelled"}:
+        if value.get("status") not in {
+            "reserved", "queued", "submitting", "submitted", "running",
+            "transfer_pending", "succeeded", "output_expired", "failed",
+            "outcome_unknown", "cancelled",
+        }:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("aspectPolicy") not in {"cover_center_crop", "contain_pad", "reject_mismatch"}:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))

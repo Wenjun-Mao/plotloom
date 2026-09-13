@@ -8,6 +8,7 @@
 - [MiniMax-H3 reviewed profile catalog](adr/0036-minimax-h3-profile-catalog.md)
 - [Reviewed keyframe aspect preparation](adr/0037-reviewed-keyframe-aspect-preparation.md)
 - [H3 gateway durable FIFO dispatch](adr/0038-h3-gateway-durable-fifo-dispatch.md)
+- [H3 gateway-managed output retention](adr/0039-h3-gateway-managed-output-retention.md)
 - [Saved-profile conformance runner](conformance.md)
 - [Three-story Alpha acceptance runner](alpha-acceptance.md)
 - [Capability and adoption matrix](roadmap/capability-matrix.md)

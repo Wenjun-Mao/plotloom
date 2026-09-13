@@ -10,3 +10,4 @@ services:
     volumes:
       - ${H3_GATEWAY_DATA_HOST_DIR}:/var/lib/plotloom-h3-gateway
       - ${H3_COMFY_INPUT_HOST_DIR}:/comfy/input
+      - ${H3_COMFY_OUTPUT_HOST_DIR}:/comfy/output

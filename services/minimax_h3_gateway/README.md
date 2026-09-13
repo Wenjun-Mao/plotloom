@@ -16,8 +16,8 @@ The local service contract is intentionally small:
 2. `POST /v1/video-jobs` prepares and durably queues one reviewed,
    allowlisted-profile job. It returns `202` and a job ID without waiting for
    H3; `idempotencyKey` is optional but required for caller retry deduplication.
-3. `GET /v1/video-jobs/{id}` reports a known job; `GET .../output` proxies its
-   completed MP4.
+3. `GET /v1/video-jobs/{id}` reports a known job; `GET .../output` serves its
+   gateway-managed completed MP4.
 4. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
 5. `GET /health` exposes safe readiness and queue counts.
 
@@ -25,6 +25,11 @@ The gateway owns one FIFO dispatch worker. Its queue is intentionally not
 length-capped: H3 receives one job at a time, while any further jobs remain
 durably queued. This is a concurrency guarantee, not a retention policy; see
 [ADR 0038](../../docs/adr/0038-h3-gateway-durable-fifo-dispatch.md).
+
+After completion, the gateway atomically hands off its one expected MP4 from
+the mounted ComfyUI output directory into gateway-managed storage, then
+removes the ComfyUI source. It retains that managed copy for 72 hours; see
+[ADR 0039](../../docs/adr/0039-h3-gateway-managed-output-retention.md).
 
 Keep ComfyUI on `127.0.0.1:8188`, bind this gateway only to Spark's Tailscale
 address, and keep its bearer key server-side. Do not replace the documented

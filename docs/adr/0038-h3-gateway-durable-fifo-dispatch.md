@@ -18,15 +18,16 @@ The gateway keeps its narrow private HTTP boundary:
    and returns `202` with `queued` status without posting to ComfyUI. Admission
    is gateway-local, so a temporarily unavailable or busy ComfyUI leaves new
    valid work queued rather than rejecting it.
-3. `GET /v1/video-jobs/{id}` returns the known state; `GET .../output` proxies
-   only the completed known MP4.
+3. `GET /v1/video-jobs/{id}` returns the known state; `GET .../output` serves
+   only the completed known MP4 owned by the gateway.
 4. `GET /health` returns safe H3 readiness, catalog and queue counts.
 
 The gateway owns one FIFO dispatch worker. It submits at most one of its jobs
 to ComfyUI at a time and waits while trusted external ComfyUI work is already
 queued. Queue length is intentionally **not** capped: ten or more accepted
-jobs may wait durably. Storage/retention is a separate operator policy, not a
-hidden generation-concurrency limit.
+jobs may wait durably. The distinct completed-output ownership and retention
+contract is recorded in [ADR 0039](0039-h3-gateway-managed-output-retention.md),
+not hidden in a generation-concurrency limit.
 
 `idempotencyKey` is an optional, request-bound job field. A repeated matching
 request returns the original job; a changed request using the same key returns
@@ -50,8 +51,8 @@ ComfyUI.
 - Health exposes `queuedJobs`, `activeDispatches`, and fixed
   `dispatchConcurrency: 1`, but no prompt, path, asset, secret or ComfyUI
   graph.
-- Retention, output handoff acknowledgement, and any future parallel hardware
-  are distinct decisions. They must not silently change this one-lane contract.
+- Output handoff/retention and any future parallel hardware are distinct
+  decisions. They must not silently change this one-lane contract.
 
 ## Guardrails
 

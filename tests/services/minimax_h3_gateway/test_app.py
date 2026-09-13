@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 import threading
 from io import BytesIO
 from pathlib import Path
@@ -10,7 +11,7 @@ from PIL import Image
 import requests
 
 from plotloom.video_backends.minimax_h3 import H3_PROFILES
-from plotloom_h3_gateway.app import GatewaySettings, create_app
+from plotloom_h3_gateway.app import GatewaySettings, GatewayStore, create_app
 from plotloom_h3_gateway.profile_catalog import H3_GATEWAY_PROFILES
 
 
@@ -47,8 +48,6 @@ class _ComfySession:
         if "/history/" in url:
             prompt_id = url.rsplit("/", 1)[-1]
             return _Response(self.history.get(prompt_id, {}))
-        if url.endswith("/view"):
-            return _Response({}, content=b"synthetic-mp4")
         raise AssertionError(url)
 
     def post(self, url: str, *, json: dict[str, Any], **_: object) -> _Response:
@@ -77,6 +76,7 @@ def _client(tmp_path: Path) -> tuple[TestClient, _ComfySession]:
     app = create_app(
         GatewaySettings(
             api_key="test-key", data_dir=tmp_path / "data", comfy_input_dir=tmp_path / "comfy-input",
+            comfy_output_dir=tmp_path / "comfy-output",
             dispatch_worker_enabled=False,
         ),
         session=session,
@@ -93,6 +93,13 @@ def _png(width: int = 1371, height: int = 1148) -> bytes:
     buffer = BytesIO()
     image.save(buffer, "PNG")
     return buffer.getvalue()
+
+
+def _write_comfy_output(tmp_path: Path, *, filename: str, content: bytes) -> Path:
+    path = tmp_path / "comfy-output" / "video" / filename
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(content)
+    return path
 
 
 def test_gateway_and_plotloom_catalogs_match_exactly() -> None:
@@ -215,12 +222,143 @@ def test_completed_job_proxies_only_its_single_mp4_output(tmp_path: Path) -> Non
             "outputs": {"92": {"images": [{"filename": "result.mp4", "subfolder": "video", "type": "output"}]}},
         }
     }
+    source = _write_comfy_output(tmp_path, filename="result.mp4", content=b"synthetic-mp4")
     status = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
     assert status.json()["status"] == "succeeded"
+    assert source.exists() is False
+    managed = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
+    assert managed.read_bytes() == b"synthetic-mp4"
     output = client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers)
     assert output.status_code == 200
     assert output.headers["content-type"] == "video/mp4"
     assert output.content == b"synthetic-mp4"
+
+
+def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(tmp_path: Path) -> None:
+    client, session = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+    ).json()
+    job = _queue_job(client, headers, asset["assetId"], prompt="Expire after review")
+    assert _dispatch_once(client)["status"] == "submitted"
+    session.history["comfy-1"] = {
+        "comfy-1": {
+            "status": {"status_str": "success", "completed": True},
+            "outputs": {"92": {"images": [{"filename": "expiry.mp4", "subfolder": "video", "type": "output"}]}},
+        }
+    }
+    _write_comfy_output(tmp_path, filename="expiry.mp4", content=b"owned-video")
+    assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()["status"] == "succeeded"
+    managed = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
+    unrelated = tmp_path / "data" / "outputs" / "unrelated.mp4"
+    unrelated.write_bytes(b"do-not-delete")
+    with client.app.state.gateway.store._connect() as connection:
+        connection.execute(
+            "UPDATE jobs SET output_expires_at = datetime('now', '-1 second') WHERE id = ?",
+            (job["id"],),
+        )
+
+    assert client.app.state.gateway.cleanup_expired_outputs() == 1
+    assert managed.exists() is False
+    assert unrelated.read_bytes() == b"do-not-delete"
+    expired = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
+    assert expired.json() == {
+        "id": job["id"], "status": "output_expired",
+        "profileId": "minimax_h3_fp8_turbo4_480p",
+        "aspectPolicy": "reject_mismatch", "error": "gateway_output_expired",
+        "outputReady": False,
+    }
+    output = client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers)
+    assert output.status_code == 410
+    assert output.json() == {"error": "gateway_output_expired"}
+
+
+def test_gateway_store_migrates_an_existing_queue_database_additively(tmp_path: Path) -> None:
+    path = tmp_path / "gateway.sqlite3"
+    with sqlite3.connect(path) as connection:
+        connection.executescript(
+            """
+            CREATE TABLE assets (
+              id TEXT PRIMARY KEY, mime_type TEXT NOT NULL, width INTEGER NOT NULL,
+              height INTEGER NOT NULL, sha256 TEXT NOT NULL, path TEXT NOT NULL,
+              created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE jobs (
+              id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES assets(id),
+              profile_id TEXT NOT NULL, aspect_policy TEXT NOT NULL, prompt TEXT NOT NULL,
+              seed INTEGER NOT NULL, prepared_input_name TEXT NOT NULL, status TEXT NOT NULL,
+              comfy_prompt_id TEXT, output_filename TEXT, output_subfolder TEXT,
+              output_type TEXT, error_code TEXT,
+              created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        )
+
+    GatewayStore(path)
+    with sqlite3.connect(path) as connection:
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(jobs)")}
+    assert {
+        "idempotency_key", "request_hash", "managed_output_name", "output_sha256",
+        "output_size_bytes", "output_expires_at", "output_expired_at",
+    } <= columns
+
+
+def test_restart_finishes_a_frozen_pending_output_handoff_without_new_submission(tmp_path: Path) -> None:
+    headers = {"Authorization": "Bearer test-key"}
+    settings = GatewaySettings(
+        api_key="test-key", data_dir=tmp_path / "data", comfy_input_dir=tmp_path / "comfy-input",
+        comfy_output_dir=tmp_path / "comfy-output", dispatch_worker_enabled=False,
+    )
+    first_session = _ComfySession()
+    first_app = create_app(settings, session=first_session)
+    first_client = TestClient(first_app)
+    asset = first_client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+    ).json()
+    job = _queue_job(first_client, headers, asset["assetId"], prompt="Resume transfer")
+    assert _dispatch_once(first_client)["status"] == "submitted"
+    first_app.state.gateway.store.update_job(
+        job["id"], status="transfer_pending",
+        error_code="gateway_output_transfer_pending", output_filename="resumable.mp4",
+        output_subfolder="video", output_type="output",
+    )
+    destination = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
+    destination.write_bytes(b"copied-before-restart")
+
+    restarted_session = _ComfySession()
+    restarted_client = TestClient(create_app(settings, session=restarted_session))
+    recovered = restarted_client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
+    assert recovered.json()["status"] == "succeeded"
+    assert restarted_session.submissions == []
+    assert destination.read_bytes() == b"copied-before-restart"
+
+
+def test_pending_handoff_rejects_a_replaced_comfyui_source(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+    ).json()
+    job = _queue_job(client, headers, asset["assetId"], prompt="Verify source")
+    client.app.state.gateway.store.update_job(
+        job["id"], status="transfer_pending",
+        error_code="gateway_output_transfer_pending", output_filename="replaced.mp4",
+        output_subfolder="video", output_type="output",
+    )
+    destination = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
+    destination.write_bytes(b"original-copy")
+    source = _write_comfy_output(tmp_path, filename="replaced.mp4", content=b"changed-after-copy")
+
+    rejected = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
+    assert rejected.json()["status"] == "failed"
+    assert rejected.json()["error"] == "gateway_output_integrity_mismatch"
+    assert destination.read_bytes() == b"original-copy"
+    assert source.read_bytes() == b"changed-after-copy"
 
 
 def _queue_job(client: TestClient, headers: dict[str, str], asset_id: str, *, prompt: str, key: str | None = None) -> dict[str, Any]:
@@ -261,6 +399,7 @@ def test_fifo_queue_dispatches_only_one_h3_job_at_a_time(tmp_path: Path) -> None
             "outputs": {"92": {"images": [{"filename": "first.mp4", "subfolder": "video", "type": "output"}]}},
         }
     }
+    _write_comfy_output(tmp_path, filename="first.mp4", content=b"first-video")
     assert _dispatch_once(client)["id"] == second["id"]
     assert len(session.submissions) == 2
 
@@ -315,6 +454,7 @@ def test_restart_preserves_queued_order_and_never_replays_an_interrupted_dispatc
     headers = {"Authorization": "Bearer test-key"}
     settings = GatewaySettings(
         api_key="test-key", data_dir=tmp_path / "data", comfy_input_dir=tmp_path / "comfy-input",
+        comfy_output_dir=tmp_path / "comfy-output",
         dispatch_worker_enabled=False,
     )
     first_session = _ComfySession()
@@ -367,6 +507,7 @@ def test_runtime_worker_dispatches_a_queued_job_without_a_polling_browser(tmp_pa
     app = create_app(
         GatewaySettings(
             api_key="test-key", data_dir=tmp_path / "data", comfy_input_dir=tmp_path / "comfy-input",
+            comfy_output_dir=tmp_path / "comfy-output",
             worker_poll_seconds=0.01,
         ),
         session=session,

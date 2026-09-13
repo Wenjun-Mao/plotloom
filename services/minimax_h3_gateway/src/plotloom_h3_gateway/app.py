@@ -5,6 +5,7 @@ import copy
 import hmac
 import json
 import os
+import shutil
 import sqlite3
 import threading
 import uuid
@@ -31,6 +32,7 @@ from .profile_catalog import (
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_PIXELS = 30_000_000
+MANAGED_OUTPUT_RETENTION_HOURS = 72
 ALLOWED_IMAGE_MIME_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
 AspectPolicy = Literal["cover_center_crop", "contain_pad", "reject_mismatch"]
 
@@ -51,6 +53,7 @@ class GatewaySettings:
     api_key: str
     data_dir: Path
     comfy_input_dir: Path
+    comfy_output_dir: Path = Path("/comfy/output")
     comfy_url: str = "http://127.0.0.1:8188"
     request_timeout_seconds: float = 30.0
     worker_poll_seconds: float = 0.5
@@ -65,6 +68,7 @@ class GatewaySettings:
             api_key=key,
             data_dir=Path(os.environ.get("H3_GATEWAY_DATA_DIR", "/var/lib/plotloom-h3-gateway")),
             comfy_input_dir=Path(os.environ.get("H3_COMFY_INPUT_DIR", "/comfy/input")),
+            comfy_output_dir=Path(os.environ.get("H3_COMFY_OUTPUT_DIR", "/comfy/output")),
             comfy_url=os.environ.get("H3_COMFY_URL", "http://127.0.0.1:8188").rstrip("/"),
             worker_poll_seconds=float(os.environ.get("H3_WORKER_POLL_SECONDS", "0.5")),
             dispatch_worker_enabled=os.environ.get("H3_DISPATCH_WORKER_ENABLED", "true").strip().lower()
@@ -110,7 +114,9 @@ class GatewayStore:
                   seed INTEGER NOT NULL, prepared_input_name TEXT NOT NULL, status TEXT NOT NULL,
                   idempotency_key TEXT, request_hash TEXT,
                   comfy_prompt_id TEXT, output_filename TEXT, output_subfolder TEXT,
-                  output_type TEXT, error_code TEXT,
+                  output_type TEXT, managed_output_name TEXT, output_sha256 TEXT,
+                  output_size_bytes INTEGER, output_expires_at TEXT,
+                  output_expired_at TEXT, error_code TEXT,
                   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
@@ -130,6 +136,16 @@ class GatewayStore:
             connection.execute("ALTER TABLE jobs ADD COLUMN idempotency_key TEXT")
         if "request_hash" not in columns:
             connection.execute("ALTER TABLE jobs ADD COLUMN request_hash TEXT")
+        if "managed_output_name" not in columns:
+            connection.execute("ALTER TABLE jobs ADD COLUMN managed_output_name TEXT")
+        if "output_sha256" not in columns:
+            connection.execute("ALTER TABLE jobs ADD COLUMN output_sha256 TEXT")
+        if "output_size_bytes" not in columns:
+            connection.execute("ALTER TABLE jobs ADD COLUMN output_size_bytes INTEGER")
+        if "output_expires_at" not in columns:
+            connection.execute("ALTER TABLE jobs ADD COLUMN output_expires_at TEXT")
+        if "output_expired_at" not in columns:
+            connection.execute("ALTER TABLE jobs ADD COLUMN output_expired_at TEXT")
         connection.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS jobs_idempotency_key_unique "
             "ON jobs(idempotency_key) WHERE idempotency_key IS NOT NULL"
@@ -164,7 +180,8 @@ class GatewayStore:
                 "SELECT COUNT(*) FROM jobs WHERE status = 'queued'"
             ).fetchone()[0])
             active = int(connection.execute(
-                "SELECT COUNT(*) FROM jobs WHERE status IN ('submitting', 'submitted', 'running')"
+                "SELECT COUNT(*) FROM jobs WHERE status IN "
+                "('submitting', 'submitted', 'running', 'transfer_pending')"
             ).fetchone()[0])
         return queued, active
 
@@ -233,7 +250,8 @@ class GatewayStore:
     def list_active_jobs(self) -> list[dict[str, Any]]:
         with self._connect() as connection:
             rows = connection.execute(
-                "SELECT * FROM jobs WHERE status IN ('submitted', 'running') ORDER BY rowid ASC"
+                "SELECT * FROM jobs WHERE status IN "
+                "('submitted', 'running', 'transfer_pending') ORDER BY rowid ASC"
             ).fetchall()
         return [dict(row) for row in rows]
 
@@ -249,6 +267,46 @@ class GatewayStore:
                 if row is None:
                     raise GatewayError("job_not_found", 404)
                 raise GatewayError("job_not_cancellable", 409)
+        return self.get_job(job_id)
+
+    def mark_managed_output(
+        self, job_id: str, *, output_name: str, digest: str, size_bytes: int
+    ) -> dict[str, Any]:
+        """Publish only a gateway-owned output after source removal succeeds."""
+
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE jobs SET status = 'succeeded', managed_output_name = ?, "
+                "output_sha256 = ?, output_size_bytes = ?, "
+                "output_expires_at = datetime('now', ?), error_code = NULL, "
+                "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                (
+                    output_name,
+                    digest,
+                    size_bytes,
+                    f"+{MANAGED_OUTPUT_RETENTION_HOURS} hours",
+                    job_id,
+                ),
+            )
+        return self.get_job(job_id)
+
+    def list_expired_managed_outputs(self) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM jobs WHERE status = 'succeeded' "
+                "AND output_expires_at IS NOT NULL "
+                "AND output_expires_at <= CURRENT_TIMESTAMP ORDER BY rowid ASC"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def mark_output_expired(self, job_id: str, *, error_code: str) -> dict[str, Any]:
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE jobs SET status = 'output_expired', error_code = ?, "
+                "output_expired_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP "
+                "WHERE id = ?",
+                (error_code, job_id),
+            )
         return self.get_job(job_id)
 
     def get_job(self, job_id: str) -> dict[str, Any]:
@@ -277,8 +335,11 @@ class H3Gateway:
         self.settings = settings
         self.settings.data_dir.mkdir(parents=True, exist_ok=True)
         self.settings.comfy_input_dir.mkdir(parents=True, exist_ok=True)
+        self.settings.comfy_output_dir.mkdir(parents=True, exist_ok=True)
         self.assets_dir = self.settings.data_dir / "assets"
         self.assets_dir.mkdir(parents=True, exist_ok=True)
+        self.managed_outputs_dir = self.settings.data_dir / "outputs"
+        self.managed_outputs_dir.mkdir(parents=True, exist_ok=True)
         self.store = GatewayStore(self.settings.data_dir / "gateway.sqlite3")
         self.store.recover_interrupted_dispatches()
         self.session = session or requests.Session()
@@ -419,6 +480,8 @@ class H3Gateway:
 
     def refresh_job(self, job_id: str) -> dict[str, Any]:
         job = self.store.get_job(job_id)
+        if job["status"] == "transfer_pending":
+            return self._transfer_completed_output(job)
         if job["status"] not in {"submitted", "running"}:
             return job
         prompt_id = job["comfy_prompt_id"]
@@ -439,25 +502,125 @@ class H3Gateway:
         descriptor = _single_output_descriptor(record.get("outputs"))
         if descriptor is None:
             return self.store.update_job(job_id, status="failed", error_code="comfy_output_missing")
-        return self.store.update_job(
-            job_id, status="succeeded", output_filename=descriptor["filename"],
-            output_subfolder=descriptor["subfolder"], output_type=descriptor["type"],
+        pending = self.store.update_job(
+            job_id, status="transfer_pending", error_code="gateway_output_transfer_pending",
+            output_filename=descriptor["filename"], output_subfolder=descriptor["subfolder"],
+            output_type=descriptor["type"],
         )
+        return self._transfer_completed_output(pending)
 
     def read_output(self, job_id: str) -> bytes:
         job = self.refresh_job(job_id)
+        if job["status"] == "output_expired":
+            raise GatewayError("gateway_output_expired", 410)
         if job["status"] != "succeeded":
             raise GatewayError("output_not_ready", 409)
+        path = self._managed_output_path(job)
+        if path is None or not path.is_file() or path.is_symlink():
+            self.store.mark_output_expired(job_id, error_code="gateway_output_missing")
+            raise GatewayError("gateway_output_missing", 410)
         try:
-            response = self.session.get(
-                f"{self.settings.comfy_url}/view",
-                params={"filename": job["output_filename"], "subfolder": job["output_subfolder"], "type": job["output_type"]},
-                timeout=self.settings.request_timeout_seconds,
+            return path.read_bytes()
+        except OSError as error:
+            raise GatewayError("gateway_output_unavailable", 502) from error
+
+    def cleanup_expired_outputs(self) -> int:
+        """Delete only exact, database-owned gateway outputs past 72 hours."""
+
+        removed = 0
+        for job in self.store.list_expired_managed_outputs():
+            path = self._managed_output_path(job)
+            if path is None or path.is_symlink():
+                self.store.mark_output_expired(
+                    str(job["id"]), error_code="gateway_output_storage_invalid"
+                )
+                continue
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                # Keep the completed record and retry later. Cleanup never
+                # expands beyond this exact, database-owned managed file.
+                continue
+            self.store.mark_output_expired(
+                str(job["id"]), error_code="gateway_output_expired"
             )
-            response.raise_for_status()
-        except requests.RequestException as error:
-            raise GatewayError("comfy_output_unavailable", 502) from error
-        return bytes(response.content)
+            removed += 1
+        return removed
+
+    def _transfer_completed_output(self, job: dict[str, Any]) -> dict[str, Any]:
+        """Copy, verify, then remove ComfyUI's exact expected output file."""
+
+        source = self._comfy_output_path(job)
+        destination = self._managed_output_path_for_job(str(job["id"]))
+        if source is None or destination is None:
+            return self.store.update_job(
+                str(job["id"]), status="failed", error_code="gateway_output_storage_invalid"
+            )
+        try:
+            if destination.exists():
+                if not destination.is_file() or destination.is_symlink():
+                    raise OSError("managed output path is not a regular file")
+                digest, size_bytes = _file_digest(destination)
+                if source.exists():
+                    if not source.is_file() or source.is_symlink():
+                        raise OSError("ComfyUI output path is not a regular file")
+                    if _file_digest(source) != (digest, size_bytes):
+                        return self.store.update_job(
+                            str(job["id"]), status="failed",
+                            error_code="gateway_output_integrity_mismatch",
+                        )
+            else:
+                if not source.is_file() or source.is_symlink():
+                    return self.store.update_job(
+                        str(job["id"]), status="failed", error_code="comfy_output_missing"
+                    )
+                digest, size_bytes = _copy_file_atomically(source, destination)
+            if source.exists():
+                if not source.is_file() or source.is_symlink():
+                    raise OSError("ComfyUI output path is not a regular file")
+                source.unlink()
+        except OSError:
+            # A completed local copy is not published until the source is gone.
+            # A later poll or restart resumes this exact frozen transfer.
+            return self.store.update_job(
+                str(job["id"]), status="transfer_pending",
+                error_code="gateway_output_transfer_pending",
+            )
+        return self.store.mark_managed_output(
+            str(job["id"]), output_name=destination.name, digest=digest,
+            size_bytes=size_bytes,
+        )
+
+    def _comfy_output_path(self, job: dict[str, Any]) -> Path | None:
+        filename = job.get("output_filename")
+        subfolder = job.get("output_subfolder")
+        output_type = job.get("output_type")
+        if (
+            not isinstance(filename, str) or not isinstance(subfolder, str)
+            or output_type != "output" or not _safe_path_part(filename)
+            or not _safe_path_part(subfolder)
+        ):
+            return None
+        candidate = self.settings.comfy_output_dir / subfolder / filename
+        try:
+            root = self.settings.comfy_output_dir.resolve()
+            resolved = candidate.resolve(strict=False)
+        except OSError:
+            return None
+        if root not in resolved.parents or candidate.is_symlink():
+            return None
+        return candidate
+
+    def _managed_output_path_for_job(self, job_id: str) -> Path | None:
+        if not job_id.startswith("h3_") or len(job_id) != 35:
+            return None
+        return self.managed_outputs_dir / f"{job_id}.mp4"
+
+    def _managed_output_path(self, job: dict[str, Any]) -> Path | None:
+        expected = self._managed_output_path_for_job(str(job.get("id", "")))
+        if expected is None or job.get("managed_output_name") != expected.name:
+            return None
+        return expected
 
     def _comfy_queue_depth(self) -> int:
         payload = self._get_json("/queue", code="comfy_unavailable")
@@ -523,6 +686,12 @@ class GatewayDispatchWorker:
     def _run(self) -> None:
         while not self._stopped.is_set():
             try:
+                self._gateway.cleanup_expired_outputs()
+            except Exception:
+                # Expiry failure must not stop new work; only exact managed
+                # files are ever considered on the next pass.
+                pass
+            try:
                 self._gateway.dispatch_once()
             except Exception:
                 # Job status and health provide the safe operator-facing
@@ -546,7 +715,7 @@ def create_app(settings: GatewaySettings | None = None, *, session: requests.Ses
             if gateway.settings.dispatch_worker_enabled:
                 worker.stop()
 
-    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="1.0", lifespan=lifespan)
+    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="1.1", lifespan=lifespan)
     app.state.gateway = gateway
 
     def authorize(authorization: str | None = Header(default=None)) -> None:
@@ -677,6 +846,32 @@ def _single_output_descriptor(outputs: object) -> dict[str, str] | None:
                 continue
             matches.append({"filename": filename, "subfolder": subfolder, "type": output_type})
     return matches[0] if len(matches) == 1 else None
+
+
+def _copy_file_atomically(source: Path, destination: Path) -> tuple[str, int]:
+    """Copy into gateway storage without exposing a partial output file."""
+
+    temporary = destination.with_name(f".{destination.name}.{uuid.uuid4().hex}.partial")
+    try:
+        with source.open("rb") as input_file, temporary.open("xb") as output_file:
+            shutil.copyfileobj(input_file, output_file, length=1024 * 1024)
+            output_file.flush()
+            os.fsync(output_file.fileno())
+        os.replace(temporary, destination)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+    return _file_digest(destination)
+
+
+def _file_digest(path: Path) -> tuple[str, int]:
+    digest = sha256()
+    size_bytes = 0
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+            size_bytes += len(chunk)
+    return digest.hexdigest(), size_bytes
 
 
 def _safe_path_part(value: str) -> bool:
