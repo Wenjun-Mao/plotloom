@@ -445,7 +445,7 @@ export function ManagedMediaWorkbench({
     }
   };
   const saveIntent = async () => {
-    if (!projectId || !keptAssetId) return;
+    if (!projectId || !keptAssetId || (mediaDraftsEnabled && !selectedShot)) return;
     if (intentEditor.stale) {
       setError("已保存意图已有新版本；草稿仍保留，请先检查并重新载入。");
       return;
@@ -458,15 +458,30 @@ export function ManagedMediaWorkbench({
       setError("先记录至少一个来源引用，再保存可审核意图。");
       return;
     }
+    if (
+      mediaDraftsEnabled
+      && (!intentEditor.serverReady || intentEditor.serverRevision < 1 || intentEditor.serverConflict)
+    ) {
+      setError("等待当前视觉意图草稿得到项目 CAS 确认后再保存。");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
       await plotloomApi.createVisualIntent(projectId, keptAssetId, {
         role: "shot_keyframe",
-        identityIntent: intentDraft.identityIntent,
-        compositionIntent: intentDraft.compositionIntent,
-        styleIntent: intentDraft.styleIntent,
+        identityIntent: intentDraft.identityIntent || undefined,
+        compositionIntent: intentDraft.compositionIntent || undefined,
+        styleIntent: intentDraft.styleIntent || undefined,
         sourceRefs,
+        ...(mediaDraftsEnabled ? {
+          shotId: selectedShot!.id,
+          consumedDraft: {
+            editorScope: "visual_intent" as const,
+            entityId: `${selectedShot!.id}:${keptAssetId}`,
+            draftRevision: intentEditor.serverRevision,
+          },
+        } : {}),
       });
       await refresh();
       await intentEditor.clear();
@@ -584,6 +599,13 @@ export function ManagedMediaWorkbench({
       setError("请先说明这次原始图或参考细化要冻结的画面呈现变化。");
       return;
     }
+    if (
+      mediaDraftsEnabled
+      && (!imageJobDirection.serverReady || imageJobDirection.serverRevision < 1 || imageJobDirection.serverConflict)
+    ) {
+      setError("等待当前 image 方向草稿得到项目 CAS 确认后再准备 job。");
+      return;
+    }
     setBusy(true);
     setError("");
     setCopiedAssignment("");
@@ -603,6 +625,14 @@ export function ManagedMediaWorkbench({
             : undefined,
         presentationChange: imageJobDirection.value.trim(),
         contractVersion: 3,
+        ...(mediaDraftsEnabled ? {
+          contextId: imageJobContextId,
+          consumedDraft: {
+            editorScope: "image_direction" as const,
+            entityId: `${selectedShot.id}:${imageJobDirection.targetId}`,
+            draftRevision: imageJobDirection.serverRevision,
+          },
+        } : {}),
       });
       await imageJobDirection.clear();
       await refresh();
@@ -1350,6 +1380,11 @@ export function ManagedMediaWorkbench({
               busy ||
               !!imageJobPrerequisite ||
               imageJobDirection.stale ||
+              (mediaDraftsEnabled && (
+                !imageJobDirection.serverReady
+                || imageJobDirection.serverRevision < 1
+                || imageJobDirection.serverConflict
+              )) ||
               !imageJobDirection.value.trim()
             }
             onClick={() => void prepareImageJob()}
@@ -1919,7 +1954,11 @@ export function ManagedMediaWorkbench({
             <Button
               data-testid="save-visual-intent"
               variant="quiet"
-              disabled={readOnly || busy || intentEditor.stale}
+              disabled={readOnly || busy || intentEditor.stale || (mediaDraftsEnabled && (
+                !intentEditor.serverReady
+                || intentEditor.serverRevision < 1
+                || intentEditor.serverConflict
+              ))}
               onClick={() => void saveIntent()}
             >
               {activeIntent ? `细化意图 r${activeIntent.revision}` : "保存意图"}

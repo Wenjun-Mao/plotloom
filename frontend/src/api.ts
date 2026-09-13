@@ -221,6 +221,7 @@ export class PlotloomApiClient {
 
   prepareImageJob(projectId: string, body: {
     approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string; keyframeAdaptationProfileId?: string; presentationChange: string; contractVersion?: 2 | 3;
+    contextId?: string; consumedDraft?: CanonicalDraftConsumption;
   }): Promise<{ job: ImageJob }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs`, { method: "POST", body: JSON.stringify(body) });
   }
@@ -309,6 +310,7 @@ export class PlotloomApiClient {
     role: "protagonist_reference" | "location_reference" | "shot_keyframe";
     identityIntent?: string; compositionIntent?: string; styleIntent?: string;
     sourceRefs?: string[];
+    shotId?: string; consumedDraft?: CanonicalDraftConsumption;
   }): Promise<VisualIntent> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets/${encodeURIComponent(assetId)}/visual-intents`, {
       method: "POST", body: JSON.stringify(body),

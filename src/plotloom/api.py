@@ -222,6 +222,20 @@ class CanonicalDraftConsumption(CamelModel):
     draft_revision: int = Field(ge=1)
 
 
+class ProjectFolderVisualIntentRequest(VisualIntentInput):
+    """A visual-intent save bound to one acknowledged project draft."""
+
+    shot_id: str = Field(min_length=1, max_length=100)
+    consumed_draft: CanonicalDraftConsumption
+
+
+class ProjectFolderImageJobCreateRequest(ImageJobCreateRequest):
+    """A manual job whose direction must match its CAS draft receipt."""
+
+    context_id: str = Field(min_length=1, max_length=160, pattern=r"^[A-Za-z0-9._:-]+$")
+    consumed_draft: CanonicalDraftConsumption
+
+
 class AuthoringDraftUpsertRequest(CamelModel):
     editor_scope: AuthoringDraftScope
     entity_id: str = Field(min_length=1, max_length=160)
@@ -1657,7 +1671,7 @@ def create_app(
                 expected_executor_skill_version=context["request"].get("specialistPreflight", {}).get("skillVersion"),
             )
         except ImageJobError as error:
-            if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id"}:
+            if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id", "delivery_manifest_secret"}:
                 repo.record_character_reference_proposal_rejection(project_id, proposal_id, error.code)
             raise
         if delivery is None:
@@ -1808,7 +1822,7 @@ def create_app(
             # Exchange configuration/identifier failures happen before any
             # delivery can be read, so they are operator diagnostics instead.
             if error.code not in {
-                "image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id",
+                "image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id", "delivery_manifest_secret",
             }:
                 repo.record_image_job_delivery_rejection(project_id, job_id, error.code)
             raise
@@ -2364,6 +2378,18 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 detail="canonical save may consume only its own editor draft",
             )
 
+    def require_media_draft_scope(
+        consumption: CanonicalDraftConsumption,
+        *,
+        required_scope: AuthoringDraftScope,
+        required_entity_id: str,
+    ) -> None:
+        if consumption.editor_scope != required_scope or consumption.entity_id != required_entity_id:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="media action must consume its exact editor draft",
+            )
+
     @app.exception_handler(ProjectStorageConflictError)
     async def project_storage_conflict_handler(
         _request: Request, error: ProjectStorageConflictError
@@ -2737,9 +2763,32 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
             return Response(content=content, media_type="image/png" if variant == "display" else stored["mimeType"])
 
     @app.post("/api/v2/projects/{project_id}/managed-assets/{asset_id}/visual-intents", status_code=status.HTTP_201_CREATED)
-    def add_project_visual_intent(project_id: str, asset_id: str, body: VisualIntentInput) -> dict[str, Any]:
+    def add_project_visual_intent(project_id: str, asset_id: str, body: ProjectFolderVisualIntentRequest) -> dict[str, Any]:
+        required_entity_id = f"{body.shot_id}:{asset_id}"
+        require_media_draft_scope(
+            body.consumed_draft,
+            required_scope="visual_intent",
+            required_entity_id=required_entity_id,
+        )
+        intent = body.model_dump(
+            mode="json", by_alias=True, exclude={"shot_id", "consumed_draft"}
+        )
+        draft_payload = {
+            "assetId": asset_id,
+            "shotId": body.shot_id,
+            **intent,
+        }
         with opened_project(project_id) as store:
-            return store.repository.create_visual_intent(project_id, asset_id, body.model_dump(mode="json", by_alias=True))
+            return store.repository.create_visual_intent(
+                project_id,
+                asset_id,
+                intent,
+                consumed_draft=(
+                    body.consumed_draft.entity_id,
+                    body.consumed_draft.draft_revision,
+                    draft_payload,
+                ),
+            )
 
     @app.post("/api/v2/projects/{project_id}/reviewed-keyframes", status_code=status.HTTP_201_CREATED)
     def select_project_reviewed_keyframe(project_id: str, body: ReviewedSelectionRequest) -> dict[str, Any]:
@@ -2822,7 +2871,7 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 exchange.verify_package(job_id=proposal_id, request=context["request"], request_hash=context["requestHash"], references=references)
                 delivery = exchange.read_delivery(job_id=proposal_id, request_hash=context["requestHash"], require_executor_provenance=True, require_executor_pin=context["request"].get("specialistPreflight", {}).get("version") == "p1.5-pin.v1", expected_executor_skill_version=context["request"].get("specialistPreflight", {}).get("skillVersion"))
             except ImageJobError as error:
-                if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id"}:
+                if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id", "delivery_manifest_secret"}:
                     repository.record_character_reference_proposal_rejection(project_id, proposal_id, error.code)
                 raise
             if delivery is None:
@@ -2853,7 +2902,26 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
             return {"configured": True, "jobs": store.repository.list_image_jobs(project_id)}
 
     @app.post("/api/v2/projects/{project_id}/image-jobs", status_code=status.HTTP_201_CREATED)
-    def prepare_project_image_job(project_id: str, body: ImageJobCreateRequest) -> dict[str, Any]:
+    def prepare_project_image_job(project_id: str, body: ProjectFolderImageJobCreateRequest) -> dict[str, Any]:
+        target_id = (
+            "original"
+            if body.parent_candidate_asset_id is None and body.keyframe_adaptation_profile_id is None
+            else f"refinement:{body.parent_candidate_asset_id}"
+            if body.parent_candidate_asset_id is not None
+            else f"keyframe_adaptation:{body.keyframe_adaptation_profile_id}"
+        )
+        required_entity_id = f"{body.shot_id}:{target_id}"
+        require_media_draft_scope(
+            body.consumed_draft,
+            required_scope="image_direction",
+            required_entity_id=required_entity_id,
+        )
+        draft_payload = {
+            "shotId": body.shot_id,
+            "targetId": target_id,
+            "contextId": body.context_id,
+            "presentationChange": body.presentation_change,
+        }
         adaptation = (
             {"targetProfile": _project_h3_target(body.keyframe_adaptation_profile_id)}
             if body.keyframe_adaptation_profile_id is not None else None
@@ -2864,6 +2932,11 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 storyboard_revision=body.storyboard_revision, parent_candidate_asset_id=body.parent_candidate_asset_id,
                 keyframe_adaptation=adaptation, presentation_change=body.presentation_change,
                 contract_version=body.contract_version,
+                consumed_draft=(
+                    body.consumed_draft.entity_id,
+                    body.consumed_draft.draft_revision,
+                    draft_payload,
+                ),
             )
 
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/copy")
@@ -2892,7 +2965,7 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 exchange.verify_package(job_id=job_id, request=context["request"], request_hash=context["requestHash"], references=references)
                 delivery = exchange.read_delivery(job_id=job_id, request_hash=context["requestHash"], required_reference_hashes=identity_hashes, require_executor_provenance=context["request"].get("schemaVersion") == 3, require_executor_pin=context["request"].get("specialistPreflight", {}).get("version") == "p1.5-pin.v1", expected_executor_skill_version=context["request"].get("specialistPreflight", {}).get("skillVersion"))
             except ImageJobError as error:
-                if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id"}:
+                if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id", "delivery_manifest_secret"}:
                     repository.record_image_job_delivery_rejection(project_id, job_id, error.code)
                 raise
             if delivery is None:

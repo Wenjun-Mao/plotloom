@@ -84,6 +84,16 @@ Introduce an unwired composition seam in `plotloom.project_storage`:
   values. They are CAS rows bound to the current storyboard revision and exact
   shot/asset-or-target identity; credentials, session objects, arbitrary UI
   blobs, prompt/path authority, and Approval substitutes are rejected.
+- A direct visual-intent save or manual image-job preparation consumes its
+  exact acknowledged media-draft receipt in the same project-SQLite write
+  transaction. Scope, entity, draft revision, storyboard base revision, and
+  normalized author-owned payload must all match; a stale tab cannot create a
+  semantic record or job, and the newer draft remains available for recovery.
+- Before any delivery manifest can become delivery history, rejection history,
+  or candidate provenance, the shared image-exchange contract rejects both
+  secret-shaped setting names and recognizable secret values across the entire
+  specialist-controlled manifest. This applies equally to job and character
+  proposal refreshes; the delivery is not persisted on rejection.
 - The direct factory advertises its media-draft capability explicitly. The
   shared runtime has no such capability, so its existing workbench neither
   probes the installation-owned profile registry nor mounts the excluded video
@@ -128,6 +138,12 @@ restart. Offline fixture deliveries only are admitted. Two project homes reject
 foreign job routes, and a replacement visual-reference decision makes an
 already copied refinement delivery inapplicable. No ImageGen, provider, or
 gateway request is sent by this proof.
+
+The same checkpoint also proves that a stale media-draft receipt cannot create
+either a visual intent or an image job, while a completion manifest containing
+a secret-shaped value is rejected before any delivery row is written. These
+are shared contracts rather than browser-only guards, so direct route callers
+and both image delivery families receive identical protection.
 
 The remainder of checkpoint 2 must route video handoff, lifecycle/close, and
 all delayed-work lookups through project handles and coordinate globally unique

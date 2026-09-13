@@ -325,6 +325,12 @@ They reject missing/foreign asset or shot identity, credential-shaped values,
 and UI/session blobs. Existing browser session storage remains only an
 unacknowledged-edit safety buffer; it is not recovery authority.
 
+Creating a visual intent or preparing a manual image job atomically consumes
+the exact acknowledged draft receipt. A stale receipt therefore creates
+neither record nor job and leaves the newer draft available for recovery.
+Refresh rejects secret-shaped values anywhere in a specialist completion
+manifest before delivery, rejection, or provenance history can persist it.
+
 The direct factory exposes that capability separately from the retained
 runtime. Thus the existing workbench does not query the installation-owned
 profile registry or mount the excluded video pilot while it is connected to a

@@ -596,6 +596,7 @@ class ImageJobExchange:
                 manifest = ImageDeliveryManifest.model_validate(payload)
             except (json.JSONDecodeError, ValidationError) as error:
                 raise ImageJobError("delivery_manifest_invalid", "completion manifest does not match the image-job contract") from error
+            manifest.assert_secret_free()
             if manifest.job_id != job_id or manifest.request_hash != request_hash:
                 raise ImageJobError("delivery_identity_mismatch", "completion manifest does not belong to this frozen image job")
             required_hashes = tuple(required_reference_hashes)

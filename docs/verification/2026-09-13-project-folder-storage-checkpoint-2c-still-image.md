@@ -24,6 +24,12 @@ Visual-intent and manual image-direction drafts are typed, server-CAS
 direction and required exact identities, use the current storyboard revision as
 the base, and reject secret-shaped values, UI blobs, foreign assets, or missing
 shots. The browser’s local cache remains an unacknowledged-edit guard only.
+Creating an intent or preparing a manual image job consumes the exact
+acknowledged media-draft receipt in the same SQLite transaction. A stale tab
+therefore cannot create a semantic record or job, and the newer draft remains
+recoverable. Completion manifests are screened as a whole before any delivery,
+rejection, or provenance record is written; a secret-shaped value is rejected
+without persisting a delivery.
 The direct media-draft capability prevents this test-only composition from
 probing the installation-owned profile registry or mounting the excluded video
 pilot; the retained runtime preserves its existing behavior.
@@ -33,10 +39,10 @@ pilot; the retained runtime preserves its existing behavior.
 Focused command:
 
 ```text
-uv run pytest tests/test_project_storage.py tests/test_project_storage_image_workflow.py -q
+uv run pytest tests/test_project_storage.py tests/test_project_storage_image_workflow.py tests/backend_core/test_image_jobs.py -q
 ```
 
-Result: `11 passed`.
+Result: `32 passed`.
 
 The new direct-storage journey creates two fixture project homes, runs the
 existing deterministic offline text fixture to obtain canonical evidence,
@@ -48,7 +54,9 @@ proves the copied late delivery is `inapplicable`. A second project’s refresh
 route returns 404 for the first project’s job. After a new
 `ProjectFolderStorage` process, the original bytes and both job histories are
 read from the first project home and their stored URI remains relative under
-`assets/`.
+`assets/`. The fixture also proves that a stale visual-intent or image-direction
+receipt cannot create its downstream record, and a completion containing a
+secret-shaped prompt returns 422 with no delivery persisted.
 
 No live ImageGen, provider, gateway, account, video, or legacy runtime call was
 made. Fixture rasters prove storage and lifecycle behavior only, not creative
@@ -57,8 +65,8 @@ quality.
 The final locked gates passed: `664 passed, 9 skipped` Python tests; `130`
 frontend unit tests; TypeScript typecheck; regenerated static assets; and all
 `30` offline Playwright journeys, including the direct project-folder
-still-image restart test. The isolated installed-wheel smoke check also passed
-for `plotloom-0.1.0-py3-none-any.whl`.
+still-image restart test. `uv build --wheel` and the isolated installed-wheel
+smoke check also passed for `plotloom-0.1.0-py3-none-any.whl`.
 
 ## Deferred
 

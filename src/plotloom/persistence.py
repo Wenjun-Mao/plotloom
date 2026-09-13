@@ -2268,7 +2268,12 @@ class SQLiteRepository:
             return result
 
     def create_visual_intent(
-        self, project_id: str, asset_id: str, intent: dict[str, Any]
+        self,
+        project_id: str,
+        asset_id: str,
+        intent: dict[str, Any],
+        *,
+        consumed_draft: tuple[str, int, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         with self._lifecycle_write() as session:
             project = self._project_row(session, project_id)
@@ -2276,6 +2281,19 @@ class SQLiteRepository:
             asset = session.get(ManagedAssetRow, asset_id)
             if asset is None or asset.project_id != project_id:
                 raise NotFoundError(f"managed asset not found: {asset_id}")
+            if consumed_draft is not None:
+                entity_id, draft_revision, draft_payload = consumed_draft
+                self._consume_exact_authoring_draft_in_session(
+                    session,
+                    project,
+                    editor_scope="visual_intent",
+                    entity_id=entity_id,
+                    expected_draft_revision=draft_revision,
+                    canonical_base_revision=self._stage_row(
+                        session, project_id, StageName.STORYBOARD
+                    ).revision,
+                    canonical_payload=draft_payload,
+                )
             previous = session.scalar(
                 select(VisualIntentRow.revision)
                 .where(VisualIntentRow.project_id == project_id, VisualIntentRow.asset_id == asset_id)
@@ -3885,6 +3903,7 @@ class SQLiteRepository:
         keyframe_adaptation: dict[str, Any] | None = None,
         presentation_change: str,
         contract_version: int = 2,
+        consumed_draft: tuple[str, int, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Freeze an approved single-shot production unit and manual request."""
 
@@ -3903,6 +3922,18 @@ class SQLiteRepository:
             shot = next((item for item in storyboard.shots if item.id == shot_id), None)
             if shot is None:
                 raise InvalidTransitionError("image job must target one current storyboard shot")
+
+            if consumed_draft is not None:
+                entity_id, draft_revision, draft_payload = consumed_draft
+                self._consume_exact_authoring_draft_in_session(
+                    session,
+                    project,
+                    editor_scope="image_direction",
+                    entity_id=entity_id,
+                    expected_draft_revision=draft_revision,
+                    canonical_base_revision=head.revision,
+                    canonical_payload=draft_payload,
+                )
 
             if contract_version not in {2, 3}:
                 raise InvalidTransitionError("image job contract version is unsupported")

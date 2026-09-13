@@ -11,7 +11,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from .domain import CamelModel
+from .domain import CamelModel, contains_secret_setting, contains_secret_value
 
 
 SHA256_PATTERN = r"^[a-f0-9]{64}$"
@@ -212,6 +212,16 @@ class ImageDeliveryManifest(CamelModel):
         if len(hashes) != len(set(hashes)):
             raise ValueError("outputs must not declare the same bytes twice")
         return self
+
+    def assert_secret_free(self) -> None:
+        """Reject specialist-controlled text before it can enter project history."""
+
+        payload = self.model_dump(mode="json", by_alias=True)
+        if contains_secret_setting(payload) or contains_secret_value(payload):
+            raise ImageJobError(
+                "delivery_manifest_secret",
+                "completion manifest must not contain credentials or secret-shaped values",
+            )
 
 
 def is_image_job_id(value: str) -> bool:
