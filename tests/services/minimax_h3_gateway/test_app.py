@@ -252,6 +252,8 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     _write_comfy_output(tmp_path, filename="expiry.mp4", content=b"owned-video")
     assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()["status"] == "succeeded"
     managed = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
+    prepared_input = tmp_path / "comfy-input" / f"{job['id']}.png"
+    asset_path = tmp_path / "data" / "assets" / f"{asset['assetId']}.png"
     unrelated = tmp_path / "data" / "outputs" / "unrelated.mp4"
     unrelated.write_bytes(b"do-not-delete")
     with client.app.state.gateway.store._connect() as connection:
@@ -263,6 +265,8 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     assert client.app.state.gateway.cleanup_expired_outputs() == 1
     assert managed.exists() is False
     assert unrelated.read_bytes() == b"do-not-delete"
+    assert prepared_input.exists() is False
+    assert asset_path.exists() is False
     expired = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
     assert expired.json() == {
         "id": job["id"], "status": "output_expired",
@@ -275,7 +279,7 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     assert output.json() == {"error": "gateway_output_expired"}
 
 
-def test_expired_job_record_purge_removes_its_exclusive_gateway_keyframe(tmp_path: Path) -> None:
+def test_expired_job_record_purge_keeps_only_the_30_day_control_plane_window(tmp_path: Path) -> None:
     client, _ = _client(tmp_path)
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
@@ -289,6 +293,9 @@ def test_expired_job_record_purge_removes_its_exclusive_gateway_keyframe(tmp_pat
     client.app.state.gateway.store.mark_output_expired(
         job["id"], error_code="gateway_output_expired"
     )
+    assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 2
+    assert prepared_input.exists() is False
+    assert asset_path.exists() is False
     with client.app.state.gateway.store._connect() as connection:
         connection.execute(
             "UPDATE jobs SET output_expired_at = datetime('now', '-30 days', '-1 second') "
@@ -299,15 +306,13 @@ def test_expired_job_record_purge_removes_its_exclusive_gateway_keyframe(tmp_pat
     assert client.app.state.gateway.cleanup_expired_job_records() == 1
     assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).status_code == 404
     assert client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers).status_code == 404
-    assert prepared_input.exists() is False
-    assert asset_path.exists() is False
     with client.app.state.gateway.store._connect() as connection:
         assert connection.execute(
             "SELECT COUNT(*) FROM assets WHERE id = ?", (asset["assetId"],)
         ).fetchone()[0] == 0
 
 
-def test_shared_gateway_keyframe_remains_until_its_last_linked_video_is_purged(tmp_path: Path) -> None:
+def test_shared_gateway_keyframe_remains_until_its_last_linked_video_expires(tmp_path: Path) -> None:
     client, _ = _client(tmp_path)
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
@@ -323,13 +328,7 @@ def test_shared_gateway_keyframe_remains_until_its_last_linked_video_is_purged(t
     client.app.state.gateway.store.mark_output_expired(
         first["id"], error_code="gateway_output_expired"
     )
-    with client.app.state.gateway.store._connect() as connection:
-        connection.execute(
-            "UPDATE jobs SET output_expired_at = datetime('now', '-30 days', '-1 second') "
-            "WHERE id = ?",
-            (first["id"],),
-        )
-    assert client.app.state.gateway.cleanup_expired_job_records() == 1
+    assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 1
     assert first_input.exists() is False
     assert second_input.is_file()
     assert asset_path.is_file()
@@ -337,13 +336,7 @@ def test_shared_gateway_keyframe_remains_until_its_last_linked_video_is_purged(t
     client.app.state.gateway.store.mark_output_expired(
         second["id"], error_code="gateway_output_expired"
     )
-    with client.app.state.gateway.store._connect() as connection:
-        connection.execute(
-            "UPDATE jobs SET output_expired_at = datetime('now', '-30 days', '-1 second') "
-            "WHERE id = ?",
-            (second["id"],),
-        )
-    assert client.app.state.gateway.cleanup_expired_job_records() == 1
+    assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 2
     assert second_input.exists() is False
     assert asset_path.exists() is False
 

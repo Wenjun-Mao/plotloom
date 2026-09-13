@@ -28,11 +28,15 @@ broad directory cleanup or deletes arbitrary ComfyUI files.
 An `output_expired` row remains as a short audit record for 30 further days.
 It then becomes eligible for conditional deletion from the gateway's `jobs`
 table, removing its stored prompt and control-plane history. At that point the
-MP4 is already absent. The gateway also removes that job's per-job prepared
-ComfyUI input. Its uploaded keyframe copy is removed only when no gateway job
-references it any longer; a shared keyframe stays until the last linked video
-record is purged. These are gateway-owned transfer copies only. This policy
-never deletes Plotloom's canonical project stills or character references.
+MP4 is already absent. At MP4 expiry—not at this later row cleanup—the gateway
+also removes that job's per-job prepared ComfyUI input. Its uploaded keyframe
+copy is removed when no linked gateway video remains unexpired; a shared
+keyframe stays until the last linked MP4 expires. These are gateway-owned
+transfer copies only. This policy never deletes Plotloom's canonical project
+stills or character references. SQLite retains a small inaccessible
+`purge_pending` asset metadata row while a 30-day job audit row still has a
+foreign-key reference; it deletes that row only after the last job record is
+gone.
 
 At the first upgrade to this contract, the worker adopts each pre-retention
 `succeeded` job whose frozen ComfyUI output descriptor still identifies a
@@ -60,4 +64,4 @@ Regression coverage proves copy-then-remove handoff, restart-safe pending
 transfer, secret-free status, targeted 72-hour expiry, preservation of
 unrelated files, additive database migration and legacy-output adoption, and
 client handling of the expired-output state, 30-day job-record purge, and
-reference-aware gateway-keyframe cleanup.
+reference-aware keyframe cleanup at MP4 expiry.

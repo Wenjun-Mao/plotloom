@@ -343,6 +343,15 @@ class GatewayStore:
             )
         return self.get_job(job_id)
 
+    def list_output_expired_jobs(self) -> list[dict[str, Any]]:
+        """Return terminal jobs whose MP4s have already left gateway storage."""
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM jobs WHERE status = 'output_expired' ORDER BY rowid ASC"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def list_purgeable_expired_job_records(self) -> list[dict[str, Any]]:
         """Return only expired-output records past their short audit window."""
 
@@ -355,42 +364,31 @@ class GatewayStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def purge_expired_job_record(self, job_id: str) -> str | None:
-        """Delete one due job row, leaving assets to their separate policy.
+    def purge_expired_job_record(self, job_id: str) -> bool:
+        """Delete one due job row after its post-output audit interval.
 
         The conditional makes repeated worker passes and a concurrent status
-        read harmless. The caller uses the returned asset ID to begin a
-        separate reference-aware asset cleanup; deleting a job never assumes
-        that its uploaded keyframe was exclusive.
+        read harmless. Gateway-owned keyframe cleanup happens at MP4 expiry,
+        not at this later control-plane cleanup boundary.
         """
 
         with self._connect() as connection:
-            row = connection.execute(
-                "SELECT asset_id FROM jobs WHERE id = ? AND status = 'output_expired' "
-                "AND output_expired_at IS NOT NULL "
-                "AND output_expired_at <= datetime('now', ?)",
-                (job_id, f"-{EXPIRED_JOB_RECORD_RETENTION_DAYS} days"),
-            ).fetchone()
-            if row is None:
-                return None
             deleted = connection.execute(
                 "DELETE FROM jobs WHERE id = ? AND status = 'output_expired' "
                 "AND output_expired_at IS NOT NULL "
                 "AND output_expired_at <= datetime('now', ?)",
                 (job_id, f"-{EXPIRED_JOB_RECORD_RETENTION_DAYS} days"),
             )
-        if deleted.rowcount != 1:
-            return None
-        return str(row["asset_id"])
+        return deleted.rowcount == 1
 
-    def claim_unreferenced_asset_for_purge(self, asset_id: str) -> bool:
-        """Make a final unreferenced upload unavailable before file removal."""
+    def claim_asset_after_last_output_expiry(self, asset_id: str) -> bool:
+        """Make a keyframe unavailable after all linked videos have expired."""
 
         with self._connect() as connection:
             claimed = connection.execute(
                 "UPDATE assets SET purge_pending = 1 WHERE id = ? "
                 "AND purge_pending = 0 AND NOT EXISTS "
-                "(SELECT 1 FROM jobs WHERE asset_id = ?)",
+                "(SELECT 1 FROM jobs WHERE asset_id = ? AND status != 'output_expired')",
                 (asset_id, asset_id),
             )
         return claimed.rowcount == 1
@@ -403,7 +401,7 @@ class GatewayStore:
         return [dict(row) for row in rows]
 
     def delete_pending_unreferenced_asset(self, asset_id: str) -> bool:
-        """Finish a previously claimed asset purge after its file is gone."""
+        """Remove metadata only after its last job reference is gone."""
 
         with self._connect() as connection:
             deleted = connection.execute(
@@ -656,27 +654,39 @@ class H3Gateway:
                 str(job["id"]), error_code="gateway_output_expired"
             )
             removed += 1
+        self.cleanup_expired_gateway_inputs_and_assets()
         return removed
 
     def cleanup_expired_job_records(self) -> int:
-        """Purge due job rows and their no-longer-referenced gateway inputs."""
+        """Purge only due control-plane records after their audit interval."""
 
         removed = 0
         for job in self.store.list_purgeable_expired_job_records():
-            input_path = self._prepared_input_path(job)
-            try:
-                if input_path is not None:
-                    input_path.unlink(missing_ok=True)
-            except OSError:
-                # Keep the job record as the durable retry marker. It is safer
-                # to retain a stale prompt than to lose its tracked input.
-                continue
-            asset_id = self.store.purge_expired_job_record(str(job["id"]))
-            if asset_id is not None:
+            if self.store.purge_expired_job_record(str(job["id"])):
                 removed += 1
-                self.store.claim_unreferenced_asset_for_purge(asset_id)
+        # The physical keyframe copy was released when its final linked MP4
+        # expired. After the last foreign-key reference is now gone, drop only
+        # the small pending metadata row as well.
         self.cleanup_pending_asset_purges()
         return removed
+
+    def cleanup_expired_gateway_inputs_and_assets(self) -> int:
+        """Release transfer-only keyframes once their last video has expired."""
+
+        prepared_removed = 0
+        for job in self.store.list_output_expired_jobs():
+            input_path = self._prepared_input_path(job)
+            try:
+                if input_path is not None and input_path.exists():
+                    input_path.unlink()
+                    prepared_removed += 1
+            except OSError:
+                # Retain the row as a safe retry marker. A failure to remove a
+                # tracked Comfy input must not silently become an arbitrary
+                # later filesystem cleanup.
+                continue
+            self.store.claim_asset_after_last_output_expiry(str(job["asset_id"]))
+        return prepared_removed + self.cleanup_pending_asset_purges()
 
     def cleanup_pending_asset_purges(self) -> int:
         """Delete only gateway-owned uploads after their last job is gone."""
@@ -690,12 +700,14 @@ class H3Gateway:
                 # the evidence for an operator instead.
                 continue
             try:
+                had_file = path.exists()
                 path.unlink(missing_ok=True)
             except OSError:
                 # The pending row makes this a safe later retry after a restart.
                 continue
-            if self.store.delete_pending_unreferenced_asset(str(asset["id"])):
+            if had_file:
                 removed += 1
+            self.store.delete_pending_unreferenced_asset(str(asset["id"]))
         return removed
 
     def _transfer_completed_output(self, job: dict[str, Any]) -> dict[str, Any]:
