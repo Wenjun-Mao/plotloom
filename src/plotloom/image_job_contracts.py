@@ -34,6 +34,11 @@ class ImageJobCreateRequest(CamelModel):
     shot_id: str = Field(min_length=1, max_length=100)
     storyboard_revision: int = Field(ge=1)
     parent_candidate_asset_id: str | None = Field(default=None, max_length=36)
+    # An aspect-adaptation job starts from the current reviewed keyframe,
+    # including an imported keyframe that has no prior image-job candidate.
+    # The API resolves this opaque ID against the reviewed H3 catalog; callers
+    # never choose free-form output dimensions.
+    keyframe_adaptation_profile_id: str | None = Field(default=None, min_length=3, max_length=128)
     presentation_change: str = Field(min_length=1, max_length=4_000)
     # V2 remains the historical/default wire contract so an older client never
     # silently starts claiming cross-shot identity. P1.5 clients opt into V3.
@@ -53,6 +58,15 @@ class ImageJobCreateRequest(CamelModel):
         if not normalized:
             raise ValueError("presentationChange must not be blank")
         return normalized
+
+    @model_validator(mode="after")
+    def adaptation_request_has_one_source_mode(self) -> "ImageJobCreateRequest":
+        if self.keyframe_adaptation_profile_id is not None:
+            if self.parent_candidate_asset_id is not None:
+                raise ValueError("keyframe adaptation cannot also name a refinement parent")
+            if self.contract_version != 3:
+                raise ValueError("keyframe adaptation requires the identity-aware image-job contract")
+        return self
 
 
 class CharacterReferenceDecisionRequest(CamelModel):
@@ -121,7 +135,7 @@ class SamePersonReviewRequest(CamelModel):
 class ImageJobOutput(CamelModel):
     filename: str = Field(min_length=1, max_length=180)
     sha256: str = Field(pattern=SHA256_PATTERN)
-    role: Literal["original", "refinement"]
+    role: Literal["original", "refinement", "keyframe_adaptation"]
 
     @field_validator("filename")
     @classmethod

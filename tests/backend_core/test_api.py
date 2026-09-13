@@ -239,6 +239,7 @@ def test_exact_v2_route_contract(repository: SQLiteRepository) -> None:
         ("GET", "/api/v2/projects/{project_id}/managed-assets/{asset_id}/{variant}"),
         ("POST", "/api/v2/projects/{project_id}/managed-assets/{asset_id}/visual-intents"),
         ("POST", "/api/v2/projects/{project_id}/reviewed-keyframes"),
+        ("POST", "/api/v2/projects/{project_id}/reviewed-keyframes/{binding_id}/center-crops"),
         ("POST", "/api/v2/projects/{project_id}/still-previews"),
         ("GET", "/api/v2/projects/{project_id}/still-previews"),
         ("GET", "/api/v2/projects/{project_id}/visual-workbench"),

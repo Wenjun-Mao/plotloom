@@ -303,6 +303,14 @@ class ImageJobExchange:
             })
         else:
             proposal = request.get("target") == "character_reference_proposal"
+            adaptation = request.get("kind") == "keyframe_adaptation"
+            adaptation_contract = request.get("frozenSnapshot", {}).get("keyframeAdaptation", {}).get("outputContract", {})
+            adaptation_instruction = (
+                f" Adapt the supplied source_keyframe into one complete {adaptation_contract.get('width')}x{adaptation_contract.get('height')} "
+                "composition. Preserve the reviewed person, setting, and camera intent; do not preserve, add, or treat padding as content. "
+                "Every delivered output must use that exact geometry and the keyframe_adaptation role."
+                if adaptation else ""
+            )
             delivery_instruction = (
                 "Read completion-manifest.example.json before preparing delivery. "
                 + (
@@ -310,6 +318,7 @@ class ImageJobExchange:
                     if not proposal else
                     "This is an exploratory character-reference proposal; it cannot approve or select a reference. "
                 )
+                + adaptation_instruction
                 + "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. Do not write "
                 "SQLite, modify this package, or include sensitive values."
             )
@@ -327,6 +336,7 @@ class ImageJobExchange:
                     "Use Codex built-in image generation for the frozen Story Bible character context. This result is an "
                     "exploratory candidate only: do not claim an approved Shot, storyboard Approval, or selected reference. "
                 )
+                + adaptation_instruction
                 + "Disclose the "
                 "exact actual prompt and publish completion.json only after every declared output is complete.\n"
             ).encode("utf-8")

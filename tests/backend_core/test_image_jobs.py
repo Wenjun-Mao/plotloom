@@ -22,9 +22,11 @@ from .conftest import all_stage_payloads
 from .test_managed_still_media import _approval, _complete_project_with_three_shots, _intent
 
 
-def _png(color: tuple[int, int, int]) -> bytes:
+def _png(
+    color: tuple[int, int, int], *, width: int = 24, height: int = 16
+) -> bytes:
     output = BytesIO()
-    Image.new("RGB", (24, 16), color).save(output, format="PNG")
+    Image.new("RGB", (width, height), color).save(output, format="PNG")
     return output.getvalue()
 
 
@@ -101,6 +103,41 @@ def _complete_identity_delivery(delivery: Path, job: dict, *, delivery_id: str, 
         "codeRevision": "a" * 40, "skillHash": "b" * 64,
     }), encoding="utf-8")
     (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+
+def _complete_keyframe_adaptation_delivery(
+    delivery: Path, job: dict, *, delivery_id: str, content: bytes
+) -> None:
+    """Write the narrow V3 fixture handoff for an exact-geometry candidate."""
+
+    outputs = delivery / "outputs"
+    outputs.mkdir(parents=True, exist_ok=True)
+    filename = "adapted-keyframe.png"
+    (outputs / filename).write_bytes(content)
+    provenance = {
+        "codeRevision": "a" * 40,
+        "skillVersion": "plotloom-image-specialist.v3",
+        "skillHash": "b" * 64,
+    }
+    (delivery / "executor-pin.json").write_text(json.dumps({
+        "jobId": job["id"], "requestHash": job["requestHash"],
+        "executionContract": "codex_specialist.v2", **provenance,
+    }), encoding="utf-8")
+    (delivery / "completion.json").write_text(json.dumps({
+        "schemaVersion": 2,
+        "jobId": job["id"],
+        "requestHash": job["requestHash"],
+        "deliveryId": delivery_id,
+        "actualPrompt": "Adapt the frozen reviewed keyframe into the requested complete canvas.",
+        "outputs": [{
+            "filename": filename,
+            "sha256": sha256(content).hexdigest(),
+            "role": "keyframe_adaptation",
+        }],
+        "toolEvidence": {"tool": "codex_imagegen", "taskId": "adaptation-fixture", "available": True},
+        "executorProvenance": provenance,
+        "limitations": ["fixture delivery is not a creative-quality claim"],
+    }), encoding="utf-8")
 
 
 def _import_asset(client: TestClient, project_id: str, color: tuple[int, int, int], *, origin: str = "creator reference") -> dict:
@@ -935,6 +972,145 @@ def test_v3_maps_two_visible_characters_and_excludes_offscreen_context(repositor
     assert context["characters"] == []
     assert context["scene"]["characterIds"] == ["captain", "engineer"]
     assert context["dialogueCues"][0]["speakerId"] == "captain"
+
+
+def test_center_crop_is_source_bound_and_never_auto_selects_a_reviewed_keyframe(repository, brief) -> None:
+    project, scene_id = _complete_project_with_three_shots(repository, brief)
+    app = create_app(repository, artifact_store=MemoryArtifactStore())
+    with TestClient(app) as client:
+        _review, approval = _approval(client, project.id)
+        board = repository.get_stage_head(project.id, StageName.STORYBOARD)
+        shot_id = _shot_id(repository, project.id, scene_id)
+        source = client.post(
+            f"/api/v2/projects/{project.id}/managed-assets",
+            files={"image": ("wide-keyframe.png", _png((30, 70, 120), width=640, height=360), "image/png")},
+            data={"origin": "creator supplied landscape keyframe", "rights": "unknown", "declared_additions_json": "[]"},
+        )
+        assert source.status_code == 201, source.text
+        intent = _intent(client, project.id, source.json()["id"])
+        selected = client.post(
+            f"/api/v2/projects/{project.id}/reviewed-keyframes",
+            json={
+                "assetId": source.json()["id"], "shotId": shot_id, "sceneId": scene_id,
+                "expectedSelectionRevision": 0, "storyboardRevision": board.revision,
+                "approvalId": approval["id"], "compatibilityNote": "Creator accepted the landscape source as the reviewed keyframe.",
+                "visualIntentId": intent["id"], "visualIntentRevision": intent["revision"],
+            },
+        )
+        assert selected.status_code == 201, selected.text
+
+        cropped = client.post(
+            f"/api/v2/projects/{project.id}/reviewed-keyframes/{selected.json()['id']}/center-crops",
+            json={
+                "targetProfileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+                "expectedSelectionRevision": selected.json()["selectionRevision"],
+            },
+        )
+        assert cropped.status_code == 201, cropped.text
+        crop_asset = cropped.json()["asset"]
+        assert (crop_asset["width"], crop_asset["height"]) == (576, 1024)
+
+        # A deterministic derivative is a candidate, not an implied creative
+        # decision. The original selected binding and global revision stand.
+        workbench = client.get(f"/api/v2/projects/{project.id}/visual-workbench").json()
+        assert workbench["selectionRevision"] == selected.json()["selectionRevision"]
+        assert len(workbench["reviewedKeyframes"]) == 1
+        binding = workbench["reviewedKeyframes"][0]
+        assert binding["id"] == selected.json()["id"]
+        assert binding["assetId"] == source.json()["id"]
+        assert binding["selectionRevision"] == selected.json()["selectionRevision"]
+        assets = client.get(f"/api/v2/projects/{project.id}/managed-assets").json()["assets"]
+        recorded_crop = next(asset for asset in assets if asset["id"] == crop_asset["id"])
+        assert recorded_crop["provenance"] == {
+            "origin": "plotloom_keyframe_center_crop",
+            "sourceBindingId": selected.json()["id"],
+            "sourceAssetId": source.json()["id"],
+            "sourceOriginalHash": source.json()["originalHash"],
+            "targetProfile": {
+                "id": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+                "version": 1,
+                "width": 576,
+                "height": 1024,
+                "orientation": "portrait",
+            },
+            "transform": {"version": 1, "strategy": "cover_center_crop", "centering": [0.5, 0.5]},
+        }
+
+
+def test_keyframe_adaptation_freezes_source_and_exact_h3_geometry(repository, brief, tmp_path: Path) -> None:
+    project, scene_id = _complete_project_with_three_shots(repository, brief)
+    app = create_app(
+        repository, artifact_store=MemoryArtifactStore(), image_exchange_root=tmp_path / "exchange"
+    )
+    with TestClient(app) as client:
+        _review, approval = _approval(client, project.id)
+        board = repository.get_stage_head(project.id, StageName.STORYBOARD)
+        shot_id = _shot_id(repository, project.id, scene_id)
+        source = client.post(
+            f"/api/v2/projects/{project.id}/managed-assets",
+            files={"image": ("wide-keyframe.png", _png((90, 40, 20), width=640, height=360), "image/png")},
+            data={"origin": "creator supplied landscape keyframe", "rights": "unknown", "declared_additions_json": "[]"},
+        )
+        assert source.status_code == 201, source.text
+        intent = _intent(client, project.id, source.json()["id"])
+        selected = client.post(
+            f"/api/v2/projects/{project.id}/reviewed-keyframes",
+            json={
+                "assetId": source.json()["id"], "shotId": shot_id, "sceneId": scene_id,
+                "expectedSelectionRevision": 0, "storyboardRevision": board.revision,
+                "approvalId": approval["id"], "compatibilityNote": "Creator approved this landscape source before adaptation.",
+                "visualIntentId": intent["id"], "visualIntentRevision": intent["revision"],
+            },
+        )
+        assert selected.status_code == 201, selected.text
+
+        prepared = client.post(
+            f"/api/v2/projects/{project.id}/image-jobs",
+            json={
+                "approvalId": approval["id"], "shotId": shot_id,
+                "storyboardRevision": board.revision, "contractVersion": 3,
+                "keyframeAdaptationProfileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+                "presentationChange": "Recompose the reviewed shot for the portrait H3 frame without adding blank bands.",
+            },
+        )
+        assert prepared.status_code == 201, prepared.text
+        job = prepared.json()["job"]
+        frozen = job["request"]["frozenSnapshot"]
+        assert job["request"]["kind"] == "keyframe_adaptation"
+        assert frozen["keyframeAdaptation"]["sourceBindingId"] == selected.json()["id"]
+        assert frozen["keyframeAdaptation"]["sourceOriginalHash"] == source.json()["originalHash"]
+        assert frozen["keyframeAdaptation"]["outputContract"] == {
+            "width": 576, "height": 1024, "mimeTypes": ["image/jpeg", "image/png"],
+        }
+        assert [entry["role"] for entry in frozen["references"]] == ["source_keyframe"]
+
+        copied = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/copy")
+        assert copied.status_code == 200, copied.text
+        package = json.loads((Path(copied.json()["packagePath"]) / "request.json").read_text())
+        assert package["references"][0]["role"] == "source_keyframe"
+        assert "complete 576x1024 composition" in package["deliveryInstruction"]
+        delivery = Path(copied.json()["deliveryPath"])
+
+        _complete_keyframe_adaptation_delivery(
+            delivery, job, delivery_id="wrong-geometry", content=_png((40, 90, 120), width=576, height=1023)
+        )
+        rejected = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh")
+        assert rejected.status_code == 422 and rejected.json()["code"] == "delivery_geometry_mismatch"
+
+        _complete_keyframe_adaptation_delivery(
+            delivery, job, delivery_id="correct-geometry", content=_png((40, 90, 120), width=576, height=1024)
+        )
+        accepted = client.post(f"/api/v2/projects/{project.id}/image-jobs/{job['id']}/refresh")
+        assert accepted.status_code == 200 and accepted.json()["state"] == "accepted"
+        candidate = accepted.json()["candidates"][0]
+        assert candidate["role"] == "keyframe_adaptation"
+
+        # Acceptance retains a candidate for the author. It never silently
+        # swaps the source reviewed binding to make a video request viable.
+        workbench = client.get(f"/api/v2/projects/{project.id}/visual-workbench").json()
+        assert workbench["selectionRevision"] == selected.json()["selectionRevision"]
+        assert workbench["reviewedKeyframes"][0]["assetId"] == source.json()["id"]
+        assert candidate["assetId"] != source.json()["id"]
 
 
 def test_character_reference_proposal_delivery_retains_candidate_without_auto_selection(repository, brief, tmp_path: Path) -> None:

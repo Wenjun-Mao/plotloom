@@ -184,7 +184,7 @@ export class PlotloomApiClient {
   }
 
   prepareImageJob(projectId: string, body: {
-    approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string; presentationChange: string; contractVersion?: 2 | 3;
+    approvalId: string; shotId: string; storyboardRevision: number; parentCandidateAssetId?: string; keyframeAdaptationProfileId?: string; presentationChange: string; contractVersion?: 2 | 3;
   }): Promise<{ job: ImageJob }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs`, { method: "POST", body: JSON.stringify(body) });
   }
@@ -199,6 +199,12 @@ export class PlotloomApiClient {
 
   cancelImageJob(projectId: string, jobId: string, reason: string): Promise<ImageJob> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/image-jobs/${encodeURIComponent(jobId)}/cancel`, { method: "POST", body: JSON.stringify({ reason }) });
+  }
+
+  createReviewedKeyframeCenterCrop(projectId: string, bindingId: string, body: {
+    targetProfileId: string; expectedSelectionRevision: number;
+  }): Promise<{ asset: ManagedAsset }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/reviewed-keyframes/${encodeURIComponent(bindingId)}/center-crops`, { method: "POST", body: JSON.stringify(body) });
   }
 
   getCharacterReferences(projectId: string, signal?: AbortSignal): Promise<CharacterReferencesResponse> {
@@ -405,7 +411,8 @@ export class PlotloomApiClient {
   prepareVideoJob(projectId: string, body: {
     approvalId: string; shotId: string; storyboardRevision: number; expectedSelectionRevision: number; idempotencyKey: string;
     requestedDurationSeconds?: number; resolution?: string; audio?: true;
-    aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch"; seed?: number; profileId?: string;
+    aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch";
+    allowLetterbox?: boolean; seed?: number; profileId?: string;
   }): Promise<VideoJob> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`, { method: "POST", body: JSON.stringify(body) });
   }

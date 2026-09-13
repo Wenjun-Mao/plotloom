@@ -12,6 +12,7 @@ import type {
   StoryboardReview,
   VisualIntent,
   VisualWorkbench,
+  VideoBackendProfile,
 } from "./types";
 import { plotloomApi } from "./api";
 import { Badge, Button, Field, Panel } from "./components";
@@ -309,17 +310,14 @@ export function ManagedMediaWorkbench({
   const imageJobContextId = JSON.stringify({
     approvalId: currentApproval?.id ?? null,
     storyboardRevision: storyboardRevision ?? null,
-    target:
-      imageJobTarget.kind === "original"
-        ? "original"
-        : imageJobTarget.parentCandidateAssetId,
-    reviewedBindingId: targetCandidate ? (selectedBinding?.id ?? null) : null,
-    reviewedSelectionRevision: targetCandidate
-      ? (selectedBinding?.selectionRevision ?? null)
-      : null,
-    reviewedVisualIntentRevision: targetCandidate
-      ? (selectedBinding?.visualIntentRevision ?? null)
-      : null,
+    target: imageJobTarget.kind === "original"
+      ? "original"
+      : imageJobTarget.kind === "refinement"
+        ? imageJobTarget.parentCandidateAssetId
+        : imageJobTarget.profileId,
+    reviewedBindingId: imageJobTarget.kind === "original" ? null : (selectedBinding?.id ?? null),
+    reviewedSelectionRevision: imageJobTarget.kind === "original" ? null : (selectedBinding?.selectionRevision ?? null),
+    reviewedVisualIntentRevision: imageJobTarget.kind === "original" ? null : (selectedBinding?.visualIntentRevision ?? null),
   });
   const imageJobDirection = useImageJobDirectionDraft(
     projectId,
@@ -341,6 +339,8 @@ export function ManagedMediaWorkbench({
             ? `当前 Shot 的可见角色缺少已选择的身份参考：${selectedShot.characterIds.filter((characterId) => !currentReferenceByCharacter.has(characterId)).join("、")}。`
             : imageJobTarget.kind === "refinement" && !targetCandidate
               ? "参考细化只能使用当前镜头已审核选择的当前 P1 候选。"
+              : imageJobTarget.kind === "keyframe_adaptation" && !selectedBinding
+                ? "关键帧比例适配需要当前镜头的审核关键帧。"
               : null;
 
   useEffect(() => {
@@ -568,6 +568,10 @@ export function ManagedMediaWorkbench({
       setError("参考细化只能使用当前镜头已审核选择的当前 P1 候选。");
       return;
     }
+    if (imageJobTarget.kind === "keyframe_adaptation" && !selectedBinding) {
+      setError("关键帧比例适配需要当前镜头的审核关键帧。");
+      return;
+    }
     if (imageJobDirection.stale) {
       setError(
         "这个方向草稿来自旧的 Approval、分镜或参考上下文；请显式恢复或放弃它。",
@@ -591,6 +595,10 @@ export function ManagedMediaWorkbench({
           imageJobTarget.kind === "refinement"
             ? imageJobTarget.parentCandidateAssetId
             : undefined,
+        keyframeAdaptationProfileId:
+          imageJobTarget.kind === "keyframe_adaptation"
+            ? imageJobTarget.profileId
+            : undefined,
         presentationChange: imageJobDirection.value.trim(),
         contractVersion: 3,
       });
@@ -603,6 +611,19 @@ export function ManagedMediaWorkbench({
     } finally {
       setBusy(false);
     }
+  };
+  const requestKeyframeAdaptation = (profile: VideoBackendProfile) => {
+    setImageJobTarget({
+      kind: "keyframe_adaptation",
+      profileId: profile.id,
+      profileLabel: profile.label,
+    });
+    setError("");
+  };
+  const acceptPreparedCrop = async (assetId: string) => {
+    setKeptAssetId(assetId);
+    setCandidates((current) => current.includes(assetId) ? current : [...current.slice(-1), assetId]);
+    await refresh();
   };
   const copyImageJob = async (jobId: string) => {
     if (!projectId) return;
@@ -1230,7 +1251,9 @@ export function ManagedMediaWorkbench({
             value={
               imageJobTarget.kind === "original"
                 ? "original"
-                : `refinement:${imageJobTarget.parentCandidateAssetId}`
+                : imageJobTarget.kind === "refinement"
+                  ? `refinement:${imageJobTarget.parentCandidateAssetId}`
+                  : `keyframe_adaptation:${imageJobTarget.profileId}`
             }
             disabled={readOnly || busy}
             onChange={(event) => {
@@ -1238,10 +1261,12 @@ export function ManagedMediaWorkbench({
               setImageJobTarget(
                 value === "original"
                   ? { kind: "original" }
-                  : {
+                  : value.startsWith("refinement:") ? {
                       kind: "refinement",
                       parentCandidateAssetId: value.slice("refinement:".length),
-                    },
+                    } : imageJobTarget.kind === "keyframe_adaptation"
+                      ? imageJobTarget
+                      : { kind: "original" },
               );
             }}
           >
@@ -1254,16 +1279,23 @@ export function ManagedMediaWorkbench({
                 参考细化 · 当前已审核候选 {candidate.assetId.slice(0, 8)}
               </option>
             ))}
+            {imageJobTarget.kind === "keyframe_adaptation" && (
+              <option value={`keyframe_adaptation:${imageJobTarget.profileId}`}>
+                比例适配 · 当前审核关键帧 → {imageJobTarget.profileLabel}
+              </option>
+            )}
           </select>
         </Field>
-        <Field label="冻结的画面呈现 / 细化变化">
+        <Field label={imageJobTarget.kind === "keyframe_adaptation" ? "冻结的画面呈现 / 比例适配方向" : "冻结的画面呈现 / 细化变化"}>
           <textarea
             data-testid="image-job-presentation-change"
             rows={3}
             value={imageJobDirection.value}
             disabled={readOnly || busy}
             onChange={(event) => imageJobDirection.update(event.target.value)}
-            placeholder="例如：保持父图构图，在实用控制台灯下提升面部清晰度。"
+            placeholder={imageJobTarget.kind === "keyframe_adaptation"
+              ? "例如：扩展为完整竖幅构图；保留人物身份、服装、空间与镜头意图，不保留黑边。"
+              : "例如：保持父图构图，在实用控制台灯下提升面部清晰度。"}
           />
         </Field>
         {imageJobDirection.stale && (
@@ -1317,7 +1349,7 @@ export function ManagedMediaWorkbench({
             }
             onClick={() => void prepareImageJob()}
           >
-            准备{imageJobTarget.kind === "refinement" ? "参考细化" : "原始"}{" "}
+            准备{imageJobTarget.kind === "keyframe_adaptation" ? "关键帧比例适配" : imageJobTarget.kind === "refinement" ? "参考细化" : "原始"}{" "}
             image job
           </Button>
         </div>
@@ -1368,7 +1400,7 @@ export function ManagedMediaWorkbench({
             >
               <div>
                 <strong>
-                  {job.request.kind === "refinement" ? "参考细化" : "原始图"} ·{" "}
+                  {job.request.kind === "keyframe_adaptation" ? "关键帧比例适配" : job.request.kind === "refinement" ? "参考细化" : "原始图"} ·{" "}
                   {job.id.slice(0, 15)}
                 </strong>{" "}
                 <Badge tone={job.current ? "ok" : "warning"}>
@@ -1992,7 +2024,18 @@ export function ManagedMediaWorkbench({
           onPlay={() => setPlaying((current) => !current)}
         />
       )}
-      <VideoPilotPanel projectId={projectId} shot={selectedShot} approvalId={review?.activeApproval?.id} storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision} readOnly={readOnly} />
+      <VideoPilotPanel
+        projectId={projectId}
+        shot={selectedShot}
+        approvalId={review?.activeApproval?.id}
+        storyboardRevision={storyboardRevision}
+        selectionRevision={workbench.selectionRevision}
+        reviewedKeyframe={selectedBinding}
+        keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
+        readOnly={readOnly}
+        onPreparedCrop={acceptPreparedCrop}
+        onRequestKeyframeAdaptation={requestKeyframeAdaptation}
+      />
     </Panel>
   );
 }

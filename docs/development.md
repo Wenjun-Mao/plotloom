@@ -108,6 +108,11 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
   canonical facts; use the normal storyboard editor and reapproval for narrative
   changes. A reference refinement is available only for the current reviewed
   keyframe of that Shot.
+- A mismatched reviewed keyframe can instead enter a `keyframe_adaptation` job.
+  Its package names the frozen `source_keyframe`, target H3 profile and exact
+  required pixel geometry. The specialist must fill that complete canvas
+  without padding; delivery remains an unselected managed candidate until the
+  author reviews and selects it.
 - **Copy assignment** exposes one database-frozen `package/` projection and a
   separate `delivery/` inbox. For v2 jobs the specialist reads both
   `package/request.json` and `package/completion-manifest.example.json`; the
@@ -165,12 +170,17 @@ The operator and maintainer entry point is the
   `VIDEO_MODEL=minimax_h3_fp8_turbo4_480p`, the private Tailnet
   `VIDEO_BASE_URL`, and a server-only `VIDEO_MODEL_API_KEY`; restart Plotloom.
   The browser never sees or stores that key.
-- The first H3 profile is fixed at 864x480 / 124 frames / 24 fps (about 5.17
-  seconds) with native audio. The workbench requires an explicit keyframe
-  aspect policy: centred crop, letterbox/pillarbox, or reject mismatch. It
-  never silently stretches a reference frame. Before publication, Plotloom
-  probes the received file and rejects a browser-playable output that misses
-  this frozen H.264/AAC profile as `h3_output_profile_mismatch`.
+- H3 uses the reviewed catalog in [ADR 0036](adr/0036-minimax-h3-profile-catalog.md):
+  832x480, 960x544 and 1280x704 landscape; 576x1024 (the default), 608x1088
+  and 704x1280 portrait. Every profile is 124 frames / 24 fps (about 5.17
+  seconds) with native audio. A new job defaults to an aspect-matched reviewed
+  keyframe and rejects a mismatch before reservation or provider contact.
+  The author can prepare a matching crop/adapted still, or explicitly choose
+  **allow letterbox** for a deliberately padded input canvas. That narrow
+  choice freezes `contain_pad`; it does not skip provenance, selected-keyframe,
+  profile, output-geometry, identity or review checks. Plotloom probes received
+  media and rejects a browser-playable output that misses the frozen H.264/AAC
+  profile as `h3_output_profile_mismatch`.
 - H3 is local capacity-bound by its gateway queue and does not reserve or
   reset the historical paid Wan 100-second ledger. It still freezes an
   adapter/version/request/seed/identity/approval snapshot and never retries an

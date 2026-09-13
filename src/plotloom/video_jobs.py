@@ -48,6 +48,7 @@ class VideoJobService:
         resolution: str | None,
         audio: bool | None,
         aspect_policy: str | None,
+        allow_letterbox: bool,
         seed: int | None,
         profile_id: str | None,
     ) -> dict[str, Any]:
@@ -58,6 +59,7 @@ class VideoJobService:
             resolution=resolution,
             audio=audio,
             aspect_policy=aspect_policy,
+            allow_letterbox=allow_letterbox,
             seed=seed,
             profile_id=profile_id,
         )

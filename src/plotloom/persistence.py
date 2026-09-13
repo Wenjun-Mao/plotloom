@@ -125,6 +125,7 @@ from .generation.scene_timing_allocation import (
     SceneTimingAllocation,
 )
 from .join_state_values import JOIN_STATE_VALUE_CONTRACT_VERSION
+from .keyframe_preparation import has_matching_aspect
 from .video_provider import VideoProductionContract
 from .generation.story_graph_topology import (
     StoryGraphTopology,
@@ -150,6 +151,7 @@ from .exceptions import (
     BootstrapContentionError,
     IdempotencyConflictError,
     InvalidTransitionError,
+    KeyframeAspectMismatchError,
     LifecycleContentionError,
     NotFoundError,
     ProjectBusyError,
@@ -2019,6 +2021,134 @@ class SQLiteRepository:
                 "displayUri": asset.display_uri,
             }
 
+    def reviewed_keyframe_crop_source(
+        self,
+        project_id: str,
+        *,
+        binding_id: str,
+        expected_selection_revision: int,
+    ) -> dict[str, Any]:
+        """Read the exact current selected source for a proposed crop.
+
+        The write method repeats these checks. This read projection only lets
+        the API obtain bytes for a transform; it does not authorize publishing
+        a derivative after a selection has changed.
+        """
+
+        with self._read() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            state = self._selection_state_in_session(session, project_id, utc_now())
+            if state.revision != expected_selection_revision:
+                raise RevisionConflictError(
+                    "visual-selection", expected_selection_revision, state.revision
+                )
+            binding = session.get(ReviewedShotBindingRow, binding_id)
+            if (
+                binding is None
+                or not self._reviewed_binding_admission_eligible_in_session(
+                    session, project_id, binding
+                )
+            ):
+                raise InvalidTransitionError(
+                    "keyframe crop needs the current reviewed selected keyframe"
+                )
+            asset = session.get(ManagedAssetRow, binding.asset_id)
+            if asset is None or asset.project_id != project_id:
+                raise InvalidTransitionError("selected keyframe bytes are unavailable")
+            return {
+                "bindingId": binding.id,
+                "selectionRevision": binding.selection_revision,
+                "assetId": asset.id,
+                "originalHash": asset.original_hash,
+                "mimeType": asset.mime_type,
+                "width": asset.width,
+                "height": asset.height,
+                "originalUri": asset.original_uri,
+            }
+
+    def record_reviewed_keyframe_center_crop(
+        self,
+        project_id: str,
+        *,
+        source: dict[str, Any],
+        target_profile: dict[str, Any],
+        expected_selection_revision: int,
+        original_hash: str,
+        display_hash: str,
+        mime_type: str,
+        byte_size: int,
+        width: int,
+        height: int,
+        publish: Callable[[], tuple[str, str]],
+    ) -> dict[str, Any]:
+        """Persist a source-bound crop without selecting it for the Shot."""
+
+        with self._lifecycle_write() as session:
+            self._assert_active_project(self._project_row(session, project_id))
+            state = self._selection_state_in_session(session, project_id, utc_now())
+            if state.revision != expected_selection_revision:
+                raise RevisionConflictError(
+                    "visual-selection", expected_selection_revision, state.revision
+                )
+            binding = session.get(ReviewedShotBindingRow, source["bindingId"])
+            if (
+                binding is None
+                or binding.asset_id != source["assetId"]
+                or binding.selection_revision != source["selectionRevision"]
+                or not self._reviewed_binding_admission_eligible_in_session(
+                    session, project_id, binding
+                )
+            ):
+                raise InvalidTransitionError(
+                    "keyframe crop source is no longer the current reviewed keyframe"
+                )
+            source_asset = session.get(ManagedAssetRow, binding.asset_id)
+            if (
+                source_asset is None
+                or source_asset.project_id != project_id
+                or source_asset.original_hash != source["originalHash"]
+            ):
+                raise InvalidTransitionError("keyframe crop source bytes are unavailable")
+            target_width, target_height = int(target_profile["width"]), int(target_profile["height"])
+            if has_matching_aspect(
+                source_asset.width, source_asset.height, target_width, target_height
+            ):
+                raise InvalidTransitionError(
+                    "keyframe already matches the requested profile aspect"
+                )
+            if (width, height) != (target_width, target_height):
+                raise InvalidTransitionError(
+                    "derived keyframe crop does not match the requested profile"
+                )
+            original_uri, display_uri = publish()
+            now = utc_now()
+            asset = ManagedAssetRow(
+                id=new_id(), project_id=project_id, original_uri=original_uri,
+                original_hash=original_hash, display_uri=display_uri,
+                display_hash=display_hash, mime_type=mime_type,
+                byte_size=byte_size, width=width, height=height, created_at=now,
+            )
+            session.add(asset)
+            session.flush()
+            session.add(ManagedAssetProvenanceRow(
+                id=new_id(), project_id=project_id, asset_id=asset.id,
+                declaration={
+                    "origin": "plotloom_keyframe_center_crop",
+                    "sourceBindingId": binding.id,
+                    "sourceAssetId": source_asset.id,
+                    "sourceOriginalHash": source_asset.original_hash,
+                    "targetProfile": dict(target_profile),
+                    "transform": {
+                        "version": 1,
+                        "strategy": "cover_center_crop",
+                        "centering": [0.5, 0.5],
+                    },
+                },
+                created_at=now,
+            ))
+            session.flush()
+            return self._managed_asset_dict(asset)
+
     def list_managed_assets(self, project_id: str) -> list[dict[str, Any]]:
         with self._read() as session:
             self._project_row(session, project_id)
@@ -2635,6 +2765,42 @@ class SQLiteRepository:
             asset = session.get(ManagedAssetRow, binding.asset_id)
             if asset is None or asset.project_id != project_id:
                 raise InvalidTransitionError("selected keyframe bytes are unavailable")
+            # New catalog-backed H3 contracts use an exact profile geometry.
+            # A mismatched source is normally rejected before a row,
+            # reservation, or provider call. The narrow exception is an
+            # explicit frozen letterbox request: the creator is asking the
+            # gateway to retain black canvas as part of the input, not asking
+            # Plotloom to waive profile, provenance, or output checks.
+            if (
+                production_contract is not None
+                and production_contract.profile_id is not None
+                and production_contract.width is not None
+                and production_contract.height is not None
+            ):
+                expected_policy = (
+                    "contain_pad"
+                    if production_contract.allow_letterbox
+                    else "reject_mismatch"
+                )
+                if production_contract.aspect_policy != expected_policy:
+                    raise InvalidTransitionError(
+                        "new H3 video job aspect policy does not match its frozen input-frame mode"
+                    )
+                if (
+                    not production_contract.allow_letterbox
+                    and not has_matching_aspect(
+                        asset.width,
+                        asset.height,
+                        production_contract.width,
+                        production_contract.height,
+                    )
+                ):
+                    raise KeyframeAspectMismatchError(
+                        asset.width,
+                        asset.height,
+                        production_contract.width,
+                        production_contract.height,
+                    )
             intent = session.get(VisualIntentRow, binding.visual_intent_id)
             if intent is None:
                 raise InvalidTransitionError("selected keyframe visual intent is unavailable")
@@ -3620,6 +3786,7 @@ class SQLiteRepository:
         shot_id: str,
         storyboard_revision: int,
         parent_candidate_asset_id: str | None = None,
+        keyframe_adaptation: dict[str, Any] | None = None,
         presentation_change: str,
         contract_version: int = 2,
     ) -> dict[str, Any]:
@@ -3643,6 +3810,12 @@ class SQLiteRepository:
 
             if contract_version not in {2, 3}:
                 raise InvalidTransitionError("image job contract version is unsupported")
+            if keyframe_adaptation is not None and (
+                parent_candidate_asset_id is not None or contract_version != 3
+            ):
+                raise InvalidTransitionError(
+                    "keyframe adaptation requires the identity-aware original-image path"
+                )
 
             references: list[dict[str, Any]] = []
             identity_mappings: list[dict[str, Any]] = []
@@ -3736,6 +3909,67 @@ class SQLiteRepository:
                     "byteSize": asset.byte_size, "width": asset.width, "height": asset.height,
                 })
 
+            adaptation_snapshot: dict[str, Any] | None = None
+            if keyframe_adaptation is not None:
+                binding = session.scalar(
+                    select(ReviewedShotBindingRow)
+                    .where(
+                        ReviewedShotBindingRow.project_id == project_id,
+                        ReviewedShotBindingRow.shot_id == shot_id,
+                    )
+                    .order_by(ReviewedShotBindingRow.selection_revision.desc())
+                    .limit(1)
+                )
+                if binding is None or not self._reviewed_binding_admission_eligible_in_session(
+                    session, project_id, binding, approval=approval
+                ):
+                    raise InvalidTransitionError(
+                        "keyframe adaptation needs the current reviewed selected keyframe"
+                    )
+                asset = session.get(ManagedAssetRow, binding.asset_id)
+                intent = session.get(VisualIntentRow, binding.visual_intent_id)
+                if (
+                    asset is None
+                    or asset.project_id != project_id
+                    or intent is None
+                    or intent.project_id != project_id
+                    or intent.asset_id != asset.id
+                    or intent.revision != binding.visual_intent_revision
+                ):
+                    raise InvalidTransitionError(
+                        "keyframe adaptation source is unavailable or no longer reviewable"
+                    )
+                target_width = int(keyframe_adaptation["targetProfile"]["width"])
+                target_height = int(keyframe_adaptation["targetProfile"]["height"])
+                if has_matching_aspect(asset.width, asset.height, target_width, target_height):
+                    raise InvalidTransitionError(
+                        "reviewed keyframe already matches the requested adaptation profile"
+                    )
+                references.append({
+                    "assetId": asset.id,
+                    "role": "source_keyframe",
+                    "required": True,
+                    "originalHash": asset.original_hash,
+                    "mimeType": asset.mime_type,
+                    "byteSize": asset.byte_size,
+                    "width": asset.width,
+                    "height": asset.height,
+                })
+                adaptation_snapshot = {
+                    "sourceBindingId": binding.id,
+                    "sourceSelectionRevision": binding.selection_revision,
+                    "sourceAssetId": asset.id,
+                    "sourceOriginalHash": asset.original_hash,
+                    "sourceVisualIntentId": intent.id,
+                    "sourceVisualIntentRevision": intent.revision,
+                    "targetProfile": dict(keyframe_adaptation["targetProfile"]),
+                    "outputContract": {
+                        "width": target_width,
+                        "height": target_height,
+                        "mimeTypes": ["image/jpeg", "image/png"],
+                    },
+                }
+
             if len(references) > 9:
                 raise ImageJobError(
                     "identity_reference_excessive",
@@ -3772,6 +4006,8 @@ class SQLiteRepository:
                 snapshot["characterIdentity"] = identity_mappings
             if reviewed_visual_intent is not None:
                 snapshot["reviewedVisualIntent"] = reviewed_visual_intent
+            if adaptation_snapshot is not None:
+                snapshot["keyframeAdaptation"] = adaptation_snapshot
             snapshot_hash = stable_hash(snapshot)
             now = utc_now()
             unit = ProductionUnitRow(
@@ -3787,7 +4023,11 @@ class SQLiteRepository:
                 "schemaVersion": contract_version, "jobId": job_id, "productionUnitId": unit.id,
                 "productionSnapshotHash": snapshot_hash,
                 "executionContract": "codex_specialist.v2" if contract_version == 3 else "codex_specialist.v1",
-                "kind": "refinement" if parent_candidate_asset_id else "original",
+                "kind": (
+                    "keyframe_adaptation"
+                    if adaptation_snapshot is not None
+                    else "refinement" if parent_candidate_asset_id else "original"
+                ),
                 "visualProposal": visual_proposal, "frozenSnapshot": snapshot,
             }
             if contract_version == 3:
@@ -3812,7 +4052,9 @@ class SQLiteRepository:
                 raise InvalidTransitionError("image job is no longer current and cannot be copied")
             sources: list[dict[str, Any]] = []
             for reference in job.request["frozenSnapshot"].get("references", []):
-                if reference.get("role") not in {"parent_output", "character_identity"}:
+                if reference.get("role") not in {
+                    "parent_output", "source_keyframe", "character_identity"
+                }:
                     continue
                 asset = session.get(ManagedAssetRow, reference.get("assetId"))
                 if (

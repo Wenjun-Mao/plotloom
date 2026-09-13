@@ -323,6 +323,8 @@ export interface VideoBackend {
   frameCount?: number | null;
   nativeAudio?: boolean;
   requiresAspectPolicy?: boolean;
+  inputAspectPolicy?: "reject_mismatch";
+  allowsLetterbox?: boolean;
   tracksPaidWanPilot?: boolean;
   profileContractVersion?: number;
   defaultProfileId?: string;
@@ -464,7 +466,7 @@ export interface ImageJobCandidate {
   jobId: string;
   outputFilename: string;
   outputHash: string;
-  role: "original" | "refinement";
+  role: "original" | "refinement" | "keyframe_adaptation";
   asset: ManagedAsset | null;
   createdAt: string;
 }
@@ -487,7 +489,7 @@ export interface ImageJob {
   parentCandidateAssetId: string | null;
   request: {
     schemaVersion?: number;
-    kind: "original" | "refinement";
+    kind: "original" | "refinement" | "keyframe_adaptation";
     visualProposal?: Record<string, unknown>;
     frozenSnapshot?: {
       visibleCharacterIds?: string[];
@@ -497,6 +499,11 @@ export interface ImageJob {
         referenceRevision: number;
         assets: Array<{ assetId: string; originalHash: string }>;
       }>;
+      keyframeAdaptation?: {
+        sourceBindingId: string;
+        sourceAssetId: string;
+        targetProfile: { id: string; width: number; height: number };
+      };
     };
   };
   requestHash: string;

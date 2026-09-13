@@ -18,14 +18,17 @@ class VideoJobRequest(CamelModel):
     storyboard_revision: int = Field(ge=1)
     expected_selection_revision: int = Field(ge=1)
     idempotency_key: str = Field(min_length=8, max_length=255)
-    # The active trusted adapter fills its observed defaults.  H3 additionally
-    # requires the caller to choose how a non-16:9 source frame is prepared;
-    # legacy Wan preparation keeps its historic defaults when no adapter is
-    # active in an offline fixture.
+    # The active trusted adapter fills its observed defaults. New H3 work pins
+    # `reject_mismatch`; the broader literals remain readable for historical
+    # snapshots and direct gateway recovery only.
     requested_duration_seconds: Literal[5] | None = None
     resolution: str | None = Field(default=None, min_length=3, max_length=32)
     audio: Literal[True] | None = None
     aspect_policy: Literal["cover_center_crop", "contain_pad", "reject_mismatch"] | None = None
+    # This is an explicit author decision for a mismatched H3 keyframe. It is
+    # deliberately narrower than a general validation bypass: output-profile,
+    # provenance, currentness, and selection checks still apply.
+    allow_letterbox: bool = False
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
     profile_id: str | None = Field(default=None, min_length=3, max_length=63, pattern=r"^[a-z][a-z0-9_]{0,62}$")
 

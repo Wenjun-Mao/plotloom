@@ -79,20 +79,30 @@ class FakeH3Gateway:
         return b"offline-h3-playable-fixture"
 
 
-def png() -> bytes:
+def png(*, width: int = 12, height: int = 8) -> bytes:
     output = BytesIO()
-    Image.new("RGB", (12, 8), (20, 30, 40)).save(output, format="PNG")
+    Image.new("RGB", (width, height), (20, 30, 40)).save(output, format="PNG")
     return output.getvalue()
 
 
-def approved_keyframe(client: TestClient, repository: SQLiteRepository, project_id: str) -> tuple[str, int, str, int]:
+def approved_keyframe(
+    client: TestClient,
+    repository: SQLiteRepository,
+    project_id: str,
+    *,
+    image: bytes | None = None,
+) -> tuple[str, int, str, int]:
     review = client.get(f"/api/v2/projects/{project_id}/storyboard-review").json()
     approval = client.post(f"/api/v2/projects/{project_id}/storyboard-approval", json={
         "expectedRevision": review["head"]["revision"], "contentHash": review["head"]["contentHash"],
         "decision": "approve", "reviewer": "P2 fake-browser fixture", "gateSetVersion": review["gateEvaluation"]["gateSetVersion"],
         "note": "Explicit test approval",
     }).json()["decision"]
-    asset = client.post(f"/api/v2/projects/{project_id}/managed-assets", files={"image": ("fixture.png", png(), "image/png")}, data={"origin": "P2 test fixture", "rights": "unknown"}).json()
+    asset = client.post(
+        f"/api/v2/projects/{project_id}/managed-assets",
+        files={"image": ("fixture.png", image or png(), "image/png")},
+        data={"origin": "P2 test fixture", "rights": "unknown"},
+    ).json()
     intent = client.post(f"/api/v2/projects/{project_id}/managed-assets/{asset['id']}/visual-intents", json={"role": "shot_keyframe", "identityIntent": "fixture", "sourceRefs": ["test"]}).json()
     shot_id = repository.get_stage_payload(project_id, StageName.STORYBOARD).shots[0].id
     selected = client.post(f"/api/v2/projects/{project_id}/reviewed-keyframes", json={
@@ -169,11 +179,13 @@ def test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget(r
         probe=lambda _: ObservedVideo(5.167, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124),
     )
     with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
-        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(
+            client, repository, project.id, image=png(width=576, height=1024)
+        )
         body = {
             "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
             "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-browser-idempotency",
-            "aspectPolicy": "cover_center_crop", "seed": 81,
+            "aspectPolicy": "reject_mismatch", "seed": 81,
         }
         prepared = client.post(f"/api/v2/projects/{project.id}/video-jobs", json=body)
         assert prepared.status_code == 201, prepared.text
@@ -187,7 +199,7 @@ def test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget(r
         }
         assert job["snapshot"]["request"] == {
             "durationSeconds": 5, "resolution": "576x1024", "audio": True,
-            "aspectPolicy": "cover_center_crop", "seed": 81,
+            "aspectPolicy": "reject_mismatch", "allowLetterbox": False, "seed": 81,
             "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "profileVersion": 1,
             "width": 576, "height": 1024,
         }
@@ -200,10 +212,62 @@ def test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget(r
             "assetId": "asset_0123456789abcdef0123456789abcdef",
             "prompt": service._prompt(job["snapshot"]),
             "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
-            "aspectPolicy": "cover_center_crop", "seed": 81,
+            "aspectPolicy": "reject_mismatch", "seed": 81,
         }]
         ingested = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/reconcile")
         assert ingested.status_code == 200 and ingested.json()["state"] == "ingested"
+
+
+def test_h3_refuses_a_mismatched_keyframe_before_creating_a_job_or_submitting(repository, brief) -> None:
+    project = repository.create_project(brief)
+    bible, graph, beats, storyboard = all_stage_payloads()
+    for stage, payload in zip(STAGE_ORDER, (bible, graph, beats, storyboard), strict=True):
+        repository.update_stage(project.id, stage, 0, payload)
+    artifacts, provider = MemoryArtifactStore(), FakeH3Gateway()
+    service = VideoJobService(
+        repository,
+        artifacts,
+        provider,
+        adapter=MiniMaxH3GatewayAdapter(),
+        probe=lambda _: ObservedVideo(5.167, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124),
+    )
+    with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
+        # The fixture's default still is landscape, while the default H3 profile
+        # is portrait. Admission must fail before a job, capacity reservation,
+        # upload, or gateway POST exists.
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        rejected = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
+            "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
+            "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-mismatch-preflight",
+            "aspectPolicy": "reject_mismatch", "seed": 810,
+        })
+        assert rejected.status_code == 422
+        assert rejected.json()["code"] == "keyframe_aspect_mismatch"
+        assert rejected.json()["source"] == {"width": 12, "height": 8}
+        assert rejected.json()["target"] == {"width": 576, "height": 1024}
+        assert client.get(f"/api/v2/projects/{project.id}/video-jobs").json()["jobs"] == []
+        assert client.get("/api/v2/video-pilot-budget").json()["reservedSeconds"] == 0
+        assert provider.submits == [] and provider.preflight_calls == 0
+
+        # Letterboxing is a narrow, explicit alternative: it preserves the
+        # mismatched source on a black profile canvas while retaining the exact
+        # profile, selected-keyframe, and output-contract checks.
+        letterboxed = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
+            "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
+            "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-letterbox-preflight",
+            "aspectPolicy": "contain_pad", "allowLetterbox": True, "seed": 811,
+        })
+        assert letterboxed.status_code == 201, letterboxed.text
+        assert letterboxed.json()["snapshot"]["request"] == {
+            "durationSeconds": 5, "resolution": "576x1024", "audio": True,
+            "aspectPolicy": "contain_pad", "allowLetterbox": True, "seed": 811,
+            "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "profileVersion": 1,
+            "width": 576, "height": 1024,
+        }
+        assert client.post(
+            f"/api/v2/projects/{project.id}/video-jobs/{letterboxed.json()['id']}/submit"
+        ).status_code == 200
+        assert provider.submits[0]["aspectPolicy"] == "contain_pad"
 
 
 def test_h3_known_gateway_outcome_unknown_is_never_replayed(repository, brief) -> None:
@@ -220,11 +284,13 @@ def test_h3_known_gateway_outcome_unknown_is_never_replayed(repository, brief) -
         probe=lambda _: ObservedVideo(5.167, 864, 480, "h264", "aac", frame_rate=24, frame_count=124),
     )
     with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
-        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(
+            client, repository, project.id, image=png(width=576, height=1024)
+        )
         job = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
             "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
             "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-outcome-unknown",
-            "aspectPolicy": "contain_pad", "seed": 82,
+            "aspectPolicy": "reject_mismatch", "seed": 82,
         }).json()
         client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit")
         unknown = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/reconcile")
@@ -244,16 +310,18 @@ def test_h3_rejects_a_playable_output_that_violates_the_frozen_profile(repositor
         artifacts,
         provider,
         adapter=MiniMaxH3GatewayAdapter(),
-        # This is browser-playable H.264/AAC but not the frozen 864x480,
+        # This is browser-playable H.264/AAC but not the frozen 576x1024,
         # 124-frame H3 output, so it cannot be published as that profile.
         probe=lambda _: ObservedVideo(5.167, 1280, 720, "h264", "aac", frame_rate=24, frame_count=124),
     )
     with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
-        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(
+            client, repository, project.id, image=png(width=576, height=1024)
+        )
         job = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
             "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
             "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-profile-mismatch",
-            "aspectPolicy": "cover_center_crop", "seed": 83,
+            "aspectPolicy": "reject_mismatch", "seed": 83,
         }).json()
         assert client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/submit").status_code == 200
         rejected = client.post(f"/api/v2/projects/{project.id}/video-jobs/{job['id']}/reconcile")
@@ -285,7 +353,9 @@ def test_h3_stale_identity_lineage_cannot_cross_the_submit_boundary(repository, 
         probe=lambda _: ObservedVideo(5.167, 864, 480, "h264", "aac", frame_rate=24, frame_count=124),
     )
     with TestClient(create_app(repository, artifact_store=artifacts, video_job_service=service)) as client:
-        approval_id, revision, shot_id, selection_revision = approved_keyframe(client, repository, project.id)
+        approval_id, revision, shot_id, selection_revision = approved_keyframe(
+            client, repository, project.id, image=png(width=576, height=1024)
+        )
         keyframe = client.get(f"/api/v2/projects/{project.id}/managed-assets").json()["assets"][0]
         character_id = character.id
         initial = client.post(f"/api/v2/projects/{project.id}/character-references", json={
@@ -296,7 +366,7 @@ def test_h3_stale_identity_lineage_cannot_cross_the_submit_boundary(repository, 
         prepared = client.post(f"/api/v2/projects/{project.id}/video-jobs", json={
             "approvalId": approval_id, "shotId": shot_id, "storyboardRevision": revision,
             "expectedSelectionRevision": selection_revision, "idempotencyKey": "h3-stale-lineage",
-            "aspectPolicy": "cover_center_crop", "seed": 84,
+            "aspectPolicy": "reject_mismatch", "seed": 84,
         })
         assert prepared.status_code == 201, prepared.text
         replacement = client.post(f"/api/v2/projects/{project.id}/character-references", json={

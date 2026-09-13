@@ -38,6 +38,22 @@ class InvalidTransitionError(PlotloomError):
     pass
 
 
+class KeyframeAspectMismatchError(InvalidTransitionError):
+    """A new H3 job cannot hide aspect conversion inside gateway dispatch."""
+
+    code = "keyframe_aspect_mismatch"
+
+    def __init__(self, source_width: int, source_height: int, target_width: int, target_height: int) -> None:
+        self.source_width = source_width
+        self.source_height = source_height
+        self.target_width = target_width
+        self.target_height = target_height
+        super().__init__(
+            f"reviewed keyframe {source_width}x{source_height} does not match "
+            f"the selected H3 profile {target_width}x{target_height}; prepare a reviewed crop or adapted still first"
+        )
+
+
 class SchemaResetRequiredError(InvalidTransitionError):
     """Version-less or unsupported authored data cannot safely be interpreted."""
 

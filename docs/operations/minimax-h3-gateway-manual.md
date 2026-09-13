@@ -223,9 +223,14 @@ The production sequence is intentional and one-way:
 
 1. A user has a valid project, a selected and approved keyframe, and—when a
    visible character exists—an applicable, human-reviewed character reference.
-2. The workbench requires one explicit aspect policy and prepares an immutable
-   production snapshot. It freezes the keyframe, character references,
-   approval, adapter/version, profile, prompt, and seed.
+2. A new Plotloom job requires an aspect-matched reviewed keyframe and freezes
+   `reject_mismatch` in its immutable production snapshot. For a deliberate
+   framed image inside a larger canvas, the author can explicitly opt into
+   **allow letterbox**, which freezes `contain_pad`; it does not waive any
+   keyframe, provenance, profile, approval, identity or output checks. Plotloom
+   also offers reviewed crop and ImageGen adaptation preparation before this
+   point. The snapshot freezes the keyframe, character references, approval,
+   adapter/version, profile, prompt, seed, and input policy.
 3. Plotloom preflights the gateway, uploads the frozen keyframe, and makes one
    durable submission. It never retries a submission whose outcome might be
    unknown.
@@ -241,17 +246,19 @@ The production sequence is intentional and one-way:
 
 ### Input-aspect policy
 
-The gateway always emits a 16:9 frame. It will not silently stretch an
-approved still:
+The gateway emits the selected catalog geometry. It will not silently stretch
+an approved still. It retains all three policies so historical frozen jobs stay
+interpretable, but new Plotloom work uses only the first and third rows below:
 
 | Policy | Gateway behavior | Choose it when |
 | --- | --- | --- |
-| `cover_center_crop` | centre-crops to 16:9, then resizes | the important subject is centrally framed and filling the frame is preferable |
-| `contain_pad` | preserves the full image and pads to 16:9 in black | the complete source composition matters more than a filled frame |
-| `reject_mismatch` | rejects a non-16:9 input | the input must already be compositionally exact |
+| `cover_center_crop` | centre-crops to the selected geometry, then resizes | historical frozen jobs only; new Plotloom work creates a reviewed crop first |
+| `contain_pad` | preserves the full image and pads to the selected geometry in black | an author explicitly chose **allow letterbox** for that frozen job |
+| `reject_mismatch` | rejects an input whose ratio differs from the selected profile | the default for new Plotloom work; the input is already compositionally exact |
 
-Review the prepared policy as a creative choice. It cannot be inferred from a
-file extension or silently selected by the server.
+The gateway receives the frozen policy but does not infer author intent from a
+file extension or silently select a policy. The decision boundary and required
+review path are recorded in [ADR 0037](../adr/0037-reviewed-keyframe-aspect-preparation.md).
 
 ## 7. Gateway HTTP contract for maintenance only
 

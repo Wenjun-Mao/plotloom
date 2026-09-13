@@ -52,6 +52,7 @@ from .exceptions import (
     BootstrapContentionError,
     IdempotencyConflictError,
     InvalidTransitionError,
+    KeyframeAspectMismatchError,
     LifecycleContentionError,
     NotFoundError,
     ProductionPipelineNotReadyError,
@@ -68,12 +69,15 @@ from .managed_media import (
     ImportDeclaration,
     ManagedMediaError,
     ManagedMediaLimits,
+    KeyframeCenterCropRequest,
     PreviewRequest,
     ReviewedSelectionRequest,
     VisualIntentInput,
     inspect_import_image,
     publish_import,
 )
+from .keyframe_preparation import center_crop_png
+from .video_backends.minimax_h3.adapter import H3_PROFILES_BY_ID
 from .image_job_contracts import (
     CharacterReferenceDecisionRequest,
     CharacterReferenceProposalRequest,
@@ -660,6 +664,23 @@ def create_app(
     # no persistence, and no implication that a profile is qualified.
     readiness_observations: dict[str, TextBackendReadiness] = {}
 
+    def selectable_h3_target(profile_id: str) -> dict[str, Any]:
+        """Resolve an opaque browser profile ID at the trusted server boundary."""
+
+        profile = H3_PROFILES_BY_ID.get(profile_id)
+        if profile is None or not profile.selectable:
+            raise ManagedMediaError(
+                "keyframe_target_profile_invalid",
+                "keyframe preparation needs one selectable MiniMax-H3 profile",
+            )
+        return {
+            "id": profile.profile_id,
+            "version": profile.profile_version,
+            "width": profile.width,
+            "height": profile.height,
+            "orientation": profile.orientation,
+        }
+
     def has_server_key(profile_id: str) -> bool:
         if profile_key_available is not None:
             return bool(profile_key_available(profile_id))
@@ -990,6 +1011,20 @@ def create_app(
     async def transition_handler(_request: Request, error: InvalidTransitionError) -> JSONResponse:
         return JSONResponse(status_code=409, content={"code": "invalid_transition", "message": str(error)})
 
+    @app.exception_handler(KeyframeAspectMismatchError)
+    async def keyframe_aspect_mismatch_handler(
+        _request: Request, error: KeyframeAspectMismatchError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={
+                "code": error.code,
+                "message": str(error),
+                "source": {"width": error.source_width, "height": error.source_height},
+                "target": {"width": error.target_width, "height": error.target_height},
+            },
+        )
+
     @app.exception_handler(SchemaResetRequiredError)
     async def schema_reset_required_handler(
         _request: Request, error: SchemaResetRequiredError
@@ -1232,6 +1267,7 @@ def create_app(
                 resolution=body.resolution,
                 audio=body.audio,
                 aspect_policy=body.aspect_policy,
+                allow_letterbox=body.allow_letterbox,
                 seed=body.seed,
                 profile_id=body.profile_id,
             )
@@ -1408,6 +1444,70 @@ def create_app(
             raise HTTPException(status_code=409, detail={"code": "managed_asset_corrupt"})
         return Response(content=content, media_type="image/png" if variant == "display" else stored["mimeType"])
 
+    @app.post(
+        "/api/v2/projects/{project_id}/reviewed-keyframes/{binding_id}/center-crops",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def create_reviewed_keyframe_center_crop(
+        project_id: str, binding_id: str, body: KeyframeCenterCropRequest
+    ) -> dict[str, Any]:
+        """Create an unselected deterministic crop for later creator review."""
+
+        target = selectable_h3_target(body.target_profile_id)
+        source = repo.reviewed_keyframe_crop_source(
+            project_id,
+            binding_id=binding_id,
+            expected_selection_revision=body.expected_selection_revision,
+        )
+        try:
+            content = app.state.artifact_store.get(source["originalUri"])
+        except (FileNotFoundError, KeyError):
+            raise HTTPException(status_code=410, detail={"code": "managed_asset_missing"})
+        except (ValueError, OSError):
+            raise HTTPException(status_code=409, detail={"code": "managed_asset_corrupt"})
+        if sha256(content).hexdigest() != source["originalHash"]:
+            raise HTTPException(status_code=409, detail={"code": "managed_asset_corrupt"})
+        try:
+            transformed = center_crop_png(
+                content, target_width=target["width"], target_height=target["height"]
+            )
+            observed = inspect_import_image(
+                transformed, app.state.managed_media_limits
+            )
+        except (OSError, ValueError, ManagedMediaError) as error:
+            if isinstance(error, ManagedMediaError):
+                raise
+            raise ManagedMediaError(
+                "keyframe_crop_failed", "selected keyframe could not be cropped safely"
+            ) from error
+        if (observed.width, observed.height) != (target["width"], target["height"]):
+            raise ManagedMediaError(
+                "keyframe_crop_failed", "derived crop did not match the frozen profile"
+            )
+
+        def publish_under_admission() -> tuple[str, str]:
+            try:
+                return publish_import(app.state.artifact_store, transformed, observed)
+            except (OSError, KeyError, ValueError) as error:
+                raise ManagedMediaError(
+                    "delivery_storage_failed", "derived keyframe could not be stored"
+                ) from error
+
+        asset = repo.record_reviewed_keyframe_center_crop(
+            project_id,
+            source=source,
+            target_profile=target,
+            expected_selection_revision=body.expected_selection_revision,
+            original_hash=observed.content_hash,
+            display_hash=observed.display_hash,
+            mime_type=observed.mime_type,
+            byte_size=observed.byte_size,
+            width=observed.width,
+            height=observed.height,
+            publish=publish_under_admission,
+        )
+        return {"asset": asset}
+
     @app.post("/api/v2/projects/{project_id}/managed-assets/{asset_id}/visual-intents", status_code=status.HTTP_201_CREATED)
     def add_visual_intent(project_id: str, asset_id: str, body: VisualIntentInput) -> dict[str, Any]:
         return repo.create_visual_intent(project_id, asset_id, body.model_dump(mode="json", by_alias=True))
@@ -1572,12 +1672,18 @@ def create_app(
         # transport. This check happens before durable admission, so a missing
         # operator setting never creates a misleading copyable job.
         app.state.image_job_exchange.validate_configured()
+        adaptation = (
+            {"targetProfile": selectable_h3_target(body.keyframe_adaptation_profile_id)}
+            if body.keyframe_adaptation_profile_id is not None
+            else None
+        )
         return repo.prepare_image_job(
             project_id,
             approval_id=body.approval_id,
             shot_id=body.shot_id,
             storyboard_revision=body.storyboard_revision,
             parent_candidate_asset_id=body.parent_candidate_asset_id,
+            keyframe_adaptation=adaptation,
             presentation_change=body.presentation_change,
             contract_version=body.contract_version,
         )
@@ -1636,7 +1742,8 @@ def create_app(
             frozen_references = context["request"]["frozenSnapshot"].get("references", [])
             identity_reference_hashes: list[str] = []
             for index, reference in enumerate(
-                item for item in frozen_references if item.get("role") in {"parent_output", "character_identity"}
+                item for item in frozen_references
+                if item.get("role") in {"parent_output", "source_keyframe", "character_identity"}
             ):
                 suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
                 references.append((
@@ -1677,6 +1784,30 @@ def create_app(
             # Copy intentionally creates no completion marker. This is not a
             # rejected delivery and must not manufacture immutable history.
             return {"state": "awaiting_delivery", "candidates": [], "idempotent": False}
+        adaptation = context["request"].get("frozenSnapshot", {}).get("keyframeAdaptation")
+        if adaptation is not None:
+            contract = adaptation.get("outputContract")
+            if not isinstance(contract, dict):
+                repo.record_image_job_delivery_rejection(
+                    project_id, job_id, "delivery_geometry_contract_invalid"
+                )
+                raise ImageJobError(
+                    "delivery_geometry_contract_invalid",
+                    "keyframe adaptation has no usable frozen output contract",
+                )
+            expected = (contract.get("width"), contract.get("height"))
+            for output in delivery.outputs:
+                if (
+                    output.role != "keyframe_adaptation"
+                    or (output.observed.width, output.observed.height) != expected
+                ):
+                    repo.record_image_job_delivery_rejection(
+                        project_id, job_id, "delivery_geometry_mismatch"
+                    )
+                    raise ImageJobError(
+                        "delivery_geometry_mismatch",
+                        "keyframe adaptation delivery must use the frozen role and exact profile dimensions",
+                    )
         outputs: list[dict[str, Any]] = []
         for output in delivery.outputs:
             outputs.append({

@@ -57,7 +57,8 @@ export function useVisualIntentDraft(projectId: string | undefined, shotId: stri
 
 export type ImageJobDraftTarget =
   | { kind: "original" }
-  | { kind: "refinement"; parentCandidateAssetId: string };
+  | { kind: "refinement"; parentCandidateAssetId: string }
+  | { kind: "keyframe_adaptation"; profileId: string; profileLabel: string };
 
 type ImageJobDraftEntry = { contextId: string; value: string };
 type ImageJobDrafts = Record<string, ImageJobDraftEntry>;
@@ -84,7 +85,11 @@ export function useImageJobDirectionDraft(
 ) {
   const [drafts, setDrafts] = useState<ImageJobDrafts>(readImageJobDrafts);
   const [storageFailed, setStorageFailed] = useState(false);
-  const targetId = target.kind === "original" ? "original" : `refinement:${target.parentCandidateAssetId}`;
+  const targetId = target.kind === "original"
+    ? "original"
+    : target.kind === "refinement"
+      ? `refinement:${target.parentCandidateAssetId}`
+      : `keyframe_adaptation:${target.profileId}`;
   const key = JSON.stringify([projectId, shotId, targetId]);
   const entry = drafts[key];
   const stale = Boolean(entry && entry.contextId !== contextId);

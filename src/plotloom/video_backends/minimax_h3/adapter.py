@@ -112,7 +112,11 @@ class MiniMaxH3GatewayAdapter:
     adapter_id = "minimax_h3_gateway"
     adapter_version = "2"
     _JOB_ID = re.compile(r"^h3_[0-9a-f]{32}$")
+    # The gateway retains the broader set to retrieve historical snapshots,
+    # but new Plotloom work must receive a fully composed reviewed keyframe.
     _ASPECT_POLICIES = frozenset({"cover_center_crop", "contain_pad", "reject_mismatch"})
+    _NEW_JOB_ASPECT_POLICY = "reject_mismatch"
+    _LETTERBOX_ASPECT_POLICY = "contain_pad"
 
     def _profile(self, profile_id: str | None, *, legacy_if_missing: bool = False) -> H3Profile:
         resolved = profile_id or (LEGACY_H3_PROFILE.profile_id if legacy_if_missing else DEFAULT_NEW_H3_PROFILE_ID)
@@ -128,6 +132,7 @@ class MiniMaxH3GatewayAdapter:
         resolution: str | None,
         audio: bool | None,
         aspect_policy: str | None,
+        allow_letterbox: bool,
         seed: int | None,
         profile_id: str | None,
     ) -> VideoProductionContract:
@@ -140,8 +145,14 @@ class MiniMaxH3GatewayAdapter:
             raise VideoProviderError("H3 resolution capability mismatch")
         if audio not in {None, True}:
             raise VideoProviderError("H3 native audio is required")
-        if aspect_policy not in self._ASPECT_POLICIES:
-            raise VideoProviderError("H3 requires an explicit input aspect policy")
+        expected_policy = (
+            self._LETTERBOX_ASPECT_POLICY if allow_letterbox else self._NEW_JOB_ASPECT_POLICY
+        )
+        if aspect_policy != expected_policy:
+            raise VideoProviderError(
+                "H3 new jobs require reject_mismatch with a prepared keyframe, "
+                "or explicit allowLetterbox with contain_pad"
+            )
         return VideoProductionContract(
             adapter_id=self.adapter_id,
             adapter_version=self.adapter_version,
@@ -152,6 +163,7 @@ class MiniMaxH3GatewayAdapter:
             resolution=profile.resolution,
             audio=True,
             aspect_policy=aspect_policy,
+            allow_letterbox=allow_letterbox,
             seed=seed if seed is not None else randbits(63),
             tracks_paid_wan_pilot=False,
             profile_id=profile.profile_id,
@@ -177,7 +189,9 @@ class MiniMaxH3GatewayAdapter:
             "fps": default.fps,
             "frameCount": default.frame_count,
             "nativeAudio": True,
-            "requiresAspectPolicy": True,
+            "requiresAspectPolicy": False,
+            "inputAspectPolicy": self._NEW_JOB_ASPECT_POLICY,
+            "allowsLetterbox": True,
             "tracksPaidWanPilot": False,
             "profileContractVersion": H3_PROFILE_CONTRACT_VERSION,
             "defaultProfileId": DEFAULT_NEW_H3_PROFILE_ID,

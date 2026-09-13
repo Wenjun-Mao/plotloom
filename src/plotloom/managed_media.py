@@ -109,6 +109,15 @@ class ReviewedSelectionRequest(CamelModel):
     visual_intent_revision: int = Field(ge=1)
 
 
+class KeyframeCenterCropRequest(CamelModel):
+    """Request one deterministic, still-unselected keyframe derivative."""
+
+    target_profile_id: str = Field(
+        min_length=3, max_length=128, pattern=r"^[a-z][a-z0-9_]{0,127}$"
+    )
+    expected_selection_revision: int = Field(ge=1)
+
+
 class PreviewRequest(CamelModel):
     scene_id: str = Field(min_length=1, max_length=100)
     # A pilot commonly exercises three shots, but the product contract lets a

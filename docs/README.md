@@ -6,6 +6,7 @@
 - [MiniMax-H3 gateway operator and maintainer manual](operations/minimax-h3-gateway-manual.md)
 - [Backend-owned video module decision](adr/0035-backend-owned-video-modules.md)
 - [MiniMax-H3 reviewed profile catalog](adr/0036-minimax-h3-profile-catalog.md)
+- [Reviewed keyframe aspect preparation](adr/0037-reviewed-keyframe-aspect-preparation.md)
 - [Saved-profile conformance runner](conformance.md)
 - [Three-story Alpha acceptance runner](alpha-acceptance.md)
 - [Capability and adoption matrix](roadmap/capability-matrix.md)

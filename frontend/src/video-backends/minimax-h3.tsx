@@ -1,7 +1,6 @@
 import type { VideoBackend, VideoBackendProfile } from "../types";
 
 export const MINIMAX_H3_ADAPTER_ID = "minimax_h3_gateway";
-export type H3AspectPolicy = "" | "cover_center_crop" | "contain_pad" | "reject_mismatch";
 
 export function isMiniMaxH3Backend(backend: VideoBackend | null): boolean {
   return backend?.enabled === true && backend.adapterId === MINIMAX_H3_ADAPTER_ID;
@@ -26,15 +25,6 @@ export function MiniMaxH3ProfileField({ profiles, value, onChange, disabled }: {
   return <label><span>H3 输出 Profile（必选）</span><select aria-label="H3 输出 Profile（必选）" value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
     {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}
   </select><small>尺寸为固定、审核过的 multiples-of-32 profile；高分辨率不自动表示创作质量已验收。</small></label>;
-}
-
-export function MiniMaxH3AspectPolicyField({ value, onChange, disabled }: { value: H3AspectPolicy; onChange: (value: H3AspectPolicy) => void; disabled: boolean }) {
-  return <label><span>关键帧比例处理（必选）</span><select value={value} onChange={(event) => onChange(event.target.value as H3AspectPolicy)} disabled={disabled}>
-    <option value="">请选择，绝不静默拉伸</option>
-    <option value="cover_center_crop">居中裁切以填满所选尺寸</option>
-    <option value="contain_pad">完整保留并以黑边填充</option>
-    <option value="reject_mismatch">比例不符时拒绝提交</option>
-  </select></label>;
 }
 
 export function MiniMaxH3ReviewNotice() {

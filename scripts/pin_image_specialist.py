@@ -19,7 +19,15 @@ SUPPORTED_EXECUTION_CONTRACT = "codex_specialist.v2"
 SUPPORTED_PREFLIGHT_VERSION = "p1.5-pin.v1"
 SUPPORTED_SKILL_VERSION = "plotloom-image-specialist.v3"
 SKILL_PATH = Path(".agents/skills/plotloom-image-specialist/SKILL.md")
-PINNED_SOURCES = (SKILL_PATH, Path("scripts/cleanup_imagegen_staging.py"), Path("scripts/pin_image_specialist.py"), Path("src/plotloom/image_job_exchange.py"), Path("src/plotloom/image_job_contracts.py"), Path("src/plotloom/persistence.py"))
+PINNED_SOURCES = (
+    SKILL_PATH,
+    Path("scripts/cleanup_imagegen_staging.py"),
+    Path("scripts/pin_image_specialist.py"),
+    Path("src/plotloom/api.py"),
+    Path("src/plotloom/image_job_exchange.py"),
+    Path("src/plotloom/image_job_contracts.py"),
+    Path("src/plotloom/persistence.py"),
+)
 
 
 def canonical_json(value: object) -> str:

@@ -106,6 +106,9 @@ class VideoProductionContract:
     aspect_policy: str | None
     seed: int | None
     tracks_paid_wan_pilot: bool
+    # Only catalog-backed H3 contracts persist this author opt-in. Historical
+    # Wan and V1 H3 snapshot bytes stay untouched.
+    allow_letterbox: bool = False
     # Optional profile metadata is used by gateway-owned catalog adapters.
     # Wan V1/V2 snapshots intentionally omit it byte-for-byte.
     profile_id: str | None = None
@@ -141,6 +144,11 @@ class VideoProductionContract:
                 or self.height % 32
             ):
                 raise ValueError("video profile contract is invalid")
+            expected_policy = "contain_pad" if self.allow_letterbox else "reject_mismatch"
+            if self.aspect_policy != expected_policy:
+                raise ValueError("video input-frame mode does not match its aspect policy")
+        elif self.allow_letterbox:
+            raise ValueError("letterbox mode requires a frozen video profile")
 
     def provider_snapshot(self) -> dict[str, Any]:
         return {
@@ -168,6 +176,7 @@ class VideoProductionContract:
                 "profileVersion": self.profile_version,
                 "width": self.width,
                 "height": self.height,
+                "allowLetterbox": self.allow_letterbox,
             }
         return request
 
@@ -224,6 +233,7 @@ class VideoAdapterPort(Protocol):
         resolution: str | None,
         audio: bool | None,
         aspect_policy: str | None,
+        allow_letterbox: bool,
         seed: int | None,
         profile_id: str | None,
     ) -> VideoProductionContract | None: ...
@@ -252,13 +262,14 @@ class AtlasWanAdapter:
         resolution: str | None,
         audio: bool | None,
         aspect_policy: str | None,
+        allow_letterbox: bool,
         seed: int | None,
         profile_id: str | None = None,
     ) -> None:
         # V1 Wan snapshots have no seed or aspect-policy fields. Keep that
         # historical request projection exact rather than allowing future
         # backend fields to leak into it.
-        if aspect_policy is not None or seed is not None or profile_id is not None:
+        if aspect_policy is not None or allow_letterbox or seed is not None or profile_id is not None:
             raise VideoProviderError("Atlas Wan does not accept H3 aspect policy or seed")
         return None
 

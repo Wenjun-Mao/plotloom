@@ -49,17 +49,22 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const backend = await request.get(`${workbench.apiOrigin}/api/v2/video-backend`);
   expect(await backend.json()).toMatchObject({
     enabled: true, adapterId: "minimax_h3_gateway", width: 576, height: 1024,
-    frameCount: 124, nativeAudio: true, requiresAspectPolicy: true, tracksPaidWanPilot: false,
+    frameCount: 124, nativeAudio: true, requiresAspectPolicy: false,
+    inputAspectPolicy: "reject_mismatch", tracksPaidWanPilot: false,
     defaultProfileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
   });
   const panel = page.getByTestId("video-pilot-panel");
   await expect(panel.getByText("MiniMax H3 本地视频候选")).toBeVisible();
-  const aspect = panel.getByLabel("关键帧比例处理（必选）");
   const profile = panel.getByLabel("H3 输出 Profile（必选）");
   await expect(profile).toHaveValue("minimax_h3_fp8_turbo4_portrait_576x1024_v1");
   await expect(panel.getByRole("button", { name: "冻结当前审核关键帧" })).toBeDisabled();
-  await profile.selectOption("minimax_h3_fp8_turbo4_portrait_704x1280_v1");
-  await aspect.selectOption("contain_pad");
+  await expect(panel.getByTestId("h3-aspect-preparation")).toContainText("不会再以黑边或提交时裁切");
+
+  // Letterboxing is an author decision made before the job is frozen. It is
+  // not a storyboard Gate bypass and it remains explicit in the request.
+  await panel.getByLabel("允许黑边画布（保留当前横幅构图）").check();
+  await expect(panel.getByTestId("h3-letterbox-allowed")).toContainText("contain_pad");
+  await expect(panel.getByRole("button", { name: "冻结当前审核关键帧" })).toBeEnabled();
 
   const preparedPost = page.waitForResponse((response) => (
     response.request().method() === "POST"
@@ -69,11 +74,11 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const preparedResponse = await preparedPost;
   expect(preparedResponse.ok()).toBeTruthy();
   expect(preparedResponse.request().postDataJSON()).toMatchObject({
-    requestedDurationSeconds: 5, resolution: "704x1280", audio: true, aspectPolicy: "contain_pad",
-    profileId: "minimax_h3_fp8_turbo4_portrait_704x1280_v1",
+    requestedDurationSeconds: 5, resolution: "576x1024", audio: true, aspectPolicy: "contain_pad", allowLetterbox: true,
+    profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
   });
   const prepared = await preparedResponse.json() as { id: string; snapshot: { request: object } };
-  expect(prepared.snapshot.request).toMatchObject({ aspectPolicy: "contain_pad" });
+  expect(prepared.snapshot.request).toMatchObject({ aspectPolicy: "contain_pad", allowLetterbox: true });
 
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconcile = page.waitForResponse((response) => (
@@ -95,7 +100,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
     return ((await jobs.json()) as { jobs: Array<{ id: string; selected: boolean; observed: object }> }).jobs.find((job) => job.id === prepared.id);
   }).toMatchObject({
     selected: true,
-    observed: { width: 704, height: 1280, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 124 },
+    observed: { width: 576, height: 1024, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 124 },
   });
   expect(await request.get(`${workbench.apiOrigin}/api/v2/video-pilot-budget`).then((response) => response.json())).toMatchObject({ reservedSeconds: 0 });
 

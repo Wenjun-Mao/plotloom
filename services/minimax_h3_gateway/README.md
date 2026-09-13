@@ -23,3 +23,22 @@ Keep ComfyUI on `127.0.0.1:8188`, bind this gateway only to Spark's Tailscale
 address, and keep its bearer key server-side. Do not replace the documented
 profile catalog with an SSH-only edit: profile changes require a new versioned
 gateway/Plotloom contract and verification.
+
+## Module boundary and future extraction
+
+This directory is the git-tracked source module for the gateway: its container
+definition, environment template, typed HTTP service, and profile catalog stay
+together under `services/minimax_h3_gateway/`. Plotloom's adapter deliberately
+lives elsewhere under `src/plotloom/video_backends/minimax_h3/`; it consumes
+the versioned HTTP contract and must not import gateway runtime code.
+
+That boundary keeps the current same-repository deployment reproducible while
+allowing a later extraction into its own repository without changing the
+Plotloom production contract. Until such an extraction is explicitly approved,
+gateway source changes, profile changes, and their operator documentation are
+reviewed and versioned here with Plotloom.
+
+For new H3 work, Plotloom normally sends an aspect-matched keyframe with
+`reject_mismatch`. An explicit author-owned `allowLetterbox` mode instead
+freezes gateway `contain_pad`; this gateway receives the documented
+`aspectPolicy` only and does not infer author intent.
