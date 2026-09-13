@@ -235,7 +235,7 @@ def test_project_owned_image_handoff_isolated_across_restart_and_stales_after_in
     assert delivery_path.is_relative_to(first_home / "runs")
     _complete_delivery(
         delivery_path, original_job, _png((90, 42, 12)), "secret-fixture",
-        actual_prompt="Bearer sk-secret-must-not-enter-project",
+        actual_prompt="The executor used Bearer sk-secret-must-not-enter-project.",
     )
     secret_delivery = client.post(f"/api/v2/projects/{first_id}/image-jobs/{original_job['id']}/refresh")
     assert secret_delivery.status_code == 422

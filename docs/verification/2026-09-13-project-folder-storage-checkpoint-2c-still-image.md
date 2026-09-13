@@ -29,7 +29,7 @@ acknowledged media-draft receipt in the same SQLite transaction. A stale tab
 therefore cannot create a semantic record or job, and the newer draft remains
 recoverable. Completion manifests are screened as a whole before any delivery,
 rejection, or provenance record is written; a secret-shaped value is rejected
-without persisting a delivery.
+without persisting a delivery, including when it is embedded in executor prose.
 The direct media-draft capability prevents this test-only composition from
 probing the installation-owned profile registry or mounting the excluded video
 pilot; the retained runtime preserves its existing behavior.

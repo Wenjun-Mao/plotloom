@@ -92,8 +92,9 @@ Introduce an unwired composition seam in `plotloom.project_storage`:
 - Before any delivery manifest can become delivery history, rejection history,
   or candidate provenance, the shared image-exchange contract rejects both
   secret-shaped setting names and recognizable secret values across the entire
-  specialist-controlled manifest. This applies equally to job and character
-  proposal refreshes; the delivery is not persisted on rejection.
+  specialist-controlled manifest, including values embedded in prose. This
+  applies equally to job and character proposal refreshes; the delivery is not
+  persisted on rejection.
 - The direct factory advertises its media-draft capability explicitly. The
   shared runtime has no such capability, so its existing workbench neither
   probes the installation-owned profile registry nor mounts the excluded video

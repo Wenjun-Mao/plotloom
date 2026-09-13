@@ -1135,13 +1135,31 @@ def test_character_reference_proposal_delivery_retains_candidate_without_auto_se
             "jobId": proposal["id"], "requestHash": proposal["requestHash"],
             "executionContract": "codex_specialist.v2", **provenance,
         }), encoding="utf-8")
-        (delivery / "completion.json").write_text(json.dumps({
-            "schemaVersion": 2, "jobId": proposal["id"], "requestHash": proposal["requestHash"], "deliveryId": "proposal-001",
-            "actualPrompt": "A cinematic realistic appearance study for the frozen character context.",
+        manifest = {
+            "schemaVersion": 2,
+            "jobId": proposal["id"],
+            "requestHash": proposal["requestHash"],
+            "deliveryId": "proposal-001",
+            "actualPrompt": "The executor used Bearer sk-secret-must-not-enter-project.",
             "outputs": [{"filename": "proposal.png", "sha256": sha256(content).hexdigest(), "role": "original"}],
             "toolEvidence": {"tool": "codex_imagegen", "taskId": "proposal-fixture", "available": True},
             "executorProvenance": provenance,
-        }), encoding="utf-8")
+        }
+        (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
+        rejected = client.post(
+            f"/api/v2/projects/{project.id}/character-reference-proposals/{proposal['id']}/refresh"
+        )
+        assert rejected.status_code == 422
+        assert rejected.json()["code"] == "delivery_manifest_secret"
+        proposals = client.get(
+            f"/api/v2/projects/{project.id}/character-reference-proposals"
+        ).json()["proposals"]
+        assert next(item for item in proposals if item["id"] == proposal["id"])["deliveries"] == []
+
+        manifest["actualPrompt"] = (
+            "A cinematic realistic appearance study for the frozen character context."
+        )
+        (delivery / "completion.json").write_text(json.dumps(manifest), encoding="utf-8")
         accepted = client.post(f"/api/v2/projects/{project.id}/character-reference-proposals/{proposal['id']}/refresh")
         assert accepted.status_code == 200 and accepted.json()["state"] == "accepted"
         assert len(accepted.json()["candidates"]) == 1

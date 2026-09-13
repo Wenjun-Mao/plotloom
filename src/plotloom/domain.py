@@ -1443,7 +1443,7 @@ def contains_secret_setting(value: Any) -> bool:
 
 
 def contains_secret_value(value: Any) -> bool:
-    """Detect structurally recognizable secrets without guessing arbitrary tokens."""
+    """Detect recognizable credentials without guessing arbitrary prose tokens."""
 
     if isinstance(value, dict):
         return any(contains_secret_value(child) for child in value.values())
@@ -1454,7 +1454,14 @@ def contains_secret_value(value: Any) -> bool:
 
     candidate = value.strip()
     lowered = candidate.lower()
-    if lowered.startswith(("bearer ", "basic ", "sk-", "sk_", "xai-", "hf_", "aiza")):
+    # Secrets frequently arrive embedded in untrusted prose such as an
+    # executor's completion note. Detect only conventional credential forms at
+    # word boundaries so ordinary language stays admissible.
+    if re.search(
+        r"\b(?:bearer\s+\S+|basic\s+[A-Za-z0-9+/]{8,}={0,2}|(?:sk[-_]|xai-|hf_|aiza)[A-Za-z0-9_-]+)",
+        candidate,
+        flags=re.IGNORECASE,
+    ):
         return True
     if "-----begin private key-----" in lowered:
         return True
@@ -1467,8 +1474,10 @@ def contains_secret_value(value: Any) -> bool:
         if any(is_secret_setting_name(key) for key, _ in query_items):
             return True
 
-    assignment_name, separator, _assignment_value = candidate.partition("=")
-    return bool(separator and is_secret_setting_name(assignment_name))
+    return any(
+        is_secret_setting_name(match.group(1))
+        for match in re.finditer(r"(?<![A-Za-z0-9_-])([A-Za-z][A-Za-z0-9_-]*)\s*=", candidate)
+    )
 
 
 def validate_public_api_root(value: str | None) -> str | None:
