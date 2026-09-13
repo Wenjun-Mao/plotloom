@@ -164,6 +164,9 @@ class H3Gateway:
     def cleanup_expired_job_records(self) -> int:
         return self.files.cleanup_expired_job_records()
 
+    def cleanup_expired_gateway_keyframes(self) -> int:
+        return self.files.cleanup_expired_gateway_keyframes()
+
     def cleanup_expired_gateway_inputs_and_assets(self) -> int:
         return self.files.cleanup_expired_gateway_inputs_and_assets()
 

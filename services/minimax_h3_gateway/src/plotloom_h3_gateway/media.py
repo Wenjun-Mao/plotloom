@@ -114,6 +114,12 @@ class GatewayFiles:
         self.cleanup_pending_asset_purges()
         return removed
 
+    def cleanup_expired_gateway_keyframes(self) -> int:
+        """Delete gateway-owned keyframe files after their full 30-day retention window."""
+
+        self.store.claim_due_gateway_assets()
+        return self.cleanup_pending_asset_purges()
+
     def cleanup_expired_gateway_inputs_and_assets(self) -> int:
         """Release transfer-only keyframes once their last video has expired."""
 
@@ -132,7 +138,11 @@ class GatewayFiles:
         return prepared_removed + self.cleanup_pending_asset_purges()
 
     def cleanup_pending_asset_purges(self) -> int:
-        """Delete only gateway-owned uploads after their last job is gone."""
+        """Delete only gateway-owned files already marked unavailable.
+
+        Metadata stays while a job still has a foreign-key reference, but a
+        marked keyframe file is never made available again.
+        """
 
         removed = 0
         for asset in self.store.list_pending_asset_purges():

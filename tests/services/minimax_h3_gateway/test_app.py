@@ -367,6 +367,42 @@ def test_expired_job_record_purge_keeps_only_the_30_day_control_plane_window(tmp
         ).fetchone()[0] == 0
 
 
+def test_every_gateway_keyframe_expires_after_30_days_even_when_a_job_references_it(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    unused = client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("unused.png", _png(864, 480), "image/png")},
+    ).json()
+    referenced = client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("used.png", _png(864, 480), "image/png")},
+    ).json()
+    unused_path = _stored_asset_path(client, unused["assetId"])
+    referenced_path = _stored_asset_path(client, referenced["assetId"])
+    job = _queue_job(client, headers, referenced["assetId"], prompt="Keep the prepared input")
+    prepared_input = _prepared_input_path(client, job["id"])
+    with client.app.state.gateway.store._connect() as connection:
+        connection.execute(
+            "UPDATE assets SET created_at = datetime('now', '-30 days', '-1 second') "
+            "WHERE id IN (?, ?)",
+            (unused["assetId"], referenced["assetId"]),
+        )
+
+    assert client.app.state.gateway.cleanup_expired_gateway_keyframes() == 2
+    assert unused_path.exists() is False
+    assert referenced_path.exists() is False
+    assert prepared_input.is_file()
+    assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()["status"] == "queued"
+    with client.app.state.gateway.store._connect() as connection:
+        assert connection.execute(
+            "SELECT COUNT(*) FROM assets WHERE id = ?", (unused["assetId"],)
+        ).fetchone()[0] == 0
+        assert connection.execute(
+            "SELECT purge_pending FROM assets WHERE id = ?", (referenced["assetId"],)
+        ).fetchone()[0] == 1
+
+
 def test_shared_gateway_keyframe_remains_until_its_last_linked_video_expires(tmp_path: Path) -> None:
     client, _ = _client(tmp_path)
     headers = {"Authorization": "Bearer test-key"}
@@ -647,4 +683,6 @@ def test_runtime_worker_dispatches_a_queued_job_without_a_polling_browser(tmp_pa
         job = _queue_job(client, headers, asset["assetId"], prompt="Worker takes this")
         assert session.submitted.wait(timeout=1.0)
         status = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
-        assert status.json()["status"] in {"submitted", "running"}
+        # `submitting` is the durable claim between FIFO dequeue and the
+        # persisted ComfyUI prompt ID; a concurrent status reader may see it.
+        assert status.json()["status"] in {"submitting", "submitted", "running"}

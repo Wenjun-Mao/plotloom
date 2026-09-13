@@ -14,6 +14,7 @@ MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_PIXELS = 30_000_000
 MANAGED_OUTPUT_RETENTION_HOURS = 72
 EXPIRED_JOB_RECORD_RETENTION_DAYS = 30
+GATEWAY_KEYFRAME_RETENTION_DAYS = 30
 ALLOWED_IMAGE_MIME_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
 AspectPolicy = Literal["cover_center_crop", "contain_pad", "reject_mismatch"]
 

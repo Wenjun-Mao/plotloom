@@ -43,14 +43,15 @@ An `output_expired` row remains as a short audit record for 30 further days.
 It then becomes eligible for conditional deletion from the gateway's `jobs`
 table, removing its stored prompt and control-plane history. At that point the
 MP4 is already absent. At MP4 expiry—not at this later row cleanup—the gateway
-also removes that job's per-job prepared ComfyUI input. Its uploaded keyframe
-copy is removed when no linked gateway video remains unexpired; a shared
-keyframe stays until the last linked MP4 expires. These are gateway-owned
-transfer copies only. This policy never deletes Plotloom's canonical project
-stills or character references. SQLite retains a small inaccessible
-`purge_pending` asset metadata row while a 30-day job audit row still has a
-foreign-key reference; it deletes that row only after the last job record is
-gone.
+also removes that job's per-job prepared ComfyUI input and may release its
+keyframe earlier. Independently, no uploaded gateway keyframe survives beyond
+30 days after allocation, whether or not a job used it or a managed MP4 remains
+retained. These are gateway-owned transfer copies only; this policy never
+deletes Plotloom's canonical project stills or character references. SQLite
+marks the due keyframe metadata `purge_pending` before filesystem deletion, so
+it cannot enter another job. If a job still has a foreign-key reference, that
+small metadata row remains inaccessible until the final job audit record is
+removed.
 
 ## Consequences
 
@@ -69,5 +70,6 @@ gone.
 Regression coverage proves copy-then-remove handoff, restart-safe pending
 transfer, secret-free status, targeted 72-hour expiry, preservation of
 unrelated files, client handling of the expired-output state, 30-day job-record purge, and
-reference-aware keyframe cleanup at MP4 expiry. It also proves that new asset,
-prepared-input, and managed-output names carry the readable UTC prefix.
+age-based keyframe cleanup, including a keyframe linked to an existing job. It
+also proves that new asset, prepared-input, and managed-output names carry the
+readable UTC prefix.

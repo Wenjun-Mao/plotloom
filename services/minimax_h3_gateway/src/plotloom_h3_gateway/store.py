@@ -5,7 +5,12 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from .contracts import EXPIRED_JOB_RECORD_RETENTION_DAYS, GatewayError, MANAGED_OUTPUT_RETENTION_HOURS
+from .contracts import (
+    EXPIRED_JOB_RECORD_RETENTION_DAYS,
+    GATEWAY_KEYFRAME_RETENTION_DAYS,
+    MANAGED_OUTPUT_RETENTION_HOURS,
+    GatewayError,
+)
 
 
 class GatewayStore:
@@ -266,6 +271,19 @@ class GatewayStore:
                 (asset_id, asset_id),
             )
         return claimed.rowcount == 1
+
+    def claim_due_gateway_assets(self) -> int:
+        """Atomically claim every gateway keyframe past its retention window."""
+
+        with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
+            claimed = connection.execute(
+                "UPDATE assets SET purge_pending = 1 WHERE purge_pending = 0 "
+                "AND created_at <= datetime('now', ?)",
+                (f"-{GATEWAY_KEYFRAME_RETENTION_DAYS} days",),
+            )
+            connection.commit()
+        return claimed.rowcount
 
     def list_pending_asset_purges(self) -> list[dict[str, Any]]:
         with self._connect() as connection:

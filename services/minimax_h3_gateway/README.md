@@ -30,6 +30,10 @@ After completion, the gateway atomically hands off its one expected MP4 from
 the mounted ComfyUI output directory into gateway-managed storage, then
 removes the ComfyUI source. It retains that managed copy for 72 hours; see
 [ADR 0039](../../docs/adr/0039-h3-gateway-managed-output-retention.md).
+No gateway-owned uploaded keyframe remains beyond 30 days, whether or not it
+was used by a job. A completed job can release its keyframe earlier when its
+last managed MP4 expires. This does not affect Plotloom's canonical project
+assets.
 
 New gateway-owned keyframes, prepared inputs, and completed clips use a
 portable UTC timestamp prefix (`YYYY-MM-DDTHH-MM-SSZ_`) before their stable
