@@ -5,8 +5,10 @@
 Accepted, 2026-09-13. Checkpoint 2A replaces the rejected `460ff56`
 construction result with a direct project-owned text-generation repository.
 Checkpoint 2B advances that same unwired composition with durable canonical
-authoring drafts. It remains deliberately unwired from the retained runtime
-and pilot data; this is not a storage cutover or migration.
+authoring drafts. Checkpoint 2C adds the existing project-owned still/image
+workflow and bounded media-direction drafts to that same composition. It
+remains deliberately unwired from the retained runtime and pilot data; this is
+not a storage cutover or migration.
 
 ## Context
 
@@ -60,7 +62,7 @@ Introduce an unwired composition seam in `plotloom.project_storage`:
   keyed by project, allowlisted editor scope, and entity ID; it stores only a
   canonical-schema payload, base canonical revision, draft CAS revision, and
   update time. It cannot contain browser/session objects, profiles, keys, or
-  arbitrary UI state. Existing format-3 construction folders are rejected;
+  arbitrary UI state. Existing format-3/4 construction folders are rejected;
   this checkpoint provides no silent schema mutation, importer, or reader.
 - The test-only `create_project_folder_authoring_app` resolves every authoring
   request through the exact manifest-discovered `ProjectStore`. Its draft PUT
@@ -70,6 +72,22 @@ Introduce an unwired composition seam in `plotloom.project_storage`:
   entity, draft revision, base canonical revision, and normalized canonical
   payload all match the draft receipt. A newer or different buffer remains
   available rather than being silently consumed.
+- Format 5 extends the project schema with still/image, approved
+  visual-selection, character-reference, consistency-review, and manual-image
+  handoff tables. It admits only project-relative content-addressed asset
+  paths, excludes profiles/credentials/global accounting/video dispatch, and
+  places each manual package and delivery beneath
+  `runs/<UTC-time>__<job-id>/`. Existing trusted media services retain their
+  freeze/currentness/ingestion contracts through a confined `put/get` adapter;
+  there is no second media database or browser path authority.
+- Format-5 drafts add only typed visual-intent and manual image-direction
+  values. They are CAS rows bound to the current storyboard revision and exact
+  shot/asset-or-target identity; credentials, session objects, arbitrary UI
+  blobs, prompt/path authority, and Approval substitutes are rejected.
+- The direct factory advertises its media-draft capability explicitly. The
+  shared runtime has no such capability, so its existing workbench neither
+  probes the installation-owned profile registry nor mounts the excluded video
+  pilot when operating against a format-5 project home.
 
 The manifest contains only storage format version, immutable project ID,
 creation time, and the fixed relative database location. Mutable title, status,
@@ -102,13 +120,21 @@ unacknowledged-edit safety buffer; a server acknowledgement in
 `project.sqlite3` is recovery authority and seeds the next post-recovery CAS
 edit.
 
-The remainder of checkpoint 2 must route visual-intent and media-direction
-drafts, image/video handoff, reviews, lifecycle, close, and all delayed-work
-lookups through project handles and coordinate globally unique accounting
-reservations without placing credentials in either database. Close/quiescence,
-snapshot/restore, and live runtime cutover remain out of this checkpoint. It
-must not route a production operation through the old narrow fake-provider
-helper.
+Checkpoint 2C proves the same existing workbench can use a manifest-resolved
+project handle to import still bytes, record visual intent and character
+reference decisions, prepare/copy/refresh manual image jobs, make reviewed
+selections, and retain still-preview/review lineage across a file-SQLite
+restart. Offline fixture deliveries only are admitted. Two project homes reject
+foreign job routes, and a replacement visual-reference decision makes an
+already copied refinement delivery inapplicable. No ImageGen, provider, or
+gateway request is sent by this proof.
+
+The remainder of checkpoint 2 must route video handoff, lifecycle/close, and
+all delayed-work lookups through project handles and coordinate globally unique
+accounting reservations without placing credentials in either database.
+Close/quiescence, snapshot/restore, and live runtime cutover remain out of this
+checkpoint. It must not route a production operation through the old narrow
+fake-provider helper.
 
 Checkpoint 3 remains responsible for snapshot, restore, integrity and failure
 recovery. Checkpoint 4 alone may archive the retained data and perform
@@ -131,4 +157,5 @@ the breaking runtime cutover after writer quiescence and verified inventory.
 
 See the [direct 2A receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2a-direct.md),
 the [2B authoring-draft receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2b-authoring-drafts.md),
+the [2C still/image receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2c-still-image.md),
 and the historical [checkpoint 1 receipt](../verification/2026-09-13-project-folder-storage-checkpoint-1.md).

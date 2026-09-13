@@ -124,6 +124,7 @@ export function StoryboardPage({
   revision,
   storyBibleRevision,
   contentHash,
+  mediaDraftsEnabled = false,
 }: {
   bible: StoryBible;
   graph: StoryGraph;
@@ -146,6 +147,7 @@ export function StoryboardPage({
   revision?: number;
   storyBibleRevision?: number;
   contentHash?: string | null;
+  mediaDraftsEnabled?: boolean;
 }) {
   const [storyboard, setStoryboard] = useState(value);
   const routes = useMemo(() => deriveRoutes(graph), [graph]);
@@ -354,7 +356,7 @@ export function StoryboardPage({
     </>} />
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
     <div className="notice"><strong>媒体能力</strong><span>P0 可导入并审核 stills，P1 可在下方通过同机手动 Codex image handoff 准备已批准镜头；两者都要求显式选择。视频生产尚未实现，历史任务仅供查看。</span></div>
-    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} selectedShot={selectedShot} review={review} readOnly={saving} onSelectShot={selectShot} onReview={() => {
+    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} selectedShot={selectedShot} review={review} readOnly={saving} onSelectShot={selectShot} onReview={() => {
       const panel = document.getElementById("storyboard-review");
       panel?.scrollIntoView({ block: "start" });
       panel?.focus({ preventScroll: true });

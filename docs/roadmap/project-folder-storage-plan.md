@@ -305,3 +305,36 @@ until explicit Save, and editable server-draft recovery after a file-SQLite
 process restart. Visual-intent/media drafts, close/quiescence, snapshots/restore,
 live routing, and all retained-data cutover work remain deferred. See [the 2B
 receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2b-authoring-drafts.md).
+
+## Checkpoint 2C still/image record (2026-09-13)
+
+The direct project composition now owns the existing still-image workflow in
+format-5 `project.sqlite3`: managed originals/display derivatives, visual
+intent and reviewed-keyframe selection, still-preview receipts, character
+reference decisions and consistency reviews, and P1/P1.5 manual job/proposal
+lineage. The existing trusted repository methods remain the contract owner;
+the direct composition supplies only the manifest-resolved project handle, a
+confined relative asset adapter, and a per-job exchange below that project’s
+timestamped `runs/` directory. No global exchange root, absolute asset URI,
+profile, API key, paid ledger, video dispatch, or browser-supplied path enters
+the project folder.
+
+Visual-intent and manual image-direction form buffers are typed CAS server
+drafts keyed to their current storyboard revision and exact entity identity.
+They reject missing/foreign asset or shot identity, credential-shaped values,
+and UI/session blobs. Existing browser session storage remains only an
+unacknowledged-edit safety buffer; it is not recovery authority.
+
+The direct factory exposes that capability separately from the retained
+runtime. Thus the existing workbench does not query the installation-owned
+profile registry or mount the excluded video pilot while it is connected to a
+format-5 project home.
+
+Offline two-project fixture proof covers import, original and refinement
+handoff/copy, fixture delivery ingestion, selected-candidate lineage,
+foreign-job refusal, post-copy reference replacement yielding an inapplicable
+late delivery, and restart recovery of the same project-owned bytes. Character
+reference/proposal and same-person review routes share the same ported tables
+and direct handle. Live ImageGen/provider/gateway calls, video, close,
+snapshot/restore, retained-runtime cutover, compatibility mode, and legacy
+data mutation remain deferred. See [the 2C receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2c-still-image.md).

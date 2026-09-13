@@ -227,6 +227,7 @@ export default function App() {
   const [pendingNavigation, setPendingNavigation] = useState<NavigationTarget | undefined>();
   const [editorNonce, setEditorNonce] = useState(0);
   const [durableDraftsEnabled, setDurableDraftsEnabled] = useState(false);
+  const [durableMediaDraftsEnabled, setDurableMediaDraftsEnabled] = useState(false);
   const [durableDraftStatus, setDurableDraftStatus] = useState<DurableDraftStatus>("idle");
   const [onboarding, setOnboarding] = useState(() => !routeFromLocation().project);
   const [pendingArchive, setPendingArchive] = useState<ProjectListItem | undefined>();
@@ -378,7 +379,11 @@ export default function App() {
       setExecutionTrace(undefined);
       setMediaTasks(newestMediaTasksByShot(mediaResponse.tasks));
       serverAuthoringDrafts.current = new Map(
-        authoringDrafts.map((draft) => [authoringDraftKey(projectId, draft.editorScope), draft]),
+        authoringDrafts
+          .filter((draft): draft is AuthoringDraft & { editorScope: DraftScope } =>
+            draft.editorScope === "brief" || draft.editorScope === "story_bible" || draft.editorScope === "story_graph" || draft.editorScope === "scene_beats" || draft.editorScope === "storyboard",
+          )
+          .map((draft) => [authoringDraftKey(projectId, draft.editorScope), draft]),
       );
       setConnection("connected");
       setOnboarding(false);
@@ -422,12 +427,18 @@ export default function App() {
   // This runs once: navigation is owned by requestNavigation/popstate below.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadProject]);
-  useEffect(() => { void refreshProfiles().catch(() => undefined); }, [refreshProfiles]);
   useEffect(() => {
     void plotloomApi.getAuthoringDraftCapability()
       .then((capability) => {
         durableDraftsEnabledRef.current = capability.durableProjectDrafts === true;
         setDurableDraftsEnabled(durableDraftsEnabledRef.current);
+        setDurableMediaDraftsEnabled(capability.durableMediaDrafts === true);
+        // The direct folder composition deliberately has no installation-wide
+        // profile registry. Do not probe that excluded authority merely to
+        // fill a sidebar that the still/image workflow does not use.
+        if (!durableDraftsEnabledRef.current) {
+          void refreshProfiles().catch(() => undefined);
+        }
         if (durableDraftsEnabledRef.current && visibleRoute.current.project) {
           const epoch = invalidateWorkspaceNavigation({ ...visibleRoute.current });
           void loadProject(visibleRoute.current.project, epoch);
@@ -435,8 +446,13 @@ export default function App() {
       })
       // The retained runtime intentionally does not expose this test-only
       // storage composition.  Absence is not a user-switchable mode.
-      .catch(() => { durableDraftsEnabledRef.current = false; setDurableDraftsEnabled(false); });
-  }, [loadProject]);
+      .catch(() => {
+        durableDraftsEnabledRef.current = false;
+        setDurableDraftsEnabled(false);
+        setDurableMediaDraftsEnabled(false);
+        void refreshProfiles().catch(() => undefined);
+      });
+  }, [loadProject, refreshProfiles]);
   const loadTraceEvidence = useCallback(async (runId: string, projectId: string) => {
     if (loadedTraceEvidenceFor.current === runId || loadingTraceEvidenceFor.current === runId) return;
     loadingTraceEvidenceFor.current = runId;
@@ -1427,7 +1443,7 @@ export default function App() {
       case "bible": return <StoryBiblePage key={`${editorRevisionKey(project, "story_bible")}:${editorNonce}`} projectId={project.id} storyBibleRevision={stageHeads.story_bible?.revision} value={recoveredValue("story_bible", project.storyBible)} stale={project.staleStages.includes("story_bible")} saving={projectSaving || projectReadOnly} entityId={routeEntity} referenceContext={{ sceneBeats: project.sceneBeats, storyboard: project.storyboard }} issues={validationIssues.story_bible} onEntitySelect={selectRouteEntity} onSave={(value: StoryBible) => commitStage("story_bible", value)} onDraftChange={(value) => rememberDraft("story_bible", value)} />;
       case "graph": return <GraphPage key={`${editorRevisionKey(project, "story_graph")}:${editorNonce}`} value={recoveredValue("story_graph", project.storyGraph)} stale={project.staleStages.includes("story_graph")} saving={projectSaving || projectReadOnly} entityId={routeEntity} sceneReferences={project.sceneBeats.scenes.map((scene) => ({ id: scene.id, storyNodeId: scene.storyNodeId, title: scene.title }))} issues={validationIssues.story_graph} onEntitySelect={selectRouteEntity} onSave={(value: StoryGraph) => commitStage("story_graph", value)} onDraftChange={(value) => rememberDraft("story_graph", value)} />;
       case "beats": return <SceneBeatsPage key={`${editorRevisionKey(project, "scene_beats")}:${editorNonce}`} value={recoveredValue("scene_beats", project.sceneBeats)} stale={project.staleStages.includes("scene_beats")} saving={projectSaving || projectReadOnly} entityId={routeEntity} referenceContext={{ nodes: project.storyGraph.nodes, characters: project.storyBible.characters, locations: project.storyBible.locations, props: project.storyBible.props, storyboard: { shots: project.storyboard.shots.map(({ id, sceneId, cueIds }) => ({ id, sceneId, cueIds })), shotBeatLinks: project.storyboard.shotBeatLinks.map(({ shotId, beatId }) => ({ shotId, beatId })) } }} issues={validationIssues.scene_beats} onEntitySelect={selectRouteEntity} onSave={(value: SceneBeatPlan) => commitStage("scene_beats", value)} onDraftChange={(value) => rememberDraft("scene_beats", value)} />;
-      case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${editorNonce}`} projectId={project.id} revision={stageHeads.storyboard?.revision} storyBibleRevision={stageHeads.story_bible?.revision} contentHash={stageHeads.storyboard?.contentHash} bible={project.storyBible} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={projectSaving || projectReadOnly} entityId={routeEntity} issues={validationIssues.storyboard} review={storyboardReview} onEntitySelect={selectRouteEntity} onNavigateIssue={(stage, entity) => requestNavigation({ project: navigationProjectId, stage, entity })} onReviewChange={setStoryboardReview} onSave={(value: Storyboard) => commitStage("storyboard", value)} onDraftChange={(value) => rememberDraft("storyboard", value)} />;
+      case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${editorNonce}`} projectId={project.id} revision={stageHeads.storyboard?.revision} storyBibleRevision={stageHeads.story_bible?.revision} contentHash={stageHeads.storyboard?.contentHash} bible={project.storyBible} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={projectSaving || projectReadOnly} entityId={routeEntity} issues={validationIssues.storyboard} review={storyboardReview} mediaDraftsEnabled={durableMediaDraftsEnabled} onEntitySelect={selectRouteEntity} onNavigateIssue={(stage, entity) => requestNavigation({ project: navigationProjectId, stage, entity })} onReviewChange={setStoryboardReview} onSave={(value: Storyboard) => commitStage("storyboard", value)} onDraftChange={(value) => rememberDraft("storyboard", value)} />;
       case "trace": return <TracePage run={run} progress={runProgress} trace={trace} executionTrace={executionTrace} running={Boolean(running)} onRun={startRun} onResume={resumeRun} onCancel={cancelRun} />;
       case "quarantine": return <QuarantinePage items={project.quarantines} repairing={busy} onRepair={repair} onRebuildStage={rebuild} />;
     }

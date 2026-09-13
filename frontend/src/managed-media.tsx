@@ -84,6 +84,7 @@ export function ManagedMediaWorkbench({
   selectedShot,
   storyboardRevision,
   storyBibleRevision,
+  mediaDraftsEnabled,
   review,
   readOnly,
   onSelectShot,
@@ -95,6 +96,7 @@ export function ManagedMediaWorkbench({
   selectedShot: Shot | undefined;
   storyboardRevision?: number;
   storyBibleRevision?: number;
+  mediaDraftsEnabled: boolean;
   review: StoryboardReview | null | undefined;
   readOnly: boolean;
   onSelectShot?: (id: string) => void;
@@ -287,6 +289,8 @@ export function ManagedMediaWorkbench({
     keptAssetId,
     activeIntent?.id,
     draftFor(activeIntent, selectedShot),
+    storyboardRevision,
+    mediaDraftsEnabled,
   );
   const intentDraft = intentEditor.value;
   const setIntentDraft = intentEditor.update;
@@ -307,23 +311,21 @@ export function ManagedMediaWorkbench({
             candidate.assetId === imageJobTarget.parentCandidateAssetId,
         )
       : undefined;
-  const imageJobContextId = JSON.stringify({
-    approvalId: currentApproval?.id ?? null,
-    storyboardRevision: storyboardRevision ?? null,
-    target: imageJobTarget.kind === "original"
-      ? "original"
-      : imageJobTarget.kind === "refinement"
-        ? imageJobTarget.parentCandidateAssetId
-        : imageJobTarget.profileId,
-    reviewedBindingId: imageJobTarget.kind === "original" ? null : (selectedBinding?.id ?? null),
-    reviewedSelectionRevision: imageJobTarget.kind === "original" ? null : (selectedBinding?.selectionRevision ?? null),
-    reviewedVisualIntentRevision: imageJobTarget.kind === "original" ? null : (selectedBinding?.visualIntentRevision ?? null),
-  });
+  const imageJobContextId = [
+    currentApproval?.id ?? "no-approval",
+    `storyboard-${storyboardRevision ?? 0}`,
+    imageJobTarget.kind === "original" ? "original" : imageJobTarget.kind === "refinement" ? imageJobTarget.parentCandidateAssetId : imageJobTarget.profileId,
+    selectedBinding?.id ?? "no-binding",
+    `selection-${selectedBinding?.selectionRevision ?? 0}`,
+    `intent-${selectedBinding?.visualIntentRevision ?? 0}`,
+  ].join(":");
   const imageJobDirection = useImageJobDirectionDraft(
     projectId,
     selectedShot?.id,
     imageJobTarget,
     imageJobContextId,
+    storyboardRevision,
+    mediaDraftsEnabled,
   );
   const imageJobPrerequisite = !projectId
     ? "先保存项目。"
@@ -467,7 +469,7 @@ export function ManagedMediaWorkbench({
         sourceRefs,
       });
       await refresh();
-      intentEditor.clear();
+      await intentEditor.clear();
     } catch (intentError) {
       setError(
         intentError instanceof Error ? intentError.message : "意图保存失败",
@@ -602,7 +604,7 @@ export function ManagedMediaWorkbench({
         presentationChange: imageJobDirection.value.trim(),
         contractVersion: 3,
       });
-      imageJobDirection.clear();
+      await imageJobDirection.clear();
       await refresh();
     } catch (jobError) {
       setError(
@@ -1320,7 +1322,7 @@ export function ManagedMediaWorkbench({
         {imageJobDirection.dirty && !imageJobDirection.stale && (
           <div className="button-row">
             <small data-testid="image-job-direction-draft">
-              未发送方向仅保存在当前浏览器会话；切换镜头、目标或刷新后可按其原始上下文恢复。
+              方向草稿会以当前分镜 revision 与目标上下文作 CAS 保存到项目；切换镜头、目标或刷新后可按其原始上下文恢复。
             </small>
             <Button
               data-testid="discard-image-job-direction"
@@ -1335,6 +1337,9 @@ export function ManagedMediaWorkbench({
           <small role="alert">
             浏览器暂时无法保存方向草稿；请保持本页打开并在准备前复制文本。
           </small>
+        )}
+        {imageJobDirection.serverConflict && (
+          <small role="alert">服务器上的方向草稿已更新；当前文本未覆盖它。请重新载入或明确放弃本地版本。</small>
         )}
         <div className="button-row">
           <Button
@@ -1852,6 +1857,9 @@ export function ManagedMediaWorkbench({
               浏览器暂时无法保存会话草稿，请保持本页打开并保存意图。
             </small>
           )}
+          {intentEditor.serverConflict && (
+            <small role="alert">服务器上的视觉意图草稿已更新；当前文本未覆盖它。请重新载入或明确放弃本地版本。</small>
+          )}
           <div className="field-grid two compact">
             <Field label="身份意图">
               <textarea
@@ -2024,7 +2032,7 @@ export function ManagedMediaWorkbench({
           onPlay={() => setPlaying((current) => !current)}
         />
       )}
-      <VideoPilotPanel
+      {!mediaDraftsEnabled && <VideoPilotPanel
         projectId={projectId}
         shot={selectedShot}
         approvalId={review?.activeApproval?.id}
@@ -2035,7 +2043,7 @@ export function ManagedMediaWorkbench({
         readOnly={readOnly}
         onPreparedCrop={acceptPreparedCrop}
         onRequestKeyframeAdaptation={requestKeyframeAdaptation}
-      />
+      />}
     </Panel>
   );
 }

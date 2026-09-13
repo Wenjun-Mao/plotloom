@@ -52,7 +52,10 @@ if TYPE_CHECKING:
 # Checkpoint 2B adds durable authoring-draft rows to the direct project schema.
 # A 2A folder is rejected rather than silently receiving an unreviewed schema
 # mutation; no importer/compatibility path exists before the planned cutover.
-PROJECT_STORAGE_FORMAT_VERSION = 4
+# Format 5 adds the project-owned still/image, review, and manual-handoff
+# tables.  Older construction folders are deliberately rejected: this is an
+# explicit storage contract rather than an in-place compatibility migration.
+PROJECT_STORAGE_FORMAT_VERSION = 5
 PROJECT_DATABASE_RELATIVE_PATH = "project.sqlite3"
 PROJECT_MANIFEST_FILENAME = "project.json"
 
@@ -449,6 +452,46 @@ class _OwnedArtifactStore:
         return contents
 
 
+class ProjectArtifactStore:
+    """``ArtifactStore`` adapter whose addresses are owned relative paths.
+
+    Existing still/image services deliberately speak the tiny ``put/get``
+    artifact protocol.  Keeping that protocol lets their established byte and
+    hash checks run unchanged while refusing the absolute ``file://`` records
+    used by the retained application store.
+    """
+
+    def __init__(self, owned: _OwnedArtifactStore) -> None:
+        self._owned = owned
+
+    def put(self, content: bytes, *, expected_hash: str | None = None) -> str:
+        digest = _sha256(content)
+        if expected_hash is not None and expected_hash != digest:
+            raise ValueError("artifact content does not match expected SHA-256")
+        return self._owned.put(content, media_type="application/octet-stream").relative_path
+
+    def get(self, uri: str) -> bytes:
+        relative = _relative_owned_path(uri)
+        parts = relative.parts
+        if (
+            len(parts) != 3
+            or parts[0] != "assets"
+            or len(parts[1]) != 2
+            or len(parts[2]) != 64
+            or parts[2][:2] != parts[1]
+            or any(character not in "0123456789abcdef" for character in parts[2])
+        ):
+            raise ValueError("project artifact URI must name an owned content-addressed asset")
+        return self._owned.read(
+            OwnedArtifact(
+                content_hash=parts[2],
+                relative_path=relative.as_posix(),
+                media_type="application/octet-stream",
+                size_bytes=self._owned._path_for(relative, final_must_exist=True).stat().st_size,
+            )
+        )
+
+
 class ProjectStore:
     """One project home and its directly authoritative canonical repository."""
 
@@ -464,6 +507,7 @@ class ProjectStore:
             create_schema=create_schema,
         )
         self._artifacts = _OwnedArtifactStore(self.home)
+        self.artifacts = ProjectArtifactStore(self._artifacts)
 
     @property
     def repository(self) -> ProjectSQLiteRepository:
@@ -659,6 +703,25 @@ class ProjectStore:
 
     def read_artifact(self, artifact: OwnedArtifact) -> bytes:
         return self._artifacts.read(artifact)
+
+    def image_exchange_for(self, job: dict[str, Any]):
+        """Return the one project-run-local handoff exchange for an image unit."""
+
+        from .image_job_exchange import ImageJobExchange
+        from .managed_media import DEFAULT_MANAGED_MEDIA_LIMITS
+
+        job_id = str(job.get("id", ""))
+        created_at = job.get("createdAt")
+        if not job_id or any(character not in "abcdefghijklmnopqrstuvwxyz0123456789_-" for character in job_id):
+            raise ProjectStorageConfinementError("image handoff identity is not path-safe")
+        try:
+            timestamp = _utc_folder_timestamp(datetime.fromisoformat(str(created_at)))
+        except ValueError as error:
+            raise ProjectStorageCorruptionError("image handoff has no valid creation timestamp") from error
+        runs = _require_real_directory(self.home / "runs", label="project runs root")
+        run_home = runs / f"{timestamp}__{job_id}"
+        _require_real_directory(run_home, label="project image handoff run")
+        return ImageJobExchange(run_home, limits=DEFAULT_MANAGED_MEDIA_LIMITS)
 
 
 @dataclass(frozen=True)

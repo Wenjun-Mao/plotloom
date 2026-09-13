@@ -39,6 +39,7 @@ from .domain import (
     Artifact,
     AuthoringDraft,
     AuthoringDraftScope,
+    ImageDirectionDraftPayload,
     ArtifactKind,
     AttemptStatus,
     CanonicalSnapshot,
@@ -94,6 +95,7 @@ from .domain import (
     WorkUnitRepairRunCreation,
     WorkUnitRepairScope,
     WorkUnitStatus,
+    VisualIntentDraftPayload,
     downstream_stages,
     stage_payload_model,
     upstream_stages,
@@ -1028,12 +1030,11 @@ class StoryGraphTopologyRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
-# This intentionally names the bounded canonical-text port instead of using
-# ``Base.metadata`` wholesale.  A project database needs only canonical heads,
-# text-run lifecycle/repair evidence, and the project-local media-task state
-# consulted by conservative startup recovery.  Profiles, selection, global
-# accounting, and the unrelated image/video/review application surface remain
-# outside this schema until their own project-owned ports are delivered.
+# This intentionally names the project-owned port instead of using
+# ``Base.metadata`` wholesale.  Profiles, profile selection, global accounting,
+# and video-pilot accounting remain installation-owned.  Still/image evidence,
+# review decisions, and the manual handoff lifecycle are project facts and
+# therefore travel with the canonical project database.
 PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset(
     {
         "v2_projects",
@@ -1053,6 +1054,24 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset(
         "v2_generation_work_unit_repair_idempotency",
         "v2_generation_story_graph_topologies",
         "v2_media_tasks",
+        "v2_approval_decisions",
+        "v2_managed_assets",
+        "v2_managed_asset_provenance",
+        "v2_visual_intents",
+        "v2_visual_selection_states",
+        "v2_reviewed_shot_bindings",
+        "v2_still_previews",
+        "v2_production_units",
+        "v2_image_jobs",
+        "v2_image_job_deliveries",
+        "v2_image_job_candidates",
+        "v2_character_reference_states",
+        "v2_character_reference_decisions",
+        "v2_character_reference_proposals",
+        "v2_character_reference_proposal_deliveries",
+        "v2_character_reference_proposal_candidates",
+        "v2_same_person_review_states",
+        "v2_same_person_reviews",
     }
 )
 
@@ -4446,6 +4465,10 @@ class SQLiteRepository:
             raise ValueError("authoring drafts must not contain credentials or secret-shaped values")
         if editor_scope == "brief":
             return ProjectBrief.model_validate(payload).model_dump(mode="json", by_alias=True)
+        if editor_scope == "visual_intent":
+            return VisualIntentDraftPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
+        if editor_scope == "image_direction":
+            return ImageDirectionDraftPayload.model_validate(payload).model_dump(mode="json", by_alias=True)
         stage = StageName(editor_scope)
         return stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(
             payload
@@ -4459,6 +4482,8 @@ class SQLiteRepository:
     ) -> int:
         if editor_scope == "brief":
             return project.revision
+        if editor_scope in {"visual_intent", "image_direction"}:
+            return SQLiteRepository._stage_row(session, project.id, StageName.STORYBOARD).revision
         return SQLiteRepository._stage_row(session, project.id, StageName(editor_scope)).revision
 
     def list_authoring_drafts(self, project_id: str) -> list[AuthoringDraft]:
@@ -4487,6 +4512,25 @@ class SQLiteRepository:
         with self._lifecycle_write() as session:
             project = self._project_row(session, project_id)
             self._assert_active_project(project)
+            if editor_scope in {"visual_intent", "image_direction"}:
+                # Media drafts are deliberately bound to the current authored
+                # storyboard, not just to a browser-supplied opaque key.  This
+                # keeps a copied or stale tab from retaining direction for a
+                # foreign asset/shot while still leaving the draft noncanonical.
+                storyboard = self._load_stage_payload(session, project_id, StageName.STORYBOARD)
+                draft_shot_id = str(validated_payload["shotId"])
+                if not any(shot.id == draft_shot_id for shot in storyboard.shots):
+                    raise ValueError("media authoring draft targets no current storyboard shot")
+                if editor_scope == "visual_intent":
+                    draft_asset_id = str(validated_payload["assetId"])
+                    asset = session.get(ManagedAssetRow, draft_asset_id)
+                    if asset is None or asset.project_id != project_id:
+                        raise ValueError("visual-intent draft targets no project-owned asset")
+                    expected_entity_id = f"{draft_shot_id}:{draft_asset_id}"
+                else:
+                    expected_entity_id = f"{draft_shot_id}:{validated_payload['targetId']}"
+                if entity_id != expected_entity_id:
+                    raise ValueError("media authoring draft identity does not match its bounded payload")
             current_base = self._authoring_draft_base_revision(session, project, editor_scope)
             if base_canonical_revision != current_base:
                 raise RevisionConflictError(

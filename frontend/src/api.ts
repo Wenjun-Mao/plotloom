@@ -352,7 +352,11 @@ export class PlotloomApiClient {
     return { stage: result.body, consumedDraftRevision: receipt ? Number(receipt) : undefined };
   }
 
-  getAuthoringDraftCapability(): Promise<{ durableProjectDrafts: boolean }> {
+  getAuthoringDraftCapability(): Promise<{
+    durableProjectDrafts: boolean;
+    /** Media buffers are project-owned only in the direct format-5 composition. */
+    durableMediaDrafts?: boolean;
+  }> {
     return this.request("/authoring-draft-capabilities");
   }
 
