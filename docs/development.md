@@ -153,6 +153,9 @@ The production server defaults to `127.0.0.1:8775`; the Vite server defaults to 
 
 ### Private MiniMax-H3 video gateway (P2-H3)
 
+The operator and maintainer entry point is the
+[MiniMax-H3 gateway manual](operations/minimax-h3-gateway-manual.md).
+
 - The Spark deployment is a private, bearer-authenticated gateway in front of
   loopback-only ComfyUI. Plotloom never sends it a ComfyUI graph, model path,
   or browser-provided endpoint. See [ADR 0033](adr/0033-private-minimax-h3-gateway.md)

@@ -43,6 +43,9 @@ Vite 默认使用 `5173`，并把 `/api/v2` 代理到 `127.0.0.1:8775`。可用 
 
 ### 私有 MiniMax-H3 视频端点
 
+完整的部署、维护、故障恢复和已验证边界见
+[MiniMax-H3 gateway operator and maintainer manual](docs/operations/minimax-h3-gateway-manual.md)。
+
 Spark 上的 H3 使用一个带 bearer key 的私有网关，ComfyUI 本身只监听
 `127.0.0.1`。在 `.env` 中填写网关的 Tailscale `VIDEO_BASE_URL`、
 `VIDEO_MODEL_API_KEY`，并严格设置：

@@ -3,6 +3,7 @@
 ## Current product contracts
 
 - [Development and operations](development.md)
+- [MiniMax-H3 gateway operator and maintainer manual](operations/minimax-h3-gateway-manual.md)
 - [Saved-profile conformance runner](conformance.md)
 - [Three-story Alpha acceptance runner](alpha-acceptance.md)
 - [Capability and adoption matrix](roadmap/capability-matrix.md)
