@@ -251,6 +251,13 @@ The production sequence is intentional and one-way:
    and removes its exact completed MP4 from ComfyUI output before it reports
    success. Plotloom retrieves bytes only through that gateway ID—never from
    a provider-controlled output URL or a ComfyUI endpoint.
+
+   On the first upgrade to this handoff contract, the serial worker also adopts
+   each older successful H3 record whose frozen ComfyUI output remains present;
+   it never submits a replacement generation. Let one worker poll pass before
+   judging legacy output availability. If a prior ComfyUI file was already
+   removed, the record reports `gateway_legacy_output_unavailable` instead of
+   claiming a 72-hour retained copy once existed.
 5. It probes the downloaded bytes. The candidate is eligible only if it is
    H.264/AAC, the exact frozen width/height, 24 fps, 124 frames, and within
    one frame of the frozen duration. A merely playable mismatch becomes `retrieve_needed` with
@@ -337,6 +344,7 @@ case.”
 | `gateway_output_transfer_pending` | the gateway copied or is copying the exact output but has not safely removed the ComfyUI source | retain the known job and let the worker retry the frozen handoff; do not generate again |
 | `gateway_output_integrity_mismatch` | a source file changed after a partial gateway copy | preserve both files for inspection; the gateway will not publish or delete either one |
 | `gateway_output_expired` | the completed gateway-owned MP4 exceeded its 72-hour retention | retain the job evidence; Plotloom records `h3_gateway_output_expired` and never treats expiry as a retryable generation |
+| `gateway_legacy_output_unavailable` | a pre-retention job's ComfyUI source was absent during the one-time gateway adoption | preserve the job record; do not re-generate automatically or claim a managed retention copy existed |
 | `h3_output_profile_mismatch` in Plotloom | received MP4 did not match the frozen codec/frame profile | retain the evidence, inspect ComfyUI/profile drift, and correct the profile boundary rather than accepting the file |
 | Plotloom says H3 is unavailable | H3 flag/key/provider/model is inconsistent, both backends are enabled, or Plotloom cannot preflight | correct the server configuration and restart; browser settings cannot fix it |
 

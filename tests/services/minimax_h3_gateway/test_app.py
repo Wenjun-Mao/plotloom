@@ -306,6 +306,58 @@ def test_gateway_store_migrates_an_existing_queue_database_additively(tmp_path: 
     } <= columns
 
 
+def test_dispatcher_adopts_a_legacy_completed_output_without_resubmitting_h3(tmp_path: Path) -> None:
+    client, session = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+    ).json()
+    job = _queue_job(client, headers, asset["assetId"], prompt="Adopt a completed clip")
+    client.app.state.gateway.store.update_job(
+        job["id"], status="succeeded", error_code=None,
+        output_filename="legacy.mp4", output_subfolder="video", output_type="output",
+    )
+    source = _write_comfy_output(tmp_path, filename="legacy.mp4", content=b"legacy-video")
+
+    # The worker handles the migration without an HTTP output read or a new
+    # ComfyUI submission, preserving the original completed job identity.
+    assert _dispatch_once(client) is None
+    adopted = client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()
+    assert adopted["status"] == "succeeded"
+    assert adopted["outputReady"] is True
+    assert session.submissions == []
+    assert source.exists() is False
+    managed = tmp_path / "data" / "outputs" / f"{job['id']}.mp4"
+    assert managed.read_bytes() == b"legacy-video"
+    with client.app.state.gateway.store._connect() as connection:
+        expires_at = connection.execute(
+            "SELECT output_expires_at FROM jobs WHERE id = ?", (job["id"],)
+        ).fetchone()[0]
+    assert expires_at is not None
+
+
+def test_legacy_completed_output_missing_from_comfyui_is_explicitly_unavailable(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+    ).json()
+    job = _queue_job(client, headers, asset["assetId"], prompt="Missing legacy clip")
+    client.app.state.gateway.store.update_job(
+        job["id"], status="succeeded", error_code=None,
+        output_filename="gone.mp4", output_subfolder="video", output_type="output",
+    )
+
+    response = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
+    assert response.json()["status"] == "output_expired"
+    assert response.json()["error"] == "gateway_legacy_output_unavailable"
+    output = client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers)
+    assert output.status_code == 410
+    assert output.json() == {"error": "gateway_output_expired"}
+
+
 def test_restart_finishes_a_frozen_pending_output_handoff_without_new_submission(tmp_path: Path) -> None:
     headers = {"Authorization": "Bearer test-key"}
     settings = GatewaySettings(

@@ -25,6 +25,14 @@ deadline has passed, then changes its job to `output_expired`. Job metadata,
 digest, expiry evidence, and error code remain; the gateway never performs a
 broad directory cleanup or deletes arbitrary ComfyUI files.
 
+At the first upgrade to this contract, the worker adopts each pre-retention
+`succeeded` job whose frozen ComfyUI output descriptor still identifies a
+regular source file. It uses the same copy/verify/remove handoff and never
+submits H3 again. If an older source was already removed before the upgrade,
+the record becomes explicitly unavailable with
+`gateway_legacy_output_unavailable`; it is not misrepresented as a file this
+gateway retained and later cleaned up.
+
 ## Consequences
 
 - Plotloom retrieves MP4 bytes only from gateway-managed storage, never a
@@ -41,5 +49,5 @@ broad directory cleanup or deletes arbitrary ComfyUI files.
 
 Regression coverage proves copy-then-remove handoff, restart-safe pending
 transfer, secret-free status, targeted 72-hour expiry, preservation of
-unrelated files, additive database migration, and client handling of the
-expired-output state.
+unrelated files, additive database migration and legacy-output adoption, and
+client handling of the expired-output state.

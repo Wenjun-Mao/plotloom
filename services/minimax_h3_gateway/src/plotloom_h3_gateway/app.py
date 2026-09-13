@@ -255,6 +255,21 @@ class GatewayStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
+    def list_unmanaged_succeeded_jobs(self) -> list[dict[str, Any]]:
+        """Return legacy completed jobs that predate gateway-owned output storage.
+
+        A successful current job always has a managed output name.  This narrow
+        query therefore identifies only rows created before that invariant was
+        introduced; it never broadens normal output cleanup or dispatch.
+        """
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM jobs WHERE status = 'succeeded' "
+                "AND managed_output_name IS NULL ORDER BY rowid ASC"
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def cancel_queued_job(self, job_id: str) -> dict[str, Any]:
         with self._connect() as connection:
             updated = connection.execute(
@@ -421,6 +436,11 @@ class H3Gateway:
     def dispatch_once(self) -> dict[str, Any] | None:
         """Advance at most one FIFO job through the only H3 dispatch lane."""
 
+        # An upgrade must not turn previously reachable completed outputs into
+        # silent 410s.  Adopt only legacy completed records with no managed
+        # name; their frozen Comfy descriptor determines the exact source.
+        for completed in self.store.list_unmanaged_succeeded_jobs():
+            self._adopt_legacy_completed_output(completed)
         for active in self.store.list_active_jobs():
             self.refresh_job(str(active["id"]))
         if self.store.list_active_jobs():
@@ -480,6 +500,8 @@ class H3Gateway:
 
     def refresh_job(self, job_id: str) -> dict[str, Any]:
         job = self.store.get_job(job_id)
+        if job["status"] == "succeeded" and job.get("managed_output_name") is None:
+            return self._adopt_legacy_completed_output(job)
         if job["status"] == "transfer_pending":
             return self._transfer_completed_output(job)
         if job["status"] not in {"submitted", "running"}:
@@ -590,6 +612,27 @@ class H3Gateway:
             str(job["id"]), output_name=destination.name, digest=digest,
             size_bytes=size_bytes,
         )
+
+    def _adopt_legacy_completed_output(self, job: dict[str, Any]) -> dict[str, Any]:
+        """Move one pre-retention completed output into the current contract.
+
+        The old gateway treated ComfyUI output as the delivery store.  Its
+        frozen filename/subfolder/type fields are enough to adopt a remaining
+        file without re-querying ComfyUI or re-running H3.  If that old source
+        is already gone, say so explicitly rather than pretending it was
+        retained and later expired by this gateway.
+        """
+
+        source = self._comfy_output_path(job)
+        if source is None or not source.is_file() or source.is_symlink():
+            return self.store.mark_output_expired(
+                str(job["id"]), error_code="gateway_legacy_output_unavailable"
+            )
+        pending = self.store.update_job(
+            str(job["id"]), status="transfer_pending",
+            error_code="gateway_output_transfer_pending",
+        )
+        return self._transfer_completed_output(pending)
 
     def _comfy_output_path(self, job: dict[str, Any]) -> Path | None:
         filename = job.get("output_filename")
