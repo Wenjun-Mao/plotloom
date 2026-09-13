@@ -33,6 +33,7 @@ from .profile_catalog import (
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_PIXELS = 30_000_000
 MANAGED_OUTPUT_RETENTION_HOURS = 72
+EXPIRED_JOB_RECORD_RETENTION_DAYS = 30
 ALLOWED_IMAGE_MIME_TYPES = frozenset({"image/jpeg", "image/png", "image/webp"})
 AspectPolicy = Literal["cover_center_crop", "contain_pad", "reject_mismatch"]
 
@@ -324,6 +325,36 @@ class GatewayStore:
             )
         return self.get_job(job_id)
 
+    def list_purgeable_expired_job_records(self) -> list[str]:
+        """Return only expired-output records past their short audit window."""
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT id FROM jobs WHERE status = 'output_expired' "
+                "AND output_expired_at IS NOT NULL "
+                "AND output_expired_at <= datetime('now', ?) ORDER BY rowid ASC",
+                (f"-{EXPIRED_JOB_RECORD_RETENTION_DAYS} days",),
+            ).fetchall()
+        return [str(row["id"]) for row in rows]
+
+    def purge_expired_job_record(self, job_id: str) -> bool:
+        """Delete one due job row, leaving assets to their separate policy.
+
+        The conditional makes repeated worker passes and a concurrent status
+        read harmless.  This is deliberately narrower than filesystem cleanup:
+        the managed MP4 was already removed at output expiry, and gateway input
+        assets are not implicitly destroyed by an audit-record retention rule.
+        """
+
+        with self._connect() as connection:
+            deleted = connection.execute(
+                "DELETE FROM jobs WHERE id = ? AND status = 'output_expired' "
+                "AND output_expired_at IS NOT NULL "
+                "AND output_expired_at <= datetime('now', ?)",
+                (job_id, f"-{EXPIRED_JOB_RECORD_RETENTION_DAYS} days"),
+            )
+        return deleted.rowcount == 1
+
     def get_job(self, job_id: str) -> dict[str, Any]:
         with self._connect() as connection:
             row = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
@@ -569,6 +600,15 @@ class H3Gateway:
             removed += 1
         return removed
 
+    def cleanup_expired_job_records(self) -> int:
+        """Drop only output-expired audit rows after their 30-day window."""
+
+        removed = 0
+        for job_id in self.store.list_purgeable_expired_job_records():
+            if self.store.purge_expired_job_record(job_id):
+                removed += 1
+        return removed
+
     def _transfer_completed_output(self, job: dict[str, Any]) -> dict[str, Any]:
         """Copy, verify, then remove ComfyUI's exact expected output file."""
 
@@ -733,6 +773,12 @@ class GatewayDispatchWorker:
             except Exception:
                 # Expiry failure must not stop new work; only exact managed
                 # files are ever considered on the next pass.
+                pass
+            try:
+                self._gateway.cleanup_expired_job_records()
+            except Exception:
+                # A record-retention error must not stop dispatch. The
+                # conditional database deletion makes the next pass safe.
                 pass
             try:
                 self._gateway.dispatch_once()

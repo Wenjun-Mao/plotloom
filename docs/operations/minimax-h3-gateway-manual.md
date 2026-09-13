@@ -323,6 +323,12 @@ not recreated or silently accepted. The cleanup loop considers only exact
 database-owned gateway output names—it never performs a broad cleanup of
 ComfyUI output or the gateway data directory. See [ADR 0039](../adr/0039-h3-gateway-managed-output-retention.md).
 
+The `output_expired` job record—and its stored prompt—remains for 30 further
+days, then the gateway removes that job row from SQLite. After this second
+deadline, a gateway status or output request returns `job_not_found`; there is
+no MP4 to retrieve or recreate. This record policy does not delete uploaded
+input assets, which need a separate deliberate retention decision.
+
 An `outcome_unknown` means the gateway cannot establish whether the submission
 reached ComfyUI. Treat it as non-replayable. Diagnose it using the gateway
 database, ComfyUI history, and logs; do not submit the same job again “just in

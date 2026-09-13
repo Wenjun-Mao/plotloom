@@ -275,6 +275,33 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     assert output.json() == {"error": "gateway_output_expired"}
 
 
+def test_expired_job_record_is_purged_30_days_later_without_touching_input_asset(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers,
+        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+    ).json()
+    asset_path = tmp_path / "data" / "assets" / f"{asset['assetId']}.png"
+    job = _queue_job(client, headers, asset["assetId"], prompt="Retain a short audit row")
+    client.app.state.gateway.store.mark_output_expired(
+        job["id"], error_code="gateway_output_expired"
+    )
+    with client.app.state.gateway.store._connect() as connection:
+        connection.execute(
+            "UPDATE jobs SET output_expired_at = datetime('now', '-30 days', '-1 second') "
+            "WHERE id = ?",
+            (job["id"],),
+        )
+
+    assert client.app.state.gateway.cleanup_expired_job_records() == 1
+    assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).status_code == 404
+    assert client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers).status_code == 404
+    # This policy removes only stale output-job records; a future asset policy
+    # can be chosen separately without risking shared uploaded references.
+    assert asset_path.is_file()
+
+
 def test_gateway_store_migrates_an_existing_queue_database_additively(tmp_path: Path) -> None:
     path = tmp_path / "gateway.sqlite3"
     with sqlite3.connect(path) as connection:

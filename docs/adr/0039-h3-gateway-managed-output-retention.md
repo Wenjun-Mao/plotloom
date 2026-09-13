@@ -25,6 +25,13 @@ deadline has passed, then changes its job to `output_expired`. Job metadata,
 digest, expiry evidence, and error code remain; the gateway never performs a
 broad directory cleanup or deletes arbitrary ComfyUI files.
 
+An `output_expired` row remains as a short audit record for 30 further days.
+It then becomes eligible for conditional deletion from the gateway's `jobs`
+table, removing its stored prompt and control-plane history. At that point the
+MP4 is already absent. Uploaded input assets are deliberately outside this
+rule: they have their own lifecycle and are never deleted as a side effect of
+purging an expired video job.
+
 At the first upgrade to this contract, the worker adopts each pre-retention
 `succeeded` job whose frozen ComfyUI output descriptor still identifies a
 regular source file. It uses the same copy/verify/remove handoff and never
@@ -50,4 +57,4 @@ gateway retained and later cleaned up.
 Regression coverage proves copy-then-remove handoff, restart-safe pending
 transfer, secret-free status, targeted 72-hour expiry, preservation of
 unrelated files, additive database migration and legacy-output adoption, and
-client handling of the expired-output state.
+client handling of the expired-output state and 30-day job-record purge.
