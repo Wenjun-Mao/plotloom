@@ -105,6 +105,17 @@ failure, so the handler now reserves 409 only for immutable package/delivery
 identity conflicts and returns 422 for invalid geometry. The regression keeps
 the rejected delivery from changing the reviewed keyframe selection.
 
+### Scoped review-state amendment (2026-09-14)
+
+The inventory's reference-integrity check now records each baseline source as
+`verified` or `pending`. The default structural check permits pending evidence
+so the record stays honest, while a bounded delivery gate can require named
+sources to be verified and fails otherwise. This restoration verifies the four
+direct-generation/work-unit source modules only; repository, Alpha,
+conformance, review, and every other unreviewed group remain explicitly
+pending. Review state is evidence about completed assertion comparison, never a
+substitute for it and never a passed result for a scoped gate.
+
 ## Rejected alternatives
 
 - Keep `SQLiteRepository` behind a lazy root export or a forwarding facade.

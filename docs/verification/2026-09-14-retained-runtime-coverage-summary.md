@@ -24,7 +24,23 @@ uv run --locked python scripts/retained_runtime_coverage_inventory.py --check
 The guard verifies population, exact baseline evidence, valid dispositions,
 individual retirement rationales, and live replacement assertion records. It
 does not decide semantic equivalence; that remains an assertion-by-assertion
-review obligation.
+review obligation. Each entry also records `pending` or `verified` review
+state. Pending is an honest incomplete result; a scoped gate never accepts it
+as verification.
+
+The direct-generation restoration gate requires all four reviewed baseline
+sources to be verified:
+
+```sh
+uv run --locked python scripts/retained_runtime_coverage_inventory.py --check \
+  --require-verified-source tests/backend_core/test_pipeline.py \
+  --require-verified-source tests/backend_core/test_work_unit_persistence.py \
+  --require-verified-source tests/backend_core/test_exact_work_unit_repair_integration.py \
+  --require-verified-source tests/backend_core/test_m15_attempt_lineage.py
+```
+
+The overall inventory remains incomplete: API/repository, Alpha, conformance,
+review, and every other unreviewed source group remain explicitly pending.
 
 The direct-project regressions now separately prove unavailable text admission
 returns 422 with zero runs; image delivery rejects malformed, partial and hash

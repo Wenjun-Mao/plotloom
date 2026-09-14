@@ -24,6 +24,7 @@ BASELINE = "e658057"
 RETIREMENT = "f908c51"
 INVENTORY = Path("docs/verification/2026-09-14-retained-runtime-coverage-inventory.json")
 DISPOSITIONS = {"migrated_current_contract", "existing_equivalent", "truly_retired_contract"}
+REVIEW_STATUSES = {"pending", "verified"}
 
 
 def _git(*args: str) -> str:
@@ -148,12 +149,14 @@ def current_assertion_catalog() -> dict[str, dict[str, Any]]:
     return catalog
 
 
-def check_inventory(inventory: dict[str, Any]) -> list[str]:
+def check_inventory(
+    inventory: dict[str, Any], *, required_verified_sources: set[str] | None = None
+) -> list[str]:
     errors: list[str] = []
     expected = {entry["id"]: entry for entry in baseline_entries()}
     entries = inventory.get("entries")
-    if inventory.get("schema_version") != 2:
-        errors.append("inventory must use schema_version 2")
+    if inventory.get("schema_version") != 3:
+        errors.append("inventory must use schema_version 3")
     if inventory.get("baseline_commit") != BASELINE or inventory.get("retirement_commit") != RETIREMENT:
         errors.append("inventory baseline or retirement commit differs from the approved comparison")
     if "policies" in inventory:
@@ -169,6 +172,7 @@ def check_inventory(inventory: dict[str, Any]) -> list[str]:
     if not isinstance(catalog, dict):
         return [*errors, "inventory replacement_assertion_catalog must be an object"]
     current_catalog = current_assertion_catalog()
+    source_statuses: dict[str, set[str]] = {}
     for identifier, baseline in expected.items():
         entry = by_id.get(identifier)
         if entry is None:
@@ -180,6 +184,11 @@ def check_inventory(inventory: dict[str, Any]) -> list[str]:
         if baseline["entry_kind"] == "parameter_case" and entry.get("parameter_case") != baseline["parameter_case"]:
             errors.append(f"parameter case differs from baseline: {identifier}")
         disposition = entry.get("disposition")
+        review_status = entry.get("review_status")
+        if review_status not in REVIEW_STATUSES:
+            errors.append(f"entry has no explicit review status: {identifier}")
+        else:
+            source_statuses.setdefault(baseline["source_path"], set()).add(review_status)
         replacements = entry.get("current_replacements")
         if disposition not in DISPOSITIONS:
             errors.append(f"entry has no explicit valid disposition: {identifier}")
@@ -202,16 +211,51 @@ def check_inventory(inventory: dict[str, Any]) -> list[str]:
                 errors.append(f"replacement is absent: {identifier} -> {replacement}")
             elif observed != current or not observed["assertions"]:
                 errors.append(f"replacement assertion record is stale or empty: {identifier} -> {replacement}")
+    if any(len(statuses) != 1 for statuses in source_statuses.values()):
+        errors.append("each source path must have one explicit review status")
+    required_verified_sources = required_verified_sources or set()
+    unknown_required_sources = required_verified_sources - set(source_statuses)
+    if unknown_required_sources:
+        errors.append(
+            "required verified source is absent from the baseline: "
+            + ", ".join(sorted(unknown_required_sources))
+        )
+    for source_path in sorted(required_verified_sources):
+        if source_statuses.get(source_path) != {"verified"}:
+            errors.append(f"required verified source remains pending: {source_path}")
+    observed_summary = {
+        "overall_status": (
+            "complete"
+            if source_statuses and all(statuses == {"verified"} for statuses in source_statuses.values())
+            else "incomplete"
+        ),
+        "source_statuses": {
+            source_path: next(iter(statuses))
+            for source_path, statuses in sorted(source_statuses.items())
+        },
+    }
+    if inventory.get("review_summary") != observed_summary:
+        errors.append("inventory review summary does not match entry review statuses")
     return errors
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="verify the checked-in inventory")
+    parser.add_argument(
+        "--require-verified-source",
+        action="append",
+        default=[],
+        metavar="SOURCE_PATH",
+        help="fail when this baseline source has not completed assertion review",
+    )
     args = parser.parse_args()
     if not args.check:
         parser.error("only --check is supported; the inventory is an authored review record")
-    errors = check_inventory(json.loads(INVENTORY.read_text(encoding="utf-8")))
+    errors = check_inventory(
+        json.loads(INVENTORY.read_text(encoding="utf-8")),
+        required_verified_sources=set(args.require_verified_source),
+    )
     if errors:
         print("\n".join(errors), file=sys.stderr)
         return 1
