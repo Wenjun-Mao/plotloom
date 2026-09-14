@@ -104,7 +104,8 @@ src/plotloom/
 │   ├── format.py                   # manifest, format errors and confinement primitives
 │   ├── artifacts.py                # project-owned immutable byte store
 │   ├── application_store.py        # small sqlite application-control store
-│   ├── projects.py                 # project handle and manifest-derived directory registry
+│   ├── project_handle.py           # bound project repository and project-local adapters
+│   ├── registry.py                 # manifest-derived directory registry
 │   └── composition.py              # ProjectFolderStorage; named collaborators only
 └── project_generation_storage.py   # retained focused pipeline composition
 ```
@@ -124,7 +125,7 @@ persistence/schema <- persistence/{codec,database,transactions}
                  ↑
 persistence/project/{authoring,generation,media} <- project/workflow
                  ↑                                      ↑
-project_storage/{format,artifacts,projects} <- project_storage/composition
+project_storage/{format,artifacts,project_handle,registry} <- project_storage/composition
                  ↑                                      ↑
         runtime/API/jobs/pipeline (named repository or opened ProjectStore)
 
@@ -204,10 +205,10 @@ than the full package tree but materially separates the two ownership roots.
 
 | Slice item | Exact work | Explicit non-goal |
 | --- | --- | --- |
-| Split folder storage | Replace `project_storage.py` with `project_storage/format.py`, `artifacts.py`, `application_store.py`, `projects.py`, `composition.py`, and a small intentional export module.  Move code as-is by the four audited concerns. | No behavior/schema/format change; no snapshot, restore, close, draft, image, video, provider or UI feature. |
-| Isolate project-bound persistence | Move `PROJECT_TEXT_PIPELINE_TABLE_NAMES` and `ProjectSQLiteRepository` into named project-bound persistence modules, keeping its existing explicit admission and project/run identity checks.  The old subclass block is deleted from the monolith. | Do not replace the retained `SQLiteRepository`, reclassify table ownership, or turn it into mixins. |
+| Split folder storage | Replace `project_storage.py` with `project_storage/format.py`, `artifacts.py`, `application_store.py`, `project_handle.py`, `registry.py`, `composition.py`, and a small intentional export module.  Move code as-is by the four audited concerns. | No behavior/schema/format change; no snapshot, restore, close, draft, image, video, provider or UI feature. |
+| Defer project-bound persistence | Keep `PROJECT_TEXT_PIPELINE_TABLE_NAMES` and `ProjectSQLiteRepository` in `persistence.py`.  Moving the subclass separately from its base would require cyclic or forwarding scaffolding. | Do not replace the retained `SQLiteRepository`, reclassify table ownership, or turn it into mixins. |
 | Name physical ownership | Make `ProjectStore` import only the project-bound repository; make application control storage a named collaborator of `ProjectFolderStorage`.  Preserve existing `ProjectFolderStorage` public construction and behavior. | Do not wire project folders into `build_runtime_app` or introduce old/new selection. |
-| Delete moved sources | Delete `project_storage.py`; delete the moved project-bound table-set/subclass code from `persistence.py`; leave no duplicate implementations or forwarding-only source file.  The package export file can re-export documented public symbols only. | Do not delete legacy project paths, runtime data, or database tables. |
+| Delete moved sources | Delete `project_storage.py`; leave `persistence.py` unchanged in this slice.  The package export file can re-export documented public symbols only. | Do not delete legacy project paths, runtime data, or database tables. |
 
 Expected size targets for this first slice are format 120-180, artifacts
 150-220, application store 180-260, projects 250-360, composition 80-140, and
