@@ -2,24 +2,37 @@
 
 from __future__ import annotations
 
-from ...domain import CanonicalSnapshot, GenerationWorkUnitTrace, RunStatus, StageName, StagePayload, WorkUnitStatus, new_id, utc_now
+from typing import TYPE_CHECKING, Any
+
+from ...domain import (
+    CanonicalSnapshot, GenerationWorkUnitTrace, RunStatus, StageName,
+    StagePayload, StageStatus, WorkUnitStatus, new_id, upstream_stages, utc_now,
+)
 from ...generation.planning import GenerationPlan, PLANNING_POLICY_VERSION, PlanningError, StagePlan, plan_stage
-from ..schema import GenerationPlanRow, GenerationWorkUnitRow, StagePlanRow, StoryGraphTopologyRow
-from ...exceptions import InvalidTransitionError
+from ..schema import (
+    EntityRevisionRow, GenerationPlanRow, GenerationRunRow,
+    GenerationWorkUnitRow, SealedStageAggregateRow, StagePlanRow,
+    StoryGraphTopologyRow,
+)
+from ...exceptions import InvalidTransitionError, NotFoundError, StagePrerequisiteError
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 from ..codec import stable_hash
 
-from typing import TYPE_CHECKING
-
+from .generation_access import GenerationPersistenceAccess
 if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+    from .generation_repair_scope import GenerationRepairScopePolicy
 
 
 class ProjectGenerationPlanningPersistence:
     """Own the named generation persistence operations without facade bounce-backs."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: GenerationPersistenceAccess) -> None:
+        self._access = access
+        self._repair_scope: GenerationRepairScopePolicy | None = None
+
+    def bind_repair_scope(self, repair_scope: GenerationRepairScopePolicy) -> None:
+        self._repair_scope = repair_scope
 
     def get_or_create_stage_plan(
         self,
@@ -35,10 +48,10 @@ class ProjectGenerationPlanningPersistence:
         before planning.  This prevents a caller from manufacturing shard
         selectors from mutable or unrelated JSON.
         """
-        repository = self._repository
+        access = self._access
 
-        with repository._write() as session:
-            run = repository._run_row(session, run_id)
+        with access.leases.write() as session:
+            run = access.rows.run(session, run_id)
             if run.legacy_unsealed:
                 raise InvalidTransitionError("legacy/unsealed runs cannot create StagePlans")
             if RunStatus(run.status) not in {RunStatus.QUEUED, RunStatus.RUNNING}:
@@ -74,9 +87,9 @@ class ProjectGenerationPlanningPersistence:
                         "Story Graph topology does not match the frozen GenerationPlan"
                     )
             expected = (
-                repository._repair_stage_dependencies_in_session(session, run, stage)
+                self._repair_scope_or_raise().dependencies(session, run, stage)
                 if run.work_unit_repair_scope_id is not None
-                else repository._expected_stage_dependencies_in_session(session, run, stage)
+                else self._expected_stage_dependencies_in_session(session, run, stage)
             )
             if dependencies is not None:
                 if set(dependencies) != set(expected) or any(
@@ -85,11 +98,11 @@ class ProjectGenerationPlanningPersistence:
                     raise InvalidTransitionError(
                         "StagePlan dependencies must exactly match frozen canonical or sealed inputs"
                     )
-            existing = repository._stage_plan_row(session, run_id, stage)
+            existing = self._stage_plan_row(session, run_id, stage)
             if (
                 stage == StageName.STORYBOARD
                 and existing is not None
-                and repository._storyboard_stage_plan_contract_code(existing) is not None
+                and self._storyboard_stage_plan_contract_code(existing) is not None
             ):
                 # Do not recalculate an already durable plan under a new
                 # default.  Exact repair uses this same command, so this also
@@ -102,7 +115,7 @@ class ProjectGenerationPlanningPersistence:
                 )
             snapshot = CanonicalSnapshot.model_validate(run.canonical_snapshot)
             repair_storyboard_profile = (
-                repository._repair_storyboard_timing_profile_in_session(session, run)
+                self._repair_scope_or_raise().timing_profile(session, run, StageName.STORYBOARD)
                 if (
                     run.work_unit_repair_scope_id is not None
                     and stage == StageName.STORYBOARD
@@ -110,7 +123,7 @@ class ProjectGenerationPlanningPersistence:
                 else None
             )
             repair_scene_beats_profile = (
-                repository._repair_scene_beats_timing_profile_in_session(session, run)
+                self._repair_scope_or_raise().timing_profile(session, run, StageName.SCENE_BEATS)
                 if (
                     run.work_unit_repair_scope_id is not None
                     and stage == StageName.SCENE_BEATS
@@ -175,15 +188,14 @@ class ProjectGenerationPlanningPersistence:
         dependencies: dict[StageName, StagePayload] | None = None,
     ) -> StagePlan:
         """Create a child-local plan against repository-resolved repair inputs."""
-        repository = self._repository
-
-        with repository._read() as session:
-            repository._repair_scope_row_in_session(session, repository._run_row(session, child_run_id))
+        access = self._access
+        with access.leases.read() as session:
+            self._repair_scope_or_raise().scope_row(session, access.rows.run(session, child_run_id))
         return self.get_or_create_stage_plan(child_run_id, stage, dependencies=dependencies)
     def list_stage_plans(self, run_id: str) -> list[StagePlan]:
-        repository = self._repository
-        with repository._read() as session:
-            repository._run_row(session, run_id)
+        access = self._access
+        with access.leases.read() as session:
+            access.rows.run(session, run_id)
             rows = session.scalars(
                 select(StagePlanRow)
                 .where(StagePlanRow.run_id == run_id)
@@ -191,12 +203,99 @@ class ProjectGenerationPlanningPersistence:
             ).all()
             return [StagePlan.model_validate(row.plan) for row in rows]
     def list_generation_work_units(self, run_id: str) -> list[GenerationWorkUnitTrace]:
-        repository = self._repository
-        with repository._read() as session:
-            repository._run_row(session, run_id)
+        access = self._access
+        with access.leases.read() as session:
+            access.rows.run(session, run_id)
             rows = session.scalars(
                 select(GenerationWorkUnitRow)
                 .where(GenerationWorkUnitRow.run_id == run_id)
                 .order_by(GenerationWorkUnitRow.stage, GenerationWorkUnitRow.sequence)
             ).all()
-            return [repository._work_unit_trace(row) for row in rows]
+            return [access.codecs.work_unit_trace(row) for row in rows]
+
+    @staticmethod
+    def _stage_plan_row(
+        session: Session,
+        run_id: str,
+        stage: StageName,
+    ) -> StagePlanRow | None:
+        return session.scalar(
+            select(StagePlanRow).where(
+                StagePlanRow.run_id == run_id,
+                StagePlanRow.stage == stage.value,
+            )
+        )
+
+    def _sealed_payload_in_session(
+        self,
+        session: Session,
+        run_id: str,
+        stage: StageName,
+    ) -> StagePayload:
+        plan = self._stage_plan_row(session, run_id, stage)
+        if plan is None:
+            raise InvalidTransitionError(
+                f"cannot use {stage.value} as a dependency before its StagePlan exists"
+            )
+        aggregate = session.scalar(
+            select(SealedStageAggregateRow).where(
+                SealedStageAggregateRow.stage_plan_id == plan.id
+            )
+        )
+        if aggregate is None:
+            raise InvalidTransitionError(
+                f"cannot use {stage.value} as a dependency before its aggregate is sealed"
+            )
+        return self._access.codecs.decode_current_stage_payload(
+            stage, aggregate.payload, aggregate.schema_version
+        )
+
+    def _expected_stage_dependencies_in_session(
+        self,
+        session: Session,
+        run: GenerationRunRow,
+        stage: StageName,
+    ) -> dict[StageName, StagePayload]:
+        """Resolve immutable normal-run dependencies from seals or the snapshot."""
+
+        snapshot = CanonicalSnapshot.model_validate(run.canonical_snapshot)
+        requested = {StageName(value) for value in run.requested_stages}
+        dependencies: dict[StageName, StagePayload] = {}
+        for dependency in upstream_stages(stage):
+            if dependency in requested:
+                dependencies[dependency] = self._sealed_payload_in_session(
+                    session, run.id, dependency
+                )
+                continue
+            head = snapshot.stage_heads[dependency]
+            if head.status != StageStatus.READY or head.entity_revision_id is None:
+                raise StagePrerequisiteError(stage, dependency, head.status.value)
+            revision = session.get(EntityRevisionRow, head.entity_revision_id)
+            if revision is None:
+                raise NotFoundError(
+                    f"snapshot entity revision not found: {head.entity_revision_id}"
+                )
+            dependencies[dependency] = self._access.codecs.decode_current_stage_payload(
+                dependency, revision.payload, revision.schema_version
+            )
+        return dependencies
+
+    @staticmethod
+    def _storyboard_stage_plan_contract_code(
+        storyboard_plan: StagePlanRow,
+    ) -> str | None:
+        try:
+            parsed_plan = StagePlan.model_validate(storyboard_plan.plan)
+        except ValueError:
+            return "recovery.storyboard_timing_provenance_missing"
+        if (
+            parsed_plan.stage != StageName.STORYBOARD
+            or parsed_plan.storyboard_dialogue_timing_profile is None
+        ):
+            return "recovery.storyboard_timing_provenance_missing"
+        return None
+
+    def _repair_scope_or_raise(self) -> GenerationRepairScopePolicy:
+        if self._repair_scope is None:
+            raise RuntimeError("generation repair scope was not composed")
+        return self._repair_scope

@@ -614,8 +614,8 @@ def test_upstream_normal_seal_does_not_require_future_scene_beats_profile(
         raise AssertionError("an upstream seal must not resolve a future Scene Beats plan")
 
     monkeypatch.setattr(
-        repository,
-        "_frozen_dialogue_timing_profile_for_sealed_commit_in_session",
+        repository._generation_lifecycle,
+        "_frozen_dialogue_timing_profile_from_stage_plan",
         future_profile_must_not_be_read,
     )
 
@@ -670,8 +670,8 @@ def test_upstream_repair_seal_does_not_require_future_scene_beats_profile(
         raise AssertionError("an upstream repair seal must not resolve a future Scene Beats plan")
 
     monkeypatch.setattr(
-        repository,
-        "_frozen_dialogue_timing_profile_for_sealed_commit_in_session",
+        repository._generation_lifecycle,
+        "_frozen_dialogue_timing_profile_from_stage_plan",
         future_profile_must_not_be_read,
     )
     sealed = repository.seal_repair_stage_aggregate(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 
 import pytest
 
@@ -29,6 +30,7 @@ from plotloom.persistence.project.generation_recovery import ProjectGenerationRe
 from plotloom.persistence.project.generation_repairs import ProjectGenerationRepairPersistence
 from plotloom.persistence.project.generation_reuse import ProjectGenerationReusePersistence
 from plotloom.persistence.project.generation_snapshots import ProjectGenerationSnapshots
+from plotloom.persistence.project.generation_access import GenerationPersistenceAccess
 from plotloom.exceptions import NotFoundError
 
 
@@ -157,3 +159,31 @@ def test_generation_capabilities_are_explicitly_composed_with_preserved_facade_s
         assert not hasattr(SQLiteRepository, "__getattr__")
     finally:
         repository.close()
+
+
+def test_generation_policy_is_absent_from_the_retained_facade_and_owners_do_not_bounce_back() -> None:
+    """Keep generation rules out of compatibility composition after extraction."""
+
+    policy_names = {
+        "_validate_repair_scope_in_session",
+        "_repair_stage_dependencies_in_session",
+        "_validate_frozen_reuse_source_in_session",
+        "_required_unit_evidence_in_session",
+        "_required_repair_unit_evidence_in_session",
+        "_obsolete_generation_planning_policy_recovery_code_in_session",
+        "_exact_repair_parent_contract_code_in_session",
+        "_work_unit_repair_eligibility_in_session",
+        "_commit_run_outputs",
+        "_commit_parsed_run_outputs_in_session",
+    }
+    assert not policy_names.intersection(vars(SQLiteRepository))
+    assert "facade" not in GenerationPersistenceAccess.__dataclass_fields__
+
+    owners = Path(__file__).parents[2] / "src" / "plotloom" / "persistence" / "project"
+    generation_sources = "\n".join(
+        path.read_text()
+        for path in owners.glob("generation_*.py")
+        if path.name != "generation_access.py"
+    )
+    assert "access.facade" not in generation_sources
+    assert "repository._" not in generation_sources

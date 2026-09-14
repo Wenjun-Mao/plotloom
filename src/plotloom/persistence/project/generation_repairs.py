@@ -13,27 +13,42 @@ from ...generation.prompts import canonical_json
 from sqlalchemy import select
 from ..codec import stable_hash
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .generation_access import GenerationPersistenceAccess
+from .generation_plans import ProjectGenerationPlanningPersistence
+from .generation_repair_eligibility import GenerationRepairEligibility
+from .generation_repair_scope import GenerationRepairScopePolicy
+from .generation_snapshots import ProjectGenerationSnapshots
+from .generation_evidence import ProjectGenerationEvidencePersistence
 
 
 class ProjectGenerationRepairPersistence:
     """Exact repair scope, eligibility, and immutable repair-run persistence."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(
+        self,
+        access: GenerationPersistenceAccess,
+        plans: ProjectGenerationPlanningPersistence,
+        repair_scope: GenerationRepairScopePolicy,
+        eligibility: GenerationRepairEligibility,
+        snapshots: ProjectGenerationSnapshots,
+        evidence: ProjectGenerationEvidencePersistence,
+    ) -> None:
+        self._access = access
+        self._plans = plans
+        self._repair_scope = repair_scope
+        self._eligibility = eligibility
+        self._snapshots = snapshots
+        self._evidence = evidence
 
     def get_repair_stage_dependencies(
         self,
         child_run_id: str,
         stage: StageName,
     ) -> dict[StageName, StagePayload]:
-        repository = self._repository
-        with repository._read() as session:
-            child = repository._run_row(session, child_run_id)
-            return repository._repair_stage_dependencies_in_session(session, child, stage)
+        access = self._access
+        with access.leases.read() as session:
+            child = access.rows.run(session, child_run_id)
+            return self._repair_scope.dependencies(session, child, stage)
     def create_repair_run(
         self,
         source_run_id: str,
@@ -42,11 +57,11 @@ class ProjectGenerationRepairPersistence:
         instructions: str | None = None,
         provider_snapshot: dict[str, Any] | None = None,
     ) -> GenerationRun:
-        repository = self._repository
-        source = repository.get_run(source_run_id)
+        access = self._access
+        source = self._snapshots.get_run(source_run_id)
         if source.status != RunStatus.QUARANTINED:
             raise InvalidTransitionError("repairs may only be created from a quarantined run")
-        source_trace = repository.get_run_trace(source_run_id)
+        source_trace = self._evidence.get_run_trace(source_run_id)
         if not source_trace.snapshot_is_current:
             raise InvalidTransitionError(
                 "repair source inputs changed after quarantine; start a fresh rebuild from current canonical heads"
@@ -118,7 +133,7 @@ class ProjectGenerationRepairPersistence:
             validation_artifact_id=validation.id,
             reused_candidate_artifact_ids=reused_candidate_artifact_ids,
         )
-        return repository.create_run(
+        return self._snapshots.create_run(
             source.project_id,
             RunKind.REPAIR,
             requested,
@@ -130,17 +145,17 @@ class ProjectGenerationRepairPersistence:
         )
     def get_repair_eligible_work_units(self, run_id: str) -> list[WorkUnitRepairEligibility]:
         """Return server-owned exact-repair decisions for one source run."""
-        repository = self._repository
+        access = self._access
 
-        with repository._read() as session:
-            source = repository._run_row(session, run_id)
+        with access.leases.read() as session:
+            source = access.rows.run(session, run_id)
             units = session.scalars(
                 select(GenerationWorkUnitRow)
                 .where(GenerationWorkUnitRow.run_id == run_id)
                 .order_by(GenerationWorkUnitRow.stage, GenerationWorkUnitRow.sequence)
             ).all()
             return [
-                repository._work_unit_repair_eligibility_in_session(session, source=source, unit=unit)
+                self._eligibility.eligibility(session, source=source, unit=unit)
                 for unit in units
             ]
     def create_work_unit_repair_run(
@@ -160,7 +175,7 @@ class ProjectGenerationRepairPersistence:
         the parameter exists so the HTTP boundary can reject accidental UI
         additions explicitly rather than silently dropping them.
         """
-        repository = self._repository
+        access = self._access
 
         key = idempotency_key.strip()
         if not 1 <= len(key) <= 255:
@@ -173,7 +188,7 @@ class ProjectGenerationRepairPersistence:
         fingerprint = stable_hash(
             {"parentRunId": source_run_id, "targetWorkUnitId": work_unit_id}
         )
-        with repository._lifecycle_write() as session:
+        with access.leases.lifecycle_write() as session:
             prior = session.get(WorkUnitRepairIdempotencyRow, key)
             if prior is not None:
                 if prior.request_fingerprint != fingerprint:
@@ -182,20 +197,20 @@ class ProjectGenerationRepairPersistence:
                         "Idempotency-Key has already been used for a different exact repair",
                     )
                 return WorkUnitRepairRunCreation(
-                    run=repository._run(repository._run_row(session, prior.child_run_id)), created=False
+                    run=access.codecs.run(access.rows.run(session, prior.child_run_id)), created=False
                 )
 
-            source = repository._run_row(session, source_run_id)
-            repository._assert_new_run_profile_enabled(session, source.provider_snapshot)
+            source = access.rows.run(session, source_run_id)
+            access.admission.assert_new_run_profile_enabled(session, source.provider_snapshot)
             target = session.get(GenerationWorkUnitRow, work_unit_id)
             if target is None:
                 raise NotFoundError(f"generation work unit not found: {work_unit_id}")
-            eligibility = repository._work_unit_repair_eligibility_in_session(
+            eligibility = self._eligibility.eligibility(
                 session, source=source, unit=target
             )
             if not eligibility.eligible:
-                repository._raise_repair_ineligible(eligibility)
-            rejected = repository._latest_rejected_evidence_in_session(
+                self._eligibility.raise_ineligible(eligibility)
+            rejected = self._eligibility.latest_rejected_evidence(
                 session, source=source, unit=target
             )
             assert rejected is not None
@@ -204,7 +219,7 @@ class ProjectGenerationRepairPersistence:
             source_stage_plan = session.get(StagePlanRow, target.stage_plan_id)
             if source_plan_row is None or source_stage_plan is None:
                 raise RepairEligibilityError("repair.parent_evidence_invalid", "source plan evidence is missing")
-            parent_contract_code = repository._exact_repair_parent_contract_code_in_session(
+            parent_contract_code = self._eligibility.exact_parent_contract_code(
                 session,
                 source=source,
                 target=target,
@@ -215,8 +230,8 @@ class ProjectGenerationRepairPersistence:
                     "exact repair parent no longer satisfies the current frozen planning contract",
                 )
             source_plan = GenerationPlan.model_validate(source_plan_row.plan)
-            project = repository._project_row(session, source.project_id)
-            repository._assert_active_project(project)
+            project = access.rows.project(session, source.project_id)
+            access.admission.assert_active_project(project)
             requested = [StageName(value) for value in source.requested_stages]
             snapshot = CanonicalSnapshot.model_validate(source.canonical_snapshot)
             child = GenerationRun(
@@ -299,7 +314,7 @@ class ProjectGenerationRepairPersistence:
                 requested_stages=requested,
                 provider_profile_hash=profile_hash,
                 story_graph_topology_hash=topology.topology_hash if topology is not None else None,
-                canonical_inputs=repository._run_plan_inputs_in_session(session, snapshot, requested),
+                canonical_inputs=self._snapshots.run_plan_inputs_in_session(session, snapshot, requested),
                 stage_budgets=stage_budgets,
                 max_concurrency=int(child.provider_snapshot.get("textMaxConcurrency") or 1),
                 canonical_snapshot_hash=snapshot.snapshot_hash,
@@ -329,7 +344,7 @@ class ProjectGenerationRepairPersistence:
                     )
                 )
 
-            reuse_sources = repository._frozen_reuse_sources_in_session(
+            reuse_sources = self._eligibility.frozen_reuse_sources(
                 session, source=source, target=target
             )
             source_topology_row = session.get(StoryGraphTopologyRow, source.id)
@@ -361,7 +376,7 @@ class ProjectGenerationRepairPersistence:
                 **unsigned_scope,
             )
             scope_hash = stable_hash(
-                repository._scope_hash_payload(
+                self._repair_scope.hash_payload(
                     provisional_scope.model_dump(mode="json", by_alias=True)
                 )
             )
@@ -389,9 +404,9 @@ class ProjectGenerationRepairPersistence:
             )
             return WorkUnitRepairRunCreation(run=child, created=True)
     def get_work_unit_repair_scope(self, child_run_id: str) -> WorkUnitRepairScope:
-        repository = self._repository
-        with repository._read() as session:
+        access = self._access
+        with access.leases.read() as session:
             row = session.get(WorkUnitRepairScopeRow, child_run_id)
             if row is None:
                 raise NotFoundError(f"exact work-unit repair scope not found for run: {child_run_id}")
-            return repository._repair_scope(row)
+            return access.codecs.repair_scope(row)

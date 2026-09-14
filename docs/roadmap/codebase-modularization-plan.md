@@ -37,7 +37,13 @@ only explicit repository session/query/codec helpers; the facade preserves
 public signatures and project-bound admission checks. No service locator,
 dynamic forwarding, or separate generation monolith was introduced.
 
-`legacy_repository.py` is now 5,748 lines. Its remaining owned responsibility
+`legacy_repository.py` remains a compatibility composition boundary. The
+original generation-extraction receipt overstated its completion: repair,
+recovery, immutable evidence, and atomic install policy still lived in the
+facade. The ownership correction recorded in
+`docs/verification/2026-09-13-persistence-generation-ownership-correction.md`
+moves that policy into the named generation owners and adds a no-bounce-back
+regression. Its remaining owned responsibility
 is project media/still/image/review facts, application profiles/settings/video-
 pilot accounting, and narrow shared query helpers needed until those two
 independently-owned slices complete. The facade remains a temporary, explicitly

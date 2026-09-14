@@ -107,36 +107,15 @@ from ..domain import (
     is_secret_setting_name,
     validate_public_provider_snapshot,
 )
-from ..generation.aggregation import aggregate_stage_fragments
-from ..generation.dialogue_capacity import DIALOGUE_CAPACITY_POLICY_VERSION
-from ..generation.fragments import (
-    SceneBeatsFragment,
-    StoryBibleFragment,
-    StoryGraphFragment,
-    StoryboardFragment,
-)
 from ..generation.planning import (
-    DEFAULT_STAGE_BUDGETS,
     GenerationPlan,
-    PLANNING_POLICY_VERSION,
-    PlanningError,
-    StageBudget,
     StagePlan,
-    create_generation_plan,
-    plan_stage,
 )
-from ..generation.scene_timing_allocation import (
-    SCENE_TIMING_ALLOCATION_VERSION,
-    SceneTimingAllocation,
-)
-from ..join_state_values import JOIN_STATE_VALUE_CONTRACT_VERSION
 from ..keyframe_preparation import has_matching_aspect
 from ..video_provider import VideoProductionContract
 from ..generation.story_graph_topology import (
     StoryGraphTopology,
-    plan_story_graph_topology,
 )
-from ..generation.prompts import canonical_json
 from ..provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,
     PROFILE_ID_PATTERN,
@@ -186,6 +165,13 @@ from .project.generation_repairs import ProjectGenerationRepairPersistence
 from .project.generation_recovery import ProjectGenerationRecoveryPersistence
 from .project.generation_lifecycle import ProjectGenerationLifecyclePersistence
 from .project.generation_evidence import ProjectGenerationEvidencePersistence
+from .project.generation_integrity import GenerationWorkUnitIntegrity
+from .project.generation_repair_eligibility import GenerationRepairEligibility
+from .project.generation_repair_scope import GenerationRepairScopePolicy
+from .project.generation_access import (
+    GenerationAdmission, GenerationCodecs, GenerationLeases,
+    GenerationPersistenceAccess, GenerationRows,
+)
 from .project.lifecycle import ProjectLifecyclePersistence
 from .project.workflow import ProjectAuthoringWorkflow
 from .database import RepositoryDatabase
@@ -230,16 +216,76 @@ class SQLiteRepository:
         self._approvals = ProjectApprovalPersistence(self)
         self._canonical = ProjectCanonicalPersistence(self)
         self._workflow = ProjectAuthoringWorkflow(self)
-        self._generation_snapshots = ProjectGenerationSnapshots(self)
-        self._generation_plans = ProjectGenerationPlanningPersistence(self)
-        self._generation_attempts = ProjectGenerationAttemptPersistence(self)
-        self._generation_reuse = ProjectGenerationReusePersistence(self)
-        self._generation_aggregates = ProjectGenerationAggregatePersistence(self)
-        self._generation_progress = ProjectGenerationProgressPersistence(self)
-        self._generation_repairs = ProjectGenerationRepairPersistence(self)
-        self._generation_recovery = ProjectGenerationRecoveryPersistence(self)
-        self._generation_lifecycle = ProjectGenerationLifecyclePersistence(self)
-        self._generation_evidence = ProjectGenerationEvidencePersistence(self)
+        self._generation_access = GenerationPersistenceAccess(
+            leases=GenerationLeases(
+                read=self._read,
+                write=self._write,
+                lifecycle_write=self._lifecycle_write,
+                work_unit_claim_write=self._work_unit_claim_write,
+            ),
+            rows=GenerationRows(project=self._project_row, run=self._run_row, stage=self._stage_row),
+            codecs=GenerationCodecs(
+                project=self._project,
+                run=self._run,
+                attempt=self._attempt,
+                artifact=self._artifact,
+                stage_head=self._stage_head,
+                stage_plan_trace=self._stage_plan_trace,
+                work_unit_trace=self._work_unit_trace,
+                generation_plan_trace=self._generation_plan_trace,
+                topology_trace=self._story_graph_topology_trace,
+                sealed_aggregate_trace=self._sealed_aggregate_trace,
+                repair_scope=self._repair_scope,
+                reuse_binding=self._fragment_reuse_binding,
+                decode_stage_payload=self._decode_stage_payload,
+                decode_current_stage_payload=self._decode_current_stage_payload,
+            ),
+            admission=GenerationAdmission(
+                assert_active_project=self._assert_active_project,
+                assert_new_run_profile_enabled=self._assert_new_run_profile_enabled,
+            ),
+        )
+        self._generation_snapshots = ProjectGenerationSnapshots(self._generation_access)
+        self._generation_plans = ProjectGenerationPlanningPersistence(self._generation_access)
+        self._generation_integrity = GenerationWorkUnitIntegrity()
+        self._generation_repair_eligibility = GenerationRepairEligibility(
+            self._generation_access, self._generation_plans, self._generation_integrity,
+            self._generation_snapshots,
+        )
+        self._generation_repair_scope = GenerationRepairScopePolicy(
+            self._generation_access, self._generation_plans, self._generation_integrity,
+            self._generation_repair_eligibility,
+        )
+        self._generation_plans.bind_repair_scope(self._generation_repair_scope)
+        self._generation_attempts = ProjectGenerationAttemptPersistence(
+            self._generation_access, self._generation_integrity
+        )
+        self._generation_reuse = ProjectGenerationReusePersistence(
+            self._generation_access, self._generation_plans, self._generation_integrity,
+            self._generation_repair_scope
+        )
+        self._generation_aggregates = ProjectGenerationAggregatePersistence(
+            self._generation_access, self._generation_plans, self._generation_integrity,
+            self._generation_repair_scope
+        )
+        self._generation_evidence = ProjectGenerationEvidencePersistence(
+            self._generation_access, self._generation_integrity, self._generation_snapshots
+        )
+        self._generation_repairs = ProjectGenerationRepairPersistence(
+            self._generation_access, self._generation_plans, self._generation_repair_scope,
+            self._generation_repair_eligibility, self._generation_snapshots,
+            self._generation_evidence,
+        )
+        self._generation_progress = ProjectGenerationProgressPersistence(
+            self._generation_access, self._generation_repair_eligibility,
+            self._generation_integrity,
+        )
+        self._generation_recovery = ProjectGenerationRecoveryPersistence(
+            self._generation_access, self._generation_plans
+        )
+        self._generation_lifecycle = ProjectGenerationLifecyclePersistence(
+            self._generation_access, self._generation_snapshots, self._canonical
+        )
 
     def _schema_tables(self) -> list[Any]:
         if self._schema_scope == "full":
@@ -514,7 +560,9 @@ class SQLiteRepository:
         if (
             scope.child_run_id != row.child_run_id
             or scope.scope_hash != row.scope_hash
-            or stable_hash(SQLiteRepository._scope_hash_payload(row.scope)) != row.scope_hash
+            or stable_hash(
+                {key: value for key, value in row.scope.items() if key != "scopeHash"}
+            ) != row.scope_hash
         ):
             raise InvalidTransitionError("stored exact repair scope identity is inconsistent")
         return scope
@@ -3312,33 +3360,11 @@ class SQLiteRepository:
     ) -> StageHead:
         return self._workflow.update_stage_consuming_authoring_draft(project_id, stage, expected_revision, payload, entity_id=entity_id, expected_draft_revision=expected_draft_revision)
 
-    @staticmethod
-    def _snapshot_fingerprint(
-        project_revision: int,
-        brief: ProjectBrief,
-        heads: Sequence[StageHead],
-    ) -> dict[str, Any]:
-        return ProjectGenerationSnapshots.snapshot_fingerprint(project_revision, brief, heads)
-
-    def _snapshot_in_session(self, session: Session, project_id: str) -> CanonicalSnapshot:
-        return self._generation_snapshots.snapshot_in_session(session, project_id)
-
     def capture_snapshot(self, project_id: str) -> CanonicalSnapshot:
         return self._generation_snapshots.capture_snapshot(project_id)
 
     def snapshot_is_current(self, snapshot: CanonicalSnapshot) -> bool:
         return self._generation_snapshots.snapshot_is_current(snapshot)
-
-    @staticmethod
-    def _relevant_input_stages(requested: Sequence[StageName]) -> set[StageName]:
-        return ProjectGenerationSnapshots.relevant_input_stages(requested)
-
-    def _assert_run_inputs_current_in_session(
-        self,
-        session: Session,
-        row: GenerationRunRow,
-    ) -> CanonicalSnapshot:
-        return self._generation_snapshots.assert_run_inputs_current_in_session(session, row)
 
     def assert_run_inputs_current(self, run_id: str) -> CanonicalSnapshot:
         return self._generation_snapshots.assert_run_inputs_current(run_id)
@@ -3355,22 +3381,6 @@ class SQLiteRepository:
         """
 
         return self._generation_snapshots.get_snapshot_stage_payload(run_id, stage)
-
-    def _run_plan_inputs_in_session(
-        self,
-        session: Session,
-        snapshot: CanonicalSnapshot,
-        requested_stages: Sequence[StageName],
-    ) -> dict[StageName, StagePayload]:
-        """Resolve only canonical facts that existed before the requested range.
-
-        The planner deliberately refuses future selectors.  Reading these rows
-        through the run snapshot (rather than current heads) makes enqueue-time
-        planning reproducible even if a user edits the project immediately
-        after the run is created.
-        """
-
-        return self._generation_snapshots.run_plan_inputs_in_session(session, snapshot, requested_stages)
 
     def create_run(
         self,
@@ -3403,331 +3413,12 @@ class SQLiteRepository:
 
         return self._generation_snapshots.get_story_graph_topology(run_id)
 
-    @staticmethod
-    def _generation_plan_row_hash(session: Session, run_id: str) -> str:
-        row = session.get(GenerationPlanRow, run_id)
-        if row is None:
-            raise InvalidTransitionError("run has no durable GenerationPlan")
-        return row.plan_hash
-
-    @staticmethod
-    def _stage_plan_row(session: Session, run_id: str, stage: StageName) -> StagePlanRow | None:
-        return session.scalar(
-            select(StagePlanRow).where(
-                StagePlanRow.run_id == run_id,
-                StagePlanRow.stage == stage.value,
-            )
-        )
-
-    def _sealed_payload_in_session(
-        self,
-        session: Session,
-        run_id: str,
-        stage: StageName,
-    ) -> StagePayload:
-        plan = self._stage_plan_row(session, run_id, stage)
-        if plan is None:
-            raise InvalidTransitionError(
-                f"cannot use {stage.value} as a dependency before its StagePlan exists"
-            )
-        aggregate = session.scalar(
-            select(SealedStageAggregateRow).where(
-                SealedStageAggregateRow.stage_plan_id == plan.id
-            )
-        )
-        if aggregate is None:
-            raise InvalidTransitionError(
-                f"cannot use {stage.value} as a dependency before its aggregate is sealed"
-            )
-        return self._decode_current_stage_payload(
-            stage, aggregate.payload, aggregate.schema_version
-        )
-
-    def _expected_stage_dependencies_in_session(
-        self,
-        session: Session,
-        run: GenerationRunRow,
-        stage: StageName,
-    ) -> dict[StageName, StagePayload]:
-        """Resolve a stage's immutable dependency boundary for plan/seal checks."""
-
-        snapshot = CanonicalSnapshot.model_validate(run.canonical_snapshot)
-        requested = {StageName(value) for value in run.requested_stages}
-        dependencies: dict[StageName, StagePayload] = {}
-        for dependency in upstream_stages(stage):
-            if dependency in requested:
-                dependencies[dependency] = self._sealed_payload_in_session(session, run.id, dependency)
-                continue
-            head = snapshot.stage_heads[dependency]
-            if head.status != StageStatus.READY or head.entity_revision_id is None:
-                raise StagePrerequisiteError(stage, dependency, head.status.value)
-            revision = session.get(EntityRevisionRow, head.entity_revision_id)
-            if revision is None:
-                raise NotFoundError(f"snapshot entity revision not found: {head.entity_revision_id}")
-            dependencies[dependency] = self._decode_current_stage_payload(
-                dependency, revision.payload, revision.schema_version
-            )
-        return dependencies
-
-    def _repair_scope_row_in_session(
-        self,
-        session: Session,
-        child: GenerationRunRow,
-    ) -> WorkUnitRepairScopeRow:
-        if (
-            RunKind(child.kind) != RunKind.REPAIR
-            or not child.work_unit_repair_scope_id
-            or child.work_unit_repair_scope_id != child.id
-        ):
-            raise InvalidTransitionError("run is not an exact work-unit repair")
-        row = session.get(WorkUnitRepairScopeRow, child.id)
-        if row is None:
-            raise InvalidTransitionError("exact repair run has no immutable repair scope")
-        if row.parent_run_id != child.parent_run_id or row.stage != child.repair_stage:
-            raise InvalidTransitionError("exact repair scope does not match its child run")
-        self._repair_scope(row)
-        return row
-
-    def _validate_repair_scope_in_session(
-        self,
-        session: Session,
-        child: GenerationRunRow,
-        *,
-        require_source_current: bool,
-    ) -> WorkUnitRepairScope:
-        """Revalidate frozen target, profile, topology and rejection evidence."""
-
-        scope = self._repair_scope(self._repair_scope_row_in_session(session, child))
-        source = self._run_row(session, scope.parent_run_id)
-        source_plan_row = session.get(GenerationPlanRow, source.id)
-        source_stage_plan = session.get(StagePlanRow, scope.source_stage_plan_id)
-        target = session.get(GenerationWorkUnitRow, scope.target_work_unit_id)
-        if (
-            source_plan_row is None
-            or source_stage_plan is None
-            or target is None
-            or RunStatus(source.status) != RunStatus.QUARANTINED
-            or source_plan_row.plan_hash != scope.source_generation_plan_hash
-            or GenerationPlan.model_validate(source_plan_row.plan).provider_profile_hash
-            != scope.source_provider_profile_hash
-            or source_stage_plan.run_id != source.id
-            or source_stage_plan.stage_plan_hash != scope.source_stage_plan_hash
-            or target.run_id != source.id
-            or target.stage_plan_id != source_stage_plan.id
-            or target.stage != scope.stage.value
-            or target.selector != scope.target_selector
-            or target.dependency_hash != scope.target_dependency_hash
-            or target.unit_dependency_hash != scope.target_unit_dependency_hash
-            or target.input_hash != scope.target_input_hash
-            or CanonicalSnapshot.model_validate(source.canonical_snapshot).snapshot_hash
-            != scope.source_canonical_snapshot_hash
-            or child.provider_snapshot != source.provider_snapshot
-            or child.canonical_snapshot != source.canonical_snapshot
-            or child.instructions != source.instructions
-        ):
-            raise RepairEligibilityError("repair.scope_hash_mismatch", "exact repair scope no longer matches frozen run contract")
-        if self._work_unit_is_sealed_in_session(session, target):
-            raise RepairEligibilityError("repair.target_sealed", "exact repair target was sealed in its source run")
-        if WorkUnitStatus(target.status) == WorkUnitStatus.OUTCOME_UNKNOWN:
-            raise RepairEligibilityError("repair.target_outcome_unknown", "exact repair target has ambiguous provider outcome")
-        if WorkUnitStatus(target.status) != WorkUnitStatus.QUARANTINED:
-            raise RepairEligibilityError(
-                "repair.target_not_quarantined", "exact repair target is no longer quarantined"
-            )
-        source_topology = session.get(StoryGraphTopologyRow, source.id)
-        if (
-            (source_topology.topology_hash if source_topology is not None else None)
-            != scope.source_story_graph_topology_hash
-        ):
-            raise RepairEligibilityError("repair.scope_hash_mismatch", "exact repair topology binding changed")
-        rejected = self._latest_rejected_evidence_in_session(session, source=source, unit=target)
-        if (
-            rejected is None
-            or rejected[0].id != scope.failed_attempt_id
-            or rejected[1].id != scope.response_artifact_id
-            or rejected[2].id != scope.validation_artifact_id
-        ):
-            raise RepairEligibilityError("repair.parent_evidence_invalid", "exact repair rejection evidence changed")
-        if require_source_current:
-            if (
-                ProjectLifecycleStatus(self._project_row(session, source.project_id).lifecycle_status)
-                != ProjectLifecycleStatus.ACTIVE
-            ):
-                raise RepairEligibilityError("repair.project_archived", "archived projects cannot execute exact repairs")
-            if not self._source_snapshot_is_current_in_session(session, source):
-                raise RepairEligibilityError("repair.snapshot_stale", "repair source inputs changed after quarantine")
-        return scope
-
-    def _repair_stage_dependencies_in_session(
-        self,
-        session: Session,
-        child: GenerationRunRow,
-        stage: StageName,
-    ) -> dict[StageName, StagePayload]:
-        """Resolve exact repair dependencies without accepting caller JSON.
-
-        Before (and including) the repaired stage, uninstalled parent seals
-        are the only permissible source for requested upstream stages.  After
-        it, every requested upstream stage must be a newly child-owned seal,
-        which makes downstream regeneration dependency-correct by construction.
-        """
-
-        scope = self._validate_repair_scope_in_session(
-            session, child, require_source_current=True
-        )
-        source = self._run_row(session, scope.parent_run_id)
-        if not self._source_snapshot_is_current_in_session(session, source):
-            raise RepairEligibilityError(
-                "repair.snapshot_stale", "repair source inputs changed after quarantine"
-            )
-        requested = {StageName(value) for value in child.requested_stages}
-        if stage not in requested:
-            raise InvalidTransitionError(f"{stage.value} is not requested by this repair run")
-        target_index = STAGE_ORDER.index(scope.stage)
-        dependencies: dict[StageName, StagePayload] = {}
-        snapshot = CanonicalSnapshot.model_validate(child.canonical_snapshot)
-        for dependency in upstream_stages(stage):
-            if dependency not in requested:
-                head = snapshot.stage_heads[dependency]
-                if head.status != StageStatus.READY or head.entity_revision_id is None:
-                    raise StagePrerequisiteError(stage, dependency, head.status.value)
-                revision = session.get(EntityRevisionRow, head.entity_revision_id)
-                if revision is None:
-                    raise NotFoundError(f"snapshot entity revision not found: {head.entity_revision_id}")
-                dependencies[dependency] = self._decode_current_stage_payload(
-                    dependency, revision.payload, revision.schema_version
-                )
-                continue
-            child_plan = self._stage_plan_row(session, child.id, dependency)
-            if child_plan is not None and session.scalar(
-                select(SealedStageAggregateRow.id).where(
-                    SealedStageAggregateRow.stage_plan_id == child_plan.id
-                )
-            ) is not None:
-                dependencies[dependency] = self._sealed_payload_in_session(session, child.id, dependency)
-                continue
-            if STAGE_ORDER.index(stage) > target_index:
-                raise InvalidTransitionError(
-                    f"cannot plan downstream repair stage {stage.value} before child {dependency.value} is sealed"
-                )
-            parent_plan = self._stage_plan_row(session, source.id, dependency)
-            if parent_plan is None:
-                raise RepairEligibilityError(
-                    "repair.parent_evidence_invalid",
-                    f"repair source has no sealed {dependency.value} StagePlan",
-                )
-            aggregate = session.scalar(
-                select(SealedStageAggregateRow).where(
-                    SealedStageAggregateRow.stage_plan_id == parent_plan.id
-                )
-            )
-            if aggregate is None:
-                raise RepairEligibilityError(
-                    "repair.parent_evidence_invalid",
-                    f"repair source {dependency.value} aggregate is not sealed",
-                )
-            dependencies[dependency] = self._decode_current_stage_payload(
-                dependency, aggregate.payload, aggregate.schema_version
-            )
-        return dependencies
-
     def get_repair_stage_dependencies(
         self,
         child_run_id: str,
         stage: StageName,
     ) -> dict[StageName, StagePayload]:
         return self._generation_repairs.get_repair_stage_dependencies(child_run_id, stage)
-
-    def _repair_scene_beats_timing_profile_in_session(
-        self,
-        session: Session,
-        child: GenerationRunRow,
-    ) -> DialogueTimingProfile:
-        """Return the parent Scene Beats profile frozen for an exact repair."""
-
-        if child.parent_run_id is None:
-            raise RepairEligibilityError(
-                "repair.parent_stage_plan_obsolete",
-                "Scene Beats repair has no parent timing provenance",
-            )
-        parent = self._run_row(session, child.parent_run_id)
-        row = self._stage_plan_row(session, parent.id, StageName.SCENE_BEATS)
-        if row is None or self._scene_beats_stage_plan_contract_code(row) is not None:
-            raise RepairEligibilityError(
-                "repair.parent_stage_plan_obsolete",
-                "Scene Beats repair parent has no valid frozen timing provenance",
-            )
-        try:
-            return self._frozen_dialogue_timing_profile_from_stage_plan(
-                StagePlan.model_validate(row.plan)
-            )
-        except ValueError as exc:
-            raise RepairEligibilityError(
-                "repair.parent_stage_plan_obsolete",
-                "Scene Beats repair parent has invalid frozen timing provenance",
-            ) from exc
-
-    def _repair_storyboard_timing_profile_in_session(
-        self,
-        session: Session,
-        child: GenerationRunRow,
-    ) -> DialogueTimingProfile:
-        """Return the parent Storyboard profile frozen for an exact repair.
-
-        A repair's child StagePlan has a new run ID and dependency hashes, but
-        it is not a new authoring decision.  The profile is therefore copied
-        from the quarantined parent StagePlan, never selected from whatever
-        default happens to exist when the repair executes.
-        """
-
-        # A downstream Storyboard plan may be absent from the parent because a
-        # Scene Beats shard quarantined first.  Once this child has sealed its
-        # repaired Scene Beats aggregate, that child-local plan is the direct
-        # frozen provenance for the downstream regeneration.
-        child_scene_beats = self._stage_plan_row(
-            session, child.id, StageName.SCENE_BEATS
-        )
-        if child_scene_beats is not None and session.scalar(
-            select(SealedStageAggregateRow.id).where(
-                SealedStageAggregateRow.stage_plan_id == child_scene_beats.id
-            )
-        ) is not None:
-            if self._scene_beats_stage_plan_contract_code(child_scene_beats) is not None:
-                raise RepairEligibilityError(
-                    "repair.parent_stage_plan_obsolete",
-                    "repaired Scene Beats has no valid frozen timing provenance",
-                )
-            try:
-                return self._frozen_dialogue_timing_profile_from_stage_plan(
-                    StagePlan.model_validate(child_scene_beats.plan)
-                )
-            except ValueError as exc:
-                raise RepairEligibilityError(
-                    "repair.parent_stage_plan_obsolete",
-                    "repaired Scene Beats has invalid frozen timing provenance",
-                ) from exc
-
-        if child.parent_run_id is None:
-            raise RepairEligibilityError(
-                "repair.parent_stage_plan_obsolete",
-                "Storyboard repair has no parent timing provenance",
-            )
-        parent = self._run_row(session, child.parent_run_id)
-        row = self._stage_plan_row(session, parent.id, StageName.STORYBOARD)
-        if row is None or self._storyboard_stage_plan_contract_code(row) is not None:
-            raise RepairEligibilityError(
-                "repair.parent_stage_plan_obsolete",
-                "Storyboard repair parent has no valid frozen timing provenance",
-            )
-        try:
-            return self._frozen_dialogue_timing_profile_from_stage_plan(
-                StagePlan.model_validate(row.plan)
-            )
-        except ValueError as exc:
-            raise RepairEligibilityError(
-                "repair.parent_stage_plan_obsolete",
-                "Storyboard repair parent has invalid frozen timing provenance",
-            ) from exc
 
     def get_or_create_stage_plan(
         self,
@@ -3756,50 +3447,6 @@ class SQLiteRepository:
     def get_fragment_reuse_bindings(self, child_run_id: str) -> list[FragmentReuseBinding]:
         return self._generation_reuse.get_fragment_reuse_bindings(child_run_id)
 
-    def _validate_frozen_reuse_source_in_session(
-        self,
-        session: Session,
-        *,
-        scope: WorkUnitRepairScope,
-        frozen: FrozenFragmentReuseSource,
-    ) -> tuple[GenerationWorkUnitRow, ArtifactRow, GenerationAttemptRow, list[ArtifactRow]]:
-        source = self._run_row(session, scope.parent_run_id)
-        if not self._source_snapshot_is_current_in_session(session, source):
-            raise RepairEligibilityError("repair.snapshot_stale", "repair source inputs changed after quarantine")
-        unit = session.get(GenerationWorkUnitRow, frozen.source_work_unit_id)
-        plan = session.get(StagePlanRow, frozen.source_stage_plan_id)
-        if (
-            unit is None
-            or plan is None
-            or unit.run_id != source.id
-            or unit.stage_plan_id != plan.id
-            or unit.stage != frozen.stage.value
-            or plan.run_id != source.id
-            or plan.stage_plan_hash != frozen.source_stage_plan_hash
-            or unit.generation_plan_hash != frozen.source_generation_plan_hash
-            or unit.selector != frozen.source_selector
-            or unit.dependency_hash != frozen.source_dependency_hash
-            or unit.unit_dependency_hash != frozen.source_unit_dependency_hash
-            or unit.input_hash != frozen.source_input_hash
-        ):
-            raise RepairEligibilityError("repair.parent_evidence_invalid", "frozen reusable source no longer matches parent evidence")
-        candidate, attempt, evidence = self._required_unit_evidence_in_session(
-            session,
-            run_id=source.id,
-            stage=frozen.stage,
-            unit=unit,
-            candidate_id=frozen.source_candidate_artifact_id,
-        )
-        evidence_by_kind = {row.kind: row for row in evidence}
-        if (
-            candidate.content_hash != frozen.source_candidate_content_hash
-            or attempt.id != frozen.source_producer_attempt_id
-            or evidence_by_kind[ArtifactKind.RESPONSE.value].id != frozen.source_response_artifact_id
-            or evidence_by_kind[ArtifactKind.VALIDATION.value].id != frozen.source_validation_artifact_id
-        ):
-            raise RepairEligibilityError("repair.parent_evidence_invalid", "frozen reusable evidence IDs or hashes changed")
-        return unit, candidate, attempt, evidence
-
     def prepare_repair_stage_reuse(
         self,
         child_run_id: str,
@@ -3816,281 +3463,6 @@ class SQLiteRepository:
 
     def materialize_reused_fragment(self, child_run_id: str, binding_id: str) -> Artifact:
         return self._generation_reuse.materialize_reused_fragment(child_run_id, binding_id)
-
-    @staticmethod
-    def _work_unit_is_sealed_in_session(
-        session: Session,
-        unit: GenerationWorkUnitRow,
-    ) -> bool:
-        return (
-            session.scalar(
-                select(SealedStageAggregateRow.id).where(
-                    SealedStageAggregateRow.stage_plan_id == unit.stage_plan_id
-                )
-            )
-            is not None
-        )
-
-    def _assert_work_unit_unsealed_in_session(
-        self,
-        session: Session,
-        unit: GenerationWorkUnitRow,
-    ) -> None:
-        if self._work_unit_is_sealed_in_session(session, unit):
-            raise InvalidTransitionError(
-                "cannot change an attempt or artifact after its work-unit stage aggregate is sealed"
-            )
-
-    def _attempt_work_unit_unsealed_in_session(
-        self,
-        session: Session,
-        attempt: GenerationAttemptRow,
-    ) -> GenerationWorkUnitRow | None:
-        if attempt.work_unit_id is None:
-            return None
-        unit = session.get(GenerationWorkUnitRow, attempt.work_unit_id)
-        if unit is None:
-            raise NotFoundError(f"generation work unit not found: {attempt.work_unit_id}")
-        self._assert_work_unit_unsealed_in_session(session, unit)
-        return unit
-
-    @staticmethod
-    def _all_requested_stage_aggregates_are_sealed_in_session(
-        session: Session,
-        run: GenerationRunRow,
-    ) -> bool:
-        requested = {StageName(value).value for value in run.requested_stages}
-        plans = session.scalars(
-            select(StagePlanRow).where(StagePlanRow.run_id == run.id)
-        ).all()
-        if {plan.stage for plan in plans} != requested:
-            return False
-        if not plans:
-            return False
-        sealed_plan_ids = set(
-            session.scalars(
-                select(SealedStageAggregateRow.stage_plan_id).where(
-                    SealedStageAggregateRow.stage_plan_id.in_([plan.id for plan in plans])
-                )
-            ).all()
-        )
-        return sealed_plan_ids == {plan.id for plan in plans}
-
-    @staticmethod
-    def _obsolete_scene_beats_recovery_code_in_session(
-        session: Session,
-        run: GenerationRunRow,
-    ) -> str | None:
-        """Return the stable reason an interrupted Scene Beats run is obsolete.
-
-        Timing allocation and dialogue capacity are part of the immutable
-        Scene Beats StagePlan rather than startup defaults. Join-entry facts
-        now share that immutable boundary. Old plans (including pristine runs
-        created under an older planning policy) must be stopped before a
-        runner can recompute dependency or prompt identities.
-        """
-
-        requested = {StageName(value) for value in run.requested_stages}
-        if StageName.SCENE_BEATS not in requested:
-            return None
-        generation_plan_row = session.get(GenerationPlanRow, run.id)
-        if generation_plan_row is None:
-            return "recovery.join_state_value_contract_obsolete"
-        try:
-            generation_plan = GenerationPlan.model_validate(generation_plan_row.plan)
-        except ValueError:
-            return "recovery.join_state_value_contract_obsolete"
-
-        plans = session.scalars(
-            select(StagePlanRow).where(StagePlanRow.run_id == run.id)
-        ).all()
-        reached_scene_beats = any(
-            StageName(plan.stage) in {StageName.SCENE_BEATS, StageName.STORYBOARD}
-            for plan in plans
-        )
-        if not reached_scene_beats:
-            return (
-                "recovery.join_state_value_contract_obsolete"
-                if generation_plan.planning_policy_version
-                != PLANNING_POLICY_VERSION
-                else None
-            )
-        scene_beats_plan = next(
-            (plan for plan in plans if plan.stage == StageName.SCENE_BEATS.value),
-            None,
-        )
-        if scene_beats_plan is None:
-            return "recovery.scene_timing_contract_obsolete"
-        scene_beats_contract_code = (
-            SQLiteRepository._scene_beats_stage_plan_contract_code(scene_beats_plan)
-        )
-        if scene_beats_contract_code is not None:
-            return scene_beats_contract_code
-        if generation_plan.planning_policy_version != PLANNING_POLICY_VERSION:
-            return "recovery.join_state_value_contract_obsolete"
-        return None
-
-    @staticmethod
-    def _scene_beats_stage_plan_contract_code(
-        scene_beats_plan: StagePlanRow,
-    ) -> str | None:
-        """Classify a persisted Scene Beats plan without supplying defaults.
-
-        The ordering is intentional: an already-reached timing/capacity
-        contract predates and is more specific than the later join marker.
-        Both branches preserve historical plan JSON; callers only use the
-        result to refuse a nonterminal continuation.
-        """
-
-        allocation = scene_beats_plan.plan.get("scene_timing_allocation")
-        if not isinstance(allocation, dict):
-            return "recovery.scene_timing_contract_obsolete"
-        try:
-            parsed_allocation = SceneTimingAllocation.model_validate(allocation)
-            parsed_plan = StagePlan.model_validate(scene_beats_plan.plan)
-        except ValueError:
-            return "recovery.scene_timing_contract_obsolete"
-        # StagePlan keeps these fields optional only to preserve the exact
-        # serialized shape of terminal historical evidence.  A nonterminal
-        # Scene Beats run cannot be resumed without the complete frozen
-        # dialogue contract, however: reconstructing it would change the
-        # request identity.  Parsing the full plan also verifies that the
-        # profile, capacity plan, timing allocation, and work units remain
-        # mutually bound rather than merely individually well-formed.
-        if (
-            parsed_allocation.allocation_version != SCENE_TIMING_ALLOCATION_VERSION
-            or parsed_plan.dialogue_timing_profile is None
-            or parsed_plan.dialogue_capacity_plan is None
-            or parsed_plan.dialogue_capacity_plan.policy_version
-            != DIALOGUE_CAPACITY_POLICY_VERSION
-        ):
-            return "recovery.scene_timing_contract_obsolete"
-        if (
-            parsed_plan.join_state_value_contract_version
-            != JOIN_STATE_VALUE_CONTRACT_VERSION
-            or parsed_plan.join_state_value_contract_hash is None
-        ):
-            return "recovery.join_state_value_contract_obsolete"
-        return None
-
-    @staticmethod
-    def _storyboard_stage_plan_contract_code(
-        storyboard_plan: StagePlanRow,
-    ) -> str | None:
-        """Classify StagePlan-local Storyboard timing provenance.
-
-        The canonical Scene Beats payload is intentionally content-only and
-        cannot be retroactively credited with a profile from some prior run.
-        This check therefore examines only the immutable Storyboard plan.  It
-        is used for nonterminal recovery and direct repair planning; terminal
-        history is never parsed, rewritten, or upgraded for this purpose.
-        """
-
-        try:
-            parsed_plan = StagePlan.model_validate(storyboard_plan.plan)
-        except ValueError:
-            return "recovery.storyboard_timing_provenance_missing"
-        if (
-            parsed_plan.stage != StageName.STORYBOARD
-            or parsed_plan.storyboard_dialogue_timing_profile is None
-        ):
-            return "recovery.storyboard_timing_provenance_missing"
-        return None
-
-    @staticmethod
-    def _obsolete_generation_planning_policy_recovery_code_in_session(
-        session: Session,
-        run: GenerationRunRow,
-    ) -> str | None:
-        """Refuse any non-legacy run whose plan needs a newer executable policy."""
-
-        requested = {StageName(value) for value in run.requested_stages}
-        if StageName.SCENE_BEATS in requested:
-            scene_beats_code = (
-                SQLiteRepository._obsolete_scene_beats_recovery_code_in_session(
-                    session, run
-                )
-            )
-            if scene_beats_code is not None:
-                return scene_beats_code
-        generation_plan_row = session.get(GenerationPlanRow, run.id)
-        if generation_plan_row is None:
-            return "recovery.generation_planning_policy_obsolete"
-        try:
-            generation_plan = GenerationPlan.model_validate(generation_plan_row.plan)
-        except ValueError:
-            return "recovery.generation_planning_policy_obsolete"
-        if generation_plan.planning_policy_version != PLANNING_POLICY_VERSION:
-            return "recovery.generation_planning_policy_obsolete"
-        if StageName.STORYBOARD in requested:
-            storyboard_plan = SQLiteRepository._stage_plan_row(
-                session, run.id, StageName.STORYBOARD
-            )
-            if storyboard_plan is not None:
-                contract_code = SQLiteRepository._storyboard_stage_plan_contract_code(
-                    storyboard_plan
-                )
-                if contract_code is not None:
-                    return contract_code
-        return None
-
-    @staticmethod
-    def _recovery_obsolete_contract_stage(
-        session: Session,
-        run: GenerationRunRow,
-        code: str,
-    ) -> StageName:
-        if code in {
-            "recovery.scene_timing_contract_obsolete",
-            "recovery.join_state_value_contract_obsolete",
-        }:
-            return StageName.SCENE_BEATS
-        if code == "recovery.storyboard_timing_provenance_missing":
-            return StageName.STORYBOARD
-        for stage in (StageName(value) for value in run.requested_stages):
-            plan = SQLiteRepository._stage_plan_row(session, run.id, stage)
-            if plan is None:
-                return stage
-            sealed = session.scalar(
-                select(SealedStageAggregateRow.id).where(
-                    SealedStageAggregateRow.stage_plan_id == plan.id
-                )
-            )
-            if sealed is None:
-                return stage
-        # This branch is defensive: a run with every requested stage sealed
-        # normally takes the atomic-commit recovery branch instead.
-        return StageName(run.requested_stages[0])
-
-    @staticmethod
-    def _cancel_run_work_units_in_session(
-        session: Session,
-        run_id: str,
-        *,
-        now: datetime,
-        attempt_error: str,
-    ) -> None:
-        """Close unfinished unit execution when a run reaches cancellation."""
-
-        running_attempts = session.scalars(
-            select(GenerationAttemptRow).where(
-                GenerationAttemptRow.run_id == run_id,
-                GenerationAttemptRow.status == AttemptStatus.RUNNING.value,
-            )
-        ).all()
-        for attempt in running_attempts:
-            attempt.status = AttemptStatus.CANCELLED.value
-            attempt.error = attempt_error
-            attempt.finished_at = now
-        units = session.scalars(
-            select(GenerationWorkUnitRow).where(GenerationWorkUnitRow.run_id == run_id)
-        ).all()
-        for unit in units:
-            if WorkUnitStatus(unit.status) in {
-                WorkUnitStatus.QUEUED,
-                WorkUnitStatus.RUNNING,
-            }:
-                unit.status = WorkUnitStatus.CANCELLED.value
 
     def allocate_attempt_for_work_unit(
         self,
@@ -4128,108 +3500,8 @@ class SQLiteRepository:
     def get_run_execution_trace(self, run_id: str) -> RunExecutionTrace:
         return self._generation_progress.get_run_execution_trace(run_id)
 
-    @staticmethod
-    def _run_max_attempts(row: GenerationRunRow) -> int:
-        """Read the frozen correction budget without synthesizing V2 history."""
-
-        if is_v2_snapshot(row.provider_snapshot) or is_v3_snapshot(row.provider_snapshot):
-            profile = (
-                TextProviderProfileSnapshotV3.model_validate(row.provider_snapshot)
-                if is_v3_snapshot(row.provider_snapshot)
-                else TextProviderProfileSnapshot.model_validate(row.provider_snapshot)
-            )
-            return 1 + profile.max_semantic_corrections
-        # Historical snapshots have no V2 execution contract.  Their old
-        # stage-level attempt behavior must not acquire a new implicit limit.
-        return 1
-
     def get_run_progress(self, run_id: str) -> RunProgress:
         return self._generation_progress.get_run_progress(run_id)
-
-    @staticmethod
-    def _fragment_from_artifact(stage: StageName, artifact: ArtifactRow) -> Any:
-        fragment_type = {
-            StageName.STORY_BIBLE: StoryBibleFragment,
-            StageName.STORY_GRAPH: StoryGraphFragment,
-            StageName.SCENE_BEATS: SceneBeatsFragment,
-            StageName.STORYBOARD: StoryboardFragment,
-        }[stage]
-        return fragment_type.model_validate(artifact.content)
-
-    def _required_unit_evidence_in_session(
-        self,
-        session: Session,
-        *,
-        run_id: str,
-        stage: StageName,
-        unit: GenerationWorkUnitRow,
-        candidate_id: str,
-    ) -> tuple[ArtifactRow, GenerationAttemptRow, list[ArtifactRow]]:
-        candidate = session.get(ArtifactRow, candidate_id)
-        if candidate is None:
-            raise NotFoundError(f"candidate artifact not found: {candidate_id}")
-        if (
-            candidate.run_id != run_id
-            or candidate.stage != stage.value
-            or candidate.kind != ArtifactKind.CANDIDATE.value
-            or candidate.work_unit_id != unit.id
-            or candidate.attempt_id is None
-        ):
-            raise InvalidTransitionError("candidate artifact does not belong to the declared run/stage/work unit")
-        if candidate.content_hash != stable_hash(candidate.content):
-            raise InvalidTransitionError("candidate artifact content hash does not match immutable content")
-        attempt = session.get(GenerationAttemptRow, candidate.attempt_id)
-        if (
-            attempt is None
-            or attempt.run_id != run_id
-            or attempt.stage != stage.value
-            or attempt.work_unit_id != unit.id
-            or AttemptStatus(attempt.status) != AttemptStatus.SUCCEEDED
-            or attempt.outcome_unknown
-        ):
-            raise InvalidTransitionError(
-                "candidate artifact must be produced by a succeeded, known-outcome work-unit attempt"
-            )
-        evidence = session.scalars(
-            select(ArtifactRow)
-            .where(ArtifactRow.attempt_id == attempt.id)
-            .order_by(ArtifactRow.created_at, ArtifactRow.id)
-        ).all()
-        required = {
-            ArtifactKind.PROMPT.value,
-            ArtifactKind.RESPONSE.value,
-            ArtifactKind.VALIDATION.value,
-            ArtifactKind.CANDIDATE.value,
-        }
-        evidence_by_kind: dict[str, list[ArtifactRow]] = {}
-        for row in evidence:
-            evidence_by_kind.setdefault(row.kind, []).append(row)
-        if set(evidence_by_kind) != required or any(
-            len(rows) != 1 for rows in evidence_by_kind.values()
-        ):
-            raise InvalidTransitionError(
-                "sealed work-unit producer attempts require exactly one prompt, response, validation, and candidate artifact"
-            )
-        if evidence_by_kind[ArtifactKind.CANDIDATE.value][0].id != candidate.id:
-            raise InvalidTransitionError("candidate artifact must be the producer attempt's unique candidate")
-        if attempt.response_persisted_at is None:
-            raise InvalidTransitionError(
-                "sealed candidates require a durable provider response marker"
-            )
-        if any(
-            row.run_id != run_id
-            or row.stage != stage.value
-            or row.work_unit_id != unit.id
-            or row.content_hash != stable_hash(row.content)
-            for row in evidence
-        ):
-            raise InvalidTransitionError("attempt evidence fails run/stage/work-unit ownership or content-hash checks")
-        validation = evidence_by_kind[ArtifactKind.VALIDATION.value][0]
-        if not isinstance(validation.content, dict) or validation.content.get("accepted") is not True:
-            raise InvalidTransitionError(
-                "sealed work-unit candidates require an object validation artifact with accepted: true"
-            )
-        return candidate, attempt, evidence
 
     def seal_stage_aggregate(
         self,
@@ -4239,66 +3511,6 @@ class SQLiteRepository:
         candidate_artifact_ids: list[str],
     ) -> SealedStageAggregateTrace:
         return self._generation_aggregates.seal_stage_aggregate(run_id, stage, candidate_artifact_ids=candidate_artifact_ids)
-
-    def _required_repair_unit_evidence_in_session(
-        self,
-        session: Session,
-        *,
-        child_run_id: str,
-        scope: WorkUnitRepairScope,
-        stage: StageName,
-        unit: GenerationWorkUnitRow,
-        candidate_id: str,
-    ) -> tuple[ArtifactRow, str, list[ArtifactRow], FragmentReuseBinding | None]:
-        candidate = session.get(ArtifactRow, candidate_id)
-        if candidate is None:
-            raise NotFoundError(f"candidate artifact not found: {candidate_id}")
-        if candidate.source_artifact_id is None:
-            normal_candidate, attempt, evidence = self._required_unit_evidence_in_session(
-                session,
-                run_id=child_run_id,
-                stage=stage,
-                unit=unit,
-                candidate_id=candidate_id,
-            )
-            return normal_candidate, attempt.id, evidence, None
-        if (
-            candidate.run_id != child_run_id
-            or candidate.stage != stage.value
-            or candidate.kind != ArtifactKind.CANDIDATE.value
-            or candidate.work_unit_id != unit.id
-            or candidate.attempt_id is not None
-            or candidate.content_hash != stable_hash(candidate.content)
-        ):
-            raise InvalidTransitionError("reused candidate does not belong to the declared child run/stage/work unit")
-        binding_row = session.scalar(
-            select(FragmentReuseBindingRow).where(
-                FragmentReuseBindingRow.child_run_id == child_run_id,
-                FragmentReuseBindingRow.child_work_unit_id == unit.id,
-            )
-        )
-        if binding_row is None:
-            raise RepairEligibilityError("repair.scope_hash_mismatch", "reused candidate has no exact child binding")
-        binding = self._fragment_reuse_binding(binding_row)
-        if binding.stage != stage or binding.source_candidate_artifact_id != candidate.source_artifact_id:
-            raise RepairEligibilityError("repair.scope_hash_mismatch", "reused candidate does not match its binding")
-        frozen = next(
-            (
-                item
-                for item in scope.reuse_sources
-                if item.source_candidate_artifact_id == binding.source_candidate_artifact_id
-                and item.source_work_unit_id == binding.source_work_unit_id
-            ),
-            None,
-        )
-        if frozen is None:
-            raise RepairEligibilityError("repair.scope_hash_mismatch", "binding is absent from immutable repair scope")
-        _, source_candidate, source_attempt, evidence = self._validate_frozen_reuse_source_in_session(
-            session, scope=scope, frozen=frozen
-        )
-        if source_candidate.id != candidate.source_artifact_id:
-            raise RepairEligibilityError("repair.parent_evidence_invalid", "reused source candidate identity changed")
-        return candidate, source_attempt.id, evidence, binding
 
     def seal_repair_stage_aggregate(
         self,
@@ -4348,188 +3560,6 @@ class SQLiteRepository:
     ) -> GenerationRun:
         return self._generation_lifecycle.commit_sealed_run(run_id, sealed_aggregate_ids=sealed_aggregate_ids)
 
-    @staticmethod
-    def _frozen_dialogue_timing_profile_from_stage_plan(
-        stage_plan: StagePlan,
-    ) -> DialogueTimingProfile:
-        """Read a stage-owned timing profile without any runtime fallback."""
-
-        if stage_plan.stage == StageName.SCENE_BEATS:
-            profile = stage_plan.dialogue_timing_profile
-            description = "Scene Beats"
-        elif stage_plan.stage == StageName.STORYBOARD:
-            profile = stage_plan.storyboard_dialogue_timing_profile
-            description = "Storyboard"
-        else:
-            raise InvalidTransitionError(
-                f"{stage_plan.stage.value} has no dialogue timing provenance"
-            )
-        if profile is None:
-            raise InvalidTransitionError(
-                f"sealed commit requires a frozen {description} dialogue timing profile"
-            )
-        return profile
-
-    def _frozen_dialogue_timing_profile_for_sealed_commit_in_session(
-        self,
-        session: Session,
-        run_row: GenerationRunRow,
-    ) -> DialogueTimingProfile | None:
-        """Load the timing policy that bound this run's sealed V2 output.
-
-        Each stage owns its own immutable provenance.  In particular, a
-        Storyboard-only run cannot assume that a READY Scene Beats revision
-        came from this run: canonical revisions deliberately store authored
-        content, not generator-policy metadata.  Reconstructing either policy
-        from a process default would let a deployment change alter acceptance
-        of immutable evidence, so missing or malformed frozen evidence is an
-        install failure rather than a fallback opportunity.
-        """
-
-        requested = {StageName(value) for value in run_row.requested_stages}
-        if not requested & {StageName.SCENE_BEATS, StageName.STORYBOARD}:
-            return None
-        profiles: list[DialogueTimingProfile] = []
-        for stage in (StageName.SCENE_BEATS, StageName.STORYBOARD):
-            if stage not in requested:
-                continue
-            description = "Scene Beats" if stage == StageName.SCENE_BEATS else "Storyboard"
-            row = self._stage_plan_row(session, run_row.id, stage)
-            if row is None:
-                raise InvalidTransitionError(
-                    f"sealed commit requires a frozen {description} dialogue timing profile"
-                )
-            try:
-                plan = StagePlan.model_validate(row.plan)
-            except ValueError as exc:
-                raise InvalidTransitionError(
-                    f"sealed commit requires a valid frozen {description} dialogue timing profile"
-                ) from exc
-            profiles.append(self._frozen_dialogue_timing_profile_from_stage_plan(plan))
-        if len({profile.model_dump_json() for profile in profiles}) != 1:
-            raise InvalidTransitionError(
-                "sealed commit requires matching frozen Scene Beats and Storyboard dialogue timing profiles"
-            )
-        return profiles[0]
-
-    def _commit_run_outputs(
-        self,
-        run_id: str,
-        payloads: dict[StageName, StagePayload | dict[str, Any]],
-    ) -> tuple[GenerationRun, list[StageHead]]:
-        """Validate inputs, install every requested revision, and succeed atomically."""
-
-        parsed_payloads = {
-            stage: stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(payload)
-            for stage, payload in payloads.items()
-        }
-        with self._lifecycle_write() as session:
-            run_row = self._run_row(session, run_id)
-            return self._commit_parsed_run_outputs_in_session(session, run_row, parsed_payloads)
-
-    def _commit_parsed_run_outputs_in_session(
-        self,
-        session: Session,
-        run_row: GenerationRunRow,
-        parsed_payloads: dict[StageName, StagePayload],
-        *,
-        dialogue_timing_profile: DialogueTimingProfile | None = None,
-    ) -> tuple[GenerationRun, list[StageHead]]:
-        if RunStatus(run_row.status) != RunStatus.RUNNING:
-            raise InvalidTransitionError(f"cannot install generated output while run is {run_row.status}")
-        requested = [StageName(value) for value in run_row.requested_stages]
-        if set(parsed_payloads) != set(requested):
-            raise InvalidTransitionError(
-                "commit requires exactly one candidate for every requested stage"
-            )
-        if run_row.result_revision_ids:
-            raise InvalidTransitionError("run outputs have already been committed")
-        snapshot = self._assert_run_inputs_current_in_session(session, run_row)
-        project_row = self._project_row(session, run_row.project_id)
-        self._assert_active_project(project_row)
-        results: list[StageHead] = []
-        for stage in requested:
-            current_head = self._stage_row(session, run_row.project_id, stage)
-            snapshot_head = snapshot.stage_heads[stage]
-            if current_head.revision != snapshot_head.revision:
-                raise RevisionConflictError(f"stage:{stage.value}", snapshot_head.revision, current_head.revision)
-            now = utc_now()
-            head, revision_row = self._install_stage_in_session(
-                session,
-                project_row,
-                stage,
-                parsed_payloads[stage],
-                expected_revision=snapshot_head.revision,
-                now=now,
-                allow_noop=False,
-                dialogue_timing_profile=dialogue_timing_profile,
-            )
-            if revision_row is None:
-                raise InvalidTransitionError("generated stage installation must create a canonical revision")
-            run_row.result_revision_ids = [*run_row.result_revision_ids, revision_row.id]
-            canonical_trace = {
-                "entityRevisionId": revision_row.id,
-                "revision": revision_row.revision,
-                "contentHash": revision_row.content_hash,
-                "inputRevisions": dict(revision_row.input_revisions),
-            }
-            canonical_artifact = Artifact(
-                run_id=run_row.id,
-                stage=stage,
-                kind=ArtifactKind.CANONICAL,
-                content=canonical_trace,
-                content_hash=stable_hash(canonical_trace),
-                created_at=now,
-            )
-            session.add(
-                ArtifactRow(
-                    id=canonical_artifact.id,
-                    run_id=canonical_artifact.run_id,
-                    attempt_id=None,
-                    work_unit_id=None,
-                    source_artifact_id=None,
-                    stage=stage.value,
-                    kind=ArtifactKind.CANONICAL.value,
-                    media_type=canonical_artifact.media_type,
-                    content=canonical_trace,
-                    content_hash=canonical_artifact.content_hash,
-                    created_at=now,
-                )
-            )
-            results.append(head)
-        run_row.status = RunStatus.SUCCEEDED.value
-        run_row.error = None
-        run_row.finished_at = utc_now()
-        return self._run(run_row), results
-
-    def _run_outputs_are_current(self, session: Session, row: GenerationRunRow) -> bool:
-        snapshot = CanonicalSnapshot.model_validate(row.canonical_snapshot)
-        project = self._project_row(session, row.project_id)
-        if project.revision != snapshot.project_revision:
-            return False
-        requested = {StageName(value) for value in row.requested_stages}
-        result_rows = session.scalars(
-            select(EntityRevisionRow).where(EntityRevisionRow.id.in_(row.result_revision_ids or [""]))
-        ).all()
-        result_by_stage = {StageName(result.stage): result for result in result_rows}
-        if set(result_by_stage) != requested:
-            return False
-        required_inputs = {
-            upstream
-            for requested_stage in requested
-            for upstream in upstream_stages(requested_stage)
-            if upstream not in requested
-        }
-        for stage in requested:
-            current = self._stage_row(session, row.project_id, stage)
-            if current.entity_revision_id != result_by_stage[stage].id:
-                return False
-        for stage in required_inputs:
-            current = self._stage_row(session, row.project_id, stage)
-            if current.revision != snapshot.stage_heads[stage].revision:
-                return False
-        return True
-
     def finish_run(
         self,
         run_id: str,
@@ -4555,295 +3585,8 @@ class SQLiteRepository:
     ) -> GenerationRun:
         return self._generation_repairs.create_repair_run(source_run_id, stage=stage, instructions=instructions, provider_snapshot=provider_snapshot)
 
-    @staticmethod
-    def _scope_hash_payload(scope_data: dict[str, Any]) -> dict[str, Any]:
-        """Return the exact public repair contract, excluding only its digest."""
-
-        return {key: value for key, value in scope_data.items() if key != "scopeHash"}
-
-    def _source_snapshot_is_current_in_session(
-        self,
-        session: Session,
-        source: GenerationRunRow,
-    ) -> bool:
-        snapshot = CanonicalSnapshot.model_validate(source.canonical_snapshot)
-        return self._snapshot_in_session(session, source.project_id).snapshot_hash == snapshot.snapshot_hash
-
-    def _latest_rejected_evidence_in_session(
-        self,
-        session: Session,
-        *,
-        source: GenerationRunRow,
-        unit: GenerationWorkUnitRow,
-    ) -> tuple[GenerationAttemptRow, ArtifactRow, ArtifactRow] | None:
-        attempts = session.scalars(
-            select(GenerationAttemptRow)
-            .where(GenerationAttemptRow.work_unit_id == unit.id)
-            .order_by(GenerationAttemptRow.attempt_number.desc())
-        ).all()
-        for attempt in attempts:
-            if (
-                attempt.run_id != source.id
-                or attempt.stage != unit.stage
-                or AttemptStatus(attempt.status) != AttemptStatus.FAILED
-                or attempt.outcome_unknown
-                or attempt.response_persisted_at is None
-                or not attempt.outcome_code
-            ):
-                continue
-            evidence = session.scalars(
-                select(ArtifactRow)
-                .where(ArtifactRow.attempt_id == attempt.id)
-                .order_by(ArtifactRow.created_at, ArtifactRow.id)
-            ).all()
-            response = next((row for row in evidence if row.kind == ArtifactKind.RESPONSE.value), None)
-            validation = next((row for row in evidence if row.kind == ArtifactKind.VALIDATION.value), None)
-            if (
-                response is not None
-                and validation is not None
-                and response.run_id == source.id
-                and validation.run_id == source.id
-                and response.work_unit_id == unit.id
-                and validation.work_unit_id == unit.id
-                and isinstance(validation.content, dict)
-                and validation.content.get("accepted") is False
-                and response.content_hash == stable_hash(response.content)
-                and validation.content_hash == stable_hash(validation.content)
-            ):
-                return attempt, response, validation
-        return None
-
-    def _exact_repair_parent_contract_code_in_session(
-        self,
-        session: Session,
-        *,
-        source: GenerationRunRow,
-        target: GenerationWorkUnitRow,
-    ) -> str | None:
-        """Reject a parent that cannot be replayed under the current repair contract.
-
-        Exact repair may rebind successful sibling fragments into child-local
-        plans, but it may not treat a historical planner or a pre-join Scene
-        Beats plan as if it had current provenance.  This check is deliberately
-        before child creation and never reconstructs missing fields.
-        """
-
-        generation_plan_row = session.get(GenerationPlanRow, source.id)
-        if generation_plan_row is None:
-            return "repair.parent_plan_obsolete"
-        try:
-            generation_plan = GenerationPlan.model_validate(generation_plan_row.plan)
-        except ValueError:
-            return "repair.parent_plan_obsolete"
-        if generation_plan.planning_policy_version != PLANNING_POLICY_VERSION:
-            return "repair.parent_plan_obsolete"
-
-        requested = [StageName(value) for value in source.requested_stages]
-        target_stage = StageName(target.stage)
-        if (
-            StageName.SCENE_BEATS in requested
-            and STAGE_ORDER.index(StageName.SCENE_BEATS)
-            <= STAGE_ORDER.index(target_stage)
-        ):
-            scene_beats_plan = self._stage_plan_row(
-                session, source.id, StageName.SCENE_BEATS
-            )
-            if scene_beats_plan is None:
-                return "repair.parent_stage_plan_obsolete"
-            if self._scene_beats_stage_plan_contract_code(scene_beats_plan) is not None:
-                return "repair.parent_stage_plan_obsolete"
-        if (
-            StageName.STORYBOARD in requested
-            and STAGE_ORDER.index(StageName.STORYBOARD)
-            <= STAGE_ORDER.index(target_stage)
-        ):
-            storyboard_plan = self._stage_plan_row(
-                session, source.id, StageName.STORYBOARD
-            )
-            if storyboard_plan is None:
-                return "repair.parent_stage_plan_obsolete"
-            if self._storyboard_stage_plan_contract_code(storyboard_plan) is not None:
-                return "repair.parent_stage_plan_obsolete"
-        return None
-
-    def _work_unit_repair_eligibility_in_session(
-        self,
-        session: Session,
-        *,
-        source: GenerationRunRow,
-        unit: GenerationWorkUnitRow,
-        check_existing_scope: bool = True,
-    ) -> WorkUnitRepairEligibility:
-        stage = StageName(unit.stage)
-        if RunStatus(source.status) != RunStatus.QUARANTINED:
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.source_not_quarantined"
-            )
-        if source.legacy_unsealed or session.get(GenerationPlanRow, source.id) is None:
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.source_legacy_unsealed"
-            )
-        if unit.run_id != source.id or stage.value not in source.requested_stages:
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_not_in_source_run"
-            )
-        parent_contract_code = self._exact_repair_parent_contract_code_in_session(
-            session,
-            source=source,
-            target=unit,
-        )
-        if parent_contract_code is not None:
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id,
-                stage=stage,
-                eligible=False,
-                reason_code=parent_contract_code,
-            )
-        if (
-            ProjectLifecycleStatus(self._project_row(session, source.project_id).lifecycle_status)
-            != ProjectLifecycleStatus.ACTIVE
-        ):
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.project_archived"
-            )
-        if not self._source_snapshot_is_current_in_session(session, source):
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.snapshot_stale"
-            )
-        if self._work_unit_is_sealed_in_session(session, unit):
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_sealed"
-            )
-        if WorkUnitStatus(unit.status) == WorkUnitStatus.OUTCOME_UNKNOWN:
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_outcome_unknown"
-            )
-        if WorkUnitStatus(unit.status) != WorkUnitStatus.QUARANTINED:
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.target_not_quarantined"
-            )
-        if self._latest_rejected_evidence_in_session(session, source=source, unit=unit) is None:
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id,
-                stage=stage,
-                eligible=False,
-                reason_code="repair.target_not_rejected_model_output",
-            )
-        if check_existing_scope and session.scalar(
-            select(WorkUnitRepairScopeRow.child_run_id).where(
-                WorkUnitRepairScopeRow.target_work_unit_id == unit.id
-            )
-        ) is not None:
-            return WorkUnitRepairEligibility(
-                work_unit_id=unit.id, stage=stage, eligible=False, reason_code="repair.already_exists"
-            )
-        return WorkUnitRepairEligibility(work_unit_id=unit.id, stage=stage, eligible=True)
-
-    @staticmethod
-    def _raise_repair_ineligible(eligibility: WorkUnitRepairEligibility) -> None:
-        assert eligibility.reason_code is not None
-        raise RepairEligibilityError(
-            eligibility.reason_code,
-            f"work unit {eligibility.work_unit_id} is not eligible for exact repair: {eligibility.reason_code}",
-        )
-
     def get_repair_eligible_work_units(self, run_id: str) -> list[WorkUnitRepairEligibility]:
         return self._generation_repairs.get_repair_eligible_work_units(run_id)
-
-    def _frozen_reuse_source_in_session(
-        self,
-        session: Session,
-        *,
-        source: GenerationRunRow,
-        unit: GenerationWorkUnitRow,
-        kind: FragmentReuseKind,
-    ) -> FrozenFragmentReuseSource:
-        plan_row = session.get(StagePlanRow, unit.stage_plan_id)
-        if plan_row is None or plan_row.run_id != source.id:
-            raise RepairEligibilityError("repair.parent_evidence_invalid", "source work unit has no matching StagePlan")
-        candidate_rows = session.scalars(
-            select(ArtifactRow)
-            .where(
-                ArtifactRow.run_id == source.id,
-                ArtifactRow.work_unit_id == unit.id,
-                ArtifactRow.kind == ArtifactKind.CANDIDATE.value,
-            )
-            .order_by(ArtifactRow.created_at.desc())
-        ).all()
-        if len(candidate_rows) != 1:
-            raise RepairEligibilityError(
-                "repair.parent_evidence_invalid", "source reusable unit requires one immutable candidate"
-            )
-        candidate, attempt, evidence = self._required_unit_evidence_in_session(
-            session,
-            run_id=source.id,
-            stage=StageName(unit.stage),
-            unit=unit,
-            candidate_id=candidate_rows[0].id,
-        )
-        evidence_by_kind = {row.kind: row for row in evidence}
-        return FrozenFragmentReuseSource(
-            kind=kind,
-            stage=StageName(unit.stage),
-            source_work_unit_id=unit.id,
-            source_stage_plan_id=plan_row.id,
-            source_stage_plan_hash=plan_row.stage_plan_hash,
-            source_generation_plan_hash=unit.generation_plan_hash,
-            source_selector=dict(unit.selector),
-            source_dependency_hash=unit.dependency_hash,
-            source_unit_dependency_hash=unit.unit_dependency_hash,
-            source_input_hash=unit.input_hash,
-            source_producer_attempt_id=attempt.id,
-            source_response_artifact_id=evidence_by_kind[ArtifactKind.RESPONSE.value].id,
-            source_validation_artifact_id=evidence_by_kind[ArtifactKind.VALIDATION.value].id,
-            source_candidate_artifact_id=candidate.id,
-            source_candidate_content_hash=candidate.content_hash,
-        )
-
-    def _frozen_reuse_sources_in_session(
-        self,
-        session: Session,
-        *,
-        source: GenerationRunRow,
-        target: GenerationWorkUnitRow,
-    ) -> list[FrozenFragmentReuseSource]:
-        requested = [StageName(value) for value in source.requested_stages]
-        target_index = requested.index(StageName(target.stage))
-        reusable: list[FrozenFragmentReuseSource] = []
-        for stage in requested[:target_index]:
-            source_plan = self._stage_plan_row(session, source.id, stage)
-            if source_plan is None or session.scalar(
-                select(SealedStageAggregateRow.id).where(
-                    SealedStageAggregateRow.stage_plan_id == source_plan.id
-                )
-            ) is None:
-                raise RepairEligibilityError(
-                    "repair.parent_evidence_invalid",
-                    f"source upstream stage {stage.value} is not sealed",
-                )
-            units = session.scalars(
-                select(GenerationWorkUnitRow)
-                .where(GenerationWorkUnitRow.stage_plan_id == source_plan.id)
-                .order_by(GenerationWorkUnitRow.sequence)
-            ).all()
-            reusable.extend(
-                self._frozen_reuse_source_in_session(session, source=source, unit=unit, kind=FragmentReuseKind.UPSTREAM)
-                for unit in units
-            )
-        target_plan = self._stage_plan_row(session, source.id, StageName(target.stage))
-        if target_plan is None or target_plan.id != target.stage_plan_id:
-            raise RepairEligibilityError("repair.parent_evidence_invalid", "target source StagePlan is inconsistent")
-        siblings = session.scalars(
-            select(GenerationWorkUnitRow)
-            .where(GenerationWorkUnitRow.stage_plan_id == target_plan.id)
-            .order_by(GenerationWorkUnitRow.sequence)
-        ).all()
-        reusable.extend(
-            self._frozen_reuse_source_in_session(session, source=source, unit=unit, kind=FragmentReuseKind.SIBLING)
-            for unit in siblings
-            if unit.id != target.id
-        )
-        return reusable
 
     def create_work_unit_repair_run(
         self,
@@ -4879,22 +3622,6 @@ class SQLiteRepository:
         failure_disposition: WorkUnitFailureDisposition | None = None,
     ) -> GenerationAttempt:
         return self._generation_evidence.finish_attempt(attempt_id, status, error=error, outcome_code=outcome_code, allow_correction=allow_correction, failure_disposition=failure_disposition)
-
-    @staticmethod
-    def _assert_secret_free_artifact_content(content: Any) -> None:
-        """Reject recognizable credential values before immutable evidence lands.
-
-        Provider adapters normally redact response envelopes before this layer.
-        This second boundary protects direct callers and alternate adapters.
-        Redacted field names (for example ``apiKey: [redacted]``) remain useful
-        diagnostics; only a value that matches the established secret policy is
-        rejected here.
-        """
-
-        if contains_secret_value(content) or (
-            contains_secret_setting(content) and _contains_unredacted_secret_setting(content)
-        ):
-            raise InvalidTransitionError("artifact evidence must not contain secret-shaped values")
 
     def add_artifact(self, artifact: Artifact) -> Artifact:
         return self._generation_evidence.add_artifact(artifact)

@@ -8,28 +8,37 @@ from ...exceptions import InvalidTransitionError, NotFoundError, RepairEligibili
 from sqlalchemy import select
 from ..codec import stable_hash
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .generation_access import GenerationPersistenceAccess
+from .generation_plans import ProjectGenerationPlanningPersistence
+from .generation_integrity import GenerationWorkUnitIntegrity
+from .generation_repair_scope import GenerationRepairScopePolicy
 
 
 class ProjectGenerationReusePersistence:
     """Immutable fragment reuse binding and child materialization persistence."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(
+        self,
+        access: GenerationPersistenceAccess,
+        plans: ProjectGenerationPlanningPersistence,
+        integrity: GenerationWorkUnitIntegrity,
+        repair_scope: GenerationRepairScopePolicy,
+    ) -> None:
+        self._access = access
+        self._plans = plans
+        self._integrity = integrity
+        self._repair_scope = repair_scope
 
     def get_fragment_reuse_bindings(self, child_run_id: str) -> list[FragmentReuseBinding]:
-        repository = self._repository
-        with repository._read() as session:
-            repository._repair_scope_row_in_session(session, repository._run_row(session, child_run_id))
+        access = self._access
+        with access.leases.read() as session:
+            self._repair_scope.scope_row(session, access.rows.run(session, child_run_id))
             rows = session.scalars(
                 select(FragmentReuseBindingRow)
                 .where(FragmentReuseBindingRow.child_run_id == child_run_id)
                 .order_by(FragmentReuseBindingRow.stage, FragmentReuseBindingRow.created_at, FragmentReuseBindingRow.id)
             ).all()
-            return [repository._fragment_reuse_binding(row) for row in rows]
+            return [access.codecs.reuse_binding(row) for row in rows]
     def prepare_repair_stage_reuse(
         self,
         child_run_id: str,
@@ -40,14 +49,12 @@ class ProjectGenerationReusePersistence:
         It creates no candidate artifact.  This separation lets the runner
         make every durable child-local materialization visible and idempotent.
         """
-        repository = self._repository
+        access = self._access
 
-        with repository._write() as session:
-            child = repository._run_row(session, child_run_id)
-            scope = repository._validate_repair_scope_in_session(
-                session, child, require_source_current=True
-            )
-            child_plan = repository._stage_plan_row(session, child_run_id, stage)
+        with access.leases.write() as session:
+            child = access.rows.run(session, child_run_id)
+            scope = self._repair_scope.validate(session, child, require_source_current=True)
+            child_plan = self._plans._stage_plan_row(session, child_run_id, stage)
             if child_plan is None:
                 raise InvalidTransitionError(f"cannot prepare reuse before child {stage.value} StagePlan exists")
             child_units = session.scalars(
@@ -101,7 +108,7 @@ class ProjectGenerationReusePersistence:
                     )
             bindings: list[FragmentReuseBinding] = []
             for frozen in frozen_sources:
-                repository._validate_frozen_reuse_source_in_session(session, scope=scope, frozen=frozen)
+                self._repair_scope.validate_frozen_source(session, scope=scope, frozen=frozen)
                 child_unit = by_selector.get(stable_hash(frozen.source_selector))
                 if child_unit is None:
                     raise RepairEligibilityError(
@@ -152,7 +159,7 @@ class ProjectGenerationReusePersistence:
                     }
                 )
                 if existing is not None:
-                    binding = repository._fragment_reuse_binding(existing)
+                    binding = access.codecs.reuse_binding(existing)
                     if binding.binding_hash != binding_hash:
                         raise RepairEligibilityError(
                             "repair.scope_hash_mismatch", "existing child reuse binding differs from frozen scope"
@@ -185,17 +192,15 @@ class ProjectGenerationReusePersistence:
         binding_id: str,
     ) -> Artifact:
         """Create one child-owned, metadata-rebound candidate from a binding."""
-        repository = self._repository
+        access = self._access
 
-        with repository._write() as session:
-            child = repository._run_row(session, child_run_id)
-            scope = repository._validate_repair_scope_in_session(
-                session, child, require_source_current=True
-            )
+        with access.leases.write() as session:
+            child = access.rows.run(session, child_run_id)
+            scope = self._repair_scope.validate(session, child, require_source_current=True)
             row = session.get(FragmentReuseBindingRow, binding_id)
             if row is None or row.child_run_id != child_run_id:
                 raise NotFoundError(f"fragment reuse binding not found for child run: {binding_id}")
-            binding = repository._fragment_reuse_binding(row)
+            binding = access.codecs.reuse_binding(row)
             frozen = next(
                 (
                     item
@@ -207,7 +212,7 @@ class ProjectGenerationReusePersistence:
             )
             if frozen is None:
                 raise RepairEligibilityError("repair.scope_hash_mismatch", "binding is absent from immutable repair scope")
-            _, source_candidate, _, _ = repository._validate_frozen_reuse_source_in_session(
+            _, source_candidate, _, _ = self._repair_scope.validate_frozen_source(
                 session, scope=scope, frozen=frozen
             )
             child_unit = session.get(GenerationWorkUnitRow, binding.child_work_unit_id)
@@ -225,7 +230,7 @@ class ProjectGenerationReusePersistence:
                 or child_unit.input_hash != binding.child_input_hash
             ):
                 raise RepairEligibilityError("repair.scope_hash_mismatch", "child work unit no longer matches reuse binding")
-            repository._assert_work_unit_unsealed_in_session(session, child_unit)
+            self._integrity.assert_unsealed(session, child_unit)
             existing = session.scalar(
                 select(ArtifactRow).where(
                     ArtifactRow.run_id == child_run_id,
@@ -234,7 +239,7 @@ class ProjectGenerationReusePersistence:
                     ArtifactRow.source_artifact_id == source_candidate.id,
                 )
             )
-            source_fragment = repository._fragment_from_artifact(binding.stage, source_candidate)
+            source_fragment = self._integrity.fragment_from_artifact(binding.stage, source_candidate)
             rebound = source_fragment.model_copy(
                 update={"stage_plan_hash": child_plan.stage_plan_hash, "work_unit_id": child_unit.id}
             )
@@ -245,7 +250,7 @@ class ProjectGenerationReusePersistence:
                     raise RepairEligibilityError("repair.scope_hash_mismatch", "existing child reuse candidate differs from binding")
                 if WorkUnitStatus(child_unit.status) == WorkUnitStatus.QUEUED:
                     child_unit.status = WorkUnitStatus.SUCCEEDED.value
-                return repository._artifact(existing)
+                return access.codecs.artifact(existing)
             if WorkUnitStatus(child_unit.status) != WorkUnitStatus.QUEUED:
                 raise InvalidTransitionError(
                     f"cannot materialize reuse while child work unit is {child_unit.status}"
@@ -279,6 +284,6 @@ class ProjectGenerationReusePersistence:
             return artifact
     def materialize_reused_fragment(self, child_run_id: str, binding_id: str) -> Artifact:
         """Compatibility spelling for the explicit fragment-binding command."""
-        repository = self._repository
+        access = self._access
 
         return self.materialize_fragment_reuse_binding(child_run_id, binding_id)

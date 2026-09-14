@@ -1,5 +1,11 @@
 # Persistence generation extraction receipt
 
+> **Correction:** this initial receipt overstated the completed ownership move.
+> Public methods had moved, but central repair, recovery, evidence, and install
+> policy still lived in the retained facade. See
+> `2026-09-13-persistence-generation-ownership-correction.md` for the
+> corrective extraction and final verification record.
+
 ## Checkpoint
 
 - **Baseline:** `5827cad452a0582143357c4675b3ee3393ed9ae1`, clean before work.

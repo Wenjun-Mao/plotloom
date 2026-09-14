@@ -10,17 +10,17 @@ from ...exceptions import InvalidTransitionError, NotFoundError
 from ..codec import _json_data, stable_hash
 from sqlalchemy import select
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .generation_access import GenerationPersistenceAccess
+from .generation_integrity import GenerationWorkUnitIntegrity
+from .generation_evidence import ProjectGenerationEvidencePersistence
 
 
 class ProjectGenerationAttemptPersistence:
     """Own claim, dispatch, raw-response, and unknown-outcome evidence."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: GenerationPersistenceAccess, integrity: GenerationWorkUnitIntegrity) -> None:
+        self._access = access
+        self._integrity = integrity
 
     def allocate_attempt_for_work_unit(
         self,
@@ -40,14 +40,14 @@ class ProjectGenerationAttemptPersistence:
         the repository can prove either that dispatch never happened or that
         the provider response is already durable.
         """
-        repository = self._repository
+        access = self._access
 
         try:
-            with repository._work_unit_claim_write() as session:
+            with access.leases.work_unit_claim_write() as session:
                 unit = session.get(GenerationWorkUnitRow, work_unit_id)
                 if unit is None:
                     raise NotFoundError(f"generation work unit not found: {work_unit_id}")
-                run = repository._run_row(session, unit.run_id)
+                run = access.rows.run(session, unit.run_id)
                 if RunStatus(run.status) != RunStatus.RUNNING:
                     raise InvalidTransitionError(
                         f"cannot allocate a work-unit attempt while run is {run.status}"
@@ -152,9 +152,9 @@ class ProjectGenerationAttemptPersistence:
         and validation. A dispatch marker without a response is intentionally
         excluded because its external outcome is unknown.
         """
-        repository = self._repository
+        access = self._access
 
-        with repository._read() as session:
+        with access.leases.read() as session:
             unit = session.get(GenerationWorkUnitRow, work_unit_id)
             if unit is None:
                 raise NotFoundError(f"generation work unit not found: {work_unit_id}")
@@ -175,28 +175,28 @@ class ProjectGenerationAttemptPersistence:
             row = rows[0]
             if row.dispatched_at is not None and row.response_persisted_at is None:
                 return None
-            return repository._attempt(row)
+            return access.codecs.attempt(row)
     def mark_attempt_dispatched(self, attempt_id: str) -> GenerationAttempt:
         """Commit the non-idempotent provider-boundary marker before an HTTP call."""
-        repository = self._repository
+        access = self._access
 
-        with repository._write() as session:
+        with access.leases.write() as session:
             row = session.get(GenerationAttemptRow, attempt_id)
             if row is None:
                 raise NotFoundError(f"generation attempt not found: {attempt_id}")
             if row.work_unit_id is None:
                 raise InvalidTransitionError("only work-unit attempts have dispatch markers")
-            repository._attempt_work_unit_unsealed_in_session(session, row)
+            self._integrity.attempt_unsealed(session, row)
             if AttemptStatus(row.status) != AttemptStatus.RUNNING:
                 raise InvalidTransitionError(f"cannot dispatch attempt from {row.status}")
-            run = repository._run_row(session, row.run_id)
+            run = access.rows.run(session, row.run_id)
             if RunStatus(run.status) != RunStatus.RUNNING:
                 raise InvalidTransitionError(
                     f"cannot dispatch attempt while run is {run.status}"
                 )
             if row.dispatched_at is None:
                 row.dispatched_at = utc_now()
-            return repository._attempt(row)
+            return access.codecs.attempt(row)
     def persist_attempt_response(
         self,
         attempt_id: str,
@@ -205,16 +205,15 @@ class ProjectGenerationAttemptPersistence:
         provider_request_id: str | None = None,
     ) -> Artifact:
         """Atomically retain raw response evidence before parsing or validation."""
-        repository = self._repository
-
-        repository._assert_secret_free_artifact_content(content)
-        with repository._write() as session:
+        access = self._access
+        ProjectGenerationEvidencePersistence._assert_secret_free_artifact_content(content)
+        with access.leases.write() as session:
             attempt = session.get(GenerationAttemptRow, attempt_id)
             if attempt is None:
                 raise NotFoundError(f"generation attempt not found: {attempt_id}")
             if attempt.work_unit_id is None or attempt.dispatched_at is None:
                 raise InvalidTransitionError("a provider response requires a durable dispatch marker")
-            repository._attempt_work_unit_unsealed_in_session(session, attempt)
+            self._integrity.attempt_unsealed(session, attempt)
             if AttemptStatus(attempt.status) != AttemptStatus.RUNNING:
                 raise InvalidTransitionError(f"cannot persist response while attempt is {attempt.status}")
             existing = session.scalar(
@@ -227,7 +226,7 @@ class ProjectGenerationAttemptPersistence:
             if existing is not None:
                 if existing.content_hash != content_hash:
                     raise InvalidTransitionError("provider response evidence is immutable")
-                return repository._artifact(existing)
+                return access.codecs.artifact(existing)
             artifact = Artifact(
                 run_id=attempt.run_id,
                 attempt_id=attempt.id,
@@ -257,15 +256,15 @@ class ProjectGenerationAttemptPersistence:
             return artifact
     def mark_attempt_outcome_unknown(self, attempt_id: str, *, error: str) -> GenerationAttempt:
         """Record an ambiguous post-dispatch loss without authorizing replay."""
-        repository = self._repository
+        access = self._access
 
-        with repository._write() as session:
+        with access.leases.write() as session:
             row = session.get(GenerationAttemptRow, attempt_id)
             if row is None:
                 raise NotFoundError(f"generation attempt not found: {attempt_id}")
             if row.work_unit_id is None or row.dispatched_at is None:
                 raise InvalidTransitionError("only dispatched work-unit attempts can become outcome_unknown")
-            repository._attempt_work_unit_unsealed_in_session(session, row)
+            self._integrity.attempt_unsealed(session, row)
             if AttemptStatus(row.status) != AttemptStatus.RUNNING:
                 raise InvalidTransitionError(f"cannot mark outcome unknown from {row.status}")
             row.status = AttemptStatus.FAILED.value
@@ -277,4 +276,4 @@ class ProjectGenerationAttemptPersistence:
             if unit is None:
                 raise NotFoundError(f"generation work unit not found: {row.work_unit_id}")
             unit.status = WorkUnitStatus.OUTCOME_UNKNOWN.value
-            return repository._attempt(row)
+            return access.codecs.attempt(row)

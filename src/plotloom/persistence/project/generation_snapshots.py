@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import Any
+
+from .generation_access import GenerationPersistenceAccess
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -31,17 +33,14 @@ from ..schema import (
     EntityRevisionRow, GenerationPlanRow, GenerationRunRow, StageHeadRow,
     StoryGraphTopologyRow,
 )
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
-    from ...domain import RepairSource
+from ...domain import RepairSource
 
 
 class ProjectGenerationSnapshots:
     """Own frozen authoring inputs, run rows, and enqueue-time plan evidence."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: GenerationPersistenceAccess) -> None:
+        self._access = access
 
     @staticmethod
     def snapshot_fingerprint(project_revision: int, brief: Any, heads: Sequence[Any]) -> dict[str, Any]:
@@ -60,10 +59,10 @@ class ProjectGenerationSnapshots:
         }
 
     def snapshot_in_session(self, session: Session, project_id: str) -> CanonicalSnapshot:
-        repository = self._repository
-        project = repository._project(repository._project_row(session, project_id))
+        access = self._access
+        project = access.codecs.project(access.rows.project(session, project_id))
         rows = session.scalars(select(StageHeadRow).where(StageHeadRow.project_id == project_id)).all()
-        by_stage = {StageName(row.stage): repository._stage_head(row) for row in rows}
+        by_stage = {StageName(row.stage): access.codecs.stage_head(row) for row in rows}
         heads = [by_stage[stage] for stage in STAGE_ORDER]
         return CanonicalSnapshot(
             project_id=project_id,
@@ -74,7 +73,7 @@ class ProjectGenerationSnapshots:
         )
 
     def capture_snapshot(self, project_id: str) -> CanonicalSnapshot:
-        with self._repository._read() as session:
+        with self._access.leases.read() as session:
             return self.snapshot_in_session(session, project_id)
 
     def snapshot_is_current(self, snapshot: CanonicalSnapshot) -> bool:
@@ -93,18 +92,18 @@ class ProjectGenerationSnapshots:
     def assert_run_inputs_current_in_session(
         self, session: Session, row: GenerationRunRow
     ) -> CanonicalSnapshot:
-        repository = self._repository
+        access = self._access
         if RunStatus(row.status) not in {RunStatus.QUEUED, RunStatus.RUNNING}:
             raise InvalidTransitionError(f"run input preflight is not valid from {row.status}")
         if row.result_revision_ids:
             raise InvalidTransitionError("run input preflight must occur before output installation")
         snapshot = CanonicalSnapshot.model_validate(row.canonical_snapshot)
-        project = repository._project_row(session, row.project_id)
+        project = access.rows.project(session, row.project_id)
         if project.revision != snapshot.project_revision:
             raise RevisionConflictError("project", snapshot.project_revision, project.revision)
         requested = [StageName(value) for value in row.requested_stages]
         for stage in self.relevant_input_stages(requested):
-            current = repository._stage_row(session, row.project_id, stage)
+            current = access.rows.stage(session, row.project_id, stage)
             expected = snapshot.stage_heads[stage]
             if current.revision != expected.revision or current.entity_revision_id != expected.entity_revision_id:
                 raise RevisionConflictError(f"stage:{stage.value}", expected.revision, current.revision)
@@ -116,16 +115,16 @@ class ProjectGenerationSnapshots:
         return snapshot
 
     def assert_run_inputs_current(self, run_id: str) -> CanonicalSnapshot:
-        with self._repository._read() as session:
+        with self._access.leases.read() as session:
             return self.assert_run_inputs_current_in_session(
-                session, self._repository._run_row(session, run_id)
+                session, self._access.rows.run(session, run_id)
             )
 
     def get_snapshot_stage_payload(self, run_id: str, stage: StageName) -> StagePayload:
         """Read a historical stage through the exact frozen run snapshot."""
-        repository = self._repository
-        with repository._read() as session:
-            row = repository._run_row(session, run_id)
+        access = self._access
+        with access.leases.read() as session:
+            row = access.rows.run(session, run_id)
             snapshot = CanonicalSnapshot.model_validate(row.canonical_snapshot)
             head = snapshot.stage_heads[stage]
             if head.entity_revision_id is None:
@@ -135,12 +134,12 @@ class ProjectGenerationSnapshots:
                 raise NotFoundError(f"snapshot entity revision not found: {head.entity_revision_id}")
             if revision.schema_version != head.schema_version:
                 raise SchemaResetRequiredError(stage=stage, schema_version=head.schema_version)
-            return repository._decode_stage_payload(stage, revision.payload, head.schema_version)
+            return access.codecs.decode_stage_payload(stage, revision.payload, head.schema_version)
 
     def run_plan_inputs_in_session(
         self, session: Session, snapshot: CanonicalSnapshot, requested_stages: Sequence[StageName]
     ) -> dict[StageName, StagePayload]:
-        repository = self._repository
+        access = self._access
         first = STAGE_ORDER.index(requested_stages[0])
         inputs: dict[StageName, StagePayload] = {}
         for stage in STAGE_ORDER[:first]:
@@ -150,7 +149,7 @@ class ProjectGenerationSnapshots:
             revision = session.get(EntityRevisionRow, head.entity_revision_id)
             if revision is None:
                 raise NotFoundError(f"snapshot entity revision not found: {head.entity_revision_id}")
-            inputs[stage] = repository._decode_current_stage_payload(
+            inputs[stage] = access.codecs.decode_current_stage_payload(
                 stage, revision.payload, revision.schema_version
             )
         return inputs
@@ -161,7 +160,7 @@ class ProjectGenerationSnapshots:
         repair_stage: StageName | None = None, repair_source: RepairSource | None = None,
         provider_snapshot: dict[str, Any] | None = None,
     ) -> GenerationRun:
-        repository = self._repository
+        access = self._access
         normalized_provider_snapshot = validate_public_provider_snapshot(provider_snapshot)
         supplied_stages = list(requested_stages)
         requested_set = set(supplied_stages)
@@ -172,8 +171,8 @@ class ProjectGenerationSnapshots:
         expected_range = list(STAGE_ORDER[first_index:first_index + len(ordered_stages)])
         if supplied_stages != ordered_stages or ordered_stages != expected_range:
             raise InvalidTransitionError("requested stages must be unique, ordered, and form one contiguous canonical range")
-        with repository._lifecycle_write() as session:
-            repository._assert_new_run_profile_enabled(session, normalized_provider_snapshot)
+        with access.leases.lifecycle_write() as session:
+            access.admission.assert_new_run_profile_enabled(session, normalized_provider_snapshot)
             if kind == RunKind.REPAIR and (parent_run_id is None or repair_stage is None or repair_source is None):
                 raise InvalidTransitionError("repair runs require a quarantined parent, repair stage, and frozen evidence")
             if kind != RunKind.REPAIR and (parent_run_id is not None or repair_stage is not None or repair_source is not None):
@@ -181,11 +180,11 @@ class ProjectGenerationSnapshots:
             if repair_stage is not None and repair_stage not in ordered_stages:
                 raise InvalidTransitionError("repair stage must belong to requestedStages")
             if parent_run_id is not None:
-                parent = repository._run_row(session, parent_run_id)
+                parent = access.rows.run(session, parent_run_id)
                 if parent.project_id != project_id or RunStatus(parent.status) != RunStatus.QUARANTINED:
                     raise InvalidTransitionError("repair parent must be a quarantined run from the same project")
-            project_row = repository._project_row(session, project_id)
-            repository._assert_active_project(project_row)
+            project_row = access.rows.project(session, project_id)
+            access.admission.assert_active_project(project_row)
             snapshot = self.snapshot_in_session(session, project_id)
             run = GenerationRun(project_id=project_id, kind=kind, parent_run_id=parent_run_id,
                 repair_stage=repair_stage, repair_source=repair_source,
@@ -226,27 +225,28 @@ class ProjectGenerationSnapshots:
             return run
 
     def get_run(self, run_id: str) -> GenerationRun:
-        with self._repository._read() as session:
-            return self._repository._run(self._repository._run_row(session, run_id))
+        with self._access.leases.read() as session:
+            return self._access.codecs.run(self._access.rows.run(session, run_id))
 
     def get_generation_plan(self, run_id: str) -> GenerationPlan:
-        with self._repository._read() as session:
-            self._repository._run_row(session, run_id)
+        with self._access.leases.read() as session:
+            self._access.rows.run(session, run_id)
             row = session.get(GenerationPlanRow, run_id)
             if row is None:
                 raise NotFoundError(f"generation plan not found for run: {run_id}")
             return GenerationPlan.model_validate(row.plan)
 
     def get_story_graph_topology(self, run_id: str) -> StoryGraphTopology | None:
-        repository = self._repository
-        with repository._read() as session:
-            repository._run_row(session, run_id)
+        access = self._access
+        with access.leases.read() as session:
+            access.rows.run(session, run_id)
             row = session.get(StoryGraphTopologyRow, run_id)
             if row is None:
                 return None
             topology = StoryGraphTopology.model_validate(row.topology)
             if topology.topology_hash != row.topology_hash:
                 raise InvalidTransitionError("stored Story Graph topology hash is inconsistent")
-            if row.generation_plan_hash != repository._generation_plan_row_hash(session, run_id):
+            plan = session.get(GenerationPlanRow, run_id)
+            if plan is None or row.generation_plan_hash != plan.plan_hash:
                 raise InvalidTransitionError("Story Graph topology is bound to a different GenerationPlan")
             return topology

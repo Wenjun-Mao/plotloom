@@ -7,17 +7,18 @@ from ..schema import ArtifactRow, GenerationAttemptRow, GenerationPlanRow, Gener
 from ..codec import _stored_utc
 from sqlalchemy import select
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .generation_access import GenerationPersistenceAccess
+from .generation_integrity import GenerationWorkUnitIntegrity
+from .generation_repair_eligibility import GenerationRepairEligibility
 
 
 class ProjectGenerationProgressPersistence:
     """Read-only generation trace and progress projections."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: GenerationPersistenceAccess, eligibility: GenerationRepairEligibility, integrity: GenerationWorkUnitIntegrity) -> None:
+        self._access = access
+        self._eligibility = eligibility
+        self._integrity = integrity
 
     def get_run_execution_trace(self, run_id: str) -> RunExecutionTrace:
         """Return only durable plan/work-unit/seal evidence for a run.
@@ -25,10 +26,10 @@ class ProjectGenerationProgressPersistence:
         The existing ``RunTrace`` is intentionally left compact and compatible;
         callers that need shard-level diagnostics use this additive endpoint.
         """
-        repository = self._repository
+        access = self._access
 
-        with repository._read() as session:
-            repository._run_row(session, run_id)
+        with access.leases.read() as session:
+            access.rows.run(session, run_id)
             plan = session.get(GenerationPlanRow, run_id)
             topology = session.get(StoryGraphTopologyRow, run_id)
             stage_plans = session.scalars(
@@ -47,22 +48,22 @@ class ProjectGenerationProgressPersistence:
                 .order_by(SealedStageAggregateRow.created_at, SealedStageAggregateRow.stage)
             ).all()
             return RunExecutionTrace(
-                generation_plan=repository._generation_plan_trace(plan) if plan is not None else None,
+                generation_plan=access.codecs.generation_plan_trace(plan) if plan is not None else None,
                 story_graph_topology=(
-                    repository._story_graph_topology_trace(topology)
+                    access.codecs.topology_trace(topology)
                     if topology is not None
                     else None
                 ),
-                stage_plans=[repository._stage_plan_trace(row) for row in stage_plans],
-                work_units=[repository._work_unit_trace(row) for row in units],
-                sealed_aggregates=[repository._sealed_aggregate_trace(row) for row in aggregates],
+                stage_plans=[access.codecs.stage_plan_trace(row) for row in stage_plans],
+                work_units=[access.codecs.work_unit_trace(row) for row in units],
+                sealed_aggregates=[access.codecs.sealed_aggregate_trace(row) for row in aggregates],
             )
     def get_run_progress(self, run_id: str) -> RunProgress:
         """Return a compact, secret-free polling projection for the workbench."""
-        repository = self._repository
+        access = self._access
 
-        with repository._read() as session:
-            run = repository._run_row(session, run_id)
+        with access.leases.read() as session:
+            run = access.rows.run(session, run_id)
             plans = {
                 StageName(row.stage): row
                 for row in session.scalars(
@@ -114,14 +115,14 @@ class ProjectGenerationProgressPersistence:
                 item.work_unit_id: item
                 for item in (
                     [
-                        repository._work_unit_repair_eligibility_in_session(session, source=run, unit=unit)
+                        self._eligibility.eligibility(session, source=run, unit=unit)
                         for unit in units
                     ]
                     if RunStatus(run.status) == RunStatus.QUARANTINED
                     else []
                 )
             }
-            max_attempts = repository._run_max_attempts(run)
+            max_attempts = self._integrity.max_attempts(run)
             progress_units: list[RunProgressUnit] = []
             for unit in units:
                 attempt = latest_by_unit.get(unit.id)
@@ -191,7 +192,7 @@ class ProjectGenerationProgressPersistence:
             status = RunStatus(run.status)
             has_repair = any(unit.repair_eligible for unit in progress_units)
             project_is_active = (
-                ProjectLifecycleStatus(repository._project_row(session, run.project_id).lifecycle_status)
+                ProjectLifecycleStatus(access.rows.project(session, run.project_id).lifecycle_status)
                 == ProjectLifecycleStatus.ACTIVE
             )
             return RunProgress(

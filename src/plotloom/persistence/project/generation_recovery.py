@@ -3,20 +3,25 @@
 from __future__ import annotations
 
 from ...domain import STAGE_ORDER, AttemptStatus, MediaTaskStatus, RunStatus, StageName, StartupRecoveryPlan, WorkUnitStatus, utc_now
-from ..schema import GenerationAttemptRow, GenerationRunRow, GenerationWorkUnitRow, MediaTaskRow
+from ..schema import GenerationAttemptRow, GenerationPlanRow, GenerationRunRow, GenerationWorkUnitRow, MediaTaskRow, SealedStageAggregateRow, StagePlanRow
 from sqlalchemy import select
 
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .generation_access import GenerationPersistenceAccess
+from .generation_plans import ProjectGenerationPlanningPersistence
+from .generation_repair_eligibility import GenerationRepairEligibility
+from ...generation.planning import GenerationPlan, PLANNING_POLICY_VERSION
 
 
 class ProjectGenerationRecoveryPersistence:
     """Startup reconciliation for frozen generation lifecycle evidence."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(
+        self,
+        access: GenerationPersistenceAccess,
+        plans: ProjectGenerationPlanningPersistence,
+    ) -> None:
+        self._access = access
+        self._plans = plans
 
     def reconcile_startup_jobs(self) -> StartupRecoveryPlan:
         """Reconcile jobs left nonterminal by the previous local process.
@@ -27,7 +32,7 @@ class ProjectGenerationRecoveryPersistence:
         without a durable response is an ambiguous provider outcome and is
         never resubmitted.
         """
-        repository = self._repository
+        access = self._access
 
         interrupted_run_error = (
             "Generation run was interrupted by a process restart and was not "
@@ -64,7 +69,7 @@ class ProjectGenerationRecoveryPersistence:
         terminated_run_ids: list[str] = []
         terminated_media_task_ids: list[str] = []
 
-        with repository._write() as session:
+        with access.leases.write() as session:
             run_rows = session.scalars(
                 select(GenerationRunRow)
                 .where(
@@ -107,7 +112,7 @@ class ProjectGenerationRecoveryPersistence:
                     row.failure_code = None
                     row.failed_stage = None
                     row.finished_at = now
-                    repository._cancel_run_work_units_in_session(
+                    self._cancel_run_work_units_in_session(
                         session,
                         row.id,
                         now=now,
@@ -117,7 +122,7 @@ class ProjectGenerationRecoveryPersistence:
                     continue
 
                 obsolete_contract_code = (
-                    repository._obsolete_generation_planning_policy_recovery_code_in_session(
+                    self._obsolete_generation_planning_policy_recovery_code(
                         session, row
                     )
                     if not legacy_execution
@@ -148,7 +153,7 @@ class ProjectGenerationRecoveryPersistence:
                     row.status = RunStatus.FAILED.value
                     row.error = error
                     row.failure_code = obsolete_contract_code
-                    row.failed_stage = repository._recovery_obsolete_contract_stage(
+                    row.failed_stage = self._recovery_obsolete_contract_stage(
                         session, row, obsolete_contract_code
                     ).value
                     row.started_at = row.started_at or now
@@ -198,7 +203,7 @@ class ProjectGenerationRecoveryPersistence:
                     terminated_run_ids.append(row.id)
                     continue
 
-                if repository._all_requested_stage_aggregates_are_sealed_in_session(session, row):
+                if self._all_requested_stage_aggregates_are_sealed(session, row):
                     # The runner will see the complete immutable seals and run
                     # only commit_sealed_run; no provider request is eligible.
                     row.status = RunStatus.QUEUED.value
@@ -380,3 +385,77 @@ class ProjectGenerationRecoveryPersistence:
             terminated_run_ids=terminated_run_ids,
             terminated_media_task_ids=terminated_media_task_ids,
         )
+
+    @staticmethod
+    def _cancel_run_work_units_in_session(session: object, run_id: str, *, now: object, attempt_error: str) -> None:
+        attempts = session.scalars(select(GenerationAttemptRow).where(
+            GenerationAttemptRow.run_id == run_id, GenerationAttemptRow.status == AttemptStatus.RUNNING.value
+        )).all()
+        for attempt in attempts:
+            attempt.status = AttemptStatus.CANCELLED.value
+            attempt.error = attempt_error
+            attempt.finished_at = now
+        units = session.scalars(select(GenerationWorkUnitRow).where(GenerationWorkUnitRow.run_id == run_id)).all()
+        for unit in units:
+            if WorkUnitStatus(unit.status) in {WorkUnitStatus.QUEUED, WorkUnitStatus.RUNNING}:
+                unit.status = WorkUnitStatus.CANCELLED.value
+
+    def _obsolete_generation_planning_policy_recovery_code(self, session: object, run: GenerationRunRow) -> str | None:
+        requested = {StageName(value) for value in run.requested_stages}
+        if StageName.SCENE_BEATS in requested:
+            plan_rows = session.scalars(select(StagePlanRow).where(StagePlanRow.run_id == run.id)).all()
+            reached_scene_beats = any(
+                StageName(row.stage) in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+                for row in plan_rows
+            )
+            scene = next((row for row in plan_rows if row.stage == StageName.SCENE_BEATS.value), None)
+            if reached_scene_beats:
+                if scene is None:
+                    return "recovery.scene_timing_contract_obsolete"
+                code = GenerationRepairEligibility._scene_beats_contract_code(scene)
+                if code is not None:
+                    return code
+        plan_row = session.get(GenerationPlanRow, run.id)
+        if plan_row is None:
+            return "recovery.generation_planning_policy_obsolete"
+        try:
+            plan = GenerationPlan.model_validate(plan_row.plan)
+        except ValueError:
+            return "recovery.generation_planning_policy_obsolete"
+        if plan.planning_policy_version != PLANNING_POLICY_VERSION:
+            return (
+                "recovery.join_state_value_contract_obsolete"
+                if StageName.SCENE_BEATS in requested
+                else "recovery.generation_planning_policy_obsolete"
+            )
+        if StageName.STORYBOARD in requested:
+            storyboard = self._plans._stage_plan_row(session, run.id, StageName.STORYBOARD)
+            if storyboard is not None:
+                code = self._plans._storyboard_stage_plan_contract_code(storyboard)
+                if code is not None:
+                    return code
+        return None
+
+    def _recovery_obsolete_contract_stage(self, session: object, run: GenerationRunRow, code: str) -> StageName:
+        if code in {"recovery.scene_timing_contract_obsolete", "recovery.join_state_value_contract_obsolete"}:
+            return StageName.SCENE_BEATS
+        if code == "recovery.storyboard_timing_provenance_missing":
+            return StageName.STORYBOARD
+        for stage in (StageName(value) for value in run.requested_stages):
+            plan = self._plans._stage_plan_row(session, run.id, stage)
+            if plan is None or session.scalar(select(SealedStageAggregateRow.id).where(
+                SealedStageAggregateRow.stage_plan_id == plan.id
+            )) is None:
+                return stage
+        return StageName(run.requested_stages[0])
+
+    @staticmethod
+    def _all_requested_stage_aggregates_are_sealed(session: object, run: GenerationRunRow) -> bool:
+        requested = {StageName(value).value for value in run.requested_stages}
+        plans = session.scalars(select(StagePlanRow).where(StagePlanRow.run_id == run.id)).all()
+        if not plans or {plan.stage for plan in plans} != requested:
+            return False
+        sealed = set(session.scalars(select(SealedStageAggregateRow.stage_plan_id).where(
+            SealedStageAggregateRow.stage_plan_id.in_([plan.id for plan in plans])
+        )).all())
+        return sealed == {plan.id for plan in plans}
