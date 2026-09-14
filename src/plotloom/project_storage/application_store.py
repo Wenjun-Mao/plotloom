@@ -22,6 +22,7 @@ from ..domain import (
 )
 from ..exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from .direct_video_accounting import DirectVideoDispatchAccounting, VideoDispatchLease
+from .application_lifecycle import ApplicationProjectLifecycleLedger
 from .format import (
     ProjectStorageConflictError,
     ProjectStorageConfinementError,
@@ -100,6 +101,9 @@ class ApplicationStore:
         self._video_dispatch = DirectVideoDispatchAccounting(
             read=self._read, write=self._write
         )
+        self.project_lifecycle = ApplicationProjectLifecycleLedger(
+            read=self._read, write=self._write
+        )
         self._initialize_schema()
 
     def _connect(self) -> sqlite3.Connection:
@@ -167,6 +171,7 @@ class ApplicationStore:
                     status TEXT NOT NULL,
                     updated_at TEXT NOT NULL);""")
             self._video_dispatch.initialize_schema(connection)
+            self.project_lifecycle.initialize_schema(connection)
 
     @staticmethod
     def _profile_from_row(row: sqlite3.Row) -> ApplicationProfile:

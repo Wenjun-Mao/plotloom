@@ -4,6 +4,12 @@ Captured 2026-09-13. This receipt records an offline product correction from
 the clean baseline `4e2cfc385a25ee7bd217abddd03cad5fe4af0901`. It does not
 review, select, alter, or make claims about any live Wan candidate.
 
+> Historical runtime note: this record's legacy FastAPI/Wan fixture and
+> synthetic terminal-event assertion were retired on 2026-09-14. The retained
+> browser journey now uses production project-folder composition, typed offline
+> H3, and only real native completion for its sequence transition. See
+> `docs/verification/2026-09-14-production-browser-parity.md`.
+
 ## Diagnosis and contract repair
 
 The original player stored only a numeric selected-sequence position. A project

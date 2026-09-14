@@ -1,4 +1,4 @@
-import { expect, projectFolderTest as test } from "./fixture";
+import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";

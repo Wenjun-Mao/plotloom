@@ -151,7 +151,7 @@ async function stages(request: APIRequestContext, apiOrigin: string, projectId: 
 }
 
 async function json<T>(response: PlaywrightResponse | Awaited<ReturnType<APIRequestContext["get"]>>): Promise<T> {
-  expect(response.ok()).toBeTruthy();
+  expect(response.ok(), `${response.status()} ${await response.text()}`).toBeTruthy();
   return response.json() as Promise<T>;
 }
 

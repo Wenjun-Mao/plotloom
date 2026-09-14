@@ -6,6 +6,7 @@ import time
 import sqlite3
 from io import BytesIO
 from pathlib import Path
+from typing import Any
 
 from fastapi.testclient import TestClient
 from PIL import Image
@@ -15,9 +16,11 @@ from plotloom.config import PlotloomSettings
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
 from plotloom.runtime import build_runtime_app
+from plotloom.project_storage import ProjectStore
 from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_provider import VideoBackendInstanceIdentity
 
+from tests.backend_core.conftest import all_stage_payloads
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
 
 
@@ -66,6 +69,19 @@ class _RuntimeFakeH3:
         assert reference == "h3_0123456789abcdef0123456789abcdef"
         self.downloads += 1
         return b"runtime-h3-video"
+
+
+class _ActiveImagePublicationMedia:
+    """Expose one nonterminal manual publication without changing its store."""
+
+    def __init__(self, delegate: Any) -> None:
+        self._delegate = delegate
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._delegate, name)
+
+    def list_image_jobs(self, _project_id: str) -> list[dict[str, str]]:
+        return [{"state": "prepared"}]
 
 
 def _settings(tmp_path: Path) -> PlotloomSettings:
@@ -150,6 +166,9 @@ def test_production_runtime_uses_application_profiles_and_exact_project_routes(
         assert completed_first["projectId"] == first_id
         assert completed_second["projectId"] == second_id
         assert completed_first["providerSnapshot"]["profileId"] == "offline_fixture"
+        progress = client.get(f"/api/v2/runs/{first_run.json()['id']}/progress")
+        assert progress.status_code == 200
+        assert progress.json()["runId"] == first_run.json()["id"]
         assert client.get("/api/v2/runs/not-indexed").status_code == 404
 
         snapshot = client.post(f"/api/v2/projects/{first_id}/snapshots")
@@ -166,6 +185,178 @@ def test_production_runtime_uses_application_profiles_and_exact_project_routes(
         assert client.get(f"/api/v2/projects/{first_id}").status_code == 409
         assert client.post(f"/api/v2/projects/{first_id}/open").status_code == 200
         assert client.get(f"/api/v2/projects/{first_id}").status_code == 200
+
+
+def test_production_runtime_owns_archive_duplicate_and_media_free_deletion(
+    tmp_path: Path,
+) -> None:
+    app = build_runtime_app(_settings(tmp_path), text_provider_resolver=FixtureResolver())
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/v2/projects",
+            json={
+                "brief": FIXED_CHINESE_BRIEF.model_dump(
+                    mode="json", by_alias=True
+                )
+            },
+        )
+        assert created.status_code == 201
+        source_id = created.json()["id"]
+
+        archived = client.post(
+            f"/api/v2/projects/{source_id}/archive",
+            json={"expectedLifecycleRevision": 1},
+        )
+        assert archived.status_code == 200
+        assert archived.json()["lifecycleStatus"] == "archived"
+        assert client.get("/api/v2/projects?status=active").json()["projects"] == []
+        assert [item["id"] for item in client.get("/api/v2/projects?status=archived").json()["projects"]] == [source_id]
+
+        restored = client.post(
+            f"/api/v2/projects/{source_id}/restore",
+            json={"expectedLifecycleRevision": 2},
+        )
+        assert restored.status_code == 200
+        duplicate_headers = {"Idempotency-Key": "production-folder-duplicate"}
+        first_duplicate = client.post(
+            f"/api/v2/projects/{source_id}/duplicate",
+            headers=duplicate_headers,
+            json={"expectedLifecycleRevision": 3},
+        )
+        replayed_duplicate = client.post(
+            f"/api/v2/projects/{source_id}/duplicate",
+            headers=duplicate_headers,
+            json={"expectedLifecycleRevision": 3},
+        )
+        assert first_duplicate.status_code == replayed_duplicate.status_code == 200
+        duplicate_id = first_duplicate.json()["project"]["id"]
+        assert replayed_duplicate.json()["project"]["id"] == duplicate_id
+        assert len(client.get("/api/v2/projects?status=active").json()["projects"]) == 2
+
+        archived_duplicate = client.post(
+            f"/api/v2/projects/{duplicate_id}/archive",
+            json={"expectedLifecycleRevision": 1},
+        )
+        assert archived_duplicate.status_code == 200
+        deleted = client.post(
+            f"/api/v2/projects/{duplicate_id}/permanent-delete",
+            json={
+                "expectedLifecycleRevision": 2,
+                "confirmationTitle": FIXED_CHINESE_BRIEF.title,
+            },
+        )
+        assert deleted.status_code == 204
+        assert client.get(f"/api/v2/projects/{duplicate_id}").status_code == 404
+
+
+def test_production_runtime_rejects_lifecycle_transitions_with_manual_publications(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Archive/delete retain the close boundary for external image delivery."""
+
+    app = build_runtime_app(_settings(tmp_path), text_provider_resolver=FixtureResolver())
+    original_media = ProjectStore.media
+
+    def active_publication_media(store: ProjectStore) -> _ActiveImagePublicationMedia:
+        return _ActiveImagePublicationMedia(original_media.fget(store))
+
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/v2/projects",
+            json={
+                "brief": FIXED_CHINESE_BRIEF.model_dump(
+                    mode="json", by_alias=True
+                )
+            },
+        )
+        assert created.status_code == 201
+        project_id = created.json()["id"]
+
+        with monkeypatch.context() as publication_media:
+            publication_media.setattr(
+                ProjectStore, "media", property(active_publication_media)
+            )
+            archive = client.post(
+                f"/api/v2/projects/{project_id}/archive",
+                json={"expectedLifecycleRevision": 1},
+            )
+        assert archive.status_code == 409
+        assert archive.json() == {
+            "code": "project_busy",
+            "message": "project_busy: image_publication_active",
+        }
+
+        archived = client.post(
+            f"/api/v2/projects/{project_id}/archive",
+            json={"expectedLifecycleRevision": 1},
+        )
+        assert archived.status_code == 200
+
+        with monkeypatch.context() as publication_media:
+            publication_media.setattr(
+                ProjectStore, "media", property(active_publication_media)
+            )
+            deletion = client.post(
+                f"/api/v2/projects/{project_id}/permanent-delete",
+                json={
+                    "expectedLifecycleRevision": 2,
+                    "confirmationTitle": FIXED_CHINESE_BRIEF.title,
+                },
+            )
+        assert deletion.status_code == 409
+        assert deletion.json() == {
+            "code": "project_busy",
+            "message": "project_busy: image_publication_active",
+        }
+        retained = client.get(f"/api/v2/projects/{project_id}")
+        assert retained.status_code == 200
+        assert retained.json()["lifecycleStatus"] == "archived"
+
+
+def test_production_runtime_preserves_structured_domain_validation_issues(
+    tmp_path: Path,
+) -> None:
+    app = build_runtime_app(_settings(tmp_path), text_provider_resolver=FixtureResolver())
+    with TestClient(app) as client:
+        bible = all_stage_payloads()[0]
+        created = client.post(
+            "/api/v2/projects",
+            json={
+                "brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True),
+                "initialStages": [
+                    {
+                        "stage": "story_bible",
+                        "payload": bible.model_dump(mode="json", by_alias=True),
+                    }
+                ],
+            },
+        )
+        assert created.status_code == 201
+        project_id = created.json()["id"]
+        invalid_graph = {
+            "startNodeId": "arrival",
+            "nodes": [
+                {
+                    "id": "arrival",
+                    "title": "Arrival",
+                    "summary": "No path leaves this non-ending node.",
+                    "kind": "start",
+                }
+            ],
+            "edges": [],
+            "joinContracts": [],
+        }
+        response = client.patch(
+            f"/api/v2/projects/{project_id}/stages/story_graph",
+            json={"expectedRevision": 0, "payload": invalid_graph},
+        )
+        assert response.status_code == 422
+        assert response.json()["code"] == "domain_validation"
+        assert {
+            "code": "dead_end",
+            "path": "nodes.arrival",
+            "message": "non-ending nodes must have an outgoing edge",
+        } in response.json()["issues"]
 
 
 def test_application_text_profile_record_is_atomic_when_storage_fails(

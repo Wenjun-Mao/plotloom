@@ -8,6 +8,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..")
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
 
 async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string): Promise<string> {
+  // The production H3 catalog rejects the 16:9 reviewed still until the
+  // author explicitly chooses its documented contain-pad preparation.
+  const allowLetterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
+  if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
   await panel.getByRole("button", { name: "冻结当前审核关键帧" }).click();
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconcilePost = page.waitForResponse((response) => {
@@ -31,7 +35,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   return reconciled.id;
 }
 
-test("P2 fake Wan selected pair plays in order and survives file-SQLite restart", async ({ page, request, workbench }) => {
+test("P2 H3 selected pair plays in order and survives file-SQLite restart", async ({ page, request, workbench }) => {
   const created = await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: demoProject.brief, initialStages: [
     { stage: "story_bible", payload: demoProject.storyBible }, { stage: "story_graph", payload: demoProject.storyGraph },
     { stage: "scene_beats", payload: demoProject.sceneBeats }, { stage: "storyboard", payload: demoProject.storyboard },
@@ -39,7 +43,7 @@ test("P2 fake Wan selected pair plays in order and survives file-SQLite restart"
   expect(created.ok()).toBeTruthy();
   const projectId = (await created.json()).id as string;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-  await page.getByLabel("审核人标签").fill("P2 fake browser reviewer");
+  await page.getByLabel("审核人标签").fill("P2 H3 browser reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("P2 local fake fixture");
   await page.getByTestId("managed-image-upload").setInputFiles(still);
@@ -64,7 +68,7 @@ test("P2 fake Wan selected pair plays in order and survives file-SQLite restart"
   const referenceState = visual.characterReferences.states.find((state) => state.characterId === characterId);
   const reference = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-references`, { data: {
     characterId, primaryAssetId: selected.assetId, complementaryAssetIds: [],
-    expectedReferenceRevision: referenceState?.revision ?? 0, reviewer: "P2 fake browser reviewer",
+    expectedReferenceRevision: referenceState?.revision ?? 0, reviewer: "P2 H3 browser reviewer",
     notes: "Explicit fixture reference for the visible character.",
   } });
   expect(reference.ok()).toBeTruthy();
@@ -105,15 +109,6 @@ test("P2 fake Wan selected pair plays in order and survives file-SQLite restart"
   await expect(secondSequencePlayer).toBeVisible();
   await secondSequencePlayer.evaluate((video) => { (video as HTMLVideoElement).currentTime = 0.25; });
   await expect.poll(() => secondSequencePlayer.evaluate((video) => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0.2);
-  // The synthetic terminal event supplements the real transition above and
-  // isolates the final-hold assertion from another five-second fixture wait.
-  await secondSequencePlayer.evaluate((video) => {
-    const native = video as HTMLVideoElement;
-    native.pause();
-    native.currentTime = native.duration;
-    native.dispatchEvent(new Event("ended", { bubbles: true }));
-  });
-  await expect(secondSequencePlayer).toBeVisible();
   const restartReset = secondSequencePlayer.evaluate((video) => new Promise<boolean>((resolve) => {
     const native = video as HTMLVideoElement;
     const beforeRestart = native.currentTime;
@@ -129,6 +124,13 @@ test("P2 fake Wan selected pair plays in order and survives file-SQLite restart"
   await sequence.getByRole("button", { name: "重启当前" }).click();
   expect(await restartReset).toBeTruthy();
   await expect.poll(() => secondSequencePlayer.evaluate((video) => !(video as HTMLVideoElement).paused)).toBeTruthy();
+  // The final hold is also native: wait for the actual downloaded H3 clip to
+  // end instead of manufacturing an `ended` event in the browser.
+  await expect.poll(
+    () => secondSequencePlayer.evaluate((video) => (video as HTMLVideoElement).ended),
+    { timeout: 9_000 },
+  ).toBeTruthy();
+  await expect(secondSequencePlayer).toBeVisible();
 
   await workbench.restartBackend();
   await page.reload();

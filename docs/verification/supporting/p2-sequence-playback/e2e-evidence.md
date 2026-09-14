@@ -1,8 +1,14 @@
 # Offline browser evidence index
 
-The retained executable evidence is
-`frontend/e2e/video-pilot.spec.ts`, test **P2 fake Wan selected pair plays in
-order and survives file-SQLite restart**.
+> Historical fixture record. On 2026-09-14 the retained journey moved to the
+> production `build_runtime_app` project-folder runtime with typed offline H3;
+> it no longer selects Wan or uses this legacy fixture. See
+> `docs/verification/2026-09-14-production-browser-parity.md` for the current
+> parity mapping and verification result.
+
+The former executable evidence was `frontend/e2e/video-pilot.spec.ts`, then
+named **P2 fake Wan selected pair plays in order and survives file-SQLite
+restart**.
 
 It starts an owned FastAPI server on a temporary file-SQLite database, injects
 only `OfflineWanFake`, and starts the local Vite frontend. The test creates its

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+import shutil
 from typing import Any
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -217,6 +218,20 @@ class ProjectStore:
                 self._access_lease.close()
                 self._access_lease = None
 
+    def remove_home(self) -> None:
+        """Erase this closed archival home while retaining its exclusive lease."""
+
+        if self._access_lease is None or self._access_lease.mode != "exclusive":
+            raise ProjectStorageConflictError(
+                "project deletion requires an exclusive project lease"
+            )
+        self.repository.close()
+        try:
+            shutil.rmtree(self.home)
+        finally:
+            self._access_lease.close()
+            self._access_lease = None
+
     def project(self) -> Project:
         try:
             return self.authoring.get_project(self.manifest.project_id)
@@ -224,6 +239,16 @@ class ProjectStore:
             raise ProjectStorageCorruptionError(
                 "project database has no bound project"
             ) from error
+
+    def archive(self, *, expected_lifecycle_revision: int) -> Project:
+        return self.repository.lifecycle.archive_project(
+            self.manifest.project_id, expected_lifecycle_revision
+        )
+
+    def restore(self, *, expected_lifecycle_revision: int) -> Project:
+        return self.repository.lifecycle.restore_project(
+            self.manifest.project_id, expected_lifecycle_revision
+        )
 
     def recovery_control(self) -> ProjectRecoveryControl | None:
         """Return portable recovery admission without mutating historical work."""

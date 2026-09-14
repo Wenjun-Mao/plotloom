@@ -188,6 +188,7 @@ class ProjectSQLiteRepository:
         )
         from .repository_authoring import ProjectAuthoringRepository
         from .repository_generation import ProjectGenerationRepository
+        from .repository_lifecycle import ProjectLifecycleRepository
         from .repository_media import ProjectMediaRepository
 
         self.authoring = ProjectAuthoringRepository(
@@ -198,6 +199,7 @@ class ProjectSQLiteRepository:
             workflow=self._workflow,
             approvals=self._approvals,
         )
+        self.lifecycle = ProjectLifecycleRepository(self._lifecycle)
         self.generation = ProjectGenerationRepository(
             admission=self._generation_admission,
             snapshots=self._generation_snapshots,

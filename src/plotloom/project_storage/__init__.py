@@ -20,6 +20,7 @@ from .format import (
     ProjectStorageError,
 )
 from .project_handle import ProjectRecoveryRequiredError, ProjectStore
+from .lifecycle import ProjectFolderLifecycleService
 from .registry import ProjectDirectoryRegistry, ProjectHome
 from .operational_state import ProjectBusyError, ProjectClosedError
 from .recovery import (
@@ -47,6 +48,7 @@ __all__ = [
     "ProjectClosedError",
     "ProjectDirectoryRegistry",
     "ProjectFolderStorage",
+    "ProjectFolderLifecycleService",
     "ProjectHome",
     "ProjectManifest",
     "ProjectSQLiteRepository",

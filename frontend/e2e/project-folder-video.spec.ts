@@ -1,4 +1,4 @@
-import { expect, projectFolderTest as test } from "./fixture";
+import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import { execFile } from "node:child_process";
 import { mkdir, readdir, rm } from "node:fs/promises";

@@ -3,11 +3,26 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from ..domain import Project, ProjectBrief
+from ..domain import (
+    Project,
+    ProjectBrief,
+    ProjectCreation,
+    ProjectDuplicateResult,
+    ProjectLifecycleStatus,
+    STAGE_ORDER,
+    StageName,
+    StageStatus,
+)
+from ..exceptions import (
+    InvalidTransitionError,
+    ProjectManagedAssetsPresentError,
+    RevisionConflictError,
+)
 from .format import (
     PROJECT_MANIFEST_FILENAME,
     ProjectManifest,
@@ -54,8 +69,20 @@ class ProjectDirectoryRegistry:
             ) from error
         return home
 
-    def create(self, brief: ProjectBrief) -> ProjectStore:
-        project = Project(brief=brief)
+    def create(
+        self,
+        brief: ProjectBrief,
+        *,
+        project_id: str | None = None,
+        created_at: datetime | None = None,
+    ) -> ProjectStore:
+        values: dict[str, object] = {"brief": brief}
+        if project_id is not None:
+            values["id"] = project_id
+        if created_at is not None:
+            values["created_at"] = created_at
+            values["updated_at"] = created_at
+        project = Project(**values)
         home = self._new_home(project)
         manifest = ProjectManifest(project_id=project.id, created_at=project.created_at)
         _write_new_file(
@@ -180,6 +207,154 @@ class ProjectDirectoryRegistry:
         finally:
             store.close()
 
+    def archive_project(
+        self, project_id: str, *, expected_lifecycle_revision: int
+    ) -> Project:
+        store = self._exclusive_store(project_id)
+        try:
+            self._require_lifecycle_quiescence(store)
+            return store.archive(
+                expected_lifecycle_revision=expected_lifecycle_revision
+            )
+        finally:
+            store.close()
+
+    def restore_project(
+        self, project_id: str, *, expected_lifecycle_revision: int
+    ) -> Project:
+        store = self._exclusive_store(project_id)
+        try:
+            return store.restore(
+                expected_lifecycle_revision=expected_lifecycle_revision
+            )
+        finally:
+            store.close()
+
+    def duplicate_project(
+        self,
+        project_id: str,
+        *,
+        expected_lifecycle_revision: int,
+        target_project_id: str,
+        target_created_at: datetime,
+        title: str | None,
+    ) -> ProjectDuplicateResult:
+        """Copy only the contiguous canonical prefix into a fresh project home."""
+
+        source = self._exclusive_store(project_id)
+        destination: ProjectStore | None = None
+        try:
+            source_project = source.project()
+            if source_project.lifecycle_revision != expected_lifecycle_revision:
+                raise RevisionConflictError(
+                    "project-lifecycle",
+                    expected_lifecycle_revision,
+                    source_project.lifecycle_revision,
+                )
+            brief = source_project.brief.model_copy(
+                update={"title": title.strip()}
+            ) if title is not None else source_project.brief
+            try:
+                destination = self.open(target_project_id)
+            except ProjectStorageError as error:
+                if not str(error).startswith("project not found"):
+                    raise
+                destination = self.create(
+                    brief,
+                    project_id=target_project_id,
+                    created_at=target_created_at,
+                )
+
+            copied: list[StageName] = []
+            for stage in STAGE_ORDER:
+                head = source.authoring.get_stage_head(project_id, stage)
+                if head.status != StageStatus.READY:
+                    break
+                destination_head = destination.authoring.get_stage_head(
+                    target_project_id, stage
+                )
+                if destination_head.status == StageStatus.MISSING:
+                    payload = source.authoring.get_stage_payload(project_id, stage)
+                    destination.update_stage(
+                        stage,
+                        payload.model_dump(mode="json", by_alias=True),
+                        expected_revision=0,
+                    )
+                copied.append(stage)
+            copied_through = copied[-1] if copied else None
+            return ProjectDuplicateResult(
+                project=ProjectCreation(
+                    **destination.project().model_dump(mode="python"),
+                    stages=destination.authoring.list_stage_envelopes(
+                        target_project_id
+                    ),
+                ),
+                copied_through=copied_through,
+                omitted_stages=list(STAGE_ORDER[len(copied) :]),
+            )
+        finally:
+            if destination is not None:
+                destination.close()
+            source.close()
+
+    def replay_duplicate(
+        self,
+        project_id: str,
+        *,
+        copied_through: str | None,
+        omitted_stages: tuple[str, ...],
+    ) -> ProjectDuplicateResult:
+        """Read one reserved duplicate without reconsidering mutable source state."""
+
+        store = self.inspect(project_id)
+        try:
+            return ProjectDuplicateResult(
+                project=ProjectCreation(
+                    **store.project().model_dump(mode="python"),
+                    stages=store.authoring.list_stage_envelopes(project_id),
+                ),
+                copied_through=StageName(copied_through) if copied_through else None,
+                omitted_stages=[StageName(stage) for stage in omitted_stages],
+            )
+        finally:
+            store.close()
+
+    def permanently_delete_project(
+        self,
+        project_id: str,
+        *,
+        expected_lifecycle_revision: int,
+        confirmation_title: str,
+    ) -> None:
+        """Remove one archived, media-free home after exact confirmation."""
+
+        store = self._exclusive_store(project_id)
+        removed = False
+        try:
+            project = store.project()
+            if project.lifecycle_revision != expected_lifecycle_revision:
+                raise RevisionConflictError(
+                    "project-lifecycle",
+                    expected_lifecycle_revision,
+                    project.lifecycle_revision,
+                )
+            if project.lifecycle_status != ProjectLifecycleStatus.ARCHIVED:
+                raise InvalidTransitionError(
+                    "only archived projects can be permanently deleted"
+                )
+            if confirmation_title != project.brief.title:
+                raise InvalidTransitionError(
+                    "confirmation title does not match the project title"
+                )
+            self._require_lifecycle_quiescence(store)
+            if store.media.list_managed_assets(project_id):
+                raise ProjectManagedAssetsPresentError()
+            store.remove_home()
+            removed = True
+        finally:
+            if not removed:
+                store.close()
+
     def _project_home(self, project_id: str) -> ProjectHome:
         matches = [
             home for home in self.discover() if home.manifest.project_id == project_id
@@ -202,3 +377,11 @@ class ProjectDirectoryRegistry:
         except BaseException:
             lease.close()
             raise
+
+    @staticmethod
+    def _require_lifecycle_quiescence(store: ProjectStore) -> None:
+        """Apply the same external-publication guard used by folder close."""
+
+        blockers = close_blockers(store)
+        if blockers:
+            raise ProjectBusyError("project_busy: " + ", ".join(blockers))

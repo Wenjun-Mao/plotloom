@@ -1,4 +1,4 @@
-import { expect, projectFolderTest as test } from "./fixture";
+import { expect, test } from "./fixture";
 
 test.describe("project-folder authoring drafts", () => {
   test("autosaves project.sqlite3 drafts, preserves stale-tab conflict, explicitly saves canon, and recovers after restart", async ({ page, workbench }) => {

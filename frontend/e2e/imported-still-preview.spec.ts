@@ -99,12 +99,17 @@ test.describe("P0 imported still preview journey", () => {
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeEnabled();
     await page.getByTestId("select-reviewed-keyframe").click();
 
+    // Leave the media workbench before taking the exclusive archive lease.
+    // This gives its final project reads a chance to finish; lifecycle itself
+    // remains covered through the normal directory controls elsewhere.
+    await page.goto(`${workbench.frontendOrigin}/v2/`);
+    await expect(page.getByRole("heading", { name: "从一个项目开始" })).toBeVisible();
     const project = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`);
     const projectBody = await project.json() as { lifecycleRevision: number; brief: { title: string } };
     const archived = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/archive`, {
       data: { expectedLifecycleRevision: projectBody.lifecycleRevision },
     });
-    expect(archived.ok()).toBeTruthy();
+    expect(archived.ok(), `${archived.status()} ${await archived.text()}`).toBeTruthy();
     const deletion = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/permanent-delete`, {
       data: { expectedLifecycleRevision: projectBody.lifecycleRevision + 1, confirmationTitle: projectBody.brief.title },
     });

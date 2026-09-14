@@ -257,10 +257,14 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     if (source.session.project.archivedAt || (source.session.project.id && source.draftQuiescence.isClosing(source.session.project.id))) return;
     currentDraft.current = { scope, payload };
     const local = getDraft(source.session.project, scope);
-    const recovered = source.session.project.id && restoredDraft?.scope === scope && restoredDraft.source === "server"
+    // An acknowledged draft remains server-owned until a canonical save
+    // consumes it. A later local edit must continue its CAS chain even after
+    // the acknowledged session buffer was removed; otherwise it incorrectly
+    // restarts at revision zero and creates a self-conflict.
+    const serverDraft = source.session.project.id
       ? source.session.serverDrafts.current.get(authoringDraftKey(source.session.project.id, scope))
       : undefined;
-    putDraft(source.session.project, scope, payload, local?.serverDraftRevision ?? recovered?.draftRevision ?? 0);
+    putDraft(source.session.project, scope, payload, local?.serverDraftRevision ?? serverDraft?.draftRevision ?? 0);
     scheduleAuthoringDraftAutosave(scope);
     if (restoredDraft?.scope === scope) setRestoredDraft({ ...restoredDraft, payload });
   }, [restoredDraft, scheduleAuthoringDraftAutosave]);

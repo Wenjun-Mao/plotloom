@@ -1,6 +1,6 @@
 import { test as base, expect } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
-import { mkdtemp, mkdir, readdir, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -16,9 +16,9 @@ export type Workbench = {
   frontendOrigin: string;
   /** A test-owned process, deliberately outside the Plotloom API surface. */
   providerOrigin: string;
-  /** Present only for production project-folder browser journeys. */
-  outputsRoot?: string;
-  applicationDataRoot?: string;
+  /** Test-owned roots supplied to the production project-folder runtime. */
+  outputsRoot: string;
+  applicationDataRoot: string;
   /** Stops and starts the owned FastAPI process against its original data paths. */
   restartBackend: (overrides?: NodeJS.ProcessEnv) => Promise<void>;
 };
@@ -33,41 +33,17 @@ type ManagedProcess = {
   output: () => string;
 };
 
-type E2eVideoAdapter = "wan" | "h3";
-type E2eStorageMode = "legacy" | "project-folder";
+// Every browser journey starts the shipped project-folder composition. The
+// typed offline H3 transport is the only provider seam; it cannot choose an
+// alternate persistence model or route surface.
+export const test = createWorkbenchTest();
 
-// Retained UI journeys remain on their test-only legacy surface until the
-// lifecycle/caller migration is separately accepted. Project-folder journeys
-// exercise the shipped production factory directly.
-export const test = createWorkbenchTest("wan", "legacy");
-export const h3Test = createWorkbenchTest("h3", "legacy");
-export const projectFolderTest = createWorkbenchTest("h3", "project-folder");
-
-function createWorkbenchTest(
-  videoAdapter: E2eVideoAdapter,
-  storageMode: E2eStorageMode,
-) {
+function createWorkbenchTest() {
   return base.extend<{}, WorkbenchWorkerFixtures>({
   workbench: [async ({}, use) => {
-    // The retained fixture is a transition-only browser matrix. It never
-    // starts through the production entrypoint or its configuration parser.
-    const retainedPilotRoot = videoAdapter === "wan" ? process.env.PLOTLOOM_P0_RESTART_PILOT_ROOT : undefined;
-    if (retainedPilotRoot && !path.isAbsolute(retainedPilotRoot)) {
-      throw new Error("PLOTLOOM_P0_RESTART_PILOT_ROOT must be an absolute path.");
-    }
-    const temporaryRoot = retainedPilotRoot ?? await mkdtemp(path.join(os.tmpdir(), "plotloom-e2e-"));
-    if (retainedPilotRoot) {
-      await mkdir(temporaryRoot, { recursive: true });
-      const existingEntries = await readdir(temporaryRoot);
-      if (existingEntries.length > 0) {
-        throw new Error(`Retained P0 restart pilot directory must be empty: ${temporaryRoot}`);
-      }
-    }
+    const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "plotloom-e2e-"));
     const outputsRoot = path.join(temporaryRoot, "outputs");
     const applicationDataRoot = path.join(temporaryRoot, "application");
-    const legacyDatabasePath = path.join(temporaryRoot, "legacy.sqlite3");
-    const legacyArtifactRoot = path.join(temporaryRoot, "legacy-artifacts");
-    const legacyImageExchangeRoot = path.join(temporaryRoot, "legacy-image-exchange");
     const backendPort = await reserveLoopbackPort();
     const frontendPort = await reserveLoopbackPort();
     const providerPort = await reserveLoopbackPort();
@@ -90,30 +66,16 @@ function createWorkbenchTest(
       IMAGE_MODEL_API_KEY: "",
       VIDEO_MODEL_API_KEY: "",
       ATLASCLOUD_API_KEY: "",
-      PLOTLOOM_E2E_VIDEO_ADAPTER: videoAdapter,
-      ...(storageMode === "project-folder" ? {
-        PLOTLOOM_OUTPUTS_DIR: outputsRoot,
-        PLOTLOOM_APPLICATION_DATA_DIR: applicationDataRoot,
-      } : {
-        PLOTLOOM_E2E_LEGACY_DATABASE_PATH: legacyDatabasePath,
-        PLOTLOOM_E2E_LEGACY_ARTIFACT_ROOT: legacyArtifactRoot,
-        PLOTLOOM_E2E_LEGACY_IMAGE_EXCHANGE_ROOT: legacyImageExchangeRoot,
-      }),
+      PLOTLOOM_OUTPUTS_DIR: outputsRoot,
+      PLOTLOOM_APPLICATION_DATA_DIR: applicationDataRoot,
     };
-    const backendEntrypoint = storageMode === "project-folder"
-      ? "frontend/e2e/fake_video_runtime.py"
-      : "frontend/e2e/legacy_runtime.py";
+    const backendEntrypoint = "frontend/e2e/fake_video_runtime.py";
     let backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], backendEnvironment);
     let frontend: ManagedProcess | undefined;
 
     try {
-      if (storageMode === "project-folder") {
-        await mkdir(outputsRoot, { recursive: true });
-        await mkdir(applicationDataRoot, { recursive: true });
-      } else {
-        await mkdir(legacyArtifactRoot, { recursive: true });
-        await mkdir(legacyImageExchangeRoot, { recursive: true });
-      }
+      await mkdir(outputsRoot, { recursive: true });
+      await mkdir(applicationDataRoot, { recursive: true });
       await waitForHttp(`${providerOrigin}/control/status`, provider);
       await waitForHttp(`${apiOrigin}/openapi.json`, backend);
       frontend = startProcess(
@@ -135,8 +97,8 @@ function createWorkbenchTest(
         apiOrigin,
         frontendOrigin,
         providerOrigin,
-        outputsRoot: storageMode === "project-folder" ? outputsRoot : undefined,
-        applicationDataRoot: storageMode === "project-folder" ? applicationDataRoot : undefined,
+        outputsRoot,
+        applicationDataRoot,
         restartBackend: async (overrides = {}) => {
           await stopProcess(backend);
           await waitForHttpUnavailable(`${apiOrigin}/openapi.json`);
@@ -154,9 +116,7 @@ function createWorkbenchTest(
           try {
             await stopProcess(provider);
           } finally {
-            if (!retainedPilotRoot) {
-              await rm(temporaryRoot, { recursive: true, force: true });
-            }
+            await rm(temporaryRoot, { recursive: true, force: true });
           }
         }
       }

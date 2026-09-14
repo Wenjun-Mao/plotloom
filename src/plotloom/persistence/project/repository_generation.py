@@ -10,7 +10,7 @@ from ...domain import (
     Artifact, AttemptStatus, CanonicalSnapshot, FragmentReuseBinding,
     GenerationAttempt, GenerationAttemptKind, GenerationRun,
     GenerationWorkUnitTrace, RepairSource, RunExecutionTrace, RunKind, RunTrace,
-    SealedStageAggregateTrace, StageName, StagePayload, StartupRecoveryPlan,
+    RunProgress, SealedStageAggregateTrace, StageName, StagePayload, StartupRecoveryPlan,
     WorkUnitFailureDisposition, WorkUnitRepairRunCreation, WorkUnitRepairScope,
 )
 from ...exceptions import InvalidTransitionError
@@ -142,6 +142,9 @@ class ProjectGenerationRepository:
 
     def get_run_execution_trace(self, run_id: str) -> RunExecutionTrace:
         return self._progress.get_run_execution_trace(run_id)
+
+    def get_run_progress(self, run_id: str) -> RunProgress:
+        return self._progress.get_run_progress(run_id)
 
     def seal_stage_aggregate(
         self, run_id: str, stage: StageName, *, candidate_artifact_ids: list[str]

@@ -40,31 +40,34 @@ test.describe("M1-B0 real project journeys", () => {
     await expect(page.getByLabel("片名")).toHaveValue(firstTitle);
   });
 
-  test("guards unsaved drafts with cancel, discard, and save", async ({ page, workbench }) => {
+  test("persists a durable draft and installs it only on explicit save", async ({ page, request, workbench }) => {
     const initialTitle = uniqueTitle("E2E draft initial");
-    await createProject(page, workbench.frontendOrigin, initialTitle);
+    const projectId = await createProject(page, workbench.frontendOrigin, initialTitle);
 
-    const cancelledTitle = uniqueTitle("E2E draft cancel");
-    await page.getByLabel("片名").fill(cancelledTitle);
-    await page.getByRole("button", { name: "故事圣经" }).first().click();
-    await expect(draftDialog(page)).toBeVisible();
-    await draftDialog(page).getByRole("button", { name: "取消" }).click();
-    await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
-    await expect(page.getByLabel("片名")).toHaveValue(cancelledTitle);
+    const durableTitle = uniqueTitle("E2E durable navigation draft");
+    await page.getByLabel("片名").fill(durableTitle);
+    await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
+    const drafts = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`);
+    expect(drafts.ok(), await drafts.text()).toBeTruthy();
+    expect((await drafts.json()) as Array<{ payload: { title: string } }>).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          payload: expect.objectContaining({ title: durableTitle }),
+        }),
+      ]),
+    );
 
+    const beforeSave = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`);
+    expect((await beforeSave.json() as { brief: { title: string } }).brief.title).toBe(initialTitle);
+
+    await page.getByRole("button", { name: "保存简报" }).click();
+    await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
+    const afterSave = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`);
+    expect((await afterSave.json() as { brief: { title: string } }).brief.title).toBe(durableTitle);
     await page.getByRole("button", { name: "故事圣经" }).first().click();
-    await draftDialog(page).getByRole("button", { name: "丢弃" }).click();
     await expect(page.getByRole("heading", { name: "故事圣经" })).toBeVisible();
     await page.getByRole("button", { name: "项目简报" }).first().click();
-    await expect(page.getByLabel("片名")).toHaveValue(initialTitle);
-
-    const savedTitle = uniqueTitle("E2E draft save");
-    await page.getByLabel("片名").fill(savedTitle);
-    await page.getByRole("button", { name: "故事圣经" }).first().click();
-    await draftDialog(page).getByRole("button", { name: "保存并切换" }).click();
-    await expect(page.getByRole("heading", { name: "故事圣经" })).toBeVisible();
-    await page.getByRole("button", { name: "项目简报" }).first().click();
-    await expect(page.getByLabel("片名")).toHaveValue(savedTitle);
+    await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
   });
 
   test("offers session draft recovery after a refresh", async ({ page, workbench }) => {
@@ -229,10 +232,6 @@ async function openProject(page: Page, title: string): Promise<void> {
 
 function projectItem(page: Page, title: string): Locator {
   return page.getByRole("dialog", { name: "项目目录" }).locator(".directory-item").filter({ hasText: title });
-}
-
-function draftDialog(page: Page): Locator {
-  return page.getByRole("dialog", { name: "保存当前草稿？" });
 }
 
 function projectIdFromPage(page: Page): string {

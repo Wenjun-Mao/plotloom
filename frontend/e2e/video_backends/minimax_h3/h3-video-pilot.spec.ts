@@ -1,4 +1,4 @@
-import { expect, h3Test as test } from "../../fixture";
+import { expect, test } from "../../fixture";
 import { demoProject } from "../../../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,7 +50,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   expect(await backend.json()).toMatchObject({
     enabled: true, adapterId: "minimax_h3_gateway", width: 576, height: 1024,
     frameCount: 124, nativeAudio: true, requiresAspectPolicy: false,
-    inputAspectPolicy: "reject_mismatch", tracksPaidWanPilot: false,
+    inputAspectPolicy: "reject_mismatch",
     defaultProfileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
   });
   const panel = page.getByTestId("video-pilot-panel");

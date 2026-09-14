@@ -5,7 +5,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from fastapi import FastAPI, HTTPException, Query, Request, status
+from fastapi import FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -15,6 +15,8 @@ from ..domain import (
     GateEvaluation,
     Project,
     ProjectCreation,
+    ProjectDuplicateResult,
+    ProjectLifecycleStatus,
     ProjectSummary,
     StageHead,
     StageName,
@@ -22,6 +24,7 @@ from ..domain import (
 from ..exceptions import (
     InvalidTransitionError,
     NotFoundError,
+    ProjectManagedAssetsPresentError,
     RevisionConflictError,
 )
 from ..project_storage import (
@@ -39,24 +42,28 @@ from ..video_backends.minimax_h3.adapter import H3_PROFILES_BY_ID
 from ..video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from ..video_ingestion import ObservedVideo, probe_video
 from ..video_provider import VideoAdapterPort, VideoProviderPort
-from ..validation import STORYBOARD_GATE_SET_VERSION
+from ..validation import DomainValidationError, STORYBOARD_GATE_SET_VERSION
 from .models import (
     ApprovalClosureView,
     AuthoringDraftDiscardRequest,
     AuthoringDraftUpsertRequest,
     CanonicalDraftConsumption,
     ProjectCreateRequest,
+    LifecycleRequest,
+    ProjectDuplicateRequest,
     ProjectFolderImageJobCreateRequest,
     ProjectListResponse,
     ProjectOperationalState,
     ProjectMediaTasksResponse,
     ProjectPatchRequest,
+    ProjectPermanentDeleteRequest,
     ProjectRunsResponse,
     StageEnvelopesResponse,
     StagePatchRequest,
     StoryboardApprovalRequest,
     StoryboardReviewResponse,
     _approval_closure_view,
+    _normalize_idempotency_key,
 )
 from .project_folder_media import register_project_folder_media_routes
 from .project_folder_image_jobs import register_project_folder_image_job_routes
@@ -228,6 +235,15 @@ def create_project_folder_authoring_app(
             content={"code": "invalid_transition", "message": str(error)},
         )
 
+    @app.exception_handler(ProjectManagedAssetsPresentError)
+    async def project_folder_managed_assets_handler(
+        _request: Request, error: ProjectManagedAssetsPresentError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": error.code, "message": str(error)},
+        )
+
     @app.exception_handler(ProjectStorageError)
     async def project_storage_error_handler(
         _request: Request, error: ProjectStorageError
@@ -251,6 +267,19 @@ def create_project_folder_authoring_app(
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
             content={"code": "revision_conflict", "message": str(error)},
+        )
+
+    @app.exception_handler(DomainValidationError)
+    async def project_folder_domain_validation_handler(
+        _request: Request, error: DomainValidationError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            content={
+                "code": "domain_validation",
+                "message": str(error),
+                "issues": error.issues,
+            },
         )
 
     @app.exception_handler(ValueError)
@@ -298,16 +327,19 @@ def create_project_folder_authoring_app(
         limit: int = Query(default=50, ge=1, le=200),
         cursor: str | None = None,
     ) -> ProjectListResponse:
-        # Project-folder discovery is bounded by the explicit storage root;
-        # cursor and archive lifecycle are deferred with the rest of close/
-        # restore work, so this 2B composition exposes active homes only.
+        # Project-folder discovery is bounded by the explicit storage root.
+        # Cursoring remains unnecessary for the bounded local workbench list.
         del cursor
-        if project_status == "archived":
-            return ProjectListResponse(projects=[])
         summaries: list[ProjectSummary] = []
-        for home in storage.projects.discover()[:limit]:
+        for home in storage.projects.discover():
             with inspected_project(home.manifest.project_id) as store:
                 project = store.project()
+                if (
+                    project_status != "all"
+                    and project.lifecycle_status
+                    != ProjectLifecycleStatus(project_status)
+                ):
+                    continue
                 operational_state, _revision = store.repository.operational_state()
                 summaries.append(
                     ProjectSummary(
@@ -319,12 +351,57 @@ def create_project_folder_authoring_app(
                         operational_state=operational_state,
                     )
                 )
+            if len(summaries) == limit:
+                break
         return ProjectListResponse(projects=summaries)
 
     @app.get("/api/v2/projects/{project_id}", response_model=Project)
     def get_project(project_id: str) -> Project:
         with opened_project(project_id) as store:
             return store.project()
+
+    @app.post("/api/v2/projects/{project_id}/archive", response_model=Project)
+    def archive_project(project_id: str, body: LifecycleRequest) -> Project:
+        return storage.lifecycle.archive(
+            project_id,
+            expected_lifecycle_revision=body.expected_lifecycle_revision,
+        )
+
+    @app.post("/api/v2/projects/{project_id}/restore", response_model=Project)
+    def restore_project(project_id: str, body: LifecycleRequest) -> Project:
+        return storage.lifecycle.restore(
+            project_id,
+            expected_lifecycle_revision=body.expected_lifecycle_revision,
+        )
+
+    @app.post(
+        "/api/v2/projects/{project_id}/duplicate",
+        response_model=ProjectDuplicateResult,
+    )
+    def duplicate_project(
+        project_id: str,
+        body: ProjectDuplicateRequest,
+        idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    ) -> ProjectDuplicateResult:
+        return storage.lifecycle.duplicate(
+            project_id,
+            expected_lifecycle_revision=body.expected_lifecycle_revision,
+            title=body.title,
+            idempotency_key=_normalize_idempotency_key(idempotency_key),
+        )
+
+    @app.post(
+        "/api/v2/projects/{project_id}/permanent-delete",
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
+    def permanently_delete_project(
+        project_id: str, body: ProjectPermanentDeleteRequest
+    ) -> None:
+        storage.lifecycle.permanently_delete(
+            project_id,
+            expected_lifecycle_revision=body.expected_lifecycle_revision,
+            confirmation_title=body.confirmation_title,
+        )
 
     @app.post(
         "/api/v2/projects/{project_id}/close",
