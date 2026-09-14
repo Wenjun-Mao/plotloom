@@ -1,10 +1,12 @@
 # Codebase modularization: persistence-first structure proposal
 
-**Status:** persistence conversion and the corrected frontend workspace
-extraction are complete. The original frontend receipt extracted media and
-draft autosave while retaining mixed workspace ownership; the accepted
-correction is recorded below and in its amended verification receipt. This
-document remains the execution map for later assessments.
+**Status:** all four modularization steps are complete: the responsibility map,
+project/application persistence and storage extraction, corrected frontend
+workspace extraction, and the justified-only assessment of the remaining large
+modules. The original frontend receipt extracted media and draft autosave while
+retaining mixed workspace ownership; the accepted correction is recorded below
+and in its amended verification receipt. This document remains a historical
+map and records change triggers rather than an aesthetic refactor backlog.
 It follows the accepted API modularization checkpoint at
 `f9487508239bf14f5f8de8b255456c97a3e3b933` and the already-approved breaking
 project-folder storage destination.  It does not reopen the cutover decision,
@@ -21,8 +23,8 @@ add a selectable storage mode, or schedule frontend work concurrently.
   complete workspace ownership. The accepted correction gives route,
   project-session, authoring, run, profile, and directory state explicit
   owners and passed an attended source-ownership review.
-- [ ] Justified assessment of other large modules pending; do not treat line
-  count alone as implementation authority.
+- [x] Justified assessment of other large modules completed; line count alone
+  is not implementation authority. See the [Step 4 assessment](#step-4-justified-only-assessment-of-the-remaining-large-modules).
 
 ### Persistence checkpoint seams
 
@@ -415,15 +417,42 @@ by alphabetical shape; move a type with its owning feature and retain a small
 shared wire-contract module.  Any frontend change rebuilds and verifies
 `src/plotloom/static/`; it must not be coupled to the persistence move.
 
-## Other inventory, deliberately not parallel work
+## Step 4: justified-only assessment of the remaining large modules
 
-| Priority after storage/cutover work | Module, lines | Reason to assess later |
-| --- | ---: | --- |
-| 1 | `generation/work_units.py`, 4,772 | prompt/schema/repair authority is high-risk and needs ownership review before extraction. |
-| 2 | `work_unit_pipeline.py`, 1,719 | lifecycle and correction orchestration are coupled to persistence transaction boundaries. |
-| 3 | `domain.py`, 1,550; `validation.py`, 1,484 | public canonical contracts; no mechanical split. |
-| 4 | `alpha_acceptance.py`, 1,351; generation topology/planning modules above 1,000 | assess cohesion only when a product change needs it. |
-| 5 | `media.py`, 665; `image_job_exchange.py`, 714; `pipeline.py`, 738 | currently recognizable domains; revisit only for a concrete responsibility conflict. |
+Completed against `6acada8`, with the current source line counts below. This is
+not a claim that every file is small or permanently final. It answers whether a
+further extraction is necessary to complete the approved storage milestone or
+to repair a demonstrated ownership conflict. It is not: no source change is
+authorized by this assessment. The detailed evidence and historical-receipt
+supersession pointers are in
+[`docs/verification/2026-09-14-modularization-step-4-assessment.md`](../verification/2026-09-14-modularization-step-4-assessment.md).
+
+| Candidate (current lines) | Actual responsibility and dependency boundary | Decision and precise future trigger |
+| --- | --- | --- |
+| `generation/work_units.py` (4,772) | Pure, provider/repository/pipeline-free model-response contract: it compiles a frozen `GenerationWorkUnit`, binds untrusted fragments to trusted IDs, and owns versioned schema, semantic-repair facts, and their postconditions. It depends on domain/validation plus focused generation contracts, planning, prompt, timing, topology, and schema modules; `work_unit_pipeline.py` consumes its public boundary. | **Leave intact now.** Its apparent subtopics are one author/model/trusted-code contract; splitting only for size risks severing the invariant that model output never owns plan hashes, unit IDs, or input hashes. Reassess only when a versioned prompt/schema/correction policy deliberately changes ownership and can be moved with an explicit compatibility/import contract and targeted contract regressions. |
+| `work_unit_pipeline.py` (1,719) | `DurableWorkUnitRunner` is the one runtime orchestration owner for attempts, correction admission, provider execution, sealed aggregates, cancellation, and exact repair. It couples frozen generation plans and work-unit contracts to repository lifecycle transactions and secret leases. | **Leave intact now.** Its ordering is a correctness boundary, not a generic helper collection, and it is not an obstacle to folder storage. Reassess only when the project-handle cutover changes the runner/repository transaction contract, or a new lifecycle proves a separable operation while preserving one durable attempt/seal ordering. |
+| `domain.py` (1,550) and `validation.py` (1,484) | `domain.py` is the imported canonical Pydantic/value vocabulary for authoring, runs, profiles, traces, secrecy and stage order. `validation.py` applies graph, coverage, stage-payload, continuity and gate rules over that shared vocabulary, including timing/topology helpers. They are used across API, persistence, generation, runners and tests. | **Leave intact now.** Moving by noun would widen public import and schema compatibility risk and can create domain/validator cycles. Reassess only for an approved versioned public-schema boundary or a demonstrated validator dependency cycle; first specify exports, serialization compatibility, and migration/regression coverage. |
+| `alpha_acceptance.py` (1,351) and `conformance.py` (655) | These are separate secret-free qualification runners. Conformance runs disposable profile samples through the production pipeline and emits narrow receipts; Alpha additionally pins checkout provenance, copies a stable source DB pair, builds blinded review packs, and gates external-review receipts. Both deliberately construct isolated repositories and close their resources. | **Leave intact now.** Similar setup does not establish shared ownership: Alpha's provenance/blinding rules are not Conformance's repeatable release gate. Reassess only if a proven shared disposable-run lifecycle diverges in cleanup, admission, or receipt secrecy; extract that single tested primitive without merging qualification policy or review-pack publication. |
+| `generation/planning.py` (1,063) and `generation/story_graph_topology.py` (1,110) | These are focused generation contracts: planning freezes work units/dependencies; topology produces the bounded graph/content-fill contract consumed by `work_units.py`, pipeline and conformance receipts. | **Leave intact now.** No storage caller owns their policy, and no mixed side effect was found. Reassess only when a new generation stage or topology version needs independently versioned public contract data; preserve plan/topology hashes and existing consumers. |
+| `media.py` (665), `image_job_exchange.py` (714), and `pipeline.py` (738) | `media.py` owns typed image/video adapter specifications, gateway secret boundary, normalized status and prompt compilation. `image_job_exchange.py` owns confined same-host package/delivery validation and has no browser-path authority. `pipeline.py` owns text provider/secret resolution and the production `PipelineEngine` composition. | **Leave intact now.** Each has a recognizable transport/exchange/runtime boundary, and none blocks close, snapshot, restore, accounting, or cutover. Reassess only when adding a provider, exchange protocol, or runtime engine causes a concrete conflict between its adapter/transport and contract owner; extract that exact side-effect-free or protocol seam with its safety tests. |
+| Frontend `api.ts` (573), `types.ts` (1,099), and authoring pages (`SceneBeatsPage.tsx` 1,276; `StoryBiblePage.tsx` 1,032) | `api.ts` is the single typed `/api/v2` transport and session-key boundary; `types.ts` is the shared server-wire vocabulary imported by workspace, pages and feature packages. The two large pages compose editor-local cards, focus/deletion/migration disclosure, and their page-specific form state over helpers already extracted to `scene-beats-editor.ts` and related UI modules. | **Leave intact now.** Splitting shared types by alphabetical shape or endpoint methods without a backend/wire ownership move would create parallel contracts; splitting page components merely for line count risks breaking local focus and structural-confirmation behavior. Reassess only with an endpoint schema change that gives a feature exclusive transport/types, or a demonstrated page-state race/accessibility defect with a bounded component-owner remedy. |
+
+The retained compatibility facade in `persistence/legacy_repository.py` remains
+the one real modularization exception. Its purpose and deletion trigger are
+already explicit: retained-runtime callers still import `SQLiteRepository`, so
+it remains direct typed composition until the separately approved runtime
+cutover. Step 4 does not reopen the accepted persistence ownership correction
+or frontend session/cutover decisions.
+
+### Completion boundary and next product priority
+
+This completes **modularization only**. It does not complete the project-folder
+storage feature, runtime cutover, portable recovery, or production-video work.
+The next product delivery remains the existing approved storage plan, in order:
+finish close/quiescence and snapshot/restore, preserve video dispatch and
+installation-owned accounting through their explicit recovery/reconciliation
+contract, then perform the one-way runtime cutover and closeout. No new
+architecture is proposed here.
 
 ## Compact working lessons
 
