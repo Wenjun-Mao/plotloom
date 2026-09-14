@@ -389,3 +389,16 @@ missing-media, writer-busy, direct-folder-state, and identity-conflict checks
 are part of the storage contract. Retained-runtime cutover, legacy import,
 video/accounting work, remote reconciliation, cloud sync, and live providers
 remain outside this checkpoint. See [the portable-recovery receipt](../verification/2026-09-14-project-folder-portable-recovery.md).
+
+The accepted recovery hardening requires a strict snapshot tree rather than a
+database-derived list alone: every declared regular byte and only its required
+directories are accepted. Restore freezes the source inventory, compares each
+copied byte and rehashes its private destination before publication. Closed
+folder input holds the existing exclusive local lease and permits only named
+local operational exclusions; snapshots permit none. SQLite master metadata and
+schema shape are validated before any normal project handle sees imported data,
+and owned asset discovery uses typed storage fields rather than story prose.
+Snapshots record nonterminal operations in a secret-free project-owned recovery
+control. It blocks automatic or explicit replay of known/unknown historic IDs
+until separately designed reconciliation work exists; acknowledgement does not
+submit, reconcile, or mislabel those operations as succeeded.

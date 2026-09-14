@@ -18,7 +18,7 @@ from .format import (
     ProjectStorageCorruptionError,
     ProjectStorageError,
 )
-from .project_handle import ProjectStore
+from .project_handle import ProjectRecoveryRequiredError, ProjectStore
 from .registry import ProjectDirectoryRegistry, ProjectHome
 from .operational_state import ProjectBusyError, ProjectClosedError
 from .recovery import (
@@ -28,6 +28,7 @@ from .recovery import (
     ProjectSnapshotManifest,
     ProjectSnapshotReceipt,
 )
+from .recovery_control import ProjectRecoveryControl, RecoveryOperation
 from ..persistence import ProjectSQLiteRepository
 
 __all__ = [
@@ -52,6 +53,9 @@ __all__ = [
     "ProjectStorageError",
     "ProjectStore",
     "ProjectRecoveryService",
+    "ProjectRecoveryControl",
+    "ProjectRecoveryRequiredError",
+    "RecoveryOperation",
     "ProjectSnapshotManifest",
     "ProjectSnapshotReceipt",
     "SNAPSHOT_FORMAT_VERSION",

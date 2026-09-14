@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import STAGE_ORDER, Project, ProjectCreation, ProjectDuplicateResult, StageStatus, utc_now
+from ...domain import (
+    STAGE_ORDER,
+    Project,
+    ProjectCreation,
+    ProjectDuplicateResult,
+    StageStatus,
+    StartupRecoveryPlan,
+    utc_now,
+)
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ..codec import stable_hash
 from ..schema import GenerationRunRow, ProjectOperationalStateRow, ProjectRow, StageHeadRow
@@ -38,12 +46,25 @@ class ProjectSQLiteRepository(SQLiteRepository):
             raise ValueError("project_id is required for a project repository")
         self.project_id = project_id
         self._admitted_provider_snapshot_hash: str | None = None
+        self._recovered_run_ids: Callable[[], set[str]] = set
+        self._recovery_operations_present: Callable[[], bool] = lambda: False
         super().__init__(
             database_url,
             create_schema=create_schema,
             sqlite_busy_timeout_ms=sqlite_busy_timeout_ms,
             schema_scope="project",
         )
+
+    def _set_recovery_admission(
+        self,
+        *,
+        recovered_run_ids: Callable[[], set[str]],
+        recovery_operations_present: Callable[[], bool],
+    ) -> None:
+        """Install the project-home control without expanding this public API."""
+
+        self._recovered_run_ids = recovered_run_ids
+        self._recovery_operations_present = recovery_operations_present
 
     @contextmanager
     def admit_provider_snapshot(self, provider_snapshot: dict[str, Any]) -> Iterator[None]:
@@ -164,3 +185,19 @@ class ProjectSQLiteRepository(SQLiteRepository):
             raise InvalidTransitionError(
                 "project generation requires an application-admitted provider snapshot"
             )
+
+    def reconcile_startup_jobs(self) -> StartupRecoveryPlan:
+        """Never turn portable recovered work into an automatic replay."""
+
+        if self._recovery_operations_present():
+            return StartupRecoveryPlan()
+        return super().reconcile_startup_jobs()
+
+    def start_run(self, run_id: str):
+        """Block both scheduler recovery and an explicit resume until acknowledged."""
+
+        if run_id in self._recovered_run_ids():
+            raise InvalidTransitionError(
+                "recovery_required: restored unfinished work cannot be resumed"
+            )
+        return super().start_run(run_id)

@@ -13,10 +13,11 @@ from dataclasses import dataclass
 import fcntl
 import os
 from pathlib import Path
+import stat
 from typing import Literal
 
 from ..domain import TERMINAL_MEDIA_TASK_STATUSES, TERMINAL_RUN_STATUSES
-from .format import ProjectStorageError
+from .format import ProjectStorageConfinementError, ProjectStorageError
 
 
 class ProjectClosedError(ProjectStorageError):
@@ -39,7 +40,17 @@ class ProjectAccessLease:
         cls, project_home: Path, *, mode: Literal["shared", "exclusive"]
     ) -> "ProjectAccessLease":
         lock_path = project_home / ".project-operation.lock"
-        descriptor = os.open(lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+        descriptor = os.open(
+            lock_path,
+            os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
+            0o600,
+        )
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+            os.close(descriptor)
+            raise ProjectStorageConfinementError(
+                "project operation lock must be one regular unlinked file"
+            )
         operation = fcntl.LOCK_SH if mode == "shared" else fcntl.LOCK_EX
         try:
             fcntl.flock(descriptor, operation | fcntl.LOCK_NB)

@@ -34,11 +34,22 @@ from .format import (
     ProjectStorageConfinementError,
     ProjectStorageConflictError,
     ProjectStorageCorruptionError,
+    ProjectStorageError,
     _read_json,
     _require_real_directory,
     _utc_folder_timestamp,
 )
 from .operational_state import ProjectAccessLease
+from .recovery_control import (
+    ProjectRecoveryControl,
+    read_recovery_control,
+    recovered_generation_run_ids,
+    recovery_operations_present,
+)
+
+
+class ProjectRecoveryRequiredError(ProjectStorageError):
+    """Raised when restored unfinished work needs an explicit acknowledgement."""
 
 
 class ProjectStore:
@@ -63,6 +74,14 @@ class ProjectStore:
             f"sqlite:///{self.database_path}",
             project_id=manifest.project_id,
             create_schema=create_schema,
+        )
+        self._repository._set_recovery_admission(
+            recovered_run_ids=lambda: recovered_generation_run_ids(
+                self.home, self.manifest.project_id
+            ),
+            recovery_operations_present=lambda: recovery_operations_present(
+                self.home, self.manifest.project_id
+            ),
         )
         self._artifacts = _OwnedArtifactStore(self.home)
         self.artifacts = ProjectArtifactStore(self._artifacts)
@@ -156,6 +175,18 @@ class ProjectStore:
             raise ProjectStorageCorruptionError(
                 "project database has no bound project"
             ) from error
+
+    def recovery_control(self) -> ProjectRecoveryControl | None:
+        """Return portable recovery admission without mutating historical work."""
+
+        return read_recovery_control(self.home, self.manifest.project_id)
+
+    def require_recovery_acknowledged(self) -> None:
+        control = self.recovery_control()
+        if control is not None and control.state == "recovery_required":
+            raise ProjectRecoveryRequiredError(
+                "recovery_required: acknowledge restored unfinished work before generation"
+            )
 
     def update_brief(self, brief: ProjectBrief, *, expected_revision: int) -> Project:
         if expected_revision < 1:

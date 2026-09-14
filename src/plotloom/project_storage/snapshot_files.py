@@ -7,7 +7,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import stat
-from typing import Any
+from typing import Any, Iterable
 
 from ..domain import contains_secret_setting, contains_secret_value
 from .format import (
@@ -162,3 +162,97 @@ def _published_files(root: Path, run_name: str) -> list[PurePosixPath]:
 
     visit(run_root, PurePosixPath("runs") / run_name)
     return results
+
+
+def _assert_exact_tree(
+    root: Path,
+    expected_files: Iterable[PurePosixPath],
+    *,
+    allowed_files: Iterable[PurePosixPath] = (),
+    allowed_empty_directories: Iterable[PurePosixPath] = (),
+) -> None:
+    """Require a deterministic recovery tree, rejecting every unsafe extra.
+
+    Snapshot input is completely strict.  A closed live folder may additionally
+    contain only its local lock/SQLite sidecars and empty managed roots; callers
+    provide that narrower allowance explicitly instead of broad hidden-file
+    exclusions.
+    """
+
+    _safe_directory(root, label="recovery root")
+    expected = set(expected_files)
+    allowed = set(allowed_files)
+    empty_directories = set(allowed_empty_directories)
+    needed_directories = {PurePosixPath(".")}
+    for relative in expected:
+        parent = relative.parent
+        while parent != PurePosixPath("."):
+            needed_directories.add(parent)
+            parent = parent.parent
+
+    def visit(directory: Path, relative: PurePosixPath) -> None:
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                child = directory / entry.name
+                child_relative = (
+                    PurePosixPath(entry.name)
+                    if relative == PurePosixPath(".")
+                    else relative / entry.name
+                )
+                if entry.is_symlink():
+                    raise ProjectStorageConfinementError(
+                        "recovery tree contains a symlink"
+                    )
+                if entry.is_dir(follow_symlinks=False):
+                    if child_relative not in needed_directories and child_relative not in empty_directories:
+                        raise ProjectStorageCorruptionError(
+                            "recovery tree contains an unexpected directory"
+                        )
+                    if (
+                        child_relative in empty_directories
+                        and child_relative not in needed_directories
+                    ):
+                        with os.scandir(child) as children:
+                            if next(children, None) is not None:
+                                raise ProjectStorageCorruptionError(
+                                    "recovery tree contains unexpected managed bytes"
+                                )
+                    else:
+                        visit(child, child_relative)
+                    continue
+                if entry.is_file(follow_symlinks=False):
+                    _safe_regular(child, label=f"recovery file {child_relative.as_posix()}")
+                    if child_relative not in expected and child_relative not in allowed:
+                        raise ProjectStorageCorruptionError(
+                            "recovery tree contains an unexpected file"
+                        )
+                    continue
+                raise ProjectStorageConfinementError(
+                    "recovery tree contains a non-regular entry"
+                )
+
+    visit(root, PurePosixPath("."))
+    for relative in expected:
+        _source_file(root, relative)
+
+
+def _assert_snapshot_tree(root: Path, expected_files: Iterable[PurePosixPath]) -> None:
+    """Snapshots retain only declared bytes and their parent directories."""
+
+    _assert_exact_tree(root, expected_files)
+
+
+def _assert_closed_project_tree(root: Path, expected_files: Iterable[PurePosixPath]) -> None:
+    """Allow only local operational debris that a closed folder never imports."""
+
+    _assert_exact_tree(
+        root,
+        expected_files,
+        allowed_files=(
+            PurePosixPath(".project-operation.lock"),
+            PurePosixPath("project.sqlite3-wal"),
+            PurePosixPath("project.sqlite3-shm"),
+            PurePosixPath("project.sqlite3-journal"),
+        ),
+        allowed_empty_directories=(PurePosixPath("assets"), PurePosixPath("runs")),
+    )

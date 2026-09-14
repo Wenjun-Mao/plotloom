@@ -43,6 +43,7 @@ class ProjectPipelineExecutor:
         broker/session input and are never passed to repository methods.
         """
 
+        store.require_recovery_acknowledged()
         project = store.project()
         repository = store.repository
         snapshot = profile.model_dump(mode="json", by_alias=True)
