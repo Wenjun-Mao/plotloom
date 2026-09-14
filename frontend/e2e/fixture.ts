@@ -18,8 +18,11 @@ export type Workbench = {
   imageExchangeRoot: string;
   /** A test-owned process, deliberately outside the Plotloom API surface. */
   providerOrigin: string;
+  /** Present only for the direct project-folder FastAPI fixture. */
+  outputsRoot?: string;
+  applicationDataRoot?: string;
   /** Stops and starts the owned FastAPI process against its original data paths. */
-  restartBackend: () => Promise<void>;
+  restartBackend: (overrides?: NodeJS.ProcessEnv) => Promise<void>;
 };
 
 type WorkbenchWorkerFixtures = {
@@ -62,6 +65,9 @@ function createWorkbenchTest(
     const artifactRoot = path.join(temporaryRoot, "artifacts");
     const imageExchangeRoot = path.join(temporaryRoot, "image-exchange");
     const databasePath = path.join(temporaryRoot, "plotloom.sqlite3");
+    const directFolderRuntime = backendEntrypoint.endsWith("project_folder_authoring_runtime.py");
+    const outputsRoot = directFolderRuntime ? path.join(temporaryRoot, "outputs") : undefined;
+    const applicationDataRoot = directFolderRuntime ? path.join(temporaryRoot, "application") : undefined;
     const backendPort = await reserveLoopbackPort();
     const frontendPort = await reserveLoopbackPort();
     const providerPort = await reserveLoopbackPort();
@@ -89,9 +95,9 @@ function createWorkbenchTest(
       VIDEO_MODEL_API_KEY: "",
       ATLASCLOUD_API_KEY: "",
       PLOTLOOM_E2E_VIDEO_ADAPTER: videoAdapter,
-      ...(backendEntrypoint.endsWith("project_folder_authoring_runtime.py") ? {
-        PLOTLOOM_E2E_OUTPUTS_DIR: path.join(temporaryRoot, "outputs"),
-        PLOTLOOM_E2E_APPLICATION_DATA_DIR: path.join(temporaryRoot, "application"),
+      ...(directFolderRuntime ? {
+        PLOTLOOM_E2E_OUTPUTS_DIR: outputsRoot,
+        PLOTLOOM_E2E_APPLICATION_DATA_DIR: applicationDataRoot,
       } : {}),
     };
     let backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], backendEnvironment);
@@ -122,10 +128,12 @@ function createWorkbenchTest(
         frontendOrigin,
         imageExchangeRoot,
         providerOrigin,
-        restartBackend: async () => {
+        outputsRoot,
+        applicationDataRoot,
+        restartBackend: async (overrides = {}) => {
           await stopProcess(backend);
           await waitForHttpUnavailable(`${apiOrigin}/openapi.json`);
-          backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], backendEnvironment);
+          backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], { ...backendEnvironment, ...overrides });
           await waitForHttp(`${apiOrigin}/openapi.json`, backend);
         },
       });

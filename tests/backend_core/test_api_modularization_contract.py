@@ -15,10 +15,11 @@ from plotloom.project_storage import ProjectFolderStorage
 
 
 ORIGINAL_MONOLITH = "5ec8ef83fc3fa6efdd9b3b41f5e76a7a8c2e1daf"
-# ADR 0043 changes only the direct project-folder factory: its capability and
-# explicit close/open routes are intentionally absent from ``create_app``.
-BASELINE_CONTRACT_SHA256 = "7e6216a8d385710fcb7e07024c0f0fc6aa9308432512760a40c8774f4a5d43d3"
-BASELINE_CONTRACT_BYTES = 208_229
+# ADRs 0043/0044 change only the direct project-folder factory: its capability,
+# close/open, and portable-snapshot routes are intentionally absent from
+# ``create_app``.
+BASELINE_CONTRACT_SHA256 = "61a91a02544b8477545ac9a69a7f88c05bf9fd0541f9a6edd472cf9476113385"
+BASELINE_CONTRACT_BYTES = 212_195
 
 
 @asynccontextmanager

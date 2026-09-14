@@ -327,6 +327,13 @@ def build_runtime_app(
 
 
 def main() -> None:
+    import sys
+
+    if len(sys.argv) > 1 and sys.argv[1] == "restore":
+        from .project_storage.operator import restore_command
+
+        raise SystemExit(restore_command(sys.argv[2:]))
+
     import uvicorn
 
     from .config import PlotloomSettings

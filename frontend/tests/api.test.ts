@@ -51,6 +51,23 @@ describe("PlotloomApiClient", () => {
     expect(JSON.parse(String(calls[3][1].body))).toEqual({ expectedLifecycleRevision: 7, confirmationTitle: "Moon City" });
   });
 
+  it("creates and reads a server-owned snapshot without sending a browser path", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      operationId: "snapshot-1", snapshotId: "snapshot-1", projectId: "p1", status: "complete",
+      location: "/application/outputs/.snapshots/p1/snapshot-1", manifest: { files: [] },
+    }), { status: 201, headers: { "Content-Type": "application/json" } }));
+    const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
+
+    await client.createProjectSnapshot("p1");
+    await client.getProjectSnapshot("p1", "snapshot/1");
+
+    const calls = fetcher.mock.calls as unknown as Array<[string, RequestInit]>;
+    expect(calls[0][0]).toBe("/api/v2/projects/p1/snapshots");
+    expect(calls[0][1].method).toBe("POST");
+    expect(calls[0][1].body).toBeUndefined();
+    expect(calls[1][0]).toBe("/api/v2/projects/p1/snapshots/snapshot%2F1");
+  });
+
   it("requests the lifecycle status query and unwraps no stale client-side filter", async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ projects: [] }), { status: 200, headers: { "Content-Type": "application/json" } }));
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);

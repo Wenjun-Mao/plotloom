@@ -624,6 +624,31 @@ export interface ProjectDuplicateResponse {
   omittedStages: ServerStageName[];
 }
 
+/** A server-owned portable recovery copy; browser callers never choose its path. */
+export interface ProjectSnapshotFile {
+  relativePath: string;
+  contentHash: string;
+  sizeBytes: number;
+}
+
+export interface ProjectSnapshotManifest {
+  snapshotFormatVersion: number;
+  snapshotId: string;
+  projectId: string;
+  createdAt: string;
+  databaseHash: string;
+  files: ProjectSnapshotFile[];
+}
+
+export interface ProjectSnapshotReceipt {
+  operationId: string;
+  snapshotId: string;
+  projectId: string;
+  status: "complete";
+  location: string;
+  manifest: ProjectSnapshotManifest;
+}
+
 /** A stage payload installed atomically with a newly-created project. */
 export interface InitialProjectStage {
   stage: ServerStageName;

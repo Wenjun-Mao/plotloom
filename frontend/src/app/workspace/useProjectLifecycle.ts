@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { plotloomApi } from "../../api";
 import { discardDraft, hasDraft, type DraftScope } from "../../draft-registry";
 import { messageFrom, stageForPage } from "./contracts";
-import type { ProjectListItem, ServerStageName, WorkspaceProject } from "../../types";
+import type { ProjectListItem, ProjectSnapshotReceipt, ServerStageName, WorkspaceProject } from "../../types";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 import type { ProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
 
@@ -21,6 +21,8 @@ export function useProjectLifecycle({
   openProject,
   startBlank,
   explicitProjectClose,
+  portableSnapshots,
+  reportError,
 }: {
   session: LifecycleSession;
   currentDraft: React.MutableRefObject<{ scope: DraftScope; payload: unknown } | undefined>;
@@ -32,10 +34,14 @@ export function useProjectLifecycle({
   openProject: (projectId: string) => void;
   startBlank: () => void;
   explicitProjectClose: boolean;
+  portableSnapshots: boolean;
+  reportError: (message: string) => void;
 }) {
   const duplicateKeys = useRef(new Map<string, string>());
   const [pendingArchive, setPendingArchive] = useState<{ item: ProjectListItem; action: "archive" | "close" } | undefined>();
   const [closingProjectId, setClosingProjectId] = useState<string | undefined>();
+  const [snapshottingProjectId, setSnapshottingProjectId] = useState<string | undefined>();
+  const [latestSnapshot, setLatestSnapshot] = useState<ProjectSnapshotReceipt | undefined>();
   const perform = async (
     item: ProjectListItem,
     action: LifecycleAction,
@@ -137,5 +143,25 @@ export function useProjectLifecycle({
     setPendingArchive(undefined);
     await perform(pending.item, pending.action);
   };
-  return { pendingArchive, mutate, resolvePendingArchive, closingProjectId };
+  const createSnapshot = async () => {
+    const projectId = session.project.id;
+    if (!portableSnapshots || !projectId || mediaDraftQuiescence.isClosing(projectId)) return;
+    const attempt = mediaDraftQuiescence.beginClose(projectId);
+    setSnapshottingProjectId(projectId);
+    try {
+      // The drain covers this requesting browser's registered queues only.
+      // Another client can still have unacknowledged typing outside this copy.
+      if (!await attempt.drain() || !attempt.canCommit()) {
+        throw new Error("当前标签页的草稿仍在更新；未创建恢复快照。");
+      }
+      const receipt = await plotloomApi.createProjectSnapshot(projectId);
+      if (session.project.id === projectId) setLatestSnapshot(receipt);
+    } catch (error) {
+      reportError(messageFrom(error));
+    } finally {
+      attempt.finish();
+      setSnapshottingProjectId((current) => current === projectId ? undefined : current);
+    }
+  };
+  return { pendingArchive, mutate, resolvePendingArchive, closingProjectId, snapshottingProjectId, latestSnapshot, createSnapshot };
 }

@@ -41,6 +41,21 @@ npm --prefix frontend run dev
 
 The production server defaults to `127.0.0.1:8775`; the Vite server defaults to `127.0.0.1:5173`. Open `/v2/` on either origin. `PLOTLOOM_API_ORIGIN` changes the Vite proxy target.
 
+### Direct project-folder recovery
+
+The direct project-folder composition can create a verified local snapshot from
+its workbench. Restore is intentionally an operator command, not an HTTP path
+or a browser file picker:
+
+```sh
+uv run plotloom restore --source /absolute/path/to/snapshot-or-closed-project --outputs-dir /absolute/path/to/outputs
+```
+
+It restores only a format-6 closed project folder or a verified format-1
+snapshot, preserves the project ID, and refuses an existing identity. The
+operator supplies no provider credentials or application database; restore
+never dispatches or replays remote work.
+
 ## Data and secrets
 
 - A source checkout defaults to `data/plotloom.sqlite3` and `data/artifacts/`.

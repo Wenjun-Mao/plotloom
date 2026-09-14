@@ -365,3 +365,27 @@ Failed CAS, conflict, or transport work leaves the folder open and data
 recoverable. Snapshot/restore, video, retained-runtime cutover, legacy-data
 migration, and live-provider evidence remain outside this slice. See [the close
 receipt](../verification/2026-09-14-project-folder-close-quiescence.md).
+
+## Checkpoint 3 portable-recovery record (2026-09-14)
+
+ADR 0044 adds a versioned, verified portable-recovery boundary to the direct
+format-6 composition. Snapshot creation owns the local exclusive lease, refuses
+nonterminal image/reference publication, captures SQLite through the backup API,
+and derives a complete hash inventory from that committed database: manifest,
+database, referenced immutable assets, and terminal exchange evidence only. It
+builds privately below `.snapshots`, validates the inventory and database, then
+atomically publishes a copyable location. The workbench drains the requesting
+client's known draft writers and displays creation progress and that location;
+another client's unacknowledged typing is deliberately not claimed as captured.
+
+`plotloom restore --source <snapshot-or-closed-folder> --outputs-dir <root>`
+validates a declared format-1 snapshot or explicitly closed format-6 project
+folder before a private, atomic output publish. It preserves identity and
+rejects existing identities, links, traversal, corrupt/missing bytes, unsupported
+schemas, credentials, application state, or remote actions. Offline direct-
+factory tests and a real FastAPI/browser journey cover draft/media recovery after
+the original project and application paths disappear; interruption, integrity,
+missing-media, writer-busy, direct-folder-state, and identity-conflict checks
+are part of the storage contract. Retained-runtime cutover, legacy import,
+video/accounting work, remote reconciliation, cloud sync, and live providers
+remain outside this checkpoint. See [the portable-recovery receipt](../verification/2026-09-14-project-folder-portable-recovery.md).

@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from ..domain import GenerationRun
 from .application_store import ApplicationStore
 from .format import ProjectStorageConfinementError
+from .recovery import ProjectRecoveryService
 from .registry import ProjectDirectoryRegistry
 
 if TYPE_CHECKING:
@@ -30,6 +31,7 @@ class ProjectFolderStorage:
             )
         self.projects = ProjectDirectoryRegistry(outputs_root)
         self.application = ApplicationStore(application_data_root)
+        self.recovery = ProjectRecoveryService(self.projects.outputs_root, self.projects)
 
     def execute_selected_text_pipeline(
         self,

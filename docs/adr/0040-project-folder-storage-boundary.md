@@ -6,7 +6,8 @@ Accepted, 2026-09-13. Checkpoint 2A replaces the rejected `460ff56`
 construction result with a direct project-owned text-generation repository.
 Checkpoint 2B advances that same unwired composition with durable canonical
 authoring drafts. Checkpoint 2C adds the existing project-owned still/image
-workflow and bounded media-direction drafts to that same composition. It
+workflow and bounded media-direction drafts to that same composition. Checkpoint
+3 adds the versioned snapshot/restore contract in ADR 0044. It
 remains deliberately unwired from the retained runtime and pilot data; this is
 not a storage cutover or migration.
 

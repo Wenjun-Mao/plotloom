@@ -25,6 +25,7 @@ from ..project_storage import (
     ProjectFolderStorage,
     ProjectBusyError,
     ProjectClosedError,
+    ProjectSnapshotReceipt,
     ProjectStorageConflictError,
     ProjectStorageError,
 )
@@ -230,6 +231,7 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
             "durableProjectDrafts": True,
             "durableMediaDrafts": True,
             "explicitProjectClose": True,
+            "portableSnapshots": True,
         }
 
     @app.post(
@@ -302,6 +304,29 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
     def open_project(project_id: str) -> ProjectOperationalState:
         revision = storage.projects.reopen_project(project_id)
         return ProjectOperationalState(project_id=project_id, state="open", revision=revision)
+
+    @app.post(
+        "/api/v2/projects/{project_id}/snapshots",
+        response_model=ProjectSnapshotReceipt,
+        status_code=status.HTTP_201_CREATED,
+    )
+    def create_project_snapshot(project_id: str) -> ProjectSnapshotReceipt:
+        """Create one application-owned, verified portable recovery copy.
+
+        Browser callers cannot choose a filesystem destination.  The direct
+        workbench drains only its own acknowledged editors before this route;
+        the exclusive project lease then prevents a concurrent local writer
+        from changing the database or specialist publication during capture.
+        """
+
+        return storage.recovery.create_snapshot(project_id)
+
+    @app.get(
+        "/api/v2/projects/{project_id}/snapshots/{snapshot_id}",
+        response_model=ProjectSnapshotReceipt,
+    )
+    def get_project_snapshot(project_id: str, snapshot_id: str) -> ProjectSnapshotReceipt:
+        return storage.recovery.snapshot_status(project_id, snapshot_id)
 
     @app.patch("/api/v2/projects/{project_id}", response_model=Project)
     def patch_project(

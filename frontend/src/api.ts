@@ -12,6 +12,7 @@ import type {
   ProjectMediaTasksResponse,
   ProjectListResponse,
   ProjectResource,
+  ProjectSnapshotReceipt,
   ProjectRunsResponse,
   ProviderSettings,
   ProviderSettingsUpdate,
@@ -158,6 +159,14 @@ export class PlotloomApiClient {
 
   openProjectFolder(projectId: string): Promise<{ projectId: string; state: "open"; revision: number }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/open`, { method: "POST" });
+  }
+
+  createProjectSnapshot(projectId: string): Promise<ProjectSnapshotReceipt> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/snapshots`, { method: "POST" });
+  }
+
+  getProjectSnapshot(projectId: string, snapshotId: string): Promise<ProjectSnapshotReceipt> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/snapshots/${encodeURIComponent(snapshotId)}`);
   }
 
   duplicateProject(projectId: string, expectedLifecycleRevision: number, title?: string, idempotencyKey?: string): Promise<ProjectDuplicateResponse> {
@@ -368,6 +377,8 @@ export class PlotloomApiClient {
     durableMediaDrafts?: boolean;
     /** True only for the direct project-folder composition. */
     explicitProjectClose?: boolean;
+    /** True only when the backend can create a verified portable snapshot. */
+    portableSnapshots?: boolean;
   }> {
     return this.request("/authoring-draft-capabilities");
   }
