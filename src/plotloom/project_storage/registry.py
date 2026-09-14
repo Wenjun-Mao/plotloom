@@ -14,9 +14,11 @@ from ..domain import (
     ProjectCreation,
     ProjectDuplicateResult,
     ProjectLifecycleStatus,
+    InitialStage,
     STAGE_ORDER,
     StageName,
     StageStatus,
+    validate_initial_stage_prefix,
 )
 from ..exceptions import (
     InvalidTransitionError,
@@ -75,7 +77,12 @@ class ProjectDirectoryRegistry:
         *,
         project_id: str | None = None,
         created_at: datetime | None = None,
+        initial_stages: tuple[InitialStage, ...] = (),
     ) -> ProjectStore:
+        # Reject an invalid bootstrap before publishing a manifest directory.
+        # This keeps an idempotent retry reservation recoverable only after a
+        # complete project initialization can actually begin.
+        validate_initial_stage_prefix(initial_stages)
         values: dict[str, object] = {"brief": brief}
         if project_id is not None:
             values["id"] = project_id
@@ -94,10 +101,76 @@ class ProjectDirectoryRegistry:
         lease = ProjectAccessLease.acquire(home, mode="shared")
         try:
             return ProjectStore.initialize(
-                home, manifest, project, access_lease=lease
+                home,
+                manifest,
+                project,
+                initial_stages=initial_stages,
+                access_lease=lease,
             )
         except BaseException:
             lease.close()
+            raise
+
+    def resume_creation(
+        self,
+        brief: ProjectBrief,
+        *,
+        project_id: str,
+        created_at: datetime,
+        initial_stages: tuple[InitialStage, ...] = (),
+    ) -> ProjectStore:
+        """Finish one expired idempotent bootstrap at its reserved home.
+
+        The application ledger grants this method's caller the sole expired
+        creation lease.  An interrupted initializer can therefore reuse its
+        validated manifest and complete the project transaction, rather than
+        opening a half-published home or allocating another project ID.
+        """
+
+        validate_initial_stage_prefix(initial_stages)
+        project = Project(
+            id=project_id,
+            brief=brief,
+            created_at=created_at,
+            updated_at=created_at,
+        )
+        home = self.outputs_root / f"{_utc_folder_timestamp(created_at)}__{project_id}"
+        if home.is_symlink() or not home.is_dir():
+            raise ProjectStorageCorruptionError(
+                "reserved project home is missing or not a real directory"
+            )
+        manifest_path = home / PROJECT_MANIFEST_FILENAME
+        if manifest_path.is_symlink() or not manifest_path.is_file():
+            raise ProjectStorageCorruptionError("reserved project home has no regular manifest")
+        try:
+            manifest = ProjectManifest.model_validate(_read_json(manifest_path))
+        except ValueError as error:
+            raise ProjectStorageCorruptionError(
+                "reserved project manifest does not meet this storage format"
+            ) from error
+        if manifest.project_id != project.id or manifest.created_at != project.created_at:
+            raise ProjectStorageCorruptionError(
+                "reserved project manifest does not match its idempotency reservation"
+            )
+        lease = ProjectAccessLease.acquire(home, mode="shared")
+        try:
+            try:
+                return ProjectStore.initialize(
+                    home,
+                    manifest,
+                    project,
+                    initial_stages=initial_stages,
+                    access_lease=lease,
+                )
+            except InvalidTransitionError as error:
+                if str(error) != "project repository has already been initialized":
+                    raise
+                store = ProjectStore.open(home, defer_wal=True, access_lease=lease)
+                store.repository.enable_sqlite_wal()
+                return store
+        except BaseException:
+            if lease.descriptor >= 0:
+                lease.close()
             raise
 
     def discover(self) -> list[ProjectHome]:

@@ -14,6 +14,7 @@ from ..domain import (
     AuthoringDraftScope,
     FragmentReuseBinding,
     GenerationRun,
+    InitialStage,
     Project,
     ProjectBrief,
     RunExecutionTrace,
@@ -136,6 +137,7 @@ class ProjectStore:
         manifest: ProjectManifest,
         project: Project,
         *,
+        initial_stages: tuple[InitialStage, ...] = (),
         access_lease: ProjectAccessLease | None = None,
     ) -> "ProjectStore":
         if project.id != manifest.project_id:
@@ -149,7 +151,7 @@ class ProjectStore:
             access_lease=access_lease,
         )
         try:
-            store.repository.initialize_project(project)
+            store.repository.initialize_project(project, initial_stages=initial_stages)
         except BaseException:
             store.repository.close()
             raise

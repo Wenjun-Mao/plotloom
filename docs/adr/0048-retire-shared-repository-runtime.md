@@ -52,10 +52,46 @@ invariants, and assert that no retired module or public alias is importable.
 The wheel smoke rejects any retired module packaged into a distribution and
 blocks it during runtime startup and recovery.
 
-The old shared-route and shared-repository test suites are retired as historical
-mode tests, not treated as current product coverage. Their current product
-journeys are covered by the project-folder runtime, recovery, media, video, and
-browser suites; the precise disposition is recorded in the retirement receipt.
+Only tests whose contract was the removed shared route/facade, generic media
+worker, or unsupported shared-store migration are retired. A fixture's use of
+`SQLiteRepository` is not itself a retirement reason. The exact disposition of
+every deleted or materially rewritten test function (including parameterized
+cases) is versioned in the machine-checkable coverage inventory and checked
+against the pre-retirement baseline.
+
+### Coverage-preservation amendment (2026-09-14)
+
+The original retirement changed the test tree too broadly: durable generation
+behavior was lost together with the shared fixture even though the behavior is
+still owned by manifest-bound project stores. The evidence is the diff from
+`e658057` to `f908c51`, which removed 301 baseline test functions or materially
+rewrote their coverage population. The durable correction belongs at the current
+project/application owner test layer, not in a facade shim or storage
+compatibility mode.
+
+`docs/verification/2026-09-14-retained-runtime-coverage-inventory.json`
+classifies the baseline tests as migrated current contracts, existing assertion
+equivalents, or approved breaking-storage retirements. Its verifier rejects an
+unclassified baseline test or a missing current replacement. The restored
+project-generation tests assert the two-correction cap and lineage,
+dispatch-before-call, reasoning-only separation, durable primary/correction
+response recovery without replay, provider-echo redaction, correction audit
+hash tampering, and exact-repair evidence tampering. Existing project-folder
+tests retain image/video currentness, lifecycle/review, artifact ownership,
+atomic direct-video claims, seals, and installation behavior.
+
+The coverage audit also exposed an API ownership regression: the project-folder
+route no longer preserved atomic initial-stage installation or project-creation
+idempotency. Project initialization now validates and installs the canonical
+initial prefix in one project-database bootstrap transaction. The application
+lifecycle ledger owns only the retry key, request fingerprint, and reserved
+project identity; it never stores brief or stage content. Its token-bound lease
+returns a retryable 503 while bootstrap is active, lets exactly one retry
+recover an expired owner, and prevents a replay from opening a manifest before
+the project transaction completes. Reusing a completed key returns the same
+project, while divergent reuse is a 409 conflict. This restores the public
+contract at its two real owners without recreating a shared repository or route
+facade.
 
 ## Rejected alternatives
 

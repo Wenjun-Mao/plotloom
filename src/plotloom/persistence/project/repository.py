@@ -5,13 +5,22 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Any, ContextManager
+from typing import Any, ContextManager, Sequence
 
 from sqlalchemy import select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
-from ...domain import Project, StageName, StageStatus, STAGE_ORDER, utc_now
+from ...domain import (
+    InitialStage,
+    Project,
+    StageName,
+    StageStatus,
+    STAGE_ORDER,
+    stage_payload_model,
+    utc_now,
+    validate_initial_stage_prefix,
+)
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ..database import RepositoryDatabase
 from ..schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES, GenerationRunRow, ProjectOperationalStateRow, ProjectRow, StageHeadRow
@@ -245,18 +254,23 @@ class ProjectSQLiteRepository:
             recovery_operations_present=recovery_operations_present,
         )
 
-    def initialize_project(self, project: Project) -> Project:
+    def initialize_project(
+        self, project: Project, *, initial_stages: Sequence[InitialStage] = ()
+    ) -> Project:
         if project.id != self.project_id:
             raise InvalidTransitionError("project repository identity does not match project initialization")
+        normalized_stages = [InitialStage.model_validate(stage) for stage in initial_stages]
+        validate_initial_stage_prefix(normalized_stages)
         with self._bootstrap_write() as session:
             if session.scalar(select(ProjectRow.id).limit(1)) is not None:
                 raise InvalidTransitionError("project repository has already been initialized")
-            session.add(ProjectRow(
+            project_row = ProjectRow(
                 id=project.id, revision=project.revision, lifecycle_revision=project.lifecycle_revision,
                 lifecycle_status=project.lifecycle_status.value, archived_at=project.archived_at,
                 brief=project.brief.model_dump(mode="json", by_alias=False),
                 created_at=project.created_at, updated_at=project.updated_at,
-            ))
+            )
+            session.add(project_row)
             session.flush()
             session.add(ProjectOperationalStateRow(project_id=project.id, state="open", revision=1, changed_at=project.created_at))
             for stage in STAGE_ORDER:
@@ -266,6 +280,20 @@ class ProjectSQLiteRepository:
                     content_hash=None, schema_version=CURRENT_STAGE_SCHEMA_VERSION,
                     input_revisions={}, stale_reasons=[], updated_at=project.updated_at,
                 ))
+            session.flush()
+            for initial_stage in normalized_stages:
+                payload = stage_payload_model(
+                    initial_stage.stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION
+                ).model_validate(initial_stage.payload)
+                self._canonical._install_stage_in_session(
+                    session,
+                    project_row,
+                    initial_stage.stage,
+                    payload,
+                    expected_revision=0,
+                    now=project.created_at,
+                    allow_noop=False,
+                )
         return self.authoring.get_project(project.id)
 
     def get_project(self, project_id: str) -> Project:

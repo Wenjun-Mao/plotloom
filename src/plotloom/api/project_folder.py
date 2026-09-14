@@ -22,6 +22,8 @@ from ..domain import (
     StageName,
 )
 from ..exceptions import (
+    BootstrapContentionError,
+    IdempotencyConflictError,
     InvalidTransitionError,
     NotFoundError,
     ProjectManagedAssetsPresentError,
@@ -70,6 +72,7 @@ from .project_folder_image_jobs import register_project_folder_image_job_routes
 from .project_folder_video import register_project_folder_video_routes
 from ..project_storage.video_service import ProjectVideoService
 from ..project_storage.text_dispatch import ProjectRunDispatcher
+from ..persistence import stable_hash
 from .project_folder_generation import register_project_folder_generation_routes
 from .text_admission import TextAdmissionService
 from .text_backends import register_text_profile_routes
@@ -199,6 +202,25 @@ def create_project_folder_authoring_app(
             content={"code": "revision_conflict", "message": str(error)},
         )
 
+    @app.exception_handler(IdempotencyConflictError)
+    async def idempotency_conflict_handler(
+        _request: Request, error: IdempotencyConflictError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "idempotency_conflict", "message": str(error)},
+        )
+
+    @app.exception_handler(BootstrapContentionError)
+    async def bootstrap_contention_handler(
+        _request: Request, error: BootstrapContentionError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"code": "bootstrap_contention", "message": str(error)},
+            headers={"Retry-After": str(error.retry_after_seconds)},
+        )
+
     @app.exception_handler(ProjectBusyError)
     async def project_busy_handler(
         _request: Request, error: ProjectBusyError
@@ -305,18 +327,53 @@ def create_project_folder_authoring_app(
         response_model=ProjectCreation,
         status_code=status.HTTP_201_CREATED,
     )
-    def create_project(body: ProjectCreateRequest) -> ProjectCreation:
-        store = storage.projects.create(body.brief)
-        project_id = store.manifest.project_id
-        try:
-            for initial_stage in body.initial_stages:
-                store.update_stage(
-                    initial_stage.stage,
-                    initial_stage.payload,
-                    expected_revision=0,
-                )
-        finally:
+    def create_project(
+        body: ProjectCreateRequest,
+        idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
+    ) -> ProjectCreation:
+        key = _normalize_idempotency_key(idempotency_key)
+        if key is None:
+            store = storage.projects.create(
+                body.brief, initial_stages=tuple(body.initial_stages)
+            )
+            project_id = store.manifest.project_id
             store.close()
+            return creation_response(project_id)
+        fingerprint = stable_hash(
+            {
+                "brief": body.brief.model_dump(mode="json", by_alias=False),
+                "initialStages": [
+                    stage.model_dump(mode="json", by_alias=False)
+                    for stage in body.initial_stages
+                ],
+            }
+        )
+        reservation = storage.application.project_lifecycle.reserve_creation(
+            key=key, fingerprint=fingerprint
+        )
+        project_id = reservation.target_project_id
+        if not reservation.complete:
+            if not reservation.initialization_claimed:
+                raise BootstrapContentionError(retry_after_seconds=1)
+            try:
+                store = storage.projects.create(
+                    body.brief,
+                    project_id=project_id,
+                    created_at=reservation.target_created_at,
+                    initial_stages=tuple(body.initial_stages),
+                )
+            except ProjectStorageConflictError:
+                # The application lease is ours only after an owner expires.
+                # Resume its exact reserved home; never open a partial folder,
+                # allocate another ID, or substitute request inputs.
+                store = storage.projects.resume_creation(
+                    body.brief,
+                    project_id=project_id,
+                    created_at=reservation.target_created_at,
+                    initial_stages=tuple(body.initial_stages),
+                )
+            store.close()
+            storage.application.project_lifecycle.complete_creation(reservation)
         return creation_response(project_id)
 
     @app.get("/api/v2/projects", response_model=ProjectListResponse)

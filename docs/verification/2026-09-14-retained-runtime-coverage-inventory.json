@@ -1,0 +1,2319 @@
+{
+  "schema_version": 1,
+  "baseline_commit": "e658057",
+  "retirement_commit": "f908c51",
+  "policies": {
+    "tests/backend_core/test_api.py": {
+      "disposition": "truly_retired_contract",
+      "current_replacements": [],
+      "assertion_rationale": "Approved breaking project-folder storage cutover removed the legacy V1 reset endpoint and the hard-stopped generic media facade; neither has a production project-folder owner."
+    },
+    "tests/backend_core/test_api.py::test_camel_case_and_revision_conflict": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes",
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_static_mount_serves_the_current_workbench_index"
+      ],
+      "assertion_rationale": "Current project-folder routes retain typed responses, bounded run lookup/progress, and actionable validation without the shared factory."
+    },
+    "tests/backend_core/test_api.py::test_canonical_schema_errors_are_actionable_422_issues": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes",
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_static_mount_serves_the_current_workbench_index"
+      ],
+      "assertion_rationale": "Current project-folder routes retain typed responses, bounded run lookup/progress, and actionable validation without the shared factory."
+    },
+    "tests/backend_core/test_api.py::test_definite_preflight_failure_creates_no_pipeline_run": {
+      "disposition": "existing_equivalent",
+      "current_replacements": [
+        "tests/backend_core/test_jobs.py::test_enqueue_then_brief_edit_fails_preflight_without_provider_cost"
+      ],
+      "assertion_rationale": "The project generation runner asserts stale preflight fails before an engine/provider call and creates no canonical output."
+    },
+    "tests/backend_core/test_api.py::test_exact_repair_api_projects_old_parent_plan_as_ineligible": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage.py::test_exact_repair_lineage_is_project_owned_and_reopenable",
+        "tests/test_project_storage.py::test_stale_exact_repair_and_foreign_project_routes_are_rejected",
+        "tests/test_project_storage_generation_contracts.py::test_project_exact_repair_refuses_tampered_response_evidence_without_creating_a_child"
+      ],
+      "assertion_rationale": "Current exact repair is project-bound, snapshot-stale aware, profile-frozen, and rejects tampered evidence before child admission."
+    },
+    "tests/backend_core/test_api.py::test_exact_v2_route_contract": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes",
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_static_mount_serves_the_current_workbench_index"
+      ],
+      "assertion_rationale": "Current project-folder routes retain typed responses, bounded run lookup/progress, and actionable validation without the shared factory."
+    },
+    "tests/backend_core/test_api.py::test_exact_work_unit_repair_uses_frozen_profile_and_rejects_client_overrides": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage.py::test_exact_repair_lineage_is_project_owned_and_reopenable",
+        "tests/test_project_storage.py::test_stale_exact_repair_and_foreign_project_routes_are_rejected",
+        "tests/test_project_storage_generation_contracts.py::test_project_exact_repair_refuses_tampered_response_evidence_without_creating_a_child"
+      ],
+      "assertion_rationale": "Current exact repair is project-bound, snapshot-stale aware, profile-frozen, and rejects tampered evidence before child admission."
+    },
+    "tests/backend_core/test_api.py::test_legacy_provider_settings_write_obeys_active_profile_revision": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_legacy_provider_settings_write_rejects_a_changed_active_profile": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_profile_crud_round_trips_the_trusted_adapter_selection": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_profile_delete_accepts_the_public_camel_case_revision_query": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_profile_probe_exercises_a_declared_json_schema_capability": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_profile_probe_uses_its_server_key_without_a_browser_override": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_project_bootstrap_installs_a_prefix_and_replays_an_idempotency_key": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_replays_a_canonical_prefix_without_duplicate_project",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_rejects_a_noncanonical_initial_prefix",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_returns_retryable_contention_then_replays",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_recovers_an_expired_crash_reservation"
+      ],
+      "assertion_rationale": "The project-folder bootstrap atomically installs a canonical prefix and uses an application-owned idempotency lease to reject divergent reuse, return retryable contention during initialization, and recover one expired owner without duplicating the project."
+    },
+    "tests/backend_core/test_api.py::test_project_bootstrap_requires_a_canonical_initial_prefix": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_replays_a_canonical_prefix_without_duplicate_project",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_rejects_a_noncanonical_initial_prefix",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_returns_retryable_contention_then_replays",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_recovers_an_expired_crash_reservation"
+      ],
+      "assertion_rationale": "The project-folder bootstrap atomically installs a canonical prefix and uses an application-owned idempotency lease to reject divergent reuse, return retryable contention during initialization, and recover one expired owner without duplicating the project."
+    },
+    "tests/backend_core/test_api.py::test_project_creation_contention_returns_retryable_response": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_replays_a_canonical_prefix_without_duplicate_project",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_rejects_a_noncanonical_initial_prefix",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_returns_retryable_contention_then_replays",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_recovers_an_expired_crash_reservation"
+      ],
+      "assertion_rationale": "The project-folder bootstrap atomically installs a canonical prefix and uses an application-owned idempotency lease to reject divergent reuse, return retryable contention during initialization, and recover one expired owner without duplicating the project."
+    },
+    "tests/backend_core/test_api.py::test_provider_and_media_request_reject_secret_fields": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_provider_profile_partial_updates_validate_after_merging_current_values": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_provider_profile_rejects_an_impossible_text_token_budget": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_provider_settings_merge_defaults_and_freeze_on_run": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_request_schema_errors_are_actionable_and_never_echo_rejected_secrets": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api.py::test_run_progress_is_bounded_and_excludes_prompt_response_and_validation_payloads": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes",
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_static_mount_serves_the_current_workbench_index"
+      ],
+      "assertion_rationale": "Current project-folder routes retain typed responses, bounded run lookup/progress, and actionable validation without the shared factory."
+    },
+    "tests/backend_core/test_api.py::test_stage_envelopes_rehydrate_all_canonical_payloads": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_replays_a_canonical_prefix_without_duplicate_project",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_rejects_a_noncanonical_initial_prefix",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_returns_retryable_contention_then_replays",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_bootstrap_recovers_an_expired_crash_reservation"
+      ],
+      "assertion_rationale": "The project-folder bootstrap atomically installs a canonical prefix and uses an application-owned idempotency lease to reject divergent reuse, return retryable contention during initialization, and recover one expired owner without duplicating the project."
+    },
+    "tests/backend_core/test_api.py::test_static_v2_mount_serves_index": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes",
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues",
+        "tests/test_project_storage_route_contracts.py::test_project_folder_static_mount_serves_the_current_workbench_index"
+      ],
+      "assertion_rationale": "Current project-folder routes retain typed responses, bounded run lookup/progress, and actionable validation without the shared factory."
+    },
+    "tests/backend_core/test_api.py::test_text_run_submission_requires_auth_only_for_bearer_and_can_resume": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
+      ],
+      "assertion_rationale": "Application-owned profile revisions, selection, frozen run snapshots, disabled-profile rejection, and session-key non-persistence replace shared profile control-plane tests."
+    },
+    "tests/backend_core/test_api_modularization_contract.py": {
+      "disposition": "truly_retired_contract",
+      "current_replacements": [],
+      "assertion_rationale": "Approved breaking project-folder storage cutover removed this shared-facade-only surface; no retained-project importer, route alias, or generic media worker is supported."
+    },
+    "tests/backend_core/test_exact_work_unit_repair_integration.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage.py::test_exact_repair_lineage_is_project_owned_and_reopenable",
+        "tests/test_project_storage.py::test_stale_exact_repair_and_foreign_project_routes_are_rejected",
+        "tests/test_project_storage_generation_contracts.py::test_project_exact_repair_refuses_tampered_response_evidence_without_creating_a_child"
+      ],
+      "assertion_rationale": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions."
+    },
+    "tests/backend_core/test_frontend_contract.py": {
+      "disposition": "truly_retired_contract",
+      "current_replacements": [],
+      "assertion_rationale": "Approved breaking project-folder storage cutover removed this shared-facade-only surface; no retained-project importer, route alias, or generic media worker is supported."
+    },
+    "tests/backend_core/test_image_jobs.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
+      ],
+      "assertion_rationale": "Project-owned image route coverage asserts delivery hashes, authority, intent currentness, review, and cross-project isolation without a shared exchange database."
+    },
+    "tests/backend_core/test_jobs.py": {
+      "disposition": "existing_equivalent",
+      "current_replacements": [
+        "tests/backend_core/test_jobs.py::test_runner_starts_installs_and_finishes_without_name_error"
+      ],
+      "assertion_rationale": "This file was migrated in place: its assertions now use the explicit manifest-bound project store rather than a shared test repository."
+    },
+    "tests/backend_core/test_m15_attempt_lineage.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_project_generation_caps_corrections_and_keeps_durable_lineage"
+      ],
+      "assertion_rationale": "Current project attempts preserve a two-correction ceiling and durable primary-to-correction lineage."
+    },
+    "tests/backend_core/test_m15_migration_compatibility.py": {
+      "disposition": "truly_retired_contract",
+      "current_replacements": [],
+      "assertion_rationale": "Approved breaking project-folder storage cutover removed this shared-facade-only surface; no retained-project importer, route alias, or generic media worker is supported."
+    },
+    "tests/backend_core/test_m15_profile_repository.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes"
+      ],
+      "assertion_rationale": "Application-owned profiles retain selection and revision checks, freeze a run snapshot, and keep session keys outside project state while production admission selects the active profile."
+    },
+    "tests/backend_core/test_m15_story_graph_lifecycle.py": {
+      "disposition": "existing_equivalent",
+      "current_replacements": [
+        "tests/test_project_storage.py::test_two_project_homes_run_actual_four_stage_pipeline_and_reopen_by_project_id"
+      ],
+      "assertion_rationale": "The production four-stage project run asserts persisted topology-derived stage seals and reopens them from the project folder."
+    },
+    "tests/backend_core/test_managed_still_media.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
+      ],
+      "assertion_rationale": "Current managed assets, visual intent, keyframe review, stale selection, and owned-delivery checks are exercised through project routes."
+    },
+    "tests/backend_core/test_p2_video_jobs.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
+        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+      ],
+      "assertion_rationale": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness."
+    },
+    "tests/backend_core/test_persistence_modularization_contract.py": {
+      "disposition": "truly_retired_contract",
+      "current_replacements": [],
+      "assertion_rationale": "Approved breaking project-folder storage cutover removed this shared-facade-only surface; no retained-project importer, route alias, or generic media worker is supported."
+    },
+    "tests/backend_core/test_pipeline.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_generation_contracts.py::test_project_generation_caps_corrections_and_keeps_durable_lineage",
+        "tests/test_project_storage_generation_contracts.py::test_project_generation_dispatches_before_call_and_never_reuses_reasoning",
+        "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
+        "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
+        "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
+        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+      ],
+      "assertion_rationale": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection."
+    },
+    "tests/backend_core/test_project_lifecycle.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion",
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_rejects_lifecycle_transitions_with_manual_publications"
+      ],
+      "assertion_rationale": "The production runtime owns archive, duplicate, deletion, and lifecycle publication guards through project handles and the application ledger."
+    },
+    "tests/backend_core/test_repository.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage.py::test_two_project_homes_run_actual_four_stage_pipeline_and_reopen_by_project_id",
+        "tests/test_project_storage.py::test_terminal_evidence_is_project_owned_without_partial_canonical_heads"
+      ],
+      "assertion_rationale": "Manifest-bound stores retain atomic canonical installation, project isolation, terminal evidence, and no-partial-head behavior."
+    },
+    "tests/backend_core/test_storyboard_review.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
+      ],
+      "assertion_rationale": "Project storyboard approval and reviewed-keyframe routes assert revision-bound approval and stale-currentness guards."
+    },
+    "tests/backend_core/test_work_unit_persistence.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_project_storage_work_unit_contracts.py::test_project_work_unit_claim_is_atomic_across_independent_project_handles",
+        "tests/test_project_storage_work_unit_contracts.py::test_project_work_unit_seal_requires_accepted_producer_and_freezes_evidence",
+        "tests/test_project_storage.py::test_terminal_evidence_is_project_owned_without_partial_canonical_heads"
+      ],
+      "assertion_rationale": "Project generation traces preserve atomic work-unit claims, producer/seal admission, immutable evidence, and atomic canonical installation."
+    },
+    "tests/media_jobs/test_runner.py": {
+      "disposition": "truly_retired_contract",
+      "current_replacements": [],
+      "assertion_rationale": "Approved breaking project-folder storage cutover removed this shared-facade-only surface; no retained-project importer, route alias, or generic media worker is supported."
+    },
+    "tests/test_alpha_acceptance.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
+        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+      ],
+      "assertion_rationale": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness."
+    },
+    "tests/test_conformance.py": {
+      "disposition": "migrated_current_contract",
+      "current_replacements": [
+        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
+        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+      ],
+      "assertion_rationale": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks."
+    }
+  },
+  "entries": [
+    {
+      "id": "tests/backend_core/test_api.py::test_exact_v2_route_contract",
+      "line": 208,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_exact_v2_route_contract"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_canonical_schema_errors_are_actionable_422_issues",
+      "line": 288,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_canonical_schema_errors_are_actionable_422_issues"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_request_schema_errors_are_actionable_and_never_echo_rejected_secrets",
+      "line": 325,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_request_schema_errors_are_actionable_and_never_echo_rejected_secrets"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_run_progress_is_bounded_and_excludes_prompt_response_and_validation_payloads",
+      "line": 376,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_run_progress_is_bounded_and_excludes_prompt_response_and_validation_payloads"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_exact_repair_api_projects_old_parent_plan_as_ineligible",
+      "line": 429,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_exact_repair_api_projects_old_parent_plan_as_ineligible"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_exact_work_unit_repair_uses_frozen_profile_and_rejects_client_overrides",
+      "line": 469,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_exact_work_unit_repair_uses_frozen_profile_and_rejects_client_overrides"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_camel_case_and_revision_conflict",
+      "line": 528,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_camel_case_and_revision_conflict"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_project_bootstrap_installs_a_prefix_and_replays_an_idempotency_key",
+      "line": 562,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_project_bootstrap_installs_a_prefix_and_replays_an_idempotency_key"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_project_bootstrap_requires_a_canonical_initial_prefix",
+      "line": 626,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_project_bootstrap_requires_a_canonical_initial_prefix"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_project_creation_contention_returns_retryable_response",
+      "line": 644,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_project_creation_contention_returns_retryable_response"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_provider_and_media_request_reject_secret_fields",
+      "line": 664,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_provider_and_media_request_reject_secret_fields"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_definite_preflight_failure_creates_no_pipeline_run",
+      "line": 726,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_definite_preflight_failure_creates_no_pipeline_run"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_profile_crud_round_trips_the_trusted_adapter_selection",
+      "line": 749,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_profile_crud_round_trips_the_trusted_adapter_selection"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_provider_settings_merge_defaults_and_freeze_on_run",
+      "line": 774,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_provider_settings_merge_defaults_and_freeze_on_run"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_profile_probe_uses_its_server_key_without_a_browser_override",
+      "line": 845,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_profile_probe_uses_its_server_key_without_a_browser_override"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_profile_probe_exercises_a_declared_json_schema_capability",
+      "line": 872,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_profile_probe_exercises_a_declared_json_schema_capability"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_text_run_submission_requires_auth_only_for_bearer_and_can_resume",
+      "line": 908,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_text_run_submission_requires_auth_only_for_bearer_and_can_resume"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_provider_profile_rejects_an_impossible_text_token_budget",
+      "line": 964,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_provider_profile_rejects_an_impossible_text_token_budget"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_provider_profile_partial_updates_validate_after_merging_current_values",
+      "line": 989,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_provider_profile_partial_updates_validate_after_merging_current_values"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_legacy_provider_settings_write_obeys_active_profile_revision",
+      "line": 1019,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_legacy_provider_settings_write_obeys_active_profile_revision"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_legacy_provider_settings_write_rejects_a_changed_active_profile",
+      "line": 1052,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_legacy_provider_settings_write_rejects_a_changed_active_profile"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_profile_delete_accepts_the_public_camel_case_revision_query",
+      "line": 1081,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_profile_delete_accepts_the_public_camel_case_revision_query"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_static_v2_mount_serves_index",
+      "line": 1099,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_static_v2_mount_serves_index"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_media_api_is_hard_stopped_before_lookup_compile_persist_or_dispatch",
+      "line": 1109,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_stage_envelopes_rehydrate_all_canonical_payloads",
+      "line": 1171,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py::test_stage_envelopes_rehydrate_all_canonical_payloads"
+    },
+    {
+      "id": "tests/backend_core/test_api.py::test_active_v1_canonical_stage_returns_stable_schema_reset_conflict",
+      "line": 1186,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api.py"
+    },
+    {
+      "id": "tests/backend_core/test_api_modularization_contract.py::test_direct_factory_accepts_production_runtime_collaborators",
+      "line": 84,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_api_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_rejects_nonreplayable_target_outcomes",
+      "line": 102,
+      "parameterized_cases": [
+        {
+          "argnames": [
+            "failure_disposition",
+            "outcome_unknown",
+            "expected_code"
+          ],
+          "cases": [
+            [
+              {
+                "source": "WorkUnitFailureDisposition.FAILED"
+              },
+              false,
+              "repair.target_not_quarantined"
+            ],
+            [
+              {
+                "source": "WorkUnitFailureDisposition.QUARANTINED"
+              },
+              true,
+              "repair.target_outcome_unknown"
+            ]
+          ]
+        }
+      ],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_rejects_stale_snapshot_and_cross_run_unit",
+      "line": 124,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_idempotency_replay_does_not_resubmit_child",
+      "line": 151,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_cancelled_exact_repair_keeps_its_scope_and_never_installs_partial_output",
+      "line": 173,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_restart_requeues_the_existing_exact_repair_scope_without_partial_installation",
+      "line": 216,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_scope_tampering_fails_closed",
+      "line": 246,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_archived_source_is_not_advertised_as_exact_repair_eligible",
+      "line": 261,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_tampered_child_reuse_binding_fails_closed_before_materialization",
+      "line": 312,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_downstream_repair_failure_never_installs_partial_child_seals",
+      "line": 338,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_permanent_delete_removes_exact_repair_scope_after_leaf_first_lineage_cleanup",
+      "line": 369,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_exact_work_unit_repair_integration.py"
+    },
+    {
+      "id": "tests/backend_core/test_frontend_contract.py::test_handwritten_response_dtos_match_openapi_fields_and_nullability",
+      "line": 34,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_frontend_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_image_job_requires_a_configured_same_host_exchange_before_admission",
+      "line": 209,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_image_job_requires_nonblank_creator_direction_before_admission",
+      "line": 229,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_image_job_refresh_reports_absent_delivery_as_waiting_without_a_receipt",
+      "line": 246,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_legacy_v1_package_remains_recheckable_without_a_template",
+      "line": 265,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_legacy_v3_package_keeps_its_unpinned_skill_template",
+      "line": 279,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_v4_executor_pin_is_the_only_awaiting_partial_delivery",
+      "line": 304,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_frozen_v2_executor_pin_remains_a_valid_awaiting_delivery",
+      "line": 359,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_manual_image_job_prepare_copy_refresh_select_and_refine",
+      "line": 384,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_image_job_rejects_partial_tampered_and_conflicting_delivery",
+      "line": 528,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_cancelled_or_revoked_job_retains_late_delivery_without_candidate",
+      "line": 578,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_image_job_rejects_forged_authority_cross_project_and_browser_paths",
+      "line": 601,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_image_job_rejects_malformed_or_oversized_and_revoked_late_delivery",
+      "line": 654,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_image_job_delivery_reconciliation_is_concurrently_idempotent",
+      "line": 697,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_archived_project_cannot_refresh_or_publish_an_image_delivery",
+      "line": 744,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_identity_reference_job_is_explicitly_reviewed_and_stales_on_replacement",
+      "line": 765,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_character_reference_proposal_is_story_first_and_never_auto_selects",
+      "line": 864,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_character_reference_decisions_are_project_scoped_and_revision_checked",
+      "line": 880,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_v3_maps_two_visible_characters_and_excludes_offscreen_context",
+      "line": 920,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_center_crop_is_source_bound_and_never_auto_selects_a_reviewed_keyframe",
+      "line": 977,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_keyframe_adaptation_freezes_source_and_exact_h3_geometry",
+      "line": 1040,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_image_jobs.py::test_character_reference_proposal_delivery_retains_candidate_without_auto_selection",
+      "line": 1116,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_image_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_jobs.py::test_generation_future_cleanup_preserves_newer_mapping",
+      "line": 76,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_jobs.py::test_runner_starts_installs_and_finishes_without_name_error",
+      "line": 94,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_jobs.py::test_runner_ignores_session_header_for_auth_none_and_waits_for_missing_bearer_key",
+      "line": 115,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_jobs.py::test_cancel_before_worker_start_releases_the_registered_run_key",
+      "line": 158,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_jobs.py::test_enqueue_then_brief_edit_fails_preflight_without_provider_cost",
+      "line": 205,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_jobs.py::test_enqueue_then_upstream_edit_fails_preflight_without_provider_cost",
+      "line": 229,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_jobs.py::test_runner_persists_stable_pre_attempt_planning_failure",
+      "line": 255,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_jobs.py::test_runner_quarantines_typed_aggregate_failure",
+      "line": 280,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_attempt_lineage.py::test_two_visible_corrections_form_a_bounded_durable_lineage_then_quarantine",
+      "line": 41,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_attempt_lineage.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_attempt_lineage.py::test_outcome_unknown_is_never_a_correction_source_or_blind_replay_target",
+      "line": 90,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_attempt_lineage.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_migration_compatibility.py::test_0005_to_head_preserves_sealed_history_json_and_hash_bytes",
+      "line": 14,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_migration_compatibility.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_migration_compatibility.py::test_0010_versions_legacy_stage_payloads_without_rewriting_payload_or_media_bytes",
+      "line": 169,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_migration_compatibility.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_migration_compatibility.py::test_0006_keeps_historic_v1_run_snapshot_and_plan_bytes_while_terminating_live_work",
+      "line": 249,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_migration_compatibility.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_migration_compatibility.py::test_0006_removes_legacy_api_keys_from_old_and_named_provider_settings",
+      "line": 281,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_migration_compatibility.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_profile_repository.py::test_profile_control_plane_crud_selection_revision_and_run_snapshot_isolation",
+      "line": 47,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_profile_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_profile_repository.py::test_profile_configuration_never_accepts_secret_shaped_values",
+      "line": 122,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_profile_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_profile_repository.py::test_profile_api_is_secret_free_and_pipeline_honors_requested_profile",
+      "line": 133,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_profile_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_profile_repository.py::test_profile_availability_is_revisioned_without_rewriting_snapshots_and_guards_admission",
+      "line": 187,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_profile_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_profile_repository.py::test_managed_v2_admission_requires_a_registered_profile_without_changing_v1_compatibility",
+      "line": 253,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_profile_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_profile_repository.py::test_disabled_selected_profile_stays_selected_but_cannot_activate_or_admit_via_api",
+      "line": 304,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_profile_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_story_graph_lifecycle.py::test_story_graph_topology_is_persisted_bound_to_plan_and_exposed_in_trace",
+      "line": 12,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_story_graph_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_m15_story_graph_lifecycle.py::test_infeasible_graph_brief_fails_before_a_run_or_provider_work_is_created",
+      "line": 45,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_m15_story_graph_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_managed_still_media.py::test_imported_still_preview_is_immutable_and_lifecycle_safe",
+      "line": 117,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_managed_still_media.py"
+    },
+    {
+      "id": "tests/backend_core/test_managed_still_media.py::test_storyboard_edit_blocks_reviewed_selection_until_reapproved",
+      "line": 279,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_managed_still_media.py"
+    },
+    {
+      "id": "tests/backend_core/test_managed_still_media.py::test_corrupt_deduplicated_blob_is_rejected_before_metadata_publication",
+      "line": 326,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_managed_still_media.py"
+    },
+    {
+      "id": "tests/backend_core/test_managed_still_media.py::test_decode_boundaries_reject_invalid_or_unsupported_uploads",
+      "line": 345,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_managed_still_media.py"
+    },
+    {
+      "id": "tests/backend_core/test_managed_still_media.py::test_import_admission_rejects_unowned_publication_and_cross_project_access",
+      "line": 365,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_managed_still_media.py"
+    },
+    {
+      "id": "tests/backend_core/test_managed_still_media.py::test_import_publication_and_archive_are_serialized_by_lifecycle_admission",
+      "line": 428,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_managed_still_media.py"
+    },
+    {
+      "id": "tests/backend_core/test_managed_still_media.py::test_import_format_and_configured_size_boundaries",
+      "line": 493,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_managed_still_media.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_fake_fastapi_p2_path_is_idempotent_budgeted_and_range_playable",
+      "line": 120,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget",
+      "line": 171,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_h3_refuses_a_mismatched_keyframe_before_creating_a_job_or_submitting",
+      "line": 225,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_h3_known_gateway_outcome_unknown_is_never_replayed",
+      "line": 277,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_h3_rejects_a_playable_output_that_violates_the_frozen_profile",
+      "line": 306,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_h3_stale_identity_lineage_cannot_cross_the_submit_boundary",
+      "line": 337,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_p2_cap_claims_are_atomic_and_cancel_only_releases_before_dispatch",
+      "line": 387,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_p2_unknown_post_and_private_download_never_replay_or_publish",
+      "line": 423,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_p2_upload_diagnostic_keeps_unknown_outcome_and_budget_without_provider_text",
+      "line": 443,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_p2_submit_response_diagnostic_never_treats_a_post_as_replayable",
+      "line": 470,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_p2_download_boundary_rejects_private_and_probe_failures",
+      "line": 499,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_p2_imported_keyframe_freezes_visible_character_reference_lineage",
+      "line": 509,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_p2_video_jobs.py::test_known_remote_failure_is_terminal_and_cancelled_known_id_is_polled_not_adopted",
+      "line": 554,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_p2_video_jobs.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_persistence_package_preserves_baseline_metadata_imports_and_table_scope",
+      "line": 88,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_persistence_package_preserves_repository_signatures_and_named_leases",
+      "line": 103,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_project_authoring_and_lifecycle_use_explicit_capability_composition",
+      "line": 114,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_moved_facade_signatures_and_project_bound_identity_remain_stable",
+      "line": 137,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_project_repository_composes_without_loading_the_retained_facade",
+      "line": 165,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_direct_project_surfaces_have_named_dependencies_without_root_bounceback",
+      "line": 217,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_direct_project_used_paths_block_the_retained_facade",
+      "line": 247,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_bound_project_initialization_rejects_a_foreign_existing_row",
+      "line": 278,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_project_video_bridge_uses_named_project_contracts",
+      "line": 298,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_generation_capabilities_are_explicitly_composed_with_preserved_facade_signatures",
+      "line": 312,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_generation_policy_is_absent_from_the_retained_facade_and_owners_do_not_bounce_back",
+      "line": 340,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_media_and_application_control_are_explicit_owners_without_facade_bouncebacks",
+      "line": 368,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_media_and_control_submodules_keep_currentness_and_projection_boundaries",
+      "line": 401,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_persistence_modularization_contract.py::test_extracted_pilot_accounting_reuses_the_historical_durable_ledger_identity",
+      "line": 450,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_persistence_modularization_contract.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_snapshot_provider_resolver_translates_canonical_capability_aliases",
+      "line": 438,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_run_resolves_provider_defaults_before_enqueue_and_never_reads_later_fallbacks",
+      "line": 463,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_job_runner_persists_obsolete_planning_policy_without_provider_dispatch",
+      "line": 507,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_pipeline_generates_traces_then_commits_all_stages_atomically",
+      "line": 568,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_storyboard_only_pipeline_freezes_and_replays_its_own_timing_profile",
+      "line": 622,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_dispatch_marker_is_committed_before_the_provider_call",
+      "line": 672,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_post_dispatch_provider_failure_is_outcome_unknown_and_is_not_replayed",
+      "line": 714,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_received_provider_failure_is_known_and_not_replayed",
+      "line": 745,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_response_persistence_failure_is_storage_failure_not_unknown",
+      "line": 784,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_startup_recovery_recommits_complete_seals_without_a_provider_replay",
+      "line": 823,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_startup_recovery_resumes_same_predispatch_attempt_identity",
+      "line": 859,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_startup_recovery_reuses_durable_response_without_provider_replay",
+      "line": 905,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_startup_recovery_reuses_durable_correction_response_without_replay",
+      "line": 960,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_later_provider_failure_retains_prior_trace_and_current_prompt",
+      "line": 1027,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_invalid_json_persists_response_before_local_parsing_quarantines",
+      "line": 1069,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_provider_secret_fields_are_redacted_before_trace_persistence",
+      "line": 1105,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_central_redaction_removes_third_party_adapter_echo_without_spending_another_lease",
+      "line": 1141,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_central_redaction_removes_third_party_provider_error_from_attempt_trace",
+      "line": 1175,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_v2_profile_corrects_a_known_rejection_with_visible_attempt_lineage",
+      "line": 1202,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_scene_timing_is_derived_without_model_authored_clock_values",
+      "line": 1243,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_non_timing_scene_rejection_reaches_correction_without_fact_reprojection",
+      "line": 1307,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_wrong_scene_cue_language_reaches_correction_without_wildcard_timing_rule",
+      "line": 1375,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_v2_graph_projection_rejection_is_corrected_instead_of_becoming_internal_error",
+      "line": 1456,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_non_join_nonfinite_state_effect_reaches_typed_correction_and_installs",
+      "line": 1530,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_graph_join_subset_rejection_uses_typed_repair_facts",
+      "line": 1603,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_graph_join_reconstruction_after_extraction_uses_complete_repair_fact",
+      "line": 1701,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_graph_join_reconstruction_after_extraction_combines_subset_and_conflict",
+      "line": 1799,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_graph_join_missing_convergent_null_uses_exact_expected_value_and_installs",
+      "line": 1912,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_graph_join_allowed_difference_promotes_key_and_populates_all_incoming_edges",
+      "line": 2007,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_graph_join_convergent_conflict_uses_topology_bound_repair_and_installs",
+      "line": 2100,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_storyboard_invalid_entity_state_uses_frozen_bible_repair_fact",
+      "line": 2204,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_storyboard_audio_timing_uses_exact_frozen_repair_fact",
+      "line": 2321,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_storyboard_timing_plan_correction_seals_and_installs",
+      "line": 2411,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_storyboard_timing_plan_postcondition_quarantines_coverage_rewrite_without_later_retry",
+      "line": 2484,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_storyboard_timing_fact_rejects_unbound_or_rehashed_guidance_before_correction_dispatch",
+      "line": 2597,
+      "parameterized_cases": [
+        {
+          "argnames": "tamper_mode",
+          "cases": [
+            "other_guidance",
+            "same_guidance_plan",
+            "legacy_plan"
+          ]
+        }
+      ],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_continuity_fact_rejects_rebound_owner_before_correction_dispatch",
+      "line": 2720,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_storyboard_continuity_fact_rejects_reordered_items_before_dispatch",
+      "line": 2824,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_scene_beats_second_correction_rebinds_new_continuity_fact",
+      "line": 2916,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_scene_beats_cue_order_correction_is_exact_and_source_bound",
+      "line": 3114,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_cue_order_postcondition_quarantines_membership_change_without_native_schema",
+      "line": 3194,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_cue_order_fact_rejects_rebound_membership_before_dispatch",
+      "line": 3262,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_scene_beats_capacity_rejection_keeps_exact_frozen_guidance_in_correction",
+      "line": 3334,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_unexpected_validator_exception_stays_fail_closed_without_correction",
+      "line": 3404,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_recovery_refuses_to_correct_under_a_changed_base_contract",
+      "line": 3459,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_correction_audit_selection_hash_mismatch_prevents_provider_dispatch",
+      "line": 3529,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_correction_treats_previous_final_as_untrusted_json_string",
+      "line": 3584,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_oversized_correction_fails_before_a_second_provider_dispatch",
+      "line": 3616,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_v2_profile_stops_after_two_corrections_and_quarantines",
+      "line": 3649,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_reasoning_without_final_content_is_corrected_without_reusing_reasoning",
+      "line": 3726,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_cancellation_retains_completed_attempt_trace",
+      "line": 3758,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_prompt_persistence_failure_prevents_provider_spend",
+      "line": 3793,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_exact_work_unit_repair_reexecutes_only_the_failed_shard_and_commits_atomically",
+      "line": 3830,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_exact_repair_rejects_an_upstream_child_selector_drift",
+      "line": 3961,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_legacy_unbound_repair_remains_compatible",
+      "line": 4021,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_exact_scope_link_never_falls_back_to_legacy_repair",
+      "line": 4077,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_pipeline.py::test_preexisting_work_unit_repair_is_rejected_before_provider_dispatch",
+      "line": 4119,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_pipeline.py"
+    },
+    {
+      "id": "tests/backend_core/test_project_lifecycle.py::test_archive_restore_and_archived_write_guards",
+      "line": 43,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_project_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_project_lifecycle.py::test_project_listing_paginates_by_immutable_created_at_then_id",
+      "line": 85,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_project_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_project_lifecycle.py::test_lifecycle_revision_is_atomic_across_repository_instances",
+      "line": 115,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_project_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_project_lifecycle.py::test_duplicate_copies_only_ready_prefix_and_replays_idempotently",
+      "line": 144,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_project_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_project_lifecycle.py::test_duplicate_stops_at_a_nonready_gap_even_if_later_stages_are_ready",
+      "line": 178,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_project_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_project_lifecycle.py::test_permanent_delete_requires_archived_terminal_project",
+      "line": 209,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_project_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_project_lifecycle.py::test_busy_guard_includes_nonterminal_work_units",
+      "line": 237,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_project_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_project_lifecycle.py::test_permanent_delete_never_unlinks_an_opaque_media_output_uri",
+      "line": 250,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_project_lifecycle.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_project_and_stage_revision_conflicts",
+      "line": 141,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_stage_change_marks_existing_downstream_stale",
+      "line": 154,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_atomic_four_stage_run_installs_and_succeeds",
+      "line": 164,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_canonical_artifact_insert_failure_rolls_back_entire_commit",
+      "line": 189,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_project_bootstrap_rolls_back_everything_when_a_later_stage_is_invalid",
+      "line": 221,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_project_bootstrap_persistence_failure_rolls_back_project_stages_and_key",
+      "line": 243,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_idempotent_bootstrap_converges_across_repository_instances",
+      "line": 276,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_idempotent_replay_waits_for_held_writer_then_converges_or_conflicts",
+      "line": 308,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_repository_rejects_non_public_provider_snapshots",
+      "line": 363,
+      "parameterized_cases": [
+        {
+          "argnames": "provider_snapshot",
+          "cases": [
+            {
+              "apiKey": "must-not-persist"
+            },
+            {
+              "temperature": 0.2
+            },
+            {
+              "textModel": "Bearer must-not-persist"
+            },
+            {
+              "textModel": "sk-must-not-persist"
+            },
+            {
+              "textBaseUrl": "https://user:password@example.test/v1"
+            },
+            {
+              "textBaseUrl": "https://example.test/v1?api_key=must-not-persist"
+            },
+            {
+              "textModel": "https://example.test/models?access_token=must-not-persist"
+            }
+          ]
+        }
+      ],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_cancel_after_atomic_install_preserves_committed_success",
+      "line": 381,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_concurrent_project_edit_quarantines_without_partial_install",
+      "line": 392,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_unrequested_downstream_edit_does_not_quarantine_upstream_run",
+      "line": 408,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_snapshot_freezes_brief_and_reads_upstream_by_revision",
+      "line": 430,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_historical_v1_media_context_cannot_reopen_current_media_creation",
+      "line": 443,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_media_repository_boundary_never_looks_up_or_writes_shot_derived_tasks",
+      "line": 451,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_legacy_media_execution_is_hard_stopped_but_can_be_safely_terminalized",
+      "line": 476,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_archived_project_rejects_gate_writes_but_keeps_receipts_readable",
+      "line": 531,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_historical_run_snapshot_without_schema_version_reads_frozen_v1_payload",
+      "line": 548,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_provider_settings_are_public_and_revisioned",
+      "line": 577,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_startup_reconciliation_resubmits_only_safe_jobs_and_closes_interrupted_work",
+      "line": 584,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_file_sqlite_uses_alembic_foreign_keys_and_wal",
+      "line": 670,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_repair_run_persists_explicit_quarantine_lineage",
+      "line": 685,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_non_quarantined_run_cannot_be_repaired",
+      "line": 751,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_run_request_rejects_disjoint_stage_ranges",
+      "line": 758,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_quarantine_without_rejected_model_evidence_requires_rebuild",
+      "line": 768,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_repository.py::test_repair_rejects_source_snapshot_after_manual_canonical_edit",
+      "line": 781,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_repository.py"
+    },
+    {
+      "id": "tests/backend_core/test_storyboard_review.py::test_storyboard_install_records_gates_and_approval_is_append_only",
+      "line": 28,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_storyboard_review.py"
+    },
+    {
+      "id": "tests/backend_core/test_storyboard_review.py::test_upstream_edit_makes_approval_stale_and_exact_preconditions_are_enforced",
+      "line": 85,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_storyboard_review.py"
+    },
+    {
+      "id": "tests/backend_core/test_storyboard_review.py::test_gate_result_id_is_revision_scoped_across_identical_projects",
+      "line": 139,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_storyboard_review.py"
+    },
+    {
+      "id": "tests/backend_core/test_storyboard_review.py::test_forged_gate_receipt_cannot_authorize_approval",
+      "line": 164,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_storyboard_review.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_run_plan_is_persisted_before_child_rows_and_trace_is_additive",
+      "line": 528,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_run_plan_persists_effective_provider_output_ceiling",
+      "line": 543,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_stage_plan_waits_for_requested_upstream_seal_and_is_idempotent",
+      "line": 563,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_sealed_aggregate_is_exact_and_commit_reads_only_sealed_payloads",
+      "line": 586,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_upstream_normal_seal_does_not_require_future_scene_beats_profile",
+      "line": 602,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_upstream_repair_seal_does_not_require_future_scene_beats_profile",
+      "line": 625,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_sealed_scene_beats_and_storyboard_install_replays_frozen_timing_profile",
+      "line": 686,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_sealed_scene_beats_commit_rejects_missing_frozen_timing_profile",
+      "line": 727,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_sealed_storyboard_only_commit_uses_its_own_frozen_timing_provenance",
+      "line": 759,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_fails_closed_for_tampered_storyboard_timing_provenance",
+      "line": 801,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_exact_repair_rejects_storyboard_parent_without_frozen_timing_provenance",
+      "line": 847,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_exact_storyboard_repair_inherits_parent_profile_without_default_lookup",
+      "line": 915,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_work_unit_attempt_requires_dispatch_and_marks_unknown_outcomes",
+      "line": 1049,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_work_unit_validation_failure_requires_rebuild_until_exact_repair_exists",
+      "line": 1066,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_known_work_unit_failure_requires_an_explicit_terminal_disposition",
+      "line": 1104,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_artifacts_cannot_cross_run_or_escape_work_unit_ownership",
+      "line": 1135,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_work_unit_claim_is_single_use_except_safe_startup_recovery",
+      "line": 1159,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_attempt_numbers_are_local_to_each_work_unit",
+      "line": 1185,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_work_unit_claim_is_atomic_across_repository_instances",
+      "line": 1221,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_seal_requires_succeeded_producer_and_accepted_object_validation",
+      "line": 1253,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_duplicate_producer_artifacts_are_rejected_before_they_can_be_sealed",
+      "line": 1320,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_seal_freezes_attempt_and_artifact_mutation",
+      "line": 1351,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_cancel_wins_before_dispatch_and_before_seal",
+      "line": 1382,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_cancel_preserves_sealed_units_and_cancels_unfinished_units",
+      "line": 1411,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_classifies_work_unit_runs_without_provider_replay",
+      "line": 1432,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_terminates_obsolete_scene_timing_contract_without_rewriting_history",
+      "line": 1463,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_terminates_nonterminal_scene_beats_with_obsolete_dialogue_contract",
+      "line": 1527,
+      "parameterized_cases": [
+        {
+          "argnames": [
+            "field",
+            "replacement"
+          ],
+          "cases": [
+            [
+              "dialogue_timing_profile",
+              null
+            ],
+            [
+              "dialogue_capacity_plan",
+              null
+            ],
+            [
+              "dialogue_timing_profile",
+              {}
+            ],
+            [
+              "dialogue_capacity_plan",
+              {}
+            ]
+          ]
+        }
+      ],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_terminates_complete_v1_capacity_plan_without_replay",
+      "line": 1570,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_terminates_missing_join_state_plan_marker_without_rewriting_history",
+      "line": 1613,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_does_not_execute_pristine_old_scene_beats_planning_policy",
+      "line": 1653,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_terminates_storyboard_only_old_planning_policy_without_replanning",
+      "line": 1676,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_stage_planning_rejects_old_storyboard_policy_before_creating_plan_or_units",
+      "line": 1704,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_stage_planning_rejects_old_policy_without_rewriting_existing_stage_plan",
+      "line": 1732,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_marks_first_unsealed_stage_for_generic_old_policy",
+      "line": 1760,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_prioritizes_reached_scene_timing_contract_over_old_policy",
+      "line": 1783,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_exact_repair_rejects_old_parent_policy_before_child_or_artifact_creation",
+      "line": 1813,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_exact_repair_stage_planning_rejects_old_child_policy_without_provider_artifacts",
+      "line": 1860,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_exact_repair_rejects_parent_scene_beats_without_join_marker",
+      "line": 1910,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_does_not_rewrite_terminal_obsolete_scene_timing_history",
+      "line": 1994,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_does_not_rewrite_terminal_obsolete_dialogue_contract_history",
+      "line": 2029,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_preserves_failed_and_quarantined_unit_meanings",
+      "line": 2064,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_work_unit_migration_terminates_open_legacy_attempts",
+      "line": 2108,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/backend_core/test_work_unit_persistence.py::test_startup_recovery_terminates_nonterminal_legacy_media_without_resubmission",
+      "line": 2193,
+      "parameterized_cases": [],
+      "policy": "tests/backend_core/test_work_unit_persistence.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_media_future_cleanup_preserves_newer_mapping",
+      "line": 49,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_runner_never_submits_or_polls_legacy_media_tasks",
+      "line": 68,
+      "parameterized_cases": [
+        {
+          "argnames": "legacy_status",
+          "cases": [
+            {
+              "source": "MediaTaskStatus.QUEUED"
+            },
+            {
+              "source": "MediaTaskStatus.RUNNING"
+            }
+          ]
+        }
+      ],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_runner_preserves_terminal_legacy_media_without_provider_work",
+      "line": 106,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_session_override_beats_server_key_and_neither_is_persisted",
+      "line": 171,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_async_video_submission_polls_and_persists_provider_task_id",
+      "line": 218,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_recovered_running_media_task_only_polls_with_server_key",
+      "line": 267,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_recovered_media_without_server_key_fails_without_resubmission",
+      "line": 306,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_close_interrupts_poll_wait_and_leaves_provider_task_resumable",
+      "line": 353,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_missing_video_source_fails_without_calling_provider",
+      "line": 396,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_poll_failure_redacts_session_key_before_persisting_error",
+      "line": 423,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_poll_limit_produces_terminal_failure",
+      "line": 460,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_repository_rejects_secret_material_in_media_configuration",
+      "line": 501,
+      "parameterized_cases": [
+        {
+          "argnames": [
+            "provider",
+            "public_settings"
+          ],
+          "cases": [
+            [
+              "openai",
+              {
+                "nested": {
+                  "apiKey": "must-never-persist"
+                }
+              }
+            ],
+            [
+              "openai",
+              {
+                "model": "Bearer must-never-persist"
+              }
+            ],
+            [
+              "openai",
+              {
+                "baseUrl": "https://user:password@example.test/v1"
+              }
+            ],
+            [
+              "openai",
+              {
+                "baseUrl": "https://example.test/v1?access_token=secret"
+              }
+            ],
+            [
+              "openai",
+              {
+                "baseUrl": "https://example.test/v1?signature=secret"
+              }
+            ],
+            [
+              "openai",
+              {
+                "key": "must-never-persist"
+              }
+            ],
+            [
+              "sk-must-never-persist",
+              {}
+            ]
+          ]
+        }
+      ],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/media_jobs/test_runner.py::test_unexpected_gateway_error_is_terminal_and_secret_safe",
+      "line": 525,
+      "parameterized_cases": [],
+      "policy": "tests/media_jobs/test_runner.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_runs_full_18_cell_fixture_matrix_writes_blinded_reviews_and_cleans_up",
+      "line": 105,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_qualification_enforces_first_pass_and_unknown_outcome_invariants",
+      "line": 209,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_refuses_to_overwrite_review_directory",
+      "line": 230,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_source_profile_loader_is_read_only_and_keeps_live_wal_visible",
+      "line": 248,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_source_profile_loader_refuses_disabled_profile_without_rewriting_source",
+      "line": 275,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_source_profile_loader_uses_consistent_snapshot_during_writer_checkpoint_pressure",
+      "line": 292,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_source_profile_loader_does_not_deadlock_a_reserved_rollback_writer",
+      "line": 341,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_source_profile_snapshot_rejects_a_recreated_shm_inode",
+      "line": 405,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_rejects_relative_or_checkout_review_directories",
+      "line": 441,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_cli_returns_one_for_qualification_failure",
+      "line": 461,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_publication_provenance_binds_explicit_or_implicit_commit_to_clean_checkout",
+      "line": 491,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_source_checkout_is_bound_to_the_running_module",
+      "line": 528,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_publication_provenance_rejects_dirty_checkout_or_mismatched_commit",
+      "line": 558,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_publication_enforces_provenance_before_creating_review_output",
+      "line": 595,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_cli_hides_publication_setup_failure",
+      "line": 614,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_late_qualification_failure_never_publishes_partial_review_pack",
+      "line": 632,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_alpha_cli_rejects_non_commit_sha",
+      "line": 660,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_codex_external_review_gate_uses_only_closed_secret_free_score_sheets",
+      "line": 720,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_codex_external_review_gate_rejects_shape_and_each_quality_threshold",
+      "line": 767,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_codex_external_review_rejects_non_integer_scores_and_identity_mismatch",
+      "line": 823,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_codex_external_review_identity_is_derived_from_the_frozen_review_pack",
+      "line": 843,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_codex_external_review_gate_cannot_vacuously_pass_a_smaller_manifest",
+      "line": 887,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_alpha_acceptance.py::test_private_review_manifest_requires_all_six_samples",
+      "line": 908,
+      "parameterized_cases": [],
+      "policy": "tests/test_alpha_acceptance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_fixed_workload_preserves_storyboard_capacity_for_multi_beat_scenes",
+      "line": 60,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_conformance_loader_refuses_disabled_saved_profile",
+      "line": 137,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
+      "line": 153,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_conformance_closes_prepared_repositories_when_later_initialization_fails",
+      "line": 230,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_m15_conformance_runs_two_profiles_three_times_through_the_real_fixture_path",
+      "line": 280,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_qualification_requires_stage_level_first_pass_rate_and_attempt_limit",
+      "line": 335,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_qualification_rejects_mixed_workloads_and_duplicate_sample_identity",
+      "line": 360,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_qualification_allows_audited_corrections_within_first_pass_budget",
+      "line": 391,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_qualification_rejects_true_conformance_invariant_codes",
+      "line": 417,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_m15_qualification_requires_two_distinct_profiles",
+      "line": 442,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_m15_qualification_accepts_two_profiles_with_three_complete_samples",
+      "line": 453,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_m15_cli_emits_six_receipts_on_a_passing_strict_batch",
+      "line": 476,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    },
+    {
+      "id": "tests/test_conformance.py::test_m15_cli_rejects_partial_shape_before_loading_runtime_config",
+      "line": 528,
+      "parameterized_cases": [],
+      "policy": "tests/test_conformance.py"
+    }
+  ]
+}
