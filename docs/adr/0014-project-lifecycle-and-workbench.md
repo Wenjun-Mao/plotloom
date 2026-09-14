@@ -144,6 +144,12 @@ composition correction only: it does not change API bodies, server actions,
 storage, lifecycle semantics, or the rule that frozen runs use only their exact
 profile-scoped credential.
 
+The correction therefore gives navigation, loader, canonical authoring save,
+draft recovery, and lifecycle operations separate frontend owners. The
+controller composes those owners around the one URL/epoch fact; it may cancel a
+load or save when navigation advances, but cannot decide an aggregate response
+is current or implement a canonical/draft mutation itself.
+
 - List results expose lifecycle state and lifecycle revision; archived projects
   are visibly distinct and remain available for read-only inspection.
 - Project catalog cursors use immutable creation facts, rather than mutable

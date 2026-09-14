@@ -363,10 +363,18 @@ owners under `app/workspace/`: protocol and route facts in `contracts.ts`,
 profile catalog/session-key state in `useTextProviderProfiles.ts`, directory
 cursor lifetime in `useProjectDirectory.ts`, run poll/trace currentness in
 `useRunSession.ts`, and inspector/dialog views in `WorkspaceViews.tsx`.
-The remaining project-session composition must be reviewed for route, loading,
-authoring-save, and lifecycle ownership before this checklist item can be
-closed. This explicitly records partial progress rather than treating file
-renaming as completion.
+The correction now assigns substantial project-session work to typed owners:
+`useWorkspaceProjectLoader.ts` owns abortable aggregate loading,
+`useProjectAuthoringPersistence.ts` owns canonical create/save and draft CAS,
+`useWorkspaceNavigation.ts` owns URL/history and dirty-draft routing,
+`useAuthoringDraftRecovery.ts` owns recovery/discard prompts, and
+`useProjectLifecycle.ts` owns directory lifecycle actions. The focused
+independent review subsequently found that `WorkspaceController` still owns
+trace-route, conflict-resolution, and starter workflows, and that the typed
+owner inputs are broad callback bundles rather than narrow session contracts.
+This remains an open correction: completion requires removing those residual
+owners and reducing the controller/owner coupling, then repeating the focused
+review and final gate.
 
 `api.ts` and `types.ts` remain intentionally stable shared wire boundaries in
 this phase: no backend capability required a transport-shape move, so creating

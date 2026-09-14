@@ -20,6 +20,12 @@ import { DraftConflictDialog, DraftNavigationDialog, DraftRecoveryDialog, Projec
 import { useTextProviderProfiles } from "./useTextProviderProfiles";
 import { useProjectDirectory } from "./useProjectDirectory";
 import { useRunSession } from "./useRunSession";
+import { useRunCommands } from "./useRunCommands";
+import { useWorkspaceProjectLoader } from "./useWorkspaceProjectLoader";
+import { useProjectAuthoringPersistence } from "./useProjectAuthoringPersistence";
+import { useWorkspaceNavigation } from "./useWorkspaceNavigation";
+import { useAuthoringDraftRecovery } from "./useAuthoringDraftRecovery";
+import { useProjectLifecycle } from "./useProjectLifecycle";
 import { authoringDraftKey, blankWorkspace, canonicalDraftConsumption, editableStages, headsByStage, messageFrom, navigation, newClientDraftOwner, routeFromLocation, stageForPage, type DraftRecoverySource, type DurableDraftStatus, type NavigationTarget, type PageId, type WorkspaceOperation, validationIssuesFrom } from "./contracts";
 
 interface DraftConflictState {
@@ -37,7 +43,6 @@ export default function App() {
   const [project, setProject] = useState<WorkspaceProject>(() => blankWorkspace(localWorkspaceOwner.current));
   const [connection, setConnection] = useState<"loading" | "connected" | "demo" | "blank" | "error">("blank");
   const [busy, setBusy] = useState(false);
-  const [projectSaving, setProjectSaving] = useState(false);
   const [error, setError] = useState("");
   const [run, setRun] = useState<PipelineRun | undefined>();
   const [runProgress, setRunProgress] = useState<RunProgress | undefined>();
@@ -53,27 +58,20 @@ export default function App() {
   const directory = useProjectDirectory(messageFrom);
   const { projects, open: directoryOpen, setOpen: setDirectoryOpen, showArchived, setShowArchived, error: directoryError, setError: setDirectoryError, nextCursor: nextProjectCursor, loading: directoryLoading, refresh: refreshProjectDirectory, openDirectory, loadMore: loadMoreProjects } = directory;
   const [routeEntity, setRouteEntity] = useState(() => routeFromLocation().entity);
-  const [draftRecovery, setDraftRecovery] = useState<{ scope: DraftScope; payload: unknown; source: DraftRecoverySource } | undefined>();
-  const [restoredDraft, setRestoredDraft] = useState<{ scope: DraftScope; payload: unknown; source: DraftRecoverySource } | undefined>();
-  const [draftConflict, setDraftConflict] = useState<DraftConflictState | undefined>();
   const [unsafeDraft, setUnsafeDraft] = useState<{ record: DraftRecord; reason: "archived" | "unavailable" } | undefined>();
   const [pendingNavigation, setPendingNavigation] = useState<NavigationTarget | undefined>();
-  const [editorNonce, setEditorNonce] = useState(0);
   const [durableDraftsEnabled, setDurableDraftsEnabled] = useState(false);
   const [durableMediaDraftsEnabled, setDurableMediaDraftsEnabled] = useState(false);
-  const [durableDraftStatus, setDurableDraftStatus] = useState<DurableDraftStatus>("idle");
   const [onboarding, setOnboarding] = useState(() => !routeFromLocation().project);
-  const [pendingArchive, setPendingArchive] = useState<ProjectListItem | undefined>();
   const loadEpoch = useRef(0);
-  const currentDraft = useRef<{ scope: DraftScope; payload: unknown } | undefined>(undefined);
-  const projectSaveInFlight = useRef(false);
-  const projectSaveGeneration = useRef(0);
-  const activeProjectSaveGeneration = useRef<number | undefined>(undefined);
   const canonicalRefreshRequired = useRef(new Set<string>());
-  const creationKeyByBody = useRef(new Map<string, string>());
-  const duplicateKeyByRequest = useRef(new Map<string, string>());
-  const repairKeyByUnit = useRef(new Map<string, string>());
-  const projectLoadController = useRef<AbortController | undefined>(undefined);
+  // Navigation owns when a load is no longer relevant; the loader owns the
+  // controller itself. This narrow ref is the intentional cancellation seam.
+  const abortProjectLoad = useRef<() => void>(() => undefined);
+  const cancelProjectSave = useRef<() => void>(() => undefined);
+  // A completed run refreshes canonical state through the loader. The stable
+  // forwarding function avoids a polling loop retaining a superseded loader.
+  const reloadProject = useRef<(projectId: string, epoch?: number) => Promise<void>>(async () => undefined);
   const durableDraftsEnabledRef = useRef(false);
   const serverAuthoringDrafts = useRef(new Map<string, AuthoringDraft>());
 
@@ -95,118 +93,17 @@ export default function App() {
     // Increment before any state update or request starts. A delayed write may
     // still finish on the server, but it can no longer repaint this workspace.
     loadEpoch.current += 1;
-    projectLoadController.current?.abort();
-    projectLoadController.current = undefined;
+    abortProjectLoad.current();
     visibleRoute.current = next;
-    projectSaveInFlight.current = false;
-    activeProjectSaveGeneration.current = undefined;
+    cancelProjectSave.current();
     setBusy(false);
-    setProjectSaving(false);
     return loadEpoch.current;
   };
 
-  const loadProject = useCallback(async (projectId: string, epoch = loadEpoch.current) => {
-    const isCurrent = () => epoch === loadEpoch.current && visibleRoute.current.project === projectId;
-    if (!projectId) return;
-    projectLoadController.current?.abort();
-    const controller = new AbortController();
-    projectLoadController.current = controller;
-    setConnection("loading");
-    try {
-      const [incoming, stageResponse, runResponse, mediaResponse, authoringDrafts] = await Promise.all([
-        plotloomApi.getProject(projectId, controller.signal),
-        plotloomApi.getStages(projectId, controller.signal),
-        plotloomApi.getProjectRuns(projectId, controller.signal),
-        plotloomApi.getProjectMediaTasks(projectId, controller.signal),
-        durableDraftsEnabledRef.current
-          ? plotloomApi.getAuthoringDrafts(projectId, controller.signal)
-          : Promise.resolve([] as AuthoringDraft[]),
-      ]);
-      const storyboardHead = stageResponse.stages.find((envelope) => envelope.head.stage === "storyboard")?.head;
-      const reviewResponse = storyboardHead?.revision
-        ? await plotloomApi.getStoryboardReview(projectId, controller.signal).catch(() => null)
-        : null;
-      const requestedRunId = routeFromLocation().run;
-      const latestRun = requestedRunId
-        ? runResponse.runs.find((candidate) => candidate.id === requestedRunId)
-        : runResponse.runs[0];
-      const requestedRunMissing = Boolean(requestedRunId && !latestRun);
-      // Project load and polling use the deliberately small progress
-      // projection. Provenance evidence is fetched only after the user opens
-      // the Trace page; it must not travel on the high-frequency path.
-      const latestProgress = latestRun ? await plotloomApi.getRunProgress(latestRun.id) : undefined;
-      let automaticResumeBlocked = "";
-      if (latestRun && (latestRun.status === "queued" || latestRun.status === "running") && latestRun.providerSnapshot.textAuthMode !== "none") {
-        const frozenProfileId = String(latestRun.providerSnapshot.profileId || "default");
-        let catalog = profileCatalog.current;
-        if (!profilesLoaded.current) {
-          try {
-            catalog = await plotloomApi.getTextProviderProfiles(controller.signal);
-          } catch (profileError) {
-            automaticResumeBlocked = `运行冻结在 Profile ${frozenProfileId}；无法确认该 Profile 的密钥状态，因此没有自动恢复：${messageFrom(profileError)}`;
-          }
-        }
-        if (!automaticResumeBlocked) {
-          const frozenProfile = catalog.profiles.find((candidate) => candidate.profileId === frozenProfileId);
-          if (!frozenProfile) {
-            automaticResumeBlocked = `运行冻结在 Profile ${frozenProfileId}，但该 Profile 已不存在；不会自动切换模型。`;
-          } else if (!frozenProfile.serverKeyAvailable && !providerSessionKeys.read(frozenProfileId)) {
-            automaticResumeBlocked = `运行冻结在 Profile ${frozenProfileId}；请为这个 Profile 补充当前标签页 Key 后再继续。不会自动切换模型。`;
-          }
-        }
-      }
-      if (!isCurrent()) return;
-      const quarantines = quarantineItemsFromProgress(latestProgress);
-      setProject((current) => ({ ...hydrateWorkspaceProject(current, incoming, stageResponse.stages), quarantines }));
-      canonicalRefreshRequired.current.delete(projectId);
-      setStageHeads(headsByStage(stageResponse.stages));
-      setRun(latestRun);
-      setRunProgress(latestProgress);
-      setStoryboardReview(reviewResponse);
-      setValidationIssues({});
-      resetTrace();
-      setMediaTasks(newestMediaTasksByShot(mediaResponse.tasks));
-      serverAuthoringDrafts.current = new Map(
-        authoringDrafts
-          .filter((draft): draft is AuthoringDraft & { editorScope: DraftScope } =>
-            draft.editorScope === "brief" || draft.editorScope === "story_bible" || draft.editorScope === "story_graph" || draft.editorScope === "scene_beats" || draft.editorScope === "storyboard",
-          )
-          .map((draft) => [authoringDraftKey(projectId, draft.editorScope), draft]),
-      );
-      setConnection("connected");
-      setOnboarding(false);
-      setError(requestedRunMissing ? `运行 ${requestedRunId} 不属于当前项目或已不存在。` : automaticResumeBlocked);
-      if (latestRun && (latestRun.status === "queued" || latestRun.status === "running" || latestRun.status === "cancel_requested")) {
-        if (!isCurrent()) return;
-        if (latestRun.status === "cancel_requested") {
-          void pollRun(latestRun.id, incoming.id).catch((pollError) => setError(messageFrom(pollError)));
-        } else {
-          if (automaticResumeBlocked) return;
-          const frozenProfileId = String(latestRun.providerSnapshot.profileId || "default");
-          const usesBearer = latestRun.providerSnapshot.textAuthMode !== "none";
-          void plotloomApi.resumeRun(latestRun.id, frozenProfileId, usesBearer)
-            .then(() => {
-              if (isCurrent()) return pollRun(latestRun.id, incoming.id);
-              return undefined;
-            })
-            .catch((resumeError) => {
-              if (isCurrent()) setError(`运行保持排队：${messageFrom(resumeError)}`);
-            });
-        }
-      }
-    } catch (loadError) {
-      if (!isCurrent()) return;
-      if (loadError instanceof DOMException && loadError.name === "AbortError") return;
-      const staleDraft = findProjectDrafts(projectId)[0];
-      if (staleDraft) setUnsafeDraft({ record: staleDraft, reason: "unavailable" });
-      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setStoryboardReview(null); setValidationIssues({}); setTrace([]); setMediaTasks({});
-      setConnection("error");
-      setOnboarding(false);
-      setError(`无法加载项目 ${projectId}：${messageFrom(loadError)}。项目未加载；没有回退到示例。`);
-    } finally {
-      if (projectLoadController.current === controller) projectLoadController.current = undefined;
-    }
-  }, []);
+  const reloadCanonicalProject = useCallback(
+    (projectId: string, epoch?: number) => reloadProject.current(projectId, epoch),
+    [],
+  );
   const { pollRun, loadTraceEvidence, resetTrace } = useRunSession({
     loadEpoch,
     visibleRoute,
@@ -216,9 +113,146 @@ export default function App() {
     setProgress: setRunProgress,
     setTrace,
     setExecutionTrace,
-    reloadProject: loadProject,
+    reloadProject: reloadCanonicalProject,
     setError,
     describeError: messageFrom,
+  });
+  const observeRun = useCallback((runId: string, projectId: string) => {
+    void pollRun(runId, projectId).catch((error) => setError(messageFrom(error)));
+  }, [pollRun]);
+  const projectLoader = useWorkspaceProjectLoader({
+    loadEpoch,
+    route: visibleRoute,
+    localOwner: localWorkspaceOwner,
+    durableDrafts: durableDraftsEnabledRef,
+    profiles: { loaded: profilesLoaded, catalog: profileCatalog },
+    session: {
+      beginProjectLoad: () => setConnection("loading"),
+      acceptProjectLoad: ({ project: incoming, stages, run: loadedRun, progress, review, media, drafts, message }) => {
+        setProject((current) => ({ ...hydrateWorkspaceProject(current, incoming, stages), quarantines: quarantineItemsFromProgress(progress) }));
+        setStageHeads(headsByStage(stages)); setRun(loadedRun); setRunProgress(progress); setStoryboardReview(review); setValidationIssues({}); resetTrace(); setMediaTasks(newestMediaTasksByShot(media));
+        serverAuthoringDrafts.current = new Map(drafts.filter((draft): draft is AuthoringDraft & { editorScope: DraftScope } => ["brief", "story_bible", "story_graph", "scene_beats", "storyboard"].includes(draft.editorScope)).map((draft) => [authoringDraftKey(incoming.id, draft.editorScope), draft]));
+        setConnection("connected"); setOnboarding(false); setError(message);
+      },
+      rejectProjectLoad: (projectId, loadError, staleDraft) => {
+        if (staleDraft) setUnsafeDraft(staleDraft);
+        setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setStoryboardReview(null); setValidationIssues({}); resetTrace(); setMediaTasks({}); setConnection("error"); setOnboarding(false); setError(`无法加载项目 ${projectId}：${messageFrom(loadError)}。项目未加载；没有回退到示例。`);
+      },
+      clearCanonicalRefresh: (projectId) => canonicalRefreshRequired.current.delete(projectId),
+    },
+    serverDrafts: serverAuthoringDrafts,
+    observeRun,
+    onLoaded: (projectId) => canonicalRefreshRequired.current.delete(projectId),
+  });
+  const { loadProject } = projectLoader;
+  reloadProject.current = loadProject;
+  abortProjectLoad.current = projectLoader.abort;
+  const authoring = useProjectAuthoringPersistence({
+    project,
+    connection,
+    workspace: {
+      setProject,
+      setStageHeads,
+      setRun,
+      setProgress: setRunProgress,
+      setReview: setStoryboardReview,
+      setIssues: setValidationIssues,
+      setTrace,
+      setMediaTasks,
+      setConnection,
+    },
+    feedback: { setBusy, setError },
+    route: {
+      current: visibleRoute,
+      capture: captureWorkspaceOperation,
+      isCurrent: isWorkspaceOperationCurrent,
+      invalidate: invalidateWorkspaceNavigation,
+      reload: loadProject,
+      canonicalRefreshRequired,
+    },
+    drafts: {
+      durableEnabled: durableDraftsEnabledRef,
+      server: serverAuthoringDrafts,
+      onConflict: () => {
+        setPendingNavigation(undefined);
+      },
+    },
+  });
+  const {
+    currentDraft,
+    projectSaving,
+    durableDraftStatus,
+    draftConflict,
+    setDraftConflict,
+    restoredDraft,
+    setRestoredDraft,
+    flushAuthoringDraft,
+    scheduleAuthoringDraftAutosave,
+    rememberDraft,
+    commitProject,
+    commitStage,
+    beginSave: beginProjectSave,
+    finishSave: finishProjectSave,
+    createProjectFrom,
+  } = authoring;
+  cancelProjectSave.current = authoring.cancelSave;
+  const draftRecoveryOwner = useAuthoringDraftRecovery({
+    activePage,
+    project,
+    durableEnabled: durableDraftsEnabled,
+    serverDrafts: serverAuthoringDrafts,
+    currentDraft,
+    restoredDraft,
+    setRestoredDraft,
+    draftConflict,
+    setDraftConflict,
+    unsafeDraft,
+    setUnsafeDraft,
+    scheduleAutosave: scheduleAuthoringDraftAutosave,
+    setError,
+  });
+  const { recovery: draftRecovery, setRecovery: setDraftRecovery, editorNonce, restore: restoreDraftRecovery, discard: discardDraftRecovery, bumpEditorNonce } = draftRecoveryOwner;
+  const { applyNavigation, requestNavigation, selectRouteEntity, resolvePendingNavigation } = useWorkspaceNavigation({
+    state: {
+      route: visibleRoute,
+      activePage,
+      setActivePage,
+      routeEntity,
+      setRouteEntity,
+      pending: pendingNavigation,
+      setPending: setPendingNavigation,
+    },
+    workspace: {
+      project,
+      run,
+      localOwner: localWorkspaceOwner,
+      setProject,
+      setStageHeads,
+      setRun,
+      setProgress: setRunProgress,
+      setReview: setStoryboardReview,
+      setIssues: setValidationIssues,
+      setTrace,
+      setMediaTasks,
+      setConnection,
+      setOnboarding,
+    },
+    drafts: {
+      current: currentDraft,
+      durableEnabled: durableDraftsEnabledRef,
+      flush: flushAuthoringDraft,
+      commitProject,
+      commitStage,
+      clearRecovery: () => setDraftRecovery(undefined),
+      clearConflict: () => setDraftConflict(undefined),
+      unsafe: unsafeDraft,
+      setUnsafe: setUnsafeDraft,
+    },
+    loader: {
+      invalidate: invalidateWorkspaceNavigation,
+      loadProject,
+      canonicalRefreshRequired,
+    },
   });
 
   useEffect(() => {
@@ -267,492 +301,28 @@ export default function App() {
     return () => window.removeEventListener("beforeunload", warnBeforeUnload);
   }, []);
 
-  const refreshStaleAcceptedProject = (projectId: string) => {
-    canonicalRefreshRequired.current.add(projectId);
-    if (visibleRoute.current.project !== projectId) return;
-    // A newer local draft has priority over a late server response. Leave the
-    // marker in place and make the deferral explicit rather than overwriting
-    // that draft with the canonical reload.
-    if (currentDraft.current || findProjectDrafts(projectId).length) {
-      setError("服务器已接受较早保存；当前草稿不会被覆盖。请先保存或丢弃当前草稿后切换阶段以刷新规范版本。");
-      return;
-    }
-    // Revalidation is itself a new read generation. Advancing the epoch keeps
-    // an older in-flight load for this same route from winning the race after
-    // the authoritative refresh.
-    const refreshEpoch = invalidateWorkspaceNavigation({ ...visibleRoute.current });
-    void loadProject(projectId, refreshEpoch);
-  };
-
-  const { flushAuthoringDraft, scheduleAuthoringDraftAutosave } =
-    useAuthoringDraftAutosave({
-      project,
-      durableDraftsEnabledRef,
-      serverAuthoringDrafts,
-      captureWorkspaceOperation,
-      isWorkspaceOperationCurrent,
-      setDurableDraftStatus,
-      setError,
-      onConflict: (scope, record, workspace) =>
-        setDraftConflict({ scope, record, workspace, serverReloaded: false }),
-    });
-  const beginProjectSave = (): number | undefined => {
-    if (project.archivedAt) { setError("归档项目为只读；请先在项目目录中恢复它。"); return undefined; }
-    // React state does not update synchronously enough to protect two clicks in
-    // the same turn. The ref is the authoritative single-flight boundary.
-    if (projectSaveInFlight.current) return undefined;
-    projectSaveInFlight.current = true;
-    const generation = ++projectSaveGeneration.current;
-    activeProjectSaveGeneration.current = generation;
-    setBusy(true);
-    setProjectSaving(true);
-    setError("");
-    return generation;
-  };
-
-  const finishProjectSave = (operation: WorkspaceOperation, generation: number) => {
-    // A later navigation (or save) owns the UI state. The finishing request
-    // must still retire its own single-flight token so it cannot strand saves.
-    if (activeProjectSaveGeneration.current !== generation) return;
-    activeProjectSaveGeneration.current = undefined;
-    projectSaveInFlight.current = false;
-    if (!isWorkspaceOperationCurrent(operation)) return;
-    setProjectSaving(false);
-    setBusy(false);
-  };
-
-  const createProjectFrom = async (nextLocal: WorkspaceProject, operation: WorkspaceOperation, initialStage?: ServerStageName): Promise<boolean> => {
-    const request = projectCreationRequest(
-      nextLocal.brief,
-      initialStage ? initialStagesThrough(nextLocal, initialStage) : [],
-    );
-    const body = projectCreationBody(request);
-    let idempotencyKey = creationKeyByBody.current.get(body);
-    if (!idempotencyKey) {
-      idempotencyKey = `project-create-${crypto.randomUUID()}`;
-      creationKeyByBody.current.set(body, idempotencyKey);
-    }
-    const created = await plotloomApi.createProject(request, idempotencyKey);
-    if (!isWorkspaceOperationCurrent(operation)) return false;
-    const hydrated = hydrateWorkspaceProject(nextLocal, created, created.stages);
-
-    // POST returns the complete canonical aggregate. Hydrating it directly
-    // avoids racing a post-create read against the user's next edit.
-    setProject(hydrated);
-    setStageHeads(headsByStage(created.stages));
-    setRun(undefined);
-    setRunProgress(undefined);
-    setTrace([]);
-    setMediaTasks({});
-    setConnection("connected");
-    // Initial-stage creation persists a storyboard Gate receipt in the same
-    // transaction. Hydrating stages alone used to leave the review panel blank
-    // until a later navigation, falsely suggesting the receipt was absent.
-    if (created.id && created.stages.some((stage) => stage.head.stage === "storyboard" && stage.head.status === "ready")) {
-      const review = await plotloomApi.getStoryboardReview(created.id).catch(() => null);
-      // Gate hydration is an additional asynchronous boundary after creation.
-      // Navigation or a newer save may have taken ownership while it was in
-      // flight, so this creation must not complete its route or save updates.
-      if (!isWorkspaceOperationCurrent(operation)) return false;
-      if (review) setStoryboardReview(review);
-    }
-    if (created.id) {
-      const query = new URLSearchParams(location.search);
-      query.set("project", created.id);
-      history.replaceState(null, "", `${location.pathname}?${query.toString()}`);
-      visibleRoute.current = { ...visibleRoute.current, project: created.id };
-    }
-    // Clear the retry identity only after the canonical aggregate and URL have
-    // both been installed. A malformed/partial response must remain retryable
-    // with the same key, or a retry could create a duplicate project.
-    creationKeyByBody.current.delete(body);
-    // Creation changes the route identity from a local workspace to the new
-    // project. Complete this flight here because its original operation token
-    // intentionally no longer names the visible route.
-    projectSaveInFlight.current = false;
-    setProjectSaving(false);
-    setBusy(false);
-    return true;
-  };
-
-  const commitProject = async (patch: Partial<WorkspaceProject>) => {
-    const saveGeneration = beginProjectSave();
-    if (!saveGeneration) return;
-    const operation = captureWorkspaceOperation();
-    const nextLocal = mergeProjectResponse(project, patch);
-    try {
-      if (!project.id) {
-        if (!await createProjectFrom(nextLocal, operation, nextLocal.initialStageOnFirstSave)) return;
-      } else {
-        if (durableDraftsEnabledRef.current && getDraft(project, "brief") && !await flushAuthoringDraft("brief")) return;
-        const serverDraft = serverAuthoringDrafts.current.get(authoringDraftKey(project.id, "brief"));
-        const consumedDraft = canonicalDraftConsumption(
-          serverDraft,
-          "brief",
-          project.revision,
-          nextLocal.brief,
-        );
-        const saved: { project: ProjectResource; consumedDraftRevision?: number } = consumedDraft
-          ? await plotloomApi.patchProjectWithDraft(project.id, project.revision, nextLocal.brief, consumedDraft)
-          : { project: await plotloomApi.patchProject(project.id, project.revision, nextLocal.brief) };
-        const updated = saved.project;
-        if (consumedDraft && saved.consumedDraftRevision === consumedDraft.draftRevision) {
-          serverAuthoringDrafts.current.delete(authoringDraftKey(project.id, "brief"));
-          setDurableDraftStatus("idle");
-        } else if (!durableDraftsEnabledRef.current) {
-          discardDraft(project, "brief");
-        }
-        if (!isWorkspaceOperationCurrent(operation)) {
-          refreshStaleAcceptedProject(project.id);
-          return;
-        }
-        setProject(mergeProjectResponse(nextLocal, updated));
-        currentDraft.current = undefined; setRestoredDraft(undefined);
-        return;
-      }
-      discardDraft(project, "brief"); currentDraft.current = undefined; setRestoredDraft(undefined);
-    } catch (saveError) {
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      setError(messageFrom(saveError));
-      if (saveError instanceof ApiError && saveError.status === 409) {
-        const record = getDraft(project, "brief") ?? putDraft(project, "brief", nextLocal.brief);
-        setDraftConflict({ scope: "brief", record, workspace: nextLocal, serverReloaded: false });
-        setPendingNavigation(undefined); setPendingArchive(undefined);
-      }
-      if (connection === "demo") setProject((current) => mergeProjectResponse(current, patch));
-    } finally { finishProjectSave(operation, saveGeneration); }
-  };
-
-  const commitStage = async <T,>(stage: ServerStageName, content: T) => {
-    const saveGeneration = beginProjectSave();
-    if (!saveGeneration) return;
-    const operation = captureWorkspaceOperation();
-    const key = stage === "story_bible" ? "storyBible" : stage === "story_graph" ? "storyGraph" : stage === "scene_beats" ? "sceneBeats" : "storyboard";
-    const nextLocal = markDownstreamStale(workspaceWithStageDraft(project, stage, content), stage);
-    try {
-      if (!project.id) {
-        if (!await createProjectFrom(nextLocal, operation, stage)) return;
-        setValidationIssues((current) => ({ ...current, [stage]: [] }));
-        discardDraft(project, stage); currentDraft.current = undefined; setRestoredDraft(undefined);
-        return;
-      }
-      if (durableDraftsEnabledRef.current && getDraft(project, stage) && !await flushAuthoringDraft(stage)) return;
-      const serverDraft = serverAuthoringDrafts.current.get(authoringDraftKey(project.id, stage));
-      const consumedDraft = canonicalDraftConsumption(
-        serverDraft,
-        stage,
-        project.stageRevisions[stage],
-        content,
-      );
-      const saved: { stage: StageHead; consumedDraftRevision?: number } = consumedDraft
-        ? await plotloomApi.patchStageWithDraft(project.id, stage, project.stageRevisions[stage], content, consumedDraft)
-        : { stage: await plotloomApi.patchStage(project.id, stage, project.stageRevisions[stage], content) };
-      const envelope = saved.stage;
-      if (consumedDraft && saved.consumedDraftRevision === consumedDraft.draftRevision) {
-        serverAuthoringDrafts.current.delete(authoringDraftKey(project.id, stage));
-        setDurableDraftStatus("idle");
-      } else if (!durableDraftsEnabledRef.current) {
-        discardDraft(project, stage);
-      }
-      if (!isWorkspaceOperationCurrent(operation)) {
-        refreshStaleAcceptedProject(project.id);
-        return;
-      }
-      setProject((current) => markDownstreamStale({ ...current, [key]: content, stageRevisions: { ...current.stageRevisions, [stage]: envelope.revision } }, stage));
-      setStageHeads((current) => ({ ...current, [stage]: envelope }));
-      setValidationIssues((current) => ({ ...current, [stage]: [] }));
-      if (stage === "storyboard") {
-        const nextReview = await plotloomApi.getStoryboardReview(project.id).catch(() => null);
-        if (isWorkspaceOperationCurrent(operation)) setStoryboardReview(nextReview);
-      }
-      currentDraft.current = undefined; setRestoredDraft(undefined);
-    } catch (stageError) {
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      const issues = validationIssuesFrom(stageError);
-      if (issues.length) {
-        setValidationIssues((current) => ({ ...current, [stage]: issues }));
-        setError(`${stageLabels[stage]}未通过领域校验。已保留草稿并标出 ${issues.length} 个问题。`);
-      } else setError(messageFrom(stageError));
-      if (stageError instanceof ApiError && stageError.status === 409) {
-        const record = getDraft(project, stage) ?? putDraft(project, stage, content);
-        setDraftConflict({ scope: stage, record, workspace: nextLocal, serverReloaded: false });
-        setPendingNavigation(undefined); setPendingArchive(undefined);
-      }
-      if (connection === "demo") setProject((current) => markDownstreamStale(workspaceWithStageDraft(current, stage, content), stage));
-    } finally { finishProjectSave(operation, saveGeneration); }
-  };
-
-  const rememberDraft = useCallback((scope: DraftScope, payload: unknown) => {
-    if (project.archivedAt) return;
-    currentDraft.current = { scope, payload };
-    const local = getDraft(project, scope);
-    const recoveredServerDraft = project.id && restoredDraft?.scope === scope && restoredDraft.source === "server"
-      ? serverAuthoringDrafts.current.get(authoringDraftKey(project.id, scope))
-      : undefined;
-    // A recovered server draft is already the acknowledged CAS base even
-    // before the user makes the first post-recovery edit. Seed that first
-    // session-only buffer from the durable receipt, never revision zero.
-    putDraft(project, scope, payload, local?.serverDraftRevision ?? recoveredServerDraft?.draftRevision ?? 0);
-    scheduleAuthoringDraftAutosave(scope);
-    if (restoredDraft?.scope === scope) setRestoredDraft({ ...restoredDraft, payload });
-  }, [project, restoredDraft, scheduleAuthoringDraftAutosave]);
-
-  const applyNavigation = useCallback((next: NavigationTarget) => {
-    const route = { project: next.project, stage: next.stage, entity: next.entity, run: next.run };
-    const epoch = invalidateWorkspaceNavigation(route);
-    if (next.history === "push") {
-      const query = new URLSearchParams();
-      if (next.project) query.set("project", next.project);
-      query.set("stage", next.stage);
-      if (next.entity) query.set("entity", next.entity);
-      if (next.run) query.set("run", next.run);
-      history.pushState(null, "", `${location.pathname}?${query.toString()}`);
-    }
-    currentDraft.current = undefined;
-    setActivePage(next.stage); setRouteEntity(next.entity); setDraftRecovery(undefined); setRestoredDraft(undefined); setDraftConflict(undefined); setUnsafeDraft(undefined);
-    if (!next.project && next.project !== (project.id || "")) {
-      localWorkspaceOwner.current = newClientDraftOwner();
-      setProject(blankWorkspace(localWorkspaceOwner.current)); setStageHeads({}); setRun(undefined); setRunProgress(undefined); setStoryboardReview(null); setValidationIssues({}); setTrace([]); setMediaTasks({}); setConnection("blank"); setOnboarding(true);
-    } else if (next.project) {
-      setOnboarding(false);
-      if (next.project !== project.id) { setStoryboardReview(null); setValidationIssues({}); }
-      if (next.forceReload || next.project !== project.id || next.run !== (run?.id || "") || canonicalRefreshRequired.current.has(next.project)) void loadProject(next.project, epoch);
-    }
-  }, [loadProject, project.id, run?.id]);
-
-  const requestNavigation = useCallback((next: { project: string; stage: PageId; entity?: string; run?: string; history?: "push" | "pop"; forceReload?: boolean }) => {
-    const normalized: NavigationTarget = { entity: "", run: "", history: "push", forceReload: false, ...next };
-    const scope = stageForPage(activePage);
-    // Unsafe drafts are never candidates for save/recovery. Keep a popstate
-    // destination pending behind its discard-only dialog.
-    if (unsafeDraft || (project.id && (project.archivedAt || project.lifecycleStatus === "archived") && findProjectDrafts(project.id).length)) {
-      setPendingNavigation(normalized);
-      return;
-    }
-    if (scope && hasDraft(project, scope)) {
-      if (durableDraftsEnabledRef.current && project.id) {
-        void flushAuthoringDraft(scope).then((saved) => {
-          if (saved) applyNavigation(normalized);
-          else setPendingNavigation(normalized);
-        });
-        return;
-      }
-      setPendingNavigation(normalized);
-      return;
-    }
-    applyNavigation(normalized);
-  }, [activePage, applyNavigation, flushAuthoringDraft, project, unsafeDraft]);
-
-  const selectRouteEntity = useCallback((entity: string) => {
-    const next = { ...visibleRoute.current, entity };
-    if (next.entity === visibleRoute.current.entity) return;
-    // Entity focus does not change the loaded project or invalidate an
-    // in-flight canonical save. Keep the URL/ref authoritative without
-    // advancing the project-operation epoch.
-    visibleRoute.current = next;
-    const query = new URLSearchParams();
-    if (next.project) query.set("project", next.project);
-    query.set("stage", next.stage);
-    if (entity) query.set("entity", entity);
-    if (next.run) query.set("run", next.run);
-    history.pushState(null, "", `${location.pathname}?${query.toString()}`);
-    setRouteEntity(entity);
-  }, []);
-
-  const resolvePendingNavigation = async (action: "save" | "discard" | "cancel") => {
-    const pending = pendingNavigation;
-    if (!pending || action === "cancel") {
-      if (pending?.history === "pop") {
-        const query = new URLSearchParams();
-        if (project.id) query.set("project", project.id);
-        query.set("stage", activePage);
-        if (routeEntity) query.set("entity", routeEntity);
-        if (activePage === "trace" && run?.id) query.set("run", run.id);
-        history.replaceState(null, "", `${location.pathname}?${query.toString()}`);
-      }
-      setPendingNavigation(undefined); return;
-    }
-    const scope = stageForPage(activePage);
-    if (scope && action === "save") {
-      const draft = currentDraft.current;
-      if (!draft || draft.scope !== scope) { setPendingNavigation(undefined); return; }
-      if (scope === "brief") await commitProject({ brief: draft.payload as WorkspaceProject["brief"] });
-      else await commitStage(scope, draft.payload);
-      if (currentDraft.current) return;
-    }
-    if (scope) { discardDraft(project, scope); currentDraft.current = undefined; }
-    setPendingNavigation(undefined); applyNavigation(pending);
-  };
-
-  useEffect(() => {
-    const onPopState = () => {
-      const route = routeFromLocation();
-      // Entity focus is local UI state, not an edit. It must remain usable
-      // while a form is dirty so Back/Forward can restore the prior selection.
-      if (route.project === visibleRoute.current.project && route.stage === visibleRoute.current.stage && route.run === visibleRoute.current.run) {
-        visibleRoute.current = route;
-        setRouteEntity(route.entity);
-        return;
-      }
-      requestNavigation({ ...route, history: "pop" });
-    };
-    window.addEventListener("popstate", onPopState);
-    return () => window.removeEventListener("popstate", onPopState);
-  }, [requestNavigation]);
-
-  useEffect(() => {
-    const scope = stageForPage(activePage);
-    if (project.id && (project.archivedAt || project.lifecycleStatus === "archived")) {
-      const record = findProjectDrafts(project.id)[0];
-      if (record && !unsafeDraft) setUnsafeDraft({ record, reason: "archived" });
-      return;
-    }
-    if (!scope || currentDraft.current || draftRecovery || draftConflict || unsafeDraft || restoredDraft) return;
-    const saved = getDraft(project, scope);
-    const serverDraft = project.id && durableDraftsEnabled
-      ? serverAuthoringDrafts.current.get(authoringDraftKey(project.id, scope))
-      : undefined;
-    if (serverDraft) {
-      setDraftRecovery({
-        scope,
-        payload: saved?.payload ?? serverDraft.payload,
-        source: saved ? "reconcile" : "server",
-      });
-    } else if (saved) setDraftRecovery({ scope, payload: saved.payload, source: "session" });
-    else {
-      const conflict = findRevisionConflict(project, scope);
-      if (conflict) setDraftConflict({ scope, record: conflict, workspace: project, serverReloaded: false });
-    }
-  }, [activePage, draftConflict, draftRecovery, durableDraftsEnabled, editorNonce, project, restoredDraft, unsafeDraft]);
-
   const showRunTrace = (nextRun: PipelineRun, resetEvidence = true) => {
     const nextRoute = { project: nextRun.projectId, stage: "trace" as const, entity: "", run: nextRun.id };
     invalidateWorkspaceNavigation(nextRoute);
-    const query = new URLSearchParams({ project: nextRun.projectId, stage: "trace", run: nextRun.id });
-    history.pushState(null, "", `${location.pathname}?${query.toString()}`);
+    history.pushState(null, "", `${location.pathname}?${new URLSearchParams({ project: nextRun.projectId, stage: "trace", run: nextRun.id }).toString()}`);
     currentDraft.current = undefined;
-    setActivePage("trace");
-    setRouteEntity("");
-    setDraftRecovery(undefined);
-    setRestoredDraft(undefined);
-    setDraftConflict(undefined);
-    setRun(nextRun);
-    setRunProgress(undefined);
-    if (resetEvidence) resetTrace();
-    setRebuildOpen(false);
-    void pollRun(nextRun.id, nextRun.projectId).catch((pollError) => setError(messageFrom(pollError)));
+    setActivePage("trace"); setRouteEntity(""); setDraftRecovery(undefined); setRestoredDraft(undefined); setDraftConflict(undefined);
+    setRun(nextRun); setRunProgress(undefined); if (resetEvidence) resetTrace(); setRebuildOpen(false);
+    void pollRun(nextRun.id, nextRun.projectId).catch((error) => setError(messageFrom(error)));
   };
-
-  const prepareGenerationProfile = async (): Promise<TextProviderProfileView> => {
-    // Every provider-spending action freezes the public form currently shown.
-    // A full-page refresh must first load the active server-side selection so
-    // it cannot accidentally save or use the UI fallback profile.
-    let profileToSave = profileDraft;
-    let keyToUse = sessionKey;
-    if (!profilesLoaded.current) {
-      const loaded = await refreshProfiles();
-      profileToSave = loaded.profiles.find((profile) => profile.profileId === loaded.activeProfileId) || profileToSave;
-      keyToUse = providerSessionKeys.read(profileToSave.profileId);
-    }
-    return saveProfile(profileToSave, keyToUse);
-  };
-
-  const startRun = async (stages: ServerStageName[]) => {
-    if (!project.id) { setError("请先保存项目，再启动生成流水线。"); return; }
-    if (profileDraft.enabled === false) { setError("当前活动 Profile 已停用；请先在设置中启用可用 Profile。不会自动切换后端。"); return; }
-    const operation = captureWorkspaceOperation();
-    setBusy(true); setError("");
-    try {
-      const saved = await prepareGenerationProfile();
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      const started = await plotloomApi.startRun(
-        project.id, stages, saved.profileId, saved.configuration.textAuthMode === "bearer",
-      );
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      showRunTrace(started);
-    }
-    catch (runError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(runError)); }
-    finally { if (isWorkspaceOperationCurrent(operation)) setBusy(false); }
-  };
-
-  const cancelRun = async () => {
-    if (!run) return;
-    const operation = captureWorkspaceOperation();
-    try {
-      const cancelled = await plotloomApi.cancelRun(run.id);
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      setRun(cancelled);
-      // A cancellation can race an in-flight provider attempt. Re-enter the
-      // same lightweight observer so the inspector eventually reflects the
-      // durable terminal outcome without fetching trace evidence.
-      void pollRun(cancelled.id, cancelled.projectId).catch((pollError) => setError(messageFrom(pollError)));
-    } catch (cancelError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(cancelError)); }
-  };
-
-  const resumeRun = async () => {
-    if (!run || (run.status !== "queued" && run.status !== "running")) return;
-    if (!await ensureFrozenRunCredential(run)) return;
-    const frozenProfileId = String(run.providerSnapshot.profileId || "default");
-    const usesBearer = run.providerSnapshot.textAuthMode !== "none";
-    const operation = captureWorkspaceOperation();
-    try {
-      const resumed = await plotloomApi.resumeRun(run.id, frozenProfileId, usesBearer);
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      setRun(resumed);
-      void pollRun(run.id).catch((pollError) => setError(messageFrom(pollError)));
-    } catch (resumeError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(resumeError)); }
-  };
-
-  const repair = async (item: QuarantineItem) => {
-    if (!run || !item.repairEligible) { setError("这个 work unit 当前不具备精确修复资格。"); return; }
-    if (!await ensureFrozenRunCredential(run)) return;
-    const operation = captureWorkspaceOperation();
-    setBusy(true);
-    try {
-      // Exact repair is bound to its parent run. It must not save the visible
-      // profile form or switch models; only the matching profile-scoped
-      // session key can accompany this request.
-      const frozenProfileId = String(run.providerSnapshot.profileId || "default");
-      const usesBearer = run.providerSnapshot.textAuthMode !== "none";
-      const repairIdentity = `${run.id}:${item.id}`;
-      let idempotencyKey = repairKeyByUnit.current.get(repairIdentity);
-      if (!idempotencyKey) {
-        idempotencyKey = `work-unit-repair-${crypto.randomUUID()}`;
-        repairKeyByUnit.current.set(repairIdentity, idempotencyKey);
-      }
-      const next = await plotloomApi.repairWorkUnit(
-        run.id, item.id, frozenProfileId, idempotencyKey, usesBearer,
-      );
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      repairKeyByUnit.current.delete(repairIdentity);
-      showRunTrace(next);
-    }
-    catch (repairError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(repairError)); }
-    finally { if (isWorkspaceOperationCurrent(operation)) setBusy(false); }
-  };
-
-  const rebuild = async (fromStage: ServerStageName) => {
-    if (!project.id) { setError("请先保存项目，再重建下游阶段。"); return; }
-    const scope = stageForPage(activePage);
-    if (scope && hasDraft(project, scope)) {
-      setError("请先保存或丢弃当前阶段草稿，再创建重建运行。");
-      return;
-    }
-    const operation = captureWorkspaceOperation();
-    setBusy(true);
-    try {
-      const saved = await prepareGenerationProfile();
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      const next = await plotloomApi.rebuild(
-        project.id, fromStage, saved.profileId,
-        saved.configuration.textAuthMode === "bearer",
-      );
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      showRunTrace(next);
-    }
-    catch (rebuildError) { if (isWorkspaceOperationCurrent(operation)) setError(messageFrom(rebuildError)); }
-    finally { if (isWorkspaceOperationCurrent(operation)) setBusy(false); }
-  };
+  const { startRun, cancelRun, resumeRun, repair, rebuild } = useRunCommands({
+    project,
+    activePage,
+    run,
+    profiles: { draft: profileDraft, sessionKey, loaded: profilesLoaded, refresh: refreshProfiles, save: saveProfile, ensureFrozenCredential: ensureFrozenRunCredential },
+    currentness: { capture: captureWorkspaceOperation, isCurrent: isWorkspaceOperationCurrent },
+    pollRun,
+    openTrace: showRunTrace,
+    setRun,
+    setBusy,
+    setError,
+    hasDraft: (scope) => scope ? hasDraft(project, scope) : false,
+  });
 
   const saveSettings = async () => {
     setBusy(true);
@@ -786,72 +356,20 @@ export default function App() {
     setDirectoryOpen(false);
   };
 
-  const performProjectLifecycle = async (item: ProjectListItem, action: "archive" | "restore" | "duplicate" | "delete") => {
-    const operation = captureWorkspaceOperation();
-    try {
-      if (action === "archive") {
-        const updated = await plotloomApi.archiveProject(item.id, item.lifecycleRevision ?? item.revision);
-        if (!isWorkspaceOperationCurrent(operation)) return;
-        if (project.id === item.id) setProject((current) => ({ ...current, ...updated }));
-      } else if (action === "restore") {
-        const updated = await plotloomApi.restoreProject(item.id, item.lifecycleRevision ?? item.revision);
-        if (!isWorkspaceOperationCurrent(operation)) return;
-        if (project.id === item.id) setProject((current) => ({ ...current, ...updated }));
-      } else if (action === "duplicate") {
-        const revision = item.lifecycleRevision ?? item.revision;
-        const duplicateRequest = `${item.id}:${revision}`;
-        let idempotencyKey = duplicateKeyByRequest.current.get(duplicateRequest);
-        if (!idempotencyKey) {
-          idempotencyKey = `project-duplicate-${crypto.randomUUID()}`;
-          duplicateKeyByRequest.current.set(duplicateRequest, idempotencyKey);
-        }
-        const duplicate = await plotloomApi.duplicateProject(item.id, revision, undefined, idempotencyKey);
-        if (!isWorkspaceOperationCurrent(operation)) return;
-        duplicateKeyByRequest.current.delete(duplicateRequest);
-        setDirectoryOpen(false);
-        requestNavigation({ project: duplicate.project.id, stage: "brief" });
-      } else {
-        const expectedTitle = item.brief.title || item.id;
-        const confirmationTitle = window.prompt(`输入完整片名“${expectedTitle}”以永久删除`, "");
-        if (confirmationTitle !== expectedTitle) {
-          setDirectoryError("片名不匹配；未发送永久删除请求。");
-          return;
-        }
-        await plotloomApi.permanentlyDeleteProject(item.id, item.lifecycleRevision ?? item.revision, confirmationTitle);
-        if (!isWorkspaceOperationCurrent(operation)) return;
-        if (project.id === item.id) startBlankProject();
-      }
-      if (!isWorkspaceOperationCurrent(operation)) return;
-      await refreshProjectDirectory();
-    } catch (lifecycleError) {
-      if (isWorkspaceOperationCurrent(operation)) setDirectoryError(messageFrom(lifecycleError));
-    }
-  };
-
-  const mutateProjectLifecycle = async (item: ProjectListItem, action: "archive" | "restore" | "duplicate" | "delete") => {
-    const scope = stageForPage(activePage);
-    if (action === "archive" && item.id === project.id && scope && hasDraft(project, scope)) {
-      setPendingArchive(item);
-      return;
-    }
-    await performProjectLifecycle(item, action);
-  };
-
-  const resolvePendingArchive = async (action: "save" | "discard" | "cancel") => {
-    const item = pendingArchive;
-    if (!item || action === "cancel") { setPendingArchive(undefined); return; }
-    const scope = stageForPage(activePage);
-    if (scope && action === "save") {
-      const draft = currentDraft.current;
-      if (!draft || draft.scope !== scope) { setPendingArchive(undefined); return; }
-      if (scope === "brief") await commitProject({ brief: draft.payload as WorkspaceProject["brief"] });
-      else await commitStage(scope, draft.payload);
-      if (currentDraft.current) return;
-    }
-    if (scope) { discardDraft(project, scope); currentDraft.current = undefined; }
-    setPendingArchive(undefined);
-    await performProjectLifecycle(item, "archive");
-  };
+  const lifecycle = useProjectLifecycle({
+    project,
+    activePage,
+    currentDraft,
+    commitProject,
+    commitStage,
+    capture: captureWorkspaceOperation,
+    isCurrent: isWorkspaceOperationCurrent,
+    setProject,
+    directory: { setOpen: setDirectoryOpen, refresh: refreshProjectDirectory, setError: setDirectoryError },
+    openProject: (projectId) => requestNavigation({ project: projectId, stage: "brief" }),
+    startBlank: startBlankProject,
+  });
+  const { pendingArchive, mutate: mutateProjectLifecycle, resolvePendingArchive } = lifecycle;
 
   const reloadConflictServer = async () => {
     if (!draftConflict || !project.id) return;
@@ -894,7 +412,7 @@ export default function App() {
       currentDraft.current = undefined;
       setDraftConflict(undefined);
       setValidationIssues({});
-      setEditorNonce((value) => value + 1);
+      bumpEditorNonce();
     } catch (copyError) {
       if (!isWorkspaceOperationCurrent(operation)) return;
       const issues = validationIssuesFrom(copyError);
@@ -994,32 +512,15 @@ export default function App() {
     {directoryOpen && <ProjectDirectoryDialog projects={projects} showArchived={showArchived} error={directoryError} loading={directoryLoading} hasMore={Boolean(nextProjectCursor)} onLoadMore={loadMoreProjects} onArchived={(next) => { setShowArchived(next); void refreshProjectDirectory(next); }} onBlank={startBlankProject} onSample={openSampleProject} onOpen={(item) => { setDirectoryOpen(false); requestNavigation({ project: item.id, stage: "brief" }); }} onAction={mutateProjectLifecycle} onClose={() => setDirectoryOpen(false)} />}
     {pendingNavigation && !unsafeDraft && <DraftNavigationDialog onSave={() => void resolvePendingNavigation("save")} onDiscard={() => void resolvePendingNavigation("discard")} onCancel={() => void resolvePendingNavigation("cancel")} />}
     {pendingArchive && <DraftNavigationDialog onSave={() => void resolvePendingArchive("save")} onDiscard={() => void resolvePendingArchive("discard")} onCancel={() => void resolvePendingArchive("cancel")} />}
-    {draftRecovery && <DraftRecoveryDialog source={draftRecovery.source} onRestore={() => {
-      currentDraft.current = { scope: draftRecovery.scope, payload: draftRecovery.payload };
-      setRestoredDraft(draftRecovery);
-      if (draftRecovery.source !== "server") scheduleAuthoringDraftAutosave(draftRecovery.scope);
-      setEditorNonce((value) => value + 1); setDraftRecovery(undefined);
-    }} onDiscard={() => {
-      const recovery = draftRecovery;
-      discardDraft(project, recovery.scope);
-      const serverDraft = project.id && serverAuthoringDrafts.current.get(authoringDraftKey(project.id, recovery.scope));
-      if (serverDraft && project.id) {
-        void plotloomApi.discardAuthoringDraft(project.id, {
-          editorScope: recovery.scope, entityId: "root", expectedDraftRevision: serverDraft.draftRevision,
-        }).then((receipt) => {
-          if (receipt === serverDraft.draftRevision) serverAuthoringDrafts.current.delete(authoringDraftKey(project.id!, recovery.scope));
-        }).catch((discardError) => setError(`草稿未丢弃：${messageFrom(discardError)}`));
-      }
-      currentDraft.current = undefined; setDraftRecovery(undefined); setRestoredDraft(undefined); setEditorNonce((value) => value + 1);
-    }} />}
-    {draftConflict && <DraftConflictDialog serverReloaded={draftConflict.serverReloaded} busy={projectSaving} onReload={() => void reloadConflictServer()} onCopy={() => void copyConflictAsProject()} onDiscard={() => { discardDraftRecord(draftConflict.record); currentDraft.current = undefined; setDraftConflict(undefined); setEditorNonce((value) => value + 1); }} />}
+    {draftRecovery && <DraftRecoveryDialog source={draftRecovery.source} onRestore={restoreDraftRecovery} onDiscard={discardDraftRecovery} />}
+    {draftConflict && <DraftConflictDialog serverReloaded={draftConflict.serverReloaded} busy={projectSaving} onReload={() => void reloadConflictServer()} onCopy={() => void copyConflictAsProject()} onDiscard={() => { discardDraftRecord(draftConflict.record); currentDraft.current = undefined; setDraftConflict(undefined); bumpEditorNonce(); }} />}
     {unsafeDraft && <UnsafeDraftDialog reason={unsafeDraft.reason} onDiscard={() => {
       const pending = pendingNavigation;
       const { record, reason } = unsafeDraft;
       discardDraftRecord(record);
       const remaining = findProjectDrafts(record.projectId)[0];
       setUnsafeDraft(remaining ? { record: remaining, reason } : undefined);
-      setEditorNonce((value) => value + 1);
+      bumpEditorNonce();
       if (!remaining && pending) { setPendingNavigation(undefined); applyNavigation(pending); }
     }} />}
   </div>;

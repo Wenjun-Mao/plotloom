@@ -9,11 +9,12 @@ entrypoints.
 
 This receipt is amended because its original workspace conclusion was too
 broad: moving the prior App implementation to a renamed workspace file did not
-establish the required narrow owners. The correction introduces named profile,
-directory, run-session, route-contract, inspector, and dialog boundaries, but
-must receive an independent source-ownership review before it can claim full
-workspace completion. The retained workbench/session composition is therefore
-an explicit open correction, not a deferred Step 4 assessment.
+establish the required narrow owners. The correction now adds typed project
+loader, navigation/history, canonical authoring persistence, draft recovery,
+lifecycle, and run-command owners alongside the earlier profile, directory,
+run-session, route-contract, inspector, and dialog boundaries. The focused
+independent source-ownership review and final full gate remain required before
+this receipt can claim acceptance.
 
 ## Ownership tree
 
@@ -26,6 +27,12 @@ frontend/src/
 │       ├── useTextProviderProfiles.ts      # profile catalog and session-key scope
 │       ├── useProjectDirectory.ts          # directory cursor/currentness
 │       ├── useRunSession.ts                # poll and trace-evidence currentness
+│       ├── useRunCommands.ts               # start/cancel/resume/repair/rebuild commands
+│       ├── useWorkspaceProjectLoader.ts    # abortable canonical aggregate load
+│       ├── useWorkspaceNavigation.ts       # URL/history and draft-gated navigation
+│       ├── useProjectAuthoringPersistence.ts # canonical save/create and CAS consumption
+│       ├── useAuthoringDraftRecovery.ts    # restore/discard recovery interaction
+│       ├── useProjectLifecycle.ts           # archive/restore/duplicate/delete ownership
 │       └── WorkspaceViews.tsx              # inspector and dialogs
 ├── features/
 │   ├── authoring/
@@ -52,8 +59,11 @@ frontend/src/
 
 The original claim that an oversized workspace composition was intentionally
 left for a later assessment has been withdrawn. This receipt must not be used
-as evidence that the correction is complete until the remaining project-session
-owner is decomposed and independently reviewed.
+as evidence of acceptance: the focused review of this candidate rejected it
+because the 527-line controller still owns trace navigation, conflict recovery,
+and starter workflows, while loader/persistence/navigation receive broad
+mutable callback bundles. The next candidate must make those narrow session
+contracts and move the residual workflows before another review.
 
 ## Independent ownership review
 
