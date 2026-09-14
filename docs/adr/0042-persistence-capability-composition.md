@@ -19,7 +19,7 @@ project video job and its reservation still commit atomically.
 `ProjectSQLiteRepository` is defined in `persistence/project/repository.py`;
 its ID and admitted-profile guards and the public import remain unchanged.
 
-## Correction (pending director review)
+## Correction (director accepted)
 
 The earlier consequence text treated the 2,500-line media capability and the
 668-line profile/control capability as accepted exceptions. The director
@@ -40,7 +40,7 @@ continues to receive the video's existing lifecycle session. No cross-capability
 owner opens a second lease.
 
 This correction changes no table, migration, hash, transaction lease, public
-signature, or storage ownership. It is an implementation candidate and does
-not itself claim director acceptance. The 1,538-line retained facade remains a
+signature, or storage ownership. The director accepted and pushed the corrected
+implementation at the persistence checkpoint. The 1,538-line retained facade remains a
 documented compatibility exception while runtime callers still import it; a
 caller-migration proposal must define its retirement.

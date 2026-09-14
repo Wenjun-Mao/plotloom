@@ -1,7 +1,8 @@
 # Codebase modularization: persistence-first structure proposal
 
-**Status:** persistence conversion complete; this document remains the
-execution map for the separately pending frontend and later assessments.
+**Status:** persistence conversion and the separately authorized frontend
+workbench modularization are complete; this document remains the execution map
+for later assessments.
 It follows the accepted API modularization checkpoint at
 `f9487508239bf14f5f8de8b255456c97a3e3b933` and the already-approved breaking
 project-folder storage destination.  It does not reopen the cutover decision,
@@ -14,7 +15,9 @@ add a selectable storage mode, or schedule frontend work concurrently.
 - [x] Persistence package conversion complete (schema/codec/database/transaction,
   authoring, generation, project media, and application control have explicit
   capability owners; the retained runtime surface is compatibility composition).
-- [ ] Frontend modularization pending as a separate phase.
+- [x] Frontend modularization completed as a separate phase. The workbench is
+  now composed from named media capabilities, app/session coordination, and
+  authoring-draft autosave ownership; see the frontend receipt.
 - [ ] Justified assessment of other large modules pending; do not treat line
   count alone as implementation authority.
 
@@ -54,7 +57,7 @@ pilot ledger remains in `application/accounting.py`. `project/media.py` is the
 `application/profiles.py` is a 179-line explicit compatibility composition
 layer. `legacy_repository.py` remains the one documented retained runtime
 facade and delegates directly to those typed owners.
-ADR 0042 records the correction as awaiting director result review. No schema,
+ADR 0042 records the director-accepted correction. No schema,
 public API, migration, runtime cutover, storage ownership, provider spend, or
 frontend decision changes in this persistence-complete phase.
 
@@ -342,7 +345,27 @@ schema/persistence, transaction semantics, runtime/recovery, or the approved
 storage destination.  A pure file move with preserved contracts needs a focused
 receipt, not a new architecture process.
 
-## Frontend is the next separate phase
+## Frontend modularization completion (Step 3)
+
+The separately authorized frontend phase established the planned ownership
+roots without a wire-contract, transport-policy, server-action, or visual
+redesign. `App.tsx` and `managed-media.tsx` are retained two-line compatibility
+composition entrypoints. Workspace state remains route/epoch/AbortController
+aware in `app/WorkspaceApp.tsx`; durable authoring draft CAS, in-flight
+queuing, conflict preservation, and recovery seeding now have an explicit
+`features/authoring/useAuthoringDraftAutosave.ts` owner. The media composition
+root delegates to assets, keyframe/preview, image-job, and
+character-reference/identity-review panels and focused mutation hooks. The URL
+remains the route fact source, and preview playback retains its frozen
+per-frame timing and selected-binding behavior.
+
+`api.ts` and `types.ts` remain intentionally stable shared wire boundaries in
+this phase: no backend capability required a transport-shape move, so creating
+parallel type copies would have added compatibility risk without clarifying an
+owner. The full module tree and verification receipt are recorded in
+`docs/verification/2026-09-14-frontend-workbench-modularization.md`.
+
+## Frontend phase: original planning record
 
 No frontend code belongs in the first backend slice.  The audited seams are
 clear enough to plan next: `App.tsx` (1,633 lines) owns application shell,
@@ -352,7 +375,7 @@ still/image/reference/proposal/review mutations, local form state and preview
 playback.  `api.ts` (573) is transport/client admission, while `types.ts`
 (1,099) is a public client contract mixed with feature families.
 
-The next, separately approved frontend phase should establish:
+The completed, separately approved frontend phase established:
 
 ```text
 frontend/src/
