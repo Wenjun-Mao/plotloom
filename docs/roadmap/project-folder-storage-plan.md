@@ -353,10 +353,15 @@ operational-state row plus a filesystem advisory lease to deny delayed local
 admission. It refuses nonterminal text/media work and publication ownership
 that cannot prove terminal, checkpoints SQLite before release, and requires
 explicit Open without dispatch or replay. The direct workbench's one
-project-scoped drain coordinates authoring, visual-intent, and image-direction
-draft queues: failed CAS/network writes or late typing leave the folder open
-with their unacknowledged buffer intact. Browser evidence covers immediate
-authoring and visual-intent typing through Close, Open, and a file-SQLite
-backend restart without canonical mutation. Snapshot/restore, video,
-retained-runtime cutover, legacy-data migration, and live-provider evidence
-remain outside this slice. See [the close receipt](../verification/2026-09-14-project-folder-close-quiescence.md).
+project-scoped admission owns the entire drain-to-response interval and freezes
+the requesting client's edits, dispatch actions, and navigation. It drains
+authoring plus every known visual-intent/image-direction queue, retaining a
+dirty media writer across its form's shot/target unmount. Each retained writer
+keeps entity-owned CAS/acknowledgement/flight state, so switching the mounted
+form cannot reset another queue's close receipt. Close-time Discard CAS-removes
+only the selected current draft after first obtaining its durable receipt;
+clearing a server-backed image direction uses the same exact-discard rule.
+Failed CAS, conflict, or transport work leaves the folder open and data
+recoverable. Snapshot/restore, video, retained-runtime cutover, legacy-data
+migration, and live-provider evidence remain outside this slice. See [the close
+receipt](../verification/2026-09-14-project-folder-close-quiescence.md).

@@ -30,14 +30,23 @@ Explicit Open also takes the exclusive lease and changes only admission state;
 it never dispatches or replays work. Ordinary registry opens reject a closed
 project, so delayed requests cannot silently reopen it.
 
-The direct workbench owns one project-scoped draft-quiescence contract. Its
-authoring and media editors register only their own durable write queue;
-Close drains the current authoring draft and every registered visual-intent or
-image-direction queue before calling the backend. A CAS/network failure, or a
-new edit registered while the drain is in flight, fails Close and retains the
-unacknowledged buffer. A durable draft receipt does not canonically save or
-approve author content. Explicit Open closes the directory view and routes to
-the reopened project; it never replays a job.
+The direct workbench owns one project-scoped draft-quiescence contract. It admits
+Close before any disposition or drain and holds that admission through the Close
+response. The requesting client freezes edits, save/dispatch actions, and route
+changes for that project during the interval; media hooks also refuse a late
+programmatic update. Close drains the current authoring draft and every known
+visual-intent or image-direction queue, including a dirty queue retained after
+its form unmounts on shot/target navigation. A CAS/network failure retains the
+durable or local buffer and leaves the project open. A visible Close-time
+Discard first obtains the exact current draft receipt, CAS-discards that one
+scope, and only then removes its local record; it cannot erase another scope.
+Clearing a server-backed image direction similarly remains dirty until its exact
+discard receipt succeeds. A retained media writer keeps its own entity-keyed
+CAS revision, acknowledgement, save flight, timer, and conflict state; mounting
+another shot or target cannot reset the receipt needed to drain the old writer.
+A durable draft receipt does not canonically save or approve author content.
+Explicit Open closes the directory view and routes to the reopened project; it
+never replays a job.
 
 ## Consequences
 
@@ -46,6 +55,11 @@ the retained runtime does not show a control it cannot honor. A filesystem
 advisory lease coordinates local
 processes and external publication paths, but is not a claim of safety across
 hosts or unsupported filesystems.
+
+Failed Close restores the requesting client's editability and preserves the
+same route and canonical projection. The close admission is client-local and
+supplements, rather than replaces, the project-folder operational-state row and
+cross-process lease.
 
 ## Rejected alternatives
 

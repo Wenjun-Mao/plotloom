@@ -143,7 +143,8 @@ export function useAssetKeyframeActions({
         } : {}),
       });
       await refresh();
-      await intentEditor.clear();
+      // The canonical endpoint consumed this exact durable receipt atomically.
+      await intentEditor.clearConsumed();
     } catch (intentError) {
       setError(
         intentError instanceof Error ? intentError.message : "意图保存失败",

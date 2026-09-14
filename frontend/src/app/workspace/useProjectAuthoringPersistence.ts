@@ -82,9 +82,13 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
   );
 
   const beginSave = useCallback((): number | undefined => {
-    const { session, feedback } = current.current;
+    const { session, feedback, draftQuiescence } = current.current;
     if (session.project.archivedAt) {
       feedback.setError("归档项目为只读；请先在项目目录中恢复它。");
+      return undefined;
+    }
+    if (session.project.id && draftQuiescence.isClosing(session.project.id)) {
+      feedback.setError("项目正在关闭；请等待关闭完成或失败后再编辑。");
       return undefined;
     }
     if (saveInFlight.current) return undefined;
@@ -250,7 +254,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
 
   const rememberDraft = useCallback((scope: DraftScope, payload: unknown) => {
     const source = current.current;
-    if (source.session.project.archivedAt) return;
+    if (source.session.project.archivedAt || (source.session.project.id && source.draftQuiescence.isClosing(source.session.project.id))) return;
     currentDraft.current = { scope, payload };
     const local = getDraft(source.session.project, scope);
     const recovered = source.session.project.id && restoredDraft?.scope === scope && restoredDraft.source === "server"
@@ -326,6 +330,46 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     setRestoredDraft(undefined);
     setDraftConflict(undefined);
   }, []);
+  const discardCurrentAuthoringDraft = useCallback(async (scope: DraftScope): Promise<boolean> => {
+    const source = current.current;
+    const project = source.session.project;
+    const draft = currentDraft.current;
+    if (!draft || draft.scope !== scope) return false;
+    if (!project.id || !source.durableDraftsEnabled.current) {
+      discardDraft(project, scope);
+      currentDraft.current = undefined;
+      setRestoredDraft(undefined);
+      return true;
+    }
+    // Close has already frozen admission. Persisting first gives the server an
+    // exact CAS revision to discard; only its receipt permits local removal.
+    if (!await flushAuthoringDraft(scope)) return false;
+    const key = authoringDraftKey(project.id, scope);
+    const serverDraft = source.session.serverDrafts.current.get(key);
+    if (!serverDraft) {
+      source.feedback.setError("当前草稿没有可验证的服务器回执；项目仍保持打开状态。");
+      return false;
+    }
+    try {
+      const receipt = await plotloomApi.discardAuthoringDraft(project.id, {
+        editorScope: scope,
+        entityId: "root",
+        expectedDraftRevision: serverDraft.draftRevision,
+      });
+      if (receipt !== serverDraft.draftRevision) {
+        throw new Error("当前草稿在丢弃前已变化");
+      }
+      source.session.serverDrafts.current.delete(key);
+      discardDraft(project, scope);
+      currentDraft.current = undefined;
+      setRestoredDraft(undefined);
+      setDurableDraftStatus("idle");
+      return true;
+    } catch (error) {
+      source.feedback.setError(`草稿未丢弃：${messageFrom(error)}`);
+      return false;
+    }
+  }, [flushAuthoringDraft]);
 
   return {
     currentDraft,
@@ -348,5 +392,6 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     copyDraftConflict,
     discardDraftConflict,
     clearDraftWorkflow,
+    discardCurrentAuthoringDraft,
   };
 }

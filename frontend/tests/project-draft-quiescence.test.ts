@@ -24,3 +24,19 @@ it("refuses Close when a writer fails or changes while a drain is in flight", as
   release();
   await expect(closing).resolves.toBe(false);
 });
+
+it("holds project admission from drain through the Close response", async () => {
+  const quiescence = createProjectDraftQuiescence();
+  quiescence.register("project", "draft", async () => true);
+
+  const close = quiescence.beginClose("project");
+  expect(quiescence.isClosing("project")).toBe(true);
+  await expect(close.drain()).resolves.toBe(true);
+  expect(close.canCommit()).toBe(true);
+
+  // A mounted editor cannot add a replacement queue behind this Close.
+  quiescence.register("project", "late", async () => false);
+  expect(close.canCommit()).toBe(true);
+  close.finish();
+  expect(quiescence.isClosing("project")).toBe(false);
+});

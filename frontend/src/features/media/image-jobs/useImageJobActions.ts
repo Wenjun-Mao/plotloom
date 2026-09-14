@@ -110,7 +110,8 @@ export function useImageJobActions({
           },
         } : {}),
       });
-      await imageJobDirection.clear();
+      // The prepare request consumed this exact durable direction atomically.
+      await imageJobDirection.clearConsumed();
       await refresh();
     } catch (jobError) {
       setError(
@@ -214,4 +215,3 @@ export function useImageJobActions({
     cancelImageJob,
   };
 }
-

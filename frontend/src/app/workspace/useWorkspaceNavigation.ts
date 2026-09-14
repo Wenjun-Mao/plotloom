@@ -23,13 +23,14 @@ interface WorkspaceNavigationInput {
   };
   loadProject: (projectId: string, epoch?: number) => Promise<void>;
   pollRun: (runId: string, projectId?: string) => Promise<void>;
+  isProjectClosing: (projectId: string) => boolean;
 }
 
 /**
  * Owns URL/history writes and draft-gated route changes. The session is the
  * only authority that increments epochs or mutates canonical route identity.
  */
-export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun }: WorkspaceNavigationInput) {
+export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, isProjectClosing }: WorkspaceNavigationInput) {
   const [pendingNavigation, setPendingNavigation] = useState<NavigationTarget | undefined>();
 
   const clearDraftRouteState = useCallback(() => {
@@ -79,6 +80,12 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun }
     forceReload?: boolean;
   }) => {
     const normalized: NavigationTarget = { entity: "", run: "", history: "push", forceReload: false, ...next };
+    if (session.project.id && isProjectClosing(session.project.id)) {
+      // A history pop already changed the address; restore the admitted route
+      // rather than unmounting a writer during Close.
+      if (normalized.history === "pop") session.replaceCurrentRoute();
+      return;
+    }
     const scope = stageForPage(session.activePage);
     const unsafeDraft: UnsafeDraft | undefined = session.unsafeDraft;
     if (
@@ -100,16 +107,17 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun }
       return;
     }
     applyNavigation(normalized);
-  }, [applyNavigation, drafts, session]);
+  }, [applyNavigation, drafts, isProjectClosing, session]);
 
   const selectRouteEntity = useCallback((entity: string) => session.focusEntity(entity), [session]);
   const openRunTrace = useCallback((run: PipelineRun) => {
+    if (isProjectClosing(run.projectId)) return;
     clearDraftRouteState();
     session.navigateToProject({ project: run.projectId, stage: "trace", entity: "", run: run.id }, "push");
     session.acceptRun(run);
     session.clearTrace();
     void pollRun(run.id, run.projectId);
-  }, [clearDraftRouteState, pollRun, session]);
+  }, [clearDraftRouteState, isProjectClosing, pollRun, session]);
 
   const resolvePendingNavigation = useCallback(async (action: "save" | "discard" | "cancel") => {
     const pending = pendingNavigation;

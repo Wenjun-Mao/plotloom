@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { imageJobTargetId, useImageJobDirectionDraft, useVisualIntentDraft, type IntentDraft } from "../src/visual-intent-drafts";
 import { plotloomApi } from "../src/api";
+import { createProjectDraftQuiescence, type ProjectDraftQuiescence } from "../src/features/authoring/projectDraftQuiescence";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const saved: IntentDraft = { identityIntent: "identity", compositionIntent: "composition", styleIntent: "saved", sourceRefs: "source" };
@@ -10,8 +11,8 @@ let root: Root;
 let host: HTMLDivElement;
 let editor: ReturnType<typeof useVisualIntentDraft>;
 let directionEditor: ReturnType<typeof useImageJobDirectionDraft>;
-function Probe({ project = "project", shot = "shot", asset = "asset", base, durable = false }: { project?: string; shot?: string; asset?: string; base?: string; durable?: boolean }) {
-  editor = useVisualIntentDraft(project, shot, asset, base, saved, durable ? 1 : undefined, durable);
+function Probe({ project = "project", shot = "shot", asset = "asset", base, durable = false, quiescence }: { project?: string; shot?: string; asset?: string; base?: string; durable?: boolean; quiescence?: ProjectDraftQuiescence }) {
+  editor = useVisualIntentDraft(project, shot, asset, base, saved, durable ? 1 : undefined, durable, quiescence);
   return null;
 }
 const render = async (props: Parameters<typeof Probe>[0] = {}) => {
@@ -20,8 +21,8 @@ const render = async (props: Parameters<typeof Probe>[0] = {}) => {
 const edit = async (styleIntent: string) => {
   await act(async () => editor.update((value) => ({ ...value, styleIntent })));
 };
-function DirectionProbe({ project = "project", shot = "shot", target = "original", context = "approval-1" }: { project?: string; shot?: string; target?: string; context?: string }) {
-  directionEditor = useImageJobDirectionDraft(project, shot, target === "original" ? { kind: "original" } : { kind: "refinement", parentCandidateAssetId: target }, context);
+function DirectionProbe({ project = "project", shot = "shot", target = "original", context = "approval-1", durable = false, quiescence }: { project?: string; shot?: string; target?: string; context?: string; durable?: boolean; quiescence?: ProjectDraftQuiescence }) {
+  directionEditor = useImageJobDirectionDraft(project, shot, target === "original" ? { kind: "original" } : { kind: "refinement", parentCandidateAssetId: target }, context, durable ? 1 : undefined, durable, quiescence);
   return null;
 }
 const renderDirection = async (props: Parameters<typeof DirectionProbe>[0] = {}) => {
@@ -65,6 +66,42 @@ it("refuses Close drain for a dirty visual intent with no persistable source ref
   await act(async () => editor.update((value) => ({ ...value, styleIntent: "changed", sourceRefs: "" })));
   await expect(editor.flush()).resolves.toBe(false);
   expect(editor.dirty).toBe(true);
+});
+
+it("keeps a known media draft in the project drain after its form switches shots", async () => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  const save = vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+  const quiescence = createProjectDraftQuiescence();
+  await render({ durable: true, quiescence });
+  await act(async () => { await Promise.resolve(); });
+  await edit("draft that must survive a shot switch");
+  await render({ durable: true, quiescence, shot: "other" });
+
+  await expect(quiescence.flush("project")).resolves.toBe(true);
+  expect(save).toHaveBeenCalledWith("project", expect.objectContaining({
+    editorScope: "visual_intent",
+    entityId: "shot:asset",
+  }));
+});
+
+it("keeps an acknowledged visual intent's own CAS receipt after its form switches shots", async () => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  const save = vi.spyOn(plotloomApi, "saveAuthoringDraft")
+    .mockResolvedValueOnce({ draftRevision: 1 } as never)
+    .mockResolvedValueOnce({ draftRevision: 2 } as never);
+  const quiescence = createProjectDraftQuiescence();
+  await render({ durable: true, quiescence });
+  await act(async () => { await Promise.resolve(); });
+  await edit("first acknowledged visual intent");
+  await expect(editor.flush()).resolves.toBe(true);
+  await edit("updated visual intent retained after switch");
+  await render({ durable: true, quiescence, shot: "other" });
+
+  await expect(quiescence.flush("project")).resolves.toBe(true);
+  expect(save).toHaveBeenLastCalledWith("project", expect.objectContaining({
+    entityId: "shot:asset",
+    expectedDraftRevision: 1,
+  }));
 });
 
 it("discards only the current context and warns on unload while any drafts remain", async () => {
@@ -132,6 +169,63 @@ it("requires explicit recovery when an image direction's approval context change
   expect(directionEditor.stale).toBe(false);
   await act(async () => directionEditor.clear());
   expect(directionEditor.value).toBe("");
+});
+
+it("does not report a cleared acknowledged image direction as drained until its CAS discard succeeds", async () => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+  const discard = vi.spyOn(plotloomApi, "discardAuthoringDraft").mockResolvedValue(1);
+  await renderDirection({ durable: true });
+  await act(async () => { await Promise.resolve(); });
+  await act(async () => directionEditor.update("remove this durable direction"));
+  await expect(directionEditor.flush()).resolves.toBe(true);
+
+  await act(async () => directionEditor.update("   "));
+  expect(directionEditor.dirty).toBe(true);
+  await expect(directionEditor.flush()).resolves.toBe(true);
+  expect(discard).toHaveBeenCalledWith("project", {
+    editorScope: "image_direction",
+    entityId: "shot:original",
+    expectedDraftRevision: 1,
+  });
+});
+
+it("keeps an acknowledged image direction's own CAS receipt after its form switches shots", async () => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  const save = vi.spyOn(plotloomApi, "saveAuthoringDraft")
+    .mockResolvedValueOnce({ draftRevision: 1 } as never)
+    .mockResolvedValueOnce({ draftRevision: 2 } as never);
+  const quiescence = createProjectDraftQuiescence();
+  await renderDirection({ durable: true, quiescence });
+  await act(async () => { await Promise.resolve(); });
+  await act(async () => directionEditor.update("first acknowledged direction"));
+  await expect(directionEditor.flush()).resolves.toBe(true);
+  await act(async () => directionEditor.update("updated direction retained after switch"));
+  await renderDirection({ durable: true, quiescence, shot: "other" });
+
+  await expect(quiescence.flush("project")).resolves.toBe(true);
+  expect(save).toHaveBeenLastCalledWith("project", expect.objectContaining({
+    entityId: "shot:original",
+    expectedDraftRevision: 1,
+  }));
+});
+
+it("retains a cleared image direction locally when its CAS discard conflicts", async () => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  vi.spyOn(plotloomApi, "saveAuthoringDraft").mockResolvedValue({ draftRevision: 1 } as never);
+  vi.spyOn(plotloomApi, "discardAuthoringDraft").mockRejectedValue(new Error("draft conflict"));
+  await renderDirection({ durable: true });
+  await act(async () => { await Promise.resolve(); });
+  await act(async () => directionEditor.update("do not lose this on conflict"));
+  await expect(directionEditor.flush()).resolves.toBe(true);
+
+  await act(async () => directionEditor.update(""));
+  let drained = true;
+  await act(async () => { drained = await directionEditor.flush(); });
+  expect(drained).toBe(false);
+  expect(directionEditor.value).toBe("");
+  expect(directionEditor.dirty).toBe(true);
+  expect(directionEditor.serverConflict).toBe(true);
 });
 
 it("removes empty directions without warning and preserves other exact targets", async () => {

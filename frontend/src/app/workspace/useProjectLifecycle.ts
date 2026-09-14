@@ -15,6 +15,7 @@ export function useProjectLifecycle({
   currentDraft,
   commitProject,
   commitStage,
+  discardCurrentAuthoringDraft,
   mediaDraftQuiescence,
   directory,
   openProject,
@@ -25,6 +26,7 @@ export function useProjectLifecycle({
   currentDraft: React.MutableRefObject<{ scope: DraftScope; payload: unknown } | undefined>;
   commitProject: (patch: Partial<WorkspaceProject>) => Promise<void>;
   commitStage: <T>(stage: ServerStageName, content: T) => Promise<void>;
+  discardCurrentAuthoringDraft: (scope: DraftScope) => Promise<boolean>;
   mediaDraftQuiescence: ProjectDraftQuiescence;
   directory: { close: () => void; refresh: () => Promise<void>; setError: (error: string) => void };
   openProject: (projectId: string) => void;
@@ -33,25 +35,32 @@ export function useProjectLifecycle({
 }) {
   const duplicateKeys = useRef(new Map<string, string>());
   const [pendingArchive, setPendingArchive] = useState<{ item: ProjectListItem; action: "archive" | "close" } | undefined>();
-  const perform = async (item: ProjectListItem, action: LifecycleAction) => {
+  const [closingProjectId, setClosingProjectId] = useState<string | undefined>();
+  const perform = async (
+    item: ProjectListItem,
+    action: LifecycleAction,
+    closeDraftDisposition?: "save" | "discard",
+  ) => {
     const operation = session.capture();
+    let closeAttempt: ReturnType<ProjectDraftQuiescence["beginClose"]> | undefined;
     try {
       if (action === "close" || action === "open") {
         if (!explicitProjectClose) return;
         if (action === "close") {
-          const attempt = mediaDraftQuiescence.beginClose(item.id);
-          if (!await attempt.drain() || !attempt.canCommit()) {
+          // This admission begins before either disposition or drain and stays
+          // active until the Close response settles. It protects the requesting
+          // client from stranding a late edit behind a closed project.
+          closeAttempt = mediaDraftQuiescence.beginClose(item.id);
+          setClosingProjectId(item.id);
+          const scope = stageForPage(session.activePage);
+          if (closeDraftDisposition === "discard" && (!scope || !await discardCurrentAuthoringDraft(scope))) {
+            throw new Error("当前草稿未能安全丢弃；项目仍保持打开状态。");
+          }
+          if (!await closeAttempt.drain() || !closeAttempt.canCommit()) {
             throw new Error("媒体草稿未保存；项目仍保持打开状态。");
           }
-          try {
-            // `canCommit` runs in this continuation, before yielding to fetch;
-            // a writer registered by a late edit therefore aborts Close rather
-            // than being stranded behind a closed project.
-            if (!attempt.canCommit()) throw new Error("项目草稿仍在更新；请重试关闭。");
-            await plotloomApi.closeProject(item.id);
-          } finally {
-            attempt.finish();
-          }
+          if (!closeAttempt.canCommit()) throw new Error("项目草稿仍在更新；请重试关闭。");
+          await plotloomApi.closeProject(item.id);
         } else {
           await plotloomApi.openProjectFolder(item.id);
           if (!session.isCurrent(operation)) return;
@@ -94,9 +103,13 @@ export function useProjectLifecycle({
       if (session.isCurrent(operation)) await directory.refresh();
     } catch (error) {
       if (session.isCurrent(operation)) directory.setError(messageFrom(error));
+    } finally {
+      closeAttempt?.finish();
+      if (closeAttempt) setClosingProjectId((current) => current === item.id ? undefined : current);
     }
   };
   const mutate = async (item: ProjectListItem, action: LifecycleAction) => {
+    if (session.project.id && mediaDraftQuiescence.isClosing(session.project.id)) return;
     const scope = stageForPage(session.activePage);
     if ((action === "archive" || action === "close") && item.id === session.project.id && scope && hasDraft(session.project, scope)) { setPendingArchive({ item, action }); return; }
     await perform(item, action);
@@ -105,25 +118,24 @@ export function useProjectLifecycle({
     const pending = pendingArchive;
     if (!pending || action === "cancel") { setPendingArchive(undefined); return; }
     const scope = stageForPage(session.activePage);
-    if (scope && action === "save" && pending.action === "close") {
-      if (!await mediaDraftQuiescence.flush(pending.item.id)) return;
-    } else if (scope && action === "save") {
+    if (pending.action === "close") {
+      setPendingArchive(undefined);
+      await perform(pending.item, "close", action === "discard" ? "discard" : "save");
+      return;
+    }
+    if (scope && action === "save") {
       const draft = currentDraft.current;
       if (!draft || draft.scope !== scope) { setPendingArchive(undefined); return; }
       if (scope === "brief") await commitProject({ brief: draft.payload as WorkspaceProject["brief"] });
       else await commitStage(scope, draft.payload);
       if (currentDraft.current) return;
     }
-    // Close keeps the current ref through the server-draft receipt and the
-    // following admission transition. Clearing it before Close completes lets
-    // the generic recovery effect paint a just-acknowledged draft over the
-    // closed view. `startBlank` owns the final workflow cleanup instead.
-    if (scope && pending.action !== "close") {
+    if (scope) {
       discardDraft(session.project, scope);
       currentDraft.current = undefined;
     }
     setPendingArchive(undefined);
     await perform(pending.item, pending.action);
   };
-  return { pendingArchive, mutate, resolvePendingArchive };
+  return { pendingArchive, mutate, resolvePendingArchive, closingProjectId };
 }
