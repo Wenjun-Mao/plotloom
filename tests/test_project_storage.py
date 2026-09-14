@@ -11,8 +11,6 @@ import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
-from tests.test_alpha_acceptance import _FixtureResolver, _profile
-
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.domain import Artifact, ArtifactKind, RunKind, RunStatus, STAGE_ORDER, WorkUnitStatus
@@ -30,8 +28,10 @@ from plotloom.project_storage import (
     ProjectStorageConfinementError,
     ProjectStorageError,
 )
-from plotloom.provider_profiles import TextProviderProfileSnapshotV3
 from plotloom.persistence import stable_hash
+from plotloom.provider_profiles import TextProviderProfileSnapshotV3
+from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
+from tests.project_storage_fixtures import fixture_profile as _fixture_profile
 
 
 def _hold_project_handle(
@@ -53,19 +53,6 @@ def _hold_project_handle(
         release.wait(timeout=10)
     finally:
         store.close()
-
-
-def _fixture_profile(*, max_semantic_corrections: int = 2) -> TextProviderProfileSnapshotV3:
-    values = _profile("offline_fixture").model_dump(mode="json", by_alias=True)
-    values.update(
-        profileSchemaVersion=3,
-        adapterId="openai_compatible",
-        adapterVersion="1",
-        maxSemanticCorrections=max_semantic_corrections,
-        presetId="custom" if max_semantic_corrections == 0 else "compatible_v1",
-        profileHash="",
-    )
-    return TextProviderProfileSnapshotV3.model_validate(values)
 
 
 class _RejectFinalStoryboardProvider:

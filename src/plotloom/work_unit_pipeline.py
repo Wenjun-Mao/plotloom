@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 from threading import Event
-from typing import Any, Mapping, Protocol
+from typing import TYPE_CHECKING, Any, Mapping, Protocol
 
 from .domain import (
     Artifact,
@@ -91,10 +91,15 @@ from .generation.storyboard_timing_repair import (
     build_storyboard_timing_repair_plan,
     storyboard_timing_guidance_hash,
 )
-from .persistence import SQLiteRepository, stable_hash
+from .persistence.codec import stable_hash
 from .provider_profiles import TextProviderProfileSnapshot
 from .generation.story_graph_topology import StoryGraphTopology
 from .runtime import RunExecutionResult
+
+if TYPE_CHECKING:
+    from .persistence.project.repository_generation import (
+        ProjectGenerationRepository as GenerationRunRepository,
+    )
 
 
 class RunSecretLeaser(Protocol):
@@ -143,7 +148,7 @@ class DurableWorkUnitRunner:
 
     def __init__(
         self,
-        repository: SQLiteRepository,
+        repository: "GenerationRunRepository",
         secrets: RunSecretLeaser,
         renderer: PromptRenderer,
     ) -> None:

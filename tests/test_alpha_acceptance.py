@@ -13,9 +13,10 @@ from typing import Any
 import pytest
 
 from plotloom import alpha_acceptance
-from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse, ProviderUsage
 from plotloom.persistence import SQLiteRepository
 from plotloom.provider_profiles import PresetId, StageMaxOutputTokens, TextProviderProfileSnapshot
+from tests.project_storage_fixtures import FixtureProvider as _FixtureProvider
+from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
 
 
 class _DeterministicReviewRandom:
@@ -51,65 +52,6 @@ def _profile(profile_id: str) -> TextProviderProfileSnapshot:
         "stageMaxOutputTokens": StageMaxOutputTokens(story_bible=8192, story_graph=8192, scene_beats=4096, storyboard=4096),
         "presetId": PresetId.COMPATIBLE_V1,
     })
-
-
-def _json_after(content: str, marker: str) -> Any:
-    """Read the first labelled JSON value, ignoring instructional echoes."""
-
-    decoder = json.JSONDecoder()
-    offset = 0
-    while (index := content.find(marker, offset)) != -1:
-        remainder = content[index + len(marker) :].lstrip()
-        try:
-            return decoder.raw_decode(remainder)[0]
-        except json.JSONDecodeError:
-            offset = index + len(marker)
-    raise AssertionError(f"no JSON value follows marker {marker!r}")
-
-
-class _FixtureProvider:
-    name = "fixture-provider"
-    capabilities = ProviderCapabilities(json_schema=True)
-
-    def generate(self, request, secret) -> ProviderResponse:
-        assert secret is None
-        prompt = "\n".join(message.content for message in request.messages)
-        if "【不可变图骨架清单】" in prompt:
-            topology = _json_after(prompt, "【不可变图骨架清单】")
-            payload = {
-                "nodes": [{"id": node["id"], "title": "固定节点", "summary": "角色继续前行。"} for node in topology["nodes"]],
-                "edges": [{"id": edge["id"], "choiceText": "继续" if edge["kind"] == "choice" else None, "stateEffects": {"route": edge["id"]} if edge["kind"] == "choice" else {}} for edge in topology["edges"]],
-                "joinContracts": [{"id": join["id"], "requiredStateKeys": [], "allowedDifferences": [], "reconciliation": "不同路线汇合。", "notes": ""} for join in topology["joinContracts"]],
-            }
-        elif "【目标故事节点】" in prompt:
-            node = _json_after(prompt, "【目标故事节点】")
-            scene_id, beat_id = f"scene-{node['id']}", f"beat-{node['id']}"
-            state = {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}
-            payload = {
-                "scenes": [{"localSceneId": scene_id, "order": 1, "title": node["title"], "objective": "推进叙事", "locationId": None, "characterIds": [], "durationWeight": 1, "entryState": state, "exitState": state}],
-                "beats": [{"localBeatId": beat_id, "sceneLocalId": scene_id, "order": 1, "description": "角色在雪中前行。", "purpose": "推进叙事", "visibleEvent": "角色握紧信件。", "immediateResult": "角色继续前行。", "dramaticChange": "继续前行", "entryState": state, "exitState": state, "continuityAnchors": [], "continuityDelta": {}}],
-                "dialogueCues": [],
-            }
-        elif "【目标戏剧场景】" in prompt:
-            scene = _json_after(prompt, "【目标戏剧场景】")
-            beat_id = _json_after(prompt, "【该场景节拍】")[0]["id"]
-            state = {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}
-            payload = {
-                "shots": [{"localShotId": f"shot-{scene['id']}", "order": 1, "title": "信件特写", "shotSize": "medium", "durationUnits": 1, "cameraAngle": "", "cameraMovement": "", "composition": "", "visualIntent": "交代选择", "motionIntent": "稳定推进", "action": "角色握紧信件。", "transition": "硬切", "cueIds": [], "audioPlan": {"events": []}, "characterIds": [], "locationId": None, "propIds": [], "requiredEntityStates": [], "entryState": state, "exitState": state}],
-                "primaryShotLocalIdByBeat": {beat_id: f"shot-{scene['id']}"}, "supportingBeatLinks": [],
-            }
-        else:
-            payload = {"logline": "角色做出选择。", "premise": "一封信改变当下。", "genre": "", "tone": "", "audience": "", "narrativePromise": "", "visualLanguage": "", "themes": [], "worldRules": [], "knownFacts": [], "openQuestions": [], "sourceNotes": [], "characters": [], "locations": [], "props": []}
-        content = json.dumps(payload, ensure_ascii=False)
-        return ProviderResponse(provider=self.name, model=request.model, raw={"choices": [{"message": {"role": "assistant", "content": content}}]}, usage=ProviderUsage(input_tokens=7, output_tokens=11))
-
-
-class _FixtureResolver:
-    def __init__(self) -> None:
-        self.provider = _FixtureProvider()
-
-    def resolve(self, provider_snapshot):
-        return self.provider, str(provider_snapshot["textModel"])
 
 
 def _source_database(tmp_path: Path) -> Path:

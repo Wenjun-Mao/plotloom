@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, ContextManager
@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session
 
 from ...domain import Project, StageName, StageStatus, STAGE_ORDER, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError
-from ..codec import stable_hash
 from ..database import RepositoryDatabase
 from ..schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES, GenerationRunRow, ProjectOperationalStateRow, ProjectRow, StageHeadRow
 from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
@@ -25,6 +24,7 @@ from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from .drafts import ProjectDraftPersistence
 from .gates import ProjectGatePersistence
 from .generation_access import GenerationAdmission, GenerationCodecs, GenerationLeases, GenerationPersistenceAccess, GenerationRows
+from .generation_admission import ProjectGenerationAdmission
 from .generation_aggregates import ProjectGenerationAggregatePersistence
 from .generation_attempts import ProjectGenerationAttemptPersistence
 from .generation_evidence import ProjectGenerationEvidencePersistence
@@ -89,9 +89,7 @@ class ProjectSQLiteRepository:
         self.engine, self._sessions, self._write_lock = (
             self._database.engine, self._database.sessions, self._database.write_lock
         )
-        self._admitted_provider_snapshot_hash: str | None = None
-        self._recovered_run_ids: Callable[[], set[str]] = set
-        self._recovery_operations_present: Callable[[], bool] = lambda: False
+        self._generation_admission = ProjectGenerationAdmission()
 
         self._project_access = ProjectPersistenceAccess(
             leases=ProjectLeases(
@@ -144,7 +142,7 @@ class ProjectSQLiteRepository:
             ),
             admission=GenerationAdmission(
                 assert_active_project=assert_active_project,
-                assert_new_run_profile_enabled=self._assert_new_run_profile_enabled,
+                assert_new_run_profile_enabled=self._generation_admission.assert_new_run_profile_enabled,
             ),
         )
         self._generation_snapshots = ProjectGenerationSnapshots(self._generation_access)
@@ -184,9 +182,40 @@ class ProjectSQLiteRepository:
         from .repository_generation import ProjectGenerationRepository
         from .repository_media import ProjectMediaRepository
 
-        self.authoring = ProjectAuthoringRepository(self)
-        self.generation = ProjectGenerationRepository(self)
-        self.media = ProjectMediaRepository(self)
+        self.authoring = ProjectAuthoringRepository(
+            catalog=self._catalog,
+            gates=self._gates,
+            drafts=self._drafts,
+            canonical=self._canonical,
+            workflow=self._workflow,
+            approvals=self._approvals,
+        )
+        self.generation = ProjectGenerationRepository(
+            admission=self._generation_admission,
+            snapshots=self._generation_snapshots,
+            plans=self._generation_plans,
+            attempts=self._generation_attempts,
+            aggregates=self._generation_aggregates,
+            repairs=self._generation_repairs,
+            reuse=self._generation_reuse,
+            lifecycle=self._generation_lifecycle,
+            evidence=self._generation_evidence,
+            progress=self._generation_progress,
+            recovery=self._generation_recovery,
+        )
+        self.media = ProjectMediaRepository(
+            assets=self._media.assets,
+            intents=self._media.intents,
+            admission=self._media.admission,
+            keyframes=self._media.keyframes,
+            references=self._media.references,
+            proposals=self._media.proposals,
+            same_person=self._media.same_person,
+            image_preparation=self._media.image_preparation,
+            image_delivery=self._media.image_delivery,
+            direct_video=self._media.direct_video,
+            video_currentness=self._media.video_currentness,
+        )
         self.video_dispatch = ProjectVideoDispatchAccess(self._read, self._lifecycle_write)
 
     def _schema_tables(self) -> list[Any]:
@@ -197,8 +226,10 @@ class ProjectSQLiteRepository:
         self._database.close()
 
     def _set_recovery_admission(self, *, recovered_run_ids: Callable[[], set[str]], recovery_operations_present: Callable[[], bool]) -> None:
-        self._recovered_run_ids = recovered_run_ids
-        self._recovery_operations_present = recovery_operations_present
+        self._generation_admission.set_recovery_admission(
+            recovered_run_ids=recovered_run_ids,
+            recovery_operations_present=recovery_operations_present,
+        )
 
     def initialize_project(self, project: Project) -> Project:
         if project.id != self.project_id:
@@ -293,7 +324,3 @@ class ProjectSQLiteRepository:
         if row.project_id != self.project_id:
             raise NotFoundError("generation run does not belong to this project repository")
         return row
-
-    def _assert_new_run_profile_enabled(self, _session: Session, provider_snapshot: Mapping[str, Any]) -> None:
-        if self._admitted_provider_snapshot_hash != stable_hash(dict(provider_snapshot)):
-            raise InvalidTransitionError("project generation requires an application-admitted provider snapshot")

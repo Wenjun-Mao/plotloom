@@ -49,11 +49,9 @@ caller-migration proposal must define its retirement.
 
 `ProjectSQLiteRepository` no longer subclasses or constructs the retained
 `SQLiteRepository`. It is an independent project-table composition root with
-three named, typed surfaces: authoring, generation, and media. The project
-generation surface is the exact adapter consumed by the direct pipeline; media
-and authoring routes select their owners directly. Its media composition has
-no application profile or pilot-accounting object. The retained facade still
-composes the Wan accounting path for retained-runtime callers.
+three named public surfaces: authoring, generation, and media. Its media
+composition has no application profile or pilot-accounting object. The retained
+facade still composes the Wan accounting path for retained-runtime callers.
 
 The project-video bridge receives explicit direct-video, currentness, and
 project-dispatch transaction contracts instead of reaching through `_media` or
@@ -66,3 +64,29 @@ This preserves tables, schema bytes, hashing, named transaction leases, CAS,
 atomic install, and recovery/no-replay semantics. It is not runtime cutover:
 the retained facade can be deleted only after its remaining runtime callers
 move to their appropriate explicit owners.
+
+## Surface-constructor correction
+
+The first project-folder independence extraction overstated the word
+"typed": each public surface accepted the full composition root as `Any`,
+saved it, and forwarded through its private fields. Generation also put its
+process-local provider-admission hash and recovery callbacks on that root. The
+legacy facade was no longer inherited, but the three new surfaces were still
+service locators in miniature.
+
+The correction gives authoring its six named persistence owners, generation
+its named snapshot/plan/attempt/lifecycle/evidence owners and a separate
+`ProjectGenerationAdmission` state owner, and media its exact media owners.
+The direct video bridge receives the direct-video/currentness ports plus its
+named dispatch lease. Direct pipeline, job, work-unit, video, and API imports
+now depend on their narrow project surfaces rather than loading the retained
+facade just for annotations or eager public exports. Approval value types are
+project-owned public values, so they no longer require loading the facade.
+
+Import-blocked regression coverage runs the direct API, four-stage pipeline,
+image handoff, H3 video, and snapshot paths while refusing both import and
+construction of `legacy_repository`; the installed-wheel smoke applies the
+same blocker before direct project composition. This changes no runtime mode,
+schema, public route, hash, CAS, transaction boundary, recovery behavior, or
+provider behavior. The retained facade remains until its retained callers have
+their own approved migration.

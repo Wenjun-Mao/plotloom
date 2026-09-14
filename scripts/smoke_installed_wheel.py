@@ -71,13 +71,22 @@ def main() -> None:
         probe = textwrap.dedent(
             """
             import importlib.metadata
+            import importlib.abc
             import os
             import sqlite3
             import sys
             from pathlib import Path
 
+            class BlockLegacyRepository(importlib.abc.MetaPathFinder):
+                def find_spec(self, fullname, path=None, target=None):
+                    if fullname == "plotloom.persistence.legacy_repository":
+                        raise ImportError("installed direct-project probe forbids the retained facade")
+
+            sys.meta_path.insert(0, BlockLegacyRepository())
+
             from alembic.script import ScriptDirectory
             import plotloom
+            from plotloom.api import create_project_folder_authoring_app
             from plotloom.config import PlotloomSettings
             from plotloom.domain import ProjectBrief
             from plotloom.generation.prompts import PromptRepository
@@ -138,7 +147,16 @@ def main() -> None:
             project_store = storage.projects.create(
                 ProjectBrief(title="wheel project", synopsis="independent project folder")
             )
+            direct_app = create_project_folder_authoring_app(storage)
+            assert direct_app.title == "Plotloom project-folder authoring"
+            assert project_store.authoring.get_project(project_store.manifest.project_id).id == project_store.manifest.project_id
+            assert project_store.media.list_managed_assets(project_store.manifest.project_id) == []
+            project_id = project_store.manifest.project_id
+            # Recovery obtains the project's exclusive lease, so release the
+            # creating handle before proving snapshot recovery in the wheel.
             project_store.close()
+            snapshot = storage.recovery.create_snapshot(project_id)
+            assert snapshot.status == "complete"
             assert "plotloom.persistence.legacy_repository" not in sys.modules
 
             migrator = SchemaMigrator(f"sqlite:///{database}")

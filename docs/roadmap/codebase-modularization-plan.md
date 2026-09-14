@@ -448,11 +448,16 @@ or frontend session/cutover decisions.
 
 The project-folder repository now has its own project-only composition and does
 not import, subclass, instantiate, or eagerly initialize the retained facade.
-Project-folder authoring, generation, image, and direct-video callers use their
-named project owners. This is the prerequisite for runtime cutover, not the
-deletion of the retained 1.5k-line facade: retained runtime/API callers still
-own that compatibility surface and must be replaced deliberately before it can
-be removed.
+Its authoring, generation, and media surfaces receive only their named owners;
+generation admission/recovery callbacks live in a narrow state owner rather
+than on the composition root. Project-folder authoring, generation, image, and
+direct-video callers use those project surfaces, and direct API/pipeline/video
+imports do not load the retained facade merely for type annotations or eager
+package exports. Import-blocked direct-flow and installed-wheel probes cover
+that boundary. This is the prerequisite for runtime cutover, not the deletion
+of the retained 1.5k-line facade: retained runtime/API callers still own that
+compatibility surface and must be replaced deliberately before it can be
+removed.
 
 ### Completion boundary and next product priority
 

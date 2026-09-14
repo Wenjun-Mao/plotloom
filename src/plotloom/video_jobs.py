@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 from hashlib import sha256
-from typing import Any, Callable
+from typing import TYPE_CHECKING, Any, Callable
 
 from .artifacts import ArtifactStore
-from .persistence import SQLiteRepository
 from .video_ingestion import ObservedVideo, probe_video
 from .video_provider import (
     AtlasWanAdapter,
@@ -20,13 +19,16 @@ from .video_provider import (
     WanDispatchError,
 )
 
+if TYPE_CHECKING:
+    from .project_storage.project_video import ProjectVideoRepository as VideoJobRepository
+
 
 class VideoJobService:
     """Never retries POST; recovery only polls known prediction IDs."""
 
     def __init__(
         self,
-        repository: SQLiteRepository,
+        repository: "VideoJobRepository",
         artifacts: ArtifactStore,
         provider: VideoProviderPort,
         *,

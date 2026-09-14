@@ -17,7 +17,7 @@ import tempfile
 import time
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .artifacts import LocalArtifactStore
 from .config import PlotloomSettings
@@ -31,7 +31,6 @@ from .domain import (
     StageStatus,
 )
 from .jobs import LifecycleJobRunner
-from .persistence import SQLiteRepository
 from .pipeline import (
     PipelineEngine,
     RunSecretBroker,
@@ -53,6 +52,9 @@ from .generation.work_units import (
     WORK_UNIT_PROMPT_CONTRACT_VERSION,
 )
 
+if TYPE_CHECKING:
+    from .persistence import SQLiteRepository as RetainedSQLiteRepository
+
 
 DEFAULT_SAMPLE_COUNT = 3
 M15_REQUIRED_PROFILE_COUNT = 2
@@ -60,7 +62,7 @@ CONFORMANCE_WORKLOAD_VERSION = "fixed_chinese_interactive_story.v8"
 
 
 def _seed_isolated_profile_for_admission(
-    repository: SQLiteRepository, profile: TextProviderProfileSnapshot
+    repository: RetainedSQLiteRepository, profile: TextProviderProfileSnapshot
 ) -> None:
     """Create the disposable control-plane row required for guarded admission.
 
@@ -101,6 +103,22 @@ FIXED_CHINESE_BRIEF = ProjectBrief(
 )
 
 _SAFE_ISSUE_CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
+
+
+def __getattr__(name: str) -> object:
+    """Lazily expose the retained qualification class for its injection seam."""
+
+    if name == "SQLiteRepository":
+        from .persistence import SQLiteRepository
+
+        globals()[name] = SQLiteRepository
+        return SQLiteRepository
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def _retained_repository(database_url: str) -> "RetainedSQLiteRepository":
+    factory = getattr(sys.modules[__name__], "SQLiteRepository")
+    return factory(database_url)
 
 
 def conformance_workload_hash() -> str:
@@ -191,7 +209,7 @@ def _stable_issue_codes(trace: Any) -> list[str]:
     return sorted(codes)
 
 
-def _first_pass_stats(repository: SQLiteRepository, run_id: str, trace: Any) -> dict[str, int]:
+def _first_pass_stats(repository: RetainedSQLiteRepository, run_id: str, trace: Any) -> dict[str, int]:
     """Count first-pass *stages*, not individual sharded work units.
 
     Scene Beats and Storyboard can each contain many work units.  The M1.5
@@ -250,7 +268,7 @@ def _maximum_attempts_per_work_unit(trace: Any) -> int:
 
 
 def _conformance_invariant_codes(
-    repository: SQLiteRepository,
+    repository: RetainedSQLiteRepository,
     *,
     run_id: str,
     trace: Any,
@@ -280,7 +298,7 @@ def _conformance_invariant_codes(
 
 
 def _receipt_for(
-    repository: SQLiteRepository,
+    repository: RetainedSQLiteRepository,
     *,
     run_id: str,
     profile: TextProviderProfileSnapshot,
@@ -410,7 +428,7 @@ def _load_named_profiles(
 ) -> list[TextProviderProfileSnapshot]:
     """Read exactly the requested public profiles, without creating defaults."""
 
-    source = SQLiteRepository(source_database_url)
+    source = _retained_repository(source_database_url)
     try:
         profiles = [source.get_text_provider_profile(profile_id) for profile_id in profile_ids]
         disabled = [profile.profile_id for profile in profiles if not profile.enabled]
@@ -472,17 +490,17 @@ def run_conformance(
         # across profiles without sharing a database or migration context.
         prepared_samples: dict[
             str,
-            list[tuple[SQLiteRepository, Path]],
+            list[tuple[RetainedSQLiteRepository, Path]],
         ] = {}
         try:
             for profile in profiles:
-                profile_samples: list[tuple[SQLiteRepository, Path]] = []
+                profile_samples: list[tuple[RetainedSQLiteRepository, Path]] = []
                 prepared_samples[profile.profile_id] = profile_samples
                 for sample_index in range(sample_count):
                     sample_name = f"{profile.profile_id}-{sample_index + 1}"
                     database_path = root / f"{sample_name}.sqlite3"
                     artifact_root = root / f"{sample_name}-artifacts"
-                    repository = SQLiteRepository(f"sqlite:///{database_path}")
+                    repository = _retained_repository(f"sqlite:///{database_path}")
                     _seed_isolated_profile_for_admission(repository, profile)
                     profile_samples.append((repository, artifact_root))
         except BaseException:

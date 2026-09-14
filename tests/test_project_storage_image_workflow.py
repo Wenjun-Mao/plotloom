@@ -18,7 +18,8 @@ from plotloom.project_storage import ProjectFolderStorage
 
 # The deterministic text fixture is intentionally reused rather than inventing
 # a second project or provider harness for the storage-only media proof.
-from tests.test_project_storage import _FixtureResolver, _fixture_profile
+from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
+from tests.project_storage_fixtures import fixture_profile as _fixture_profile
 
 
 def _png(color: tuple[int, int, int]) -> bytes:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from concurrent.futures import Future, ThreadPoolExecutor
 from threading import Event, RLock
-from typing import Callable, Protocol
+from typing import TYPE_CHECKING, Callable, Protocol
 
 from .domain import GenerationRun, RunStatus
 from .exceptions import (
@@ -15,9 +15,13 @@ from .exceptions import (
 from .generation.aggregation import AggregateValidationError
 from .generation.exceptions import SecretLeaseError
 from .generation.planning import PlanningError
-from .persistence import SQLiteRepository
 from .runtime import GenerationEngine, RunContext
 from .validation import DomainValidationError
+
+if TYPE_CHECKING:
+    from .persistence.project.repository_generation import (
+        ProjectGenerationRepository as GenerationRunRepository,
+    )
 
 
 class LifecycleJobRunner:
@@ -25,7 +29,7 @@ class LifecycleJobRunner:
 
     def __init__(
         self,
-        repository: SQLiteRepository,
+        repository: "GenerationRunRepository",
         engine: GenerationEngine,
         context: RunContext,
         *,

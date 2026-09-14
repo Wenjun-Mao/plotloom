@@ -35,6 +35,7 @@ from plotloom.persistence.project.generation_repairs import ProjectGenerationRep
 from plotloom.persistence.project.generation_reuse import ProjectGenerationReusePersistence
 from plotloom.persistence.project.generation_snapshots import ProjectGenerationSnapshots
 from plotloom.persistence.project.generation_access import GenerationPersistenceAccess
+from plotloom.persistence.project.generation_admission import ProjectGenerationAdmission
 from plotloom.persistence.project.media import ProjectMediaPersistence
 from plotloom.persistence.project.media_admission import KeyframeAdmission
 from plotloom.persistence.project.media_assets import ManagedAssetPersistence
@@ -49,6 +50,9 @@ from plotloom.persistence.project.media_tasks import GenericMediaTaskPersistence
 from plotloom.persistence.project.media_video import VideoJobPersistence
 from plotloom.persistence.project.media_video_currentness import VideoJobCurrentness
 from plotloom.persistence.project.media_visual_intents import VisualIntentPersistence
+from plotloom.persistence.project.repository_authoring import ProjectAuthoringRepository
+from plotloom.persistence.project.repository_generation import ProjectGenerationRepository
+from plotloom.persistence.project.repository_media import ProjectMediaRepository
 from plotloom.persistence.application.profiles import ApplicationProfilePersistence
 from plotloom.persistence.application.profile_admission import TextProviderProfileAdmissionPersistence
 from plotloom.persistence.application.profile_bootstrap import DefaultProfileBootstrapPersistence
@@ -208,6 +212,66 @@ def test_project_repository_composes_without_loading_the_retained_facade() -> No
         text=True,
     )
     assert storage_result.returncode == 0, storage_result.stderr
+
+
+def test_direct_project_surfaces_have_named_dependencies_without_root_bounceback() -> None:
+    """Surface adapters must be constructible from owners, never a full root."""
+
+    authoring = ProjectAuthoringRepository(
+        catalog=object(), gates=object(), drafts=object(), canonical=object(),
+        workflow=object(), approvals=object(),
+    )
+    generation = ProjectGenerationRepository(
+        admission=ProjectGenerationAdmission(), snapshots=object(), plans=object(),
+        attempts=object(), aggregates=object(), repairs=object(), reuse=object(),
+        lifecycle=object(), evidence=object(), progress=object(), recovery=object(),
+    )
+    media = ProjectMediaRepository(
+        assets=object(), intents=object(), admission=object(), keyframes=object(),
+        references=object(), proposals=object(), same_person=object(),
+        image_preparation=object(), image_delivery=object(), direct_video=object(),
+        video_currentness=object(),
+    )
+    assert all(
+        "root" not in inspect.signature(surface).parameters
+        for surface in (
+            ProjectAuthoringRepository, ProjectGenerationRepository, ProjectMediaRepository,
+        )
+    )
+    for surface in (authoring, generation, media):
+        assert not hasattr(surface, "_root")
+        assert "_root" not in inspect.getsource(type(surface))
+
+
+def test_direct_project_used_paths_block_the_retained_facade() -> None:
+    """Exercise direct API/pipeline/image/video/snapshot work under an import ban."""
+
+    probe = """
+import importlib.abc
+import sys
+
+class BlockLegacyRepository(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'plotloom.persistence.legacy_repository':
+            raise ImportError('retained facade is forbidden in direct project flow')
+
+sys.meta_path.insert(0, BlockLegacyRepository())
+import pytest
+raise SystemExit(pytest.main([
+    '-q',
+    'tests/test_project_storage.py::test_two_project_homes_run_actual_four_stage_pipeline_and_reopen_by_project_id',
+    'tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement',
+    'tests/test_project_storage_video.py::test_project_video_is_local_reviewable_and_restores_without_gateway',
+]))
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", probe],
+        check=False,
+        capture_output=True,
+        text=True,
+        cwd=Path(__file__).parents[2],
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 def test_bound_project_initialization_rejects_a_foreign_existing_row(tmp_path: Path, brief) -> None:

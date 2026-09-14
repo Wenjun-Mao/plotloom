@@ -8,7 +8,7 @@ runner or the explicitly isolated historical repair flow.
 from __future__ import annotations
 
 from threading import Event, RLock
-from typing import Any, Callable, Mapping, Protocol
+from typing import TYPE_CHECKING, Any, Callable, Mapping, Protocol
 
 from .domain import (
     Artifact,
@@ -51,7 +51,7 @@ from .exceptions import (
     QuarantinedOutputError,
     SchemaResetRequiredError,
 )
-from .persistence import SQLiteRepository, stable_hash
+from .persistence.codec import stable_hash
 from .provider_profiles import (
     TextProviderProfileSnapshot,
     TextProviderProfileSnapshotV3,
@@ -61,6 +61,11 @@ from .provider_profiles import (
 from .text_adapters import DEFAULT_TEXT_ADAPTER_REGISTRY
 from .runtime import GenerationEngine, RunContext, RunExecutionResult
 from .work_unit_pipeline import DurableWorkUnitRunner
+
+if TYPE_CHECKING:
+    from .persistence.project.repository_generation import (
+        ProjectGenerationRepository as GenerationRunRepository,
+    )
 
 
 class RunSecretBroker:
@@ -232,7 +237,7 @@ class _DurableTraceObserver(AttemptLifecycleObserver):
 
     def __init__(
         self,
-        repository: SQLiteRepository,
+        repository: "GenerationRunRepository",
         *,
         run_id: str,
         stage: StageName,
@@ -308,7 +313,7 @@ class PipelineEngine(GenerationEngine):
 
     def __init__(
         self,
-        repository: SQLiteRepository,
+        repository: "GenerationRunRepository",
         provider_resolver: TextProviderResolver,
         secrets: RunSecretBroker,
         *,
@@ -330,14 +335,9 @@ class PipelineEngine(GenerationEngine):
         # keeps the historic stage-level bridge below.  The existence of the
         # scope is the discriminator rather than a mutable request flag.
         if run.kind == RunKind.REPAIR:
-            scope_reader = getattr(self.repository, "get_work_unit_repair_scope", None)
             if run.work_unit_repair_scope_id is not None:
-                if scope_reader is None:
-                    raise InvalidTransitionError(
-                        "exact repair scope cannot be resolved by this repository"
-                    )
                 try:
-                    repair_scope = scope_reader(run.id)
+                    repair_scope = self.repository.get_work_unit_repair_scope(run.id)
                 except NotFoundError as error:
                     # A row-linked exact child without its scope is corrupt
                     # durable lineage, never a request to fall back to the

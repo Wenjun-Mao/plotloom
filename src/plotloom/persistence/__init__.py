@@ -1,6 +1,7 @@
 """Stable public persistence surface; implementation ownership is package-local."""
 
 from .codec import stable_hash
+from .project.approvals import ApprovalClosure, ApprovalDecision
 from .project.repository import ProjectSQLiteRepository
 from .schema import (
     ApprovalDecisionRow, ArtifactRow, AuthoringDraftRow, Base, CharacterReferenceDecisionRow,
@@ -26,16 +27,11 @@ def __getattr__(name: str):
     boundary simply because Python initialized its parent package.
     """
 
-    if name in {"ApprovalClosure", "ApprovalDecision", "SQLiteRepository"}:
-        from .legacy_repository import ApprovalClosure, ApprovalDecision, SQLiteRepository
+    if name == "SQLiteRepository":
+        from .legacy_repository import SQLiteRepository
 
-        values = {
-            "ApprovalClosure": ApprovalClosure,
-            "ApprovalDecision": ApprovalDecision,
-            "SQLiteRepository": SQLiteRepository,
-        }
-        globals().update(values)
-        return values[name]
+        globals()[name] = SQLiteRepository
+        return SQLiteRepository
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __all__ = [

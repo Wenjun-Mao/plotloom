@@ -25,7 +25,8 @@ from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_provider import VideoBackendInstanceIdentity
 
-from tests.test_project_storage import _FixtureResolver, _fixture_profile
+from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
+from tests.project_storage_fixtures import fixture_profile as _fixture_profile
 
 
 class FakeH3:
