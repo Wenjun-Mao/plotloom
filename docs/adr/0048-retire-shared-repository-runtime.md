@@ -72,7 +72,12 @@ compatibility mode.
 `docs/verification/2026-09-14-retained-runtime-coverage-inventory.json`
 classifies the baseline tests as migrated current contracts, existing assertion
 equivalents, or approved breaking-storage retirements. Its verifier rejects an
-unclassified baseline test or a missing current replacement. The restored
+unclassified baseline test, a missing parameter case, a file-level default, or
+a stale/missing current assertion record. It preserves each baseline trigger
+and assertion expression alongside exact current test IDs, while explicitly
+leaving semantic equivalence to review. The prior file-level inventory was not
+accepted as final evidence because target existence did not establish matching
+assertions. The restored
 project-generation tests assert the two-correction cap and lineage,
 dispatch-before-call, reasoning-only separation, durable primary/correction
 response recovery without replay, provider-echo redaction, correction audit
@@ -92,6 +97,13 @@ the project transaction completes. Reusing a completed key returns the same
 project, while divergent reuse is a 409 conflict. This restores the public
 contract at its two real owners without recreating a shared repository or route
 facade.
+
+The assertion-level correction also exposed a project-folder route defect: its
+local `ImageJobError` handler classified a malformed keyframe-adaptation
+geometry as a 409 conflict. Geometry is an untrusted delivery validation
+failure, so the handler now reserves 409 only for immutable package/delivery
+identity conflicts and returns 422 for invalid geometry. The regression keeps
+the rejected delivery from changing the reviewed keyframe selection.
 
 ## Rejected alternatives
 

@@ -44,11 +44,11 @@ def register_project_folder_media_routes(
         _request: Request, error: ImageJobError
     ) -> JSONResponse:
         conflict_codes = {
+            # These mean a previously accepted immutable identity conflicts.
+            # Untrusted delivery shape/content (including geometry) is 422.
             "package_conflict",
             "delivery_conflict",
             "delivery_finalized",
-            "delivery_geometry_mismatch",
-            "delivery_geometry_contract_invalid",
         }
         return JSONResponse(
             status_code=(
