@@ -12,6 +12,7 @@ from .video_provider import (
     RemoteOutcomeUnknown,
     RemotePredictionFailed,
     VideoAdapterPort,
+    VideoBackendBinding,
     VideoOutputContractError,
     VideoProviderError,
     VideoProviderPort,
@@ -30,10 +31,16 @@ class VideoJobService:
         provider: VideoProviderPort,
         *,
         adapter: VideoAdapterPort | None = None,
+        backend_binding: VideoBackendBinding | None = None,
+        claim_before_provider_calls: bool = False,
+        verify_backend_binding: Callable[[str], None] | None = None,
         probe: Callable[[bytes], ObservedVideo] = probe_video,
     ) -> None:
         self.repository, self.artifacts, self.provider, self.probe = repository, artifacts, provider, probe
         self.adapter = adapter or AtlasWanAdapter()
+        self.backend_binding = backend_binding
+        self.claim_before_provider_calls = claim_before_provider_calls
+        self.verify_backend_binding = verify_backend_binding
 
     def prepare(
         self,
@@ -72,6 +79,7 @@ class VideoJobService:
                 expected_selection_revision=expected_selection_revision,
                 idempotency_key=idempotency_key,
                 production_contract=contract,
+                backend_binding=self.backend_binding,
             )
 
         # Adapters that return no production contract retain their historical
@@ -87,6 +95,7 @@ class VideoJobService:
             requested_seconds=5 if requested_seconds is None else requested_seconds,
             resolution="720p" if resolution is None else resolution,
             audio=True if audio is None else audio,
+            backend_binding=self.backend_binding,
         )
 
     def public_capability(self) -> dict[str, Any]:
@@ -122,7 +131,7 @@ class VideoJobService:
 
     def submit(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         preflight = getattr(self.provider, "preflight", None)
-        if callable(preflight):
+        if callable(preflight) and not self.claim_before_provider_calls:
             try:
                 preflight()
             except Exception:
@@ -131,6 +140,14 @@ class VideoJobService:
                 return self.repository.cancel_video_job(project_id, video_job_id)
         job = self.repository.claim_video_dispatch(project_id, video_job_id)
         try:
+            if callable(preflight) and self.claim_before_provider_calls:
+                # The project-folder dispatch protocol has made its
+                # application reservation, project claim, and application
+                # claim event durable before *any* transport operation.  A
+                # failed health check therefore remains conservative rather
+                # than pretending the transport was never contacted.
+                self._assert_current_backend(video_job_id)
+                preflight()
             try:
                 keyframe = job["snapshot"]["keyframe"]
                 stored = self.repository.get_managed_asset_storage(project_id, keyframe["assetId"])
@@ -144,6 +161,7 @@ class VideoJobService:
                 raise
             except Exception as error:
                 raise WanDispatchError(WanDispatchDiagnostic("keyframe_read", "local_precondition_failed")) from error
+            self._assert_current_backend(video_job_id)
             uploaded = self.provider.upload(image, mime_type=keyframe["mimeType"])
             try:
                 payload = self.adapter.compile(
@@ -156,6 +174,7 @@ class VideoJobService:
                 )
             except VideoProviderError as error:
                 raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
+            self._assert_current_backend(video_job_id)
             submitted = self.provider.submit(payload, idempotency_key=video_job_id)
             try:
                 prediction = self.adapter.prediction_id(
@@ -182,7 +201,8 @@ class VideoJobService:
         try:
             profile_id = self._profile_id(job["snapshot"])
             output = self.adapter.completed_output(
-                self.provider.poll(job["providerPredictionId"]), expected_profile_id=profile_id
+                self._poll_current_backend(video_job_id, job["providerPredictionId"]),
+                expected_profile_id=profile_id,
             )
             if output is None:
                 return job
@@ -191,6 +211,7 @@ class VideoJobService:
             if job.get("cancelRequestedAt"):
                 return job
             self.adapter.validate_output_reference(output)
+            self._assert_current_backend(video_job_id)
             content = self.provider.download(output)
             observed = self.probe(content)
             if observed.audio_codec is None:
@@ -218,3 +239,13 @@ class VideoJobService:
                 else "retrieval_or_probe_failed"
             )
             return self.repository.record_video_retrieve_needed(project_id, video_job_id, code)
+
+    def _poll_current_backend(self, video_job_id: str, prediction_id: str) -> dict[str, Any]:
+        """Poll first, then give adapter-owned profile parsing the payload."""
+
+        self._assert_current_backend(video_job_id)
+        return self.provider.poll(prediction_id)
+
+    def _assert_current_backend(self, video_job_id: str) -> None:
+        if self.verify_backend_binding is not None:
+            self.verify_backend_binding(video_job_id)

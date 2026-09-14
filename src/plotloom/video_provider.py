@@ -7,9 +7,13 @@ string never selects a permissive compatibility path.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from hashlib import sha256
+import json
 import re
 from typing import Any, ClassVar, Literal, Protocol
+from urllib.parse import urlparse
 
+from .domain import contains_secret_setting, contains_secret_value
 from .video_ingestion import ObservedVideo, assert_public_https_url
 
 
@@ -88,6 +92,98 @@ class RemoteOutcomeUnknown(VideoProviderError):
 
 
 @dataclass(frozen=True)
+class VideoBackendInstanceIdentity:
+    """Secret-free fingerprint of one configured transport instance.
+
+    Project evidence must distinguish two H3 gateways without copying their
+    endpoint, credentials, or a signed URL into a portable folder.  The
+    transport derives this fingerprint from its local configuration; only the
+    type and digest cross the project boundary.
+    """
+
+    kind: str
+    fingerprint: str
+
+    def __post_init__(self) -> None:
+        if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", self.kind):
+            raise ValueError("video backend identity kind is invalid")
+        if not re.fullmatch(r"[0-9a-f]{64}", self.fingerprint):
+            raise ValueError("video backend identity fingerprint is invalid")
+
+    @classmethod
+    def from_public_configuration(
+        cls, kind: str, configuration: dict[str, Any]
+    ) -> "VideoBackendInstanceIdentity":
+        """Hash validated, non-secret transport configuration locally.
+
+        URL-bearing values are allowed only as bare HTTP(S) roots.  This keeps
+        credentials, query/signed URLs, and userinfo out of both the frozen
+        evidence and the value used to derive it.
+        """
+
+        if contains_secret_setting(configuration) or contains_secret_value(configuration):
+            raise ValueError("video backend identity configuration must be secret-free")
+
+        def validate(value: Any) -> None:
+            if isinstance(value, dict):
+                for child in value.values():
+                    validate(child)
+            elif isinstance(value, list):
+                for child in value:
+                    validate(child)
+            elif isinstance(value, str):
+                parsed = urlparse(value)
+                if parsed.scheme and (
+                    parsed.scheme not in {"http", "https"}
+                    or not parsed.netloc
+                    or parsed.username
+                    or parsed.password
+                    or parsed.path not in {"", "/"}
+                    or parsed.query
+                    or parsed.fragment
+                ):
+                    raise ValueError(
+                        "video backend identity URL must be a credential-free HTTP(S) root"
+                    )
+            elif value is not None and not isinstance(value, (bool, int, float)):
+                raise ValueError("video backend identity configuration is not JSON data")
+
+        validate(configuration)
+        encoded = json.dumps(
+            configuration, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+        ).encode("utf-8")
+        return cls(kind=kind, fingerprint=sha256(encoded).hexdigest())
+
+    def snapshot(self) -> dict[str, str]:
+        return {"kind": self.kind, "fingerprint": self.fingerprint}
+
+
+@dataclass(frozen=True)
+class VideoBackendBinding:
+    """The adapter contract plus one configured backend instance."""
+
+    adapter_id: str
+    adapter_version: str
+    instance: VideoBackendInstanceIdentity
+
+    def __post_init__(self) -> None:
+        if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", self.adapter_id):
+            raise ValueError("video backend adapter ID is invalid")
+        if not re.fullmatch(r"[a-z0-9][a-z0-9_.-]{0,62}", self.adapter_version):
+            raise ValueError("video backend adapter version is invalid")
+
+    def snapshot(self) -> dict[str, Any]:
+        return {
+            "adapterId": self.adapter_id,
+            "adapterVersion": self.adapter_version,
+            "instance": self.instance.snapshot(),
+        }
+
+    def matches_snapshot(self, provider: Any) -> bool:
+        return isinstance(provider, dict) and provider.get("backendBinding") == self.snapshot()
+
+
+@dataclass(frozen=True)
 class VideoProductionContract:
     """Trusted adapter-owned values frozen into a new video snapshot.
 
@@ -105,7 +201,7 @@ class VideoProductionContract:
     audio: bool
     aspect_policy: str | None
     seed: int | None
-    tracks_paid_wan_pilot: bool
+    cost_policy: Literal["wan_paid_pilot_v1", "local_capacity_v1"]
     # Only catalog-backed H3 contracts persist this author opt-in. Historical
     # Wan and V1 H3 snapshot bytes stay untouched.
     allow_letterbox: bool = False
@@ -123,6 +219,8 @@ class VideoProductionContract:
             raise ValueError("video adapter version is invalid")
         if not self.provider or not self.model or self.capability_version < 1:
             raise ValueError("video production capability is invalid")
+        if self.cost_policy not in {"wan_paid_pilot_v1", "local_capacity_v1"}:
+            raise ValueError("video cost policy is not a supported versioned contract")
         if self.requested_seconds < 1 or self.requested_seconds > 30:
             raise ValueError("video duration is invalid")
         if not self.resolution:
@@ -157,8 +255,14 @@ class VideoProductionContract:
             "provider": self.provider,
             "model": self.model,
             "capabilityVersion": self.capability_version,
-            "costPolicy": "wan_paid_pilot_v1" if self.tracks_paid_wan_pilot else "local_capacity_v1",
+            "costPolicy": self.cost_policy,
         }
+
+    @property
+    def tracks_paid_wan_pilot(self) -> bool:
+        """Compatibility view for the retained Wan lifecycle only."""
+
+        return self.cost_policy == "wan_paid_pilot_v1"
 
     def request_snapshot(self) -> dict[str, Any]:
         request: dict[str, Any] = {
@@ -196,6 +300,8 @@ WAN_3_IMAGE_TO_VIDEO = WanCapabilities()
 
 
 class VideoProviderPort(Protocol):
+    def configured_backend_identity(self) -> VideoBackendInstanceIdentity: ...
+
     def upload(self, image: bytes, *, mime_type: str) -> str: ...
     def submit(
         self, payload: dict[str, Any], *, idempotency_key: str | None = None

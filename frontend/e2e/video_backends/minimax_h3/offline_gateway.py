@@ -6,10 +6,18 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from plotloom.video_backends.minimax_h3 import H3_PROFILES_BY_ID
+from plotloom.video_provider import VideoBackendInstanceIdentity
 
 
 class OfflineH3GatewayFake:
     """Strict local gateway-shaped fixture for the browser H3 acceptance path."""
+
+    def configured_backend_identity(self) -> VideoBackendInstanceIdentity:
+        """Match the production transport's secret-free instance contract."""
+
+        return VideoBackendInstanceIdentity.from_public_configuration(
+            "offline_h3_fixture_endpoint_v1", {"endpoint": "http://127.0.0.1:9010"}
+        )
 
     def preflight(self) -> None:
         return None

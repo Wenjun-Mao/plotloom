@@ -16,6 +16,7 @@ import requests
 
 from ...video_provider import (
     DispatchPhase,
+    VideoBackendInstanceIdentity,
     VideoProviderError,
     WanDispatchDiagnostic,
     WanDispatchError,
@@ -89,6 +90,21 @@ class MiniMaxH3GatewayTransport:
             or payload.get("dispatchConcurrency") != 1
         ):
             raise VideoProviderError("h3_gateway_profile_unavailable")
+
+    def configured_backend_identity(self) -> VideoBackendInstanceIdentity:
+        """Return a stable local fingerprint, never the gateway URL itself."""
+
+        parsed = urlparse(self.base_url)
+        # ``_validated_private_base_url`` has already rejected userinfo,
+        # queries, fragments, and non-root paths.  Keep the exact configured
+        # HTTP(S) endpoint in the hash so two private/Tailscale gateways do
+        # not share a project binding merely because they run H3.
+        endpoint = f"{parsed.scheme.lower()}://{parsed.hostname.lower()}"
+        if parsed.port is not None:
+            endpoint += f":{parsed.port}"
+        return VideoBackendInstanceIdentity.from_public_configuration(
+            "minimax_h3_gateway_endpoint_v1", {"endpoint": endpoint}
+        )
 
     def upload(self, image: bytes, *, mime_type: str) -> str:
         payload = self._request_json(

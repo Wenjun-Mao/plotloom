@@ -112,7 +112,7 @@ from ..generation.planning import (
     StagePlan,
 )
 from ..keyframe_preparation import has_matching_aspect
-from ..video_provider import VideoProductionContract
+from ..video_provider import VideoBackendBinding, VideoProductionContract
 from ..generation.story_graph_topology import (
     StoryGraphTopology,
 )
@@ -870,8 +870,8 @@ class SQLiteRepository:
         return self._media.video_currentness.video_job_current_in_session(session, row)
     def video_budget(self) -> dict[str, Any]:
         return self._media.video.video_budget()
-    def prepare_video_job(self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int, expected_selection_revision: int, idempotency_key: str, requested_seconds: int=5, resolution: str='720p', audio: bool=True, production_contract: VideoProductionContract | None=None) -> dict[str, Any]:
-        return self._media.video.prepare_video_job(project_id, approval_id=approval_id, shot_id=shot_id, storyboard_revision=storyboard_revision, expected_selection_revision=expected_selection_revision, idempotency_key=idempotency_key, requested_seconds=requested_seconds, resolution=resolution, audio=audio, production_contract=production_contract)
+    def prepare_video_job(self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int, expected_selection_revision: int, idempotency_key: str, requested_seconds: int=5, resolution: str='720p', audio: bool=True, production_contract: VideoProductionContract | None=None, backend_binding: VideoBackendBinding | None=None) -> dict[str, Any]:
+        return self._media.video.prepare_video_job(project_id, approval_id=approval_id, shot_id=shot_id, storyboard_revision=storyboard_revision, expected_selection_revision=expected_selection_revision, idempotency_key=idempotency_key, requested_seconds=requested_seconds, resolution=resolution, audio=audio, production_contract=production_contract, backend_binding=backend_binding)
     def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         return self._media.video.claim_video_dispatch(project_id, video_job_id)
     def record_video_submission(self, project_id: str, video_job_id: str, prediction_id: str) -> dict[str, Any]:

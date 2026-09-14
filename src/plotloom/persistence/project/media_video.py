@@ -16,7 +16,7 @@ from ...exceptions import (
     RevisionConflictError,
 )
 from ...keyframe_preparation import has_matching_aspect
-from ...video_provider import VideoProductionContract
+from ...video_provider import VideoBackendBinding, VideoProductionContract
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ManagedAssetRow,
@@ -47,7 +47,7 @@ class VideoJobPersistence:
         image_currentness: ImageJobCurrentness,
         same_person: SamePersonReviewPersistence,
         currentness: VideoJobCurrentness,
-        accounting: VideoPilotAccounting,
+        accounting: VideoPilotAccounting | None,
     ) -> None:
         self._access = access
         self._canonical = canonical
@@ -60,6 +60,10 @@ class VideoJobPersistence:
 
 
     def video_budget(self) -> dict[str, Any]:
+        if self._accounting is None:
+            raise InvalidTransitionError(
+                "direct project video has no retained Wan pilot accounting"
+            )
         return self._accounting.budget()
 
     def prepare_video_job(
@@ -67,6 +71,7 @@ class VideoJobPersistence:
         expected_selection_revision: int, idempotency_key: str, requested_seconds: int = 5,
         resolution: str = "720p", audio: bool = True,
         production_contract: VideoProductionContract | None = None,
+        backend_binding: VideoBackendBinding | None = None,
     ) -> dict[str, Any]:
         """Freeze current audiovisual lineage and atomically reserve the shared cap."""
         if production_contract is None:
@@ -92,6 +97,15 @@ class VideoJobPersistence:
             provider_snapshot = production_contract.provider_snapshot()
             request_snapshot = production_contract.request_snapshot()
             tracks_paid_wan_pilot = production_contract.tracks_paid_wan_pilot
+            if backend_binding is not None:
+                if (
+                    backend_binding.adapter_id != production_contract.adapter_id
+                    or backend_binding.adapter_version != production_contract.adapter_version
+                ):
+                    raise InvalidTransitionError(
+                        "video backend binding does not match the adapter production contract"
+                    )
+                provider_snapshot["backendBinding"] = backend_binding.snapshot()
         with self._access.leases.lifecycle_write() as session:
             now = utc_now()
             self._access.guards.active(self._access.rows.project(session, project_id))
@@ -206,6 +220,10 @@ class VideoJobPersistence:
                 created_at=now, updated_at=now, dispatched_at=None, cancel_requested_at=None)
             session.add(job)
             if tracks_paid_wan_pilot:
+                if self._accounting is None:
+                    raise InvalidTransitionError(
+                        "direct project video cannot use the retained Wan pilot policy"
+                    )
                 self._accounting.reserve(
                     session, video_job_id=job.id, seconds=requested_seconds, now=now
                 )
@@ -225,6 +243,10 @@ class VideoJobPersistence:
             now = utc_now()
             job.state, job.dispatched_at, job.updated_at = "dispatching", now, now
             if self._currentness.video_job_tracks_paid_wan_pilot(job):
+                if self._accounting is None:
+                    raise InvalidTransitionError(
+                        "direct project video cannot use the retained Wan pilot policy"
+                    )
                 self._accounting.record_dispatch(
                     session, video_job_id=job.id, seconds=job.requested_seconds, now=now
                 )
@@ -297,6 +319,10 @@ class VideoJobPersistence:
             if job.state == "prepared":
                 # Only this proven pre-dispatch path releases a reservation.
                 if self._currentness.video_job_tracks_paid_wan_pilot(job):
+                    if self._accounting is None:
+                        raise InvalidTransitionError(
+                            "direct project video cannot use the retained Wan pilot policy"
+                        )
                     self._accounting.release_before_dispatch(
                         session, video_job_id=job.id, seconds=job.requested_seconds,
                         now=utc_now(),

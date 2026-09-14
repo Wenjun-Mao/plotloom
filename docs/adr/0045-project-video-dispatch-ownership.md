@@ -34,10 +34,25 @@ pre-dispatch cancellation path releases it. Repeating a request returns its
 existing identity rather than reserving twice. A missing accounting bootstrap
 disables paid dispatch rather than synthesizing a new 100-second allowance.
 
+Each direct H3 prepare freezes a typed binding of adapter ID/version and a
+secret-free fingerprint of the configured transport instance. The fingerprint
+is derived locally from validated configuration; project evidence contains no
+API key, authorization header, userinfo, endpoint, or signed URL. The current
+transport must produce that exact binding before preflight, upload, submit,
+poll, or download. Two H3 endpoints therefore cannot become interchangeable
+merely because their adapter and selected profile match, including during
+known-ID restore reconciliation.
+
 H3 is a separately configured development backend. Its frozen H3 profile and
 request contract are project evidence, but it never mutates the historical Wan
 allowance. Missing or mismatched H3 configuration fails explicitly and never
 falls back to Atlas. Tests use the existing typed fake H3 transport only.
+
+The direct project-video lifecycle is composed with a ledger-free media owner.
+It accepts only the exact versioned `local_capacity_v1` H3 policy; an absent,
+unknown, or paid policy is rejected before a project row, reservation, or
+transport call. The retained Wan lifecycle remains the sole owner of its
+same-transaction pilot hooks and historical 15/100 allowance tables.
 
 Portable recovery records unfinished video rows as explicit recovery
 operations. Restored known provider IDs may be explicitly reconciled/downloaded

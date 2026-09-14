@@ -424,3 +424,16 @@ through the matching configured H3 adapter; an unknown or pre-dispatch row is
 never replayed. Close now refuses any nonterminal video job. The retained
 runtime, legacy data, gateway deployment, Wan ledger, and all cutover work are
 unchanged. See [the 2E receipt](../verification/2026-09-14-project-folder-video-accounting.md).
+
+### 2E dispatch-boundary correction (2026-09-14)
+
+The direct H3 path now freezes a typed, secret-free configured-backend
+fingerprint together with adapter ID/version. Submit and reconcile validate it
+immediately before every provider operation, so a matching adapter/profile at a
+different endpoint cannot preflight, upload, submit, poll, or download. The
+direct lifecycle is composed without the retained same-transaction Wan ledger
+owner and accepts only `local_capacity_v1`; missing, unknown, or paid policy
+contracts fail before a reservation or network action. Deterministic tests
+cover application-reserve → project-claim → application-claim-event ordering,
+fault/cancel races, restart no-replay, and project/application Wan-ledger
+isolation. The gateway and retained runtime remain unchanged.

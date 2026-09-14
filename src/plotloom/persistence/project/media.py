@@ -16,6 +16,7 @@ from .media_keyframes import ReviewedKeyframePersistence
 from .media_reference_proposals import CharacterReferenceProposalPersistence
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_tasks import GenericMediaTaskPersistence
+from .media_direct_video import DirectVideoJobPersistence
 from .media_video import VideoJobPersistence
 from .media_video_currentness import VideoJobCurrentness
 from .media_visual_intents import VisualIntentPersistence
@@ -53,6 +54,15 @@ class ProjectMediaPersistence:
             same_person,
             video_currentness,
             accounting,
+        )
+        self.direct_video: DirectVideoJobPersistence = DirectVideoJobPersistence(
+            access,
+            canonical,
+            admission,
+            references,
+            image_currentness,
+            same_person,
+            video_currentness,
         )
         self.references: CharacterReferencePersistence = references
         self.proposals: CharacterReferenceProposalPersistence = (

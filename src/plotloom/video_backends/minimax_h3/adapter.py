@@ -165,7 +165,7 @@ class MiniMaxH3GatewayAdapter:
             aspect_policy=aspect_policy,
             allow_letterbox=allow_letterbox,
             seed=seed if seed is not None else randbits(63),
-            tracks_paid_wan_pilot=False,
+            cost_policy="local_capacity_v1",
             profile_id=profile.profile_id,
             profile_version=profile.profile_version,
             width=profile.width,

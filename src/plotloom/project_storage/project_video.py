@@ -8,6 +8,7 @@ from typing import Any
 from ..domain import utc_now
 from ..exceptions import InvalidTransitionError, NotFoundError
 from ..persistence.schema import ProjectVideoDispatchRow, VideoJobRow
+from ..video_provider import VideoBackendBinding, VideoProductionContract
 from .application_store import ApplicationStore
 from .project_handle import ProjectStore
 
@@ -25,7 +26,10 @@ class ProjectVideoRepository:
         self.store = store
         self._repository = store.repository
         self._application = application
-        self._video = self._repository._media.video
+        # Direct project-folder work gets the ledger-free lifecycle owner.
+        # The retained Wan port remains separately composed for its legacy
+        # same-transaction accounting contract.
+        self._video = self._repository._media.direct_video
 
     @property
     def project_id(self) -> str:
@@ -40,6 +44,7 @@ class ProjectVideoRepository:
     def prepare_video_job(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
         self._assert_project(project_id)
         self.store.require_recovery_acknowledged()
+        self._assert_direct_h3_preparation(kwargs)
         return self._video.prepare_video_job(project_id, **kwargs)
 
     def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:
@@ -49,10 +54,9 @@ class ProjectVideoRepository:
             raise InvalidTransitionError(
                 "video job cannot be submitted again; reconcile its existing attempt"
             )
-        provider = job.snapshot.get("provider") if isinstance(job.snapshot, dict) else {}
+        provider = self._frozen_direct_h3_provider(job)
         request = job.snapshot.get("request") if isinstance(job.snapshot, dict) else {}
-        paid = isinstance(provider, dict) and provider.get("costPolicy") == "wan_paid_pilot_v1"
-        resource = str(provider.get("adapterId") or provider.get("provider") or "video")
+        resource = str(provider["adapterId"])
         identity = self.dispatch_identity(video_job_id)
         # This commits in the application file first. If the process stops
         # before the project transaction, the deterministic identity makes a
@@ -60,10 +64,8 @@ class ProjectVideoRepository:
         self._application.reserve_video_dispatch(
             dispatch_identity=identity,
             resource=resource,
-            reserved_units=int(request.get("durationSeconds", job.requested_seconds))
-            if paid
-            else 0,
-            requires_accounting=paid,
+            reserved_units=0,
+            requires_accounting=False,
         )
         with self._repository._lifecycle_write() as session:
             current = session.get(VideoJobRow, video_job_id)
@@ -165,29 +167,77 @@ class ProjectVideoRepository:
                 return operation.provider_state
         return None
 
-    def assert_reconcile_allowed(self, video_job_id: str, *, adapter_id: str, adapter_version: str) -> None:
+    def assert_reconcile_allowed(
+        self, video_job_id: str, *, backend_binding: VideoBackendBinding
+    ) -> None:
         provider_state = self.recovery_provider_state(video_job_id)
-        if provider_state is None:
-            return
-        if provider_state != "known":
+        if provider_state is not None and provider_state != "known":
             raise InvalidTransitionError(
                 "restored video submission is unknown; it cannot be replayed or reconciled"
             )
-        job = self._job(video_job_id)
-        provider = job.snapshot.get("provider") if isinstance(job.snapshot, dict) else {}
-        if not isinstance(provider, dict) or (
-            provider.get("adapterId") != adapter_id
-            or provider.get("adapterVersion") != adapter_version
-        ):
-            raise InvalidTransitionError(
-                "restored video requires a separately configured matching frozen backend"
-            )
+        self.assert_backend_binding(video_job_id, backend_binding=backend_binding)
 
-    def assert_submit_allowed(self, video_job_id: str) -> None:
+    def assert_submit_allowed(
+        self, video_job_id: str, *, backend_binding: VideoBackendBinding
+    ) -> None:
         if self.recovery_provider_state(video_job_id) is not None:
             raise InvalidTransitionError(
                 "restored video jobs cannot submit or replay a historical request"
             )
+        self.assert_backend_binding(video_job_id, backend_binding=backend_binding)
+
+    def assert_backend_binding(
+        self, video_job_id: str, *, backend_binding: VideoBackendBinding
+    ) -> None:
+        """Refuse transport use unless this exact configured instance was frozen."""
+
+        job = self._job(video_job_id)
+        provider = self._frozen_direct_h3_provider(job)
+        if not backend_binding.matches_snapshot(provider):
+            raise InvalidTransitionError(
+                "video job requires its exact frozen configured backend instance"
+            )
+
+    @staticmethod
+    def _assert_direct_h3_preparation(kwargs: dict[str, Any]) -> None:
+        """Admit only the direct H3, local-capacity contract before persistence.
+
+        The project-folder surface is intentionally not a second Wan dispatch
+        path.  Rejecting an absent, paid, or future policy here prevents an
+        adapter-shaped object from turning an unknown contract into a free
+        reservation or from touching the retained pilot ledger.
+        """
+
+        contract = kwargs.get("production_contract")
+        binding = kwargs.get("backend_binding")
+        if not isinstance(contract, VideoProductionContract):
+            raise InvalidTransitionError("project-folder video needs a versioned production contract")
+        if contract.adapter_id != "minimax_h3_gateway":
+            raise InvalidTransitionError("project-folder video accepts only the H3 adapter contract")
+        if contract.cost_policy != "local_capacity_v1":
+            raise InvalidTransitionError("project-folder H3 requires the local-capacity cost policy")
+        if not isinstance(binding, VideoBackendBinding):
+            raise InvalidTransitionError("project-folder video needs a configured backend binding")
+        if (
+            binding.adapter_id != contract.adapter_id
+            or binding.adapter_version != contract.adapter_version
+        ):
+            raise InvalidTransitionError("configured backend binding does not match the H3 adapter")
+
+    @staticmethod
+    def _frozen_direct_h3_provider(job: VideoJobRow) -> dict[str, Any]:
+        provider = job.snapshot.get("provider") if isinstance(job.snapshot, dict) else None
+        if (
+            not isinstance(provider, dict)
+            or provider.get("adapterId") != "minimax_h3_gateway"
+            or not isinstance(provider.get("adapterVersion"), str)
+            or provider.get("costPolicy") != "local_capacity_v1"
+            or not isinstance(provider.get("backendBinding"), dict)
+        ):
+            raise InvalidTransitionError(
+                "video job has no exact supported direct H3 dispatch contract"
+            )
+        return provider
 
     def _job(self, video_job_id: str) -> VideoJobRow:
         with self._repository._read() as session:
