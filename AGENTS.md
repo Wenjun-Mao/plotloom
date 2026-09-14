@@ -1,7 +1,6 @@
 # Plotloom development contract
 
 - Fix root causes and contracts rather than symptoms. Add regression evidence for durable fixes.
-- Keep the canonical domain independent of browser, provider, environment, and concrete filesystem concerns.
 - Keep API keys out of project state, persistence, logs, traces, and public provider settings.
 - Preserve the extraction boundary: production code must not import or read Narrative Forge V1 runtime paths or data.
 - Record durable changes to public APIs, prompt/schema contracts, persistence, runtime behavior, or workflow semantics as concise ADRs.
@@ -10,8 +9,6 @@
 
 ## Bounded delivery
 
-- For development work, follow [ADR 0023](docs/adr/0023-bounded-delivery-and-evidence.md). The current M1-C execution order is in [the completion plan](docs/roadmap/m1c-completion-plan.md); the capability matrix remains the product progress record.
-- Start each checkpoint with a short brief: verified HEAD/worktree, one observable outcome, owned scope, acceptance evidence, and a stopping condition. Read only the context needed for that outcome.
 - Before a generation-contract fix, identify which fields the author, model, and trusted code own. Check primary prompt, response schema, binder, and validator agreement before adding correction machinery. Amend the relevant ADR before changing ownership; preserve raw evidence and historical contracts.
 - Use one implementation owner by default. Delegate only separately owned work that replaces work the owner would otherwise do; use GPT-5.6 Terra for subagents unless a concrete exception is justified. Give a bounded brief with minimal history. Use one independent review after the candidate stabilizes; reopen it only for a specific unresolved finding, regression, or material change.
 - Run focused checks during edits and the full required gate on the stable candidate. Repeat or broaden checks when a change or failure justifies them, recording why; do not trade correctness for an arbitrary test-run quota.
