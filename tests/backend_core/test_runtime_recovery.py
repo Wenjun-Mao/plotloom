@@ -65,26 +65,18 @@ def test_runtime_recovery_leaves_session_key_run_queued_for_explicit_resume() ->
 
 def test_runtime_lifespan_performs_reconciliation_before_serving(
     tmp_path,
-    monkeypatch,
 ) -> None:
-    plan = StartupRecoveryPlan(terminated_run_ids=["run-interrupted"])
-    observed_repositories = []
-
-    def fake_recovery(repository, _run_runner, _media_runner):
-        observed_repositories.append(repository)
-        return plan
-
-    monkeypatch.setattr(runtime, "recover_runtime_jobs", fake_recovery)
     settings = PlotloomSettings(
         repo_root=tmp_path,
-        data_dir=tmp_path / "data",
-        database_url=f"sqlite:///{tmp_path / 'data' / 'state.sqlite3'}",
-        artifact_root=tmp_path / "artifacts",
+        outputs_dir=tmp_path / "outputs",
+        application_data_dir=tmp_path / "application",
         static_dir=tmp_path / "static",
-        media_poll_interval_seconds=0.1,
+        text_auth_mode="none",
     )
     app = runtime.build_runtime_app(settings)
 
     with TestClient(app):
-        assert app.state.startup_recovery == plan
-        assert observed_repositories == [app.state.repository]
+        assert app.state.startup_recovery == {}
+        assert app.state.project_folder_storage.projects.outputs_root == (
+            tmp_path / "outputs"
+        ).resolve()

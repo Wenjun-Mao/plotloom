@@ -125,7 +125,24 @@ class ApplicationStore:
                     dispatch_identity TEXT PRIMARY KEY, resource TEXT NOT NULL,
                     reserved_units INTEGER NOT NULL CHECK (reserved_units >= 0),
                     status TEXT NOT NULL CHECK (status IN ('reserved', 'released', 'consumed')),
-                    created_at TEXT NOT NULL);""")
+                    created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS application_text_profile_metadata (
+                    profile_id TEXT PRIMARY KEY REFERENCES application_profiles(profile_id) ON DELETE CASCADE,
+                    display_name TEXT NOT NULL,
+                    enabled INTEGER NOT NULL CHECK (enabled IN (0, 1)),
+                    availability_revision INTEGER NOT NULL CHECK (availability_revision >= 0),
+                    adapter_id TEXT NOT NULL,
+                    adapter_version TEXT NOT NULL,
+                    created_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS application_text_profile_selection (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    profile_id TEXT NOT NULL REFERENCES application_profiles(profile_id),
+                    revision INTEGER NOT NULL CHECK (revision >= 0),
+                    updated_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS application_run_routes (
+                    run_id TEXT PRIMARY KEY,
+                    project_id TEXT NOT NULL,
+                    indexed_at TEXT NOT NULL);""")
             self._video_dispatch.initialize_schema(connection)
 
     @staticmethod
@@ -137,6 +154,67 @@ class ApplicationStore:
             updated_at=row["updated_at"],
         )
 
+    def _save_profile_in_transaction(
+        self,
+        connection: sqlite3.Connection,
+        profile_id: str,
+        configuration: dict[str, Any],
+        *,
+        expected_revision: int | None,
+    ) -> ApplicationProfile:
+        """Write a profile with the caller's enclosing transaction.
+
+        Text profiles have companion metadata, so their control-plane record
+        must use this primitive rather than committing configuration first and
+        metadata later.
+        """
+
+        row = connection.execute(
+            "SELECT profile_id, revision, configuration_json, updated_at FROM application_profiles WHERE profile_id = ?",
+            (profile_id,),
+        ).fetchone()
+        existing = self._profile_from_row(row) if row is not None else None
+        if existing is None:
+            if expected_revision not in {None, 0}:
+                raise ProjectStorageConflictError(
+                    "provider profile does not exist at expected revision"
+                )
+            profile = ApplicationProfile(
+                profile_id=profile_id,
+                revision=1,
+                configuration=configuration,
+                updated_at=utc_now(),
+            )
+            connection.execute(
+                "INSERT INTO application_profiles (profile_id, revision, configuration_json, updated_at) VALUES (?, ?, ?, ?)",
+                (
+                    profile.profile_id,
+                    profile.revision,
+                    _canonical_json(profile.configuration),
+                    profile.updated_at.isoformat(),
+                ),
+            )
+            return profile
+        if expected_revision != existing.revision:
+            raise ProjectStorageConflictError("provider profile revision is stale")
+        profile = ApplicationProfile(
+            profile_id=profile_id,
+            revision=existing.revision + 1,
+            configuration=configuration,
+            updated_at=utc_now(),
+        )
+        connection.execute(
+            "UPDATE application_profiles SET revision = ?, configuration_json = ?, updated_at = ? WHERE profile_id = ? AND revision = ?",
+            (
+                profile.revision,
+                _canonical_json(profile.configuration),
+                profile.updated_at.isoformat(),
+                profile.profile_id,
+                existing.revision,
+            ),
+        )
+        return profile
+
     def save_profile(
         self,
         profile_id: str,
@@ -145,50 +223,63 @@ class ApplicationStore:
         expected_revision: int | None = None,
     ) -> ApplicationProfile:
         with self._write() as connection:
-            row = connection.execute(
-                "SELECT profile_id, revision, configuration_json, updated_at FROM application_profiles WHERE profile_id = ?",
+            return self._save_profile_in_transaction(
+                connection,
+                profile_id,
+                configuration,
+                expected_revision=expected_revision,
+            )
+
+    def save_text_profile_record(
+        self,
+        profile_id: str,
+        configuration: dict[str, Any],
+        *,
+        display_name: str,
+        adapter_id: str,
+        adapter_version: str,
+        expected_revision: int | None,
+    ) -> ApplicationProfile:
+        """Atomically persist a text profile and its required metadata."""
+
+        with self._write() as connection:
+            profile = self._save_profile_in_transaction(
+                connection,
+                profile_id,
+                configuration,
+                expected_revision=expected_revision,
+            )
+            metadata = connection.execute(
+                "SELECT profile_id FROM application_text_profile_metadata WHERE profile_id = ?",
                 (profile_id,),
             ).fetchone()
-            existing = self._profile_from_row(row) if row is not None else None
-            if existing is None:
-                if expected_revision not in {None, 0}:
-                    raise ProjectStorageConflictError(
-                        "provider profile does not exist at expected revision"
+            if profile.revision == 1:
+                if metadata is not None:
+                    raise ProjectStorageCorruptionError(
+                        "new text provider profile already has metadata"
                     )
-                profile = ApplicationProfile(
-                    profile_id=profile_id,
-                    revision=1,
-                    configuration=configuration,
-                    updated_at=utc_now(),
-                )
                 connection.execute(
-                    "INSERT INTO application_profiles (profile_id, revision, configuration_json, updated_at) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO application_text_profile_metadata "
+                    "(profile_id, display_name, enabled, availability_revision, adapter_id, adapter_version, created_at) "
+                    "VALUES (?, ?, 1, 0, ?, ?, ?)",
                     (
-                        profile.profile_id,
-                        profile.revision,
-                        _canonical_json(profile.configuration),
+                        profile_id,
+                        display_name,
+                        adapter_id,
+                        adapter_version,
                         profile.updated_at.isoformat(),
                     ),
                 )
-                return profile
-            if expected_revision != existing.revision:
-                raise ProjectStorageConflictError("provider profile revision is stale")
-            profile = ApplicationProfile(
-                profile_id=profile_id,
-                revision=existing.revision + 1,
-                configuration=configuration,
-                updated_at=utc_now(),
-            )
-            connection.execute(
-                "UPDATE application_profiles SET revision = ?, configuration_json = ?, updated_at = ? WHERE profile_id = ? AND revision = ?",
-                (
-                    profile.revision,
-                    _canonical_json(profile.configuration),
-                    profile.updated_at.isoformat(),
-                    profile.profile_id,
-                    existing.revision,
-                ),
-            )
+            else:
+                if metadata is None:
+                    raise ProjectStorageCorruptionError(
+                        "text provider profile metadata is missing"
+                    )
+                connection.execute(
+                    "UPDATE application_text_profile_metadata SET display_name = ?, adapter_id = ?, "
+                    "adapter_version = ? WHERE profile_id = ?",
+                    (display_name, adapter_id, adapter_version, profile_id),
+                )
             return profile
 
     def select_profile(self, profile_id: str) -> ApplicationProfile:
@@ -249,6 +340,39 @@ class ApplicationStore:
             raise ProjectStorageCorruptionError(
                 "selected application profile is not a valid secret-free text profile"
             ) from error
+
+    def index_run(self, run_id: str, project_id: str) -> None:
+        """Record a rebuildable route without making application storage authoritative."""
+
+        with self._write() as connection:
+            row = connection.execute(
+                "SELECT project_id FROM application_run_routes WHERE run_id = ?", (run_id,)
+            ).fetchone()
+            if row is not None and row["project_id"] != project_id:
+                raise ProjectStorageConflictError("run ID is already routed to another project")
+            connection.execute(
+                "INSERT INTO application_run_routes (run_id, project_id, indexed_at) VALUES (?, ?, ?) "
+                "ON CONFLICT(run_id) DO UPDATE SET indexed_at = excluded.indexed_at",
+                (run_id, project_id, utc_now().isoformat()),
+            )
+
+    def project_for_run(self, run_id: str) -> str | None:
+        with self._read() as connection:
+            row = connection.execute(
+                "SELECT project_id FROM application_run_routes WHERE run_id = ?", (run_id,)
+            ).fetchone()
+        return str(row["project_id"]) if row is not None else None
+
+    def replace_run_index(self, routes: list[tuple[str, str]]) -> None:
+        """Replace only the disposable lookup after manifest-based startup discovery."""
+
+        with self._write() as connection:
+            connection.execute("DELETE FROM application_run_routes")
+            now = utc_now().isoformat()
+            connection.executemany(
+                "INSERT INTO application_run_routes (run_id, project_id, indexed_at) VALUES (?, ?, ?)",
+                [(run_id, project_id, now) for run_id, project_id in routes],
+            )
 
     def record_accounting(self, entry: GlobalAccountingEntry) -> GlobalAccountingEntry:
         with self._write() as connection:

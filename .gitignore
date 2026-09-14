@@ -27,6 +27,7 @@ frontend/test-results/
 *.pem
 secrets.json
 /data/
+/outputs/
 
 # Generated reading artifacts
 docs/storyboard-handbook/dist/

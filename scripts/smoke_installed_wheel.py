@@ -86,11 +86,11 @@ def main() -> None:
 
             from alembic.script import ScriptDirectory
             import plotloom
-            from plotloom.api import create_project_folder_authoring_app
             from plotloom.config import PlotloomSettings
             from plotloom.domain import ProjectBrief
             from plotloom.generation.prompts import PromptRepository
             from plotloom.project_storage import ProjectFolderStorage
+            from plotloom.runtime import build_runtime_app
             from plotloom.schema import SchemaMigrator
 
             database = Path(sys.argv[1]).resolve()
@@ -132,9 +132,16 @@ def main() -> None:
                 expected = home / "AppData" / "Local" / "Plotloom"
             else:
                 expected = Path(os.environ["XDG_DATA_HOME"]) / "plotloom"
-            assert settings.data_dir == expected.resolve(), settings.data_dir
+            assert settings.outputs_dir == (expected / "outputs").resolve(), settings.outputs_dir
+            assert settings.application_data_dir == (expected / "data").resolve(), settings.application_data_dir
             assert settings.text_model != "cwd-poison-model"
-            assert not settings.data_dir.is_relative_to(Path.cwd())
+            assert not settings.outputs_dir.is_relative_to(Path.cwd())
+            # This is the shipped composition, not the former direct-only
+            # test factory. The import blocker proves runtime startup never
+            # reaches the retained shared repository path.
+            runtime_app = build_runtime_app(settings)
+            assert runtime_app.title == "Plotloom project-folder authoring"
+            assert "plotloom.persistence.legacy_repository" not in sys.modules
 
             project_root = database.parent / "project-folder"
             outputs_root = project_root / "outputs"
@@ -147,8 +154,6 @@ def main() -> None:
             project_store = storage.projects.create(
                 ProjectBrief(title="wheel project", synopsis="independent project folder")
             )
-            direct_app = create_project_folder_authoring_app(storage)
-            assert direct_app.title == "Plotloom project-folder authoring"
             assert project_store.authoring.get_project(project_store.manifest.project_id).id == project_store.manifest.project_id
             assert project_store.media.list_managed_assets(project_store.manifest.project_id) == []
             project_id = project_store.manifest.project_id

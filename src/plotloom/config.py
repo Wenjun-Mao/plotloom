@@ -90,23 +90,14 @@ def resolve_repo_root(start: Path | None = None) -> Path:
 
 
 class PlotloomSettings(BaseModel):
-    """Runtime-owned configuration; it deliberately has no legacy settings."""
+    """Runtime-owned configuration for the project-folder composition."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     repo_root: Path
-    data_dir: Path
-    database_url: str
-    artifact_root: Path
-    # Old immutable records retain their original file URI. A named source
-    # root can be mapped read-only into ``artifact_root`` after a verified
-    # relocation; it never grants arbitrary filesystem reads.
-    artifact_legacy_roots: tuple[Path, ...] = ()
+    outputs_dir: Path
+    application_data_dir: Path
     static_dir: Path
-    # P1 is intentionally unavailable until an operator names the one
-    # same-host handoff location. It is a transport setting, not provider
-    # configuration and never contains a credential.
-    image_exchange_root: Path | None = None
     host: str = "127.0.0.1"
     port: int = Field(default=8775, ge=1, le=65535)
     port_fallback_count: int = Field(default=19, ge=0, le=100)
@@ -116,7 +107,6 @@ class PlotloomSettings(BaseModel):
     media_max_poll_attempts: int = Field(default=300, ge=1, le=10_000)
     managed_media_max_import_bytes: int = Field(default=8 * 1024 * 1024, ge=1, le=64 * 1024 * 1024)
     managed_media_max_import_pixels: int = Field(default=24_000_000, ge=1, le=100_000_000)
-    wan_p2_enabled: bool = False
     h3_gateway_enabled: bool = False
     text_provider: str = DEFAULT_TEXT_PROVIDER
     text_base_url: str = DEFAULT_TEXT_BASE_URL
@@ -145,13 +135,13 @@ class PlotloomSettings(BaseModel):
     text_preset_id: Literal[
         "compatible_v1", "quality_reasoning_v1", "final_only_v1", "custom"
     ] = "compatible_v1"
-    image_provider: str = "atlascloud"
-    image_base_url: str = "https://api.atlascloud.ai/api/v1/model"
-    image_model: str = "openai/gpt-image-2/text-to-image"
-    image_auth_mode: Literal["none", "bearer"] = "bearer"
-    video_provider: str = "atlascloud"
-    video_base_url: str = "https://api.atlascloud.ai/api/v1/model"
-    video_model: str = "xai/grok-imagine-video-v1.5/image-to-video"
+    image_provider: str = "manual_project_folder"
+    image_base_url: str = "http://127.0.0.1"
+    image_model: str = "manual_project_folder"
+    image_auth_mode: Literal["none", "bearer"] = "none"
+    video_provider: str = "minimax_h3_gateway"
+    video_base_url: str = "http://127.0.0.1"
+    video_model: str = "minimax_h3_gateway_catalog_v2"
     video_auth_mode: Literal["none", "bearer"] = "bearer"
     text_api_key: SecretStr | None = None
     image_api_key: SecretStr | None = None
@@ -173,52 +163,51 @@ class PlotloomSettings(BaseModel):
             # deliberately non-overriding. Installed wheels never inspect cwd.
             load_dotenv(dotenv_path=root / ".env", override=False)
 
-        default_data_dir = root / "data" if source_checkout else root
-        data_dir = Path(
-            os.environ.get("PLOTLOOM_DATA_DIR") or default_data_dir
-        ).expanduser()
-        if not data_dir.is_absolute():
-            data_dir = (root / data_dir).resolve()
-        else:
-            data_dir = data_dir.resolve()
-        database_url = os.environ.get("PLOTLOOM_DATABASE_URL") or (
-            f"sqlite:///{data_dir / 'plotloom.sqlite3'}"
+        obsolete = (
+            "PLOTLOOM_DATA_DIR",
+            "PLOTLOOM_DATABASE_URL",
+            "PLOTLOOM_ARTIFACT_ROOT",
+            "PLOTLOOM_LEGACY_ARTIFACT_ROOTS",
+            "PLOTLOOM_IMAGE_EXCHANGE_ROOT",
+            "PLOTLOOM_ENABLE_WAN_P2",
         )
-        artifact_root = Path(
-            os.environ.get("PLOTLOOM_ARTIFACT_ROOT") or data_dir / "artifacts"
-        ).expanduser()
-        if not artifact_root.is_absolute():
-            artifact_root = (root / artifact_root).resolve()
-        legacy_artifact_values = tuple(
-            value.strip() for value in (os.environ.get("PLOTLOOM_LEGACY_ARTIFACT_ROOTS") or "").split(os.pathsep)
-            if value.strip()
+        configured_obsolete = [name for name in obsolete if os.environ.get(name)]
+        if configured_obsolete:
+            names = ", ".join(configured_obsolete)
+            raise ValueError(
+                f"obsolete shared-storage configuration is not supported: {names}; "
+                "configure PLOTLOOM_OUTPUTS_DIR and PLOTLOOM_APPLICATION_DATA_DIR instead"
+            )
+
+        def configured_path(name: str, default: Path) -> Path:
+            value = Path(os.environ.get(name) or default).expanduser()
+            return (value if value.is_absolute() else root / value).resolve()
+
+        outputs_dir = configured_path("PLOTLOOM_OUTPUTS_DIR", root / "outputs")
+        application_data_dir = configured_path(
+            "PLOTLOOM_APPLICATION_DATA_DIR", root / "data"
         )
-        artifact_legacy_roots = tuple(
-            (Path(value).expanduser() if Path(value).expanduser().is_absolute() else root / value).resolve()
-            for value in legacy_artifact_values
-        )
+        if (
+            outputs_dir == application_data_dir
+            or outputs_dir.is_relative_to(application_data_dir)
+            or application_data_dir.is_relative_to(outputs_dir)
+        ):
+            raise ValueError(
+                "PLOTLOOM_OUTPUTS_DIR and PLOTLOOM_APPLICATION_DATA_DIR must be separate"
+            )
         static_dir = Path(
             os.environ.get("PLOTLOOM_STATIC_DIR")
             or Path(__file__).resolve().parent / "static"
         ).expanduser()
         if not static_dir.is_absolute():
             static_dir = (root / static_dir).resolve()
-        image_exchange_value = (os.environ.get("PLOTLOOM_IMAGE_EXCHANGE_ROOT") or "").strip()
-        image_exchange_root = Path(image_exchange_value).expanduser() if image_exchange_value else None
-        if image_exchange_root is not None and not image_exchange_root.is_absolute():
-            image_exchange_root = (root / image_exchange_root).resolve()
-
         hosting_port = os.environ.get("PORT")
         configured_port = hosting_port or os.environ.get("PLOTLOOM_PORT", "8775")
-        fallback_key = os.environ.get("ATLASCLOUD_API_KEY") or None
         return cls(
             repo_root=root,
-            data_dir=data_dir,
-            database_url=database_url,
-            artifact_root=artifact_root.resolve(),
-            artifact_legacy_roots=artifact_legacy_roots,
+            outputs_dir=outputs_dir,
+            application_data_dir=application_data_dir,
             static_dir=static_dir.resolve(),
-            image_exchange_root=image_exchange_root.resolve() if image_exchange_root is not None else None,
             host=os.environ.get("PLOTLOOM_HOST", os.environ.get("HOST", "127.0.0.1")),
             port=configured_port,
             port_fallback_count=0 if hosting_port is not None else 19,
@@ -236,7 +225,6 @@ class PlotloomSettings(BaseModel):
             managed_media_max_import_pixels=os.environ.get(
                 "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS", "24000000"
             ),
-            wan_p2_enabled=os.environ.get("PLOTLOOM_ENABLE_WAN_P2", "false"),
             h3_gateway_enabled=os.environ.get("PLOTLOOM_ENABLE_H3_GATEWAY", "false"),
             text_provider=os.environ.get("TEXT_PROVIDER") or DEFAULT_TEXT_PROVIDER,
             text_base_url=os.environ.get("TEXT_BASE_URL") or DEFAULT_TEXT_BASE_URL,
@@ -277,19 +265,16 @@ class PlotloomSettings(BaseModel):
                 "TEXT_MAX_SEMANTIC_CORRECTIONS", "2"
             ),
             text_preset_id=os.environ.get("TEXT_PRESET_ID", "compatible_v1"),
-            image_provider=os.environ.get("IMAGE_PROVIDER") or "atlascloud",
-            image_base_url=os.environ.get("IMAGE_BASE_URL")
-            or "https://api.atlascloud.ai/api/v1/model",
-            image_model=os.environ.get("IMAGE_MODEL")
-            or "openai/gpt-image-2/text-to-image",
-            image_auth_mode=os.environ.get("IMAGE_AUTH_MODE") or "bearer",
-            video_provider=os.environ.get("VIDEO_PROVIDER") or "atlascloud",
-            video_base_url=os.environ.get("VIDEO_BASE_URL")
-            or "https://api.atlascloud.ai/api/v1/model",
+            image_provider=os.environ.get("IMAGE_PROVIDER") or "manual_project_folder",
+            image_base_url=os.environ.get("IMAGE_BASE_URL") or "http://127.0.0.1",
+            image_model=os.environ.get("IMAGE_MODEL") or "manual_project_folder",
+            image_auth_mode=os.environ.get("IMAGE_AUTH_MODE") or "none",
+            video_provider=os.environ.get("VIDEO_PROVIDER") or "minimax_h3_gateway",
+            video_base_url=os.environ.get("VIDEO_BASE_URL") or "http://127.0.0.1",
             video_model=os.environ.get("VIDEO_MODEL")
-            or "xai/grok-imagine-video-v1.5/image-to-video",
+            or "minimax_h3_gateway_catalog_v2",
             video_auth_mode=os.environ.get("VIDEO_AUTH_MODE") or "bearer",
             text_api_key=resolve_text_provider_api_key(DEFAULT_PROVIDER_PROFILE_ID),
-            image_api_key=os.environ.get("IMAGE_MODEL_API_KEY") or fallback_key,
-            video_api_key=os.environ.get("VIDEO_MODEL_API_KEY") or fallback_key,
+            image_api_key=os.environ.get("IMAGE_MODEL_API_KEY") or None,
+            video_api_key=os.environ.get("VIDEO_MODEL_API_KEY") or None,
         )

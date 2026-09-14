@@ -17,18 +17,17 @@ from plotloom.runtime import build_runtime_app, select_available_port
 def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> None:
     (tmp_path / "pyproject.toml").write_text("[project]\nname='standalone-v2'\n", encoding="utf-8")
     (tmp_path / ".env").write_text(
-        "PLOTLOOM_DATA_DIR=dotenv-data\nPLOTLOOM_PORT=8790\nPORT=8791\n"
+        "PLOTLOOM_OUTPUTS_DIR=dotenv-outputs\nPLOTLOOM_APPLICATION_DATA_DIR=dotenv-application\nPLOTLOOM_PORT=8790\nPORT=8791\n"
         "TEXT_BASE_URL=http://127.0.0.1:8080/v1\nTEXT_AUTH_MODE=none\n"
         "TEXT_MAX_OUTPUT_TOKENS=4096\nTEXT_CONNECT_TIMEOUT_SECONDS=4\n"
         "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES=9000000\n"
-        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS=25000000\n"
-        f"PLOTLOOM_LEGACY_ARTIFACT_ROOTS=old-artifacts{os.pathsep} old-artifacts-two \n",
+        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS=25000000\n",
         encoding="utf-8",
     )
     for name in (
-        "PLOTLOOM_DATA_DIR", "PLOTLOOM_PORT", "PORT", "TEXT_BASE_URL",
+        "PLOTLOOM_OUTPUTS_DIR", "PLOTLOOM_APPLICATION_DATA_DIR", "PLOTLOOM_PORT", "PORT", "TEXT_BASE_URL",
         "TEXT_AUTH_MODE", "TEXT_MAX_OUTPUT_TOKENS", "TEXT_CONNECT_TIMEOUT_SECONDS",
-        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES", "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS", "PLOTLOOM_LEGACY_ARTIFACT_ROOTS",
+        "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES", "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS",
     ):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("PORT", "8899")
@@ -37,13 +36,8 @@ def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> No
     assert settings.port == 8899
     assert settings.port_fallback_count == 0
     assert settings.run_workers == 1
-    assert settings.data_dir == (tmp_path / "dotenv-data").resolve()
-    assert settings.database_url.endswith("/dotenv-data/plotloom.sqlite3")
-    assert settings.artifact_root == (tmp_path / "dotenv-data" / "artifacts").resolve()
-    assert settings.artifact_legacy_roots == (
-        (tmp_path / "old-artifacts").resolve(),
-        (tmp_path / "old-artifacts-two").resolve(),
-    )
+    assert settings.outputs_dir == (tmp_path / "dotenv-outputs").resolve()
+    assert settings.application_data_dir == (tmp_path / "dotenv-application").resolve()
     assert settings.static_dir == (Path(__file__).resolve().parents[2] / "src/plotloom/static").resolve()
     assert settings.text_base_url == "http://127.0.0.1:8080/v1"
     assert settings.text_auth_mode == "none"
@@ -73,6 +67,11 @@ def test_installed_runtime_ignores_cwd_dotenv_and_uses_user_data_home(
         "PLOTLOOM_DATA_DIR",
         "PLOTLOOM_DATABASE_URL",
         "PLOTLOOM_ARTIFACT_ROOT",
+        "PLOTLOOM_LEGACY_ARTIFACT_ROOTS",
+        "PLOTLOOM_IMAGE_EXCHANGE_ROOT",
+        "PLOTLOOM_ENABLE_WAN_P2",
+        "PLOTLOOM_OUTPUTS_DIR",
+        "PLOTLOOM_APPLICATION_DATA_DIR",
         "TEXT_MODEL",
     ):
         monkeypatch.delenv(name, raising=False)
@@ -86,11 +85,19 @@ def test_installed_runtime_ignores_cwd_dotenv_and_uses_user_data_home(
     else:
         expected = xdg_home / "plotloom"
     assert settings.repo_root == expected.resolve()
-    assert settings.data_dir == expected.resolve()
-    assert settings.artifact_root == (expected / "artifacts").resolve()
+    assert settings.outputs_dir == (expected / "outputs").resolve()
+    assert settings.application_data_dir == (expected / "data").resolve()
     assert settings.text_model != "cwd-poison-model"
-    assert not settings.data_dir.is_relative_to(unrelated)
-    assert not settings.data_dir.is_relative_to(Path(config_module.__file__).resolve().parent)
+    assert not settings.outputs_dir.is_relative_to(unrelated)
+    assert not settings.application_data_dir.is_relative_to(Path(config_module.__file__).resolve().parent)
+
+
+def test_obsolete_shared_storage_configuration_is_rejected_before_startup(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("PLOTLOOM_DATABASE_URL", "sqlite:///retained.sqlite3")
+    with pytest.raises(ValueError, match="obsolete shared-storage configuration"):
+        PlotloomSettings.from_env(tmp_path)
 
 
 def test_local_port_falls_forward(monkeypatch) -> None:
@@ -128,9 +135,8 @@ def test_runtime_wires_text_and_media_workers_without_exposing_keys(tmp_path: Pa
     (static_dir / "index.html").write_text("<h1>Plotloom</h1>", encoding="utf-8")
     settings = PlotloomSettings(
         repo_root=tmp_path,
-        data_dir=tmp_path / "data",
-        database_url=f"sqlite:///{tmp_path / 'data' / 'state.sqlite3'}",
-        artifact_root=tmp_path / "data" / "artifacts",
+        outputs_dir=tmp_path / "outputs",
+        application_data_dir=tmp_path / "application",
         static_dir=static_dir,
         text_api_key="server-text-secret",
         image_api_key="server-image-secret",
@@ -149,7 +155,7 @@ def test_runtime_wires_text_and_media_workers_without_exposing_keys(tmp_path: Pa
         assert client.get("/v2/").status_code == 200
 
     assert hasattr(app.state, "run_runner")
-    assert hasattr(app.state, "media_runner")
+    assert hasattr(app.state, "project_folder_storage")
 
 
 def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(tmp_path: Path) -> None:
@@ -158,9 +164,8 @@ def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(tmp_path
     (static_dir / "index.html").write_text("<h1>Plotloom</h1>", encoding="utf-8")
     settings = PlotloomSettings(
         repo_root=tmp_path,
-        data_dir=tmp_path / "data",
-        database_url=f"sqlite:///{tmp_path / 'data' / 'state.sqlite3'}",
-        artifact_root=tmp_path / "data" / "artifacts",
+        outputs_dir=tmp_path / "outputs",
+        application_data_dir=tmp_path / "application",
         static_dir=static_dir,
         h3_gateway_enabled=True,
         video_provider="minimax_h3_gateway",
@@ -208,9 +213,8 @@ def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(tmp_path
 def test_runtime_rejects_h3_profile_drift_before_serving(tmp_path: Path) -> None:
     settings = PlotloomSettings(
         repo_root=tmp_path,
-        data_dir=tmp_path / "data",
-        database_url=f"sqlite:///{tmp_path / 'data' / 'state.sqlite3'}",
-        artifact_root=tmp_path / "data" / "artifacts",
+        outputs_dir=tmp_path / "outputs",
+        application_data_dir=tmp_path / "application",
         static_dir=tmp_path,
         h3_gateway_enabled=True,
         video_provider="minimax_h3_gateway",

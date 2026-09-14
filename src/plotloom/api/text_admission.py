@@ -14,7 +14,6 @@ from ..domain import (
 from ..exceptions import InvalidTransitionError, NotFoundError
 from ..generation.exceptions import SecretLeaseError
 from ..generation.secrets import InMemorySecretVault, SecretLease
-from ..persistence import SQLiteRepository
 from ..provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,
     PresetId,
@@ -45,7 +44,7 @@ class TextAdmissionService:
 
     def __init__(
         self,
-        repository: SQLiteRepository,
+        repository: Any,
         *,
         run_scheduler: RunScheduler | None,
         public_defaults: ProviderSettings,

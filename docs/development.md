@@ -41,11 +41,11 @@ npm --prefix frontend run dev
 
 The production server defaults to `127.0.0.1:8775`; the Vite server defaults to `127.0.0.1:5173`. Open `/v2/` on either origin. `PLOTLOOM_API_ORIGIN` changes the Vite proxy target.
 
-### Direct project-folder recovery
+### Project-folder recovery
 
-The direct project-folder composition can create a verified local snapshot from
-its workbench. Restore is intentionally an operator command, not an HTTP path
-or a browser file picker:
+The production runtime creates verified local snapshots from its workbench.
+Restore is intentionally an operator command, not an HTTP path or a browser
+file picker:
 
 ```sh
 uv run plotloom restore --source /absolute/path/to/snapshot-or-closed-project --outputs-dir /absolute/path/to/outputs
@@ -58,14 +58,21 @@ never dispatches or replays remote work.
 
 ## Data and secrets
 
-- A source checkout defaults to `data/plotloom.sqlite3` and `data/artifacts/`.
-- An installed wheel uses the OS user-data location: `~/Library/Application Support/Plotloom` on macOS, `%LOCALAPPDATA%\\Plotloom` on Windows, and `$XDG_DATA_HOME/plotloom` or `~/.local/share/plotloom` on Linux.
+- A source checkout defaults to separate `outputs/` project homes and
+  `data/application.sqlite3` installation control data. Configure another
+  pair only with `PLOTLOOM_OUTPUTS_DIR` and
+  `PLOTLOOM_APPLICATION_DATA_DIR`; they cannot overlap.
+- An installed wheel uses the OS user-data location: `~/Library/Application Support/Plotloom` on macOS, `%LOCALAPPDATA%\\Plotloom` on Windows, and `$XDG_DATA_HOME/plotloom` or `~/.local/share/plotloom` on Linux. Its defaults are `outputs/` and `data/` below that explicit application root; it never infers a repository or storage root from the current directory.
+- `PLOTLOOM_DATABASE_URL`, `PLOTLOOM_DATA_DIR`, `PLOTLOOM_ARTIFACT_ROOT`,
+  `PLOTLOOM_LEGACY_ARTIFACT_ROOTS`, `PLOTLOOM_IMAGE_EXCHANGE_ROOT`, and
+  `PLOTLOOM_ENABLE_WAN_P2` are obsolete. Startup rejects them before it opens
+  retained data; it does not migrate or reinterpret any old project data.
 - Only a source checkout loads its trusted repository-root `.env`; host environment values override it.
 - Named text-provider profiles persist complete public configuration and an
   optimistic revision. API keys are never part of a profile.
-- The compatibility `PUT /api/v2/provider-settings` request must include the
-  active text profile ID and its expected revision. A stale projection receives
-  `409` rather than overwriting a newer named-profile change.
+- `PUT /api/v2/provider-settings` updates the selected public text profile
+  under its expected revision. Media dispatch is fixed at startup, and a stale
+  profile projection receives `409` rather than overwriting a newer profile.
 - A browser key is scoped by profile ID, lives only in the current tab's
   `sessionStorage`, and is sent as `X-Plotloom-Session-API-Key` only for that
   profile's bearer-authenticated probe or text-run start, rebuild, repair, and
@@ -77,8 +84,9 @@ never dispatches or replays remote work.
   queued after a server restart. Reopening it from the same browser tab (or
   clicking **继续排队运行**) explicitly re-supplies that ephemeral key; the
   server never persists it to make restart recovery convenient.
-- Named profiles apply only to text generation. Image and video tasks freeze
-  their own global public settings and cannot inherit a text profile.
+- Named profiles apply only to text generation. Image handoffs live beneath
+  the owning project run; H3 video freezes its typed configured-backend
+  identity in the project and never falls back to Atlas/Wan when unavailable.
 - Provider response envelopes are sanitized before persistence: exact outbound
   credentials and secret-shaped fields are redacted, while numeric token usage
   remains available for audit. Cancelling a queued run before worker start still
@@ -90,7 +98,8 @@ never dispatches or replays remote work.
 
 - The non-generative import endpoint accepts only JPEG/PNG bytes for an active,
   saved project. It preserves the original and a separately hashed display
-  derivative in the configured artifact root; it never invokes a provider.
+  derivative in that project's owned `assets/` directory; it never invokes a
+  provider.
 - `PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES` defaults to `8388608` and accepts
   values from `1` through `67108864`. `PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS`
   defaults to `24000000` and accepts values from `1` through `100000000`.
@@ -105,19 +114,9 @@ never dispatches or replays remote work.
 
 ### Manual Codex image jobs (P1)
 
-- P1 has no provider key or automatic bridge. Set one explicit
-  `PLOTLOOM_IMAGE_EXCHANGE_ROOT` on the same host as Plotloom and the assigned
-  Codex specialist. For a source checkout, use the ignored local root
-  `data/image-exchange`; `data/plotloom.sqlite3`, `data/artifacts/`, local
-  `data/review-packs/`, and that exchange are the active project-local storage
-  entrypoints. Do not use a source path outside `data/`, a database directory,
-  artifact root, or a broad home directory as this exchange root.
-- A verified retained-data relocation may set
-  `PLOTLOOM_LEGACY_ARTIFACT_ROOTS` to the exact former artifact root (multiple
-  roots use the platform path separator). This is a read-only compatibility
-  allowlist: immutable `file://` records under that root resolve to the same
-  relative bytes below the configured current artifact root. It does not permit
-  arbitrary file URIs and does not rewrite database history.
+- P1 has no provider key or automatic bridge. Its database-frozen package and
+  delivery inbox are both created inside the owning project's `runs/` folder;
+  there is no shared exchange root or retained-artifact relocation setting.
 - The UI requires a nonblank creator-reviewed presentation/refinement change
   before it prepares an approved single-shot job. It freezes that change with
   canonical facts; use the normal storyboard editor and reapproval for narrative

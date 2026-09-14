@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from collections.abc import Callable
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from ..domain import (
     AuthoringDraft,
@@ -60,6 +62,10 @@ from .project_folder_media import register_project_folder_media_routes
 from .project_folder_image_jobs import register_project_folder_image_job_routes
 from .project_folder_video import register_project_folder_video_routes
 from ..project_storage.video_service import ProjectVideoService
+from ..project_storage.text_dispatch import ProjectRunDispatcher
+from .project_folder_generation import register_project_folder_generation_routes
+from .text_admission import TextAdmissionService
+from .text_backends import register_text_profile_routes
 
 
 def create_project_folder_authoring_app(
@@ -68,16 +74,20 @@ def create_project_folder_authoring_app(
     video_provider: VideoProviderPort | None = None,
     video_adapter: VideoAdapterPort | None = None,
     video_probe: Callable[[bytes], ObservedVideo] | None = None,
+    run_dispatcher: ProjectRunDispatcher | None = None,
+    text_admission: TextAdmissionService | None = None,
+    static_dir: Path | None = None,
+    lifespan: Any | None = None,
 ) -> FastAPI:
-    """Compose the direct project-folder authoring/image/H3 video slice.
+    """Compose one project-folder runtime with no retained storage fallback."""
 
-    This deliberately small factory exists only for the bounded storage
-    checkpoint and its browser evidence.  The retained runtime continues to
-    use ``create_app`` until a later cutover explicitly replaces its full
-    lifecycle composition; this is not a browser-selectable storage mode.
-    """
-
-    app = FastAPI(title="Plotloom project-folder authoring", version="2.0.0-storage-2e")
+    if (run_dispatcher is None) != (text_admission is None):
+        raise ValueError("project text dispatch and admission must be configured together")
+    app = FastAPI(
+        title="Plotloom project-folder authoring",
+        version="2.0.0-storage-2e",
+        lifespan=lifespan,
+    )
     app.state.project_folder_storage = storage
     if video_adapter is not None and video_adapter.adapter_id != "minimax_h3_gateway":
         raise ValueError("project-folder video accepts only the frozen MiniMax H3 adapter")
@@ -92,6 +102,8 @@ def create_project_folder_authoring_app(
         else None
     )
     app.state.project_video_service = video_service
+    app.state.run_dispatcher = run_dispatcher
+    app.state.text_admission = text_admission
 
     def _project_h3_target(profile_id: str) -> dict[str, Any]:
         """Resolve a trusted adaptation target without project configuration."""
@@ -555,4 +567,17 @@ def create_project_folder_authoring_app(
         application=storage.application,
         service=video_service,
     )
+    if run_dispatcher is not None and text_admission is not None:
+        register_project_folder_generation_routes(
+            app, run_dispatcher, admission=text_admission
+        )
+        register_text_profile_routes(
+            app, text_admission.repository, admission=text_admission
+        )
+    if static_dir is not None:
+        app.mount(
+            "/v2",
+            StaticFiles(directory=static_dir, html=True, check_dir=False),
+            name="v2-static",
+        )
     return app

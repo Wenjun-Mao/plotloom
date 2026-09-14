@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import socket
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from threading import Event
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
@@ -14,6 +15,7 @@ from .providers import ProviderPorts
 
 if TYPE_CHECKING:
     from .config import PlotloomSettings
+    from .video_ingestion import ObservedVideo
     from .video_provider import VideoAdapterPort, VideoProviderPort
 
 
@@ -104,39 +106,44 @@ def build_runtime_app(
     *,
     test_video_provider: VideoProviderPort | None = None,
     test_video_adapter: VideoAdapterPort | None = None,
+    test_video_probe: Callable[[bytes], ObservedVideo] | None = None,
+    text_provider_resolver: Any | None = None,
 ) -> object:
-    from .api import create_app
-    from .artifacts import LocalArtifactStore
+    """Build the production project-folder runtime.
+
+    The optional typed transports are test seams for the same production
+    composition; they do not select a retained repository or alternate route
+    surface.
+    """
+
+    from .api import create_project_folder_authoring_app
     from .domain import ProviderProfileCapabilities, ProviderSettings
-    from .jobs import LifecycleJobRunner
-    from .media import MediaPromptCompiler
-    from .managed_media import ManagedMediaLimits
-    from .media_jobs import MediaJobRunner, MediaTaskSecretBroker
-    from .video_jobs import VideoJobService
-    from .atlas_wan_transport import AtlasCloudWanTransport
     from .video_backends.minimax_h3 import (
         H3_PROFILES_BY_ID,
         MiniMaxH3GatewayAdapter,
         MiniMaxH3GatewayTransport,
     )
     from .pipeline import (
-        PipelineEngine,
         RunSecretBroker,
         SnapshotTextProviderResolver,
     )
-    from .persistence import SQLiteRepository
-    from .providers import ProviderPorts
+    from .project_storage import ProjectFolderStorage
+    from .project_storage.application_profiles import ApplicationProfileRepository
+    from .project_storage.text_dispatch import ProjectRunDispatcher
     from .provider_profiles import (
         PresetId,
         StageMaxOutputTokens,
         TextProviderCapabilities,
         TextProviderProfileSnapshot,
+        TextProviderProfileSnapshotV3,
         V2ExtractionPolicy,
     )
     from .generation.contracts import ReasoningMode, RequestExtension
 
-    repository = SQLiteRepository(settings.database_url)
-    artifact_store = LocalArtifactStore(settings.artifact_root, legacy_roots=settings.artifact_legacy_roots)
+    storage = ProjectFolderStorage(
+        outputs_root=settings.outputs_dir,
+        application_data_root=settings.application_data_dir,
+    )
     run_secrets = RunSecretBroker(
         settings.text_api_key.get_secret_value() if settings.text_api_key else None,
         server_key_resolver=lambda profile_id: (
@@ -169,9 +176,9 @@ def build_runtime_app(
         video_model=settings.video_model,
         video_auth_mode=settings.video_auth_mode,
     )
-    provider_resolver = SnapshotTextProviderResolver()
+    provider_resolver = text_provider_resolver or SnapshotTextProviderResolver()
     text_profile_values = {
-        "profile_schema_version": 2,
+        "profile_schema_version": 3,
         "profile_id": "default",
         "profile_version": 0,
         "text_provider": settings.text_provider,
@@ -206,49 +213,50 @@ def build_runtime_app(
         "max_semantic_corrections": settings.text_max_semantic_corrections,
         "preset_id": PresetId(settings.text_preset_id),
         "preset_version": "1",
+        "adapter_id": "openai_compatible",
+        "adapter_version": "1",
     }
     try:
-        text_profile_default = TextProviderProfileSnapshot.model_validate(
+        text_profile_default = TextProviderProfileSnapshotV3.model_validate(
             text_profile_values
         )
     except ValueError:
         # Existing pre-M1.5 environment combinations remain valid, but they
         # are explicitly frozen as custom instead of impersonating a preset.
         text_profile_values["preset_id"] = PresetId.CUSTOM
-        text_profile_default = TextProviderProfileSnapshot.model_validate(
+        text_profile_default = TextProviderProfileSnapshotV3.model_validate(
             text_profile_values
         )
-    pipeline = PipelineEngine(repository, provider_resolver, run_secrets)
-    run_runner = LifecycleJobRunner(
-        repository,
-        pipeline,
-        RunContext(providers=ProviderPorts(), artifacts=artifact_store),
+    profile_repository = ApplicationProfileRepository(storage.application, provider_defaults)
+    profile_repository.bootstrap_default_text_provider_profile(text_profile_default)
+    dispatcher = ProjectRunDispatcher(
+        storage,
+        provider_resolver=provider_resolver,
+        secrets=run_secrets,
         max_workers=settings.run_workers,
-        secret_registrar=run_secrets,
     )
-    media_secrets = MediaTaskSecretBroker(
-        image_api_key=(
-            settings.image_api_key.get_secret_value() if settings.image_api_key else None
-        ),
-        video_api_key=(
-            settings.video_api_key.get_secret_value() if settings.video_api_key else None
-        ),
+    from .api.text_admission import TextAdmissionService
+
+    admission = TextAdmissionService(
+        profile_repository,  # type: ignore[arg-type] - capability-compatible application owner
+        run_scheduler=dispatcher,
+        public_defaults=provider_defaults,
+        key_availability={
+            "text_key_available": settings.text_api_key is not None,
+            "image_key_available": settings.image_api_key is not None,
+            "video_key_available": settings.video_api_key is not None,
+        },
+        profile_key_available=run_secrets.server_key_available,
+        text_provider_resolver=provider_resolver,
+        text_secret_source=run_secrets,
     )
-    media_runner = MediaJobRunner(
-        repository,
-        media_secrets,
-        max_workers=settings.media_workers,
-        poll_interval_seconds=settings.media_poll_interval_seconds,
-        max_poll_attempts=settings.media_max_poll_attempts,
-    )
-    # A runtime selects one trusted server-owned backend.  Browser provider
-    # labels/settings cannot route to a different endpoint or adapter.
-    if settings.wan_p2_enabled and settings.h3_gateway_enabled:
-        raise RuntimeError("enable either Wan P2 or the H3 gateway, not both")
+    # A runtime selects one trusted server-owned backend. Browser payloads
+    # cannot choose an endpoint, adapter, or Atlas/Wan fallback.
     if test_video_provider is not None:
-        video_job_service = VideoJobService(
-            repository, artifact_store, test_video_provider, adapter=test_video_adapter
-        )
+        video_provider = test_video_provider
+        video_adapter = test_video_adapter or MiniMaxH3GatewayAdapter()
+    elif test_video_probe is not None:
+        raise ValueError("a test video probe requires a typed test video provider")
     elif settings.h3_gateway_enabled:
         if settings.video_api_key is None:
             raise RuntimeError("H3 gateway requires VIDEO_MODEL_API_KEY")
@@ -260,69 +268,38 @@ def build_runtime_app(
             }
         ):
             raise RuntimeError("H3 gateway runtime must use the trusted MiniMax H3 catalog")
-        video_job_service = VideoJobService(
-            repository,
-            artifact_store,
-            MiniMaxH3GatewayTransport(
-                settings.video_api_key.get_secret_value(),
-                base_url=settings.video_base_url,
-            ),
-            adapter=MiniMaxH3GatewayAdapter(),
+        video_provider = MiniMaxH3GatewayTransport(
+            settings.video_api_key.get_secret_value(),
+            base_url=settings.video_base_url,
         )
-    elif settings.wan_p2_enabled and settings.video_api_key is not None:
-        video_job_service = VideoJobService(
-            repository,
-            artifact_store,
-            AtlasCloudWanTransport(settings.video_api_key.get_secret_value()),
-        )
+        video_adapter = MiniMaxH3GatewayAdapter()
     else:
-        video_job_service = None
+        video_provider = None
+        video_adapter = None
+
     @asynccontextmanager
     async def runtime_lifespan(_app: Any):
         try:
-            _app.state.video_startup_recovery = repository.recover_video_dispatches()
-            _app.state.startup_recovery = recover_runtime_jobs(
-                repository,
-                run_runner,
-                media_runner,
-            )
+            _app.state.startup_recovery = dispatcher.reconcile_startup()
             yield
         finally:
-            run_runner.close()
-            media_runner.close()
+            dispatcher.close()
             run_secrets.close()
-            repository.close()
 
-    app = create_app(
-        repository,
-        run_scheduler=run_runner,
-        media_scheduler=media_runner,
-        media_prompt_compiler=MediaPromptCompiler(),
-        video_job_service=video_job_service,
-        artifact_store=artifact_store,
-        managed_media_limits=ManagedMediaLimits(
-            max_import_bytes=settings.managed_media_max_import_bytes,
-            max_import_pixels=settings.managed_media_max_import_pixels,
-        ),
-        image_exchange_root=settings.image_exchange_root,
+    app = create_project_folder_authoring_app(
+        storage,
+        video_provider=video_provider,
+        video_adapter=video_adapter,
+        video_probe=test_video_probe,
+        run_dispatcher=dispatcher,
+        text_admission=admission,
         static_dir=settings.static_dir,
-        provider_defaults=provider_defaults,
-        key_availability={
-            "text_key_available": settings.text_api_key is not None,
-            "image_key_available": settings.image_api_key is not None,
-            "video_key_available": settings.video_api_key is not None,
-        },
-        text_profile_default=text_profile_default,
-        profile_key_available=run_secrets.server_key_available,
-        text_provider_resolver=provider_resolver,
-        text_secret_source=run_secrets,
         lifespan=runtime_lifespan,
     )
-    app.state.artifact_store = artifact_store
-    app.state.run_runner = run_runner
+    app.state.project_folder_storage = storage
+    app.state.application_profile_repository = profile_repository
+    app.state.run_runner = dispatcher
     app.state.run_secrets = run_secrets
-    app.state.media_runner = media_runner
-    app.state.media_secrets = media_secrets
     return app
 
 

@@ -247,6 +247,9 @@ class ProjectGenerationRepository:
     def list_project_runs(self, project_id: str, *, limit: int = 50) -> list[GenerationRun]:
         return self._lifecycle.list_project_runs(project_id, limit=limit)
 
+    def list_project_run_ids_for_index(self, project_id: str) -> list[str]:
+        return self._lifecycle.list_project_run_ids_for_index(project_id)
+
     def reconcile_startup_jobs(self) -> StartupRecoveryPlan:
         if self._admission.recovery_operations_are_present():
             return StartupRecoveryPlan()

@@ -48,6 +48,20 @@ class ProjectGenerationLifecyclePersistence:
                 .limit(limit)
             ).all()
             return [access.codecs.run(row) for row in rows]
+
+    def list_project_run_ids_for_index(self, project_id: str) -> list[str]:
+        """Return all durable IDs for startup index rebuild, not an API listing."""
+
+        access = self._access
+        with access.leases.read() as session:
+            access.rows.project(session, project_id)
+            return list(
+                session.scalars(
+                    select(GenerationRunRow.id)
+                    .where(GenerationRunRow.project_id == project_id)
+                    .order_by(GenerationRunRow.created_at)
+                )
+            )
     def start_run(self, run_id: str) -> GenerationRun:
         access = self._access
         with access.leases.write() as session:

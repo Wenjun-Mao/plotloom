@@ -317,12 +317,17 @@ class ProjectStore:
             )
         return ready
 
-    def generation_runs(self) -> list[GenerationRun]:
+    def generation_runs(self, *, limit: int = 200) -> list[GenerationRun]:
         return list(
             reversed(
-                self.generation.list_project_runs(self.manifest.project_id, limit=200)
+                self.generation.list_project_runs(self.manifest.project_id, limit=limit)
             )
         )
+
+    def generation_run_ids_for_index(self) -> list[str]:
+        """Expose only IDs for application startup routing reconstruction."""
+
+        return self.generation.list_project_run_ids_for_index(self.manifest.project_id)
 
     def run_trace(self, run_id: str) -> RunTrace:
         trace = self.generation.get_run_trace(run_id)

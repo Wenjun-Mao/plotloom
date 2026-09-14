@@ -35,6 +35,7 @@ from ..image_job_contracts import (
 from ..provider_profiles import (
     PROFILE_ID_PATTERN,
     TextProviderProfileSnapshot,
+    TextProviderProfileSnapshotV3,
 )
 
 
@@ -249,7 +250,7 @@ class ExactWorkUnitRepairRequest(CamelModel):
 class TextProviderProfileView(CamelModel):
     profile_id: str
     display_name: str
-    configuration: TextProviderProfileSnapshot
+    configuration: TextProviderProfileSnapshot | TextProviderProfileSnapshotV3
     revision: int
     enabled: bool
     availability_revision: int

@@ -321,12 +321,11 @@ def test_environment_template_is_plotloom_only() -> None:
         "IMAGE_MODEL",
         "VIDEO_PROVIDER",
         "VIDEO_BASE_URL",
-        "VIDEO_MODEL",
-        "PLOTLOOM_HOST",
-        "PLOTLOOM_PORT",
-        "PLOTLOOM_DATA_DIR",
-        "PLOTLOOM_DATABASE_URL",
-        "PLOTLOOM_ARTIFACT_ROOT",
+            "VIDEO_MODEL",
+            "PLOTLOOM_HOST",
+            "PLOTLOOM_PORT",
+            "PLOTLOOM_OUTPUTS_DIR",
+            "PLOTLOOM_APPLICATION_DATA_DIR",
         "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_BYTES",
         "PLOTLOOM_MANAGED_MEDIA_MAX_IMPORT_PIXELS",
     }.issubset(declared_names)
@@ -465,13 +464,13 @@ def test_distribution_wheel_is_complete_and_isolated(tmp_path: Path) -> None:
         else:
             expected_data_root = Path(os.environ["XDG_DATA_HOME"]) / "plotloom"
         assert settings.repo_root == expected_data_root.resolve(), settings.repo_root
-        assert settings.data_dir == expected_data_root.resolve(), settings.data_dir
-        assert settings.artifact_root == (expected_data_root / "artifacts").resolve()
+        assert settings.outputs_dir == (expected_data_root / "outputs").resolve(), settings.outputs_dir
+        assert settings.application_data_dir == (expected_data_root / "data").resolve()
         assert settings.text_model != "cwd-poison-model"
-        assert not settings.data_dir.is_relative_to(Path.cwd())
-        assert not settings.data_dir.is_relative_to(package_root)
-        settings.data_dir.mkdir(parents=True, exist_ok=True)
-        (settings.data_dir / "write-probe").write_text("ok", encoding="utf-8")
+        assert not settings.outputs_dir.is_relative_to(Path.cwd())
+        assert not settings.application_data_dir.is_relative_to(package_root)
+        settings.application_data_dir.mkdir(parents=True, exist_ok=True)
+        (settings.application_data_dir / "write-probe").write_text("ok", encoding="utf-8")
 
         license_roots = list(unpacked.glob("*.dist-info/licenses"))
         assert len(license_roots) == 1, license_roots
@@ -489,9 +488,14 @@ def test_distribution_wheel_is_complete_and_isolated(tmp_path: Path) -> None:
     )
     probe_environment = os.environ.copy()
     for name in (
-        "PLOTLOOM_DATA_DIR",
-        "PLOTLOOM_DATABASE_URL",
-        "PLOTLOOM_ARTIFACT_ROOT",
+            "PLOTLOOM_DATA_DIR",
+            "PLOTLOOM_DATABASE_URL",
+            "PLOTLOOM_ARTIFACT_ROOT",
+            "PLOTLOOM_LEGACY_ARTIFACT_ROOTS",
+            "PLOTLOOM_IMAGE_EXCHANGE_ROOT",
+            "PLOTLOOM_ENABLE_WAN_P2",
+            "PLOTLOOM_OUTPUTS_DIR",
+            "PLOTLOOM_APPLICATION_DATA_DIR",
         "PLOTLOOM_STATIC_DIR",
         "TEXT_MODEL",
     ):

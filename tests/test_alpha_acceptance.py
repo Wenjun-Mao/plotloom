@@ -479,6 +479,7 @@ def test_alpha_cli_returns_one_for_qualification_failure(tmp_path: Path, monkeyp
     assert alpha_acceptance.main([
         "--profile", "one",
         "--profile", "two",
+        "--source-database-url", "sqlite:///explicit-historical.sqlite3",
         "--review-directory", str(tmp_path / "review"),
         "--commit", "a" * 40,
     ]) == 1

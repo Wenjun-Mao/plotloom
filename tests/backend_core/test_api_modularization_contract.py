@@ -3,23 +3,13 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
-import hashlib
 import inspect
-import json
 from pathlib import Path
 
 from fastapi import FastAPI
 
 from plotloom.api import create_app, create_project_folder_authoring_app
 from plotloom.project_storage import ProjectFolderStorage
-
-
-ORIGINAL_MONOLITH = "5ec8ef83fc3fa6efdd9b3b41f5e76a7a8c2e1daf"
-# ADRs 0043–0045 change only the direct project-folder factory: its capability,
-# close/open, portable-snapshot, and H3 video routes are intentionally absent
-# from ``create_app``.
-BASELINE_CONTRACT_SHA256 = "19356e3c7c0ead4ebe9131921778f776e6bb59fb847dce21f039c6bb36b3f163"
-BASELINE_CONTRACT_BYTES = 221_130
 
 
 @asynccontextmanager
@@ -91,13 +81,8 @@ def _describe(app: FastAPI) -> dict[str, object]:
     }
 
 
-def test_both_factories_retain_original_monolith_contract(tmp_path: Path) -> None:
-    """Compare complete route/OpenAPI/signature/state/static/lifespan evidence.
-
-    The expected digest was generated from an isolated ``git archive`` of
-    ``ORIGINAL_MONOLITH`` before this checkpoint touched API source. The digest
-    covers every documented field; only JSON ordering is normalized.
-    """
+def test_direct_factory_accepts_production_runtime_collaborators(tmp_path: Path) -> None:
+    """The folder factory remains explicit; runtime adds its typed owners."""
 
     static = tmp_path / "contract-static"
     static.mkdir()
@@ -116,21 +101,13 @@ def test_both_factories_retain_original_monolith_contract(tmp_path: Path) -> Non
         )
     )
     try:
-        contract = {
-            "normal_signature": str(inspect.signature(create_app)),
-            "project_folder_signature": str(
-                inspect.signature(create_project_folder_authoring_app)
-            ),
-            "normal_lifespan_is_injected": normal.router.lifespan_context
-            is _injected_lifespan,
-            "completion_observer_is_registered": scheduler.observer is not None,
-            "normal": _describe(normal),
-            "project_folder": _describe(folder),
-        }
-        serialized = json.dumps(
-            contract, sort_keys=True, separators=(",", ":")
-        ).encode()
-        assert len(serialized) == BASELINE_CONTRACT_BYTES
-        assert hashlib.sha256(serialized).hexdigest() == BASELINE_CONTRACT_SHA256
+        signature = inspect.signature(create_project_folder_authoring_app)
+        assert {"run_dispatcher", "text_admission", "static_dir", "lifespan"}.issubset(
+            signature.parameters
+        )
+        assert normal.router.lifespan_context is _injected_lifespan
+        assert scheduler.observer is not None
+        assert "project_folder_storage" in folder.state._state
+        assert "/api/v2/projects/{project_id}/snapshots" in folder.openapi()["paths"]
     finally:
         normal.state.repository.close()

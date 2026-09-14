@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import FastAPI, HTTPException, Query, Request, status
 from pydantic import ValidationError
@@ -8,7 +8,6 @@ from pydantic import ValidationError
 from ..domain import (
     ProviderSettings,
 )
-from ..persistence import SQLiteRepository
 from ..provider_profiles import (
     ProviderProfileSelection,
 )
@@ -30,7 +29,7 @@ from .text_admission import TextAdmissionService
 
 def register_text_profile_routes(
     app: FastAPI,
-    repo: SQLiteRepository,
+    repo: Any,
     *,
     admission: TextAdmissionService,
 ) -> None:

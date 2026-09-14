@@ -1311,7 +1311,10 @@ def _parse_arguments(arguments: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the blinded three-story Plotloom Alpha acceptance matrix.")
     parser.add_argument("--profile", action="append", dest="profile_ids", required=True, help="saved text-provider profile ID; pass exactly twice")
     parser.add_argument("--review-directory", required=True, type=Path, help="empty local directory for six anonymized content-only review JSON files")
-    parser.add_argument("--source-database-url", help="existing Plotloom database URL; defaults to configured database")
+    parser.add_argument(
+        "--source-database-url",
+        help="explicit historical qualification database URL",
+    )
     parser.add_argument("--commit", type=_parse_commit_sha, help="40-character checkpoint commit SHA; defaults to the current HEAD commit")
     return parser.parse_args(arguments)
 
@@ -1324,17 +1327,16 @@ def main(arguments: list[str] | None = None) -> int:
         print("Alpha requires exactly two distinct saved profiles.", file=sys.stderr)
         return 2
     try:
-        settings = PlotloomSettings.from_env()
         result = run_alpha_acceptance(
-            source_database_url=options.source_database_url or settings.database_url,
+            # Alpha remains a retained historical-qualification workflow, not
+            # production runtime configuration.  Keep argument parsing lenient
+            # so setup failures follow the CLI's deliberately redacted path;
+            # the qualification workflow validates the explicit source URL.
+            source_database_url=options.source_database_url or "",
             profile_ids=options.profile_ids,
             review_directory=options.review_directory,
             commit_sha=options.commit,
-            server_key_resolver=lambda profile_id: (
-                key.get_secret_value()
-                if (key := settings.text_api_key_for_profile(profile_id)) is not None
-                else None
-            ),
+            server_key_resolver=lambda _profile_id: None,
         )
     except Exception:
         print("Alpha setup failed; inspect local configuration. Temporary evidence was removed.", file=sys.stderr)

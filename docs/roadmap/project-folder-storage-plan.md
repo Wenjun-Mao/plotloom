@@ -437,3 +437,25 @@ contracts fail before a reservation or network action. Deterministic tests
 cover application-reserve → project-claim → application-claim-event ordering,
 fault/cancel races, restart no-replay, and project/application Wan-ledger
 isolation. The gateway and retained runtime remain unchanged.
+
+## Production wiring record (2026-09-14)
+
+ADR 0046 promotes the accepted project-folder composition into
+`build_runtime_app`. Production startup now opens only explicit
+`PLOTLOOM_OUTPUTS_DIR` and `PLOTLOOM_APPLICATION_DATA_DIR` roots, bootstraps
+secret-free application-owned text profiles, freezes an admitted profile on a
+project-local run, and keeps a rebuildable application run-to-project index.
+Each run route opens exactly that project; startup reconciles every discovered
+project conservatively and does not submit or replay a queued or interrupted
+operation. The H3 surface is configured only through its existing typed
+transport and frozen backend identity, with no Wan/Atlas fallback.
+
+This code change does **not** perform the separately controlled operational
+cutover: it does not start a service against an existing `.env`, inventory or
+archive retained working sets, copy or delete any user data, export approved
+settings/accounting, or modify local configuration. Before that operation, an
+operator must stop all project writers, create and verify an unchanged archive
+under `data/legacy-archives/<UTC-time>`, export only approved installation
+settings/accounting identities, explicitly switch to fresh roots, and record
+the verification inventory. Legacy project import remains intentionally out of
+scope.
