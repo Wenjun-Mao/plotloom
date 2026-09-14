@@ -1,10 +1,39 @@
 # Codebase modularization: persistence-first structure proposal
 
-**Status:** proposal for director review; no implementation is authorized by
-this document.  It follows the accepted API modularization checkpoint at
+**Status:** approved responsibility map. The persistence package conversion is
+active; this document remains the execution map for separately accepted slices.
+It follows the accepted API modularization checkpoint at
 `f9487508239bf14f5f8de8b255456c97a3e3b933` and the already-approved breaking
 project-folder storage destination.  It does not reopen the cutover decision,
 add a selectable storage mode, or schedule frontend work concurrently.
+
+## Delivery checklist
+
+- [x] Responsibility map accepted.
+- [x] Project-folder storage package conversion completed.
+- [ ] Persistence package conversion active (this bounded schema/codec/database/
+  transaction extraction is complete; capability extraction remains).
+- [ ] Frontend modularization pending as a separate phase.
+- [ ] Justified assessment of other large modules pending; do not treat line
+  count alone as implementation authority.
+
+### Persistence checkpoint seams
+
+This checkpoint deletes `persistence.py` and preserves the public
+`plotloom.persistence` façade. Mapped rows now have schema owners; canonical
+value conversion and `stable_hash` live in `codec.py`; engine/session setup is
+in `database.py`; and the five named read/write/bootstrap/lifecycle/claim leases
+are in `transactions.py`. `legacy_repository.py` intentionally retains the
+full `SQLiteRepository` and `ProjectSQLiteRepository` operation surface (about
+9,100 lines) while callers still depend on it. It is a temporary, explicitly
+named composition boundary—not a claim that the persistence work is complete.
+
+The remaining capability seams are: project lifecycle/authoring/drafts/gates/
+approvals; generation snapshots, plans, attempts, work units, repair, recovery
+and canonical commit; project media/still/image/review facts; and installation
+profiles/settings/video-pilot accounting. Each needs its own caller migration,
+transaction proof, and deletion step. No schema, public API, migration, runtime
+cutover, or storage ownership decision changes in this checkpoint.
 
 ## Audit checkpoint
 

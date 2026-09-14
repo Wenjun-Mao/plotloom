@@ -30,7 +30,7 @@ from sqlalchemy.exc import IntegrityError, OperationalError
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from .domain import (
+from ..domain import (
     PUBLIC_PROVIDER_SETTING_FIELDS,
     STAGE_ORDER,
     TERMINAL_MEDIA_TASK_STATUSES,
@@ -107,15 +107,15 @@ from .domain import (
     is_secret_setting_name,
     validate_public_provider_snapshot,
 )
-from .generation.aggregation import aggregate_stage_fragments
-from .generation.dialogue_capacity import DIALOGUE_CAPACITY_POLICY_VERSION
-from .generation.fragments import (
+from ..generation.aggregation import aggregate_stage_fragments
+from ..generation.dialogue_capacity import DIALOGUE_CAPACITY_POLICY_VERSION
+from ..generation.fragments import (
     SceneBeatsFragment,
     StoryBibleFragment,
     StoryGraphFragment,
     StoryboardFragment,
 )
-from .generation.planning import (
+from ..generation.planning import (
     DEFAULT_STAGE_BUDGETS,
     GenerationPlan,
     PLANNING_POLICY_VERSION,
@@ -125,19 +125,19 @@ from .generation.planning import (
     create_generation_plan,
     plan_stage,
 )
-from .generation.scene_timing_allocation import (
+from ..generation.scene_timing_allocation import (
     SCENE_TIMING_ALLOCATION_VERSION,
     SceneTimingAllocation,
 )
-from .join_state_values import JOIN_STATE_VALUE_CONTRACT_VERSION
-from .keyframe_preparation import has_matching_aspect
-from .video_provider import VideoProductionContract
-from .generation.story_graph_topology import (
+from ..join_state_values import JOIN_STATE_VALUE_CONTRACT_VERSION
+from ..keyframe_preparation import has_matching_aspect
+from ..video_provider import VideoProductionContract
+from ..generation.story_graph_topology import (
     StoryGraphTopology,
     plan_story_graph_topology,
 )
-from .generation.prompts import canonical_json
-from .provider_profiles import (
+from ..generation.prompts import canonical_json
+from ..provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,
     PROFILE_ID_PATTERN,
     PresetId,
@@ -152,7 +152,7 @@ from .provider_profiles import (
     is_v2_snapshot,
     is_v3_snapshot,
 )
-from .exceptions import (
+from ..exceptions import (
     BootstrapContentionError,
     IdempotencyConflictError,
     InvalidTransitionError,
@@ -167,10 +167,24 @@ from .exceptions import (
     StagePrerequisiteError,
     SchemaResetRequiredError,
 )
-from .image_job_contracts import ImageJobError
-from .schema import SchemaMigrator, sqlite_database_path
-from .validation import STORYBOARD_GATE_SET_VERSION, validate_stage_payload
+from ..image_job_contracts import ImageJobError
 
+from .codec import _contains_unredacted_secret_setting, _json_data, _stored_utc, stable_hash
+from .database import RepositoryDatabase
+from .schema import (
+    ApprovalDecisionRow, ArtifactRow, AuthoringDraftRow, Base, CharacterReferenceDecisionRow,
+    CharacterReferenceProposalCandidateRow, CharacterReferenceProposalDeliveryRow, CharacterReferenceProposalRow,
+    CharacterReferenceStateRow, EntityRevisionRow, FragmentReuseBindingRow, GateResultRow, GenerationAttemptRow,
+    GenerationPlanRow, GenerationRunRow, GenerationWorkUnitRow, ImageJobCandidateRow, ImageJobDeliveryRow, ImageJobRow,
+    ManagedAssetProvenanceRow, ManagedAssetRow, MediaTaskRow, PROJECT_TEXT_PIPELINE_TABLE_NAMES, ProductionUnitRow,
+    ProjectCreationIdempotencyRow, ProjectDuplicateIdempotencyRow, ProjectRow, ProviderProfileSelectionRow,
+    ProviderSettingsRow, ReviewedShotBindingRow, SamePersonReviewRow, SamePersonReviewStateRow, SealedStageAggregateRow,
+    StageHeadRow, StagePlanRow, StillPreviewRow, StoryGraphTopologyRow, TextProviderProfileRow, VideoJobRow,
+    VideoPilotLedgerEventRow, VideoPilotLedgerRow, VideoReviewRow, VisualIntentRow, VisualSelectionStateRow,
+    WorkUnitRepairIdempotencyRow, WorkUnitRepairScopeRow,
+)
+from .transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
+from ..validation import STORYBOARD_GATE_SET_VERSION, validate_stage_payload
 
 LEGACY_STAGE_SCHEMA_VERSION = 1
 CURRENT_STAGE_SCHEMA_VERSION = 2
@@ -204,920 +218,11 @@ class ApprovalClosure:
     stale_reasons: tuple[str, ...]
 
 
-class Base(DeclarativeBase):
-    pass
-
-
-class ProjectRow(Base):
-    __tablename__ = "v2_projects"
-    __table_args__ = (
-        Index(
-            "ix_v2_projects_lifecycle_status_created_at_id",
-            "lifecycle_status",
-            "created_at",
-            "id",
-        ),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    lifecycle_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    lifecycle_status: Mapped[str] = mapped_column(String(16), nullable=False, default=ProjectLifecycleStatus.ACTIVE.value)
-    archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    brief: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ProjectCreationIdempotencyRow(Base):
-    __tablename__ = "v2_project_creation_idempotency"
-
-    idempotency_key: Mapped[str] = mapped_column(String(255), primary_key=True)
-    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
-    project_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False, unique=True
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ProjectDuplicateIdempotencyRow(Base):
-    __tablename__ = "v2_project_duplicate_idempotency"
-
-    idempotency_key: Mapped[str] = mapped_column(String(255), primary_key=True)
-    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
-    project_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False, unique=True
-    )
-    copied_through: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    omitted_stages: Mapped[list[str]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class EntityRevisionRow(Base):
-    __tablename__ = "v2_entity_revisions"
-    __table_args__ = (UniqueConstraint("project_id", "stage", "revision"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), index=True)
-    stage: Mapped[str] = mapped_column(String(32), nullable=False)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    parent_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    schema_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    input_revisions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False)
-    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class StageHeadRow(Base):
-    __tablename__ = "v2_stage_heads"
-    __table_args__ = (UniqueConstraint("project_id", "stage"),)
-
-    id: Mapped[str] = mapped_column(String(80), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), index=True)
-    stage: Mapped[str] = mapped_column(String(32), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), nullable=False)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    entity_revision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    content_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    schema_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    input_revisions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False)
-    stale_reasons: Mapped[list[str]] = mapped_column(JSON, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class AuthoringDraftRow(Base):
-    """Mutable, allowlisted editor state owned by exactly one project DB."""
-
-    __tablename__ = "v2_authoring_drafts"
-    __table_args__ = (UniqueConstraint("project_id", "editor_scope", "entity_id"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_projects.id", ondelete="CASCADE"), index=True
-    )
-    editor_scope: Mapped[str] = mapped_column(String(32), nullable=False)
-    entity_id: Mapped[str] = mapped_column(String(160), nullable=False)
-    base_canonical_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    draft_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class GateResultRow(Base):
-    """An immutable evaluation result for one exact canonical revision."""
-
-    __tablename__ = "v2_gate_results"
-    __table_args__ = (
-        UniqueConstraint("entity_revision_id", "gate_set_version", "gate_id"),
-        UniqueConstraint("entity_revision_id", "gate_set_version", "sequence"),
-        Index("ix_v2_gate_results_project_id", "project_id"),
-        Index("ix_v2_gate_results_entity_revision_id", "entity_revision_id"),
-    )
-
-    id: Mapped[str] = mapped_column(String(256), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    entity_revision_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False
-    )
-    stage: Mapped[str] = mapped_column(String(32), nullable=False)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    evaluation_input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    gate_set_version: Mapped[str] = mapped_column(String(128), nullable=False)
-    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
-    # Gate IDs include stable authoring IDs to make review paths readable.
-    # They are intentionally unbounded text; the row primary key is a fixed
-    # hash so database identity never depends on authored identifier length.
-    gate_id: Mapped[str] = mapped_column(Text, nullable=False)
-    gate_version: Mapped[str] = mapped_column(String(128), nullable=False)
-    required: Mapped[bool] = mapped_column(nullable=False)
-    severity: Mapped[str] = mapped_column(String(32), nullable=False)
-    status: Mapped[str] = mapped_column(String(32), nullable=False)
-    entity_path: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
-    evidence: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
-    reason: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ApprovalDecisionRow(Base):
-    """Append-only human approval ledger; current state is derived, never stored."""
-
-    __tablename__ = "v2_approval_decisions"
-    __table_args__ = (
-        Index("ix_v2_approval_decisions_project_id_created_at", "project_id", "created_at"),
-        Index("ix_v2_approval_decisions_entity_revision_id", "entity_revision_id"),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    entity_revision_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False
-    )
-    subject_type: Mapped[str] = mapped_column(String(64), nullable=False)
-    subject_id: Mapped[str] = mapped_column(String(128), nullable=False)
-    subject_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    canonical_input_revisions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False)
-    gate_set_version: Mapped[str] = mapped_column(String(128), nullable=False)
-    decision: Mapped[str] = mapped_column(String(16), nullable=False)
-    reviewer: Mapped[str] = mapped_column(String(256), nullable=False)
-    note: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class GenerationRunRow(Base):
-    __tablename__ = "v2_generation_runs"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), index=True)
-    kind: Mapped[str] = mapped_column(String(16), nullable=False)
-    parent_run_id: Mapped[str | None] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="RESTRICT"), nullable=True, index=True
-    )
-    repair_stage: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    repair_source: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    work_unit_repair_scope_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
-    provider_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    requested_stages: Mapped[list[str]] = mapped_column(JSON, nullable=False)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
-    canonical_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
-    legacy_unsealed: Mapped[bool] = mapped_column(nullable=False, default=True)
-    result_revision_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False)
-    error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    failure_code: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    failed_stage: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-
-class GenerationAttemptRow(Base):
-    __tablename__ = "v2_generation_attempts"
-    __table_args__ = (
-        # Work-unit attempts have an identity-local sequence.  SQLite treats
-        # NULL values as distinct, so legacy attempts (which have no unit) do
-        # not collide with this new durable contract.
-        UniqueConstraint("work_unit_id", "attempt_number"),
-        # Keep the legacy create_attempt(run, stage) API deterministic without
-        # imposing its stage-wide numbering on independent work units.
-        Index(
-            "uq_v2_generation_attempts_legacy_run_stage_attempt_number",
-            "run_id",
-            "stage",
-            "attempt_number",
-            unique=True,
-            sqlite_where=text("work_unit_id IS NULL"),
-        ),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    run_id: Mapped[str] = mapped_column(ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), index=True)
-    work_unit_id: Mapped[str | None] = mapped_column(
-        ForeignKey("v2_generation_work_units.id", ondelete="RESTRICT"), nullable=True, index=True
-    )
-    stage: Mapped[str] = mapped_column(String(32), nullable=False)
-    attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    attempt_kind: Mapped[str] = mapped_column(String(16), nullable=False, default="primary")
-    source_attempt_id: Mapped[str | None] = mapped_column(
-        ForeignKey("v2_generation_attempts.id", ondelete="RESTRICT"), nullable=True, index=True
-    )
-    status: Mapped[str] = mapped_column(String(16), nullable=False)
-    provider: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    model: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    response_persisted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    provider_request_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    outcome_unknown: Mapped[bool] = mapped_column(nullable=False, default=False)
-    outcome_code: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-
-class ArtifactRow(Base):
-    __tablename__ = "v2_artifacts"
-    __table_args__ = (
-        # Historical, legacy artifact bags may contain repeated kinds.  New
-        # work-unit producer attempts cannot: their seal evidence is exactly
-        # one artifact of each required kind.
-        Index(
-            "uq_v2_artifacts_work_unit_attempt_kind",
-            "attempt_id",
-            "kind",
-            unique=True,
-            sqlite_where=text("work_unit_id IS NOT NULL"),
-        ),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    run_id: Mapped[str] = mapped_column(ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), index=True)
-    attempt_id: Mapped[str | None] = mapped_column(
-        ForeignKey("v2_generation_attempts.id", ondelete="RESTRICT"), nullable=True
-    )
-    work_unit_id: Mapped[str | None] = mapped_column(
-        ForeignKey("v2_generation_work_units.id", ondelete="RESTRICT"), nullable=True, index=True
-    )
-    source_artifact_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    stage: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    kind: Mapped[str] = mapped_column(String(32), nullable=False)
-    media_type: Mapped[str] = mapped_column(String(100), nullable=False)
-    content: Mapped[Any] = mapped_column(JSON, nullable=False)
-    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class GenerationPlanRow(Base):
-    __tablename__ = "v2_generation_plans"
-
-    run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), primary_key=True
-    )
-    plan_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    plan: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class StagePlanRow(Base):
-    __tablename__ = "v2_generation_stage_plans"
-    __table_args__ = (
-        UniqueConstraint("run_id", "stage"),
-        UniqueConstraint("run_id", "stage_plan_hash"),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), index=True
-    )
-    stage: Mapped[str] = mapped_column(String(32), nullable=False)
-    generation_plan_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    dependency_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    stage_plan_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    plan: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class GenerationWorkUnitRow(Base):
-    __tablename__ = "v2_generation_work_units"
-    __table_args__ = (UniqueConstraint("stage_plan_id", "sequence"),)
-
-    id: Mapped[str] = mapped_column(String(120), primary_key=True)
-    run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), index=True
-    )
-    stage_plan_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_stage_plans.id", ondelete="CASCADE"), index=True
-    )
-    stage: Mapped[str] = mapped_column(String(32), nullable=False)
-    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
-    selector: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    generation_plan_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    dependency_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    unit_dependency_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    budget: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    estimated_input_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    context_window_tokens: Mapped[int] = mapped_column(Integer, nullable=False)
-    status: Mapped[str] = mapped_column(String(32), nullable=False, default=WorkUnitStatus.QUEUED.value)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class SealedStageAggregateRow(Base):
-    __tablename__ = "v2_sealed_stage_aggregates"
-    __table_args__ = (UniqueConstraint("stage_plan_id"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), index=True
-    )
-    stage_plan_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_stage_plans.id", ondelete="RESTRICT"), nullable=False
-    )
-    stage: Mapped[str] = mapped_column(String(32), nullable=False)
-    manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    manifest: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    schema_version: Mapped[int] = mapped_column(Integer, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class WorkUnitRepairScopeRow(Base):
-    """Immutable exact-repair boundary, separate from legacy stage repair."""
-
-    __tablename__ = "v2_generation_work_unit_repair_scopes"
-
-    child_run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), primary_key=True
-    )
-    parent_run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="RESTRICT"), nullable=False, index=True
-    )
-    target_work_unit_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_work_units.id", ondelete="RESTRICT"),
-        nullable=False,
-        unique=True,
-    )
-    stage: Mapped[str] = mapped_column(String(32), nullable=False)
-    scope_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    scope: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class FragmentReuseBindingRow(Base):
-    """A child-owned, audited mapping to one immutable parent candidate."""
-
-    __tablename__ = "v2_generation_fragment_reuse_bindings"
-    __table_args__ = (UniqueConstraint("child_work_unit_id"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    child_run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    child_stage_plan_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_stage_plans.id", ondelete="CASCADE"), nullable=False, index=True
-    )
-    child_work_unit_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_work_units.id", ondelete="CASCADE"), nullable=False
-    )
-    stage: Mapped[str] = mapped_column(String(32), nullable=False)
-    kind: Mapped[str] = mapped_column(String(16), nullable=False)
-    source_run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="RESTRICT"), nullable=False
-    )
-    source_work_unit_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_work_units.id", ondelete="RESTRICT"), nullable=False
-    )
-    source_stage_plan_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_stage_plans.id", ondelete="RESTRICT"), nullable=False
-    )
-    source_candidate_artifact_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_artifacts.id", ondelete="RESTRICT"), nullable=False
-    )
-    binding_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    binding: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class WorkUnitRepairIdempotencyRow(Base):
-    __tablename__ = "v2_generation_work_unit_repair_idempotency"
-
-    idempotency_key: Mapped[str] = mapped_column(String(255), primary_key=True)
-    request_fingerprint: Mapped[str] = mapped_column(String(64), nullable=False)
-    parent_run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="RESTRICT"), nullable=False
-    )
-    target_work_unit_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_work_units.id", ondelete="RESTRICT"), nullable=False
-    )
-    child_run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), nullable=False, unique=True
-    )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class MediaTaskRow(Base):
-    __tablename__ = "v2_media_tasks"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), index=True)
-    shot_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    storyboard_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    kind: Mapped[str] = mapped_column(String(16), nullable=False)
-    status: Mapped[str] = mapped_column(String(16), nullable=False)
-    derived_prompt: Mapped[str] = mapped_column(Text, nullable=False)
-    prompt_components: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    provider: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    public_settings: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    provider_task_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    output_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
-    error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-
-class ManagedAssetRow(Base):
-    """One project-scoped declaration over immutable imported bytes."""
-
-    __tablename__ = "v2_managed_assets"
-    __table_args__ = (Index("ix_v2_managed_assets_project_id_created_at", "project_id", "created_at"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    original_uri: Mapped[str] = mapped_column(Text, nullable=False)
-    original_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    display_uri: Mapped[str] = mapped_column(Text, nullable=False)
-    display_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    mime_type: Mapped[str] = mapped_column(String(32), nullable=False)
-    byte_size: Mapped[int] = mapped_column(Integer, nullable=False)
-    width: Mapped[int] = mapped_column(Integer, nullable=False)
-    height: Mapped[int] = mapped_column(Integer, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ManagedAssetProvenanceRow(Base):
-    """An immutable origin declaration, intentionally separate from byte identity."""
-
-    __tablename__ = "v2_managed_asset_provenance"
-    __table_args__ = (Index("ix_v2_managed_asset_provenance_asset_id", "asset_id"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
-    declaration: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class VisualIntentRow(Base):
-    __tablename__ = "v2_visual_intents"
-    __table_args__ = (Index("ix_v2_visual_intents_project_id_asset_id", "project_id", "asset_id"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    intent: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class VisualSelectionStateRow(Base):
-    __tablename__ = "v2_visual_selection_states"
-
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ReviewedShotBindingRow(Base):
-    __tablename__ = "v2_reviewed_shot_bindings"
-    __table_args__ = (
-        Index("ix_v2_reviewed_shot_bindings_project_shot_revision", "project_id", "shot_id", "selection_revision"),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
-    visual_intent_id: Mapped[str | None] = mapped_column(ForeignKey("v2_visual_intents.id", ondelete="RESTRICT"), nullable=True)
-    visual_intent_revision: Mapped[int | None] = mapped_column(Integer(), nullable=True)
-    storyboard_entity_revision_id: Mapped[str] = mapped_column(ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False)
-    approval_id: Mapped[str] = mapped_column(ForeignKey("v2_approval_decisions.id", ondelete="RESTRICT"), nullable=False)
-    shot_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    scene_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    storyboard_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    selection_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    compatibility_note: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class StillPreviewRow(Base):
-    __tablename__ = "v2_still_previews"
-    __table_args__ = (Index("ix_v2_still_previews_project_id_created_at", "project_id", "created_at"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    storyboard_entity_revision_id: Mapped[str] = mapped_column(ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False)
-    approval_id: Mapped[str] = mapped_column(ForeignKey("v2_approval_decisions.id", ondelete="RESTRICT"), nullable=False)
-    scene_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    selection_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    manifest: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    manifest_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-# P2 intentionally has its own lifecycle.  These rows are not MediaTask rows:
-# historical raw-Shot media submission remains disabled by MediaJobRunner.
-class VideoPilotLedgerRow(Base):
-    __tablename__ = "v2_video_pilot_ledger"
-
-    id: Mapped[str] = mapped_column(String(64), primary_key=True)
-    limit_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
-    reserved_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class VideoPilotLedgerEventRow(Base):
-    __tablename__ = "v2_video_pilot_ledger_events"
-    __table_args__ = (Index("ix_v2_video_pilot_ledger_events_ledger_created", "ledger_id", "created_at"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    ledger_id: Mapped[str] = mapped_column(ForeignKey("v2_video_pilot_ledger.id", ondelete="RESTRICT"), nullable=False)
-    video_job_id: Mapped[str] = mapped_column(String(67), nullable=False)
-    event: Mapped[str] = mapped_column(String(48), nullable=False)
-    seconds: Mapped[int] = mapped_column(Integer, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class VideoJobRow(Base):
-    __tablename__ = "v2_video_jobs"
-    __table_args__ = (
-        UniqueConstraint("project_id", "idempotency_key", name="uq_v2_video_jobs_project_idempotency"),
-        Index("ix_v2_video_jobs_project_created", "project_id", "created_at"),
-    )
-
-    id: Mapped[str] = mapped_column(String(67), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False)
-    request_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    snapshot_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    requested_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
-    state: Mapped[str] = mapped_column(String(32), nullable=False)
-    provider_prediction_id: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    output_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
-    output_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    observed: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    cancel_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-
-class VideoReviewRow(Base):
-    __tablename__ = "v2_video_reviews"
-    __table_args__ = (Index("ix_v2_video_reviews_job_created", "video_job_id", "created_at"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    video_job_id: Mapped[str] = mapped_column(ForeignKey("v2_video_jobs.id", ondelete="RESTRICT"), nullable=False)
-    reviewer: Mapped[str] = mapped_column(String(160), nullable=False)
-    decision: Mapped[str] = mapped_column(String(16), nullable=False)
-    note: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ProductionUnitRow(Base):
-    """A single-shot approved projection frozen for P1 image work."""
-
-    __tablename__ = "v2_production_units"
-    __table_args__ = (Index("ix_v2_production_units_project_id_created_at", "project_id", "created_at"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    approval_id: Mapped[str] = mapped_column(ForeignKey("v2_approval_decisions.id", ondelete="RESTRICT"), nullable=False)
-    storyboard_entity_revision_id: Mapped[str] = mapped_column(ForeignKey("v2_entity_revisions.id", ondelete="RESTRICT"), nullable=False)
-    shot_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    scene_id: Mapped[str] = mapped_column(String(100), nullable=False)
-    storyboard_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    snapshot_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ImageJobRow(Base):
-    """One immutable manual assignment and its current applicability state."""
-
-    __tablename__ = "v2_image_jobs"
-    __table_args__ = (Index("ix_v2_image_jobs_project_id_created_at", "project_id", "created_at"),)
-
-    id: Mapped[str] = mapped_column(String(67), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    production_unit_id: Mapped[str] = mapped_column(ForeignKey("v2_production_units.id", ondelete="RESTRICT"), nullable=False)
-    parent_job_id: Mapped[str | None] = mapped_column(ForeignKey("v2_image_jobs.id", ondelete="RESTRICT"), nullable=True)
-    parent_candidate_asset_id: Mapped[str | None] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=True)
-    request: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    request_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    state: Mapped[str] = mapped_column(String(24), nullable=False)
-    exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    cancellation_reason: Mapped[str | None] = mapped_column(Text(), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ImageJobDeliveryRow(Base):
-    """Immutable reconciliation evidence, including rejected/late packages."""
-
-    __tablename__ = "v2_image_job_deliveries"
-    __table_args__ = (
-        UniqueConstraint("job_id", "delivery_id", name="uq_v2_image_job_delivery_identity"),
-        Index("ix_v2_image_job_deliveries_job_id_created_at", "job_id", "created_at"),
-        Index(
-            "uq_v2_image_job_final_delivery",
-            "job_id",
-            unique=True,
-            sqlite_where=text("delivery_id IS NOT NULL"),
-        ),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    job_id: Mapped[str] = mapped_column(ForeignKey("v2_image_jobs.id", ondelete="RESTRICT"), nullable=False)
-    delivery_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    manifest: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    manifest_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    state: Mapped[str] = mapped_column(String(24), nullable=False)
-    diagnostic_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ImageJobCandidateRow(Base):
-    """Link a managed original to the exact manual image delivery that produced it."""
-
-    __tablename__ = "v2_image_job_candidates"
-    __table_args__ = (
-        UniqueConstraint("delivery_id", "asset_id", name="uq_v2_image_job_candidate_delivery_asset"),
-        Index("ix_v2_image_job_candidates_job_id_created_at", "job_id", "created_at"),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    job_id: Mapped[str] = mapped_column(ForeignKey("v2_image_jobs.id", ondelete="RESTRICT"), nullable=False)
-    delivery_id: Mapped[str] = mapped_column(ForeignKey("v2_image_job_deliveries.id", ondelete="RESTRICT"), nullable=False)
-    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
-    output_filename: Mapped[str] = mapped_column(String(180), nullable=False)
-    output_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    role: Mapped[str] = mapped_column(String(24), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class CharacterReferenceStateRow(Base):
-    """The mutable pointer/revision over immutable reference decisions."""
-
-    __tablename__ = "v2_character_reference_states"
-
-    project_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True
-    )
-    character_id: Mapped[str] = mapped_column(String(128), primary_key=True)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    active_decision_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class CharacterReferenceDecisionRow(Base):
-    """An append-only asset/hash/context reference decision for one character."""
-
-    __tablename__ = "v2_character_reference_decisions"
-    __table_args__ = (
-        UniqueConstraint("project_id", "character_id", "reference_revision", name="uq_v2_character_reference_revision"),
-        Index("ix_v2_character_reference_decisions_project_character", "project_id", "character_id", "reference_revision"),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    character_id: Mapped[str] = mapped_column(String(128), nullable=False)
-    reference_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    character_context: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    character_context_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    primary_asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
-    complementary_asset_ids: Mapped[list[str]] = mapped_column(JSON, nullable=False)
-    asset_hashes: Mapped[list[dict[str, str]]] = mapped_column(JSON, nullable=False)
-    reviewer: Mapped[str] = mapped_column(String(160), nullable=False)
-    notes: Mapped[str] = mapped_column(Text, nullable=False)
-    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    revoked_by: Mapped[str | None] = mapped_column(String(160), nullable=True)
-    revocation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class CharacterReferenceProposalRow(Base):
-    """A non-Approval exploratory character appearance request."""
-
-    __tablename__ = "v2_character_reference_proposals"
-    __table_args__ = (Index("ix_v2_character_reference_proposals_project_created", "project_id", "created_at"),)
-
-    id: Mapped[str] = mapped_column(String(67), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    character_id: Mapped[str] = mapped_column(String(128), nullable=False)
-    parent_candidate_asset_id: Mapped[str | None] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=True)
-    request: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    request_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
-    state: Mapped[str] = mapped_column(String(24), nullable=False)
-    exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class CharacterReferenceProposalDeliveryRow(Base):
-    __tablename__ = "v2_character_reference_proposal_deliveries"
-    __table_args__ = (
-        UniqueConstraint("proposal_id", "delivery_id", name="uq_v2_character_proposal_delivery_identity"),
-        Index("uq_v2_character_proposal_final_delivery", "proposal_id", unique=True, sqlite_where=text("delivery_id IS NOT NULL")),
-    )
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    proposal_id: Mapped[str] = mapped_column(ForeignKey("v2_character_reference_proposals.id", ondelete="RESTRICT"), nullable=False)
-    delivery_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    manifest: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    manifest_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    state: Mapped[str] = mapped_column(String(24), nullable=False)
-    diagnostic_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class CharacterReferenceProposalCandidateRow(Base):
-    __tablename__ = "v2_character_reference_proposal_candidates"
-    __table_args__ = (UniqueConstraint("delivery_id", "asset_id", name="uq_v2_character_proposal_candidate_asset"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    proposal_id: Mapped[str] = mapped_column(ForeignKey("v2_character_reference_proposals.id", ondelete="RESTRICT"), nullable=False)
-    delivery_id: Mapped[str] = mapped_column(ForeignKey("v2_character_reference_proposal_deliveries.id", ondelete="RESTRICT"), nullable=False)
-    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
-    output_filename: Mapped[str] = mapped_column(String(180), nullable=False)
-    output_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    role: Mapped[str] = mapped_column(String(24), nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class SamePersonReviewStateRow(Base):
-    __tablename__ = "v2_same_person_review_states"
-
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class SamePersonReviewRow(Base):
-    __tablename__ = "v2_same_person_reviews"
-    __table_args__ = (Index("ix_v2_same_person_reviews_project_binding_revision", "project_id", "binding_id", "review_revision"),)
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
-    binding_id: Mapped[str] = mapped_column(ForeignKey("v2_reviewed_shot_bindings.id", ondelete="RESTRICT"), nullable=False)
-    review_revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    reference_bindings: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
-    comparisons: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
-    reviewer: Mapped[str] = mapped_column(String(160), nullable=False)
-    notes: Mapped[str] = mapped_column(Text, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ProviderSettingsRow(Base):
-    __tablename__ = "v2_provider_settings"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    settings: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-
-class TextProviderProfileRow(Base):
-    __tablename__ = "v2_text_provider_profiles"
-
-    id: Mapped[str] = mapped_column(String(63), primary_key=True)
-    display_name: Mapped[str] = mapped_column(String(120), nullable=False)
-    settings: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    availability_revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    adapter_id: Mapped[str] = mapped_column(String(120), nullable=False, default="openai_compatible")
-    adapter_version: Mapped[str] = mapped_column(String(40), nullable=False, default="1")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class ProviderProfileSelectionRow(Base):
-    __tablename__ = "v2_provider_profile_selection"
-
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    active_profile_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_text_provider_profiles.id", ondelete="RESTRICT"), nullable=False
-    )
-    revision: Mapped[int] = mapped_column(Integer, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-class StoryGraphTopologyRow(Base):
-    __tablename__ = "v2_generation_story_graph_topologies"
-
-    run_id: Mapped[str] = mapped_column(
-        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), primary_key=True
-    )
-    generation_plan_hash: Mapped[str] = mapped_column(String(64), nullable=False)
-    topology_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
-    topology: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-
-
-# This intentionally names the project-owned port instead of using
-# ``Base.metadata`` wholesale.  Profiles, profile selection, global accounting,
-# and video-pilot accounting remain installation-owned.  Still/image evidence,
-# review decisions, and the manual handoff lifecycle are project facts and
-# therefore travel with the canonical project database.
-PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset(
-    {
-        "v2_projects",
-        "v2_entity_revisions",
-        "v2_stage_heads",
-        "v2_authoring_drafts",
-        "v2_gate_results",
-        "v2_generation_runs",
-        "v2_generation_attempts",
-        "v2_artifacts",
-        "v2_generation_plans",
-        "v2_generation_stage_plans",
-        "v2_generation_work_units",
-        "v2_sealed_stage_aggregates",
-        "v2_generation_work_unit_repair_scopes",
-        "v2_generation_fragment_reuse_bindings",
-        "v2_generation_work_unit_repair_idempotency",
-        "v2_generation_story_graph_topologies",
-        "v2_media_tasks",
-        "v2_approval_decisions",
-        "v2_managed_assets",
-        "v2_managed_asset_provenance",
-        "v2_visual_intents",
-        "v2_visual_selection_states",
-        "v2_reviewed_shot_bindings",
-        "v2_still_previews",
-        "v2_production_units",
-        "v2_image_jobs",
-        "v2_image_job_deliveries",
-        "v2_image_job_candidates",
-        "v2_character_reference_states",
-        "v2_character_reference_decisions",
-        "v2_character_reference_proposals",
-        "v2_character_reference_proposal_deliveries",
-        "v2_character_reference_proposal_candidates",
-        "v2_same_person_review_states",
-        "v2_same_person_reviews",
-    }
-)
-
-
-def _json_data(value: Any) -> Any:
-    if hasattr(value, "model_dump"):
-        return value.model_dump(mode="json", by_alias=False)
-    return value
-
-
-def _contains_unredacted_secret_setting(value: Any) -> bool:
-    """Allow explicit redaction markers while rejecting secret-shaped fields."""
-
-    if isinstance(value, dict):
-        for key, child in value.items():
-            if is_secret_setting_name(key) and child != "[redacted]":
-                return True
-            if _contains_unredacted_secret_setting(child):
-                return True
-    elif isinstance(value, (list, tuple)):
-        return any(_contains_unredacted_secret_setting(child) for child in value)
-    return False
-
-
-def stable_hash(value: Any) -> str:
-    encoded = json.dumps(_json_data(value), sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()
-
-
-def _stored_utc(value: datetime) -> datetime:
-    """Restore SQLite's offset-less UTC storage to the public datetime contract."""
-
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
-
 
 class SQLiteRepository:
     """Transactional canonical store with immutable entity revisions and mutable heads."""
 
-    def __init__(
-        self,
-        database_url: str = "sqlite://",
-        *,
-        create_schema: bool = True,
-        sqlite_busy_timeout_ms: int = 1_000,
-        schema_scope: Literal["full", "project"] = "full",
-    ) -> None:
+    def __init__(self, database_url: str = "sqlite://", *, create_schema: bool = True, sqlite_busy_timeout_ms: int = 1_000, schema_scope: Literal["full", "project"] = "full") -> None:
         if sqlite_busy_timeout_ms < 1:
             raise ValueError("sqlite_busy_timeout_ms must be at least 1")
         if schema_scope not in {"full", "project"}:
@@ -1125,146 +230,43 @@ class SQLiteRepository:
         self._sqlite_busy_timeout_ms = sqlite_busy_timeout_ms
         self._bootstrap_retry_after_seconds = max(1, (sqlite_busy_timeout_ms + 999) // 1_000)
         self._schema_scope = schema_scope
-        engine_options: dict[str, Any] = {"future": True}
-        database_path = sqlite_database_path(database_url)
-        if database_url.startswith("sqlite"):
-            engine_options["connect_args"] = {"check_same_thread": False}
-        if database_url in {"sqlite://", "sqlite:///:memory:"}:
-            engine_options["poolclass"] = StaticPool
-        elif database_path is not None:
-            database_path.parent.mkdir(parents=True, exist_ok=True)
-            if create_schema and schema_scope == "full":
-                SchemaMigrator(database_url).upgrade()
-        self.engine = create_engine(database_url, **engine_options)
-        if database_url.startswith("sqlite"):
-            file_database = database_path is not None
-
-            @event.listens_for(self.engine, "connect")
-            def configure_sqlite(dbapi_connection: Any, _connection_record: Any) -> None:
-                cursor = dbapi_connection.cursor()
-                cursor.execute("PRAGMA foreign_keys=ON")
-                cursor.execute(f"PRAGMA busy_timeout={self._sqlite_busy_timeout_ms}")
-                cursor.close()
-
-            if file_database:
-                # Journal mode is database-wide and changing it takes a write
-                # lock. Doing that in every connection callback races an
-                # unrelated BEGIN IMMEDIATE from another repository instance.
-                # Configure it once, synchronously, before this repository is
-                # published to concurrent callers.
-                with self.engine.connect() as connection:
-                    current_mode = connection.exec_driver_sql(
-                        "PRAGMA journal_mode"
-                    ).scalar_one()
-                    if str(current_mode).lower() != "wal":
-                        connection.exec_driver_sql("PRAGMA journal_mode=WAL").scalar_one()
-
-        self._sessions = sessionmaker(bind=self.engine, expire_on_commit=False, class_=Session)
-        self._write_lock = RLock()
-        if create_schema and (database_path is None or schema_scope == "project"):
-            Base.metadata.create_all(self.engine, tables=self._schema_tables())
+        self._database = RepositoryDatabase(database_url, create_schema=create_schema, schema_tables=self._schema_tables(), schema_scope=schema_scope, sqlite_busy_timeout_ms=sqlite_busy_timeout_ms)
+        self.engine = self._database.engine
+        self._sessions = self._database.sessions
+        self._write_lock = self._database.write_lock
 
     def _schema_tables(self) -> list[Any]:
         if self._schema_scope == "full":
             return list(Base.metadata.sorted_tables)
-        return [
-            table
-            for table in Base.metadata.sorted_tables
-            if table.name in PROJECT_TEXT_PIPELINE_TABLE_NAMES
-        ]
+        return [table for table in Base.metadata.sorted_tables if table.name in PROJECT_TEXT_PIPELINE_TABLE_NAMES]
 
     def close(self) -> None:
-        self.engine.dispose()
+        self._database.close()
 
     @contextmanager
     def _read(self) -> Iterator[Session]:
-        with self._sessions() as session:
+        with read_lease(self._sessions) as session:
             yield session
 
     @contextmanager
     def _write(self) -> Iterator[Session]:
-        with self._write_lock, self._sessions.begin() as session:
+        with write_lease(self._sessions, self._write_lock) as session:
             yield session
 
     @contextmanager
     def _bootstrap_write(self) -> Iterator[Session]:
-        """Serialize creation-key decisions across repository instances.
-
-        The in-process lock protects one repository instance.  SQLite's
-        immediate transaction supplies the equivalent write boundary for
-        separate repository instances (and therefore separate processes)
-        before either can observe a missing idempotency binding.
-        """
-
-        with self._write_lock, self._sessions() as session:
-            try:
-                session.connection().exec_driver_sql("BEGIN IMMEDIATE")
-                yield session
-                session.commit()
-            except OperationalError as error:
-                session.rollback()
-                if self._is_sqlite_lock_contention(error):
-                    raise BootstrapContentionError(self._bootstrap_retry_after_seconds) from error
-                raise
-            except BaseException:
-                session.rollback()
-                raise
+        with bootstrap_lease(self._sessions, self._write_lock, retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
+            yield session
 
     @contextmanager
     def _lifecycle_write(self) -> Iterator[Session]:
-        """Serialize project lifecycle and project-owned writes across processes.
-
-        A lifecycle revision is an optimistic concurrency token, so its check
-        and mutation must share SQLite's writer lease.  The same lease is used
-        by project-owned entry writes to prevent a stale active-project read
-        from creating work immediately after a successful archive.
-        """
-
-        if self.engine.dialect.name != "sqlite":
-            with self._write() as session:
-                yield session
-            return
-        with self._write_lock, self._sessions() as session:
-            try:
-                session.connection().exec_driver_sql("BEGIN IMMEDIATE")
-                yield session
-                session.commit()
-            except OperationalError as error:
-                session.rollback()
-                if self._is_sqlite_lock_contention(error):
-                    raise LifecycleContentionError(self._bootstrap_retry_after_seconds) from error
-                raise
-            except BaseException:
-                session.rollback()
-                raise
+        with lifecycle_lease(self._sessions, self._write_lock, dialect_name=self.engine.dialect.name, retry_after_seconds=self._bootstrap_retry_after_seconds, is_contention=self._is_sqlite_lock_contention) as session:
+            yield session
 
     @contextmanager
     def _work_unit_claim_write(self) -> Iterator[Session]:
-        """Serialize a work-unit claim before inspecting its current state.
-
-        ``_write`` is sufficient for ordinary repository mutations, but a
-        work-unit claim is a read-then-write transition that must also be safe
-        across distinct repository instances.  SQLite has no row-level
-        ``SELECT FOR UPDATE``; an immediate transaction is its durable writer
-        lease.  A bounded lock timeout is surfaced as a domain transition
-        conflict instead of leaking a SQLite driver error to a runner.
-        """
-
-        with self._write_lock, self._sessions() as session:
-            try:
-                session.connection().exec_driver_sql("BEGIN IMMEDIATE")
-                yield session
-                session.commit()
-            except OperationalError as error:
-                session.rollback()
-                if self._is_sqlite_lock_contention(error):
-                    raise InvalidTransitionError(
-                        "work-unit allocation is temporarily contended; retry after the active claim commits"
-                    ) from error
-                raise
-            except BaseException:
-                session.rollback()
-                raise
+        with work_unit_claim_lease(self._sessions, self._write_lock, is_contention=self._is_sqlite_lock_contention) as session:
+            yield session
 
     @staticmethod
     def _is_sqlite_lock_contention(error: OperationalError) -> bool:
