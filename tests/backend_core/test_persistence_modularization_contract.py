@@ -19,6 +19,16 @@ from plotloom.persistence.project.catalog import ProjectCatalogPersistence
 from plotloom.persistence.project.drafts import ProjectDraftPersistence
 from plotloom.persistence.project.gates import ProjectGatePersistence
 from plotloom.persistence.project.lifecycle import ProjectLifecyclePersistence
+from plotloom.persistence.project.generation_aggregates import ProjectGenerationAggregatePersistence
+from plotloom.persistence.project.generation_attempts import ProjectGenerationAttemptPersistence
+from plotloom.persistence.project.generation_evidence import ProjectGenerationEvidencePersistence
+from plotloom.persistence.project.generation_lifecycle import ProjectGenerationLifecyclePersistence
+from plotloom.persistence.project.generation_plans import ProjectGenerationPlanningPersistence
+from plotloom.persistence.project.generation_progress import ProjectGenerationProgressPersistence
+from plotloom.persistence.project.generation_recovery import ProjectGenerationRecoveryPersistence
+from plotloom.persistence.project.generation_repairs import ProjectGenerationRepairPersistence
+from plotloom.persistence.project.generation_reuse import ProjectGenerationReusePersistence
+from plotloom.persistence.project.generation_snapshots import ProjectGenerationSnapshots
 from plotloom.exceptions import NotFoundError
 
 
@@ -119,3 +129,31 @@ def test_moved_facade_signatures_and_project_bound_identity_remain_stable() -> N
             project_repository.get_project("other")
     finally:
         project_repository.close()
+
+
+def test_generation_capabilities_are_explicitly_composed_with_preserved_facade_signatures() -> None:
+    """Generation contracts stay typed capability calls, not dynamic forwarding."""
+
+    repository = SQLiteRepository("sqlite://")
+    try:
+        capabilities = (
+            ("_generation_snapshots", ProjectGenerationSnapshots, ("capture_snapshot", "create_run")),
+            ("_generation_plans", ProjectGenerationPlanningPersistence, ("get_or_create_stage_plan",)),
+            ("_generation_attempts", ProjectGenerationAttemptPersistence, ("allocate_attempt_for_work_unit", "persist_attempt_response")),
+            ("_generation_reuse", ProjectGenerationReusePersistence, ("prepare_repair_stage_reuse",)),
+            ("_generation_aggregates", ProjectGenerationAggregatePersistence, ("seal_stage_aggregate", "seal_repair_stage_aggregate")),
+            ("_generation_progress", ProjectGenerationProgressPersistence, ("get_run_execution_trace", "get_run_progress")),
+            ("_generation_repairs", ProjectGenerationRepairPersistence, ("create_work_unit_repair_run",)),
+            ("_generation_recovery", ProjectGenerationRecoveryPersistence, ("reconcile_startup_jobs",)),
+            ("_generation_lifecycle", ProjectGenerationLifecyclePersistence, ("commit_sealed_run", "cancel_run")),
+            ("_generation_evidence", ProjectGenerationEvidencePersistence, ("add_artifact", "get_run_trace")),
+        )
+        for attribute, capability_type, methods in capabilities:
+            assert isinstance(getattr(repository, attribute), capability_type)
+            for method in methods:
+                assert f"self.{attribute}.{method}" in inspect.getsource(
+                    getattr(SQLiteRepository, method)
+                )
+        assert not hasattr(SQLiteRepository, "__getattr__")
+    finally:
+        repository.close()

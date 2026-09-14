@@ -11,8 +11,9 @@ add a selectable storage mode, or schedule frontend work concurrently.
 
 - [x] Responsibility map accepted.
 - [x] Project-folder storage package conversion completed.
-- [ ] Persistence package conversion active (this bounded schema/codec/database/
-  transaction extraction is complete; capability extraction remains).
+- [ ] Persistence package conversion active (schema/codec/database/transaction,
+  authoring, and generation capability slices are complete; project media and
+  application control remain separately owned work).
 - [ ] Frontend modularization pending as a separate phase.
 - [ ] Justified assessment of other large modules pending; do not treat line
   count alone as implementation authority.
@@ -27,16 +28,26 @@ are in `transactions.py`. `legacy_repository.py` intentionally retains the
 public `SQLiteRepository` and `ProjectSQLiteRepository` facade while callers
 still depend on it. The second slice moved project catalog/lifecycle and
 authoring draft/canonical-stage/gate/approval bodies into named
-`persistence/project` collaborators (about 8,012 lines remain). The facade
-delegates explicitly for compatibility; it is a temporary, explicitly named
-composition boundary—not a claim that persistence work is complete.
+`persistence/project` collaborators (about 8,012 lines remain). The third
+slice moves the public generation lifecycle bodies into ten named collaborators:
+frozen snapshots/run bootstrap, StagePlan creation, work-unit attempt evidence,
+fragment reuse, aggregate seals, progress, exact repair scope, startup recovery,
+atomic canonical output installation, and artifact/trace evidence. They use
+only explicit repository session/query/codec helpers; the facade preserves
+public signatures and project-bound admission checks. No service locator,
+dynamic forwarding, or separate generation monolith was introduced.
 
-The remaining capability seams are: generation snapshots, plans, attempts,
-work units, repair, recovery and canonical commit; project media/still/image/
-review facts; and installation profiles/settings/video-pilot accounting. Each
-needs its own caller migration, transaction proof, and deletion step. No schema,
-public API, migration, runtime cutover, or storage ownership decision changes in
-this checkpoint.
+`legacy_repository.py` is now 5,748 lines. Its remaining owned responsibility
+is project media/still/image/review facts, application profiles/settings/video-
+pilot accounting, and narrow shared query helpers needed until those two
+independently-owned slices complete. The facade remains a temporary, explicitly
+named composition boundary—not a claim that persistence work is complete.
+
+The remaining capability seams are project media/still/image/review facts and
+installation profiles/settings/video-pilot accounting. Each needs its own caller
+migration, transaction proof, and deletion step. No schema, public API,
+migration, runtime cutover, or storage ownership decision changes in this
+checkpoint.
 
 ## Audit checkpoint
 
