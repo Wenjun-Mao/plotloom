@@ -13,10 +13,10 @@ two already-saved text-provider profiles and **does contact those configured
 providers**, so it can incur cost. Automated tests inject a fixture provider
 through the same production pipeline and never contact a provider.
 
-Run it only from a POSIX source checkout (the non-mutating SQLite snapshot uses
-POSIX file locks) after the two intended profiles have been saved. The review
-directory must be an empty, local **absolute** directory outside that checkout.
-The runner rejects any path inside the checkout even if it is ignored by Git:
+Run it from its source checkout after the two intended profiles have been saved
+in the configured application-data directory. The review directory must be an
+empty, local **absolute** directory outside that checkout. The runner rejects
+any path inside the checkout even if it is ignored by Git:
 
 Before starting the 18-run matrix, probe both profiles and verify that each
 provider reports an effective per-request (or per-slot) context at least as
@@ -49,11 +49,11 @@ commit.
 The runner executes exactly 18 disposable runs: three fixed, versioned Chinese
 briefs × three repeats × two saved profiles. Each run goes through the normal
 four-stage production pipeline, including planning, work-unit execution,
-validation, sealing, and atomic canonical installation. The source database is
-read only: Alpha locks and snapshots its files without opening the source in
-SQLite, retries detected WAL state changes, and fails safely rather than using
-an inconsistent source snapshot. Every temporary SQLite database, artifact
-root, prompt, and response is removed after execution.
+validation, sealing, and atomic canonical installation. Alpha reads the current
+application profile records through one read-only SQLite transaction; it never
+initializes schema or writes to that installation store. Every temporary project
+folder, separate application store, artifact, prompt, and response is removed
+after execution.
 
 Standard output is JSONL receipt data. Every receipt has only the validated
 run-code `commit`, the production `contractHash`, anonymous `profileId`,

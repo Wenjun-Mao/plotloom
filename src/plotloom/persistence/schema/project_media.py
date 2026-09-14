@@ -95,7 +95,7 @@ class StillPreviewRow(Base):
 
 
 # P2 intentionally has its own lifecycle.  These rows are not MediaTask rows:
-# historical raw-Shot media submission remains disabled by MediaJobRunner.
+# Historical raw-shot media submission is not admitted by project storage.
 
 class VideoJobRow(Base):
     __tablename__ = "v2_video_jobs"

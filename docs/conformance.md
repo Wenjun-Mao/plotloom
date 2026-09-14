@@ -5,8 +5,8 @@ named, already-saved text-provider profiles. It is an operator acceptance
 probe, not an automated model test: it contacts the configured provider and
 can incur provider cost.
 
-Run it from the checkout after starting Plotloom once so the desired profiles
-exist in the configured database:
+Run it after starting Plotloom once so the desired profiles exist in the
+configured application-data directory:
 
 For the release gate, pass exactly two profiles and request strict M1.5
 qualification:
@@ -21,24 +21,24 @@ uv run python scripts/conformance.py \
 
 Without `--qualify-m15`, any number of profiles/runs is an explicitly labelled
 diagnostic probe and cannot be cited as the M1.5 gate. `--runs` defaults to
-three. By default, the source database is the configured
-`PLOTLOOM_DATABASE_URL`; use `--source-database-url` to read profiles from a
-different existing Plotloom database.
+three. The runner reads profiles only from the current configured
+`PLOTLOOM_APPLICATION_DATA_DIR`; it has no shared-database or profile-import
+option.
 
-Every sample uses the same fixed Chinese brief, creates a new temporary SQLite
-database and artifact root, and runs Story Bible, Story Graph, Scene Beats, and
-Storyboard through the normal job runner, `PipelineEngine`, work-unit planning,
-validation, sealing, and atomic install. It only reads the requested profiles
-from the source database, so it does not create projects, runs, or artifacts in
-that database. Temporary evidence, including prompt and response artifacts, is
-removed automatically when the command exits, including after a failed sample.
-Strict M1.5 mode runs its two profiles concurrently, while the three samples
-and all work units remain serial within each profile. Receipt order remains the
-requested profile order followed by sample ordinal, so wall time is reduced
-without increasing one profile's frozen concurrency. Disposable repositories
-are initialized and migrated serially before profile workers start because
-Alembic migration contexts are process-global; every initialized repository is
-closed on setup or execution failure before its temporary directory is removed.
+Every sample uses the same fixed Chinese brief, creates a new temporary project
+folder plus a separate temporary application store, and runs Story Bible, Story
+Graph, Scene Beats, and Storyboard through the normal project generation owner,
+`PipelineEngine`, work-unit planning, validation, sealing, and atomic install.
+It reads the requested profiles through a read-only application-database
+transaction and does not create projects, runs, artifacts, or schema in the
+configured application store. Temporary project evidence, including prompt and
+response artifacts, is removed automatically when the command exits, including
+after a failed sample. Strict M1.5 mode runs its two profiles concurrently,
+while the three samples and all work units remain serial within each profile.
+Receipt order remains the requested profile order followed by sample ordinal,
+so wall time is reduced without increasing one profile's frozen concurrency.
+Every temporary project handle is closed on setup or execution failure before
+its disposable root is removed.
 
 The command writes one JSONL receipt per sample to standard output. A receipt
 contains only `profileId`, its public `profileHash`, the fixed-contract

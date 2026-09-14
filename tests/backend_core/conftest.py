@@ -20,19 +20,29 @@ from plotloom.domain import (
     StoryNodeV2,
 )
 from plotloom.canonical_schema import V2CoverageRole, V2ShotSize
-from plotloom.persistence import SQLiteRepository
-
-
-@pytest.fixture
-def repository() -> SQLiteRepository:
-    repo = SQLiteRepository("sqlite://")
-    yield repo
-    repo.close()
-
-
+from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 @pytest.fixture
 def brief() -> ProjectBrief:
     return ProjectBrief(title="星海回声", synopsis="失忆领航员醒来后必须决定是否唤醒飞船人工智能。")
+
+
+@pytest.fixture
+def project_store(tmp_path, brief: ProjectBrief) -> ProjectStore:
+    """A real manifest-bound project for current generation-owner tests."""
+
+    outputs = tmp_path / "outputs"
+    application = tmp_path / "application"
+    outputs.mkdir()
+    application.mkdir()
+    storage = ProjectFolderStorage(
+        outputs_root=outputs,
+        application_data_root=application,
+    )
+    store = storage.projects.create(brief)
+    try:
+        yield store
+    finally:
+        store.close()
 
 
 def make_story_bible() -> StoryBibleV2:

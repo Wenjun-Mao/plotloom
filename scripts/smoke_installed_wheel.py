@@ -26,6 +26,22 @@ def main() -> None:
     wheel = _wheel_from(args.wheel_directory)
     with zipfile.ZipFile(wheel) as archive:
         names = set(archive.namelist())
+        retired_members = {
+            "plotloom/persistence/legacy_repository.py",
+            "plotloom/api/application.py",
+            "plotloom/api/projects.py",
+            "plotloom/api/generation.py",
+            "plotloom/api/image_jobs.py",
+            "plotloom/api/managed_media.py",
+            "plotloom/api/video.py",
+            "plotloom/media_jobs.py",
+        }
+        present_retired_members = sorted(names & retired_members)
+        if present_retired_members:
+            raise SystemExit(
+                "wheel contains retired shared-runtime modules: "
+                + ", ".join(present_retired_members)
+            )
         license_roots = {
             name.rsplit("/", 1)[0]
             for name in names
@@ -55,6 +71,12 @@ def main() -> None:
             ["uv", "pip", "install", "--python", str(python), str(wheel)],
             check=True,
         )
+        console = (
+            environment_root / "Scripts" / "plotloom.exe"
+            if os.name == "nt"
+            else environment_root / "bin" / "plotloom"
+        )
+        subprocess.run([str(console), "restore", "--help"], check=True)
 
         unrelated = temporary_root / "unrelated-working-directory"
         unrelated.mkdir()
@@ -77,12 +99,23 @@ def main() -> None:
             import sys
             from pathlib import Path
 
-            class BlockLegacyRepository(importlib.abc.MetaPathFinder):
-                def find_spec(self, fullname, path=None, target=None):
-                    if fullname == "plotloom.persistence.legacy_repository":
-                        raise ImportError("installed direct-project probe forbids the retained facade")
+            RETIRED_MODULES = {
+                "plotloom.persistence.legacy_repository",
+                "plotloom.api.application",
+                "plotloom.api.projects",
+                "plotloom.api.generation",
+                "plotloom.api.image_jobs",
+                "plotloom.api.managed_media",
+                "plotloom.api.video",
+                "plotloom.media_jobs",
+            }
 
-            sys.meta_path.insert(0, BlockLegacyRepository())
+            class BlockRetiredSharedRuntime(importlib.abc.MetaPathFinder):
+                def find_spec(self, fullname, path=None, target=None):
+                    if fullname in RETIRED_MODULES:
+                        raise ImportError("installed project-folder probe forbids retired shared runtime")
+
+            sys.meta_path.insert(0, BlockRetiredSharedRuntime())
 
             from alembic.script import ScriptDirectory
             import plotloom
@@ -136,12 +169,11 @@ def main() -> None:
             assert settings.application_data_dir == (expected / "data").resolve(), settings.application_data_dir
             assert settings.text_model != "cwd-poison-model"
             assert not settings.outputs_dir.is_relative_to(Path.cwd())
-            # This is the shipped composition, not the former direct-only
-            # test factory. The import blocker proves runtime startup never
-            # reaches the retained shared repository path.
+            # This is the shipped composition. The import blocker proves
+            # runtime startup never reaches any retired shared-runtime module.
             runtime_app = build_runtime_app(settings)
             assert runtime_app.title == "Plotloom project-folder authoring"
-            assert "plotloom.persistence.legacy_repository" not in sys.modules
+            assert not (RETIRED_MODULES & set(sys.modules))
 
             project_root = database.parent / "project-folder"
             outputs_root = project_root / "outputs"
@@ -162,7 +194,7 @@ def main() -> None:
             project_store.close()
             snapshot = storage.recovery.create_snapshot(project_id)
             assert snapshot.status == "complete"
-            assert "plotloom.persistence.legacy_repository" not in sys.modules
+            assert not (RETIRED_MODULES & set(sys.modules))
 
             migrator = SchemaMigrator(f"sqlite:///{database}")
             migrator.upgrade()

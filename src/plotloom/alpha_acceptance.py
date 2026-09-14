@@ -1,10 +1,10 @@
 """Disposable, blinded Alpha acceptance runs over saved provider profiles.
 
 The Alpha runner intentionally calls the same production ``PipelineEngine``
-and ``LifecycleJobRunner`` as normal generation.  It does not write projects,
-runs, or artifacts into the source profile database.  Temporary evidence is
-deleted; the caller explicitly chooses the only durable output directory for
-the six content-only review samples.
+and ``LifecycleJobRunner`` as normal generation. It reads only public
+application profiles and creates temporary project folders for every sample.
+Temporary evidence is deleted; the caller explicitly chooses the only durable
+output directory for the six content-only review samples.
 """
 
 from __future__ import annotations
@@ -15,13 +15,11 @@ import os
 import re
 import secrets
 import shutil
-import sqlite3
 import subprocess
 import sys
 import tempfile
 import time
 from collections.abc import Callable, Iterable, Mapping
-from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from statistics import median
@@ -36,8 +34,6 @@ from pydantic import (
     ValidationError,
     field_validator,
 )
-from sqlalchemy.engine import make_url
-
 from .alpha_review_templates import (
     CODEX_EXTERNAL_REVIEWER,
     CODEX_EXTERNAL_REVIEW_FIELDS,
@@ -51,7 +47,6 @@ from .alpha_review_templates import (
     is_unfilled_codex_external_review_template,
     write_codex_external_review_templates,
 )
-from .artifacts import LocalArtifactStore
 from .config import PlotloomSettings
 from .domain import (
     ArtifactKind,
@@ -75,14 +70,15 @@ from .generation.work_units import (
     WORK_UNIT_PROMPT_CONTRACT_VERSION,
 )
 from .jobs import LifecycleJobRunner
-from .persistence import SQLiteRepository
 from .pipeline import (
     PipelineEngine,
     RunSecretBroker,
     SnapshotTextProviderResolver,
     TextProviderResolver,
 )
-from .provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, TextProviderProfileSnapshot
+from .provider_profiles import TextProviderProfileSnapshot
+from .project_storage import ProjectFolderStorage, ProjectStore
+from .project_storage.application_profile_snapshot import load_saved_text_profiles
 from .providers import ProviderPorts
 from .runtime import RunContext
 
@@ -98,22 +94,6 @@ ALPHA_TOTAL_STAGES_PER_PROFILE = ALPHA_STORY_COUNT * ALPHA_REPEATS_PER_STORY * l
 _SAFE_ISSUE_CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 
 
-def _seed_isolated_profile_for_admission(
-    repository: SQLiteRepository, profile: TextProviderProfileSnapshot
-) -> None:
-    """Make isolated qualification use the same profile-admission contract."""
-
-    if profile.profile_id == DEFAULT_PROVIDER_PROFILE_ID:
-        repository.bootstrap_default_text_provider_profile(profile)
-        return
-    default_values = profile.model_dump(mode="json", by_alias=True)
-    default_values.update(profileId=DEFAULT_PROVIDER_PROFILE_ID, profileVersion=0, profileHash="")
-    repository.bootstrap_default_text_provider_profile(
-        TextProviderProfileSnapshot.model_validate(default_values)
-    )
-    repository.create_text_provider_profile(
-        profile.profile_id, profile.profile_id, configuration=profile
-    )
 _RECEIPT_FIELDS = frozenset({
     "commit",
     "contractHash",
@@ -130,8 +110,6 @@ _TOKEN_FIELDS = frozenset({"inputTokens", "outputTokens", "totalTokens"})
 _SCORE_FIELDS = frozenset({"firstPass", "maxAttemptsPerWorkUnit"})
 _FIRST_PASS_FIELDS = frozenset({"total", "accepted", "rejected", "outcomeUnknown", "cancelled", "notRun"})
 _REVIEW_MAPPING_FILENAME = "review-mapping.private.json"
-_SQLITE_PENDING_BYTE = 0x40000000
-_SQLITE_WAL_LOCK_OFFSET = 120
 
 
 @dataclass(frozen=True)
@@ -399,8 +377,8 @@ def _stable_issue_codes(trace: Any) -> set[str]:
     return codes
 
 
-def _first_pass_stats(repository: SQLiteRepository, run_id: str, trace: Any) -> dict[str, int]:
-    execution = repository.get_run_execution_trace(run_id)
+def _first_pass_stats(store: ProjectStore, run_id: str, trace: Any) -> dict[str, int]:
+    execution = store.generation.get_run_execution_trace(run_id)
     accepted = rejected = outcome_unknown = cancelled = not_run = 0
     for stage in STAGE_ORDER:
         unit_ids = {unit.id for unit in execution.work_units if unit.stage == stage}
@@ -436,9 +414,9 @@ def _maximum_attempts_per_work_unit(trace: Any) -> int:
     return max(counts.values(), default=0)
 
 
-def _invariant_codes(repository: SQLiteRepository, *, run_id: str, trace: Any) -> set[str]:
-    run = repository.get_run(run_id)
-    envelopes = repository.list_stage_envelopes(run.project_id)
+def _invariant_codes(store: ProjectStore, *, run_id: str, trace: Any) -> set[str]:
+    run = store.generation.get_run(run_id)
+    envelopes = store.authoring.list_stage_envelopes(run.project_id)
     installed = [
         envelope for envelope in envelopes
         if envelope.head.status == StageStatus.READY and envelope.payload is not None
@@ -457,7 +435,7 @@ def _invariant_codes(repository: SQLiteRepository, *, run_id: str, trace: Any) -
 
 
 def _receipt_for(
-    repository: SQLiteRepository,
+    store: ProjectStore,
     *,
     run_id: str,
     profile_alias: str,
@@ -467,12 +445,12 @@ def _receipt_for(
     commit_sha: str,
     contract_hash: str,
 ) -> dict[str, Any]:
-    completed = repository.get_run(run_id)
-    trace = repository.get_run_trace(run_id)
+    completed = store.generation.get_run(run_id)
+    trace = store.generation.get_run_trace(run_id)
     codes = _stable_issue_codes(trace)
     if isinstance(completed.failure_code, str) and _SAFE_ISSUE_CODE.fullmatch(completed.failure_code):
         codes.add(completed.failure_code)
-    codes.update(_invariant_codes(repository, run_id=run_id, trace=trace))
+    codes.update(_invariant_codes(store, run_id=run_id, trace=trace))
     # This exact field set is a security boundary: receipt consumers never see
     # real profile names, endpoints, models, prompts, raw responses, run IDs,
     # provider configuration, or workload/story fingerprints.
@@ -487,16 +465,16 @@ def _receipt_for(
         "durationMilliseconds": duration_milliseconds,
         "tokens": _public_token_usage(trace),
         "scores": {
-            "firstPass": _first_pass_stats(repository, run_id, trace),
+            "firstPass": _first_pass_stats(store, run_id, trace),
             "maxAttemptsPerWorkUnit": _maximum_attempts_per_work_unit(trace),
         },
     }
 
 
-def _content_only_review_payload(repository: SQLiteRepository, project_id: str) -> dict[str, Any]:
+def _content_only_review_payload(store: ProjectStore) -> dict[str, Any]:
     """Return only canonical V2 authoring content, never head/run/provenance data."""
 
-    envelopes = repository.list_stage_envelopes(project_id)
+    envelopes = store.authoring.list_stage_envelopes(store.manifest.project_id)
     by_stage = {envelope.head.stage: envelope.payload for envelope in envelopes}
     if any(by_stage.get(stage) is None for stage in STAGE_ORDER):
         raise ValueError("cannot export a review sample without all canonical stages")
@@ -705,159 +683,13 @@ def load_private_review_manifest(mapping_path: Path) -> ReviewPackManifest:
     )
 
 
-def _source_sqlite_path(source_database_url: str) -> Path:
-    """Return a real SQLite source path without normalizing or opening it for write."""
+def _load_named_profiles(
+    application_data_dir: Path,
+    profile_ids: Iterable[str],
+) -> list[TextProviderProfileSnapshot]:
+    """Read public saved profiles without initializing a control-plane writer."""
 
-    url = make_url(source_database_url)
-    if url.get_backend_name() != "sqlite" or not url.database or url.database == ":memory:":
-        raise ValueError("Alpha source profiles require an existing file-backed SQLite database")
-    path = Path(url.database).expanduser().resolve()
-    if not path.is_file():
-        raise ValueError("Alpha source profile database does not exist")
-    return path
-
-
-@contextmanager
-def _stable_source_sqlite_files(source_path: Path) -> Iterable[bool]:
-    """Hold non-mutating SQLite locks while copying a source database and WAL."""
-
-    try:
-        import fcntl
-    except ImportError as error:  # pragma: no cover - Alpha's SQLite source is POSIX-only today.
-        raise RuntimeError("Alpha needs POSIX SQLite file locks for a non-mutating source snapshot") from error
-
-    handles: list[int] = []
-
-    def lock_shared(path: Path, offset: int, length: int) -> None:
-        descriptor = os.open(path, os.O_RDONLY)
-        handles.append(descriptor)
-        deadline = time.monotonic() + 10
-        while True:
-            try:
-                fcntl.lockf(descriptor, fcntl.LOCK_SH | fcntl.LOCK_NB, length, offset, os.SEEK_SET)
-                return
-            except OSError:
-                if time.monotonic() >= deadline:
-                    raise RuntimeError("timed out waiting for a stable source SQLite snapshot")
-                time.sleep(0.01)
-
-    try:
-        # A rollback-journal writer may already own RESERVED and need PENDING
-        # to commit. Taking RESERVED first waits for that writer before we
-        # hold PENDING, avoiding a RESERVED/PENDING lock-order inversion.
-        lock_shared(source_path, _SQLITE_PENDING_BYTE + 1, 1)
-        lock_shared(source_path, _SQLITE_PENDING_BYTE, 1)
-        lock_shared(source_path, _SQLITE_PENDING_BYTE + 2, 510)
-        source_shm_path = source_path.with_name(f"{source_path.name}-shm")
-        wal_locks_held = source_shm_path.exists()
-        if wal_locks_held:
-            # WAL_WRITE_LOCK, WAL_CKPT_LOCK, and WAL_RECOVER_LOCK. POSIX file
-            # locks do not write the SHM bytes they protect.
-            try:
-                lock_shared(source_shm_path, _SQLITE_WAL_LOCK_OFFSET, 3)
-            except FileNotFoundError as error:
-                raise RuntimeError("source SQLite WAL-index changed before it could be locked; retry") from error
-        yield wal_locks_held
-    finally:
-        for descriptor in reversed(handles):
-            try:
-                fcntl.lockf(descriptor, fcntl.LOCK_UN)
-            finally:
-                os.close(descriptor)
-
-
-def _sqlite_file_state(path: Path) -> tuple[bool, int, int, int, int, int]:
-    if not path.exists():
-        return False, 0, 0, 0, 0, 0
-    stat = path.stat()
-    return True, stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns
-
-
-def _copy_stable_source_sqlite_pair(source_path: Path, copied_path: Path) -> None:
-    """Copy a source main/WAL pair, retrying rather than accepting SHM races."""
-
-    source_wal_path = source_path.with_name(f"{source_path.name}-wal")
-    source_shm_path = source_path.with_name(f"{source_path.name}-shm")
-    copied_wal_path = copied_path.with_name(f"{copied_path.name}-wal")
-    for _attempt in range(3):
-        with _stable_source_sqlite_files(source_path):
-            before = tuple(_sqlite_file_state(path) for path in (source_path, source_wal_path, source_shm_path))
-            shutil.copyfile(source_path, copied_path)
-            if before[1][0]:
-                shutil.copyfile(source_wal_path, copied_wal_path)
-            elif copied_wal_path.exists():
-                copied_wal_path.unlink()
-            after = tuple(_sqlite_file_state(path) for path in (source_path, source_wal_path, source_shm_path))
-        # Even a held SHM lock is tied to an inode that another process can
-        # unlink and recreate. Always compare complete file identity and
-        # metadata, not merely lock ownership, before accepting a copied pair.
-        if before == after:
-            return
-        if copied_path.exists():
-            copied_path.unlink()
-        if copied_wal_path.exists():
-            copied_wal_path.unlink()
-    raise RuntimeError("source SQLite WAL state changed during snapshot; retry after writer activity settles")
-
-
-def _load_named_profiles(source_database_url: str, profile_ids: Iterable[str]) -> list[TextProviderProfileSnapshot]:
-    """Read profiles through a read-only snapshot, never a repository/migrator.
-
-    ``immutable=1`` is deliberately not used: it would hide committed data that
-    is still in a live WAL file. Opening even a ``mode=ro`` connection against
-    the source can update its ``-shm`` sidecar. We instead lock source WAL and
-    checkpoint writers without changing bytes, copy a stable main/WAL pair,
-    then use a read-only connection to back that pair up into a disposable DB.
-    """
-
-    source_path = _source_sqlite_path(source_database_url)
-    with tempfile.TemporaryDirectory(prefix="plotloom-alpha-profile-snapshot-") as snapshot_root:
-        root = Path(snapshot_root)
-        copied_path = root / source_path.name
-        _copy_stable_source_sqlite_pair(source_path, copied_path)
-        copied_source = sqlite3.connect(f"{copied_path.as_uri()}?mode=ro", uri=True)
-        snapshot_path = root / "profiles.sqlite3"
-        destination = sqlite3.connect(snapshot_path)
-        try:
-            # The read-only copied source may create only temporary sidecars.
-            # Backup materializes one coherent database for profile queries.
-            copied_source.backup(destination)
-        finally:
-            copied_source.close()
-            destination.close()
-
-        source = sqlite3.connect(f"{snapshot_path.as_uri()}?mode=ro", uri=True)
-        try:
-            source.execute("PRAGMA query_only=ON")
-            columns = {
-                str(column[1])
-                for column in source.execute("PRAGMA table_info(v2_text_provider_profiles)")
-            }
-            has_availability = "enabled" in columns
-            profiles: list[TextProviderProfileSnapshot] = []
-            for profile_id in profile_ids:
-                row = source.execute(
-                    (
-                        "SELECT settings, enabled FROM v2_text_provider_profiles WHERE id = ?"
-                        if has_availability
-                        else "SELECT settings FROM v2_text_provider_profiles WHERE id = ?"
-                    ),
-                    (profile_id,),
-                ).fetchone()
-                if row is None:
-                    raise ValueError(f"saved text provider profile not found: {profile_id}")
-                settings = row[0]
-                enabled = bool(row[1]) if has_availability else True
-                if not isinstance(settings, str):
-                    raise ValueError("saved text provider profile has invalid settings")
-                if not enabled:
-                    raise ValueError(
-                        f"disabled text provider profile cannot start qualification: {profile_id}"
-                    )
-                profiles.append(TextProviderProfileSnapshot.model_validate(json.loads(settings)))
-            return profiles
-        finally:
-            source.close()
+    return load_saved_text_profiles(application_data_dir, profile_ids)
 
 
 def _validate_commit_sha(value: str) -> str:
@@ -1167,7 +999,7 @@ def codex_external_review_receipt(
 
 def run_alpha_acceptance(
     *,
-    source_database_url: str,
+    application_data_dir: Path,
     profile_ids: Iterable[str],
     review_directory: Path,
     provider_resolver: TextProviderResolver | None = None,
@@ -1191,7 +1023,7 @@ def run_alpha_acceptance(
         review_directory,
         checkout_root=provenance.checkout_root,
     )
-    profiles = _load_named_profiles(source_database_url, selected_ids)
+    profiles = _load_named_profiles(application_data_dir, selected_ids)
     resolver = provider_resolver or SnapshotTextProviderResolver()
     if server_key_resolver is None:
         settings = PlotloomSettings.from_env()
@@ -1209,33 +1041,46 @@ def run_alpha_acceptance(
         prefix=f".{review_destination.name}.plotloom-stage-",
         dir=review_destination.parent,
     ))
-    # The temporary root owns every database, journal, artifact, prompt, and
-    # response. The staged directory is atomically renamed only on success.
+    # The temporary root owns every project home, application database,
+    # journal, artifact, prompt, and response. The staged directory is
+    # atomically renamed only on success.
     try:
         with tempfile.TemporaryDirectory(prefix="plotloom-alpha-acceptance-") as temporary_root:
             root = Path(temporary_root)
+            outputs_root = root / "outputs"
+            application_root = root / "application"
+            outputs_root.mkdir()
+            application_root.mkdir()
+            storage = ProjectFolderStorage(
+                outputs_root=outputs_root,
+                application_data_root=application_root,
+            )
             for profile_index, profile in enumerate(profiles, start=1):
                 profile_alias = f"profile-{profile_index:02d}"
                 for story in ALPHA_STORIES:
                     for repeat_ordinal in range(1, ALPHA_REPEATS_PER_STORY + 1):
-                        database_path = root / f"{profile_alias}-{story.alias}-{repeat_ordinal}.sqlite3"
-                        artifact_root = root / f"{profile_alias}-{story.alias}-{repeat_ordinal}-artifacts"
-                        repository = SQLiteRepository(f"sqlite:///{database_path}")
-                        _seed_isolated_profile_for_admission(repository, profile)
+                        store = storage.projects.create(story.brief.model_copy(deep=True))
                         secrets = RunSecretBroker(server_key_resolver=key_resolver)
                         runner: LifecycleJobRunner | None = None
                         try:
-                            project = repository.create_project(story.brief.model_copy(deep=True))
-                            run = repository.create_run(
-                                project.id,
-                                RunKind.PIPELINE,
-                                STAGE_ORDER,
-                                provider_snapshot=profile.model_dump(mode="json", by_alias=True),
-                            )
+                            with store.generation.admit_provider_snapshot(
+                                profile.model_dump(mode="json", by_alias=True)
+                            ):
+                                run = store.generation.create_run(
+                                    store.manifest.project_id,
+                                    RunKind.PIPELINE,
+                                    STAGE_ORDER,
+                                    provider_snapshot=profile.model_dump(
+                                        mode="json", by_alias=True
+                                    ),
+                                )
                             runner = LifecycleJobRunner(
-                                repository,
-                                PipelineEngine(repository, resolver, secrets),
-                                RunContext(providers=ProviderPorts(), artifacts=LocalArtifactStore(artifact_root)),
+                                store.generation,
+                                PipelineEngine(store.generation, resolver, secrets),
+                                RunContext(
+                                    providers=ProviderPorts(),
+                                    artifacts=store.run_artifacts(run.id),
+                                ),
                                 max_workers=1,
                                 secret_registrar=secrets,
                             )
@@ -1243,7 +1088,7 @@ def run_alpha_acceptance(
                             runner.submit(run.id).result()
                             elapsed_ms = int((time.perf_counter() - started) * 1000)
                             receipts.append(_receipt_for(
-                                repository,
+                                store,
                                 run_id=run.id,
                                 profile_alias=profile_alias,
                                 story=story,
@@ -1252,8 +1097,8 @@ def run_alpha_acceptance(
                                 commit_sha=resolved_commit_sha,
                                 contract_hash=resolved_contract_hash,
                             ))
-                            if repeat_ordinal == 1 and repository.get_run(run.id).status.value == "succeeded":
-                                payload = _content_only_review_payload(repository, project.id)
+                            if repeat_ordinal == 1 and store.generation.get_run(run.id).status.value == "succeeded":
+                                payload = _content_only_review_payload(store)
                                 review_candidates.append(
                                     _ReviewCandidate(
                                         profile_id=profile_alias,
@@ -1267,7 +1112,7 @@ def run_alpha_acceptance(
                             if runner is not None:
                                 runner.close()
                             secrets.close()
-                            repository.close()
+                            store.close()
         final_provenance = _resolve_alpha_source_provenance(resolved_commit_sha)
         if final_provenance != provenance:
             raise ValueError("source checkout provenance changed during Alpha")
@@ -1311,10 +1156,6 @@ def _parse_arguments(arguments: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run the blinded three-story Plotloom Alpha acceptance matrix.")
     parser.add_argument("--profile", action="append", dest="profile_ids", required=True, help="saved text-provider profile ID; pass exactly twice")
     parser.add_argument("--review-directory", required=True, type=Path, help="empty local directory for six anonymized content-only review JSON files")
-    parser.add_argument(
-        "--source-database-url",
-        help="explicit historical qualification database URL",
-    )
     parser.add_argument("--commit", type=_parse_commit_sha, help="40-character checkpoint commit SHA; defaults to the current HEAD commit")
     return parser.parse_args(arguments)
 
@@ -1327,16 +1168,17 @@ def main(arguments: list[str] | None = None) -> int:
         print("Alpha requires exactly two distinct saved profiles.", file=sys.stderr)
         return 2
     try:
+        settings = PlotloomSettings.from_env()
         result = run_alpha_acceptance(
-            # Alpha remains a retained historical-qualification workflow, not
-            # production runtime configuration.  Keep argument parsing lenient
-            # so setup failures follow the CLI's deliberately redacted path;
-            # the qualification workflow validates the explicit source URL.
-            source_database_url=options.source_database_url or "",
+            application_data_dir=settings.application_data_dir,
             profile_ids=options.profile_ids,
             review_directory=options.review_directory,
             commit_sha=options.commit,
-            server_key_resolver=lambda _profile_id: None,
+            server_key_resolver=lambda profile_id: (
+                key.get_secret_value()
+                if (key := settings.text_api_key_for_profile(profile_id)) is not None
+                else None
+            ),
         )
     except Exception:
         print("Alpha setup failed; inspect local configuration. Temporary evidence was removed.", file=sys.stderr)

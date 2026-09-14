@@ -13,6 +13,7 @@ from plotloom.generation.planning import PlanningError
 from plotloom.jobs import LifecycleJobRunner
 from plotloom.providers import ProviderPorts
 from plotloom.runtime import RunContext, RunExecutionResult
+from plotloom.project_storage import ProjectStore
 
 from .conftest import all_stage_payloads
 
@@ -73,9 +74,27 @@ class RecordingSecretRegistrar:
         self.releases.append(run_id)
 
 
-def test_generation_future_cleanup_preserves_newer_mapping(repository) -> None:
+def _create_run(
+    store: ProjectStore,
+    *,
+    stages=STAGE_ORDER,
+    provider_snapshot: dict | None = None,
+):
+    snapshot = provider_snapshot or ProviderSnapshot(
+        text_auth_mode="none"
+    ).model_dump(mode="json", by_alias=True)
+    with store.generation.admit_provider_snapshot(snapshot):
+        return store.generation.create_run(
+            store.manifest.project_id,
+            RunKind.PIPELINE,
+            stages,
+            provider_snapshot=snapshot,
+        )
+
+
+def test_generation_future_cleanup_preserves_newer_mapping(project_store) -> None:
     runner = LifecycleJobRunner(
-        repository,
+        project_store.generation,
         CompleteEngine(),
         RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
         max_workers=1,
@@ -91,11 +110,10 @@ def test_generation_future_cleanup_preserves_newer_mapping(repository) -> None:
         runner.close()
 
 
-def test_runner_starts_installs_and_finishes_without_name_error(repository, brief) -> None:
-    project = repository.create_project(brief)
-    run = repository.create_run(project.id, RunKind.PIPELINE, STAGE_ORDER)
+def test_runner_starts_installs_and_finishes_without_name_error(project_store) -> None:
+    run = _create_run(project_store)
     runner = LifecycleJobRunner(
-        repository,
+        project_store.generation,
         CompleteEngine(),
         RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
         max_workers=1,
@@ -113,21 +131,17 @@ def test_runner_starts_installs_and_finishes_without_name_error(repository, brie
 
 
 def test_runner_ignores_session_header_for_auth_none_and_waits_for_missing_bearer_key(
-    repository,
-    brief,
+    project_store,
 ) -> None:
-    project = repository.create_project(brief)
-    anonymous = repository.create_run(
-        project.id,
-        RunKind.PIPELINE,
-        STAGE_ORDER,
+    anonymous = _create_run(
+        project_store,
         provider_snapshot=ProviderSnapshot(text_auth_mode="none").model_dump(
             mode="json", by_alias=True
         ),
     )
     registrar = RecordingSecretRegistrar()
     runner = LifecycleJobRunner(
-        repository,
+        project_store.generation,
         CompleteEngine(),
         RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
         max_workers=1,
@@ -139,39 +153,31 @@ def test_runner_ignores_session_header_for_auth_none_and_waits_for_missing_beare
         ).result(timeout=5).status == RunStatus.SUCCEEDED
         assert registrar.registrations == []
 
-        bearer = repository.create_run(
-            project.id,
-            RunKind.PIPELINE,
-            STAGE_ORDER,
+        bearer = _create_run(
+            project_store,
             provider_snapshot=ProviderSnapshot(text_auth_mode="bearer").model_dump(
                 mode="json", by_alias=True
             ),
         )
         with pytest.raises(SecretLeaseError):
             runner.submit(bearer.id)
-        assert repository.get_run(bearer.id).status == RunStatus.QUEUED
+        assert project_store.generation.get_run(bearer.id).status == RunStatus.QUEUED
         assert registrar.registrations == []
     finally:
         runner.close()
 
 
 def test_cancel_before_worker_start_releases_the_registered_run_key(
-    repository,
-    brief,
+    project_store,
 ) -> None:
-    project = repository.create_project(brief)
-    blocker = repository.create_run(
-        project.id,
-        RunKind.PIPELINE,
-        STAGE_ORDER,
+    blocker = _create_run(
+        project_store,
         provider_snapshot=ProviderSnapshot(text_auth_mode="none").model_dump(
             mode="json", by_alias=True
         ),
     )
-    queued = repository.create_run(
-        project.id,
-        RunKind.PIPELINE,
-        STAGE_ORDER,
+    queued = _create_run(
+        project_store,
         provider_snapshot=ProviderSnapshot(text_auth_mode="bearer").model_dump(
             mode="json", by_alias=True
         ),
@@ -179,7 +185,7 @@ def test_cancel_before_worker_start_releases_the_registered_run_key(
     engine = BlockingEngine()
     registrar = RecordingSecretRegistrar()
     runner = LifecycleJobRunner(
-        repository,
+        project_store.generation,
         engine,
         RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
         max_workers=1,
@@ -202,17 +208,15 @@ def test_cancel_before_worker_start_releases_the_registered_run_key(
         runner.close()
 
 
-def test_enqueue_then_brief_edit_fails_preflight_without_provider_cost(repository, brief) -> None:
-    project = repository.create_project(brief)
-    run = repository.create_run(project.id, RunKind.PIPELINE, STAGE_ORDER)
-    repository.update_project(
-        project.id,
-        1,
+def test_enqueue_then_brief_edit_fails_preflight_without_provider_cost(project_store, brief) -> None:
+    run = _create_run(project_store)
+    project_store.update_brief(
         brief.model_copy(update={"synopsis": f"{brief.synopsis} 用户补充。"}),
+        expected_revision=1,
     )
     engine = CountingEngine()
     runner = LifecycleJobRunner(
-        repository,
+        project_store.generation,
         engine,
         RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
         max_workers=1,
@@ -226,20 +230,18 @@ def test_enqueue_then_brief_edit_fails_preflight_without_provider_cost(repositor
         runner.close()
 
 
-def test_enqueue_then_upstream_edit_fails_preflight_without_provider_cost(repository, brief) -> None:
-    project = repository.create_project(brief)
+def test_enqueue_then_upstream_edit_fails_preflight_without_provider_cost(project_store) -> None:
     original_bible = all_stage_payloads()[0]
-    repository.update_stage(project.id, STAGE_ORDER[0], 0, original_bible)
-    run = repository.create_run(project.id, RunKind.PIPELINE, [STAGE_ORDER[1]])
-    repository.update_stage(
-        project.id,
+    project_store.update_stage(STAGE_ORDER[0], original_bible, expected_revision=0)
+    run = _create_run(project_store, stages=[STAGE_ORDER[1]])
+    project_store.update_stage(
         STAGE_ORDER[0],
-        1,
         original_bible.model_copy(update={"themes": ["用户编辑"]}),
+        expected_revision=1,
     )
     engine = CountingEngine()
     runner = LifecycleJobRunner(
-        repository,
+        project_store.generation,
         engine,
         RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()),
         max_workers=1,
@@ -252,11 +254,10 @@ def test_enqueue_then_upstream_edit_fails_preflight_without_provider_cost(reposi
         runner.close()
 
 
-def test_runner_persists_stable_pre_attempt_planning_failure(repository, brief) -> None:
-    project = repository.create_project(brief)
-    run = repository.create_run(project.id, RunKind.PIPELINE, STAGE_ORDER)
+def test_runner_persists_stable_pre_attempt_planning_failure(project_store) -> None:
+    run = _create_run(project_store)
     runner = LifecycleJobRunner(
-        repository,
+        project_store.generation,
         FailingEngine(
             PlanningError(
                 "bounded storyboard planning failed",
@@ -272,16 +273,15 @@ def test_runner_persists_stable_pre_attempt_planning_failure(repository, brief) 
         assert completed.status == RunStatus.FAILED
         assert completed.failure_code == "planning.max_units_exceeded"
         assert completed.failed_stage == StageName.STORYBOARD
-        assert repository.get_run_trace(run.id).attempts == []
+        assert project_store.generation.get_run_trace(run.id).attempts == []
     finally:
         runner.close()
 
 
-def test_runner_quarantines_typed_aggregate_failure(repository, brief) -> None:
-    project = repository.create_project(brief)
-    run = repository.create_run(project.id, RunKind.PIPELINE, STAGE_ORDER)
+def test_runner_quarantines_typed_aggregate_failure(project_store) -> None:
+    run = _create_run(project_store)
     runner = LifecycleJobRunner(
-        repository,
+        project_store.generation,
         FailingEngine(
             AggregateValidationError(
                 "cross-unit identifier collision",

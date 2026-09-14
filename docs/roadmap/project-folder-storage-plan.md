@@ -459,3 +459,21 @@ under `data/legacy-archives/<UTC-time>`, export only approved installation
 settings/accounting identities, explicitly switch to fresh roots, and record
 the verification inventory. Legacy project import remains intentionally out of
 scope.
+
+## Source-retirement record (2026-09-14)
+
+[ADR 0048](../adr/0048-retire-shared-repository-runtime.md) completes the
+source-only retirement identified by the production-browser parity caller
+inventory. The old shared repository facade, old FastAPI composition/routes,
+public compatibility aliases, and the uncalled generic media worker are removed
+together; no forwarding module, test-local compatibility facade, storage switch,
+retained-project import, `.env` change, or retained-data operation is added.
+
+Conformance and Alpha now read enabled secret-free profiles from the current
+application store through a read-only snapshot, then execute each sample in a
+disposable project folder using its explicit project generation owner. This
+preserves frozen profile/run contracts, project-owned evidence, secret-safe
+receipts, blinded Alpha review publication, and unknown-outcome/no-replay
+semantics. The accompanying [retirement receipt](../verification/2026-09-14-shared-runtime-retirement.md)
+records caller and obsolete-test disposition; retained-data archive/config
+switch remains the next separately controlled work after verification.

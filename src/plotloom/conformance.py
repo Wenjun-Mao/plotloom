@@ -1,8 +1,8 @@
 """Secret-free repeatable acceptance runs for saved text-provider profiles.
 
 This module is intentionally a caller of the production pipeline, not a
-parallel test pipeline.  It copies no project data and never writes to the
-source database: each sample gets a disposable repository and artifact root.
+parallel test pipeline. It reads only public application profiles, then gives
+each sample a disposable project folder and application store.
 """
 
 from __future__ import annotations
@@ -17,9 +17,8 @@ import tempfile
 import time
 from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-from .artifacts import LocalArtifactStore
 from .config import PlotloomSettings
 from .domain import (
     ArtifactKind,
@@ -37,7 +36,9 @@ from .pipeline import (
     SnapshotTextProviderResolver,
     TextProviderResolver,
 )
-from .provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, TextProviderProfileSnapshot
+from .provider_profiles import TextProviderProfileSnapshot
+from .project_storage import ProjectFolderStorage, ProjectStore
+from .project_storage.application_profile_snapshot import load_saved_text_profiles
 from .providers import ProviderPorts
 from .runtime import RunContext
 from .generation.planning import PLANNING_POLICY_VERSION
@@ -52,36 +53,11 @@ from .generation.work_units import (
     WORK_UNIT_PROMPT_CONTRACT_VERSION,
 )
 
-if TYPE_CHECKING:
-    from .persistence import SQLiteRepository as RetainedSQLiteRepository
-
-
 DEFAULT_SAMPLE_COUNT = 3
 M15_REQUIRED_PROFILE_COUNT = 2
 CONFORMANCE_WORKLOAD_VERSION = "fixed_chinese_interactive_story.v8"
 
 
-def _seed_isolated_profile_for_admission(
-    repository: RetainedSQLiteRepository, profile: TextProviderProfileSnapshot
-) -> None:
-    """Create the disposable control-plane row required for guarded admission.
-
-    The source snapshot remains the request authority and receipt identity. The
-    temporary row exists only to apply the same enabled-profile admission rule
-    as the application repository; it is removed with the disposable database.
-    """
-
-    if profile.profile_id == DEFAULT_PROVIDER_PROFILE_ID:
-        repository.bootstrap_default_text_provider_profile(profile)
-        return
-    default_values = profile.model_dump(mode="json", by_alias=True)
-    default_values.update(profileId=DEFAULT_PROVIDER_PROFILE_ID, profileVersion=0, profileHash="")
-    repository.bootstrap_default_text_provider_profile(
-        TextProviderProfileSnapshot.model_validate(default_values)
-    )
-    repository.create_text_provider_profile(
-        profile.profile_id, profile.profile_id, configuration=profile
-    )
 # The fixed workload exercises the complete topology contract: three endings,
 # two decisions on every path, and one explicit JOIN. It is still bounded at
 # nine nodes and four shots per scene so repeated operator probes stay
@@ -103,22 +79,6 @@ FIXED_CHINESE_BRIEF = ProjectBrief(
 )
 
 _SAFE_ISSUE_CODE = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
-
-
-def __getattr__(name: str) -> object:
-    """Lazily expose the retained qualification class for its injection seam."""
-
-    if name == "SQLiteRepository":
-        from .persistence import SQLiteRepository
-
-        globals()[name] = SQLiteRepository
-        return SQLiteRepository
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-
-def _retained_repository(database_url: str) -> "RetainedSQLiteRepository":
-    factory = getattr(sys.modules[__name__], "SQLiteRepository")
-    return factory(database_url)
 
 
 def conformance_workload_hash() -> str:
@@ -209,7 +169,7 @@ def _stable_issue_codes(trace: Any) -> list[str]:
     return sorted(codes)
 
 
-def _first_pass_stats(repository: RetainedSQLiteRepository, run_id: str, trace: Any) -> dict[str, int]:
+def _first_pass_stats(store: ProjectStore, run_id: str, trace: Any) -> dict[str, int]:
     """Count first-pass *stages*, not individual sharded work units.
 
     Scene Beats and Storyboard can each contain many work units.  The M1.5
@@ -217,7 +177,7 @@ def _first_pass_stats(repository: RetainedSQLiteRepository, run_id: str, trace: 
     every one of its units succeeds on its primary attempt.
     """
 
-    execution = repository.get_run_execution_trace(run_id)
+    execution = store.generation.get_run_execution_trace(run_id)
     accepted = rejected = outcome_unknown = cancelled = not_run = 0
     for stage in STAGE_ORDER:
         unit_ids = {
@@ -268,15 +228,15 @@ def _maximum_attempts_per_work_unit(trace: Any) -> int:
 
 
 def _conformance_invariant_codes(
-    repository: RetainedSQLiteRepository,
+    store: ProjectStore,
     *,
     run_id: str,
     trace: Any,
 ) -> set[str]:
     """Audit lifecycle invariants without exporting canonical model content."""
 
-    run = repository.get_run(run_id)
-    envelopes = repository.list_stage_envelopes(run.project_id)
+    run = store.generation.get_run(run_id)
+    envelopes = store.authoring.list_stage_envelopes(run.project_id)
     installed = [
         envelope
         for envelope in envelopes
@@ -298,7 +258,7 @@ def _conformance_invariant_codes(
 
 
 def _receipt_for(
-    repository: RetainedSQLiteRepository,
+    store: ProjectStore,
     *,
     run_id: str,
     profile: TextProviderProfileSnapshot,
@@ -308,10 +268,10 @@ def _receipt_for(
 ) -> dict[str, Any]:
     """Return the deliberately narrow, secret-free conformance receipt."""
 
-    completed = repository.get_run(run_id)
-    trace = repository.get_run_trace(run_id)
-    plan = repository.get_generation_plan(run_id)
-    topology = repository.get_story_graph_topology(run_id)
+    completed = store.generation.get_run(run_id)
+    trace = store.generation.get_run_trace(run_id)
+    plan = store.generation.get_generation_plan(run_id)
+    topology = store.generation.get_story_graph_topology(run_id)
     issue_codes = set(_stable_issue_codes(trace))
     if (
         isinstance(completed.failure_code, str)
@@ -319,7 +279,7 @@ def _receipt_for(
     ):
         issue_codes.add(completed.failure_code)
     issue_codes.update(
-        _conformance_invariant_codes(repository, run_id=run_id, trace=trace)
+        _conformance_invariant_codes(store, run_id=run_id, trace=trace)
     )
     return {
         "profileId": profile.profile_id,
@@ -332,7 +292,7 @@ def _receipt_for(
         "issueCodes": sorted(issue_codes),
         "durationMilliseconds": duration_milliseconds,
         "tokens": _public_token_usage(trace),
-        "firstPass": _first_pass_stats(repository, run_id, trace),
+        "firstPass": _first_pass_stats(store, run_id, trace),
         "maxAttemptsPerWorkUnit": _maximum_attempts_per_work_unit(trace),
     }
 
@@ -423,28 +383,17 @@ def m15_qualification_issue_codes(
 
 
 def _load_named_profiles(
-    source_database_url: str,
+    application_data_dir: Path,
     profile_ids: Iterable[str],
 ) -> list[TextProviderProfileSnapshot]:
-    """Read exactly the requested public profiles, without creating defaults."""
+    """Read exactly the requested current application profiles without writes."""
 
-    source = _retained_repository(source_database_url)
-    try:
-        profiles = [source.get_text_provider_profile(profile_id) for profile_id in profile_ids]
-        disabled = [profile.profile_id for profile in profiles if not profile.enabled]
-        if disabled:
-            raise ValueError(
-                "disabled text provider profiles cannot start qualification: "
-                + ", ".join(disabled)
-            )
-        return [profile.configuration for profile in profiles]
-    finally:
-        source.close()
+    return load_saved_text_profiles(application_data_dir, profile_ids)
 
 
 def run_conformance(
     *,
-    source_database_url: str,
+    application_data_dir: Path,
     profile_ids: Iterable[str],
     sample_count: int = DEFAULT_SAMPLE_COUNT,
     provider_resolver: TextProviderResolver | None = None,
@@ -466,7 +415,7 @@ def run_conformance(
         raise ValueError("at least one named profile is required")
     if len(set(selected_ids)) != len(selected_ids):
         raise ValueError("profile_ids must be unique")
-    profiles = _load_named_profiles(source_database_url, selected_ids)
+    profiles = _load_named_profiles(application_data_dir, selected_ids)
     resolver = provider_resolver or SnapshotTextProviderResolver()
     if server_key_resolver is None:
         settings = PlotloomSettings.from_env()
@@ -479,57 +428,61 @@ def run_conformance(
         key_resolver = server_key_resolver
     workload_hash = conformance_workload_hash()
 
-    # The context manager removes SQLite evidence, its journal files, and the
-    # otherwise-unused local artifact root even when a provider sample fails.
+    # The context manager removes every temporary project home, SQLite file,
+    # and project-owned evidence even when a provider sample fails.
     with tempfile.TemporaryDirectory(prefix="plotloom-conformance-") as temporary_root:
         root = Path(temporary_root)
+        outputs_root = root / "outputs"
+        application_root = root / "application"
+        outputs_root.mkdir()
+        application_root.mkdir()
+        storage = ProjectFolderStorage(
+            outputs_root=outputs_root,
+            application_data_root=application_root,
+        )
 
-        # Alembic's EnvironmentContext uses process-global proxies and is not
-        # safe to initialize concurrently in threads.  Prepare every isolated
-        # repository on the caller thread; provider execution may then overlap
-        # across profiles without sharing a database or migration context.
+        # Prepare every independently leased project on the caller thread;
+        # provider execution may then overlap across profiles without sharing
+        # project content, evidence, or mutable application profile state.
         prepared_samples: dict[
             str,
-            list[tuple[RetainedSQLiteRepository, Path]],
+            list[ProjectStore],
         ] = {}
         try:
             for profile in profiles:
-                profile_samples: list[tuple[RetainedSQLiteRepository, Path]] = []
+                profile_samples: list[ProjectStore] = []
                 prepared_samples[profile.profile_id] = profile_samples
-                for sample_index in range(sample_count):
-                    sample_name = f"{profile.profile_id}-{sample_index + 1}"
-                    database_path = root / f"{sample_name}.sqlite3"
-                    artifact_root = root / f"{sample_name}-artifacts"
-                    repository = _retained_repository(f"sqlite:///{database_path}")
-                    _seed_isolated_profile_for_admission(repository, profile)
-                    profile_samples.append((repository, artifact_root))
+                for _sample_index in range(sample_count):
+                    profile_samples.append(
+                        storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(deep=True))
+                    )
         except BaseException:
             for samples in prepared_samples.values():
-                for repository, _artifact_root in samples:
-                    repository.close()
+                for store in samples:
+                    store.close()
             raise
 
         def run_profile(profile: TextProviderProfileSnapshot) -> list[dict[str, Any]]:
             profile_receipts: list[dict[str, Any]] = []
-            for sample_index, (repository, artifact_root) in enumerate(
-                prepared_samples[profile.profile_id]
-            ):
+            for sample_index, store in enumerate(prepared_samples[profile.profile_id]):
                 secrets = RunSecretBroker(server_key_resolver=key_resolver)
                 runner: LifecycleJobRunner | None = None
                 try:
-                    project = repository.create_project(FIXED_CHINESE_BRIEF.model_copy(deep=True))
-                    run = repository.create_run(
-                        project.id,
-                        RunKind.PIPELINE,
-                        STAGE_ORDER,
-                        provider_snapshot=profile.model_dump(mode="json", by_alias=True),
-                    )
+                    with store.generation.admit_provider_snapshot(
+                        profile.model_dump(mode="json", by_alias=True)
+                    ):
+                        run = store.generation.create_run(
+                            store.manifest.project_id,
+                            RunKind.PIPELINE,
+                            STAGE_ORDER,
+                            provider_snapshot=profile.model_dump(mode="json", by_alias=True),
+                        )
                     runner = LifecycleJobRunner(
-                        repository,
-                        PipelineEngine(repository, resolver, secrets),
+                        store.generation,
+                        PipelineEngine(store.generation, resolver, secrets),
                         RunContext(
                             providers=ProviderPorts(),
-                            artifacts=LocalArtifactStore(artifact_root),
+                            artifacts=store.run_artifacts(run.id),
                         ),
                         max_workers=1,
                         secret_registrar=secrets,
@@ -539,7 +492,7 @@ def run_conformance(
                     elapsed_ms = int((time.perf_counter() - started) * 1000)
                     profile_receipts.append(
                         _receipt_for(
-                            repository,
+                            store,
                             run_id=run.id,
                             profile=profile,
                             duration_milliseconds=elapsed_ms,
@@ -576,8 +529,8 @@ def run_conformance(
                 ]
         finally:
             for samples in prepared_samples.values():
-                for repository, _artifact_root in samples:
-                    repository.close()
+                for store in samples:
+                    store.close()
     return receipts
 
 
@@ -595,10 +548,6 @@ def _parse_arguments(arguments: list[str] | None) -> argparse.Namespace:
         type=int,
         default=DEFAULT_SAMPLE_COUNT,
         help="samples per profile (default: 3)",
-    )
-    parser.add_argument(
-        "--source-database-url",
-        help="existing Plotloom database URL; defaults to the configured database",
     )
     parser.add_argument(
         "--qualify-m15",
@@ -625,7 +574,7 @@ def main(arguments: list[str] | None = None) -> int:
     settings = PlotloomSettings.from_env()
     try:
         receipts = run_conformance(
-            source_database_url=options.source_database_url or settings.database_url,
+            application_data_dir=settings.application_data_dir,
             profile_ids=options.profile_ids,
             sample_count=options.runs,
             server_key_resolver=lambda profile_id: (
