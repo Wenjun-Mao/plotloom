@@ -150,13 +150,13 @@ def current_assertion_catalog() -> dict[str, dict[str, Any]]:
 
 
 def check_inventory(
-    inventory: dict[str, Any], *, required_verified_sources: set[str] | None = None
+    inventory: dict[str, Any], *, required_verified_entries: set[str] | None = None
 ) -> list[str]:
     errors: list[str] = []
     expected = {entry["id"]: entry for entry in baseline_entries()}
     entries = inventory.get("entries")
-    if inventory.get("schema_version") != 3:
-        errors.append("inventory must use schema_version 3")
+    if inventory.get("schema_version") != 4:
+        errors.append("inventory must use schema_version 4")
     if inventory.get("baseline_commit") != BASELINE or inventory.get("retirement_commit") != RETIREMENT:
         errors.append("inventory baseline or retirement commit differs from the approved comparison")
     if "policies" in inventory:
@@ -211,18 +211,16 @@ def check_inventory(
                 errors.append(f"replacement is absent: {identifier} -> {replacement}")
             elif observed != current or not observed["assertions"]:
                 errors.append(f"replacement assertion record is stale or empty: {identifier} -> {replacement}")
-    if any(len(statuses) != 1 for statuses in source_statuses.values()):
-        errors.append("each source path must have one explicit review status")
-    required_verified_sources = required_verified_sources or set()
-    unknown_required_sources = required_verified_sources - set(source_statuses)
-    if unknown_required_sources:
+    required_verified_entries = required_verified_entries or set()
+    unknown_required_entries = required_verified_entries - set(expected)
+    if unknown_required_entries:
         errors.append(
-            "required verified source is absent from the baseline: "
-            + ", ".join(sorted(unknown_required_sources))
+            "required verified entry is absent from the baseline: "
+            + ", ".join(sorted(unknown_required_entries))
         )
-    for source_path in sorted(required_verified_sources):
-        if source_statuses.get(source_path) != {"verified"}:
-            errors.append(f"required verified source remains pending: {source_path}")
+    for entry_id in sorted(required_verified_entries):
+        if by_id.get(entry_id, {}).get("review_status") != "verified":
+            errors.append(f"required verified entry remains pending: {entry_id}")
     observed_summary = {
         "overall_status": (
             "complete"
@@ -230,7 +228,7 @@ def check_inventory(
             else "incomplete"
         ),
         "source_statuses": {
-            source_path: next(iter(statuses))
+            source_path: next(iter(statuses)) if len(statuses) == 1 else "mixed"
             for source_path, statuses in sorted(source_statuses.items())
         },
     }
@@ -243,18 +241,18 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check", action="store_true", help="verify the checked-in inventory")
     parser.add_argument(
-        "--require-verified-source",
+        "--require-verified-entry",
         action="append",
         default=[],
-        metavar="SOURCE_PATH",
-        help="fail when this baseline source has not completed assertion review",
+        metavar="TEST_ID",
+        help="fail when this baseline test entry has not completed assertion review",
     )
     args = parser.parse_args()
     if not args.check:
         parser.error("only --check is supported; the inventory is an authored review record")
     errors = check_inventory(
         json.loads(INVENTORY.read_text(encoding="utf-8")),
-        required_verified_sources=set(args.require_verified_source),
+        required_verified_entries=set(args.require_verified_entry),
     )
     if errors:
         print("\n".join(errors), file=sys.stderr)

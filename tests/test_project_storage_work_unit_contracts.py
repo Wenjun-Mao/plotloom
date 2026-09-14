@@ -145,6 +145,32 @@ def test_project_work_unit_seal_requires_accepted_producer_and_freezes_evidence(
         )
 
 
+def test_project_duplicate_producer_artifacts_are_rejected_before_they_can_be_sealed(tmp_path) -> None:
+    store = _storage(tmp_path).projects.create(FIXED_CHINESE_BRIEF)
+    run, plan, unit = _running_bible_unit(store)
+    attempt, candidate = _accepted_bible_evidence(store, run, plan, unit)
+    duplicate_prompt = {"messages": [{"role": "user", "content": "different prompt"}]}
+
+    with pytest.raises(InvalidTransitionError, match="immutable prompt evidence"):
+        store.generation.add_artifact(
+            Artifact(
+                run_id=run.id,
+                attempt_id=attempt.id,
+                work_unit_id=unit.id,
+                stage=StageName.STORY_BIBLE,
+                kind=ArtifactKind.PROMPT,
+                content=duplicate_prompt,
+                content_hash=stable_hash(duplicate_prompt),
+            )
+        )
+
+    store.generation.finish_attempt(attempt.id, AttemptStatus.SUCCEEDED)
+    sealed = store.generation.seal_stage_aggregate(
+        run.id, StageName.STORY_BIBLE, candidate_artifact_ids=[candidate.id]
+    )
+    assert sealed.manifest["units"][0]["candidateArtifactId"] == candidate.id
+
+
 def test_project_work_unit_requires_dispatch_then_marks_ambiguous_outcome_unknown(tmp_path) -> None:
     store = _storage(tmp_path).projects.create(FIXED_CHINESE_BRIEF)
     run, _plan, unit = _running_bible_unit(store)

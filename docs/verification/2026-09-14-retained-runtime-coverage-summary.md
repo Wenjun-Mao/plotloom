@@ -28,19 +28,20 @@ review obligation. Each entry also records `pending` or `verified` review
 state. Pending is an honest incomplete result; a scoped gate never accepts it
 as verification.
 
-The direct-generation restoration gate requires all four reviewed baseline
-sources to be verified:
+This slice's direct-generation restoration gate requires only its three
+line-by-line ported baseline entries to be verified:
 
 ```sh
 uv run --locked python scripts/retained_runtime_coverage_inventory.py --check \
-  --require-verified-source tests/backend_core/test_pipeline.py \
-  --require-verified-source tests/backend_core/test_work_unit_persistence.py \
-  --require-verified-source tests/backend_core/test_exact_work_unit_repair_integration.py \
-  --require-verified-source tests/backend_core/test_m15_attempt_lineage.py
+  --require-verified-entry tests/backend_core/test_pipeline.py::test_storyboard_audio_timing_uses_exact_frozen_repair_fact \
+  --require-verified-entry tests/backend_core/test_pipeline.py::test_cue_order_fact_rejects_rebound_membership_before_dispatch \
+  --require-verified-entry tests/backend_core/test_work_unit_persistence.py::test_duplicate_producer_artifacts_are_rejected_before_they_can_be_sealed
 ```
 
-The overall inventory remains incomplete: API/repository, Alpha, conformance,
-review, and every other unreviewed source group remain explicitly pending.
+The overall inventory remains incomplete. The other entries in the previously
+broad four source groups are pending unless a direct scenario has been reviewed
+line-by-line; API/repository, Alpha, conformance, review, and all other
+unreviewed source groups remain explicitly pending.
 
 The direct-project regressions now separately prove unavailable text admission
 returns 422 with zero runs; image delivery rejects malformed, partial and hash
