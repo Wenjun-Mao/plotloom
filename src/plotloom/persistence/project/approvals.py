@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -30,9 +30,7 @@ from ..schema import (
     StageHeadRow,
 )
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .access import ProjectPersistenceAccess
 
 @dataclass(frozen=True)
 class ApprovalDecision:
@@ -65,8 +63,8 @@ class ApprovalClosure:
 class ProjectApprovalPersistence:
     """Typed project persistence collaborator; the facade owns compatibility only."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: ProjectPersistenceAccess) -> None:
+        self._access = access
 
     def append_approval_decision(
         self,
@@ -82,9 +80,9 @@ class ProjectApprovalPersistence:
     ) -> ApprovalDecision:
         """Append (never update) an approval or revocation over an exact board."""
 
-        with self._repository._lifecycle_write() as session:
-            project = self._repository._project_row(session, project_id)
-            self._repository._assert_active_project(project)
+        with self._access.leases.lifecycle_write() as session:
+            project = self._access.rows.project(session, project_id)
+            self._access.guards.active(project)
             revision = session.get(EntityRevisionRow, entity_revision_id)
             if revision is None or revision.project_id != project_id:
                 raise NotFoundError(f"entity revision not found: {entity_revision_id}")
@@ -113,10 +111,10 @@ class ProjectApprovalPersistence:
     ) -> ApprovalDecision:
         """Append a decision only if the exact current storyboard still matches."""
 
-        with self._repository._lifecycle_write() as session:
-            project = self._repository._project_row(session, project_id)
-            self._repository._assert_active_project(project)
-            head = self._repository._stage_row(session, project_id, StageName.STORYBOARD)
+        with self._access.leases.lifecycle_write() as session:
+            project = self._access.rows.project(session, project_id)
+            self._access.guards.active(project)
+            head = self._access.rows.stage(session, project_id, StageName.STORYBOARD)
             if head.revision != expected_revision:
                 raise RevisionConflictError(
                     "stage:storyboard", expected_revision, head.revision
@@ -188,7 +186,7 @@ class ProjectApprovalPersistence:
             raise SchemaResetRequiredError(
                 stage=StageName.STORYBOARD, schema_version=revision.schema_version
             )
-        head = self._repository._stage_row(session, project_id, StageName.STORYBOARD)
+        head = self._access.rows.stage(session, project_id, StageName.STORYBOARD)
         if (
             head.status != StageStatus.READY.value
             or head.entity_revision_id != revision.id
@@ -237,7 +235,7 @@ class ProjectApprovalPersistence:
             if any(
                 gate.content_hash != revision.content_hash
                 or gate.revision != revision.revision
-                or not self._repository._gate_result(gate).passed
+                or not self._access.codecs.gate_result(gate).passed
                 for gate in gates
             ):
                 raise InvalidTransitionError(
@@ -260,7 +258,7 @@ class ProjectApprovalPersistence:
             created_at=utc_now(),
         )
         session.add(row)
-        return self._repository._approval_decision(row)
+        return self._access.codecs.approval_decision(row)
 
     def approve_storyboard(
         self,
@@ -299,23 +297,23 @@ class ProjectApprovalPersistence:
         )
 
     def list_approval_decisions(self, project_id: str) -> list[ApprovalDecision]:
-        with self._repository._read() as session:
-            self._repository._project_row(session, project_id)
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
             rows = session.scalars(
                 select(ApprovalDecisionRow)
                 .where(ApprovalDecisionRow.project_id == project_id)
                 .order_by(ApprovalDecisionRow.created_at, ApprovalDecisionRow.id)
             ).all()
-            return [self._repository._approval_decision(row) for row in rows]
+            return [self._access.codecs.approval_decision(row) for row in rows]
 
     def get_approval_closure(self, decision_id: str) -> ApprovalClosure:
         """Derive applicability from immutable decisions and the current closure."""
 
-        with self._repository._read() as session:
+        with self._access.leases.read() as session:
             row = session.get(ApprovalDecisionRow, decision_id)
             if row is None:
                 raise NotFoundError(f"approval decision not found: {decision_id}")
-            decision = self._repository._approval_decision(row)
+            decision = self._access.codecs.approval_decision(row)
             reasons: list[str] = []
             if row.decision != "approve":
                 reasons.append("decision is a revocation")
@@ -335,7 +333,7 @@ class ProjectApprovalPersistence:
             if revision is None:
                 reasons.append("approved revision is unavailable")
             else:
-                head = self._repository._stage_row(session, row.project_id, StageName.STORYBOARD)
+                head = self._access.rows.stage(session, row.project_id, StageName.STORYBOARD)
                 if (
                     head.status != StageStatus.READY.value
                     or head.entity_revision_id != row.entity_revision_id
@@ -345,7 +343,7 @@ class ProjectApprovalPersistence:
                 ):
                     reasons.append("storyboard head no longer matches the approved revision")
                 for stage, expected_revision in row.canonical_input_revisions.items():
-                    upstream = self._repository._stage_row(session, row.project_id, StageName(stage))
+                    upstream = self._access.rows.stage(session, row.project_id, StageName(stage))
                     if upstream.status != StageStatus.READY.value or upstream.revision != expected_revision:
                         reasons.append(f"upstream {stage} revision changed")
                 gates = session.scalars(
@@ -356,7 +354,7 @@ class ProjectApprovalPersistence:
                 ).all()
                 if (
                     not gates
-                    or any(not self._repository._gate_result(gate).passed for gate in gates)
+                    or any(not self._access.codecs.gate_result(gate).passed for gate in gates)
                 ):
                     reasons.append("required gate results are absent or no longer passing")
             return ApprovalClosure(decision=decision, active=not reasons, stale_reasons=tuple(reasons))
@@ -369,7 +367,7 @@ class ProjectApprovalPersistence:
         ordinary stale canonical head.
         """
 
-        with self._repository._read() as session:
+        with self._access.leases.read() as session:
             decision = session.get(ApprovalDecisionRow, decision_id)
             if decision is None:
                 raise NotFoundError(f"approval decision not found: {decision_id}")

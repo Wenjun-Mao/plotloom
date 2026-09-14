@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -30,43 +30,41 @@ from ..schema import (
     StageHeadRow,
 )
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .access import ProjectPersistenceAccess
 
 class ProjectLifecyclePersistence:
     """Typed project persistence collaborator; the facade owns compatibility only."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: ProjectPersistenceAccess) -> None:
+        self._access = access
 
     def archive_project(self, project_id: str, expected_lifecycle_revision: int) -> Project:
-        with self._repository._lifecycle_write() as session:
-            row = self._repository._project_row(session, project_id)
-            self._repository._assert_lifecycle_revision(row, expected_lifecycle_revision)
+        with self._access.leases.lifecycle_write() as session:
+            row = self._access.rows.project(session, project_id)
+            self._access.guards.lifecycle_revision(row, expected_lifecycle_revision)
             if ProjectLifecycleStatus(row.lifecycle_status) == ProjectLifecycleStatus.ARCHIVED:
-                return self._repository._project(row)
-            if self._repository._project_is_busy_in_session(session, project_id):
+                return self._access.codecs.project(row)
+            if self._access.guards.busy(session, project_id):
                 raise ProjectBusyError()
             now = utc_now()
             row.lifecycle_status = ProjectLifecycleStatus.ARCHIVED.value
             row.archived_at = now
             row.lifecycle_revision += 1
             row.updated_at = now
-            return self._repository._project(row)
+            return self._access.codecs.project(row)
 
     def restore_project(self, project_id: str, expected_lifecycle_revision: int) -> Project:
-        with self._repository._lifecycle_write() as session:
-            row = self._repository._project_row(session, project_id)
-            self._repository._assert_lifecycle_revision(row, expected_lifecycle_revision)
+        with self._access.leases.lifecycle_write() as session:
+            row = self._access.rows.project(session, project_id)
+            self._access.guards.lifecycle_revision(row, expected_lifecycle_revision)
             if ProjectLifecycleStatus(row.lifecycle_status) == ProjectLifecycleStatus.ACTIVE:
-                return self._repository._project(row)
+                return self._access.codecs.project(row)
             now = utc_now()
             row.lifecycle_status = ProjectLifecycleStatus.ACTIVE.value
             row.archived_at = None
             row.lifecycle_revision += 1
             row.updated_at = now
-            return self._repository._project(row)
+            return self._access.codecs.project(row)
 
     def permanent_delete_project(
         self,
@@ -76,14 +74,14 @@ class ProjectLifecyclePersistence:
     ) -> None:
         if not confirmation_title.strip():
             raise ValueError("confirmation title must not be blank")
-        with self._repository._lifecycle_write() as session:
-            project = self._repository._project_row(session, project_id)
-            self._repository._assert_lifecycle_revision(project, expected_lifecycle_revision)
+        with self._access.leases.lifecycle_write() as session:
+            project = self._access.rows.project(session, project_id)
+            self._access.guards.lifecycle_revision(project, expected_lifecycle_revision)
             if ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ARCHIVED:
                 raise InvalidTransitionError("only archived projects can be permanently deleted")
             if confirmation_title != ProjectBrief.model_validate(project.brief).title:
                 raise InvalidTransitionError("confirmation title does not match the project title")
-            if self._repository._project_is_busy_in_session(session, project_id):
+            if self._access.guards.busy(session, project_id):
                 raise ProjectBusyError()
             # The byte store is shared and content addressed.  Until a
             # media-aware whole-project erasure contract exists, deleting the
@@ -120,4 +118,3 @@ class ProjectLifecyclePersistence:
                 session.flush()
                 remaining_run_ids -= leaves
             session.delete(project)
-

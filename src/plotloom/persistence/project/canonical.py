@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -30,18 +30,17 @@ from ..schema import (
     StageHeadRow,
 )
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .access import ProjectPersistenceAccess
 
 class ProjectCanonicalPersistence:
     """Typed project persistence collaborator; the facade owns compatibility only."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: ProjectPersistenceAccess, gates: Any) -> None:
+        self._access = access
+        self._gates = gates
 
     def _load_stage_payload(self, session: Session, project_id: str, stage: StageName) -> StagePayload:
-        head = self._repository._stage_row(session, project_id, stage)
+        head = self._access.rows.stage(session, project_id, stage)
         if head.entity_revision_id is None:
             raise StagePrerequisiteError(stage, stage, head.status)
         revision = session.get(EntityRevisionRow, head.entity_revision_id)
@@ -49,18 +48,18 @@ class ProjectCanonicalPersistence:
             raise NotFoundError(f"entity revision not found: {head.entity_revision_id}")
         if head.schema_version != revision.schema_version:
             raise SchemaResetRequiredError(stage=stage, schema_version=head.schema_version)
-        return self._repository._decode_current_stage_payload(
+        return self._access.codecs.decode_current_stage_payload(
             stage, revision.payload, revision.schema_version
         )
 
     def get_stage_payload(self, project_id: str, stage: StageName) -> StagePayload:
-        with self._repository._read() as session:
-            self._repository._project_row(session, project_id)
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
             return self._load_stage_payload(session, project_id, stage)
 
     def _mark_downstream_stale(self, session: Session, project_id: str, stage: StageName, now: datetime) -> None:
         for downstream in downstream_stages(stage):
-            row = self._repository._stage_row(session, project_id, downstream)
+            row = self._access.rows.stage(session, project_id, downstream)
             if row.status != StageStatus.MISSING.value:
                 row.status = StageStatus.STALE.value
                 row.stale_reasons = [f"upstream stage {stage.value} revision changed"]
@@ -80,14 +79,14 @@ class ProjectCanonicalPersistence:
     ) -> tuple[StageHead, EntityRevisionRow | None]:
         """Validate and install one canonical revision in the caller's transaction."""
 
-        head = self._repository._stage_row(session, project_row.id, stage)
+        head = self._access.rows.stage(session, project_row.id, stage)
         if head.revision != expected_revision:
             raise RevisionConflictError(f"stage:{stage.value}", expected_revision, head.revision)
 
         input_revisions: dict[StageName, int] = {}
         upstream_payloads: dict[StageName, StagePayload] = {}
         for upstream in upstream_stages(stage):
-            upstream_head = self._repository._stage_row(session, project_row.id, upstream)
+            upstream_head = self._access.rows.stage(session, project_row.id, upstream)
             if upstream_head.status != StageStatus.READY.value:
                 raise StagePrerequisiteError(stage, upstream, upstream_head.status)
             input_revisions[upstream] = upstream_head.revision
@@ -119,14 +118,14 @@ class ProjectCanonicalPersistence:
                     raise NotFoundError(
                         f"entity revision not found: {head.entity_revision_id}"
                     )
-                self._repository._gates._record_gate_evaluation_in_session(
+                self._gates._record_gate_evaluation_in_session(
                     session,
                     project_row.id,
                     current_revision,
                     gate_evaluation,
                     now=now,
                 )
-            return self._repository._stage_head(head), None
+            return self._access.codecs.stage_head(head), None
 
         revision = EntityRevision(
             project_id=project_row.id,
@@ -156,7 +155,7 @@ class ProjectCanonicalPersistence:
             # The models intentionally have no ORM relationships, so flush the
             # new immutable revision before inserting its gate receipts.
             session.flush()
-            self._repository._gates._record_gate_evaluation_in_session(
+            self._gates._record_gate_evaluation_in_session(
                 session,
                 project_row.id,
                 revision_row,
@@ -172,7 +171,7 @@ class ProjectCanonicalPersistence:
         head.stale_reasons = []
         head.updated_at = now
         self._mark_downstream_stale(session, project_row.id, stage, now)
-        return self._repository._stage_head(head), revision_row
+        return self._access.codecs.stage_head(head), revision_row
 
     def update_stage(
         self,
@@ -182,9 +181,9 @@ class ProjectCanonicalPersistence:
         payload: StagePayload | dict[str, Any],
     ) -> StageHead:
         parsed = stage_payload_model(stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION).model_validate(payload)
-        with self._repository._lifecycle_write() as session:
-            project_row = self._repository._project_row(session, project_id)
-            self._repository._assert_active_project(project_row)
+        with self._access.leases.lifecycle_write() as session:
+            project_row = self._access.rows.project(session, project_id)
+            self._access.guards.active(project_row)
             head, _ = self._install_stage_in_session(
                 session,
                 project_row,

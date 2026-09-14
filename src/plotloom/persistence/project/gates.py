@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -31,39 +31,38 @@ from ..schema import (
     StageHeadRow,
 )
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .access import ProjectPersistenceAccess
 
 class ProjectGatePersistence:
     """Typed project persistence collaborator; the facade owns compatibility only."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: ProjectPersistenceAccess, catalog: Any) -> None:
+        self._access = access
+        self._catalog = catalog
 
     def list_stage_heads(self, project_id: str) -> list[StageHead]:
-        with self._repository._read() as session:
-            self._repository._project_row(session, project_id)
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
             rows = session.scalars(select(StageHeadRow).where(StageHeadRow.project_id == project_id)).all()
             by_stage = {StageName(row.stage): row for row in rows}
-            return [self._repository._stage_head(by_stage[stage]) for stage in STAGE_ORDER]
+            return [self._access.codecs.stage_head(by_stage[stage]) for stage in STAGE_ORDER]
 
     def list_stage_envelopes(self, project_id: str) -> list[StageEnvelope]:
-        with self._repository._read() as session:
-            self._repository._project_row(session, project_id)
-            return self._repository._catalog._stage_envelopes_in_session(session, project_id)
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
+            return self._catalog._stage_envelopes_in_session(session, project_id)
 
     def get_stage_head(self, project_id: str, stage: StageName) -> StageHead:
-        with self._repository._read() as session:
-            self._repository._project_row(session, project_id)
-            return self._repository._stage_head(self._repository._stage_row(session, project_id, stage))
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
+            return self._access.codecs.stage_head(self._access.rows.stage(session, project_id, stage))
 
     def get_entity_revision(self, revision_id: str) -> EntityRevision:
-        with self._repository._read() as session:
+        with self._access.leases.read() as session:
             row = session.get(EntityRevisionRow, revision_id)
             if row is None:
                 raise NotFoundError(f"entity revision not found: {revision_id}")
-            return self._repository._entity_revision(row)
+            return self._access.codecs.entity_revision(row)
 
     def record_gate_evaluation(
         self,
@@ -73,13 +72,13 @@ class ProjectGatePersistence:
     ) -> GateEvaluation:
         """Persist one immutable, versioned gate evaluation for a storyboard revision."""
 
-        with self._repository._lifecycle_write() as session:
-            project = self._repository._project_row(session, project_id)
-            self._repository._assert_active_project(project)
+        with self._access.leases.lifecycle_write() as session:
+            project = self._access.rows.project(session, project_id)
+            self._access.guards.active(project)
             revision = session.get(EntityRevisionRow, entity_revision_id)
             if revision is None or revision.project_id != project_id:
                 raise NotFoundError(f"entity revision not found: {entity_revision_id}")
-            head = self._repository._stage_row(session, project_id, StageName.STORYBOARD)
+            head = self._access.rows.stage(session, project_id, StageName.STORYBOARD)
             if (
                 head.status != StageStatus.READY.value
                 or head.entity_revision_id != revision.id
@@ -149,11 +148,11 @@ class ProjectGatePersistence:
                 raise NotFoundError(
                     f"storyboard input revision not found: {stage.value}/{revision_number}"
                 )
-            return self._repository._decode_current_stage_payload(
+            return self._access.codecs.decode_current_stage_payload(
                 stage, row.payload, row.schema_version
             )
 
-        storyboard = self._repository._decode_current_stage_payload(
+        storyboard = self._access.codecs.decode_current_stage_payload(
             StageName.STORYBOARD,
             storyboard_revision.payload,
             storyboard_revision.schema_version,
@@ -217,7 +216,7 @@ class ProjectGatePersistence:
             persisted = GateEvaluation(
                 gate_set_version=evaluation.gate_set_version,
                 evaluated_input_hash=existing[0].evaluation_input_hash,
-                results=tuple(self._repository._gate_result(row) for row in existing),
+                results=tuple(self._access.codecs.gate_result(row) for row in existing),
             )
             persisted_semantics = [
                 result.model_dump(mode="json", by_alias=False, exclude={"id"})
@@ -276,7 +275,7 @@ class ProjectGatePersistence:
         entity_revision_id: str,
         gate_set_version: str,
     ) -> GateEvaluation:
-        with self._repository._read() as session:
+        with self._access.leases.read() as session:
             revision = session.get(EntityRevisionRow, entity_revision_id)
             if revision is None:
                 raise NotFoundError(f"entity revision not found: {entity_revision_id}")
@@ -295,5 +294,5 @@ class ProjectGatePersistence:
             return GateEvaluation(
                 gate_set_version=gate_set_version,
                 evaluated_input_hash=rows[0].evaluation_input_hash,
-                results=tuple(self._repository._gate_result(row) for row in rows),
+                results=tuple(self._access.codecs.gate_result(row) for row in rows),
             )

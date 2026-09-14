@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -32,35 +32,34 @@ from ..schema import (
     StageHeadRow,
 )
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .access import ProjectPersistenceAccess
 
 class ProjectDraftPersistence:
     """Typed project persistence collaborator; the facade owns compatibility only."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: ProjectPersistenceAccess, canonical: Any) -> None:
+        self._access = access
+        self._canonical = canonical
 
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
-        with self._repository._lifecycle_write() as session:
-            row = self._repository._project_row(session, project_id)
-            self._repository._assert_active_project(row)
+        with self._access.leases.lifecycle_write() as session:
+            row = self._access.rows.project(session, project_id)
+            self._access.guards.active(row)
             if row.revision != expected_revision:
                 raise RevisionConflictError("project", expected_revision, row.revision)
             brief_data = brief.model_dump(mode="json", by_alias=False)
             if row.brief == brief_data:
-                return self._repository._project(row)
+                return self._access.codecs.project(row)
             row.brief = brief_data
             row.revision += 1
             row.updated_at = utc_now()
             for stage in STAGE_ORDER:
-                head = self._repository._stage_row(session, project_id, stage)
+                head = self._access.rows.stage(session, project_id, stage)
                 if head.status != StageStatus.MISSING.value:
                     head.status = StageStatus.STALE.value
                     head.stale_reasons = ["project brief revision changed"]
                     head.updated_at = row.updated_at
-            return self._repository._project(row)
+            return self._access.codecs.project(row)
 
     def _consume_exact_authoring_draft_in_session(
         self,
@@ -120,9 +119,9 @@ class ProjectDraftPersistence:
         """Atomically save a brief and consume the exact acknowledged draft."""
 
         canonical_payload = brief.model_dump(mode="json", by_alias=True)
-        with self._repository._lifecycle_write() as session:
-            row = self._repository._project_row(session, project_id)
-            self._repository._assert_active_project(row)
+        with self._access.leases.lifecycle_write() as session:
+            row = self._access.rows.project(session, project_id)
+            self._access.guards.active(row)
             if row.revision != expected_revision:
                 raise RevisionConflictError("project", expected_revision, row.revision)
             self._consume_exact_authoring_draft_in_session(
@@ -140,12 +139,12 @@ class ProjectDraftPersistence:
                 row.revision += 1
                 row.updated_at = utc_now()
                 for stage in STAGE_ORDER:
-                    head = self._repository._stage_row(session, project_id, stage)
+                    head = self._access.rows.stage(session, project_id, stage)
                     if head.status != StageStatus.MISSING.value:
                         head.status = StageStatus.STALE.value
                         head.stale_reasons = ["project brief revision changed"]
                         head.updated_at = row.updated_at
-            return self._repository._project(row)
+            return self._access.codecs.project(row)
 
     @staticmethod
     def _authoring_draft(row: AuthoringDraftRow) -> AuthoringDraft:
@@ -188,12 +187,12 @@ class ProjectDraftPersistence:
         if editor_scope == "brief":
             return project.revision
         if editor_scope in {"visual_intent", "image_direction"}:
-            return self._repository._stage_row(session, project.id, StageName.STORYBOARD).revision
-        return self._repository._stage_row(session, project.id, StageName(editor_scope)).revision
+            return self._access.rows.stage(session, project.id, StageName.STORYBOARD).revision
+        return self._access.rows.stage(session, project.id, StageName(editor_scope)).revision
 
     def list_authoring_drafts(self, project_id: str) -> list[AuthoringDraft]:
-        with self._repository._read() as session:
-            self._repository._project_row(session, project_id)
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
             rows = session.scalars(
                 select(AuthoringDraftRow)
                 .where(AuthoringDraftRow.project_id == project_id)
@@ -214,15 +213,15 @@ class ProjectDraftPersistence:
         """CAS one bounded editor buffer against its exact canonical owner."""
 
         validated_payload = self._validate_authoring_draft_payload(editor_scope, payload)
-        with self._repository._lifecycle_write() as session:
-            project = self._repository._project_row(session, project_id)
-            self._repository._assert_active_project(project)
+        with self._access.leases.lifecycle_write() as session:
+            project = self._access.rows.project(session, project_id)
+            self._access.guards.active(project)
             if editor_scope in {"visual_intent", "image_direction"}:
                 # Media drafts are deliberately bound to the current authored
                 # storyboard, not just to a browser-supplied opaque key.  This
                 # keeps a copied or stale tab from retaining direction for a
                 # foreign asset/shot while still leaving the draft noncanonical.
-                storyboard = self._repository._canonical._load_stage_payload(
+                storyboard = self._canonical._load_stage_payload(
                     session, project_id, StageName.STORYBOARD
                 )
                 draft_shot_id = str(validated_payload["shotId"])
@@ -290,8 +289,8 @@ class ProjectDraftPersistence:
     ) -> bool:
         """Consume only one exact acknowledged draft; preserve newer typing."""
 
-        with self._repository._lifecycle_write() as session:
-            self._repository._project_row(session, project_id)
+        with self._access.leases.lifecycle_write() as session:
+            self._access.rows.project(session, project_id)
             row = session.scalar(
                 select(AuthoringDraftRow).where(
                     AuthoringDraftRow.project_id == project_id,

@@ -1,7 +1,8 @@
 """Stable public persistence surface; implementation ownership is package-local."""
 
 from .codec import stable_hash
-from .legacy_repository import ApprovalClosure, ApprovalDecision, ProjectSQLiteRepository, SQLiteRepository
+from .legacy_repository import ApprovalClosure, ApprovalDecision, SQLiteRepository
+from .project.repository import ProjectSQLiteRepository
 from .schema import (
     ApprovalDecisionRow, ArtifactRow, AuthoringDraftRow, Base, CharacterReferenceDecisionRow,
     CharacterReferenceProposalCandidateRow, CharacterReferenceProposalDeliveryRow, CharacterReferenceProposalRow,

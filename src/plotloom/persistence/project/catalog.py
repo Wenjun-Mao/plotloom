@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
@@ -30,15 +30,22 @@ from ..schema import (
     StageHeadRow,
 )
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
-
-if TYPE_CHECKING:
-    from ..legacy_repository import SQLiteRepository
+from .access import ProjectPersistenceAccess
 
 class ProjectCatalogPersistence:
     """Typed project persistence collaborator; the facade owns compatibility only."""
 
-    def __init__(self, repository: SQLiteRepository) -> None:
-        self._repository = repository
+    def __init__(self, access: ProjectPersistenceAccess) -> None:
+        self._access = access
+        self._canonical: Any | None = None
+
+    def bind_canonical(self, canonical: Any) -> None:
+        self._canonical = canonical
+
+    def _require_canonical(self) -> Any:
+        if self._canonical is None:
+            raise RuntimeError("project catalog was used before canonical persistence was composed")
+        return self._canonical
 
     @staticmethod
     def _creation_fingerprint(brief: ProjectBrief, stages: Sequence[InitialStage]) -> str:
@@ -101,15 +108,15 @@ class ProjectCatalogPersistence:
                 revision = session.get(EntityRevisionRow, row.entity_revision_id)
                 if revision is None:
                     raise NotFoundError(f"entity revision not found: {row.entity_revision_id}")
-                payload = self._repository._decode_current_stage_payload(
+                payload = self._access.codecs.decode_current_stage_payload(
                     stage, revision.payload, revision.schema_version
                 )
-            envelopes.append(StageEnvelope(head=self._repository._stage_head(row), payload=payload))
+            envelopes.append(StageEnvelope(head=self._access.codecs.stage_head(row), payload=payload))
         return envelopes
 
     def _project_creation_in_session(self, session: Session, project_row: ProjectRow) -> ProjectCreation:
         return ProjectCreation(
-            **self._repository._project(project_row).model_dump(mode="python"),
+            **self._access.codecs.project(project_row).model_dump(mode="python"),
             stages=self._stage_envelopes_in_session(session, project_row.id),
         )
 
@@ -127,14 +134,14 @@ class ProjectCatalogPersistence:
         if key is not None and (not key or len(key) > 255):
             raise ValueError("idempotency key must contain between 1 and 255 characters")
 
-        with self._repository._bootstrap_write() as session:
+        with self._access.leases.bootstrap_write() as session:
             if key is not None:
                 existing = session.get(ProjectCreationIdempotencyRow, key)
                 if existing is not None:
                     if existing.request_fingerprint != fingerprint:
                         raise IdempotencyConflictError()
                     return self._project_creation_in_session(
-                        session, self._repository._project_row(session, existing.project_id)
+                        session, self._access.rows.project(session, existing.project_id)
                     )
 
             now = utc_now()
@@ -143,7 +150,7 @@ class ProjectCatalogPersistence:
                 payload = stage_payload_model(
                     initial_stage.stage, schema_version=CURRENT_STAGE_SCHEMA_VERSION
                 ).model_validate(initial_stage.payload)
-                self._repository._canonical._install_stage_in_session(
+                self._require_canonical()._install_stage_in_session(
                     session,
                     project_row,
                     initial_stage.stage,
@@ -170,8 +177,8 @@ class ProjectCatalogPersistence:
             return self._project_creation_in_session(session, project_row)
 
     def get_project(self, project_id: str) -> Project:
-        with self._repository._read() as session:
-            return self._repository._project(self._repository._project_row(session, project_id))
+        with self._access.leases.read() as session:
+            return self._access.codecs.project(self._access.rows.project(session, project_id))
 
     def list_projects(
         self,
@@ -189,7 +196,7 @@ class ProjectCatalogPersistence:
 
         if not 1 <= limit <= 200:
             raise ValueError("project list limit must be between 1 and 200")
-        with self._repository._read() as session:
+        with self._access.leases.read() as session:
             statement = select(ProjectRow)
             if lifecycle_status is not None:
                 statement = statement.where(ProjectRow.lifecycle_status == lifecycle_status.value)
@@ -218,9 +225,9 @@ class ProjectCatalogPersistence:
                 )
                 summaries.append(
                     ProjectSummary(
-                        **self._repository._project(row).model_dump(mode="python"),
+                        **self._access.codecs.project(row).model_dump(mode="python"),
                         stage_statuses=statuses,
-                        latest_run=self._repository._latest_run_summary(latest_run) if latest_run else None,
+                        latest_run=self._access.codecs.latest_run_summary(latest_run) if latest_run else None,
                     )
                 )
             next_cursor = None
@@ -251,7 +258,7 @@ class ProjectCatalogPersistence:
         omitted_stages: Sequence[str],
     ) -> ProjectDuplicateResult:
         return ProjectDuplicateResult(
-            project=self._project_creation_in_session(session, self._repository._project_row(session, project_id)),
+            project=self._project_creation_in_session(session, self._access.rows.project(session, project_id)),
             copied_through=StageName(copied_through) if copied_through else None,
             omitted_stages=[StageName(stage) for stage in omitted_stages],
         )
@@ -277,7 +284,7 @@ class ProjectCatalogPersistence:
         # Duplicate-key decisions must be made at SQLite's immediate write
         # boundary, exactly like project creation.  Otherwise two processes
         # can both observe an unbound key and create distinct copies.
-        with self._repository._bootstrap_write() as session:
+        with self._access.leases.bootstrap_write() as session:
             if key is not None:
                 existing = session.get(ProjectDuplicateIdempotencyRow, key)
                 if existing is not None:
@@ -290,8 +297,8 @@ class ProjectCatalogPersistence:
                         existing.omitted_stages,
                     )
 
-            source = self._repository._project_row(session, project_id)
-            self._repository._assert_lifecycle_revision(source, expected_lifecycle_revision)
+            source = self._access.rows.project(session, project_id)
+            self._access.guards.lifecycle_revision(source, expected_lifecycle_revision)
             source_brief = ProjectBrief.model_validate(source.brief)
             brief_data = source_brief.model_dump(mode="python")
             if normalized_title is not None:
@@ -302,11 +309,11 @@ class ProjectCatalogPersistence:
 
             copied: list[StageName] = []
             for stage in STAGE_ORDER:
-                source_head = self._repository._stage_row(session, source.id, stage)
+                source_head = self._access.rows.stage(session, source.id, stage)
                 if source_head.status != StageStatus.READY.value:
                     break
-                payload = self._repository._canonical._load_stage_payload(session, source.id, stage)
-                self._repository._canonical._install_stage_in_session(
+                payload = self._require_canonical()._load_stage_payload(session, source.id, stage)
+                self._require_canonical()._install_stage_in_session(
                     session,
                     duplicate,
                     stage,

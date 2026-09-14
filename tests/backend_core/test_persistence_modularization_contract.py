@@ -12,6 +12,8 @@ from plotloom.persistence import (
     PROJECT_TEXT_PIPELINE_TABLE_NAMES,
     ProjectSQLiteRepository,
     SQLiteRepository,
+    VideoPilotLedgerEventRow,
+    VideoPilotLedgerRow,
     stable_hash,
 )
 from plotloom.persistence.project.approvals import ProjectApprovalPersistence
@@ -31,7 +33,11 @@ from plotloom.persistence.project.generation_repairs import ProjectGenerationRep
 from plotloom.persistence.project.generation_reuse import ProjectGenerationReusePersistence
 from plotloom.persistence.project.generation_snapshots import ProjectGenerationSnapshots
 from plotloom.persistence.project.generation_access import GenerationPersistenceAccess
+from plotloom.persistence.project.media import ProjectMediaPersistence
+from plotloom.persistence.application.profiles import ApplicationProfilePersistence
+from plotloom.persistence.application.accounting import VideoPilotAccounting
 from plotloom.exceptions import NotFoundError
+from plotloom.domain import utc_now
 
 
 BASELINE_TABLE_NAMES = frozenset(
@@ -187,3 +193,63 @@ def test_generation_policy_is_absent_from_the_retained_facade_and_owners_do_not_
     )
     assert "access.facade" not in generation_sources
     assert "repository._" not in generation_sources
+
+
+def test_media_and_application_control_are_explicit_owners_without_facade_bouncebacks() -> None:
+    """Project facts, application control, and accounting retain separate roots."""
+
+    repository = SQLiteRepository("sqlite://")
+    try:
+        assert isinstance(repository._media, ProjectMediaPersistence)
+        assert isinstance(repository._application_profiles, ApplicationProfilePersistence)
+        assert isinstance(repository._video_accounting, VideoPilotAccounting)
+        assert "self._media.prepare_image_job" in inspect.getsource(SQLiteRepository.prepare_image_job)
+        assert "self._application_profiles.create_text_provider_profile" in inspect.getsource(
+            SQLiteRepository.create_text_provider_profile
+        )
+    finally:
+        repository.close()
+
+    owners = Path(__file__).parents[2] / "src" / "plotloom" / "persistence"
+    authoring_sources = "\n".join(
+        (owners / "project" / name).read_text()
+        for name in ("catalog.py", "lifecycle.py", "drafts.py", "gates.py", "approvals.py", "canonical.py", "workflow.py")
+    )
+    media_source = (owners / "project" / "media.py").read_text()
+    application_sources = "\n".join(
+        path.read_text() for path in (owners / "application").glob("*.py")
+    )
+    assert "self._repository" not in authoring_sources
+    assert "legacy_repository" not in authoring_sources
+    assert "legacy_repository" not in media_source
+    assert "legacy_repository" not in application_sources
+    assert "VideoPilotLedger" not in media_source
+
+
+def test_extracted_pilot_accounting_reuses_the_historical_durable_ledger_identity() -> None:
+    """A capability move must not make existing shared reservations invisible."""
+
+    repository = SQLiteRepository("sqlite://")
+    try:
+        now = utc_now()
+        with repository._write() as session:  # noqa: SLF001 - persisted compatibility fixture
+            session.add(VideoPilotLedgerRow(
+                id="wan-3.0-pilot-100-requested-seconds", limit_seconds=100,
+                reserved_seconds=10, created_at=now, updated_at=now,
+            ))
+            session.flush()
+            session.add(VideoPilotLedgerEventRow(
+                id="historical-reservation", ledger_id="wan-3.0-pilot-100-requested-seconds",
+                video_job_id="historical-job", event="reserved", seconds=10, created_at=now,
+            ))
+        assert repository.video_budget() == {
+            "limitSeconds": 100,
+            "reservedSeconds": 10,
+            "remainingSeconds": 90,
+            "attempts": [{
+                "videoJobId": "historical-job", "event": "reserved", "seconds": 10,
+                "createdAt": now.isoformat(),
+            }],
+        }
+    finally:
+        repository.close()

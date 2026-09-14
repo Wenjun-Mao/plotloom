@@ -1,7 +1,7 @@
 # Codebase modularization: persistence-first structure proposal
 
-**Status:** approved responsibility map. The persistence package conversion is
-active; this document remains the execution map for separately accepted slices.
+**Status:** persistence conversion complete; this document remains the
+execution map for the separately pending frontend and later assessments.
 It follows the accepted API modularization checkpoint at
 `f9487508239bf14f5f8de8b255456c97a3e3b933` and the already-approved breaking
 project-folder storage destination.  It does not reopen the cutover decision,
@@ -11,9 +11,9 @@ add a selectable storage mode, or schedule frontend work concurrently.
 
 - [x] Responsibility map accepted.
 - [x] Project-folder storage package conversion completed.
-- [ ] Persistence package conversion active (schema/codec/database/transaction,
-  authoring, and generation capability slices are complete; project media and
-  application control remain separately owned work).
+- [x] Persistence package conversion complete (schema/codec/database/transaction,
+  authoring, generation, project media, and application control have explicit
+  capability owners; the retained runtime surface is compatibility composition).
 - [ ] Frontend modularization pending as a separate phase.
 - [ ] Justified assessment of other large modules pending; do not treat line
   count alone as implementation authority.
@@ -43,17 +43,14 @@ recovery, immutable evidence, and atomic install policy still lived in the
 facade. The ownership correction recorded in
 `docs/verification/2026-09-13-persistence-generation-ownership-correction.md`
 moves that policy into the named generation owners and adds a no-bounce-back
-regression. Its remaining owned responsibility
-is project media/still/image/review facts, application profiles/settings/video-
-pilot accounting, and narrow shared query helpers needed until those two
-independently-owned slices complete. The facade remains a temporary, explicitly
-named composition boundary—not a claim that persistence work is complete.
-
-The remaining capability seams are project media/still/image/review facts and
-installation profiles/settings/video-pilot accounting. Each needs its own caller
-migration, transaction proof, and deletion step. No schema, public API,
-migration, runtime cutover, or storage ownership decision changes in this
-checkpoint.
+regression. The final media/control extraction moves managed media, still/image/
+review/video facts into `project/media.py`, provider control into
+`application/profiles.py`, and the shared Wan pilot ledger into
+`application/accounting.py`. The facade now owns construction, narrow shared
+lease/row/codec guards, and explicit compatibility delegation only. ADR 0042
+records the boundary and the later, predicate-backed media submodule follow-up.
+No schema, public API, migration, runtime cutover, or storage ownership decision
+changes in this checkpoint.
 
 ## Audit checkpoint
 
