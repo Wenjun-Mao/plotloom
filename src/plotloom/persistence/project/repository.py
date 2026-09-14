@@ -36,6 +36,7 @@ from .generation_recovery import ProjectGenerationRecoveryPersistence
 from .generation_repair_eligibility import GenerationRepairEligibility
 from .generation_repair_scope import GenerationRepairScopePolicy
 from .generation_repairs import ProjectGenerationRepairPersistence
+from .generation_runtime_artifacts import ProjectGenerationRuntimeArtifactPersistence
 from .generation_reuse import ProjectGenerationReusePersistence
 from .generation_snapshots import ProjectGenerationSnapshots
 from .lifecycle import ProjectLifecyclePersistence
@@ -72,6 +73,8 @@ class ProjectSQLiteRepository:
         project_id: str,
         create_schema: bool = True,
         sqlite_busy_timeout_ms: int = 1_000,
+        read_only: bool = False,
+        normalize_sqlite_wal: bool = True,
     ) -> None:
         if not project_id:
             raise ValueError("project_id is required for a project repository")
@@ -85,6 +88,8 @@ class ProjectSQLiteRepository:
             schema_tables=self._schema_tables(),
             schema_scope="project",
             sqlite_busy_timeout_ms=sqlite_busy_timeout_ms,
+            read_only=read_only,
+            normalize_sqlite_wal=normalize_sqlite_wal,
         )
         self.engine, self._sessions, self._write_lock = (
             self._database.engine, self._database.sessions, self._database.write_lock
@@ -175,6 +180,9 @@ class ProjectSQLiteRepository:
         self._generation_recovery = ProjectGenerationRecoveryPersistence(
             self._generation_access, self._generation_plans
         )
+        self._generation_runtime_artifacts = (
+            ProjectGenerationRuntimeArtifactPersistence(self._generation_access)
+        )
         self._generation_lifecycle = ProjectGenerationLifecyclePersistence(
             self._generation_access, self._generation_snapshots, self._canonical
         )
@@ -202,6 +210,7 @@ class ProjectSQLiteRepository:
             evidence=self._generation_evidence,
             progress=self._generation_progress,
             recovery=self._generation_recovery,
+            runtime_artifacts=self._generation_runtime_artifacts,
         )
         self.media = ProjectMediaRepository(
             assets=self._media.assets,
@@ -224,6 +233,9 @@ class ProjectSQLiteRepository:
 
     def close(self) -> None:
         self._database.close()
+
+    def enable_sqlite_wal(self) -> None:
+        self._database.enable_sqlite_wal()
 
     def _set_recovery_admission(self, *, recovered_run_ids: Callable[[], set[str]], recovery_operations_present: Callable[[], bool]) -> None:
         self._generation_admission.set_recovery_admission(

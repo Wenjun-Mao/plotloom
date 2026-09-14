@@ -43,6 +43,11 @@ type CharacterProposal = {
   deliveries: Array<{ candidates: Array<{ assetId: string }> }>;
 };
 
+type PackagePaths = {
+  packagePath: string;
+  deliveryPath: string;
+};
+
 test.describe("P1.5 story-first character references", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -92,9 +97,11 @@ test.describe("P1.5 story-first character references", () => {
           `/api/v2/projects/${projectId}/character-reference-proposals/${first.id}/copy`,
     );
     await panel.getByTestId(`story-first-copy-${first.id}`).click();
-    expect((await copiedOriginal).ok()).toBeTruthy();
+    const copiedOriginalResponse = await copiedOriginal;
+    expect(copiedOriginalResponse.ok()).toBeTruthy();
+    const originalPackage = (await copiedOriginalResponse.json()) as PackagePaths;
     await writeProposalDelivery(
-      workbench.imageExchangeRoot,
+      originalPackage.deliveryPath,
       first,
       "story-first-original",
       "original",
@@ -149,9 +156,11 @@ test.describe("P1.5 story-first character references", () => {
           `/api/v2/projects/${projectId}/character-reference-proposals/${refinement.id}/copy`,
     );
     await panel.getByTestId(`story-first-copy-${refinement.id}`).click();
-    expect((await copiedRefinement).ok()).toBeTruthy();
+    const copiedRefinementResponse = await copiedRefinement;
+    expect(copiedRefinementResponse.ok()).toBeTruthy();
+    const refinementPackage = (await copiedRefinementResponse.json()) as PackagePaths;
     await writeProposalDelivery(
-      workbench.imageExchangeRoot,
+      refinementPackage.deliveryPath,
       refinement,
       "story-first-refinement",
       "refinement",
@@ -360,20 +369,14 @@ test.describe("P1 self-contained copied image brief", () => {
         value: undefined,
       }),
     );
-    await copyImageJob(page, projectId, original.id);
+    const originalPackage = await copyImageJob(page, projectId, original.id);
     await expect(page.getByTestId("image-job-copy-status")).toContainText(
       "手动复制",
     );
     await page.getByTestId("select-image-job-assignment").click();
 
-    const originalPackage = path.join(
-      workbench.imageExchangeRoot,
-      "jobs",
-      original.id,
-      "package",
-    );
     const originalRequest = await readJson(
-      path.join(originalPackage, "request.json"),
+      path.join(originalPackage.packagePath, "request.json"),
     );
     expect(originalRequest).toMatchObject({
       schemaVersion: 3,
@@ -398,7 +401,7 @@ test.describe("P1 self-contained copied image brief", () => {
       ],
     });
     const originalTemplate = await readJson(
-      path.join(originalPackage, "completion-manifest.example.json"),
+      path.join(originalPackage.packagePath, "completion-manifest.example.json"),
     );
     expect(originalTemplate).toMatchObject({
       jobId: original.id,
@@ -407,7 +410,8 @@ test.describe("P1 self-contained copied image brief", () => {
     });
 
     await writeDelivery(
-      workbench.imageExchangeRoot,
+      originalPackage.packagePath,
+      originalPackage.deliveryPath,
       original,
       "original-browser-001",
       "original",
@@ -494,15 +498,9 @@ test.describe("P1 self-contained copied image brief", () => {
       projectId,
     );
     expect(refinement.request.kind).toBe("refinement");
-    await copyImageJob(page, projectId, refinement.id);
-    const refinementPackage = path.join(
-      workbench.imageExchangeRoot,
-      "jobs",
-      refinement.id,
-      "package",
-    );
+    const refinementPackage = await copyImageJob(page, projectId, refinement.id);
     const refinementRequest = await readJson(
-      path.join(refinementPackage, "request.json"),
+      path.join(refinementPackage.packagePath, "request.json"),
     );
     expect(refinementRequest.references).toEqual(
       expect.arrayContaining([
@@ -522,7 +520,7 @@ test.describe("P1 self-contained copied image brief", () => {
       },
     );
     const refinementTemplate = await readJson(
-      path.join(refinementPackage, "completion-manifest.example.json"),
+      path.join(refinementPackage.packagePath, "completion-manifest.example.json"),
     );
     expect(refinementTemplate).toMatchObject({
       jobId: refinement.id,
@@ -531,7 +529,8 @@ test.describe("P1 self-contained copied image brief", () => {
     });
 
     await writeDelivery(
-      workbench.imageExchangeRoot,
+      refinementPackage.packagePath,
+      refinementPackage.deliveryPath,
       refinement,
       "refinement-browser-001",
       "refinement",
@@ -565,14 +564,17 @@ test.describe("P1 self-contained copied image brief", () => {
       workbench.apiOrigin,
       projectId,
     );
-    await copyImageJob(page, projectId, staleRefinement.id);
+    const staleRefinementPackage = await copyImageJob(
+      page, projectId, staleRefinement.id,
+    );
     await page
       .getByTestId("visual-intent-source-refs")
       .fill("retained P0 image fixture revised after copied refinement");
     await page.getByTestId("save-visual-intent").click();
     await expect(page.getByText(/已保存 r2/)).toBeVisible();
     await writeDelivery(
-      workbench.imageExchangeRoot,
+      staleRefinementPackage.packagePath,
+      staleRefinementPackage.deliveryPath,
       staleRefinement,
       "refinement-stale-browser-001",
       "refinement",
@@ -619,20 +621,15 @@ test.describe("P1 self-contained copied image brief", () => {
       workbench.apiOrigin,
       projectId,
     );
-    await copyImageJob(page, projectId, tampered.id);
+    const tamperedPackage = await copyImageJob(page, projectId, tampered.id);
     await writeDelivery(
-      workbench.imageExchangeRoot,
+      tamperedPackage.packagePath,
+      tamperedPackage.deliveryPath,
       tampered,
       "tampered-browser-001",
       "original",
     );
-    const tamperedManifest = path.join(
-      workbench.imageExchangeRoot,
-      "jobs",
-      tampered.id,
-      "delivery",
-      "completion.json",
-    );
+    const tamperedManifest = path.join(tamperedPackage.deliveryPath, "completion.json");
     const tamperedContents = await readJson(tamperedManifest);
     tamperedContents.requestHash = "0".repeat(64);
     await writeFile(tamperedManifest, JSON.stringify(tamperedContents), "utf8");
@@ -743,7 +740,7 @@ async function copyImageJob(
   page: import("@playwright/test").Page,
   projectId: string,
   jobId: string,
-): Promise<void> {
+): Promise<PackagePaths> {
   const copied = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&
@@ -753,6 +750,7 @@ async function copyImageJob(
   await page.getByTestId(`copy-image-job-${jobId}`).click();
   const response = await copied;
   expect(response.ok(), await response.text()).toBeTruthy();
+  return (await response.json()) as PackagePaths;
 }
 
 async function recordSamePersonReview(
@@ -815,15 +813,16 @@ async function imageJob(
 }
 
 async function writeDelivery(
-  root: string,
+  packagePath: string,
+  deliveryPath: string,
   job: ImageJob,
   deliveryId: string,
   role: "original" | "refinement",
 ): Promise<void> {
   const content = await readFile(retainedStill);
-  const outputRoot = path.join(root, "jobs", job.id, "delivery", "outputs");
+  const outputRoot = path.join(deliveryPath, "outputs");
   const packageRequest = await readJson(
-    path.join(root, "jobs", job.id, "package", "request.json"),
+    path.join(packagePath, "request.json"),
   );
   const identityReferenceHashes = packageRequest.references
     .filter((reference: { role: string }) =>
@@ -835,7 +834,7 @@ async function writeDelivery(
   await mkdir(outputRoot, { recursive: true });
   await writeFile(path.join(outputRoot, "candidate.png"), content);
   await writeFile(
-    path.join(root, "jobs", job.id, "delivery", "completion.json"),
+    path.join(deliveryPath, "completion.json"),
     JSON.stringify({
       schemaVersion: identityAware ? 2 : 1,
       jobId: job.id,
@@ -877,7 +876,7 @@ async function writeDelivery(
   );
   if (packageRequest.packageVersion >= 4) {
     await writeFile(
-      path.join(root, "jobs", job.id, "delivery", "executor-pin.json"),
+      path.join(deliveryPath, "executor-pin.json"),
       JSON.stringify({
         jobId: job.id,
         requestHash: job.requestHash,
@@ -908,13 +907,12 @@ async function latestProposal(
 }
 
 async function writeProposalDelivery(
-  root: string,
+  delivery: string,
   proposal: CharacterProposal,
   deliveryId: string,
   role: "original" | "refinement",
 ): Promise<void> {
   const content = await readFile(retainedStill);
-  const delivery = path.join(root, "jobs", proposal.id, "delivery");
   await mkdir(path.join(delivery, "outputs"), { recursive: true });
   await writeFile(path.join(delivery, "outputs", "candidate.png"), content);
   const provenance = {

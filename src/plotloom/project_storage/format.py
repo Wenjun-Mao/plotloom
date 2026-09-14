@@ -13,7 +13,7 @@ from pydantic import Field, field_validator
 
 from ..domain import CamelModel
 
-PROJECT_STORAGE_FORMAT_VERSION = 7
+PROJECT_STORAGE_FORMAT_VERSION = 8
 PROJECT_DATABASE_RELATIVE_PATH = "project.sqlite3"
 PROJECT_MANIFEST_FILENAME = "project.json"
 

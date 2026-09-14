@@ -69,14 +69,17 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   await mkdir(isolatedRoot, { recursive: true });
   await runFile("uv", ["run", "plotloom", "restore", "--source", snapshot.location, "--outputs-dir", restoredOutputs], { cwd: repositoryRoot });
   await workbench.restartBackend({
-    PLOTLOOM_E2E_OUTPUTS_DIR: restoredOutputs,
-    PLOTLOOM_E2E_APPLICATION_DATA_DIR: path.join(isolatedRoot, "application"),
+    PLOTLOOM_OUTPUTS_DIR: restoredOutputs,
+    PLOTLOOM_APPLICATION_DATA_DIR: path.join(isolatedRoot, "application"),
   });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
   await expect(page.getByTestId(`video-sequence-job-${prepared.id}`)).toBeVisible();
   const restoredMedia = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${prepared.id}/media`);
   expect(restoredMedia.ok()).toBeTruthy();
   expect((await restoredMedia.body()).byteLength).toBeGreaterThan(100);
+  // Do not leak this isolated restore root into a later worker-scoped browser
+  // journey; the fixture's default restart returns to its original paths.
+  await workbench.restartBackend();
 });
 
 async function createStoryboardProject(

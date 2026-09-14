@@ -31,8 +31,31 @@ recovery facts.
 
 Text admission freezes the selected application profile into each new project
 run. Server and browser-session keys stay process-local in `RunSecretBroker`.
-Startup reconciles each known project conservatively and does not submit or
-replay a run. The trusted H3 adapter is composed only when its frozen configured
+Startup reads every discovered project to rebuild the disposable route index, but
+reconciles only projects admitted OPEN; a CLOSED database is never rewritten at
+startup. Every mutation-capable run route obtains an admitted OPEN project
+handle before profile admission, route reservation, or provider work. Read-only
+run inspection uses a separate inspection handle and cannot reopen a project.
+
+The application index reserves a run route and frozen-profile reference before
+the project database creates a run, then confirms the durable run status after
+creation. That ordering means an index write failure cannot leave an unrouteable
+canonical run, and the application-side profile deletion guard atomically
+rejects deletion while any queued, running, cancel-requested, or pending frozen
+run references the profile. Startup rebuilds both disposable route and frozen
+profile reference records from project-local evidence.
+
+RunContext uses the project-owned relative artifact adapter. Production run
+bytes therefore live under the owning project and are addressed by confined
+relative content-addressed paths; no production text dispatcher may emit an
+absolute `file://` URI or rely on a relocation bridge. Snapshot inventory is
+derived from typed project storage records and its ordinary integrity checks.
+That typed inventory adds `v2_run_artifact_blobs`, so this runtime writes
+project storage format 8. Older format-7 project folders are rejected at the
+manifest boundary; there is intentionally no in-place migration in this
+cutover.
+
+The trusted H3 adapter is composed only when its frozen configured
 backend identity is present; absent H3 configuration exposes an explicit
 unavailable capability and never falls back to Atlas/Wan.
 
@@ -50,3 +73,7 @@ storage roadmap and development entrypoint.
 - Discover a run by searching every project database for each request.
 - Persist browser-session keys, provider credentials, or H3 endpoint secrets in
   an application or project database.
+- Treat inspection as permission to mutate a closed project, or rewrite closed
+  run history during startup reconciliation.
+- Rewrite old absolute artifact URIs while restoring a project. New-format
+  storage rejects those paths instead.

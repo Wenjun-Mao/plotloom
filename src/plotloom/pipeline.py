@@ -7,6 +7,7 @@ runner or the explicitly isolated historical repair flow.
 
 from __future__ import annotations
 
+import json
 from threading import Event, RLock
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Protocol
 
@@ -24,6 +25,7 @@ from .domain import (
     StoryBible,
     StoryGraph,
 )
+from .artifacts import RunEvidenceArtifactStore
 from .generation.contracts import (
     ExtractionPolicy,
     GenerationAttempt as PromptAttempt,
@@ -330,6 +332,7 @@ class PipelineEngine(GenerationEngine):
         context: RunContext,
         cancellation: Event,
     ) -> RunExecutionResult:
+        self._record_project_run_evidence(run, context)
         # Exact work-unit repair has a separate lineage contract.  It only
         # consumes repository-frozen scope and reuse bindings; a legacy repair
         # keeps the historic stage-level bridge below.  The existence of the
@@ -404,6 +407,31 @@ class PipelineEngine(GenerationEngine):
             model=model,
             profile=profile,
             cancellation=cancellation,
+        )
+
+    @staticmethod
+    def _record_project_run_evidence(run: GenerationRun, context: RunContext) -> None:
+        """Make the production runner's immutable input envelope portable.
+
+        The capability is deliberately absent from generic and historical
+        artifact stores, so this remains a project-folder runtime boundary.
+        """
+
+        if not isinstance(context.artifacts, RunEvidenceArtifactStore):
+            return
+        envelope = {
+            "formatVersion": 1,
+            "runId": run.id,
+            "projectId": run.project_id,
+            "kind": run.kind.value,
+            "requestedStages": [stage.value for stage in run.requested_stages],
+            "providerSnapshot": run.provider_snapshot,
+            "canonicalSnapshotHash": run.canonical_snapshot.snapshot_hash,
+        }
+        context.artifacts.record_run_evidence(
+            json.dumps(
+                envelope, ensure_ascii=False, separators=(",", ":"), sort_keys=True
+            ).encode("utf-8")
         )
 
     def _execute_legacy_repair(

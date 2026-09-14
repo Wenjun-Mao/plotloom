@@ -112,6 +112,21 @@ class ArtifactRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class RunArtifactBlobRow(Base):
+    """One project-owned opaque runtime byte blob with a durable inventory row."""
+
+    __tablename__ = "v2_run_artifact_blobs"
+
+    run_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_generation_runs.id", ondelete="CASCADE"), primary_key=True
+    )
+    relative_path: Mapped[str] = mapped_column(String(72), primary_key=True)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    media_type: Mapped[str] = mapped_column(String(255), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class GenerationPlanRow(Base):
     __tablename__ = "v2_generation_plans"
 

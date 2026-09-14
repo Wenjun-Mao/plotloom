@@ -16,6 +16,13 @@ class ArtifactStore(Protocol):
     def get(self, uri: str) -> bytes: ...
 
 
+@runtime_checkable
+class RunEvidenceArtifactStore(ArtifactStore, Protocol):
+    """Optional runtime capability for project-owned run-evidence bytes."""
+
+    def record_run_evidence(self, content: bytes) -> str: ...
+
+
 def _content_hash(content: bytes) -> str:
     return hashlib.sha256(content).hexdigest()
 

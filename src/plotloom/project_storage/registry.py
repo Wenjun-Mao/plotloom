@@ -89,8 +89,12 @@ class ProjectDirectoryRegistry:
                 continue
             try:
                 manifest = ProjectManifest.model_validate(_read_json(manifest_path))
-                lease = ProjectAccessLease.acquire(candidate, mode="shared")
-                store = ProjectStore.open(candidate, access_lease=lease)
+                lease = ProjectAccessLease.acquire(
+                    candidate, mode="shared", create=False
+                )
+                store = ProjectStore.open(
+                    candidate, read_only=True, access_lease=lease
+                )
                 store.close()
             except (ProjectStorageError, ValueError, SQLAlchemyError):
                 continue
@@ -103,11 +107,14 @@ class ProjectDirectoryRegistry:
         home = self._project_home(project_id)
         lease = ProjectAccessLease.acquire(home.path, mode="shared")
         try:
-            store = ProjectStore.open(home.path, access_lease=lease)
+            store = ProjectStore.open(
+                home.path, defer_wal=True, access_lease=lease
+            )
             state, _revision = store.repository.operational_state()
             if state != "open":
                 store.close()
                 raise ProjectClosedError("project_closed: reopen it explicitly before editing")
+            store.repository.enable_sqlite_wal()
             return store
         except BaseException:
             if lease.descriptor >= 0:
@@ -118,9 +125,13 @@ class ProjectDirectoryRegistry:
         """Open a shared read handle without changing closed-project admission."""
 
         home = self._project_home(project_id)
-        lease = ProjectAccessLease.acquire(home.path, mode="shared")
+        lease = ProjectAccessLease.acquire(
+            home.path, mode="shared", create=False
+        )
         try:
-            return ProjectStore.open(home.path, access_lease=lease)
+            return ProjectStore.open(
+                home.path, read_only=True, access_lease=lease
+            )
         except BaseException:
             lease.close()
             raise

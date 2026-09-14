@@ -8,14 +8,15 @@ from dataclasses import dataclass
 from threading import RLock
 from typing import Any
 
-from ..artifacts import LocalArtifactStore
-from ..domain import GenerationRun, RunKind, StageName, StartupRecoveryPlan
+from ..domain import GenerationRun, RunKind, StageName, StartupRecoveryPlan, new_id
 from ..exceptions import NotFoundError
 from ..jobs import LifecycleJobRunner
 from ..pipeline import PipelineEngine, RunSecretBroker, TextProviderResolver
 from ..providers import ProviderPorts
 from ..runtime import RunContext
 from .composition import ProjectFolderStorage
+from .application_store import ApplicationRunRoute
+from .format import ProjectStorageCorruptionError
 from .project_handle import ProjectStore
 
 
@@ -50,13 +51,13 @@ class ProjectRunDispatcher:
         self._lock = RLock()
 
     def rebuild_index(self) -> None:
-        routes: list[tuple[str, str]] = []
+        routes: list[ApplicationRunRoute] = []
         for home in self.storage.projects.discover():
             store = self.storage.projects.inspect(home.manifest.project_id)
             try:
                 routes.extend(
-                    (run_id, home.manifest.project_id)
-                    for run_id in store.generation_run_ids_for_index()
+                    self._route_for_run(run)
+                    for run in store.generation_runs_for_index()
                 )
             finally:
                 store.close()
@@ -67,9 +68,22 @@ class ProjectRunDispatcher:
 
         plans: dict[str, StartupRecoveryPlan] = {}
         for home in self.storage.projects.discover():
-            store = self.storage.projects.inspect(home.manifest.project_id)
+            inspection = self.storage.projects.inspect(home.manifest.project_id)
             try:
-                plans[home.manifest.project_id] = store.generation.reconcile_startup_jobs()
+                state, _revision = inspection.repository.operational_state()
+            finally:
+                inspection.close()
+            if state != "open":
+                plans[home.manifest.project_id] = StartupRecoveryPlan()
+                continue
+            # Inspection intentionally ends before recovery. An OPEN project is
+            # then re-admitted through the mutation-capable handle required by
+            # reconciliation; CLOSED projects never receive this path.
+            store = self.storage.projects.open(home.manifest.project_id)
+            try:
+                plans[home.manifest.project_id] = (
+                    store.generation.reconcile_startup_jobs()
+                )
             finally:
                 store.close()
         self.rebuild_index()
@@ -85,7 +99,12 @@ class ProjectRunDispatcher:
         instructions: str | None = None,
     ) -> GenerationRun:
         store = self.storage.projects.open(project_id)
+        route = self._route_for_snapshot(
+            run_id=new_id(), project_id=project_id, provider_snapshot=provider_snapshot
+        )
+        created = False
         try:
+            self.storage.application.reserve_run_route(route)
             store.require_recovery_acknowledged()
             with store.generation.admit_provider_snapshot(dict(provider_snapshot)):
                 run = store.generation.create_run(
@@ -94,9 +113,15 @@ class ProjectRunDispatcher:
                     requested_stages,
                     instructions=instructions,
                     provider_snapshot=dict(provider_snapshot),
+                    run_id=route.run_id,
                 )
-            self.storage.application.index_run(run.id, project_id)
+            created = True
+            self.storage.application.confirm_run_route(run.id, status=run.status.value)
             return run
+        except BaseException:
+            if not created:
+                self.storage.application.discard_pending_run_route(route.run_id)
+            raise
         finally:
             store.close()
 
@@ -115,16 +140,29 @@ class ProjectRunDispatcher:
         instructions: str | None,
     ) -> GenerationRun:
         store = self.open_run_project(source_run_id)
+        route = self._route_for_snapshot(
+            run_id=new_id(),
+            project_id=store.manifest.project_id,
+            provider_snapshot=provider_snapshot,
+        )
+        created = False
         try:
+            self.storage.application.reserve_run_route(route)
             with store.generation.admit_provider_snapshot(dict(provider_snapshot)):
                 run = store.generation.create_repair_run(
                     source_run_id,
                     stage=stage,
                     instructions=instructions,
                     provider_snapshot=dict(provider_snapshot),
+                    run_id=route.run_id,
                 )
-            self.storage.application.index_run(run.id, store.manifest.project_id)
+            created = True
+            self.storage.application.confirm_run_route(run.id, status=run.status.value)
             return run
+        except BaseException:
+            if not created:
+                self.storage.application.discard_pending_run_route(route.run_id)
+            raise
         finally:
             store.close()
 
@@ -132,19 +170,52 @@ class ProjectRunDispatcher:
         self, source_run_id: str, work_unit_id: str, *, idempotency_key: str
     ) -> tuple[GenerationRun, bool]:
         store = self.open_run_project(source_run_id)
+        route: ApplicationRunRoute | None = None
+        created = False
         try:
             source = store.generation.get_run(source_run_id)
+            route = self._route_for_snapshot(
+                run_id=new_id(),
+                project_id=store.manifest.project_id,
+                provider_snapshot=source.provider_snapshot,
+            )
+            self.storage.application.reserve_run_route(route)
             with store.generation.admit_provider_snapshot(source.provider_snapshot):
                 creation = store.generation.create_work_unit_repair_run(
-                    source_run_id, work_unit_id, idempotency_key=idempotency_key
+                    source_run_id,
+                    work_unit_id,
+                    idempotency_key=idempotency_key,
+                    run_id=route.run_id,
                 )
-            self.storage.application.index_run(creation.run.id, store.manifest.project_id)
+            created = creation.created
+            if created:
+                self.storage.application.confirm_run_route(
+                    creation.run.id, status=creation.run.status.value
+                )
+            else:
+                self.storage.application.index_run(self._route_for_run(creation.run))
+                self.storage.application.discard_pending_run_route(route.run_id)
             return creation.run, creation.created
+        except BaseException:
+            if route is not None and not created:
+                self.storage.application.discard_pending_run_route(route.run_id)
+            raise
         finally:
             store.close()
 
     def open_run_project(self, run_id: str) -> ProjectStore:
+        return self.storage.projects.open(self.project_id_for_run(run_id))
+
+    def inspect_run_project(self, run_id: str) -> ProjectStore:
         return self.storage.projects.inspect(self.project_id_for_run(run_id))
+
+    def require_open_project(self, project_id: str) -> None:
+        store = self.storage.projects.open(project_id)
+        store.close()
+
+    def require_open_run_project(self, run_id: str) -> None:
+        store = self.open_run_project(run_id)
+        store.close()
 
     def submit(self, run_id: str, *, session_api_key: str | None = None) -> Future[GenerationRun]:
         with self._lock:
@@ -158,7 +229,7 @@ class ProjectRunDispatcher:
                 PipelineEngine(store.generation, self.provider_resolver, self.secrets),
                 RunContext(
                     providers=ProviderPorts(),
-                    artifacts=LocalArtifactStore(store.home / "runs"),
+                    artifacts=store.run_artifacts(run_id),
                 ),
                 max_workers=self.max_workers,
                 secret_registrar=self.secrets,
@@ -180,7 +251,9 @@ class ProjectRunDispatcher:
                 return active.runner.request_cancel(run_id)
         store = self.open_run_project(run_id)
         try:
-            return store.generation.cancel_run(run_id)
+            run = store.generation.cancel_run(run_id)
+            self.storage.application.confirm_run_route(run.id, status=run.status.value)
+            return run
         finally:
             store.close()
 
@@ -191,7 +264,44 @@ class ProjectRunDispatcher:
             # Completion callbacks run on the runner's worker thread; waiting
             # there would attempt to join the current worker.
             active.runner.close(wait=False)
+            try:
+                run = active.store.generation.get_run(run_id)
+                self.storage.application.confirm_run_route(run.id, status=run.status.value)
+            except BaseException:
+                # The project database remains canonical. Startup rebuild will
+                # repair only the disposable application index after a local
+                # shutdown or application-store fault.
+                pass
             active.store.close()
+
+    @staticmethod
+    def _route_for_snapshot(
+        *, run_id: str, project_id: str, provider_snapshot: Mapping[str, Any]
+    ) -> ApplicationRunRoute:
+        raw_profile_id = provider_snapshot.get("profileId") or provider_snapshot.get("profile_id")
+        profile_id = str(raw_profile_id or "").strip()
+        if not profile_id:
+            raise ProjectStorageCorruptionError("generation run has no frozen text profile ID")
+        return ApplicationRunRoute(
+            run_id=run_id,
+            project_id=project_id,
+            profile_id=profile_id,
+            status="pending",
+        )
+
+    @classmethod
+    def _route_for_run(cls, run: GenerationRun) -> ApplicationRunRoute:
+        route = cls._route_for_snapshot(
+            run_id=run.id,
+            project_id=run.project_id,
+            provider_snapshot=run.provider_snapshot,
+        )
+        return ApplicationRunRoute(
+            run_id=route.run_id,
+            project_id=route.project_id,
+            profile_id=route.profile_id,
+            status=run.status.value,
+        )
 
     def close(self) -> None:
         with self._lock:

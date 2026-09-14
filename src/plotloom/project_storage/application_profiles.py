@@ -106,6 +106,13 @@ class ApplicationProfileRepository:
         if isinstance(configuration, TextProviderProfileSnapshot):
             return configuration.model_dump(mode="python", by_alias=False)
         values = dict(configuration)
+        # A profile view returns its currently derived V3 hash. The browser
+        # sends that view back after an edit, so validating the stale hash
+        # before this repository assigns the next profile revision would reject
+        # every legitimate round trip. The repository owns hash derivation and
+        # replaces it below after validating the edited public fields.
+        values.pop("profileHash", None)
+        values.pop("profile_hash", None)
         try:
             return TextProviderProfileSnapshotV3.model_validate(values).model_dump(
                 mode="python", by_alias=False
@@ -282,15 +289,10 @@ class ApplicationProfileRepository:
         return self._profile(profile_id)
 
     def delete_text_provider_profile(self, profile_id: str, expected_revision: int) -> None:
-        current = self._profile(profile_id)
-        if current.revision != expected_revision:
-            raise RevisionConflictError("text-provider-profile", expected_revision, current.revision)
-        selection = self.get_provider_profile_selection()
-        if selection.active_profile_id == profile_id:
-            raise InvalidTransitionError("cannot delete the active text provider profile")
-        with self.store._write() as connection:  # noqa: SLF001 - same storage boundary
-            connection.execute("DELETE FROM application_text_profile_metadata WHERE profile_id = ?", (profile_id,))
-            connection.execute("DELETE FROM application_profiles WHERE profile_id = ?", (profile_id,))
+        # The store checks selection, expected revision, and frozen-run
+        # references in one transaction. Splitting those checks here would let
+        # a concurrently admitted project run lose its frozen profile.
+        self.store.delete_text_profile_record(profile_id, expected_revision)
 
     def get_provider_settings(self) -> ProviderSettings:
         return self.defaults

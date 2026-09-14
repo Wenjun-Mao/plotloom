@@ -37,14 +37,24 @@ class ProjectAccessLease:
 
     @classmethod
     def acquire(
-        cls, project_home: Path, *, mode: Literal["shared", "exclusive"]
+        cls,
+        project_home: Path,
+        *,
+        mode: Literal["shared", "exclusive"],
+        create: bool = True,
     ) -> "ProjectAccessLease":
         lock_path = project_home / ".project-operation.lock"
-        descriptor = os.open(
-            lock_path,
-            os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0),
-            0o600,
-        )
+        flags = os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+        if create:
+            flags |= os.O_CREAT
+        try:
+            descriptor = os.open(lock_path, flags, 0o600)
+        except FileNotFoundError:
+            if not create and mode == "shared":
+                # Restored CLOSED folders intentionally omit operational
+                # debris. A read-only inspection must not recreate it.
+                return cls(descriptor=-1, mode=mode)
+            raise
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
             os.close(descriptor)

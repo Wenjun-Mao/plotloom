@@ -6,7 +6,7 @@ from .project_authoring import (
 from .project_generation import (
     ArtifactRow, FragmentReuseBindingRow, GenerationAttemptRow, GenerationPlanRow,
     GenerationRunRow, GenerationWorkUnitRow, MediaTaskRow, SealedStageAggregateRow, StagePlanRow,
-    StoryGraphTopologyRow, WorkUnitRepairIdempotencyRow, WorkUnitRepairScopeRow,
+    StoryGraphTopologyRow, RunArtifactBlobRow, WorkUnitRepairIdempotencyRow, WorkUnitRepairScopeRow,
 )
 from .project_media import (
     CharacterReferenceDecisionRow, CharacterReferenceProposalCandidateRow,
@@ -20,7 +20,7 @@ from .application_control import ProviderProfileSelectionRow, ProviderSettingsRo
 # This intentionally names the project-owned port instead of using Base.metadata wholesale.
 PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_projects", "v2_project_operational_states", "v2_entity_revisions", "v2_stage_heads", "v2_authoring_drafts",
-    "v2_gate_results", "v2_generation_runs", "v2_generation_attempts", "v2_artifacts",
+    "v2_gate_results", "v2_generation_runs", "v2_generation_attempts", "v2_artifacts", "v2_run_artifact_blobs",
     "v2_generation_plans", "v2_generation_stage_plans", "v2_generation_work_units",
     "v2_sealed_stage_aggregates", "v2_generation_work_unit_repair_scopes",
     "v2_generation_fragment_reuse_bindings", "v2_generation_work_unit_repair_idempotency",

@@ -226,6 +226,23 @@ def referenced_asset_paths(database: Path) -> set[PurePosixPath]:
                 "video output storage URI does not match its declared hash"
             )
         paths.add(path)
+    connection = database_connection(database)
+    try:
+        runtime_rows = list(
+            connection.execute(
+                "SELECT relative_path, content_hash, size_bytes "
+                "FROM v2_run_artifact_blobs ORDER BY run_id, relative_path"
+            )
+        )
+    finally:
+        connection.close()
+    for relative_path, content_hash, size_bytes in runtime_rows:
+        path = _asset_path(relative_path)
+        if path.name != content_hash or not isinstance(size_bytes, int) or size_bytes < 0:
+            raise ProjectStorageCorruptionError(
+                "runtime artifact storage row does not match its confined bytes"
+            )
+        paths.add(path)
     return paths
 
 

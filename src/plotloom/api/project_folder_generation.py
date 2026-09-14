@@ -41,6 +41,7 @@ def register_project_folder_generation_routes(
     def create_pipeline_run(
         project_id: str, body: PipelineRunRequest, request: Request
     ) -> GenerationRun:
+        dispatcher.require_open_project(project_id)
         snapshot = admission.admit_text_backend(body.provider_profile_id, request)
         admission.text_submission_session_key(snapshot, request)
         run = dispatcher.create_run(
@@ -61,6 +62,7 @@ def register_project_folder_generation_routes(
     def create_rebuild(
         project_id: str, body: RebuildRequest, request: Request
     ) -> GenerationRun:
+        dispatcher.require_open_project(project_id)
         start = STAGE_ORDER.index(body.from_stage)
         end = STAGE_ORDER.index(body.through_stage) if body.through_stage else len(STAGE_ORDER) - 1
         snapshot = admission.admit_text_backend(body.provider_profile_id, request)
@@ -77,7 +79,7 @@ def register_project_folder_generation_routes(
 
     @app.get("/api/v2/runs/{run_id}", response_model=GenerationRun)
     def get_run(run_id: str) -> GenerationRun:
-        store = dispatcher.open_run_project(run_id)
+        store = dispatcher.inspect_run_project(run_id)
         try:
             return store.generation.get_run(run_id)
         finally:
@@ -85,7 +87,7 @@ def register_project_folder_generation_routes(
 
     @app.get("/api/v2/runs/{run_id}/trace", response_model=RunTrace)
     def get_run_trace(run_id: str) -> RunTrace:
-        store = dispatcher.open_run_project(run_id)
+        store = dispatcher.inspect_run_project(run_id)
         try:
             return store.run_trace(run_id)
         finally:
@@ -93,7 +95,7 @@ def register_project_folder_generation_routes(
 
     @app.get("/api/v2/runs/{run_id}/execution-trace", response_model=RunExecutionTrace)
     def get_run_execution_trace(run_id: str) -> RunExecutionTrace:
-        store = dispatcher.open_run_project(run_id)
+        store = dispatcher.inspect_run_project(run_id)
         try:
             return store.run_execution_trace(run_id)
         finally:
@@ -101,7 +103,7 @@ def register_project_folder_generation_routes(
 
     @app.get("/api/v2/runs/{run_id}/progress", response_model=RunProgress)
     def get_run_progress(run_id: str) -> RunProgress:
-        store = dispatcher.open_run_project(run_id)
+        store = dispatcher.inspect_run_project(run_id)
         try:
             return store.generation.get_run_progress(run_id)
         finally:
@@ -113,7 +115,7 @@ def register_project_folder_generation_routes(
         status_code=status.HTTP_202_ACCEPTED,
     )
     def resume_run(run_id: str, request: Request) -> GenerationRun:
-        store = dispatcher.open_run_project(run_id)
+        store = dispatcher.inspect_run_project(run_id)
         try:
             run = store.generation.get_run(run_id)
         finally:
@@ -146,6 +148,7 @@ def register_project_folder_generation_routes(
         deprecated=True,
     )
     def create_repair(run_id: str, body: RepairRequest, request: Request) -> GenerationRun:
+        dispatcher.require_open_run_project(run_id)
         snapshot = admission.admit_text_backend(body.provider_profile_id, request)
         admission.text_submission_session_key(snapshot, request)
         run = dispatcher.create_repair(
@@ -170,6 +173,7 @@ def register_project_folder_generation_routes(
         idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=255)],
     ) -> GenerationRun:
         source = get_run(run_id)
+        dispatcher.require_open_run_project(run_id)
         profile_id = str(source.provider_snapshot.get("profileId") or source.provider_snapshot.get("profile_id") or DEFAULT_PROVIDER_PROFILE_ID)
         admission.admit_text_backend(profile_id, request, frozen_snapshot=source.provider_snapshot)
         admission.text_submission_session_key(source.provider_snapshot, request)

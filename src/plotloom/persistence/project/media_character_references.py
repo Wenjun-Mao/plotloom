@@ -171,8 +171,19 @@ class CharacterReferencePersistence:
     def list_character_reference_decisions(self, project_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)
-            bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
-            characters = {item.id: item for item in bible.characters}
+            # The visual workbench is available from project creation, while a
+            # Story Bible is an authored prerequisite for selecting a reference
+            # (not for inspecting an empty history). Preserve hard failures for
+            # a corrupt installed stage, but represent an uninstalled Story
+            # Bible as an empty current-character set.
+            bible_head = self._access.rows.stage(session, project_id, StageName.STORY_BIBLE)
+            if bible_head.entity_revision_id is None:
+                characters: dict[str, Any] = {}
+            else:
+                bible = self._canonical._load_stage_payload(
+                    session, project_id, StageName.STORY_BIBLE
+                )
+                characters = {item.id: item for item in bible.characters}
             rows = session.scalars(
                 select(CharacterReferenceDecisionRow)
                 .where(CharacterReferenceDecisionRow.project_id == project_id)

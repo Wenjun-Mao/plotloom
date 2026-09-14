@@ -25,6 +25,7 @@ from .generation_plans import ProjectGenerationPlanningPersistence
 from .generation_progress import ProjectGenerationProgressPersistence
 from .generation_recovery import ProjectGenerationRecoveryPersistence
 from .generation_repairs import ProjectGenerationRepairPersistence
+from .generation_runtime_artifacts import ProjectGenerationRuntimeArtifactPersistence
 from .generation_reuse import ProjectGenerationReusePersistence
 from .generation_snapshots import ProjectGenerationSnapshots
 
@@ -46,6 +47,7 @@ class ProjectGenerationRepository:
         evidence: ProjectGenerationEvidencePersistence,
         progress: ProjectGenerationProgressPersistence,
         recovery: ProjectGenerationRecoveryPersistence,
+        runtime_artifacts: ProjectGenerationRuntimeArtifactPersistence,
     ) -> None:
         self._admission = admission
         self._snapshots = snapshots
@@ -58,6 +60,7 @@ class ProjectGenerationRepository:
         self._evidence = evidence
         self._progress = progress
         self._recovery = recovery
+        self._runtime_artifacts = runtime_artifacts
 
     @contextmanager
     def admit_provider_snapshot(self, provider_snapshot: dict[str, Any]) -> Iterator[None]:
@@ -68,12 +71,12 @@ class ProjectGenerationRepository:
         self, project_id: str, kind: RunKind, requested_stages: Sequence[StageName],
         *, instructions: str | None = None, parent_run_id: str | None = None,
         repair_stage: StageName | None = None, repair_source: RepairSource | None = None,
-        provider_snapshot: dict[str, Any] | None = None,
+        provider_snapshot: dict[str, Any] | None = None, run_id: str | None = None,
     ) -> GenerationRun:
         return self._snapshots.create_run(
             project_id, kind, requested_stages, instructions=instructions,
             parent_run_id=parent_run_id, repair_stage=repair_stage,
-            repair_source=repair_source, provider_snapshot=provider_snapshot,
+            repair_source=repair_source, provider_snapshot=provider_snapshot, run_id=run_id,
         )
 
     def get_run(self, run_id: str) -> GenerationRun:
@@ -159,6 +162,23 @@ class ProjectGenerationRepository:
     ) -> dict[StageName, StagePayload]:
         return self._repairs.get_repair_stage_dependencies(child_run_id, stage)
 
+    def create_repair_run(
+        self,
+        source_run_id: str,
+        *,
+        stage: StageName | None = None,
+        instructions: str | None = None,
+        provider_snapshot: dict[str, Any] | None = None,
+        run_id: str | None = None,
+    ) -> GenerationRun:
+        return self._repairs.create_repair_run(
+            source_run_id,
+            stage=stage,
+            instructions=instructions,
+            provider_snapshot=provider_snapshot,
+            run_id=run_id,
+        )
+
     def prepare_repair_stage_reuse(
         self, child_run_id: str, stage: StageName
     ) -> list[FragmentReuseBinding]:
@@ -211,6 +231,23 @@ class ProjectGenerationRepository:
     def get_artifact(self, artifact_id: str) -> Artifact:
         return self._evidence.get_artifact(artifact_id)
 
+    def record_runtime_artifact(
+        self,
+        run_id: str,
+        *,
+        relative_path: str,
+        content_hash: str,
+        media_type: str,
+        size_bytes: int,
+    ) -> None:
+        self._runtime_artifacts.record(
+            run_id,
+            relative_path=relative_path,
+            content_hash=content_hash,
+            media_type=media_type,
+            size_bytes=size_bytes,
+        )
+
     def create_attempt(
         self, run_id: str, stage: StageName, *, provider: str | None = None,
         model: str | None = None,
@@ -229,11 +266,11 @@ class ProjectGenerationRepository:
 
     def create_work_unit_repair_run(
         self, source_run_id: str, work_unit_id: str, *, idempotency_key: str,
-        instructions: str | None = None,
+        instructions: str | None = None, run_id: str | None = None,
     ) -> WorkUnitRepairRunCreation:
         return self._repairs.create_work_unit_repair_run(
             source_run_id, work_unit_id, idempotency_key=idempotency_key,
-            instructions=instructions,
+            instructions=instructions, run_id=run_id,
         )
 
     def get_work_unit_repair_scope(self, child_run_id: str) -> WorkUnitRepairScope:
@@ -249,6 +286,9 @@ class ProjectGenerationRepository:
 
     def list_project_run_ids_for_index(self, project_id: str) -> list[str]:
         return self._lifecycle.list_project_run_ids_for_index(project_id)
+
+    def list_project_runs_for_index(self, project_id: str) -> list[GenerationRun]:
+        return self._lifecycle.list_project_runs_for_index(project_id)
 
     def reconcile_startup_jobs(self) -> StartupRecoveryPlan:
         if self._admission.recovery_operations_are_present():

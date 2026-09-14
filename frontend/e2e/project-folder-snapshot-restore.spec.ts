@@ -67,8 +67,8 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   await mkdir(isolatedRoot, { recursive: true });
   await runFile("uv", ["run", "plotloom", "restore", "--source", snapshot.location, "--outputs-dir", restoredOutputs], { cwd: repositoryRoot });
   await workbench.restartBackend({
-    PLOTLOOM_E2E_OUTPUTS_DIR: restoredOutputs,
-    PLOTLOOM_E2E_APPLICATION_DATA_DIR: restoredApplication,
+    PLOTLOOM_OUTPUTS_DIR: restoredOutputs,
+    PLOTLOOM_APPLICATION_DATA_DIR: restoredApplication,
   });
 
   await page.evaluate(() => sessionStorage.clear());
@@ -82,6 +82,10 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   expect((await restoredWorkbench.json() as { reviewedKeyframes: unknown[] }).reviewedKeyframes).toHaveLength(1);
   await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /05 分镜工作台/ }).click();
   await expect(page.getByAltText(/Imported candidate/)).toBeVisible();
+  // The worker-scoped fixture can serve later project-folder tests. Its public
+  // restart helper intentionally defaults to these original paths, so restore
+  // that baseline after proving the isolated installation.
+  await workbench.restartBackend();
 });
 
 async function createStoryboardProject(

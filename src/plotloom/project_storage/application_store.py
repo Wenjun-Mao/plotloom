@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from datetime import datetime
 import json
 from pathlib import Path
@@ -12,7 +13,14 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import Field, model_validator
 
-from ..domain import CamelModel, contains_secret_setting, contains_secret_value, utc_now
+from ..domain import (
+    TERMINAL_RUN_STATUSES,
+    CamelModel,
+    contains_secret_setting,
+    contains_secret_value,
+    utc_now,
+)
+from ..exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from .direct_video_accounting import DirectVideoDispatchAccounting, VideoDispatchLease
 from .format import (
     ProjectStorageConflictError,
@@ -65,6 +73,16 @@ class GlobalAccountingEntry(CamelModel):
         ):
             raise ValueError("global accounting identifiers must be public")
         return self
+
+
+@dataclass(frozen=True)
+class ApplicationRunRoute:
+    """A rebuildable route and its frozen-profile deletion guard."""
+
+    run_id: str
+    project_id: str
+    profile_id: str
+    status: str
 
 
 class ApplicationStore:
@@ -142,7 +160,12 @@ class ApplicationStore:
                 CREATE TABLE IF NOT EXISTS application_run_routes (
                     run_id TEXT PRIMARY KEY,
                     project_id TEXT NOT NULL,
-                    indexed_at TEXT NOT NULL);""")
+                    indexed_at TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS application_frozen_profile_run_references (
+                    run_id TEXT PRIMARY KEY,
+                    profile_id TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    updated_at TEXT NOT NULL);""")
             self._video_dispatch.initialize_schema(connection)
 
     @staticmethod
@@ -341,20 +364,76 @@ class ApplicationStore:
                 "selected application profile is not a valid secret-free text profile"
             ) from error
 
-    def index_run(self, run_id: str, project_id: str) -> None:
-        """Record a rebuildable route without making application storage authoritative."""
+    def reserve_run_route(self, route: ApplicationRunRoute) -> None:
+        """Protect a frozen profile before a project transaction creates its run.
+
+        A crash before project creation leaves only disposable ``pending``
+        state, which startup reconstructs. Reversing the order could make a
+        canonical project run invisible to every run-ID route.
+        """
 
         with self._write() as connection:
-            row = connection.execute(
-                "SELECT project_id FROM application_run_routes WHERE run_id = ?", (run_id,)
+            if connection.execute(
+                "SELECT 1 FROM application_profiles WHERE profile_id = ?", (route.profile_id,)
+            ).fetchone() is None:
+                raise NotFoundError(f"text provider profile not found: {route.profile_id}")
+            existing_route = connection.execute(
+                "SELECT project_id FROM application_run_routes WHERE run_id = ?", (route.run_id,)
             ).fetchone()
-            if row is not None and row["project_id"] != project_id:
+            if existing_route is not None and existing_route["project_id"] != route.project_id:
                 raise ProjectStorageConflictError("run ID is already routed to another project")
+            existing_reference = connection.execute(
+                "SELECT profile_id FROM application_frozen_profile_run_references WHERE run_id = ?",
+                (route.run_id,),
+            ).fetchone()
+            if existing_reference is not None and existing_reference["profile_id"] != route.profile_id:
+                raise ProjectStorageConflictError("run ID is already bound to another frozen profile")
+            now = utc_now().isoformat()
             connection.execute(
                 "INSERT INTO application_run_routes (run_id, project_id, indexed_at) VALUES (?, ?, ?) "
                 "ON CONFLICT(run_id) DO UPDATE SET indexed_at = excluded.indexed_at",
-                (run_id, project_id, utc_now().isoformat()),
+                (route.run_id, route.project_id, now),
             )
+            connection.execute(
+                "INSERT INTO application_frozen_profile_run_references "
+                "(run_id, profile_id, status, updated_at) VALUES (?, ?, 'pending', ?) "
+                "ON CONFLICT(run_id) DO UPDATE SET status = excluded.status, updated_at = excluded.updated_at",
+                (route.run_id, route.profile_id, now),
+            )
+
+    def confirm_run_route(self, run_id: str, *, status: str) -> None:
+        """Confirm project-local status once the project transaction commits."""
+
+        with self._write() as connection:
+            updated = connection.execute(
+                "UPDATE application_frozen_profile_run_references SET status = ?, updated_at = ? "
+                "WHERE run_id = ?",
+                (status, utc_now().isoformat(), run_id),
+            )
+            if updated.rowcount != 1:
+                raise ProjectStorageCorruptionError("run route has no frozen-profile reservation")
+
+    def discard_pending_run_route(self, run_id: str) -> None:
+        """Discard only a reservation that cannot name a project-created run."""
+
+        with self._write() as connection:
+            reference = connection.execute(
+                "SELECT status FROM application_frozen_profile_run_references WHERE run_id = ?",
+                (run_id,),
+            ).fetchone()
+            if reference is None or reference["status"] != "pending":
+                return
+            connection.execute(
+                "DELETE FROM application_frozen_profile_run_references WHERE run_id = ?",
+                (run_id,),
+            )
+            connection.execute("DELETE FROM application_run_routes WHERE run_id = ?", (run_id,))
+
+    def index_run(self, route: ApplicationRunRoute) -> None:
+        """Backfill an already-created idempotent run into the application index."""
+
+        self.reserve_run_route(route)
+        self.confirm_run_route(route.run_id, status=route.status)
 
     def project_for_run(self, run_id: str) -> str | None:
         with self._read() as connection:
@@ -363,16 +442,58 @@ class ApplicationStore:
             ).fetchone()
         return str(row["project_id"]) if row is not None else None
 
-    def replace_run_index(self, routes: list[tuple[str, str]]) -> None:
-        """Replace only the disposable lookup after manifest-based startup discovery."""
+    def replace_run_index(self, routes: list[ApplicationRunRoute]) -> None:
+        """Atomically rebuild routes and frozen-profile evidence from projects."""
+
+        if len({item.run_id for item in routes}) != len(routes):
+            raise ProjectStorageCorruptionError("multiple project runs share one run ID")
 
         with self._write() as connection:
             connection.execute("DELETE FROM application_run_routes")
+            connection.execute("DELETE FROM application_frozen_profile_run_references")
             now = utc_now().isoformat()
             connection.executemany(
                 "INSERT INTO application_run_routes (run_id, project_id, indexed_at) VALUES (?, ?, ?)",
-                [(run_id, project_id, now) for run_id, project_id in routes],
+                [(item.run_id, item.project_id, now) for item in routes],
             )
+            connection.executemany(
+                "INSERT INTO application_frozen_profile_run_references "
+                "(run_id, profile_id, status, updated_at) VALUES (?, ?, ?, ?)",
+                [(item.run_id, item.profile_id, item.status, now) for item in routes],
+            )
+
+    def delete_text_profile_record(self, profile_id: str, expected_revision: int) -> None:
+        """Delete only an inactive profile with no nonterminal frozen run."""
+
+        terminal_statuses = tuple(status.value for status in TERMINAL_RUN_STATUSES)
+        with self._write() as connection:
+            row = connection.execute(
+                "SELECT revision FROM application_profiles WHERE profile_id = ?", (profile_id,)
+            ).fetchone()
+            if row is None:
+                raise NotFoundError(f"text provider profile not found: {profile_id}")
+            if int(row["revision"]) != expected_revision:
+                raise RevisionConflictError(
+                    "text-provider-profile", expected_revision, int(row["revision"])
+                )
+            active = connection.execute(
+                "SELECT profile_id FROM application_text_profile_selection WHERE id = 1"
+            ).fetchone()
+            if active is not None and active["profile_id"] == profile_id:
+                raise InvalidTransitionError("cannot delete the active text provider profile")
+            protected = connection.execute(
+                "SELECT run_id FROM application_frozen_profile_run_references "
+                "WHERE profile_id = ? AND status NOT IN (?, ?, ?, ?) LIMIT 1",
+                (profile_id, *terminal_statuses),
+            ).fetchone()
+            if protected is not None:
+                raise InvalidTransitionError(
+                    "cannot delete a text provider profile frozen by a nonterminal run"
+                )
+            connection.execute(
+                "DELETE FROM application_text_profile_metadata WHERE profile_id = ?", (profile_id,)
+            )
+            connection.execute("DELETE FROM application_profiles WHERE profile_id = ?", (profile_id,))
 
     def record_accounting(self, entry: GlobalAccountingEntry) -> GlobalAccountingEntry:
         with self._write() as connection:

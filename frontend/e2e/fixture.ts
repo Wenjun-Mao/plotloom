@@ -14,11 +14,9 @@ const loopbackHost = "127.0.0.1";
 export type Workbench = {
   apiOrigin: string;
   frontendOrigin: string;
-  /** Test-owned same-host exchange root for the manual P1 file handoff. */
-  imageExchangeRoot: string;
   /** A test-owned process, deliberately outside the Plotloom API surface. */
   providerOrigin: string;
-  /** Present only for the direct project-folder FastAPI fixture. */
+  /** Present only for production project-folder browser journeys. */
   outputsRoot?: string;
   applicationDataRoot?: string;
   /** Stops and starts the owned FastAPI process against its original data paths. */
@@ -36,20 +34,23 @@ type ManagedProcess = {
 };
 
 type E2eVideoAdapter = "wan" | "h3";
+type E2eStorageMode = "legacy" | "project-folder";
 
-export const test = createWorkbenchTest("wan");
-export const h3Test = createWorkbenchTest("h3");
-export const projectFolderTest = createWorkbenchTest("h3", "frontend/e2e/project_folder_authoring_runtime.py");
+// Retained UI journeys remain on their test-only legacy surface until the
+// lifecycle/caller migration is separately accepted. Project-folder journeys
+// exercise the shipped production factory directly.
+export const test = createWorkbenchTest("wan", "legacy");
+export const h3Test = createWorkbenchTest("h3", "legacy");
+export const projectFolderTest = createWorkbenchTest("h3", "project-folder");
 
 function createWorkbenchTest(
   videoAdapter: E2eVideoAdapter,
-  backendEntrypoint = "frontend/e2e/fake_video_runtime.py",
+  storageMode: E2eStorageMode,
 ) {
   return base.extend<{}, WorkbenchWorkerFixtures>({
   workbench: [async ({}, use) => {
-    // Only the Wan restart pilot has an operator-selected retained root. H3
-    // stays isolated per worker so its fixed-profile fixture cannot overwrite
-    // a retained P0 evidence directory.
+    // The retained fixture is a transition-only browser matrix. It never
+    // starts through the production entrypoint or its configuration parser.
     const retainedPilotRoot = videoAdapter === "wan" ? process.env.PLOTLOOM_P0_RESTART_PILOT_ROOT : undefined;
     if (retainedPilotRoot && !path.isAbsolute(retainedPilotRoot)) {
       throw new Error("PLOTLOOM_P0_RESTART_PILOT_ROOT must be an absolute path.");
@@ -62,12 +63,11 @@ function createWorkbenchTest(
         throw new Error(`Retained P0 restart pilot directory must be empty: ${temporaryRoot}`);
       }
     }
-    const artifactRoot = path.join(temporaryRoot, "artifacts");
-    const imageExchangeRoot = path.join(temporaryRoot, "image-exchange");
-    const databasePath = path.join(temporaryRoot, "plotloom.sqlite3");
-    const directFolderRuntime = backendEntrypoint.endsWith("project_folder_authoring_runtime.py");
-    const outputsRoot = directFolderRuntime ? path.join(temporaryRoot, "outputs") : undefined;
-    const applicationDataRoot = directFolderRuntime ? path.join(temporaryRoot, "application") : undefined;
+    const outputsRoot = path.join(temporaryRoot, "outputs");
+    const applicationDataRoot = path.join(temporaryRoot, "application");
+    const legacyDatabasePath = path.join(temporaryRoot, "legacy.sqlite3");
+    const legacyArtifactRoot = path.join(temporaryRoot, "legacy-artifacts");
+    const legacyImageExchangeRoot = path.join(temporaryRoot, "legacy-image-exchange");
     const backendPort = await reserveLoopbackPort();
     const frontendPort = await reserveLoopbackPort();
     const providerPort = await reserveLoopbackPort();
@@ -86,26 +86,34 @@ function createWorkbenchTest(
       // PORT deliberately disables the runtime's fallback range, so this test
       // cannot accidentally exercise a different backend than its proxy.
       PORT: String(backendPort),
-      PLOTLOOM_DATABASE_URL: `sqlite:///${databasePath}`,
-      PLOTLOOM_ARTIFACT_ROOT: artifactRoot,
-      PLOTLOOM_IMAGE_EXCHANGE_ROOT: imageExchangeRoot,
-      PLOTLOOM_DATA_DIR: temporaryRoot,
       TEXT_MODEL_API_KEY: "",
       IMAGE_MODEL_API_KEY: "",
       VIDEO_MODEL_API_KEY: "",
       ATLASCLOUD_API_KEY: "",
       PLOTLOOM_E2E_VIDEO_ADAPTER: videoAdapter,
-      ...(directFolderRuntime ? {
-        PLOTLOOM_E2E_OUTPUTS_DIR: outputsRoot,
-        PLOTLOOM_E2E_APPLICATION_DATA_DIR: applicationDataRoot,
-      } : {}),
+      ...(storageMode === "project-folder" ? {
+        PLOTLOOM_OUTPUTS_DIR: outputsRoot,
+        PLOTLOOM_APPLICATION_DATA_DIR: applicationDataRoot,
+      } : {
+        PLOTLOOM_E2E_LEGACY_DATABASE_PATH: legacyDatabasePath,
+        PLOTLOOM_E2E_LEGACY_ARTIFACT_ROOT: legacyArtifactRoot,
+        PLOTLOOM_E2E_LEGACY_IMAGE_EXCHANGE_ROOT: legacyImageExchangeRoot,
+      }),
     };
+    const backendEntrypoint = storageMode === "project-folder"
+      ? "frontend/e2e/fake_video_runtime.py"
+      : "frontend/e2e/legacy_runtime.py";
     let backend = startProcess("FastAPI", "uv", ["run", "python", backendEntrypoint], backendEnvironment);
     let frontend: ManagedProcess | undefined;
 
     try {
-      await mkdir(artifactRoot, { recursive: true });
-      await mkdir(imageExchangeRoot, { recursive: true });
+      if (storageMode === "project-folder") {
+        await mkdir(outputsRoot, { recursive: true });
+        await mkdir(applicationDataRoot, { recursive: true });
+      } else {
+        await mkdir(legacyArtifactRoot, { recursive: true });
+        await mkdir(legacyImageExchangeRoot, { recursive: true });
+      }
       await waitForHttp(`${providerOrigin}/control/status`, provider);
       await waitForHttp(`${apiOrigin}/openapi.json`, backend);
       frontend = startProcess(
@@ -126,10 +134,9 @@ function createWorkbenchTest(
       await use({
         apiOrigin,
         frontendOrigin,
-        imageExchangeRoot,
         providerOrigin,
-        outputsRoot,
-        applicationDataRoot,
+        outputsRoot: storageMode === "project-folder" ? outputsRoot : undefined,
+        applicationDataRoot: storageMode === "project-folder" ? applicationDataRoot : undefined,
         restartBackend: async (overrides = {}) => {
           await stopProcess(backend);
           await waitForHttpUnavailable(`${apiOrigin}/openapi.json`);

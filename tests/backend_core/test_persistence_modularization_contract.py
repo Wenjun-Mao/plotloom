@@ -65,7 +65,7 @@ from plotloom.domain import utc_now
 
 BASELINE_TABLE_NAMES = frozenset(
     {
-        "v2_approval_decisions", "v2_artifacts", "v2_authoring_drafts",
+        "v2_approval_decisions", "v2_artifacts", "v2_authoring_drafts", "v2_run_artifact_blobs",
         "v2_character_reference_decisions", "v2_character_reference_proposal_candidates",
         "v2_character_reference_proposal_deliveries", "v2_character_reference_proposals",
         "v2_character_reference_states", "v2_entity_revisions", "v2_gate_results",
@@ -105,7 +105,7 @@ def test_persistence_package_preserves_repository_signatures_and_named_leases() 
         "database_url", "create_schema", "sqlite_busy_timeout_ms", "schema_scope"
     )
     assert tuple(inspect.signature(ProjectSQLiteRepository).parameters) == (
-        "database_url", "project_id", "create_schema", "sqlite_busy_timeout_ms"
+        "database_url", "project_id", "create_schema", "sqlite_busy_timeout_ms", "read_only", "normalize_sqlite_wal"
     )
     for name in ("_read", "_write", "_bootstrap_write", "_lifecycle_write", "_work_unit_claim_write"):
         assert hasattr(SQLiteRepository, name)
@@ -223,9 +223,10 @@ def test_direct_project_surfaces_have_named_dependencies_without_root_bounceback
     )
     generation = ProjectGenerationRepository(
         admission=ProjectGenerationAdmission(), snapshots=object(), plans=object(),
-        attempts=object(), aggregates=object(), repairs=object(), reuse=object(),
-        lifecycle=object(), evidence=object(), progress=object(), recovery=object(),
-    )
+            attempts=object(), aggregates=object(), repairs=object(), reuse=object(),
+            lifecycle=object(), evidence=object(), progress=object(), recovery=object(),
+            runtime_artifacts=object(),
+        )
     media = ProjectMediaRepository(
         assets=object(), intents=object(), admission=object(), keyframes=object(),
         references=object(), proposals=object(), same_person=object(),

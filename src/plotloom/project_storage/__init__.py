@@ -6,7 +6,7 @@ from .application_store import (
     GlobalAccountingEntry,
     VideoDispatchLease,
 )
-from .artifacts import ProjectArtifactStore
+from .artifacts import ProjectArtifactStore, ProjectRunArtifactStore
 from .composition import ProjectFolderStorage
 from .format import (
     PROJECT_DATABASE_RELATIVE_PATH,
@@ -42,6 +42,7 @@ __all__ = [
     "PROJECT_MANIFEST_FILENAME",
     "PROJECT_STORAGE_FORMAT_VERSION",
     "ProjectArtifactStore",
+    "ProjectRunArtifactStore",
     "ProjectBusyError",
     "ProjectClosedError",
     "ProjectDirectoryRegistry",

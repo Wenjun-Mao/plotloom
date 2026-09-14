@@ -158,7 +158,7 @@ class ProjectGenerationSnapshots:
         self, project_id: str, kind: RunKind, requested_stages: Sequence[StageName], *,
         instructions: str | None = None, parent_run_id: str | None = None,
         repair_stage: StageName | None = None, repair_source: RepairSource | None = None,
-        provider_snapshot: dict[str, Any] | None = None,
+        provider_snapshot: dict[str, Any] | None = None, run_id: str | None = None,
     ) -> GenerationRun:
         access = self._access
         normalized_provider_snapshot = validate_public_provider_snapshot(provider_snapshot)
@@ -186,10 +186,19 @@ class ProjectGenerationSnapshots:
             project_row = access.rows.project(session, project_id)
             access.admission.assert_active_project(project_row)
             snapshot = self.snapshot_in_session(session, project_id)
-            run = GenerationRun(project_id=project_id, kind=kind, parent_run_id=parent_run_id,
-                repair_stage=repair_stage, repair_source=repair_source,
-                provider_snapshot=normalized_provider_snapshot, requested_stages=ordered_stages,
-                canonical_snapshot=snapshot, instructions=instructions, legacy_unsealed=False)
+            run = GenerationRun(
+                **({"id": run_id} if run_id is not None else {}),
+                project_id=project_id,
+                kind=kind,
+                parent_run_id=parent_run_id,
+                repair_stage=repair_stage,
+                repair_source=repair_source,
+                provider_snapshot=normalized_provider_snapshot,
+                requested_stages=ordered_stages,
+                canonical_snapshot=snapshot,
+                instructions=instructions,
+                legacy_unsealed=False,
+            )
             session.add(GenerationRunRow(id=run.id, project_id=project_id, kind=kind.value,
                 parent_run_id=parent_run_id, repair_stage=repair_stage.value if repair_stage else None,
                 repair_source=repair_source.model_dump(mode="json", by_alias=False) if repair_source else None,

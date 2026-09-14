@@ -26,7 +26,7 @@ from ..domain import (
 )
 from ..exceptions import NotFoundError, RevisionConflictError
 from ..persistence import ProjectSQLiteRepository
-from .artifacts import _OwnedArtifactStore, ProjectArtifactStore
+from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
 from .format import (
     OwnedArtifact,
     PROJECT_MANIFEST_FILENAME,
@@ -61,10 +61,13 @@ class ProjectStore:
         manifest: ProjectManifest,
         *,
         create_schema: bool,
+        read_only: bool = False,
+        defer_wal: bool = False,
         access_lease: ProjectAccessLease | None = None,
     ) -> None:
         self.home = project_home.resolve()
         self.manifest = manifest
+        self._read_only = read_only
         self.database_path = self.home / manifest.database_path
         if self.database_path.is_symlink():
             raise ProjectStorageConfinementError(
@@ -74,6 +77,8 @@ class ProjectStore:
             f"sqlite:///{self.database_path}",
             project_id=manifest.project_id,
             create_schema=create_schema,
+            read_only=read_only,
+            normalize_sqlite_wal=not read_only and not defer_wal,
         )
         self._repository._set_recovery_admission(
             recovered_run_ids=lambda: recovered_generation_run_ids(
@@ -83,8 +88,10 @@ class ProjectStore:
                 self.home, self.manifest.project_id
             ),
         )
-        self._artifacts = _OwnedArtifactStore(self.home)
-        self.artifacts = ProjectArtifactStore(self._artifacts)
+        self._artifacts = _OwnedArtifactStore(self.home, create=not read_only)
+        self.artifacts = ProjectArtifactStore(
+            self._artifacts, writable=not read_only
+        )
         self._access_lease = access_lease
 
     @property
@@ -102,6 +109,24 @@ class ProjectStore:
     @property
     def media(self):
         return self._repository.media
+
+    def run_artifacts(self, run_id: str) -> ProjectRunArtifactStore:
+        """Return the project-relative artifact adapter bound to one run's inventory."""
+
+        if self._read_only:
+            raise ProjectStorageCorruptionError(
+                "a read-only project inspection cannot bind run artifacts"
+            )
+        return ProjectRunArtifactStore(
+            self._artifacts,
+            record=lambda artifact: self.generation.record_runtime_artifact(
+                run_id,
+                relative_path=artifact.relative_path,
+                content_hash=artifact.content_hash,
+                media_type=artifact.media_type,
+                size_bytes=artifact.size_bytes,
+            ),
+        )
 
     @classmethod
     def initialize(
@@ -131,7 +156,12 @@ class ProjectStore:
 
     @classmethod
     def open(
-        cls, project_home: Path, *, access_lease: ProjectAccessLease | None = None
+        cls,
+        project_home: Path,
+        *,
+        read_only: bool = False,
+        defer_wal: bool = False,
+        access_lease: ProjectAccessLease | None = None,
     ) -> "ProjectStore":
         if project_home.is_symlink() or not project_home.is_dir():
             raise ProjectStorageConfinementError(
@@ -147,7 +177,14 @@ class ProjectStore:
             raise ProjectStorageCorruptionError(
                 "project manifest does not meet this storage format"
             ) from error
-        store = cls(home, manifest, create_schema=False, access_lease=access_lease)
+        store = cls(
+            home,
+            manifest,
+            create_schema=False,
+            read_only=read_only,
+            defer_wal=defer_wal,
+            access_lease=access_lease,
+        )
         try:
             store._validate_opened_project()
         except BaseException:
@@ -324,10 +361,10 @@ class ProjectStore:
             )
         )
 
-    def generation_run_ids_for_index(self) -> list[str]:
-        """Expose only IDs for application startup routing reconstruction."""
+    def generation_runs_for_index(self) -> list[GenerationRun]:
+        """Expose frozen route/profile/status fields for startup reconstruction."""
 
-        return self.generation.list_project_run_ids_for_index(self.manifest.project_id)
+        return self.generation.list_project_runs_for_index(self.manifest.project_id)
 
     def run_trace(self, run_id: str) -> RunTrace:
         trace = self.generation.get_run_trace(run_id)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 
 from .format import (
@@ -18,11 +19,21 @@ from .format import (
 class _OwnedArtifactStore:
     """Project-relative immutable bytes with confinement and hard-link checks."""
 
-    def __init__(self, project_home: Path) -> None:
+    def __init__(self, project_home: Path, *, create: bool = True) -> None:
         self.project_home = project_home.resolve()
-        self.assets_root = _require_real_directory(
-            self.project_home / "assets", label="project assets root"
-        )
+        assets_root = self.project_home / "assets"
+        if create:
+            self.assets_root = _require_real_directory(
+                assets_root, label="project assets root"
+            )
+        else:
+            if assets_root.is_symlink() or (
+                assets_root.exists() and not assets_root.is_dir()
+            ):
+                raise ProjectStorageConfinementError(
+                    "project assets root must be a real directory"
+                )
+            self.assets_root = assets_root
 
     def _path_for(
         self, relative_path: PurePosixPath, *, final_must_exist: bool
@@ -99,16 +110,31 @@ class _OwnedArtifactStore:
 class ProjectArtifactStore:
     """``ArtifactStore`` adapter whose addresses are owned relative paths."""
 
-    def __init__(self, owned: _OwnedArtifactStore) -> None:
+    def __init__(
+        self,
+        owned: _OwnedArtifactStore,
+        *,
+        record: Callable[[OwnedArtifact], None] | None = None,
+        writable: bool = True,
+    ) -> None:
         self._owned = owned
+        self._record = record
+        self._writable = writable
 
     def put(self, content: bytes, *, expected_hash: str | None = None) -> str:
+        if not self._writable:
+            raise ProjectStorageCorruptionError(
+                "a read-only project inspection cannot write artifacts"
+            )
         digest = _sha256(content)
         if expected_hash is not None and expected_hash != digest:
             raise ValueError("artifact content does not match expected SHA-256")
-        return self._owned.put(
+        artifact = self._owned.put(
             content, media_type="application/octet-stream"
-        ).relative_path
+        )
+        if self._record is not None:
+            self._record(artifact)
+        return artifact.relative_path
 
     def get(self, uri: str) -> bytes:
         relative = _relative_owned_path(uri)
@@ -134,3 +160,12 @@ class ProjectArtifactStore:
                 .st_size,
             )
         )
+
+
+class ProjectRunArtifactStore(ProjectArtifactStore):
+    """Run-bound adapter that records every opaque runtime byte in project storage."""
+
+    def record_run_evidence(self, content: bytes) -> str:
+        """Persist deterministic runner evidence through the normal artifact contract."""
+
+        return self.put(content)

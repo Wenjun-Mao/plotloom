@@ -62,6 +62,20 @@ class ProjectGenerationLifecyclePersistence:
                     .order_by(GenerationRunRow.created_at)
                 )
             )
+
+    def list_project_runs_for_index(self, project_id: str) -> list[GenerationRun]:
+        """Return the frozen routing fields used only during startup rebuild."""
+
+        access = self._access
+        with access.leases.read() as session:
+            access.rows.project(session, project_id)
+            rows = session.scalars(
+                select(GenerationRunRow)
+                .where(GenerationRunRow.project_id == project_id)
+                .order_by(GenerationRunRow.created_at)
+            ).all()
+            return [access.codecs.run(row) for row in rows]
+
     def start_run(self, run_id: str) -> GenerationRun:
         access = self._access
         with access.leases.write() as session:

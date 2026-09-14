@@ -56,6 +56,7 @@ class ProjectGenerationRepairPersistence:
         stage: StageName | None = None,
         instructions: str | None = None,
         provider_snapshot: dict[str, Any] | None = None,
+        run_id: str | None = None,
     ) -> GenerationRun:
         access = self._access
         source = self._snapshots.get_run(source_run_id)
@@ -142,7 +143,9 @@ class ProjectGenerationRepairPersistence:
             repair_stage=target,
             repair_source=repair_source,
             provider_snapshot=provider_snapshot,
+            run_id=run_id,
         )
+
     def get_repair_eligible_work_units(self, run_id: str) -> list[WorkUnitRepairEligibility]:
         """Return server-owned exact-repair decisions for one source run."""
         access = self._access
@@ -158,6 +161,7 @@ class ProjectGenerationRepairPersistence:
                 self._eligibility.eligibility(session, source=source, unit=unit)
                 for unit in units
             ]
+
     def create_work_unit_repair_run(
         self,
         source_run_id: str,
@@ -165,6 +169,7 @@ class ProjectGenerationRepairPersistence:
         *,
         idempotency_key: str,
         instructions: str | None = None,
+        run_id: str | None = None,
     ) -> WorkUnitRepairRunCreation:
         """Create one immutable exact-repair child without changing model contract.
 
@@ -235,6 +240,7 @@ class ProjectGenerationRepairPersistence:
             requested = [StageName(value) for value in source.requested_stages]
             snapshot = CanonicalSnapshot.model_validate(source.canonical_snapshot)
             child = GenerationRun(
+                **({"id": run_id} if run_id is not None else {}),
                 project_id=source.project_id,
                 kind=RunKind.REPAIR,
                 parent_run_id=source.id,
