@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import inspect
 
+import pytest
+
 from plotloom.persistence import (
     Base,
     PROJECT_TEXT_PIPELINE_TABLE_NAMES,
@@ -11,6 +13,13 @@ from plotloom.persistence import (
     SQLiteRepository,
     stable_hash,
 )
+from plotloom.persistence.project.approvals import ProjectApprovalPersistence
+from plotloom.persistence.project.canonical import ProjectCanonicalPersistence
+from plotloom.persistence.project.catalog import ProjectCatalogPersistence
+from plotloom.persistence.project.drafts import ProjectDraftPersistence
+from plotloom.persistence.project.gates import ProjectGatePersistence
+from plotloom.persistence.project.lifecycle import ProjectLifecyclePersistence
+from plotloom.exceptions import NotFoundError
 
 
 BASELINE_TABLE_NAMES = frozenset(
@@ -59,3 +68,54 @@ def test_persistence_package_preserves_repository_signatures_and_named_leases() 
     )
     for name in ("_read", "_write", "_bootstrap_write", "_lifecycle_write", "_work_unit_claim_write"):
         assert hasattr(SQLiteRepository, name)
+
+
+def test_project_authoring_and_lifecycle_use_explicit_capability_composition() -> None:
+    """Keep the retained facade compatible while capability bodies stay moved."""
+
+    repository = SQLiteRepository("sqlite://")
+    try:
+        assert isinstance(repository._catalog, ProjectCatalogPersistence)
+        assert isinstance(repository._lifecycle, ProjectLifecyclePersistence)
+        assert isinstance(repository._drafts, ProjectDraftPersistence)
+        assert isinstance(repository._gates, ProjectGatePersistence)
+        assert isinstance(repository._approvals, ProjectApprovalPersistence)
+        assert isinstance(repository._canonical, ProjectCanonicalPersistence)
+        assert "self._catalog.create_project" in inspect.getsource(SQLiteRepository.create_project)
+        assert "self._lifecycle.archive_project" in inspect.getsource(SQLiteRepository.archive_project)
+        assert "self._drafts.upsert_authoring_draft" in inspect.getsource(
+            SQLiteRepository.upsert_authoring_draft
+        )
+        assert "self._workflow.update_stage_consuming_authoring_draft" in inspect.getsource(
+            SQLiteRepository.update_stage_consuming_authoring_draft
+        )
+    finally:
+        repository.close()
+
+
+def test_moved_facade_signatures_and_project_bound_identity_remain_stable() -> None:
+    expected_parameters = {
+        "create_project": ("self", "brief", "initial_stages", "idempotency_key"),
+        "duplicate_project": ("self", "project_id", "expected_lifecycle_revision", "title", "idempotency_key"),
+        "archive_project": ("self", "project_id", "expected_lifecycle_revision"),
+        "update_project_consuming_authoring_draft": (
+            "self", "project_id", "expected_revision", "brief", "entity_id", "expected_draft_revision",
+        ),
+        "upsert_authoring_draft": (
+            "self", "project_id", "editor_scope", "entity_id", "base_canonical_revision",
+            "expected_draft_revision", "payload",
+        ),
+        "update_stage_consuming_authoring_draft": (
+            "self", "project_id", "stage", "expected_revision", "payload", "entity_id",
+            "expected_draft_revision",
+        ),
+    }
+    for method_name, parameter_names in expected_parameters.items():
+        assert tuple(inspect.signature(getattr(SQLiteRepository, method_name)).parameters) == parameter_names
+
+    project_repository = ProjectSQLiteRepository("sqlite://", project_id="bound")
+    try:
+        with pytest.raises(NotFoundError, match="does not belong"):
+            project_repository.get_project("other")
+    finally:
+        project_repository.close()

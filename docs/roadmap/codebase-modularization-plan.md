@@ -24,16 +24,19 @@ This checkpoint deletes `persistence.py` and preserves the public
 value conversion and `stable_hash` live in `codec.py`; engine/session setup is
 in `database.py`; and the five named read/write/bootstrap/lifecycle/claim leases
 are in `transactions.py`. `legacy_repository.py` intentionally retains the
-full `SQLiteRepository` and `ProjectSQLiteRepository` operation surface (about
-9,100 lines) while callers still depend on it. It is a temporary, explicitly
-named composition boundary—not a claim that the persistence work is complete.
+public `SQLiteRepository` and `ProjectSQLiteRepository` facade while callers
+still depend on it. The second slice moved project catalog/lifecycle and
+authoring draft/canonical-stage/gate/approval bodies into named
+`persistence/project` collaborators (about 8,012 lines remain). The facade
+delegates explicitly for compatibility; it is a temporary, explicitly named
+composition boundary—not a claim that persistence work is complete.
 
-The remaining capability seams are: project lifecycle/authoring/drafts/gates/
-approvals; generation snapshots, plans, attempts, work units, repair, recovery
-and canonical commit; project media/still/image/review facts; and installation
-profiles/settings/video-pilot accounting. Each needs its own caller migration,
-transaction proof, and deletion step. No schema, public API, migration, runtime
-cutover, or storage ownership decision changes in this checkpoint.
+The remaining capability seams are: generation snapshots, plans, attempts,
+work units, repair, recovery and canonical commit; project media/still/image/
+review facts; and installation profiles/settings/video-pilot accounting. Each
+needs its own caller migration, transaction proof, and deletion step. No schema,
+public API, migration, runtime cutover, or storage ownership decision changes in
+this checkpoint.
 
 ## Audit checkpoint
 
