@@ -89,6 +89,7 @@ def test_project_owned_image_handoff_isolated_across_restart_and_stales_after_in
     assert client.get("/api/v2/authoring-draft-capabilities").json() == {
         "durableProjectDrafts": True,
         "durableMediaDrafts": True,
+        "explicitProjectClose": True,
     }
     approval = _approve(client, first_id, storage)
     _approve(client, second_id, storage)

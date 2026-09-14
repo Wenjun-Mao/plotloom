@@ -69,7 +69,7 @@ BASELINE_TABLE_NAMES = frozenset(
         "v2_generation_work_units", "v2_image_job_candidates", "v2_image_job_deliveries",
         "v2_image_jobs", "v2_managed_asset_provenance", "v2_managed_assets", "v2_media_tasks",
         "v2_production_units", "v2_project_creation_idempotency", "v2_project_duplicate_idempotency",
-        "v2_projects", "v2_provider_profile_selection", "v2_provider_settings",
+        "v2_projects", "v2_project_operational_states", "v2_provider_profile_selection", "v2_provider_settings",
         "v2_reviewed_shot_bindings", "v2_same_person_review_states", "v2_same_person_reviews",
         "v2_sealed_stage_aggregates", "v2_stage_heads", "v2_still_previews",
         "v2_text_provider_profiles", "v2_video_jobs", "v2_video_pilot_ledger",

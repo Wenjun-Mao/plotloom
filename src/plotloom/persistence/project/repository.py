@@ -9,10 +9,10 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import STAGE_ORDER, Project, ProjectCreation, ProjectDuplicateResult, StageStatus
+from ...domain import STAGE_ORDER, Project, ProjectCreation, ProjectDuplicateResult, StageStatus, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ..codec import stable_hash
-from ..schema import GenerationRunRow, ProjectRow, StageHeadRow
+from ..schema import GenerationRunRow, ProjectOperationalStateRow, ProjectRow, StageHeadRow
 from .constants import CURRENT_STAGE_SCHEMA_VERSION
 from ..legacy_repository import SQLiteRepository
 
@@ -82,6 +82,17 @@ class ProjectSQLiteRepository(SQLiteRepository):
                 updated_at=project.updated_at,
             )
             session.add(row)
+            # The operational row is intentionally a separate table, so make
+            # the project FK visible before inserting its first open receipt.
+            session.flush()
+            session.add(
+                ProjectOperationalStateRow(
+                    project_id=project.id,
+                    state="open",
+                    revision=1,
+                    changed_at=project.created_at,
+                )
+            )
             for stage in STAGE_ORDER:
                 session.add(
                     StageHeadRow(
@@ -99,6 +110,31 @@ class ProjectSQLiteRepository(SQLiteRepository):
                     )
                 )
         return self.get_project(project.id)
+
+    def operational_state(self) -> tuple[str, int]:
+        """Return the durable copy-safety state for this one project home."""
+
+        with self._read() as session:
+            row = session.get(ProjectOperationalStateRow, self.project_id)
+            if row is None:
+                raise InvalidTransitionError("project has no operational state")
+            return row.state, row.revision
+
+    def set_operational_state(self, *, expected_revision: int, state: str) -> tuple[str, int]:
+        if state not in {"open", "closed"}:
+            raise ValueError("project operational state must be open or closed")
+        with self._write() as session:
+            row = session.get(ProjectOperationalStateRow, self.project_id)
+            if row is None:
+                raise InvalidTransitionError("project has no operational state")
+            if row.revision != expected_revision:
+                raise InvalidTransitionError("project operational state is stale")
+            if row.state == state:
+                return row.state, row.revision
+            row.state = state
+            row.revision += 1
+            row.changed_at = utc_now()
+            return row.state, row.revision
 
     def create_project(self, *args: Any, **kwargs: Any) -> ProjectCreation:
         raise InvalidTransitionError(
@@ -128,4 +164,3 @@ class ProjectSQLiteRepository(SQLiteRepository):
             raise InvalidTransitionError(
                 "project generation requires an application-admitted provider snapshot"
             )
-

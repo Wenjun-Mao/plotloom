@@ -85,6 +85,14 @@ class ProjectListResponse(CamelModel):
     next_cursor: str | None = None
 
 
+class ProjectOperationalState(CamelModel):
+    """Explicit local-folder admission state, not author lifecycle state."""
+
+    project_id: str
+    state: Literal["open", "closed"]
+    revision: int = Field(ge=1)
+
+
 class StageEnvelopesResponse(CamelModel):
     stages: list[StageEnvelope]
 

@@ -152,6 +152,14 @@ export class PlotloomApiClient {
     });
   }
 
+  closeProject(projectId: string): Promise<{ projectId: string; state: "closed"; revision: number }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/close`, { method: "POST" });
+  }
+
+  openProjectFolder(projectId: string): Promise<{ projectId: string; state: "open"; revision: number }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/open`, { method: "POST" });
+  }
+
   duplicateProject(projectId: string, expectedLifecycleRevision: number, title?: string, idempotencyKey?: string): Promise<ProjectDuplicateResponse> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/duplicate`, {
       method: "POST", headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
@@ -358,6 +366,8 @@ export class PlotloomApiClient {
     durableProjectDrafts: boolean;
     /** Media buffers are project-owned only in the direct format-5 composition. */
     durableMediaDrafts?: boolean;
+    /** True only for the direct project-folder composition. */
+    explicitProjectClose?: boolean;
   }> {
     return this.request("/authoring-draft-capabilities");
   }

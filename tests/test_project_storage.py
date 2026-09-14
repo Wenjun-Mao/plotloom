@@ -22,6 +22,8 @@ from plotloom.project_storage import (
     OwnedArtifact,
     PROJECT_STORAGE_FORMAT_VERSION,
     ProjectFolderStorage,
+    ProjectBusyError,
+    ProjectClosedError,
     ProjectStorageConflictError,
     ProjectStorageConfinementError,
     ProjectStorageError,
@@ -697,3 +699,55 @@ def test_project_folder_authoring_drafts_allow_only_the_brief_and_four_canonical
         },
     )
     assert rejected.status_code == 422
+
+
+def test_explicit_close_blocks_delayed_admission_then_reopens_without_replay(
+    tmp_path: Path,
+) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    created = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = created.project().id
+    created.close()
+    client = TestClient(create_project_folder_authoring_app(storage))
+
+    closed = client.post(f"/api/v2/projects/{project_id}/close")
+    assert closed.status_code == 200
+    assert closed.json()["state"] == "closed"
+    listed = client.get("/api/v2/projects")
+    assert listed.status_code == 200
+    assert listed.json()["projects"][0]["operationalState"] == "closed"
+    # Close is idempotent and does not republish state or dispatch work.
+    assert client.post(f"/api/v2/projects/{project_id}/close").json()["revision"] == closed.json()["revision"]
+    assert client.get(f"/api/v2/projects/{project_id}").status_code == 409
+    with pytest.raises(ProjectClosedError):
+        storage.projects.open(project_id)
+
+    reopened = client.post(f"/api/v2/projects/{project_id}/open")
+    assert reopened.status_code == 200
+    assert reopened.json()["state"] == "open"
+    assert client.get(f"/api/v2/projects/{project_id}").status_code == 200
+    reopened_store = storage.projects.open(project_id)
+    try:
+        assert reopened_store.generation_runs() == []
+    finally:
+        reopened_store.close()
+
+
+def test_close_refuses_an_admitted_sibling_handle(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    first = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = first.project().id
+    second = storage.projects.open(project_id)
+    first.close()
+    try:
+        with pytest.raises(ProjectBusyError, match="project_busy"):
+            storage.projects.close_project(project_id)
+    finally:
+        second.close()
+    assert storage.projects.close_project(project_id) >= 2

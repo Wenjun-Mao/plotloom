@@ -607,6 +607,8 @@ export interface LatestRunSummary {
 }
 
 export interface ProjectListItem extends ProjectResource {
+  /** Present only when the selected backend supports explicit folder close. */
+  operationalState?: "open" | "closed" | null;
   stageStatuses: Record<ServerStageName, StageHead["status"]>;
   latestRun: LatestRunSummary | null;
 }

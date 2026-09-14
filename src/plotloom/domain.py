@@ -747,6 +747,7 @@ class LatestRunSummary(CamelModel):
 class ProjectSummary(Project):
     stage_statuses: dict[StageName, StageStatus]
     latest_run: LatestRunSummary | None = None
+    operational_state: Literal["open", "closed"] | None = None
 
 
 class ProjectDuplicateResult(CamelModel):

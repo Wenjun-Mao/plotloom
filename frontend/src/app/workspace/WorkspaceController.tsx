@@ -35,6 +35,7 @@ export default function WorkspaceController() {
   const [rebuildOpen, setRebuildOpen] = useState(false);
   const [durableDraftsEnabled, setDurableDraftsEnabled] = useState(false);
   const [durableMediaDraftsEnabled, setDurableMediaDraftsEnabled] = useState(false);
+  const [explicitProjectCloseEnabled, setExplicitProjectCloseEnabled] = useState(false);
   const durableDraftsEnabledRef = useRef(false);
   const profiles = useTextProviderProfiles(setBusy, setError, messageFrom);
   const directory = useProjectDirectory(messageFrom);
@@ -91,6 +92,7 @@ export default function WorkspaceController() {
     directory: { close: directory.closeDirectory, refresh: directory.refresh, setError: directory.setError },
     openProject: (projectId) => workspaceNavigation.requestNavigation({ project: projectId, stage: "brief" }),
     startBlank: initialization.startBlankProject,
+    explicitProjectClose: explicitProjectCloseEnabled,
   });
   const commands = useRunCommands({
     session,
@@ -120,6 +122,7 @@ export default function WorkspaceController() {
         durableDraftsEnabledRef.current = capability.durableProjectDrafts === true;
         setDurableDraftsEnabled(durableDraftsEnabledRef.current);
         setDurableMediaDraftsEnabled(capability.durableMediaDrafts === true);
+        setExplicitProjectCloseEnabled(capability.explicitProjectClose === true);
         if (!durableDraftsEnabledRef.current) {
           void profiles.refresh().catch(() => undefined);
         }
@@ -132,6 +135,7 @@ export default function WorkspaceController() {
         durableDraftsEnabledRef.current = false;
         setDurableDraftsEnabled(false);
         setDurableMediaDraftsEnabled(false);
+        setExplicitProjectCloseEnabled(false);
         void profiles.refresh().catch(() => undefined);
       });
   }, [loadProject, profiles.refresh, session.refreshCurrentRoute, session.routeRef]);
@@ -216,7 +220,7 @@ export default function WorkspaceController() {
 
   if (session.onboarding) return <>
     <WelcomeOnboarding onBlank={startBlank} onSample={openSample} onDirectory={directory.openDirectory} />
-    {directory.open && <ProjectDirectoryDialog projects={directory.projects} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} onClose={directory.closeDirectory} />}
+    {directory.open && <ProjectDirectoryDialog projects={directory.projects} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
   </>;
 
   return <div className="app-shell">
@@ -238,7 +242,7 @@ export default function WorkspaceController() {
     </div>
     {profiles.settingsOpen && <SettingsDialog profiles={profiles.profiles} selectedProfileId={profiles.selectedProfileId} draft={profiles.profileDraft} sessionKey={profiles.sessionKey} busy={busy} onDraft={(draft) => { profiles.setProfileDraft(draft); profiles.setProfileDirty(true); }} onSessionKey={profiles.setSessionKey} onSelect={profiles.select} onCreate={() => profiles.create(false)} onCopy={() => profiles.create(true)} onDelete={profiles.remove} onActivate={profiles.activate} onAvailability={profiles.setAvailability} onProbe={profiles.probe} onClose={() => profiles.setSettingsOpen(false)} onSave={saveSettings} />}
     {rebuildOpen && <RebuildDialog staleStages={project.staleStages} busy={busy} onClose={() => setRebuildOpen(false)} onRebuild={commands.rebuild} />}
-    {directory.open && <ProjectDirectoryDialog projects={directory.projects} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} onClose={directory.closeDirectory} />}
+    {directory.open && <ProjectDirectoryDialog projects={directory.projects} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {workspaceNavigation.pendingNavigation && !session.unsafeDraft && <DraftNavigationDialog onSave={() => void workspaceNavigation.resolvePendingNavigation("save")} onDiscard={() => void workspaceNavigation.resolvePendingNavigation("discard")} onCancel={() => void workspaceNavigation.resolvePendingNavigation("cancel")} />}
     {lifecycle.pendingArchive && <DraftNavigationDialog onSave={() => void lifecycle.resolvePendingArchive("save")} onDiscard={() => void lifecycle.resolvePendingArchive("discard")} onCancel={() => void lifecycle.resolvePendingArchive("cancel")} />}
     {recovery.recovery && <DraftRecoveryDialog source={recovery.recovery.source} onRestore={recovery.restore} onDiscard={recovery.discard} />}

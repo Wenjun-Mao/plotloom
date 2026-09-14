@@ -5,7 +5,7 @@ import { messageFrom, stageForPage } from "./contracts";
 import type { ProjectListItem, ServerStageName, WorkspaceProject } from "../../types";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 
-type LifecycleAction = "archive" | "restore" | "duplicate" | "delete";
+type LifecycleAction = "archive" | "restore" | "duplicate" | "delete" | "close" | "open";
 type LifecycleSession = Pick<WorkspaceSession, "project" | "activePage" | "capture" | "isCurrent" | "acceptCanonicalProject">;
 
 /** Owns directory lifecycle commands and the archive-after-draft decision. */
@@ -17,6 +17,7 @@ export function useProjectLifecycle({
   directory,
   openProject,
   startBlank,
+  explicitProjectClose,
 }: {
   session: LifecycleSession;
   currentDraft: React.MutableRefObject<{ scope: DraftScope; payload: unknown } | undefined>;
@@ -25,13 +26,20 @@ export function useProjectLifecycle({
   directory: { close: () => void; refresh: () => Promise<void>; setError: (error: string) => void };
   openProject: (projectId: string) => void;
   startBlank: () => void;
+  explicitProjectClose: boolean;
 }) {
   const duplicateKeys = useRef(new Map<string, string>());
-  const [pendingArchive, setPendingArchive] = useState<ProjectListItem | undefined>();
+  const [pendingArchive, setPendingArchive] = useState<{ item: ProjectListItem; action: "archive" | "close" } | undefined>();
   const perform = async (item: ProjectListItem, action: LifecycleAction) => {
     const operation = session.capture();
     try {
-      if (action === "archive" || action === "restore") {
+      if (action === "close" || action === "open") {
+        if (!explicitProjectClose) return;
+        if (action === "close") await plotloomApi.closeProject(item.id);
+        else await plotloomApi.openProjectFolder(item.id);
+        if (!session.isCurrent(operation)) return;
+        if (action === "close" && session.project.id === item.id) startBlank();
+      } else if (action === "archive" || action === "restore") {
         const updated = action === "archive"
           ? await plotloomApi.archiveProject(item.id, item.lifecycleRevision ?? item.revision)
           : await plotloomApi.restoreProject(item.id, item.lifecycleRevision ?? item.revision);
@@ -61,12 +69,12 @@ export function useProjectLifecycle({
   };
   const mutate = async (item: ProjectListItem, action: LifecycleAction) => {
     const scope = stageForPage(session.activePage);
-    if (action === "archive" && item.id === session.project.id && scope && hasDraft(session.project, scope)) { setPendingArchive(item); return; }
+    if ((action === "archive" || action === "close") && item.id === session.project.id && scope && hasDraft(session.project, scope)) { setPendingArchive({ item, action }); return; }
     await perform(item, action);
   };
   const resolvePendingArchive = async (action: "save" | "discard" | "cancel") => {
-    const item = pendingArchive;
-    if (!item || action === "cancel") { setPendingArchive(undefined); return; }
+    const pending = pendingArchive;
+    if (!pending || action === "cancel") { setPendingArchive(undefined); return; }
     const scope = stageForPage(session.activePage);
     if (scope && action === "save") {
       const draft = currentDraft.current;
@@ -77,7 +85,7 @@ export function useProjectLifecycle({
     }
     if (scope) { discardDraft(session.project, scope); currentDraft.current = undefined; }
     setPendingArchive(undefined);
-    await perform(item, "archive");
+    await perform(pending.item, pending.action);
   };
   return { pendingArchive, mutate, resolvePendingArchive };
 }

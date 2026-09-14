@@ -31,6 +31,19 @@ class ProjectRow(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class ProjectOperationalStateRow(Base):
+    """Copy-safety state, deliberately separate from author lifecycle state."""
+
+    __tablename__ = "v2_project_operational_states"
+
+    project_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True
+    )
+    state: Mapped[str] = mapped_column(String(16), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    changed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class ProjectCreationIdempotencyRow(Base):
     __tablename__ = "v2_project_creation_idempotency"
 

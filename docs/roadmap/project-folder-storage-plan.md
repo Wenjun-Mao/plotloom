@@ -1,8 +1,9 @@
 # Project-folder storage: breaking cutover and portable recovery
 
-Revision 1 — **Approved implementation plan** (2026-09-13). Approved by the user;
-implementation has not started. Baseline inspected: clean `main`,
-`162061d5ec0b735b40d34c94c6a66da5c52bc25c`.
+Revision 1 — **Historical approved implementation plan** (2026-09-13). The
+original baseline was clean `main`, `162061d5ec0b735b40d34c94c6a66da5c52bc25c`.
+Subsequent bounded checkpoints have started implementation; this document
+remains the approved planning record rather than a claim of current status.
 
 ## 1. Outcome and settled decisions
 

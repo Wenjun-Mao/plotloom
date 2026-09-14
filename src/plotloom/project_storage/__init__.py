@@ -20,6 +20,7 @@ from .format import (
 )
 from .project_handle import ProjectStore
 from .registry import ProjectDirectoryRegistry, ProjectHome
+from .operational_state import ProjectBusyError, ProjectClosedError
 from ..persistence import ProjectSQLiteRepository
 
 __all__ = [
@@ -31,6 +32,8 @@ __all__ = [
     "PROJECT_MANIFEST_FILENAME",
     "PROJECT_STORAGE_FORMAT_VERSION",
     "ProjectArtifactStore",
+    "ProjectBusyError",
+    "ProjectClosedError",
     "ProjectDirectoryRegistry",
     "ProjectFolderStorage",
     "ProjectHome",

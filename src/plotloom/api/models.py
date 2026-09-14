@@ -46,6 +46,7 @@ from .contracts import (
     ProjectFolderImageJobCreateRequest as ProjectFolderImageJobCreateRequest,
     ProjectFolderVisualIntentRequest as ProjectFolderVisualIntentRequest,
     ProjectListResponse as ProjectListResponse,
+    ProjectOperationalState as ProjectOperationalState,
     ProjectMediaTasksResponse as ProjectMediaTasksResponse,
     ProjectPatchRequest as ProjectPatchRequest,
     ProjectPermanentDeleteRequest as ProjectPermanentDeleteRequest,

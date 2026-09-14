@@ -23,6 +23,8 @@ from ..exceptions import (
 )
 from ..project_storage import (
     ProjectFolderStorage,
+    ProjectBusyError,
+    ProjectClosedError,
     ProjectStorageConflictError,
     ProjectStorageError,
 )
@@ -39,6 +41,7 @@ from .models import (
     ProjectCreateRequest,
     ProjectFolderImageJobCreateRequest,
     ProjectListResponse,
+    ProjectOperationalState,
     ProjectMediaTasksResponse,
     ProjectPatchRequest,
     ProjectRunsResponse,
@@ -84,6 +87,14 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
     @contextmanager
     def opened_project(project_id: str):
         store = storage.projects.open(project_id)
+        try:
+            yield store
+        finally:
+            store.close()
+
+    @contextmanager
+    def inspected_project(project_id: str):
+        store = storage.projects.inspect(project_id)
         try:
             yield store
         finally:
@@ -143,6 +154,24 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
             content={"code": "revision_conflict", "message": str(error)},
         )
 
+    @app.exception_handler(ProjectBusyError)
+    async def project_busy_handler(
+        _request: Request, error: ProjectBusyError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "project_busy", "message": str(error)},
+        )
+
+    @app.exception_handler(ProjectClosedError)
+    async def project_closed_handler(
+        _request: Request, error: ProjectClosedError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "project_closed", "message": str(error)},
+        )
+
     @app.exception_handler(NotFoundError)
     async def project_folder_not_found_handler(
         _request: Request, error: NotFoundError
@@ -197,7 +226,11 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
 
     @app.get("/api/v2/authoring-draft-capabilities")
     def authoring_draft_capabilities() -> dict[str, bool]:
-        return {"durableProjectDrafts": True, "durableMediaDrafts": True}
+        return {
+            "durableProjectDrafts": True,
+            "durableMediaDrafts": True,
+            "explicitProjectClose": True,
+        }
 
     @app.post(
         "/api/v2/projects",
@@ -234,8 +267,9 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
             return ProjectListResponse(projects=[])
         summaries: list[ProjectSummary] = []
         for home in storage.projects.discover()[:limit]:
-            with opened_project(home.manifest.project_id) as store:
+            with inspected_project(home.manifest.project_id) as store:
                 project = store.project()
+                operational_state, _revision = store.repository.operational_state()
                 summaries.append(
                     ProjectSummary(
                         **project.model_dump(mode="python"),
@@ -243,6 +277,7 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                             head.stage: head.status
                             for head in store.repository.list_stage_heads(project.id)
                         },
+                        operational_state=operational_state,
                     )
                 )
         return ProjectListResponse(projects=summaries)
@@ -251,6 +286,22 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
     def get_project(project_id: str) -> Project:
         with opened_project(project_id) as store:
             return store.project()
+
+    @app.post(
+        "/api/v2/projects/{project_id}/close",
+        response_model=ProjectOperationalState,
+    )
+    def close_project(project_id: str) -> ProjectOperationalState:
+        revision = storage.projects.close_project(project_id)
+        return ProjectOperationalState(project_id=project_id, state="closed", revision=revision)
+
+    @app.post(
+        "/api/v2/projects/{project_id}/open",
+        response_model=ProjectOperationalState,
+    )
+    def open_project(project_id: str) -> ProjectOperationalState:
+        revision = storage.projects.reopen_project(project_id)
+        return ProjectOperationalState(project_id=project_id, state="open", revision=revision)
 
     @app.patch("/api/v2/projects/{project_id}", response_model=Project)
     def patch_project(

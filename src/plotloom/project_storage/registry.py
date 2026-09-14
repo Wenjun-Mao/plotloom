@@ -21,6 +21,12 @@ from .format import (
     _write_new_file,
 )
 from .project_handle import ProjectStore
+from .operational_state import (
+    ProjectAccessLease,
+    ProjectBusyError,
+    ProjectClosedError,
+    close_blockers,
+)
 
 
 @dataclass(frozen=True)
@@ -58,7 +64,14 @@ class ProjectDirectoryRegistry:
                 _canonical_json(manifest.model_dump(mode="json", by_alias=True)) + "\n"
             ).encode("utf-8"),
         )
-        return ProjectStore.initialize(home, manifest, project)
+        lease = ProjectAccessLease.acquire(home, mode="shared")
+        try:
+            return ProjectStore.initialize(
+                home, manifest, project, access_lease=lease
+            )
+        except BaseException:
+            lease.close()
+            raise
 
     def discover(self) -> list[ProjectHome]:
         homes: list[ProjectHome] = []
@@ -76,7 +89,8 @@ class ProjectDirectoryRegistry:
                 continue
             try:
                 manifest = ProjectManifest.model_validate(_read_json(manifest_path))
-                store = ProjectStore.open(candidate)
+                lease = ProjectAccessLease.acquire(candidate, mode="shared")
+                store = ProjectStore.open(candidate, access_lease=lease)
                 store.close()
             except (ProjectStorageError, ValueError, SQLAlchemyError):
                 continue
@@ -84,6 +98,78 @@ class ProjectDirectoryRegistry:
         return homes
 
     def open(self, project_id: str) -> ProjectStore:
+        """Open an admitted shared handle; closed homes never reopen implicitly."""
+
+        home = self._project_home(project_id)
+        lease = ProjectAccessLease.acquire(home.path, mode="shared")
+        try:
+            store = ProjectStore.open(home.path, access_lease=lease)
+            state, _revision = store.repository.operational_state()
+            if state != "open":
+                store.close()
+                raise ProjectClosedError("project_closed: reopen it explicitly before editing")
+            return store
+        except BaseException:
+            if lease.descriptor >= 0:
+                lease.close()
+            raise
+
+    def inspect(self, project_id: str) -> ProjectStore:
+        """Open a shared read handle without changing closed-project admission."""
+
+        home = self._project_home(project_id)
+        lease = ProjectAccessLease.acquire(home.path, mode="shared")
+        try:
+            return ProjectStore.open(home.path, access_lease=lease)
+        except BaseException:
+            lease.close()
+            raise
+
+    def close_project(self, project_id: str) -> int:
+        """Quiesce one folder, checkpoint SQLite, then deny future admission."""
+
+        store = self._exclusive_store(project_id)
+        try:
+            state, revision = store.repository.operational_state()
+            if state == "open":
+                blockers = close_blockers(store)
+                if blockers:
+                    raise ProjectBusyError(
+                        "project_busy: " + ", ".join(blockers)
+                    )
+                _state, revision = store.repository.set_operational_state(
+                    expected_revision=revision, state="closed"
+                )
+            # WAL checkpoint happens before the repository/lease are released;
+            # no sidecar can race the successful close transition.
+            with store.repository.engine.connect() as connection:
+                checkpoint = connection.exec_driver_sql("PRAGMA wal_checkpoint(TRUNCATE)").one()
+            if checkpoint[0] != 0 or checkpoint[1] != checkpoint[2]:
+                if state == "open":
+                    store.repository.set_operational_state(
+                        expected_revision=revision, state="open"
+                    )
+                raise ProjectBusyError("project_busy: SQLite checkpoint did not quiesce")
+            return revision
+        finally:
+            store.close()
+
+    def reopen_project(self, project_id: str) -> int:
+        """Explicitly reopen a closed folder without dispatching or replaying work."""
+
+        store = self._exclusive_store(project_id)
+        try:
+            state, revision = store.repository.operational_state()
+            if state == "open":
+                return revision
+            _state, revision = store.repository.set_operational_state(
+                expected_revision=revision, state="open"
+            )
+            return revision
+        finally:
+            store.close()
+
+    def _project_home(self, project_id: str) -> ProjectHome:
         matches = [
             home for home in self.discover() if home.manifest.project_id == project_id
         ]
@@ -95,4 +181,13 @@ class ProjectDirectoryRegistry:
             raise ProjectStorageCorruptionError(
                 f"multiple project homes share identity: {project_id}"
             )
-        return ProjectStore.open(matches[0].path)
+        return matches[0]
+
+    def _exclusive_store(self, project_id: str) -> ProjectStore:
+        home = self._project_home(project_id)
+        lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
+        try:
+            return ProjectStore.open(home.path, access_lease=lease)
+        except BaseException:
+            lease.close()
+            raise

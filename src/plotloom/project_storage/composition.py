@@ -43,10 +43,14 @@ class ProjectFolderStorage:
         """Run the selected public profile against the project-owned database."""
         from ..project_generation_storage import ProjectPipelineExecutor
 
-        return ProjectPipelineExecutor(provider_resolver).execute(
-            self.projects.open(project_id),
-            profile=self.application.selected_text_profile(),
-            exact_repair=exact_repair,
-            secret_broker=secret_broker,
-            session_api_key=session_api_key,
-        )
+        store = self.projects.open(project_id)
+        try:
+            return ProjectPipelineExecutor(provider_resolver).execute(
+                store,
+                profile=self.application.selected_text_profile(),
+                exact_repair=exact_repair,
+                secret_broker=secret_broker,
+                session_api_key=session_api_key,
+            )
+        finally:
+            store.close()

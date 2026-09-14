@@ -38,13 +38,19 @@ from .format import (
     _require_real_directory,
     _utc_folder_timestamp,
 )
+from .operational_state import ProjectAccessLease
 
 
 class ProjectStore:
     """One project home and its directly authoritative canonical repository."""
 
     def __init__(
-        self, project_home: Path, manifest: ProjectManifest, *, create_schema: bool
+        self,
+        project_home: Path,
+        manifest: ProjectManifest,
+        *,
+        create_schema: bool,
+        access_lease: ProjectAccessLease | None = None,
     ) -> None:
         self.home = project_home.resolve()
         self.manifest = manifest
@@ -60,6 +66,7 @@ class ProjectStore:
         )
         self._artifacts = _OwnedArtifactStore(self.home)
         self.artifacts = ProjectArtifactStore(self._artifacts)
+        self._access_lease = access_lease
 
     @property
     def repository(self) -> ProjectSQLiteRepository:
@@ -67,13 +74,23 @@ class ProjectStore:
 
     @classmethod
     def initialize(
-        cls, project_home: Path, manifest: ProjectManifest, project: Project
+        cls,
+        project_home: Path,
+        manifest: ProjectManifest,
+        project: Project,
+        *,
+        access_lease: ProjectAccessLease | None = None,
     ) -> "ProjectStore":
         if project.id != manifest.project_id:
             raise ProjectStorageCorruptionError(
                 "new project and manifest identities differ"
             )
-        store = cls(project_home, manifest, create_schema=True)
+        store = cls(
+            project_home,
+            manifest,
+            create_schema=True,
+            access_lease=access_lease,
+        )
         try:
             store.repository.initialize_project(project)
         except BaseException:
@@ -82,7 +99,9 @@ class ProjectStore:
         return store
 
     @classmethod
-    def open(cls, project_home: Path) -> "ProjectStore":
+    def open(
+        cls, project_home: Path, *, access_lease: ProjectAccessLease | None = None
+    ) -> "ProjectStore":
         if project_home.is_symlink() or not project_home.is_dir():
             raise ProjectStorageConfinementError(
                 "project home must be a real directory"
@@ -97,7 +116,7 @@ class ProjectStore:
             raise ProjectStorageCorruptionError(
                 "project manifest does not meet this storage format"
             ) from error
-        store = cls(home, manifest, create_schema=False)
+        store = cls(home, manifest, create_schema=False, access_lease=access_lease)
         try:
             store._validate_opened_project()
         except BaseException:
@@ -123,7 +142,12 @@ class ProjectStore:
             )
 
     def close(self) -> None:
-        self.repository.close()
+        try:
+            self.repository.close()
+        finally:
+            if self._access_lease is not None:
+                self._access_lease.close()
+                self._access_lease = None
 
     def project(self) -> Project:
         try:
