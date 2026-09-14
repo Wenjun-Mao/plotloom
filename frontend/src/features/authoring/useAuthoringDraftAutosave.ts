@@ -42,54 +42,56 @@ export function useAuthoringDraftAutosave({
   const draftAutosaveFlights = useRef(new Map<string, Promise<boolean>>());
   const flushAuthoringDraft = useCallback(async (scope: DraftScope): Promise<boolean> => {
     if (!durableDraftsEnabledRef.current || !project.id || project.archivedAt) return true;
-    const local = getDraft(project, scope);
-    if (!local) return true;
     const key = authoringDraftKey(project.id, scope);
-    const existingFlight = draftAutosaveFlights.current.get(key);
-    if (existingFlight) return existingFlight;
-    const operation = captureWorkspaceOperation();
-    const request = (async (): Promise<boolean> => {
-      if (isWorkspaceOperationCurrent(operation)) setDurableDraftStatus("saving");
-      try {
-        const saved = await plotloomApi.saveAuthoringDraft(project.id!, {
-          editorScope: scope,
-          entityId: "root",
-          baseCanonicalRevision: local.baseRevision,
-          expectedDraftRevision: local.serverDraftRevision,
-          payload: local.payload as Record<string, unknown>,
-        });
-        serverAuthoringDrafts.current.set(key, saved);
-        acknowledgeDraft(project, scope, local.localRevision, saved.draftRevision);
-        if (isWorkspaceOperationCurrent(operation)) setDurableDraftStatus("saved");
-        return true;
-      } catch (draftError) {
-        if (isWorkspaceOperationCurrent(operation)) {
-          if (draftError instanceof ApiError && draftError.status === 409) {
-            setDurableDraftStatus("conflict");
-            onConflict(scope, local, project);
-          } else {
-            setDurableDraftStatus("failed");
-            setError(`草稿未保存：${messageFrom(draftError)}`);
-          }
-        }
-        return false;
-      } finally {
-        draftAutosaveFlights.current.delete(key);
-        // A timer can fire while this request is in flight. Its call joins the
-        // flight, so queue one follow-up only when newer typing survived the
-        // acknowledgement. This keeps sessionStorage an unacknowledged safety
-        // buffer rather than a place where a successful save can strand data.
-        const newerLocal = getDraft(project, scope);
-        if (newerLocal && newerLocal.localRevision !== local.localRevision && !draftAutosaveTimers.current.has(key)) {
-          draftAutosaveTimers.current.set(key, window.setTimeout(() => {
-            draftAutosaveTimers.current.delete(key);
-            void flushAuthoringDraft(scope);
-          }, 0));
-        }
+    const timer = draftAutosaveTimers.current.get(key);
+    if (timer !== undefined) {
+      window.clearTimeout(timer);
+      draftAutosaveTimers.current.delete(key);
+    }
+    // Drain to a stable local revision.  Joining one flight is insufficient:
+    // typing can create a newer session record while that request is in flight.
+    while (true) {
+      const local = getDraft(project, scope);
+      if (!local) return true;
+      const existingFlight = draftAutosaveFlights.current.get(key);
+      if (existingFlight) {
+        if (!await existingFlight) return false;
+        continue;
       }
-    })();
-    draftAutosaveFlights.current.set(key, request);
-    return request;
+      const operation = captureWorkspaceOperation();
+      const request = (async (): Promise<boolean> => {
+        if (isWorkspaceOperationCurrent(operation)) setDurableDraftStatus("saving");
+        try {
+          const saved = await plotloomApi.saveAuthoringDraft(project.id!, {
+            editorScope: scope, entityId: "root",
+            baseCanonicalRevision: local.baseRevision,
+            expectedDraftRevision: local.serverDraftRevision,
+            payload: local.payload as Record<string, unknown>,
+          });
+          serverAuthoringDrafts.current.set(key, saved);
+          acknowledgeDraft(project, scope, local.localRevision, saved.draftRevision);
+          if (isWorkspaceOperationCurrent(operation)) setDurableDraftStatus("saved");
+          return true;
+        } catch (draftError) {
+          if (isWorkspaceOperationCurrent(operation)) {
+            if (draftError instanceof ApiError && draftError.status === 409) {
+              setDurableDraftStatus("conflict");
+              onConflict(scope, local, project);
+            } else {
+              setDurableDraftStatus("failed");
+              setError(`草稿未保存：${messageFrom(draftError)}`);
+            }
+          }
+          return false;
+        } finally {
+          draftAutosaveFlights.current.delete(key);
+        }
+      })();
+      draftAutosaveFlights.current.set(key, request);
+      if (!await request) return false;
+      const newer = getDraft(project, scope);
+      if (!newer || newer.localRevision === local.localRevision) return true;
+    }
   }, [project]);
 
   const scheduleAuthoringDraftAutosave = useCallback((scope: DraftScope) => {

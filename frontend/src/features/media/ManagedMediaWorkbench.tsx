@@ -24,6 +24,7 @@ import { useAssetKeyframeActions } from "./assets/useAssetKeyframeActions";
 import { useImageJobActions } from "./image-jobs/useImageJobActions";
 import { useCharacterReferenceActions } from "./references/useCharacterReferenceActions";
 import { useMediaSelectionContext } from "./keyframes/useMediaSelectionContext";
+import type { ProjectDraftQuiescence } from "../authoring/projectDraftQuiescence";
 
 function previewKey(projectId: string): string {
   return `plotloom:still-preview:${projectId}`;
@@ -46,6 +47,7 @@ export function ManagedMediaWorkbench({
   storyboardRevision,
   storyBibleRevision,
   mediaDraftsEnabled,
+  draftQuiescence,
   review,
   readOnly,
   onSelectShot,
@@ -58,6 +60,7 @@ export function ManagedMediaWorkbench({
   storyboardRevision?: number;
   storyBibleRevision?: number;
   mediaDraftsEnabled: boolean;
+  draftQuiescence?: ProjectDraftQuiescence;
   review: StoryboardReview | null | undefined;
   readOnly: boolean;
   onSelectShot?: (id: string) => void;
@@ -179,6 +182,7 @@ export function ManagedMediaWorkbench({
     selectedShot,
     storyboardRevision,
     mediaDraftsEnabled,
+    draftQuiescence,
     currentApproval,
     workbench,
     imageJobs,

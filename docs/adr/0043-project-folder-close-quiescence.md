@@ -30,12 +30,20 @@ Explicit Open also takes the exclusive lease and changes only admission state;
 it never dispatches or replays work. Ordinary registry opens reject a closed
 project, so delayed requests cannot silently reopen it.
 
+The direct workbench owns one project-scoped draft-quiescence contract. Its
+authoring and media editors register only their own durable write queue;
+Close drains the current authoring draft and every registered visual-intent or
+image-direction queue before calling the backend. A CAS/network failure, or a
+new edit registered while the drain is in flight, fails Close and retains the
+unacknowledged buffer. A durable draft receipt does not canonically save or
+approve author content. Explicit Open closes the directory view and routes to
+the reopened project; it never replays a job.
+
 ## Consequences
 
 The direct storage factory exposes close/open only through its capability flag;
-the retained runtime does not show a control it cannot honor. Browser draft
-flush remains client-owned and CAS-protected before the command; a failed flush
-keeps the buffer and folder open. A filesystem advisory lease coordinates local
+the retained runtime does not show a control it cannot honor. A filesystem
+advisory lease coordinates local
 processes and external publication paths, but is not a claim of safety across
 hosts or unsupported filesystems.
 

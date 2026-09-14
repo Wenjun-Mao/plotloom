@@ -345,3 +345,18 @@ reference/proposal and same-person review routes share the same ported tables
 and direct handle. Live ImageGen/provider/gateway calls, video, close,
 snapshot/restore, retained-runtime cutover, compatibility mode, and legacy
 data mutation remain deferred. See [the 2C receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2c-still-image.md).
+
+## Checkpoint 2D close/quiescence record (2026-09-14)
+
+Format-6 explicit Close is separate from Archive and uses the project-local
+operational-state row plus a filesystem advisory lease to deny delayed local
+admission. It refuses nonterminal text/media work and publication ownership
+that cannot prove terminal, checkpoints SQLite before release, and requires
+explicit Open without dispatch or replay. The direct workbench's one
+project-scoped drain coordinates authoring, visual-intent, and image-direction
+draft queues: failed CAS/network writes or late typing leave the folder open
+with their unacknowledged buffer intact. Browser evidence covers immediate
+authoring and visual-intent typing through Close, Open, and a file-SQLite
+backend restart without canonical mutation. Snapshot/restore, video,
+retained-runtime cutover, legacy-data migration, and live-provider evidence
+remain outside this slice. See [the close receipt](../verification/2026-09-14-project-folder-close-quiescence.md).

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import multiprocessing
 import os
 from pathlib import Path
 import sqlite3
+import shutil
 
 import pytest
 from fastapi.testclient import TestClient
@@ -30,6 +32,27 @@ from plotloom.project_storage import (
 )
 from plotloom.provider_profiles import TextProviderProfileSnapshotV3
 from plotloom.persistence import stable_hash
+
+
+def _hold_project_handle(
+    outputs_root: str,
+    application_data_root: str,
+    project_id: str,
+    ready: multiprocessing.synchronize.Event,
+    release: multiprocessing.synchronize.Event,
+) -> None:
+    """Hold an independently opened project handle for the close-race test."""
+
+    storage = ProjectFolderStorage(
+        outputs_root=Path(outputs_root),
+        application_data_root=Path(application_data_root),
+    )
+    store = storage.projects.open(project_id)
+    try:
+        ready.set()
+        release.wait(timeout=10)
+    finally:
+        store.close()
 
 
 def _fixture_profile(*, max_semantic_corrections: int = 2) -> TextProviderProfileSnapshotV3:
@@ -751,3 +774,87 @@ def test_close_refuses_an_admitted_sibling_handle(tmp_path: Path) -> None:
     finally:
         second.close()
     assert storage.projects.close_project(project_id) >= 2
+
+
+def test_close_refuses_an_independent_process_until_its_handle_releases(
+    tmp_path: Path,
+) -> None:
+    outputs_root = tmp_path / "outputs"
+    application_root = tmp_path / "application"
+    storage = ProjectFolderStorage(
+        outputs_root=outputs_root,
+        application_data_root=application_root,
+    )
+    created = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = created.project().id
+    created.close()
+
+    context = multiprocessing.get_context("spawn")
+    ready = context.Event()
+    release = context.Event()
+    holder = context.Process(
+        target=_hold_project_handle,
+        args=(str(outputs_root), str(application_root), project_id, ready, release),
+    )
+    holder.start()
+    try:
+        assert ready.wait(timeout=10), "independent handle did not acquire its lease"
+        with pytest.raises(ProjectBusyError, match="project_busy"):
+            storage.projects.close_project(project_id)
+    finally:
+        release.set()
+        holder.join(timeout=10)
+        if holder.is_alive():
+            holder.terminate()
+            holder.join(timeout=10)
+    assert holder.exitcode == 0
+    assert storage.projects.close_project(project_id) >= 2
+
+
+def test_close_refuses_nonterminal_run_and_closed_copy_reopens_cleanly(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs",
+        application_data_root=tmp_path / "application",
+    )
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.project().id
+    with store.repository.admit_provider_snapshot(
+        _fixture_profile().model_dump(mode="json", by_alias=True)
+    ):
+        store.repository.create_run(
+            project_id,
+            RunKind.PIPELINE,
+            STAGE_ORDER,
+            provider_snapshot=_fixture_profile().model_dump(mode="json", by_alias=True),
+        )
+    store.close()
+    with pytest.raises(ProjectBusyError, match="nonterminal_text_run"):
+        storage.projects.close_project(project_id)
+
+    # This terminal test mutation is not a close shortcut: it only removes the
+    # deliberately-created blocker so the closed-copy boundary can be proved.
+    store = storage.projects.open(project_id)
+    try:
+        run = store.generation_runs()[0]
+        store.repository.cancel_run(run.id)
+        source_home = store.home
+    finally:
+        store.close()
+    storage.projects.close_project(project_id)
+
+    copied_outputs = tmp_path / "copied-outputs"
+    copied_outputs.mkdir()
+    shutil.copytree(source_home, copied_outputs / source_home.name)
+    copied = ProjectFolderStorage(
+        outputs_root=copied_outputs,
+        application_data_root=tmp_path / "copied-application",
+    )
+    with pytest.raises(ProjectClosedError):
+        copied.projects.open(project_id)
+    copied.projects.reopen_project(project_id)
+    reopened = copied.projects.open(project_id)
+    try:
+        assert reopened.project().id == project_id
+        assert reopened.generation_runs()[0].status == RunStatus.CANCELLED
+    finally:
+        reopened.close()

@@ -16,6 +16,7 @@ import {
   useVisualIntentDraft,
   type IntentDraft,
 } from "../../../visual-intent-drafts";
+import type { ProjectDraftQuiescence } from "../../authoring/projectDraftQuiescence";
 
 function draftFor(
   intent: VisualIntent | undefined,
@@ -50,6 +51,7 @@ export function useMediaSelectionContext({
   selectedShot,
   storyboardRevision,
   mediaDraftsEnabled,
+  draftQuiescence,
   currentApproval,
   workbench,
   imageJobs,
@@ -75,6 +77,7 @@ export function useMediaSelectionContext({
   selectedShot: Shot | undefined;
   storyboardRevision?: number;
   mediaDraftsEnabled: boolean;
+  draftQuiescence?: ProjectDraftQuiescence;
   currentApproval: ApprovalDecision | undefined;
   workbench: VisualWorkbench;
   imageJobs: ImageJob[];
@@ -195,6 +198,7 @@ export function useMediaSelectionContext({
     draftFor(activeIntent, selectedShot),
     storyboardRevision,
     mediaDraftsEnabled,
+    draftQuiescence,
   );
   const intentDraft = intentEditor.value;
   const setIntentDraft = intentEditor.update;
@@ -230,6 +234,7 @@ export function useMediaSelectionContext({
     imageJobContextId,
     storyboardRevision,
     mediaDraftsEnabled,
+    draftQuiescence,
   );
   const imageJobPrerequisite = !projectId
     ? "先保存项目。"
@@ -319,4 +324,3 @@ export function useMediaSelectionContext({
     imageJobPrerequisite,
   };
 }
-

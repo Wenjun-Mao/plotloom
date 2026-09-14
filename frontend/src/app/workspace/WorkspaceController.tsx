@@ -19,6 +19,7 @@ import { useProjectAuthoringPersistence } from "./useProjectAuthoringPersistence
 import { useProjectDirectory } from "./useProjectDirectory";
 import { useProjectInitialization } from "./useProjectInitialization";
 import { useProjectLifecycle } from "./useProjectLifecycle";
+import { createProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
 import { useRunCommands } from "./useRunCommands";
 import { useRunSession } from "./useRunSession";
 import { useTextProviderProfiles } from "./useTextProviderProfiles";
@@ -37,6 +38,7 @@ export default function WorkspaceController() {
   const [durableMediaDraftsEnabled, setDurableMediaDraftsEnabled] = useState(false);
   const [explicitProjectCloseEnabled, setExplicitProjectCloseEnabled] = useState(false);
   const durableDraftsEnabledRef = useRef(false);
+  const mediaDraftQuiescence = useRef(createProjectDraftQuiescence()).current;
   const profiles = useTextProviderProfiles(setBusy, setError, messageFrom);
   const directory = useProjectDirectory(messageFrom);
   const { pollRun, loadTraceEvidence } = useRunSession({ session, setError, describeError: messageFrom });
@@ -54,6 +56,7 @@ export default function WorkspaceController() {
     session,
     durableDraftsEnabled: durableDraftsEnabledRef,
     feedback: { setBusy, setError },
+    draftQuiescence: mediaDraftQuiescence,
   });
   const recovery = useAuthoringDraftRecovery({
     session,
@@ -89,6 +92,7 @@ export default function WorkspaceController() {
     currentDraft: authoring.currentDraft,
     commitProject: authoring.commitProject,
     commitStage: authoring.commitStage,
+    mediaDraftQuiescence,
     directory: { close: directory.closeDirectory, refresh: directory.refresh, setError: directory.setError },
     openProject: (projectId) => workspaceNavigation.requestNavigation({ project: projectId, stage: "brief" }),
     startBlank: initialization.startBlankProject,
@@ -210,7 +214,7 @@ export default function WorkspaceController() {
       case "bible": return <StoryBiblePage key={`${editorRevisionKey(project, "story_bible")}:${recovery.editorNonce}`} projectId={project.id} storyBibleRevision={stageHeads.story_bible?.revision} value={recoveredValue("story_bible", project.storyBible)} stale={project.staleStages.includes("story_bible")} saving={authoring.projectSaving || projectReadOnly} entityId={routeEntity} referenceContext={{ sceneBeats: project.sceneBeats, storyboard: project.storyboard }} issues={validationIssues.story_bible} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: StoryBible) => authoring.commitStage("story_bible", value)} onDraftChange={(value) => authoring.rememberDraft("story_bible", value)} />;
       case "graph": return <GraphPage key={`${editorRevisionKey(project, "story_graph")}:${recovery.editorNonce}`} value={recoveredValue("story_graph", project.storyGraph)} stale={project.staleStages.includes("story_graph")} saving={authoring.projectSaving || projectReadOnly} entityId={routeEntity} sceneReferences={project.sceneBeats.scenes.map((scene) => ({ id: scene.id, storyNodeId: scene.storyNodeId, title: scene.title }))} issues={validationIssues.story_graph} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: StoryGraph) => authoring.commitStage("story_graph", value)} onDraftChange={(value) => authoring.rememberDraft("story_graph", value)} />;
       case "beats": return <SceneBeatsPage key={`${editorRevisionKey(project, "scene_beats")}:${recovery.editorNonce}`} value={recoveredValue("scene_beats", project.sceneBeats)} stale={project.staleStages.includes("scene_beats")} saving={authoring.projectSaving || projectReadOnly} entityId={routeEntity} referenceContext={{ nodes: project.storyGraph.nodes, characters: project.storyBible.characters, locations: project.storyBible.locations, props: project.storyBible.props, storyboard: { shots: project.storyboard.shots.map(({ id, sceneId, cueIds }) => ({ id, sceneId, cueIds })), shotBeatLinks: project.storyboard.shotBeatLinks.map(({ shotId, beatId }) => ({ shotId, beatId })) } }} issues={validationIssues.scene_beats} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: SceneBeatPlan) => authoring.commitStage("scene_beats", value)} onDraftChange={(value) => authoring.rememberDraft("scene_beats", value)} />;
-      case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${recovery.editorNonce}`} projectId={project.id} revision={stageHeads.storyboard?.revision} storyBibleRevision={stageHeads.story_bible?.revision} contentHash={stageHeads.storyboard?.contentHash} bible={project.storyBible} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={authoring.projectSaving || projectReadOnly} entityId={routeEntity} issues={validationIssues.storyboard} review={storyboardReview} mediaDraftsEnabled={durableMediaDraftsEnabled} onEntitySelect={workspaceNavigation.selectRouteEntity} onNavigateIssue={(stage, entity) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage, entity })} onReviewChange={session.acceptStoryboardReview} onSave={(value: Storyboard) => authoring.commitStage("storyboard", value)} onDraftChange={(value) => authoring.rememberDraft("storyboard", value)} />;
+      case "storyboard": return <StoryboardPage key={`${editorRevisionKey(project, "storyboard")}:${recovery.editorNonce}`} projectId={project.id} revision={stageHeads.storyboard?.revision} storyBibleRevision={stageHeads.story_bible?.revision} contentHash={stageHeads.storyboard?.contentHash} bible={project.storyBible} graph={project.storyGraph} sceneBeats={project.sceneBeats} value={recoveredValue("storyboard", project.storyboard)} stale={project.staleStages.includes("storyboard")} mediaTasks={mediaTasks} saving={authoring.projectSaving || projectReadOnly} entityId={routeEntity} issues={validationIssues.storyboard} review={storyboardReview} mediaDraftsEnabled={durableMediaDraftsEnabled} mediaDraftQuiescence={mediaDraftQuiescence} onEntitySelect={workspaceNavigation.selectRouteEntity} onNavigateIssue={(stage, entity) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage, entity })} onReviewChange={session.acceptStoryboardReview} onSave={(value: Storyboard) => authoring.commitStage("storyboard", value)} onDraftChange={(value) => authoring.rememberDraft("storyboard", value)} />;
       case "trace": return <TracePage run={run} progress={runProgress} trace={trace} executionTrace={executionTrace} running={Boolean(running)} onRun={commands.startRun} onResume={commands.resumeRun} onCancel={commands.cancelRun} />;
       case "quarantine": return <QuarantinePage items={project.quarantines} repairing={busy} onRepair={commands.repair} onRebuildStage={commands.rebuild} />;
     }
@@ -244,7 +248,7 @@ export default function WorkspaceController() {
     {rebuildOpen && <RebuildDialog staleStages={project.staleStages} busy={busy} onClose={() => setRebuildOpen(false)} onRebuild={commands.rebuild} />}
     {directory.open && <ProjectDirectoryDialog projects={directory.projects} showArchived={directory.showArchived} error={directory.error} loading={directory.loading} hasMore={Boolean(directory.nextCursor)} onLoadMore={directory.loadMore} onArchived={(next) => { directory.setShowArchived(next); void directory.refresh(next); }} onBlank={startBlank} onSample={openSample} onOpen={(item) => { if (item.operationalState === "closed") { void lifecycle.mutate(item, "open"); return; } directory.closeDirectory(); workspaceNavigation.requestNavigation({ project: item.id, stage: "brief" }); }} onAction={lifecycle.mutate} explicitProjectClose={explicitProjectCloseEnabled} onClose={directory.closeDirectory} />}
     {workspaceNavigation.pendingNavigation && !session.unsafeDraft && <DraftNavigationDialog onSave={() => void workspaceNavigation.resolvePendingNavigation("save")} onDiscard={() => void workspaceNavigation.resolvePendingNavigation("discard")} onCancel={() => void workspaceNavigation.resolvePendingNavigation("cancel")} />}
-    {lifecycle.pendingArchive && <DraftNavigationDialog onSave={() => void lifecycle.resolvePendingArchive("save")} onDiscard={() => void lifecycle.resolvePendingArchive("discard")} onCancel={() => void lifecycle.resolvePendingArchive("cancel")} />}
+    {lifecycle.pendingArchive && <DraftNavigationDialog closing={lifecycle.pendingArchive.action === "close"} onSave={() => void lifecycle.resolvePendingArchive("save")} onDiscard={() => void lifecycle.resolvePendingArchive("discard")} onCancel={() => void lifecycle.resolvePendingArchive("cancel")} />}
     {recovery.recovery && <DraftRecoveryDialog source={recovery.recovery.source} onRestore={recovery.restore} onDiscard={recovery.discard} />}
     {authoring.draftConflict && <DraftConflictDialog serverReloaded={authoring.draftConflict.serverReloaded} busy={authoring.projectSaving} onReload={() => void recovery.reloadConflict()} onCopy={() => void recovery.copyConflict()} onDiscard={recovery.discardConflict} />}
     {session.unsafeDraft && <UnsafeDraftDialog reason={session.unsafeDraft.reason} onDiscard={discardUnsafeDraft} />}

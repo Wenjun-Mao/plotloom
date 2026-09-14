@@ -4,6 +4,7 @@ import { discardDraft, hasDraft, type DraftScope } from "../../draft-registry";
 import { messageFrom, stageForPage } from "./contracts";
 import type { ProjectListItem, ServerStageName, WorkspaceProject } from "../../types";
 import type { WorkspaceSession } from "./useWorkspaceSession";
+import type { ProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
 
 type LifecycleAction = "archive" | "restore" | "duplicate" | "delete" | "close" | "open";
 type LifecycleSession = Pick<WorkspaceSession, "project" | "activePage" | "capture" | "isCurrent" | "acceptCanonicalProject">;
@@ -14,6 +15,7 @@ export function useProjectLifecycle({
   currentDraft,
   commitProject,
   commitStage,
+  mediaDraftQuiescence,
   directory,
   openProject,
   startBlank,
@@ -23,6 +25,7 @@ export function useProjectLifecycle({
   currentDraft: React.MutableRefObject<{ scope: DraftScope; payload: unknown } | undefined>;
   commitProject: (patch: Partial<WorkspaceProject>) => Promise<void>;
   commitStage: <T>(stage: ServerStageName, content: T) => Promise<void>;
+  mediaDraftQuiescence: ProjectDraftQuiescence;
   directory: { close: () => void; refresh: () => Promise<void>; setError: (error: string) => void };
   openProject: (projectId: string) => void;
   startBlank: () => void;
@@ -35,10 +38,36 @@ export function useProjectLifecycle({
     try {
       if (action === "close" || action === "open") {
         if (!explicitProjectClose) return;
-        if (action === "close") await plotloomApi.closeProject(item.id);
-        else await plotloomApi.openProjectFolder(item.id);
+        if (action === "close") {
+          const attempt = mediaDraftQuiescence.beginClose(item.id);
+          if (!await attempt.drain() || !attempt.canCommit()) {
+            throw new Error("媒体草稿未保存；项目仍保持打开状态。");
+          }
+          try {
+            // `canCommit` runs in this continuation, before yielding to fetch;
+            // a writer registered by a late edit therefore aborts Close rather
+            // than being stranded behind a closed project.
+            if (!attempt.canCommit()) throw new Error("项目草稿仍在更新；请重试关闭。");
+            await plotloomApi.closeProject(item.id);
+          } finally {
+            attempt.finish();
+          }
+        } else {
+          await plotloomApi.openProjectFolder(item.id);
+          if (!session.isCurrent(operation)) return;
+          directory.close();
+          openProject(item.id);
+          return;
+        }
         if (!session.isCurrent(operation)) return;
-        if (action === "close" && session.project.id === item.id) startBlank();
+        if (action === "close" && session.project.id === item.id) {
+          // `startBlank` advances the workspace epoch. The directory has its
+          // own bounded projection, so refresh it after that transition rather
+          // than leaving the just-closed item painted as active.
+          startBlank();
+          await directory.refresh();
+          return;
+        }
       } else if (action === "archive" || action === "restore") {
         const updated = action === "archive"
           ? await plotloomApi.archiveProject(item.id, item.lifecycleRevision ?? item.revision)
@@ -76,14 +105,23 @@ export function useProjectLifecycle({
     const pending = pendingArchive;
     if (!pending || action === "cancel") { setPendingArchive(undefined); return; }
     const scope = stageForPage(session.activePage);
-    if (scope && action === "save") {
+    if (scope && action === "save" && pending.action === "close") {
+      if (!await mediaDraftQuiescence.flush(pending.item.id)) return;
+    } else if (scope && action === "save") {
       const draft = currentDraft.current;
       if (!draft || draft.scope !== scope) { setPendingArchive(undefined); return; }
       if (scope === "brief") await commitProject({ brief: draft.payload as WorkspaceProject["brief"] });
       else await commitStage(scope, draft.payload);
       if (currentDraft.current) return;
     }
-    if (scope) { discardDraft(session.project, scope); currentDraft.current = undefined; }
+    // Close keeps the current ref through the server-draft receipt and the
+    // following admission transition. Clearing it before Close completes lets
+    // the generic recovery effect paint a just-acknowledged draft over the
+    // closed view. `startBlank` owns the final workflow cleanup instead.
+    if (scope && pending.action !== "close") {
+      discardDraft(session.project, scope);
+      currentDraft.current = undefined;
+    }
     setPendingArchive(undefined);
     await perform(pending.item, pending.action);
   };

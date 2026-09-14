@@ -1,7 +1,8 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, expect, it } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { imageJobTargetId, useImageJobDirectionDraft, useVisualIntentDraft, type IntentDraft } from "../src/visual-intent-drafts";
+import { plotloomApi } from "../src/api";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 const saved: IntentDraft = { identityIntent: "identity", compositionIntent: "composition", styleIntent: "saved", sourceRefs: "source" };
@@ -9,8 +10,8 @@ let root: Root;
 let host: HTMLDivElement;
 let editor: ReturnType<typeof useVisualIntentDraft>;
 let directionEditor: ReturnType<typeof useImageJobDirectionDraft>;
-function Probe({ project = "project", shot = "shot", asset = "asset", base }: { project?: string; shot?: string; asset?: string; base?: string }) {
-  editor = useVisualIntentDraft(project, shot, asset, base, saved);
+function Probe({ project = "project", shot = "shot", asset = "asset", base, durable = false }: { project?: string; shot?: string; asset?: string; base?: string; durable?: boolean }) {
+  editor = useVisualIntentDraft(project, shot, asset, base, saved, durable ? 1 : undefined, durable);
   return null;
 }
 const render = async (props: Parameters<typeof Probe>[0] = {}) => {
@@ -30,7 +31,7 @@ beforeEach(() => {
   sessionStorage.clear(); localStorage.clear();
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
+afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 
 it("retains separate drafts across shots, candidates, projects, and remounts in session storage only", async () => {
   await render(); await edit("my draft");
@@ -55,6 +56,15 @@ it("preserves the original null baseline when a saved intent arrives, until expl
 it("does not silently rebase an edited existing intent", async () => {
   await render({ base: "v1" }); await edit("local"); await render({ base: "v2" });
   expect(editor.stale).toBe(true); expect(editor.value.styleIntent).toBe("local");
+});
+
+it("refuses Close drain for a dirty visual intent with no persistable source reference", async () => {
+  vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
+  await render({ durable: true });
+  await act(async () => Promise.resolve());
+  await act(async () => editor.update((value) => ({ ...value, styleIntent: "changed", sourceRefs: "" })));
+  await expect(editor.flush()).resolves.toBe(false);
+  expect(editor.dirty).toBe(true);
 });
 
 it("discards only the current context and warns on unload while any drafts remain", async () => {

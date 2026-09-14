@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "./api";
+import type { ProjectDraftQuiescence } from "./features/authoring/projectDraftQuiescence";
 
 export type IntentDraft = { identityIntent: string; compositionIntent: string; styleIntent: string; sourceRefs: string };
 type Entry = { baseId: string | null; value: IntentDraft };
@@ -43,6 +44,7 @@ export function useVisualIntentDraft(
   saved: IntentDraft,
   baseCanonicalRevision?: number,
   serverDraftsEnabled = false,
+  quiescence?: ProjectDraftQuiescence,
 ) {
   const [drafts, setDrafts] = useState<Drafts>(readDrafts);
   const [storageFailed, setStorageFailed] = useState(false);
@@ -50,6 +52,7 @@ export function useVisualIntentDraft(
   const serverRevisionRef = useRef(0);
   const acknowledgedPayloadRef = useRef<string | undefined>(undefined);
   const persistenceRef = useRef<Promise<void> | undefined>(undefined);
+  const timerRef = useRef<number | undefined>(undefined);
   const [serverReady, setServerReady] = useState(false);
   const [serverConflict, setServerConflict] = useState(false);
   const serverConflictRef = useRef(false);
@@ -127,46 +130,70 @@ export function useVisualIntentDraft(
     });
     return () => { cancelled = true; };
   }, [assetId, baseCanonicalRevision, baseId, entityId, key, projectId, serverDraftsEnabled, shotId]);
-  useEffect(() => {
-    if (!serverDraftsEnabled || !projectId || !shotId || !assetId || !baseCanonicalRevision || !entry || !serverReady || serverConflict) return;
-    const timer = window.setTimeout(() => {
-      const epoch = requestEpochRef.current;
-      const payload = {
-        assetId,
-        shotId,
-        role: "shot_keyframe" as const,
-        identityIntent: entry.value.identityIntent || null,
-        compositionIntent: entry.value.compositionIntent || null,
-        styleIntent: entry.value.styleIntent || null,
-        sourceRefs: entry.value.sourceRefs.split("\n").map((item) => item.trim()).filter(Boolean),
-      };
-      const fingerprint = JSON.stringify(payload);
-      if (!payload.sourceRefs.length || acknowledgedPayloadRef.current === fingerprint) return;
-      const persistence = plotloomApi.saveAuthoringDraft(projectId, {
-        editorScope: "visual_intent",
-        entityId,
-        baseCanonicalRevision,
-        expectedDraftRevision: serverRevisionRef.current,
-        payload,
-      }).then((receipt) => {
-        if (requestEpochRef.current !== epoch) return;
-        serverRevisionRef.current = receipt.draftRevision;
-        acknowledgedPayloadRef.current = fingerprint;
-        setServerRevision(receipt.draftRevision);
-        serverConflictRef.current = false;
-        setServerConflict(false);
-      }).catch(() => {
-        if (requestEpochRef.current !== epoch) return;
+  const flush = useCallback(async (): Promise<boolean> => {
+    if (!serverDraftsEnabled || !projectId || !shotId || !assetId || !baseCanonicalRevision || !entry) return true;
+    if (timerRef.current !== undefined) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = undefined;
+    }
+    if (!serverReady || serverConflictRef.current) return false;
+    const existing = persistenceRef.current;
+    if (existing) await existing;
+    if (serverConflictRef.current) return false;
+    const payload = {
+      assetId,
+      shotId,
+      role: "shot_keyframe" as const,
+      identityIntent: entry.value.identityIntent || null,
+      compositionIntent: entry.value.compositionIntent || null,
+      styleIntent: entry.value.styleIntent || null,
+      sourceRefs: entry.value.sourceRefs.split("\n").map((item) => item.trim()).filter(Boolean),
+    };
+    const fingerprint = JSON.stringify(payload);
+    // A visual intent without provenance cannot obtain a valid durable
+    // receipt. It must block Close while dirty rather than reporting a false
+    // drain and leaving the session-only edit behind a closed project.
+    if (!payload.sourceRefs.length) return !dirty;
+    if (acknowledgedPayloadRef.current === fingerprint) return true;
+    const epoch = requestEpochRef.current;
+    const persistence = plotloomApi.saveAuthoringDraft(projectId, {
+      editorScope: "visual_intent", entityId, baseCanonicalRevision,
+      expectedDraftRevision: serverRevisionRef.current, payload,
+    }).then((receipt) => {
+      if (requestEpochRef.current !== epoch) return false;
+      serverRevisionRef.current = receipt.draftRevision;
+      acknowledgedPayloadRef.current = fingerprint;
+      setServerRevision(receipt.draftRevision);
+      serverConflictRef.current = false;
+      setServerConflict(false);
+      return true;
+    }).catch(() => {
+      if (requestEpochRef.current === epoch) {
         serverConflictRef.current = true;
         setServerConflict(true);
-      });
-      persistenceRef.current = persistence;
-      void persistence.finally(() => {
-        if (persistenceRef.current === persistence) persistenceRef.current = undefined;
-      });
+      }
+      return false;
+    });
+    persistenceRef.current = persistence.then(() => undefined);
+    const saved = await persistence;
+    if (persistenceRef.current) persistenceRef.current = undefined;
+    return saved;
+  }, [assetId, baseCanonicalRevision, dirty, entityId, entry, projectId, serverDraftsEnabled, serverReady, shotId]);
+  useEffect(() => {
+    if (!serverDraftsEnabled || !projectId || !shotId || !assetId || !baseCanonicalRevision || !entry || !serverReady || serverConflict) return;
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = undefined;
+      void flush();
     }, 750);
-    return () => window.clearTimeout(timer);
-  }, [assetId, baseCanonicalRevision, entityId, entry, projectId, serverConflict, serverDraftsEnabled, serverReady, shotId]);
+    return () => {
+      if (timerRef.current !== undefined) window.clearTimeout(timerRef.current);
+      timerRef.current = undefined;
+    };
+  }, [assetId, baseCanonicalRevision, entry, flush, projectId, serverConflict, serverDraftsEnabled, serverReady, shotId]);
+  useEffect(() => {
+    if (!quiescence || !serverDraftsEnabled || !projectId || !shotId || !assetId) return;
+    return quiescence.register(projectId, `visual_intent:${entityId}`, flush);
+  }, [assetId, entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId]);
   useEffect(() => {
     if (!Object.keys(drafts).length) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
@@ -198,7 +225,7 @@ export function useVisualIntentDraft(
       value: change(current[key]?.value ?? saved),
     } }));
   };
-  return { value, update, clear, dirty, stale, storageFailed, serverConflict, serverReady, serverRevision };
+  return { value, update, clear, flush, dirty, stale, storageFailed, serverConflict, serverReady, serverRevision };
 }
 
 export type ImageJobDraftTarget =
@@ -237,6 +264,7 @@ export function useImageJobDirectionDraft(
   contextId: string,
   baseCanonicalRevision?: number,
   serverDraftsEnabled = false,
+  quiescence?: ProjectDraftQuiescence,
 ) {
   const [drafts, setDrafts] = useState<ImageJobDrafts>(readImageJobDrafts);
   const [storageFailed, setStorageFailed] = useState(false);
@@ -244,6 +272,7 @@ export function useImageJobDirectionDraft(
   const serverRevisionRef = useRef(0);
   const acknowledgedPayloadRef = useRef<string | undefined>(undefined);
   const persistenceRef = useRef<Promise<void> | undefined>(undefined);
+  const timerRef = useRef<number | undefined>(undefined);
   const [serverReady, setServerReady] = useState(false);
   const [serverConflict, setServerConflict] = useState(false);
   const serverConflictRef = useRef(false);
@@ -301,36 +330,58 @@ export function useImageJobDirectionDraft(
     });
     return () => { cancelled = true; };
   }, [baseCanonicalRevision, contextId, entityId, key, projectId, serverDraftsEnabled, shotId, targetId]);
-  useEffect(() => {
-    if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry?.value.trim() || !serverReady || serverConflict) return;
-    const timer = window.setTimeout(() => {
-      const epoch = requestEpochRef.current;
-      const payload = { shotId, targetId, contextId: entry.contextId, presentationChange: entry.value };
-      const fingerprint = JSON.stringify(payload);
-      if (acknowledgedPayloadRef.current === fingerprint) return;
-      const persistence = plotloomApi.saveAuthoringDraft(projectId, {
-        editorScope: "image_direction", entityId, baseCanonicalRevision,
-        expectedDraftRevision: serverRevisionRef.current,
-        payload,
-      }).then((receipt) => {
-        if (requestEpochRef.current !== epoch) return;
-        serverRevisionRef.current = receipt.draftRevision;
-        acknowledgedPayloadRef.current = fingerprint;
-        setServerRevision(receipt.draftRevision);
-        serverConflictRef.current = false;
-        setServerConflict(false);
-      }).catch(() => {
-        if (requestEpochRef.current !== epoch) return;
+  const flush = useCallback(async (): Promise<boolean> => {
+    if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry?.value.trim()) return true;
+    if (timerRef.current !== undefined) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = undefined;
+    }
+    if (!serverReady || serverConflictRef.current) return false;
+    const existing = persistenceRef.current;
+    if (existing) await existing;
+    if (serverConflictRef.current) return false;
+    const payload = { shotId, targetId, contextId: entry.contextId, presentationChange: entry.value };
+    const fingerprint = JSON.stringify(payload);
+    if (acknowledgedPayloadRef.current === fingerprint) return true;
+    const epoch = requestEpochRef.current;
+    const persistence = plotloomApi.saveAuthoringDraft(projectId, {
+      editorScope: "image_direction", entityId, baseCanonicalRevision,
+      expectedDraftRevision: serverRevisionRef.current, payload,
+    }).then((receipt) => {
+      if (requestEpochRef.current !== epoch) return false;
+      serverRevisionRef.current = receipt.draftRevision;
+      acknowledgedPayloadRef.current = fingerprint;
+      setServerRevision(receipt.draftRevision);
+      serverConflictRef.current = false;
+      setServerConflict(false);
+      return true;
+    }).catch(() => {
+      if (requestEpochRef.current === epoch) {
         serverConflictRef.current = true;
         setServerConflict(true);
-      });
-      persistenceRef.current = persistence;
-      void persistence.finally(() => {
-        if (persistenceRef.current === persistence) persistenceRef.current = undefined;
-      });
+      }
+      return false;
+    });
+    persistenceRef.current = persistence.then(() => undefined);
+    const saved = await persistence;
+    if (persistenceRef.current) persistenceRef.current = undefined;
+    return saved;
+  }, [baseCanonicalRevision, entityId, entry, projectId, serverDraftsEnabled, serverReady, shotId, targetId]);
+  useEffect(() => {
+    if (!serverDraftsEnabled || !projectId || !shotId || !baseCanonicalRevision || !entry?.value.trim() || !serverReady || serverConflict) return;
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = undefined;
+      void flush();
     }, 750);
-    return () => window.clearTimeout(timer);
-  }, [baseCanonicalRevision, contextId, entityId, entry, projectId, serverConflict, serverDraftsEnabled, serverReady, shotId, targetId]);
+    return () => {
+      if (timerRef.current !== undefined) window.clearTimeout(timerRef.current);
+      timerRef.current = undefined;
+    };
+  }, [baseCanonicalRevision, entry, flush, projectId, serverConflict, serverDraftsEnabled, serverReady, shotId]);
+  useEffect(() => {
+    if (!quiescence || !serverDraftsEnabled || !projectId || !shotId) return;
+    return quiescence.register(projectId, `image_direction:${entityId}`, flush);
+  }, [entityId, flush, projectId, quiescence, serverDraftsEnabled, shotId]);
   useEffect(() => {
     if (!Object.keys(drafts).length) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
@@ -379,5 +430,5 @@ export function useImageJobDirectionDraft(
     return { ...current, [key]: { ...currentEntry, contextId } };
   });
 
-  return { value, update, clear, recoverForCurrentContext, dirty: Boolean(entry?.value.trim()), stale, storageFailed, targetId, serverConflict, serverReady, serverRevision };
+  return { value, update, clear, flush, recoverForCurrentContext, dirty: Boolean(entry?.value.trim()), stale, storageFailed, targetId, serverConflict, serverReady, serverRevision };
 }

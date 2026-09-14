@@ -3,6 +3,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { ApiError, plotloomApi } from "../../api";
 import { discardDraft, discardDraftRecord, findProjectDrafts, getDraft, putDraft, type DraftRecord, type DraftScope } from "../../draft-registry";
 import { useAuthoringDraftAutosave } from "../../features/authoring/useAuthoringDraftAutosave";
+import type { ProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
 import { markDownstreamStale, mergeProjectResponse, stageLabels } from "../../model";
 import { initialStagesThrough, projectCreationBody, projectCreationRequest, workspaceWithStageDraft } from "../../project-creation";
 import type { ProjectResource, ServerStageName, WorkspaceProject } from "../../types";
@@ -30,6 +31,7 @@ interface ProjectAuthoringPersistenceInput {
     setBusy: (busy: boolean) => void;
     setError: Dispatch<SetStateAction<string>>;
   };
+  draftQuiescence: ProjectDraftQuiescence;
 }
 
 /** Owns canonical authoring writes, their save flight, and draft-CAS consumption. */
@@ -56,6 +58,17 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     setError: input.feedback.setError,
     onConflict: (scope, record, workspace) => setDraftConflict({ scope, record, workspace, serverReloaded: false }),
   });
+  const flushProjectAuthoringDrafts = useCallback(async () => {
+    for (const scope of ["brief", "story_bible", "story_graph", "scene_beats", "storyboard"] as DraftScope[]) {
+      if (!await flushAuthoringDraft(scope)) return false;
+    }
+    return true;
+  }, [flushAuthoringDraft]);
+  useEffect(() => {
+    const projectId = input.session.project.id;
+    if (!projectId) return;
+    return input.draftQuiescence.register(projectId, "authoring", flushProjectAuthoringDrafts);
+  }, [flushProjectAuthoringDrafts, input.draftQuiescence, input.session.project.id]);
 
   const cancelSave = useCallback(() => {
     saveInFlight.current = false;
