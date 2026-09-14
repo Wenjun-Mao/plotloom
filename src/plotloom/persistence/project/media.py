@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from ..application.accounting import VideoPilotAccounting
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
 from .drafts import ProjectDraftPersistence
@@ -17,7 +16,7 @@ from .media_reference_proposals import CharacterReferenceProposalPersistence
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_tasks import GenericMediaTaskPersistence
 from .media_direct_video import DirectVideoJobPersistence
-from .media_video import VideoJobPersistence
+from .media_video import VideoJobPersistence, VideoPilotAccountingPort
 from .media_video_currentness import VideoJobCurrentness
 from .media_visual_intents import VisualIntentPersistence
 
@@ -30,7 +29,7 @@ class ProjectMediaPersistence:
         access: ProjectPersistenceAccess,
         canonical: ProjectCanonicalPersistence,
         drafts: ProjectDraftPersistence,
-        accounting: VideoPilotAccounting,
+        accounting: VideoPilotAccountingPort | None,
     ) -> None:
         admission = KeyframeAdmission(access)
         references = CharacterReferencePersistence(access, canonical)

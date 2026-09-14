@@ -131,7 +131,7 @@ def create_project_folder_authoring_app(
             project = store.project()
             return ProjectCreation(
                 **project.model_dump(mode="python"),
-                stages=store.repository.list_stage_envelopes(project_id),
+                stages=store.authoring.list_stage_envelopes(project_id),
             )
 
     def assert_canonical_draft_scope(
@@ -302,7 +302,7 @@ def create_project_folder_authoring_app(
                         **project.model_dump(mode="python"),
                         stage_statuses={
                             head.stage: head.status
-                            for head in store.repository.list_stage_heads(project.id)
+                            for head in store.authoring.list_stage_heads(project.id)
                         },
                         operational_state=operational_state,
                     )
@@ -385,7 +385,7 @@ def create_project_folder_authoring_app(
     def get_stages(project_id: str) -> StageEnvelopesResponse:
         with opened_project(project_id) as store:
             return StageEnvelopesResponse(
-                stages=store.repository.list_stage_envelopes(project_id)
+                stages=store.authoring.list_stage_envelopes(project_id)
             )
 
     @app.patch("/api/v2/projects/{project_id}/stages/{stage}", response_model=StageHead)
@@ -474,7 +474,7 @@ def create_project_folder_authoring_app(
     )
     def get_project_storyboard_review(project_id: str) -> StoryboardReviewResponse:
         with opened_project(project_id) as store:
-            repository = store.repository
+            repository = store.authoring
             head = repository.get_stage_head(project_id, StageName.STORYBOARD)
             gate_evaluation: GateEvaluation | None = None
             if head.entity_revision_id is not None:
@@ -512,7 +512,7 @@ def create_project_folder_authoring_app(
         project_id: str, body: StoryboardApprovalRequest
     ) -> ApprovalClosureView:
         with opened_project(project_id) as store:
-            decision = store.repository.decide_storyboard_approval(
+            decision = store.authoring.decide_storyboard_approval(
                 project_id,
                 expected_revision=body.expected_revision,
                 expected_content_hash=body.content_hash,
@@ -522,7 +522,7 @@ def create_project_folder_authoring_app(
                 note=body.note,
             )
             return _approval_closure_view(
-                store.repository.get_approval_closure(decision.id)
+                store.authoring.get_approval_closure(decision.id)
             )
 
     @app.get(

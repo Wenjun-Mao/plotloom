@@ -333,7 +333,7 @@ def test_stale_exact_repair_and_foreign_project_routes_are_rejected(tmp_path: Pa
     assert parent.status == RunStatus.QUARANTINED
     target = next(
         item
-        for item in first.repository.list_generation_work_units(parent.id)
+        for item in first.generation.list_generation_work_units(parent.id)
         if item.status == WorkUnitStatus.QUARANTINED
     )
     first.update_brief(
@@ -341,19 +341,19 @@ def test_stale_exact_repair_and_foreign_project_routes_are_rejected(tmp_path: Pa
         expected_revision=1,
     )
     with pytest.raises(RepairEligibilityError, match="repair"):
-        with first.repository.admit_provider_snapshot(
+        with first.generation.admit_provider_snapshot(
             _fixture_profile(max_semantic_corrections=0).model_dump(mode="json", by_alias=True)
         ):
-            first.repository.create_work_unit_repair_run(
+            first.generation.create_work_unit_repair_run(
                 parent.id,
                 target.id,
                 idempotency_key="stale-project-repair",
             )
     with pytest.raises(NotFoundError, match="does not belong"):
-        with first.repository.admit_provider_snapshot(
+        with first.generation.admit_provider_snapshot(
             _fixture_profile().model_dump(mode="json", by_alias=True)
         ):
-            first.repository.create_run(
+            first.generation.create_run(
                 second.project().id,
                 RunKind.PIPELINE,
                 STAGE_ORDER,
@@ -390,7 +390,7 @@ def test_profile_bound_bearer_and_none_modes_do_not_leak_or_persist_secret_artif
     assert secret not in project.run_trace(completed.id).model_dump_json()
     assert secret.encode("utf-8") not in (project.home / "project.sqlite3").read_bytes()
     with pytest.raises(InvalidTransitionError, match="secret-shaped"):
-        project.repository.add_artifact(
+        project.generation.add_artifact(
             Artifact(
                 run_id=completed.id,
                 kind=ArtifactKind.PROMPT,
@@ -399,7 +399,7 @@ def test_profile_bound_bearer_and_none_modes_do_not_leak_or_persist_secret_artif
             )
         )
     with pytest.raises(InvalidTransitionError, match="secret-shaped"):
-        project.repository.add_artifact(
+        project.generation.add_artifact(
             Artifact(
                 run_id=completed.id,
                 kind=ArtifactKind.PROMPT,
@@ -425,16 +425,16 @@ def test_terminal_evidence_is_project_owned_without_partial_canonical_heads(tmp_
         profile=_fixture_profile(max_semantic_corrections=0),
     )
     cancelled_project = storage.projects.create(FIXED_CHINESE_BRIEF)
-    with cancelled_project.repository.admit_provider_snapshot(
+    with cancelled_project.generation.admit_provider_snapshot(
         _fixture_profile().model_dump(mode="json", by_alias=True)
     ):
-        queued = cancelled_project.repository.create_run(
+        queued = cancelled_project.generation.create_run(
             cancelled_project.project().id,
             RunKind.PIPELINE,
             STAGE_ORDER,
             provider_snapshot=_fixture_profile().model_dump(mode="json", by_alias=True),
         )
-    cancelled = cancelled_project.repository.cancel_run(queued.id)
+    cancelled = cancelled_project.generation.cancel_run(queued.id)
 
     assert failed.status == RunStatus.FAILED
     assert quarantined.status == RunStatus.QUARANTINED
@@ -468,7 +468,7 @@ def test_interrupted_dispatch_reopens_as_outcome_unknown_without_replay(tmp_path
         outputs_root=tmp_path / "outputs",
         application_data_root=tmp_path / "application",
     ).projects.open(project.project().id)
-    recovery = reopened.repository.reconcile_startup_jobs()
+    recovery = reopened.generation.reconcile_startup_jobs()
     trace = reopened.run_trace(interrupted.id)
 
     assert recovery.resubmit_run_ids == []
@@ -818,10 +818,10 @@ def test_close_refuses_nonterminal_run_and_closed_copy_reopens_cleanly(tmp_path:
     )
     store = storage.projects.create(FIXED_CHINESE_BRIEF)
     project_id = store.project().id
-    with store.repository.admit_provider_snapshot(
+    with store.generation.admit_provider_snapshot(
         _fixture_profile().model_dump(mode="json", by_alias=True)
     ):
-        store.repository.create_run(
+        store.generation.create_run(
             project_id,
             RunKind.PIPELINE,
             STAGE_ORDER,
@@ -836,7 +836,7 @@ def test_close_refuses_nonterminal_run_and_closed_copy_reopens_cleanly(tmp_path:
     store = storage.projects.open(project_id)
     try:
         run = store.generation_runs()[0]
-        store.repository.cancel_run(run.id)
+        store.generation.cancel_run(run.id)
         source_home = store.home
     finally:
         store.close()

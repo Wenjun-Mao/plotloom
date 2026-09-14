@@ -84,7 +84,7 @@ def register_project_folder_image_job_routes(
     @app.get("/api/v2/projects/{project_id}/character-references")
     def get_project_character_references(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.list_character_reference_decisions(project_id)
+            return store.media.list_character_reference_decisions(project_id)
 
     @app.post(
         "/api/v2/projects/{project_id}/character-references",
@@ -94,7 +94,7 @@ def register_project_folder_image_job_routes(
         project_id: str, body: CharacterReferenceDecisionRequest
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.create_character_reference_decision(
+            return store.media.create_character_reference_decision(
                 project_id, **body.model_dump(mode="python", by_alias=False)
             )
 
@@ -105,7 +105,7 @@ def register_project_folder_image_job_routes(
         project_id: str, character_id: str, body: CharacterReferenceRevocationRequest
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.revoke_character_reference_decision(
+            return store.media.revoke_character_reference_decision(
                 project_id,
                 character_id=character_id,
                 **body.model_dump(mode="python", by_alias=False),
@@ -116,7 +116,7 @@ def register_project_folder_image_job_routes(
         with opened_project(project_id) as store:
             return {
                 "configured": True,
-                "proposals": store.repository.list_character_reference_proposals(
+                "proposals": store.media.list_character_reference_proposals(
                     project_id
                 ),
             }
@@ -129,7 +129,7 @@ def register_project_folder_image_job_routes(
         project_id: str, body: CharacterReferenceProposalRequest
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.prepare_character_reference_proposal(
+            return store.media.prepare_character_reference_proposal(
                 project_id, **body.model_dump(mode="python", by_alias=False)
             )
 
@@ -140,7 +140,7 @@ def register_project_folder_image_job_routes(
         project_id: str, proposal_id: str
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            source = store.repository.character_reference_proposal_package_sources(
+            source = store.media.character_reference_proposal_package_sources(
                 project_id, proposal_id
             )
             proposal = source["proposal"]
@@ -150,7 +150,7 @@ def register_project_folder_image_job_routes(
                 request_hash=proposal["requestHash"],
                 references=package_references(store, source["references"]),
             )
-            proposal = store.repository.mark_character_reference_proposal_exported(
+            proposal = store.media.mark_character_reference_proposal_exported(
                 project_id, proposal_id
             )
             return {
@@ -167,7 +167,7 @@ def register_project_folder_image_job_routes(
         project_id: str, proposal_id: str
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            repository = store.repository
+            repository = store.media
             context = repository.character_reference_proposal_delivery_context(
                 project_id, proposal_id
             )
@@ -235,7 +235,7 @@ def register_project_folder_image_job_routes(
     @app.get("/api/v2/projects/{project_id}/same-person-reviews")
     def get_project_same_person_reviews(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.list_same_person_reviews(project_id)
+            return store.media.list_same_person_reviews(project_id)
 
     @app.post(
         "/api/v2/projects/{project_id}/same-person-reviews",
@@ -245,7 +245,7 @@ def register_project_folder_image_job_routes(
         project_id: str, body: SamePersonReviewRequest
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.record_same_person_review(
+            return store.media.record_same_person_review(
                 project_id,
                 binding_id=body.binding_id,
                 expected_review_revision=body.expected_review_revision,
@@ -262,7 +262,7 @@ def register_project_folder_image_job_routes(
         with opened_project(project_id) as store:
             return {
                 "configured": True,
-                "jobs": store.repository.list_image_jobs(project_id),
+                "jobs": store.media.list_image_jobs(project_id),
             }
 
     @app.post(
@@ -290,7 +290,7 @@ def register_project_folder_image_job_routes(
             else None
         )
         with opened_project(project_id) as store:
-            return store.repository.prepare_image_job(
+            return store.media.prepare_image_job(
                 project_id,
                 approval_id=body.approval_id,
                 shot_id=body.shot_id,
@@ -309,7 +309,7 @@ def register_project_folder_image_job_routes(
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/copy")
     def copy_project_image_job(project_id: str, job_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            source = store.repository.image_job_package_sources(project_id, job_id)
+            source = store.media.image_job_package_sources(project_id, job_id)
             exchange = store.image_exchange_for(source["job"])
             package = exchange.write_package(
                 job_id=job_id,
@@ -319,7 +319,7 @@ def register_project_folder_image_job_routes(
                     store, source["references"], character_roles=True
                 ),
             )
-            job = store.repository.mark_image_job_exported(project_id, job_id)
+            job = store.media.mark_image_job_exported(project_id, job_id)
             return {
                 "job": job,
                 "assignment": f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json; use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}.",
@@ -330,7 +330,7 @@ def register_project_folder_image_job_routes(
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/refresh")
     def refresh_project_image_job(project_id: str, job_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            repository = store.repository
+            repository = store.media
             context = repository.image_job_delivery_context(project_id, job_id)
             references: list[tuple[str, str, str]] = []
             identity_hashes: list[str] = []
@@ -438,6 +438,6 @@ def register_project_folder_image_job_routes(
         project_id: str, job_id: str, body: ImageJobCancellationRequest
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.cancel_image_job(project_id, job_id, body.reason)
+            return store.media.cancel_image_job(project_id, job_id, body.reason)
 
     return app

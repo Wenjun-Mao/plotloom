@@ -115,8 +115,8 @@ def _approved_keyframe(
 ) -> tuple[dict, dict]:
     store = storage.projects.open(project_id)
     try:
-        board = store.repository.get_stage_head(project_id, StageName.STORYBOARD)
-        shot = store.repository.get_stage_payload(project_id, StageName.STORYBOARD).shots[0]
+        board = store.authoring.get_stage_head(project_id, StageName.STORYBOARD)
+        shot = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD).shots[0]
     finally:
         store.close()
     approval = client.post(
@@ -529,7 +529,7 @@ def test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses
         ) == [("dispatch_claimed",)]
         opened = storage.projects.open(project_id)
         try:
-            assert opened.repository.list_video_jobs(project_id)[0]["state"] == "dispatching"
+            assert opened.media.direct_video.list_video_jobs(project_id)[0]["state"] == "dispatching"
         finally:
             opened.close()
 

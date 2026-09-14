@@ -99,8 +99,8 @@ def test_snapshot_restores_drafts_and_owned_media_without_application_database(t
     restored = fresh.projects.open(project_id)
     try:
         assert restored.authoring_drafts()[0].payload["title"] == "可移植草稿"
-        asset = restored.repository.list_managed_assets(project_id)[0]
-        stored = restored.repository.get_managed_asset_storage(project_id, asset["id"])
+        asset = restored.media.list_managed_assets(project_id)[0]
+        stored = restored.media.get_managed_asset_storage(project_id, asset["id"])
         assert restored.artifacts.get(stored["originalUri"]) == expected_media
     finally:
         restored.close()
@@ -348,10 +348,10 @@ def test_restored_unfinished_known_and_unknown_work_never_replays(tmp_path: Path
         assert {(item.operation_id, item.provider_state) for item in control.operations} == {
             (known_run_id, "known"), (unknown_run_id, "unknown"),
         }
-        assert restored.repository.reconcile_startup_jobs().resubmit_run_ids == []
+        assert restored.generation.reconcile_startup_jobs().resubmit_run_ids == []
         for run_id in (known_run_id, unknown_run_id):
             with pytest.raises(InvalidTransitionError, match="recovery_required"):
-                restored.repository.start_run(run_id)
+                restored.generation.start_run(run_id)
     finally:
         restored.close()
 
@@ -362,7 +362,7 @@ def test_restored_unfinished_known_and_unknown_work_never_replays(tmp_path: Path
         # Acknowledgement permits new work in a later slice, but never turns
         # historic provider-facing run IDs into resumable submissions.
         with pytest.raises(InvalidTransitionError, match="recovery_required"):
-            reopened.repository.start_run(known_run_id)
+            reopened.generation.start_run(known_run_id)
     finally:
         reopened.close()
     assert restored_path.is_dir()

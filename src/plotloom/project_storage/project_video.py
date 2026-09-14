@@ -29,7 +29,9 @@ class ProjectVideoRepository:
         # Direct project-folder work gets the ledger-free lifecycle owner.
         # The retained Wan port remains separately composed for its legacy
         # same-transaction accounting contract.
-        self._video = self._repository._media.direct_video
+        self._video = store.media.direct_video
+        self._video_currentness = store.media.video_currentness
+        self._dispatch = self._repository.video_dispatch
 
     @property
     def project_id(self) -> str:
@@ -41,11 +43,41 @@ class ProjectVideoRepository:
 
         return "project-video-" + sha256(video_job_id.encode("utf-8")).hexdigest()
 
-    def prepare_video_job(self, project_id: str, **kwargs: Any) -> dict[str, Any]:
+    def prepare_video_job(
+        self,
+        project_id: str,
+        *,
+        approval_id: str,
+        shot_id: str,
+        storyboard_revision: int,
+        expected_selection_revision: int,
+        idempotency_key: str,
+        requested_seconds: int = 5,
+        resolution: str = "720p",
+        audio: bool = True,
+        production_contract: VideoProductionContract | None = None,
+        backend_binding: VideoBackendBinding | None = None,
+    ) -> dict[str, Any]:
         self._assert_project(project_id)
         self.store.require_recovery_acknowledged()
-        self._assert_direct_h3_preparation(kwargs)
-        return self._video.prepare_video_job(project_id, **kwargs)
+        values = {
+            "production_contract": production_contract,
+            "backend_binding": backend_binding,
+        }
+        self._assert_direct_h3_preparation(values)
+        return self._video.prepare_video_job(
+            project_id,
+            approval_id=approval_id,
+            shot_id=shot_id,
+            storyboard_revision=storyboard_revision,
+            expected_selection_revision=expected_selection_revision,
+            idempotency_key=idempotency_key,
+            requested_seconds=requested_seconds,
+            resolution=resolution,
+            audio=audio,
+            production_contract=production_contract,
+            backend_binding=backend_binding,
+        )
 
     def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         self._assert_project(project_id)
@@ -67,7 +99,7 @@ class ProjectVideoRepository:
             reserved_units=0,
             requires_accounting=False,
         )
-        with self._repository._lifecycle_write() as session:
+        with self._dispatch.lifecycle_write() as session:
             current = session.get(VideoJobRow, video_job_id)
             if current is None or current.project_id != project_id:
                 raise NotFoundError("video job not found")
@@ -75,7 +107,7 @@ class ProjectVideoRepository:
                 raise InvalidTransitionError(
                     "video job cannot be submitted again; reconcile its existing attempt"
                 )
-            if not self._repository._media.video_currentness.video_job_current_in_session(
+            if not self._video_currentness.video_job_current_in_session(
                 session, current
             ):
                 raise InvalidTransitionError(
@@ -92,7 +124,7 @@ class ProjectVideoRepository:
             current.state = "dispatching"
             current.dispatched_at = now
             current.updated_at = now
-            response = self._repository._media.video_currentness.video_job_dict(
+            response = self._video_currentness.video_job_dict(
                 current, current=True
             )
         # The project claim is now durable. A failure recording this
@@ -123,10 +155,18 @@ class ProjectVideoRepository:
         return self._video.record_video_outcome_unknown(project_id, video_job_id, message)
 
     def record_video_output(
-        self, project_id: str, video_job_id: str, **kwargs: Any
+        self,
+        project_id: str,
+        video_job_id: str,
+        *,
+        uri: str,
+        digest: str,
+        observed: dict[str, Any],
     ) -> dict[str, Any]:
         self._assert_project(project_id)
-        return self._video.record_video_output(project_id, video_job_id, **kwargs)
+        return self._video.record_video_output(
+            project_id, video_job_id, uri=uri, digest=digest, observed=observed
+        )
 
     def record_video_retrieve_needed(
         self, project_id: str, video_job_id: str, message: str
@@ -142,7 +182,7 @@ class ProjectVideoRepository:
 
     def get_managed_asset_storage(self, project_id: str, asset_id: str) -> dict[str, Any]:
         self._assert_project(project_id)
-        return self._repository.get_managed_asset_storage(project_id, asset_id)
+        return self.store.media.get_managed_asset_storage(project_id, asset_id)
 
     def list_video_jobs(self, project_id: str) -> list[dict[str, Any]]:
         self._assert_project(project_id)
@@ -154,9 +194,13 @@ class ProjectVideoRepository:
         self._assert_project(project_id)
         return self._video.get_video_output_storage(project_id, video_job_id)
 
-    def review_video_job(self, project_id: str, video_job_id: str, **kwargs: Any) -> dict[str, Any]:
+    def review_video_job(
+        self, project_id: str, video_job_id: str, *, reviewer: str, decision: str, note: str
+    ) -> dict[str, Any]:
         self._assert_project(project_id)
-        return self._video.review_video_job(project_id, video_job_id, **kwargs)
+        return self._video.review_video_job(
+            project_id, video_job_id, reviewer=reviewer, decision=decision, note=note
+        )
 
     def recovery_provider_state(self, video_job_id: str) -> str | None:
         control = self.store.recovery_control()
@@ -240,7 +284,7 @@ class ProjectVideoRepository:
         return provider
 
     def _job(self, video_job_id: str) -> VideoJobRow:
-        with self._repository._read() as session:
+        with self._dispatch.read() as session:
             job = session.get(VideoJobRow, video_job_id)
             if job is None or job.project_id != self.project_id:
                 raise NotFoundError("video job not found")

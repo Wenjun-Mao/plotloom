@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Protocol
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -25,7 +25,6 @@ from ..schema import (
     VideoReviewRow,
     VisualIntentRow,
 )
-from ..application.accounting import VideoPilotAccounting
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
 from .media_admission import KeyframeAdmission
@@ -33,6 +32,22 @@ from .media_character_references import CharacterReferencePersistence
 from .media_image_currentness import ImageJobCurrentness
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_video_currentness import VideoJobCurrentness
+
+
+class VideoPilotAccountingPort(Protocol):
+    """Legacy runtime's transaction-local pilot-accounting contract."""
+
+    def budget(self) -> dict[str, Any]: ...
+
+    def reserve(self, session: Session, *, video_job_id: str, seconds: int, now: Any) -> None: ...
+
+    def record_dispatch(
+        self, session: Session, *, video_job_id: str, seconds: int, now: Any
+    ) -> None: ...
+
+    def release_before_dispatch(
+        self, session: Session, *, video_job_id: str, seconds: int, now: Any
+    ) -> None: ...
 
 
 class VideoJobPersistence:
@@ -47,7 +62,7 @@ class VideoJobPersistence:
         image_currentness: ImageJobCurrentness,
         same_person: SamePersonReviewPersistence,
         currentness: VideoJobCurrentness,
-        accounting: VideoPilotAccounting | None,
+        accounting: VideoPilotAccountingPort | None,
     ) -> None:
         self._access = access
         self._canonical = canonical

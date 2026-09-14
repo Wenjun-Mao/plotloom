@@ -1,0 +1,106 @@
+"""Typed media operations for a bound project database."""
+
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
+from typing import Any
+
+
+class ProjectMediaRepository:
+    def __init__(self, root: Any) -> None:
+        self._root = root
+        self.direct_video = root._media.direct_video
+        self.video_currentness = root._media.video_currentness
+
+    def record_managed_import(self, project_id: str, *, original_hash: str, display_hash: str, mime_type: str, byte_size: int, width: int, height: int, declaration: dict[str, Any], publish: Callable[[], tuple[str, str]]):
+        return self._root._media.assets.record_managed_import(project_id, original_hash=original_hash, display_hash=display_hash, mime_type=mime_type, byte_size=byte_size, width=width, height=height, declaration=declaration, publish=publish)
+
+    def get_managed_asset_storage(self, project_id: str, asset_id: str):
+        return self._root._media.assets.get_managed_asset_storage(project_id, asset_id)
+
+    def list_managed_assets(self, project_id: str):
+        return self._root._media.assets.list_managed_assets(project_id)
+
+    def create_visual_intent(self, project_id: str, asset_id: str, intent: dict[str, Any], *, consumed_draft: tuple[str, int, dict[str, Any]] | None = None):
+        return self._root._media.intents.create_visual_intent(project_id, asset_id, intent, consumed_draft=consumed_draft)
+
+    def list_visual_intents(self, project_id: str):
+        return self._root._media.intents.list_visual_intents(project_id)
+
+    def select_reviewed_keyframe(self, project_id: str, *, asset_id: str, shot_id: str, scene_id: str, expected_selection_revision: int, storyboard_revision: int, approval_id: str, compatibility_note: str, visual_intent_id: str, visual_intent_revision: int):
+        return self._root._media.keyframes.select_reviewed_keyframe(project_id, asset_id=asset_id, shot_id=shot_id, scene_id=scene_id, expected_selection_revision=expected_selection_revision, storyboard_revision=storyboard_revision, approval_id=approval_id, compatibility_note=compatibility_note, visual_intent_id=visual_intent_id, visual_intent_revision=visual_intent_revision)
+
+    def create_still_preview(self, project_id: str, *, scene_id: str, shot_ids: list[str], expected_selection_revision: int, storyboard_revision: int, approval_id: str):
+        return self._root._media.keyframes.create_still_preview(project_id, scene_id=scene_id, shot_ids=shot_ids, expected_selection_revision=expected_selection_revision, storyboard_revision=storyboard_revision, approval_id=approval_id)
+
+    def list_still_previews(self, project_id: str):
+        return self._root._media.keyframes.list_still_previews(project_id)
+
+    def visual_selection_revision(self, project_id: str) -> int:
+        return self._root._media.keyframes.visual_selection_revision(project_id)
+
+    def list_current_reviewed_keyframes(self, project_id: str):
+        return self._root._media.admission.list_current_reviewed_keyframes(project_id)
+
+    def reviewed_preview_dependencies_current(self, project_id: str, frame: dict[str, Any]) -> bool:
+        return self._root._media.keyframes.reviewed_preview_dependencies_current(project_id, frame)
+
+    def create_character_reference_decision(self, project_id: str, *, character_id: str, primary_asset_id: str, complementary_asset_ids: list[str], expected_reference_revision: int, reviewer: str, notes: str):
+        return self._root._media.references.create_character_reference_decision(project_id, character_id=character_id, primary_asset_id=primary_asset_id, complementary_asset_ids=complementary_asset_ids, expected_reference_revision=expected_reference_revision, reviewer=reviewer, notes=notes)
+
+    def revoke_character_reference_decision(self, project_id: str, *, character_id: str, expected_reference_revision: int, reviewer: str, reason: str):
+        return self._root._media.references.revoke_character_reference_decision(project_id, character_id=character_id, expected_reference_revision=expected_reference_revision, reviewer=reviewer, reason=reason)
+
+    def list_character_reference_decisions(self, project_id: str):
+        return self._root._media.references.list_character_reference_decisions(project_id)
+
+    def prepare_character_reference_proposal(self, project_id: str, *, character_id: str, story_bible_revision: int, visual_direction: str, parent_candidate_asset_id: str | None):
+        return self._root._media.proposals.prepare_character_reference_proposal(project_id, character_id=character_id, story_bible_revision=story_bible_revision, visual_direction=visual_direction, parent_candidate_asset_id=parent_candidate_asset_id)
+
+    def character_reference_proposal_package_sources(self, project_id: str, proposal_id: str):
+        return self._root._media.proposals.character_reference_proposal_package_sources(project_id, proposal_id)
+
+    def mark_character_reference_proposal_exported(self, project_id: str, proposal_id: str):
+        return self._root._media.proposals.mark_character_reference_proposal_exported(project_id, proposal_id)
+
+    def character_reference_proposal_delivery_context(self, project_id: str, proposal_id: str):
+        return self._root._media.proposals.character_reference_proposal_delivery_context(project_id, proposal_id)
+
+    def record_character_reference_proposal_rejection(self, project_id: str, proposal_id: str, code: str) -> None:
+        self._root._media.proposals.record_character_reference_proposal_rejection(project_id, proposal_id, code)
+
+    def record_character_reference_proposal_delivery(self, project_id: str, proposal_id: str, *, delivery_id: str, manifest: dict[str, Any], manifest_hash: str, outputs: list[dict[str, Any]], publish: Callable[[dict[str, Any]], tuple[str, str]]):
+        return self._root._media.proposals.record_character_reference_proposal_delivery(project_id, proposal_id, delivery_id=delivery_id, manifest=manifest, manifest_hash=manifest_hash, outputs=outputs, publish=publish)
+
+    def list_character_reference_proposals(self, project_id: str):
+        return self._root._media.proposals.list_character_reference_proposals(project_id)
+
+    def record_same_person_review(self, project_id: str, *, binding_id: str, expected_review_revision: int, reviewer: str, comparisons: list[dict[str, Any]], notes: str):
+        return self._root._media.same_person.record_same_person_review(project_id, binding_id=binding_id, expected_review_revision=expected_review_revision, reviewer=reviewer, comparisons=comparisons, notes=notes)
+
+    def list_same_person_reviews(self, project_id: str):
+        return self._root._media.same_person.list_same_person_reviews(project_id)
+
+    def prepare_image_job(self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int, presentation_change: str, parent_candidate_asset_id: str | None = None, keyframe_adaptation: dict[str, Any] | None = None, contract_version: int = 2, consumed_draft: tuple[str, int, dict[str, Any]] | None = None):
+        return self._root._media.image_preparation.prepare_image_job(project_id, approval_id=approval_id, shot_id=shot_id, storyboard_revision=storyboard_revision, parent_candidate_asset_id=parent_candidate_asset_id, keyframe_adaptation=keyframe_adaptation, presentation_change=presentation_change, contract_version=contract_version, consumed_draft=consumed_draft)
+
+    def image_job_package_sources(self, project_id: str, job_id: str):
+        return self._root._media.image_delivery.image_job_package_sources(project_id, job_id)
+
+    def mark_image_job_exported(self, project_id: str, job_id: str):
+        return self._root._media.image_delivery.mark_image_job_exported(project_id, job_id)
+
+    def cancel_image_job(self, project_id: str, job_id: str, reason: str):
+        return self._root._media.image_delivery.cancel_image_job(project_id, job_id, reason)
+
+    def image_job_delivery_context(self, project_id: str, job_id: str):
+        return self._root._media.image_delivery.image_job_delivery_context(project_id, job_id)
+
+    def record_image_job_delivery_rejection(self, project_id: str, job_id: str, code: str) -> None:
+        self._root._media.image_delivery.record_image_job_delivery_rejection(project_id, job_id, code)
+
+    def record_image_job_delivery(self, project_id: str, job_id: str, *, delivery_id: str, manifest: dict[str, Any], manifest_hash: str, outputs: Sequence[dict[str, Any]], publish: Callable[[dict[str, Any]], tuple[str, str]]):
+        return self._root._media.image_delivery.record_image_job_delivery(project_id, job_id, delivery_id=delivery_id, manifest=manifest, manifest_hash=manifest_hash, outputs=outputs, publish=publish)
+
+    def list_image_jobs(self, project_id: str):
+        return self._root._media.image_delivery.list_image_jobs(project_id)

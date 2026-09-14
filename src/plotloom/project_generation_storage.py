@@ -45,7 +45,7 @@ class ProjectPipelineExecutor:
 
         store.require_recovery_acknowledged()
         project = store.project()
-        repository = store.repository
+        repository = store.generation
         snapshot = profile.model_dump(mode="json", by_alias=True)
         secrets = secret_broker or RunSecretBroker()
         owns_secrets = secret_broker is None

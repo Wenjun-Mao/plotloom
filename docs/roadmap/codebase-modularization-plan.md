@@ -444,6 +444,16 @@ it remains direct typed composition until the separately approved runtime
 cutover. Step 4 does not reopen the accepted persistence ownership correction
 or frontend session/cutover decisions.
 
+### Project repository retirement prerequisite correction
+
+The project-folder repository now has its own project-only composition and does
+not import, subclass, instantiate, or eagerly initialize the retained facade.
+Project-folder authoring, generation, image, and direct-video callers use their
+named project owners. This is the prerequisite for runtime cutover, not the
+deletion of the retained 1.5k-line facade: retained runtime/API callers still
+own that compatibility surface and must be replaced deliberately before it can
+be removed.
+
 ### Completion boundary and next product priority
 
 This completes **modularization only**. It does not complete the project-folder

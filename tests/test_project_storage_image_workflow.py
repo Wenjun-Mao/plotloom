@@ -30,7 +30,7 @@ def _png(color: tuple[int, int, int]) -> bytes:
 def _approve(client: TestClient, project_id: str, storage: ProjectFolderStorage) -> dict:
     store = storage.projects.open(project_id)
     try:
-        board = store.repository.get_stage_head(project_id, StageName.STORYBOARD)
+        board = store.authoring.get_stage_head(project_id, StageName.STORYBOARD)
     finally:
         store.close()
     response = client.post(
@@ -374,7 +374,7 @@ def test_project_owned_image_handoff_isolated_across_restart_and_stales_after_in
     }
     store = reopened.projects.open(first_id)
     try:
-        stored = store.repository.get_managed_asset_storage(first_id, candidate["id"])
+        stored = store.media.get_managed_asset_storage(first_id, candidate["id"])
         assert stored["originalUri"].startswith("assets/")
         assert not stored["originalUri"].startswith("file:")
     finally:

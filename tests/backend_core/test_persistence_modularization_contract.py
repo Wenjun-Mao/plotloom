@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import inspect
 from pathlib import Path
+import subprocess
+import sys
 
 import pytest
 
@@ -53,7 +55,7 @@ from plotloom.persistence.application.profile_bootstrap import DefaultProfileBoo
 from plotloom.persistence.application.profile_catalog import TextProviderProfileCatalogPersistence
 from plotloom.persistence.application.profile_settings import ProviderSettingsPersistence
 from plotloom.persistence.application.accounting import VideoPilotAccounting
-from plotloom.exceptions import NotFoundError
+from plotloom.exceptions import InvalidTransitionError, NotFoundError
 from plotloom.domain import utc_now
 
 
@@ -154,6 +156,92 @@ def test_moved_facade_signatures_and_project_bound_identity_remain_stable() -> N
             project_repository.get_project("other")
     finally:
         project_repository.close()
+
+
+def test_project_repository_composes_without_loading_the_retained_facade() -> None:
+    """A direct project-home import must survive the facade's eventual removal."""
+
+    repository_source = (
+        Path(__file__).parents[2]
+        / "src"
+        / "plotloom"
+        / "persistence"
+        / "project"
+        / "repository.py"
+    ).read_text()
+    assert "legacy_repository" not in repository_source
+    assert "application." not in repository_source
+    assert not issubclass(ProjectSQLiteRepository, SQLiteRepository)
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys; from plotloom.persistence.project.repository import "
+            "ProjectSQLiteRepository; repository = ProjectSQLiteRepository("
+            "'sqlite://', project_id='direct'); assert "
+            "'plotloom.persistence.legacy_repository' not in sys.modules; "
+            "repository.close()",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+    storage_result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import sys, tempfile; from pathlib import Path; from plotloom.domain "
+            "import ProjectBrief; from plotloom.project_storage import "
+            "ProjectFolderStorage; root = Path(tempfile.mkdtemp()); outputs = "
+            "root / 'outputs'; application = root / 'application'; outputs.mkdir(); "
+            "application.mkdir(); storage = ProjectFolderStorage(outputs_root=outputs, "
+            "application_data_root=application); store = storage.projects.create("
+            "ProjectBrief(title='direct', synopsis='independent project')); "
+            "assert 'plotloom.persistence.legacy_repository' not in sys.modules; "
+            "store.close()",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert storage_result.returncode == 0, storage_result.stderr
+
+
+def test_bound_project_initialization_rejects_a_foreign_existing_row(tmp_path: Path, brief) -> None:
+    """A manifest-bound database is not a project catalog, even during bootstrap."""
+
+    database_url = f"sqlite:///{tmp_path / 'project.sqlite3'}"
+    retained = SQLiteRepository(database_url)
+    bound = None
+    try:
+        existing = retained.get_project(retained.create_project(brief).id)
+        bound = ProjectSQLiteRepository(
+            database_url, project_id="bound-project", create_schema=False
+        )
+        foreign = existing.model_copy(update={"id": "bound-project"})
+        with pytest.raises(InvalidTransitionError, match="already been initialized"):
+            bound.initialize_project(foreign)
+    finally:
+        if bound is not None:
+            bound.close()
+        retained.close()
+
+
+def test_project_video_bridge_uses_named_project_contracts() -> None:
+    source = (
+        Path(__file__).parents[2]
+        / "src"
+        / "plotloom"
+        / "project_storage"
+        / "project_video.py"
+    ).read_text()
+    for forbidden in ("_media.direct_video", "_media.video_currentness", "_lifecycle_write", "_read"):
+        assert forbidden not in source
+    assert "store.media.direct_video" in source
+    assert "repository.video_dispatch" in source
 
 
 def test_generation_capabilities_are_explicitly_composed_with_preserved_facade_signatures() -> None:

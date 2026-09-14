@@ -44,3 +44,25 @@ signature, or storage ownership. The director accepted and pushed the corrected
 implementation at the persistence checkpoint. The 1,538-line retained facade remains a
 documented compatibility exception while runtime callers still import it; a
 caller-migration proposal must define its retirement.
+
+## Project-folder independence correction
+
+`ProjectSQLiteRepository` no longer subclasses or constructs the retained
+`SQLiteRepository`. It is an independent project-table composition root with
+three named, typed surfaces: authoring, generation, and media. The project
+generation surface is the exact adapter consumed by the direct pipeline; media
+and authoring routes select their owners directly. Its media composition has
+no application profile or pilot-accounting object. The retained facade still
+composes the Wan accounting path for retained-runtime callers.
+
+The project-video bridge receives explicit direct-video, currentness, and
+project-dispatch transaction contracts instead of reaching through `_media` or
+private leases. Shared row codecs, bound-ID lookups, and lifecycle guards live
+in project-only support code. Package exports load the compatibility facade
+lazily, so importing a project repository cannot initialize it as a side
+effect.
+
+This preserves tables, schema bytes, hashing, named transaction leases, CAS,
+atomic install, and recovery/no-replay semantics. It is not runtime cutover:
+the retained facade can be deleted only after its remaining runtime callers
+move to their appropriate explicit owners.

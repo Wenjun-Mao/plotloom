@@ -64,14 +64,15 @@ def register_project_folder_media_routes(
     ) -> dict[str, Any]:
         """Derive preview applicability without mutating the frozen receipt."""
 
-        repository = store.repository
+        repository = store.media
+        authoring = store.authoring
         state = "current"
         manifest = preview["manifest"]
         if stable_hash(manifest) != preview["manifestHash"]:
             state = "corrupt"
         if state == "current":
             try:
-                closure = repository.get_approval_closure(str(manifest["approvalId"]))
+                closure = authoring.get_approval_closure(str(manifest["approvalId"]))
                 expected_inputs = {
                     stage.value: revision
                     for stage, revision in closure.decision.canonical_input_revisions
@@ -85,7 +86,7 @@ def register_project_folder_media_routes(
                 elif not closure.active:
                     state = (
                         "revoked"
-                        if repository.approval_is_revoked(closure.decision.id)
+                        if authoring.approval_is_revoked(closure.decision.id)
                         else "stale"
                     )
             except NotFoundError:
@@ -149,7 +150,7 @@ def register_project_folder_media_routes(
         content = await image.read(limits.max_import_bytes + 1)
         observed = inspect_import_image(content, limits)
         with opened_project(project_id) as store:
-            return store.repository.record_managed_import(
+            return store.media.record_managed_import(
                 project_id,
                 original_hash=observed.content_hash,
                 display_hash=observed.display_hash,
@@ -165,8 +166,8 @@ def register_project_folder_media_routes(
     def get_project_managed_assets(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
             return {
-                "assets": store.repository.list_managed_assets(project_id),
-                "selectionRevision": store.repository.visual_selection_revision(
+                "assets": store.media.list_managed_assets(project_id),
+                "selectionRevision": store.media.visual_selection_revision(
                     project_id
                 ),
             }
@@ -176,7 +177,7 @@ def register_project_folder_media_routes(
         project_id: str, asset_id: str, variant: Literal["display", "original"]
     ) -> Response:
         with opened_project(project_id) as store:
-            stored = store.repository.get_managed_asset_storage(project_id, asset_id)
+            stored = store.media.get_managed_asset_storage(project_id, asset_id)
             try:
                 content = store.artifacts.get(
                     stored["displayUri"]
@@ -214,7 +215,7 @@ def register_project_folder_media_routes(
         )
         draft_payload = {"assetId": asset_id, "shotId": body.shot_id, **intent}
         with opened_project(project_id) as store:
-            return store.repository.create_visual_intent(
+            return store.media.create_visual_intent(
                 project_id,
                 asset_id,
                 intent,
@@ -233,7 +234,7 @@ def register_project_folder_media_routes(
         project_id: str, body: ReviewedSelectionRequest
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.select_reviewed_keyframe(
+            return store.media.select_reviewed_keyframe(
                 project_id, **body.model_dump(mode="python", by_alias=False)
             )
 
@@ -245,7 +246,7 @@ def register_project_folder_media_routes(
         project_id: str, body: PreviewRequest
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            preview = store.repository.create_still_preview(
+            preview = store.media.create_still_preview(
                 project_id, **body.model_dump(mode="python", by_alias=False)
             )
             return preview_view(store, project_id, preview)
@@ -256,14 +257,14 @@ def register_project_folder_media_routes(
             return {
                 "previews": [
                     preview_view(store, project_id, item)
-                    for item in store.repository.list_still_previews(project_id)
+                    for item in store.media.list_still_previews(project_id)
                 ]
             }
 
     @app.get("/api/v2/projects/{project_id}/visual-workbench")
     def get_project_visual_workbench(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            repository = store.repository
+            repository = store.media
             return {
                 "assets": repository.list_managed_assets(project_id),
                 "selectionRevision": repository.visual_selection_revision(project_id),

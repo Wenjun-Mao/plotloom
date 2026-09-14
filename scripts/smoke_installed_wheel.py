@@ -79,7 +79,9 @@ def main() -> None:
             from alembic.script import ScriptDirectory
             import plotloom
             from plotloom.config import PlotloomSettings
+            from plotloom.domain import ProjectBrief
             from plotloom.generation.prompts import PromptRepository
+            from plotloom.project_storage import ProjectFolderStorage
             from plotloom.schema import SchemaMigrator
 
             database = Path(sys.argv[1]).resolve()
@@ -124,6 +126,20 @@ def main() -> None:
             assert settings.data_dir == expected.resolve(), settings.data_dir
             assert settings.text_model != "cwd-poison-model"
             assert not settings.data_dir.is_relative_to(Path.cwd())
+
+            project_root = database.parent / "project-folder"
+            outputs_root = project_root / "outputs"
+            application_root = project_root / "application"
+            outputs_root.mkdir(parents=True)
+            application_root.mkdir()
+            storage = ProjectFolderStorage(
+                outputs_root=outputs_root, application_data_root=application_root
+            )
+            project_store = storage.projects.create(
+                ProjectBrief(title="wheel project", synopsis="independent project folder")
+            )
+            project_store.close()
+            assert "plotloom.persistence.legacy_repository" not in sys.modules
 
             migrator = SchemaMigrator(f"sqlite:///{database}")
             migrator.upgrade()

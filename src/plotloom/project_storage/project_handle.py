@@ -91,6 +91,18 @@ class ProjectStore:
     def repository(self) -> ProjectSQLiteRepository:
         return self._repository
 
+    @property
+    def authoring(self):
+        return self._repository.authoring
+
+    @property
+    def generation(self):
+        return self._repository.generation
+
+    @property
+    def media(self):
+        return self._repository.media
+
     @classmethod
     def initialize(
         cls,
@@ -149,8 +161,8 @@ class ProjectStore:
                 "project database is missing or not a regular file"
             )
         try:
-            project = self.repository.get_project(self.manifest.project_id)
-            heads = self.repository.list_stage_heads(self.manifest.project_id)
+            project = self.authoring.get_project(self.manifest.project_id)
+            heads = self.authoring.list_stage_heads(self.manifest.project_id)
         except (NotFoundError, SQLAlchemyError, ValueError) as error:
             raise ProjectStorageCorruptionError(
                 "project database cannot satisfy the project repository contract"
@@ -170,7 +182,7 @@ class ProjectStore:
 
     def project(self) -> Project:
         try:
-            return self.repository.get_project(self.manifest.project_id)
+            return self.authoring.get_project(self.manifest.project_id)
         except NotFoundError as error:
             raise ProjectStorageCorruptionError(
                 "project database has no bound project"
@@ -192,7 +204,7 @@ class ProjectStore:
         if expected_revision < 1:
             raise ValueError("expected_revision must be at least one")
         try:
-            return self.repository.update_project(
+            return self.authoring.update_project(
                 self.manifest.project_id, expected_revision, brief
             )
         except RevisionConflictError as error:
@@ -209,7 +221,7 @@ class ProjectStore:
         if expected_revision < 1:
             raise ValueError("expected_revision must be at least one")
         try:
-            return self.repository.update_project_consuming_authoring_draft(
+            return self.authoring.update_project_consuming_authoring_draft(
                 self.manifest.project_id,
                 expected_revision,
                 brief,
@@ -225,7 +237,7 @@ class ProjectStore:
         self, stage: StageName, payload: dict[str, Any], *, expected_revision: int
     ) -> StageHead:
         try:
-            return self.repository.update_stage(
+            return self.authoring.update_stage(
                 self.manifest.project_id, stage, expected_revision, payload
             )
         except RevisionConflictError as error:
@@ -243,7 +255,7 @@ class ProjectStore:
         expected_draft_revision: int,
     ) -> StageHead:
         try:
-            return self.repository.update_stage_consuming_authoring_draft(
+            return self.authoring.update_stage_consuming_authoring_draft(
                 self.manifest.project_id,
                 stage,
                 expected_revision,
@@ -257,7 +269,7 @@ class ProjectStore:
             ) from error
 
     def authoring_drafts(self) -> list[AuthoringDraft]:
-        return self.repository.list_authoring_drafts(self.manifest.project_id)
+        return self.authoring.list_authoring_drafts(self.manifest.project_id)
 
     def save_authoring_draft(
         self,
@@ -269,7 +281,7 @@ class ProjectStore:
         payload: dict[str, Any],
     ) -> AuthoringDraft:
         try:
-            return self.repository.upsert_authoring_draft(
+            return self.authoring.upsert_authoring_draft(
                 self.manifest.project_id,
                 editor_scope=editor_scope,
                 entity_id=entity_id,
@@ -287,7 +299,7 @@ class ProjectStore:
         entity_id: str,
         expected_draft_revision: int,
     ) -> bool:
-        return self.repository.discard_authoring_draft(
+        return self.authoring.discard_authoring_draft(
             self.manifest.project_id,
             editor_scope=editor_scope,
             entity_id=entity_id,
@@ -295,7 +307,7 @@ class ProjectStore:
         )
 
     def canonical_stages(self) -> list[StageEnvelope]:
-        envelopes = self.repository.list_stage_envelopes(self.manifest.project_id)
+        envelopes = self.authoring.list_stage_envelopes(self.manifest.project_id)
         ready = [item for item in envelopes if item.head.status == StageStatus.READY]
         if not ready:
             return []
@@ -308,12 +320,12 @@ class ProjectStore:
     def generation_runs(self) -> list[GenerationRun]:
         return list(
             reversed(
-                self.repository.list_project_runs(self.manifest.project_id, limit=200)
+                self.generation.list_project_runs(self.manifest.project_id, limit=200)
             )
         )
 
     def run_trace(self, run_id: str) -> RunTrace:
-        trace = self.repository.get_run_trace(run_id)
+        trace = self.generation.get_run_trace(run_id)
         if trace.run.project_id != self.manifest.project_id:
             raise ProjectStorageCorruptionError(
                 "run evidence belongs to another project"
@@ -321,13 +333,13 @@ class ProjectStore:
         return trace
 
     def run_execution_trace(self, run_id: str) -> RunExecutionTrace:
-        return self.repository.get_run_execution_trace(run_id)
+        return self.generation.get_run_execution_trace(run_id)
 
     def repair_scope(self, child_run_id: str) -> WorkUnitRepairScope:
-        return self.repository.get_work_unit_repair_scope(child_run_id)
+        return self.generation.get_work_unit_repair_scope(child_run_id)
 
     def fragment_reuse_bindings(self, child_run_id: str) -> list[FragmentReuseBinding]:
-        return self.repository.get_fragment_reuse_bindings(child_run_id)
+        return self.generation.get_fragment_reuse_bindings(child_run_id)
 
     def read_artifact(self, artifact: OwnedArtifact) -> bytes:
         return self._artifacts.read(artifact)
