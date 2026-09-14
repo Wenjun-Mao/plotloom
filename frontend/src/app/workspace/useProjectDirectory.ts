@@ -26,6 +26,7 @@ export function useProjectDirectory(describeError: (error: unknown) => string) {
     } finally { if (requestEpoch === epoch.current) setLoading(false); }
   }, [describeError, showArchived]);
   const openDirectory = useCallback(() => { setOpen(true); void refresh(); }, [refresh]);
+  const closeDirectory = useCallback(() => setOpen(false), []);
   const loadMore = useCallback(() => { if (nextCursor && !loading) void refresh(showArchived, nextCursor, true); }, [loading, nextCursor, refresh, showArchived]);
-  return { projects, open, setOpen, showArchived, setShowArchived, error, setError, nextCursor, loading, refresh, openDirectory, loadMore };
+  return { projects, open, setOpen, showArchived, setShowArchived, error, setError, nextCursor, loading, refresh, openDirectory, closeDirectory, loadMore };
 }

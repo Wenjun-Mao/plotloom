@@ -1,103 +1,74 @@
-import { useCallback, useEffect } from "react";
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { discardDraft, findProjectDrafts, hasDraft, type DraftRecord, type DraftScope } from "../../draft-registry";
-import { blankWorkspace, newClientDraftOwner, routeFromLocation, stageForPage, type NavigationTarget, type PageId } from "./contracts";
-import type { MediaTask, PipelineRun, RunProgress, ServerStageName, StageHead, StoryboardReview, TraceEvent, ValidationIssue, WorkspaceProject } from "../../types";
+import { useCallback, useEffect, useState } from "react";
+import { discardDraft, findProjectDrafts, hasDraft, type DraftScope } from "../../draft-registry";
+import type { PipelineRun, ServerStageName, WorkspaceProject } from "../../types";
+import { routeFromLocation, stageForPage, type NavigationTarget, type PageId } from "./contracts";
+import type { UnsafeDraft, WorkspaceSession } from "./useWorkspaceSession";
 
-type Route = ReturnType<typeof routeFromLocation>;
-type UnsafeDraft = { record: DraftRecord; reason: "archived" | "unavailable" };
-
-export interface WorkspaceNavigationState {
-  route: MutableRefObject<Route>;
-  activePage: PageId;
-  setActivePage: Dispatch<SetStateAction<PageId>>;
-  routeEntity: string;
-  setRouteEntity: Dispatch<SetStateAction<string>>;
-  pending: NavigationTarget | undefined;
-  setPending: Dispatch<SetStateAction<NavigationTarget | undefined>>;
-}
+type NavigationSession = Pick<WorkspaceSession,
+  "activePage" | "project" | "run" | "runSelectionPending" | "unsafeDraft" | "routeRef" | "setUnsafeDraft"
+  | "clearForEmptyRoute" | "navigate" | "navigateToProject" | "needsCanonicalRefresh"
+  | "focusEntity" | "replaceCurrentRoute" | "acceptRun" | "beginRunSelection" | "cancelRunSelection" | "clearTrace"
+>;
 
 interface WorkspaceNavigationInput {
-  state: WorkspaceNavigationState;
-  workspace: {
-    project: WorkspaceProject;
-    run: PipelineRun | undefined;
-    localOwner: MutableRefObject<string>;
-    setProject: Dispatch<SetStateAction<WorkspaceProject>>;
-    setStageHeads: Dispatch<SetStateAction<Partial<Record<ServerStageName, StageHead>>>>;
-    setRun: Dispatch<SetStateAction<PipelineRun | undefined>>;
-    setProgress: Dispatch<SetStateAction<RunProgress | undefined>>;
-    setReview: Dispatch<SetStateAction<StoryboardReview | null>>;
-    setIssues: Dispatch<SetStateAction<Partial<Record<ServerStageName, ValidationIssue[]>>>>;
-    setTrace: Dispatch<SetStateAction<TraceEvent[]>>;
-    setMediaTasks: Dispatch<SetStateAction<Record<string, MediaTask>>>;
-    setConnection: (value: "loading" | "connected" | "demo" | "blank" | "error") => void;
-    setOnboarding: (value: boolean) => void;
-  };
+  session: NavigationSession;
   drafts: {
-    current: MutableRefObject<{ scope: DraftScope; payload: unknown } | undefined>;
-    durableEnabled: MutableRefObject<boolean>;
+    current: React.MutableRefObject<{ scope: DraftScope; payload: unknown } | undefined>;
+    durableEnabled: React.MutableRefObject<boolean>;
     flush: (scope: DraftScope) => Promise<boolean>;
     commitProject: (patch: Partial<WorkspaceProject>) => Promise<void>;
     commitStage: <T>(stage: ServerStageName, content: T) => Promise<void>;
     clearRecovery: () => void;
     clearConflict: () => void;
-    unsafe: UnsafeDraft | undefined;
-    setUnsafe: Dispatch<SetStateAction<UnsafeDraft | undefined>>;
   };
-  loader: {
-    invalidate: (next: Route) => number;
-    loadProject: (projectId: string, epoch?: number) => Promise<void>;
-    canonicalRefreshRequired: MutableRefObject<Set<string>>;
-  };
+  loadProject: (projectId: string, epoch?: number) => Promise<void>;
+  pollRun: (runId: string, projectId?: string) => Promise<void>;
 }
 
 /**
- * Owns URL writes, history restoration, and draft-gated workspace changes.
- * Persistence supplies only the two explicit save commands; it never decides
- * which URL or project is visible after a navigation attempt.
+ * Owns URL/history writes and draft-gated route changes. The session is the
+ * only authority that increments epochs or mutates canonical route identity.
  */
-export function useWorkspaceNavigation(input: WorkspaceNavigationInput) {
-  const { state, workspace, drafts, loader } = input;
-  const applyNavigation = useCallback((next: NavigationTarget) => {
-    const route: Route = { project: next.project, stage: next.stage, entity: next.entity, run: next.run };
-    const epoch = loader.invalidate(route);
-    if (next.history === "push") writeRoute(route, "push");
+export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun }: WorkspaceNavigationInput) {
+  const [pendingNavigation, setPendingNavigation] = useState<NavigationTarget | undefined>();
+
+  const clearDraftRouteState = useCallback(() => {
     drafts.current.current = undefined;
-    state.setActivePage(next.stage);
-    state.setRouteEntity(next.entity);
     drafts.clearRecovery();
     drafts.clearConflict();
-    drafts.setUnsafe(undefined);
-    if (!next.project && next.project !== (workspace.project.id || "")) {
-      workspace.localOwner.current = newClientDraftOwner();
-      workspace.setProject(blankWorkspace(workspace.localOwner.current));
-      workspace.setStageHeads({});
-      workspace.setRun(undefined);
-      workspace.setProgress(undefined);
-      workspace.setReview(null);
-      workspace.setIssues({});
-      workspace.setTrace([]);
-      workspace.setMediaTasks({});
-      workspace.setConnection("blank");
-      workspace.setOnboarding(true);
+    session.setUnsafeDraft(undefined);
+  }, [drafts, session]);
+
+  const applyNavigation = useCallback((next: NavigationTarget) => {
+    const route = { project: next.project, stage: next.stage, entity: next.entity, run: next.run };
+    const historyMode = next.history === "push" ? "push" : "none";
+    const previousRoute = session.routeRef.current;
+    clearDraftRouteState();
+    if (!next.project) {
+      // A blank or demo workspace has no server ID. Moving between its pages
+      // must retain that local snapshot; only leaving a loaded project opens a
+      // new blank onboarding workspace.
+      if (next.project !== (session.project.id || "")) session.clearForEmptyRoute(route, historyMode);
+      else session.navigate(route, historyMode);
       return;
     }
-    if (!next.project) return;
-    workspace.setOnboarding(false);
-    if (next.project !== workspace.project.id) {
-      workspace.setReview(null);
-      workspace.setIssues({});
-    }
+    const traceSelectionRequested = next.stage === "trace" && (
+      next.run !== (session.run?.id || "")
+      || session.runSelectionPending
+      || (previousRoute.stage !== "trace" && !next.run)
+    );
+    const epoch = session.navigateToProject(route, historyMode);
+    if (next.stage !== "trace") session.cancelRunSelection();
+    else if (traceSelectionRequested) session.beginRunSelection(next.run);
     if (
       next.forceReload
-      || next.project !== workspace.project.id
-      || next.run !== (workspace.run?.id || "")
-      || loader.canonicalRefreshRequired.current.has(next.project)
+      || next.project !== session.project.id
+      || traceSelectionRequested
+      || session.needsCanonicalRefresh(next.project)
     ) {
-      void loader.loadProject(next.project, epoch);
+      void loadProject(next.project, epoch);
     }
-  }, [drafts, loader, state, workspace]);
+  }, [clearDraftRouteState, loadProject, session]);
 
   const requestNavigation = useCallback((next: {
     project: string;
@@ -108,55 +79,50 @@ export function useWorkspaceNavigation(input: WorkspaceNavigationInput) {
     forceReload?: boolean;
   }) => {
     const normalized: NavigationTarget = { entity: "", run: "", history: "push", forceReload: false, ...next };
-    const scope = stageForPage(state.activePage);
+    const scope = stageForPage(session.activePage);
+    const unsafeDraft: UnsafeDraft | undefined = session.unsafeDraft;
     if (
-      drafts.unsafe
-      || (workspace.project.id && (workspace.project.archivedAt || workspace.project.lifecycleStatus === "archived") && findProjectDrafts(workspace.project.id).length)
+      unsafeDraft
+      || (session.project.id && (session.project.archivedAt || session.project.lifecycleStatus === "archived") && findProjectDrafts(session.project.id).length)
     ) {
-      state.setPending(normalized);
+      setPendingNavigation(normalized);
       return;
     }
-    if (scope && hasDraft(workspace.project, scope)) {
-      if (drafts.durableEnabled.current && workspace.project.id) {
+    if (scope && hasDraft(session.project, scope)) {
+      if (drafts.durableEnabled.current && session.project.id) {
         void drafts.flush(scope).then((saved) => {
           if (saved) applyNavigation(normalized);
-          else state.setPending(normalized);
+          else setPendingNavigation(normalized);
         });
         return;
       }
-      state.setPending(normalized);
+      setPendingNavigation(normalized);
       return;
     }
     applyNavigation(normalized);
-  }, [applyNavigation, drafts, state, workspace.project]);
+  }, [applyNavigation, drafts, session]);
 
-  const selectRouteEntity = useCallback((entity: string) => {
-    const next = { ...state.route.current, entity };
-    if (next.entity === state.route.current.entity) return;
-    state.route.current = next;
-    writeRoute(next, "push");
-    state.setRouteEntity(entity);
-  }, [state]);
+  const selectRouteEntity = useCallback((entity: string) => session.focusEntity(entity), [session]);
+  const openRunTrace = useCallback((run: PipelineRun) => {
+    clearDraftRouteState();
+    session.navigateToProject({ project: run.projectId, stage: "trace", entity: "", run: run.id }, "push");
+    session.acceptRun(run);
+    session.clearTrace();
+    void pollRun(run.id, run.projectId);
+  }, [clearDraftRouteState, pollRun, session]);
 
   const resolvePendingNavigation = useCallback(async (action: "save" | "discard" | "cancel") => {
-    const pending = state.pending;
+    const pending = pendingNavigation;
     if (!pending || action === "cancel") {
-      if (pending?.history === "pop") {
-        writeRoute({
-          project: workspace.project.id || "",
-          stage: state.activePage,
-          entity: state.routeEntity,
-          run: state.activePage === "trace" ? workspace.run?.id || "" : "",
-        }, "replace");
-      }
-      state.setPending(undefined);
+      if (pending?.history === "pop") session.replaceCurrentRoute();
+      setPendingNavigation(undefined);
       return;
     }
-    const scope = stageForPage(state.activePage);
+    const scope = stageForPage(session.activePage);
     if (scope && action === "save") {
       const draft = drafts.current.current;
       if (!draft || draft.scope !== scope) {
-        state.setPending(undefined);
+        setPendingNavigation(undefined);
         return;
       }
       if (scope === "brief") await drafts.commitProject({ brief: draft.payload as WorkspaceProject["brief"] });
@@ -164,39 +130,31 @@ export function useWorkspaceNavigation(input: WorkspaceNavigationInput) {
       if (drafts.current.current) return;
     }
     if (scope) {
-      discardDraft(workspace.project, scope);
+      discardDraft(session.project, scope);
       drafts.current.current = undefined;
     }
-    state.setPending(undefined);
+    setPendingNavigation(undefined);
     applyNavigation(pending);
-  }, [applyNavigation, drafts, state, workspace.project, workspace.run?.id]);
+  }, [applyNavigation, drafts, pendingNavigation, session]);
+  const continueAfterUnsafeDraft = useCallback(() => {
+    if (!pendingNavigation) return;
+    setPendingNavigation(undefined);
+    applyNavigation(pendingNavigation);
+  }, [applyNavigation, pendingNavigation]);
 
   useEffect(() => {
     const onPopState = () => {
       const route = routeFromLocation();
-      if (
-        route.project === state.route.current.project
-        && route.stage === state.route.current.stage
-        && route.run === state.route.current.run
-      ) {
-        state.route.current = route;
-        state.setRouteEntity(route.entity);
+      const current = session.routeRef.current;
+      if (route.project === current.project && route.stage === current.stage && route.run === current.run) {
+        session.focusEntity(route.entity);
         return;
       }
       requestNavigation({ ...route, history: "pop" });
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
-  }, [requestNavigation, state]);
+  }, [requestNavigation, session]);
 
-  return { applyNavigation, requestNavigation, selectRouteEntity, resolvePendingNavigation };
-}
-
-function writeRoute(route: Route, action: "push" | "replace") {
-  const query = new URLSearchParams();
-  if (route.project) query.set("project", route.project);
-  query.set("stage", route.stage);
-  if (route.entity) query.set("entity", route.entity);
-  if (route.run) query.set("run", route.run);
-  history[`${action}State`](null, "", `${location.pathname}?${query.toString()}`);
+  return { applyNavigation, requestNavigation, selectRouteEntity, openRunTrace, pendingNavigation, resolvePendingNavigation, continueAfterUnsafeDraft };
 }

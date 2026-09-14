@@ -1,10 +1,12 @@
 import { useCallback, useRef } from "react";
 import { plotloomApi } from "../../api";
 import { providerSessionKeys } from "../../session-key";
-import { stageForPage, type WorkspaceOperation, type PageId } from "./contracts";
-import type { PipelineRun, QuarantineItem, ServerStageName, TextProviderProfileView, WorkspaceProject } from "../../types";
+import { stageForPage, type WorkspaceOperation } from "./contracts";
+import type { PipelineRun, QuarantineItem, ServerStageName, TextProviderProfileView } from "../../types";
+import type { WorkspaceSession } from "./useWorkspaceSession";
 
 type Currentness = { capture: () => WorkspaceOperation; isCurrent: (operation: WorkspaceOperation) => boolean };
+type RunCommandSession = Pick<WorkspaceSession, "project" | "activePage" | "run" | "route" | "capture" | "isCurrent" | "acceptRun">;
 type ProfileCommands = {
   draft: TextProviderProfileView;
   sessionKey: string;
@@ -15,20 +17,19 @@ type ProfileCommands = {
 };
 
 /** Commands that spend, resume, cancel, repair, or observe one pipeline run. */
-export function useRunCommands({ project, activePage, run, profiles, currentness, pollRun, openTrace, setRun, setBusy, setError, hasDraft }: {
-  project: WorkspaceProject;
-  activePage: PageId;
-  run?: PipelineRun;
+export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy, setError, hasDraft }: {
+  session: RunCommandSession;
   profiles: ProfileCommands;
-  currentness: Currentness;
   pollRun: (runId: string, projectId?: string) => Promise<void>;
   openTrace: (run: PipelineRun) => void;
-  setRun: React.Dispatch<React.SetStateAction<PipelineRun | undefined>>;
   setBusy: (busy: boolean) => void;
   setError: (message: string) => void;
   hasDraft: (scope: ReturnType<typeof stageForPage>) => boolean;
 }) {
   const repairKeys = useRef(new Map<string, string>());
+  const { project, activePage, run } = session;
+  const currentness: Currentness = { capture: session.capture, isCurrent: session.isCurrent };
+  const isSelectedRun = (candidate: PipelineRun | undefined): candidate is PipelineRun => Boolean(candidate && (!session.route.run || session.route.run === candidate.id));
   const describeError = (error: unknown) => error instanceof Error ? error.message : "未知错误";
   const prepareProfile = useCallback(async (): Promise<TextProviderProfileView> => {
     let draft = profiles.draft;
@@ -49,20 +50,20 @@ export function useRunCommands({ project, activePage, run, profiles, currentness
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
   }, [currentness, openTrace, prepareProfile, profiles.draft.enabled, project.id, setBusy, setError]);
   const cancelRun = useCallback(async () => {
-    if (!run) return;
+    if (!isSelectedRun(run)) return;
     const operation = currentness.capture();
-    try { const cancelled = await plotloomApi.cancelRun(run.id); if (!currentness.isCurrent(operation)) return; setRun(cancelled); void pollRun(cancelled.id, cancelled.projectId).catch((error) => setError(describeError(error))); }
+    try { const cancelled = await plotloomApi.cancelRun(run.id); if (!currentness.isCurrent(operation)) return; session.acceptRun(cancelled); void pollRun(cancelled.id, cancelled.projectId).catch((error) => setError(describeError(error))); }
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
-  }, [currentness, pollRun, run, setError, setRun]);
+  }, [currentness, pollRun, run, session, setError]);
   const resumeRun = useCallback(async () => {
-    if (!run || (run.status !== "queued" && run.status !== "running")) return;
+    if (!isSelectedRun(run) || (run.status !== "queued" && run.status !== "running")) return;
     if (!await profiles.ensureFrozenCredential(run)) return;
     const operation = currentness.capture();
-    try { const profileId = String(run.providerSnapshot.profileId || "default"); const resumed = await plotloomApi.resumeRun(run.id, profileId, run.providerSnapshot.textAuthMode !== "none"); if (!currentness.isCurrent(operation)) return; setRun(resumed); void pollRun(run.id).catch((error) => setError(describeError(error))); }
+    try { const profileId = String(run.providerSnapshot.profileId || "default"); const resumed = await plotloomApi.resumeRun(run.id, profileId, run.providerSnapshot.textAuthMode !== "none"); if (!currentness.isCurrent(operation)) return; session.acceptRun(resumed); void pollRun(run.id).catch((error) => setError(describeError(error))); }
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
-  }, [currentness, pollRun, profiles, run, setError, setRun]);
+  }, [currentness, pollRun, profiles, run, session, setError]);
   const repair = useCallback(async (item: QuarantineItem) => {
-    if (!run || !item.repairEligible) { setError("这个 work unit 当前不具备精确修复资格。"); return; }
+    if (!isSelectedRun(run) || !item.repairEligible) { setError("这个 work unit 当前不具备精确修复资格。"); return; }
     if (!await profiles.ensureFrozenCredential(run)) return;
     const operation = currentness.capture(); setBusy(true);
     try { const profileId = String(run.providerSnapshot.profileId || "default"); const identity = `${run.id}:${item.id}`; let key = repairKeys.current.get(identity); if (!key) { key = `work-unit-repair-${crypto.randomUUID()}`; repairKeys.current.set(identity, key); } const next = await plotloomApi.repairWorkUnit(run.id, item.id, profileId, key, run.providerSnapshot.textAuthMode !== "none"); if (!currentness.isCurrent(operation)) return; repairKeys.current.delete(identity); openTrace(next); }

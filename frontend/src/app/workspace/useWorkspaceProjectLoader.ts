@@ -1,51 +1,32 @@
-import { useCallback, useRef } from "react";
-import type { Dispatch, MutableRefObject, SetStateAction } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { plotloomApi } from "../../api";
-import { findProjectDrafts, type DraftScope } from "../../draft-registry";
+import { findProjectDrafts } from "../../draft-registry";
 import { providerSessionKeys } from "../../session-key";
-import { hydrateWorkspaceProject, newestMediaTasksByShot, quarantineItemsFromProgress } from "../../workspace-state";
-import { authoringDraftKey, blankWorkspace, headsByStage, messageFrom, type PageId } from "./contracts";
-import type { AuthoringDraft, MediaTask, PipelineRun, ProjectResource, RunProgress, ServerStageName, StageEnvelope, StageHead, StoryboardReview, ValidationIssue, WorkspaceProject } from "../../types";
+import type { AuthoringDraft, PipelineRun } from "../../types";
+import { messageFrom } from "./contracts";
+import type { WorkspaceSession } from "./useWorkspaceSession";
 
-type RouteRef = { current: { project: string; stage: PageId; run: string } };
-type EpochRef = { current: number };
 type ProfileCatalog = { profiles: Array<{ profileId: string; serverKeyAvailable: boolean }> };
-type LoadError = { record: ReturnType<typeof findProjectDrafts>[number]; reason: "unavailable" };
-
-export interface WorkspaceProjectLoadSession {
-  beginProjectLoad(): void;
-  acceptProjectLoad(payload: { project: ProjectResource; stages: StageEnvelope[]; run: PipelineRun | undefined; progress: RunProgress | undefined; review: StoryboardReview | null; media: MediaTask[]; drafts: AuthoringDraft[]; message: string }): void;
-  rejectProjectLoad(projectId: string, error: unknown, staleDraft: LoadError | undefined): void;
-  clearCanonicalRefresh(projectId: string): void;
-}
+type ProjectLoaderSession = Pick<WorkspaceSession,
+  "capture" | "isCurrent" | "routeRef" | "beginProjectLoad" | "acceptProjectLoad"
+  | "clearCanonicalRefresh" | "rejectProjectLoad" | "registerNavigationCleanup" | "registerCanonicalReloader"
+>;
 
 interface ProjectLoaderInput {
-  loadEpoch: EpochRef;
-  route: RouteRef;
-  localOwner: MutableRefObject<string>;
-  durableDrafts: MutableRefObject<boolean>;
+  session: ProjectLoaderSession;
+  durableDrafts: React.MutableRefObject<boolean>;
   profiles: {
-    loaded: MutableRefObject<boolean>;
-    catalog: MutableRefObject<ProfileCatalog>;
+    loaded: React.MutableRefObject<boolean>;
+    catalog: React.MutableRefObject<ProfileCatalog>;
   };
-  session: WorkspaceProjectLoadSession;
-  serverDrafts: MutableRefObject<Map<string, AuthoringDraft>>;
   observeRun: (runId: string, projectId: string) => void;
-  onLoaded: (projectId: string) => void;
+  reportMessage: (message: string) => void;
 }
-
-const isAuthoringScope = (scope: string): scope is DraftScope => (
-  scope === "brief"
-  || scope === "story_bible"
-  || scope === "story_graph"
-  || scope === "scene_beats"
-  || scope === "storyboard"
-);
 
 /**
  * Fetches one route-owned project aggregate. Its abort controller and stale
  * response check are deliberately colocated: navigation may cancel a request,
- * but only this owner decides whether a response may hydrate canonical state.
+ * but only the workspace session may accept its canonical snapshot.
  */
 export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
   const latest = useRef(input);
@@ -56,20 +37,19 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
     controller.current?.abort();
     controller.current = undefined;
   }, []);
+  useEffect(() => latest.current.session.registerNavigationCleanup(abort), [abort, input.session.registerNavigationCleanup]);
+  useEffect(() => abort, [abort]);
 
-  const loadProject = useCallback(async (projectId: string, epoch?: number) => {
+  const loadProject = useCallback(async (projectId: string, expectedEpoch?: number) => {
     const current = latest.current;
-    const requestEpoch = epoch ?? current.loadEpoch.current;
-    const isCurrent = () => (
-      requestEpoch === current.loadEpoch.current
-      && current.route.current.project === projectId
-    );
+    const operation = current.session.capture();
+    if (!projectId || operation.projectId !== projectId || (expectedEpoch !== undefined && expectedEpoch !== operation.epoch)) return;
 
-    if (!projectId) return;
     abort();
     const request = new AbortController();
     controller.current = request;
     current.session.beginProjectLoad();
+    const isCurrent = () => current.session.isCurrent(operation);
 
     try {
       const [project, stages, runs, media, drafts] = await Promise.all([
@@ -85,25 +65,31 @@ export function useWorkspaceProjectLoader(input: ProjectLoaderInput) {
       const review = storyboardHead?.revision
         ? await plotloomApi.getStoryboardReview(projectId, request.signal).catch(() => null)
         : null;
-      const selectedRun = current.route.current.run
-        ? runs.runs.find((item) => item.id === current.route.current.run)
-        : runs.runs[0];
-      const missingSelectedRun = Boolean(current.route.current.run && !selectedRun);
+      const selectedRunId = current.session.routeRef.current.run;
+      const selectedRun = selectedRunId ? runs.runs.find((item) => item.id === selectedRunId) : runs.runs[0];
+      const missingSelectedRun = Boolean(selectedRunId && !selectedRun);
       const progress = selectedRun ? await plotloomApi.getRunProgress(selectedRun.id) : undefined;
       const resumeBlocked = await blockedAutomaticResume(selectedRun, current, request.signal);
 
       if (!isCurrent()) return;
-      current.session.acceptProjectLoad({ project, stages: stages.stages, run: selectedRun, progress, review, media: media.tasks, drafts, message: missingSelectedRun ? `运行 ${current.route.current.run} 不属于当前项目或已不存在。` : resumeBlocked });
+      current.session.acceptProjectLoad({ project, stages: stages.stages, run: selectedRun, progress, review, media: media.tasks, drafts });
       current.session.clearCanonicalRefresh(projectId);
+      current.reportMessage(missingSelectedRun ? `运行 ${selectedRunId} 不属于当前项目或已不存在。` : resumeBlocked);
       resumeActiveRun(selectedRun, project.id, resumeBlocked, isCurrent, current);
     } catch (error) {
       if (!isCurrent() || isAbortError(error)) return;
       const stale = findProjectDrafts(projectId)[0];
-      current.session.rejectProjectLoad(projectId, error, stale ? { record: stale, reason: "unavailable" } : undefined);
+      current.session.rejectProjectLoad(stale ? { record: stale, reason: "unavailable" } : undefined);
+      current.reportMessage(`无法加载项目 ${projectId}：${messageFrom(error)}。项目未加载；没有回退到示例。`);
     } finally {
       if (controller.current === request) controller.current = undefined;
     }
   }, [abort]);
+
+  useEffect(
+    () => latest.current.session.registerCanonicalReloader(loadProject),
+    [input.session.registerCanonicalReloader, loadProject],
+  );
 
   return { abort, loadProject };
 }
@@ -150,10 +136,11 @@ function resumeActiveRun(
       if (isCurrent()) input.observeRun(run.id, projectId);
     })
     .catch((error) => {
-      if (isCurrent()) input.session.rejectProjectLoad(projectId, error, undefined);
+      if (!isCurrent()) return;
+      input.session.rejectProjectLoad(undefined);
+      input.reportMessage(`无法加载项目 ${projectId}：${messageFrom(error)}。项目未加载；没有回退到示例。`);
     });
 }
-
 
 function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";

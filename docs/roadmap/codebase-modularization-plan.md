@@ -1,10 +1,10 @@
 # Codebase modularization: persistence-first structure proposal
 
-**Status:** persistence conversion is complete. The original frontend
-workbench receipt was only partially complete: it extracted media and draft
-autosave while retaining mixed workspace ownership. The corrected frontend
-workspace extraction is tracked by the amended receipt below; this document
-remains the execution map for later assessments.
+**Status:** persistence conversion and the corrected frontend workspace
+extraction are complete. The original frontend receipt extracted media and
+draft autosave while retaining mixed workspace ownership; the accepted
+correction is recorded below and in its amended verification receipt. This
+document remains the execution map for later assessments.
 It follows the accepted API modularization checkpoint at
 `f9487508239bf14f5f8de8b255456c97a3e3b933` and the already-approved breaking
 project-folder storage destination.  It does not reopen the cutover decision,
@@ -17,10 +17,10 @@ add a selectable storage mode, or schedule frontend work concurrently.
 - [x] Persistence package conversion complete (schema/codec/database/transaction,
   authoring, generation, project media, and application control have explicit
   capability owners; the retained runtime surface is compatibility composition).
-- [ ] Frontend modularization correction: the original Step 3 receipt did not
-  complete workspace ownership. Do not mark this item complete merely because
-  `App.tsx` is small; route, project-session, authoring, run, profile, and
-  directory owners require an attended source-ownership review.
+- [x] Frontend modularization correction: the original Step 3 receipt did not
+  complete workspace ownership. The accepted correction gives route,
+  project-session, authoring, run, profile, and directory state explicit
+  owners and passed an attended source-ownership review.
 - [ ] Justified assessment of other large modules pending; do not treat line
   count alone as implementation authority.
 
@@ -368,13 +368,14 @@ The correction now assigns substantial project-session work to typed owners:
 `useProjectAuthoringPersistence.ts` owns canonical create/save and draft CAS,
 `useWorkspaceNavigation.ts` owns URL/history and dirty-draft routing,
 `useAuthoringDraftRecovery.ts` owns recovery/discard prompts, and
-`useProjectLifecycle.ts` owns directory lifecycle actions. The focused
-independent review subsequently found that `WorkspaceController` still owns
-trace-route, conflict-resolution, and starter workflows, and that the typed
-owner inputs are broad callback bundles rather than narrow session contracts.
-This remains an open correction: completion requires removing those residual
-owners and reducing the controller/owner coupling, then repeating the focused
-review and final gate.
+`useProjectLifecycle.ts` owns directory lifecycle actions. The accepted final
+correction adds `useWorkspaceSession.ts` as the single canonical snapshot and
+route-epoch owner, moves blank/demo initialization to
+`useProjectInitialization.ts`, and completes trace navigation plus draft
+conflict/recovery ownership in their dedicated hooks. `WorkspaceController.tsx`
+is now a 248-line composition/view root. One attended Terra review found and
+closed the explicit, implicit, and abandoned trace-selection races; the full
+frontend, locked Python, static, browser, and wheel gates then passed.
 
 `api.ts` and `types.ts` remain intentionally stable shared wire boundaries in
 this phase: no backend capability required a transport-shape move, so creating

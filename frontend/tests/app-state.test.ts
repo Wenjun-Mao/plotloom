@@ -994,6 +994,165 @@ describe("App project/editor rehydration", () => {
     expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("新工作台");
   });
 
+  it("aborts and rejects a late aggregate hydration after navigation chooses another project", async () => {
+    window.history.replaceState(null, "", "/?project=hydrate-source&stage=brief");
+    const source = resource("hydrate-source", "过期加载来源");
+    const destination = resource("hydrate-destination", "当前规范项目");
+    const delayedSource = deferred<ProjectResource>();
+    let sourceSignal: AbortSignal | undefined;
+    vi.spyOn(plotloomApi, "getProject").mockImplementation((id, signal) => {
+      if (id === source.id) {
+        sourceSignal = signal;
+        return delayedSource.promise;
+      }
+      return Promise.resolve(destination);
+    });
+    vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
+
+    await act(async () => root.render(createElement(App)));
+    await flush();
+    expect(sourceSignal?.aborted).toBe(false);
+
+    window.history.replaceState(null, "", "/?project=hydrate-destination&stage=brief");
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    await flush();
+    expect(sourceSignal?.aborted).toBe(true);
+    expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("当前规范项目");
+
+    await act(async () => delayedSource.resolve(source));
+    await flush();
+    expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("当前规范项目");
+    expect(document.body.textContent).not.toContain("过期加载来源");
+  });
+
+  it("clears an old selected run before deferred same-project trace history hydration", async () => {
+    const projectId = "trace-history-project";
+    const firstRun = { ...demoRun, id: "trace-run-one", projectId, status: "running" as const, providerSnapshot: { ...demoRun.providerSnapshot, textAuthMode: "none" as const } };
+    const secondRun = { ...demoRun, id: "trace-run-two", projectId, status: "running" as const, providerSnapshot: { ...demoRun.providerSnapshot, textAuthMode: "none" as const } };
+    const delayedRuns = deferred<Awaited<ReturnType<typeof plotloomApi.getProjectRuns>>>();
+    window.history.replaceState(null, "", `/?project=${projectId}&stage=trace&run=${firstRun.id}`);
+    vi.spyOn(plotloomApi, "getProject").mockResolvedValue(resource(projectId, "运行历史项目"));
+    vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
+    vi.spyOn(plotloomApi, "getProjectRuns")
+      .mockResolvedValueOnce({ runs: [firstRun, secondRun] })
+      .mockReturnValueOnce(delayedRuns.promise);
+    vi.spyOn(plotloomApi, "getRunProgress").mockResolvedValue({
+      runId: firstRun.id, status: "running", failureCode: null, failedStage: null,
+      stageProgress: [], workUnits: [], actions: { canResume: true, canCancel: true, canRebuildStage: false, repairEligible: false },
+    });
+    vi.spyOn(plotloomApi, "getTrace").mockResolvedValue({ run: firstRun, attempts: [], artifacts: [], snapshotIsCurrent: true });
+    vi.spyOn(plotloomApi, "getRunExecutionTrace").mockResolvedValue(undefined as never);
+    vi.spyOn(plotloomApi, "resumeRun").mockResolvedValue(firstRun);
+    const cancel = vi.spyOn(plotloomApi, "cancelRun");
+
+    await act(async () => root.render(createElement(App)));
+    await flush();
+    await flush();
+    expect(document.body.textContent).toContain(firstRun.id);
+    window.history.replaceState(null, "", `/?project=${projectId}&stage=trace&run=${secondRun.id}`);
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    await flush();
+
+    expect(document.querySelector('[data-testid="workspace-hydrating"]')).not.toBeNull();
+    expect([...document.querySelectorAll("button")].some((candidate) => candidate.textContent?.includes("取消运行"))).toBe(false);
+    expect(cancel).not.toHaveBeenCalled();
+
+    await act(async () => delayedRuns.resolve({ runs: [firstRun, secondRun] }));
+    await flush();
+    expect(document.body.textContent).toContain(secondRun.id);
+    expect(cancel).not.toHaveBeenCalled();
+  });
+
+  it("cancels an abandoned trace selection before returning to an implicit trace route", async () => {
+    const projectId = "abandoned-trace-history-project";
+    const firstRun = { ...demoRun, id: "trace-run-a", projectId, status: "running" as const, providerSnapshot: { ...demoRun.providerSnapshot, textAuthMode: "none" as const } };
+    const secondRun = { ...demoRun, id: "trace-run-b", projectId, status: "succeeded" as const, providerSnapshot: { ...demoRun.providerSnapshot, textAuthMode: "none" as const } };
+    const initialRuns = deferred<Awaited<ReturnType<typeof plotloomApi.getProjectRuns>>>();
+    const abandonedRuns = deferred<Awaited<ReturnType<typeof plotloomApi.getProjectRuns>>>();
+    const returningRuns = deferred<Awaited<ReturnType<typeof plotloomApi.getProjectRuns>>>();
+    window.history.replaceState(null, "", `/?project=${projectId}&stage=trace&run=${firstRun.id}`);
+    vi.spyOn(plotloomApi, "getProject").mockResolvedValue(resource(projectId, "放弃运行选择项目"));
+    vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
+    const getRuns = vi.spyOn(plotloomApi, "getProjectRuns")
+      .mockReturnValueOnce(initialRuns.promise)
+      .mockReturnValueOnce(abandonedRuns.promise)
+      .mockReturnValueOnce(returningRuns.promise);
+    vi.spyOn(plotloomApi, "getRunProgress").mockResolvedValue({
+      runId: firstRun.id, status: "running", failureCode: null, failedStage: null,
+      stageProgress: [], workUnits: [], actions: { canResume: true, canCancel: true, canRebuildStage: false, repairEligible: false },
+    });
+    vi.spyOn(plotloomApi, "resumeRun").mockResolvedValue(firstRun);
+
+    await act(async () => root.render(createElement(App)));
+    await flush();
+    expect(getRuns).toHaveBeenCalledOnce();
+    await act(async () => initialRuns.resolve({ runs: [firstRun, secondRun] }));
+    await flush();
+    expect(document.querySelector(".context-panel")?.textContent).toContain("放弃运行选择项目");
+    window.history.replaceState(null, "", `/?project=${projectId}&stage=trace&run=${secondRun.id}`);
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    await flush();
+    expect(document.querySelector('[data-testid="workspace-hydrating"]')).not.toBeNull();
+
+    window.history.replaceState(null, "", `/?project=${projectId}&stage=brief`);
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    await flush();
+    expect(document.querySelector(".sidebar nav button.active")?.textContent).toContain("项目简报");
+    expect(document.querySelector(".context-panel")?.textContent).toContain("放弃运行选择项目");
+    expect(document.querySelector('[data-testid="workspace-hydrating"]')).toBeNull();
+    expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("放弃运行选择项目");
+
+    window.history.replaceState(null, "", `/?project=${projectId}&stage=trace`);
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    await flush();
+    expect(document.querySelector('[data-testid="workspace-hydrating"]')).not.toBeNull();
+
+    await act(async () => abandonedRuns.resolve({ runs: [firstRun, secondRun] }));
+    await flush();
+    expect(document.querySelector('[data-testid="workspace-hydrating"]')).not.toBeNull();
+
+    await act(async () => returningRuns.resolve({ runs: [secondRun, firstRun] }));
+    await flush();
+    expect(document.querySelector('[data-testid="workspace-hydrating"]')).toBeNull();
+    expect(document.body.textContent).toContain(secondRun.id);
+  });
+
+  it("hydrates an implicit latest-run trace selection before allowing new run commands", async () => {
+    const projectId = "implicit-trace-history-project";
+    const firstRun = { ...demoRun, id: "explicit-history-run", projectId, status: "running" as const, providerSnapshot: { ...demoRun.providerSnapshot, textAuthMode: "none" as const } };
+    const latestRun = { ...demoRun, id: "implicit-latest-run", projectId, status: "succeeded" as const, providerSnapshot: { ...demoRun.providerSnapshot, textAuthMode: "none" as const } };
+    const delayedRuns = deferred<Awaited<ReturnType<typeof plotloomApi.getProjectRuns>>>();
+    window.history.replaceState(null, "", `/?project=${projectId}&stage=trace&run=${firstRun.id}`);
+    vi.spyOn(plotloomApi, "getProject").mockResolvedValue(resource(projectId, "隐式运行历史项目"));
+    vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
+    vi.spyOn(plotloomApi, "getProjectRuns")
+      .mockResolvedValueOnce({ runs: [firstRun, latestRun] })
+      .mockReturnValueOnce(delayedRuns.promise);
+    vi.spyOn(plotloomApi, "getRunProgress").mockResolvedValue({
+      runId: firstRun.id, status: "running", failureCode: null, failedStage: null,
+      stageProgress: [], workUnits: [], actions: { canResume: true, canCancel: true, canRebuildStage: false, repairEligible: false },
+    });
+    vi.spyOn(plotloomApi, "getTrace").mockResolvedValue({ run: firstRun, attempts: [], artifacts: [], snapshotIsCurrent: true });
+    vi.spyOn(plotloomApi, "getRunExecutionTrace").mockResolvedValue(undefined as never);
+    vi.spyOn(plotloomApi, "resumeRun").mockResolvedValue(firstRun);
+    const start = vi.spyOn(plotloomApi, "startRun");
+
+    await act(async () => root.render(createElement(App)));
+    await flush();
+    window.history.replaceState(null, "", `/?project=${projectId}&stage=trace`);
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    await flush();
+
+    expect(document.querySelector('[data-testid="workspace-hydrating"]')).not.toBeNull();
+    expect([...document.querySelectorAll("button")].some((candidate) => candidate.textContent?.includes("运行所选阶段"))).toBe(false);
+    expect(start).not.toHaveBeenCalled();
+
+    await act(async () => delayedRuns.resolve({ runs: [latestRun, firstRun] }));
+    await flush();
+    expect(document.body.textContent).toContain(latestRun.id);
+    expect(start).not.toHaveBeenCalled();
+  });
+
   it("rejects a late run-poll projection after Back/Forward changes the project session", async () => {
     window.history.replaceState(null, "", "/?project=poll-source&stage=trace");
     const source = resource("poll-source", "轮询源项目");

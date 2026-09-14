@@ -150,6 +150,16 @@ controller composes those owners around the one URL/epoch fact; it may cancel a
 load or save when navigation advances, but cannot decide an aggregate response
 is current or implement a canonical/draft mutation itself.
 
+The final correction makes that ownership explicit in
+`useWorkspaceSession.ts`: it owns the canonical snapshot, route ref, and one
+navigation epoch. Loader, navigation, authoring, and run hooks submit named
+transitions through narrow session contracts. A trace route with an explicit or
+implicit run selection enters a pending state that removes any stale run,
+progress, and evidence until aggregate hydration accepts a current selection;
+abandoning that selection has a named cancellation transition. This prevents a
+late load, poll, save, or trace selection from repainting a later route without
+introducing a new API, persistence, or credential contract.
+
 - List results expose lifecycle state and lifecycle revision; archived projects
   are visibly distinct and remain available for read-only inspection.
 - Project catalog cursors use immutable creation facts, rather than mutable
