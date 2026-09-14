@@ -32,14 +32,19 @@ from ..generation.story_graph_topology import StoryGraphTopologyError
 from ..validation import DomainValidationError, pydantic_issues
 
 
-
 def register_api_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(NotFoundError)
-    async def not_found_handler(_request: Request, error: NotFoundError) -> JSONResponse:
-        return JSONResponse(status_code=404, content={"code": "not_found", "message": str(error)})
-    
+    async def not_found_handler(
+        _request: Request, error: NotFoundError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=404, content={"code": "not_found", "message": str(error)}
+        )
+
     @app.exception_handler(RevisionConflictError)
-    async def revision_conflict_handler(_request: Request, error: RevisionConflictError) -> JSONResponse:
+    async def revision_conflict_handler(
+        _request: Request, error: RevisionConflictError
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=409,
             content={
@@ -50,9 +55,11 @@ def register_api_error_handlers(app: FastAPI) -> None:
                 "actualRevision": error.actual_revision,
             },
         )
-    
+
     @app.exception_handler(StagePrerequisiteError)
-    async def prerequisite_handler(_request: Request, error: StagePrerequisiteError) -> JSONResponse:
+    async def prerequisite_handler(
+        _request: Request, error: StagePrerequisiteError
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=409,
             content={
@@ -63,11 +70,16 @@ def register_api_error_handlers(app: FastAPI) -> None:
                 "status": error.status,
             },
         )
-    
+
     @app.exception_handler(InvalidTransitionError)
-    async def transition_handler(_request: Request, error: InvalidTransitionError) -> JSONResponse:
-        return JSONResponse(status_code=409, content={"code": "invalid_transition", "message": str(error)})
-    
+    async def transition_handler(
+        _request: Request, error: InvalidTransitionError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content={"code": "invalid_transition", "message": str(error)},
+        )
+
     @app.exception_handler(KeyframeAspectMismatchError)
     async def keyframe_aspect_mismatch_handler(
         _request: Request, error: KeyframeAspectMismatchError
@@ -81,7 +93,7 @@ def register_api_error_handlers(app: FastAPI) -> None:
                 "target": {"width": error.target_width, "height": error.target_height},
             },
         )
-    
+
     @app.exception_handler(SchemaResetRequiredError)
     async def schema_reset_required_handler(
         _request: Request, error: SchemaResetRequiredError
@@ -95,7 +107,7 @@ def register_api_error_handlers(app: FastAPI) -> None:
                 "schemaVersion": error.schema_version,
             },
         )
-    
+
     @app.exception_handler(RepairEligibilityError)
     async def repair_eligibility_handler(
         _request: Request, error: RepairEligibilityError
@@ -104,7 +116,7 @@ def register_api_error_handlers(app: FastAPI) -> None:
             status_code=409,
             content={"code": error.code, "message": str(error)},
         )
-    
+
     @app.exception_handler(ProductionPipelineNotReadyError)
     async def production_pipeline_not_ready_handler(
         _request: Request, error: ProductionPipelineNotReadyError
@@ -113,29 +125,52 @@ def register_api_error_handlers(app: FastAPI) -> None:
             status_code=status.HTTP_409_CONFLICT,
             content={"code": error.code, "message": str(error)},
         )
-    
+
     @app.exception_handler(ProjectBusyError)
-    async def project_busy_handler(_request: Request, error: ProjectBusyError) -> JSONResponse:
-        return JSONResponse(status_code=409, content={"code": "project_busy", "message": str(error)})
-    
+    async def project_busy_handler(
+        _request: Request, error: ProjectBusyError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=409, content={"code": "project_busy", "message": str(error)}
+        )
+
     @app.exception_handler(ProjectManagedAssetsPresentError)
     async def project_managed_assets_present_handler(
         _request: Request, error: ProjectManagedAssetsPresentError
     ) -> JSONResponse:
-        return JSONResponse(status_code=409, content={"code": error.code, "message": str(error)})
-    
+        return JSONResponse(
+            status_code=409, content={"code": error.code, "message": str(error)}
+        )
+
     @app.exception_handler(ManagedMediaError)
-    async def managed_media_handler(_request: Request, error: ManagedMediaError) -> JSONResponse:
-        return JSONResponse(status_code=422, content={"code": error.code, "message": str(error)})
-    
+    async def managed_media_handler(
+        _request: Request, error: ManagedMediaError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422, content={"code": error.code, "message": str(error)}
+        )
+
     @app.exception_handler(ImageJobError)
-    async def image_job_handler(_request: Request, error: ImageJobError) -> JSONResponse:
-        status_code = 409 if error.code in {
-            "image_exchange_not_configured", "image_exchange_invalid", "package_conflict",
-            "delivery_conflict", "delivery_finalized", "request_integrity",
-        } else 422
-        return JSONResponse(status_code=status_code, content={"code": error.code, "message": str(error)})
-    
+    async def image_job_handler(
+        _request: Request, error: ImageJobError
+    ) -> JSONResponse:
+        status_code = (
+            409
+            if error.code
+            in {
+                "image_exchange_not_configured",
+                "image_exchange_invalid",
+                "package_conflict",
+                "delivery_conflict",
+                "delivery_finalized",
+                "request_integrity",
+            }
+            else 422
+        )
+        return JSONResponse(
+            status_code=status_code, content={"code": error.code, "message": str(error)}
+        )
+
     @app.exception_handler(LifecycleContentionError)
     async def lifecycle_contention_handler(
         _request: Request, error: LifecycleContentionError
@@ -145,13 +180,16 @@ def register_api_error_handlers(app: FastAPI) -> None:
             content={"code": "lifecycle_contention", "message": str(error)},
             headers={"Retry-After": str(error.retry_after_seconds)},
         )
-    
+
     @app.exception_handler(IdempotencyConflictError)
     async def idempotency_conflict_handler(
         _request: Request, error: IdempotencyConflictError
     ) -> JSONResponse:
-        return JSONResponse(status_code=409, content={"code": "idempotency_conflict", "message": str(error)})
-    
+        return JSONResponse(
+            status_code=409,
+            content={"code": "idempotency_conflict", "message": str(error)},
+        )
+
     @app.exception_handler(BootstrapContentionError)
     async def bootstrap_contention_handler(
         _request: Request, error: BootstrapContentionError
@@ -161,14 +199,20 @@ def register_api_error_handlers(app: FastAPI) -> None:
             content={"code": "bootstrap_contention", "message": str(error)},
             headers={"Retry-After": str(error.retry_after_seconds)},
         )
-    
+
     @app.exception_handler(DomainValidationError)
-    async def domain_validation_handler(_request: Request, error: DomainValidationError) -> JSONResponse:
+    async def domain_validation_handler(
+        _request: Request, error: DomainValidationError
+    ) -> JSONResponse:
         return JSONResponse(
             status_code=422,
-            content={"code": "domain_validation", "message": str(error), "issues": error.issues},
+            content={
+                "code": "domain_validation",
+                "message": str(error),
+                "issues": error.issues,
+            },
         )
-    
+
     def schema_validation_response(issues: list[Mapping[str, Any]]) -> JSONResponse:
         return JSONResponse(
             status_code=422,
@@ -178,11 +222,13 @@ def register_api_error_handlers(app: FastAPI) -> None:
                 "issues": issues,
             },
         )
-    
+
     @app.exception_handler(ValidationError)
-    async def canonical_schema_validation_handler(_request: Request, error: ValidationError) -> JSONResponse:
+    async def canonical_schema_validation_handler(
+        _request: Request, error: ValidationError
+    ) -> JSONResponse:
         return schema_validation_response(pydantic_issues(error))
-    
+
     @app.exception_handler(RequestValidationError)
     async def request_schema_validation_handler(
         _request: Request,
@@ -206,7 +252,7 @@ def register_api_error_handlers(app: FastAPI) -> None:
                 }
             )
         return schema_validation_response(issues)
-    
+
     @app.exception_handler(StoryGraphTopologyError)
     async def topology_planning_handler(
         _request: Request, error: StoryGraphTopologyError
@@ -215,4 +261,3 @@ def register_api_error_handlers(app: FastAPI) -> None:
             status_code=422,
             content={"code": error.code, "message": str(error)},
         )
-    

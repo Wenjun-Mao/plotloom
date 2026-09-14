@@ -79,11 +79,15 @@ class MediaScheduler(Protocol):
 
 
 class MediaPromptCompiler(Protocol):
-    def compile(self, context: MediaPromptContext, kind: MediaKind) -> tuple[str, dict[str, Any]]: ...
+    def compile(
+        self, context: MediaPromptContext, kind: MediaKind
+    ) -> tuple[str, dict[str, Any]]: ...
 
 
 class TextProviderResolver(Protocol):
-    def resolve(self, provider_snapshot: Mapping[str, Any]) -> tuple[ProviderAdapter, str]: ...
+    def resolve(
+        self, provider_snapshot: Mapping[str, Any]
+    ) -> tuple[ProviderAdapter, str]: ...
 
 
 class TextProfileSecretSource(Protocol):
@@ -95,7 +99,6 @@ class TextProfileSecretSource(Protocol):
         *,
         auth_mode: ProviderAuthMode,
     ) -> SecretLease | None: ...
-
 
 
 def _session_api_key(request: Request) -> str | None:
@@ -112,7 +115,9 @@ def _normalize_idempotency_key(value: str | None) -> str | None:
     if not normalized:
         raise HTTPException(status_code=400, detail="Idempotency-Key must not be blank")
     if len(normalized) > 255:
-        raise HTTPException(status_code=400, detail="Idempotency-Key must be at most 255 characters")
+        raise HTTPException(
+            status_code=400, detail="Idempotency-Key must be at most 255 characters"
+        )
     return normalized
 
 
@@ -138,15 +143,28 @@ def _decode_project_cursor(value: str | None) -> tuple[datetime, str] | None:
             raise ValueError("wrong cursor shape")
         created_at = datetime.fromisoformat(payload["createdAt"])
         if created_at.tzinfo is not None:
-            raise ValueError("cursor timestamp must use the database's local UTC representation")
+            raise ValueError(
+                "cursor timestamp must use the database's local UTC representation"
+            )
         if not payload["id"]:
             raise ValueError("blank project ID")
         return created_at, payload["id"]
-    except (TypeError, ValueError, UnicodeDecodeError, binascii.Error, json.JSONDecodeError) as error:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="invalid project cursor") from error
+    except (
+        TypeError,
+        ValueError,
+        UnicodeDecodeError,
+        binascii.Error,
+        json.JSONDecodeError,
+    ) as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="invalid project cursor",
+        ) from error
 
 
-def _submit_with_optional_session_key(scheduler: Any, resource_id: str, request: Request) -> Any:
+def _submit_with_optional_session_key(
+    scheduler: Any, resource_id: str, request: Request
+) -> Any:
     session_key = _session_api_key(request)
     if session_key is None:
         return scheduler.submit(resource_id)
@@ -189,10 +207,14 @@ def _public_provider_snapshot(settings: ProviderSettings) -> dict[str, Any]:
             include=set(ProviderSnapshot.model_fields),
         )
     )
-    return validate_public_provider_snapshot(snapshot.model_dump(mode="json", by_alias=True))
+    return validate_public_provider_snapshot(
+        snapshot.model_dump(mode="json", by_alias=True)
+    )
 
 
-def _default_text_profile_snapshot(defaults: ProviderSettings) -> TextProviderProfileSnapshot:
+def _default_text_profile_snapshot(
+    defaults: ProviderSettings,
+) -> TextProviderProfileSnapshot:
     """Translate the old runtime defaults into the first V2 named profile."""
 
     preset = execution_preset(PresetId.COMPATIBLE_V1)

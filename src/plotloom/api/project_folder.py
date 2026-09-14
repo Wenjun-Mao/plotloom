@@ -116,7 +116,10 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
         required_scope: AuthoringDraftScope,
         required_entity_id: str,
     ) -> None:
-        if consumption.editor_scope != required_scope or consumption.entity_id != required_entity_id:
+        if (
+            consumption.editor_scope != required_scope
+            or consumption.entity_id != required_entity_id
+        ):
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="media action must consume its exact editor draft",
@@ -196,7 +199,11 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
     def authoring_draft_capabilities() -> dict[str, bool]:
         return {"durableProjectDrafts": True, "durableMediaDrafts": True}
 
-    @app.post("/api/v2/projects", response_model=ProjectCreation, status_code=status.HTTP_201_CREATED)
+    @app.post(
+        "/api/v2/projects",
+        response_model=ProjectCreation,
+        status_code=status.HTTP_201_CREATED,
+    )
     def create_project(body: ProjectCreateRequest) -> ProjectCreation:
         store = storage.projects.create(body.brief)
         project_id = store.manifest.project_id
@@ -254,7 +261,9 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
         with opened_project(project_id) as store:
             assert_canonical_draft_scope(body.consumed_draft, required_scope="brief")
             if body.consumed_draft is None:
-                updated = store.update_brief(body.brief, expected_revision=body.expected_revision)
+                updated = store.update_brief(
+                    body.brief, expected_revision=body.expected_revision
+                )
             else:
                 updated = store.update_brief_consuming_authoring_draft(
                     body.brief,
@@ -269,10 +278,14 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 )
             return updated
 
-    @app.get("/api/v2/projects/{project_id}/stages", response_model=StageEnvelopesResponse)
+    @app.get(
+        "/api/v2/projects/{project_id}/stages", response_model=StageEnvelopesResponse
+    )
     def get_stages(project_id: str) -> StageEnvelopesResponse:
         with opened_project(project_id) as store:
-            return StageEnvelopesResponse(stages=store.repository.list_stage_envelopes(project_id))
+            return StageEnvelopesResponse(
+                stages=store.repository.list_stage_envelopes(project_id)
+            )
 
     @app.patch("/api/v2/projects/{project_id}/stages/{stage}", response_model=StageHead)
     def patch_stage(
@@ -282,9 +295,13 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
         response: Response,
     ) -> StageHead:
         with opened_project(project_id) as store:
-            assert_canonical_draft_scope(body.consumed_draft, required_scope=stage.value)
+            assert_canonical_draft_scope(
+                body.consumed_draft, required_scope=stage.value
+            )
             if body.consumed_draft is None:
-                updated = store.update_stage(stage, body.payload, expected_revision=body.expected_revision)
+                updated = store.update_stage(
+                    stage, body.payload, expected_revision=body.expected_revision
+                )
             else:
                 updated = store.update_stage_consuming_authoring_draft(
                     stage,
@@ -298,12 +315,17 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 )
             return updated
 
-    @app.get("/api/v2/projects/{project_id}/authoring-drafts", response_model=list[AuthoringDraft])
+    @app.get(
+        "/api/v2/projects/{project_id}/authoring-drafts",
+        response_model=list[AuthoringDraft],
+    )
     def list_authoring_drafts(project_id: str) -> list[AuthoringDraft]:
         with opened_project(project_id) as store:
             return store.authoring_drafts()
 
-    @app.put("/api/v2/projects/{project_id}/authoring-drafts", response_model=AuthoringDraft)
+    @app.put(
+        "/api/v2/projects/{project_id}/authoring-drafts", response_model=AuthoringDraft
+    )
     def save_authoring_draft(
         project_id: str,
         body: AuthoringDraftUpsertRequest,
@@ -317,7 +339,10 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 payload=body.payload,
             )
 
-    @app.delete("/api/v2/projects/{project_id}/authoring-drafts", status_code=status.HTTP_204_NO_CONTENT)
+    @app.delete(
+        "/api/v2/projects/{project_id}/authoring-drafts",
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
     def discard_authoring_draft(
         project_id: str,
         body: AuthoringDraftDiscardRequest,
@@ -328,9 +353,14 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
                 entity_id=body.entity_id,
                 expected_draft_revision=body.expected_draft_revision,
             )
-        return Response(status_code=status.HTTP_204_NO_CONTENT, headers={
-            "X-Plotloom-Draft-Consumed-Revision": str(body.expected_draft_revision) if consumed else "",
-        })
+        return Response(
+            status_code=status.HTTP_204_NO_CONTENT,
+            headers={
+                "X-Plotloom-Draft-Consumed-Revision": str(body.expected_draft_revision)
+                if consumed
+                else "",
+            },
+        )
 
     @app.get("/api/v2/projects/{project_id}/runs", response_model=ProjectRunsResponse)
     def get_project_runs(project_id: str) -> ProjectRunsResponse:
@@ -348,27 +378,56 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
             gate_evaluation: GateEvaluation | None = None
             if head.entity_revision_id is not None:
                 try:
-                    gate_evaluation = repository.get_gate_evaluation(head.entity_revision_id, STORYBOARD_GATE_SET_VERSION)
+                    gate_evaluation = repository.get_gate_evaluation(
+                        head.entity_revision_id, STORYBOARD_GATE_SET_VERSION
+                    )
                 except NotFoundError:
                     pass
-            decisions = [_approval_closure_view(repository.get_approval_closure(item.id)) for item in repository.list_approval_decisions(project_id)]
-            active = next((item.decision for item in reversed(decisions) if item.active and item.decision.decision == "approve"), None)
-            return StoryboardReviewResponse(head=head, gate_evaluation=gate_evaluation, decisions=decisions, active_approval=active)
+            decisions = [
+                _approval_closure_view(repository.get_approval_closure(item.id))
+                for item in repository.list_approval_decisions(project_id)
+            ]
+            active = next(
+                (
+                    item.decision
+                    for item in reversed(decisions)
+                    if item.active and item.decision.decision == "approve"
+                ),
+                None,
+            )
+            return StoryboardReviewResponse(
+                head=head,
+                gate_evaluation=gate_evaluation,
+                decisions=decisions,
+                active_approval=active,
+            )
 
     @app.post(
         "/api/v2/projects/{project_id}/storyboard-approval",
         response_model=ApprovalClosureView,
         status_code=status.HTTP_201_CREATED,
     )
-    def decide_project_storyboard_approval(project_id: str, body: StoryboardApprovalRequest) -> ApprovalClosureView:
+    def decide_project_storyboard_approval(
+        project_id: str, body: StoryboardApprovalRequest
+    ) -> ApprovalClosureView:
         with opened_project(project_id) as store:
             decision = store.repository.decide_storyboard_approval(
-                project_id, expected_revision=body.expected_revision, expected_content_hash=body.content_hash,
-                decision=body.decision, reviewer=body.reviewer, gate_set_version=body.gate_set_version, note=body.note,
+                project_id,
+                expected_revision=body.expected_revision,
+                expected_content_hash=body.content_hash,
+                decision=body.decision,
+                reviewer=body.reviewer,
+                gate_set_version=body.gate_set_version,
+                note=body.note,
             )
-            return _approval_closure_view(store.repository.get_approval_closure(decision.id))
+            return _approval_closure_view(
+                store.repository.get_approval_closure(decision.id)
+            )
 
-    @app.get("/api/v2/projects/{project_id}/media-tasks", response_model=ProjectMediaTasksResponse)
+    @app.get(
+        "/api/v2/projects/{project_id}/media-tasks",
+        response_model=ProjectMediaTasksResponse,
+    )
     def get_project_media_tasks(project_id: str) -> ProjectMediaTasksResponse:
         with opened_project(project_id):
             return ProjectMediaTasksResponse(tasks=[])

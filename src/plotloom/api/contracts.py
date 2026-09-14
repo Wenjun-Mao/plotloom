@@ -37,6 +37,7 @@ from ..provider_profiles import (
     TextProviderProfileSnapshot,
 )
 
+
 class ProjectCreateRequest(CamelModel):
     brief: ProjectBrief
     initial_stages: list[InitialStage] = Field(default_factory=list)
@@ -201,7 +202,9 @@ class PipelineRunRequest(CamelModel):
             first_index = STAGE_ORDER.index(self.stages[0])
             expected = list(STAGE_ORDER[first_index : first_index + len(self.stages)])
             if self.stages != expected:
-                raise ValueError("stages must form one contiguous canonical stage range")
+                raise ValueError(
+                    "stages must form one contiguous canonical stage range"
+                )
         return self
 
 
@@ -213,7 +216,9 @@ class RebuildRequest(CamelModel):
 
     @model_validator(mode="after")
     def validate_range(self) -> RebuildRequest:
-        if self.through_stage is not None and STAGE_ORDER.index(self.through_stage) < STAGE_ORDER.index(self.from_stage):
+        if self.through_stage is not None and STAGE_ORDER.index(
+            self.through_stage
+        ) < STAGE_ORDER.index(self.from_stage):
             raise ValueError("throughStage must not precede fromStage")
         return self
 
@@ -267,10 +272,14 @@ class TextProviderProfileCreate(CamelModel):
     @model_validator(mode="after")
     def require_one_configuration_source(self) -> "TextProviderProfileCreate":
         if (self.configuration is None) == (self.copy_from_profile_id is None):
-            raise ValueError("provide exactly one of configuration or copyFromProfileId")
+            raise ValueError(
+                "provide exactly one of configuration or copyFromProfileId"
+            )
         if (self.adapter_id is None) != (self.adapter_version is None):
             raise ValueError("adapterId and adapterVersion must be provided together")
-        if contains_secret_setting(self.configuration) or contains_secret_value(self.configuration):
+        if contains_secret_setting(self.configuration) or contains_secret_value(
+            self.configuration
+        ):
             raise ValueError("text provider profiles must not contain secrets")
         return self
 
@@ -286,7 +295,9 @@ class TextProviderProfileUpdate(CamelModel):
     def reject_profile_secrets(self) -> "TextProviderProfileUpdate":
         if (self.adapter_id is None) != (self.adapter_version is None):
             raise ValueError("adapterId and adapterVersion must be provided together")
-        if contains_secret_setting(self.configuration) or contains_secret_value(self.configuration):
+        if contains_secret_setting(self.configuration) or contains_secret_value(
+            self.configuration
+        ):
             raise ValueError("text provider profiles must not contain secrets")
         return self
 
@@ -304,8 +315,15 @@ class TextBackendReadiness(CamelModel):
     profile_id: str
     profile_revision: int
     state: Literal[
-        "disabled", "missing_configuration", "unverified", "checking", "available",
-        "unreachable", "authentication_failed", "model_mismatch", "capability_mismatch",
+        "disabled",
+        "missing_configuration",
+        "unverified",
+        "checking",
+        "available",
+        "unreachable",
+        "authentication_failed",
+        "model_mismatch",
+        "capability_mismatch",
     ]
     reason_code: str
     observed_at: datetime | None = None
@@ -313,6 +331,7 @@ class TextBackendReadiness(CamelModel):
 
 class TextProviderProbeResponse(TextBackendReadiness):
     """The explicit probe returns the same secret-free observation shown in UI."""
+
 
 class MediaTaskRequest(CamelModel):
     kind: MediaKind
@@ -330,9 +349,13 @@ class MediaTaskRequest(CamelModel):
         if contains_secret_setting(self.public_settings) or contains_secret_value(
             self.public_settings
         ):
-            raise ValueError("publicSettings must not contain API keys, tokens, credentials, or other secrets")
+            raise ValueError(
+                "publicSettings must not contain API keys, tokens, credentials, or other secrets"
+            )
         for key in self.public_settings:
-            normalized = "".join(character for character in str(key).lower() if character.isalnum())
+            normalized = "".join(
+                character for character in str(key).lower() if character.isalnum()
+            )
             if (
                 normalized.endswith("baseurl")
                 or normalized.endswith("endpoint")
@@ -386,5 +409,3 @@ class ProviderSettingsUpdate(CamelModel):
     @classmethod
     def validate_provider_api_root(cls, value: str | None) -> str | None:
         return validate_public_api_root(value)
-
-

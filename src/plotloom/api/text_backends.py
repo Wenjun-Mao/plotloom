@@ -14,16 +14,25 @@ from ..provider_profiles import (
 )
 
 
-
 from .models import (
-    ProviderSettingsUpdate, TextProviderProfilesResponse, TextProviderProfileView,
-    TextProviderProfileCreate, TextProviderProfileUpdate, TextProviderProfileActivate,
-    TextProviderProfileAvailabilityUpdate, TextProviderProbeResponse, _merge_provider_settings
+    ProviderSettingsUpdate,
+    TextProviderProfilesResponse,
+    TextProviderProfileView,
+    TextProviderProfileCreate,
+    TextProviderProfileUpdate,
+    TextProviderProfileActivate,
+    TextProviderProfileAvailabilityUpdate,
+    TextProviderProbeResponse,
+    _merge_provider_settings,
 )
 
+
 def register_text_profile_routes(
-    app: FastAPI, repo: SQLiteRepository, *,
-    public_defaults: ProviderSettings, availability: Mapping[str, bool],
+    app: FastAPI,
+    repo: SQLiteRepository,
+    *,
+    public_defaults: ProviderSettings,
+    availability: Mapping[str, bool],
     readiness_observations: dict[str, Any],
     effective_provider_settings: Callable[[], ProviderSettings],
     provider_settings_projection: Callable[[Any, ProviderSettings], ProviderSettings],
@@ -162,10 +171,10 @@ def register_text_profile_routes(
         body: TextProviderProfileAvailabilityUpdate,
     ) -> TextProviderProfileView:
         updated = repo.set_text_provider_profile_enabled(
-                profile_id,
-                body.expected_availability_revision,
-                enabled=body.enabled,
-            )
+            profile_id,
+            body.expected_availability_revision,
+            enabled=body.enabled,
+        )
         if updated.availability_revision != body.expected_availability_revision:
             readiness_observations.pop(profile_id, None)
         return profile_view(updated)
@@ -182,4 +191,3 @@ def register_text_profile_routes(
         return TextProviderProbeResponse.model_validate(
             check_text_backend(profile, request).model_dump(mode="python")
         )
-

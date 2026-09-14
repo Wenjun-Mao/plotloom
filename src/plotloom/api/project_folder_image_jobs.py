@@ -34,44 +34,68 @@ from .models import (
 )
 
 
-
-
 def register_project_folder_image_job_routes(
-    app: FastAPI, opened_project: Callable[[str], Any], *,
+    app: FastAPI,
+    opened_project: Callable[[str], Any],
+    *,
     image_job_target_id: Callable[[ProjectFolderImageJobCreateRequest], str],
     require_media_draft_scope: Callable[..., Any],
     project_h3_target: Callable[[str], dict[str, Any]],
 ) -> None:
-    def package_references(store: Any, sources: list[dict[str, Any]], *, character_roles: bool = False) -> list[PackageReference]:
+    def package_references(
+        store: Any, sources: list[dict[str, Any]], *, character_roles: bool = False
+    ) -> list[PackageReference]:
         references: list[PackageReference] = []
         for index, reference in enumerate(sources):
             try:
                 content = store.artifacts.get(reference["originalUri"])
             except (FileNotFoundError, KeyError, OSError, ValueError) as error:
-                raise InvalidTransitionError("frozen image reference bytes are unavailable") from error
+                raise InvalidTransitionError(
+                    "frozen image reference bytes are unavailable"
+                ) from error
             if sha256(content).hexdigest() != reference["contentHash"]:
-                raise InvalidTransitionError("frozen image reference bytes are unavailable")
+                raise InvalidTransitionError(
+                    "frozen image reference bytes are unavailable"
+                )
             suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
             role = reference["role"]
-            if character_roles and role == "character_identity" and reference.get("characterId"):
+            if (
+                character_roles
+                and role == "character_identity"
+                and reference.get("characterId")
+            ):
                 role = f"character_identity:{reference['characterId']}"
-            references.append(PackageReference(
-                role=role,
-                filename=f"reference-{index + 1}-{reference['contentHash'][:16]}{suffix}",
-                content_hash=reference["contentHash"], content=content,
-            ))
+            references.append(
+                PackageReference(
+                    role=role,
+                    filename=f"reference-{index + 1}-{reference['contentHash'][:16]}{suffix}",
+                    content_hash=reference["contentHash"],
+                    content=content,
+                )
+            )
         return references
 
     def delivery_outputs(delivery: Any) -> list[dict[str, Any]]:
-        return [{
-            "filename": output.filename, "role": output.role,
-            "originalHash": output.observed.content_hash, "displayHash": output.observed.display_hash,
-            "mimeType": output.observed.mime_type, "byteSize": output.observed.byte_size,
-            "width": output.observed.width, "height": output.observed.height,
-            "content": output.content, "observed": output.observed,
-        } for output in delivery.outputs]
+        return [
+            {
+                "filename": output.filename,
+                "role": output.role,
+                "originalHash": output.observed.content_hash,
+                "displayHash": output.observed.display_hash,
+                "mimeType": output.observed.mime_type,
+                "byteSize": output.observed.byte_size,
+                "width": output.observed.width,
+                "height": output.observed.height,
+                "content": output.content,
+                "observed": output.observed,
+            }
+            for output in delivery.outputs
+        ]
 
-    @app.post("/api/v2/projects/{project_id}/managed-assets", status_code=status.HTTP_201_CREATED)
+    @app.post(
+        "/api/v2/projects/{project_id}/managed-assets",
+        status_code=status.HTTP_201_CREATED,
+    )
     async def import_project_managed_asset(
         project_id: str,
         image: Annotated[UploadFile, File(description="JPEG or PNG original bytes")],
@@ -81,40 +105,77 @@ def register_project_folder_image_job_routes(
         declared_additions_json: Annotated[str | None, Form()] = None,
     ) -> dict[str, Any]:
         try:
-            additions = json.loads(declared_additions_json) if declared_additions_json else []
+            additions = (
+                json.loads(declared_additions_json) if declared_additions_json else []
+            )
         except json.JSONDecodeError as error:
-            raise ManagedMediaError("invalid_declaration", "declared additions must be JSON") from error
-        declaration = ImportDeclaration(origin=origin, rights=rights, rights_note=rights_note, declared_additions=additions)
+            raise ManagedMediaError(
+                "invalid_declaration", "declared additions must be JSON"
+            ) from error
+        declaration = ImportDeclaration(
+            origin=origin,
+            rights=rights,
+            rights_note=rights_note,
+            declared_additions=additions,
+        )
         limits = ManagedMediaLimits()
         content = await image.read(limits.max_import_bytes + 1)
         observed = inspect_import_image(content, limits)
         with opened_project(project_id) as store:
             return store.repository.record_managed_import(
-                project_id, original_hash=observed.content_hash, display_hash=observed.display_hash,
-                mime_type=observed.mime_type, byte_size=observed.byte_size, width=observed.width,
-                height=observed.height, declaration=declaration.model_dump(mode="json", by_alias=True),
+                project_id,
+                original_hash=observed.content_hash,
+                display_hash=observed.display_hash,
+                mime_type=observed.mime_type,
+                byte_size=observed.byte_size,
+                width=observed.width,
+                height=observed.height,
+                declaration=declaration.model_dump(mode="json", by_alias=True),
                 publish=lambda: publish_import(store.artifacts, content, observed),
             )
 
     @app.get("/api/v2/projects/{project_id}/managed-assets")
     def get_project_managed_assets(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return {"assets": store.repository.list_managed_assets(project_id), "selectionRevision": store.repository.visual_selection_revision(project_id)}
+            return {
+                "assets": store.repository.list_managed_assets(project_id),
+                "selectionRevision": store.repository.visual_selection_revision(
+                    project_id
+                ),
+            }
 
     @app.get("/api/v2/projects/{project_id}/managed-assets/{asset_id}/{variant}")
-    def serve_project_managed_asset(project_id: str, asset_id: str, variant: Literal["display", "original"]) -> Response:
+    def serve_project_managed_asset(
+        project_id: str, asset_id: str, variant: Literal["display", "original"]
+    ) -> Response:
         with opened_project(project_id) as store:
             stored = store.repository.get_managed_asset_storage(project_id, asset_id)
             try:
-                content = store.artifacts.get(stored["displayUri"] if variant == "display" else stored["originalUri"])
+                content = store.artifacts.get(
+                    stored["displayUri"]
+                    if variant == "display"
+                    else stored["originalUri"]
+                )
             except (FileNotFoundError, KeyError):
-                raise HTTPException(status_code=410, detail={"code": "managed_asset_missing"})
+                raise HTTPException(
+                    status_code=410, detail={"code": "managed_asset_missing"}
+                )
             except (ValueError, OSError):
-                raise HTTPException(status_code=409, detail={"code": "managed_asset_corrupt"})
-            return Response(content=content, media_type="image/png" if variant == "display" else stored["mimeType"])
+                raise HTTPException(
+                    status_code=409, detail={"code": "managed_asset_corrupt"}
+                )
+            return Response(
+                content=content,
+                media_type="image/png" if variant == "display" else stored["mimeType"],
+            )
 
-    @app.post("/api/v2/projects/{project_id}/managed-assets/{asset_id}/visual-intents", status_code=status.HTTP_201_CREATED)
-    def add_project_visual_intent(project_id: str, asset_id: str, body: ProjectFolderVisualIntentRequest) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/managed-assets/{asset_id}/visual-intents",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def add_project_visual_intent(
+        project_id: str, asset_id: str, body: ProjectFolderVisualIntentRequest
+    ) -> dict[str, Any]:
         required_entity_id = f"{body.shot_id}:{asset_id}"
         require_media_draft_scope(
             body.consumed_draft,
@@ -141,21 +202,40 @@ def register_project_folder_image_job_routes(
                 ),
             )
 
-    @app.post("/api/v2/projects/{project_id}/reviewed-keyframes", status_code=status.HTTP_201_CREATED)
-    def select_project_reviewed_keyframe(project_id: str, body: ReviewedSelectionRequest) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/reviewed-keyframes",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def select_project_reviewed_keyframe(
+        project_id: str, body: ReviewedSelectionRequest
+    ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.select_reviewed_keyframe(project_id, **body.model_dump(mode="python", by_alias=False))
+            return store.repository.select_reviewed_keyframe(
+                project_id, **body.model_dump(mode="python", by_alias=False)
+            )
 
-    @app.post("/api/v2/projects/{project_id}/still-previews", status_code=status.HTTP_201_CREATED)
-    def create_project_still_preview(project_id: str, body: PreviewRequest) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/still-previews",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def create_project_still_preview(
+        project_id: str, body: PreviewRequest
+    ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            preview = store.repository.create_still_preview(project_id, **body.model_dump(mode="python", by_alias=False))
+            preview = store.repository.create_still_preview(
+                project_id, **body.model_dump(mode="python", by_alias=False)
+            )
             return preview_view(store, project_id, preview)
 
     @app.get("/api/v2/projects/{project_id}/still-previews")
     def get_project_still_previews(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return {"previews": [preview_view(store, project_id, item) for item in store.repository.list_still_previews(project_id)]}
+            return {
+                "previews": [
+                    preview_view(store, project_id, item)
+                    for item in store.repository.list_still_previews(project_id)
+                ]
+            }
 
     @app.get("/api/v2/projects/{project_id}/visual-workbench")
     def get_project_visual_workbench(project_id: str) -> dict[str, Any]:
@@ -165,10 +245,17 @@ def register_project_folder_image_job_routes(
                 "assets": repository.list_managed_assets(project_id),
                 "selectionRevision": repository.visual_selection_revision(project_id),
                 "visualIntents": repository.list_visual_intents(project_id),
-                "reviewedKeyframes": repository.list_current_reviewed_keyframes(project_id),
-                "characterReferences": repository.list_character_reference_decisions(project_id),
+                "reviewedKeyframes": repository.list_current_reviewed_keyframes(
+                    project_id
+                ),
+                "characterReferences": repository.list_character_reference_decisions(
+                    project_id
+                ),
                 "samePersonReviews": repository.list_same_person_reviews(project_id),
-                "previews": [preview_view(store, project_id, item) for item in repository.list_still_previews(project_id)],
+                "previews": [
+                    preview_view(store, project_id, item)
+                    for item in repository.list_still_previews(project_id)
+                ],
             }
 
     @app.get("/api/v2/projects/{project_id}/character-references")
@@ -176,62 +263,150 @@ def register_project_folder_image_job_routes(
         with opened_project(project_id) as store:
             return store.repository.list_character_reference_decisions(project_id)
 
-    @app.post("/api/v2/projects/{project_id}/character-references", status_code=status.HTTP_201_CREATED)
-    def select_project_character_reference(project_id: str, body: CharacterReferenceDecisionRequest) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/character-references",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def select_project_character_reference(
+        project_id: str, body: CharacterReferenceDecisionRequest
+    ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.create_character_reference_decision(project_id, **body.model_dump(mode="python", by_alias=False))
+            return store.repository.create_character_reference_decision(
+                project_id, **body.model_dump(mode="python", by_alias=False)
+            )
 
-    @app.post("/api/v2/projects/{project_id}/character-references/{character_id}/revoke")
-    def revoke_project_character_reference(project_id: str, character_id: str, body: CharacterReferenceRevocationRequest) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/character-references/{character_id}/revoke"
+    )
+    def revoke_project_character_reference(
+        project_id: str, character_id: str, body: CharacterReferenceRevocationRequest
+    ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.revoke_character_reference_decision(project_id, character_id=character_id, **body.model_dump(mode="python", by_alias=False))
+            return store.repository.revoke_character_reference_decision(
+                project_id,
+                character_id=character_id,
+                **body.model_dump(mode="python", by_alias=False),
+            )
 
     @app.get("/api/v2/projects/{project_id}/character-reference-proposals")
     def get_project_character_reference_proposals(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return {"configured": True, "proposals": store.repository.list_character_reference_proposals(project_id)}
+            return {
+                "configured": True,
+                "proposals": store.repository.list_character_reference_proposals(
+                    project_id
+                ),
+            }
 
-    @app.post("/api/v2/projects/{project_id}/character-reference-proposals", status_code=status.HTTP_201_CREATED)
-    def prepare_project_character_reference_proposal(project_id: str, body: CharacterReferenceProposalRequest) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/character-reference-proposals",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def prepare_project_character_reference_proposal(
+        project_id: str, body: CharacterReferenceProposalRequest
+    ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.repository.prepare_character_reference_proposal(project_id, **body.model_dump(mode="python", by_alias=False))
+            return store.repository.prepare_character_reference_proposal(
+                project_id, **body.model_dump(mode="python", by_alias=False)
+            )
 
-    @app.post("/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/copy")
-    def copy_project_character_reference_proposal(project_id: str, proposal_id: str) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/copy"
+    )
+    def copy_project_character_reference_proposal(
+        project_id: str, proposal_id: str
+    ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            source = store.repository.character_reference_proposal_package_sources(project_id, proposal_id)
+            source = store.repository.character_reference_proposal_package_sources(
+                project_id, proposal_id
+            )
             proposal = source["proposal"]
             package = store.image_exchange_for(proposal).write_package(
-                job_id=proposal_id, request=proposal["request"], request_hash=proposal["requestHash"],
+                job_id=proposal_id,
+                request=proposal["request"],
+                request_hash=proposal["requestHash"],
                 references=package_references(store, source["references"]),
             )
-            proposal = store.repository.mark_character_reference_proposal_exported(project_id, proposal_id)
-            return {"proposal": proposal, "assignment": f"Codex character-reference proposal assignment for {proposal_id}: read {package['packagePath']}/request.json; use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}. This is exploratory and cannot approve a reference.", "packagePath": package["packagePath"], "deliveryPath": package["deliveryPath"]}
+            proposal = store.repository.mark_character_reference_proposal_exported(
+                project_id, proposal_id
+            )
+            return {
+                "proposal": proposal,
+                "assignment": f"Codex character-reference proposal assignment for {proposal_id}: read {package['packagePath']}/request.json; use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}. This is exploratory and cannot approve a reference.",
+                "packagePath": package["packagePath"],
+                "deliveryPath": package["deliveryPath"],
+            }
 
-    @app.post("/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/refresh")
-    def refresh_project_character_reference_proposal(project_id: str, proposal_id: str) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/refresh"
+    )
+    def refresh_project_character_reference_proposal(
+        project_id: str, proposal_id: str
+    ) -> dict[str, Any]:
         with opened_project(project_id) as store:
             repository = store.repository
-            context = repository.character_reference_proposal_delivery_context(project_id, proposal_id)
+            context = repository.character_reference_proposal_delivery_context(
+                project_id, proposal_id
+            )
             references: list[tuple[str, str, str]] = []
-            for index, reference in enumerate(context["request"]["frozenSnapshot"].get("references", [])):
+            for index, reference in enumerate(
+                context["request"]["frozenSnapshot"].get("references", [])
+            ):
                 suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
-                references.append((reference["role"], f"reference-{index + 1}-{reference['originalHash'][:16]}{suffix}", reference["originalHash"]))
+                references.append(
+                    (
+                        reference["role"],
+                        f"reference-{index + 1}-{reference['originalHash'][:16]}{suffix}",
+                        reference["originalHash"],
+                    )
+                )
             exchange = store.image_exchange_for(context)
             try:
-                exchange.verify_package(job_id=proposal_id, request=context["request"], request_hash=context["requestHash"], references=references)
-                delivery = exchange.read_delivery(job_id=proposal_id, request_hash=context["requestHash"], require_executor_provenance=True, require_executor_pin=context["request"].get("specialistPreflight", {}).get("version") == "p1.5-pin.v1", expected_executor_skill_version=context["request"].get("specialistPreflight", {}).get("skillVersion"))
+                exchange.verify_package(
+                    job_id=proposal_id,
+                    request=context["request"],
+                    request_hash=context["requestHash"],
+                    references=references,
+                )
+                delivery = exchange.read_delivery(
+                    job_id=proposal_id,
+                    request_hash=context["requestHash"],
+                    require_executor_provenance=True,
+                    require_executor_pin=context["request"]
+                    .get("specialistPreflight", {})
+                    .get("version")
+                    == "p1.5-pin.v1",
+                    expected_executor_skill_version=context["request"]
+                    .get("specialistPreflight", {})
+                    .get("skillVersion"),
+                )
             except ImageJobError as error:
-                if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id", "delivery_manifest_secret"}:
-                    repository.record_character_reference_proposal_rejection(project_id, proposal_id, error.code)
+                if error.code not in {
+                    "image_exchange_not_configured",
+                    "image_exchange_invalid",
+                    "invalid_job_id",
+                    "delivery_manifest_secret",
+                }:
+                    repository.record_character_reference_proposal_rejection(
+                        project_id, proposal_id, error.code
+                    )
                 raise
             if delivery is None:
-                return {"state": "awaiting_delivery", "candidates": [], "idempotent": False}
+                return {
+                    "state": "awaiting_delivery",
+                    "candidates": [],
+                    "idempotent": False,
+                }
             return repository.record_character_reference_proposal_delivery(
-                project_id, proposal_id, delivery_id=delivery.manifest.delivery_id,
-                manifest=delivery.manifest.model_dump(mode="json", by_alias=True), manifest_hash=delivery.manifest_hash,
+                project_id,
+                proposal_id,
+                delivery_id=delivery.manifest.delivery_id,
+                manifest=delivery.manifest.model_dump(mode="json", by_alias=True),
+                manifest_hash=delivery.manifest_hash,
                 outputs=delivery_outputs(delivery),
-                publish=lambda output: publish_import(store.artifacts, output["content"], output["observed"]),
+                publish=lambda output: publish_import(
+                    store.artifacts, output["content"], output["observed"]
+                ),
             )
 
     @app.get("/api/v2/projects/{project_id}/same-person-reviews")
@@ -239,21 +414,40 @@ def register_project_folder_image_job_routes(
         with opened_project(project_id) as store:
             return store.repository.list_same_person_reviews(project_id)
 
-    @app.post("/api/v2/projects/{project_id}/same-person-reviews", status_code=status.HTTP_201_CREATED)
-    def record_project_same_person_review(project_id: str, body: SamePersonReviewRequest) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/same-person-reviews",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def record_project_same_person_review(
+        project_id: str, body: SamePersonReviewRequest
+    ) -> dict[str, Any]:
         with opened_project(project_id) as store:
             return store.repository.record_same_person_review(
-                project_id, binding_id=body.binding_id, expected_review_revision=body.expected_review_revision,
-                reviewer=body.reviewer, comparisons=[item.model_dump(mode="json", by_alias=True) for item in body.comparisons], notes=body.notes,
+                project_id,
+                binding_id=body.binding_id,
+                expected_review_revision=body.expected_review_revision,
+                reviewer=body.reviewer,
+                comparisons=[
+                    item.model_dump(mode="json", by_alias=True)
+                    for item in body.comparisons
+                ],
+                notes=body.notes,
             )
 
     @app.get("/api/v2/projects/{project_id}/image-jobs")
     def get_project_image_jobs(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return {"configured": True, "jobs": store.repository.list_image_jobs(project_id)}
+            return {
+                "configured": True,
+                "jobs": store.repository.list_image_jobs(project_id),
+            }
 
-    @app.post("/api/v2/projects/{project_id}/image-jobs", status_code=status.HTTP_201_CREATED)
-    def prepare_project_image_job(project_id: str, body: ProjectFolderImageJobCreateRequest) -> dict[str, Any]:
+    @app.post(
+        "/api/v2/projects/{project_id}/image-jobs", status_code=status.HTTP_201_CREATED
+    )
+    def prepare_project_image_job(
+        project_id: str, body: ProjectFolderImageJobCreateRequest
+    ) -> dict[str, Any]:
         target_id = image_job_target_id(body)
         required_entity_id = f"{body.shot_id}:{target_id}"
         require_media_draft_scope(
@@ -269,13 +463,18 @@ def register_project_folder_image_job_routes(
         }
         adaptation = (
             {"targetProfile": project_h3_target(body.keyframe_adaptation_profile_id)}
-            if body.keyframe_adaptation_profile_id is not None else None
+            if body.keyframe_adaptation_profile_id is not None
+            else None
         )
         with opened_project(project_id) as store:
             return store.repository.prepare_image_job(
-                project_id, approval_id=body.approval_id, shot_id=body.shot_id,
-                storyboard_revision=body.storyboard_revision, parent_candidate_asset_id=body.parent_candidate_asset_id,
-                keyframe_adaptation=adaptation, presentation_change=body.presentation_change,
+                project_id,
+                approval_id=body.approval_id,
+                shot_id=body.shot_id,
+                storyboard_revision=body.storyboard_revision,
+                parent_candidate_asset_id=body.parent_candidate_asset_id,
+                keyframe_adaptation=adaptation,
+                presentation_change=body.presentation_change,
                 contract_version=body.contract_version,
                 consumed_draft=(
                     body.consumed_draft.entity_id,
@@ -289,9 +488,21 @@ def register_project_folder_image_job_routes(
         with opened_project(project_id) as store:
             source = store.repository.image_job_package_sources(project_id, job_id)
             exchange = store.image_exchange_for(source["job"])
-            package = exchange.write_package(job_id=job_id, request=source["job"]["request"], request_hash=source["job"]["requestHash"], references=package_references(store, source["references"], character_roles=True))
+            package = exchange.write_package(
+                job_id=job_id,
+                request=source["job"]["request"],
+                request_hash=source["job"]["requestHash"],
+                references=package_references(
+                    store, source["references"], character_roles=True
+                ),
+            )
             job = store.repository.mark_image_job_exported(project_id, job_id)
-            return {"job": job, "assignment": f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json; use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}.", "packagePath": package["packagePath"], "deliveryPath": package["deliveryPath"]}
+            return {
+                "job": job,
+                "assignment": f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json; use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}.",
+                "packagePath": package["packagePath"],
+                "deliveryPath": package["deliveryPath"],
+            }
 
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/refresh")
     def refresh_project_image_job(project_id: str, job_id: str) -> dict[str, Any]:
@@ -300,22 +511,70 @@ def register_project_folder_image_job_routes(
             context = repository.image_job_delivery_context(project_id, job_id)
             references: list[tuple[str, str, str]] = []
             identity_hashes: list[str] = []
-            for index, reference in enumerate(item for item in context["request"]["frozenSnapshot"].get("references", []) if item.get("role") in {"parent_output", "source_keyframe", "character_identity"}):
-                role = f"character_identity:{reference['characterId']}" if reference["role"] == "character_identity" and reference.get("characterId") else reference["role"]
+            for index, reference in enumerate(
+                item
+                for item in context["request"]["frozenSnapshot"].get("references", [])
+                if item.get("role")
+                in {"parent_output", "source_keyframe", "character_identity"}
+            ):
+                role = (
+                    f"character_identity:{reference['characterId']}"
+                    if reference["role"] == "character_identity"
+                    and reference.get("characterId")
+                    else reference["role"]
+                )
                 suffix = ".png" if reference["mimeType"] == "image/png" else ".jpg"
-                references.append((role, f"reference-{index + 1}-{reference['originalHash'][:16]}{suffix}", reference["originalHash"]))
-                if reference["role"] == "character_identity": identity_hashes.append(reference["originalHash"])
+                references.append(
+                    (
+                        role,
+                        f"reference-{index + 1}-{reference['originalHash'][:16]}{suffix}",
+                        reference["originalHash"],
+                    )
+                )
+                if reference["role"] == "character_identity":
+                    identity_hashes.append(reference["originalHash"])
             exchange = store.image_exchange_for(context)
             try:
-                exchange.verify_package(job_id=job_id, request=context["request"], request_hash=context["requestHash"], references=references)
-                delivery = exchange.read_delivery(job_id=job_id, request_hash=context["requestHash"], required_reference_hashes=identity_hashes, require_executor_provenance=context["request"].get("schemaVersion") == 3, require_executor_pin=context["request"].get("specialistPreflight", {}).get("version") == "p1.5-pin.v1", expected_executor_skill_version=context["request"].get("specialistPreflight", {}).get("skillVersion"))
+                exchange.verify_package(
+                    job_id=job_id,
+                    request=context["request"],
+                    request_hash=context["requestHash"],
+                    references=references,
+                )
+                delivery = exchange.read_delivery(
+                    job_id=job_id,
+                    request_hash=context["requestHash"],
+                    required_reference_hashes=identity_hashes,
+                    require_executor_provenance=context["request"].get("schemaVersion")
+                    == 3,
+                    require_executor_pin=context["request"]
+                    .get("specialistPreflight", {})
+                    .get("version")
+                    == "p1.5-pin.v1",
+                    expected_executor_skill_version=context["request"]
+                    .get("specialistPreflight", {})
+                    .get("skillVersion"),
+                )
             except ImageJobError as error:
-                if error.code not in {"image_exchange_not_configured", "image_exchange_invalid", "invalid_job_id", "delivery_manifest_secret"}:
-                    repository.record_image_job_delivery_rejection(project_id, job_id, error.code)
+                if error.code not in {
+                    "image_exchange_not_configured",
+                    "image_exchange_invalid",
+                    "invalid_job_id",
+                    "delivery_manifest_secret",
+                }:
+                    repository.record_image_job_delivery_rejection(
+                        project_id, job_id, error.code
+                    )
                 raise
             if delivery is None:
-                return {"state": "awaiting_delivery", "candidates": [], "idempotent": False}
-            adaptation = context["request"].get("frozenSnapshot", {}).get("keyframeAdaptation")
+                return {
+                    "state": "awaiting_delivery",
+                    "candidates": [],
+                    "idempotent": False,
+                }
+            adaptation = (
+                context["request"].get("frozenSnapshot", {}).get("keyframeAdaptation")
+            )
             if adaptation is not None:
                 contract = adaptation.get("outputContract")
                 if not isinstance(contract, dict):
@@ -340,14 +599,21 @@ def register_project_folder_image_job_routes(
                             "keyframe adaptation delivery must use the frozen role and exact profile dimensions",
                         )
             return repository.record_image_job_delivery(
-                project_id, job_id, delivery_id=delivery.manifest.delivery_id,
-                manifest=delivery.manifest.model_dump(mode="json", by_alias=True), manifest_hash=delivery.manifest_hash,
+                project_id,
+                job_id,
+                delivery_id=delivery.manifest.delivery_id,
+                manifest=delivery.manifest.model_dump(mode="json", by_alias=True),
+                manifest_hash=delivery.manifest_hash,
                 outputs=delivery_outputs(delivery),
-                publish=lambda output: publish_import(store.artifacts, output["content"], output["observed"]),
+                publish=lambda output: publish_import(
+                    store.artifacts, output["content"], output["observed"]
+                ),
             )
 
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/cancel")
-    def cancel_project_image_job(project_id: str, job_id: str, body: ImageJobCancellationRequest) -> dict[str, Any]:
+    def cancel_project_image_job(
+        project_id: str, job_id: str, body: ImageJobCancellationRequest
+    ) -> dict[str, Any]:
         with opened_project(project_id) as store:
             return store.repository.cancel_image_job(project_id, job_id, body.reason)
 

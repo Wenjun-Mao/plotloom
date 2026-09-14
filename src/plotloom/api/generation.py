@@ -30,23 +30,39 @@ from ..generation.exceptions import SecretLeaseError
 from ..validation import STORYBOARD_GATE_SET_VERSION
 
 
-
 from .models import (
-    ApprovalClosureView, PipelineRunRequest, RebuildRequest, RepairRequest, ExactWorkUnitRepairRequest, RunScheduler,
-    MediaTaskRequest, StagePatchRequest, StoryboardApprovalRequest, StoryboardReviewResponse,
-    _approval_closure_view, _normalize_idempotency_key, _session_api_key
+    ApprovalClosureView,
+    PipelineRunRequest,
+    RebuildRequest,
+    RepairRequest,
+    ExactWorkUnitRepairRequest,
+    RunScheduler,
+    MediaTaskRequest,
+    StagePatchRequest,
+    StoryboardApprovalRequest,
+    StoryboardReviewResponse,
+    _approval_closure_view,
+    _normalize_idempotency_key,
+    _session_api_key,
 )
 
+
 def register_generation_routes(
-    app: FastAPI, repo: SQLiteRepository, *,
+    app: FastAPI,
+    repo: SQLiteRepository,
+    *,
     run_scheduler: RunScheduler | None,
     admit_text_backend: Callable[..., dict[str, Any]],
     submit_text_run: Callable[[GenerationRun, Request], None],
     text_submission_session_key: Callable[[Mapping[str, Any], Request], str | None],
 ) -> None:
     @app.patch("/api/v2/projects/{project_id}/stages/{stage}", response_model=StageHead)
-    def patch_stage(project_id: str, stage: StageName, body: StagePatchRequest) -> StageHead:
-        return repo.update_stage(project_id, stage, body.expected_revision, body.payload)
+    def patch_stage(
+        project_id: str, stage: StageName, body: StagePatchRequest
+    ) -> StageHead:
+        return repo.update_stage(
+            project_id, stage, body.expected_revision, body.payload
+        )
 
     @app.get(
         "/api/v2/projects/{project_id}/storyboard-review",
@@ -110,7 +126,9 @@ def register_generation_routes(
         response_model=GenerationRun,
         status_code=status.HTTP_202_ACCEPTED,
     )
-    def create_pipeline_run(project_id: str, body: PipelineRunRequest, request: Request) -> GenerationRun:
+    def create_pipeline_run(
+        project_id: str, body: PipelineRunRequest, request: Request
+    ) -> GenerationRun:
         snapshot = admit_text_backend(body.provider_profile_id, request)
         if run_scheduler is not None:
             # Fail before creating a durable run if no credential can possibly
@@ -131,9 +149,15 @@ def register_generation_routes(
         response_model=GenerationRun,
         status_code=status.HTTP_202_ACCEPTED,
     )
-    def create_rebuild(project_id: str, body: RebuildRequest, request: Request) -> GenerationRun:
+    def create_rebuild(
+        project_id: str, body: RebuildRequest, request: Request
+    ) -> GenerationRun:
         start_index = STAGE_ORDER.index(body.from_stage)
-        end_index = STAGE_ORDER.index(body.through_stage) if body.through_stage else len(STAGE_ORDER) - 1
+        end_index = (
+            STAGE_ORDER.index(body.through_stage)
+            if body.through_stage
+            else len(STAGE_ORDER) - 1
+        )
         snapshot = admit_text_backend(body.provider_profile_id, request)
         if run_scheduler is not None:
             text_submission_session_key(snapshot, request)
@@ -217,7 +241,9 @@ def register_generation_routes(
         status_code=status.HTTP_202_ACCEPTED,
         deprecated=True,
     )
-    def create_repair(run_id: str, body: RepairRequest, request: Request) -> GenerationRun:
+    def create_repair(
+        run_id: str, body: RepairRequest, request: Request
+    ) -> GenerationRun:
         snapshot = admit_text_backend(body.provider_profile_id, request)
         if run_scheduler is not None:
             text_submission_session_key(snapshot, request)
@@ -278,7 +304,9 @@ def register_generation_routes(
         response_model=MediaTask,
         status_code=status.HTTP_202_ACCEPTED,
     )
-    def create_media_task(project_id: str, shot_id: str, body: MediaTaskRequest, request: Request) -> MediaTask:
+    def create_media_task(
+        project_id: str, shot_id: str, body: MediaTaskRequest, request: Request
+    ) -> MediaTask:
         # ADR 0012 keeps this route shape so old clients receive an actionable
         # contract error instead of an ambiguous 404. Rejection occurs before
         # canonical lookup, prompt compilation, credential leasing, persistence,

@@ -27,9 +27,12 @@ from .models import (
 )
 
 
-
 def register_project_routes(app: FastAPI, repo: SQLiteRepository) -> None:
-    @app.post("/api/v2/projects", response_model=ProjectCreation, status_code=status.HTTP_201_CREATED)
+    @app.post(
+        "/api/v2/projects",
+        response_model=ProjectCreation,
+        status_code=status.HTTP_201_CREATED,
+    )
     def create_project(
         body: ProjectCreateRequest,
         idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
@@ -56,7 +59,9 @@ def register_project_routes(app: FastAPI, repo: SQLiteRepository) -> None:
             limit=limit,
             cursor=_decode_project_cursor(cursor),
         )
-        return ProjectListResponse(projects=projects, next_cursor=_encode_project_cursor(next_cursor))
+        return ProjectListResponse(
+            projects=projects, next_cursor=_encode_project_cursor(next_cursor)
+        )
 
     @app.get("/api/v2/projects/{project_id}", response_model=Project)
     def get_project(project_id: str) -> Project:
@@ -70,7 +75,9 @@ def register_project_routes(app: FastAPI, repo: SQLiteRepository) -> None:
     def restore_project(project_id: str, body: LifecycleRequest) -> Project:
         return repo.restore_project(project_id, body.expected_lifecycle_revision)
 
-    @app.post("/api/v2/projects/{project_id}/duplicate", response_model=ProjectDuplicateResult)
+    @app.post(
+        "/api/v2/projects/{project_id}/duplicate", response_model=ProjectDuplicateResult
+    )
     def duplicate_project(
         project_id: str,
         body: ProjectDuplicateRequest,
@@ -83,8 +90,13 @@ def register_project_routes(app: FastAPI, repo: SQLiteRepository) -> None:
             idempotency_key=_normalize_idempotency_key(idempotency_key),
         )
 
-    @app.post("/api/v2/projects/{project_id}/permanent-delete", status_code=status.HTTP_204_NO_CONTENT)
-    def permanent_delete_project(project_id: str, body: ProjectPermanentDeleteRequest) -> None:
+    @app.post(
+        "/api/v2/projects/{project_id}/permanent-delete",
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
+    def permanent_delete_project(
+        project_id: str, body: ProjectPermanentDeleteRequest
+    ) -> None:
         repo.permanent_delete_project(
             project_id,
             body.expected_lifecycle_revision,
@@ -95,7 +107,9 @@ def register_project_routes(app: FastAPI, repo: SQLiteRepository) -> None:
     def patch_project(project_id: str, body: ProjectPatchRequest) -> Project:
         return repo.update_project(project_id, body.expected_revision, body.brief)
 
-    @app.get("/api/v2/projects/{project_id}/stages", response_model=StageEnvelopesResponse)
+    @app.get(
+        "/api/v2/projects/{project_id}/stages", response_model=StageEnvelopesResponse
+    )
     def get_stages(project_id: str) -> StageEnvelopesResponse:
         return StageEnvelopesResponse(stages=repo.list_stage_envelopes(project_id))
 
@@ -103,6 +117,11 @@ def register_project_routes(app: FastAPI, repo: SQLiteRepository) -> None:
     def get_project_runs(project_id: str) -> ProjectRunsResponse:
         return ProjectRunsResponse(runs=repo.list_project_runs(project_id))
 
-    @app.get("/api/v2/projects/{project_id}/media-tasks", response_model=ProjectMediaTasksResponse)
+    @app.get(
+        "/api/v2/projects/{project_id}/media-tasks",
+        response_model=ProjectMediaTasksResponse,
+    )
     def get_project_media_tasks(project_id: str) -> ProjectMediaTasksResponse:
-        return ProjectMediaTasksResponse(tasks=repo.list_project_media_tasks(project_id))
+        return ProjectMediaTasksResponse(
+            tasks=repo.list_project_media_tasks(project_id)
+        )

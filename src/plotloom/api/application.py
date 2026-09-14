@@ -177,7 +177,9 @@ def create_app(
     def effective_provider_settings() -> ProviderSettings:
         """Compatibility projection: active text profile plus global media settings."""
 
-        media = _merge_provider_settings(repo.get_provider_settings(), public_defaults, availability)
+        media = _merge_provider_settings(
+            repo.get_provider_settings(), public_defaults, availability
+        )
         return provider_settings_projection(active_text_profile(), media)
 
     def provider_snapshot(profile_id: str | None = None) -> dict[str, Any]:
@@ -210,14 +212,18 @@ def create_app(
     def readiness_for(profile: TextProviderProfile) -> TextBackendReadiness:
         if not profile.enabled:
             return TextBackendReadiness(
-                profile_id=profile.profile_id, profile_revision=profile.revision,
-                state="disabled", reason_code="readiness.profile_disabled",
+                profile_id=profile.profile_id,
+                profile_revision=profile.revision,
+                state="disabled",
+                reason_code="readiness.profile_disabled",
             )
         observation = readiness_observations.get(profile.profile_id)
         if observation is None or observation.profile_revision != profile.revision:
             return TextBackendReadiness(
-                profile_id=profile.profile_id, profile_revision=profile.revision,
-                state="unverified", reason_code="readiness.not_checked",
+                profile_id=profile.profile_id,
+                profile_revision=profile.revision,
+                state="unverified",
+                reason_code="readiness.not_checked",
             )
         return observation
 
@@ -225,8 +231,10 @@ def create_app(
         profile: TextProviderProfile, state: str, reason_code: str
     ) -> TextBackendReadiness:
         observation = TextBackendReadiness(
-            profile_id=profile.profile_id, profile_revision=profile.revision,
-            state=state, reason_code=reason_code,
+            profile_id=profile.profile_id,
+            profile_revision=profile.revision,
+            state=state,
+            reason_code=reason_code,
             observed_at=datetime.now(timezone.utc),
         )
         readiness_observations[profile.profile_id] = observation
@@ -242,7 +250,9 @@ def create_app(
     def profiles_response() -> TextProviderProfilesResponse:
         selection = repo.get_provider_profile_selection()
         return TextProviderProfilesResponse(
-            profiles=[profile_view(profile) for profile in repo.list_text_provider_profiles()],
+            profiles=[
+                profile_view(profile) for profile in repo.list_text_provider_profiles()
+            ],
             active_profile_id=selection.active_profile_id,
             selection_revision=selection.revision,
             presets={
@@ -347,6 +357,7 @@ def create_app(
                 state=state,
                 reason_code=reason_code,
             )
+
         # Lightweight embedding/tests that do not install a runtime resolver
         # cannot claim a protocol preflight.  They remain explicitly
         # unverified; the production runtime always injects its resolver.
@@ -360,13 +371,17 @@ def create_app(
                 if session_key is not None:
                     temporary_vault = InMemorySecretVault()
                     temporary_vault.put("preflight", session_key)
-                    lease = temporary_vault.lease("preflight", ttl_seconds=60, max_uses=1)
+                    lease = temporary_vault.lease(
+                        "preflight", ttl_seconds=60, max_uses=1
+                    )
                 elif text_secret_source is not None:
                     lease = text_secret_source.lease_for_profile(
                         profile.profile_id, auth_mode=ProviderAuthMode.BEARER
                     )
                 else:
-                    return observed("authentication_failed", "readiness.credential_unavailable")
+                    return observed(
+                        "authentication_failed", "readiness.credential_unavailable"
+                    )
             adapter, _model = text_provider_resolver.resolve(frozen_snapshot)
             checker = getattr(adapter, "check_readiness", None)
             if checker is None:
@@ -394,18 +409,34 @@ def create_app(
         *,
         frozen_snapshot: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
-        selected = repo.get_text_provider_profile(profile_id) if profile_id else active_text_profile()
-        snapshot = dict(frozen_snapshot) if frozen_snapshot is not None else provider_snapshot(selected.profile_id)
-        frozen_revision = snapshot.get("profileVersion") or snapshot.get("profile_version")
+        selected = (
+            repo.get_text_provider_profile(profile_id)
+            if profile_id
+            else active_text_profile()
+        )
+        snapshot = (
+            dict(frozen_snapshot)
+            if frozen_snapshot is not None
+            else provider_snapshot(selected.profile_id)
+        )
+        frozen_revision = snapshot.get("profileVersion") or snapshot.get(
+            "profile_version"
+        )
         observation = check_text_backend(
             selected,
             request,
             snapshot=snapshot,
-            record_observation=(frozen_revision is None or int(frozen_revision) == selected.revision),
+            record_observation=(
+                frozen_revision is None or int(frozen_revision) == selected.revision
+            ),
         )
         if observation.state in {
-            "disabled", "missing_configuration", "unreachable", "authentication_failed",
-            "model_mismatch", "capability_mismatch",
+            "disabled",
+            "missing_configuration",
+            "unreachable",
+            "authentication_failed",
+            "model_mismatch",
+            "capability_mismatch",
         }:
             raise HTTPException(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
@@ -422,17 +453,25 @@ def create_app(
     register_managed_media_routes(app, repo, selectable_h3_target)
     register_image_job_routes(app, repo, selectable_h3_target)
     register_generation_routes(
-        app, repo, run_scheduler=run_scheduler,
-        admit_text_backend=admit_text_backend, submit_text_run=submit_text_run,
+        app,
+        repo,
+        run_scheduler=run_scheduler,
+        admit_text_backend=admit_text_backend,
+        submit_text_run=submit_text_run,
         text_submission_session_key=text_submission_session_key,
     )
     register_text_profile_routes(
-        app, repo, public_defaults=public_defaults, availability=availability,
+        app,
+        repo,
+        public_defaults=public_defaults,
+        availability=availability,
         readiness_observations=readiness_observations,
         effective_provider_settings=effective_provider_settings,
         provider_settings_projection=provider_settings_projection,
-        profiles_response=profiles_response, require_trusted_adapter=require_trusted_adapter,
-        profile_view=profile_view, check_text_backend=check_text_backend,
+        profiles_response=profiles_response,
+        require_trusted_adapter=require_trusted_adapter,
+        profile_view=profile_view,
+        check_text_backend=check_text_backend,
     )
 
     def observe_definite_generation_failure(run: GenerationRun) -> None:
@@ -452,22 +491,31 @@ def create_app(
             profile = repo.get_text_provider_profile(profile_id)
         except NotFoundError:
             return
-        frozen_revision = (
-            run.provider_snapshot.get("profileVersion")
-            or run.provider_snapshot.get("profile_version")
-        )
+        frozen_revision = run.provider_snapshot.get(
+            "profileVersion"
+        ) or run.provider_snapshot.get("profile_version")
         if frozen_revision is not None and int(frozen_revision) != profile.revision:
             return
         if code in {"provider.http_401", "provider.http_403"}:
-            store_readiness(profile, "authentication_failed", "readiness.generation_authentication_rejected")
+            store_readiness(
+                profile,
+                "authentication_failed",
+                "readiness.generation_authentication_rejected",
+            )
         else:
-            store_readiness(profile, "unreachable", "readiness.generation_transport_failed")
+            store_readiness(
+                profile, "unreachable", "readiness.generation_transport_failed"
+            )
 
     set_completion_observer = getattr(run_scheduler, "set_completion_observer", None)
     if callable(set_completion_observer):
         set_completion_observer(observe_definite_generation_failure)
 
     if static_dir is not None:
-        app.mount("/v2", StaticFiles(directory=static_dir, html=True, check_dir=False), name="v2-static")
+        app.mount(
+            "/v2",
+            StaticFiles(directory=static_dir, html=True, check_dir=False),
+            name="v2-static",
+        )
 
     return app

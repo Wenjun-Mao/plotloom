@@ -12,6 +12,7 @@ from ..domain import (
 from ..generation.providers import ProviderAdapter
 from ..generation.secrets import SecretLease
 
+
 class RunScheduler(Protocol):
     def submit(self, run_id: str, *, session_api_key: str | None = None) -> Any: ...
 
@@ -23,11 +24,15 @@ class MediaScheduler(Protocol):
 
 
 class MediaPromptCompiler(Protocol):
-    def compile(self, context: MediaPromptContext, kind: MediaKind) -> tuple[str, dict[str, Any]]: ...
+    def compile(
+        self, context: MediaPromptContext, kind: MediaKind
+    ) -> tuple[str, dict[str, Any]]: ...
 
 
 class TextProviderResolver(Protocol):
-    def resolve(self, provider_snapshot: Mapping[str, Any]) -> tuple[ProviderAdapter, str]: ...
+    def resolve(
+        self, provider_snapshot: Mapping[str, Any]
+    ) -> tuple[ProviderAdapter, str]: ...
 
 
 class TextProfileSecretSource(Protocol):
@@ -39,5 +44,3 @@ class TextProfileSecretSource(Protocol):
         *,
         auth_mode: ProviderAuthMode,
     ) -> SecretLease | None: ...
-
-
