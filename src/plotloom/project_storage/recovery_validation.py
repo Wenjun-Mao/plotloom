@@ -209,6 +209,23 @@ def referenced_asset_paths(database: Path) -> set[PurePosixPath]:
                     "managed asset storage URI does not match its declared hash"
                 )
             paths.add(path)
+    connection = database_connection(database)
+    try:
+        video_rows = list(
+            connection.execute(
+                "SELECT output_uri, output_hash FROM v2_video_jobs "
+                "WHERE output_uri IS NOT NULL OR output_hash IS NOT NULL"
+            )
+        )
+    finally:
+        connection.close()
+    for output_uri, output_hash in video_rows:
+        path = _asset_path(output_uri)
+        if path.name != output_hash:
+            raise ProjectStorageCorruptionError(
+                "video output storage URI does not match its declared hash"
+            )
+        paths.add(path)
     return paths
 
 

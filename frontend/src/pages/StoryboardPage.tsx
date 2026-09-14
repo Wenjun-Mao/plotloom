@@ -358,7 +358,7 @@ export function StoryboardPage({
       <Button variant="primary" disabled={saving} onClick={() => void onSave(storyboard)}>{saving ? "正在保存…" : "保存分镜"}</Button>
     </>} />
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
-    <div className="notice"><strong>媒体能力</strong><span>P0 可导入并审核 stills，P1 可在下方通过同机手动 Codex image handoff 准备已批准镜头；两者都要求显式选择。视频生产尚未实现，历史任务仅供查看。</span></div>
+    <div className="notice"><strong>媒体能力</strong><span>P0 可导入并审核 stills，P1 可在下方通过同机手动 Codex image handoff 准备已批准镜头；两者都要求显式选择。配置经审核的 MiniMax H3 后，可冻结、提交、复核并显式选择本地视频候选；未配置时视频生产尚未实现，且不会回退到 Atlas。</span></div>
     <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} readOnly={saving} onSelectShot={selectShot} onReview={() => {
       const panel = document.getElementById("storyboard-review");
       panel?.scrollIntoView({ block: "start" });

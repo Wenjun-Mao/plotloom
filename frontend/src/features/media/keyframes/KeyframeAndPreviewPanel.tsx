@@ -381,7 +381,7 @@ export function KeyframeAndPreviewPanel({
           onPlay={() => setPlaying((current) => !current)}
         />
       )}
-      {!mediaDraftsEnabled && <VideoPilotPanel
+      <VideoPilotPanel
         projectId={projectId}
         shot={selectedShot}
         approvalId={review?.activeApproval?.id}
@@ -392,7 +392,7 @@ export function KeyframeAndPreviewPanel({
         readOnly={readOnly}
         onPreparedCrop={onPreparedCrop}
         onRequestKeyframeAdaptation={onRequestKeyframeAdaptation}
-      />}
+      />
     </>
   );
 }

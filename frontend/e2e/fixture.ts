@@ -39,7 +39,7 @@ type E2eVideoAdapter = "wan" | "h3";
 
 export const test = createWorkbenchTest("wan");
 export const h3Test = createWorkbenchTest("h3");
-export const projectFolderTest = createWorkbenchTest("wan", "frontend/e2e/project_folder_authoring_runtime.py");
+export const projectFolderTest = createWorkbenchTest("h3", "frontend/e2e/project_folder_authoring_runtime.py");
 
 function createWorkbenchTest(
   videoAdapter: E2eVideoAdapter,

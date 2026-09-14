@@ -402,3 +402,25 @@ Snapshots record nonterminal operations in a secret-free project-owned recovery
 control. It blocks automatic or explicit replay of known/unknown historic IDs
 until separately designed reconciliation work exists; acknowledgement does not
 submit, reconcile, or mislabel those operations as succeeded.
+
+## Checkpoint 2E project-video/accounting record (2026-09-14)
+
+[ADR 0045](../adr/0045-project-video-dispatch-ownership.md) advances the direct
+composition to format-7. The project folder owns each frozen H3 request,
+provider/job identity, local output bytes and hash, review, and selection; the
+separate installation application database owns only immutable dispatch
+identities, reservations, and append-only accounting events. A reservation is
+made before a project claim, and the project claim is durable before the first
+network call. Any cross-database uncertainty remains conservatively reserved.
+Paid dispatch requires explicit accounting initialization; MiniMax H3 consumes
+no historical Wan/Atlas allowance and has no fallback path.
+
+The direct factory exposes only an explicitly configured typed H3 transport for
+prepare, submit, and reconcile. It always exposes project-local listing,
+review, cancel, and byte-range playback, including after snapshot/restore with
+no H3 configuration or prior application database. Recovery captures real
+nonterminal video rows: a known remote ID may be explicitly reconciled only
+through the matching configured H3 adapter; an unknown or pre-dispatch row is
+never replayed. Close now refuses any nonterminal video job. The retained
+runtime, legacy data, gateway deployment, Wan ledger, and all cutover work are
+unchanged. See [the 2E receipt](../verification/2026-09-14-project-folder-video-accounting.md).

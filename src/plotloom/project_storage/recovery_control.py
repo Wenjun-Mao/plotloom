@@ -35,7 +35,7 @@ RECOVERY_CONTROL_FORMAT_VERSION = 1
 class RecoveryOperation(CamelModel):
     """One historical operation that must not be resumed by recovery."""
 
-    kind: Literal["generation_run", "media_task"]
+    kind: Literal["generation_run", "media_task", "video_job"]
     operation_id: str = Field(min_length=1)
     provider_state: Literal["not_submitted", "known", "unknown"]
 
@@ -80,6 +80,14 @@ def capture_recovery_control(database: Path, project_id: str) -> ProjectRecovery
                 (project_id,),
             )
         )
+        video_jobs = list(
+            connection.execute(
+                "SELECT id, provider_prediction_id, state FROM v2_video_jobs "
+                "WHERE project_id = ? AND state NOT IN ('ingested', 'cancelled', 'failed') "
+                "ORDER BY created_at, id",
+                (project_id,),
+            )
+        )
         operations: list[RecoveryOperation] = []
         for (run_id,) in runs:
             attempts = list(
@@ -111,6 +119,20 @@ def capture_recovery_control(database: Path, project_id: str) -> ProjectRecovery
                         "known"
                         if provider_task_id
                         else "not_submitted" if status == "queued" else "unknown"
+                    ),
+                )
+            )
+        for job_id, provider_prediction_id, state in video_jobs:
+            operations.append(
+                RecoveryOperation(
+                    kind="video_job",
+                    operation_id=str(job_id),
+                    provider_state=(
+                        "known"
+                        if provider_prediction_id
+                        else "not_submitted"
+                        if state == "prepared"
+                        else "unknown"
                     ),
                 )
             )

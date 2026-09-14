@@ -74,7 +74,7 @@ BASELINE_TABLE_NAMES = frozenset(
         "v2_sealed_stage_aggregates", "v2_stage_heads", "v2_still_previews",
         "v2_text_provider_profiles", "v2_video_jobs", "v2_video_pilot_ledger",
         "v2_video_pilot_ledger_events", "v2_video_reviews", "v2_visual_intents",
-        "v2_visual_selection_states",
+        "v2_visual_selection_states", "v2_project_video_dispatches",
     }
 )
 

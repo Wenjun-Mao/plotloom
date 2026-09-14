@@ -13,7 +13,7 @@ from .project_media import (
     CharacterReferenceProposalDeliveryRow, CharacterReferenceProposalRow, CharacterReferenceStateRow,
     ImageJobCandidateRow, ImageJobDeliveryRow, ImageJobRow, ManagedAssetProvenanceRow, ManagedAssetRow,
     ProductionUnitRow, ReviewedShotBindingRow, SamePersonReviewRow, SamePersonReviewStateRow,
-    StillPreviewRow, VideoJobRow, VideoReviewRow, VisualIntentRow, VisualSelectionStateRow,
+    StillPreviewRow, VideoJobRow, VideoReviewRow, ProjectVideoDispatchRow, VisualIntentRow, VisualSelectionStateRow,
 )
 from .application_control import ProviderProfileSelectionRow, ProviderSettingsRow, TextProviderProfileRow, VideoPilotLedgerEventRow, VideoPilotLedgerRow
 
@@ -31,4 +31,5 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_character_reference_states", "v2_character_reference_decisions",
     "v2_character_reference_proposals", "v2_character_reference_proposal_deliveries",
     "v2_character_reference_proposal_candidates", "v2_same_person_review_states", "v2_same_person_reviews",
+    "v2_video_jobs", "v2_video_reviews", "v2_project_video_dispatches",
 })

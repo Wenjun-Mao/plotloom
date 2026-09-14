@@ -66,7 +66,7 @@ export function ImageJobPanel({
         <p className="muted">
           P1.5 只提供手动 image handoff：当前 storyboard Approval
           冻结单镜头请求和角色角色映射，Copy 导出 assignment，specialist 在同机
-          inbox 交付，创作者再显式选择。它不生成、批准或选择；视频仍未实现。
+          inbox 交付，创作者再显式选择。H3 视频候选是独立的冻结、提交与复核流程，绝不由 image handoff 自动生成或选择。
         </p>
         {imageJobPrerequisite && (
           <div className="notice warning" data-testid="image-job-prerequisite">

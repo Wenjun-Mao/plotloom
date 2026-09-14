@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
+from collections.abc import Callable
 from typing import Annotated, Any, Literal
 
 from fastapi import FastAPI, HTTPException, Query, Request, status
@@ -33,6 +34,9 @@ from ..managed_media import (
     ManagedMediaError,
 )
 from ..video_backends.minimax_h3.adapter import H3_PROFILES_BY_ID
+from ..video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
+from ..video_ingestion import ObservedVideo, probe_video
+from ..video_provider import VideoAdapterPort, VideoProviderPort
 from ..validation import STORYBOARD_GATE_SET_VERSION
 from .models import (
     ApprovalClosureView,
@@ -54,10 +58,18 @@ from .models import (
 )
 from .project_folder_media import register_project_folder_media_routes
 from .project_folder_image_jobs import register_project_folder_image_job_routes
+from .project_folder_video import register_project_folder_video_routes
+from ..project_storage.video_service import ProjectVideoService
 
 
-def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAPI:
-    """Compose the 2C authoring/still-image slice over project-folder storage.
+def create_project_folder_authoring_app(
+    storage: ProjectFolderStorage,
+    *,
+    video_provider: VideoProviderPort | None = None,
+    video_adapter: VideoAdapterPort | None = None,
+    video_probe: Callable[[bytes], ObservedVideo] | None = None,
+) -> FastAPI:
+    """Compose the direct project-folder authoring/image/H3 video slice.
 
     This deliberately small factory exists only for the bounded storage
     checkpoint and its browser evidence.  The retained runtime continues to
@@ -65,8 +77,21 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
     lifecycle composition; this is not a browser-selectable storage mode.
     """
 
-    app = FastAPI(title="Plotloom project-folder authoring", version="2.0.0-storage-2c")
+    app = FastAPI(title="Plotloom project-folder authoring", version="2.0.0-storage-2e")
     app.state.project_folder_storage = storage
+    if video_adapter is not None and video_adapter.adapter_id != "minimax_h3_gateway":
+        raise ValueError("project-folder video accepts only the frozen MiniMax H3 adapter")
+    video_service = (
+        ProjectVideoService(
+            storage.application,
+            video_provider,
+            video_adapter or MiniMaxH3GatewayAdapter(),
+            probe=video_probe or probe_video,
+        )
+        if video_provider is not None
+        else None
+    )
+    app.state.project_video_service = video_service
 
     def _project_h3_target(profile_id: str) -> dict[str, Any]:
         """Resolve a trusted adaptation target without project configuration."""
@@ -523,5 +548,11 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
         image_job_target_id=image_job_target_id,
         require_media_draft_scope=require_media_draft_scope,
         project_h3_target=_project_h3_target,
+    )
+    register_project_folder_video_routes(
+        app,
+        opened_project,
+        application=storage.application,
+        service=video_service,
     )
     return app

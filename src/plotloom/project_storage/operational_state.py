@@ -86,10 +86,17 @@ def close_blockers(store: object) -> list[str]:
             "SELECT 1 FROM v2_media_tasks WHERE project_id = ? AND status NOT IN (?, ?, ?) LIMIT 1",
             (project_id, *terminal_tasks),
         ).first()
+        active_video = connection.exec_driver_sql(
+            "SELECT 1 FROM v2_video_jobs WHERE project_id = ? "
+            "AND state NOT IN ('ingested', 'cancelled', 'failed') LIMIT 1",
+            (project_id,),
+        ).first()
     if active_run is not None:
         blockers.append("nonterminal_text_run")
     if active_task is not None:
         blockers.append("nonterminal_media_task")
+    if active_video is not None:
+        blockers.append("nonterminal_video_job")
     # Manual image and character-reference packages are filesystem publications.
     # Their exported/prepared states cannot prove the external specialist is idle,
     # so close fails closed until they become delivery/rejection terminal records.

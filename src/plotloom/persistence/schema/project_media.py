@@ -135,6 +135,22 @@ class VideoReviewRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class ProjectVideoDispatchRow(Base):
+    """Project evidence binding one job to an application-owned lease ID.
+
+    The application database deliberately has no project foreign key.  This
+    row is the project-side half of the cross-database dispatch boundary.
+    """
+
+    __tablename__ = "v2_project_video_dispatches"
+
+    video_job_id: Mapped[str] = mapped_column(
+        ForeignKey("v2_video_jobs.id", ondelete="RESTRICT"), primary_key=True
+    )
+    dispatch_identity: Mapped[str] = mapped_column(String(96), unique=True, nullable=False)
+    claimed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class ProductionUnitRow(Base):
     """A single-shot approved projection frozen for P1 image work."""
 

@@ -4,6 +4,7 @@ from .application_store import (
     ApplicationProfile,
     ApplicationStore,
     GlobalAccountingEntry,
+    VideoDispatchLease,
 )
 from .artifacts import ProjectArtifactStore
 from .composition import ProjectFolderStorage
@@ -35,6 +36,7 @@ __all__ = [
     "ApplicationProfile",
     "ApplicationStore",
     "GlobalAccountingEntry",
+    "VideoDispatchLease",
     "OwnedArtifact",
     "PROJECT_DATABASE_RELATIVE_PATH",
     "PROJECT_MANIFEST_FILENAME",
