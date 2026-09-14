@@ -258,6 +258,32 @@ contracts and project-folder storage behavior. The stable candidate still
 requires the repository's full locked Python, frontend, wheel, install-smoke,
 and browser gates before release.
 
+### Follow-up correction: admission and direct-storage media ownership
+
+- **Baseline:** clean `28c4a2a73ec03b2e44ab796802c66463cd979cf7`; the source
+  provenance baseline is the original monolith
+  `5ec8ef83fc3fa6efdd9b3b41f5e76a7a8c2e1daf`.
+- **Observable outcome:** normal composition delegates application-lifetime
+  text admission to `api/text_admission.py`; direct-storage asset import,
+  serving, visual intent, keyframe selection, preview, and workbench routes
+  live in `api/project_folder_media.py`; package/export/refresh/cancel routes
+  remain in `api/project_folder_image_jobs.py`.
+- **Contract evidence:** an isolated `git archive` of the original monolith
+  was imported through `PYTHONPATH`, never checked out over the retained
+  source. It produced a complete canonical characterization of both factories:
+  route registrations, OpenAPI paths and schemas, operation IDs, aliases,
+  defaults, response/header declarations, factory signatures, state keys,
+  static mounting, injected lifespan identity, and completion-observer
+  registration. `tests/backend_core/test_api_modularization_contract.py`
+  compares the post-move candidate to its provenance-bound 206,297-byte
+  canonical SHA-256 (`1d33b23c3809d63654c780d7ac07ecd2bd6acfe7a8fdb6b18a8a15b98feaa72e`).
+  Only JSON key ordering is normalized.
+- **Resulting sizes:** `application.py` 123 lines,
+  `text_admission.py` 420 lines, `project_folder_media.py` 282 lines, and
+  `project_folder_image_jobs.py` 443 lines. The previously unused media
+  registrar inputs were removed rather than preserved as a forwarding layer.
+- **Evidence receipt:** `docs/verification/2026-09-13-api-modularization-correction.md`.
+
 ## Audit closeout
 
 The next action is director review of this proposal and selection of a bounded

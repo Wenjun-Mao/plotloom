@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Callable, Mapping
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException, Query, Request, status
 from pydantic import ValidationError
@@ -25,25 +25,18 @@ from .models import (
     TextProviderProbeResponse,
     _merge_provider_settings,
 )
+from .text_admission import TextAdmissionService
 
 
 def register_text_profile_routes(
     app: FastAPI,
     repo: SQLiteRepository,
     *,
-    public_defaults: ProviderSettings,
-    availability: Mapping[str, bool],
-    readiness_observations: dict[str, Any],
-    effective_provider_settings: Callable[[], ProviderSettings],
-    provider_settings_projection: Callable[[Any, ProviderSettings], ProviderSettings],
-    profiles_response: Callable[[], TextProviderProfilesResponse],
-    require_trusted_adapter: Callable[[str, str], None],
-    profile_view: Callable[[Any], TextProviderProfileView],
-    check_text_backend: Callable[..., Any],
+    admission: TextAdmissionService,
 ) -> None:
     @app.get("/api/v2/provider-settings", response_model=ProviderSettings)
     def get_provider_settings() -> ProviderSettings:
-        return effective_provider_settings()
+        return admission.effective_provider_settings()
 
     @app.put("/api/v2/provider-settings", response_model=ProviderSettings)
     def put_provider_settings(body: ProviderSettingsUpdate) -> ProviderSettings:
@@ -57,17 +50,19 @@ def register_text_profile_routes(
             expected_profile_id=body.expected_profile_id,
             expected_profile_revision=body.expected_revision,
             updates=updates,
-            defaults=public_defaults,
+            defaults=admission.public_defaults,
         )
-        media = _merge_provider_settings(persisted_media, public_defaults, availability)
-        return provider_settings_projection(profile, media)
+        media = _merge_provider_settings(
+            persisted_media, admission.public_defaults, admission.key_availability
+        )
+        return admission.provider_settings_projection(profile, media)
 
     @app.get(
         "/api/v2/text-provider-profiles",
         response_model=TextProviderProfilesResponse,
     )
     def list_text_provider_profiles() -> TextProviderProfilesResponse:
-        return profiles_response()
+        return admission.profiles_response()
 
     @app.post(
         "/api/v2/text-provider-profiles",
@@ -79,10 +74,10 @@ def register_text_profile_routes(
     ) -> TextProviderProfileView:
         try:
             if body.adapter_id is not None and body.adapter_version is not None:
-                require_trusted_adapter(body.adapter_id, body.adapter_version)
+                admission.require_trusted_adapter(body.adapter_id, body.adapter_version)
             elif body.copy_from_profile_id is not None:
                 copied = repo.get_text_provider_profile(body.copy_from_profile_id)
-                require_trusted_adapter(copied.adapter_id, copied.adapter_version)
+                admission.require_trusted_adapter(copied.adapter_id, copied.adapter_version)
             profile = repo.create_text_provider_profile(
                 body.profile_id,
                 body.display_name,
@@ -98,15 +93,15 @@ def register_text_profile_routes(
                 status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="invalid text provider profile configuration",
             ) from error
-        readiness_observations.pop(profile.profile_id, None)
-        return profile_view(profile)
+        admission.readiness_observations.pop(profile.profile_id, None)
+        return admission.profile_view(profile)
 
     @app.get(
         "/api/v2/text-provider-profiles/{profile_id}",
         response_model=TextProviderProfileView,
     )
     def get_text_provider_profile(profile_id: str) -> TextProviderProfileView:
-        return profile_view(repo.get_text_provider_profile(profile_id))
+        return admission.profile_view(repo.get_text_provider_profile(profile_id))
 
     @app.put(
         "/api/v2/text-provider-profiles/{profile_id}",
@@ -120,7 +115,7 @@ def register_text_profile_routes(
             current = repo.get_text_provider_profile(profile_id)
             adapter_id = body.adapter_id or current.adapter_id
             adapter_version = body.adapter_version or current.adapter_version
-            require_trusted_adapter(adapter_id, adapter_version)
+            admission.require_trusted_adapter(adapter_id, adapter_version)
             updated = repo.update_text_provider_profile(
                 profile_id,
                 body.expected_revision,
@@ -130,8 +125,8 @@ def register_text_profile_routes(
                 adapter_version=adapter_version,
             )
             if updated.revision != body.expected_revision:
-                readiness_observations.pop(profile_id, None)
-            return profile_view(updated)
+                admission.readiness_observations.pop(profile_id, None)
+            return admission.profile_view(updated)
         except ValidationError:
             raise
         except ValueError as error:
@@ -176,8 +171,8 @@ def register_text_profile_routes(
             enabled=body.enabled,
         )
         if updated.availability_revision != body.expected_availability_revision:
-            readiness_observations.pop(profile_id, None)
-        return profile_view(updated)
+            admission.readiness_observations.pop(profile_id, None)
+        return admission.profile_view(updated)
 
     @app.post(
         "/api/v2/text-provider-profiles/{profile_id}/probe",
@@ -189,5 +184,5 @@ def register_text_profile_routes(
     ) -> TextProviderProbeResponse:
         profile = repo.get_text_provider_profile(profile_id)
         return TextProviderProbeResponse.model_validate(
-            check_text_backend(profile, request).model_dump(mode="python")
+            admission.check_text_backend(profile, request).model_dump(mode="python")
         )

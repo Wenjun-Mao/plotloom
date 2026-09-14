@@ -439,8 +439,6 @@ def create_project_folder_authoring_app(storage: ProjectFolderStorage) -> FastAP
     register_project_folder_media_routes(
         app,
         opened_project,
-        project_h3_target=_project_h3_target,
-        assert_canonical_draft_scope=assert_canonical_draft_scope,
         require_media_draft_scope=require_media_draft_scope,
     )
     register_project_folder_image_job_routes(
