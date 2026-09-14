@@ -131,6 +131,19 @@ on-demand trace view.
 
 ## Consequences and guardrails
 
+### 2026-09-14 workspace ownership correction
+
+The workbench retains one project-session identity: the URL route plus its
+navigation epoch remains the only authority for currentness. Frontend file
+ownership may separate profile/session-key state, directory paging, run
+polling and trace evidence, and view components, but none may mint a second
+route epoch or independently decide that a project response is current.
+Authoring draft CAS remains owned by its existing autosave contract; a run
+poll or profile refresh cannot clear a newer editor draft. This is a frontend
+composition correction only: it does not change API bodies, server actions,
+storage, lifecycle semantics, or the rule that frozen runs use only their exact
+profile-scoped credential.
+
 - List results expose lifecycle state and lifecycle revision; archived projects
   are visibly distinct and remain available for read-only inspection.
 - Project catalog cursors use immutable creation facts, rather than mutable

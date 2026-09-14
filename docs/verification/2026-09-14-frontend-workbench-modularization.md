@@ -1,18 +1,32 @@
 # Frontend workbench modularization receipt
 
-## Outcome
+## Outcome and correction status
 
-Step 3 separates the former frontend workbench entrypoints by product
-responsibility without changing backend wire shapes, server-authorized
-mutations, URL routing semantics, or visual design. `App.tsx` and
-`managed-media.tsx` are now compatibility composition entrypoints.
+The original Step 3 extracted the media workbench and authoring autosave
+without changing backend wire shapes, server-authorized mutations, URL routing
+semantics, or visual design. `App.tsx` and `managed-media.tsx` are compatibility
+entrypoints.
+
+This receipt is amended because its original workspace conclusion was too
+broad: moving the prior App implementation to a renamed workspace file did not
+establish the required narrow owners. The correction introduces named profile,
+directory, run-session, route-contract, inspector, and dialog boundaries, but
+must receive an independent source-ownership review before it can claim full
+workspace completion. The retained workbench/session composition is therefore
+an explicit open correction, not a deferred Step 4 assessment.
 
 ## Ownership tree
 
 ```text
 frontend/src/
 ├── app/
-│   └── WorkspaceApp.tsx                    # workspace route/session composition
+│   ├── WorkspaceApp.tsx                    # compatibility entrypoint
+│   └── workspace/
+│       ├── contracts.ts                    # URL, draft, and workspace-operation facts
+│       ├── useTextProviderProfiles.ts      # profile catalog and session-key scope
+│       ├── useProjectDirectory.ts          # directory cursor/currentness
+│       ├── useRunSession.ts                # poll and trace-evidence currentness
+│       └── WorkspaceViews.tsx              # inspector and dialogs
 ├── features/
 │   ├── authoring/
 │   │   └── useAuthoringDraftAutosave.ts     # durable CAS draft flight/timer ownership
@@ -36,13 +50,21 @@ frontend/src/
 └── managed-media.tsx                       # 2-line compatibility entrypoint
 ```
 
-The composition root is 479 lines. Each media capability module is below 500
-lines; the largest is the cohesive keyframe/intent/preview panel (474 lines).
-`WorkspaceApp.tsx` remains the explicit workspace session composition root
-while route identity, request epochs, abort ownership, project loading,
-pipeline polling, and page contracts are still coupled. It is intentionally
-not further mechanically split in this Step 3 scope; later assessment remains
-separate under the roadmap's Step 4 boundary.
+The original claim that an oversized workspace composition was intentionally
+left for a later assessment has been withdrawn. This receipt must not be used
+as evidence that the correction is complete until the remaining project-session
+owner is decomposed and independently reviewed.
+
+## Independent ownership review
+
+An attended read-only review confirmed that `WorkspaceOperation` and
+`DurableDraftStatus` now have one declaration in `app/workspace/contracts.ts`;
+autosave imports that contract and no longer needs a widened local type or a
+controller cast. The review rejected completion because
+`WorkspaceController.tsx` still mixes project loading, authoring-save/draft
+coordination, navigation, run commands, lifecycle actions, and rendering above
+the project guideline. This is an explicit rejection, not a passing review or
+a reason to postpone the work to Step 4.
 
 ## Preserved behavioral contracts
 
@@ -62,6 +84,21 @@ separate under the roadmap's Step 4 boundary.
 ## Verification
 
 - Baseline frontend unit suite before extraction: 132 passed.
+- Correction checkpoint frontend unit suite: 135 passed, including owner
+  normalization/route contracts and a late poll response rejected after
+  Back/Forward changes project session.
+- Correction checkpoint: `npm run typecheck`, 135 frontend unit tests, and
+  `npm run build` passed; a second build left `workbench.js` byte-identical.
+- Locked Python suite: 674 passed, 9 skipped. The existing FastAPI TestClient,
+  SQLite/Python 3.12, and Pydantic serialization warnings remain.
+- Real FastAPI browser E2E: 30 passed. The environment's `NO_COLOR` warning
+  remains. A real FastAPI/Vite 1440×900 workbench inspection is retained at
+  `docs/verification/supporting/frontend-workspace-correction-1440x900.png`;
+  the three columns, editable brief, inspector, and frozen-profile recovery
+  notice were visible with no clipping or design/test-ID change.
+- A fresh isolated wheel smoke passed for
+  `plotloom-0.1.0-py3-none-any.whl` (SHA-256
+  `815acc7c9b09f0f22b2ef0a3907ad448ec3176c39c6824189ab45916e9486a81`).
 - Post-extraction `npm run typecheck`: passed.
 - Post-extraction frontend unit suite: 132 passed.
 - Production frontend build: passed; regenerated

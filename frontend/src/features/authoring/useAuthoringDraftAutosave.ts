@@ -8,9 +8,8 @@ import {
   type DraftRecord,
   type DraftScope,
 } from "../../draft-registry";
+import type { DurableDraftStatus, WorkspaceOperation } from "../../app/workspace/contracts";
 
-type DurableDraftStatus = "idle" | "saving" | "saved" | "failed" | "conflict";
-type WorkspaceOperation = { epoch: number; projectId: string; stage: string };
 
 function authoringDraftKey(projectId: string, scope: DraftScope): string {
   return `${projectId}:${scope}:root`;

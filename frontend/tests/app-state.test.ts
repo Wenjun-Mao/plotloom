@@ -993,4 +993,32 @@ describe("App project/editor rehydration", () => {
     expect(window.location.search).toContain("project=destination-project");
     expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("新工作台");
   });
+
+  it("rejects a late run-poll projection after Back/Forward changes the project session", async () => {
+    window.history.replaceState(null, "", "/?project=poll-source&stage=trace");
+    const source = resource("poll-source", "轮询源项目");
+    const destination = resource("poll-destination", "轮询目标项目");
+    const activeRun = { ...demoRun, id: "late-poll-run", projectId: source.id, status: "running" as const, providerSnapshot: { ...demoRun.providerSnapshot, textAuthMode: "none" } };
+    const lateProgress = deferred<RunProgress>();
+    vi.spyOn(plotloomApi, "getProject").mockImplementation(async (id) => id === source.id ? source : destination);
+    vi.spyOn(plotloomApi, "getStages").mockResolvedValue({ stages: stageEnvelopes() });
+    vi.spyOn(plotloomApi, "getProjectRuns").mockImplementation(async (id) => ({ runs: id === source.id ? [activeRun] : [] }));
+    vi.spyOn(plotloomApi, "getRunProgress")
+      .mockResolvedValueOnce({ runId: activeRun.id, status: "running", failureCode: null, failedStage: null, stageProgress: [], workUnits: [], actions: { canResume: true, canCancel: true, canRebuildStage: false, repairEligible: false } })
+      .mockReturnValueOnce(lateProgress.promise);
+    vi.spyOn(plotloomApi, "resumeRun").mockResolvedValue(activeRun);
+
+    await act(async () => root.render(createElement(App)));
+    await flush();
+    await flush();
+    window.history.replaceState(null, "", "/?project=poll-destination&stage=brief");
+    await act(async () => window.dispatchEvent(new PopStateEvent("popstate")));
+    await flush();
+    await act(async () => lateProgress.resolve({ runId: activeRun.id, status: "quarantined", failureCode: "late.poll", failedStage: "story_bible", stageProgress: [], workUnits: [{ workUnitId: "late-unit", stage: "story_bible", sequence: 1, status: "quarantined", maxAttempts: 1, latestAttempt: null, sealed: false, repairEligible: false, repairReasonCode: null }], actions: { canResume: false, canCancel: false, canRebuildStage: false, repairEligible: false } }));
+    await flush();
+
+    expect((document.querySelector(".form-card input") as HTMLInputElement).value).toBe("轮询目标项目");
+    expect(document.body.textContent).not.toContain("late-unit");
+    expect(document.body.textContent).not.toContain("late.poll");
+  });
 });

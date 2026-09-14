@@ -1,8 +1,10 @@
 # Codebase modularization: persistence-first structure proposal
 
-**Status:** persistence conversion and the separately authorized frontend
-workbench modularization are complete; this document remains the execution map
-for later assessments.
+**Status:** persistence conversion is complete. The original frontend
+workbench receipt was only partially complete: it extracted media and draft
+autosave while retaining mixed workspace ownership. The corrected frontend
+workspace extraction is tracked by the amended receipt below; this document
+remains the execution map for later assessments.
 It follows the accepted API modularization checkpoint at
 `f9487508239bf14f5f8de8b255456c97a3e3b933` and the already-approved breaking
 project-folder storage destination.  It does not reopen the cutover decision,
@@ -15,9 +17,10 @@ add a selectable storage mode, or schedule frontend work concurrently.
 - [x] Persistence package conversion complete (schema/codec/database/transaction,
   authoring, generation, project media, and application control have explicit
   capability owners; the retained runtime surface is compatibility composition).
-- [x] Frontend modularization completed as a separate phase. The workbench is
-  now composed from named media capabilities, app/session coordination, and
-  authoring-draft autosave ownership; see the frontend receipt.
+- [ ] Frontend modularization correction: the original Step 3 receipt did not
+  complete workspace ownership. Do not mark this item complete merely because
+  `App.tsx` is small; route, project-session, authoring, run, profile, and
+  directory owners require an attended source-ownership review.
 - [ ] Justified assessment of other large modules pending; do not treat line
   count alone as implementation authority.
 
@@ -345,19 +348,25 @@ schema/persistence, transaction semantics, runtime/recovery, or the approved
 storage destination.  A pure file move with preserved contracts needs a focused
 receipt, not a new architecture process.
 
-## Frontend modularization completion (Step 3)
+## Frontend modularization correction (Step 3)
 
-The separately authorized frontend phase established the planned ownership
-roots without a wire-contract, transport-policy, server-action, or visual
-redesign. `App.tsx` and `managed-media.tsx` are retained two-line compatibility
-composition entrypoints. Workspace state remains route/epoch/AbortController
-aware in `app/WorkspaceApp.tsx`; durable authoring draft CAS, in-flight
-queuing, conflict preservation, and recovery seeding now have an explicit
-`features/authoring/useAuthoringDraftAutosave.ts` owner. The media composition
-root delegates to assets, keyframe/preview, image-job, and
-character-reference/identity-review panels and focused mutation hooks. The URL
-remains the route fact source, and preview playback retains its frozen
-per-frame timing and selected-binding behavior.
+The separately authorized frontend phase established the media and durable
+authoring-draft roots without a wire-contract, transport-policy, server-action,
+or visual redesign. Its original claim that `WorkspaceApp.tsx` was an
+intentional remaining composition root was rejected: the same file retained
+route/epoch/AbortController navigation, project loading, directory lifecycle,
+profile session keys, canonical saves, and run polling.
+
+The correction starts from the preserved `932cb09` baseline and makes the
+compatibility entrypoint small while giving already-extracted boundaries named
+owners under `app/workspace/`: protocol and route facts in `contracts.ts`,
+profile catalog/session-key state in `useTextProviderProfiles.ts`, directory
+cursor lifetime in `useProjectDirectory.ts`, run poll/trace currentness in
+`useRunSession.ts`, and inspector/dialog views in `WorkspaceViews.tsx`.
+The remaining project-session composition must be reviewed for route, loading,
+authoring-save, and lifecycle ownership before this checklist item can be
+closed. This explicitly records partial progress rather than treating file
+renaming as completion.
 
 `api.ts` and `types.ts` remain intentionally stable shared wire boundaries in
 this phase: no backend capability required a transport-shape move, so creating
