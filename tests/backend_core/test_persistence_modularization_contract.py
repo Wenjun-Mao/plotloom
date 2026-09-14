@@ -34,7 +34,24 @@ from plotloom.persistence.project.generation_reuse import ProjectGenerationReuse
 from plotloom.persistence.project.generation_snapshots import ProjectGenerationSnapshots
 from plotloom.persistence.project.generation_access import GenerationPersistenceAccess
 from plotloom.persistence.project.media import ProjectMediaPersistence
+from plotloom.persistence.project.media_admission import KeyframeAdmission
+from plotloom.persistence.project.media_assets import ManagedAssetPersistence
+from plotloom.persistence.project.media_character_references import CharacterReferencePersistence
+from plotloom.persistence.project.media_image_currentness import ImageJobCurrentness
+from plotloom.persistence.project.media_image_delivery import ImageJobDeliveryPersistence
+from plotloom.persistence.project.media_image_preparation import ImageJobPreparationPersistence
+from plotloom.persistence.project.media_keyframes import ReviewedKeyframePersistence
+from plotloom.persistence.project.media_reference_proposals import CharacterReferenceProposalPersistence
+from plotloom.persistence.project.media_same_person_reviews import SamePersonReviewPersistence
+from plotloom.persistence.project.media_tasks import GenericMediaTaskPersistence
+from plotloom.persistence.project.media_video import VideoJobPersistence
+from plotloom.persistence.project.media_video_currentness import VideoJobCurrentness
+from plotloom.persistence.project.media_visual_intents import VisualIntentPersistence
 from plotloom.persistence.application.profiles import ApplicationProfilePersistence
+from plotloom.persistence.application.profile_admission import TextProviderProfileAdmissionPersistence
+from plotloom.persistence.application.profile_bootstrap import DefaultProfileBootstrapPersistence
+from plotloom.persistence.application.profile_catalog import TextProviderProfileCatalogPersistence
+from plotloom.persistence.application.profile_settings import ProviderSettingsPersistence
 from plotloom.persistence.application.accounting import VideoPilotAccounting
 from plotloom.exceptions import NotFoundError
 from plotloom.domain import utc_now
@@ -203,7 +220,9 @@ def test_media_and_application_control_are_explicit_owners_without_facade_bounce
         assert isinstance(repository._media, ProjectMediaPersistence)
         assert isinstance(repository._application_profiles, ApplicationProfilePersistence)
         assert isinstance(repository._video_accounting, VideoPilotAccounting)
-        assert "self._media.prepare_image_job" in inspect.getsource(SQLiteRepository.prepare_image_job)
+        assert "self._media.image_preparation.prepare_image_job" in inspect.getsource(
+            SQLiteRepository.prepare_image_job
+        )
         assert "self._application_profiles.create_text_provider_profile" in inspect.getsource(
             SQLiteRepository.create_text_provider_profile
         )
@@ -224,6 +243,55 @@ def test_media_and_application_control_are_explicit_owners_without_facade_bounce
     assert "legacy_repository" not in media_source
     assert "legacy_repository" not in application_sources
     assert "VideoPilotLedger" not in media_source
+
+
+def test_media_and_control_submodules_keep_currentness_and_projection_boundaries() -> None:
+    """Prevent a new policy monolith or facade back-reference from returning."""
+
+    repository = SQLiteRepository("sqlite://")
+    try:
+        media = repository._media
+        assert isinstance(media.admission, KeyframeAdmission)
+        assert isinstance(media.assets, ManagedAssetPersistence)
+        assert isinstance(media.intents, VisualIntentPersistence)
+        assert isinstance(media.keyframes, ReviewedKeyframePersistence)
+        assert isinstance(media.references, CharacterReferencePersistence)
+        assert isinstance(media.proposals, CharacterReferenceProposalPersistence)
+        assert isinstance(media.same_person, SamePersonReviewPersistence)
+        assert isinstance(media.image_currentness, ImageJobCurrentness)
+        assert isinstance(media.image_preparation, ImageJobPreparationPersistence)
+        assert isinstance(media.image_delivery, ImageJobDeliveryPersistence)
+        assert isinstance(media.video_currentness, VideoJobCurrentness)
+        assert isinstance(media.video, VideoJobPersistence)
+        assert isinstance(media.tasks, GenericMediaTaskPersistence)
+        assert "_approval_is_active_in_session" not in vars(ReviewedKeyframePersistence)
+        assert "_selection_state_in_session" not in vars(ReviewedKeyframePersistence)
+        assert "self._media.admission.list_current_reviewed_keyframes" in inspect.getsource(
+            SQLiteRepository.list_current_reviewed_keyframes
+        )
+
+        profiles = repository._application_profiles
+        assert isinstance(profiles._bootstrap, DefaultProfileBootstrapPersistence)
+        assert isinstance(profiles._catalog, TextProviderProfileCatalogPersistence)
+        assert isinstance(profiles._admission, TextProviderProfileAdmissionPersistence)
+        assert isinstance(profiles._settings, ProviderSettingsPersistence)
+    finally:
+        repository.close()
+
+    owners = Path(__file__).parents[2] / "src" / "plotloom" / "persistence"
+    owner_paths = [
+        owners / "project" / "media.py",
+        owners / "application" / "profiles.py",
+        *sorted((owners / "project").glob("media_*.py")),
+        *sorted((owners / "application").glob("profile_*.py")),
+    ]
+    assert owner_paths
+    for path in owner_paths:
+        source = path.read_text()
+        assert len(source.splitlines()) < 400, path.name
+        assert "legacy_repository" not in source
+        assert "self._repository" not in source
+        assert "__getattr__" not in source
 
 
 def test_extracted_pilot_accounting_reuses_the_historical_durable_ledger_identity() -> None:

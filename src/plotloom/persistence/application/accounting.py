@@ -12,7 +12,7 @@ from ...domain import new_id
 from ...exceptions import InvalidTransitionError
 from ..codec import _stored_utc
 from ..schema import VideoPilotLedgerEventRow, VideoPilotLedgerRow
-from .profiles import ApplicationControlAccess
+from .access import ApplicationControlAccess
 
 
 class VideoPilotAccounting:

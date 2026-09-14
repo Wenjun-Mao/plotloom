@@ -43,14 +43,20 @@ recovery, immutable evidence, and atomic install policy still lived in the
 facade. The ownership correction recorded in
 `docs/verification/2026-09-13-persistence-generation-ownership-correction.md`
 moves that policy into the named generation owners and adds a no-bounce-back
-regression. The final media/control extraction moves managed media, still/image/
-review/video facts into `project/media.py`, provider control into
-`application/profiles.py`, and the shared Wan pilot ledger into
-`application/accounting.py`. The facade now owns construction, narrow shared
-lease/row/codec guards, and explicit compatibility delegation only. ADR 0042
-records the boundary and the later, predicate-backed media submodule follow-up.
-No schema, public API, migration, runtime cutover, or storage ownership decision
-changes in this checkpoint.
+regression. The final media/control correction replaces the former policy
+monoliths with focused `project/media_*.py` owners for managed assets,
+intent/admission, selection/preview, reference decisions/proposals, same-person
+review, image preparation/delivery, video currentness/lifecycle, and legacy
+media tasks. `application/profile_*.py` likewise separates value conversion,
+bootstrap, catalog, admission, and the atomic settings projection; the Wan
+pilot ledger remains in `application/accounting.py`. `project/media.py` is the
+72-line typed construction root for fixed media owners, and
+`application/profiles.py` is a 179-line explicit compatibility composition
+layer. `legacy_repository.py` remains the one documented retained runtime
+facade and delegates directly to those typed owners.
+ADR 0042 records the correction as awaiting director result review. No schema,
+public API, migration, runtime cutover, storage ownership, provider spend, or
+frontend decision changes in this persistence-complete phase.
 
 ## Audit checkpoint
 

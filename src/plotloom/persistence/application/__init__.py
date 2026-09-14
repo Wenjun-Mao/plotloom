@@ -1,6 +1,7 @@
 """Installation-wide persistence capabilities."""
 
-from .profiles import ApplicationControlAccess, ApplicationProfilePersistence
+from .access import ApplicationControlAccess
+from .profiles import ApplicationProfilePersistence
 from .accounting import VideoPilotAccounting
 
 __all__ = ["ApplicationControlAccess", "ApplicationProfilePersistence", "VideoPilotAccounting"]

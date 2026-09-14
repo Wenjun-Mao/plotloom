@@ -19,16 +19,28 @@ project video job and its reservation still commit atomically.
 `ProjectSQLiteRepository` is defined in `persistence/project/repository.py`;
 its ID and admitted-profile guards and the public import remain unchanged.
 
-## Consequences
+## Correction (pending director review)
 
-No table, migration, hash, transaction lease, public signature, or storage
-ownership changes. `legacy_repository.py` is now compatibility composition.
-The cohesive media lineage capability is 2,500 lines because its still, review,
-reference, production, and video operations share currentness/admission
-predicates. The 668-line application profile/control capability likewise keeps
-the active-profile/settings projection atomic. Split either only on those
-proven transaction boundaries in a separately approved change, without
-reintroducing facade bounce-backs. The 1,529-line retained facade is an
-intentional compatibility surface while runtime callers still import it; a
-caller-migration proposal must define its retirement before further line-count
-work is attempted.
+The earlier consequence text treated the 2,500-line media capability and the
+668-line profile/control capability as accepted exceptions. The director
+rejected that exception: sharing currentness predicates or a transaction is not
+enough to combine unrelated policy owners.
+
+The correction keeps `legacy_repository.py` as the sole retained runtime
+compatibility composition surface. It delegates directly to fixed, typed media
+owners for managed assets, visual intent, keyframe admission, reviewed
+selection/preview, character-reference decisions, reference proposals/delivery,
+same-person reviews, image-job currentness/preparation/delivery, video
+currentness/lifecycle, and generic media tasks. `project/media.py` is now only
+the 72-line typed construction root for those owners; it carries no public
+delegation or policy. Application control is divided into pure value conversion,
+bootstrap, profile catalog, profile admission, and the settings projection
+owner. The settings projection remains one transaction; video accounting
+continues to receive the video's existing lifecycle session. No cross-capability
+owner opens a second lease.
+
+This correction changes no table, migration, hash, transaction lease, public
+signature, or storage ownership. It is an implementation candidate and does
+not itself claim director acceptance. The 1,538-line retained facade remains a
+documented compatibility exception while runtime callers still import it; a
+caller-migration proposal must define its retirement.

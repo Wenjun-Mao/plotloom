@@ -175,6 +175,15 @@ from .project.generation_access import (
 from .project.lifecycle import ProjectLifecyclePersistence
 from .project.workflow import ProjectAuthoringWorkflow
 from .project.media import ProjectMediaPersistence
+from .project.media_admission import KeyframeAdmission
+from .project.media_assets import ManagedAssetPersistence
+from .project.media_character_references import CharacterReferencePersistence
+from .project.media_image_currentness import ImageJobCurrentness
+from .project.media_image_delivery import ImageJobDeliveryPersistence
+from .project.media_reference_proposals import CharacterReferenceProposalPersistence
+from .project.media_same_person_reviews import SamePersonReviewPersistence
+from .project.media_tasks import GenericMediaTaskPersistence
+from .project.media_video_currentness import VideoJobCurrentness
 from .project.access import (
     ProjectCodecs, ProjectGuards, ProjectLeases, ProjectPersistenceAccess, ProjectRows,
 )
@@ -646,7 +655,7 @@ class SQLiteRepository:
 
     @staticmethod
     def _media_task(row: MediaTaskRow) -> MediaTask:
-        return ProjectMediaPersistence._media_task(row)
+        return GenericMediaTaskPersistence.media_task(row)
 
     @staticmethod
     def _project_row(session: Session, project_id: str) -> ProjectRow:
@@ -811,168 +820,168 @@ class SQLiteRepository:
 
     @staticmethod
     def _managed_asset_dict(row: ManagedAssetRow) -> dict[str, Any]:
-        return ProjectMediaPersistence._managed_asset_dict(row)
+        return ManagedAssetPersistence.managed_asset_dict(row)
     def record_managed_import(self, project_id: str, *, original_hash: str, display_hash: str, mime_type: str, byte_size: int, width: int, height: int, declaration: dict[str, Any], publish: Callable[[], tuple[str, str]]) -> dict[str, Any]:
-        return self._media.record_managed_import(project_id, original_hash=original_hash, display_hash=display_hash, mime_type=mime_type, byte_size=byte_size, width=width, height=height, declaration=declaration, publish=publish)
+        return self._media.assets.record_managed_import(project_id, original_hash=original_hash, display_hash=display_hash, mime_type=mime_type, byte_size=byte_size, width=width, height=height, declaration=declaration, publish=publish)
     def get_managed_asset_storage(self, project_id: str, asset_id: str) -> dict[str, Any]:
-        return self._media.get_managed_asset_storage(project_id, asset_id)
+        return self._media.assets.get_managed_asset_storage(project_id, asset_id)
     def reviewed_keyframe_crop_source(self, project_id: str, *, binding_id: str, expected_selection_revision: int) -> dict[str, Any]:
-        return self._media.reviewed_keyframe_crop_source(project_id, binding_id=binding_id, expected_selection_revision=expected_selection_revision)
+        return self._media.assets.reviewed_keyframe_crop_source(project_id, binding_id=binding_id, expected_selection_revision=expected_selection_revision)
     def record_reviewed_keyframe_center_crop(self, project_id: str, *, source: dict[str, Any], target_profile: dict[str, Any], expected_selection_revision: int, original_hash: str, display_hash: str, mime_type: str, byte_size: int, width: int, height: int, publish: Callable[[], tuple[str, str]]) -> dict[str, Any]:
-        return self._media.record_reviewed_keyframe_center_crop(project_id, source=source, target_profile=target_profile, expected_selection_revision=expected_selection_revision, original_hash=original_hash, display_hash=display_hash, mime_type=mime_type, byte_size=byte_size, width=width, height=height, publish=publish)
+        return self._media.assets.record_reviewed_keyframe_center_crop(project_id, source=source, target_profile=target_profile, expected_selection_revision=expected_selection_revision, original_hash=original_hash, display_hash=display_hash, mime_type=mime_type, byte_size=byte_size, width=width, height=height, publish=publish)
     def list_managed_assets(self, project_id: str) -> list[dict[str, Any]]:
-        return self._media.list_managed_assets(project_id)
+        return self._media.assets.list_managed_assets(project_id)
     def create_visual_intent(self, project_id: str, asset_id: str, intent: dict[str, Any], *, consumed_draft: tuple[str, int, dict[str, Any]] | None=None) -> dict[str, Any]:
-        return self._media.create_visual_intent(project_id, asset_id, intent, consumed_draft=consumed_draft)
+        return self._media.intents.create_visual_intent(project_id, asset_id, intent, consumed_draft=consumed_draft)
     def list_visual_intents(self, project_id: str) -> list[dict[str, Any]]:
-        return self._media.list_visual_intents(project_id)
+        return self._media.intents.list_visual_intents(project_id)
     @staticmethod
     def _latest_visual_intent_for_role_in_session(session: Session, project_id: str, asset_id: str, role: str | None) -> VisualIntentRow | None:
-        return ProjectMediaPersistence._latest_visual_intent_for_role_in_session(session, project_id, asset_id, role)
+        return KeyframeAdmission.latest_visual_intent_for_role_in_session(session, project_id, asset_id, role)
     def _reviewed_binding_admission_eligible_in_session(self, session: Session, project_id: str, binding: ReviewedShotBindingRow, *, approval: ApprovalDecisionRow | None=None) -> bool:
-        return self._media._reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval)
+        return self._media.admission.reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval)
     def list_current_reviewed_keyframes(self, project_id: str) -> list[dict[str, Any]]:
-        return self._media.list_current_reviewed_keyframes(project_id)
+        return self._media.admission.list_current_reviewed_keyframes(project_id)
     def _approval_is_active_in_session(self, session: Session, decision_id: str) -> ApprovalDecisionRow:
-        return self._media._approval_is_active_in_session(session, decision_id)
+        return self._media.admission.approval_is_active_in_session(session, decision_id)
     @staticmethod
     def _selection_state_in_session(session: Session, project_id: str, now: datetime) -> VisualSelectionStateRow:
-        return ProjectMediaPersistence._selection_state_in_session(session, project_id, now)
+        return KeyframeAdmission.selection_state_in_session(session, project_id, now)
     def select_reviewed_keyframe(self, project_id: str, *, asset_id: str, shot_id: str, scene_id: str, expected_selection_revision: int, storyboard_revision: int, approval_id: str, compatibility_note: str, visual_intent_id: str, visual_intent_revision: int) -> dict[str, Any]:
-        return self._media.select_reviewed_keyframe(project_id, asset_id=asset_id, shot_id=shot_id, scene_id=scene_id, expected_selection_revision=expected_selection_revision, storyboard_revision=storyboard_revision, approval_id=approval_id, compatibility_note=compatibility_note, visual_intent_id=visual_intent_id, visual_intent_revision=visual_intent_revision)
+        return self._media.keyframes.select_reviewed_keyframe(project_id, asset_id=asset_id, shot_id=shot_id, scene_id=scene_id, expected_selection_revision=expected_selection_revision, storyboard_revision=storyboard_revision, approval_id=approval_id, compatibility_note=compatibility_note, visual_intent_id=visual_intent_id, visual_intent_revision=visual_intent_revision)
     def create_still_preview(self, project_id: str, *, scene_id: str, shot_ids: list[str], expected_selection_revision: int, storyboard_revision: int, approval_id: str) -> dict[str, Any]:
-        return self._media.create_still_preview(project_id, scene_id=scene_id, shot_ids=shot_ids, expected_selection_revision=expected_selection_revision, storyboard_revision=storyboard_revision, approval_id=approval_id)
+        return self._media.keyframes.create_still_preview(project_id, scene_id=scene_id, shot_ids=shot_ids, expected_selection_revision=expected_selection_revision, storyboard_revision=storyboard_revision, approval_id=approval_id)
     def list_still_previews(self, project_id: str) -> list[dict[str, Any]]:
-        return self._media.list_still_previews(project_id)
+        return self._media.keyframes.list_still_previews(project_id)
     def visual_selection_revision(self, project_id: str) -> int:
-        return self._media.visual_selection_revision(project_id)
+        return self._media.keyframes.visual_selection_revision(project_id)
     def reviewed_preview_dependencies_current(self, project_id: str, frame: dict[str, Any]) -> bool:
-        return self._media.reviewed_preview_dependencies_current(project_id, frame)
+        return self._media.keyframes.reviewed_preview_dependencies_current(project_id, frame)
     @staticmethod
     def _video_job_id() -> str:
-        return ProjectMediaPersistence._video_job_id()
+        return VideoJobCurrentness.video_job_id()
     @staticmethod
     def _video_job_dict(row: VideoJobRow, *, current: bool, selected: bool=False) -> dict[str, Any]:
-        return ProjectMediaPersistence._video_job_dict(row, current=current, selected=selected)
+        return VideoJobCurrentness.video_job_dict(row, current=current, selected=selected)
     @staticmethod
     def _video_job_tracks_paid_wan_pilot(row: VideoJobRow) -> bool:
-        return ProjectMediaPersistence._video_job_tracks_paid_wan_pilot(row)
+        return VideoJobCurrentness.video_job_tracks_paid_wan_pilot(row)
     def _video_job_current_in_session(self, session: Session, row: VideoJobRow) -> bool:
-        return self._media._video_job_current_in_session(session, row)
+        return self._media.video_currentness.video_job_current_in_session(session, row)
     def video_budget(self) -> dict[str, Any]:
-        return self._media.video_budget()
+        return self._media.video.video_budget()
     def prepare_video_job(self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int, expected_selection_revision: int, idempotency_key: str, requested_seconds: int=5, resolution: str='720p', audio: bool=True, production_contract: VideoProductionContract | None=None) -> dict[str, Any]:
-        return self._media.prepare_video_job(project_id, approval_id=approval_id, shot_id=shot_id, storyboard_revision=storyboard_revision, expected_selection_revision=expected_selection_revision, idempotency_key=idempotency_key, requested_seconds=requested_seconds, resolution=resolution, audio=audio, production_contract=production_contract)
+        return self._media.video.prepare_video_job(project_id, approval_id=approval_id, shot_id=shot_id, storyboard_revision=storyboard_revision, expected_selection_revision=expected_selection_revision, idempotency_key=idempotency_key, requested_seconds=requested_seconds, resolution=resolution, audio=audio, production_contract=production_contract)
     def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:
-        return self._media.claim_video_dispatch(project_id, video_job_id)
+        return self._media.video.claim_video_dispatch(project_id, video_job_id)
     def record_video_submission(self, project_id: str, video_job_id: str, prediction_id: str) -> dict[str, Any]:
-        return self._media.record_video_submission(project_id, video_job_id, prediction_id)
+        return self._media.video.record_video_submission(project_id, video_job_id, prediction_id)
     def record_video_outcome_unknown(self, project_id: str, video_job_id: str, message: str) -> dict[str, Any]:
-        return self._media.record_video_outcome_unknown(project_id, video_job_id, message)
+        return self._media.video.record_video_outcome_unknown(project_id, video_job_id, message)
     def record_video_output(self, project_id: str, video_job_id: str, *, uri: str, digest: str, observed: dict[str, Any]) -> dict[str, Any]:
-        return self._media.record_video_output(project_id, video_job_id, uri=uri, digest=digest, observed=observed)
+        return self._media.video.record_video_output(project_id, video_job_id, uri=uri, digest=digest, observed=observed)
     def record_video_retrieve_needed(self, project_id: str, video_job_id: str, message: str) -> dict[str, Any]:
-        return self._media.record_video_retrieve_needed(project_id, video_job_id, message)
+        return self._media.video.record_video_retrieve_needed(project_id, video_job_id, message)
     def record_video_remote_failed(self, project_id: str, video_job_id: str, code: str) -> dict[str, Any]:
-        return self._media.record_video_remote_failed(project_id, video_job_id, code)
+        return self._media.video.record_video_remote_failed(project_id, video_job_id, code)
     def recover_video_dispatches(self) -> list[str]:
-        return self._media.recover_video_dispatches()
+        return self._media.video.recover_video_dispatches()
     def cancel_video_job(self, project_id: str, video_job_id: str) -> dict[str, Any]:
-        return self._media.cancel_video_job(project_id, video_job_id)
+        return self._media.video.cancel_video_job(project_id, video_job_id)
     def list_video_jobs(self, project_id: str) -> list[dict[str, Any]]:
-        return self._media.list_video_jobs(project_id)
+        return self._media.video.list_video_jobs(project_id)
     def get_video_output_storage(self, project_id: str, video_job_id: str) -> dict[str, Any]:
-        return self._media.get_video_output_storage(project_id, video_job_id)
+        return self._media.video.get_video_output_storage(project_id, video_job_id)
     def review_video_job(self, project_id: str, video_job_id: str, *, reviewer: str, decision: str, note: str) -> dict[str, Any]:
-        return self._media.review_video_job(project_id, video_job_id, reviewer=reviewer, decision=decision, note=note)
+        return self._media.video.review_video_job(project_id, video_job_id, reviewer=reviewer, decision=decision, note=note)
     @staticmethod
     def _character_reference_context(character: Any) -> dict[str, Any]:
-        return ProjectMediaPersistence._character_reference_context(character)
+        return CharacterReferencePersistence.character_reference_context(character)
     @staticmethod
     def _character_reference_state_in_session(session: Session, project_id: str, character_id: str, now: datetime) -> CharacterReferenceStateRow:
-        return ProjectMediaPersistence._character_reference_state_in_session(session, project_id, character_id, now)
+        return CharacterReferencePersistence._character_reference_state_in_session(session, project_id, character_id, now)
     @staticmethod
     def _reference_decision_dict(row: CharacterReferenceDecisionRow, *, current: bool) -> dict[str, Any]:
-        return ProjectMediaPersistence._reference_decision_dict(row, current=current)
+        return CharacterReferencePersistence._reference_decision_dict(row, current=current)
     def _current_character_reference_in_session(self, session: Session, project_id: str, character: Any) -> CharacterReferenceDecisionRow | None:
-        return self._media._current_character_reference_in_session(session, project_id, character)
+        return self._media.references.current_character_reference_in_session(session, project_id, character)
     def create_character_reference_decision(self, project_id: str, *, character_id: str, primary_asset_id: str, complementary_asset_ids: list[str], expected_reference_revision: int, reviewer: str, notes: str) -> dict[str, Any]:
-        return self._media.create_character_reference_decision(project_id, character_id=character_id, primary_asset_id=primary_asset_id, complementary_asset_ids=complementary_asset_ids, expected_reference_revision=expected_reference_revision, reviewer=reviewer, notes=notes)
+        return self._media.references.create_character_reference_decision(project_id, character_id=character_id, primary_asset_id=primary_asset_id, complementary_asset_ids=complementary_asset_ids, expected_reference_revision=expected_reference_revision, reviewer=reviewer, notes=notes)
     def revoke_character_reference_decision(self, project_id: str, *, character_id: str, expected_reference_revision: int, reviewer: str, reason: str) -> dict[str, Any]:
-        return self._media.revoke_character_reference_decision(project_id, character_id=character_id, expected_reference_revision=expected_reference_revision, reviewer=reviewer, reason=reason)
+        return self._media.references.revoke_character_reference_decision(project_id, character_id=character_id, expected_reference_revision=expected_reference_revision, reviewer=reviewer, reason=reason)
     def list_character_reference_decisions(self, project_id: str) -> dict[str, Any]:
-        return self._media.list_character_reference_decisions(project_id)
+        return self._media.references.list_character_reference_decisions(project_id)
     @staticmethod
     def _proposal_dict(row: CharacterReferenceProposalRow, *, current: bool) -> dict[str, Any]:
-        return ProjectMediaPersistence._proposal_dict(row, current=current)
+        return CharacterReferenceProposalPersistence._proposal_dict(row, current=current)
     def _proposal_is_current_in_session(self, session: Session, proposal: CharacterReferenceProposalRow) -> bool:
-        return self._media._proposal_is_current_in_session(session, proposal)
+        return self._media.proposals._proposal_is_current_in_session(session, proposal)
     def prepare_character_reference_proposal(self, project_id: str, *, character_id: str, story_bible_revision: int, visual_direction: str, parent_candidate_asset_id: str | None) -> dict[str, Any]:
-        return self._media.prepare_character_reference_proposal(project_id, character_id=character_id, story_bible_revision=story_bible_revision, visual_direction=visual_direction, parent_candidate_asset_id=parent_candidate_asset_id)
+        return self._media.proposals.prepare_character_reference_proposal(project_id, character_id=character_id, story_bible_revision=story_bible_revision, visual_direction=visual_direction, parent_candidate_asset_id=parent_candidate_asset_id)
     def character_reference_proposal_package_sources(self, project_id: str, proposal_id: str) -> dict[str, Any]:
-        return self._media.character_reference_proposal_package_sources(project_id, proposal_id)
+        return self._media.proposals.character_reference_proposal_package_sources(project_id, proposal_id)
     def mark_character_reference_proposal_exported(self, project_id: str, proposal_id: str) -> dict[str, Any]:
-        return self._media.mark_character_reference_proposal_exported(project_id, proposal_id)
+        return self._media.proposals.mark_character_reference_proposal_exported(project_id, proposal_id)
     def character_reference_proposal_delivery_context(self, project_id: str, proposal_id: str) -> dict[str, Any]:
-        return self._media.character_reference_proposal_delivery_context(project_id, proposal_id)
+        return self._media.proposals.character_reference_proposal_delivery_context(project_id, proposal_id)
     def record_character_reference_proposal_rejection(self, project_id: str, proposal_id: str, code: str) -> None:
-        return self._media.record_character_reference_proposal_rejection(project_id, proposal_id, code)
+        return self._media.proposals.record_character_reference_proposal_rejection(project_id, proposal_id, code)
     def record_character_reference_proposal_delivery(self, project_id: str, proposal_id: str, *, delivery_id: str, manifest: dict[str, Any], manifest_hash: str, outputs: list[dict[str, Any]], publish: Callable[[dict[str, Any]], tuple[str, str]]) -> dict[str, Any]:
-        return self._media.record_character_reference_proposal_delivery(project_id, proposal_id, delivery_id=delivery_id, manifest=manifest, manifest_hash=manifest_hash, outputs=outputs, publish=publish)
+        return self._media.proposals.record_character_reference_proposal_delivery(project_id, proposal_id, delivery_id=delivery_id, manifest=manifest, manifest_hash=manifest_hash, outputs=outputs, publish=publish)
     @staticmethod
     def _proposal_candidate_dict(session: Session, row: CharacterReferenceProposalCandidateRow) -> dict[str, Any]:
-        return ProjectMediaPersistence._proposal_candidate_dict(session, row)
+        return CharacterReferenceProposalPersistence._proposal_candidate_dict(session, row)
     def list_character_reference_proposals(self, project_id: str) -> list[dict[str, Any]]:
-        return self._media.list_character_reference_proposals(project_id)
+        return self._media.proposals.list_character_reference_proposals(project_id)
     @staticmethod
     def _same_person_review_state_in_session(session: Session, project_id: str, now: datetime) -> SamePersonReviewStateRow:
-        return ProjectMediaPersistence._same_person_review_state_in_session(session, project_id, now)
+        return SamePersonReviewPersistence._same_person_review_state_in_session(session, project_id, now)
     @staticmethod
     def _same_person_review_dict(row: SamePersonReviewRow, *, current: bool) -> dict[str, Any]:
-        return ProjectMediaPersistence._same_person_review_dict(row, current=current)
+        return SamePersonReviewPersistence._same_person_review_dict(row, current=current)
     def _identity_mapping_for_binding_in_session(self, session: Session, binding: ReviewedShotBindingRow) -> list[dict[str, Any]] | None:
-        return self._media._identity_mapping_for_binding_in_session(session, binding)
+        return self._media.same_person.identity_mapping_for_binding_in_session(session, binding)
     def _same_person_review_is_current_in_session(self, session: Session, project_id: str, review: SamePersonReviewRow) -> bool:
-        return self._media._same_person_review_is_current_in_session(session, project_id, review)
+        return self._media.same_person.same_person_review_is_current_in_session(session, project_id, review)
     def record_same_person_review(self, project_id: str, *, binding_id: str, expected_review_revision: int, reviewer: str, comparisons: list[dict[str, Any]], notes: str) -> dict[str, Any]:
-        return self._media.record_same_person_review(project_id, binding_id=binding_id, expected_review_revision=expected_review_revision, reviewer=reviewer, comparisons=comparisons, notes=notes)
+        return self._media.same_person.record_same_person_review(project_id, binding_id=binding_id, expected_review_revision=expected_review_revision, reviewer=reviewer, comparisons=comparisons, notes=notes)
     def list_same_person_reviews(self, project_id: str) -> dict[str, Any]:
-        return self._media.list_same_person_reviews(project_id)
+        return self._media.same_person.list_same_person_reviews(project_id)
     def current_same_person_review_for_binding(self, session: Session, project_id: str, binding: ReviewedShotBindingRow) -> SamePersonReviewRow | None:
-        return self._media.current_same_person_review_for_binding(session, project_id, binding)
+        return self._media.same_person.current_same_person_review_for_binding(session, project_id, binding)
     @staticmethod
     def _image_job_id() -> str:
-        return ProjectMediaPersistence._image_job_id()
+        return ImageJobCurrentness.image_job_id()
     @staticmethod
     def _image_job_dict(row: ImageJobRow, *, current: bool) -> dict[str, Any]:
-        return ProjectMediaPersistence._image_job_dict(row, current=current)
+        return ImageJobCurrentness.image_job_dict(row, current=current)
     @staticmethod
     def _production_unit_dict(row: ProductionUnitRow) -> dict[str, Any]:
-        return ProjectMediaPersistence._production_unit_dict(row)
+        return ImageJobCurrentness.production_unit_dict(row)
     def _image_job_is_current_in_session(self, session: Session, job: ImageJobRow) -> bool:
-        return self._media._image_job_is_current_in_session(session, job)
+        return self._media.image_currentness.image_job_is_current_in_session(session, job)
     @staticmethod
     def _image_job_resolved_context(*, shot: Any, storyboard: Any, story_bible: Any, scene_beats: Any) -> dict[str, Any]:
-        return ProjectMediaPersistence._image_job_resolved_context(shot=shot, storyboard=storyboard, story_bible=story_bible, scene_beats=scene_beats)
+        return ImageJobCurrentness.image_job_resolved_context(shot=shot, storyboard=storyboard, story_bible=story_bible, scene_beats=scene_beats)
     def prepare_image_job(self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int, parent_candidate_asset_id: str | None=None, keyframe_adaptation: dict[str, Any] | None=None, presentation_change: str, contract_version: int=2, consumed_draft: tuple[str, int, dict[str, Any]] | None=None) -> dict[str, Any]:
-        return self._media.prepare_image_job(project_id, approval_id=approval_id, shot_id=shot_id, storyboard_revision=storyboard_revision, parent_candidate_asset_id=parent_candidate_asset_id, keyframe_adaptation=keyframe_adaptation, presentation_change=presentation_change, contract_version=contract_version, consumed_draft=consumed_draft)
+        return self._media.image_preparation.prepare_image_job(project_id, approval_id=approval_id, shot_id=shot_id, storyboard_revision=storyboard_revision, parent_candidate_asset_id=parent_candidate_asset_id, keyframe_adaptation=keyframe_adaptation, presentation_change=presentation_change, contract_version=contract_version, consumed_draft=consumed_draft)
     def image_job_package_sources(self, project_id: str, job_id: str) -> dict[str, Any]:
-        return self._media.image_job_package_sources(project_id, job_id)
+        return self._media.image_delivery.image_job_package_sources(project_id, job_id)
     def mark_image_job_exported(self, project_id: str, job_id: str) -> dict[str, Any]:
-        return self._media.mark_image_job_exported(project_id, job_id)
+        return self._media.image_delivery.mark_image_job_exported(project_id, job_id)
     def cancel_image_job(self, project_id: str, job_id: str, reason: str) -> dict[str, Any]:
-        return self._media.cancel_image_job(project_id, job_id, reason)
+        return self._media.image_delivery.cancel_image_job(project_id, job_id, reason)
     def image_job_delivery_context(self, project_id: str, job_id: str) -> dict[str, Any]:
-        return self._media.image_job_delivery_context(project_id, job_id)
+        return self._media.image_delivery.image_job_delivery_context(project_id, job_id)
     def record_image_job_delivery_rejection(self, project_id: str, job_id: str, code: str) -> None:
-        return self._media.record_image_job_delivery_rejection(project_id, job_id, code)
+        return self._media.image_delivery.record_image_job_delivery_rejection(project_id, job_id, code)
     @staticmethod
     def _image_candidate_dict(session: Session, row: ImageJobCandidateRow) -> dict[str, Any]:
-        return ProjectMediaPersistence._image_candidate_dict(session, row)
+        return ImageJobDeliveryPersistence._image_candidate_dict(session, row)
     def record_image_job_delivery(self, project_id: str, job_id: str, *, delivery_id: str, manifest: dict[str, Any], manifest_hash: str, outputs: Sequence[dict[str, Any]], publish: Callable[[dict[str, Any]], tuple[str, str]]) -> dict[str, Any]:
-        return self._media.record_image_job_delivery(project_id, job_id, delivery_id=delivery_id, manifest=manifest, manifest_hash=manifest_hash, outputs=outputs, publish=publish)
+        return self._media.image_delivery.record_image_job_delivery(project_id, job_id, delivery_id=delivery_id, manifest=manifest, manifest_hash=manifest_hash, outputs=outputs, publish=publish)
     def list_image_jobs(self, project_id: str) -> list[dict[str, Any]]:
-        return self._media.list_image_jobs(project_id)
+        return self._media.image_delivery.list_image_jobs(project_id)
 
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
         return self._drafts.update_project(project_id, expected_revision, brief)
@@ -1481,19 +1490,19 @@ class SQLiteRepository:
         return self._generation_evidence.get_run_trace(run_id)
 
     def get_media_prompt_context(self, project_id: str, shot_id: str) -> MediaPromptContext:
-        return self._media.get_media_prompt_context(project_id, shot_id)
+        return self._media.tasks.get_media_prompt_context(project_id, shot_id)
     def create_media_task(self, project_id: str, shot_id: str, kind: MediaKind, *, expected_storyboard_revision: int, derived_prompt: str, prompt_components: dict[str, Any], provider: str | None=None, public_settings: dict[str, Any] | None=None) -> MediaTask:
-        return self._media.create_media_task(project_id, shot_id, kind, expected_storyboard_revision=expected_storyboard_revision, derived_prompt=derived_prompt, prompt_components=prompt_components, provider=provider, public_settings=public_settings)
+        return self._media.tasks.create_media_task(project_id, shot_id, kind, expected_storyboard_revision=expected_storyboard_revision, derived_prompt=derived_prompt, prompt_components=prompt_components, provider=provider, public_settings=public_settings)
     def get_media_task(self, task_id: str) -> MediaTask:
-        return self._media.get_media_task(task_id)
+        return self._media.tasks.get_media_task(task_id)
     def list_project_media_tasks(self, project_id: str, *, limit: int=200) -> list[MediaTask]:
-        return self._media.list_project_media_tasks(project_id, limit=limit)
+        return self._media.tasks.list_project_media_tasks(project_id, limit=limit)
     def start_media_task(self, task_id: str, *, provider: str | None=None) -> MediaTask:
-        return self._media.start_media_task(task_id, provider=provider)
+        return self._media.tasks.start_media_task(task_id, provider=provider)
     def record_media_submission(self, task_id: str, *, provider: str, provider_task_id: str | None) -> MediaTask:
-        return self._media.record_media_submission(task_id, provider=provider, provider_task_id=provider_task_id)
+        return self._media.tasks.record_media_submission(task_id, provider=provider, provider_task_id=provider_task_id)
     def finish_media_task(self, task_id: str, status: MediaTaskStatus, *, output_uri: str | None=None, error: str | None=None) -> MediaTask:
-        return self._media.finish_media_task(task_id, status, output_uri=output_uri, error=error)
+        return self._media.tasks.finish_media_task(task_id, status, output_uri=output_uri, error=error)
 
     def get_provider_settings(self) -> ProviderSettings:
         return self._application_profiles.get_provider_settings()
