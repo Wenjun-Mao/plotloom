@@ -218,9 +218,10 @@ def test_reject_policy_refuses_aspect_mismatch_before_comfy_submit(tmp_path: Pat
         "/v1/video-jobs", headers=headers,
         json={"assetId": asset["assetId"], "prompt": "A calm glance.", "aspectPolicy": "reject_mismatch"},
     )
-    assert response.status_code == 202
-    assert response.json()["status"] == "failed"
-    assert response.json()["error"] == "input_aspect_mismatch"
+    assert response.status_code == 422
+    assert response.json() == {"error": "input_aspect_mismatch"}
+    with client.app.state.gateway.store._connect() as connection:
+        assert connection.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0
     assert session.submissions == []
 
 

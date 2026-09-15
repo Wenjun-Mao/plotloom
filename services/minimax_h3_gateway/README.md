@@ -10,16 +10,24 @@ Plotloom is now wired to this gateway through the versioned
 for deployment, security, Plotloom configuration, lifecycle, recovery, and
 the exact limits of verified behavior.
 
-The local service contract is intentionally small:
+The local service contract has six bearer-authenticated client operations:
 
-1. `POST /v1/assets` uploads one PNG, JPEG, or WebP reference frame.
+1. `POST /v1/assets` stores one PNG, JPEG, or WebP reference frame from a
+   multipart file or a private/public `http(s)` `sourceUrl` JSON body.
 2. `POST /v1/video-jobs` prepares and durably queues one reviewed,
    allowlisted-profile job. It returns `202` and a job ID without waiting for
    H3; `idempotencyKey` is optional but required for caller retry deduplication.
-3. `GET /v1/video-jobs/{id}` reports a known job; `GET .../output` serves its
+3. `POST /v1/video-jobs/from-image` combines image ingestion and job admission
+   for a multipart file or `sourceUrl`; it returns the ordinary queued-job
+   response but deliberately has no idempotency-key contract.
+4. `GET /v1/video-jobs/{id}` reports a known job; `GET .../output` serves its
    gateway-managed completed MP4.
-4. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
-5. `GET /health` exposes safe readiness and queue counts.
+5. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
+6. `GET /health` exposes safe readiness and queue counts.
+
+For a colleague-facing, copy-paste client guide—including Spark's current
+Tailnet base URL and a test image—see
+[`docs/operations/minimax-h3-gateway-client-guide.md`](../../docs/operations/minimax-h3-gateway-client-guide.md).
 
 The gateway owns one FIFO dispatch worker. Its queue is intentionally not
 length-capped: H3 receives one job at a time, while any further jobs remain

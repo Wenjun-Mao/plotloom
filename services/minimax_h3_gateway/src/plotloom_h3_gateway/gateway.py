@@ -11,10 +11,11 @@ from typing import Any
 import requests
 
 from .comfy import ComfyClient
-from .contracts import CreateJobRequest, GatewayError, GatewaySettings
+from .contracts import CreateJobFromImageRequest, CreateJobRequest, GatewayError, GatewaySettings
 from .media import GatewayFiles
 from .naming import timestamped_storage_name
 from .profile_catalog import H3_GATEWAY_PROFILES, PROFILE_CONTRACT_VERSION, profile
+from .source_images import SourceImageFetcher
 from .store import GatewayStore
 from .workflow import load_legacy_template, render_workflow, single_output_descriptor
 
@@ -22,15 +23,28 @@ from .workflow import load_legacy_template, render_workflow, single_output_descr
 class H3Gateway:
     """The single trusted application boundary for H3 generation work."""
 
-    def __init__(self, settings: GatewaySettings, *, session: requests.Session | Any | None = None) -> None:
+    def __init__(
+        self,
+        settings: GatewaySettings,
+        *,
+        session: requests.Session | Any | None = None,
+        source_session: requests.Session | Any | None = None,
+    ) -> None:
         if settings.worker_poll_seconds <= 0:
             raise ValueError("worker_poll_seconds must be positive")
+        if settings.source_fetch_connect_timeout_seconds <= 0:
+            raise ValueError("source_fetch_connect_timeout_seconds must be positive")
+        if settings.source_fetch_read_timeout_seconds <= 0:
+            raise ValueError("source_fetch_read_timeout_seconds must be positive")
+        if settings.source_fetch_max_redirects < 0:
+            raise ValueError("source_fetch_max_redirects must not be negative")
         self.settings = settings
         self.store = GatewayStore(self.settings.data_dir / "gateway.sqlite3")
         self.store.recover_interrupted_dispatches()
         self.files = GatewayFiles(settings, self.store)
         self.session = session or requests.Session()
         self.comfy = ComfyClient(settings, self.session)
+        self.source_images = SourceImageFetcher(settings, session=source_session)
         self.legacy_template = load_legacy_template()
 
     def health(self) -> dict[str, Any]:
@@ -45,17 +59,37 @@ class H3Gateway:
             "dispatchConcurrency": 1,
         }
 
-    def add_asset(self, content: bytes, *, mime_type: str) -> dict[str, Any]:
-        return self.files.add_asset(content, mime_type=mime_type)
+    def add_asset(self, content: bytes) -> dict[str, Any]:
+        return self.files.add_asset(content)
+
+    def create_job_from_image(
+        self, request: CreateJobFromImageRequest, *, content: bytes
+    ) -> dict[str, Any]:
+        """Store one image and queue one job without a separate client-visible state record."""
+
+        self.validate_image_job_request(request)
+        asset = self.add_asset(content)
+        try:
+            return self.create_job(request.to_create_job_request(str(asset["id"])))
+        except GatewayError:
+            self.files.discard_unreferenced_asset(asset)
+            raise
+
+    def validate_image_job_request(self, request: CreateJobFromImageRequest) -> None:
+        """Reject unsupported profiles before a one-step source fetch or asset write."""
+
+        self._selected_profile(request.profile_id)
 
     def create_job(self, request: CreateJobRequest) -> dict[str, Any]:
         """Reserve and prepare a job without a live ComfyUI round trip."""
 
-        try:
-            selected_profile = profile(request.profile_id)
-        except KeyError as error:
-            raise GatewayError("profile_not_supported", 422) from error
+        selected_profile = self._selected_profile(request.profile_id)
         asset = self.store.get_asset(request.asset_id)
+        self.files.validate_job_input(
+            asset=asset,
+            profile=selected_profile,
+            policy=request.aspect_policy,
+        )
         job_id = f"h3_{uuid.uuid4().hex}"
         seed = request.seed if request.seed is not None else int.from_bytes(os.urandom(8), "big") >> 1
         values = {
@@ -77,6 +111,13 @@ class H3Gateway:
         except GatewayError as error:
             return self.store.update_job(job_id, status="failed", error_code=error.code)
         return self.store.update_job(job_id, status="queued")
+
+    @staticmethod
+    def _selected_profile(profile_id: str):
+        try:
+            return profile(profile_id)
+        except KeyError as error:
+            raise GatewayError("profile_not_supported", 422) from error
 
     def dispatch_once(self) -> dict[str, Any] | None:
         """Advance at most one FIFO job through the only H3 dispatch lane."""

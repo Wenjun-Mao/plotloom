@@ -12,7 +12,6 @@ from typing import Any
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 from .contracts import (
-    ALLOWED_IMAGE_MIME_TYPES,
     MAX_IMAGE_PIXELS,
     MAX_UPLOAD_BYTES,
     AspectPolicy,
@@ -38,18 +37,20 @@ class GatewayFiles:
         self.managed_outputs_dir = self.settings.data_dir / "outputs"
         self.managed_outputs_dir.mkdir(parents=True, exist_ok=True)
 
-    def add_asset(self, content: bytes, *, mime_type: str) -> dict[str, Any]:
-        if mime_type not in ALLOWED_IMAGE_MIME_TYPES:
-            raise GatewayError("unsupported_image_mime", 415)
+    def add_asset(self, content: bytes) -> dict[str, Any]:
+        """Persist a supported image using its decoded format, never a caller header."""
+
         if not content or len(content) > MAX_UPLOAD_BYTES:
             raise GatewayError("image_size_invalid", 413)
         try:
             with Image.open(BytesIO(content)) as source:
+                source_format = source.format
                 source.verify()
             with Image.open(BytesIO(content)) as source:
                 width, height = source.size
         except (UnidentifiedImageError, OSError) as error:
             raise GatewayError("image_decode_invalid", 422) from error
+        mime_type = _mime_type_for_decoded_format(source_format)
         if width * height > MAX_IMAGE_PIXELS:
             raise GatewayError("image_pixels_exceed_limit", 422)
         asset_id = f"asset_{uuid.uuid4().hex}"
@@ -64,6 +65,39 @@ class GatewayFiles:
             digest=sha256(content).hexdigest(),
             path=path,
         )
+
+    def validate_job_input(
+        self, *, asset: dict[str, Any], profile: GatewayProfile, policy: AspectPolicy
+    ) -> None:
+        """Reject a known aspect mismatch before it creates a failed job record."""
+
+        source = self.gateway_asset_path(asset)
+        if source is None or not source.is_file():
+            raise GatewayError("input_prepare_failed", 422)
+        try:
+            with Image.open(source) as image:
+                source_width, source_height = image.size
+        except (UnidentifiedImageError, OSError) as error:
+            raise GatewayError("input_prepare_failed", 422) from error
+        _validate_aspect_policy(
+            source_width=source_width,
+            source_height=source_height,
+            target_width=profile.width,
+            target_height=profile.height,
+            policy=policy,
+        )
+
+    def discard_unreferenced_asset(self, asset: dict[str, Any]) -> None:
+        """Best-effort rollback for a one-step admission that never made a job."""
+
+        path = self.gateway_asset_path(asset)
+        if path is None:
+            return
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            return
+        self.store.delete_unreferenced_asset(str(asset["id"]))
 
     def prepare_job_input(self, *, job: dict[str, Any], asset: dict[str, Any], profile: GatewayProfile) -> None:
         _prepare_input(
@@ -286,8 +320,13 @@ def _prepare_input(
             image = ImageOps.exif_transpose(input_image).convert("RGB")
             source_ratio = image.width / image.height
             target_ratio = target_width / target_height
-            if policy == "reject_mismatch" and abs(source_ratio - target_ratio) > 0.001:
-                raise GatewayError("input_aspect_mismatch", 422)
+            _validate_aspect_policy(
+                source_width=image.width,
+                source_height=image.height,
+                target_width=target_width,
+                target_height=target_height,
+                policy=policy,
+            )
             if policy == "cover_center_crop":
                 if source_ratio > target_ratio:
                     crop_width = round(image.height * target_ratio)
@@ -312,6 +351,29 @@ def _prepare_input(
         raise
     except (UnidentifiedImageError, OSError) as error:
         raise GatewayError("input_prepare_failed", 422) from error
+
+
+def _mime_type_for_decoded_format(source_format: str | None) -> str:
+    try:
+        return {
+            "JPEG": "image/jpeg",
+            "PNG": "image/png",
+            "WEBP": "image/webp",
+        }[source_format or ""]
+    except KeyError as error:
+        raise GatewayError("unsupported_image_format", 415) from error
+
+
+def _validate_aspect_policy(
+    *, source_width: int, source_height: int, target_width: int, target_height: int, policy: AspectPolicy
+) -> None:
+    if policy not in {"cover_center_crop", "contain_pad", "reject_mismatch"}:
+        raise GatewayError("aspect_policy_invalid", 422)
+    if policy == "reject_mismatch":
+        source_ratio = source_width / source_height
+        target_ratio = target_width / target_height
+        if abs(source_ratio - target_ratio) > 0.001:
+            raise GatewayError("input_aspect_mismatch", 422)
 
 
 def _copy_file_atomically(source: Path, destination: Path) -> tuple[str, int]:

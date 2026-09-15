@@ -13,14 +13,19 @@ durable order for multiple Plotloom requests.
 
 The gateway keeps its narrow private HTTP boundary:
 
-1. `POST /v1/assets` uploads one validated reference asset.
+1. `POST /v1/assets` stores one validated reference asset from a multipart
+   image or private `sourceUrl` retrieval.
 2. `POST /v1/video-jobs` validates/prepares that asset, creates a durable job,
    and returns `202` with `queued` status without posting to ComfyUI. Admission
    is gateway-local, so a temporarily unavailable or busy ComfyUI leaves new
    valid work queued rather than rejecting it.
-3. `GET /v1/video-jobs/{id}` returns the known state; `GET .../output` serves
-   only the completed known MP4 owned by the gateway.
-4. `GET /health` returns safe H3 readiness, catalog and queue counts.
+3. `POST /v1/video-jobs/from-image` is a stateless convenience admission that
+   stores one supplied image and queues one ordinary job. Its input and retry
+   boundary are recorded in ADR 0040.
+4. `GET /v1/video-jobs/{id}` returns the known state; `GET .../output` serves
+   only the completed known MP4 owned by the gateway, while `POST .../cancel`
+   cancels only a still-queued job.
+5. `GET /health` returns safe H3 readiness, catalog and queue counts.
 
 The gateway owns one FIFO dispatch worker. It submits at most one of its jobs
 to ComfyUI at a time and waits while trusted external ComfyUI work is already

@@ -2,8 +2,11 @@
 
 **Status:** the documented H3 path is live on `main` as one deliberately
 limited, private video backend. This is the human-facing handoff entry point
-for operating, verifying, and changing it. It does not contain a Tailnet IP,
-bearer secret, raw prompt, or customer media.
+for operating, verifying, and changing it. It does not contain a bearer
+secret, raw prompt, or customer media. Colleagues who need to call the private
+service should use the separate, copy-paste
+[client guide](minimax-h3-gateway-client-guide.md), which records the current
+Tailnet base URL and a non-secret test image.
 
 For exact machine-readable behavior, the source profile and tests remain the
 implementation authority. This manual links them rather than duplicating an
@@ -283,8 +286,9 @@ The following is a private service contract; it is not a browser API.
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
 | `GET /health` | no bearer header | Checks ComfyUI and the reviewed catalog; returns status, contract version, safe profile descriptors, queued count and fixed concurrency |
-| `POST /v1/assets` | bearer | Uploads one PNG/JPEG/WebP, maximum 20 MiB and 30 megapixels |
+| `POST /v1/assets` | bearer | Stores one PNG/JPEG/WebP from a multipart upload or `{"sourceUrl": "http(s)://…"}` JSON body; maximum 20 MiB and 30 megapixels |
 | `POST /v1/video-jobs` | bearer | Prepares and durably queues one job from `assetId`, prompt, `profileId`, `aspectPolicy`, optional seed and optional `idempotencyKey` |
+| `POST /v1/video-jobs/from-image` | bearer | Stores a multipart image or a JSON `sourceUrl`, then queues one job; returns the ordinary job envelope and intentionally rejects `idempotencyKey` |
 | `GET /v1/video-jobs/{id}` | bearer | Refreshes a known job |
 | `POST /v1/video-jobs/{id}/cancel` | bearer | Cancels only a job that is still `queued` |
 | `GET /v1/video-jobs/{id}/output` | bearer | Streams the known gateway-managed completed MP4 |
@@ -296,6 +300,14 @@ Job response fields are deliberately closed: `id`, `status`, `profileId`,
 remain `succeeded` with `outputReady: false` after its MP4 expires.
 New jobs return `queued`; the gateway's single worker owns the only transition
 that can submit to ComfyUI.
+
+For private internal callers, `sourceUrl` accepts `http` and `https`, including
+Tailnet URLs. The gateway follows at most three redirects, uses a 5-second
+connect and 20-second read timeout by default, streams no more than 20 MiB,
+then identifies the decoded image bytes as JPEG/PNG/WebP. It retains neither
+the source URL nor a copy of its query string. This is deliberately a trusted
+Tailnet MVP; do not expose it to untrusted networks without a new URL-fetch
+security decision.
 
 The gateway deliberately imposes no job-count limit. It serializes H3 work and
 persists FIFO order in gateway SQLite; it does not treat ComfyUI's generic

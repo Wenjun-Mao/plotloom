@@ -301,6 +301,17 @@ class GatewayStore:
             )
         return deleted.rowcount == 1
 
+    def delete_unreferenced_asset(self, asset_id: str) -> bool:
+        """Remove a newly created one-step asset that never gained a job reference."""
+
+        with self._connect() as connection:
+            deleted = connection.execute(
+                "DELETE FROM assets WHERE id = ? AND NOT EXISTS "
+                "(SELECT 1 FROM jobs WHERE asset_id = ?)",
+                (asset_id, asset_id),
+            )
+        return deleted.rowcount == 1
+
     def get_job(self, job_id: str) -> dict[str, Any]:
         with self._connect() as connection:
             row = connection.execute("SELECT * FROM jobs WHERE id = ?", (job_id,)).fetchone()
