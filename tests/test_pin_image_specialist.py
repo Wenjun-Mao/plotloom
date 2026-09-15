@@ -5,6 +5,7 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
+import py_compile
 import shutil
 import subprocess
 import sys
@@ -109,6 +110,14 @@ def _compile_tracked_fixture_modules(repository: Path) -> None:
     )
 
 
+def _compile_orphaned_bytecode(source: Path, bytecode: Path, content: str) -> None:
+    """Write real bytecode whose source has been removed before preflight."""
+
+    source.write_text(content, encoding="utf-8")
+    py_compile.compile(source, cfile=bytecode, doraise=True)
+    source.unlink()
+
+
 def test_pin_accepts_current_modular_layout_and_preserves_its_provenance(
     modular_checkout: tuple[Path, Path],
 ) -> None:
@@ -134,6 +143,62 @@ def test_pin_accepts_current_modular_layout_and_preserves_its_provenance(
     repeat = _run_pin(repository, package)
     assert repeat.returncode != 0
     assert "already exists" in repeat.stderr
+
+
+def test_pin_accepts_stale_valid_bytecode_with_no_source_or_import(
+    modular_checkout: tuple[Path, Path],
+) -> None:
+    repository, package = modular_checkout
+    cache = repository / "src/plotloom/api/__pycache__"
+    cache.mkdir()
+    source = repository.parent / "stale_moved_image_module.py"
+    import_marker = repository.parent / "stale-bytecode-was-imported"
+    bytecode = cache / "stale_moved_image_module.cpython-313.pyc"
+    _compile_orphaned_bytecode(
+        source,
+        bytecode,
+        f"from pathlib import Path\nPath({str(import_marker)!r}).write_text('imported')\n",
+    )
+    assert bytecode.is_file()
+    assert not source.exists()
+    assert not import_marker.exists()
+
+    result = _run_pin(repository, package)
+
+    assert result.returncode == 0, result.stderr
+    assert not import_marker.exists()
+
+
+def test_pin_rejects_nested_directory_inside_ignored_bytecode_cache(
+    modular_checkout: tuple[Path, Path],
+) -> None:
+    repository, package = modular_checkout
+    nested = repository / "src/plotloom/api/__pycache__/nested"
+    nested.mkdir(parents=True)
+
+    result = _run_pin(repository, package)
+
+    assert result.returncode != 0
+    assert "pinned specialist source has uncommitted changes" in result.stderr
+    assert json.dumps(nested.relative_to(repository).as_posix()) in result.stderr
+    assert not (package.parent / "delivery" / "executor-pin.json").exists()
+
+
+def test_pin_rejects_malformed_filename_inside_ignored_bytecode_cache(
+    modular_checkout: tuple[Path, Path],
+) -> None:
+    repository, package = modular_checkout
+    cache = repository / "src/plotloom/api/__pycache__"
+    cache.mkdir()
+    malformed = cache / "stale-cache.pyc"
+    _compile_orphaned_bytecode(repository.parent / "stale_cache.py", malformed, "pass\n")
+
+    result = _run_pin(repository, package)
+
+    assert result.returncode != 0
+    assert "pinned specialist source has uncommitted changes" in result.stderr
+    assert json.dumps(malformed.relative_to(repository).as_posix()) in result.stderr
+    assert not (package.parent / "delivery" / "executor-pin.json").exists()
 
 
 @pytest.mark.parametrize(

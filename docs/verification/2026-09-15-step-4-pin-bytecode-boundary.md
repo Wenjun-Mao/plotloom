@@ -22,9 +22,13 @@ remains an uncommitted-change refusal.
 - Fixture modules in the actual API and persistence package paths are imported
   with the running Python interpreter before a clean preflight; their normal
   bytecode caches do not block pinning.
+- A real non-executable, PEP 3147-style stale `.pyc` is compiled from a
+  temporary source file that is removed before preflight. It pins successfully,
+  and an import side effect embedded in that bytecode never occurs.
 - Modified tracked API source still refuses after those imports.
-- Hidden Python source, an executable cache-named file, and a symlink inside an
-  ignored `__pycache__` directory each refuse and report the specific entry.
+- Hidden Python source, an executable cache-named file, a symlink, a nested
+  directory, and a real bytecode file with a malformed cache filename inside
+  an ignored `__pycache__` directory each refuse and report the specific entry.
 - Existing staged deletion, untracked source, ignored source, missing committed
   source, provenance, and re-pin refusal coverage remains in the same focused
   suite.
