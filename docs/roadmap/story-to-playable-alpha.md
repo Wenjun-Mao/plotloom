@@ -1,5 +1,9 @@
 # Story to playable Alpha: development roadmap
 
+> Historical roadmap and design context. For current scope, progress and next steps,
+> use [Reliable creative workflow](reliable-creative-workflow.md). The dated status
+> statements below are preserved as history, not current completion claims.
+
 Status: **progress reconciled; P2 plan prepared, 2026-09-12**.
 
 Current baseline: pushed `4eb98d4`, with
