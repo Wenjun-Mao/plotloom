@@ -97,6 +97,20 @@ membership before graph seal or canonical save. Typed effects travel unchanged
 through the graph binder and Scene Beats incident-edge context. They are not
 converted from historical `stateEffects`, and arbitrary facts remain separate.
 
+Graph entity-state effect violations deliberately fail closed at graph seal.
+`semantic.invalid_entity_state_effect` and
+`semantic.unknown_entity_state_effect_entity` do not enter the bounded
+correction directive registry: a correction has neither authority to choose a
+Bible state nor to replace an authored entity identity. The correction planner
+raises a named, stable fail-closed error that requires a new Story Graph
+generation, rather than accepting an arbitrary replacement or falling through
+as an unclassified runtime exception. This is intentionally narrower than the
+Scene Beats continuity repair fact, whose rejected response already identifies
+the entity and whose frozen Bible supplies only an allowed literal vocabulary.
+The durable correction attempt records
+`contract.graph_entity_state_effect_correction_forbidden` rather than flattening
+this disposition into a generic source-change failure.
+
 For `semantic.invalid_continuity_entity_state`, current correction contracts
 emit a source-rebound `ContinuityEntityStateRepairFact`: the exact response
 path, response-local boundary identity, entity type/ID, array index, and the

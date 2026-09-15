@@ -14,7 +14,9 @@ from plotloom.domain import (
     DialogueDeliveryPace,
     DramaticSceneV2,
     JoinContractV2,
+    LocationV2,
     ProjectBrief,
+    RequiredEntityState,
     SceneBeatPlanV2,
     StageName,
     StoryBibleV2,
@@ -799,6 +801,88 @@ def test_scene_work_unit_prompt_only_contains_the_selected_node_and_public_schem
     assert compiled.contract.schema_hash
     assert compiled.contract.variables_hash == second.contract.variables_hash
     assert compiled.contract.rendered_hash == second.contract.rendered_hash
+
+
+def test_scene_prompt_separates_regular_facts_from_typed_incoming_entity_effects() -> None:
+    brief, snapshot, plan, _bible_unused, _graph_unused, _scene_beats_unused = _plan_and_inputs()
+    bible = _bible_with_hero().model_copy(
+        update={
+            "locations": [
+                LocationV2(
+                    id="loc_station",
+                    name="空间站",
+                    description="目标地点。",
+                    visual_anchors=[],
+                    sound_anchors=[],
+                    allowed_states=["occupied", "empty"],
+                    continuity_rules=[],
+                )
+            ]
+        }
+    )
+    base_graph = _graph()
+    graph = StoryGraphV2(
+        start_node_id=base_graph.start_node_id,
+        nodes=base_graph.nodes,
+        edges=[
+            StoryEdgeV2(
+                id="edge-a-b",
+                source_node_id="node-a",
+                target_node_id="node-b",
+                kind="continuation",
+                choice_text=None,
+                state_effects={"loc_station_state": "misleading ordinary fact"},
+                entity_state_effects=[
+                    RequiredEntityState(
+                        entity_type="location",
+                        entity_id="loc_station",
+                        state="occupied",
+                    )
+                ],
+            )
+        ],
+        join_contracts=[],
+    )
+    stage_plan = plan_stage(
+        plan,
+        stage=StageName.SCENE_BEATS,
+        dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=brief,
+    )
+    unit = next(
+        item
+        for item in stage_plan.work_units
+        if item.selector.stable_id == "node-b"
+    )
+    compiled = compile_work_unit_request(
+        generation_plan=plan,
+        stage_plan=stage_plan,
+        work_unit=unit,
+        dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=brief,
+        canonical_snapshot=snapshot,
+        instructions="preserve the project brief",
+        stage_constraints={"maxBeats": 2},
+    )
+
+    message = compiled.rendered.messages[1].content
+    incident_edge = compiled.validator.scoped_context["incident_edges"][0]
+
+    assert compiled.contract.prompt_version == "3.13.0"
+    assert incident_edge["stateEffects"] == {
+        "loc_station_state": "misleading ordinary fact",
+    }
+    assert incident_edge["entityStateEffects"] == [
+        {
+            "entityType": "location",
+            "entityId": "loc_station",
+            "state": "occupied",
+        }
+    ]
+    assert "misleading ordinary fact" in message
+    assert '"entityStateEffects"' in message
+    assert "无论键名是否含 *_state，都绝不能把它推断" in message
+    assert "目标节点 entryState 之前生效" in message
 
 
 @pytest.mark.parametrize(

@@ -41,6 +41,7 @@ from .generation.contracts import (
 )
 from .generation.correction_directives import (
     CorrectionDirectivePlanError,
+    GraphEntityStateEffectCorrectionPlanError,
     compile_correction_instruction_plan,
 )
 from .generation.correction_postconditions import (
@@ -126,6 +127,12 @@ class CorrectionSourceContractError(ValueError):
     """A rejected attempt cannot be corrected under changed executable rules."""
 
     code = "contract.correction_source_changed"
+
+
+class GraphEntityStateEffectCorrectionError(CorrectionSourceContractError):
+    """Persist the graph-specific fail-closed correction disposition."""
+
+    code = "contract.graph_entity_state_effect_correction_forbidden"
 
 
 _CORRECTION_VARIANT_CONTRACT_FIELDS = frozenset(
@@ -1161,6 +1168,8 @@ class DurableWorkUnitRunner:
                 base_compiled.response_schema,
                 executable_repair_facts,
             )
+        except GraphEntityStateEffectCorrectionPlanError as error:
+            raise GraphEntityStateEffectCorrectionError(str(error)) from error
         except (CorrectionDirectivePlanError, CorrectionResponseSchemaError) as error:
             raise CorrectionSourceContractError(str(error)) from error
         issues = [

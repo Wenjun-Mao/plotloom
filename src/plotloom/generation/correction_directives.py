@@ -31,6 +31,12 @@ class CorrectionDirectivePlanError(ValueError):
     code = "contract.correction_directive_unsupported"
 
 
+class GraphEntityStateEffectCorrectionPlanError(CorrectionDirectivePlanError):
+    """A graph entity-state violation must return to primary graph generation."""
+
+    code = "contract.graph_entity_state_effect_correction_forbidden"
+
+
 class CorrectionDirective(FrozenModel):
     id: str
     text: str
@@ -407,6 +413,18 @@ _DIRECTIVE_BY_CODE = {
     for code in directive.codes
 }
 
+# Graph sealing is deliberately not a correction surface for Bible entity
+# effects. A typed graph effect is an authored upstream fact, while the Bible
+# owns its vocabulary; correction evidence has no authority to select a new
+# fact or replace an unknown entity identity. Name this boundary explicitly so
+# these codes never fall through as an accidental, generic unknown-code failure.
+_GRAPH_ENTITY_STATE_EFFECT_FAIL_CLOSED_CODES = frozenset(
+    {
+        "semantic.invalid_entity_state_effect",
+        "semantic.unknown_entity_state_effect_entity",
+    }
+)
+
 _CONTINUITY_SEQUENCE_CODES = frozenset(
     {
         "semantic.continuity_beat_sequence_mismatch",
@@ -501,6 +519,12 @@ def compile_correction_instruction_plan(
         if _is_base_issue_code(code):
             executable_issue_indexes.append(issue_index)
             continue
+        if code in _GRAPH_ENTITY_STATE_EFFECT_FAIL_CLOSED_CODES:
+            raise GraphEntityStateEffectCorrectionPlanError(
+                "graph entity-state effect violations require a new Story Graph "
+                "generation; correction has no authority to select a Bible state "
+                "or replace an entity identity"
+            )
         directive = _DIRECTIVE_BY_CODE.get(code)
         if directive is None:
             raise CorrectionDirectivePlanError(

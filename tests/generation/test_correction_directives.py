@@ -9,6 +9,7 @@ from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.correction_directives import (
     CORRECTION_DIRECTIVE_REGISTRY_VERSION,
     CorrectionDirectivePlanError,
+    GraphEntityStateEffectCorrectionPlanError,
     SUPPORTED_CORRECTION_ISSUE_CODES,
     compile_correction_instruction_plan,
 )
@@ -193,6 +194,20 @@ def test_required_typed_fact_and_unknown_semantic_code_fail_closed() -> None:
     unknown = _issue("semantic.future_unmodeled_contract", ("graph",))
     with pytest.raises(CorrectionDirectivePlanError, match="unsupported correction issue"):
         compile_correction_instruction_plan([unknown], [])
+
+    for graph_effect_code in (
+        "semantic.invalid_entity_state_effect",
+        "semantic.unknown_entity_state_effect_entity",
+    ):
+        with pytest.raises(
+            GraphEntityStateEffectCorrectionPlanError,
+            match="new Story Graph generation",
+        ) as error:
+            compile_correction_instruction_plan(
+                [_issue(graph_effect_code, ("edges", "edge-a", "entityStateEffects", 0))],
+                [],
+            )
+        assert error.value.code == "contract.graph_entity_state_effect_correction_forbidden"
 
     sequence_without_blocker = _issue(
         "semantic.continuity_beat_sequence_mismatch",

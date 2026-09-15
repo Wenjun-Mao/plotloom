@@ -56,6 +56,10 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await page.getByRole("button", { name: "添加效果" }).click();
     await page.getByLabel("状态键 2").fill("authorProof");
     await page.getByLabel("状态值 2").fill("retained");
+    await page.getByRole("button", { name: "添加实体状态" }).click();
+    await page.getByLabel("实体状态类型 1").selectOption("character");
+    await page.getByLabel("实体状态 ID 1").fill("char_ruanxing");
+    await page.getByLabel("实体状态值 1").fill("focused");
 
     // The corresponding join contract is separately addressable and retains
     // its immutable ID while its authored reconciliation note changes.
@@ -70,6 +74,9 @@ test.describe("M1-B1 canonical workbench journey", () => {
     const authorProof = page.locator('[data-focus-key="graph:edge:e2:stateEffects.authorProof"]');
     await expect(authorProof).toHaveValue("authorProof");
     await expect(authorProof.locator("xpath=following-sibling::input")).toHaveValue("retained");
+    await expect(page.getByLabel("实体状态类型 1")).toHaveValue("character");
+    await expect(page.getByLabel("实体状态 ID 1")).toHaveValue("char_ruanxing");
+    await expect(page.getByLabel("实体状态值 1")).toHaveValue("focused");
     await selectGraphEntity(page, "node", "join");
     await page.getByRole("button", { name: "编辑合同 join_contract_1" }).click();
     await expect(page.getByLabel("备注")).toHaveValue(contractNotes);

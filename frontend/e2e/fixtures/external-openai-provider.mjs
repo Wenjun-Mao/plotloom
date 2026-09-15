@@ -58,7 +58,7 @@ function jsonAfter(text, marker) {
 function graphFill(topology) {
   return {
     nodes: topology.nodes.map((node, index) => ({ id: node.id, title: `E2E node ${index + 1}`, summary: "The ferry continues through the fog." })),
-    edges: topology.edges.map((edge, index) => ({ id: edge.id, choiceText: edge.kind === "choice" ? `Choice ${index + 1}` : null, stateEffects: edge.kind === "choice" ? { route: edge.id } : {} })),
+    edges: topology.edges.map((edge, index) => ({ id: edge.id, choiceText: edge.kind === "choice" ? `Choice ${index + 1}` : null, stateEffects: edge.kind === "choice" ? { route: edge.id } : {}, entityStateEffects: [] })),
     joinContracts: topology.joinContracts.map((join) => ({ id: join.id, requiredStateKeys: [], allowedDifferences: [], reconciliation: "The routes reunite at the ferry bell.", notes: "" })),
   };
 }

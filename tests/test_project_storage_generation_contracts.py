@@ -351,6 +351,37 @@ def test_project_generation_rejects_tampered_correction_audit_before_second_disp
     ]
 
 
+def test_project_generation_persists_graph_entity_effect_correction_boundary(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    store = _store(tmp_path)
+    run = _create_bible_run(store, fixture_profile())
+    provider = _QueueProvider(["not json"])
+
+    def forbid_graph_entity_effect_correction(*args, **kwargs):
+        raise work_unit_pipeline.GraphEntityStateEffectCorrectionPlanError(
+            "new Story Graph generation required"
+        )
+
+    monkeypatch.setattr(
+        work_unit_pipeline,
+        "compile_correction_instruction_plan",
+        forbid_graph_entity_effect_correction,
+    )
+    broker = RunSecretBroker()
+    try:
+        completed = _execute(store, run.id, provider, broker)
+    finally:
+        broker.close()
+
+    assert completed.status == RunStatus.FAILED
+    assert len(provider.requests) == 1
+    assert [attempt.outcome_code for attempt in store.run_trace(run.id).attempts] == [
+        "response.extraction",
+        "contract.graph_entity_state_effect_correction_forbidden",
+    ]
+
+
 def test_project_exact_repair_refuses_tampered_response_evidence_without_creating_a_child(
     tmp_path: Path,
 ) -> None:
