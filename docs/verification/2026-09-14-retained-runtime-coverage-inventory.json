@@ -40,21 +40,37 @@
       ]
     },
     "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples": {
-      "source_sha256": "d1743fdc8ce28bd33e86f033a40618f59f0492c456e137a3d42576a013d0e604",
+      "source_sha256": "1416a9e9d6c5c139c6ed24aab82109469986525da7bc50e3f0851ad42d8aee89",
       "assertions": [
         "len(result.receipts) == 18",
+        "provenance_checks == ['a' * 40, 'a' * 40]",
         "result.qualification_issues == ()",
         "alpha_acceptance.alpha_qualification_issue_codes(result.receipts) == []",
         "{receipt['profileId'] for receipt in result.receipts} == {'profile-01', 'profile-02'}",
+        "{receipt['storyId'] for receipt in result.receipts} == {'story-01', 'story-02', 'story-03'}",
+        "{receipt['sampleId'] for receipt in result.receipts} == {f'{story_id}-repeat-{repeat_ordinal:02d}' for story_id in ('story-01', 'story-02', 'story-03') for repeat_ordinal in range(1, 4)}",
+        "all((set(receipt) == {'commit', 'contractHash', 'profileId', 'storyId', 'sampleId', 'status', 'issueCodes', 'durationMilliseconds', 'tokens', 'scores'} for receipt in result.receipts))",
+        "all((receipt['commit'] == 'a' * 40 for receipt in result.receipts))",
         "all((receipt['status'] == 'succeeded' for receipt in result.receipts))",
-        "all((receipt['scores']['firstPass']['accepted'] == 4 and receipt['scores']['maxAttemptsPerWorkUnit'] == 1 for receipt in result.receipts))",
+        "all((receipt['scores'] == {'firstPass': {'total': 4, 'accepted': 4, 'rejected': 0, 'outcomeUnknown': 0, 'cancelled': 0, 'notRun': 0}, 'maxAttemptsPerWorkUnit': 1} for receipt in result.receipts))",
         "roots and all((not root.exists() for root in roots))",
         "[path.name for path in result.review_paths] == [f'review-{ordinal:032x}.json' for ordinal in range(1, 7)]",
         "result.review_mapping_path is not None",
+        "result.review_mapping_path == review_directory / 'review-mapping.private.json'",
         "stat.S_IMODE(result.review_mapping_path.stat().st_mode) == 384",
+        "sorted((path.name for path in review_directory.iterdir())) == sorted([path.name for path in result.review_paths] + [f'{path.stem}.score-sheet.json' for path in result.review_paths] + ['review-mapping.private.json'])",
+        "manifest.commit == 'a' * 40",
+        "manifest.contract_hash == alpha_acceptance.alpha_contract_hash()",
+        "len(manifest.samples) == 6",
+        "mapping['reviewCount'] == 6",
+        "mapping['entries'][0]['profileId'] == 'profile-02'",
+        "mapping['entries'][0]['storyId'] == 'story-03'",
         "forbidden not in receipt_text",
         "set(payload) == {'storyBible', 'storyGraph', 'sceneBeats', 'storyboard'}",
-        "forbidden not in review_text"
+        "sheet['reviewId'] == review_path.stem",
+        "sheet['fatalContradiction'] == 'PENDING'",
+        "forbidden not in review_text",
+        "forbidden not in score_sheet.read_text(encoding='utf-8')"
       ]
     },
     "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack": {
@@ -75,11 +91,18 @@
       ]
     },
     "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence": {
-      "source_sha256": "5ddc26e160404a54f031a54fd072f8fa90d5f15e2359e0bb31fe34c44a67f717",
+      "source_sha256": "af0fd56e77c97b4333002f70a7ea548aae1914dd70095f1017d5afc0a0c58c6a",
       "assertions": [
         "[receipt['sampleOrdinal'] for receipt in receipts] == [1, 2]",
         "all((receipt['status'] == 'succeeded' for receipt in receipts))",
+        "all((set(receipt) == {'profileId', 'profileHash', 'workloadHash', 'sampleOrdinal', 'runHash', 'topologyHash', 'status', 'issueCodes', 'durationMilliseconds', 'tokens', 'firstPass', 'maxAttemptsPerWorkUnit'} for receipt in receipts))",
+        "all((receipt['profileId'] == 'fixture' for receipt in receipts))",
+        "all((receipt['workloadHash'] == conformance.conformance_workload_hash() for receipt in receipts))",
+        "all((receipt['topologyHash'] for receipt in receipts))",
+        "all((receipt['issueCodes'] == [] for receipt in receipts))",
+        "all((receipt['tokens'] == {'inputTokens': 140, 'outputTokens': 220, 'totalTokens': 360} for receipt in receipts))",
         "all((receipt['firstPass']['accepted'] == 4 for receipt in receipts))",
+        "all((receipt['firstPass'] == {'total': 4, 'accepted': 4, 'rejected': 0, 'outcomeUnknown': 0, 'cancelled': 0, 'notRun': 0} for receipt in receipts))",
         "all((receipt['maxAttemptsPerWorkUnit'] == 1 for receipt in receipts))",
         "conformance.qualification_issue_codes(receipts, profile_ids=['fixture'], sample_count=2) == []",
         "roots and all((not root.exists() for root in roots))",
@@ -874,6 +897,214 @@
         "stale['activeApproval'] is None",
         "any(('upstream story_bible revision changed' in reason for reason in stale['decisions'][-1]['staleReasons']))",
         "client.post(f'/api/v2/projects/{project_id}/storyboard-approval', json=request).status_code == 409"
+      ]
+    },
+    "tests/test_conformance.py::test_m15_conformance_uses_two_current_application_profiles": {
+      "source_sha256": "52529b0ba24c3a5f3477ae7bb5cb01377c26214bb242ffd9e2f94e6ee797ec5e",
+      "assertions": [
+        "len(receipts) == 6",
+        "conformance.m15_qualification_issue_codes(receipts, profile_ids=profile_ids) == []",
+        "[sample['sampleOrdinal'] for sample in samples] == [1, 2, 3]",
+        "all((sample['status'] == 'succeeded' for sample in samples))",
+        "all((sample['firstPass'] == {'total': 4, 'accepted': 4, 'rejected': 0, 'outcomeUnknown': 0, 'cancelled': 0, 'notRun': 0} for sample in samples))",
+        "all((sample['maxAttemptsPerWorkUnit'] == 1 for sample in samples))"
+      ]
+    },
+    "tests/test_alpha_qualification_contracts.py::test_alpha_provenance_is_bound_to_the_running_checkout_and_clean_head": {
+      "source_sha256": "dd34b15b5cf948ab9d074ea154a5fa654aedb8f6c5600303dbabb7e00bf204e8",
+      "assertions": [
+        "alpha_acceptance._resolve_alpha_source_provenance(None) == expected",
+        "alpha_acceptance._resolve_alpha_source_provenance(head.upper()) == expected",
+        "calls == [('git', 'status', '--porcelain', '--untracked-files=all'), ('git', 'rev-parse', '--verify', 'HEAD^{commit}'), ('git', 'status', '--porcelain', '--untracked-files=all'), ('git', 'rev-parse', '--verify', 'HEAD^{commit}')]",
+        "kwargs['cwd'] == checkout_root",
+        "raises: pytest.raises(ValueError, match='source checkout has uncommitted changes')",
+        "raises: pytest.raises(ValueError, match='explicit commit does not match')"
+      ]
+    },
+    "tests/test_alpha_qualification_contracts.py::test_alpha_source_checkout_is_derived_from_the_running_module": {
+      "source_sha256": "39feffab56e114cffdeb136dffa9939d555d4ba9b35f7bbe8a5ff8dd117f753a",
+      "assertions": [
+        "alpha_acceptance._source_checkout_root() == source_root",
+        "raises: pytest.raises(ValueError, match='owning source checkout')"
+      ]
+    },
+    "tests/test_conformance.py::test_qualification_enforces_first_pass_attempt_and_identity_boundaries": {
+      "source_sha256": "31c4b5291fb0636cb6826b7724ed8019faedd2c3087e2dd70744dca837a61b8e",
+      "assertions": [
+        "conformance.qualification_issue_codes(receipts, profile_ids=['fixture'], sample_count=3) == ['qualification.fixture.attempt_limit', 'qualification.fixture.first_pass']",
+        "conformance.qualification_issue_codes(identity_failure, profile_ids=['fixture'], sample_count=3) == ['qualification.fixture.duplicate_run', 'qualification.fixture.sample_identity', 'qualification.fixture.workload_identity']"
+      ]
+    },
+    "tests/test_conformance.py::test_m15_cli_emits_receipts_without_a_legacy_database_option": {
+      "source_sha256": "02f348526a8c9d58a581a0a40c532a0b8bfa7318e54d92c513b7b069e87077f6",
+      "assertions": [
+        "conformance.main(['--qualify-m15', '--profile', 'profile_a', '--profile', 'profile_b', '--runs', '3']) == 0",
+        "captured.err == ''",
+        "len([line for line in captured.out.splitlines() if line]) == 6"
+      ]
+    },
+    "tests/test_application_profile_snapshot_contracts.py::test_saved_profile_snapshot_reads_consistently_while_a_rollback_writer_is_reserved": {
+      "source_sha256": "344cbf5f88cfec1841ee0f3993b117a4208ebae1cee9e689b75b697425289eef",
+      "assertions": [
+        "[profile.profile_version for profile in load_saved_text_profiles(root, ['fixture_a', 'fixture_b'])] == [2, 2]",
+        "writer.execute('PRAGMA journal_mode=DELETE').fetchone()[0].lower() == 'delete'",
+        "time.monotonic() - started < 1",
+        "[profile.profile_version for profile in snapshot] == [1, 1]"
+      ]
+    },
+    "tests/test_alpha_qualification_contracts.py::test_alpha_cli_hides_setup_details_and_reports_qualification_failure": {
+      "source_sha256": "065c5459d4d533573177b1eb8c0eb0d0bd0a691b58868253c07b5e8eb65d470a",
+      "assertions": [
+        "alpha_acceptance.main(['--profile', 'one', '--profile', 'two', '--review-directory', str(tmp_path / 'review'), '--commit', 'a' * 40]) == 1",
+        "json.loads(captured.out) == failed_receipt",
+        "'Alpha qualification failed: alpha.matrix.run_completion' in captured.err",
+        "alpha_acceptance.main(['--profile', 'one', '--profile', 'two', '--review-directory', str(tmp_path / 'other-review')]) == 2",
+        "captured.out == ''",
+        "captured.err == 'Alpha setup failed; inspect local configuration. Temporary evidence was removed.\\n'",
+        "'private checkout path' not in captured.err"
+      ]
+    },
+    "tests/test_alpha_qualification_contracts.py::test_alpha_qualification_fails_closed_for_missing_incomplete_and_non_success_samples": {
+      "source_sha256": "bb9de9b11090058d045667967671d2f79fbd44d4c574bf89c63d5d97f27e7e7f",
+      "assertions": [
+        "alpha_acceptance.alpha_qualification_issue_codes(complete) == []",
+        "alpha_acceptance.alpha_qualification_issue_codes(unknown) == ['alpha.matrix.invariant']",
+        "{'alpha.matrix.run_count', 'alpha.matrix.sample_identity', 'alpha.profile-02.stage_count'} <= set(alpha_acceptance.alpha_qualification_issue_codes(missing))",
+        "'alpha.receipt.schema' in alpha_acceptance.alpha_qualification_issue_codes(incomplete)",
+        "alpha_acceptance.alpha_qualification_issue_codes(non_success) == ['alpha.matrix.run_completion']"
+      ]
+    },
+    "tests/test_alpha_acceptance.py::test_alpha_preserves_review_directory_and_hides_setup_failures": {
+      "source_sha256": "624beb401538d52d30feac367d5f2f674935476d659f647840af4d4e325aa507",
+      "assertions": [
+        "alpha_acceptance.main(['--profile', 'one', '--profile', 'two', '--review-directory', str(tmp_path / 'other-review')]) == 2",
+        "captured.out == ''",
+        "'private source details' not in captured.err",
+        "raises: pytest.raises(ValueError, match='must be empty')",
+        "raises: pytest.raises(ValueError, match='absolute path')",
+        "raises: pytest.raises(ValueError, match='outside the source checkout')"
+      ]
+    },
+    "tests/test_conformance.py::test_conformance_closes_prepared_project_stores_when_later_setup_fails": {
+      "source_sha256": "5124ca3b098a0ff1948eb675ecf33ab2352b7a9b13238324f4a7a6643c7b35c8",
+      "assertions": [
+        "len(prepared) == 1",
+        "prepared[0].closed is True",
+        "raises: pytest.raises(RuntimeError, match='fixture initialization failure')"
+      ]
+    },
+    "tests/test_conformance.py::test_fixed_workload_preserves_storyboard_capacity_for_multi_beat_scenes": {
+      "source_sha256": "053ac0c06a78ba8d0d4f6789fbb923ab3fba8a4d857339a9feca91dbabdfc8e6",
+      "assertions": [
+        "conformance.CONFORMANCE_WORKLOAD_VERSION == 'fixed_chinese_interactive_story.v8'",
+        "brief.shots_per_scene_min == 1",
+        "brief.shots_per_scene_max == 4"
+      ]
+    },
+    "tests/test_conformance.py::test_qualification_allows_audited_corrections_within_the_first_pass_budget": {
+      "source_sha256": "092771ff64fb12553688785c6bef1124d37e325f078f5b4460abebee0373879d",
+      "assertions": [
+        "conformance.qualification_issue_codes(receipts, profile_ids=['fixture'], sample_count=3) == []"
+      ]
+    },
+    "tests/test_alpha_qualification_contracts.py::test_external_engineering_review_is_not_a_product_approval_or_human_acceptance": {
+      "source_sha256": "9811a91746c0c065ce835d09e9266c31a9ab50211c9fc9c6e45cb0d39f6e9e55",
+      "assertions": [
+        "set(receipt) == {'receipt', 'commit', 'contractHash', 'rubricVersion', 'reviewer', 'reviews', 'gate'}",
+        "receipt['receipt'] == 'codex_external_review'",
+        "gate.commit == different_pack.commit",
+        "'codex_external_review.commit_identity' in gate.issue_codes",
+        "rebound_receipt.commit == different_pack.commit",
+        "rebound_receipt.gate.passed is False",
+        "forbidden not in serialized"
+      ]
+    },
+    "tests/test_conformance.py::test_m15_cli_rejects_partial_shape_before_loading_runtime_config": {
+      "source_sha256": "2480a2d81446edff9f4a09cb91b49b37b3a50164566583d5738987d7942b84bd",
+      "assertions": [
+        "conformance.main(['--qualify-m15', '--profile', 'fixture', '--runs', '1']) == 2",
+        "'exactly two distinct profiles and three runs each' in capsys.readouterr().err"
+      ]
+    },
+    "tests/test_alpha_acceptance.py::test_alpha_profile_snapshot_is_read_only_and_refuses_disabled_profiles": {
+      "source_sha256": "7a89808744acb7b6995c049422671b4b3fb13a573294a1905365ecfa77a67409",
+      "assertions": [
+        "[profile.profile_id for profile in loaded] == ['real_looking_a']",
+        "database_path.read_bytes() == before",
+        "raises: pytest.raises(ValueError, match='disabled text provider profile')"
+      ]
+    },
+    "tests/test_alpha_acceptance.py::test_external_review_gate_enforces_quality_thresholds_and_full_manifest": {
+      "source_sha256": "fe05c56f0f98fc33a0891a87580e2acc5a5753df80436eda6a5949a1b8c2bd98",
+      "assertions": [
+        "{'codex_external_review.sample_average', 'codex_external_review.dimension_median'} <= set(quality_gate.issue_codes)",
+        "manifest_gate.passed is False",
+        "manifest_gate.expected_review_count == 6",
+        "{'codex_external_review.expected_manifest_count', 'codex_external_review.count'} <= set(manifest_gate.issue_codes)"
+      ]
+    },
+    "tests/test_application_profile_snapshot_contracts.py::test_saved_profile_snapshot_uses_one_transactional_view_during_a_writer_update": {
+      "source_sha256": "27989cffa0f96ae73f6b571bb10e855020d002f85323d8db6438d5cde4820e9b",
+      "assertions": [
+        "changed is True",
+        "[profile.profile_version for profile in snapshot] == [1, 1]",
+        "[profile.profile_version for profile in load_saved_text_profiles(root, ['fixture_a', 'fixture_b'])] == [2, 2]"
+      ]
+    },
+    "tests/test_alpha_qualification_contracts.py::test_alpha_qualification_counts_corrections_against_each_profile_first_pass_budget": {
+      "source_sha256": "f81f2ec5a9a9d4802ebce433a8f0462d4b69a35af1e1a5c6edfa92f328faa9dc",
+      "assertions": [
+        "alpha_acceptance.alpha_qualification_issue_codes(boundary) == []",
+        "alpha_acceptance.alpha_qualification_issue_codes(below_threshold) == ['alpha.profile-01.first_pass']"
+      ]
+    },
+    "tests/test_conformance.py::test_qualification_rejects_true_install_invariants_and_missing_samples": {
+      "source_sha256": "aa18d489a5a7b8ca0b8c7057a6993093cd07f7943fbfde243b08e1a8c40a4f67",
+      "assertions": [
+        "conformance.qualification_issue_codes(receipts, profile_ids=['fixture'], sample_count=3) == ['qualification.fixture.invariant']",
+        "conformance.qualification_issue_codes(_complete_receipts()[:-1], profile_ids=['fixture'], sample_count=3) == ['qualification.fixture.sample_count']"
+      ]
+    },
+    "tests/test_alpha_qualification_contracts.py::test_alpha_never_publishes_a_partial_review_pack_after_late_qualification_failure": {
+      "source_sha256": "0171dce177c2f46ad5fbfb71f58d951144c1e75b67e6e4dd430cd10b3d709a8c",
+      "assertions": [
+        "'alpha.matrix.run_completion' in result.qualification_issues",
+        "result.review_paths == ()",
+        "not review_directory.exists()",
+        "not list(tmp_path.glob('.review-pack.plotloom-stage-*'))"
+      ]
+    },
+    "tests/test_conformance.py::test_m15_qualification_requires_two_distinct_profiles_and_accepts_complete_matrix": {
+      "source_sha256": "ee36f047faac68108b390901e8efa2bdb58c1ae098f02cb8b45cacba799582b7",
+      "assertions": [
+        "conformance.m15_qualification_issue_codes([], profile_ids=['only_one']) == ['qualification.m15.profile_identity']",
+        "conformance.m15_qualification_issue_codes([], profile_ids=['same', 'same']) == ['qualification.m15.profile_identity']",
+        "conformance.m15_qualification_issue_codes(_complete_receipts(profile_ids=('profile_a', 'profile_b')), profile_ids=['profile_a', 'profile_b']) == []"
+      ]
+    },
+    "tests/test_application_profile_snapshot_contracts.py::test_saved_profile_snapshot_reads_a_live_wal_without_mutating_application_files": {
+      "source_sha256": "2d0297f5373f026ee485dffea9d2726c7f38d3c28b510d1887aa5e13d96e9489",
+      "assertions": [
+        "before[watched_paths[1]] is not None",
+        "[profile.profile_id for profile in loaded] == ['fixture_a', 'fixture_b']",
+        "{path: _file_state(path) for path in watched_paths} == before"
+      ]
+    },
+    "tests/test_alpha_qualification_contracts.py::test_alpha_provenance_failure_precedes_review_output_and_cli_rejects_bad_commit": {
+      "source_sha256": "b947321c58d66ad9d4c11ed0eb2fe4263eec45b5ec9a9568782f612a6d4d9834",
+      "assertions": [
+        "not review_directory.exists()",
+        "exit_error.value.code == 2",
+        "'40-character hexadecimal Git commit SHA' in capsys.readouterr().err",
+        "raises: pytest.raises(ValueError, match='private checkout path')",
+        "raises: pytest.raises(SystemExit)"
+      ]
+    },
+    "tests/test_alpha_acceptance.py::test_external_review_gate_rejects_malformed_sheets_and_frozen_identity_mismatches": {
+      "source_sha256": "7c37d5b828bf41067a056c6e159064d1b0b64c9860593c6937c4e7fbf788f0a3",
+      "assertions": [
+        "{'codex_external_review.schema', 'codex_external_review.count', 'codex_external_review.identity'} <= set(malformed_gate.issue_codes)",
+        "{'codex_external_review.commit_identity', 'codex_external_review.contract_identity', 'codex_external_review.content_identity', 'codex_external_review.identity'} <= set(mismatch_gate.issue_codes)"
       ]
     }
   },
@@ -10361,11 +10592,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_alpha_cli_hides_setup_details_and_reports_qualification_failure"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_cli_rejects_non_commit_sha",
@@ -10384,11 +10614,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_alpha_provenance_failure_precedes_review_output_and_cli_rejects_bad_commit"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_cli_returns_one_for_qualification_failure",
@@ -10409,11 +10638,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_alpha_cli_hides_setup_details_and_reports_qualification_failure"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_late_qualification_failure_never_publishes_partial_review_pack",
@@ -10441,11 +10669,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_alpha_never_publishes_a_partial_review_pack_after_late_qualification_failure"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_publication_enforces_provenance_before_creating_review_output",
@@ -10467,11 +10694,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_alpha_provenance_failure_precedes_review_output_and_cli_rejects_bad_commit"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_publication_provenance_binds_explicit_or_implicit_commit_to_clean_checkout",
@@ -10499,11 +10725,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_alpha_provenance_is_bound_to_the_running_checkout_and_clean_head"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_publication_provenance_rejects_dirty_checkout_or_mismatched_commit",
@@ -10534,11 +10759,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_alpha_provenance_is_bound_to_the_running_checkout_and_clean_head"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_qualification_enforces_first_pass_and_unknown_outcome_invariants",
@@ -10562,11 +10786,11 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_alpha_qualification_fails_closed_for_missing_incomplete_and_non_success_samples",
+        "tests/test_alpha_qualification_contracts.py::test_alpha_qualification_counts_corrections_against_each_profile_first_pass_budget"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_refuses_to_overwrite_review_directory",
@@ -10588,11 +10812,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_acceptance.py::test_alpha_preserves_review_directory_and_hides_setup_failures"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_rejects_relative_or_checkout_review_directories",
@@ -10612,11 +10835,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_acceptance.py::test_alpha_preserves_review_directory_and_hides_setup_failures"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_runs_full_18_cell_fixture_matrix_writes_blinded_reviews_and_cleans_up",
@@ -10686,11 +10908,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_alpha_source_checkout_is_bound_to_the_running_module",
@@ -10719,11 +10940,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_alpha_source_checkout_is_derived_from_the_running_module"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_codex_external_review_gate_cannot_vacuously_pass_a_smaller_manifest",
@@ -10745,11 +10965,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_acceptance.py::test_external_review_gate_enforces_quality_thresholds_and_full_manifest"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_codex_external_review_gate_rejects_shape_and_each_quality_threshold",
@@ -10780,11 +10999,11 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_acceptance.py::test_external_review_gate_rejects_malformed_sheets_and_frozen_identity_mismatches",
+        "tests/test_alpha_acceptance.py::test_external_review_gate_enforces_quality_thresholds_and_full_manifest"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_codex_external_review_gate_uses_only_closed_secret_free_score_sheets",
@@ -10815,11 +11034,11 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
+        "tests/test_alpha_qualification_contracts.py::test_external_engineering_review_is_not_a_product_approval_or_human_acceptance",
         "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_codex_external_review_identity_is_derived_from_the_frozen_review_pack",
@@ -10847,11 +11066,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_qualification_contracts.py::test_external_engineering_review_is_not_a_product_approval_or_human_acceptance"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_codex_external_review_rejects_non_integer_scores_and_identity_mismatch",
@@ -10876,11 +11094,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_acceptance.py::test_external_review_gate_rejects_malformed_sheets_and_frozen_identity_mismatches"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_private_review_manifest_requires_all_six_samples",
@@ -10900,11 +11117,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
         "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_source_profile_loader_does_not_deadlock_a_reserved_rollback_writer",
@@ -10927,11 +11143,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_application_profile_snapshot_contracts.py::test_saved_profile_snapshot_reads_consistently_while_a_rollback_writer_is_reserved"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_source_profile_loader_is_read_only_and_keeps_live_wal_visible",
@@ -10955,11 +11170,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_application_profile_snapshot_contracts.py::test_saved_profile_snapshot_reads_a_live_wal_without_mutating_application_files"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_source_profile_loader_refuses_disabled_profile_without_rewriting_source",
@@ -10981,11 +11195,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_alpha_acceptance.py::test_alpha_profile_snapshot_is_read_only_and_refuses_disabled_profiles"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_source_profile_loader_uses_consistent_snapshot_during_writer_checkpoint_pressure",
@@ -11010,11 +11223,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
+        "tests/test_application_profile_snapshot_contracts.py::test_saved_profile_snapshot_uses_one_transactional_view_during_a_writer_update"
       ],
       "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_alpha_acceptance.py::test_source_profile_snapshot_rejects_a_recreated_shm_inode",
@@ -11034,13 +11246,11 @@
         "'changed during snapshot' in str(error)"
       ],
       "forbidden_results": [],
-      "disposition": "migrated_current_contract",
-      "current_replacements": [
-        "tests/test_alpha_acceptance.py::test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples",
-        "tests/test_alpha_acceptance.py::test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack"
-      ],
-      "mapping_note": "Alpha keeps the 18-sample project-folder matrix, secret-free review pack, strict review schema, frozen identities, quality thresholds, and private-map completeness.",
-      "review_status": "pending"
+      "disposition": "truly_retired_contract",
+      "current_replacements": [],
+      "mapping_note": "Individually retired: current qualification reads the application database through one direct read-only transaction instead of copying a SQLite/WAL/SHM snapshot pair.",
+      "review_status": "verified",
+      "retirement_rationale": "The breaking project-folder storage transition removed the copied SQLite/WAL/SHM snapshot mechanism; the current direct read-only application transaction has no copied SHM inode to validate."
     },
     {
       "id": "tests/test_conformance.py::test_conformance_closes_prepared_repositories_when_later_initialization_fails",
@@ -11069,11 +11279,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_conformance_closes_prepared_project_stores_when_later_setup_fails"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_conformance_loader_refuses_disabled_saved_profile",
@@ -11095,11 +11304,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_application_profile_snapshot_refuses_disabled_or_secret_corruption"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
@@ -11142,11 +11350,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_fixed_workload_preserves_storyboard_capacity_for_multi_beat_scenes",
@@ -11164,11 +11371,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_fixed_workload_preserves_storyboard_capacity_for_multi_beat_scenes"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_m15_cli_emits_six_receipts_on_a_passing_strict_batch",
@@ -11192,11 +11398,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_m15_cli_emits_receipts_without_a_legacy_database_option"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_m15_cli_rejects_partial_shape_before_loading_runtime_config",
@@ -11213,11 +11418,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_m15_cli_rejects_partial_shape_before_loading_runtime_config"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_m15_conformance_runs_two_profiles_three_times_through_the_real_fixture_path",
@@ -11245,11 +11449,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_m15_conformance_uses_two_current_application_profiles"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_m15_qualification_accepts_two_profiles_with_three_complete_samples",
@@ -11267,11 +11470,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_m15_qualification_requires_two_distinct_profiles_and_accepts_complete_matrix"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_m15_qualification_requires_two_distinct_profiles",
@@ -11288,11 +11490,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_m15_qualification_requires_two_distinct_profiles_and_accepts_complete_matrix"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_qualification_allows_audited_corrections_within_first_pass_budget",
@@ -11310,11 +11511,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_qualification_allows_audited_corrections_within_the_first_pass_budget"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_qualification_rejects_mixed_workloads_and_duplicate_sample_identity",
@@ -11332,11 +11532,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_qualification_enforces_first_pass_attempt_and_identity_boundaries"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_qualification_rejects_true_conformance_invariant_codes",
@@ -11354,11 +11553,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_qualification_rejects_true_install_invariants_and_missing_samples"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/test_conformance.py::test_qualification_requires_stage_level_first_pass_rate_and_attempt_limit",
@@ -11376,11 +11574,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_conformance.py::test_conformance_runs_the_production_four_stage_loop_and_deletes_evidence",
-        "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures"
+        "tests/test_conformance.py::test_qualification_enforces_first_pass_attempt_and_identity_boundaries"
       ],
       "mapping_note": "Conformance now drives application profile snapshots and project folders while preserving qualification identity and invariant checks.",
-      "review_status": "pending"
+      "review_status": "verified"
     }
   ],
   "review_summary": {
@@ -11405,8 +11602,8 @@
       "tests/backend_core/test_storyboard_review.py": "verified",
       "tests/backend_core/test_work_unit_persistence.py": "mixed",
       "tests/media_jobs/test_runner.py": "pending",
-      "tests/test_alpha_acceptance.py": "pending",
-      "tests/test_conformance.py": "pending"
+      "tests/test_alpha_acceptance.py": "verified",
+      "tests/test_conformance.py": "verified"
     }
   }
 }

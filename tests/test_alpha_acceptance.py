@@ -71,7 +71,9 @@ def _application_data_dir(tmp_path: Path) -> tuple[Path, ApplicationProfileRepos
 
 
 def _fixture_provenance(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    checks: list[str | None] | None = None,
 ) -> alpha_acceptance._AlphaSourceProvenance:
     checkout_root = tmp_path / "fixture-source-checkout"
     checkout_root.mkdir()
@@ -79,7 +81,11 @@ def _fixture_provenance(
         checkout_root=checkout_root, commit_sha="a" * 40
     )
     monkeypatch.setattr(
-        alpha_acceptance, "_resolve_alpha_source_provenance", lambda _commit: provenance
+        alpha_acceptance,
+        "_resolve_alpha_source_provenance",
+        lambda commit: (
+            checks.append(commit) if checks is not None else None
+        ) or provenance,
     )
     return provenance
 
@@ -88,7 +94,8 @@ def test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     application_data_dir, _profiles = _application_data_dir(tmp_path)
-    _fixture_provenance(monkeypatch, tmp_path)
+    provenance_checks: list[str | None] = []
+    _fixture_provenance(monkeypatch, tmp_path, provenance_checks)
     review_directory = tmp_path / "untracked-review"
     roots: list[Path] = []
     temporary_directory = alpha_acceptance.tempfile.TemporaryDirectory
@@ -112,16 +119,54 @@ def test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples(
     )
 
     assert len(result.receipts) == 18
+    assert provenance_checks == ["a" * 40, "a" * 40]
     assert result.qualification_issues == ()
     assert alpha_acceptance.alpha_qualification_issue_codes(result.receipts) == []
     assert {receipt["profileId"] for receipt in result.receipts} == {
         "profile-01",
         "profile-02",
     }
+    assert {receipt["storyId"] for receipt in result.receipts} == {
+        "story-01",
+        "story-02",
+        "story-03",
+    }
+    assert {receipt["sampleId"] for receipt in result.receipts} == {
+        f"{story_id}-repeat-{repeat_ordinal:02d}"
+        for story_id in ("story-01", "story-02", "story-03")
+        for repeat_ordinal in range(1, 4)
+    }
+    assert all(
+        set(receipt)
+        == {
+            "commit",
+            "contractHash",
+            "profileId",
+            "storyId",
+            "sampleId",
+            "status",
+            "issueCodes",
+            "durationMilliseconds",
+            "tokens",
+            "scores",
+        }
+        for receipt in result.receipts
+    )
+    assert all(receipt["commit"] == "a" * 40 for receipt in result.receipts)
     assert all(receipt["status"] == "succeeded" for receipt in result.receipts)
     assert all(
-        receipt["scores"]["firstPass"]["accepted"] == 4
-        and receipt["scores"]["maxAttemptsPerWorkUnit"] == 1
+        receipt["scores"]
+        == {
+            "firstPass": {
+                "total": 4,
+                "accepted": 4,
+                "rejected": 0,
+                "outcomeUnknown": 0,
+                "cancelled": 0,
+                "notRun": 0,
+            },
+            "maxAttemptsPerWorkUnit": 1,
+        }
         for receipt in result.receipts
     )
     receipt_text = json.dumps(result.receipts)
@@ -133,13 +178,33 @@ def test_alpha_uses_current_profiles_and_project_folders_for_all_18_samples(
         f"review-{ordinal:032x}.json" for ordinal in range(1, 7)
     ]
     assert result.review_mapping_path is not None
+    assert result.review_mapping_path == review_directory / "review-mapping.private.json"
     assert stat.S_IMODE(result.review_mapping_path.stat().st_mode) == 0o600
+    assert sorted(path.name for path in review_directory.iterdir()) == sorted(
+        [path.name for path in result.review_paths]
+        + [f"{path.stem}.score-sheet.json" for path in result.review_paths]
+        + ["review-mapping.private.json"]
+    )
+    manifest = alpha_acceptance.load_private_review_manifest(result.review_mapping_path)
+    assert manifest.commit == "a" * 40
+    assert manifest.contract_hash == alpha_acceptance.alpha_contract_hash()
+    assert len(manifest.samples) == 6
+    mapping = json.loads(result.review_mapping_path.read_text(encoding="utf-8"))
+    assert mapping["reviewCount"] == 6
+    assert mapping["entries"][0]["profileId"] == "profile-02"
+    assert mapping["entries"][0]["storyId"] == "story-03"
     for review_path in result.review_paths:
         payload = json.loads(review_path.read_text(encoding="utf-8"))
         assert set(payload) == {"storyBible", "storyGraph", "sceneBeats", "storyboard"}
         review_text = review_path.read_text(encoding="utf-8")
         for forbidden in ("profile", "provider", "fixture", "prompt", "response", "runId"):
             assert forbidden not in review_text
+        score_sheet = review_path.with_name(f"{review_path.stem}.score-sheet.json")
+        sheet = json.loads(score_sheet.read_text(encoding="utf-8"))
+        assert sheet["reviewId"] == review_path.stem
+        assert sheet["fatalContradiction"] == "PENDING"
+        for forbidden in ("profile", "story", "sample", "provider", "run", "prompt", "response"):
+            assert forbidden not in score_sheet.read_text(encoding="utf-8")
 
 
 def test_alpha_profile_snapshot_is_read_only_and_refuses_disabled_profiles(
@@ -345,19 +410,27 @@ def test_external_review_gate_enforces_quality_thresholds_and_full_manifest() ->
         "codex_external_review.dimension_median",
     } <= set(quality_gate.issue_codes)
 
-    undersized_pack = alpha_acceptance.ReviewPackManifest(
-        commit=pack.commit,
-        contract_hash=pack.contract_hash,
-        samples=pack.samples[:-1],
+    all_samples = pack.samples + (
+        alpha_acceptance.ReviewSampleManifest(
+            review_id=f"review-{7:032x}", content_hash=f"{7:064x}"
+        ),
     )
-    manifest_gate = alpha_acceptance.codex_external_review_gate(
-        [_external_review(manifest) for manifest in undersized_pack.samples],
-        review_pack=undersized_pack,
-    )
-    assert {
-        "codex_external_review.expected_manifest_count",
-        "codex_external_review.count",
-    } <= set(manifest_gate.issue_codes)
+    for count in (0, 1, 5, 7):
+        incomplete_pack = alpha_acceptance.ReviewPackManifest(
+            commit=pack.commit,
+            contract_hash=pack.contract_hash,
+            samples=all_samples[:count],
+        )
+        manifest_gate = alpha_acceptance.codex_external_review_gate(
+            [_external_review(manifest) for manifest in incomplete_pack.samples],
+            review_pack=incomplete_pack,
+        )
+        assert manifest_gate.passed is False
+        assert manifest_gate.expected_review_count == 6
+        assert {
+            "codex_external_review.expected_manifest_count",
+            "codex_external_review.count",
+        } <= set(manifest_gate.issue_codes)
 
 
 def test_external_review_receipt_filters_invalid_sheets_and_private_mapping_rejects_partial_pack(
