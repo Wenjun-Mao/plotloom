@@ -181,7 +181,8 @@ The operator and maintainer entry point is the
   and [ADR 0034](adr/0034-provider-neutral-video-adapters-and-local-h3.md).
 - Enable exactly one reviewed video backend at a time. For H3, set
   `PLOTLOOM_ENABLE_H3_GATEWAY=true`, `VIDEO_PROVIDER=minimax_h3_gateway`,
-  `VIDEO_MODEL=minimax_h3_gateway_catalog_v3`, the private Tailnet
+  `VIDEO_MODEL=minimax_h3_gateway_catalog_v4` (or an explicit reviewed H3
+  profile ID), the private Tailnet
   `VIDEO_BASE_URL`, and a server-only `VIDEO_MODEL_API_KEY`; restart Plotloom.
   The browser never sees or stores that key.
 - H3 uses the reviewed catalog in [ADR 0036](adr/0036-minimax-h3-profile-catalog.md):

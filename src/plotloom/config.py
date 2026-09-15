@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
 from .domain import DEFAULT_TEXT_BASE_URL, DEFAULT_TEXT_MODEL, DEFAULT_TEXT_PROVIDER
 from .provider_profiles import DEFAULT_PROVIDER_PROFILE_ID, PROFILE_ID_PATTERN
+from .video_backends.minimax_h3 import H3_CATALOG_ID
 
 
 def profile_text_api_key_environment_name(profile_id: str) -> str:
@@ -141,7 +142,7 @@ class PlotloomSettings(BaseModel):
     image_auth_mode: Literal["none", "bearer"] = "none"
     video_provider: str = "minimax_h3_gateway"
     video_base_url: str = "http://127.0.0.1"
-    video_model: str = "minimax_h3_gateway_catalog_v3"
+    video_model: str = H3_CATALOG_ID
     video_auth_mode: Literal["none", "bearer"] = "bearer"
     text_api_key: SecretStr | None = None
     image_api_key: SecretStr | None = None
@@ -272,7 +273,7 @@ class PlotloomSettings(BaseModel):
             video_provider=os.environ.get("VIDEO_PROVIDER") or "minimax_h3_gateway",
             video_base_url=os.environ.get("VIDEO_BASE_URL") or "http://127.0.0.1",
             video_model=os.environ.get("VIDEO_MODEL")
-            or "minimax_h3_gateway_catalog_v3",
+            or H3_CATALOG_ID,
             video_auth_mode=os.environ.get("VIDEO_AUTH_MODE") or "bearer",
             text_api_key=resolve_text_provider_api_key(DEFAULT_PROVIDER_PROFILE_ID),
             image_api_key=os.environ.get("IMAGE_MODEL_API_KEY") or None,

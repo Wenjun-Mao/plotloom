@@ -119,6 +119,7 @@ def build_runtime_app(
     from .api import create_project_folder_authoring_app
     from .domain import ProviderProfileCapabilities, ProviderSettings
     from .video_backends.minimax_h3 import (
+        H3_CATALOG_ID,
         H3_PROFILES_BY_ID,
         MiniMaxH3GatewayAdapter,
         MiniMaxH3GatewayTransport,
@@ -263,7 +264,7 @@ def build_runtime_app(
         if (
             settings.video_provider != "minimax_h3_gateway"
             or settings.video_model not in {
-                "minimax_h3_gateway_catalog_v3",
+                H3_CATALOG_ID,
                 *H3_PROFILES_BY_ID,
             }
         ):

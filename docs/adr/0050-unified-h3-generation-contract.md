@@ -46,6 +46,12 @@ Plotloom uses only the direct multipart I2V route, always with its existing
 five-second frozen contract. Its adapter refuses a gateway whose V4 catalog
 does not match. No Plotloom T2V UI or authoring route is introduced.
 
+The runtime configuration marker for that reviewed catalog is
+`VIDEO_MODEL=minimax_h3_gateway_catalog_v4`. Individual reviewed profile IDs
+remain valid explicit runtime selections; no retired V3 catalog marker is
+admitted. This configuration admission belongs to Plotloom's typed H3 adapter
+contract and is checked before the gateway transport is constructed.
+
 ## Consequences
 
 - Start and end frames follow identical decode, aspect, prepared-input,

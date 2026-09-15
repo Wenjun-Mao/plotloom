@@ -12,7 +12,13 @@ from fastapi.testclient import TestClient
 import plotloom.config as config_module
 from plotloom.config import PlotloomSettings
 from plotloom.runtime import build_runtime_app, select_available_port
-from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
+from plotloom.video_backends import minimax_h3
+from plotloom.video_backends.minimax_h3 import (
+    DEFAULT_H3_PROFILE_ID,
+    H3_CATALOG_ID,
+    MiniMaxH3GatewayAdapter,
+)
+from plotloom.video_provider import VideoBackendInstanceIdentity
 
 
 def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> None:
@@ -101,6 +107,18 @@ def test_obsolete_shared_storage_configuration_is_rejected_before_startup(
         PlotloomSettings.from_env(tmp_path)
 
 
+def test_h3_catalog_marker_defaults_to_v4_and_preserves_explicit_profiles(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for name in ("VIDEO_MODEL", "VIDEO_PROVIDER", "VIDEO_BASE_URL"):
+        monkeypatch.delenv(name, raising=False)
+
+    assert PlotloomSettings.from_env(tmp_path).video_model == H3_CATALOG_ID
+
+    monkeypatch.setenv("VIDEO_MODEL", DEFAULT_H3_PROFILE_ID)
+    assert PlotloomSettings.from_env(tmp_path).video_model == DEFAULT_H3_PROFILE_ID
+
+
 def test_local_port_falls_forward(monkeypatch) -> None:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as occupied:
         occupied.bind(("127.0.0.1", 0))
@@ -159,7 +177,21 @@ def test_runtime_wires_text_and_media_workers_without_exposing_keys(tmp_path: Pa
     assert hasattr(app.state, "project_folder_storage")
 
 
-def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(tmp_path: Path) -> None:
+def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(
+    tmp_path: Path, monkeypatch
+) -> None:
+    constructed: list[tuple[str, str]] = []
+
+    class FakeH3Transport:
+        def __init__(self, api_key: str, *, base_url: str) -> None:
+            constructed.append((api_key, base_url))
+
+        def configured_backend_identity(self) -> VideoBackendInstanceIdentity:
+            return VideoBackendInstanceIdentity.from_public_configuration(
+                "test_h3_transport_v1", {"configured": True}
+            )
+
+    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", FakeH3Transport)
     static_dir = tmp_path / "static"
     static_dir.mkdir()
     (static_dir / "index.html").write_text("<h1>Plotloom</h1>", encoding="utf-8")
@@ -171,7 +203,7 @@ def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(tmp_path
         h3_gateway_enabled=True,
         video_provider="minimax_h3_gateway",
         video_base_url="http://100.64.1.2:8090",
-        video_model="minimax_h3_gateway_catalog_v3",
+        video_model=H3_CATALOG_ID,
         video_api_key="h3-server-only-secret",
     )
     app = build_runtime_app(settings)
@@ -181,9 +213,22 @@ def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(tmp_path
         assert response.status_code == 200
         assert response.json() == MiniMaxH3GatewayAdapter().public_capability()
         assert "h3-server-only-secret" not in response.text
+    assert constructed == [("h3-server-only-secret", "http://100.64.1.2:8090")]
 
 
-def test_runtime_rejects_h3_profile_drift_before_serving(tmp_path: Path) -> None:
+def test_runtime_admits_an_explicit_reviewed_h3_profile(tmp_path: Path, monkeypatch) -> None:
+    constructed: list[str] = []
+
+    class FakeH3Transport:
+        def __init__(self, _api_key: str, *, base_url: str) -> None:
+            constructed.append(base_url)
+
+        def configured_backend_identity(self) -> VideoBackendInstanceIdentity:
+            return VideoBackendInstanceIdentity.from_public_configuration(
+                "test_h3_profile_transport_v1", {"configured": True}
+            )
+
+    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", FakeH3Transport)
     settings = PlotloomSettings(
         repo_root=tmp_path,
         outputs_dir=tmp_path / "outputs",
@@ -192,11 +237,84 @@ def test_runtime_rejects_h3_profile_drift_before_serving(tmp_path: Path) -> None
         h3_gateway_enabled=True,
         video_provider="minimax_h3_gateway",
         video_base_url="http://100.64.1.2:8090",
-        video_model="unreviewed-model",
+        video_model=DEFAULT_H3_PROFILE_ID,
+        video_api_key="h3-server-only-secret",
+    )
+
+    build_runtime_app(settings)
+
+    assert constructed == ["http://100.64.1.2:8090"]
+
+
+@pytest.mark.parametrize(
+    "video_model", ["minimax_h3_gateway_catalog_v3", "unreviewed-model"]
+)
+def test_runtime_rejects_h3_profile_drift_before_serving(
+    tmp_path: Path, monkeypatch, video_model: str
+) -> None:
+    def unexpected_transport(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("invalid H3 admission must reject before transport construction")
+
+    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", unexpected_transport)
+    settings = PlotloomSettings(
+        repo_root=tmp_path,
+        outputs_dir=tmp_path / "outputs",
+        application_data_dir=tmp_path / "application",
+        static_dir=tmp_path,
+        h3_gateway_enabled=True,
+        video_provider="minimax_h3_gateway",
+        video_base_url="http://100.64.1.2:8090",
+        video_model=video_model,
         video_api_key="h3-server-only-secret",
     )
     with pytest.raises(RuntimeError, match="trusted MiniMax H3 catalog"):
         build_runtime_app(settings)
+
+
+def test_runtime_rejects_missing_h3_credential_before_transport_construction(
+    tmp_path: Path, monkeypatch
+) -> None:
+    def unexpected_transport(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("missing H3 credentials must reject before transport construction")
+
+    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", unexpected_transport)
+    settings = PlotloomSettings(
+        repo_root=tmp_path,
+        outputs_dir=tmp_path / "outputs",
+        application_data_dir=tmp_path / "application",
+        static_dir=tmp_path,
+        h3_gateway_enabled=True,
+        video_provider="minimax_h3_gateway",
+        video_model=H3_CATALOG_ID,
+    )
+
+    with pytest.raises(RuntimeError, match="VIDEO_MODEL_API_KEY"):
+        build_runtime_app(settings)
+
+
+def test_runtime_keeps_h3_disabled_without_constructing_a_transport(
+    tmp_path: Path, monkeypatch
+) -> None:
+    def unexpected_transport(*_args: object, **_kwargs: object) -> None:
+        raise AssertionError("disabled H3 must not construct a transport")
+
+    monkeypatch.setattr(minimax_h3, "MiniMaxH3GatewayTransport", unexpected_transport)
+    settings = PlotloomSettings(
+        repo_root=tmp_path,
+        outputs_dir=tmp_path / "outputs",
+        application_data_dir=tmp_path / "application",
+        static_dir=tmp_path,
+        h3_gateway_enabled=False,
+        video_model="unreviewed-model",
+    )
+    app = build_runtime_app(settings)
+
+    with TestClient(app) as client:
+        assert client.get("/api/v2/video-backend").json() == {
+            "enabled": False,
+            "tracksPaidWanPilot": False,
+            "reason": "h3_video_not_configured",
+        }
 
 
 def test_plotloom_has_no_legacy_imports() -> None:

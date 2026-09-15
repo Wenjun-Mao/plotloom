@@ -221,6 +221,12 @@ VIDEO_AUTH_MODE=bearer
 VIDEO_MODEL_API_KEY=the-same-value-as-H3_API_KEY
 ```
 
+`VIDEO_MODEL=minimax_h3_gateway_catalog_v4` is Plotloom's default,
+recommended reviewed-catalog admission marker while the gateway reports the V4
+direct-generation contract and its six reviewed profiles. A profile ID from
+that reviewed catalog is also a supported explicit runtime selection; the
+retired V3 marker and any other value are rejected before transport creation.
+
 Restart Plotloom after changing `.env`. A host environment variable takes
 precedence over `.env`, so investigate both if the running service reports an
 unexpected backend. Never expose the endpoint or key in the browser. The

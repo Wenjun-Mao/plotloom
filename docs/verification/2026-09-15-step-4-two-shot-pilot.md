@@ -54,3 +54,13 @@ as enabled. This assignment does not authorize that configuration or deployment
 change. Once the gate is available, begin again with one fresh labelled project
 and execute the full bounded pilot; do not reuse an archival or Step 3 proof
 project as its canonical source.
+
+### Configuration correction recorded after this receipt
+
+The later gateway-owner handoff established that the deployed direct gateway is
+the V4 contract with the same six reviewed profiles. Plotloom's client catalog
+marker must therefore be `VIDEO_MODEL=minimax_h3_gateway_catalog_v4`; a stale
+V3 marker was a separate configuration/admission mismatch, not evidence that
+the gateway or this untouched pilot state changed. The environment, deployment,
+and pilot remain out of scope for this receipt and must still be configured by
+an operator before retrying Step 4.

@@ -95,6 +95,10 @@ H3_PROFILES = (
 H3_PROFILES_BY_ID = {profile.profile_id: profile for profile in H3_PROFILES}
 DEFAULT_H3_PROFILE_ID = H3_PORTRAIT_FAST.profile_id
 H3_PROFILE_CONTRACT_VERSION = 4
+# This identifier is the client-side admission anchor for the reviewed gateway
+# catalog.  It is distinct from individual frozen profile IDs, which remain
+# valid explicit runtime selections.
+H3_CATALOG_ID = "minimax_h3_gateway_catalog_v4"
 
 
 class MiniMaxH3GatewayAdapter:
