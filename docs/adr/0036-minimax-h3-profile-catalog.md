@@ -1,5 +1,10 @@
 # ADR 0036: MiniMax-H3 reviewed profile catalog
 
+**Superseded in part by [ADR 0049](0049-h3-catalog-clean-cutover.md):** the
+V3 clean cutover removes the retained 864 × 480 profile and all implicit
+fallback behavior. This record remains for the history of the V2 catalog
+decision.
+
 ## Context
 
 The original H3 gateway exposed one 864×480 landscape profile. Portrait

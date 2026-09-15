@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ManagedAsset, ReviewedKeyframe, Shot, VideoBackend, VideoBackendProfile, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import { Button, Panel } from "./components";
-import { MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, isMiniMaxH3Backend, selectableH3Profiles, selectedH3Profile } from "./video-backends/minimax-h3";
+import { MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
 
@@ -154,7 +154,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   }, [projectId]);
   useEffect(() => {
     if (!isMiniMaxH3Backend(backend)) return;
-    const profiles = selectableH3Profiles(backend);
+    const profiles = h3Profiles(backend);
     if (profiles.some((profile) => profile.id === h3ProfileId)) return;
     setH3ProfileId(backend?.defaultProfileId && profiles.some((profile) => profile.id === backend.defaultProfileId)
       ? backend.defaultProfileId
@@ -198,7 +198,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   // jobs to construct URLs under the newly selected project identity.
   const selectedSequence = selectedSceneVideos(jobs.filter((job) => job.projectId === projectId), shot?.sceneId);
   const h3 = isMiniMaxH3Backend(backend);
-  const h3Profiles = selectableH3Profiles(backend);
+  const availableH3Profiles = h3Profiles(backend);
   const selectedProfile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
   const h3AspectMismatch = Boolean(
     selectedProfile && keyframe
@@ -224,7 +224,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       ? <MiniMaxH3Summary backend={backend} profile={selectedProfile} />
       : <p>仅 5 秒 / 720p / 原生音频。提交后本地保守计入共享 100 秒额度；不会自动重试或回退。</p>}
     {backend?.enabled === false && <small className="notice warning">当前运行时未启用经审核的视频后端；不能冻结或提交新候选。</small>}
-    {h3 && <MiniMaxH3ProfileField profiles={h3Profiles} value={h3ProfileId} onChange={setH3ProfileId} disabled={readOnly} />}
+    {h3 && <MiniMaxH3ProfileField profiles={availableH3Profiles} value={h3ProfileId} onChange={setH3ProfileId} disabled={readOnly} />}
     {h3 && selectedProfile && keyframe && !h3AspectMismatch && <small className="notice" data-testid="h3-aspect-ready">当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例匹配；将以 reject_mismatch 冻结。</small>}
     {h3 && selectedProfile && keyframe && h3AspectMismatch && <div className="notice warning" data-testid="h3-aspect-preparation">
       <strong>当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例不符。</strong>

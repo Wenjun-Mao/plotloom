@@ -9,8 +9,6 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .profile_catalog import LEGACY_PROFILE_ID
-
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_PIXELS = 30_000_000
 MANAGED_OUTPUT_RETENTION_HOURS = 72
@@ -76,7 +74,6 @@ class _JobParameters(BaseModel):
     prompt: str = Field(min_length=1, max_length=8_000)
     aspect_policy: AspectPolicy = Field(alias="aspectPolicy")
     profile_id: str = Field(
-        default=LEGACY_PROFILE_ID,
         alias="profileId",
         min_length=3,
         max_length=63,

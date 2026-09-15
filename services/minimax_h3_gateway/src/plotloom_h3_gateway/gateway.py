@@ -17,7 +17,7 @@ from .naming import timestamped_storage_name
 from .profile_catalog import H3_GATEWAY_PROFILES, PROFILE_CONTRACT_VERSION, profile
 from .source_images import SourceImageFetcher
 from .store import GatewayStore
-from .workflow import load_legacy_template, render_workflow, single_output_descriptor
+from .workflow import load_h3_template, render_workflow, single_output_descriptor
 
 
 class H3Gateway:
@@ -45,7 +45,7 @@ class H3Gateway:
         self.session = session or requests.Session()
         self.comfy = ComfyClient(settings, self.session)
         self.source_images = SourceImageFetcher(settings, session=source_session)
-        self.legacy_template = load_legacy_template()
+        self.workflow_template = load_h3_template()
 
     def health(self) -> dict[str, Any]:
         self.comfy.preflight()
@@ -140,7 +140,7 @@ class H3Gateway:
         try:
             selected_profile = profile(str(job["profile_id"]))
             workflow = render_workflow(
-                self.legacy_template["prompt"],
+                self.workflow_template["prompt"],
                 profile=selected_profile,
                 prompt=str(job["prompt"]),
                 input_name=str(job["prepared_input_name"]),

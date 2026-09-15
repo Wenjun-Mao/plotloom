@@ -6,12 +6,12 @@ export function isMiniMaxH3Backend(backend: VideoBackend | null): boolean {
   return backend?.enabled === true && backend.adapterId === MINIMAX_H3_ADAPTER_ID;
 }
 
-export function selectableH3Profiles(backend: VideoBackend | null): VideoBackendProfile[] {
-  return (backend?.profiles ?? []).filter((profile) => profile.selectable);
+export function h3Profiles(backend: VideoBackend | null): VideoBackendProfile[] {
+  return backend?.profiles ?? [];
 }
 
 export function selectedH3Profile(backend: VideoBackend | null, profileId: string): VideoBackendProfile | undefined {
-  return selectableH3Profiles(backend).find((profile) => profile.id === profileId);
+  return h3Profiles(backend).find((profile) => profile.id === profileId);
 }
 
 export function MiniMaxH3Summary({ backend, profile }: { backend: VideoBackend; profile?: VideoBackendProfile }) {

@@ -263,7 +263,7 @@ def build_runtime_app(
         if (
             settings.video_provider != "minimax_h3_gateway"
             or settings.video_model not in {
-                "minimax_h3_gateway_catalog_v2",
+                "minimax_h3_gateway_catalog_v3",
                 *H3_PROFILES_BY_ID,
             }
         ):

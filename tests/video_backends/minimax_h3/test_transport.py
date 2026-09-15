@@ -8,7 +8,7 @@ from plotloom.video_backends.minimax_h3 import (
     MiniMaxH3GatewayTransport,
 )
 from plotloom.video_backends.minimax_h3.adapter import H3_PROFILE_CONTRACT_VERSION
-from plotloom.video_provider import VideoOutputContractError, WanDispatchError
+from plotloom.video_provider import VideoOutputContractError, VideoProviderError, WanDispatchError
 
 
 _ASSET_ID = "asset_0123456789abcdef0123456789abcdef"
@@ -66,8 +66,8 @@ def _job(status: str, output_ready: bool) -> dict[str, object]:
     return {
         "id": _JOB_ID,
         "status": status,
-        "profileId": "minimax_h3_fp8_turbo4_480p",
-        "aspectPolicy": "cover_center_crop",
+        "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+        "aspectPolicy": "reject_mismatch",
         "error": None,
         "outputReady": output_ready,
     }
@@ -80,7 +80,7 @@ def test_h3_transport_uses_only_the_fixed_gateway_envelopes() -> None:
     transport.preflight()
     asset = transport.upload(b"png", mime_type="image/png")
     submitted = transport.submit(
-        {"assetId": asset, "prompt": "one line", "profileId": "minimax_h3_fp8_turbo4_480p", "aspectPolicy": "cover_center_crop", "seed": 1},
+        {"assetId": asset, "prompt": "one line", "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "aspectPolicy": "reject_mismatch", "seed": 1},
         idempotency_key="plotloom-video-job-1",
     )
     polled = transport.poll(_JOB_ID)
@@ -89,7 +89,7 @@ def test_h3_transport_uses_only_the_fixed_gateway_envelopes() -> None:
     assert transport._session.trust_env is False
     assert submitted["id"] == _JOB_ID and polled["outputReady"] is True
     assert MiniMaxH3GatewayAdapter.completed_output(
-        submitted, expected_profile_id="minimax_h3_fp8_turbo4_480p"
+        submitted, expected_profile_id="minimax_h3_fp8_turbo4_portrait_576x1024_v1"
     ) is None
     assert media == b"mp4"
     assert all(call[2].get("allow_redirects") is False for call in session.calls)
@@ -108,8 +108,25 @@ def test_h3_adapter_reports_a_retained_output_expiry_without_reinterpreting_it_a
     with pytest.raises(VideoOutputContractError, match="h3_gateway_output_expired"):
         MiniMaxH3GatewayAdapter.completed_output(
             _job("succeeded", False),
-            expected_profile_id="minimax_h3_fp8_turbo4_480p",
+            expected_profile_id="minimax_h3_fp8_turbo4_portrait_576x1024_v1",
         )
+
+
+def test_h3_adapter_does_not_infer_a_profile_for_frozen_requests_or_responses() -> None:
+    adapter = MiniMaxH3GatewayAdapter()
+    with pytest.raises(VideoProviderError, match="requires an explicit profile"):
+        adapter.compile(
+            prompt="one line",
+            uploaded_asset=_ASSET_ID,
+            duration=5,
+            resolution="576x1024",
+            audio=True,
+            aspect_policy="reject_mismatch",
+            seed=1,
+            profile_id=None,
+        )
+    with pytest.raises(VideoProviderError, match="requires a frozen profile"):
+        adapter.prediction_id(_job("queued", False), expected_profile_id=None)
 
 
 def test_h3_transport_rejects_unrecognised_response_shape_before_job_id_use() -> None:

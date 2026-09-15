@@ -50,7 +50,7 @@ def create_app(
             if gateway.settings.dispatch_worker_enabled:
                 worker.stop()
 
-    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="1.3", lifespan=lifespan)
+    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="2.0", lifespan=lifespan)
     app.state.gateway = gateway
 
     def authorize(authorization: str | None = Header(default=None)) -> None:

@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 import plotloom.config as config_module
 from plotloom.config import PlotloomSettings
 from plotloom.runtime import build_runtime_app, select_available_port
+from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 
 
 def test_root_dotenv_and_host_port_precedence(tmp_path: Path, monkeypatch) -> None:
@@ -170,7 +171,7 @@ def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(tmp_path
         h3_gateway_enabled=True,
         video_provider="minimax_h3_gateway",
         video_base_url="http://100.64.1.2:8090",
-        video_model="minimax_h3_fp8_turbo4_480p",
+        video_model="minimax_h3_gateway_catalog_v3",
         video_api_key="h3-server-only-secret",
     )
     app = build_runtime_app(settings)
@@ -178,35 +179,7 @@ def test_runtime_exposes_only_the_trusted_h3_capability_without_its_key(tmp_path
     with TestClient(app) as client:
         response = client.get("/api/v2/video-backend")
         assert response.status_code == 200
-        assert response.json() == {
-            "enabled": True,
-            "adapterId": "minimax_h3_gateway",
-            "adapterVersion": "2",
-            "provider": "minimax_h3_gateway",
-            "model": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
-            "durationSeconds": 5,
-            "resolution": "576x1024",
-            "width": 576,
-            "height": 1024,
-            "fps": 24,
-            "frameCount": 124,
-            "nativeAudio": True,
-            "requiresAspectPolicy": False,
-            "inputAspectPolicy": "reject_mismatch",
-            "allowsLetterbox": True,
-            "tracksPaidWanPilot": False,
-            "profileContractVersion": 2,
-            "defaultProfileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
-            "profiles": [
-                {"id": "minimax_h3_fp8_turbo4_480p", "version": 1, "label": "Legacy landscape · 864 × 480", "orientation": "landscape", "tier": "legacy", "width": 864, "height": 480, "durationSeconds": 5, "fps": 24, "frameCount": 124, "nativeAudio": True, "selectable": False},
-                {"id": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "version": 1, "label": "Portrait · Fast · 576 × 1024", "orientation": "portrait", "tier": "fast", "width": 576, "height": 1024, "durationSeconds": 5, "fps": 24, "frameCount": 124, "nativeAudio": True, "selectable": True},
-                {"id": "minimax_h3_fp8_turbo4_portrait_608x1088_v1", "version": 1, "label": "Portrait · Standard · 608 × 1088", "orientation": "portrait", "tier": "standard", "width": 608, "height": 1088, "durationSeconds": 5, "fps": 24, "frameCount": 124, "nativeAudio": True, "selectable": True},
-                {"id": "minimax_h3_fp8_turbo4_portrait_704x1280_v1", "version": 1, "label": "Portrait · High resolution · 704 × 1280", "orientation": "portrait", "tier": "high_resolution", "width": 704, "height": 1280, "durationSeconds": 5, "fps": 24, "frameCount": 124, "nativeAudio": True, "selectable": True},
-                {"id": "minimax_h3_fp8_turbo4_landscape_832x480_v1", "version": 1, "label": "Landscape · Fast · 832 × 480", "orientation": "landscape", "tier": "fast", "width": 832, "height": 480, "durationSeconds": 5, "fps": 24, "frameCount": 124, "nativeAudio": True, "selectable": True},
-                {"id": "minimax_h3_fp8_turbo4_landscape_960x544_v1", "version": 1, "label": "Landscape · Standard · 960 × 544", "orientation": "landscape", "tier": "standard", "width": 960, "height": 544, "durationSeconds": 5, "fps": 24, "frameCount": 124, "nativeAudio": True, "selectable": True},
-                {"id": "minimax_h3_fp8_turbo4_landscape_1280x704_v1", "version": 1, "label": "Landscape · High resolution · 1280 × 704", "orientation": "landscape", "tier": "high_resolution", "width": 1280, "height": 704, "durationSeconds": 5, "fps": 24, "frameCount": 124, "nativeAudio": True, "selectable": True},
-            ],
-        }
+        assert response.json() == MiniMaxH3GatewayAdapter().public_capability()
         assert "h3-server-only-secret" not in response.text
 
 

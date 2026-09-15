@@ -5,7 +5,7 @@ service. It is deliberately **not** a ComfyUI proxy: callers cannot submit
 workflows, select model files, or reach ComfyUI directly.
 
 Plotloom is now wired to this gateway through the versioned
-`minimax_h3_gateway.v2` adapter. Use the complete
+`minimax_h3_gateway.v3` adapter. Use the complete
 [H3 gateway operator and maintainer manual](../../docs/operations/minimax-h3-gateway-manual.md)
 for deployment, security, Plotloom configuration, lifecycle, recovery, and
 the exact limits of verified behavior.

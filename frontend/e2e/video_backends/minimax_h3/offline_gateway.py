@@ -50,7 +50,9 @@ class OfflineH3GatewayFake:
 
     def download(self, job_id: str) -> bytes:
         assert job_id == "h3_0123456789abcdef0123456789abcdef"
-        profile = H3_PROFILES_BY_ID[self.profile_id or "minimax_h3_fp8_turbo4_480p"]
+        if self.profile_id is None:
+            raise RuntimeError("offline H3 fixture has no frozen profile")
+        profile = H3_PROFILES_BY_ID[self.profile_id]
         with TemporaryDirectory(prefix="plotloom-offline-h3-") as directory:
             output = Path(directory) / "clip.mp4"
             completed = subprocess.run([

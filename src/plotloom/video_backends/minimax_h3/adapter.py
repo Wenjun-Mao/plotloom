@@ -18,11 +18,7 @@ from ...video_provider import (
 
 @dataclass(frozen=True)
 class H3Profile:
-    """A reviewed geometry in the narrow H3 gateway contract.
-
-    ``selectable`` distinguishes the old 864x480 contract kept only to
-    retrieve historical jobs from the new catalog exposed to authors.
-    """
+    """A reviewed geometry in the narrow H3 gateway contract."""
 
     profile_id: str
     profile_version: int
@@ -31,7 +27,6 @@ class H3Profile:
     tier: str
     width: int
     height: int
-    selectable: bool
     duration_seconds: int = 5
     fps: int = 24
     frame_count: int = 124
@@ -55,43 +50,37 @@ class H3Profile:
             "fps": self.fps,
             "frameCount": self.frame_count,
             "nativeAudio": self.native_audio,
-            "selectable": self.selectable,
         }
 
 
 # The catalog is deliberately an allowlist, not a width/height calculator.
 # Each entry corresponds to a trusted gateway workflow rendering and is frozen
-# into the job snapshot. The old profile remains only for queued/history jobs.
-LEGACY_H3_PROFILE = H3Profile(
-    "minimax_h3_fp8_turbo4_480p", 1, "Legacy landscape · 864 × 480",
-    "landscape", "legacy", 864, 480, False,
-)
+# into the job snapshot.
 H3_PORTRAIT_FAST = H3Profile(
     "minimax_h3_fp8_turbo4_portrait_576x1024_v1", 1, "Portrait · Fast · 576 × 1024",
-    "portrait", "fast", 576, 1024, True,
+    "portrait", "fast", 576, 1024,
 )
 H3_PORTRAIT_STANDARD = H3Profile(
     "minimax_h3_fp8_turbo4_portrait_608x1088_v1", 1, "Portrait · Standard · 608 × 1088",
-    "portrait", "standard", 608, 1088, True,
+    "portrait", "standard", 608, 1088,
 )
 H3_PORTRAIT_HIGH = H3Profile(
     "minimax_h3_fp8_turbo4_portrait_704x1280_v1", 1, "Portrait · High resolution · 704 × 1280",
-    "portrait", "high_resolution", 704, 1280, True,
+    "portrait", "high_resolution", 704, 1280,
 )
 H3_LANDSCAPE_FAST = H3Profile(
     "minimax_h3_fp8_turbo4_landscape_832x480_v1", 1, "Landscape · Fast · 832 × 480",
-    "landscape", "fast", 832, 480, True,
+    "landscape", "fast", 832, 480,
 )
 H3_LANDSCAPE_STANDARD = H3Profile(
     "minimax_h3_fp8_turbo4_landscape_960x544_v1", 1, "Landscape · Standard · 960 × 544",
-    "landscape", "standard", 960, 544, True,
+    "landscape", "standard", 960, 544,
 )
 H3_LANDSCAPE_HIGH = H3Profile(
     "minimax_h3_fp8_turbo4_landscape_1280x704_v1", 1, "Landscape · High resolution · 1280 × 704",
-    "landscape", "high_resolution", 1280, 704, True,
+    "landscape", "high_resolution", 1280, 704,
 )
 H3_PROFILES = (
-    LEGACY_H3_PROFILE,
     H3_PORTRAIT_FAST,
     H3_PORTRAIT_STANDARD,
     H3_PORTRAIT_HIGH,
@@ -100,26 +89,25 @@ H3_PROFILES = (
     H3_LANDSCAPE_HIGH,
 )
 H3_PROFILES_BY_ID = {profile.profile_id: profile for profile in H3_PROFILES}
-DEFAULT_NEW_H3_PROFILE_ID = H3_PORTRAIT_FAST.profile_id
-H3_PROFILE_CONTRACT_VERSION = 2
-# Compatibility import for callers that only need the historical descriptor.
-MINIMAX_H3_480P = LEGACY_H3_PROFILE
+DEFAULT_H3_PROFILE_ID = H3_PORTRAIT_FAST.profile_id
+H3_PROFILE_CONTRACT_VERSION = 3
 
 
 class MiniMaxH3GatewayAdapter:
     """Compile and validate only profiles in the private H3 catalog."""
 
     adapter_id = "minimax_h3_gateway"
-    adapter_version = "2"
+    adapter_version = "3"
     _JOB_ID = re.compile(r"^h3_[0-9a-f]{32}$")
-    # The gateway retains the broader set to retrieve historical snapshots,
-    # but new Plotloom work must receive a fully composed reviewed keyframe.
+    # New Plotloom work must receive a fully composed reviewed keyframe.
     _ASPECT_POLICIES = frozenset({"cover_center_crop", "contain_pad", "reject_mismatch"})
     _NEW_JOB_ASPECT_POLICY = "reject_mismatch"
     _LETTERBOX_ASPECT_POLICY = "contain_pad"
 
-    def _profile(self, profile_id: str | None, *, legacy_if_missing: bool = False) -> H3Profile:
-        resolved = profile_id or (LEGACY_H3_PROFILE.profile_id if legacy_if_missing else DEFAULT_NEW_H3_PROFILE_ID)
+    def _profile(self, profile_id: str | None, *, default_if_missing: bool = False) -> H3Profile:
+        if profile_id is None and not default_if_missing:
+            raise VideoProviderError("H3 frozen request requires an explicit profile")
+        resolved = profile_id or DEFAULT_H3_PROFILE_ID
         profile = H3_PROFILES_BY_ID.get(resolved)
         if profile is None:
             raise VideoProviderError("H3 profile is not allowlisted")
@@ -136,9 +124,7 @@ class MiniMaxH3GatewayAdapter:
         seed: int | None,
         profile_id: str | None,
     ) -> VideoProductionContract:
-        profile = self._profile(profile_id)
-        if not profile.selectable:
-            raise VideoProviderError("H3 legacy profile cannot prepare new jobs")
+        profile = self._profile(profile_id, default_if_missing=True)
         if requested_seconds not in {None, profile.duration_seconds}:
             raise VideoProviderError("H3 duration capability mismatch")
         if resolution not in {None, profile.resolution}:
@@ -175,7 +161,7 @@ class MiniMaxH3GatewayAdapter:
     def public_capability(self) -> dict[str, Any]:
         """Return the secret-free new-job catalog; portrait fast is the UI default."""
 
-        default = self._profile(DEFAULT_NEW_H3_PROFILE_ID)
+        default = self._profile(DEFAULT_H3_PROFILE_ID)
         return {
             "enabled": True,
             "adapterId": self.adapter_id,
@@ -194,7 +180,7 @@ class MiniMaxH3GatewayAdapter:
             "allowsLetterbox": True,
             "tracksPaidWanPilot": False,
             "profileContractVersion": H3_PROFILE_CONTRACT_VERSION,
-            "defaultProfileId": DEFAULT_NEW_H3_PROFILE_ID,
+            "defaultProfileId": DEFAULT_H3_PROFILE_ID,
             "profiles": [profile.public_descriptor() for profile in H3_PROFILES],
         }
 
@@ -210,9 +196,7 @@ class MiniMaxH3GatewayAdapter:
         seed: int | None,
         profile_id: str | None,
     ) -> dict[str, Any]:
-        # A V1 frozen H3 snapshot has no profile ID. It can only mean the
-        # former one-profile gateway, never today's portrait default.
-        profile = self._profile(profile_id, legacy_if_missing=True)
+        profile = self._profile(profile_id)
         if duration != profile.duration_seconds or resolution != profile.resolution or audio is not True:
             raise VideoProviderError("H3 frozen request does not match its profile")
         if aspect_policy not in self._ASPECT_POLICIES or seed is None:
@@ -232,7 +216,9 @@ class MiniMaxH3GatewayAdapter:
         value = payload.get("id")
         if not isinstance(value, str) or not cls._JOB_ID.fullmatch(value):
             raise VideoProviderError("H3 response has no documented job ID")
-        expected = expected_profile_id or LEGACY_H3_PROFILE.profile_id
+        if expected_profile_id is None:
+            raise VideoProviderError("H3 response requires a frozen profile")
+        expected = expected_profile_id
         if payload.get("profileId") != expected:
             raise VideoProviderError("H3 response profile does not match frozen job")
         return value
@@ -263,7 +249,7 @@ class MiniMaxH3GatewayAdapter:
     def validate_observed_output(self, observed: ObservedVideo, *, profile_id: str | None) -> None:
         """Fail closed if delivery differs from the immutable selected profile."""
 
-        profile = self._profile(profile_id, legacy_if_missing=True)
+        profile = self._profile(profile_id)
         expected_duration = profile.frame_count / profile.fps
         if (
             (observed.width, observed.height) != (profile.width, profile.height)

@@ -141,7 +141,7 @@ class PlotloomSettings(BaseModel):
     image_auth_mode: Literal["none", "bearer"] = "none"
     video_provider: str = "minimax_h3_gateway"
     video_base_url: str = "http://127.0.0.1"
-    video_model: str = "minimax_h3_gateway_catalog_v2"
+    video_model: str = "minimax_h3_gateway_catalog_v3"
     video_auth_mode: Literal["none", "bearer"] = "bearer"
     text_api_key: SecretStr | None = None
     image_api_key: SecretStr | None = None
@@ -272,7 +272,7 @@ class PlotloomSettings(BaseModel):
             video_provider=os.environ.get("VIDEO_PROVIDER") or "minimax_h3_gateway",
             video_base_url=os.environ.get("VIDEO_BASE_URL") or "http://127.0.0.1",
             video_model=os.environ.get("VIDEO_MODEL")
-            or "minimax_h3_gateway_catalog_v2",
+            or "minimax_h3_gateway_catalog_v3",
             video_auth_mode=os.environ.get("VIDEO_AUTH_MODE") or "bearer",
             text_api_key=resolve_text_provider_api_key(DEFAULT_PROVIDER_PROFILE_ID),
             image_api_key=os.environ.get("IMAGE_MODEL_API_KEY") or None,

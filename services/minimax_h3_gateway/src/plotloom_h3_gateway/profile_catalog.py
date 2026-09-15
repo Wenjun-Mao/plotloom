@@ -10,8 +10,7 @@ from typing import Any
 
 
 TURBO_4STEP_LORA = "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"
-PROFILE_CONTRACT_VERSION = 2
-LEGACY_PROFILE_ID = "minimax_h3_fp8_turbo4_480p"
+PROFILE_CONTRACT_VERSION = 3
 
 
 @dataclass(frozen=True)
@@ -23,8 +22,6 @@ class GatewayProfile:
     tier: str
     width: int
     height: int
-    selectable: bool
-    explicit_dimensions: bool
     duration_seconds: int = 5
     fps: int = 24
     frame_count: int = 124
@@ -42,18 +39,16 @@ class GatewayProfile:
             "fps": self.fps,
             "frameCount": self.frame_count,
             "nativeAudio": True,
-            "selectable": self.selectable,
         }
 
 
 H3_GATEWAY_PROFILES = (
-    GatewayProfile(LEGACY_PROFILE_ID, 1, "Legacy landscape · 864 × 480", "landscape", "legacy", 864, 480, False, False),
-    GatewayProfile("minimax_h3_fp8_turbo4_portrait_576x1024_v1", 1, "Portrait · Fast · 576 × 1024", "portrait", "fast", 576, 1024, True, True),
-    GatewayProfile("minimax_h3_fp8_turbo4_portrait_608x1088_v1", 1, "Portrait · Standard · 608 × 1088", "portrait", "standard", 608, 1088, True, True),
-    GatewayProfile("minimax_h3_fp8_turbo4_portrait_704x1280_v1", 1, "Portrait · High resolution · 704 × 1280", "portrait", "high_resolution", 704, 1280, True, True),
-    GatewayProfile("minimax_h3_fp8_turbo4_landscape_832x480_v1", 1, "Landscape · Fast · 832 × 480", "landscape", "fast", 832, 480, True, True),
-    GatewayProfile("minimax_h3_fp8_turbo4_landscape_960x544_v1", 1, "Landscape · Standard · 960 × 544", "landscape", "standard", 960, 544, True, True),
-    GatewayProfile("minimax_h3_fp8_turbo4_landscape_1280x704_v1", 1, "Landscape · High resolution · 1280 × 704", "landscape", "high_resolution", 1280, 704, True, True),
+    GatewayProfile("minimax_h3_fp8_turbo4_portrait_576x1024_v1", 1, "Portrait · Fast · 576 × 1024", "portrait", "fast", 576, 1024),
+    GatewayProfile("minimax_h3_fp8_turbo4_portrait_608x1088_v1", 1, "Portrait · Standard · 608 × 1088", "portrait", "standard", 608, 1088),
+    GatewayProfile("minimax_h3_fp8_turbo4_portrait_704x1280_v1", 1, "Portrait · High resolution · 704 × 1280", "portrait", "high_resolution", 704, 1280),
+    GatewayProfile("minimax_h3_fp8_turbo4_landscape_832x480_v1", 1, "Landscape · Fast · 832 × 480", "landscape", "fast", 832, 480),
+    GatewayProfile("minimax_h3_fp8_turbo4_landscape_960x544_v1", 1, "Landscape · Standard · 960 × 544", "landscape", "standard", 960, 544),
+    GatewayProfile("minimax_h3_fp8_turbo4_landscape_1280x704_v1", 1, "Landscape · High resolution · 1280 × 704", "landscape", "high_resolution", 1280, 704),
 )
 H3_GATEWAY_PROFILES_BY_ID = {profile.profile_id: profile for profile in H3_GATEWAY_PROFILES}
 

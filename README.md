@@ -53,7 +53,7 @@ Spark 上的 H3 使用一个带 bearer key 的私有网关，ComfyUI 本身只�
 ```dotenv
 PLOTLOOM_ENABLE_H3_GATEWAY=true
 VIDEO_PROVIDER=minimax_h3_gateway
-VIDEO_MODEL=minimax_h3_fp8_turbo4_576x1024
+VIDEO_MODEL=minimax_h3_gateway_catalog_v3
 ```
 
 H3 提供受审核的横竖屏档位；默认是 576×1024，另有 832×480、960×544、

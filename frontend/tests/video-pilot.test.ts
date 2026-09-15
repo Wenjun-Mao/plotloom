@@ -81,7 +81,7 @@ it("keeps retrieval available after a known-ID cancel intent", async () => {
 
 it("requires an explicit H3 letterbox opt-in for a mismatched keyframe", async () => {
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
-    enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "2", provider: "minimax_h3_gateway",
+    enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "3", provider: "minimax_h3_gateway",
     model: "minimax_h3_fp8_turbo4_portrait_576x1024_v1", durationSeconds: 5, resolution: "576x1024",
     width: 576, height: 1024, fps: 24, frameCount: 124, nativeAudio: true,
     requiresAspectPolicy: false, inputAspectPolicy: "reject_mismatch", tracksPaidWanPilot: false,
@@ -89,7 +89,7 @@ it("requires an explicit H3 letterbox opt-in for a mismatched keyframe", async (
     profiles: [{
       id: "minimax_h3_fp8_turbo4_portrait_576x1024_v1", version: 1, label: "Portrait · Fast · 576 × 1024",
       orientation: "portrait", tier: "fast", width: 576, height: 1024, durationSeconds: 5,
-      fps: 24, frameCount: 124, nativeAudio: true, selectable: true,
+      fps: 24, frameCount: 124, nativeAudio: true,
     }],
   });
   vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });

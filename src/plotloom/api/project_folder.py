@@ -119,10 +119,10 @@ def create_project_folder_authoring_app(
         """Resolve a trusted adaptation target without project configuration."""
 
         profile = H3_PROFILES_BY_ID.get(profile_id)
-        if profile is None or not profile.selectable:
+        if profile is None:
             raise ManagedMediaError(
                 "keyframe_target_profile_invalid",
-                "keyframe preparation needs one selectable MiniMax-H3 profile",
+                "keyframe preparation needs one reviewed MiniMax-H3 profile",
             )
         return {
             "id": profile.profile_id,

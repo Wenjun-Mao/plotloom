@@ -249,7 +249,7 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
     job = prepared.json()
     binding = job["snapshot"]["provider"]["backendBinding"]
     assert binding["adapterId"] == "minimax_h3_gateway"
-    assert binding["adapterVersion"] == "2"
+    assert binding["adapterVersion"] == "3"
     assert binding["instance"]["kind"] == "fixture_h3_endpoint_v1"
     assert len(binding["instance"]["fingerprint"]) == 64
     assert "endpoint" not in job["snapshot"]["provider"]

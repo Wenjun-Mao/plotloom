@@ -24,7 +24,7 @@ dimensions or ComfyUI graphs:
 | Standard | 960×544 | 608×1088 |
 | High resolution | 1280×704 | 704×1280 |
 
-Every selectable entry uses MiniMax-H3 FL2VA FP8, the official 4-step 768p
+Every catalog entry uses MiniMax-H3 FL2VA FP8, the official 4-step 768p
 Turbo LoRA, one approved PNG/JPEG/WebP keyframe, and 124 frames at 24 fps
 (about 5.167 seconds) with H.264/AAC output. Portrait 576×1024 is Plotloom's
 new-job default. “High resolution” means more pixels only; it is not a
@@ -70,14 +70,16 @@ The implementation and decision records are:
 
 - Gateway service: [`services/minimax_h3_gateway`](../../services/minimax_h3_gateway/)
 - Gateway catalog: [`profile_catalog.py`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profile_catalog.py)
-- Legacy workflow template: [`minimax_h3_fp8_turbo4_480p.json`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_fp8_turbo4_480p.json)
+- Profile-neutral workflow template: [`minimax_h3_turbo4_template_v1.json`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_turbo4_template_v1.json)
 - Plotloom adapter: [`adapter.py`](../../src/plotloom/video_backends/minimax_h3/adapter.py)
   and [`transport.py`](../../src/plotloom/video_backends/minimax_h3/transport.py)
 - Boundary decisions: [ADR 0033](../adr/0033-private-minimax-h3-gateway.md), [ADR 0036](../adr/0036-minimax-h3-profile-catalog.md)
   and [ADR 0034](../adr/0034-provider-neutral-video-adapters-and-local-h3.md);
   [ADR 0035](../adr/0035-backend-owned-video-modules.md) records the module
   and service-package ownership boundary, while [ADR 0038](../adr/0038-h3-gateway-durable-fifo-dispatch.md)
-  records the gateway-owned FIFO worker.
+  records the gateway-owned FIFO worker. [ADR 0049](../adr/0049-h3-catalog-clean-cutover.md)
+  supersedes the retained-profile portion of ADR 0036 with the current V3
+  clean-cutover contract.
 
 ## 3. Before deployment
 
@@ -177,8 +179,8 @@ An expected health response is structurally equivalent to:
 ```json
 {
   "status": "ok",
-  "profileContractVersion": 2,
-  "profiles": [{"id": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "width": 576, "height": 1024, "selectable": true}],
+  "profileContractVersion": 3,
+  "profiles": [{"id": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "width": 576, "height": 1024}],
   "queuedJobs": 0,
   "activeDispatches": 0,
   "dispatchConcurrency": 1
@@ -211,7 +213,7 @@ PLOTLOOM_ENABLE_WAN_P2=false
 PLOTLOOM_ENABLE_H3_GATEWAY=true
 VIDEO_PROVIDER=minimax_h3_gateway
 VIDEO_BASE_URL=http://100.x.y.z:8090
-VIDEO_MODEL=minimax_h3_gateway_catalog_v2
+VIDEO_MODEL=minimax_h3_gateway_catalog_v3
 VIDEO_AUTH_MODE=bearer
 VIDEO_MODEL_API_KEY=the-same-value-as-H3_API_KEY
 ```
@@ -396,7 +398,10 @@ Each alters a production contract. The required path is: add a new gateway
 profile/version in source, add or update a separate Plotloom adapter capability
 version, freeze it in production snapshots, add request/response/output tests,
 run a bounded probe, record the evidence, and then enable it deliberately.
-Historical H3 jobs must retain their old adapter/profile interpretation.
+The current catalog is a clean-cutover contract: a retired profile is not
+accepted, inferred, migrated, or replayed by new code. Existing completed
+MP4s remain ordinary retained files until their scheduled expiry, but do not
+create a runtime compatibility path.
 
 Normal code updates are safer: pull a reviewed `main`, rebuild the gateway
 image, verify `/health`, run the relevant Plotloom checks, and only then
@@ -407,13 +412,11 @@ source revision and retain the existing gateway state volume.
 
 What has been directly evidenced:
 
-- the legacy 864×480 H3 profile can generate H.264/AAC at its advertised
-  frame profile;
 - one Mandarin line under one prompt and keyframe was watched by a reviewer as
   intelligible and lip-synced;
 - a real temporary Plotloom → gateway → MP4 ingestion path completed once
   without resubmission and produced an unselected candidate.
-- all six selectable H3 catalog geometries delivered their exact H.264/AAC,
+- all six current H3 catalog geometries delivered their exact H.264/AAC,
   124-frame, 24-fps media contract in a bounded Spark probe.
 
 See the secret-free records:

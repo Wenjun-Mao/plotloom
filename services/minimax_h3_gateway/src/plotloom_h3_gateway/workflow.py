@@ -7,11 +7,13 @@ from pathlib import Path
 from typing import Any
 
 from .naming import is_safe_path_part
-from .profile_catalog import LEGACY_PROFILE_ID, GatewayProfile
+from .profile_catalog import GatewayProfile
 
 
-def load_legacy_template() -> dict[str, Any]:
-    path = Path(__file__).with_name("profiles") / f"{LEGACY_PROFILE_ID}.json"
+def load_h3_template() -> dict[str, Any]:
+    """Load the profile-neutral reviewed H3 graph template."""
+
+    path = Path(__file__).with_name("profiles") / "minimax_h3_turbo4_template_v1.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -21,20 +23,18 @@ def render_workflow(
     """Resolve only the frozen job fields in the reviewed profile template."""
 
     workflow = copy.deepcopy(template)
-    if profile.explicit_dimensions:
-        workflow["115"] = {"class_type": "PrimitiveInt", "inputs": {"value": profile.width}}
-        workflow["116"] = {"class_type": "PrimitiveInt", "inputs": {"value": profile.height}}
-        workflow["105:104"]["inputs"] |= {
-            "width": ["115", 0],
-            "height": ["116", 0],
-        }
-
     def replace(value: Any) -> Any:
         if isinstance(value, dict):
             return {key: replace(child) for key, child in value.items()}
         if isinstance(value, list):
             return [replace(child) for child in value]
-        return {"__PROMPT__": prompt, "__INPUT_IMAGE__": input_name, "__SEED__": seed}.get(value, value)
+        return {
+            "__PROMPT__": prompt,
+            "__INPUT_IMAGE__": input_name,
+            "__SEED__": seed,
+            "__WIDTH__": profile.width,
+            "__HEIGHT__": profile.height,
+        }.get(value, value)
 
     return replace(workflow)
 

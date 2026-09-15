@@ -145,7 +145,7 @@ def test_job_uses_frozen_profile_and_crop_policy_without_stretching(tmp_path: Pa
     assert asset.status_code == 200
     response = client.post(
         "/v1/video-jobs", headers=headers,
-        json={"assetId": asset.json()["assetId"], "prompt": "A calm glance.", "aspectPolicy": "cover_center_crop", "seed": 12},
+        json={"assetId": asset.json()["assetId"], "prompt": "A calm glance.", "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1", "aspectPolicy": "cover_center_crop", "seed": 12},
     )
     assert response.status_code == 202
     assert response.json()["status"] == "queued"
@@ -157,20 +157,20 @@ def test_job_uses_frozen_profile_and_crop_policy_without_stretching(tmp_path: Pa
     assert submitted["105:104"]["inputs"]["prompt"] == "A calm glance."
     prepared = next((tmp_path / "comfy-input").glob("*.png"))
     with Image.open(prepared) as image:
-        assert image.size == (864, 480)
+        assert image.size == (832, 480)
 
 
 def test_catalog_profile_uses_exact_portrait_dimensions_and_health_is_secret_free(tmp_path: Path) -> None:
     client, session = _client(tmp_path)
     health = client.get("/health")
     assert health.status_code == 200
-    assert health.json()["profileContractVersion"] == 2
+    assert health.json()["profileContractVersion"] == 3
     assert health.json()["queuedJobs"] == 0
     assert health.json()["activeDispatches"] == 0
     assert health.json()["dispatchConcurrency"] == 1
     assert "maxQueueDepth" not in health.json()
     profiles = health.json()["profiles"]
-    assert len(profiles) == 7
+    assert len(profiles) == 6
     assert all("lora" not in item and "path" not in item for item in profiles)
     profile_id = "minimax_h3_fp8_turbo4_portrait_704x1280_v1"
     headers = {"Authorization": "Bearer test-key"}
@@ -208,6 +208,23 @@ def test_gateway_rejects_unknown_profile_before_creating_a_job(tmp_path: Path) -
     assert response.json() == {"error": "profile_not_supported"}
 
 
+def test_gateway_requires_an_explicit_profile_for_every_new_job(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    headers = {"Authorization": "Bearer test-key"}
+    asset = client.post(
+        "/v1/assets", headers=headers, files={"image": ("landscape.png", _png(832, 480), "image/png")},
+    ).json()
+    response = client.post(
+        "/v1/video-jobs",
+        headers=headers,
+        json={"assetId": asset["assetId"], "prompt": "No implicit profile.", "aspectPolicy": "reject_mismatch"},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "profileId"]
+    with client.app.state.gateway.store._connect() as connection:
+        assert connection.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0
+
+
 def test_reject_policy_refuses_aspect_mismatch_before_comfy_submit(tmp_path: Path) -> None:
     client, session = _client(tmp_path)
     headers = {"Authorization": "Bearer test-key"}
@@ -216,7 +233,7 @@ def test_reject_policy_refuses_aspect_mismatch_before_comfy_submit(tmp_path: Pat
     ).json()
     response = client.post(
         "/v1/video-jobs", headers=headers,
-        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "aspectPolicy": "reject_mismatch"},
+        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1", "aspectPolicy": "reject_mismatch"},
     )
     assert response.status_code == 422
     assert response.json() == {"error": "input_aspect_mismatch"}
@@ -229,11 +246,11 @@ def test_completed_job_proxies_only_its_single_mp4_output(tmp_path: Path) -> Non
     client, session = _client(tmp_path)
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
-        "/v1/assets", headers=headers, files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        "/v1/assets", headers=headers, files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     job = client.post(
         "/v1/video-jobs", headers=headers,
-        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "aspectPolicy": "reject_mismatch"},
+        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1", "aspectPolicy": "reject_mismatch"},
     ).json()
     assert _dispatch_once(client)["status"] == "submitted"
     session.history["comfy-1"] = {
@@ -259,7 +276,7 @@ def test_new_gateway_files_use_human_readable_utc_timestamps(tmp_path: Path) -> 
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     asset_path = _stored_asset_path(client, asset["assetId"])
     assert re.fullmatch(
@@ -295,7 +312,7 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     job = _queue_job(client, headers, asset["assetId"], prompt="Expire after review")
     assert _dispatch_once(client)["status"] == "submitted"
@@ -326,7 +343,7 @@ def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(t
     expired = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
     assert expired.json() == {
         "id": job["id"], "status": "succeeded",
-        "profileId": "minimax_h3_fp8_turbo4_480p",
+        "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1",
         "aspectPolicy": "reject_mismatch", "error": None,
         "outputReady": False,
     }
@@ -340,7 +357,7 @@ def test_expired_job_record_purge_uses_a_30_day_total_handoff_window(tmp_path: P
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     asset_path = _stored_asset_path(client, asset["assetId"])
     job = _queue_job(client, headers, asset["assetId"], prompt="Retain a short audit row")
@@ -386,11 +403,11 @@ def test_every_gateway_keyframe_expires_after_30_days_even_when_a_job_references
     headers = {"Authorization": "Bearer test-key"}
     unused = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("unused.png", _png(864, 480), "image/png")},
+        files={"image": ("unused.png", _png(832, 480), "image/png")},
     ).json()
     referenced = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("used.png", _png(864, 480), "image/png")},
+        files={"image": ("used.png", _png(832, 480), "image/png")},
     ).json()
     unused_path = _stored_asset_path(client, unused["assetId"])
     referenced_path = _stored_asset_path(client, referenced["assetId"])
@@ -422,7 +439,7 @@ def test_shared_gateway_keyframe_remains_until_its_last_linked_video_expires(tmp
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("shared.png", _png(864, 480), "image/png")},
+        files={"image": ("shared.png", _png(832, 480), "image/png")},
     ).json()
     asset_path = _stored_asset_path(client, asset["assetId"])
     first = _queue_job(client, headers, asset["assetId"], prompt="First use")
@@ -497,7 +514,7 @@ def test_restart_finishes_a_frozen_pending_output_handoff_without_new_submission
     first_client = TestClient(first_app)
     asset = first_client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     job = _queue_job(first_client, headers, asset["assetId"], prompt="Resume transfer")
     assert _dispatch_once(first_client)["status"] == "submitted"
@@ -523,7 +540,7 @@ def test_pending_handoff_rejects_a_replaced_comfyui_source(tmp_path: Path) -> No
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     job = _queue_job(client, headers, asset["assetId"], prompt="Verify source")
     managed_name = f"2026-09-13T12-00-00Z_{job['id']}.mp4"
@@ -547,6 +564,7 @@ def _queue_job(client: TestClient, headers: dict[str, str], asset_id: str, *, pr
     payload: dict[str, Any] = {
         "assetId": asset_id,
         "prompt": prompt,
+        "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1",
         "aspectPolicy": "reject_mismatch",
         "seed": 7,
     }
@@ -563,7 +581,7 @@ def test_fifo_queue_dispatches_only_one_h3_job_at_a_time(tmp_path: Path) -> None
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     first = _queue_job(client, headers, asset["assetId"], prompt="First action")
     second = _queue_job(client, headers, asset["assetId"], prompt="Second action")
@@ -591,7 +609,7 @@ def test_gateway_allows_a_large_fifo_backlog_but_waits_for_external_comfy_work(t
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     queued = [
         _queue_job(client, headers, asset["assetId"], prompt=f"Queued action {index}")
@@ -612,14 +630,14 @@ def test_queued_job_is_idempotent_and_can_be_cancelled_before_dispatch(tmp_path:
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     key = "gateway-idempotency-key"
     first = _queue_job(client, headers, asset["assetId"], prompt="Wait here", key=key)
     replay = _queue_job(client, headers, asset["assetId"], prompt="Wait here", key=key)
     assert replay["id"] == first["id"]
     conflict = client.post("/v1/video-jobs", headers=headers, json={
-        "assetId": asset["assetId"], "prompt": "Changed request", "aspectPolicy": "reject_mismatch",
+        "assetId": asset["assetId"], "prompt": "Changed request", "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1", "aspectPolicy": "reject_mismatch",
         "seed": 7, "idempotencyKey": key,
     })
     assert conflict.status_code == 409
@@ -644,7 +662,7 @@ def test_restart_preserves_queued_order_and_never_replays_an_interrupted_dispatc
     first_client = TestClient(first_app)
     asset = first_client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     interrupted = _queue_job(first_client, headers, asset["assetId"], prompt="Never replay me")
     first = _queue_job(first_client, headers, asset["assetId"], prompt="Preserve first")
@@ -672,7 +690,7 @@ def test_gateway_accepts_durable_work_while_comfyui_is_temporarily_unavailable(t
     headers = {"Authorization": "Bearer test-key"}
     asset = client.post(
         "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(864, 480), "image/png")},
+        files={"image": ("landscape.png", _png(832, 480), "image/png")},
     ).json()
     session.available = False
     queued = _queue_job(client, headers, asset["assetId"], prompt="Wait for H3")
@@ -698,7 +716,7 @@ def test_runtime_worker_dispatches_a_queued_job_without_a_polling_browser(tmp_pa
     with TestClient(app) as client:
         asset = client.post(
             "/v1/assets", headers=headers,
-            files={"image": ("landscape.png", _png(864, 480), "image/png")},
+            files={"image": ("landscape.png", _png(832, 480), "image/png")},
         ).json()
         job = _queue_job(client, headers, asset["assetId"], prompt="Worker takes this")
         assert session.submitted.wait(timeout=1.0)
