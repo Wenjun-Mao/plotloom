@@ -55,6 +55,17 @@ change. Once the gate is available, begin again with one fresh labelled project
 and execute the full bounded pilot; do not reuse an archival or Step 3 proof
 project as its canonical source.
 
+### Verification-harness root allowlist repair
+
+The first full locked test run for the configuration correction stopped at the
+filesystem-only repository-root check because its literal allowlist did not
+match existing ignored local runtime state: `/outputs/` and `.env.*.local`.
+Those names were already declared in `.gitignore`; the local H3 handoff file
+and retained outputs were neither read, published, nor deleted. The test now
+permits only those untracked local roots in its filesystem scan while retaining
+its independent tracked-root, predecessor-root, source-namespace, and
+gateway-only service checks.
+
 ### Configuration correction recorded after this receipt
 
 The later gateway-owner handoff established that the deployed direct gateway is

@@ -82,6 +82,8 @@ IGNORED_WORKTREE_ROOTS = {
     "htmlcov",
     "node_modules",
 }
+LOCAL_WORKTREE_DOTENV_PATTERN = re.compile(r"^\.env(?:\..+)?\.local$")
+APPROVED_UNTRACKED_WORKTREE_ROOTS = {"outputs"}
 FORBIDDEN_PRODUCT_IDENTITY_MARKERS = {
     "Narrative Forge",
     "NARRATIVE_FORGE",
@@ -110,6 +112,35 @@ def _absolute_imports(path: Path) -> list[tuple[int, str]]:
         elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
             imports.append((node.lineno, node.module))
     return imports
+
+
+def _is_approved_untracked_worktree_root(path: Path) -> bool:
+    """Permit only declared local runtime state in the filesystem-only scan."""
+
+    return (
+        path.name in IGNORED_WORKTREE_ROOTS
+        or path.name in APPROVED_UNTRACKED_WORKTREE_ROOTS
+        or LOCAL_WORKTREE_DOTENV_PATTERN.fullmatch(path.name) is not None
+    )
+
+
+def _unexpected_worktree_roots(root: Path) -> list[str]:
+    return sorted(
+        path.name
+        for path in root.iterdir()
+        if not _is_approved_untracked_worktree_root(path)
+        and path.name != ".DS_Store"
+        and not path.name.startswith(".coverage")
+        and path.name not in ALLOWED_REPOSITORY_ROOTS
+    )
+
+
+def _unexpected_tracked_roots(tracked_paths: list[Path]) -> list[str]:
+    return sorted({path.parts[0] for path in tracked_paths} - ALLOWED_REPOSITORY_ROOTS)
+
+
+def _present_forbidden_repository_roots(root: Path) -> list[str]:
+    return sorted(path for path in FORBIDDEN_REPOSITORY_PATHS if (root / path).exists())
 
 
 def _find_named_files(root: Path, filenames: set[str]) -> set[Path]:
@@ -207,21 +238,12 @@ def test_python_sources_have_no_legacy_runtime_dependency() -> None:
 
 
 def test_clean_repository_has_no_legacy_runtime_roots() -> None:
-    present = sorted(
-        path for path in FORBIDDEN_REPOSITORY_PATHS if (REPOSITORY_ROOT / path).exists()
-    )
+    present = _present_forbidden_repository_roots(REPOSITORY_ROOT)
     assert not present, "legacy runtime roots entered Plotloom: " + ", ".join(present)
 
 
 def test_clean_repository_has_only_declared_product_roots() -> None:
-    visible_roots = {
-        path.name
-        for path in REPOSITORY_ROOT.iterdir()
-        if path.name not in IGNORED_WORKTREE_ROOTS
-        and path.name != ".DS_Store"
-        and not path.name.startswith(".coverage")
-    }
-    unexpected = sorted(visible_roots - ALLOWED_REPOSITORY_ROOTS)
+    unexpected = _unexpected_worktree_roots(REPOSITORY_ROOT)
     assert not unexpected, "undeclared repository roots could hide predecessor code: " + ", ".join(
         unexpected
     )
@@ -238,9 +260,7 @@ def test_clean_repository_has_only_declared_product_roots() -> None:
         for value in tracked_result.stdout.split(b"\0")
         if value
     ]
-    unexpected_tracked_roots = sorted(
-        {path.parts[0] for path in tracked_paths} - ALLOWED_REPOSITORY_ROOTS
-    )
+    unexpected_tracked_roots = _unexpected_tracked_roots(tracked_paths)
     assert not unexpected_tracked_roots, (
         "tracked roots fall outside the Plotloom repository contract: "
         + ", ".join(unexpected_tracked_roots)
@@ -255,6 +275,23 @@ def test_clean_repository_has_only_declared_product_roots() -> None:
         foreign_source_paths
     )
     _assert_services_root_is_gateway_only(REPOSITORY_ROOT, tracked_paths)
+
+
+def test_root_hygiene_allows_only_declared_untracked_local_state(tmp_path: Path) -> None:
+    (tmp_path / "outputs").mkdir()
+    for name in (".env.local", ".env.h3-pilot.local"):
+        (tmp_path / name).touch()
+
+    assert _unexpected_worktree_roots(tmp_path) == []
+
+    (tmp_path / "unknown-predecessor").mkdir()
+    assert _unexpected_worktree_roots(tmp_path) == ["unknown-predecessor"]
+
+    assert _unexpected_tracked_roots([Path("outputs/project.json")]) == ["outputs"]
+    assert _unexpected_tracked_roots([Path(".env.h3-pilot.local")]) == [".env.h3-pilot.local"]
+
+    (tmp_path / "backend").mkdir()
+    assert _present_forbidden_repository_roots(tmp_path) == ["backend"]
 
 
 def test_services_root_admission_rejects_other_children_and_untracked_files(tmp_path: Path) -> None:
