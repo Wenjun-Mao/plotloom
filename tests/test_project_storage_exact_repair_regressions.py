@@ -5,7 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 
+from plotloom.api.project_folder_generation import register_project_folder_generation_routes
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import (
     Artifact,
@@ -240,6 +243,13 @@ def test_exact_repair_keeps_one_scope_across_idempotency_cancellation_and_restar
     assert store.generation.get_run(child.id).status == RunStatus.QUEUED
     assert store.generation.get_work_unit_repair_scope(child.id) == scope
     store.generation.start_run(child.id)
+    store.generation.get_or_create_repair_stage_plan(child.id, StageName.STORY_BIBLE)
+    repair_unit = store.generation.list_generation_work_units(child.id)[0]
+    dispatched = store.generation.allocate_attempt_for_work_unit(
+        repair_unit.id, provider="fixture", model="fixture-model"
+    )
+    dispatched = store.generation.mark_attempt_dispatched(dispatched.id)
+    assert dispatched.dispatched_at is not None
     store.generation.cancel_run(child.id)
     cancelled = store.generation.finish_run(child.id)
     assert cancelled.status == RunStatus.CANCELLED
@@ -248,6 +258,64 @@ def test_exact_repair_keeps_one_scope_across_idempotency_cancellation_and_restar
         _create_exact_repair(store, source.id, unit.id, key="replacement-after-cancel")
     assert store.canonical_stages() == []
     assert store.generation.get_run_execution_trace(child.id).sealed_aggregates == []
+
+
+def test_exact_repair_http_replay_submits_only_the_created_child(tmp_path: Path) -> None:
+    """The public endpoint must not resubmit an idempotent repair replay."""
+
+    store = _storage(tmp_path).projects.create(FIXED_CHINESE_BRIEF)
+    source, unit = _rejected_bible_unit(store)
+
+    class StoreView:
+        def __init__(self, project_store: ProjectStore) -> None:
+            self.generation = project_store.generation
+
+        def close(self) -> None:
+            pass
+
+    class Dispatcher:
+        def inspect_run_project(self, run_id: str) -> StoreView:
+            assert run_id == source.id
+            return StoreView(store)
+
+        def require_open_run_project(self, run_id: str) -> None:
+            assert run_id == source.id
+
+        def create_exact_repair(
+            self, run_id: str, work_unit_id: str, *, idempotency_key: str
+        ):
+            assert run_id == source.id
+            assert work_unit_id == unit.id
+            creation = _create_exact_repair(store, run_id, work_unit_id, key=idempotency_key)
+            return creation.run, creation.created
+
+    class Admission:
+        def __init__(self) -> None:
+            self.submitted_run_ids: list[str] = []
+
+        def admit_text_backend(self, profile_id: str, _request, *, frozen_snapshot):
+            assert profile_id == source.provider_snapshot["profileId"]
+            assert frozen_snapshot == source.provider_snapshot
+            return frozen_snapshot
+
+        def text_submission_session_key(self, _snapshot, _request) -> None:
+            return None
+
+        def submit_text_run(self, run, _request) -> None:
+            self.submitted_run_ids.append(run.id)
+
+    app = FastAPI()
+    admission = Admission()
+    register_project_folder_generation_routes(app, Dispatcher(), admission=admission)
+    endpoint = f"/api/v2/runs/{source.id}/work-units/{unit.id}/repairs"
+    with TestClient(app) as client:
+        first = client.post(endpoint, json={}, headers={"Idempotency-Key": "repair-once"})
+        replay = client.post(endpoint, json={}, headers={"Idempotency-Key": "repair-once"})
+
+    assert first.status_code == 202
+    assert replay.status_code == 202
+    assert first.json()["id"] == replay.json()["id"]
+    assert admission.submitted_run_ids == [first.json()["id"]]
 
 
 def test_exact_repair_scope_and_binding_tampering_fail_before_child_materialization(

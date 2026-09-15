@@ -248,6 +248,37 @@
         "'canonical_stage_heads' not in application_tables"
       ]
     },
+    "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_binds_frozen_profile_prompt_plan_topology_and_seal_provenance": {
+      "source_sha256": "b121f33225225f9d5536f5ab17f99f7b18508a3563728de2bb95644d170cca54",
+      "assertions": [
+        "generation_plan is not None",
+        "topology is not None",
+        "trace.run.provider_snapshot == profile.model_dump(mode='json', by_alias=True)",
+        "generation_plan.plan['provider_profile_hash'] == profile.profile_hash",
+        "generation_plan.plan['story_graph_topology_hash'] == topology.topology_hash",
+        "topology.generation_plan_hash == generation_plan.plan_hash",
+        "len(prompts) == len(work_units)",
+        "{item.stage for item in execution.sealed_aggregates} == set(STAGE_ORDER)",
+        "contract['stage_plan_hash'] == stage_plan.stage_plan_hash",
+        "contract['work_unit_id'] == work_unit.id",
+        "contract['work_unit_input_hash'] == work_unit.input_hash",
+        "contract['dependency_hash'] == work_unit.dependency_hash",
+        "contract['unit_dependency_hash'] == work_unit.unit_dependency_hash",
+        "prompt.content['schemaId'] == contract['schema_id']",
+        "rendered['prompt_id'] == contract['prompt_id']",
+        "rendered['prompt_version'] == contract['prompt_version']",
+        "rendered['spec_hash'] == contract['prompt_spec_hash']",
+        "rendered['input_hash'] == contract['variables_hash']",
+        "rendered['rendered_hash'] == contract['rendered_hash']",
+        "request.metadata['prompt_hash'] == contract['rendered_hash']",
+        "request.response_schema is not None",
+        "stable_hash(request.response_schema) == contract['schema_hash']",
+        "aggregate.manifest['stagePlanHash'] == stage_plan.stage_plan_hash",
+        "aggregate.manifest['generationPlanHash'] == generation_plan.plan_hash",
+        "aggregate.manifest['dependencyHash'] == stage_plan.dependency_hash",
+        "aggregate.manifest['aggregatePayloadHash'] == stable_hash(aggregate.payload)"
+      ]
+    },
     "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_marks_ambiguous_provider_loss_unknown_without_replay_and_redacts_error": {
       "source_sha256": "9f53577fb5dd8fee36687074135f16e85f378809381b463eb6528ed220219241",
       "assertions": [
@@ -297,6 +328,18 @@
         "store.generation.reconcile_startup_jobs().resubmit_run_ids == [run.id]",
         "_execute(store, run.id, provider, broker).status == RunStatus.SUCCEEDED",
         "raises: pytest.raises(_ProcessLoss)"
+      ]
+    },
+    "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_recommits_complete_seals_after_restart_without_provider_replay": {
+      "source_sha256": "8cfe3da92a4230ac23af1dfb2763a6d7d6cf51c890eb37f39e0857ab02b6026f",
+      "assertions": [
+        "len(provider.requests) == 1",
+        "[artifact.stage for artifact in store.run_trace(run.id).artifacts if artifact.kind == ArtifactKind.CANONICAL] == [StageName.STORY_BIBLE]",
+        "sealed.sealed_aggregate_ids",
+        "len(provider.requests) == 1",
+        "store.canonical_stages() == []",
+        "store.generation.reconcile_startup_jobs().resubmit_run_ids == [run.id]",
+        "_execute(store, run.id, provider, broker).status == RunStatus.SUCCEEDED"
       ]
     },
     "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_reuses_a_durable_primary_or_correction_response_without_provider_replay": {
@@ -378,7 +421,7 @@
       ]
     },
     "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_keeps_one_scope_across_idempotency_cancellation_and_restart": {
-      "source_sha256": "523e1d31e9049625df77a88281a52fd5648b59907998fddafa059d0d5ed6e895",
+      "source_sha256": "abd4f13aae49d59109b866baa410d4de52b5791fa40bebc48843ebb529c5cd27",
       "assertions": [
         "created.created is True",
         "scope.child_run_id == child.id",
@@ -387,11 +430,27 @@
         "recovery.resubmit_run_ids == [child.id]",
         "store.generation.get_run(child.id).status == RunStatus.QUEUED",
         "store.generation.get_work_unit_repair_scope(child.id) == scope",
+        "dispatched.dispatched_at is not None",
         "cancelled.status == RunStatus.CANCELLED",
         "store.generation.get_work_unit_repair_scope(child.id) == scope",
         "store.canonical_stages() == []",
         "store.generation.get_run_execution_trace(child.id).sealed_aggregates == []",
         "raises: pytest.raises(RepairEligibilityError, match='repair.already_exists')"
+      ]
+    },
+    "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_http_replay_submits_only_the_created_child": {
+      "source_sha256": "9e8be2f761cd71875980dac74d00e615776f82f082833bd7b05dfd52a324dee8",
+      "assertions": [
+        "first.status_code == 202",
+        "replay.status_code == 202",
+        "first.json()['id'] == replay.json()['id']",
+        "admission.submitted_run_ids == [first.json()['id']]",
+        "run_id == source.id",
+        "run_id == source.id",
+        "run_id == source.id",
+        "work_unit_id == unit.id",
+        "profile_id == source.provider_snapshot['profileId']",
+        "frozen_snapshot == source.provider_snapshot"
       ]
     },
     "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_refuses_nonreplayable_direct_project_targets": {
@@ -2002,7 +2061,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_archived_direct_project_is_not_advertised_or_admitted_for_exact_repair"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_cancelled_exact_repair_keeps_its_scope_and_never_installs_partial_output",
@@ -2033,7 +2092,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_keeps_one_scope_across_idempotency_cancellation_and_restart"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_downstream_repair_failure_never_installs_partial_child_seals",
@@ -2059,7 +2118,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_downstream_failure_keeps_child_seals_but_never_partially_installs"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_idempotency_replay_does_not_resubmit_child",
@@ -2086,10 +2145,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_keeps_one_scope_across_idempotency_cancellation_and_restart"
+        "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_http_replay_submits_only_the_created_child"
       ],
-      "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "mapping_note": "The production exact-repair HTTP route replays one idempotency key and records submission only for the newly created child; manifest-bound repair tests retain the separate scope and tamper checks.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_rejects_nonreplayable_target_outcomes",
@@ -2112,7 +2171,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_refuses_nonreplayable_direct_project_targets"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_rejects_nonreplayable_target_outcomes[0:0]",
@@ -2147,7 +2206,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_refuses_nonreplayable_direct_project_targets"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_rejects_nonreplayable_target_outcomes[0:1]",
@@ -2182,7 +2241,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_refuses_nonreplayable_direct_project_targets"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_rejects_stale_snapshot_and_cross_run_unit",
@@ -2208,7 +2267,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_rejects_stale_or_foreign_direct_project_evidence"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_exact_repair_scope_tampering_fails_closed",
@@ -2234,7 +2293,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_scope_and_binding_tampering_fail_before_child_materialization"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_permanent_delete_removes_exact_repair_scope_after_leaf_first_lineage_cleanup",
@@ -2263,7 +2322,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_project_folder_permanent_delete_removes_terminal_repair_lineage_leaf_first"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_restart_requeues_the_existing_exact_repair_scope_without_partial_installation",
@@ -2292,7 +2351,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_exact_repair_keeps_one_scope_across_idempotency_cancellation_and_restart"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_exact_work_unit_repair_integration.py::test_tampered_child_reuse_binding_fails_closed_before_materialization",
@@ -2325,7 +2384,7 @@
         "tests/test_project_storage_exact_repair_regressions.py::test_tampered_frozen_upstream_binding_never_materializes_a_child_candidate"
       ],
       "mapping_note": "Manifest-bound repair runs retain exact scope, sibling reuse, stale-admission, and tamper fail-closed assertions.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_frontend_contract.py::test_handwritten_response_dtos_match_openapi_fields_and_nullability",
@@ -3247,7 +3306,7 @@
         "tests/test_project_storage_work_unit_contracts.py::test_project_work_unit_unknown_attempt_is_never_a_correction_source_or_replay_target"
       ],
       "mapping_note": "Current project attempts preserve a two-correction ceiling and durable primary-to-correction lineage.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_m15_attempt_lineage.py::test_two_visible_corrections_form_a_bounded_durable_lineage_then_quarantine",
@@ -3278,7 +3337,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_caps_corrections_and_keeps_durable_lineage"
       ],
       "mapping_note": "Current project attempts preserve a two-correction ceiling and durable primary-to-correction lineage.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_m15_migration_compatibility.py::test_0005_to_head_preserves_sealed_history_json_and_hash_bytes",
@@ -4755,7 +4814,7 @@
         "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_central_redaction_removes_third_party_provider_error_from_attempt_trace",
@@ -4784,7 +4843,7 @@
         "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_marks_ambiguous_provider_loss_unknown_without_replay_and_redacts_error"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_continuity_fact_rejects_rebound_owner_before_correction_dispatch",
@@ -4979,7 +5038,7 @@
         "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_restarts_a_predispatch_attempt_with_its_original_identity"
       ],
       "mapping_note": "Current project-folder owner preserves the recorded baseline trigger and assertion boundary; exact assertions are stored in the replacement catalog.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_exact_repair_rejects_an_upstream_child_selector_drift",
@@ -5095,7 +5154,7 @@
         "tests/test_project_storage_exact_repair_recovery.py::test_exact_repair_reexecutes_only_the_failed_scene_shard_after_preseal_process_loss"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_graph_join_allowed_difference_promotes_key_and_populates_all_incoming_edges",
@@ -5371,7 +5430,7 @@
         "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_persists_invalid_raw_response_before_quarantining_without_install"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_job_runner_persists_obsolete_planning_policy_without_provider_dispatch",
@@ -5640,10 +5699,12 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_direct_generation_regressions.py::test_direct_project_pipeline_seals_four_stages_then_installs_the_complete_prefix_atomically"
+        "tests/test_project_storage_direct_generation_regressions.py::test_direct_project_pipeline_seals_four_stages_then_installs_the_complete_prefix_atomically",
+        "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_binds_frozen_profile_prompt_plan_topology_and_seal_provenance",
+        "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence"
       ],
-      "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "mapping_note": "The direct four-stage run proves the complete sealed install; the companion provenance test binds the frozen profile, plan, topology, prompt contracts, units, and manifests; the project trace test supplies the required secret boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_post_dispatch_provider_failure_is_outcome_unknown_and_is_not_replayed",
@@ -5676,7 +5737,7 @@
         "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_marks_ambiguous_provider_loss_unknown_without_replay_and_redacts_error"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_preexisting_work_unit_repair_is_rejected_before_provider_dispatch",
@@ -5851,7 +5912,7 @@
         "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_records_known_provider_response_failure_without_unknown_state"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_recovery_refuses_to_correct_under_a_changed_base_contract",
@@ -5928,7 +5989,7 @@
         "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_treats_response_persistence_loss_as_known_storage_failure"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_run_resolves_provider_defaults_before_enqueue_and_never_reads_later_fallbacks",
@@ -6181,15 +6242,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_generation_contracts.py::test_project_generation_caps_corrections_and_keeps_durable_lineage",
-        "tests/test_project_storage_generation_contracts.py::test_project_generation_dispatches_before_call_and_never_reuses_reasoning",
-        "tests/test_project_storage_generation_contracts.py::test_project_generation_recovers_durable_primary_and_correction_responses_without_replay",
-        "tests/test_project_storage_generation_contracts.py::test_project_generation_redacts_provider_secret_echoes_before_project_persistence",
-        "tests/test_project_storage_generation_contracts.py::test_project_generation_rejects_tampered_correction_audit_before_second_dispatch",
-        "tests/generation/test_work_unit_contracts.py::test_storyboard_timing_plan_rejects_rehashed_invalid_coverage"
+        "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_recommits_complete_seals_after_restart_without_provider_replay"
       ],
-      "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "mapping_note": "The project-owned engine stops after the complete immutable seal, recovery queues that same run, and the lifecycle runner commits it without another provider call.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_startup_recovery_resumes_same_predispatch_attempt_identity",
@@ -6227,7 +6283,7 @@
         "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_restarts_a_predispatch_attempt_with_its_original_identity"
       ],
       "mapping_note": "Direct project execution retains dispatch-before-call, bounded correction, response recovery, reasoning separation, redaction, correction-audit hash checks, and rehashed timing-fact rejection.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_startup_recovery_reuses_durable_correction_response_without_replay",
@@ -6266,7 +6322,7 @@
         "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_reuses_a_durable_primary_or_correction_response_without_provider_replay"
       ],
       "mapping_note": "Current project-folder owner preserves the recorded baseline trigger and assertion boundary; exact assertions are stored in the replacement catalog.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_startup_recovery_reuses_durable_response_without_provider_replay",
@@ -6304,7 +6360,7 @@
         "tests/test_project_storage_direct_generation_regressions.py::test_direct_generation_reuses_a_durable_primary_or_correction_response_without_provider_replay"
       ],
       "mapping_note": "Current project-folder owner preserves the recorded baseline trigger and assertion boundary; exact assertions are stored in the replacement catalog.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_pipeline.py::test_storyboard_audio_timing_uses_exact_frozen_repair_fact",
@@ -11585,11 +11641,11 @@
     "source_statuses": {
       "tests/backend_core/test_api.py": "mixed",
       "tests/backend_core/test_api_modularization_contract.py": "pending",
-      "tests/backend_core/test_exact_work_unit_repair_integration.py": "pending",
+      "tests/backend_core/test_exact_work_unit_repair_integration.py": "verified",
       "tests/backend_core/test_frontend_contract.py": "pending",
       "tests/backend_core/test_image_jobs.py": "pending",
       "tests/backend_core/test_jobs.py": "pending",
-      "tests/backend_core/test_m15_attempt_lineage.py": "pending",
+      "tests/backend_core/test_m15_attempt_lineage.py": "verified",
       "tests/backend_core/test_m15_migration_compatibility.py": "pending",
       "tests/backend_core/test_m15_profile_repository.py": "mixed",
       "tests/backend_core/test_m15_story_graph_lifecycle.py": "pending",

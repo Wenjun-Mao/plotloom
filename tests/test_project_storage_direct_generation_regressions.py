@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from collections import deque
 from pathlib import Path
+from threading import Event
 
 import pytest
 
@@ -18,6 +19,7 @@ from plotloom.domain import ArtifactKind, AttemptStatus, GenerationAttemptKind, 
 from plotloom.generation.contracts import ProviderCapabilities, ProviderResponse, ProviderUsage
 from plotloom.generation.exceptions import ProviderError, ProviderResponseError
 from plotloom.jobs import LifecycleJobRunner
+from plotloom.persistence import stable_hash
 from plotloom.pipeline import PipelineEngine, RunSecretBroker
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 from plotloom.project_generation_storage import ProjectPipelineExecutor
@@ -213,6 +215,79 @@ def test_direct_project_pipeline_seals_four_stages_then_installs_the_complete_pr
     assert all(envelope.head.revision == 1 for envelope in store.canonical_stages())
 
 
+def test_direct_generation_binds_frozen_profile_prompt_plan_topology_and_seal_provenance(
+    tmp_path: Path,
+) -> None:
+    """Every installed candidate remains traceable to one immutable run contract."""
+
+    class RecordingFixtureProvider(FixtureProvider):
+        def __init__(self) -> None:
+            self.requests = []
+
+        def generate(self, request, secret):
+            self.requests.append(request)
+            return super().generate(request, secret)
+
+    class RecordingFixtureResolver:
+        def __init__(self) -> None:
+            self.provider = RecordingFixtureProvider()
+
+        def resolve(self, provider_snapshot):
+            return self.provider, str(provider_snapshot["textModel"])
+
+    store = _store(tmp_path)
+    profile = fixture_profile()
+    resolver = RecordingFixtureResolver()
+    completed = ProjectPipelineExecutor(resolver).execute(store, profile=profile)
+
+    trace = store.run_trace(completed.id)
+    execution = store.generation.get_run_execution_trace(completed.id)
+    generation_plan = execution.generation_plan
+    topology = execution.story_graph_topology
+    assert generation_plan is not None
+    assert topology is not None
+    assert trace.run.provider_snapshot == profile.model_dump(mode="json", by_alias=True)
+    assert generation_plan.plan["provider_profile_hash"] == profile.profile_hash
+    assert generation_plan.plan["story_graph_topology_hash"] == topology.topology_hash
+    assert topology.generation_plan_hash == generation_plan.plan_hash
+
+    stage_plans = {item.stage: item for item in execution.stage_plans}
+    work_units = {item.id: item for item in execution.work_units}
+    prompts = [item for item in trace.artifacts if item.kind == ArtifactKind.PROMPT]
+    requests = {
+        request.metadata["attempt_id"]: request for request in resolver.provider.requests
+    }
+    assert len(prompts) == len(work_units)
+    for prompt in prompts:
+        contract = prompt.content["contract"]
+        rendered = prompt.content["trace"]
+        request = requests[prompt.attempt_id]
+        work_unit = work_units[prompt.work_unit_id]
+        stage_plan = stage_plans[prompt.stage]
+        assert contract["stage_plan_hash"] == stage_plan.stage_plan_hash
+        assert contract["work_unit_id"] == work_unit.id
+        assert contract["work_unit_input_hash"] == work_unit.input_hash
+        assert contract["dependency_hash"] == work_unit.dependency_hash
+        assert contract["unit_dependency_hash"] == work_unit.unit_dependency_hash
+        assert prompt.content["schemaId"] == contract["schema_id"]
+        assert rendered["prompt_id"] == contract["prompt_id"]
+        assert rendered["prompt_version"] == contract["prompt_version"]
+        assert rendered["spec_hash"] == contract["prompt_spec_hash"]
+        assert rendered["input_hash"] == contract["variables_hash"]
+        assert rendered["rendered_hash"] == contract["rendered_hash"]
+        assert request.metadata["prompt_hash"] == contract["rendered_hash"]
+        assert request.response_schema is not None
+        assert stable_hash(request.response_schema) == contract["schema_hash"]
+
+    assert {item.stage for item in execution.sealed_aggregates} == set(STAGE_ORDER)
+    for aggregate in execution.sealed_aggregates:
+        stage_plan = stage_plans[aggregate.stage]
+        assert aggregate.manifest["stagePlanHash"] == stage_plan.stage_plan_hash
+        assert aggregate.manifest["generationPlanHash"] == generation_plan.plan_hash
+        assert aggregate.manifest["dependencyHash"] == stage_plan.dependency_hash
+        assert aggregate.manifest["aggregatePayloadHash"] == stable_hash(aggregate.payload)
+
+
 def test_direct_generation_persists_invalid_raw_response_before_quarantining_without_install(
     tmp_path: Path,
 ) -> None:
@@ -268,6 +343,41 @@ def test_direct_generation_restarts_a_predispatch_attempt_with_its_original_iden
     after = store.run_trace(run.id)
     assert len(provider.requests) == 1
     assert [(attempt.id, attempt.attempt_number) for attempt in after.attempts] == [(attempt_id, 1)]
+
+
+def test_direct_generation_recommits_complete_seals_after_restart_without_provider_replay(
+    tmp_path: Path,
+) -> None:
+    """Recovery may cross the sealed commit point, never the provider boundary again."""
+
+    store = _store(tmp_path)
+    run, _profile = _run(store)
+    provider = _Responses(["fixture"])
+    broker = RunSecretBroker()
+    engine = PipelineEngine(store.generation, _Resolver(provider), broker)
+    try:
+        sealed = engine.execute(
+            store.generation.start_run(run.id),
+            RunContext(
+                providers=ProviderPorts(), artifacts=LocalArtifactStore(store.home / "runs")
+            ),
+            Event(),
+        )
+        assert sealed.sealed_aggregate_ids
+        assert len(provider.requests) == 1
+        assert store.canonical_stages() == []
+
+        assert store.generation.reconcile_startup_jobs().resubmit_run_ids == [run.id]
+        assert _execute(store, run.id, provider, broker).status == RunStatus.SUCCEEDED
+    finally:
+        broker.close()
+
+    assert len(provider.requests) == 1
+    assert [
+        artifact.stage
+        for artifact in store.run_trace(run.id).artifacts
+        if artifact.kind == ArtifactKind.CANONICAL
+    ] == [StageName.STORY_BIBLE]
 
 
 @pytest.mark.parametrize(
