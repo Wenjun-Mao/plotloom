@@ -58,6 +58,25 @@ a paid provider.
    stop/confirm all local runtime, specialist, and other project writers before
    a source copy or SQLite backup is trusted.
 
+## Director resolutions and transition correction
+
+The controlled transition is authorized with the following decisions. They
+correct the preflight proposal; they do not rewrite its read-only observation.
+
+1. The root `data/plotloom.sqlite3` is authoritative for installation public
+   profiles and the active selection. Its two profile records, including all
+   current-contract public endpoint, model, adapter, capability, and policy
+   fields, must be retained locally in the fresh application store. Private
+   endpoint values stay only in ignored local data, never in this receipt.
+2. The retained pilot remains an unchanged archive-only working set. Its Wan
+   ledger, eight events, job identities, and `outcome_unknown` state are not
+   mapped to H3 or current paid-accounting records. The fresh application store
+   starts without a paid allowance or dispatch claim.
+3. A fresh process/open-handle and Codex-task observation is required at the
+   transition boundary. An idle repo-cwd Python process with no listener or
+   source handles is not a writer and must not be stopped merely for having a
+   matching working directory.
+
 ## Smallest safe transition proposed
 
 1. Quiesce and identify all writers; recheck nonterminal/unknown state without
@@ -66,10 +85,11 @@ a paid provider.
    hash-inventory and copy exactly the root legacy set and retained-pilot tree
    unchanged. Compare source/archive inventories and verify SQLite backups,
    integrity, and foreign keys after quiescence.
-3. Export only director-approved secret-free profile/selection and accounting
-   identities/events to a fresh `data/application.sqlite3`. Do not export
-   project content, credentials, endpoint settings, URI relocation rules, or
-   media bytes.
+3. Export the director-approved root secret-free profile/selection records to a
+   fresh `data/application.sqlite3`, retaining the current-contract public
+   endpoint/model/adapter/capability/policy values locally. Do not export pilot
+   project content, credentials, Wan accounting, URI relocation rules, or media
+   bytes.
 4. Leave the default separate roots in place unless the director selects new
    explicit roots: create fresh `outputs/`, retain the verified archive beneath
    `data/legacy-archives/`, and ensure obsolete storage variables remain
