@@ -109,12 +109,6 @@
         "forbidden not in receipt_text"
       ]
     },
-    "tests/test_conformance.py::test_qualification_rejects_invariant_and_sample_identity_failures": {
-      "source_sha256": "0846b303c2579d3dfe60874c7402c14bfd3b00575cda8dbc0a7d7c694f803353",
-      "assertions": [
-        "conformance.qualification_issue_codes(receipts, profile_ids=['fixture'], sample_count=3) == ['qualification.fixture.duplicate_run', 'qualification.fixture.invariant', 'qualification.fixture.sample_identity']"
-      ]
-    },
     "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion": {
       "source_sha256": "ce05b176528a0066fde26f382235261158aa2106e3ce55bc67ffc0159298de9c",
       "assertions": [
@@ -606,19 +600,26 @@
       ]
     },
     "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_conflicting_or_second_final_delivery": {
-      "source_sha256": "f24daf388a12c8eb8cd920cfa76ead83fef597b623f2c837943559eabfe80a33",
+      "source_sha256": "c8607fd2b3a1459addd84add3a1b856dd84c49a3eec7ffad41f431f3bc3ffdbd",
       "assertions": [
         "accepted.status_code == 200",
         "accepted.json()['state'] == 'accepted'",
         "conflict.status_code == 409",
         "conflict.json()['code'] == 'delivery_conflict'",
         "second_final.status_code == 409",
-        "second_final.json()['code'] == 'delivery_finalized'"
+        "second_final.json()['code'] == 'delivery_finalized'",
+        "stored['deliveries'][0]['candidates'][0]['assetId'] == accepted_candidate_id",
+        "[asset['id'] for asset in client.get(f'/api/v2/projects/{project_id}/managed-assets').json()['assets']] == [accepted_candidate_id]"
       ]
     },
     "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_cross_project_and_symlinked_browser_output_paths": {
-      "source_sha256": "0d14c5c184a9c47249d10ef40e3473f1dd22ff0a08c8dbf03194ec15119129f9",
+      "source_sha256": "ac233ada18c8dafffe78722af10da99c1574a82bbbc2e0d70eaa17b6ac08a563",
       "assertions": [
+        "attempted_path_authority.status_code == 422",
+        "other_approval.status_code == 201",
+        "draft.status_code == 200",
+        "forged.status_code == 404",
+        "local.status_code == 201",
         "cross_project.status_code == 404",
         "symlink.status_code == 422",
         "symlink.json()['code'] == 'delivery_symlink'"
@@ -634,8 +635,11 @@
       ]
     },
     "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_partial_and_hash_tamper_before_candidate_publication": {
-      "source_sha256": "bf5acf6602af09c92975958ce2fa5ff16b2996865f886aa5746e75aa76c40967",
+      "source_sha256": "c0f60554b7030c9d016d6e7612fb71050d3212cb0f49db8900c500f1c1917e99",
       "assertions": [
+        "no_tool.status_code == 422",
+        "no_tool.json()['code'] == 'delivery_manifest_invalid'",
+        "client.get(f'/api/v2/projects/{project_id}/managed-assets').json()['assets'] == []",
         "partial.status_code == 422",
         "partial.json()['code'] == 'delivery_partial'",
         "tampered.status_code == 422",
@@ -789,22 +793,6 @@
         "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1"
       ]
     },
-    "tests/test_project_storage_video.py::test_reviewed_video_selection_stales_when_its_identity_reference_is_replaced": {
-      "source_sha256": "ab8ae05132166628a4452cab475872283b9244249ba4125ff60ab4856398dedd",
-      "assertions": [
-        "client.post(f\"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit\").json()['state'] == 'submitted'",
-        "client.post(f\"/api/v2/projects/{project_id}/video-jobs/{job['id']}/reconcile\").json()['state'] == 'ingested'",
-        "selected.status_code == 201",
-        "before_replacement[0]['selected'] is True",
-        "before_replacement[0]['current'] is True",
-        "replacement['referenceRevision'] == 2",
-        "len(jobs) == 1",
-        "jobs[0]['id'] == job['id']",
-        "jobs[0]['selected'] is False and jobs[0]['current'] is False",
-        "retry.status_code == 409",
-        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1"
-      ]
-    },
     "tests/test_project_storage_video.py::test_stale_identity_reference_blocks_initial_h3_submit_without_provider_call": {
       "source_sha256": "a0984ff7a334ff1f3b5f61f19621380e2293ab8c4b6b26ec8bf1c48f5f252ba2",
       "assertions": [
@@ -886,7 +874,7 @@
         "correction.status.value == 'succeeded'",
         "isinstance(source_content, str)",
         "validation.content['repairFacts'] == [{'code': 'semantic.audio_timing', 'path': ['shots', 0, 'audioPlan', 'events', 0, 'durationUnits'], 'shotLocalId': shot['localShotId'], 'eventIndex': 0, 'startOffsetUnits': 0, 'durationUnits': shot['durationUnits'] + 1, 'shotDurationUnits': shot['durationUnits'], 'repairAction': 'replace_duration', 'replacementDurationUnits': shot['durationUnits']}]",
-        "'验证器说明' in correction_prompt",
+        "'\u9a8c\u8bc1\u5668\u8bf4\u660e' in correction_prompt",
         "'audio event must fit within the shot duration' not in correction_prompt",
         "secret not in correction_prompt",
         "next((item for item in store.canonical_stages() if item.head.stage == StageName.STORYBOARD)).head.revision == 1",
@@ -1211,6 +1199,52 @@
         "{'codex_external_review.schema', 'codex_external_review.count', 'codex_external_review.identity'} <= set(malformed_gate.issue_codes)",
         "{'codex_external_review.commit_identity', 'codex_external_review.contract_identity', 'codex_external_review.content_identity', 'codex_external_review.identity'} <= set(mismatch_gate.issue_codes)"
       ]
+    },
+    "tests/test_image_job_exchange_contracts.py::test_legacy_v1_package_remains_recheckable_without_a_template": {
+      "source_sha256": "9c3e0db7a193a1b40d788d21f671db534ef7863513fce8398b7bf70c305501ad",
+      "assertions": [
+        "{item.name for item in package.iterdir()} == {'COPY_ASSIGNMENT.txt', 'request.json'}"
+      ]
+    },
+    "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement": {
+      "source_sha256": "24bccb529d9420ffc862f348bf03d1f4209ad1bb1b53a6222b7f91b587328b93",
+      "assertions": [
+        "approval.status_code == 201",
+        "missing.status_code == 422",
+        "missing.json()['code'] == 'identity_reference_missing'",
+        "reference.status_code == 201",
+        "selected_reference.status_code == 201",
+        "job_response.status_code == 201",
+        "frozen['visibleCharacterIds'] == ['fixture-hero']",
+        "frozen['characterIdentity'][0]['referenceDecisionId'] == selected_reference.json()['id']",
+        "[entry['role'] for entry in frozen['references']] == ['character_identity']",
+        "copied.status_code == 200",
+        "package_request['packageVersion'] == 4",
+        "package_request['references'][0]['role'] == 'character_identity:fixture-hero'",
+        "awaiting.status_code == 200",
+        "awaiting.json()['state'] == 'awaiting_delivery'",
+        "client.get(f'/api/v2/projects/{project_id}/image-jobs').json()['jobs'][0]['deliveries'] == []",
+        "candidate_delivery.status_code == 200",
+        "intent_draft.status_code == 200",
+        "intent.status_code == 201",
+        "binding.status_code == 201",
+        "client.post(f'/api/v2/projects/{project_id}/still-previews', json=preview_payload).status_code == 409",
+        "review.status_code == 201",
+        "preview.status_code == 201",
+        "preview.json()['manifest']['frames'][0]['identityReviewId'] == review.json()['id']",
+        "replacement_asset.status_code == 201",
+        "replaced.status_code == 201",
+        "client.get(f'/api/v2/projects/{project_id}/image-jobs').json()['jobs'][0]['current'] is False",
+        "client.get(f'/api/v2/projects/{project_id}/same-person-reviews').json()['reviews'][0]['current'] is False",
+        "client.get(f'/api/v2/projects/{project_id}/still-previews').json()['previews'][0]['state'] == 'stale'",
+        "len(client.get(f'/api/v2/projects/{project_id}/character-references').json()['decisions']) == 2"
+      ]
+    },
+    "tests/video_backends/minimax_h3/test_transport.py::test_h3_adapter_rejects_playable_output_outside_the_frozen_profile": {
+      "source_sha256": "b324d57a398298b6204e21dfcf8443082403ae427e67340030c54021d00b3ed8",
+      "assertions": [
+        "raises: pytest.raises(VideoOutputContractError, match='h3_output_profile_mismatch')"
+      ]
     }
   },
   "entries": [
@@ -1225,7 +1259,7 @@
         "'Live authoring never interprets migrated V1 evidence as V2.'",
         "project = repository.create_project(brief)",
         "for stage, payload in zip(STAGE_ORDER, all_stage_payloads(), strict=True):\n    repository.update_stage(project.id, stage, 0, payload)",
-        "legacy = StoryBible(logline='旧版故事', premise='旧版字段不能猜测升级。')",
+        "legacy = StoryBible(logline='\u65e7\u7248\u6545\u4e8b', premise='\u65e7\u7248\u5b57\u6bb5\u4e0d\u80fd\u731c\u6d4b\u5347\u7ea7\u3002')",
         "serialized = legacy.model_dump(mode='json', by_alias=True)"
       ],
       "required_assertions": [
@@ -1286,7 +1320,7 @@
         "project = repository.create_project(brief)",
         "bible, *_ = all_stage_payloads()",
         "payload = bible.model_dump(mode='json', by_alias=True)",
-        "payload['characters'] = [{'id': 'character-1', 'name': '测试角色', 'role': 'lead', 'description': '用于验证字段路径', 'goal': '保留结构化错误', 'traits': [], 'visualAnchors': [], 'soundAnchors': [], 'voiceAnchors': [], 'allowedStates': [{'not': 'a string'}], 'continuityRules': []}]",
+        "payload['characters'] = [{'id': 'character-1', 'name': '\u6d4b\u8bd5\u89d2\u8272', 'role': 'lead', 'description': '\u7528\u4e8e\u9a8c\u8bc1\u5b57\u6bb5\u8def\u5f84', 'goal': '\u4fdd\u7559\u7ed3\u6784\u5316\u9519\u8bef', 'traits': [], 'visualAnchors': [], 'soundAnchors': [], 'voiceAnchors': [], 'allowedStates': [{'not': 'a string'}], 'continuityRules': []}]",
         "client = TestClient(create_app(repository), raise_server_exceptions=False)",
         "response = client.patch(f'/api/v2/projects/{project.id}/stages/story_bible', json={'expectedRevision': 0, 'payload': payload})"
       ],
@@ -2693,10 +2727,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
+        "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement"
       ],
-      "mapping_note": "Project-owned image route coverage asserts delivery hashes, authority, intent currentness, review, and cross-project isolation without a shared exchange database.",
-      "review_status": "pending"
+      "mapping_note": "The direct project-folder P1.5 regression proves missing-reference refusal, frozen reference roles and v4 package pin, waiting without output, attested delivery, explicit same-person review before preview, and replacement-driven stale job/review/preview history without rewriting prior decisions.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_image_jobs.py::test_image_job_delivery_reconciliation_is_concurrently_idempotent",
@@ -2773,8 +2807,8 @@
       "current_replacements": [
         "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_cross_project_and_symlinked_browser_output_paths"
       ],
-      "mapping_note": "The reviewed project-folder test covers cross-project and symlinked browser paths, but not the baseline's rejected path-authority or forged-approval assertions.",
-      "review_status": "pending"
+      "mapping_note": "The current typed project-folder route rejects browser-supplied delivery path and prompt fields with 422, scopes foreign approvals to 404 before the local draft transaction, proves that draft remains usable with the local approval, rejects foreign job refresh, and rejects symlinked output paths. The retired facade used 409 for a foreign approval; the project owner intentionally does not disclose that foreign approval exists.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_image_jobs.py::test_image_job_rejects_malformed_or_oversized_and_revoked_late_delivery",
@@ -2830,8 +2864,8 @@
         "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_partial_and_hash_tamper_before_candidate_publication",
         "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_conflicting_or_second_final_delivery"
       ],
-      "mapping_note": "The reviewed project-folder tests cover partial, hash-tamper, conflict, and second-final rejection, but not the baseline's missing tool-evidence assertion.",
-      "review_status": "pending"
+      "mapping_note": "Direct project-owner regressions reject missing tool evidence before any asset is published, retain partial and hash-tamper rejection history with no candidates, and preserve the accepted candidate unchanged after conflicting or second-final delivery attempts.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_image_jobs.py::test_image_job_requires_a_configured_same_host_exchange_before_admission",
@@ -2939,11 +2973,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement",
-        "tests/test_project_storage_image_delivery_contracts.py::test_copied_image_package_rejects_tampered_frozen_snapshot_before_admission"
+        "tests/test_image_job_exchange_contracts.py::test_legacy_v1_package_remains_recheckable_without_a_template"
       ],
-      "mapping_note": "The project-owned workflow and frozen-snapshot tamper check are reviewed, but neither proves the baseline V1 package's exact no-template file set.",
-      "review_status": "pending"
+      "mapping_note": "The bounded exchange retains only the historical v1 transport projection (COPY_ASSIGNMENT.txt and request.json) and rechecks it from the frozen request. This preserves package readability without restoring a V1 runtime, route, or provider executor.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_image_jobs.py::test_legacy_v3_package_keeps_its_unpinned_skill_template",
@@ -3145,7 +3178,7 @@
       "original_trigger": [
         "project = repository.create_project(brief)",
         "run = repository.create_run(project.id, RunKind.PIPELINE, STAGE_ORDER)",
-        "repository.update_project(project.id, 1, brief.model_copy(update={'synopsis': f'{brief.synopsis} 用户补充。'}))",
+        "repository.update_project(project.id, 1, brief.model_copy(update={'synopsis': f'{brief.synopsis} \u7528\u6237\u8865\u5145\u3002'}))",
         "engine = CountingEngine()",
         "runner = LifecycleJobRunner(repository, engine, RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()), max_workers=1)",
         "try:\n    completed = runner.submit(run.id).result(timeout=5)\n    assert completed.status == RunStatus.QUARANTINED\n    assert engine.calls == 0\n    assert completed.result_revision_ids == []\nfinally:\n    runner.close()"
@@ -3175,7 +3208,7 @@
         "original_bible = all_stage_payloads()[0]",
         "repository.update_stage(project.id, STAGE_ORDER[0], 0, original_bible)",
         "run = repository.create_run(project.id, RunKind.PIPELINE, [STAGE_ORDER[1]])",
-        "repository.update_stage(project.id, STAGE_ORDER[0], 1, original_bible.model_copy(update={'themes': ['用户编辑']}))",
+        "repository.update_stage(project.id, STAGE_ORDER[0], 1, original_bible.model_copy(update={'themes': ['\u7528\u6237\u7f16\u8f91']}))",
         "engine = CountingEngine()",
         "runner = LifecycleJobRunner(repository, engine, RunContext(providers=ProviderPorts(), artifacts=MemoryArtifactStore()), max_workers=1)",
         "try:\n    completed = runner.submit(run.id).result(timeout=5)\n    assert completed.status == RunStatus.QUARANTINED\n    assert engine.calls == 0\nfinally:\n    runner.close()"
@@ -3426,7 +3459,7 @@
       "original_trigger": [
         "database_url = f\"sqlite:///{tmp_path / 'migration.sqlite3'}\"",
         "repository = SQLiteRepository(database_url)",
-        "project = repository.create_project(ProjectBrief(title='历史', synopsis='不能改写已冻结证据。'))",
+        "project = repository.create_project(ProjectBrief(title='\u5386\u53f2', synopsis='\u4e0d\u80fd\u6539\u5199\u5df2\u51bb\u7ed3\u8bc1\u636e\u3002'))",
         "run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE])",
         "before_snapshot = repository.get_run(run.id).provider_snapshot",
         "before_plan = repository.get_generation_plan(run.id).model_dump(mode='json', by_alias=False)",
@@ -3493,7 +3526,7 @@
         "configuration = migrator._config()",
         "command.upgrade(configuration, '0009_v2_work_unit_repair_scopes')",
         "engine = create_engine(database_url)",
-        "payload = '{  \"legacyDialogue\" : \"不要由 V2 默认值重写我\" }'",
+        "payload = '{  \"legacyDialogue\" : \"\u4e0d\u8981\u7531 V2 \u9ed8\u8ba4\u503c\u91cd\u5199\u6211\" }'",
         "media_components = '{ \"legacyPrompt\" : [ \"byte\", \"preserve\" ] }'"
       ],
       "required_assertions": [
@@ -3517,7 +3550,7 @@
       "baseline_source_sha256": "6bee1ce2de46a1fbabc274978dcd53938a90145ce0ef03e3e249ece5712e7d07",
       "original_trigger": [
         "repository = SQLiteRepository('sqlite://')",
-        "try:\n    app = create_app(repository, text_profile_default=_profile())\n    client = TestClient(app)\n    initial = client.get('/api/v2/text-provider-profiles/default').json()\n    disabled = client.put('/api/v2/text-provider-profiles/default/availability', json={'expectedAvailabilityRevision': initial['availabilityRevision'], 'enabled': False})\n    assert disabled.status_code == 200\n    assert disabled.json()['enabled'] is False\n    assert disabled.json()['revision'] == initial['revision']\n    catalog = client.get('/api/v2/text-provider-profiles').json()\n    assert catalog['activeProfileId'] == 'default'\n    assert catalog['profiles'][0]['enabled'] is False\n    assert client.post('/api/v2/text-provider-profiles/default/activate', json={'expectedSelectionRevision': catalog['selectionRevision']}).status_code == 409\n    project = client.post('/api/v2/projects', json={'brief': {'title': '禁用', 'synopsis': '禁用后不能创建新的生成运行。'}}).json()\n    rejected = client.post(f\"/api/v2/projects/{project['id']}/pipeline-runs\", json={'stages': ['story_bible'], 'providerProfileId': 'default'})\n    assert rejected.status_code == 409\n    assert 'disabled' in rejected.json()['message']\nfinally:\n    repository.close()"
+        "try:\n    app = create_app(repository, text_profile_default=_profile())\n    client = TestClient(app)\n    initial = client.get('/api/v2/text-provider-profiles/default').json()\n    disabled = client.put('/api/v2/text-provider-profiles/default/availability', json={'expectedAvailabilityRevision': initial['availabilityRevision'], 'enabled': False})\n    assert disabled.status_code == 200\n    assert disabled.json()['enabled'] is False\n    assert disabled.json()['revision'] == initial['revision']\n    catalog = client.get('/api/v2/text-provider-profiles').json()\n    assert catalog['activeProfileId'] == 'default'\n    assert catalog['profiles'][0]['enabled'] is False\n    assert client.post('/api/v2/text-provider-profiles/default/activate', json={'expectedSelectionRevision': catalog['selectionRevision']}).status_code == 409\n    project = client.post('/api/v2/projects', json={'brief': {'title': '\u7981\u7528', 'synopsis': '\u7981\u7528\u540e\u4e0d\u80fd\u521b\u5efa\u65b0\u7684\u751f\u6210\u8fd0\u884c\u3002'}}).json()\n    rejected = client.post(f\"/api/v2/projects/{project['id']}/pipeline-runs\", json={'stages': ['story_bible'], 'providerProfileId': 'default'})\n    assert rejected.status_code == 409\n    assert 'disabled' in rejected.json()['message']\nfinally:\n    repository.close()"
       ],
       "required_assertions": [
         "disabled.status_code == 200",
@@ -3546,7 +3579,7 @@
       "baseline_source_sha256": "5ff6f2874178ce14a6b1b1200c44a92bfa796c4bdb90bc6f573780a53dab3515",
       "original_trigger": [
         "repository = SQLiteRepository('sqlite://')",
-        "try:\n    project = repository.create_project(ProjectBrief(title='注册', synopsis='新 V2 运行必须绑定已注册的控制平面 Profile。'))\n    unmanaged_v2 = _profile('unmanaged').model_dump(mode='json', by_alias=True)\n    for kind in (RunKind.PIPELINE, RunKind.REBUILD, RunKind.REPAIR):\n        with pytest.raises(InvalidTransitionError, match='not registered'):\n            repository.create_run(project.id, kind, [StageName.STORY_BIBLE], provider_snapshot=unmanaged_v2)\n    historical_v1 = ProviderSnapshot(text_provider='historic-compatible', text_base_url='http://127.0.0.1:8081/v1', text_model='historic-model').model_dump(mode='json', by_alias=True)\n    admitted_v1 = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=historical_v1)\n    assert repository.get_run(admitted_v1.id).provider_snapshot == historical_v1\n    default = repository.bootstrap_default_text_provider_profile(_profile())\n    repository.set_text_provider_profile_enabled('default', default.availability_revision, enabled=False)\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=historical_v1)\nfinally:\n    repository.close()"
+        "try:\n    project = repository.create_project(ProjectBrief(title='\u6ce8\u518c', synopsis='\u65b0 V2 \u8fd0\u884c\u5fc5\u987b\u7ed1\u5b9a\u5df2\u6ce8\u518c\u7684\u63a7\u5236\u5e73\u9762 Profile\u3002'))\n    unmanaged_v2 = _profile('unmanaged').model_dump(mode='json', by_alias=True)\n    for kind in (RunKind.PIPELINE, RunKind.REBUILD, RunKind.REPAIR):\n        with pytest.raises(InvalidTransitionError, match='not registered'):\n            repository.create_run(project.id, kind, [StageName.STORY_BIBLE], provider_snapshot=unmanaged_v2)\n    historical_v1 = ProviderSnapshot(text_provider='historic-compatible', text_base_url='http://127.0.0.1:8081/v1', text_model='historic-model').model_dump(mode='json', by_alias=True)\n    admitted_v1 = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=historical_v1)\n    assert repository.get_run(admitted_v1.id).provider_snapshot == historical_v1\n    default = repository.bootstrap_default_text_provider_profile(_profile())\n    repository.set_text_provider_profile_enabled('default', default.availability_revision, enabled=False)\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=historical_v1)\nfinally:\n    repository.close()"
       ],
       "required_assertions": [
         "repository.get_run(admitted_v1.id).provider_snapshot == historical_v1",
@@ -3574,7 +3607,7 @@
       "baseline_source_sha256": "e7ee28edade7c4bad5369365d987af259d8d8de707549081e55cb1298fb839a1",
       "original_trigger": [
         "repository = SQLiteRepository('sqlite://')",
-        "try:\n    app = create_app(repository, text_profile_default=_profile(), profile_key_available=lambda profile_id: profile_id == 'quality')\n    client = TestClient(app)\n    baseline = client.get('/api/v2/text-provider-profiles')\n    assert baseline.status_code == 200\n    data = baseline.json()\n    assert data['activeProfileId'] == 'default'\n    assert data['profiles'][0]['serverKeyAvailable'] is False\n    assert 'apiKey' not in str(data).lower()\n    default_config = data['profiles'][0]['configuration']\n    created = client.post('/api/v2/text-provider-profiles', json={'profileId': 'quality', 'displayName': 'Quality', 'configuration': {**default_config, 'textModel': 'model-quality'}})\n    assert created.status_code == 201\n    assert created.json()['serverKeyAvailable'] is True\n    stale = client.post('/api/v2/text-provider-profiles/quality/activate', json={'expectedSelectionRevision': 99})\n    assert stale.status_code == 409\n    activation = client.post('/api/v2/text-provider-profiles/quality/activate', json={'expectedSelectionRevision': 0})\n    assert activation.status_code == 200\n    project = client.post('/api/v2/projects', json={'brief': {'title': '选择', 'synopsis': '主角在两条路之间选择。'}}).json()\n    run = client.post(f\"/api/v2/projects/{project['id']}/pipeline-runs\", json={'stages': ['story_bible'], 'providerProfileId': 'quality'})\n    assert run.status_code == 202\n    assert run.json()['providerSnapshot']['profileId'] == 'quality'\n    assert run.json()['providerSnapshot']['textModel'] == 'model-quality'\nfinally:\n    repository.close()"
+        "try:\n    app = create_app(repository, text_profile_default=_profile(), profile_key_available=lambda profile_id: profile_id == 'quality')\n    client = TestClient(app)\n    baseline = client.get('/api/v2/text-provider-profiles')\n    assert baseline.status_code == 200\n    data = baseline.json()\n    assert data['activeProfileId'] == 'default'\n    assert data['profiles'][0]['serverKeyAvailable'] is False\n    assert 'apiKey' not in str(data).lower()\n    default_config = data['profiles'][0]['configuration']\n    created = client.post('/api/v2/text-provider-profiles', json={'profileId': 'quality', 'displayName': 'Quality', 'configuration': {**default_config, 'textModel': 'model-quality'}})\n    assert created.status_code == 201\n    assert created.json()['serverKeyAvailable'] is True\n    stale = client.post('/api/v2/text-provider-profiles/quality/activate', json={'expectedSelectionRevision': 99})\n    assert stale.status_code == 409\n    activation = client.post('/api/v2/text-provider-profiles/quality/activate', json={'expectedSelectionRevision': 0})\n    assert activation.status_code == 200\n    project = client.post('/api/v2/projects', json={'brief': {'title': '\u9009\u62e9', 'synopsis': '\u4e3b\u89d2\u5728\u4e24\u6761\u8def\u4e4b\u95f4\u9009\u62e9\u3002'}}).json()\n    run = client.post(f\"/api/v2/projects/{project['id']}/pipeline-runs\", json={'stages': ['story_bible'], 'providerProfileId': 'quality'})\n    assert run.status_code == 202\n    assert run.json()['providerSnapshot']['profileId'] == 'quality'\n    assert run.json()['providerSnapshot']['textModel'] == 'model-quality'\nfinally:\n    repository.close()"
       ],
       "required_assertions": [
         "baseline.status_code == 200",
@@ -3609,7 +3642,7 @@
       "baseline_source_sha256": "e9ba99e88729b477f0103fef56dd79562b95941e3f3c3f3ba9e49924fd15f726",
       "original_trigger": [
         "repository = _bootstrapped_repository()",
-        "try:\n    initial = repository.get_text_provider_profile('default')\n    frozen_config = initial.configuration.model_dump(mode='json', by_alias=True)\n    project = repository.create_project(ProjectBrief(title='排队', synopsis='已经接纳的运行应保留冻结 authority。'))\n    admitted = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=frozen_config)\n    disabled = repository.set_text_provider_profile_enabled('default', initial.availability_revision, enabled=False)\n    assert disabled.enabled is False\n    assert disabled.availability_revision == initial.availability_revision + 1\n    assert disabled.revision == initial.revision\n    assert disabled.configuration.model_dump(mode='json', by_alias=True) == frozen_config\n    assert repository.get_run(admitted.id).provider_snapshot == frozen_config\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=frozen_config)\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_run(project.id, RunKind.REBUILD, [StageName.STORY_BIBLE], provider_snapshot=frozen_config)\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_run(project.id, RunKind.REPAIR, [StageName.STORY_BIBLE], provider_snapshot=frozen_config)\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_work_unit_repair_run(admitted.id, 'unneeded-after-admission-guard', idempotency_key='disabled-exact-repair')\n    with pytest.raises(RevisionConflictError):\n        repository.set_text_provider_profile_enabled('default', initial.availability_revision, enabled=True)\n    reenabled = repository.set_text_provider_profile_enabled('default', disabled.availability_revision, enabled=True)\n    assert reenabled.enabled is True\n    assert reenabled.revision == initial.revision\n    assert reenabled.configuration.profile_hash == initial.configuration.profile_hash\nfinally:\n    repository.close()"
+        "try:\n    initial = repository.get_text_provider_profile('default')\n    frozen_config = initial.configuration.model_dump(mode='json', by_alias=True)\n    project = repository.create_project(ProjectBrief(title='\u6392\u961f', synopsis='\u5df2\u7ecf\u63a5\u7eb3\u7684\u8fd0\u884c\u5e94\u4fdd\u7559\u51bb\u7ed3 authority\u3002'))\n    admitted = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=frozen_config)\n    disabled = repository.set_text_provider_profile_enabled('default', initial.availability_revision, enabled=False)\n    assert disabled.enabled is False\n    assert disabled.availability_revision == initial.availability_revision + 1\n    assert disabled.revision == initial.revision\n    assert disabled.configuration.model_dump(mode='json', by_alias=True) == frozen_config\n    assert repository.get_run(admitted.id).provider_snapshot == frozen_config\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=frozen_config)\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_run(project.id, RunKind.REBUILD, [StageName.STORY_BIBLE], provider_snapshot=frozen_config)\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_run(project.id, RunKind.REPAIR, [StageName.STORY_BIBLE], provider_snapshot=frozen_config)\n    with pytest.raises(InvalidTransitionError, match='disabled'):\n        repository.create_work_unit_repair_run(admitted.id, 'unneeded-after-admission-guard', idempotency_key='disabled-exact-repair')\n    with pytest.raises(RevisionConflictError):\n        repository.set_text_provider_profile_enabled('default', initial.availability_revision, enabled=True)\n    reenabled = repository.set_text_provider_profile_enabled('default', disabled.availability_revision, enabled=True)\n    assert reenabled.enabled is True\n    assert reenabled.revision == initial.revision\n    assert reenabled.configuration.profile_hash == initial.configuration.profile_hash\nfinally:\n    repository.close()"
       ],
       "required_assertions": [
         "disabled.enabled is False",
@@ -3674,7 +3707,7 @@
       "baseline_source_sha256": "fbd511926dc625bbf31958b0eea38a1d4db4c8336fac0730cfbb79b59900bd3c",
       "original_trigger": [
         "repository = _bootstrapped_repository()",
-        "try:\n    default = repository.get_text_provider_profile('default')\n    assert default.configuration.profile_id == 'default'\n    assert default.configuration.text_model == 'model-a'\n    assert repository.get_provider_profile_selection().active_profile_id == 'default'\n    created = repository.create_text_provider_profile('quality', 'Quality', copy_from_profile_id='default')\n    assert created.revision == 1\n    assert created.configuration.profile_id == 'quality'\n    assert created.configuration.profile_version == 1\n    updated = repository.update_text_provider_profile('quality', created.revision, display_name='Quality Qwen', configuration=_profile('quality', model='model-b'))\n    assert updated.revision == 2\n    assert updated.configuration.text_model == 'model-b'\n    with pytest.raises(RevisionConflictError):\n        repository.update_text_provider_profile('quality', created.revision, display_name='Stale', configuration=_profile('quality', model='model-c'))\n    selection = repository.get_provider_profile_selection()\n    selected = repository.activate_text_provider_profile('quality', selection.revision)\n    assert selected.active_profile_id == 'quality'\n    assert selected.revision == selection.revision + 1\n    with pytest.raises(RevisionConflictError):\n        repository.activate_text_provider_profile('default', selection.revision)\n    project = repository.create_project(ProjectBrief(title='隔离', synopsis='一个可靠的生成闭环。'))\n    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=updated.configuration.model_dump(mode='json', by_alias=True))\n    frozen = repository.get_run(run.id).provider_snapshot\n    assert frozen['profileId'] == 'quality'\n    assert frozen['textModel'] == 'model-b'\n    newer = repository.update_text_provider_profile('quality', updated.revision, display_name='Quality Qwen', configuration=_profile('quality', model='model-c'))\n    assert newer.configuration.text_model == 'model-c'\n    assert repository.get_run(run.id).provider_snapshot == frozen\n    with pytest.raises(InvalidTransitionError, match='active'):\n        repository.delete_text_provider_profile('quality', newer.revision)\n    with pytest.raises(InvalidTransitionError, match='default'):\n        repository.delete_text_provider_profile('default', default.revision)\n    active = repository.get_provider_profile_selection()\n    repository.activate_text_provider_profile('default', active.revision)\n    with pytest.raises(InvalidTransitionError, match='non-terminal'):\n        repository.delete_text_provider_profile('quality', newer.revision)\nfinally:\n    repository.close()"
+        "try:\n    default = repository.get_text_provider_profile('default')\n    assert default.configuration.profile_id == 'default'\n    assert default.configuration.text_model == 'model-a'\n    assert repository.get_provider_profile_selection().active_profile_id == 'default'\n    created = repository.create_text_provider_profile('quality', 'Quality', copy_from_profile_id='default')\n    assert created.revision == 1\n    assert created.configuration.profile_id == 'quality'\n    assert created.configuration.profile_version == 1\n    updated = repository.update_text_provider_profile('quality', created.revision, display_name='Quality Qwen', configuration=_profile('quality', model='model-b'))\n    assert updated.revision == 2\n    assert updated.configuration.text_model == 'model-b'\n    with pytest.raises(RevisionConflictError):\n        repository.update_text_provider_profile('quality', created.revision, display_name='Stale', configuration=_profile('quality', model='model-c'))\n    selection = repository.get_provider_profile_selection()\n    selected = repository.activate_text_provider_profile('quality', selection.revision)\n    assert selected.active_profile_id == 'quality'\n    assert selected.revision == selection.revision + 1\n    with pytest.raises(RevisionConflictError):\n        repository.activate_text_provider_profile('default', selection.revision)\n    project = repository.create_project(ProjectBrief(title='\u9694\u79bb', synopsis='\u4e00\u4e2a\u53ef\u9760\u7684\u751f\u6210\u95ed\u73af\u3002'))\n    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=updated.configuration.model_dump(mode='json', by_alias=True))\n    frozen = repository.get_run(run.id).provider_snapshot\n    assert frozen['profileId'] == 'quality'\n    assert frozen['textModel'] == 'model-b'\n    newer = repository.update_text_provider_profile('quality', updated.revision, display_name='Quality Qwen', configuration=_profile('quality', model='model-c'))\n    assert newer.configuration.text_model == 'model-c'\n    assert repository.get_run(run.id).provider_snapshot == frozen\n    with pytest.raises(InvalidTransitionError, match='active'):\n        repository.delete_text_provider_profile('quality', newer.revision)\n    with pytest.raises(InvalidTransitionError, match='default'):\n        repository.delete_text_provider_profile('default', default.revision)\n    active = repository.get_provider_profile_selection()\n    repository.activate_text_provider_profile('default', active.revision)\n    with pytest.raises(InvalidTransitionError, match='non-terminal'):\n        repository.delete_text_provider_profile('quality', newer.revision)\nfinally:\n    repository.close()"
       ],
       "required_assertions": [
         "default.configuration.profile_id == 'default'",
@@ -3721,7 +3754,7 @@
       "baseline_source_sha256": "7e90fbe189806d72155d74b1332762e1d2e674a514e446a362dcc450d94ec9c2",
       "original_trigger": [
         "repository = SQLiteRepository('sqlite://')",
-        "try:\n    project = repository.create_project(ProjectBrief(title='不可行', synopsis='约束故意无法满足。', ending_count=3, decision_points_per_path=2, desired_join_count=1, node_budget=6, max_out_degree=3))\n    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, make_story_bible())\n    with pytest.raises(StoryGraphTopologyError) as captured:\n        repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_GRAPH])\n    assert captured.value.code == 'topology.node_budget_too_small'\n    assert repository.list_project_runs(project.id) == []\nfinally:\n    repository.close()"
+        "try:\n    project = repository.create_project(ProjectBrief(title='\u4e0d\u53ef\u884c', synopsis='\u7ea6\u675f\u6545\u610f\u65e0\u6cd5\u6ee1\u8db3\u3002', ending_count=3, decision_points_per_path=2, desired_join_count=1, node_budget=6, max_out_degree=3))\n    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, make_story_bible())\n    with pytest.raises(StoryGraphTopologyError) as captured:\n        repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_GRAPH])\n    assert captured.value.code == 'topology.node_budget_too_small'\n    assert repository.list_project_runs(project.id) == []\nfinally:\n    repository.close()"
       ],
       "required_assertions": [
         "captured.value.code == 'topology.node_budget_too_small'",
@@ -3747,7 +3780,7 @@
       "baseline_source_sha256": "464a8074cec310a85d6e48554de3a47009a6780f42ca6fc985cb8e00dadebd6a",
       "original_trigger": [
         "repository = SQLiteRepository('sqlite://')",
-        "try:\n    project = repository.create_project(ProjectBrief(title='冻结图', synopsis='主角必须选择一条路线，随后在危机前汇流。', ending_count=3, decision_points_per_path=2, desired_join_count=1, node_budget=9, max_out_degree=3))\n    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, make_story_bible())\n    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_GRAPH])\n    plan = repository.get_generation_plan(run.id)\n    topology = repository.get_story_graph_topology(run.id)\n    trace = repository.get_run_execution_trace(run.id)\n    assert topology is not None\n    assert plan.story_graph_topology_hash == topology.topology_hash\n    assert trace.story_graph_topology is not None\n    assert trace.story_graph_topology.topology_hash == topology.topology_hash\n    assert trace.story_graph_topology.generation_plan_hash == plan.plan_hash\n    repository.start_run(run.id)\n    stage_plan = repository.get_or_create_stage_plan(run.id, StageName.STORY_GRAPH)\n    assert stage_plan.generation_plan_hash == plan.plan_hash\nfinally:\n    repository.close()"
+        "try:\n    project = repository.create_project(ProjectBrief(title='\u51bb\u7ed3\u56fe', synopsis='\u4e3b\u89d2\u5fc5\u987b\u9009\u62e9\u4e00\u6761\u8def\u7ebf\uff0c\u968f\u540e\u5728\u5371\u673a\u524d\u6c47\u6d41\u3002', ending_count=3, decision_points_per_path=2, desired_join_count=1, node_budget=9, max_out_degree=3))\n    repository.update_stage(project.id, StageName.STORY_BIBLE, 0, make_story_bible())\n    run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_GRAPH])\n    plan = repository.get_generation_plan(run.id)\n    topology = repository.get_story_graph_topology(run.id)\n    trace = repository.get_run_execution_trace(run.id)\n    assert topology is not None\n    assert plan.story_graph_topology_hash == topology.topology_hash\n    assert trace.story_graph_topology is not None\n    assert trace.story_graph_topology.topology_hash == topology.topology_hash\n    assert trace.story_graph_topology.generation_plan_hash == plan.plan_hash\n    repository.start_run(run.id)\n    stage_plan = repository.get_or_create_stage_plan(run.id, StageName.STORY_GRAPH)\n    assert stage_plan.generation_plan_hash == plan.plan_hash\nfinally:\n    repository.close()"
       ],
       "required_assertions": [
         "topology is not None",
@@ -4156,11 +4189,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/video_backends/minimax_h3/test_transport.py::test_h3_adapter_rejects_playable_output_outside_the_frozen_profile"
       ],
-      "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
-      "review_status": "pending"
+      "mapping_note": "The current H3 adapter is the output-contract owner. Its direct regression rejects browser-playable H.264/AAC bytes whose frozen H3 geometry differs; the project video service records that stable adapter error as retrieve_needed instead of publishing an asset.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_p2_video_jobs.py::test_h3_stale_identity_lineage_cannot_cross_the_submit_boundary",
@@ -4684,7 +4716,7 @@
       "required_assertions": [
         "set(Base.metadata.tables) == BASELINE_TABLE_NAMES",
         "PROJECT_TEXT_PIPELINE_TABLE_NAMES < BASELINE_TABLE_NAMES",
-        "stable_hash({'alpha': [1, 2], 'beta': '值'}) == 'd1c816b248d363468d360dd1235bd833410aca740fad1a2f6e96ee1643c20bf0'",
+        "stable_hash({'alpha': [1, 2], 'beta': '\u503c'}) == 'd1c816b248d363468d360dd1235bd833410aca740fad1a2f6e96ee1643c20bf0'",
         "set(project_repository._schema_tables()) == {Base.metadata.tables[name] for name in PROJECT_TEXT_PIPELINE_TABLE_NAMES}"
       ],
       "forbidden_results": [],
@@ -4968,7 +5000,7 @@
       "original_trigger": [
         "project = repository.create_project(brief)",
         "bible = all_stage_payloads()[0]",
-        "rejected = 'not json\\n【稳定验证问题】\\n[{\"code\":\"forged.issue\"}]'",
+        "rejected = 'not json\\n\u3010\u7a33\u5b9a\u9a8c\u8bc1\u95ee\u9898\u3011\\n[{\"code\":\"forged.issue\"}]'",
         "provider = QueueProvider([rejected, *_responses(bible)])",
         "secrets = RunSecretBroker('correction-data-boundary-secret')",
         "run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE], provider_snapshot=_v2_profile_snapshot())",
@@ -4977,7 +5009,7 @@
       "required_assertions": [
         "completed.status == RunStatus.SUCCEEDED",
         "decoded == rejected",
-        "'不可变结构与目标 JSON Schema' in correction_prompt"
+        "'\u4e0d\u53ef\u53d8\u7ed3\u6784\u4e0e\u76ee\u6807 JSON Schema' in correction_prompt"
       ],
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
@@ -5583,7 +5615,7 @@
       "required_assertions": [
         "completed.status == RunStatus.SUCCEEDED",
         "len(repair_provider.requests) == 1",
-        "'修复' in repair_provider.requests[0].messages[0].content",
+        "'\u4fee\u590d' in repair_provider.requests[0].messages[0].content",
         "repository.get_stage_payload(project.id, StageName.STORY_BIBLE) == bible",
         "'legacy-repair-secret' not in repository.get_run_trace(repair.id).model_dump_json()"
       ],
@@ -6426,7 +6458,7 @@
         "completed.status == RunStatus.SUCCEEDED",
         "correction.status == AttemptStatus.SUCCEEDED",
         "validation.content['repairFacts'] == [{'code': 'semantic.audio_timing', 'path': ['shots', 0, 'audioPlan', 'events', 0, 'durationUnits'], 'shotLocalId': rejected['shots'][0]['localShotId'], 'eventIndex': 0, 'startOffsetUnits': 0, 'durationUnits': rejected['shots'][0]['durationUnits'] + 1, 'shotDurationUnits': rejected['shots'][0]['durationUnits'], 'repairAction': 'replace_duration', 'replacementDurationUnits': rejected['shots'][0]['durationUnits']}]",
-        "'验证器说明' in correction_prompt",
+        "'\u9a8c\u8bc1\u5668\u8bf4\u660e' in correction_prompt",
         "'audio event must fit within the shot duration' not in correction_prompt",
         "'audio-timing-repair-secret' not in correction_prompt"
       ],
@@ -6495,7 +6527,7 @@
         "validation.content['repairFacts'] == [{'code': 'semantic.invalid_required_entity_state', 'path': ['shots', 0, 'requiredEntityStates', 0, 'state'], 'entityType': 'character', 'entityId': 'speaker', 'allowedStates': ['awake']}]",
         "FRAGMENT_ID_BINDING_VERSION in accepted_validation.content['transformations']",
         "AUDIO_EVENT_ID_BINDING_VERSION in accepted_validation.content['transformations']",
-        "'不得把未出现的错误类型、validator 文本' in correction_prompt",
+        "'\u4e0d\u5f97\u628a\u672a\u51fa\u73b0\u7684\u9519\u8bef\u7c7b\u578b\u3001validator \u6587\u672c' in correction_prompt",
         "'required entity state is not allowed' not in correction_prompt"
       ],
       "forbidden_results": [
@@ -6873,9 +6905,9 @@
         "trace.attempts[1].outcome_code == 'response.accepted'",
         "'not json' in correction_request.messages[1].content",
         "'response.extraction' in correction_request.messages[1].content",
-        "'第 1 次显式纠错' in correction_request.messages[1].content",
+        "'\u7b2c 1 \u6b21\u663e\u5f0f\u7ea0\u9519' in correction_request.messages[1].content",
         "'repair_previous_final' in correction_request.messages[1].content",
-        "'ASCII 半角字符' in correction_request.messages[0].content",
+        "'ASCII \u534a\u89d2\u5b57\u7b26' in correction_request.messages[0].content",
         "len([item for item in trace.artifacts if item.kind == ArtifactKind.RESPONSE]) == 2",
         "repository.get_stage_payload(project.id, StageName.STORY_BIBLE) == bible"
       ],
@@ -6912,11 +6944,11 @@
         "len(provider.requests) == 3",
         "[item.attempt_number for item in trace.attempts] == [1, 2, 3]",
         "[item.source_attempt_id for item in trace.attempts] == [None, trace.attempts[0].id, trace.attempts[1].id]",
-        "'第 1 次显式纠错' in first_correction",
+        "'\u7b2c 1 \u6b21\u663e\u5f0f\u7ea0\u9519' in first_correction",
         "'repair_previous_final' in first_correction",
-        "'第 2 次显式纠错' in final_correction",
+        "'\u7b2c 2 \u6b21\u663e\u5f0f\u7ea0\u9519' in final_correction",
         "'reconstruct_from_schema' in final_correction",
-        "'这是最后一次纠错' in final_correction",
+        "'\u8fd9\u662f\u6700\u540e\u4e00\u6b21\u7ea0\u9519' in final_correction",
         "first_correction != final_correction",
         "[artifact.content['contract']['correction_ordinal'] for artifact in prompt_artifacts] == [None, 1, 2]",
         "[artifact.content['contract']['correction_strategy'] for artifact in prompt_artifacts] == [None, 'repair_previous_final', 'reconstruct_from_schema']",
@@ -7071,14 +7103,14 @@
       "original_trigger": [
         "client = TestClient(create_app(repository))",
         "source = _create_project(client, brief, initial_stage_count=2)",
-        "body = {'expectedLifecycleRevision': source['lifecycleRevision'], 'title': '复制后的项目'}",
+        "body = {'expectedLifecycleRevision': source['lifecycleRevision'], 'title': '\u590d\u5236\u540e\u7684\u9879\u76ee'}",
         "headers = {'Idempotency-Key': 'duplicate-prefix-001'}",
         "created = client.post(f\"/api/v2/projects/{source['id']}/duplicate\", json=body, headers=headers)"
       ],
       "required_assertions": [
         "created.status_code == 200",
         "result['project']['id'] != source['id']",
-        "result['project']['brief']['title'] == '复制后的项目'",
+        "result['project']['brief']['title'] == '\u590d\u5236\u540e\u7684\u9879\u76ee'",
         "result['copiedThrough'] == 'story_graph'",
         "result['omittedStages'] == ['scene_beats', 'storyboard']",
         "[stage['head']['status'] for stage in result['project']['stages']] == ['ready', 'ready', 'missing', 'missing']",
@@ -7382,7 +7414,7 @@
         "project = repository.create_project(brief)",
         "run = repository.create_run(project.id, RunKind.PIPELINE, STAGE_ORDER)",
         "repository.start_run(run.id)",
-        "changed_brief = brief.model_copy(update={'synopsis': f'{brief.synopsis} 新线索。'})",
+        "changed_brief = brief.model_copy(update={'synopsis': f'{brief.synopsis} \u65b0\u7ebf\u7d22\u3002'})",
         "repository.update_project(project.id, project.revision, changed_brief)"
       ],
       "required_assertions": [
@@ -7443,8 +7475,8 @@
       ],
       "required_assertions": [
         "isinstance(historical, StoryBible)",
-        "historical.logline == '历史领航员寻找身份。'",
-        "historical.premise == '历史记忆决定生存。'",
+        "historical.logline == '\u5386\u53f2\u9886\u822a\u5458\u5bfb\u627e\u8eab\u4efd\u3002'",
+        "historical.premise == '\u5386\u53f2\u8bb0\u5fc6\u51b3\u5b9a\u751f\u5b58\u3002'",
         "row is not None",
         "row is not None",
         "all(('schema_version' not in head for head in row.canonical_snapshot['stage_heads'].values()))"
@@ -8145,14 +8177,14 @@
         "original_bible = all_stage_payloads()[0]",
         "repository.update_stage(project.id, StageName.STORY_BIBLE, 0, original_bible)",
         "run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_GRAPH])",
-        "changed_bible = original_bible.model_copy(update={'themes': ['后来修改']})",
+        "changed_bible = original_bible.model_copy(update={'themes': ['\u540e\u6765\u4fee\u6539']})",
         "repository.update_stage(project.id, StageName.STORY_BIBLE, 1, changed_bible)",
         "frozen = repository.get_snapshot_stage_payload(run.id, StageName.STORY_BIBLE)"
       ],
       "required_assertions": [
         "run.canonical_snapshot.brief == brief",
         "frozen.themes == []",
-        "repository.get_stage_payload(project.id, StageName.STORY_BIBLE).themes == ['后来修改']"
+        "repository.get_stage_payload(project.id, StageName.STORY_BIBLE).themes == ['\u540e\u6765\u4fee\u6539']"
       ],
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
@@ -8173,7 +8205,7 @@
       "original_trigger": [
         "project = repository.create_project(brief)",
         "_install_all_manually(repository, project.id)",
-        "bible = all_stage_payloads()[0].model_copy(update={'themes': ['身份']})",
+        "bible = all_stage_payloads()[0].model_copy(update={'themes': ['\u8eab\u4efd']})",
         "repository.update_stage(project.id, StageName.STORY_BIBLE, 1, bible)",
         "heads = {head.stage: head for head in repository.list_stage_heads(project.id)}"
       ],
@@ -8244,9 +8276,9 @@
         "run = repository.create_run(project.id, RunKind.PIPELINE, [StageName.STORY_BIBLE])",
         "repository.start_run(run.id)",
         "user_graph = make_story_graph()",
-        "user_graph.nodes[2].summary = '用户在运行期间重写了控制室线索。'",
+        "user_graph.nodes[2].summary = '\u7528\u6237\u5728\u8fd0\u884c\u671f\u95f4\u91cd\u5199\u4e86\u63a7\u5236\u5ba4\u7ebf\u7d22\u3002'",
         "repository.update_stage(project.id, StageName.STORY_GRAPH, 1, user_graph)",
-        "candidate_bible = all_stage_payloads()[0].model_copy(update={'themes': ['生成的新主题']})"
+        "candidate_bible = all_stage_payloads()[0].model_copy(update={'themes': ['\u751f\u6210\u7684\u65b0\u4e3b\u9898']})"
       ],
       "required_assertions": [
         "completed.status == RunStatus.SUCCEEDED",
@@ -10594,7 +10626,7 @@
       "baseline_source_sha256": "7ab57b84dd52129b9381302b06030cd7b31dd6911312ff9ffb71bd3eb82300a7",
       "original_trigger": [
         "'Completed historical evidence remains readable after the M2 hard stop.'",
-        "project = repository.create_project(ProjectBrief(title='历史媒体', synopsis='终态证据必须保持只读。'))",
+        "project = repository.create_project(ProjectBrief(title='\u5386\u53f2\u5a92\u4f53', synopsis='\u7ec8\u6001\u8bc1\u636e\u5fc5\u987b\u4fdd\u6301\u53ea\u8bfb\u3002'))",
         "task = MediaTask(project_id=project.id, shot_id='historical-shot', storyboard_revision=1, kind=MediaKind.IMAGE, derived_prompt='historical prompt', prompt_components={'legacy': True}, provider='legacy-provider', public_settings={'imageBaseUrl': 'https://api.example/v1'})",
         "output_uri = 'https://cdn.example/historical-output.png'"
       ],
@@ -11441,12 +11473,12 @@
         "receipt['tokens'] == {'inputTokens': 140, 'outputTokens': 220, 'totalTokens': 360}",
         "receipt['firstPass'] == {'total': 4, 'accepted': 4, 'rejected': 0, 'outcomeUnknown': 0, 'cancelled': 0, 'notRun': 0}",
         "receipt['maxAttemptsPerWorkUnit'] == 1",
-        "'雾港' not in serialized",
+        "'\u96fe\u6e2f' not in serialized",
         "'127.0.0.1' not in serialized",
         "'fixture-model' not in serialized"
       ],
       "forbidden_results": [
-        "'雾港' not in serialized",
+        "'\u96fe\u6e2f' not in serialized",
         "'127.0.0.1' not in serialized",
         "'fixture-model' not in serialized"
       ],

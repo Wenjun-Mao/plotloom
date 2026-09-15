@@ -127,6 +127,19 @@ def test_image_delivery_rejects_partial_and_hash_tamper_before_candidate_publica
     client, project_id, job, delivery = _ready_exported_job(tmp_path)
     content = _png((10, 10, 10))
     try:
+        _write_delivery(delivery, job, content, "no-tool-001")
+        no_tool_manifest = _delivery_manifest(job, content, "no-tool-001")
+        no_tool_manifest["toolEvidence"]["available"] = False
+        (delivery / "completion.json").write_text(
+            json.dumps(no_tool_manifest), encoding="utf-8"
+        )
+        no_tool = client.post(
+            f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh"
+        )
+        assert no_tool.status_code == 422
+        assert no_tool.json()["code"] == "delivery_manifest_invalid"
+        assert client.get(f"/api/v2/projects/{project_id}/managed-assets").json()["assets"] == []
+
         _write_delivery(delivery, job, content, "partial-001")
         manifest = _delivery_manifest(job, content, "partial-001")
         manifest["outputs"].append(
@@ -203,6 +216,7 @@ def test_image_delivery_rejects_conflicting_or_second_final_delivery(tmp_path: P
         accepted = client.post(f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh")
         assert accepted.status_code == 200, accepted.text
         assert accepted.json()["state"] == "accepted"
+        accepted_candidate_id = accepted.json()["candidates"][0]["assetId"]
 
         _write_delivery(delivery, job, _png((99, 20, 20)), "complete-001")
         conflict = client.post(f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh")
@@ -213,6 +227,11 @@ def test_image_delivery_rejects_conflicting_or_second_final_delivery(tmp_path: P
         second_final = client.post(f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh")
         assert second_final.status_code == 409
         assert second_final.json()["code"] == "delivery_finalized"
+        stored = client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"][0]
+        assert stored["deliveries"][0]["candidates"][0]["assetId"] == accepted_candidate_id
+        assert [asset["id"] for asset in client.get(
+            f"/api/v2/projects/{project_id}/managed-assets"
+        ).json()["assets"]] == [accepted_candidate_id]
     finally:
         client.close()
 
@@ -281,7 +300,98 @@ def test_image_delivery_rejects_cross_project_and_symlinked_browser_output_paths
             FIXED_CHINESE_BRIEF.model_copy(update={"title": "Other project"})
         )
         other_id = other.project().id
+        ProjectPipelineExecutor(FixtureResolver()).execute(other, profile=fixture_profile())
         other.close()
+
+        # The project-folder request model owns the exchange destination. A
+        # browser cannot add its own prompt or filesystem authority.
+        source_stages = client.get(f"/api/v2/projects/{project_id}/stages").json()["stages"]
+        source_storyboard = source_stages[-1]
+        source_shot = source_storyboard["payload"]["shots"][0]
+        attempted_path_authority = client.post(
+            f"/api/v2/projects/{project_id}/image-jobs",
+            json={
+                "approvalId": job["request"]["frozenSnapshot"]["approvalId"],
+                "shotId": source_shot["id"],
+                "storyboardRevision": source_storyboard["head"]["revision"],
+                "presentationChange": "Keep the frozen shot legible.",
+                "contextId": "path-authority-fixture",
+                "consumedDraft": {
+                    "editorScope": "image_direction",
+                    "entityId": f"{source_shot['id']}:original",
+                    "draftRevision": 1,
+                },
+                "deliveryPath": "/arbitrary/operator/path",
+                "prompt": "replace frozen facts",
+            },
+        )
+        assert attempted_path_authority.status_code == 422
+
+        other_stages = client.get(f"/api/v2/projects/{other_id}/stages").json()["stages"]
+        other_storyboard = other_stages[-1]
+        other_approval = client.post(
+            f"/api/v2/projects/{other_id}/storyboard-approval",
+            json={
+                "expectedRevision": other_storyboard["head"]["revision"],
+                "contentHash": other_storyboard["head"]["contentHash"],
+                "decision": "approve",
+                "reviewer": "foreign approval fixture",
+                "gateSetVersion": "storyboard.v2",
+            },
+        )
+        assert other_approval.status_code == 201, other_approval.text
+        draft = client.put(
+            f"/api/v2/projects/{project_id}/authoring-drafts",
+            json={
+                "editorScope": "image_direction",
+                "entityId": f"{source_shot['id']}:original",
+                "baseCanonicalRevision": source_storyboard["head"]["revision"],
+                "expectedDraftRevision": 0,
+                "payload": {
+                    "shotId": source_shot["id"],
+                    "targetId": "original",
+                    "contextId": "forged-approval-fixture",
+                    "presentationChange": "Keep the frozen shot legible.",
+                },
+            },
+        )
+        assert draft.status_code == 200, draft.text
+        forged = client.post(
+            f"/api/v2/projects/{project_id}/image-jobs",
+            json={
+                "approvalId": other_approval.json()["decision"]["id"],
+                "shotId": source_shot["id"],
+                "storyboardRevision": source_storyboard["head"]["revision"],
+                "presentationChange": "Keep the frozen shot legible.",
+                "contextId": "forged-approval-fixture",
+                "consumedDraft": {
+                    "editorScope": "image_direction",
+                    "entityId": f"{source_shot['id']}:original",
+                    "draftRevision": draft.json()["draftRevision"],
+                },
+            },
+        )
+        # Project-folder approval lookup is scoped before the preparation
+        # transaction. A foreign approval is therefore not disclosed as an
+        # invalid local transition and cannot consume the local draft.
+        assert forged.status_code == 404
+        local = client.post(
+            f"/api/v2/projects/{project_id}/image-jobs",
+            json={
+                "approvalId": job["request"]["frozenSnapshot"]["approvalId"],
+                "shotId": source_shot["id"],
+                "storyboardRevision": source_storyboard["head"]["revision"],
+                "presentationChange": "Keep the frozen shot legible.",
+                "contextId": "forged-approval-fixture",
+                "consumedDraft": {
+                    "editorScope": "image_direction",
+                    "entityId": f"{source_shot['id']}:original",
+                    "draftRevision": draft.json()["draftRevision"],
+                },
+            },
+        )
+        assert local.status_code == 201, local.text
+
         cross_project = client.post(
             f"/api/v2/projects/{other_id}/image-jobs/{job['id']}/refresh"
         )

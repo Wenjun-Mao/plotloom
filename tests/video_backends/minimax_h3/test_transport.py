@@ -4,6 +4,7 @@ import pytest
 
 from plotloom.video_backends.minimax_h3 import H3_PROFILES, MiniMaxH3GatewayAdapter, MiniMaxH3GatewayTransport
 from plotloom.video_backends.minimax_h3.adapter import H3_PROFILE_CONTRACT_VERSION
+from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_provider import VideoOutputContractError, VideoProviderError, WanDispatchError
 
 
@@ -76,6 +77,24 @@ def test_h3_adapter_direct_image_contract_requires_a_frozen_profile() -> None:
 def test_h3_adapter_reports_retained_output_expiry() -> None:
     with pytest.raises(VideoOutputContractError, match="h3_gateway_output_expired"):
         MiniMaxH3GatewayAdapter.completed_output(_job("succeeded", False), expected_profile_id=_PROFILE)
+
+
+def test_h3_adapter_rejects_playable_output_outside_the_frozen_profile() -> None:
+    """H.264/AAC alone cannot make a wrong H3 geometry publishable."""
+
+    with pytest.raises(VideoOutputContractError, match="h3_output_profile_mismatch"):
+        MiniMaxH3GatewayAdapter().validate_observed_output(
+            ObservedVideo(
+                duration_seconds=124 / 24,
+                width=1280,
+                height=720,
+                video_codec="h264",
+                audio_codec="aac",
+                frame_rate=24,
+                frame_count=124,
+            ),
+            profile_id=_PROFILE,
+        )
 
 
 def test_h3_transport_rejects_unrecognised_direct_response_shape() -> None:
