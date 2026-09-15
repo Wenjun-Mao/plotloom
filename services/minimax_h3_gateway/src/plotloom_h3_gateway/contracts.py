@@ -66,13 +66,12 @@ class GatewaySettings:
         )
 
 
-class _JobParameters(BaseModel):
+class _GenerationParameters(BaseModel):
     """Frozen generation choices shared by both job-admission routes."""
 
     model_config = ConfigDict(extra="forbid")
 
     prompt: str = Field(min_length=1, max_length=8_000)
-    aspect_policy: AspectPolicy = Field(alias="aspectPolicy")
     profile_id: str = Field(
         alias="profileId",
         min_length=3,
@@ -80,28 +79,22 @@ class _JobParameters(BaseModel):
         pattern=r"^[a-z][a-z0-9_]{0,62}$",
     )
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
+    duration_seconds: int = Field(default=5, alias="durationSeconds", ge=5, le=15)
 
 
-class CreateJobRequest(_JobParameters):
-    """The durable two-step job-creation contract."""
+class CreateImageJobRequest(_GenerationParameters):
+    """Public image-to-video request choices.
 
-    asset_id: str = Field(alias="assetId", min_length=3, max_length=80)
-    idempotency_key: str | None = Field(
-        default=None, alias="idempotencyKey", min_length=8, max_length=255
-    )
+    The image itself is either fetched from ``sourceUrl`` JSON fields or
+    supplied through the matching multipart fields.  It is never a reusable
+    public asset identifier.
+    """
+
+    aspect_policy: AspectPolicy = Field(alias="aspectPolicy")
 
 
-class CreateJobFromImageRequest(_JobParameters):
-    """One-step job choices, intentionally without retry-deduplication state."""
-
-    def to_create_job_request(self, asset_id: str) -> CreateJobRequest:
-        return CreateJobRequest.model_validate({
-            "assetId": asset_id,
-            "prompt": self.prompt,
-            "aspectPolicy": self.aspect_policy,
-            "profileId": self.profile_id,
-            "seed": self.seed,
-        })
+class CreateTextJobRequest(_GenerationParameters):
+    """Exploration-only text-to-video request choices."""
 
 
 class SourceUrlAssetRequest(BaseModel):
@@ -122,5 +115,14 @@ class SourceUrlAssetRequest(BaseModel):
         return value
 
 
-class CreateJobFromSourceUrlRequest(CreateJobFromImageRequest, SourceUrlAssetRequest):
-    """The JSON convenience form: a remote image plus frozen job choices."""
+class CreateImageJobFromSourceUrlRequest(CreateImageJobRequest, SourceUrlAssetRequest):
+    """The JSON image form with a required first-frame URL."""
+
+    end_source_url: str | None = Field(default=None, alias="endSourceUrl", max_length=2_048)
+
+    @field_validator("end_source_url")
+    @classmethod
+    def require_http_end_source_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return SourceUrlAssetRequest.model_validate({"sourceUrl": value}).source_url

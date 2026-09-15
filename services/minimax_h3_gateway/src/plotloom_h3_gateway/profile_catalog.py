@@ -10,7 +10,12 @@ from typing import Any
 
 
 TURBO_4STEP_LORA = "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"
-PROFILE_CONTRACT_VERSION = 3
+PROFILE_CONTRACT_VERSION = 4
+FRAMES_PER_SECOND = 24
+MIN_DURATION_SECONDS = 5
+MAX_DURATION_SECONDS = 15
+FRAME_GRID_INTERVAL = 17
+FRAME_GRID_OFFSET = 5
 
 
 @dataclass(frozen=True)
@@ -23,7 +28,7 @@ class GatewayProfile:
     width: int
     height: int
     duration_seconds: int = 5
-    fps: int = 24
+    fps: int = FRAMES_PER_SECOND
     frame_count: int = 124
 
     def public_descriptor(self) -> dict[str, Any]:
@@ -36,6 +41,8 @@ class GatewayProfile:
             "width": self.width,
             "height": self.height,
             "durationSeconds": self.duration_seconds,
+            "minDurationSeconds": MIN_DURATION_SECONDS,
+            "maxDurationSeconds": MAX_DURATION_SECONDS,
             "fps": self.fps,
             "frameCount": self.frame_count,
             "nativeAudio": True,
@@ -58,3 +65,16 @@ def profile(profile_id: str) -> GatewayProfile:
     if value is None:
         raise KeyError(profile_id)
     return value
+
+
+def frame_count_for_duration_seconds(duration_seconds: int) -> int:
+    """Snap a requested whole-second duration to H3's native 17k + 5 grid."""
+
+    if not MIN_DURATION_SECONDS <= duration_seconds <= MAX_DURATION_SECONDS:
+        raise ValueError("durationSeconds must be within the supported 5-15 second range")
+    requested_frames = duration_seconds * FRAMES_PER_SECOND
+    return requested_frames + (FRAME_GRID_OFFSET - requested_frames % FRAME_GRID_INTERVAL) % FRAME_GRID_INTERVAL
+
+
+def delivered_duration_seconds(frame_count: int) -> float:
+    return frame_count / FRAMES_PER_SECOND

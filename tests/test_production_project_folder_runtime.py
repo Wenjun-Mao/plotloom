@@ -39,36 +39,26 @@ class _RuntimeFakeH3:
     def preflight(self) -> None:
         return None
 
-    def upload(self, image: bytes, *, mime_type: str) -> str:
-        assert image and mime_type == "image/png"
-        return "asset_0123456789abcdef0123456789abcdef"
-
-    def submit(self, payload: dict, *, idempotency_key: str | None = None) -> dict:
-        assert idempotency_key
+    def submit_image(self, image: bytes, *, mime_type: str, payload: dict) -> dict:
+        assert image and mime_type == "image/png" and payload["durationSeconds"] == 5
         self.submits.append(payload)
-        return {
-            "id": "h3_0123456789abcdef0123456789abcdef",
-            "status": "submitted",
-            "profileId": payload["profileId"],
-            "aspectPolicy": payload["aspectPolicy"],
-            "outputReady": False,
-            "error": None,
-        }
+        return _h3_job("submitted", False, payload["profileId"], payload["aspectPolicy"])
 
     def poll(self, prediction_id: str) -> dict:
-        return {
-            "id": prediction_id,
-            "status": "succeeded",
-            "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
-            "aspectPolicy": "reject_mismatch",
-            "outputReady": True,
-            "error": None,
-        }
+        return _h3_job("succeeded", True, "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "reject_mismatch", identifier=prediction_id)
 
     def download(self, reference: str) -> bytes:
         assert reference == "h3_0123456789abcdef0123456789abcdef"
         self.downloads += 1
         return b"runtime-h3-video"
+
+
+def _h3_job(status: str, output_ready: bool, profile_id: str, aspect_policy: str, *, identifier: str = "h3_0123456789abcdef0123456789abcdef") -> dict[str, object]:
+    return {"id": identifier, "status": status, "inputMode": "image", "profileId": profile_id,
+            "aspectPolicy": aspect_policy, "seed": 31, "requestedDurationSeconds": 5,
+            "frameCount": 124, "actualDurationSeconds": 124 / 24,
+            "generationSubmittedAt": None, "generationCompletedAt": None,
+            "generationElapsedMs": None, "outputReady": output_ready, "error": None}
 
 
 class _ActiveImagePublicationMedia:

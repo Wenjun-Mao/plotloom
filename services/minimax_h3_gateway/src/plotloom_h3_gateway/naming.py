@@ -11,21 +11,26 @@ H3_JOB_ID = re.compile(r"h3_[0-9a-f]{32}\Z")
 ASSET_ID = re.compile(r"asset_[0-9a-f]{32}\Z")
 
 
-def timestamped_storage_name(object_id: str, suffix: str) -> str:
+def timestamped_storage_name(object_id: str, suffix: str, *, label: str | None = None) -> str:
     """Create a portable UTC filename while preserving its stable owner ID."""
 
     timestamp = datetime.now(timezone.utc).strftime(_UTC_FILENAME_TIMESTAMP)
-    return f"{timestamp}_{object_id}{suffix}"
+    suffix_label = f"_{label}" if label else ""
+    return f"{timestamp}_{object_id}{suffix_label}{suffix}"
 
 
-def is_owned_storage_name(name: object, *, object_id: str, suffixes: tuple[str, ...]) -> bool:
+def is_owned_storage_name(
+    name: object, *, object_id: str, suffixes: tuple[str, ...], allow_frame_label: bool = False
+) -> bool:
     """Validate a timestamped gateway filename for one stable object ID."""
 
     if not isinstance(name, str):
         return False
     return any(
         re.fullmatch(
-            rf"{_TIMESTAMP_PREFIX}_{re.escape(object_id)}{re.escape(suffix)}", name
+            rf"{_TIMESTAMP_PREFIX}_{re.escape(object_id)}"
+            rf"{'(?:_(?:start|end))?' if allow_frame_label else ''}{re.escape(suffix)}",
+            name,
         )
         for suffix in suffixes
     )

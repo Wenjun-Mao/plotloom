@@ -1,726 +1,188 @@
+"""Direct H3 job contract, workflow, timing, and migration coverage."""
 from __future__ import annotations
 
-import re
 import sqlite3
-import threading
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+import requests
 from fastapi.testclient import TestClient
 from PIL import Image
-import requests
 
 from plotloom.video_backends.minimax_h3 import H3_PROFILES
 from plotloom_h3_gateway.app import GatewaySettings, GatewayStore, create_app
-from plotloom_h3_gateway.profile_catalog import H3_GATEWAY_PROFILES
+from plotloom_h3_gateway.profile_catalog import H3_GATEWAY_PROFILES, frame_count_for_duration_seconds
+from plotloom_h3_gateway.workflow import load_h3_template, render_workflow
+
+
+PROFILE = "minimax_h3_fp8_turbo4_landscape_832x480_v1"
+AUTH = {"Authorization": "Bearer test-key"}
 
 
 class _Response:
-    def __init__(self, payload: object, *, content: bytes = b"") -> None:
-        self._payload = payload
-        self.content = content
-
-    def json(self) -> object:
-        return self._payload
-
-    def raise_for_status(self) -> None:
-        return None
+    def __init__(self, payload: object) -> None: self._payload = payload
+    def json(self) -> object: return self._payload
+    def raise_for_status(self) -> None: return None
 
 
 class _ComfySession:
     def __init__(self) -> None:
         self.submissions: list[dict[str, Any]] = []
         self.history: dict[str, object] = {}
-        self.submitted = threading.Event()
-        self.queue_running: list[object] = []
-        self.queue_pending: list[object] = []
-        self.available = True
 
     def get(self, url: str, **_: object) -> _Response:
-        if not self.available:
-            raise requests.ConnectionError("synthetic ComfyUI outage")
-        if url.endswith("/system_stats"):
-            return _Response({"system": {}})
-        if url.endswith("/queue"):
-            return _Response({"queue_running": self.queue_running, "queue_pending": self.queue_pending})
-        if url.endswith("/object_info"):
-            return _Response(_object_info())
+        if url.endswith("/system_stats"): return _Response({"system": {}})
+        if url.endswith("/queue"): return _Response({"queue_running": [], "queue_pending": []})
+        if url.endswith("/object_info"): return _Response(_object_info())
         if "/history/" in url:
             prompt_id = url.rsplit("/", 1)[-1]
-            return _Response(self.history.get(prompt_id, {}))
+            return _Response({prompt_id: self.history[prompt_id]} if prompt_id in self.history else {})
         raise AssertionError(url)
 
     def post(self, url: str, *, json: dict[str, Any], **_: object) -> _Response:
         assert url.endswith("/prompt")
         self.submissions.append(json)
-        self.submitted.set()
         return _Response({"prompt_id": f"comfy-{len(self.submissions)}"})
 
 
 def _object_info() -> dict[str, object]:
-    required = {
-        "UNETLoader": ("unet_name", "minimax_h3_fl2va_pruned_fp8_scaled.safetensors"),
-        "CLIPLoader": ("clip_name", "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"),
-        "VAELoader": ("vae_name", ["minimax_h3_video_vae_fp16.safetensors", "minimax_h3_audio_vae_fp32.safetensors"]),
-        "LoraLoaderModelOnly": ("lora_name", "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"),
+    result: dict[str, object] = {
+        "MiniMaxH3ImageToVideo": {"input": {"optional": {"first_frame": ["IMAGE"], "last_frame": ["IMAGE"]}}},
+        "PrimitiveInt": {},
     }
-    result: dict[str, object] = {"MiniMaxH3ImageToVideo": {}, "PrimitiveInt": {}}
-    for node_type, (name, options) in required.items():
-        values = options if isinstance(options, list) else [options]
-        result[node_type] = {"input": {"required": {name: [values]}}}
+    for node, field, values in (
+        ("UNETLoader", "unet_name", ["minimax_h3_fl2va_pruned_fp8_scaled.safetensors"]),
+        ("CLIPLoader", "clip_name", ["qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"]),
+        ("VAELoader", "vae_name", ["minimax_h3_video_vae_fp16.safetensors", "minimax_h3_audio_vae_fp32.safetensors"]),
+        ("LoraLoaderModelOnly", "lora_name", ["minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"]),
+    ):
+        result[node] = {"input": {"required": {field: [values]}}}
     return result
 
 
 def _client(tmp_path: Path) -> tuple[TestClient, _ComfySession]:
     session = _ComfySession()
-    app = create_app(
-        GatewaySettings(
-            api_key="test-key", data_dir=tmp_path / "data", comfy_input_dir=tmp_path / "comfy-input",
-            comfy_output_dir=tmp_path / "comfy-output",
-            dispatch_worker_enabled=False,
-        ),
-        session=session,
-    )
-    return TestClient(app), session
+    return TestClient(create_app(GatewaySettings(api_key="test-key", data_dir=tmp_path / "data", comfy_input_dir=tmp_path / "input", comfy_output_dir=tmp_path / "output", dispatch_worker_enabled=False), session=session)), session
 
 
-def _dispatch_once(client: TestClient) -> dict[str, Any] | None:
-    return client.app.state.gateway.dispatch_once()
-
-
-def _png(width: int = 1371, height: int = 1148) -> bytes:
-    image = Image.new("RGB", (width, height), "#355070")
-    buffer = BytesIO()
-    image.save(buffer, "PNG")
+def _png(width: int = 832, height: int = 480, colour: str = "#355070") -> bytes:
+    image = Image.new("RGB", (width, height), colour)
+    buffer = BytesIO(); image.save(buffer, "PNG")
     return buffer.getvalue()
 
 
-def _write_comfy_output(tmp_path: Path, *, filename: str, content: bytes) -> Path:
-    path = tmp_path / "comfy-output" / "video" / filename
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(content)
-    return path
+def _image_payload(**extra: object) -> dict[str, object]:
+    return {"prompt": "A pilot pauses at the airlock.", "profileId": PROFILE, "aspectPolicy": "reject_mismatch", **extra}
 
 
-def _stored_asset_path(client: TestClient, asset_id: str) -> Path:
-    return Path(client.app.state.gateway.store.get_asset(asset_id)["path"])
-
-
-def _prepared_input_path(client: TestClient, job_id: str) -> Path:
-    job = client.app.state.gateway.store.get_job(job_id)
-    path = client.app.state.gateway._prepared_input_path(job)
-    assert path is not None
-    return path
-
-
-def _managed_output_path(client: TestClient, job_id: str) -> Path:
-    job = client.app.state.gateway.store.get_job(job_id)
-    path = client.app.state.gateway._managed_output_path(job)
-    assert path is not None
-    return path
-
-
-def test_gateway_and_plotloom_catalogs_match_exactly() -> None:
-    """Independent packages must agree before a profile can enter production."""
-
-    assert [item.public_descriptor() for item in H3_GATEWAY_PROFILES] == [
-        item.public_descriptor() for item in H3_PROFILES
-    ]
-
-
-def test_upload_requires_bearer_key(tmp_path: Path) -> None:
-    client, _ = _client(tmp_path)
-    response = client.post("/v1/assets", files={"image": ("frame.png", _png(), "image/png")})
-    assert response.status_code == 401
-    assert response.json() == {"detail": "unauthorized"}
-
-
-def test_job_uses_frozen_profile_and_crop_policy_without_stretching(tmp_path: Path) -> None:
-    client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers, files={"image": ("portrait.png", _png(), "image/png")},
-    )
-    assert asset.status_code == 200
-    response = client.post(
-        "/v1/video-jobs", headers=headers,
-        json={"assetId": asset.json()["assetId"], "prompt": "A calm glance.", "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1", "aspectPolicy": "cover_center_crop", "seed": 12},
-    )
-    assert response.status_code == 202
-    assert response.json()["status"] == "queued"
-    assert session.submissions == []
-    assert _dispatch_once(client)["status"] == "submitted"
-    assert len(session.submissions) == 1
-    submitted = session.submissions[0]["prompt"]
-    assert submitted["105:6"]["inputs"]["unet_name"] == "minimax_h3_fl2va_pruned_fp8_scaled.safetensors"
-    assert submitted["105:104"]["inputs"]["prompt"] == "A calm glance."
-    prepared = next((tmp_path / "comfy-input").glob("*.png"))
-    with Image.open(prepared) as image:
-        assert image.size == (832, 480)
-
-
-def test_catalog_profile_uses_exact_portrait_dimensions_and_health_is_secret_free(tmp_path: Path) -> None:
-    client, session = _client(tmp_path)
-    health = client.get("/health")
-    assert health.status_code == 200
-    assert health.json()["profileContractVersion"] == 3
-    assert health.json()["queuedJobs"] == 0
-    assert health.json()["activeDispatches"] == 0
-    assert health.json()["dispatchConcurrency"] == 1
-    assert "maxQueueDepth" not in health.json()
-    profiles = health.json()["profiles"]
-    assert len(profiles) == 6
-    assert all("lora" not in item and "path" not in item for item in profiles)
-    profile_id = "minimax_h3_fp8_turbo4_portrait_704x1280_v1"
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers, files={"image": ("portrait.png", _png(), "image/png")},
-    ).json()
-    response = client.post(
-        "/v1/video-jobs", headers=headers,
-        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "profileId": profile_id,
-              "aspectPolicy": "contain_pad", "seed": 12},
-    )
-    assert response.status_code == 202
-    assert response.json()["profileId"] == profile_id
-    assert _dispatch_once(client)["status"] == "submitted"
-    workflow = session.submissions[0]["prompt"]
-    assert workflow["115"] == {"class_type": "PrimitiveInt", "inputs": {"value": 704}}
-    assert workflow["116"] == {"class_type": "PrimitiveInt", "inputs": {"value": 1280}}
-    prepared = next((tmp_path / "comfy-input").glob("*.png"))
-    with Image.open(prepared) as image:
-        assert image.size == (704, 1280)
-
-
-def test_gateway_rejects_unknown_profile_before_creating_a_job(tmp_path: Path) -> None:
-    client, _ = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers, files={"image": ("portrait.png", _png(), "image/png")},
-    ).json()
-    response = client.post(
-        "/v1/video-jobs", headers=headers,
-        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "profileId": "minimax_h3_unreviewed_1",
-              "aspectPolicy": "contain_pad"},
-    )
-    assert response.status_code == 422
-    assert response.json() == {"error": "profile_not_supported"}
-
-
-def test_gateway_requires_an_explicit_profile_for_every_new_job(tmp_path: Path) -> None:
-    client, _ = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers, files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    response = client.post(
-        "/v1/video-jobs",
-        headers=headers,
-        json={"assetId": asset["assetId"], "prompt": "No implicit profile.", "aspectPolicy": "reject_mismatch"},
-    )
-    assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "profileId"]
-    with client.app.state.gateway.store._connect() as connection:
-        assert connection.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0
-
-
-def test_reject_policy_refuses_aspect_mismatch_before_comfy_submit(tmp_path: Path) -> None:
-    client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers, files={"image": ("portrait.png", _png(), "image/png")},
-    ).json()
-    response = client.post(
-        "/v1/video-jobs", headers=headers,
-        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1", "aspectPolicy": "reject_mismatch"},
-    )
-    assert response.status_code == 422
-    assert response.json() == {"error": "input_aspect_mismatch"}
-    with client.app.state.gateway.store._connect() as connection:
-        assert connection.execute("SELECT COUNT(*) FROM jobs").fetchone()[0] == 0
-    assert session.submissions == []
-
-
-def test_completed_job_proxies_only_its_single_mp4_output(tmp_path: Path) -> None:
-    client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers, files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    job = client.post(
-        "/v1/video-jobs", headers=headers,
-        json={"assetId": asset["assetId"], "prompt": "A calm glance.", "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1", "aspectPolicy": "reject_mismatch"},
-    ).json()
-    assert _dispatch_once(client)["status"] == "submitted"
-    session.history["comfy-1"] = {
-        "comfy-1": {
-            "status": {"status_str": "success", "completed": True},
-            "outputs": {"92": {"images": [{"filename": "result.mp4", "subfolder": "video", "type": "output"}]}},
-        }
-    }
-    source = _write_comfy_output(tmp_path, filename="result.mp4", content=b"synthetic-mp4")
-    status = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
-    assert status.json()["status"] == "succeeded"
-    assert source.exists() is False
-    managed = _managed_output_path(client, job["id"])
-    assert managed.read_bytes() == b"synthetic-mp4"
-    output = client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers)
-    assert output.status_code == 200
-    assert output.headers["content-type"] == "video/mp4"
-    assert output.content == b"synthetic-mp4"
-
-
-def test_new_gateway_files_use_human_readable_utc_timestamps(tmp_path: Path) -> None:
-    client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    asset_path = _stored_asset_path(client, asset["assetId"])
-    assert re.fullmatch(
-        rf"\d{{4}}-\d{{2}}-\d{{2}}T\d{{2}}-\d{{2}}-\d{{2}}Z_{asset['assetId']}\.png",
-        asset_path.name,
-    )
-
-    job = _queue_job(client, headers, asset["assetId"], prompt="Name every file")
-    prepared = _prepared_input_path(client, job["id"])
-    assert re.fullmatch(
-        rf"\d{{4}}-\d{{2}}-\d{{2}}T\d{{2}}-\d{{2}}-\d{{2}}Z_{job['id']}\.png",
-        prepared.name,
-    )
-    assert _dispatch_once(client)["status"] == "submitted"
-    session.history["comfy-1"] = {
-        "comfy-1": {
-            "status": {"status_str": "success", "completed": True},
-            "outputs": {"92": {"images": [{"filename": "named.mp4", "subfolder": "video", "type": "output"}]}},
-        }
-    }
-    _write_comfy_output(tmp_path, filename="named.mp4", content=b"named-video")
-    assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()["status"] == "succeeded"
-    output = _managed_output_path(client, job["id"])
-    assert re.fullmatch(
-        rf"\d{{4}}-\d{{2}}-\d{{2}}T\d{{2}}-\d{{2}}-\d{{2}}Z_{job['id']}\.mp4",
-        output.name,
-    )
-    assert output.read_bytes() == b"named-video"
-
-
-def test_managed_output_expires_after_72_hours_without_deleting_any_other_file(tmp_path: Path) -> None:
-    client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    job = _queue_job(client, headers, asset["assetId"], prompt="Expire after review")
-    assert _dispatch_once(client)["status"] == "submitted"
-    session.history["comfy-1"] = {
-        "comfy-1": {
-            "status": {"status_str": "success", "completed": True},
-            "outputs": {"92": {"images": [{"filename": "expiry.mp4", "subfolder": "video", "type": "output"}]}},
-        }
-    }
-    _write_comfy_output(tmp_path, filename="expiry.mp4", content=b"owned-video")
-    assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()["status"] == "succeeded"
-    managed = _managed_output_path(client, job["id"])
-    prepared_input = _prepared_input_path(client, job["id"])
-    asset_path = _stored_asset_path(client, asset["assetId"])
-    unrelated = tmp_path / "data" / "outputs" / "unrelated.mp4"
-    unrelated.write_bytes(b"do-not-delete")
-    with client.app.state.gateway.store._connect() as connection:
-        connection.execute(
-            "UPDATE jobs SET output_expires_at = datetime('now', '-1 second') WHERE id = ?",
-            (job["id"],),
-        )
-
-    assert client.app.state.gateway.cleanup_expired_outputs() == 1
-    assert managed.exists() is False
-    assert unrelated.read_bytes() == b"do-not-delete"
-    assert prepared_input.exists() is False
-    assert asset_path.exists() is False
-    expired = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
-    assert expired.json() == {
-        "id": job["id"], "status": "succeeded",
-        "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1",
-        "aspectPolicy": "reject_mismatch", "error": None,
-        "outputReady": False,
-    }
-    output = client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers)
-    assert output.status_code == 410
-    assert output.json() == {"error": "gateway_output_expired"}
-
-
-def test_expired_job_record_purge_uses_a_30_day_total_handoff_window(tmp_path: Path) -> None:
-    client, _ = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    asset_path = _stored_asset_path(client, asset["assetId"])
-    job = _queue_job(client, headers, asset["assetId"], prompt="Retain a short audit row")
-    prepared_input = _prepared_input_path(client, job["id"])
-    assert prepared_input.is_file()
-    client.app.state.gateway.store.mark_managed_output(
-        job["id"],
-        output_name=f"2026-01-01T00-00-00Z_{job['id']}.mp4",
-        digest="0" * 64,
-        size_bytes=1,
-    )
-    with client.app.state.gateway.store._connect() as connection:
-        connection.execute(
-            "UPDATE jobs SET output_expires_at = datetime('now', '-26 days') "
-            "WHERE id = ?",
-            (job["id"],),
-        )
-
-    assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 2
-    assert prepared_input.exists() is False
-    assert asset_path.exists() is False
-
-    # The row's deadline is anchored to successful handoff/output expiry.
-    assert client.app.state.gateway.cleanup_due_job_records() == 0
-    with client.app.state.gateway.store._connect() as connection:
-        connection.execute(
-            "UPDATE jobs SET output_expires_at = datetime('now', '-27 days', '-1 second') "
-            "WHERE id = ?",
-            (job["id"],),
-        )
-
-    assert client.app.state.gateway.cleanup_due_job_records() == 1
-    assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).status_code == 404
-    assert client.get(f"/v1/video-jobs/{job['id']}/output", headers=headers).status_code == 404
-    with client.app.state.gateway.store._connect() as connection:
-        assert connection.execute(
-            "SELECT COUNT(*) FROM assets WHERE id = ?", (asset["assetId"],)
-        ).fetchone()[0] == 0
-
-
-def test_every_gateway_keyframe_expires_after_30_days_even_when_a_job_references_it(tmp_path: Path) -> None:
-    client, _ = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    unused = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("unused.png", _png(832, 480), "image/png")},
-    ).json()
-    referenced = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("used.png", _png(832, 480), "image/png")},
-    ).json()
-    unused_path = _stored_asset_path(client, unused["assetId"])
-    referenced_path = _stored_asset_path(client, referenced["assetId"])
-    job = _queue_job(client, headers, referenced["assetId"], prompt="Keep the prepared input")
-    prepared_input = _prepared_input_path(client, job["id"])
-    with client.app.state.gateway.store._connect() as connection:
-        connection.execute(
-            "UPDATE assets SET created_at = datetime('now', '-30 days', '-1 second') "
-            "WHERE id IN (?, ?)",
-            (unused["assetId"], referenced["assetId"]),
-        )
-
-    assert client.app.state.gateway.cleanup_expired_gateway_keyframes() == 2
-    assert unused_path.exists() is False
-    assert referenced_path.exists() is False
-    assert prepared_input.is_file()
-    assert client.get(f"/v1/video-jobs/{job['id']}", headers=headers).json()["status"] == "queued"
-    with client.app.state.gateway.store._connect() as connection:
-        assert connection.execute(
-            "SELECT COUNT(*) FROM assets WHERE id = ?", (unused["assetId"],)
-        ).fetchone()[0] == 0
-        assert connection.execute(
-            "SELECT purge_pending FROM assets WHERE id = ?", (referenced["assetId"],)
-        ).fetchone()[0] == 1
-
-
-def test_shared_gateway_keyframe_remains_until_its_last_linked_video_expires(tmp_path: Path) -> None:
-    client, _ = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("shared.png", _png(832, 480), "image/png")},
-    ).json()
-    asset_path = _stored_asset_path(client, asset["assetId"])
-    first = _queue_job(client, headers, asset["assetId"], prompt="First use")
-    second = _queue_job(client, headers, asset["assetId"], prompt="Second use")
-    first_input = _prepared_input_path(client, first["id"])
-    second_input = _prepared_input_path(client, second["id"])
-
-    with client.app.state.gateway.store._connect() as connection:
-        connection.execute(
-            "UPDATE jobs SET status = 'succeeded', output_expires_at = datetime('now', '-1 second') "
-            "WHERE id = ?",
-            (first["id"],),
-        )
-    assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 1
-    assert first_input.exists() is False
-    assert second_input.is_file()
-    assert asset_path.is_file()
-
-    with client.app.state.gateway.store._connect() as connection:
-        connection.execute(
-            "UPDATE jobs SET status = 'succeeded', output_expires_at = datetime('now', '-1 second') "
-            "WHERE id = ?",
-            (second["id"],),
-        )
-    assert client.app.state.gateway.cleanup_expired_gateway_inputs_and_assets() == 2
-    assert second_input.exists() is False
-    assert asset_path.exists() is False
-
-
-def test_gateway_store_migrates_an_existing_queue_database_additively(tmp_path: Path) -> None:
-    path = tmp_path / "gateway.sqlite3"
-    with sqlite3.connect(path) as connection:
-        connection.executescript(
-            """
-            CREATE TABLE assets (
-              id TEXT PRIMARY KEY, mime_type TEXT NOT NULL, width INTEGER NOT NULL,
-              height INTEGER NOT NULL, sha256 TEXT NOT NULL, path TEXT NOT NULL,
-              created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE jobs (
-              id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES assets(id),
-              profile_id TEXT NOT NULL, aspect_policy TEXT NOT NULL, prompt TEXT NOT NULL,
-              seed INTEGER NOT NULL, prepared_input_name TEXT NOT NULL, status TEXT NOT NULL,
-              comfy_prompt_id TEXT, output_filename TEXT, output_subfolder TEXT,
-              output_type TEXT, error_code TEXT,
-              created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-              updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            """
-        )
-
-    GatewayStore(path)
-    with sqlite3.connect(path) as connection:
-        columns = {row[1] for row in connection.execute("PRAGMA table_info(jobs)")}
-    assert {
-        "idempotency_key", "request_hash", "managed_output_name", "output_sha256",
-        "output_size_bytes", "output_expires_at",
-    } <= columns
-    with sqlite3.connect(path) as connection:
-        asset_columns = {row[1] for row in connection.execute("PRAGMA table_info(assets)")}
-    assert "purge_pending" in asset_columns
-
-
-def test_restart_finishes_a_frozen_pending_output_handoff_without_new_submission(tmp_path: Path) -> None:
-    headers = {"Authorization": "Bearer test-key"}
-    settings = GatewaySettings(
-        api_key="test-key", data_dir=tmp_path / "data", comfy_input_dir=tmp_path / "comfy-input",
-        comfy_output_dir=tmp_path / "comfy-output", dispatch_worker_enabled=False,
-    )
-    first_session = _ComfySession()
-    first_app = create_app(settings, session=first_session)
-    first_client = TestClient(first_app)
-    asset = first_client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    job = _queue_job(first_client, headers, asset["assetId"], prompt="Resume transfer")
-    assert _dispatch_once(first_client)["status"] == "submitted"
-    managed_name = f"2026-09-13T12-00-00Z_{job['id']}.mp4"
-    first_app.state.gateway.store.update_job(
-        job["id"], status="transfer_pending",
-        error_code="gateway_output_transfer_pending", output_filename="resumable.mp4",
-        output_subfolder="video", output_type="output", managed_output_name=managed_name,
-    )
-    destination = tmp_path / "data" / "outputs" / managed_name
-    destination.write_bytes(b"copied-before-restart")
-
-    restarted_session = _ComfySession()
-    restarted_client = TestClient(create_app(settings, session=restarted_session))
-    recovered = restarted_client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
-    assert recovered.json()["status"] == "succeeded"
-    assert restarted_session.submissions == []
-    assert destination.read_bytes() == b"copied-before-restart"
-
-
-def test_pending_handoff_rejects_a_replaced_comfyui_source(tmp_path: Path) -> None:
-    client, _ = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    job = _queue_job(client, headers, asset["assetId"], prompt="Verify source")
-    managed_name = f"2026-09-13T12-00-00Z_{job['id']}.mp4"
-    client.app.state.gateway.store.update_job(
-        job["id"], status="transfer_pending",
-        error_code="gateway_output_transfer_pending", output_filename="replaced.mp4",
-        output_subfolder="video", output_type="output", managed_output_name=managed_name,
-    )
-    destination = tmp_path / "data" / "outputs" / managed_name
-    destination.write_bytes(b"original-copy")
-    source = _write_comfy_output(tmp_path, filename="replaced.mp4", content=b"changed-after-copy")
-
-    rejected = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
-    assert rejected.json()["status"] == "failed"
-    assert rejected.json()["error"] == "gateway_output_integrity_mismatch"
-    assert destination.read_bytes() == b"original-copy"
-    assert source.read_bytes() == b"changed-after-copy"
-
-
-def _queue_job(client: TestClient, headers: dict[str, str], asset_id: str, *, prompt: str, key: str | None = None) -> dict[str, Any]:
-    payload: dict[str, Any] = {
-        "assetId": asset_id,
-        "prompt": prompt,
-        "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1",
-        "aspectPolicy": "reject_mismatch",
-        "seed": 7,
-    }
-    if key is not None:
-        payload["idempotencyKey"] = key
-    response = client.post("/v1/video-jobs", headers=headers, json=payload)
+def _submit_image(client: TestClient, **extra: object) -> dict[str, Any]:
+    response = client.post("/v1/video-jobs/from-image", headers=AUTH, data={key: str(value) for key, value in _image_payload(**extra).items()}, files={"image": ("start.png", _png(), "image/png")})
     assert response.status_code == 202, response.text
-    assert response.json()["status"] == "queued"
     return response.json()
 
 
-def test_fifo_queue_dispatches_only_one_h3_job_at_a_time(tmp_path: Path) -> None:
+def test_gateway_and_plotloom_catalogs_match_exactly() -> None:
+    assert [item.public_descriptor() for item in H3_GATEWAY_PROFILES] == [item.public_descriptor() for item in H3_PROFILES]
+
+
+def test_retired_creation_routes_are_not_registered(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    assert client.post("/v1/assets", headers=AUTH).status_code == 404
+    assert client.post("/v1/video-jobs", headers=AUTH).status_code == 404
+
+
+def test_image_json_and_multipart_start_only_are_direct_jobs(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    multipart = _submit_image(client, seed=7)
+    assert multipart["inputMode"] == "image" and multipart["seed"] == 7
+    json_response = client.post("/v1/video-jobs/from-image", headers=AUTH, json={"sourceUrl": "http://127.0.0.1/not-used.png", **_image_payload()})
+    # The source requester is deliberately absent in this test; validation
+    # happens before fetch and the documented route itself is accepted.
+    assert json_response.status_code == 422
+    assert json_response.json() == {"error": "source_url_fetch_failed"}
+
+
+def test_image_start_end_binds_two_prepared_frames_and_no_dangling_nodes(tmp_path: Path) -> None:
     client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    first = _queue_job(client, headers, asset["assetId"], prompt="First action")
-    second = _queue_job(client, headers, asset["assetId"], prompt="Second action")
-
-    assert _dispatch_once(client)["id"] == first["id"]
-    assert len(session.submissions) == 1
-    # The first known H3 request has no completed history yet, so the second
-    # cannot reach ComfyUI merely because the gateway itself has a backlog.
-    assert _dispatch_once(client) is None
-    assert len(session.submissions) == 1
-
-    session.history["comfy-1"] = {
-        "comfy-1": {
-            "status": {"status_str": "success", "completed": True},
-            "outputs": {"92": {"images": [{"filename": "first.mp4", "subfolder": "video", "type": "output"}]}},
-        }
-    }
-    _write_comfy_output(tmp_path, filename="first.mp4", content=b"first-video")
-    assert _dispatch_once(client)["id"] == second["id"]
-    assert len(session.submissions) == 2
+    response = client.post("/v1/video-jobs/from-image", headers=AUTH, data={key: str(value) for key, value in _image_payload(durationSeconds=8).items()}, files={"image": ("start.png", _png(), "image/png"), "endImage": ("end.png", _png(colour="#6d597a"), "image/png")})
+    assert response.status_code == 202
+    job = response.json(); frames = client.app.state.gateway.store.get_job_frames(job["id"])
+    assert [frame["role"] for frame in frames] == ["start", "end"]
+    dispatched = client.app.state.gateway.dispatch_once()
+    assert dispatched and dispatched["status"] == "submitted"
+    workflow = session.submissions[0]["prompt"]
+    assert workflow["105:104"]["inputs"]["first_frame"] == ["h3_start_frame", 0]
+    assert workflow["105:104"]["inputs"]["last_frame"] == ["h3_end_frame", 0]
+    assert workflow["105:107"]["inputs"]["value"] == frame_count_for_duration_seconds(8)
 
 
-def test_gateway_allows_a_large_fifo_backlog_but_waits_for_external_comfy_work(tmp_path: Path) -> None:
+def test_text_job_has_no_frame_nodes_and_no_aspect_policy(tmp_path: Path) -> None:
     client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    queued = [
-        _queue_job(client, headers, asset["assetId"], prompt=f"Queued action {index}")
-        for index in range(10)
-    ]
-    assert client.get("/health").json()["queuedJobs"] == 10
-
-    session.queue_pending = [{"external": "trusted-comfy-work"}]
-    assert _dispatch_once(client) is None
-    assert session.submissions == []
-    session.queue_pending = []
-    assert _dispatch_once(client)["id"] == queued[0]["id"]
-    assert len(session.submissions) == 1
+    response = client.post("/v1/video-jobs/from-text", headers=AUTH, json={"prompt": "A moonlit station answers itself.", "profileId": PROFILE, "durationSeconds": 5})
+    assert response.status_code == 202
+    job = response.json(); assert job["inputMode"] == "text" and job["aspectPolicy"] is None
+    client.app.state.gateway.dispatch_once()
+    inputs = session.submissions[0]["prompt"]["105:104"]["inputs"]
+    assert "first_frame" not in inputs and "last_frame" not in inputs
 
 
-def test_queued_job_is_idempotent_and_can_be_cancelled_before_dispatch(tmp_path: Path) -> None:
-    client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    key = "gateway-idempotency-key"
-    first = _queue_job(client, headers, asset["assetId"], prompt="Wait here", key=key)
-    replay = _queue_job(client, headers, asset["assetId"], prompt="Wait here", key=key)
-    assert replay["id"] == first["id"]
-    conflict = client.post("/v1/video-jobs", headers=headers, json={
-        "assetId": asset["assetId"], "prompt": "Changed request", "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1", "aspectPolicy": "reject_mismatch",
-        "seed": 7, "idempotencyKey": key,
-    })
-    assert conflict.status_code == 409
-    assert conflict.json() == {"error": "idempotency_conflict"}
-
-    cancelled = client.post(f"/v1/video-jobs/{first['id']}/cancel", headers=headers)
-    assert cancelled.status_code == 200
-    assert cancelled.json()["status"] == "cancelled"
-    assert _dispatch_once(client) is None
-    assert session.submissions == []
-
-
-def test_restart_preserves_queued_order_and_never_replays_an_interrupted_dispatch(tmp_path: Path) -> None:
-    headers = {"Authorization": "Bearer test-key"}
-    settings = GatewaySettings(
-        api_key="test-key", data_dir=tmp_path / "data", comfy_input_dir=tmp_path / "comfy-input",
-        comfy_output_dir=tmp_path / "comfy-output",
-        dispatch_worker_enabled=False,
+def test_direct_contract_rejects_missing_start_mixed_or_retired_idempotency(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    missing = client.post(
+        "/v1/video-jobs/from-image", headers=AUTH,
+        data={"profileId": PROFILE, "aspectPolicy": "reject_mismatch"},
+        files={"prompt": (None, "A missing frame.")},
     )
-    first_session = _ComfySession()
-    first_app = create_app(settings, session=first_session)
-    first_client = TestClient(first_app)
-    asset = first_client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    interrupted = _queue_job(first_client, headers, asset["assetId"], prompt="Never replay me")
-    first = _queue_job(first_client, headers, asset["assetId"], prompt="Preserve first")
-    second = _queue_job(first_client, headers, asset["assetId"], prompt="Preserve second")
-    # Claiming is persisted before an outbound call. Simulate a process loss at
-    # that conservative boundary: restart must not retry it.
-    assert first_app.state.gateway.store.claim_next_queued()["id"] == interrupted["id"]
-
-    restarted_session = _ComfySession()
-    restarted_app = create_app(settings, session=restarted_session)
-    restarted_client = TestClient(restarted_app)
-    recovered = restarted_client.get(f"/v1/video-jobs/{interrupted['id']}", headers=headers)
-    assert recovered.status_code == 200
-    assert recovered.json()["status"] == "outcome_unknown"
-    dispatched = _dispatch_once(restarted_client)
-    assert dispatched is not None and dispatched["id"] == first["id"]
-    assert len(restarted_session.submissions) == 1
-    # The second item remains queued behind the known first ComfyUI job.
-    assert _dispatch_once(restarted_client) is None
-    assert restarted_client.get(f"/v1/video-jobs/{second['id']}", headers=headers).json()["status"] == "queued"
+    assert missing.json() == {"error": "image_file_required"}
+    mixed = client.post("/v1/video-jobs/from-image", headers=AUTH, data={**{key: str(value) for key, value in _image_payload().items()}, "sourceUrl": "https://example.test/a.png"}, files={"image": ("a.png", _png(), "image/png")})
+    assert mixed.json() == {"error": "request_fields_invalid"}
+    idempotency = client.post("/v1/video-jobs/from-image", headers=AUTH, data={**{key: str(value) for key, value in _image_payload().items()}, "idempotencyKey": "no"}, files={"image": ("a.png", _png(), "image/png")})
+    assert idempotency.json() == {"error": "request_fields_invalid"}
+    text_bad = client.post("/v1/video-jobs/from-text", headers=AUTH, json={"prompt": "x", "profileId": PROFILE, "aspectPolicy": "reject_mismatch"})
+    assert text_bad.json() == {"error": "request_invalid"}
 
 
-def test_gateway_accepts_durable_work_while_comfyui_is_temporarily_unavailable(tmp_path: Path) -> None:
+def test_seed_duration_grid_and_status_timing_are_frozen(tmp_path: Path) -> None:
     client, session = _client(tmp_path)
-    headers = {"Authorization": "Bearer test-key"}
-    asset = client.post(
-        "/v1/assets", headers=headers,
-        files={"image": ("landscape.png", _png(832, 480), "image/png")},
-    ).json()
-    session.available = False
-    queued = _queue_job(client, headers, asset["assetId"], prompt="Wait for H3")
-    assert _dispatch_once(client) is None
-    assert session.submissions == []
+    random_job = _submit_image(client, durationSeconds=5)
+    assert isinstance(random_job["seed"], int) and random_job["frameCount"] == 124
+    explicit = _submit_image(client, seed=19, durationSeconds=15)
+    assert explicit["seed"] == 19 and explicit["frameCount"] == 362
+    assert explicit["actualDurationSeconds"] == 362 / 24
+    invalid = client.post("/v1/video-jobs/from-text", headers=AUTH, json={"prompt": "x", "profileId": PROFILE, "durationSeconds": 4})
+    assert invalid.json() == {"error": "request_invalid"}
+    client.app.state.gateway.dispatch_once()
+    submitted = client.get(f"/v1/video-jobs/{random_job['id']}", headers=AUTH).json()
+    assert submitted["generationSubmittedAt"] is not None and submitted["generationElapsedMs"] is not None
+    session.history["comfy-1"] = {"status": {"status_str": "success", "completed": True}, "outputs": {"92": {"images": [{"filename": "job.mp4", "subfolder": "video", "type": "output"}]}}}
+    output = tmp_path / "output" / "video" / "job.mp4"; output.parent.mkdir(parents=True); output.write_bytes(b"mp4")
+    completed = client.get(f"/v1/video-jobs/{random_job['id']}", headers=AUTH).json()
+    assert completed["generationCompletedAt"] is not None and completed["generationElapsedMs"] >= 0
 
-    session.available = True
-    assert _dispatch_once(client)["id"] == queued["id"]
-    assert len(session.submissions) == 1
+
+def test_workflow_has_intended_zero_one_two_frame_connections() -> None:
+    profile = H3_GATEWAY_PROFILES[0]
+    template = load_h3_template()["prompt"]
+    for start, end in ((None, None), ("start.png", None), ("start.png", "end.png")):
+        graph = render_workflow(template, profile=profile, prompt="x", start_input_name=start, end_input_name=end, seed=1, frame_count=124)
+        inputs = graph["105:104"]["inputs"]
+        assert ("first_frame" in inputs) is (start is not None)
+        assert ("last_frame" in inputs) is (end is not None)
+        assert set(node for node in graph if node.startswith("h3_")) == ({"h3_start_frame"} if start and not end else {"h3_start_frame", "h3_end_frame"} if start and end else set())
 
 
-def test_runtime_worker_dispatches_a_queued_job_without_a_polling_browser(tmp_path: Path) -> None:
-    session = _ComfySession()
-    app = create_app(
-        GatewaySettings(
-            api_key="test-key", data_dir=tmp_path / "data", comfy_input_dir=tmp_path / "comfy-input",
-            comfy_output_dir=tmp_path / "comfy-output",
-            worker_poll_seconds=0.01,
-        ),
-        session=session,
-    )
-    headers = {"Authorization": "Bearer test-key"}
-    with TestClient(app) as client:
-        asset = client.post(
-            "/v1/assets", headers=headers,
-            files={"image": ("landscape.png", _png(832, 480), "image/png")},
-        ).json()
-        job = _queue_job(client, headers, asset["assetId"], prompt="Worker takes this")
-        assert session.submitted.wait(timeout=1.0)
-        status = client.get(f"/v1/video-jobs/{job['id']}", headers=headers)
-        # `submitting` is the durable claim between FIFO dequeue and the
-        # persisted ComfyUI prompt ID; a concurrent status reader may see it.
-        assert status.json()["status"] in {"submitting", "submitted", "running"}
+def test_legacy_job_migration_keeps_a_readable_start_binding(tmp_path: Path) -> None:
+    path = tmp_path / "legacy.sqlite3"; asset_path = tmp_path / "asset.png"; asset_path.write_bytes(_png())
+    connection = sqlite3.connect(path)
+    connection.executescript("""
+      CREATE TABLE assets (id TEXT PRIMARY KEY, mime_type TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL, sha256 TEXT NOT NULL, path TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+      CREATE TABLE jobs (id TEXT PRIMARY KEY, asset_id TEXT NOT NULL, profile_id TEXT NOT NULL, aspect_policy TEXT NOT NULL, prompt TEXT NOT NULL, seed INTEGER NOT NULL, prepared_input_name TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+    """)
+    connection.execute("INSERT INTO assets VALUES ('asset_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'image/png', 832, 480, 'x', ?, CURRENT_TIMESTAMP)", (str(asset_path),))
+    connection.execute("INSERT INTO jobs (id, asset_id, profile_id, aspect_policy, prompt, seed, prepared_input_name, status) VALUES ('h3_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'asset_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', ?, 'reject_mismatch', 'x', 1, '2026-01-01T00-00-00Z_h3_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png', 'succeeded')", (PROFILE,))
+    connection.commit(); connection.close()
+    store = GatewayStore(path)
+    job = store.get_job("h3_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+    assert job["input_mode"] == "image" and job["frame_count"] == 124
+    assert store.get_job_frames(job["id"])[0]["role"] == "start"

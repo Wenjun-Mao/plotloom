@@ -1,139 +1,107 @@
 # MiniMax-H3 网关：同事 API 使用指南
 
-这是一个在 Spark 上运行、仅供团队通过 Tailscale 使用的内部 API：输入一张
-关键帧和动作提示词，生成约 5 秒的 MiniMax-H3 视频。它不是公开服务，也不是
-任意 ComfyUI 工作流的代理。
+这是 Spark 上仅供团队通过 Tailscale 调用的内部视频生成 API。它不是公开服务，
+也不是任意 ComfyUI 工作流代理。调用者只能选择已审核的尺寸档位，不能指定模型、
+节点或工作流。
 
-本文只提供 **Bruno** 请求示例，面向调用者。部署、模型和运维变更请看
+本文只提供 **Bruno** 示例。部署和维护请看
 [H3 网关运维手册](minimax-h3-gateway-manual.md)。
 
-## 1. 连接与鉴权
+## 1. 连接
 
-先连接团队的 Tailscale 网络。当前网关基地址为：
+当前 Tailscale 基地址：
 
 ```text
 http://100.64.35.71:8090
 ```
 
-在 Bruno 的私密环境中保存以下变量，不要把 Bearer Key 写进共享 YAML、截图或
-聊天记录：
+在 Bruno 的**私密环境变量**中设置（不要把真实 Key 提交到 Bruno YAML）：
 
 ```text
 H3_GATEWAY_BEARER=<向团队取得当前 Key>
 ```
 
-下文 YAML 均使用 `{{H3_GATEWAY_BEARER}}`。导入后，在 Bruno 中为当前环境填入
-真实值即可。只有 `/health` 不需要 Bearer Key。
+除 `/health` 外，所有接口使用：
 
-### Bruno：健康检查（不生成视频）
+```yaml
+auth:
+  type: bearer
+  token: "{{H3_GATEWAY_BEARER}}"
+```
+
+### Bruno：健康检查
 
 ```yaml
 info:
-  name: H3 Gateway - Health
+  name: H3 - Health
   type: http
-
 http:
   method: GET
   url: http://100.64.35.71:8090/health
 ```
 
-它会返回当前 profile 列表、队列长度和服务状态。调用前请以它返回的 `profiles`
-为准。
+返回的 `profiles` 是当前可用尺寸的唯一权威来源；`queuedJobs` 是等待数量，
+H3 始终一次生成一条。
 
-## 2. 可选视频规格（`profileId`）
+## 2. 可选尺寸与时长
 
-每个当前可选 profile 固定生成 124 帧、24 fps、约 5.17 秒、H.264/AAC 的 MP4。
-不能在请求中自定义分辨率、时长或 ComfyUI 图。
+`profileId` 必填；分辨率由 profile 固定。`durationSeconds` 可选，默认 `5`，
+仅接受 **5–15 的整数秒**。H3 以 24 fps 和 `17k + 5` 的原生帧格运行，故实际
+时长可能略长：5 秒请求是 124 帧，即约 5.17 秒。
 
-| 方向 / 用途 | 输出尺寸 | `profileId` | 要匹配的宽:高 |
-| --- | ---: | --- | ---: |
-| 横版 · 快速试稿 | 832 × 480 | `minimax_h3_fp8_turbo4_landscape_832x480_v1` | 26:15 |
-| 横版 · 标准 | 960 × 544 | `minimax_h3_fp8_turbo4_landscape_960x544_v1` | 30:17 |
-| 横版 · 高分辨率 | 1280 × 704 | `minimax_h3_fp8_turbo4_landscape_1280x704_v1` | 20:11 |
-| 竖版 · 快速试稿 | 576 × 1024 | `minimax_h3_fp8_turbo4_portrait_576x1024_v1` | 9:16 |
-| 竖版 · 标准 | 608 × 1088 | `minimax_h3_fp8_turbo4_portrait_608x1088_v1` | 19:34 |
-| 竖版 · 高分辨率 | 704 × 1280 | `minimax_h3_fp8_turbo4_portrait_704x1280_v1` | 11:20 |
+| 方向 | 输出尺寸 | `profileId` |
+| --- | ---: | --- |
+| 横版快速 | 832 × 480 | `minimax_h3_fp8_turbo4_landscape_832x480_v1` |
+| 横版标准 | 960 × 544 | `minimax_h3_fp8_turbo4_landscape_960x544_v1` |
+| 横版高分 | 1280 × 704 | `minimax_h3_fp8_turbo4_landscape_1280x704_v1` |
+| 竖版快速 | 576 × 1024 | `minimax_h3_fp8_turbo4_portrait_576x1024_v1` |
+| 竖版标准 | 608 × 1088 | `minimax_h3_fp8_turbo4_portrait_608x1088_v1` |
+| 竖版高分 | 704 × 1280 | `minimax_h3_fp8_turbo4_portrait_704x1280_v1` |
 
-这里的“匹配”是指**宽高比**，不是指上传图片必须与输出同一像素尺寸。例如，
-`832 × 480`、`1664 × 960`、`2496 × 1440` 都是 26:15，可用于同一个
-`832 × 480` profile。网关会把合格图片缩放到该 profile 的准确输出尺寸。
+`seed` 也是可选。省略时服务器会生成随机 seed；返回的任务和状态响应都会给出
+最终采用的 `seed`，方便复查。
 
-以前文档中列出的图片尺寸恰好都是输出尺寸的 2 倍，只是便于一眼看出比例；
-**不是上传要求，也不是质量档位**。实际项目中以关键帧构图、清晰度和正确比例为准。
+## 3. 图片输入与 `aspectPolicy`
 
-`profileId` 是每个新任务的必填字段；省略它不会使用任何旧默认值，而是返回 422。
-新请求只能选择上表六项之一。
+图片可用 JSON 的可下载 `sourceUrl` / `endSourceUrl`，或 Bruno multipart 的
+`image` / `endImage` 文件。**一次请求不能混用 URL 和文件。** 每张图片支持 JPEG、
+PNG、WebP，最大 20 MiB、3,000 万像素；URL 只在接收时下载，不会被保存。
 
-### 横版还是竖版？
+上传图不必与输出尺寸像素完全一致，但应有相同的宽高比。例如 1664 × 960 与
+832 × 480 都可作为横版快速的严格匹配输入。网关会统一处理到输出尺寸。
 
-- 做手机全屏短视频：从 `576 × 1024` 开始；确认构图后，可升到 `704 × 1280`。
-- 做桌面、电视或宽画幅内容：从 `832 × 480` 开始；确认后，可升到 `1280 × 704`。
-- `960 × 544`、`608 × 1088` 是中间档；它们不是标准 16:9 或 9:16，关键帧应按表中
-  的准确比例预先制作。
-
-## 3. 图片输入要求与比例策略（`aspectPolicy`）
-
-### 通用图片要求
-
-- 支持实际解码后为 **JPEG、PNG 或 WebP** 的图片；扩展名和 HTTP 的
-  `Content-Type` 不能代替内容校验。
-- 单张最大 **20 MiB**、最大 **3,000 万像素**。
-- 可以在 Bruno 上传图片文件，也可以提供 `http://` 或 `https://` 的可下载图片 URL；
-  内部/Tailnet URL 可以使用。
-- `sourceUrl` 最多跟随 3 次跳转，连接超时 5 秒、读取超时 20 秒。URL 本身不会被网关保存。
-
-先在图片工具中按目标 profile 制作准确画布和构图，是得到稳定画面的首选方式。
-网关只负责准备输入，不能替代构图审核。
-
-### 三种 `aspectPolicy`
-
-| 值 | 输入比例不一致时 | 何时使用 | 主要代价 |
-| --- | --- | --- | --- |
-| `reject_mismatch` | 立即返回 `input_aspect_mismatch`，**不排队、不生成** | 默认且推荐；关键帧已经按目标画布制作 | 调用前必须准备匹配比例的图 |
-| `contain_pad` | 等比例缩放，剩余区域补黑边；输出仍是目标尺寸 | 有意保留完整横图/竖图，且明确接受信箱黑边 | H3 可能把黑边当成画面的一部分，导致竖版扩展不稳定 |
-| `cover_center_crop` | 从中央裁切后缩放到目标尺寸 | 仅在已审核中央裁切安全的旧素材中使用 | 主体、字幕或边缘信息可能被裁掉 |
-
-`reject_mismatch` 接受宽高比非常接近目标的图（误差不超过 0.001），但不要求图片
-像素尺寸刚好等于输出尺寸。比例不一致时：
-
-- 横图做竖版并选 `contain_pad`：通常在**上、下**出现黑边。
-- 竖图做横版并选 `contain_pad`：通常在**左、右**出现黑边。
-- `cover_center_crop` 没有黑边，但会裁掉较长方向两端内容。
-- 想让模型生成真正的竖版空间，而非把横图塞进竖画布：先制作匹配竖版 profile 的
-  关键帧，再用 `reject_mismatch`。
-
-`contain_pad` 是“明确允许黑边”的开关，不是让网关猜测如何扩图的自动模式。
-
-## 4. API 速查
-
-所有 `/v1/…` 路由都需要 `Authorization: Bearer …`；只有 `/health` 不需要。
-
-| 方法和路径 | 用途 | 是否会生成视频 |
+| `aspectPolicy` | 比例不同怎么办 | 使用场景 |
 | --- | --- | --- |
-| `GET /health` | 检查服务、目录和队列 | 否 |
-| `POST /v1/assets` | 上传一张图片，或从 `sourceUrl` 保存图片 | 否 |
-| `POST /v1/video-jobs/from-image` | 一步：下载/上传图片并排队生成 | 是 |
-| `POST /v1/video-jobs` | 两步：使用已有 `assetId` 排队生成 | 是 |
-| `GET /v1/video-jobs/{id}` | 查询任务状态 | 否 |
-| `GET /v1/video-jobs/{id}/output` | 下载已完成 MP4 | 否 |
-| `POST /v1/video-jobs/{id}/cancel` | 取消仍处于 `queued` 的任务 | 否 |
+| `reject_mismatch` | 直接拒绝，不生成 | 推荐默认；先在图片工具中完成正确构图 |
+| `contain_pad` | 等比缩小并补黑边 | **明确想保留黑边**的画面；模型可能把黑边带入生成 |
+| `cover_center_crop` | 中心裁切再缩放 | 已审核中央裁切安全的旧图 |
 
-H3 一次只生成一个视频。任务按 FIFO 排队，队列没有人为长度上限。
+横图放到竖画布用 `contain_pad` 时通常会有上下黑边；竖图放到横画布时通常有左右
+黑边。若目标是让模型生成真正的竖版空间，请先制作匹配竖版的起始图并使用
+`reject_mismatch`。`contain_pad` 是允许黑边的开关，不是自动扩图功能。
 
-## 5. Bruno：一步生成（图片 URL → 视频任务）
+## 4. 接口一览
 
-这是最适合一次性试验的接口。请求成功返回 `queued` 就表示会消耗一次 H3 生成机会。
-保存返回的 `id`，后续用它查询和下载。
+| 方法 | 用途 |
+| --- | --- |
+| `GET /health` | 服务、ComfyUI、profile 与队列检查（无需 Bearer） |
+| `POST /v1/video-jobs/from-image` | 起始图必填、末帧可选的 I2V |
+| `POST /v1/video-jobs/from-text` | 仅探索用途的 T2V，不是 Plotloom 创作模式 |
+| `GET /v1/video-jobs/{id}` | 查询状态、seed、帧数和生成计时 |
+| `GET /v1/video-jobs/{id}/output` | 下载完成 MP4 |
+| `POST /v1/video-jobs/{id}/cancel` | 仅取消仍为 `queued` 的任务 |
 
-以下公开 Plotloom 图片可作为无敏感信息的测试源。它并非目标 profile 的准确宽高比，
-因此示例刻意使用 `contain_pad`；真实项目应换成符合目标 profile 的关键帧并使用
-`reject_mismatch`。
+旧的 `/v1/assets` 与 `POST /v1/video-jobs` 已移除，返回 404。不存在 `assetId`
+或 `idempotencyKey` 工作流。发送后若 Bruno 超时，不要盲目重试：任务可能已经入队。
+
+## 5. Bruno：URL 起始图 + 可选末帧
+
+JSON 方式适合同事已有可下载图片 URL。下例为 8 秒、首尾帧 I2V：
 
 ```yaml
 info:
-  name: H3 - URL image to video
+  name: H3 - Image to video from URLs
   type: http
-
 http:
   method: POST
   url: http://100.64.35.71:8090/v1/video-jobs/from-image
@@ -144,159 +112,120 @@ http:
     type: json
     data: |-
       {
-        "sourceUrl": "https://raw.githubusercontent.com/Wenjun-Mao/plotloom/main/docs/storyboard-handbook/assets/storyboards/moon-control-room-finished-frame.png",
-        "prompt": "A quiet cinematic hold. The astronaut turns toward the window, natural breathing, subtle cabin light movement, stable camera.",
-        "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1",
-        "aspectPolicy": "contain_pad",
-        "seed": 42
-      }
-
-auth:
-  type: bearer
-  token: "{{H3_GATEWAY_BEARER}}"
-```
-
-**URL 图片必须使用 JSON body。** 不要同时设置 `Content-Type: application/json`
-又在 Bruno 选择 `multipart-form`，否则会得到 `request_body_invalid`。
-
-一步接口不支持 `idempotencyKey`。如果 Bruno 在发送后超时，不要自动重试，因为任务
-可能已入队。需要可重试去重，或想从同一关键帧生成多个版本时，请用下一节两步流程。
-
-## 6. Bruno：两步流程（可复用关键帧、可安全重试）
-
-先将 URL 图片存为托管关键帧（**不会**生成视频）：
-
-```yaml
-info:
-  name: H3 - Import image URL
-  type: http
-
-http:
-  method: POST
-  url: http://100.64.35.71:8090/v1/assets
-  headers:
-    - name: Content-Type
-      value: application/json
-  body:
-    type: json
-    data: |-
-      {
-        "sourceUrl": "https://example.internal/keyframes/scene-01.png"
-      }
-
-auth:
-  type: bearer
-  token: "{{H3_GATEWAY_BEARER}}"
-```
-
-它返回 `assetId`、检测到的 `mimeType`、宽高和 SHA-256。
-
-### 从本地文件导入
-
-在 Bruno 新建同样的 `POST /v1/assets` 请求，选择 **Body → Multipart Form**，添加：
-
-| 字段名 | 类型 | 值 |
-| --- | --- | --- |
-| `image` | File | 选择本地 JPEG、PNG 或 WebP |
-
-不要手写 `Content-Type`；Bruno 会正确添加 multipart boundary。文件上传不应同时带
-`sourceUrl` 字段。
-
-用返回的 `assetId` 创建任务。这个接口支持稳定的 `idempotencyKey`：相同 key 和完全
-相同内容会返回同一个任务；相同 key 搭配不同内容会返回 `idempotency_conflict`。
-
-```yaml
-info:
-  name: H3 - Create video from asset
-  type: http
-
-http:
-  method: POST
-  url: http://100.64.35.71:8090/v1/video-jobs
-  headers:
-    - name: Content-Type
-      value: application/json
-  body:
-    type: json
-    data: |-
-      {
-        "assetId": "替换为上一步返回的 assetId",
-        "prompt": "A calm, stable close shot.",
+        "sourceUrl": "https://example.internal/scene-start.png",
+        "endSourceUrl": "https://example.internal/scene-end.png",
+        "prompt": "Cinematic medium shot. The explorer crosses the cabin slowly; natural movement, stable camera, coherent lighting.",
         "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
         "aspectPolicy": "reject_mismatch",
-        "idempotencyKey": "替换为一次请求专用且稳定的唯一值"
+        "seed": 42,
+        "durationSeconds": 8
       }
-
 auth:
   type: bearer
   token: "{{H3_GATEWAY_BEARER}}"
 ```
 
-## 7. Bruno：查询、下载和取消
+省略 `endSourceUrl` 即为普通“只有起始图”的 I2V。URL 输入不要同时以
+multipart 附加 `image` 或 `endImage`。
 
-将下列 `h3_…` 替换为创建任务时返回的 ID。查询时，只要 `status` 是 `queued`、
-`submitting`、`submitted`、`running` 或 `transfer_pending`，就继续轮询。只有
-`status` 为 `succeeded` 且 `outputReady` 为 `true` 时才能下载。
+## 6. Bruno：本地起始图 + 可选末帧
+
+在 Bruno 选择 **Body → Multipart Form**，不要手写 `Content-Type`（Bruno 会产生
+正确 boundary）。
+
+| 字段 | 类型 | 值 |
+| --- | --- | --- |
+| `image` | File | 必填，起始图 |
+| `endImage` | File | 可选，末帧 |
+| `prompt` | Text | 必填 |
+| `profileId` | Text | 上表中的一项 |
+| `aspectPolicy` | Text | 上表中的一项 |
+| `seed` | Text | 可选整数 |
+| `durationSeconds` | Text | 可选 5–15 整数 |
+
+请求地址仍为：
+
+```text
+POST http://100.64.35.71:8090/v1/video-jobs/from-image
+```
+
+## 7. Bruno：T2V 探索
+
+T2V 仅用于独立试验；它不进入 Plotloom 的作者工作台，也不替代审核关键帧。
+此接口只能用 JSON，且**不接受** `sourceUrl`、`image`、`endImage` 或
+`aspectPolicy`：
 
 ```yaml
 info:
-  name: H3 - Check job status
+  name: H3 - Text to video exploration
   type: http
+http:
+  method: POST
+  url: http://100.64.35.71:8090/v1/video-jobs/from-text
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "prompt": "A small lunar research station wakes before dawn. Slow camera drift, cinematic realism, subtle machinery and natural room tone.",
+        "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1",
+        "durationSeconds": 5
+      }
+auth:
+  type: bearer
+  token: "{{H3_GATEWAY_BEARER}}"
+```
 
+## 8. Bruno：查询、下载、取消
+
+把 `h3_替换为任务ID` 改成创建响应的 `id`：
+
+```yaml
+info:
+  name: H3 - Check job
+  type: http
 http:
   method: GET
   url: http://100.64.35.71:8090/v1/video-jobs/h3_替换为任务ID
-
 auth:
   type: bearer
   token: "{{H3_GATEWAY_BEARER}}"
 ```
 
+响应中的：
+
+- `requestedDurationSeconds` 是请求整数秒；`frameCount` 和 `actualDurationSeconds`
+  是实际原生网格结果。
+- `generationSubmittedAt` 是 ComfyUI 接受工作流后才写入的时间；
+  `generationCompletedAt` 是观察到 ComfyUI 完成时写入的时间。
+- `generationElapsedMs` 是这段后端等待时间，不含图片下载、比例处理和把 MP4
+  移入网关管理目录的时间；不是精确 GPU-only 推理时间。
+- 只有 `status: succeeded` 且 `outputReady: true` 才可下载。
+
 ```yaml
 info:
-  name: H3 - Download completed MP4
+  name: H3 - Download MP4
   type: http
-
 http:
   method: GET
   url: http://100.64.35.71:8090/v1/video-jobs/h3_替换为任务ID/output
-
 auth:
   type: bearer
   token: "{{H3_GATEWAY_BEARER}}"
 ```
 
-在 Bruno 的响应面板中将下载结果保存为 `.mp4`。取消请求仅适用于 `queued` 状态：
+完成 MP4 保留 72 小时；SQLite 任务记录与网关临时图片最多保留 30 天。
 
-```yaml
-info:
-  name: H3 - Cancel queued job
-  type: http
+## 9. 常见错误
 
-http:
-  method: POST
-  url: http://100.64.35.71:8090/v1/video-jobs/h3_替换为任务ID/cancel
-
-auth:
-  type: bearer
-  token: "{{H3_GATEWAY_BEARER}}"
-```
-
-完成 MP4 在网关中保留 72 小时；请下载并存入自己的长期位置。任务记录、提示词和
-网关托管关键帧最多保留 30 天，随后会清除。
-
-## 8. 常见错误
-
-| 错误码 | 常见原因 | 下一步 |
-| --- | --- | --- |
-| `request_body_invalid` | JSON header 与 multipart body 混用，或 JSON 格式无效 | URL 用 JSON；文件用 multipart，且不要手写错误的 Content-Type |
-| `input_aspect_mismatch` | `reject_mismatch` 收到不符合 profile 比例的图 | 预先按目标画布重做图，或在明确接受黑边/裁切时选其他策略 |
-| `source_url_invalid` / `source_url_fetch_failed` | URL 非 http(s)、无法下载或超时 | 使用可直接下载的内部或公开图片 URL |
-| `source_url_too_large` / `image_pixels_exceed_limit` | 超过 20 MiB 或 3,000 万像素 | 先压缩或缩小图片 |
-| `image_decode_invalid` / `unsupported_image_format` | 文件不是可解码的 JPEG、PNG 或 WebP | 转换或重新导出图片 |
-| `profile_not_supported` | profile ID 不存在 | 调用 `/health` 并从当前目录复制 ID |
-| `one_step_idempotency_not_supported` | 一步接口携带了 `idempotencyKey` | 改用两步流程 |
-| `gateway_output_expired` | 完成后的 MP4 已超过 72 小时 | 视频无法恢复；重新提交前确认是否确有必要 |
-
-这个 URL 获取功能是可信 Tailscale 内网的 MVP，当前没有面向公网的 SSRF/主机过滤。
-不要把网关暴露到不受信任网络；若有公网需求，必须先进行单独的安全设计。
+| 错误码 | 原因与处理 |
+| --- | --- |
+| `request_body_invalid` / `request_fields_invalid` | JSON 与 multipart 混用、字段拼写错误、或携带已退休的 `idempotencyKey` |
+| `image_file_required` | multipart I2V 缺少必填 `image` |
+| `input_aspect_mismatch` | `reject_mismatch` 收到错误比例；先准备正确画布，或明确选择裁切/黑边策略 |
+| `source_url_invalid` / `source_url_fetch_failed` | URL 不是可下载 http(s) 图片，或网络不可达 |
+| `image_decode_invalid` / `unsupported_image_format` | 图像不是可解码 JPEG、PNG、WebP |
+| `profile_not_supported` | 从 `/health` 复制当前 profile ID |
+| `gateway_output_expired` | MP4 已超过 72 小时，不能恢复；确认需要后重新提交 |

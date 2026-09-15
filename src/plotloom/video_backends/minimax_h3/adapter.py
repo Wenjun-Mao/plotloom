@@ -30,6 +30,8 @@ class H3Profile:
     duration_seconds: int = 5
     fps: int = 24
     frame_count: int = 124
+    min_duration_seconds: int = 5
+    max_duration_seconds: int = 15
     native_audio: bool = True
     lora_id: str = "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"
 
@@ -47,6 +49,8 @@ class H3Profile:
             "width": self.width,
             "height": self.height,
             "durationSeconds": self.duration_seconds,
+            "minDurationSeconds": self.min_duration_seconds,
+            "maxDurationSeconds": self.max_duration_seconds,
             "fps": self.fps,
             "frameCount": self.frame_count,
             "nativeAudio": self.native_audio,
@@ -90,14 +94,14 @@ H3_PROFILES = (
 )
 H3_PROFILES_BY_ID = {profile.profile_id: profile for profile in H3_PROFILES}
 DEFAULT_H3_PROFILE_ID = H3_PORTRAIT_FAST.profile_id
-H3_PROFILE_CONTRACT_VERSION = 3
+H3_PROFILE_CONTRACT_VERSION = 4
 
 
 class MiniMaxH3GatewayAdapter:
     """Compile and validate only profiles in the private H3 catalog."""
 
     adapter_id = "minimax_h3_gateway"
-    adapter_version = "3"
+    adapter_version = "4"
     _JOB_ID = re.compile(r"^h3_[0-9a-f]{32}$")
     # New Plotloom work must receive a fully composed reviewed keyframe.
     _ASPECT_POLICIES = frozenset({"cover_center_crop", "contain_pad", "reject_mismatch"})
@@ -184,11 +188,10 @@ class MiniMaxH3GatewayAdapter:
             "profiles": [profile.public_descriptor() for profile in H3_PROFILES],
         }
 
-    def compile(
+    def compile_image(
         self,
         *,
         prompt: str,
-        uploaded_asset: str,
         duration: int,
         resolution: str,
         audio: bool,
@@ -201,14 +204,12 @@ class MiniMaxH3GatewayAdapter:
             raise VideoProviderError("H3 frozen request does not match its profile")
         if aspect_policy not in self._ASPECT_POLICIES or seed is None:
             raise VideoProviderError("H3 frozen request is incomplete")
-        if not uploaded_asset.startswith("asset_"):
-            raise VideoProviderError("H3 upload response has no asset ID")
         return {
-            "assetId": uploaded_asset,
             "prompt": prompt,
             "profileId": profile.profile_id,
             "aspectPolicy": aspect_policy,
             "seed": seed,
+            "durationSeconds": profile.duration_seconds,
         }
 
     @classmethod

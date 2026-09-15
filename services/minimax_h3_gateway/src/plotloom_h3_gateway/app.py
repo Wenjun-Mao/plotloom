@@ -5,12 +5,13 @@ Runtime responsibilities live in focused modules: HTTP presentation in
 transport in ``comfy``, and filesystem lifecycle in ``media``.
 """
 from .api import create_app
-from .contracts import CreateJobRequest, GatewayError, GatewaySettings
+from .contracts import CreateImageJobRequest, CreateTextJobRequest, GatewayError, GatewaySettings
 from .gateway import H3Gateway
 from .store import GatewayStore
 
 __all__ = [
-    "CreateJobRequest",
+    "CreateImageJobRequest",
+    "CreateTextJobRequest",
     "GatewayError",
     "GatewaySettings",
     "GatewayStore",

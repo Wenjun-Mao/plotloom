@@ -22,30 +22,30 @@ class OfflineH3GatewayFake:
     def preflight(self) -> None:
         return None
 
-    def upload(self, image: bytes, *, mime_type: str) -> str:
-        assert image and mime_type.startswith("image/")
-        return "asset_0123456789abcdef0123456789abcdef"
+    def submit_image(self, image: bytes, *, mime_type: str, payload: dict[str, object]) -> dict[str, object]:
+        """Mirror the direct multipart image boundary used by Plotloom."""
 
-    def submit(
-        self, payload: dict[str, object], *, idempotency_key: str | None = None
-    ) -> dict[str, object]:
-        assert payload["assetId"] == "asset_0123456789abcdef0123456789abcdef"
+        assert image and mime_type.startswith("image/")
         assert isinstance(payload["profileId"], str) and payload["profileId"] in H3_PROFILES_BY_ID
         assert payload["aspectPolicy"] in {"cover_center_crop", "contain_pad", "reject_mismatch"}
         assert isinstance(payload["seed"], int)
-        assert isinstance(idempotency_key, str) and idempotency_key
+        assert payload["durationSeconds"] == 5
         self.profile_id = payload["profileId"]
-        return {
-            "id": "h3_0123456789abcdef0123456789abcdef", "status": "submitted",
-            "profileId": self.profile_id, "aspectPolicy": payload["aspectPolicy"],
-            "error": None, "outputReady": False,
-        }
+        return self._job("submitted", output_ready=False, aspect_policy=payload["aspectPolicy"])
 
     def poll(self, job_id: str) -> dict[str, object]:
         assert job_id == "h3_0123456789abcdef0123456789abcdef"
+        return self._job("succeeded", output_ready=True, aspect_policy="cover_center_crop")
+
+    def _job(self, status: str, *, output_ready: bool, aspect_policy: object) -> dict[str, object]:
         return {
-            "id": job_id, "status": "succeeded", "profileId": self.profile_id,
-            "aspectPolicy": "cover_center_crop", "error": None, "outputReady": True,
+            "id": "h3_0123456789abcdef0123456789abcdef", "status": status,
+            "inputMode": "image", "profileId": self.profile_id,
+            "aspectPolicy": aspect_policy, "seed": 1,
+            "requestedDurationSeconds": 5, "frameCount": 124,
+            "actualDurationSeconds": 124 / 24,
+            "generationSubmittedAt": None, "generationCompletedAt": None,
+            "generationElapsedMs": None, "error": None, "outputReady": output_ready,
         }
 
     def download(self, job_id: str) -> bytes:

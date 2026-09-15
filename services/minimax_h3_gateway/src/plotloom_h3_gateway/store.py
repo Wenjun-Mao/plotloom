@@ -14,60 +14,71 @@ from .contracts import (
 
 
 class GatewayStore:
-    """Small durable control plane; no raw ComfyUI payloads or secrets."""
+    """Small durable control plane; no raw Comfy payloads or secrets.
+
+    Image inputs are ordinary assets with immutable start/end bindings, rather
+    than a special asset type embedded in each job record.
+    """
 
     def __init__(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         self._path = path
         with self._connect() as connection:
-            connection.executescript(
-                """
-                CREATE TABLE IF NOT EXISTS assets (
-                  id TEXT PRIMARY KEY, mime_type TEXT NOT NULL, width INTEGER NOT NULL,
-                  height INTEGER NOT NULL, sha256 TEXT NOT NULL, path TEXT NOT NULL,
-                  purge_pending INTEGER NOT NULL DEFAULT 0,
-                  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                );
-                CREATE TABLE IF NOT EXISTS jobs (
-                  id TEXT PRIMARY KEY, asset_id TEXT NOT NULL REFERENCES assets(id),
-                  profile_id TEXT NOT NULL, aspect_policy TEXT NOT NULL, prompt TEXT NOT NULL,
-                  seed INTEGER NOT NULL, prepared_input_name TEXT NOT NULL, status TEXT NOT NULL,
-                  idempotency_key TEXT, request_hash TEXT,
-                  comfy_prompt_id TEXT, output_filename TEXT, output_subfolder TEXT,
-                  output_type TEXT, managed_output_name TEXT, output_sha256 TEXT,
-                  output_size_bytes INTEGER, output_expires_at TEXT,
-                  error_code TEXT,
-                  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-                );
-                """
-            )
+            connection.executescript(_CURRENT_SCHEMA)
             self._migrate(connection)
 
     @staticmethod
     def _migrate(connection: sqlite3.Connection) -> None:
-        """Apply additive gateway-local schema changes without rewriting jobs."""
+        """Upgrade old one-asset rows into start-frame bindings.
+
+        This retains existing job IDs, status, outputs, and retention fields.
+        Only retired creation routes lose compatibility.
+        """
 
         columns = {str(row["name"]) for row in connection.execute("PRAGMA table_info(jobs)")}
         asset_columns = {str(row["name"]) for row in connection.execute("PRAGMA table_info(assets)")}
         if "purge_pending" not in asset_columns:
             connection.execute("ALTER TABLE assets ADD COLUMN purge_pending INTEGER NOT NULL DEFAULT 0")
-        if "idempotency_key" not in columns:
-            connection.execute("ALTER TABLE jobs ADD COLUMN idempotency_key TEXT")
-        if "request_hash" not in columns:
-            connection.execute("ALTER TABLE jobs ADD COLUMN request_hash TEXT")
-        if "managed_output_name" not in columns:
-            connection.execute("ALTER TABLE jobs ADD COLUMN managed_output_name TEXT")
-        if "output_sha256" not in columns:
-            connection.execute("ALTER TABLE jobs ADD COLUMN output_sha256 TEXT")
-        if "output_size_bytes" not in columns:
-            connection.execute("ALTER TABLE jobs ADD COLUMN output_size_bytes INTEGER")
-        if "output_expires_at" not in columns:
-            connection.execute("ALTER TABLE jobs ADD COLUMN output_expires_at TEXT")
+        if "input_mode" in columns:
+            connection.execute("DROP INDEX IF EXISTS jobs_idempotency_key_unique")
+            return
+        # Old deployments can predate some output columns. Complete that legacy
+        # projection before rebuilding the local jobs table.
+        for name, definition in (
+            ("managed_output_name", "TEXT"), ("output_sha256", "TEXT"),
+            ("output_size_bytes", "INTEGER"), ("output_expires_at", "TEXT"),
+            ("error_code", "TEXT"), ("comfy_prompt_id", "TEXT"),
+            ("output_filename", "TEXT"), ("output_subfolder", "TEXT"),
+            ("output_type", "TEXT"), ("updated_at", "TEXT"),
+        ):
+            if name not in columns:
+                connection.execute(f"ALTER TABLE jobs ADD COLUMN {name} {definition}")
+        # ``_CURRENT_SCHEMA`` may have created this empty child table before
+        # discovering an old jobs layout. No modern binding can exist until
+        # the rebuild below, so it is safe to recreate it with the new parent.
+        connection.execute("DROP TABLE IF EXISTS job_frame_bindings")
+        connection.execute("ALTER TABLE jobs RENAME TO jobs_legacy")
+        connection.executescript(_JOBS_SCHEMA)
         connection.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS jobs_idempotency_key_unique "
-            "ON jobs(idempotency_key) WHERE idempotency_key IS NOT NULL"
+            """INSERT INTO jobs (
+                 id, input_mode, profile_id, aspect_policy, prompt, seed,
+                 requested_duration_seconds, frame_count, fps, status,
+                 comfy_prompt_id, output_filename, output_subfolder, output_type,
+                 managed_output_name, output_sha256, output_size_bytes,
+                 output_expires_at, error_code, created_at, updated_at
+               ) SELECT id, 'image', profile_id, aspect_policy, prompt, seed,
+                        5, 124, 24, status,
+                        comfy_prompt_id, output_filename, output_subfolder, output_type,
+                        managed_output_name, output_sha256, output_size_bytes,
+                        output_expires_at, error_code, created_at,
+                        COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
+                 FROM jobs_legacy"""
         )
+        connection.execute(
+            """INSERT INTO job_frame_bindings (job_id, role, asset_id, prepared_input_name)
+               SELECT id, 'start', asset_id, prepared_input_name FROM jobs_legacy"""
+        )
+        connection.execute("DROP TABLE jobs_legacy")
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._path)
@@ -75,9 +86,7 @@ class GatewayStore:
         connection.execute("PRAGMA foreign_keys = ON")
         return connection
 
-    def put_asset(
-        self, *, asset_id: str, mime_type: str, width: int, height: int, digest: str, path: Path
-    ) -> dict[str, Any]:
+    def put_asset(self, *, asset_id: str, mime_type: str, width: int, height: int, digest: str, path: Path) -> dict[str, Any]:
         with self._connect() as connection:
             connection.execute(
                 "INSERT INTO assets (id, mime_type, width, height, sha256, path) VALUES (?, ?, ?, ?, ?, ?)",
@@ -87,75 +96,60 @@ class GatewayStore:
 
     def get_asset(self, asset_id: str) -> dict[str, Any]:
         with self._connect() as connection:
-            row = connection.execute(
-                "SELECT * FROM assets WHERE id = ? AND purge_pending = 0", (asset_id,)
-            ).fetchone()
+            row = connection.execute("SELECT * FROM assets WHERE id = ? AND purge_pending = 0", (asset_id,)).fetchone()
         if row is None:
             raise GatewayError("asset_not_found", 404)
         return dict(row)
 
     def queue_counts(self) -> tuple[int, int]:
-        """Return queued and active work without exposing prompts or assets."""
-
         with self._connect() as connection:
             queued = int(connection.execute("SELECT COUNT(*) FROM jobs WHERE status = 'queued'").fetchone()[0])
-            active = int(connection.execute(
-                "SELECT COUNT(*) FROM jobs WHERE status IN "
-                "('submitting', 'submitted', 'running', 'transfer_pending')"
-            ).fetchone()[0])
+            active = int(connection.execute("SELECT COUNT(*) FROM jobs WHERE status IN ('submitting', 'submitted', 'running', 'transfer_pending')").fetchone()[0])
         return queued, active
 
-    def reserve_job(self, values: dict[str, Any]) -> tuple[dict[str, Any], bool]:
-        """Persist a no-provider-call reservation or return an idempotent job."""
+    def reserve_job(self, values: dict[str, Any], frames: list[dict[str, str]]) -> dict[str, Any]:
+        """Atomically admit a direct-generation job and its frame bindings."""
 
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            key = values.get("idempotency_key")
-            if isinstance(key, str):
-                row = connection.execute(
-                    "SELECT * FROM jobs WHERE idempotency_key = ?", (key,)
-                ).fetchone()
-                if row is not None:
-                    existing = dict(row)
-                    if existing.get("request_hash") != values.get("request_hash"):
-                        connection.rollback()
-                        raise GatewayError("idempotency_conflict", 409)
-                    connection.commit()
-                    return existing, False
-            asset = connection.execute(
-                "SELECT id FROM assets WHERE id = ? AND purge_pending = 0", (values["asset_id"],)
-            ).fetchone()
-            if asset is None:
-                connection.rollback()
-                raise GatewayError("asset_not_found", 404)
+            for frame in frames:
+                asset = connection.execute("SELECT id FROM assets WHERE id = ? AND purge_pending = 0", (frame["asset_id"],)).fetchone()
+                if asset is None:
+                    connection.rollback()
+                    raise GatewayError("asset_not_found", 404)
             connection.execute(
-                """INSERT INTO jobs
-                (id, asset_id, profile_id, aspect_policy, prompt, seed, prepared_input_name,
-                 status, idempotency_key, request_hash)
-                VALUES (:id, :asset_id, :profile_id, :aspect_policy, :prompt, :seed,
-                        :prepared_input_name, 'reserved', :idempotency_key, :request_hash)""",
-                values,
+                """INSERT INTO jobs (id, input_mode, profile_id, aspect_policy, prompt, seed,
+                   requested_duration_seconds, frame_count, fps, status)
+                   VALUES (:id, :input_mode, :profile_id, :aspect_policy, :prompt, :seed,
+                   :requested_duration_seconds, :frame_count, :fps, 'queued')""", values,
+            )
+            connection.executemany(
+                "INSERT INTO job_frame_bindings (job_id, role, asset_id, prepared_input_name) VALUES (:job_id, :role, :asset_id, :prepared_input_name)",
+                [{**frame, "job_id": values["id"]} for frame in frames],
             )
             connection.commit()
-        return self.get_job(values["id"]), True
+        return self.get_job(values["id"])
+
+    def get_job_frames(self, job_id: str) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT bindings.role, bindings.asset_id, bindings.prepared_input_name,
+                   assets.mime_type, assets.width, assets.height, assets.sha256, assets.path
+                   FROM job_frame_bindings bindings JOIN assets ON assets.id = bindings.asset_id
+                   WHERE bindings.job_id = ?
+                   ORDER BY CASE bindings.role WHEN 'start' THEN 0 ELSE 1 END""", (job_id,),
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def claim_next_queued(self) -> dict[str, Any] | None:
-        """Claim one FIFO job before the only possible outbound ComfyUI POST."""
-
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            row = connection.execute(
-                "SELECT * FROM jobs WHERE status = 'queued' ORDER BY rowid ASC LIMIT 1"
-            ).fetchone()
+            row = connection.execute("SELECT * FROM jobs WHERE status = 'queued' ORDER BY rowid ASC LIMIT 1").fetchone()
             if row is None:
                 connection.commit()
                 return None
             job_id = str(row["id"])
-            updated = connection.execute(
-                "UPDATE jobs SET status = 'submitting', updated_at = CURRENT_TIMESTAMP "
-                "WHERE id = ? AND status = 'queued'",
-                (job_id,),
-            )
+            updated = connection.execute("UPDATE jobs SET status = 'submitting', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'queued'", (job_id,))
             if updated.rowcount != 1:
                 connection.rollback()
                 return None
@@ -163,31 +157,19 @@ class GatewayStore:
         return self.get_job(job_id)
 
     def recover_interrupted_dispatches(self) -> None:
-        """Never replay a job that may have crossed an outbound-call boundary."""
-
         with self._connect() as connection:
             connection.execute(
-                "UPDATE jobs SET status = 'outcome_unknown', "
-                "error_code = COALESCE(error_code, 'gateway_restart_before_known_submission'), "
-                "updated_at = CURRENT_TIMESTAMP "
-                "WHERE status IN ('reserved', 'submitting')"
+                "UPDATE jobs SET status = 'outcome_unknown', error_code = COALESCE(error_code, 'gateway_restart_before_known_submission'), updated_at = CURRENT_TIMESTAMP WHERE status IN ('reserved', 'submitting')"
             )
 
     def list_active_jobs(self) -> list[dict[str, Any]]:
         with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM jobs WHERE status IN "
-                "('submitted', 'running', 'transfer_pending') ORDER BY rowid ASC"
-            ).fetchall()
+            rows = connection.execute("SELECT * FROM jobs WHERE status IN ('submitted', 'running', 'transfer_pending') ORDER BY rowid ASC").fetchall()
         return [dict(row) for row in rows]
 
     def cancel_queued_job(self, job_id: str) -> dict[str, Any]:
         with self._connect() as connection:
-            updated = connection.execute(
-                "UPDATE jobs SET status = 'cancelled', error_code = 'cancelled_while_queued', "
-                "updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'queued'",
-                (job_id,),
-            )
+            updated = connection.execute("UPDATE jobs SET status = 'cancelled', error_code = 'cancelled_while_queued', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'queued'", (job_id,))
             if updated.rowcount != 1:
                 row = connection.execute("SELECT status FROM jobs WHERE id = ?", (job_id,)).fetchone()
                 if row is None:
@@ -195,121 +177,67 @@ class GatewayStore:
                 raise GatewayError("job_not_cancellable", 409)
         return self.get_job(job_id)
 
-    def mark_managed_output(
-        self, job_id: str, *, output_name: str, digest: str, size_bytes: int
-    ) -> dict[str, Any]:
-        """Publish only a gateway-owned output after source removal succeeds."""
-
+    def mark_managed_output(self, job_id: str, *, output_name: str, digest: str, size_bytes: int) -> dict[str, Any]:
         with self._connect() as connection:
             connection.execute(
-                "UPDATE jobs SET status = 'succeeded', managed_output_name = ?, "
-                "output_sha256 = ?, output_size_bytes = ?, "
-                "output_expires_at = datetime('now', ?), error_code = NULL, "
-                "updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+                "UPDATE jobs SET status = 'succeeded', managed_output_name = ?, output_sha256 = ?, output_size_bytes = ?, output_expires_at = datetime('now', ?), error_code = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
                 (output_name, digest, size_bytes, f"+{MANAGED_OUTPUT_RETENTION_HOURS} hours", job_id),
             )
         return self.get_job(job_id)
 
     def list_expired_managed_outputs(self) -> list[dict[str, Any]]:
         with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM jobs WHERE status = 'succeeded' "
-                "AND output_expires_at IS NOT NULL "
-                "AND output_expires_at <= CURRENT_TIMESTAMP ORDER BY rowid ASC"
-            ).fetchall()
+            rows = connection.execute("SELECT * FROM jobs WHERE status = 'succeeded' AND output_expires_at IS NOT NULL AND output_expires_at <= CURRENT_TIMESTAMP ORDER BY rowid ASC").fetchall()
         return [dict(row) for row in rows]
 
     def output_is_retained(self, job_id: str) -> bool:
-        """Whether a succeeded job remains within its three-day MP4 window."""
-
         with self._connect() as connection:
-            row = connection.execute(
-                "SELECT 1 FROM jobs WHERE id = ? AND status = 'succeeded' "
-                "AND output_expires_at IS NOT NULL AND output_expires_at > CURRENT_TIMESTAMP",
-                (job_id,),
-            ).fetchone()
+            row = connection.execute("SELECT 1 FROM jobs WHERE id = ? AND status = 'succeeded' AND output_expires_at IS NOT NULL AND output_expires_at > CURRENT_TIMESTAMP", (job_id,)).fetchone()
         return row is not None
 
     def list_purgeable_completed_job_records(self) -> list[dict[str, Any]]:
-        """Return completed rows whose total handoff-to-deletion window elapsed."""
-
         audit_hours = GATEWAY_JOB_RECORD_RETENTION_DAYS * 24 - MANAGED_OUTPUT_RETENTION_HOURS
         with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM jobs WHERE status = 'succeeded' "
-                "AND output_expires_at IS NOT NULL "
-                "AND output_expires_at <= datetime('now', ?) ORDER BY rowid ASC",
-                (f"-{audit_hours} hours",),
-            ).fetchall()
+            rows = connection.execute("SELECT * FROM jobs WHERE status = 'succeeded' AND output_expires_at IS NOT NULL AND output_expires_at <= datetime('now', ?) ORDER BY rowid ASC", (f"-{audit_hours} hours",)).fetchall()
         return [dict(row) for row in rows]
 
     def purge_completed_job_record(self, job_id: str) -> bool:
-        """Delete one job row after its total handoff-to-deletion window."""
-
         audit_hours = GATEWAY_JOB_RECORD_RETENTION_DAYS * 24 - MANAGED_OUTPUT_RETENTION_HOURS
         with self._connect() as connection:
-            deleted = connection.execute(
-                "DELETE FROM jobs WHERE id = ? AND status = 'succeeded' "
-                "AND output_expires_at IS NOT NULL "
-                "AND output_expires_at <= datetime('now', ?)",
-                (job_id, f"-{audit_hours} hours"),
-            )
+            deleted = connection.execute("DELETE FROM jobs WHERE id = ? AND status = 'succeeded' AND output_expires_at IS NOT NULL AND output_expires_at <= datetime('now', ?)", (job_id, f"-{audit_hours} hours"))
         return deleted.rowcount == 1
 
     def claim_asset_after_last_output_expiry(self, asset_id: str) -> bool:
-        """Make a keyframe unavailable after all linked videos have expired."""
-
         with self._connect() as connection:
             claimed = connection.execute(
-                "UPDATE assets SET purge_pending = 1 WHERE id = ? "
-                "AND purge_pending = 0 AND NOT EXISTS "
-                "(SELECT 1 FROM jobs WHERE asset_id = ? AND ("
-                "status != 'succeeded' OR output_expires_at IS NULL "
-                "OR output_expires_at > CURRENT_TIMESTAMP))",
-                (asset_id, asset_id),
+                """UPDATE assets SET purge_pending = 1 WHERE id = ? AND purge_pending = 0
+                   AND NOT EXISTS (
+                     SELECT 1 FROM job_frame_bindings bindings JOIN jobs ON jobs.id = bindings.job_id
+                     WHERE bindings.asset_id = ? AND (jobs.status != 'succeeded' OR jobs.output_expires_at IS NULL OR jobs.output_expires_at > CURRENT_TIMESTAMP)
+                   )""", (asset_id, asset_id),
             )
         return claimed.rowcount == 1
 
     def claim_due_gateway_assets(self) -> int:
-        """Atomically claim every gateway keyframe past its retention window."""
-
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            claimed = connection.execute(
-                "UPDATE assets SET purge_pending = 1 WHERE purge_pending = 0 "
-                "AND created_at <= datetime('now', ?)",
-                (f"-{GATEWAY_KEYFRAME_RETENTION_DAYS} days",),
-            )
+            claimed = connection.execute("UPDATE assets SET purge_pending = 1 WHERE purge_pending = 0 AND created_at <= datetime('now', ?)", (f"-{GATEWAY_KEYFRAME_RETENTION_DAYS} days",))
             connection.commit()
         return claimed.rowcount
 
     def list_pending_asset_purges(self) -> list[dict[str, Any]]:
         with self._connect() as connection:
-            rows = connection.execute(
-                "SELECT * FROM assets WHERE purge_pending = 1 ORDER BY rowid ASC"
-            ).fetchall()
+            rows = connection.execute("SELECT * FROM assets WHERE purge_pending = 1 ORDER BY rowid ASC").fetchall()
         return [dict(row) for row in rows]
 
     def delete_pending_unreferenced_asset(self, asset_id: str) -> bool:
-        """Remove metadata only after its last job reference is gone."""
-
         with self._connect() as connection:
-            deleted = connection.execute(
-                "DELETE FROM assets WHERE id = ? AND purge_pending = 1 "
-                "AND NOT EXISTS (SELECT 1 FROM jobs WHERE asset_id = ?)",
-                (asset_id, asset_id),
-            )
+            deleted = connection.execute("DELETE FROM assets WHERE id = ? AND purge_pending = 1 AND NOT EXISTS (SELECT 1 FROM job_frame_bindings WHERE asset_id = ?)", (asset_id, asset_id))
         return deleted.rowcount == 1
 
     def delete_unreferenced_asset(self, asset_id: str) -> bool:
-        """Remove a newly created one-step asset that never gained a job reference."""
-
         with self._connect() as connection:
-            deleted = connection.execute(
-                "DELETE FROM assets WHERE id = ? AND NOT EXISTS "
-                "(SELECT 1 FROM jobs WHERE asset_id = ?)",
-                (asset_id, asset_id),
-            )
+            deleted = connection.execute("DELETE FROM assets WHERE id = ? AND NOT EXISTS (SELECT 1 FROM job_frame_bindings WHERE asset_id = ?)", (asset_id, asset_id))
         return deleted.rowcount == 1
 
     def get_job(self, job_id: str) -> dict[str, Any]:
@@ -329,3 +257,52 @@ class GatewayStore:
         with self._connect() as connection:
             connection.execute(f"UPDATE jobs SET {', '.join(assignments)} WHERE id = ?", params)
         return self.get_job(job_id)
+
+
+_CURRENT_SCHEMA = """
+CREATE TABLE IF NOT EXISTS assets (
+  id TEXT PRIMARY KEY, mime_type TEXT NOT NULL, width INTEGER NOT NULL,
+  height INTEGER NOT NULL, sha256 TEXT NOT NULL, path TEXT NOT NULL,
+  purge_pending INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS jobs (
+  id TEXT PRIMARY KEY, input_mode TEXT NOT NULL CHECK(input_mode IN ('image', 'text')),
+  profile_id TEXT NOT NULL, aspect_policy TEXT, prompt TEXT NOT NULL, seed INTEGER NOT NULL,
+  requested_duration_seconds INTEGER NOT NULL, frame_count INTEGER NOT NULL, fps INTEGER NOT NULL,
+  status TEXT NOT NULL, comfy_prompt_id TEXT, generation_submitted_at_ms INTEGER,
+  generation_completed_at_ms INTEGER, output_filename TEXT, output_subfolder TEXT,
+  output_type TEXT, managed_output_name TEXT, output_sha256 TEXT, output_size_bytes INTEGER,
+  output_expires_at TEXT, error_code TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS job_frame_bindings (
+  job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK(role IN ('start', 'end')),
+  asset_id TEXT NOT NULL REFERENCES assets(id), prepared_input_name TEXT NOT NULL,
+  PRIMARY KEY(job_id, role)
+);
+CREATE INDEX IF NOT EXISTS job_frame_bindings_asset_idx ON job_frame_bindings(asset_id);
+"""
+
+_JOBS_SCHEMA = """
+CREATE TABLE jobs (
+  id TEXT PRIMARY KEY, input_mode TEXT NOT NULL CHECK(input_mode IN ('image', 'text')),
+  profile_id TEXT NOT NULL, aspect_policy TEXT, prompt TEXT NOT NULL, seed INTEGER NOT NULL,
+  requested_duration_seconds INTEGER NOT NULL, frame_count INTEGER NOT NULL, fps INTEGER NOT NULL,
+  status TEXT NOT NULL, comfy_prompt_id TEXT, generation_submitted_at_ms INTEGER,
+  generation_completed_at_ms INTEGER, output_filename TEXT, output_subfolder TEXT,
+  output_type TEXT, managed_output_name TEXT, output_sha256 TEXT, output_size_bytes INTEGER,
+  output_expires_at TEXT, error_code TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE job_frame_bindings (
+  job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK(role IN ('start', 'end')),
+  asset_id TEXT NOT NULL REFERENCES assets(id), prepared_input_name TEXT NOT NULL,
+  PRIMARY KEY(job_id, role)
+);
+CREATE INDEX IF NOT EXISTS job_frame_bindings_asset_idx ON job_frame_bindings(asset_id);
+"""

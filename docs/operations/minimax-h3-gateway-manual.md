@@ -24,17 +24,19 @@ dimensions or ComfyUI graphs:
 | Standard | 960×544 | 608×1088 |
 | High resolution | 1280×704 | 704×1280 |
 
-Every catalog entry uses MiniMax-H3 FL2VA FP8, the official 4-step 768p
-Turbo LoRA, one approved PNG/JPEG/WebP keyframe, and 124 frames at 24 fps
-(about 5.167 seconds) with H.264/AAC output. Portrait 576×1024 is Plotloom's
-new-job default. “High resolution” means more pixels only; it is not a
-creative-quality or production-ready claim.
+Every catalog entry uses MiniMax-H3 FL2VA FP8 and the official 4-step 768p
+Turbo LoRA. The gateway can render zero, one, or two H3 frame sockets: text
+exploration, start-frame I2V, or start/end-frame I2V. It accepts requested
+whole-second durations 5–15 and snaps them to the node's 24 fps `17k + 5`
+frame grid (5 seconds is 124 frames, about 5.167 seconds). Output is H.264/AAC.
+Portrait 576×1024 is Plotloom's new-job default. “High resolution” means more
+pixels only; it is not a creative-quality or production-ready claim.
 
 It is **not** a general ComfyUI proxy. Neither Plotloom nor a browser can send
 arbitrary graph JSON, custom node names, model paths, seed overrides outside a
 frozen job, dimensions, duration, or a provider endpoint. The gateway accepts
-only a reference asset, an approved prompt, one catalog profile ID, and an
-explicit input-aspect policy.
+only a frozen prompt, one catalog profile ID, permitted duration/seed choices,
+and—where I2V is used—an explicit input-aspect policy.
 
 The gateway can create a video with an AAC track. It does not mean dialogue,
 lip sync, performance, voice continuity, character continuity, or a creative
@@ -78,8 +80,9 @@ The implementation and decision records are:
   [ADR 0035](../adr/0035-backend-owned-video-modules.md) records the module
   and service-package ownership boundary, while [ADR 0038](../adr/0038-h3-gateway-durable-fifo-dispatch.md)
   records the gateway-owned FIFO worker. [ADR 0049](../adr/0049-h3-catalog-clean-cutover.md)
-  supersedes the retained-profile portion of ADR 0036 with the current V3
-  clean-cutover contract.
+  supersedes the retained-profile portion of ADR 0036 with the V3 profile
+  clean cutover. [ADR 0050](../adr/0050-unified-h3-generation-contract.md)
+  records the V4 direct-generation contract.
 
 ## 3. Before deployment
 
@@ -179,7 +182,7 @@ An expected health response is structurally equivalent to:
 ```json
 {
   "status": "ok",
-  "profileContractVersion": 3,
+  "profileContractVersion": 4,
   "profiles": [{"id": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "width": 576, "height": 1024}],
   "queuedJobs": 0,
   "activeDispatches": 0,
@@ -213,7 +216,7 @@ PLOTLOOM_ENABLE_WAN_P2=false
 PLOTLOOM_ENABLE_H3_GATEWAY=true
 VIDEO_PROVIDER=minimax_h3_gateway
 VIDEO_BASE_URL=http://100.x.y.z:8090
-VIDEO_MODEL=minimax_h3_gateway_catalog_v3
+VIDEO_MODEL=minimax_h3_gateway_catalog_v4
 VIDEO_AUTH_MODE=bearer
 VIDEO_MODEL_API_KEY=the-same-value-as-H3_API_KEY
 ```
@@ -247,9 +250,11 @@ The production sequence is intentional and one-way:
    also offers reviewed crop and ImageGen adaptation preparation before this
    point. The snapshot freezes the keyframe, character references, approval,
    adapter/version, profile, prompt, seed, and input policy.
-3. Plotloom checks the gateway contract, uploads the frozen keyframe, and
-   creates one durable gateway job. The gateway accepts it into its local FIFO
-   queue without waiting for H3. Its one worker is the only component that
+3. Plotloom checks the gateway contract and sends the frozen keyframe directly
+   as one multipart `from-image` request. The gateway owns transient frame
+   admission itself; no gateway asset ID or idempotency key crosses this
+   boundary. The gateway accepts it into its local FIFO queue without waiting
+   for H3. Its one worker is the only component that
    may later submit to ComfyUI, and it never retries a submission whose
    outcome might be unknown.
 4. Plotloom polls only the known gateway job ID. The gateway copies, verifies,
@@ -287,16 +292,21 @@ The following is a private service contract; it is not a browser API.
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `GET /health` | no bearer header | Checks ComfyUI and the reviewed catalog; returns status, contract version, safe profile descriptors, queued count and fixed concurrency |
-| `POST /v1/assets` | bearer | Stores one PNG/JPEG/WebP from a multipart upload or `{"sourceUrl": "http(s)://…"}` JSON body; maximum 20 MiB and 30 megapixels |
-| `POST /v1/video-jobs` | bearer | Prepares and durably queues one job from `assetId`, prompt, `profileId`, `aspectPolicy`, optional seed and optional `idempotencyKey` |
-| `POST /v1/video-jobs/from-image` | bearer | Stores a multipart image or a JSON `sourceUrl`, then queues one job; returns the ordinary job envelope and intentionally rejects `idempotencyKey` |
+| `GET /health` | no bearer header | Checks ComfyUI and catalog; returns status, direct input modes, safe profile descriptors, queue count and fixed concurrency |
+| `POST /v1/video-jobs/from-image` | bearer | Required start image plus optional end image: multipart `image`/`endImage`, or JSON `sourceUrl`/`endSourceUrl`; queues one I2V job |
+| `POST /v1/video-jobs/from-text` | bearer | JSON text exploration only; no Plotloom authoring path and no image/aspect fields |
 | `GET /v1/video-jobs/{id}` | bearer | Refreshes a known job |
 | `POST /v1/video-jobs/{id}/cancel` | bearer | Cancels only a job that is still `queued` |
 | `GET /v1/video-jobs/{id}/output` | bearer | Streams the known gateway-managed completed MP4 |
 
-Job response fields are deliberately closed: `id`, `status`, `profileId`,
-`aspectPolicy`, `error`, and `outputReady`. Valid states are `reserved`,
+`POST /v1/assets` and `POST /v1/video-jobs` are retired and return 404.
+Job response fields are deliberately closed: `id`, `status`, `inputMode`,
+`profileId`, `aspectPolicy`, resolved `seed`, `requestedDurationSeconds`,
+`frameCount`, `actualDurationSeconds`, `generationSubmittedAt`,
+`generationCompletedAt`, `generationElapsedMs`, `error`, and `outputReady`.
+`generationElapsedMs` starts after ComfyUI accepts the workflow and ends when
+completion is observed; it excludes image preparation and managed-file handoff.
+Valid states are `reserved` (legacy only),
 `queued`, `submitting`, `submitted`, `running`, `transfer_pending`,
 `succeeded`, `failed`, `cancelled`, and `outcome_unknown`. A retained job can
 remain `succeeded` with `outputReady: false` after its MP4 expires.
@@ -327,8 +337,9 @@ resumes the frozen transfer without generating another video.
 
 New gateway-owned files begin with a human-readable UTC allocation timestamp,
 then retain their immutable API ID: `YYYY-MM-DDTHH-MM-SSZ_asset_<uuid>.<ext>`
-for uploaded keyframes, `YYYY-MM-DDTHH-MM-SSZ_h3_<uuid>.png` for prepared
-ComfyUI inputs, and `YYYY-MM-DDTHH-MM-SSZ_h3_<uuid>.mp4` for completed clips.
+for admitted frames, `YYYY-MM-DDTHH-MM-SSZ_h3_<uuid>_start.png` or `_end.png`
+for prepared ComfyUI inputs, and `YYYY-MM-DDTHH-MM-SSZ_h3_<uuid>.mp4` for
+completed clips.
 The timestamp tells an operator when the gateway created its copy; use the
 embedded `asset_…` or `h3_…` ID for API requests and forensic correlation.
 Deploy this as a clean gateway-state cutover: reset prior gateway SQLite and
@@ -366,7 +377,7 @@ case.”
 | `/health` returns `comfy_profile_unavailable` | node or exact model/LoRA/VAE name is missing from ComfyUI | fix ComfyUI's installed profile/model mapping under `/home/wjmao/models`; do not edit a running gateway workflow to bypass the check |
 | `401 unauthorized` | bearer mismatch between caller and gateway | rotate/align `H3_API_KEY` and Plotloom's `VIDEO_MODEL_API_KEY`, then restart both services as needed |
 | `job_not_cancellable` | job may already have crossed into ComfyUI | retain and poll the known job; only `queued` work can be cancelled safely |
-| `idempotency_conflict` | a caller reused a key for changed request data | use the original matching request/key or a new key; do not retry by altering a frozen job |
+| `request_fields_invalid` | URL/file channels were mixed, a field repeated, or retired `idempotencyKey` was sent | use exactly one direct input channel and the documented fields only; do not blindly retry a timeout |
 | `input_aspect_mismatch` | `reject_mismatch` received a keyframe whose ratio differs from the selected profile | choose a different explicit policy or supply a matching keyframe |
 | `outcome_unknown` | request/response path failed after the durable record was created | inspect the known gateway job and ComfyUI history; never automatically replay |
 | `comfy_output_missing` | ComfyUI did not save the one expected MP4 before gateway handoff | inspect the known job and ComfyUI history; preserve evidence, do not claim a candidate was ingested |
@@ -439,7 +450,7 @@ can establish whether this H3 baseline is useful for sequential storytelling.
 
 Before an operator declares the H3 path usable after a restart or handoff:
 
-- [ ] ComfyUI is loopback-only and `/health` reports contract version 2 and the full reviewed catalog.
+- [ ] ComfyUI is loopback-only and `/health` reports contract version 4 and the full reviewed catalog.
 - [ ] H3 model artefacts remain under `/home/wjmao/models` and are visible to
       ComfyUI under the exact required names.
 - [ ] Gateway is bound to Spark's Tailnet address, not `0.0.0.0`.

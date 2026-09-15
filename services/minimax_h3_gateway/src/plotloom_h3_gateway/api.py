@@ -1,9 +1,11 @@
-"""FastAPI presentation layer for the narrow trusted H3 gateway contract."""
+"""FastAPI presentation layer for the trusted direct H3 gateway contract."""
 from __future__ import annotations
 
 import hmac
 import json
+import time
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
 from typing import Any
 
 import requests
@@ -12,31 +14,21 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ValidationError
 
 from .contracts import (
-    CreateJobFromImageRequest,
-    CreateJobFromSourceUrlRequest,
-    CreateJobRequest,
+    CreateImageJobFromSourceUrlRequest,
+    CreateImageJobRequest,
+    CreateTextJobRequest,
     GatewayError,
     GatewaySettings,
     MAX_UPLOAD_BYTES,
-    SourceUrlAssetRequest,
 )
 from .gateway import H3Gateway
 from .worker import GatewayDispatchWorker
 
 
-def create_app(
-    settings: GatewaySettings | None = None,
-    *,
-    session: requests.Session | Any | None = None,
-    source_session: requests.Session | Any | None = None,
-) -> FastAPI:
+def create_app(settings: GatewaySettings | None = None, *, session: requests.Session | Any | None = None, source_session: requests.Session | Any | None = None) -> FastAPI:
     """Create the authenticated HTTP boundary around one durable gateway."""
 
-    gateway = H3Gateway(
-        settings or GatewaySettings.from_environment(),
-        session=session,
-        source_session=source_session,
-    )
+    gateway = H3Gateway(settings or GatewaySettings.from_environment(), session=session, source_session=source_session)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -50,7 +42,7 @@ def create_app(
             if gateway.settings.dispatch_worker_enabled:
                 worker.stop()
 
-    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="2.0", lifespan=lifespan)
+    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="4.0", lifespan=lifespan)
     app.state.gateway = gateway
 
     def authorize(authorization: str | None = Header(default=None)) -> None:
@@ -60,39 +52,23 @@ def create_app(
 
     @app.exception_handler(GatewayError)
     async def handle_gateway_error(_: Any, error: GatewayError) -> Response:
-        return Response(
-            content=json.dumps({"error": error.code}),
-            status_code=error.status_code,
-            media_type="application/json",
-        )
+        return Response(content=json.dumps({"error": error.code}), status_code=error.status_code, media_type="application/json")
 
     @app.get("/health")
     def health() -> dict[str, Any]:
         return gateway.health()
 
-    @app.post("/v1/assets", dependencies=[Depends(authorize)])
-    async def upload_asset(request: Request) -> dict[str, Any]:
-        content = await _asset_content(request, gateway)
-        asset = gateway.add_asset(content)
-        return {
-            "assetId": asset["id"],
-            "mimeType": asset["mime_type"],
-            "width": asset["width"],
-            "height": asset["height"],
-            "sha256": asset["sha256"],
-        }
-
-    @app.post("/v1/video-jobs", dependencies=[Depends(authorize)], status_code=202)
-    def create_video_job(request: CreateJobRequest) -> dict[str, Any]:
-        return _job_response(gateway, gateway.create_job(request))
-
     @app.post("/v1/video-jobs/from-image", dependencies=[Depends(authorize)], status_code=202)
     async def create_video_job_from_image(request: Request) -> dict[str, Any]:
-        content, job_request = await _one_step_submission(request, gateway)
-        return _job_response(
-            gateway,
-            gateway.create_job_from_image(job_request, content=content),
-        )
+        start_content, end_content, job_request = await _image_submission(request, gateway)
+        return _job_response(gateway, gateway.create_image_job(job_request, start_content=start_content, end_content=end_content))
+
+    @app.post("/v1/video-jobs/from-text", dependencies=[Depends(authorize)], status_code=202)
+    async def create_video_job_from_text(request: Request) -> dict[str, Any]:
+        if _request_media_type(request) != "application/json":
+            raise GatewayError("request_media_type_not_supported", 415)
+        job_request = _validated_model(CreateTextJobRequest, await _json_object(request))
+        return _job_response(gateway, gateway.create_text_job(job_request))
 
     @app.get("/v1/video-jobs/{job_id}", dependencies=[Depends(authorize)])
     def get_video_job(job_id: str) -> dict[str, Any]:
@@ -110,47 +86,36 @@ def create_app(
 
 
 def _job_response(gateway: H3Gateway, job: dict[str, Any]) -> dict[str, Any]:
+    submitted = _iso_timestamp(job.get("generation_submitted_at_ms"))
+    completed = _iso_timestamp(job.get("generation_completed_at_ms"))
+    elapsed: int | None = None
+    if isinstance(job.get("generation_submitted_at_ms"), int):
+        end = job.get("generation_completed_at_ms")
+        elapsed = (int(end) if isinstance(end, int) else _now_ms()) - int(job["generation_submitted_at_ms"])
     return {
-        "id": job["id"],
-        "status": job["status"],
-        "profileId": job["profile_id"],
-        "aspectPolicy": job["aspect_policy"],
-        "error": job["error_code"],
+        "id": job["id"], "status": job["status"], "inputMode": job["input_mode"],
+        "profileId": job["profile_id"], "aspectPolicy": job["aspect_policy"], "seed": job["seed"],
+        "requestedDurationSeconds": job["requested_duration_seconds"], "frameCount": job["frame_count"],
+        "actualDurationSeconds": job["frame_count"] / job["fps"],
+        "generationSubmittedAt": submitted, "generationCompletedAt": completed,
+        "generationElapsedMs": elapsed, "error": job["error_code"],
         "outputReady": gateway.output_is_ready(job),
     }
 
 
-async def _asset_content(request: Request, gateway: H3Gateway) -> bytes:
+async def _image_submission(request: Request, gateway: H3Gateway) -> tuple[bytes, bytes | None, CreateImageJobRequest]:
     media_type = _request_media_type(request)
     if media_type == "multipart/form-data":
-        content, _ = await _read_multipart_image(request, allowed_fields={"image"})
-        return content
-    if media_type == "application/json":
-        payload = await _json_object(request)
-        source = _validated_model(SourceUrlAssetRequest, payload)
-        return gateway.source_images.fetch(source.source_url)
-    raise GatewayError("request_media_type_not_supported", 415)
-
-
-async def _one_step_submission(
-    request: Request, gateway: H3Gateway
-) -> tuple[bytes, CreateJobFromImageRequest]:
-    media_type = _request_media_type(request)
-    if media_type == "multipart/form-data":
-        content, fields = await _read_multipart_image(
-            request,
-            allowed_fields={"image", "prompt", "aspectPolicy", "profileId", "seed", "idempotencyKey"},
-        )
-        _reject_one_step_idempotency(fields)
-        job_request = _validated_model(CreateJobFromImageRequest, fields)
+        start, end, fields = await _read_multipart_images(request)
+        job_request = _validated_model(CreateImageJobRequest, fields)
         gateway.validate_image_job_request(job_request)
-        return content, job_request
+        return start, end, job_request
     if media_type == "application/json":
-        payload = await _json_object(request)
-        _reject_one_step_idempotency(payload)
-        source_request = _validated_model(CreateJobFromSourceUrlRequest, payload)
+        source_request = _validated_model(CreateImageJobFromSourceUrlRequest, await _json_object(request))
         gateway.validate_image_job_request(source_request)
-        return gateway.source_images.fetch(source_request.source_url), source_request
+        start = gateway.source_images.fetch(source_request.source_url)
+        end = gateway.source_images.fetch(source_request.end_source_url) if source_request.end_source_url else None
+        return start, end, source_request
     raise GatewayError("request_media_type_not_supported", 415)
 
 
@@ -168,35 +133,39 @@ async def _json_object(request: Request) -> dict[str, Any]:
     return payload
 
 
-async def _read_multipart_image(
-    request: Request, *, allowed_fields: set[str]
-) -> tuple[bytes, dict[str, Any]]:
+async def _read_multipart_images(request: Request) -> tuple[bytes, bytes | None, dict[str, Any]]:
     form = await request.form()
-    received_fields = set(form.keys())
-    if received_fields - allowed_fields:
+    allowed = {"image", "endImage", "prompt", "aspectPolicy", "profileId", "seed", "durationSeconds"}
+    received = set(form.keys())
+    if received - allowed or any(len(form.getlist(field)) != 1 for field in received):
         raise GatewayError("request_fields_invalid", 422)
-    for field in received_fields:
-        if len(form.getlist(field)) != 1:
-            raise GatewayError("request_fields_invalid", 422)
     image = form.get("image")
     if image is None or not callable(getattr(image, "read", None)):
         raise GatewayError("image_file_required", 422)
-    content = await image.read(MAX_UPLOAD_BYTES + 1)
-    fields = {field: form.get(field) for field in received_fields if field != "image"}
-    return content, fields
+    end_image = form.get("endImage")
+    if end_image is not None and not callable(getattr(end_image, "read", None)):
+        raise GatewayError("end_image_file_invalid", 422)
+    start = await image.read(MAX_UPLOAD_BYTES + 1)
+    end = await end_image.read(MAX_UPLOAD_BYTES + 1) if end_image is not None else None
+    fields = {field: form.get(field) for field in received if field not in {"image", "endImage"}}
+    return start, end, fields
 
 
 def _validated_model(model: type[BaseModel], payload: dict[str, Any]) -> Any:
     try:
         return model.model_validate(payload)
     except ValidationError as error:
-        has_source_url_error = any(
-            "sourceUrl" in issue["loc"] or "source_url" in issue["loc"]
-            for issue in error.errors()
-        )
-        raise GatewayError("source_url_invalid" if has_source_url_error else "request_invalid", 422) from error
+        fields = {str(item) for issue in error.errors() for item in issue["loc"]}
+        if "sourceUrl" in fields or "source_url" in fields or "endSourceUrl" in fields or "end_source_url" in fields:
+            raise GatewayError("source_url_invalid", 422) from error
+        raise GatewayError("request_invalid", 422) from error
 
 
-def _reject_one_step_idempotency(payload: dict[str, Any]) -> None:
-    if "idempotencyKey" in payload:
-        raise GatewayError("one_step_idempotency_not_supported", 422)
+def _now_ms() -> int:
+    return time.time_ns() // 1_000_000
+
+
+def _iso_timestamp(value: object) -> str | None:
+    if not isinstance(value, int):
+        return None
+    return datetime.fromtimestamp(value / 1000, timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")

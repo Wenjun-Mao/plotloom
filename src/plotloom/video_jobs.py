@@ -164,20 +164,41 @@ class VideoJobService:
             except Exception as error:
                 raise WanDispatchError(WanDispatchDiagnostic("keyframe_read", "local_precondition_failed")) from error
             self._assert_current_backend(video_job_id)
-            uploaded = self.provider.upload(image, mime_type=keyframe["mimeType"])
-            try:
-                payload = self.adapter.compile(
-                    prompt=self._prompt(job["snapshot"]), uploaded_asset=uploaded,
-                    duration=job["requestedSeconds"], resolution=job["snapshot"]["request"]["resolution"],
-                    audio=job["snapshot"]["request"]["audio"],
-                    aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
-                    seed=job["snapshot"]["request"].get("seed"),
-                    profile_id=self._profile_id(job["snapshot"]),
-                )
-            except VideoProviderError as error:
-                raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
-            self._assert_current_backend(video_job_id)
-            submitted = self.provider.submit(payload, idempotency_key=video_job_id)
+            compile_image = getattr(self.adapter, "compile_image", None)
+            submit_image = getattr(self.provider, "submit_image", None)
+            if callable(compile_image) and callable(submit_image):
+                try:
+                    # A direct-image provider owns temporary frame admission;
+                    # no public asset identifier or idempotency state crosses
+                    # the boundary.  This is a capability contract, not a
+                    # provider-name special case.
+                    payload = compile_image(
+                        prompt=self._prompt(job["snapshot"]), duration=job["requestedSeconds"],
+                        resolution=job["snapshot"]["request"]["resolution"],
+                        audio=job["snapshot"]["request"]["audio"],
+                        aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
+                        seed=job["snapshot"]["request"].get("seed"),
+                        profile_id=self._profile_id(job["snapshot"]),
+                    )
+                except VideoProviderError as error:
+                    raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
+                self._assert_current_backend(video_job_id)
+                submitted = submit_image(image, mime_type=keyframe["mimeType"], payload=payload)
+            else:
+                try:
+                    uploaded = self.provider.upload(image, mime_type=keyframe["mimeType"])
+                    payload = self.adapter.compile(
+                        prompt=self._prompt(job["snapshot"]), uploaded_asset=uploaded,
+                        duration=job["requestedSeconds"], resolution=job["snapshot"]["request"]["resolution"],
+                        audio=job["snapshot"]["request"]["audio"],
+                        aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
+                        seed=job["snapshot"]["request"].get("seed"),
+                        profile_id=self._profile_id(job["snapshot"]),
+                    )
+                except VideoProviderError as error:
+                    raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
+                self._assert_current_backend(video_job_id)
+                submitted = self.provider.submit(payload, idempotency_key=video_job_id)
             try:
                 prediction = self.adapter.prediction_id(
                     submitted, expected_profile_id=self._profile_id(job["snapshot"])

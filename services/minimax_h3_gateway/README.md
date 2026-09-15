@@ -5,26 +5,27 @@ service. It is deliberately **not** a ComfyUI proxy: callers cannot submit
 workflows, select model files, or reach ComfyUI directly.
 
 Plotloom is now wired to this gateway through the versioned
-`minimax_h3_gateway.v3` adapter. Use the complete
+`minimax_h3_gateway.v4` adapter. Use the complete
 [H3 gateway operator and maintainer manual](../../docs/operations/minimax-h3-gateway-manual.md)
 for deployment, security, Plotloom configuration, lifecycle, recovery, and
 the exact limits of verified behavior.
 
-The local service contract has six bearer-authenticated client operations plus
+The local service contract has five bearer-authenticated client operations plus
 one unauthenticated health route:
 
-1. `POST /v1/assets` stores one PNG, JPEG, or WebP reference frame from a
-   multipart file or a private/public `http(s)` `sourceUrl` JSON body.
-2. `POST /v1/video-jobs` prepares and durably queues one reviewed,
-   allowlisted-profile job. It returns `202` and a job ID without waiting for
-   H3; `idempotencyKey` is optional but required for caller retry deduplication.
-3. `POST /v1/video-jobs/from-image` combines image ingestion and job admission
-   for a multipart file or `sourceUrl`; it returns the ordinary queued-job
-   response but deliberately has no idempotency-key contract.
-4. `GET /v1/video-jobs/{id}` reports a known job.
-5. `GET /v1/video-jobs/{id}/output` serves its gateway-managed completed MP4.
-6. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
-7. `GET /health` exposes safe readiness and queue counts without a bearer key.
+1. `POST /v1/video-jobs/from-image` accepts a required start frame and optional
+   end frame (multipart files or JSON URLs) and durably queues one job.
+2. `POST /v1/video-jobs/from-text` is an exploration-only text-to-video route;
+   Plotloom does not expose it as an authoring mode.
+3. `GET /v1/video-jobs/{id}` reports a known job, its resolved seed, snapped
+   frame count, actual duration, and backend elapsed timing.
+4. `GET /v1/video-jobs/{id}/output` serves its gateway-managed completed MP4.
+5. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
+6. `GET /health` exposes safe readiness, input modes and queue counts without
+   a bearer key.
+
+`POST /v1/assets` and `POST /v1/video-jobs` are deliberately retired. There
+is no public asset-ID, idempotency-key, or compatibility creation path.
 
 For a colleague-facing, copy-paste client guide—including Spark's current
 Tailnet base URL and a test image—see
@@ -86,7 +87,8 @@ The gateway package keeps one responsibility per module:
 `app.py` is intentionally only a compatibility export surface. Keep new logic
 in the responsible module rather than growing that façade.
 
-For new H3 work, Plotloom normally sends an aspect-matched keyframe with
+For new H3 work, Plotloom normally sends an aspect-matched keyframe directly
+with
 `reject_mismatch`. An explicit author-owned `allowLetterbox` mode instead
 freezes gateway `contain_pad`; this gateway receives the documented
 `aspectPolicy` only and does not infer author intent.

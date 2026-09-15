@@ -18,9 +18,10 @@ def load_h3_template() -> dict[str, Any]:
 
 
 def render_workflow(
-    template: dict[str, Any], *, profile: GatewayProfile, prompt: str, input_name: str, seed: int
+    template: dict[str, Any], *, profile: GatewayProfile, prompt: str,
+    start_input_name: str | None, end_input_name: str | None, seed: int, frame_count: int,
 ) -> dict[str, Any]:
-    """Resolve only the frozen job fields in the reviewed profile template."""
+    """Render a reviewed H3 graph with zero, one, or two optional frame inputs."""
 
     workflow = copy.deepcopy(template)
     def replace(value: Any) -> Any:
@@ -30,13 +31,24 @@ def render_workflow(
             return [replace(child) for child in value]
         return {
             "__PROMPT__": prompt,
-            "__INPUT_IMAGE__": input_name,
             "__SEED__": seed,
             "__WIDTH__": profile.width,
             "__HEIGHT__": profile.height,
+            "__FRAME_COUNT__": frame_count,
         }.get(value, value)
 
-    return replace(workflow)
+    workflow = replace(workflow)
+    h3_inputs = workflow["105:104"]["inputs"]
+    for socket, input_name, node_id in (
+        ("first_frame", start_input_name, "h3_start_frame"),
+        ("last_frame", end_input_name, "h3_end_frame"),
+    ):
+        if input_name is not None:
+            workflow[node_id] = {"class_type": "LoadImage", "inputs": {"image": input_name}}
+            h3_inputs[socket] = [node_id, 0]
+        else:
+            h3_inputs.pop(socket, None)
+    return workflow
 
 
 def single_output_descriptor(outputs: object) -> dict[str, str] | None:

@@ -45,6 +45,14 @@ class ComfyClient:
                 raise GatewayError("comfy_profile_unavailable", 503)
         if "MiniMaxH3ImageToVideo" not in object_info or "PrimitiveInt" not in object_info:
             raise GatewayError("comfy_profile_unavailable", 503)
+        try:
+            optional = object_info["MiniMaxH3ImageToVideo"]["input"]["optional"]
+            first_frame = optional["first_frame"][0]
+            last_frame = optional["last_frame"][0]
+        except (KeyError, IndexError, TypeError) as error:
+            raise GatewayError("comfy_profile_unavailable", 503) from error
+        if first_frame != "IMAGE" or last_frame != "IMAGE":
+            raise GatewayError("comfy_profile_unavailable", 503)
 
     def submit(self, *, workflow: dict[str, Any], client_id: str) -> str:
         try:

@@ -99,13 +99,17 @@ class GatewayFiles:
             return
         self.store.delete_unreferenced_asset(str(asset["id"]))
 
-    def prepare_job_input(self, *, job: dict[str, Any], asset: dict[str, Any], profile: GatewayProfile) -> None:
+    def prepare_job_frame(
+        self, *, frame: dict[str, Any], asset: dict[str, Any], profile: GatewayProfile, policy: AspectPolicy
+    ) -> None:
+        """Normalize either optional H3 frame through the same policy."""
+
         _prepare_input(
             source=Path(str(asset["path"])),
-            destination=self.settings.comfy_input_dir / str(job["prepared_input_name"]),
+            destination=self.settings.comfy_input_dir / str(frame["prepared_input_name"]),
             target_width=profile.width,
             target_height=profile.height,
-            policy=str(job["aspect_policy"]),
+            policy=policy,
         )
 
     def read_output(self, job: dict[str, Any]) -> bytes:
@@ -165,16 +169,17 @@ class GatewayFiles:
 
         prepared_removed = 0
         for job in self.store.list_expired_managed_outputs():
-            input_path = self.prepared_input_path(job)
-            try:
-                if input_path is not None and input_path.exists():
-                    input_path.unlink()
-                    prepared_removed += 1
-            except OSError:
-                # The row is a safe retry marker. A failure to remove a tracked
-                # Comfy input must not become a later broad filesystem cleanup.
-                continue
-            self.store.claim_asset_after_last_output_expiry(str(job["asset_id"]))
+            for frame in self.store.get_job_frames(str(job["id"])):
+                input_path = self.prepared_input_path(job_id=str(job["id"]), frame=frame)
+                try:
+                    if input_path is not None and input_path.exists():
+                        input_path.unlink()
+                        prepared_removed += 1
+                except OSError:
+                    # A tracked row is a safe retry marker; cleanup never walks
+                    # the Comfy input directory broadly.
+                    continue
+                self.store.claim_asset_after_last_output_expiry(str(frame["asset_id"]))
         return prepared_removed + self.cleanup_pending_asset_purges()
 
     def cleanup_pending_asset_purges(self) -> int:
@@ -270,12 +275,13 @@ class GatewayFiles:
             return None
         return self.managed_outputs_dir / str(name)
 
-    def prepared_input_path(self, job: dict[str, Any]) -> Path | None:
-        job_id = str(job.get("id", ""))
-        name = job.get("prepared_input_name")
+    def prepared_input_path(self, *, job_id: str, frame: dict[str, Any]) -> Path | None:
+        name = frame.get("prepared_input_name")
         if (
             H3_JOB_ID.fullmatch(job_id) is None
-            or not is_owned_storage_name(name, object_id=job_id, suffixes=(".png",))
+            or not is_owned_storage_name(
+                name, object_id=job_id, suffixes=(".png",), allow_frame_label=True
+            )
         ):
             return None
         return self._direct_child_path(self.settings.comfy_input_dir, str(name))

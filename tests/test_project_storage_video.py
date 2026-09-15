@@ -52,38 +52,28 @@ class FakeH3:
             self.before_preflight()
         return None
 
-    def upload(self, image: bytes, *, mime_type: str) -> str:
-        assert image and mime_type == "image/png"
+    def submit_image(self, image: bytes, *, mime_type: str, payload: dict) -> dict:
+        assert image and mime_type == "image/png" and payload["durationSeconds"] == 5
         self.upload_calls += 1
-        return "asset_0123456789abcdef0123456789abcdef"
-
-    def submit(self, payload: dict, *, idempotency_key: str | None = None) -> dict:
-        assert idempotency_key
         self.submits.append(payload)
-        return {
-            "id": "h3_0123456789abcdef0123456789abcdef",
-            "status": "submitted",
-            "profileId": payload["profileId"],
-            "aspectPolicy": payload["aspectPolicy"],
-            "outputReady": False,
-            "error": None,
-        }
+        return _h3_job("submitted", False, payload["profileId"], payload["aspectPolicy"])
 
     def poll(self, prediction_id: str) -> dict:
         self.poll_calls += 1
-        return {
-            "id": prediction_id,
-            "status": "succeeded",
-            "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
-            "aspectPolicy": "reject_mismatch",
-            "outputReady": True,
-            "error": None,
-        }
+        return _h3_job("succeeded", True, "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "reject_mismatch", identifier=prediction_id)
 
     def download(self, reference: str) -> bytes:
         assert reference == "h3_0123456789abcdef0123456789abcdef"
         self.downloads += 1
         return b"offline-h3-project-video"
+
+
+def _h3_job(status: str, output_ready: bool, profile_id: str, aspect_policy: str, *, identifier: str = "h3_0123456789abcdef0123456789abcdef") -> dict[str, object]:
+    return {"id": identifier, "status": status, "inputMode": "image", "profileId": profile_id,
+            "aspectPolicy": aspect_policy, "seed": 1, "requestedDurationSeconds": 5,
+            "frameCount": 124, "actualDurationSeconds": 124 / 24,
+            "generationSubmittedAt": None, "generationCompletedAt": None,
+            "generationElapsedMs": None, "outputReady": output_ready, "error": None}
 
 
 def _png() -> bytes:
@@ -249,7 +239,7 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
     job = prepared.json()
     binding = job["snapshot"]["provider"]["backendBinding"]
     assert binding["adapterId"] == "minimax_h3_gateway"
-    assert binding["adapterVersion"] == "3"
+    assert binding["adapterVersion"] == "4"
     assert binding["instance"]["kind"] == "fixture_h3_endpoint_v1"
     assert len(binding["instance"]["fingerprint"]) == 64
     assert "endpoint" not in job["snapshot"]["provider"]
@@ -431,7 +421,7 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
             "seed": 15,
         },
     ).json()
-    unknown_provider.submit = lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("fixture lost response"))  # type: ignore[method-assign]
+    unknown_provider.submit_image = lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("fixture lost response"))  # type: ignore[method-assign]
     assert unknown_client.post(
         f"/api/v2/projects/{unknown_project_id}/video-jobs/{unknown_job['id']}/submit"
     ).json()["state"] == "outcome_unknown"

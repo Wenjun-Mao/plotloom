@@ -27,7 +27,6 @@ from .adapter import H3_PROFILE_CONTRACT_VERSION, H3_PROFILES_BY_ID
 class MiniMaxH3GatewayTransport:
     """Bearer-authenticated, no-retry transport for the fixed H3 catalog."""
 
-    _ASSET_ID = re.compile(r"^asset_[0-9a-f]{32}$")
     _JOB_ID = re.compile(r"^h3_[0-9a-f]{32}$")
 
     def __init__(
@@ -83,6 +82,7 @@ class MiniMaxH3GatewayTransport:
             or payload.get("status") != "ok"
             or payload.get("profileContractVersion") != H3_PROFILE_CONTRACT_VERSION
             or payload.get("profiles") != [profile.public_descriptor() for profile in H3_PROFILES_BY_ID.values()]
+            or payload.get("inputModes") != ["image", "text"]
             or type(payload.get("queuedJobs")) is not int
             or payload["queuedJobs"] < 0
             or type(payload.get("activeDispatches")) is not int
@@ -106,33 +106,19 @@ class MiniMaxH3GatewayTransport:
             "minimax_h3_gateway_endpoint_v1", {"endpoint": endpoint}
         )
 
-    def upload(self, image: bytes, *, mime_type: str) -> str:
-        payload = self._request_json(
-            "upload",
-            "POST",
-            "v1/assets",
-            files={"image": ("approved-keyframe", image, mime_type)},
-        )
-        if set(payload) != {"assetId", "mimeType", "width", "height", "sha256"}:
-            raise WanDispatchError(WanDispatchDiagnostic("upload", "invalid_envelope"))
-        asset_id = payload.get("assetId")
-        if not isinstance(asset_id, str) or not self._ASSET_ID.fullmatch(asset_id):
-            raise WanDispatchError(WanDispatchDiagnostic("upload", "invalid_envelope"))
-        if payload.get("mimeType") != mime_type or type(payload.get("width")) is not int or type(payload.get("height")) is not int:
-            raise WanDispatchError(WanDispatchDiagnostic("upload", "invalid_envelope"))
-        digest = payload.get("sha256")
-        if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
-            raise WanDispatchError(WanDispatchDiagnostic("upload", "invalid_envelope"))
-        return asset_id
+    def submit_image(self, image: bytes, *, mime_type: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """Submit a frozen Plotloom keyframe through the direct gateway route."""
 
-    def submit(
-        self, payload: dict[str, Any], *, idempotency_key: str | None = None
-    ) -> dict[str, Any]:
-        request = dict(payload)
-        if idempotency_key is not None:
-            request["idempotencyKey"] = idempotency_key
-        result = self._request_json("submit", "POST", "v1/video-jobs", json=request)
+        if set(payload) != {"prompt", "profileId", "aspectPolicy", "seed", "durationSeconds"}:
+            raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed"))
+        result = self._request_json(
+            "submit", "POST", "v1/video-jobs/from-image",
+            files={"image": ("approved-keyframe", image, mime_type)},
+            data={key: str(value) for key, value in payload.items()},
+        )
         self._validate_job_envelope(result, phase="submit_response_parse")
+        if result.get("inputMode") != "image":
+            raise WanDispatchError(WanDispatchDiagnostic("submit_response_parse", "invalid_envelope"))
         return result
 
     def poll(self, prediction_id: str) -> dict[str, Any]:
@@ -223,7 +209,12 @@ class MiniMaxH3GatewayTransport:
         phase: DispatchPhase,
         expected_id: str | None = None,
     ) -> None:
-        expected = {"id", "status", "profileId", "aspectPolicy", "error", "outputReady"}
+        expected = {
+            "id", "status", "inputMode", "profileId", "aspectPolicy", "seed",
+            "requestedDurationSeconds", "frameCount", "actualDurationSeconds",
+            "generationSubmittedAt", "generationCompletedAt", "generationElapsedMs",
+            "error", "outputReady",
+        }
         if set(value) != expected:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         identifier = value.get("id")
@@ -237,7 +228,26 @@ class MiniMaxH3GatewayTransport:
             "outcome_unknown", "cancelled",
         }:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
-        if value.get("aspectPolicy") not in {"cover_center_crop", "contain_pad", "reject_mismatch"}:
+        if value.get("inputMode") not in {"image", "text"}:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        if value.get("inputMode") == "image" and value.get("aspectPolicy") not in {"cover_center_crop", "contain_pad", "reject_mismatch"}:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        if value.get("inputMode") == "text" and value.get("aspectPolicy") is not None:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        if type(value.get("seed")) is not int or value["seed"] < 0:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        duration = value.get("requestedDurationSeconds")
+        frame_count = value.get("frameCount")
+        if type(duration) is not int or not 5 <= duration <= 15 or type(frame_count) is not int or frame_count % 17 != 5:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        actual = value.get("actualDurationSeconds")
+        if type(actual) not in {float, int} or abs(float(actual) - frame_count / 24) > 0.0001:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        for key in ("generationSubmittedAt", "generationCompletedAt"):
+            if value.get(key) is not None and not isinstance(value.get(key), str):
+                raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        elapsed = value.get("generationElapsedMs")
+        if elapsed is not None and (type(elapsed) is not int or elapsed < 0):
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("error") is not None and not isinstance(value.get("error"), str):
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
