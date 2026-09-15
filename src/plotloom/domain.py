@@ -1211,6 +1211,7 @@ class WorkUnitRepairScope(CamelModel):
     response_artifact_id: str = Field(min_length=1)
     validation_artifact_id: str = Field(min_length=1)
     reuse_sources: list[FrozenFragmentReuseSource] = Field(default_factory=list)
+    pending_sibling_work_unit_ids: list[str] = Field(default_factory=list)
     scope_hash: str = Field(min_length=1)
     created_at: datetime = Field(default_factory=utc_now)
 

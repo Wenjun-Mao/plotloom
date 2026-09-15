@@ -100,11 +100,17 @@ class ProjectGenerationReusePersistence:
                         "repair.scope_hash_mismatch",
                         "target child selector no longer matches the immutable repair scope",
                     )
+                pending_selector_hashes = {
+                    stable_hash(session.get(GenerationWorkUnitRow, work_unit_id).selector)
+                    for work_unit_id in scope.pending_sibling_work_unit_ids
+                }
                 unbound_selector_hashes = child_selector_hashes - frozen_selector_hashes
-                if unbound_selector_hashes != {stable_hash(scope.target_selector)}:
+                if unbound_selector_hashes != {
+                    stable_hash(scope.target_selector), *pending_selector_hashes
+                }:
                     raise RepairEligibilityError(
                         "repair.scope_hash_mismatch",
-                        "repair StagePlan must leave exactly the scoped target selector unresolved",
+                        "repair StagePlan must leave exactly the target and frozen pending selectors unresolved",
                     )
             bindings: list[FragmentReuseBinding] = []
             for frozen in frozen_sources:

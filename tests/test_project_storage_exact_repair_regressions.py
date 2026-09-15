@@ -22,7 +22,10 @@ from plotloom.domain import (
 )
 from plotloom.exceptions import InvalidTransitionError, RepairEligibilityError
 from plotloom.persistence import stable_hash
-from plotloom.persistence.schema.project_generation import FragmentReuseBindingRow, WorkUnitRepairScopeRow
+from plotloom.persistence.schema.project_generation import (
+    FragmentReuseBindingRow,
+    WorkUnitRepairScopeRow,
+)
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage, ProjectStorageError, ProjectStore
 from tests.project_storage_exact_repair_support import (

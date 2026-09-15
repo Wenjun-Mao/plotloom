@@ -31,7 +31,8 @@ request is scheduled:
 - the rejected attempt plus its persisted response and validation evidence;
 - the parent's canonical snapshot, generation plan, topology where applicable,
   provider profile snapshot, and upstream seals;
-- every successful sibling fragment that is eligible for reuse; and
+- every successful sibling fragment that is eligible for reuse, plus the
+  identity of every sibling that was still queued when the parent quarantined; and
 - one content-derived scope hash and request idempotency binding.
 
 The parent run, work units, attempts, artifacts, candidates, stage plans, and
@@ -50,7 +51,10 @@ transaction. Exact repair is allowed only when:
    validation artifact with a stable known outcome code;
 5. the target is not `failed`, `cancelled`, or `outcome_unknown`; and
 6. every sibling selected for reuse has complete, accepted, hash-consistent
-   evidence from the source stage plan.
+   evidence from the source stage plan. A sibling that was never dispatched
+   (`queued`) is instead frozen as pending child work; a failed, cancelled,
+   running, or outcome-unknown sibling rejects admission rather than becoming
+   an implicit replay.
 
 Rejections use stable `repair.*` reason codes. The UI consumes those explicit
 decisions and never infers repairability from trace prose or from the presence
@@ -64,9 +68,13 @@ attempt, candidate hash, selector, and dependency fingerprints. After checking
 that binding, the repository creates child-local execution evidence which
 retains `sourceArtifactId`; it does not bypass normal run/unit ownership checks.
 
-The target unit alone is sent to the provider and retains the normal primary
-plus bounded correction contract. The repaired stage is aggregated from the
-new target fragment and the verified child-local sibling fragments. Every
+The target unit retains its normal primary plus bounded correction contract.
+Successful siblings are materialized as verified child-local fragments. Siblings
+that were queued in the quarantined parent are planned as new child work and
+must complete before the repaired aggregate can seal; their identities are part
+of the scope hash, so a different parent outcome cannot be replayed by
+accident. The repaired stage is aggregated only after the target, every reused
+sibling, and every frozen-pending sibling have child-owned evidence. Every
 downstream stage is planned again from the new aggregate and must generate and
 seal against its new dependency hash. No mismatched downstream seal is reused.
 

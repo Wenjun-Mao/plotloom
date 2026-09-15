@@ -196,7 +196,7 @@ class GenerationRepairEligibility:
 
     def frozen_reuse_source(
         self, session: Session, *, source: GenerationRunRow, unit: GenerationWorkUnitRow,
-        kind: FragmentReuseKind,
+        kind: FragmentReuseKind, expected_candidate_id: str | None = None,
     ) -> FrozenFragmentReuseSource:
         plan = session.get(StagePlanRow, unit.stage_plan_id)
         if plan is None or plan.run_id != source.id:
@@ -204,7 +204,9 @@ class GenerationRepairEligibility:
         candidates = session.scalars(select(ArtifactRow).where(
             ArtifactRow.run_id == source.id, ArtifactRow.work_unit_id == unit.id,
             ArtifactRow.kind == ArtifactKind.CANDIDATE.value,
-        ).order_by(ArtifactRow.created_at.desc())).all()
+        )).all()
+        if expected_candidate_id is not None:
+            candidates = [candidate for candidate in candidates if candidate.id == expected_candidate_id]
         if len(candidates) != 1:
             raise RepairEligibilityError("repair.parent_evidence_invalid", "source reusable unit requires one immutable candidate")
         candidate, attempt, evidence = self._integrity.required_unit_evidence(
@@ -222,6 +224,31 @@ class GenerationRepairEligibility:
             source_candidate_artifact_id=candidate.id, source_candidate_content_hash=candidate.content_hash,
         )
 
+    @staticmethod
+    def _sealed_candidate_ids(
+        aggregate: SealedStageAggregateRow, units: list[GenerationWorkUnitRow]
+    ) -> dict[str, str]:
+        if aggregate.manifest_hash != stable_hash(aggregate.manifest):
+            raise RepairEligibilityError(
+                "repair.parent_evidence_invalid",
+                "sealed source aggregate manifest hash does not match immutable content",
+            )
+        manifest_units = aggregate.manifest.get("units") if isinstance(aggregate.manifest, dict) else None
+        if not isinstance(manifest_units, list):
+            raise RepairEligibilityError("repair.parent_evidence_invalid", "sealed source aggregate has no unit manifest")
+        candidate_ids: dict[str, str] = {}
+        for item in manifest_units:
+            if not isinstance(item, dict):
+                raise RepairEligibilityError("repair.parent_evidence_invalid", "sealed source aggregate has malformed unit manifest")
+            work_unit_id = item.get("workUnitId")
+            candidate_id = item.get("candidateArtifactId")
+            if not isinstance(work_unit_id, str) or not isinstance(candidate_id, str) or work_unit_id in candidate_ids:
+                raise RepairEligibilityError("repair.parent_evidence_invalid", "sealed source aggregate has ambiguous candidate identity")
+            candidate_ids[work_unit_id] = candidate_id
+        if set(candidate_ids) != {unit.id for unit in units}:
+            raise RepairEligibilityError("repair.parent_evidence_invalid", "sealed source aggregate does not cover its work units")
+        return candidate_ids
+
     def frozen_reuse_sources(
         self, session: Session, *, source: GenerationRunRow, target: GenerationWorkUnitRow
     ) -> list[FrozenFragmentReuseSource]:
@@ -230,19 +257,69 @@ class GenerationRepairEligibility:
         reusable: list[FrozenFragmentReuseSource] = []
         for stage in requested[:target_index]:
             plan = self._plans._stage_plan_row(session, source.id, stage)
-            if plan is None or session.scalar(select(SealedStageAggregateRow.id).where(
+            if plan is None:
+                raise RepairEligibilityError("repair.parent_evidence_invalid", f"source upstream stage {stage.value} is not sealed")
+            aggregate = session.scalar(select(SealedStageAggregateRow).where(
                 SealedStageAggregateRow.stage_plan_id == plan.id
-            )) is None:
+            ))
+            if aggregate is None:
                 raise RepairEligibilityError("repair.parent_evidence_invalid", f"source upstream stage {stage.value} is not sealed")
             units = session.scalars(select(GenerationWorkUnitRow).where(
                 GenerationWorkUnitRow.stage_plan_id == plan.id
             ).order_by(GenerationWorkUnitRow.sequence)).all()
-            reusable.extend(self.frozen_reuse_source(session, source=source, unit=unit, kind=FragmentReuseKind.UPSTREAM) for unit in units)
+            candidate_ids = self._sealed_candidate_ids(aggregate, units)
+            reusable.extend(
+                self.frozen_reuse_source(
+                    session,
+                    source=source,
+                    unit=unit,
+                    kind=FragmentReuseKind.UPSTREAM,
+                    expected_candidate_id=candidate_ids[unit.id],
+                )
+                for unit in units
+            )
         target_plan = self._plans._stage_plan_row(session, source.id, StageName(target.stage))
         if target_plan is None or target_plan.id != target.stage_plan_id:
             raise RepairEligibilityError("repair.parent_evidence_invalid", "target source StagePlan is inconsistent")
         siblings = session.scalars(select(GenerationWorkUnitRow).where(
             GenerationWorkUnitRow.stage_plan_id == target_plan.id
         ).order_by(GenerationWorkUnitRow.sequence)).all()
-        reusable.extend(self.frozen_reuse_source(session, source=source, unit=unit, kind=FragmentReuseKind.SIBLING) for unit in siblings if unit.id != target.id)
+        for unit in siblings:
+            if unit.id == target.id:
+                continue
+            status = WorkUnitStatus(unit.status)
+            if status == WorkUnitStatus.SUCCEEDED:
+                reusable.append(
+                    self.frozen_reuse_source(
+                        session, source=source, unit=unit, kind=FragmentReuseKind.SIBLING
+                    )
+                )
+            elif status != WorkUnitStatus.QUEUED:
+                raise RepairEligibilityError(
+                    "repair.parent_evidence_invalid",
+                    "source sibling is not a completed reusable fragment or undispatched pending work",
+                )
         return reusable
+
+    def pending_sibling_work_unit_ids(
+        self, session: Session, *, source: GenerationRunRow, target: GenerationWorkUnitRow
+    ) -> list[str]:
+        plan = self._plans._stage_plan_row(session, source.id, StageName(target.stage))
+        if plan is None or plan.id != target.stage_plan_id:
+            raise RepairEligibilityError("repair.parent_evidence_invalid", "target source StagePlan is inconsistent")
+        siblings = session.scalars(select(GenerationWorkUnitRow).where(
+            GenerationWorkUnitRow.stage_plan_id == plan.id
+        ).order_by(GenerationWorkUnitRow.sequence)).all()
+        pending: list[str] = []
+        for unit in siblings:
+            if unit.id == target.id:
+                continue
+            status = WorkUnitStatus(unit.status)
+            if status == WorkUnitStatus.QUEUED:
+                pending.append(unit.id)
+            elif status != WorkUnitStatus.SUCCEEDED:
+                raise RepairEligibilityError(
+                    "repair.parent_evidence_invalid",
+                    "source sibling is not a completed reusable fragment or undispatched pending work",
+                )
+        return pending

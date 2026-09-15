@@ -209,19 +209,33 @@ class DurableWorkUnitRunner:
                         )
                     )
                     if stage == repair_scope.stage:
-                        # The scope authorizes at most one provider-bound unit
-                        # in its repaired stage.  Zero is valid after a crash
-                        # that happened after the target candidate committed
-                        # but before aggregation; more than one would quietly
-                        # turn a precise repair into a partial rebuild.
+                        # The scope authorizes the target plus only siblings
+                        # that were still queued in the quarantined parent.
+                        # Zero is valid after a crash that happened after all
+                        # child candidates committed but before aggregation.
                         unresolved = [
                             unit.unit_id
                             for unit in stage_plan.work_units
                             if unit.unit_id not in candidates
                         ]
-                        if len(unresolved) > 1:
+                        parent_units = {
+                            unit.id: unit
+                            for unit in self.repository.list_generation_work_units(
+                                repair_scope.parent_run_id
+                            )
+                        }
+                        allowed = {stable_hash(repair_scope.target_selector)}
+                        allowed.update(
+                            stable_hash(parent_units[work_unit_id].selector)
+                            for work_unit_id in repair_scope.pending_sibling_work_unit_ids
+                        )
+                        unresolved_selectors = {
+                            stable_hash(next(unit.selector for unit in stage_plan.work_units if unit.unit_id == work_unit_id))
+                            for work_unit_id in unresolved
+                        }
+                        if not unresolved_selectors <= allowed:
                             raise ValueError(
-                                "exact repair scope leaves more than one target-stage work unit unresolved"
+                                "exact repair scope leaves an unauthorized target-stage work unit unresolved"
                             )
                 for work_unit in stage_plan.work_units:
                     if work_unit.unit_id in candidates:

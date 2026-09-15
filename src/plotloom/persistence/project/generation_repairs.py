@@ -353,6 +353,9 @@ class ProjectGenerationRepairPersistence:
             reuse_sources = self._eligibility.frozen_reuse_sources(
                 session, source=source, target=target
             )
+            pending_sibling_work_unit_ids = self._eligibility.pending_sibling_work_unit_ids(
+                session, source=source, target=target
+            )
             source_topology_row = session.get(StoryGraphTopologyRow, source.id)
             unsigned_scope: dict[str, Any] = {
                 "childRunId": child.id,
@@ -375,6 +378,7 @@ class ProjectGenerationRepairPersistence:
                 "responseArtifactId": response.id,
                 "validationArtifactId": validation.id,
                 "reuseSources": [item.model_dump(mode="json", by_alias=True) for item in reuse_sources],
+                "pendingSiblingWorkUnitIds": pending_sibling_work_unit_ids,
                 "createdAt": child.created_at.isoformat(),
             }
             unsigned_scope["scopeHash"] = "pending"

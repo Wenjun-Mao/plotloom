@@ -87,6 +87,38 @@ class GenerationRepairScopePolicy:
             raise RepairEligibilityError("repair.target_outcome_unknown", "exact repair target has ambiguous provider outcome")
         if WorkUnitStatus(target.status) != WorkUnitStatus.QUARANTINED:
             raise RepairEligibilityError("repair.target_not_quarantined", "exact repair target is no longer quarantined")
+        source_stage_units = session.scalars(select(GenerationWorkUnitRow).where(
+            GenerationWorkUnitRow.stage_plan_id == source_stage_plan.id
+        )).all()
+        sibling_sources = [
+            item for item in scope.reuse_sources
+            if item.stage == scope.stage and item.kind.value == "sibling"
+        ]
+        reusable_sibling_ids = {item.source_work_unit_id for item in sibling_sources}
+        pending_sibling_ids = set(scope.pending_sibling_work_unit_ids)
+        expected_sibling_ids = {
+            target.id,
+            *reusable_sibling_ids,
+            *pending_sibling_ids,
+        }
+        if (
+            len(expected_sibling_ids) != 1 + len(sibling_sources) + len(scope.pending_sibling_work_unit_ids)
+            or expected_sibling_ids != {unit.id for unit in source_stage_units}
+            or any(
+                WorkUnitStatus(unit.status) != WorkUnitStatus.SUCCEEDED
+                for unit in source_stage_units
+                if unit.id in reusable_sibling_ids
+            )
+            or any(
+                WorkUnitStatus(unit.status) != WorkUnitStatus.QUEUED
+                for unit in source_stage_units
+                if unit.id in pending_sibling_ids
+            )
+        ):
+            raise RepairEligibilityError(
+                "repair.parent_evidence_invalid",
+                "repair sibling sources no longer match the frozen reuse and pending-work contract",
+            )
         topology = session.get(StoryGraphTopologyRow, source.id)
         if (topology.topology_hash if topology is not None else None) != scope.source_story_graph_topology_hash:
             raise RepairEligibilityError("repair.scope_hash_mismatch", "exact repair topology binding changed")

@@ -44,10 +44,13 @@ or media admission should be weakened.
 After the third bounded unit attempt, the normal isolated-repair action was
 tried once. It did **not** submit another model request: pre-dispatch rejected
 the repair with `repair.parent_evidence_invalid: source reusable unit requires
-one immutable candidate`. The frozen run therefore supplies a reproducible
-second boundary: its repair projection cannot establish a single immutable
-parent candidate for this quarantined source unit. No full-stage rebuild,
-manual rewrite, new project, or source/configuration change was attempted.
+one immutable candidate`. Read-only inspection later established that this was
+not an attribution to the quarantined target: the old repair projection tried
+to freeze every non-target sibling, including never-dispatched Scene Beats #8,
+which correctly has no candidate. The target remains bound to its rejected
+attempt/response/validation lineage; successful siblings have one candidate
+each. No full-stage rebuild, manual rewrite, new project, or source/configuration
+change was attempted.
 
 ## Retained evidence and non-actions
 
