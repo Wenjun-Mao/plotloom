@@ -202,25 +202,38 @@ def test_production_runtime_owns_archive_duplicate_and_media_free_deletion(
         assert client.get("/api/v2/projects?status=active").json()["projects"] == []
         assert [item["id"] for item in client.get("/api/v2/projects?status=archived").json()["projects"]] == [source_id]
 
+        stale_restore = client.post(
+            f"/api/v2/projects/{source_id}/restore",
+            json={"expectedLifecycleRevision": 1},
+        )
+        assert stale_restore.status_code == 409
         restored = client.post(
             f"/api/v2/projects/{source_id}/restore",
             json={"expectedLifecycleRevision": 2},
         )
         assert restored.status_code == 200
         duplicate_headers = {"Idempotency-Key": "production-folder-duplicate"}
+        duplicate_body = {"expectedLifecycleRevision": 3, "title": "Production duplicate"}
         first_duplicate = client.post(
             f"/api/v2/projects/{source_id}/duplicate",
             headers=duplicate_headers,
-            json={"expectedLifecycleRevision": 3},
+            json=duplicate_body,
         )
         replayed_duplicate = client.post(
             f"/api/v2/projects/{source_id}/duplicate",
             headers=duplicate_headers,
-            json={"expectedLifecycleRevision": 3},
+            json=duplicate_body,
         )
         assert first_duplicate.status_code == replayed_duplicate.status_code == 200
         duplicate_id = first_duplicate.json()["project"]["id"]
         assert replayed_duplicate.json()["project"]["id"] == duplicate_id
+        conflict = client.post(
+            f"/api/v2/projects/{source_id}/duplicate",
+            headers=duplicate_headers,
+            json={**duplicate_body, "title": "Conflicting duplicate"},
+        )
+        assert conflict.status_code == 409
+        assert conflict.json()["code"] == "idempotency_conflict"
         assert len(client.get("/api/v2/projects?status=active").json()["projects"]) == 2
 
         archived_duplicate = client.post(
@@ -228,11 +241,20 @@ def test_production_runtime_owns_archive_duplicate_and_media_free_deletion(
             json={"expectedLifecycleRevision": 1},
         )
         assert archived_duplicate.status_code == 200
+        wrong_confirmation = client.post(
+            f"/api/v2/projects/{duplicate_id}/permanent-delete",
+            json={
+                "expectedLifecycleRevision": 2,
+                "confirmationTitle": "The wrong project title",
+            },
+        )
+        assert wrong_confirmation.status_code == 409
+        assert client.get(f"/api/v2/projects/{duplicate_id}").status_code == 200
         deleted = client.post(
             f"/api/v2/projects/{duplicate_id}/permanent-delete",
             json={
                 "expectedLifecycleRevision": 2,
-                "confirmationTitle": FIXED_CHINESE_BRIEF.title,
+                "confirmationTitle": duplicate_body["title"],
             },
         )
         assert deleted.status_code == 204

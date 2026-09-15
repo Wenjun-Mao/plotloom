@@ -228,6 +228,52 @@ def test_profile_view_round_trips_after_public_configuration_edit(tmp_path: Path
     assert response.json()["configuration"]["profileHash"] != current["configuration"]["profileHash"]
 
 
+def test_disabled_profile_remains_selected_but_cannot_be_reactivated(tmp_path: Path) -> None:
+    """Availability is an admission guard, including the active selector route."""
+
+    app = build_runtime_app(_settings(tmp_path), text_provider_resolver=FixtureResolver())
+    with TestClient(app) as client:
+        initial = client.get("/api/v2/text-provider-profiles/default")
+        assert initial.status_code == 200
+        disabled = client.put(
+            "/api/v2/text-provider-profiles/default/availability",
+            json={
+                "expectedAvailabilityRevision": initial.json()["availabilityRevision"],
+                "enabled": False,
+            },
+        )
+        assert disabled.status_code == 200
+        assert disabled.json()["enabled"] is False
+        default_delete = client.delete(
+            "/api/v2/text-provider-profiles/default",
+            params={"expectedRevision": initial.json()["revision"]},
+        )
+        assert default_delete.status_code == 409
+
+        project = client.post(
+            "/api/v2/projects",
+            json={"brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True)},
+        )
+        assert project.status_code == 201
+        rejected_run = client.post(
+            f"/api/v2/projects/{project.json()['id']}/pipeline-runs", json={}
+        )
+        assert rejected_run.status_code == 409
+        assert "disabled" in rejected_run.json()["message"]
+        assert client.get(f"/api/v2/projects/{project.json()['id']}/runs").json()["runs"] == []
+
+        catalog = client.get("/api/v2/text-provider-profiles")
+        assert catalog.status_code == 200
+        assert catalog.json()["activeProfileId"] == "default"
+        refused = client.post(
+            "/api/v2/text-provider-profiles/default/activate",
+            json={"expectedSelectionRevision": catalog.json()["selectionRevision"]},
+        )
+        assert refused.status_code == 409
+        assert "disabled" in refused.json()["message"]
+        assert client.get("/api/v2/text-provider-profiles").json()["activeProfileId"] == "default"
+
+
 def test_profile_delete_is_guarded_across_run_reservation_and_completion(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

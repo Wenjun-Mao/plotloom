@@ -247,9 +247,21 @@ class ApplicationProfileRepository:
     def activate_text_provider_profile(
         self, profile_id: str, expected_selection_revision: int
     ) -> ProviderProfileSelection:
-        self._profile(profile_id)
         now = utc_now()
         with self.store._write() as connection:  # noqa: SLF001 - same storage boundary
+            # Availability and selection must be evaluated by the same
+            # control-plane transaction. Checking a previously read profile
+            # would let a concurrent disable race a successful activation.
+            profile = connection.execute(
+                "SELECT enabled FROM application_text_profile_metadata WHERE profile_id = ?",
+                (profile_id,),
+            ).fetchone()
+            if profile is None:
+                raise NotFoundError(f"text provider profile not found: {profile_id}")
+            if not bool(profile["enabled"]):
+                raise InvalidTransitionError(
+                    "a disabled text provider profile cannot be activated; enable it first"
+                )
             current = connection.execute(
                 "SELECT revision FROM application_text_profile_selection WHERE id = 1"
             ).fetchone()

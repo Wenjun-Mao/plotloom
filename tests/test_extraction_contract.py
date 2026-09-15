@@ -71,6 +71,7 @@ ALLOWED_SERVICE_DIRECTORY = "minimax_h3_gateway"
 IGNORED_WORKTREE_ROOTS = {
     ".env",
     ".git",
+    ".local",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",

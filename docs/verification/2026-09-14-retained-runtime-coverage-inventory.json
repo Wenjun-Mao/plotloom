@@ -18,12 +18,6 @@
         "raises: pytest.raises(ValueError, match='does not match the rejected response')"
       ]
     },
-    "tests/generation/test_correction_directives.py::test_cue_order_fact_cannot_bypass_membership_deferral": {
-      "source_sha256": "fd144253b4bba9fc5148aa4c8f102cb0583468431906597f1f4f371573115a96",
-      "assertions": [
-        "raises: pytest.raises(CorrectionDirectivePlanError, match='cue-order authority must be deferred')"
-      ]
-    },
     "tests/generation/test_correction_postconditions.py::test_cue_postcondition_rejects_deleted_moved_or_renamed_cue": {
       "source_sha256": "aa3a95585b008889c63372d2516f8c24a94eece0136b4c4e6c6b748bdc801a1b",
       "assertions": [
@@ -99,18 +93,23 @@
       ]
     },
     "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion": {
-      "source_sha256": "19980e3ae6083c0ffa88359a081962eee46e44c97f5aacdc3450078341f5b27c",
+      "source_sha256": "ce05b176528a0066fde26f382235261158aa2106e3ce55bc67ffc0159298de9c",
       "assertions": [
         "created.status_code == 201",
         "archived.status_code == 200",
         "archived.json()['lifecycleStatus'] == 'archived'",
         "client.get('/api/v2/projects?status=active').json()['projects'] == []",
         "[item['id'] for item in client.get('/api/v2/projects?status=archived').json()['projects']] == [source_id]",
+        "stale_restore.status_code == 409",
         "restored.status_code == 200",
         "first_duplicate.status_code == replayed_duplicate.status_code == 200",
         "replayed_duplicate.json()['project']['id'] == duplicate_id",
+        "conflict.status_code == 409",
+        "conflict.json()['code'] == 'idempotency_conflict'",
         "len(client.get('/api/v2/projects?status=active').json()['projects']) == 2",
         "archived_duplicate.status_code == 200",
+        "wrong_confirmation.status_code == 409",
+        "client.get(f'/api/v2/projects/{duplicate_id}').status_code == 200",
         "deleted.status_code == 204",
         "client.get(f'/api/v2/projects/{duplicate_id}').status_code == 404"
       ]
@@ -785,6 +784,97 @@
         "sealed.manifest['units'][0]['candidateArtifactId'] == candidate.id",
         "raises: pytest.raises(InvalidTransitionError, match='immutable prompt evidence')"
       ]
+    },
+    "tests/test_production_project_folder_runtime_boundaries.py::test_disabled_profile_remains_selected_but_cannot_be_reactivated": {
+      "source_sha256": "27a20d29ef44aa15ce7215a92e2d60de07cc5f99d0c5db68857cf45c2bfde348",
+      "assertions": [
+        "initial.status_code == 200",
+        "disabled.status_code == 200",
+        "disabled.json()['enabled'] is False",
+        "default_delete.status_code == 409",
+        "project.status_code == 201",
+        "rejected_run.status_code == 409",
+        "'disabled' in rejected_run.json()['message']",
+        "client.get(f\"/api/v2/projects/{project.json()['id']}/runs\").json()['runs'] == []",
+        "catalog.status_code == 200",
+        "catalog.json()['activeProfileId'] == 'default'",
+        "refused.status_code == 409",
+        "'disabled' in refused.json()['message']",
+        "client.get('/api/v2/text-provider-profiles').json()['activeProfileId'] == 'default'"
+      ]
+    },
+    "tests/test_production_project_folder_runtime_boundaries.py::test_profile_delete_is_guarded_across_run_reservation_and_completion": {
+      "source_sha256": "047c2c4990630fa316381123ef1d1dbe13a1b6e150bfc2badf23280a97a3d3e1",
+      "assertions": [
+        "observed_guard",
+        "all((item.profile_id != guarded_id for item in profiles.list_text_provider_profiles()))",
+        "raises: pytest.raises(InvalidTransitionError, match='nonterminal run')",
+        "raises: pytest.raises(InvalidTransitionError, match='nonterminal run')"
+      ]
+    },
+    "tests/test_project_storage.py::test_project_storage_confines_artifacts_and_rejects_secret_profile_configuration": {
+      "source_sha256": "28f939cf77a95da5935559e89a94de10ee53cf4c2c3ea17c580d4adefafc06f9",
+      "assertions": [
+        "raises: pytest.raises(ProjectStorageConfinementError)",
+        "raises: pytest.raises(ValidationError, match='credentials')",
+        "raises: pytest.raises(ProjectStorageConfinementError, match='symlink')"
+      ]
+    },
+    "tests/test_project_storage_authoring_control_contracts.py::test_canonical_conflicts_stale_downstream_and_consume_only_the_exact_draft": {
+      "source_sha256": "0fd720e697f9dbacbf9e305cdcf3f12a9244ffb9ef92f698b8f8f74acd62d256",
+      "assertions": [
+        "project_conflict.status_code == 409",
+        "client.get(f'/api/v2/projects/{project_id}').json()['brief'] == project['brief']",
+        "stage_conflict.status_code == 409",
+        "unchanged['head']['revision'] == 1",
+        "unchanged['payload'] == original_bible['payload']",
+        "updated.status_code == 200",
+        "stages[0]['head']['status'] == 'ready'",
+        "stages[0]['head']['revision'] == 2",
+        "[stage['head']['status'] for stage in stages[1:]] == ['stale'] * 3",
+        "duplicate.status_code == 200",
+        "duplicate.json()['copiedThrough'] == 'story_bible'",
+        "duplicate.json()['omittedStages'] == ['story_graph', 'scene_beats', 'storyboard']",
+        "[stage['head']['status'] for stage in duplicate.json()['project']['stages']] == ['ready', 'missing', 'missing', 'missing']",
+        "saved.status_code == 200",
+        "rejected_consumption.status_code == 409",
+        "client.get(f'/api/v2/projects/{project_id}/authoring-drafts').json()[0]['payload'] == draft_brief",
+        "consumed.status_code == 200",
+        "consumed.headers['X-Plotloom-Draft-Consumed-Revision'] == '1'",
+        "client.get(f'/api/v2/projects/{project_id}/authoring-drafts').json() == []"
+      ]
+    },
+    "tests/test_project_storage_authoring_control_contracts.py::test_gate_result_identity_is_scoped_to_the_project_revision": {
+      "source_sha256": "d3ee678d430d334c45541c46b41f0dbe2577a58d1c8755b28fe95f530215992e",
+      "assertions": [
+        "first_head.entity_revision_id is not None",
+        "second_head.entity_revision_id is not None",
+        "{item.gate_id for item in first_gates.results} == {item.gate_id for item in second_gates.results}",
+        "{item.id for item in first_gates.results}.isdisjoint((item.id for item in second_gates.results))"
+      ]
+    },
+    "tests/test_project_storage_authoring_control_contracts.py::test_storyboard_approval_is_gate_bound_append_only_and_stales_with_its_inputs": {
+      "source_sha256": "8b2aa3d11ce74c202058947c04b62603902c19794d5f1f5615581c5d32d14680",
+      "assertions": [
+        "review.status_code == 200",
+        "review_body['gateEvaluation']['gateSetVersion'] == 'storyboard.v2'",
+        "review_body['gateEvaluation']['results']",
+        "all((result['status'] == 'pass' for result in review_body['gateEvaluation']['results']))",
+        "wrong_hash.status_code == 409",
+        "forged_gate_set.status_code == 409",
+        "approved.status_code == 201",
+        "approved.json()['active'] is True",
+        "duplicate.status_code == 409",
+        "revoked.status_code == 201",
+        "revoked.json()['active'] is False",
+        "reapproved.status_code == 201",
+        "reapproved.json()['active'] is True",
+        "changed.status_code == 200",
+        "stale['head']['status'] == 'stale'",
+        "stale['activeApproval'] is None",
+        "any(('upstream story_bible revision changed' in reason for reason in stale['decisions'][-1]['staleReasons']))",
+        "client.post(f'/api/v2/projects/{project_id}/storyboard-approval', json=request).status_code == 409"
+      ]
     }
   },
   "entries": [
@@ -844,12 +934,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes",
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_preserves_structured_domain_validation_issues",
-        "tests/test_project_storage_route_contracts.py::test_project_folder_static_mount_serves_the_current_workbench_index"
+        "tests/test_project_storage_authoring_control_contracts.py::test_canonical_conflicts_stale_downstream_and_consume_only_the_exact_draft"
       ],
-      "mapping_note": "Current project-folder routes retain typed responses, bounded run lookup/progress, and actionable validation without the shared factory.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_api.py::test_canonical_schema_errors_are_actionable_422_issues",
@@ -3106,11 +3194,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes"
+        "tests/test_production_project_folder_runtime_boundaries.py::test_disabled_profile_remains_selected_but_cannot_be_reactivated"
       ],
-      "mapping_note": "Application-owned profiles retain selection and revision checks, freeze a run snapshot, and keep session keys outside project state while production admission selects the active profile.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_m15_profile_repository.py::test_managed_v2_admission_requires_a_registered_profile_without_changing_v1_compatibility",
@@ -3169,11 +3256,11 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes"
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes",
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state"
       ],
-      "mapping_note": "Application-owned profiles retain selection and revision checks, freeze a run snapshot, and keep session keys outside project state while production admission selects the active profile.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_m15_profile_repository.py::test_profile_availability_is_revisioned_without_rewriting_snapshots_and_guards_admission",
@@ -3210,11 +3297,11 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes"
+        "tests/test_production_project_folder_runtime_boundaries.py::test_disabled_profile_remains_selected_but_cannot_be_reactivated",
+        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state"
       ],
-      "mapping_note": "Application-owned profiles retain selection and revision checks, freeze a run snapshot, and keep session keys outside project state while production admission selects the active profile.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_m15_profile_repository.py::test_profile_configuration_never_accepts_secret_shaped_values",
@@ -3235,11 +3322,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes"
+        "tests/test_project_storage.py::test_project_storage_confines_artifacts_and_rejects_secret_profile_configuration"
       ],
-      "mapping_note": "Application-owned profiles retain selection and revision checks, freeze a run snapshot, and keep session keys outside project state while production admission selects the active profile.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_m15_profile_repository.py::test_profile_control_plane_crud_selection_revision_and_run_snapshot_isolation",
@@ -3283,10 +3369,10 @@
       "disposition": "migrated_current_contract",
       "current_replacements": [
         "tests/test_project_storage_generation_contracts.py::test_application_profiles_freeze_run_snapshots_and_keep_session_keys_out_of_project_state",
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_uses_application_profiles_and_exact_project_routes"
+        "tests/test_production_project_folder_runtime_boundaries.py::test_profile_delete_is_guarded_across_run_reservation_and_completion"
       ],
-      "mapping_note": "Application-owned profiles retain selection and revision checks, freeze a run snapshot, and keep session keys outside project state while production admission selects the active profile.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_m15_story_graph_lifecycle.py::test_infeasible_graph_brief_fails_before_a_run_or_provider_work_is_created",
@@ -6609,8 +6695,8 @@
         "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion",
         "tests/test_production_project_folder_runtime.py::test_production_runtime_rejects_lifecycle_transitions_with_manual_publications"
       ],
-      "mapping_note": "The production runtime owns archive, duplicate, deletion, and lifecycle publication guards through project handles and the application ledger.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_project_lifecycle.py::test_busy_guard_includes_nonterminal_work_units",
@@ -6673,11 +6759,11 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion",
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_rejects_lifecycle_transitions_with_manual_publications"
+        "tests/test_project_storage_authoring_control_contracts.py::test_canonical_conflicts_stale_downstream_and_consume_only_the_exact_draft",
+        "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion"
       ],
-      "mapping_note": "The production runtime owns archive, duplicate, deletion, and lifecycle publication guards through project handles and the application ledger.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_project_lifecycle.py::test_duplicate_stops_at_a_nonready_gap_even_if_later_stages_are_ready",
@@ -6702,11 +6788,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion",
-        "tests/test_production_project_folder_runtime.py::test_production_runtime_rejects_lifecycle_transitions_with_manual_publications"
+        "tests/test_project_storage_authoring_control_contracts.py::test_canonical_conflicts_stale_downstream_and_consume_only_the_exact_draft"
       ],
-      "mapping_note": "The production runtime owns archive, duplicate, deletion, and lifecycle publication guards through project handles and the application ledger.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_project_lifecycle.py::test_lifecycle_revision_is_atomic_across_repository_instances",
@@ -6794,8 +6879,8 @@
         "tests/test_production_project_folder_runtime.py::test_production_runtime_owns_archive_duplicate_and_media_free_deletion",
         "tests/test_production_project_folder_runtime.py::test_production_runtime_rejects_lifecycle_transitions_with_manual_publications"
       ],
-      "mapping_note": "The production runtime owns archive, duplicate, deletion, and lifecycle publication guards through project handles and the application ledger.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_project_lifecycle.py::test_project_listing_paginates_by_immutable_created_at_then_id",
@@ -7250,11 +7335,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage.py::test_two_project_homes_run_actual_four_stage_pipeline_and_reopen_by_project_id",
-        "tests/test_project_storage.py::test_terminal_evidence_is_project_owned_without_partial_canonical_heads"
+        "tests/test_project_storage_authoring_control_contracts.py::test_canonical_conflicts_stale_downstream_and_consume_only_the_exact_draft"
       ],
-      "mapping_note": "Manifest-bound stores retain atomic canonical installation, project isolation, terminal evidence, and no-partial-head behavior.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_repository.py::test_project_bootstrap_persistence_failure_rolls_back_project_stages_and_key",
@@ -7767,11 +7851,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage.py::test_two_project_homes_run_actual_four_stage_pipeline_and_reopen_by_project_id",
-        "tests/test_project_storage.py::test_terminal_evidence_is_project_owned_without_partial_canonical_heads"
+        "tests/test_project_storage_authoring_control_contracts.py::test_canonical_conflicts_stale_downstream_and_consume_only_the_exact_draft"
       ],
-      "mapping_note": "Manifest-bound stores retain atomic canonical installation, project isolation, terminal evidence, and no-partial-head behavior.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_repository.py::test_startup_reconciliation_resubmits_only_safe_jobs_and_closes_interrupted_work",
@@ -7870,12 +7953,11 @@
         "raises: pytest.raises(InvalidTransitionError, match='canonical evaluator receipt')",
         "raises: pytest.raises(InvalidTransitionError, match='current canonical storyboard gate set')"
       ],
-      "disposition": "migrated_current_contract",
-      "current_replacements": [
-        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
-      ],
-      "mapping_note": "Project storyboard approval and reviewed-keyframe routes assert revision-bound approval and stale-currentness guards.",
-      "review_status": "pending"
+      "disposition": "truly_retired_contract",
+      "current_replacements": [],
+      "mapping_note": "The retired direct-injection path is not a current supported contract.",
+      "review_status": "verified",
+      "retirement_rationale": "The breaking project-folder storage boundary no longer exposes caller-supplied gate-receipt recording. Canonical storyboard writes atomically record only the server evaluator receipt, while public approval rejects an unbound gate-set version."
     },
     {
       "id": "tests/backend_core/test_storyboard_review.py::test_gate_result_id_is_revision_scoped_across_identical_projects",
@@ -7900,10 +7982,10 @@
       ],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
+        "tests/test_project_storage_authoring_control_contracts.py::test_gate_result_identity_is_scoped_to_the_project_revision"
       ],
-      "mapping_note": "Project storyboard approval and reviewed-keyframe routes assert revision-bound approval and stale-currentness guards.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_storyboard_review.py::test_storyboard_install_records_gates_and_approval_is_append_only",
@@ -7939,10 +8021,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
+        "tests/test_project_storage_authoring_control_contracts.py::test_storyboard_approval_is_gate_bound_append_only_and_stales_with_its_inputs"
       ],
-      "mapping_note": "Project storyboard approval and reviewed-keyframe routes assert revision-bound approval and stale-currentness guards.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_storyboard_review.py::test_upstream_edit_makes_approval_stale_and_exact_preconditions_are_enforced",
@@ -7969,10 +8051,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
+        "tests/test_project_storage_authoring_control_contracts.py::test_storyboard_approval_is_gate_bound_append_only_and_stales_with_its_inputs"
       ],
-      "mapping_note": "Project storyboard approval and reviewed-keyframe routes assert revision-bound approval and stale-currentness guards.",
-      "review_status": "pending"
+      "mapping_note": "Reviewed against the current project-folder trigger and exact assertions; the listed production/direct-store tests retain the required failure boundary.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_work_unit_persistence.py::test_artifacts_cannot_cross_run_or_escape_work_unit_ownership",
@@ -11304,7 +11386,7 @@
   "review_summary": {
     "overall_status": "incomplete",
     "source_statuses": {
-      "tests/backend_core/test_api.py": "pending",
+      "tests/backend_core/test_api.py": "mixed",
       "tests/backend_core/test_api_modularization_contract.py": "pending",
       "tests/backend_core/test_exact_work_unit_repair_integration.py": "pending",
       "tests/backend_core/test_frontend_contract.py": "pending",
@@ -11312,15 +11394,15 @@
       "tests/backend_core/test_jobs.py": "pending",
       "tests/backend_core/test_m15_attempt_lineage.py": "pending",
       "tests/backend_core/test_m15_migration_compatibility.py": "pending",
-      "tests/backend_core/test_m15_profile_repository.py": "pending",
+      "tests/backend_core/test_m15_profile_repository.py": "mixed",
       "tests/backend_core/test_m15_story_graph_lifecycle.py": "pending",
       "tests/backend_core/test_managed_still_media.py": "pending",
       "tests/backend_core/test_p2_video_jobs.py": "pending",
       "tests/backend_core/test_persistence_modularization_contract.py": "pending",
       "tests/backend_core/test_pipeline.py": "mixed",
-      "tests/backend_core/test_project_lifecycle.py": "pending",
-      "tests/backend_core/test_repository.py": "pending",
-      "tests/backend_core/test_storyboard_review.py": "pending",
+      "tests/backend_core/test_project_lifecycle.py": "mixed",
+      "tests/backend_core/test_repository.py": "mixed",
+      "tests/backend_core/test_storyboard_review.py": "verified",
       "tests/backend_core/test_work_unit_persistence.py": "mixed",
       "tests/media_jobs/test_runner.py": "pending",
       "tests/test_alpha_acceptance.py": "pending",

@@ -38,6 +38,11 @@ also configuration facts, not runtime readiness evidence.
   resolver behavior remain historical authority; they are neither migrated nor
   re-hashed. Existing mutable profile records may gain the default registry
   selection without a configuration-revision bump.
+- A disabled profile may remain visible as the current selection so its
+  operator can diagnose or re-enable it, but it cannot be newly activated or
+  admitted for a run. The availability check and selection CAS occur in one
+  application-control transaction, so a concurrent disable cannot create a
+  new active-selection revision for an unavailable profile.
 - Before a new pipeline, rebuild, or repair is persisted, an adapter may run
   its cheapest supported non-generative preflight. Only definite transport,
   authentication, model, or declared-capability failures reject admission.
@@ -51,8 +56,9 @@ The UI names both planes, the selected profile, observation time, reason code,
 and remediation. Generation failures may update an ephemeral observation but
 never rewrite a run's immutable outcome evidence. `authMode=none` resolves no
 key and emits no authorization header. Tests preserve historical snapshot
-bytes/hashes and prove a definite preflight failure creates no run. The live
-default-backend retry remains an operator-triggered, explicitly pending gate.
+bytes/hashes, reject disabled-profile activation without changing selection,
+and prove a definite preflight failure creates no run. The live default-backend
+retry remains an operator-triggered, explicitly pending gate.
 
 ## Rejected alternatives
 
