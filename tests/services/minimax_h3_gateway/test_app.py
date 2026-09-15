@@ -46,6 +46,19 @@ class _ComfySession:
         return _Response({"prompt_id": f"comfy-{len(self.submissions)}"})
 
 
+class _UncertainSubmitSession(_ComfySession):
+    """Model a transport loss after an outbound Comfy submission attempt."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.submit_attempts = 0
+
+    def post(self, url: str, *, json: dict[str, Any], **_: object) -> _Response:
+        assert url.endswith("/prompt")
+        self.submit_attempts += 1
+        raise requests.RequestException("offline fixture lost the submission response")
+
+
 def _object_info() -> dict[str, object]:
     result: dict[str, object] = {
         "MiniMaxH3ImageToVideo": {"input": {"optional": {"first_frame": ["IMAGE"], "last_frame": ["IMAGE"]}}},
@@ -186,3 +199,111 @@ def test_legacy_job_migration_keeps_a_readable_start_binding(tmp_path: Path) -> 
     job = store.get_job("h3_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
     assert job["input_mode"] == "image" and job["frame_count"] == 124
     assert store.get_job_frames(job["id"])[0]["role"] == "start"
+
+
+def test_gateway_fifo_dispatch_skips_cancelled_jobs_and_never_overtakes_active_work(
+    tmp_path: Path,
+) -> None:
+    client, session = _client(tmp_path)
+    first = _submit_image(client, seed=1)
+    cancelled = _submit_image(client, seed=2)
+    last = _submit_image(client, seed=3)
+
+    cancellation = client.post(f"/v1/video-jobs/{cancelled['id']}/cancel", headers=AUTH)
+    assert cancellation.status_code == 200
+    assert cancellation.json()["status"] == "cancelled"
+    assert cancellation.json()["error"] == "cancelled_while_queued"
+
+    gateway = client.app.state.gateway
+    submitted = gateway.dispatch_once()
+    assert submitted is not None and submitted["id"] == first["id"]
+    assert [item["client_id"] for item in session.submissions] == [first["id"]]
+    assert gateway.dispatch_once() is None
+    assert [item["client_id"] for item in session.submissions] == [first["id"]]
+
+    session.history["comfy-1"] = {
+        "status": {"status_str": "success", "completed": True},
+        "outputs": {"92": {"images": [{"filename": "first.mp4", "subfolder": "video", "type": "output"}]}},
+    }
+    source = tmp_path / "output" / "video" / "first.mp4"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"first-completed-fixture")
+    next_submitted = gateway.dispatch_once()
+    assert next_submitted is not None and next_submitted["id"] == last["id"]
+    assert [item["client_id"] for item in session.submissions] == [first["id"], last["id"]]
+
+
+def test_gateway_restart_and_uncertain_submit_never_replay_claimed_work(tmp_path: Path) -> None:
+    client, _session = _client(tmp_path)
+    interrupted = _submit_image(client, seed=4)
+    waiting = _submit_image(client, seed=5)
+    assert client.app.state.gateway.store.claim_next_queued()["id"] == interrupted["id"]
+    client.close()
+
+    resumed_session = _ComfySession()
+    settings = GatewaySettings(
+        api_key="test-key",
+        data_dir=tmp_path / "data",
+        comfy_input_dir=tmp_path / "input",
+        comfy_output_dir=tmp_path / "output",
+        dispatch_worker_enabled=False,
+    )
+    resumed = TestClient(create_app(settings, session=resumed_session))
+    recovered = resumed.get(f"/v1/video-jobs/{interrupted['id']}", headers=AUTH)
+    assert recovered.json()["status"] == "outcome_unknown"
+    assert recovered.json()["error"] == "gateway_restart_before_known_submission"
+    next_submitted = resumed.app.state.gateway.dispatch_once()
+    assert next_submitted is not None and next_submitted["id"] == waiting["id"]
+    assert [item["client_id"] for item in resumed_session.submissions] == [waiting["id"]]
+
+    uncertain_session = _UncertainSubmitSession()
+    uncertain_settings = GatewaySettings(
+        api_key="test-key",
+        data_dir=tmp_path / "uncertain-data",
+        comfy_input_dir=tmp_path / "uncertain-input",
+        comfy_output_dir=tmp_path / "uncertain-output",
+        dispatch_worker_enabled=False,
+    )
+    uncertain = TestClient(create_app(uncertain_settings, session=uncertain_session))
+    unknown = _submit_image(uncertain, seed=6)
+    result = uncertain.app.state.gateway.dispatch_once()
+    assert result is not None and result["status"] == "outcome_unknown"
+    assert result["error_code"] == "submit_outcome_unknown"
+    assert uncertain_session.submit_attempts == 1
+    assert uncertain.app.state.gateway.dispatch_once() is None
+    assert uncertain_session.submit_attempts == 1
+
+
+def test_gateway_expired_output_cleanup_preserves_unrelated_files_and_never_regenerates(
+    tmp_path: Path,
+) -> None:
+    client, session = _client(tmp_path)
+    job = _submit_image(client, seed=7)
+    assert client.app.state.gateway.dispatch_once()["status"] == "submitted"
+    session.history["comfy-1"] = {
+        "status": {"status_str": "success", "completed": True},
+        "outputs": {"92": {"images": [{"filename": "retained.mp4", "subfolder": "video", "type": "output"}]}},
+    }
+    source = tmp_path / "output" / "video" / "retained.mp4"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"managed-output-fixture")
+    completed = client.get(f"/v1/video-jobs/{job['id']}", headers=AUTH)
+    assert completed.json()["status"] == "succeeded"
+    stored = client.app.state.gateway.store.get_job(job["id"])
+    managed = tmp_path / "data" / "outputs" / str(stored["managed_output_name"])
+    unrelated = tmp_path / "data" / "outputs" / "unrelated.mp4"
+    assert managed.is_file()
+    unrelated.write_bytes(b"must-survive")
+    with client.app.state.gateway.store._connect() as connection:
+        connection.execute(
+            "UPDATE jobs SET output_expires_at = datetime('now', '-1 second') WHERE id = ?",
+            (job["id"],),
+        )
+
+    assert client.app.state.gateway.cleanup_expired_outputs() == 1
+    assert not managed.exists()
+    assert unrelated.read_bytes() == b"must-survive"
+    expired = client.get(f"/v1/video-jobs/{job['id']}/output", headers=AUTH)
+    assert expired.status_code == 410
+    assert expired.json() == {"error": "gateway_output_expired"}
+    assert len(session.submissions) == 1

@@ -583,6 +583,19 @@
         "stored == []"
       ]
     },
+    "tests/test_project_storage_image_delivery_contracts.py::test_copied_image_package_rejects_tampered_frozen_snapshot_before_admission": {
+      "source_sha256": "24fba4557fb20eff9d8803a6ec2f9b443b0cdf7db369cd834c75fdfcba5faa45",
+      "assertions": [
+        "copied.status_code == 200",
+        "package_request['requestHash'] == job['requestHash']",
+        "package_request['frozenSnapshot'] == job['request']['frozenSnapshot']",
+        "package_request['references'] == []",
+        "rejected.status_code == 409",
+        "rejected.json()['code'] == 'package_conflict'",
+        "listed[0]['deliveries'][0]['state'] == 'rejected'",
+        "listed[0]['deliveries'][0]['candidates'] == []"
+      ]
+    },
     "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_refresh_is_concurrently_idempotent_at_the_project_owner": {
       "source_sha256": "83fba7a3e210465041fe00067254128d4d5adeedfb7397b4953d0bf568f4c066",
       "assertions": [
@@ -765,6 +778,39 @@
         "not {'v2_video_pilot_ledger', 'v2_video_pilot_ledger_events'}.intersection((name for name, in _sqlite_rows(storage.application.path, \"SELECT name FROM sqlite_master WHERE type = 'table'\")))",
         "_sqlite_rows(storage.application.path, 'SELECT state FROM direct_video_dispatch_leases WHERE dispatch_identity = ?', (dispatch_identity,)) == [('dispatch_claimed',)]",
         "opened.media.direct_video.list_video_jobs(project_id)[0]['state'] == 'dispatching'"
+      ]
+    },
+    "tests/test_project_storage_video.py::test_h3_uncertain_submit_is_terminal_and_never_replays_the_post": {
+      "source_sha256": "a0cd0da7327725eb1945ecff1bd681ec833b964a59e80e3ba17dcc9ad476f25c",
+      "assertions": [
+        "unknown.status_code == 200",
+        "unknown.json()['state'] == 'outcome_unknown'",
+        "retry.status_code == 409",
+        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1"
+      ]
+    },
+    "tests/test_project_storage_video.py::test_reviewed_video_selection_stales_when_its_identity_reference_is_replaced": {
+      "source_sha256": "ab8ae05132166628a4452cab475872283b9244249ba4125ff60ab4856398dedd",
+      "assertions": [
+        "client.post(f\"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit\").json()['state'] == 'submitted'",
+        "client.post(f\"/api/v2/projects/{project_id}/video-jobs/{job['id']}/reconcile\").json()['state'] == 'ingested'",
+        "selected.status_code == 201",
+        "before_replacement[0]['selected'] is True",
+        "before_replacement[0]['current'] is True",
+        "replacement['referenceRevision'] == 2",
+        "len(jobs) == 1",
+        "jobs[0]['id'] == job['id']",
+        "jobs[0]['selected'] is False and jobs[0]['current'] is False",
+        "retry.status_code == 409",
+        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1"
+      ]
+    },
+    "tests/test_project_storage_video.py::test_stale_identity_reference_blocks_initial_h3_submit_without_provider_call": {
+      "source_sha256": "a0984ff7a334ff1f3b5f61f19621380e2293ab8c4b6b26ec8bf1c48f5f252ba2",
+      "assertions": [
+        "replacement['referenceRevision'] == 2",
+        "blocked.status_code == 409",
+        "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0"
       ]
     },
     "tests/test_project_storage_work_unit_contracts.py::test_project_work_unit_cancellation_blocks_dispatch_and_sealing_without_rewriting_evidence": {
@@ -2462,7 +2508,7 @@
         "tests/test_project_storage_image_delivery_contracts.py::test_cancelled_image_job_records_late_delivery_without_publishing_a_candidate"
       ],
       "mapping_note": "Current project-folder owner preserves the recorded baseline trigger and assertion boundary; exact assertions are stored in the replacement catalog.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_image_jobs.py::test_center_crop_is_source_bound_and_never_auto_selects_a_reviewed_keyframe",
@@ -2727,7 +2773,7 @@
       "current_replacements": [
         "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_cross_project_and_symlinked_browser_output_paths"
       ],
-      "mapping_note": "Current project-folder owner preserves the recorded baseline trigger and assertion boundary; exact assertions are stored in the replacement catalog.",
+      "mapping_note": "The reviewed project-folder test covers cross-project and symlinked browser paths, but not the baseline's rejected path-authority or forged-approval assertions.",
       "review_status": "pending"
     },
     {
@@ -2784,7 +2830,7 @@
         "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_partial_and_hash_tamper_before_candidate_publication",
         "tests/test_project_storage_image_delivery_contracts.py::test_image_delivery_rejects_conflicting_or_second_final_delivery"
       ],
-      "mapping_note": "Current project-folder owner preserves the recorded baseline trigger and assertion boundary; exact assertions are stored in the replacement catalog.",
+      "mapping_note": "The reviewed project-folder tests cover partial, hash-tamper, conflict, and second-final rejection, but not the baseline's missing tool-evidence assertion.",
       "review_status": "pending"
     },
     {
@@ -2871,7 +2917,7 @@
         "tests/test_project_storage_image_delivery_contracts.py::test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source"
       ],
       "mapping_note": "Current project-folder owner preserves the recorded baseline trigger and assertion boundary; exact assertions are stored in the replacement catalog.",
-      "review_status": "pending"
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_image_jobs.py::test_legacy_v1_package_remains_recheckable_without_a_template",
@@ -2893,9 +2939,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
+        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement",
+        "tests/test_project_storage_image_delivery_contracts.py::test_copied_image_package_rejects_tampered_frozen_snapshot_before_admission"
       ],
-      "mapping_note": "Project-owned image route coverage asserts delivery hashes, authority, intent currentness, review, and cross-project isolation without a shared exchange database.",
+      "mapping_note": "The project-owned workflow and frozen-snapshot tamper check are reviewed, but neither proves the baseline V1 package's exact no-template file set.",
       "review_status": "pending"
     },
     {
@@ -2987,10 +3034,11 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement"
+        "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement",
+        "tests/test_project_storage_image_delivery_contracts.py::test_copied_image_package_rejects_tampered_frozen_snapshot_before_admission"
       ],
-      "mapping_note": "Project-owned image route coverage asserts delivery hashes, authority, intent currentness, review, and cross-project isolation without a shared exchange database.",
-      "review_status": "pending"
+      "mapping_note": "The project-owned workflow retains the prepare/copy/refresh/refine path; the focused package test proves its copied frozen snapshot and empty reference binding cannot be changed before admission.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_image_jobs.py::test_v3_maps_two_visible_characters_and_excludes_offscreen_context",
@@ -3982,8 +4030,8 @@
         "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
         "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
-      "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
-      "review_status": "pending"
+      "mapping_note": "The direct project H3 owner freezes its V4 adapter/backend binding before durable claim, records only local-capacity zero-unit accounting, and proves no retained Wan ledger is created.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_p2_video_jobs.py::test_h3_fastapi_path_freezes_gateway_contract_and_never_charges_wan_budget",
@@ -4019,8 +4067,8 @@
         "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
         "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
-      "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
-      "review_status": "pending"
+      "mapping_note": "The direct project H3 owner freezes its V4 adapter/backend binding before durable claim, records only local-capacity zero-unit accounting, and proves no retained Wan ledger is created.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_p2_video_jobs.py::test_h3_known_gateway_outcome_unknown_is_never_replayed",
@@ -4044,11 +4092,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video.py::test_h3_uncertain_submit_is_terminal_and_never_replays_the_post"
       ],
-      "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
-      "review_status": "pending"
+      "mapping_note": "The direct project H3 owner records the lost-response post as outcome_unknown, refuses a second submit, and proves exactly one provider attempt.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_p2_video_jobs.py::test_h3_refuses_a_mismatched_keyframe_before_creating_a_job_or_submitting",
@@ -4142,11 +4189,10 @@
       "forbidden_results": [],
       "disposition": "migrated_current_contract",
       "current_replacements": [
-        "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
-        "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
+        "tests/test_project_storage_video.py::test_stale_identity_reference_blocks_initial_h3_submit_without_provider_call"
       ],
-      "mapping_note": "The direct project video owner proves atomic application claims, dispatch ordering, unknown outcomes, non-replay, and currentness.",
-      "review_status": "pending"
+      "mapping_note": "The current project owner prepares a job under the original selected identity, replaces that identity before its first submit, then rejects the submit with zero provider calls.",
+      "review_status": "verified"
     },
     {
       "id": "tests/backend_core/test_p2_video_jobs.py::test_known_remote_failure_is_terminal_and_cancelled_known_id_is_polled_not_adopted",
@@ -11643,14 +11689,14 @@
       "tests/backend_core/test_api_modularization_contract.py": "pending",
       "tests/backend_core/test_exact_work_unit_repair_integration.py": "verified",
       "tests/backend_core/test_frontend_contract.py": "pending",
-      "tests/backend_core/test_image_jobs.py": "pending",
+      "tests/backend_core/test_image_jobs.py": "mixed",
       "tests/backend_core/test_jobs.py": "pending",
       "tests/backend_core/test_m15_attempt_lineage.py": "verified",
       "tests/backend_core/test_m15_migration_compatibility.py": "pending",
       "tests/backend_core/test_m15_profile_repository.py": "mixed",
       "tests/backend_core/test_m15_story_graph_lifecycle.py": "pending",
       "tests/backend_core/test_managed_still_media.py": "pending",
-      "tests/backend_core/test_p2_video_jobs.py": "pending",
+      "tests/backend_core/test_p2_video_jobs.py": "mixed",
       "tests/backend_core/test_persistence_modularization_contract.py": "pending",
       "tests/backend_core/test_pipeline.py": "mixed",
       "tests/backend_core/test_project_lifecycle.py": "mixed",

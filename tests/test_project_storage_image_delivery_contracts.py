@@ -149,6 +149,35 @@ def test_image_delivery_rejects_partial_and_hash_tamper_before_candidate_publica
         client.close()
 
 
+def test_copied_image_package_rejects_tampered_frozen_snapshot_before_admission(
+    tmp_path: Path,
+) -> None:
+    client, project_id, job, _delivery = _ready_exported_job(tmp_path)
+    try:
+        copied = client.post(
+            f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/copy"
+        )
+        assert copied.status_code == 200, copied.text
+        request_path = Path(copied.json()["packagePath"]) / "request.json"
+        package_request = json.loads(request_path.read_text(encoding="utf-8"))
+        assert package_request["requestHash"] == job["requestHash"]
+        assert package_request["frozenSnapshot"] == job["request"]["frozenSnapshot"]
+        assert package_request["references"] == []
+
+        package_request["frozenSnapshot"]["shot"]["action"] = "tampered browser direction"
+        request_path.write_text(json.dumps(package_request), encoding="utf-8")
+        rejected = client.post(
+            f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh"
+        )
+        assert rejected.status_code == 409
+        assert rejected.json()["code"] == "package_conflict"
+        listed = client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"]
+        assert listed[0]["deliveries"][0]["state"] == "rejected"
+        assert listed[0]["deliveries"][0]["candidates"] == []
+    finally:
+        client.close()
+
+
 def test_image_delivery_rejects_malformed_bytes_before_candidate_publication(
     tmp_path: Path,
 ) -> None:

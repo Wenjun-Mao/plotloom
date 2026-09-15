@@ -16,10 +16,11 @@ from PIL import Image
 import pytest
 
 from plotloom.api import create_project_folder_authoring_app
+from plotloom.canonical_schema import CharacterV2
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
 from plotloom.project_generation_storage import ProjectPipelineExecutor
-from plotloom.project_storage import ProjectFolderStorage
+from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 from plotloom.project_storage import ProjectStorageConflictError, ProjectStorageError
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from plotloom.video_ingestion import ObservedVideo
@@ -39,6 +40,7 @@ class FakeH3:
         self.upload_calls = 0
         self.poll_calls = 0
         self.before_preflight: Callable[[], None] | None = None
+        self.submit_error: Exception | None = None
         self._endpoint = endpoint
 
     def configured_backend_identity(self) -> VideoBackendInstanceIdentity:
@@ -56,6 +58,8 @@ class FakeH3:
         assert image and mime_type == "image/png" and payload["durationSeconds"] == 5
         self.upload_calls += 1
         self.submits.append(payload)
+        if self.submit_error is not None:
+            raise self.submit_error
         return _h3_job("submitted", False, payload["profileId"], payload["aspectPolicy"])
 
     def poll(self, prediction_id: str) -> dict:
@@ -98,6 +102,65 @@ def _fixture_app(
                 5.167, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124
             ),
         )
+    )
+
+
+def _install_visible_fixture_character(store: ProjectStore) -> None:
+    """Keep the identity-currentness test on an internally consistent story."""
+
+    project_id = store.manifest.project_id
+    bible = store.authoring.get_stage_payload(project_id, StageName.STORY_BIBLE)
+    hero = CharacterV2(
+        id="fixture-hero",
+        name="Fixture hero",
+        description="A deterministic identity-reference fixture.",
+        visual_anchors=["red coat"],
+        sound_anchors=[],
+        allowed_states=["alert"],
+        continuity_rules=["The red coat remains visible."],
+        role="lead",
+        goal="Keep the fixture coherent.",
+        traits=["steady"],
+        voice_anchors=[],
+    )
+    store.update_stage(
+        StageName.STORY_BIBLE,
+        bible.model_copy(update={"characters": [hero]}),
+        expected_revision=store.authoring.get_stage_head(project_id, StageName.STORY_BIBLE).revision,
+    )
+    graph = store.authoring.get_stage_payload(project_id, StageName.STORY_GRAPH)
+    store.update_stage(
+        StageName.STORY_GRAPH,
+        graph,
+        expected_revision=store.authoring.get_stage_head(project_id, StageName.STORY_GRAPH).revision,
+    )
+    plan = store.authoring.get_stage_payload(project_id, StageName.SCENE_BEATS)
+    plan = plan.model_copy(
+        update={
+            "scenes": [
+                scene.model_copy(update={"character_ids": [hero.id]})
+                for scene in plan.scenes
+            ]
+        }
+    )
+    store.update_stage(
+        StageName.SCENE_BEATS,
+        plan,
+        expected_revision=store.authoring.get_stage_head(project_id, StageName.SCENE_BEATS).revision,
+    )
+    storyboard = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
+    storyboard = storyboard.model_copy(
+        update={
+            "shots": [
+                shot.model_copy(update={"character_ids": [hero.id]})
+                for shot in storyboard.shots
+            ]
+        }
+    )
+    store.update_stage(
+        StageName.STORYBOARD,
+        storyboard,
+        expected_revision=store.authoring.get_stage_head(project_id, StageName.STORYBOARD).revision,
     )
 
 
@@ -191,6 +254,30 @@ def _prepare_video(
     )
     assert prepared.status_code == 201, prepared.text
     return prepared.json()
+
+
+def _select_character_reference(
+    client: TestClient,
+    project_id: str,
+    context: dict,
+    *,
+    asset_id: str,
+    expected_revision: int,
+    note: str,
+) -> dict:
+    response = client.post(
+        f"/api/v2/projects/{project_id}/character-references",
+        json={
+            "characterId": context["shot"].character_ids[0],
+            "primaryAssetId": asset_id,
+            "complementaryAssetIds": [],
+            "expectedReferenceRevision": expected_revision,
+            "reviewer": "project-video fixture",
+            "notes": note,
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
 def _sqlite_rows(path: Path, statement: str, parameters: tuple[object, ...] = ()) -> list[tuple]:
@@ -444,6 +531,31 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
     assert no_replay.post(
         f"/api/v2/projects/{unknown_project_id}/video-jobs/{unknown_job['id']}/reconcile"
     ).status_code == 409
+
+
+def test_h3_uncertain_submit_is_terminal_and_never_replays_the_post(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3()
+    provider.submit_error = OSError("offline fixture lost the post response")
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+    prepared = _prepare_video(client, project_id, approval, context, key="uncertain-submit")
+
+    unknown = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{prepared['id']}/submit"
+    )
+    assert unknown.status_code == 200
+    assert unknown.json()["state"] == "outcome_unknown"
+    retry = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{prepared['id']}/submit"
+    )
+    assert retry.status_code == 409
+    assert provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1
 
 
 def test_backend_instance_binding_blocks_preflight_and_restored_reconcile(
@@ -700,3 +812,106 @@ def test_direct_prepare_rejects_missing_or_spoofed_backend_contract_before_reser
     assert paid_client.get(f"/api/v2/projects/{paid_project}/video-jobs").json()["jobs"] == []
     assert paid_storage.application.video_accounting_budget()["configured"] is False
     assert paid_provider.preflight_calls == paid_provider.upload_calls == 0
+
+
+def test_reviewed_video_selection_stales_when_its_identity_reference_is_replaced(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    _install_visible_fixture_character(store)
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+    first_reference = _select_character_reference(
+        client,
+        project_id,
+        context,
+        asset_id=context["selection"]["assetId"],
+        expected_revision=0,
+        note="The reviewed keyframe establishes the fixture identity.",
+    )
+    job = _prepare_video(client, project_id, approval, context, key="identity-currentness")
+    assert client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit"
+    ).json()["state"] == "submitted"
+    assert client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/reconcile"
+    ).json()["state"] == "ingested"
+    selected = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/review",
+        json={
+            "reviewer": "project-video fixture",
+            "decision": "select",
+            "note": "The local fixture is explicitly reviewed before it is used.",
+        },
+    )
+    assert selected.status_code == 201, selected.text
+    before_replacement = client.get(
+        f"/api/v2/projects/{project_id}/video-jobs"
+    ).json()["jobs"]
+    assert before_replacement[0]["selected"] is True
+    assert before_replacement[0]["current"] is True
+
+    replacement = _select_character_reference(
+        client,
+        project_id,
+        context,
+        asset_id=context["selection"]["assetId"],
+        expected_revision=first_reference["stateRevision"],
+        note="The creator explicitly replaces the identity reference.",
+    )
+    assert replacement["referenceRevision"] == 2
+    jobs = client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]
+    assert len(jobs) == 1
+    assert jobs[0]["id"] == job["id"]
+    assert jobs[0]["selected"] is False and jobs[0]["current"] is False
+    retry = client.post(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit")
+    assert retry.status_code == 409
+    assert provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1
+
+
+def test_stale_identity_reference_blocks_initial_h3_submit_without_provider_call(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    _install_visible_fixture_character(store)
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+    first_reference = _select_character_reference(
+        client,
+        project_id,
+        context,
+        asset_id=context["selection"]["assetId"],
+        expected_revision=0,
+        note="The prepared video binds the initial identity reference.",
+    )
+    prepared = _prepare_video(
+        client,
+        project_id,
+        approval,
+        context,
+        key="identity-stale-before-submit",
+    )
+    replacement = _select_character_reference(
+        client,
+        project_id,
+        context,
+        asset_id=context["selection"]["assetId"],
+        expected_revision=first_reference["stateRevision"],
+        note="The creator replaces the reference before the video is submitted.",
+    )
+    assert replacement["referenceRevision"] == 2
+
+    blocked = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{prepared['id']}/submit"
+    )
+
+    assert blocked.status_code == 409
+    assert provider.preflight_calls == provider.upload_calls == len(provider.submits) == 0
