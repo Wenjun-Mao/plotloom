@@ -49,3 +49,9 @@ existing source-only deployment directory.
 were no non-terminal jobs using the retired profile. A post-deployment active
 job, if any, was verified to use a current catalog profile; no new H3 job was
 submitted for this verification.
+
+An authenticated, source-only rejection probe against the deployed gateway
+sent the retired profile ID with a deliberately unreachable image URL. It
+returned `422 {"error":"profile_not_supported"}` before any URL fetch or job
+creation, confirming that the production boundary has no retired-profile
+fallback.
