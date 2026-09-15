@@ -126,3 +126,90 @@ Step 4 remains partial. A later, separately authorized continuation must retain
 the incompatible adaptation evidence and reassess the provider's ability to
 honor the exact frozen geometry before attempting any new image request. It
 must not replay the same delivery or dispatch H3 from the mismatched still.
+
+## Gateway-crop continuation — two clips ingested, audiovisual review unavailable
+
+Captured 2026-09-15 from the approved continuation at source revision
+`6fd7589da181def0b7af888cea03481dc1503e60`. This section supersedes only the
+previous no-dispatch/count disposition. It remains a secret-free operational
+receipt, not Step 4 completion, human/product acceptance, audiovisual
+acceptance, Alpha qualification, or release evidence.
+
+The retained project `fef96fc8-86f8-4132-91bd-32d58f5bb504` alone was opened
+through the normal project-folder runtime. The old project
+`ae4595cf-2bcc-480a-839b-af3a8901240c` was not opened or changed; no text was
+regenerated; no source, runtime configuration, deployment, or provider setting
+was changed. The H3 backend was live with the reviewed Portrait Fast profile
+(`576×1024`, five seconds, native audio, adapter version 4).
+
+### First clip: retained reviewed opening and explicit crop
+
+- The original opening asset `18cc2a22-cd73-44e5-b132-83599ac04508` remained
+  byte-identical at SHA-256
+  `7789a5fbcaaf2aec2bebc9740c95e41dd20e42486e53539db54ef15757c7a8f5`.
+- The normal video-prepare route froze current reviewed binding
+  `7050bb33-4c65-4cc1-8b54-77b6e2f7d474`, the selected identity decision and
+  its prior same-person review, the original source hash, and explicit
+  `allowCenterCrop: true` / `cover_center_crop` under the Portrait Fast profile.
+  The gateway, not Plotloom, owns that centered crop; no local derivative or
+  replacement ImageGen sizing request was created.
+- One submit only created Plotloom job `vj_86676092a8e84516922f650838c752e0`
+  and gateway job `h3_f8bd16540b394e0a8303615f5d7a1265`. Reconciliation ingested
+  output SHA-256 `1e95ed45f20f6287f6686a246f1e0164db6dd549d87472e30b1437cbd6302dc6`.
+  The trusted probe observed `5.167` seconds, `576×1024`, H.264, AAC, 24 fps,
+  and 124 frames. The candidate remains unselected.
+
+### Adjoining still and second clip
+
+- The single remaining ImageGen allowance produced original job
+  `ij_3ab79dc6b5244d8eae4567a979a52115`. Its preflight pin records the committed
+  revision above and the specialist hash
+  `714b864e05ca5d0faea8bd5bf0d5c99459aa88f7503d5feba9d86e6f9e5264c7`.
+  Its only frozen `character_identity` reference was viewed at SHA-256
+  `52fbc6cfde52413a0971123e2bd7c66974b44bda5dd6badf21edea41d4765b17`.
+- Built-in ImageGen task `2437d63a-7fb7-4840-bbf8-019020c3a1b6` delivered
+  `exec-2437d63a-7fb7-4840-bbf8-019020c3a1b6.png`, SHA-256
+  `ea5ac75987f3536f3c8c2351bbfb902fd35408a5250c4aab24d35023f350a8aa`, as
+  managed asset `dcbf21f1-369d-4b96-ab89-6f9f6a49cff0` (`941×1672`). Its complete
+  receipt was accepted through normal Refresh delivery. The exact returned
+  staging directory and file were current-UID, owned, regular and non-symlink,
+  with no open cooperating writer; only that `0755` task directory was changed
+  non-recursively to `0700`. The cleanup helper then validated the durable
+  output and removed only that exact staged source.
+- A Codex-attended visual review recorded the selected identity and adjoining
+  composition: one consistent Lin Che sits at the same night-station bench,
+  looking toward an old silver pocket watch still beneath it; no pickup, extra
+  person, or text was observed. The resulting reviewed binding is
+  `0ea08806-875a-40e1-9607-2b3b77628228`, with same-person review
+  `ba10dcb0-8293-4c42-8b9c-c100b28714b0`. This is neither face recognition nor
+  human/product acceptance.
+- The new `941×1672` still differs from `576×1024` by a centered crop of at
+  most one source pixel in width. The reviewed, non-material near-9:16 crop was
+  made explicit in the frozen second request; it was not hidden as resizing or
+  a local derivative. One submit only created Plotloom job
+  `vj_fffbcebbca8945fc99dbae42863f70b2` and gateway job
+  `h3_f9e84bff8b6c44c691e38b3ed91aa6b2`. Reconciliation ingested output SHA-256
+  `45079df8f791cc3d32440b507a3c5d063bc52caf98ae750be216c22435b8854d`, with the
+  same trusted `5.167` second, `576×1024`, H.264/AAC, 24-fps/124-frame result.
+  The candidate remains unselected.
+
+### Stop condition and counts
+
+Both ingested candidates were left unselected. An attended workbench playback
+attempt made the in-app browser renderer crash as video started, and no other
+browser automation surface was available. Consequently there was no genuine
+audiovisual review of either clip: no claim is made about audible ambience,
+dialogue, intelligibility, lip sync, performance, or motion continuity. Codec
+metadata and still inspection are not substitutes. Selected sequential playback,
+project close/reopen, snapshot, and isolated restore were therefore not run.
+
+- Built-in ImageGen: **4 of 4** (identity reference, opening still, preserved
+  incompatible adaptation, adjoining still).
+- New H3 I2V jobs: **2 of 2**, each submitted exactly once and ingested.
+- No paid fallback, unknown-dispatch replay, gateway/configuration/source
+  change, or cleanup of another task's staging occurred.
+
+Step 4 remains partial. The next permitted action is to restore an attended
+playback environment and perform genuine audiovisual review before any explicit
+video selection or sequential/recovery exercise; the exhausted ImageGen and H3
+pilot allowances do not authorize another generation or dispatch.
