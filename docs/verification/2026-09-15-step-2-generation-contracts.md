@@ -77,6 +77,42 @@ An independent Terra semantic review found the three boundary gaps above; its
 targeted re-review confirmed all three corrections and found no remaining
 concrete blocker.
 
+## Explicit-save lifecycle regression
+
+The retained `project-lifecycle` failure at `a1d27f8` was a test-boundary race,
+not a generation or runtime failure. Its preserved trace is copied to ignored
+Relay scratch before reruns. The trace shows the test's initial Save waiting for
+the project `POST`, then, after the durable draft is written, its explicit Save
+click returning before the project `PATCH` completed. The next assertion only
+read the browser input, which already contained the edited draft. The failure
+snapshot instead shows the canonical brief still had the initial title even as
+the later `PATCH 200` installed the edit.
+
+`project-lifecycle.spec.ts` now waits for the exact project `PATCH` response,
+asserts that the response succeeded, and only then reads canonical state and
+checks stage-navigation continuity. The regression deliberately holds that
+PATCH until the save promise is observed pending, then releases it; this binds
+the test to real save acknowledgement without retries, arbitrary timeouts, or
+masking a failed save. It retains the durable-draft and pre-save canonical
+assertions, so draft persistence and canonical installation remain distinct.
+
+Final checkout verification for this regression at `a1d27f8` plus the scoped
+delta:
+
+| Command | Result |
+| --- | --- |
+| `npm run test:e2e -- e2e/project-lifecycle.spec.ts` | 6 passed, including the controlled explicit-save acknowledgement regression and E2E TypeScript check |
+| `uv run --locked pytest -q` | 505 passed; one existing TestClient deprecation warning |
+| `npm --prefix frontend test` and `npm --prefix frontend run typecheck` | 149 unit tests passed and TypeScript passed |
+| `npm --prefix frontend run build -- --outDir .local/relay/113265bd-5f29-420e-a575-01a3a87e3740/static-build` plus `diff -ru src/plotloom/static <outDir>` | passed; tracked assets are fresh (existing Vite >500 kB chunk warning) |
+| `npm --prefix frontend run test:e2e` | 39 passed, including E2E TypeScript check |
+| `uv build --wheel --out-dir .local/relay/113265bd-5f29-420e-a575-01a3a87e3740/wheel --clear` plus `uv run --locked python scripts/smoke_installed_wheel.py <wheel-dir>` | passed in a fresh isolated installation; SHA-256 `e29401239e8fd1793bc9a552340b21114a02ffd6154c8084baa556389a14f64e` |
+
+One independent, read-only Terra review of this two-file delta found no
+concrete blocker. It confirmed that the held route targets only the exact
+canonical PATCH, requires the real successful response, and keeps the draft,
+canonical, and navigation contracts separate.
+
 ## Remaining Step 2 work
 
 This is not Step 2 completion. Media/H3 V4 queueing, restart,

@@ -60,8 +60,27 @@ test.describe("M1-B0 real project journeys", () => {
     const beforeSave = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`);
     expect((await beforeSave.json() as { brief: { title: string } }).brief.title).toBe(initialTitle);
 
-    await page.getByRole("button", { name: "保存简报" }).click();
-    await expect(page.getByLabel("片名")).toHaveValue(durableTitle);
+    let releaseSavePatch: (() => void) | undefined;
+    let saveAcknowledged = false;
+    let signalSavePatch: (() => void) | undefined;
+    const savePatchStarted = new Promise<void>((resolve) => { signalSavePatch = resolve; });
+    const releasePatch = new Promise<void>((release) => { releaseSavePatch = release; });
+    await page.route(`**/api/v2/projects/${projectId}`, async (route) => {
+      if (route.request().method() !== "PATCH") return route.continue();
+      signalSavePatch?.();
+      await releasePatch;
+      await route.continue();
+    });
+    try {
+      const save = saveExistingBrief(page, projectId).then(() => { saveAcknowledged = true; });
+      await savePatchStarted;
+      expect(saveAcknowledged).toBe(false);
+      releaseSavePatch?.();
+      await save;
+    } finally {
+      releaseSavePatch?.();
+      await page.unroute(`**/api/v2/projects/${projectId}`);
+    }
     const afterSave = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`);
     expect((await afterSave.json() as { brief: { title: string } }).brief.title).toBe(durableTitle);
     await page.getByRole("button", { name: "故事圣经" }).first().click();
@@ -217,6 +236,16 @@ async function saveBrief(page: Page): Promise<string> {
   expect((await creation).ok()).toBeTruthy();
   await expect.poll(() => projectIdFromPage(page)).not.toBe("");
   return projectIdFromPage(page);
+}
+
+async function saveExistingBrief(page: Page, projectId: string): Promise<void> {
+  const saved = page.waitForResponse((response) => {
+    const request = response.request();
+    return request.method() === "PATCH"
+      && new URL(request.url()).pathname === `/api/v2/projects/${projectId}`;
+  });
+  await page.getByRole("button", { name: "保存简报" }).click();
+  expect((await saved).ok()).toBeTruthy();
 }
 
 async function openDirectory(page: Page): Promise<void> {
