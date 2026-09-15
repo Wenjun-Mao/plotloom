@@ -69,6 +69,17 @@ not elevate matching untrusted delivery files into automatic execution proof.
 Historic v3 packages retain their original verification behavior and are not
 retroactively required to contain the newer pin.
 
+### Modular execution-boundary amendment (2026-09-15)
+
+The pin follows source ownership, not retired module names. Its execution
+boundary is the specialist skill and helper scripts, the image exchange and
+contract modules, and every tracked source file in the current `plotloom.api`
+and `plotloom.persistence` packages that replace the former monoliths. Before
+writing a pin, preflight requires each boundary source to exist at `HEAD` and
+rejects staged, unstaged, deleted, untracked, or ignored files beneath it. This keeps the
+recorded `codeRevision` truthful after modularization without pinning unrelated
+repository areas; a safely quoted offending path explains a refusal.
+
 A selected v3 generated keyframe with visible characters requires a recorded,
 attributed same-person review before it can enter a still preview. The review binds
 the selected keyframe to exact frozen decision revisions and image hashes,

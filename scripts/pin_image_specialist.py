@@ -23,10 +23,13 @@ PINNED_SOURCES = (
     SKILL_PATH,
     Path("scripts/cleanup_imagegen_staging.py"),
     Path("scripts/pin_image_specialist.py"),
-    Path("src/plotloom/api.py"),
+    # API and persistence used to be monolith modules.  They are now package
+    # owners, so pin their implementations recursively rather than pretending
+    # their package façades attest the route and delivery code beneath them.
+    Path("src/plotloom/api"),
     Path("src/plotloom/image_job_exchange.py"),
     Path("src/plotloom/image_job_contracts.py"),
-    Path("src/plotloom/persistence.py"),
+    Path("src/plotloom/persistence"),
 )
 
 
@@ -47,6 +50,82 @@ def _private_directory(path: Path, *, label: str) -> None:
         or (stat.S_IMODE(details.st_mode) & stat.S_IRWXU) != stat.S_IRWXU
     ):
         raise SystemExit(f"Unsupported delivery: {label} must be a private current-user directory.")
+
+
+def _command(repository: Path, *args: str) -> bytes:
+    return subprocess.check_output(["git", "-C", str(repository), *args])
+
+
+def _safe_path(path: bytes) -> str:
+    """Quote repository output so a hostile filename cannot alter diagnostics."""
+
+    return json.dumps(os.fsdecode(path), ensure_ascii=True)
+
+
+def _pinned_files_at_revision(repository: Path, revision: str, source: Path) -> tuple[bytes, ...]:
+    files = tuple(
+        item
+        for item in _command(
+            repository,
+            "ls-tree",
+            "-r",
+            "-z",
+            "--name-only",
+            revision,
+            "--",
+            source.as_posix(),
+        ).split(b"\0")
+        if item
+    )
+    if not files:
+        raise SystemExit(
+            f"Unsupported checkout: pinned specialist source is not committed at HEAD: {_safe_path(os.fsencode(source.as_posix()))}."
+        )
+    return files
+
+
+def _first_dirty_pinned_path(repository: Path, sources: tuple[Path, ...]) -> bytes | None:
+    """Return a changed tracked or untracked path under the pin boundary.
+
+    ``git diff`` does not report untracked files, and an index-only diff misses
+    some working-tree states.  Porcelain v1 with NUL separators covers staged,
+    unstaged, deleted, untracked, and ignored entries without parsing
+    shell-quoted paths.  Ignored entries matter here too: an ignored executable
+    module below a package boundary must not evade a HEAD-only attestation.
+    """
+
+    output = _command(
+        repository,
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--untracked-files=all",
+        "--ignored=matching",
+        "--",
+        *(source.as_posix() for source in sources),
+    )
+    entries = iter(item for item in output.split(b"\0") if item)
+    for entry in entries:
+        # Ordinary porcelain records are ``XY SP path``.  A rename/copy has a
+        # second NUL-delimited origin path, which we consume before returning
+        # the changed destination path.
+        if len(entry) < 4:
+            continue
+        status, path = entry[:2], entry[3:]
+        if b"R" in status or b"C" in status:
+            next(entries, None)
+        return path
+    return None
+
+
+def _verify_pinned_sources(repository: Path, revision: str) -> None:
+    for source in PINNED_SOURCES:
+        _pinned_files_at_revision(repository, revision, source)
+    dirty_path = _first_dirty_pinned_path(repository, PINNED_SOURCES)
+    if dirty_path is not None:
+        raise SystemExit(
+            f"Unsupported checkout: pinned specialist source has uncommitted changes: {_safe_path(dirty_path)}."
+        )
 
 
 def main() -> int:
@@ -72,15 +151,8 @@ def main() -> int:
     skill = repository / SKILL_PATH
     if not skill.is_file():
         raise SystemExit("Unsupported checkout: Plotloom image-specialist skill is missing.")
-    revision = subprocess.check_output(["git", "-C", str(repository), "rev-parse", "HEAD"], text=True).strip()
-    for source in PINNED_SOURCES:
-        if subprocess.call(
-            ["git", "-C", str(repository), "cat-file", "-e", f"{revision}:{source.as_posix()}"],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-        ) != 0:
-            raise SystemExit("Unsupported checkout: pinned specialist source is not committed at HEAD.")
-    if subprocess.call(["git", "-C", str(repository), "diff", "--quiet", "HEAD", "--", *(str(item) for item in PINNED_SOURCES)]) != 0:
-        raise SystemExit("Unsupported checkout: pinned specialist code or skill has uncommitted changes.")
+    revision = _command(repository, "rev-parse", "HEAD").decode().strip()
+    _verify_pinned_sources(repository, revision)
     pin = {
         "jobId": request["jobId"],
         "requestHash": request["requestHash"],
