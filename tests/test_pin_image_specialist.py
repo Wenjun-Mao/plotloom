@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -52,7 +53,7 @@ def modular_checkout(tmp_path: Path) -> tuple[Path, Path]:
     repository.mkdir()
     shutil.copytree(ROOT / "scripts", repository / "scripts")
     source_files = {
-        ".gitignore": "*.generated.py\n",
+        ".gitignore": "*.generated.py\n__pycache__/\n",
         ".agents/skills/plotloom-image-specialist/SKILL.md": "# fixture skill\n",
         "src/plotloom/api/__init__.py": "",
         "src/plotloom/api/project_folder_image_jobs.py": "# image route owner\n",
@@ -84,6 +85,30 @@ def _run_pin(repository: Path, package: Path) -> subprocess.CompletedProcess[str
     )
 
 
+def _compile_tracked_fixture_modules(repository: Path) -> None:
+    """Create the same normal runtime bytecode that a specialist import creates."""
+
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; "
+                "sys.path.insert(0, 'src'); "
+                "import plotloom.api.project_folder_image_jobs; "
+                "import plotloom.persistence.project.media_image_delivery; "
+                "import py_compile; "
+                "py_compile.compile('src/plotloom/api/project_folder_image_jobs.py', doraise=True); "
+                "py_compile.compile('src/plotloom/persistence/project/media_image_delivery.py', doraise=True)"
+            ),
+        ],
+        cwd=repository,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
 def test_pin_accepts_current_modular_layout_and_preserves_its_provenance(
     modular_checkout: tuple[Path, Path],
 ) -> None:
@@ -92,6 +117,8 @@ def test_pin_accepts_current_modular_layout_and_preserves_its_provenance(
     note = repository / "docs" / "operator-note.md"
     note.parent.mkdir()
     note.write_text("outside the execution boundary\n", encoding="utf-8")
+    _compile_tracked_fixture_modules(repository)
+    assert any((repository / "src/plotloom/api/__pycache__").glob("*.pyc"))
 
     result = _run_pin(repository, package)
 
@@ -107,6 +134,51 @@ def test_pin_accepts_current_modular_layout_and_preserves_its_provenance(
     repeat = _run_pin(repository, package)
     assert repeat.returncode != 0
     assert "already exists" in repeat.stderr
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "hidden_source.py",
+        "project_folder_image_jobs.cpython-313.pyc",
+        "linked.cpython-313.pyc",
+    ],
+)
+def test_pin_rejects_untrusted_entries_hidden_by_an_ignored_bytecode_directory(
+    modular_checkout: tuple[Path, Path], name: str
+) -> None:
+    repository, package = modular_checkout
+    cache = repository / "src/plotloom/api/__pycache__"
+    cache.mkdir()
+    hidden_entry = cache / name
+    if name == "linked.cpython-313.pyc":
+        hidden_entry.symlink_to(repository / "src/plotloom/api/project_folder_image_jobs.py")
+    else:
+        hidden_entry.write_bytes(b"not ordinary bytecode")
+        if name.endswith(".pyc"):
+            hidden_entry.chmod(hidden_entry.stat().st_mode | os.X_OK)
+
+    result = _run_pin(repository, package)
+
+    assert result.returncode != 0
+    assert "pinned specialist source has uncommitted changes" in result.stderr
+    assert json.dumps(hidden_entry.relative_to(repository).as_posix()) in result.stderr
+    assert not (package.parent / "delivery" / "executor-pin.json").exists()
+
+
+def test_pin_rejects_modified_tracked_source_after_normal_runtime_imports(
+    modular_checkout: tuple[Path, Path],
+) -> None:
+    repository, package = modular_checkout
+    _compile_tracked_fixture_modules(repository)
+    source = repository / "src/plotloom/api/project_folder_image_jobs.py"
+    source.write_text("# modified route owner\n", encoding="utf-8")
+
+    result = _run_pin(repository, package)
+
+    assert result.returncode != 0
+    assert "pinned specialist source has uncommitted changes" in result.stderr
+    assert json.dumps(source.relative_to(repository).as_posix()) in result.stderr
 
 
 @pytest.mark.parametrize(

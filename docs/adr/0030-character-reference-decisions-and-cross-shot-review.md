@@ -80,6 +80,14 @@ rejects staged, unstaged, deleted, untracked, or ignored files beneath it. This 
 recorded `codeRevision` truthful after modularization without pinning unrelated
 repository areas; a safely quoted offending path explains a refusal.
 
+Normal Python imports can create ignored `__pycache__` bytecode for those same
+tracked modules. That non-executable runtime bytecode is not authored source
+and does not invalidate the source attestation. The preflight expands an
+ignored cache directory before accepting it, however: source, executable,
+symlinked, nested, or malformed entries still refuse the pin. This narrowly
+preserves the source boundary; it is not a general filesystem-security claim
+about a live checkout.
+
 A selected v3 generated keyframe with visible characters requires a recorded,
 attributed same-person review before it can enter a still preview. The review binds
 the selected keyframe to exact frozen decision revisions and image hashes,
