@@ -141,8 +141,9 @@ def test_semantically_invalid_output_is_quarantined_without_automatic_repair() -
                     "sourceNodeId": "start",
                     "targetNodeId": "end",
                     "kind": "continuation",
-                    "choiceText": None,
-                    "stateEffects": {},
+                        "choiceText": None,
+                        "stateEffects": {},
+                        "entityStateEffects": [],
                 }
             ],
             "joinContracts": [],
@@ -178,7 +179,7 @@ def test_semantically_invalid_output_is_quarantined_without_automatic_repair() -
     quarantine_id = parent.quarantine_ids[0]
     quarantine = orchestrator.quarantine.get(quarantine_id)
     assert quarantine is not None
-    assert quarantine.schema_id == "story_graph.v3"
+    assert quarantine.schema_id == "story_graph.v4"
     repaired = orchestrator.repair(
         quarantine_id=quarantine_id,
         parent_run_id=parent.run_id,

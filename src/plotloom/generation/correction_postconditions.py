@@ -15,6 +15,7 @@ from ..json_value_contract import CanonicalJsonValueError, finite_json_values_eq
 from .contracts import ValidationIssue
 from .work_units import (
     ContinuityEntityStateAssignment,
+    ContinuityEntityStateRepairFact,
     ContinuityFactAssignment,
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
@@ -59,6 +60,8 @@ def validate_correction_postconditions(
             valid = _join_state_effect_satisfied(response, fact)
         elif isinstance(fact, ContinuitySequenceRepairFact):
             valid = _continuity_sequence_satisfied(response, fact)
+        elif isinstance(fact, ContinuityEntityStateRepairFact):
+            valid = _continuity_entity_state_repair_satisfied(response, fact)
         elif isinstance(fact, CueOrderRepairFact):
             valid = _cue_order_satisfied(response, fact)
         elif isinstance(fact, StoryboardTimingRepairPlanFact):
@@ -225,6 +228,32 @@ def _entity_assignment_satisfied(
             matching.append(entity_state)
     return len(matching) == 1 and _finite_equal(
         matching[0].get("state"), assignment.expected_state
+    )
+
+
+def _continuity_entity_state_repair_satisfied(
+    response: Any,
+    fact: ContinuityEntityStateRepairFact,
+) -> bool:
+    collection_details = _CONTINUITY_COLLECTIONS.get(fact.target.kind)
+    if collection_details is None or fact.target.id_scope != "response_local":
+        return False
+    collection, identity_field = collection_details
+    target_item = _unique_collection_item(response, collection, identity_field, fact.target.id)
+    if target_item is None:
+        return False
+    state = target_item.get("entryState" if fact.target.state == "entry" else "exitState")
+    if not isinstance(state, Mapping):
+        return False
+    entity_states = state.get("entityStates")
+    if not isinstance(entity_states, list) or fact.entity_state_index >= len(entity_states):
+        return False
+    assignment = entity_states[fact.entity_state_index]
+    return (
+        isinstance(assignment, Mapping)
+        and assignment.get("entityType") == fact.entity_type.value
+        and assignment.get("entityId") == fact.entity_id
+        and assignment.get("state") in fact.allowed_states
     )
 
 

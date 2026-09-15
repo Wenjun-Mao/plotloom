@@ -1,5 +1,5 @@
 id: story_graph
-version: "3.0.0"
+version: "3.1.0"
 stage: story_graph
 description: Design narrative nodes and transitions without shot-level detail.
 system: |-
@@ -17,7 +17,7 @@ user: |-
   【目标 JSON Schema】
   {{ json_schema | tojson }}
 
-  建立完整故事图：startNodeId 指向唯一 kind=start 的节点；nodes 中每项只填写 id、title、summary、kind；edges 中每项填写稳定 id、sourceNodeId、targetNodeId、kind，并在 choice 边填写 choiceText 与 stateEffects。
+  建立完整故事图：startNodeId 指向唯一 kind=start 的节点；nodes 中每项只填写 id、title、summary、kind；edges 中每项填写稳定 id、sourceNodeId、targetNodeId、kind，并在 choice 边填写 choiceText、stateEffects 与 entityStateEffects。stateEffects 只保存任意 JSON 叙事事实；角色、地点、道具的状态必须在 entityStateEffects 用 entityType/entityId/state 显式引用故事圣经 allowedStates，不能依赖 *_state 键名。
   ending 节点必须终止；互动项目必须让每项选择产生可感知的 stateEffects，并保证所有目标 ID 存在；线性关系使用 continuation 边。
   对每个实际汇流点填写唯一 joinContract，准确列出 incomingNodeIds、requiredStateKeys、allowedDifferences、reconciliation 和 notes。
   不要把多个尚未拆分的故事阶段伪装成一个节点，也不要在本阶段生成景别、时长或媒体提示词。
@@ -32,5 +32,5 @@ variables:
     required: true
 output:
   format: json
-  schema_id: story_graph.v3
+  schema_id: story_graph.v4
   structured_output_mode: prefer

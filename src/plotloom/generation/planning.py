@@ -42,7 +42,7 @@ from .scene_timing_allocation import (
 # does not carry generator-only policy metadata, so its downstream StagePlan
 # owns an independently frozen profile rather than looking for a same-run
 # Scene Beats plan at seal/install time.
-PLANNING_POLICY_VERSION = "m1.5-p0.5"
+PLANNING_POLICY_VERSION = "m1.5-p0.6"
 
 
 class PlanningError(ValueError):

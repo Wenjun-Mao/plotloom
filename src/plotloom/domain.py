@@ -442,11 +442,15 @@ class StoryEdge(CamelModel):
     kind: StoryEdgeKind = StoryEdgeKind.CONTINUATION
     choice_text: str | None = None
     state_effects: dict[str, Any] = Field(default_factory=dict)
+    entity_state_effects: list[RequiredEntityState] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def choice_edges_have_copy(self) -> StoryEdge:
         if self.kind == StoryEdgeKind.CHOICE and not self.choice_text:
             raise ValueError("choice edges require choice_text")
+        keys = [(item.entity_type, item.entity_id) for item in self.entity_state_effects]
+        if len(keys) != len(set(keys)):
+            raise ValueError("entityStateEffects must name each entity at most once")
         return self
 
 

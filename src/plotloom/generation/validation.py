@@ -138,7 +138,7 @@ class CanonicalStageValidationAdapter(PydanticValidationAdapter[BaseModel]):
         self._assert_dependencies()
         super().__init__(
             stage_payload_model(self.stage, schema_version=2),
-            schema_id=f"{self.stage.value}.v3",
+            schema_id=("story_graph.v4" if self.stage == StageName.STORY_GRAPH else f"{self.stage.value}.v3"),
             by_alias=True,
             by_name=False,
         )

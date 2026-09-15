@@ -22,6 +22,8 @@ from ..domain import (
     CamelModel,
     JoinContract,
     ProjectBrief,
+    RequiredEntityState,
+    StoryBibleV2,
     StoryEdge,
     StoryEdgeKind,
     StoryGraph,
@@ -38,7 +40,7 @@ from .json_schema import explicit_presence_json_schema, inline_local_json_refere
 
 
 STORY_GRAPH_TOPOLOGY_VERSION = "story_graph_topology.v1"
-STORY_GRAPH_CONTENT_FILL_SCHEMA_ID = "story_graph_content_fill.v3"
+STORY_GRAPH_CONTENT_FILL_SCHEMA_ID = "story_graph_content_fill.v4"
 DEFAULT_MAX_DOWNSTREAM_WORK_UNITS = 128
 _STRUCTURAL_PARAMETER_KEYS = frozenset(
     {
@@ -126,6 +128,7 @@ class StoryGraphEdgeContentFill(CamelModel):
     id: str = Field(min_length=1)
     choice_text: str | None
     state_effects: dict[str, Any]
+    entity_state_effects: list[RequiredEntityState]
 
 
 class StoryGraphJoinContentFill(CamelModel):
@@ -636,6 +639,7 @@ def bind_story_graph_content_fill(
     content: StoryGraphContentFill | dict[str, Any],
     *,
     brief: ProjectBrief,
+    bible: StoryBibleV2 | None = None,
 ) -> StoryGraph:
     """Bind model prose to immutable topology and rerun the full domain validator."""
 
@@ -654,7 +658,7 @@ def bind_story_graph_content_fill(
     _assert_v2_content_contract(topology, fill)
     try:
         graph = _bound_story_graph_from_content_fill(topology, fill)
-        validate_story_graph(graph, brief)
+        validate_story_graph(graph, brief, bible=bible)
     except ValidationError as exc:
         raise StoryGraphContentBindingError(
             [
@@ -678,7 +682,7 @@ def bind_story_graph_content_fill(
         v2_graph = StoryGraphV2.model_validate(
             graph.model_dump(mode="json", by_alias=True)
         )
-        validate_story_graph(v2_graph, brief, strict_v2=True)  # type: ignore[arg-type]
+        validate_story_graph(v2_graph, brief, strict_v2=True, bible=bible)  # type: ignore[arg-type]
     except ValidationError as exc:
         raise StoryGraphContentBindingError(
             [
@@ -805,6 +809,7 @@ def _bound_story_graph_from_content_fill(
                 kind=item.kind,
                 choice_text=edge_fill[item.id].choice_text,
                 state_effects=edge_fill[item.id].state_effects,
+                entity_state_effects=edge_fill[item.id].entity_state_effects,
             )
             for item in topology.edges
         ],

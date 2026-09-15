@@ -12,7 +12,7 @@ import {
   type XYPosition,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { JoinContract, StoryEdge, StoryGraph, StoryNode, ValidationIssue } from "../types";
+import type { JoinContract, RequiredEntityState, StoryEdge, StoryGraph, StoryNode, ValidationIssue } from "../types";
 import { Button, Field, PageHeader, Panel } from "../components";
 import {
   addEdgeWithContractSync,
@@ -225,7 +225,7 @@ export function GraphPage({
     const target = [...document.querySelectorAll<HTMLElement>("[data-focus-key]")]
       .find((element) => element.dataset.focusKey === key)
       ?? [...document.querySelectorAll<HTMLElement>("[data-focus-key]")]
-        .find((element) => issueFocus.field.startsWith("stateEffects.") && element.dataset.focusKey === graphFocusKey(issueFocus.entity, "stateEffects"))
+        .find((element) => (issueFocus.field.startsWith("stateEffects.") || issueFocus.field.startsWith("entityStateEffects.")) && element.dataset.focusKey === graphFocusKey(issueFocus.entity, issueFocus.field.startsWith("stateEffects.") ? "stateEffects" : "entityStateEffects"))
       ?? [...document.querySelectorAll<HTMLElement>("[data-entity-key]")]
         .find((element) => element.dataset.entityKey === graphEntityKey(issueFocus.entity));
     target?.focus();
@@ -267,7 +267,7 @@ export function GraphPage({
     if (!connection.source || !connection.target || connection.source === connection.target) return;
     const edge: StoryEdge = {
       id: crypto.randomUUID(), sourceNodeId: connection.source, targetNodeId: connection.target,
-      kind: "choice", choiceText: "新选择", stateEffects: {},
+      kind: "choice", choiceText: "新选择", stateEffects: {}, entityStateEffects: [],
     };
     requestImpact(relationshipImpactForEdgeAddition(draft, edge), () => {
       updateDraft((current) => addEdgeWithContractSync(current, edge));
@@ -428,6 +428,9 @@ function EdgeInspector({ edge, nodes, rows, effectError, onPatch, onReconnect, o
 }) {
   const entity: GraphEntityRef = { kind: "edge", id: edge.id };
   const updateRow = (index: number, patch: Partial<StateEffectRow>) => onRowsChange(rows.map((row, current) => current === index ? { ...row, ...patch } : row));
+  const updateEntityEffect = (index: number, patch: Partial<RequiredEntityState>) => onPatch({
+    entityStateEffects: edge.entityStateEffects.map((item, current) => current === index ? { ...item, ...patch } : item),
+  });
   return <>
     <Field label="边 ID"><input data-focus-key={graphFocusKey(entity, "id")} value={edge.id} readOnly /></Field>
     <Field label="关系"><input value={`${edge.sourceNodeId} → ${edge.targetNodeId}`} readOnly /></Field>
@@ -448,6 +451,14 @@ function EdgeInspector({ edge, nodes, rows, effectError, onPatch, onReconnect, o
       <Button type="button" variant="quiet" aria-label={`移除状态效果 ${index + 1}`} onClick={() => onRowsChange(rows.filter((_, current) => current !== index))}>移除</Button>
     </div>)}
     {effectError && <div className="notice error" role="alert">{effectError}</div>}
+    <div className="section-title" data-focus-key={graphFocusKey(entity, "entityStateEffects")} tabIndex={-1}><span>实体状态效果</span><Button type="button" variant="quiet" onClick={() => onPatch({ entityStateEffects: [...edge.entityStateEffects, { entityType: "character", entityId: "", state: "" }] })}>添加实体状态</Button></div>
+    <p className="field-hint">实体状态是故事圣经的显式引用；普通状态效果只保存任意 JSON 事实。</p>
+    {edge.entityStateEffects.map((effect, index) => <div className="field-grid three compact" key={`${effect.entityType}:${effect.entityId}:${index}`}>
+      <select aria-label={`实体状态类型 ${index + 1}`} value={effect.entityType} onChange={(event) => updateEntityEffect(index, { entityType: event.target.value as RequiredEntityState["entityType"] })}><option value="character">character</option><option value="location">location</option><option value="prop">prop</option></select>
+      <input data-focus-key={graphFocusKey(entity, `entityStateEffects.${index}.entityId`)} aria-label={`实体状态 ID ${index + 1}`} value={effect.entityId} placeholder="Bible entity ID" onChange={(event) => updateEntityEffect(index, { entityId: event.target.value })} />
+      <input data-focus-key={graphFocusKey(entity, `entityStateEffects.${index}.state`)} aria-label={`实体状态值 ${index + 1}`} value={effect.state} placeholder="Allowed state" onChange={(event) => updateEntityEffect(index, { state: event.target.value })} />
+      <Button type="button" variant="quiet" aria-label={`移除实体状态 ${index + 1}`} onClick={() => onPatch({ entityStateEffects: edge.entityStateEffects.filter((_, current) => current !== index) })}>移除</Button>
+    </div>)}
     <Button type="button" variant="danger" onClick={onDelete}>删除关系</Button>
   </>;
 }

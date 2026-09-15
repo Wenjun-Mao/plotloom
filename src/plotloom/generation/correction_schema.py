@@ -20,6 +20,7 @@ from .correction_contract import CORRECTION_RESPONSE_SCHEMA_VERSION
 from .prompts import canonical_json, sha256_text
 from .work_units import (
     ContinuityEntityStateAssignment,
+    ContinuityEntityStateRepairFact,
     ContinuityFactAssignment,
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
@@ -65,6 +66,9 @@ def compile_correction_response_schema(
     continuity_requirements: dict[
         tuple[str, str, str, str],
         dict[str, Any],
+    ] = {}
+    continuity_entity_state_requirements: dict[
+        tuple[str, str, str, str, int], ContinuityEntityStateRepairFact
     ] = {}
     cue_order_fact: CueOrderRepairFact | None = None
     timing_plan_fact: StoryboardTimingRepairPlanFact | None = None
@@ -172,6 +176,23 @@ def compile_correction_response_schema(
                         raise CorrectionResponseSchemaError(
                             "unsupported continuity assignment type"
                         )
+            applied_codes.add(fact.code)
+            continue
+
+        if isinstance(fact, ContinuityEntityStateRepairFact):
+            target = fact.target
+            if target.id_scope != "response_local":
+                raise CorrectionResponseSchemaError(
+                    "continuity entity-state correction target is outside the model response"
+                )
+            collection, identity_field = _continuity_collection(target.kind)
+            state_field = "entryState" if target.state == "entry" else "exitState"
+            key = (collection, identity_field, target.id, state_field, fact.entity_state_index)
+            previous = continuity_entity_state_requirements.setdefault(key, fact)
+            if previous != fact:
+                raise CorrectionResponseSchemaError(
+                    "conflicting continuity entity-state repair facts target the same response path"
+                )
             applied_codes.add(fact.code)
             continue
 
@@ -304,6 +325,53 @@ def compile_correction_response_schema(
                         state_field: {
                             "properties": state_properties,
                             "required": sorted(state_required),
+                        },
+                    },
+                    "required": [identity_field, state_field],
+                },
+                "minContains": 1,
+                "maxContains": 1,
+            }
+        )
+
+    for key, fact in sorted(continuity_entity_state_requirements.items()):
+        collection, identity_field, identity, state_field, entity_state_index = key
+        collection_schema = _collection_schema(schema, collection)
+        branches = collection_schema.setdefault("allOf", [])
+        if not isinstance(branches, list):
+            raise CorrectionResponseSchemaError(
+                f"{collection} schema has a non-list allOf"
+            )
+        constrained_assignment = {
+            "type": "object",
+            "properties": {
+                "entityType": {"const": fact.entity_type.value},
+                "entityId": {"const": fact.entity_id},
+                "state": {"enum": list(fact.allowed_states)},
+            },
+            "required": ["entityType", "entityId", "state"],
+        }
+        branches.append(
+            {
+                "contains": {
+                    "type": "object",
+                    "properties": {
+                        identity_field: {"const": identity},
+                        state_field: {
+                            "properties": {
+                                "entityStates": {
+                                    "allOf": [
+                                        {
+                                            "prefixItems": [
+                                                *({} for _ in range(entity_state_index)),
+                                                constrained_assignment,
+                                            ],
+                                            "minItems": entity_state_index + 1,
+                                        }
+                                    ]
+                                }
+                            },
+                            "required": ["entityStates"],
                         },
                     },
                     "required": [identity_field, state_field],

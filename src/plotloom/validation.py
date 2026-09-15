@@ -78,6 +78,7 @@ def validate_story_graph(
     brief: ProjectBrief,
     *,
     strict_v2: bool = False,
+    bible: StoryBibleV2 | None = None,
 ) -> None:
     issues: list[ValidationIssue] = []
     nodes_by_id = {node.id: node for node in graph.nodes}
@@ -86,6 +87,34 @@ def validate_story_graph(
         issues.append(_issue("duplicate_node_id", "nodes", f"duplicate story node id: {node_id}"))
     for edge_id in sorted(_duplicates(edge.id for edge in graph.edges)):
         issues.append(_issue("duplicate_edge_id", "edges", f"duplicate story edge id: {edge_id}"))
+    if bible is not None:
+        allowed_states = _allowed_entity_states(bible)
+        for edge in graph.edges:
+            seen_entity_effects: set[tuple[EntityType, str]] = set()
+            for index, effect in enumerate(edge.entity_state_effects):
+                effect_path = f"edges.{edge.id}.entityStateEffects.{index}"
+                key = (effect.entity_type, effect.entity_id)
+                if key in seen_entity_effects:
+                    issues.append(_issue(
+                        "duplicate_entity_state_effect",
+                        effect_path,
+                        "an edge may assign an entity state at most once",
+                    ))
+                    continue
+                seen_entity_effects.add(key)
+                known_states = allowed_states[effect.entity_type].get(effect.entity_id)
+                if known_states is None:
+                    issues.append(_issue(
+                        "unknown_entity_state_effect_entity",
+                        f"{effect_path}.entityId",
+                        "entity state effect references an entity absent from the story bible or has the wrong type",
+                    ))
+                elif effect.state not in known_states:
+                    issues.append(_issue(
+                        "invalid_entity_state_effect",
+                        f"{effect_path}.state",
+                        "entity state effect is not allowed by the story bible",
+                    ))
     for contract_id in sorted(_duplicates(contract.id for contract in graph.join_contracts)):
         issues.append(
             _issue("duplicate_join_contract_id", "joinContracts", f"duplicate join contract id: {contract_id}")
@@ -687,9 +716,19 @@ def _validate_stage_payload_v2(
     if stage == StageName.STORY_GRAPH:
         if not isinstance(payload, StoryGraphV2):
             raise TypeError("V2 story_graph requires StoryGraphV2")
+        if bible is None:
+            if any(edge.entity_state_effects for edge in payload.edges):
+                raise TypeError("V2 graph entityStateEffects require a sealed StoryBibleV2")
+        elif not isinstance(bible, StoryBibleV2):
+            raise TypeError("V2 story_graph requires a sealed StoryBibleV2")
         # The graph algorithm is schema-neutral and uses only the stable graph
         # contract; the explicit isinstance above prevents a V1/V2 mix.
-        validate_story_graph(payload, brief, strict_v2=True)  # type: ignore[arg-type]
+        validate_story_graph(
+            payload,
+            brief,
+            strict_v2=True,
+            bible=bible if isinstance(bible, StoryBibleV2) else None,
+        )  # type: ignore[arg-type]
         return None
     if stage == StageName.SCENE_BEATS:
         if not isinstance(payload, SceneBeatPlanV2) or not isinstance(bible, StoryBibleV2) or not isinstance(graph, StoryGraphV2):

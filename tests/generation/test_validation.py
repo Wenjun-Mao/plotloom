@@ -117,8 +117,9 @@ def test_canonical_adapter_applies_semantic_validation_after_schema() -> None:
                 "sourceNodeId": "start",
                 "targetNodeId": "end",
                 "kind": "continuation",
-                "choiceText": None,
-                "stateEffects": {},
+                    "choiceText": None,
+                    "stateEffects": {},
+                    "entityStateEffects": [],
             }
         ],
         "joinContracts": [],

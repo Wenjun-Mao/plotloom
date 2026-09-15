@@ -597,6 +597,39 @@ def test_v2_graph_rejects_duplicate_directed_connections() -> None:
     assert duplicate["path"] == "edges.2"
 
 
+def test_v2_graph_preseal_rejects_entity_state_effect_outside_frozen_bible() -> None:
+    bible = StoryBibleV2(
+        logline="x", premise="y", genre="", tone="", audience="", narrative_promise="",
+        visual_language="", themes=[], world_rules=[], known_facts=[], open_questions=[], source_notes=[],
+        characters=[], props=[], locations=[LocationV2(
+            id="station", name="Station", description="", visual_anchors=[], sound_anchors=[],
+            allowed_states=["empty"], continuity_rules=[],
+        )],
+    )
+    graph = StoryGraphV2(
+        start_node_id="start",
+        nodes=[
+            StoryNodeV2(id="start", title="Start", summary="begin", kind="start"),
+            StoryNodeV2(id="end", title="End", summary="finish", kind="ending"),
+        ],
+        edges=[StoryEdgeV2(
+            id="edge", source_node_id="start", target_node_id="end", kind="continuation",
+            choice_text=None, state_effects={},
+            entity_state_effects=[{"entityType": "location", "entityId": "station", "state": "occupied"}],
+        )],
+        join_contracts=[],
+    )
+    brief = ProjectBrief(
+        title="x", synopsis="y", ending_count=1, desired_join_count=0,
+        decision_points_per_path=0, node_budget=2, shots_per_scene_min=1, shots_per_scene_max=1,
+    )
+    with pytest.raises(DomainValidationError) as captured:
+        validate_stage_payload(
+            StageName.STORY_GRAPH, graph, schema_version=2, brief=brief, bible=bible
+        )
+    assert any(issue["code"] == "invalid_entity_state_effect" for issue in captured.value.issues)
+
+
 def test_v2_join_contract_and_edge_choice_fields_are_unambiguous() -> None:
     valid = dict(
         id="join-contract", join_node_id="join", incoming_node_ids=["left", "right"],

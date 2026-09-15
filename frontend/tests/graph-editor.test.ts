@@ -31,9 +31,9 @@ const graph: StoryGraph = {
     { id: "join", kind: "join", title: "Join", summary: "Converge" },
   ],
   edges: [
-    { id: "start-left", sourceNodeId: "start", targetNodeId: "left", kind: "continuation", choiceText: null, stateEffects: {} },
-    { id: "left-join", sourceNodeId: "left", targetNodeId: "join", kind: "choice", choiceText: "Follow left", stateEffects: { trust: 1 } },
-    { id: "right-join", sourceNodeId: "right", targetNodeId: "join", kind: "choice", choiceText: "Follow right", stateEffects: {} },
+    { id: "start-left", sourceNodeId: "start", targetNodeId: "left", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+    { id: "left-join", sourceNodeId: "left", targetNodeId: "join", kind: "choice", choiceText: "Follow left", stateEffects: { trust: 1 }, entityStateEffects: [] },
+    { id: "right-join", sourceNodeId: "right", targetNodeId: "join", kind: "choice", choiceText: "Follow right", stateEffects: {}, entityStateEffects: [] },
   ],
   joinContracts: [{
     id: "join-contract", joinNodeId: "join", incomingNodeIds: ["left", "right"],
@@ -73,7 +73,7 @@ describe("graph editor pure contract helpers", () => {
 
   it("keeps an existing join contract synchronized when an incoming edge is added", () => {
     const withThird = addNode(graph, { id: "third", kind: "scene", title: "Third", summary: "Third path" });
-    const edge: StoryEdge = { id: "third-join", sourceNodeId: "third", targetNodeId: "join", kind: "continuation", choiceText: null, stateEffects: {} };
+    const edge: StoryEdge = { id: "third-join", sourceNodeId: "third", targetNodeId: "join", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] };
     const synced = addEdgeWithContractSync(withThird, edge);
     expect(synced.joinContracts[0].incomingNodeIds).toEqual(["left", "right", "third"]);
     expect(withThird.joinContracts[0].incomingNodeIds).toEqual(["left", "right"]);

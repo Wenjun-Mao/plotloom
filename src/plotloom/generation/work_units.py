@@ -117,7 +117,7 @@ from .storyboard_timing_repair import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.12t"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.13"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 AUDIO_EVENT_ID_BINDING_VERSION = "audio_event_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
@@ -1059,6 +1059,55 @@ class RequiredEntityStateRepairFact(CamelModel):
         return self
 
 
+class ContinuityEntityStateRepairFact(CamelModel):
+    """One source-bound Bible vocabulary repair at a continuity boundary.
+
+    This fact deliberately names both the original response array path and
+    its response-local parent identity.  A correction cannot evade the
+    rejected assignment by deleting, replacing, or moving that entry.
+    """
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    code: Literal["semantic.invalid_continuity_entity_state"]
+    path: tuple[str | int, ...]
+    target: ContinuityStateEndpoint
+    entity_state_index: int = Field(ge=0)
+    entity_type: EntityType
+    entity_id: NonBlankText
+    allowed_states: tuple[NonBlankText, ...] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_exact_response_target(self) -> "ContinuityEntityStateRepairFact":
+        collections = {
+            "scenes": ("scene", "localSceneId"),
+            "beats": ("beat", "localBeatId"),
+            "shots": ("shot", "localShotId"),
+        }
+        if (
+            len(self.path) != 6
+            or self.path[0] not in collections
+            or not isinstance(self.path[1], int)
+            or isinstance(self.path[1], bool)
+            or self.path[1] < 0
+            or self.path[2] not in {"entryState", "exitState"}
+            or self.path[3] != "entityStates"
+            or self.path[4] != self.entity_state_index
+            or self.path[5] != "state"
+        ):
+            raise ValueError("path must identify one continuity entityStates state value")
+        expected_kind, _identity = collections[self.path[0]]
+        if (
+            self.target.kind != expected_kind
+            or self.target.id_scope != "response_local"
+            or self.target.state != ("entry" if self.path[2] == "entryState" else "exit")
+        ):
+            raise ValueError("target must identify the exact response-local continuity boundary")
+        if len(self.allowed_states) != len(set(self.allowed_states)):
+            raise ValueError("allowedStates must be unique")
+        return self
+
+
 class LegacyStoryboardTimingRepairPlanFact(CamelModel):
     """Read-only v15 timing-plan evidence.
 
@@ -1091,7 +1140,8 @@ CurrentSemanticRepairFact: TypeAlias = Annotated[
     | JoinReconciliationRepairFact
     | JoinEntryStateValueRepairFact
     | AudioTimingRepairFact
-    | RequiredEntityStateRepairFact,
+    | RequiredEntityStateRepairFact
+    | ContinuityEntityStateRepairFact,
     Field(discriminator="code"),
 ]
 # Timing witnesses are intentionally outside the current discriminated union:
@@ -1172,9 +1222,10 @@ class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraphV2]):
 
     schema_id = STORY_GRAPH_CONTENT_FILL_SCHEMA_ID
 
-    def __init__(self, *, topology: StoryGraphTopology, brief: ProjectBrief) -> None:
+    def __init__(self, *, topology: StoryGraphTopology, brief: ProjectBrief, bible: StoryBibleV2 | None = None) -> None:
         self.topology = topology
         self.brief = brief
+        self.bible = bible
 
     def json_schema(self) -> dict[str, Any]:
         return story_graph_content_fill_schema(self.topology)
@@ -1205,7 +1256,18 @@ class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraphV2]):
                 ),
             )
         try:
-            graph = bind_story_graph_content_fill(self.topology, fill, brief=self.brief)
+            if self.bible is None and any(item.entity_state_effects for item in fill.edges):
+                return ValidationReport(
+                    accepted=False,
+                    issues=(ValidationIssue(
+                        code="context.story_bible_required",
+                        message="typed graph entity-state effects require a sealed story bible",
+                        path=("edges",),
+                    ),),
+                )
+            graph = bind_story_graph_content_fill(
+                self.topology, fill, brief=self.brief, bible=self.bible
+            )
         except StoryGraphContentBindingError as exc:
             binding_issues = tuple(
                 ValidationIssue(
@@ -1287,7 +1349,7 @@ class StoryGraphContentFillValidationAdapter(ValidationAdapter[StoryGraphV2]):
             # semantics used by canonical installation here; otherwise an
             # ordinary non-finite edge value can bypass fact projection until
             # a later stage, where no exact graph correction exists.
-            validate_story_graph(canonical_graph, self.brief, strict_v2=True)
+            validate_story_graph(canonical_graph, self.brief, strict_v2=True, bible=self.bible)
         except DomainValidationError as exc:
             return ValidationReport(accepted=False, issues=exc.issues)
         return ValidationReport(accepted=True, value=canonical_graph)
@@ -2007,7 +2069,9 @@ def _validator_for_unit(
         raise WorkUnitContractError(f"{work_unit.stage.value} requires a sealed StoryBible")
     if work_unit.stage == StageName.STORY_GRAPH:
         if story_graph_topology is not None:
-            return StoryGraphContentFillValidationAdapter(topology=story_graph_topology, brief=brief)
+            return StoryGraphContentFillValidationAdapter(
+                topology=story_graph_topology, brief=brief, bible=bible
+            )
         return CanonicalStageValidationAdapter(StageName.STORY_GRAPH, brief=brief, bible=bible)
     return WorkUnitFragmentValidationAdapter(
         stage_plan=stage_plan,
@@ -2900,6 +2964,91 @@ def storyboard_required_entity_state_repair_facts(
     return tuple(facts)
 
 
+def continuity_entity_state_repair_facts(
+    value: Any,
+    issues: tuple[ValidationIssue, ...],
+    *,
+    stage: StageName,
+    bible: StoryBibleV2,
+) -> tuple[ContinuityEntityStateRepairFact, ...]:
+    """Rebind known invalid continuity states to frozen Bible vocabulary."""
+
+    relevant = tuple(
+        issue for issue in issues
+        if issue.code == "semantic.invalid_continuity_entity_state"
+    )
+    if not relevant or stage not in {StageName.SCENE_BEATS, StageName.STORYBOARD}:
+        return ()
+    try:
+        output: SceneBeatsFragmentOutput | StoryboardFragmentOutput
+        output = (
+            SceneBeatsFragmentOutput.model_validate(value, by_alias=True, by_name=False)
+            if stage == StageName.SCENE_BEATS
+            else StoryboardFragmentOutput.model_validate(value, by_alias=True, by_name=False)
+        )
+    except ValidationError:
+        return ()
+    entities_by_type = {
+        EntityType.CHARACTER: {item.id: item for item in bible.characters},
+        EntityType.LOCATION: {item.id: item for item in bible.locations},
+        EntityType.PROP: {item.id: item for item in bible.props},
+    }
+    collections: dict[str, tuple[str, str, list[Any]]]
+    if isinstance(output, SceneBeatsFragmentOutput):
+        collections = {
+            "scenes": ("scene", "local_scene_id", list(output.scenes)),
+            "beats": ("beat", "local_beat_id", list(output.beats)),
+        }
+    else:
+        collections = {"shots": ("shot", "local_shot_id", list(output.shots))}
+    facts: list[ContinuityEntityStateRepairFact] = []
+    for issue in relevant:
+        path = issue.path
+        if (
+            len(path) != 6
+            or path[0] not in collections
+            or not isinstance(path[1], int)
+            or isinstance(path[1], bool)
+            or path[1] < 0
+            or path[2] not in {"entryState", "exitState"}
+            or path[3] != "entityStates"
+            or not isinstance(path[4], int)
+            or isinstance(path[4], bool)
+            or path[4] < 0
+            or path[5] != "state"
+        ):
+            continue
+        kind, local_id_field, items = collections[path[0]]
+        item_index, state_index = path[1], path[4]
+        if item_index >= len(items):
+            continue
+        item = items[item_index]
+        continuity = item.entry_state if path[2] == "entryState" else item.exit_state
+        if state_index >= len(continuity.entity_states):
+            continue
+        assignment = continuity.entity_states[state_index]
+        entity = entities_by_type[assignment.entity_type].get(assignment.entity_id)
+        if entity is None or not entity.allowed_states or assignment.state in entity.allowed_states:
+            continue
+        facts.append(
+            ContinuityEntityStateRepairFact(
+                code=issue.code,
+                path=path,
+                target=ContinuityStateEndpoint(
+                    kind=kind,
+                    id=getattr(item, local_id_field),
+                    id_scope="response_local",
+                    state="entry" if path[2] == "entryState" else "exit",
+                ),
+                entity_state_index=state_index,
+                entity_type=assignment.entity_type,
+                entity_id=assignment.entity_id,
+                allowed_states=tuple(entity.allowed_states),
+            )
+        )
+    return tuple(facts)
+
+
 def storyboard_audio_timing_repair_facts(
     value: Any,
     issues: tuple[ValidationIssue, ...],
@@ -3727,6 +3876,11 @@ def semantic_repair_facts(
             ),
         )
     if stage == StageName.STORYBOARD:
+        continuity_entity_state_facts = (
+            continuity_entity_state_repair_facts(value, issues, stage=stage, bible=bible)
+            if bible is not None
+            else ()
+        )
         continuity_facts = continuity_sequence_repair_facts(
             value,
             issues,
@@ -3734,7 +3888,7 @@ def semantic_repair_facts(
             bible=bible,
             scoped_context=scoped_context,
         )
-        entity_state_facts = (
+        required_entity_state_facts = (
             storyboard_required_entity_state_repair_facts(
                 value,
                 issues,
@@ -3754,12 +3908,18 @@ def semantic_repair_facts(
             else storyboard_audio_timing_repair_facts(value, issues)
         )
         return (
+            *continuity_entity_state_facts,
             *continuity_facts,
-            *entity_state_facts,
+            *required_entity_state_facts,
             *timing_facts,
             *audio_facts,
         )
     if stage == StageName.SCENE_BEATS:
+        entity_state_facts = (
+            continuity_entity_state_repair_facts(value, issues, stage=stage, bible=bible)
+            if bible is not None
+            else ()
+        )
         continuity_facts = continuity_sequence_repair_facts(
             value,
             issues,
@@ -3799,6 +3959,7 @@ def semantic_repair_facts(
         )
         cue_order_facts = scene_beats_cue_order_repair_facts(value, issues)
         return (
+            *entity_state_facts,
             *continuity_facts,
             *capacity_facts,
             *join_facts,
@@ -3919,6 +4080,29 @@ def assert_continuity_repair_fact_matches_source(
     if len(expected) != 1 or expected[0] != fact:
         raise ValueError(
             "continuity repair fact does not match the rejected response and frozen context"
+        )
+
+
+def assert_continuity_entity_state_repair_fact_matches_source(
+    fact: SemanticRepairFact,
+    source_value: Any,
+    *,
+    stage: StageName,
+    bible: StoryBibleV2 | None,
+) -> None:
+    """Prove a vocabulary fact still belongs to this rejected response."""
+
+    if not isinstance(fact, ContinuityEntityStateRepairFact):
+        return
+    if bible is None:
+        raise ValueError("continuity entity-state repair requires a frozen story bible")
+    source_issue = ValidationIssue(code=fact.code, path=fact.path, message="")
+    expected = continuity_entity_state_repair_facts(
+        source_value, (source_issue,), stage=stage, bible=bible
+    )
+    if len(expected) != 1 or expected[0] != fact:
+        raise ValueError(
+            "continuity entity-state repair fact does not match the rejected response and frozen story bible"
         )
 
 

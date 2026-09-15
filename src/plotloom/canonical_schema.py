@@ -166,13 +166,24 @@ class StoryNodeV2(V2Model):
     kind: V2StoryNodeKind
 
 
+class RequiredEntityState(V2Model):
+    """One explicit Story Bible entity-state assignment or requirement."""
+
+    entity_type: EntityType
+    entity_id: StableId
+    state: Annotated[str, Field(min_length=1)]
+
+
 class StoryEdgeV2(V2Model):
     id: StableId
     source_node_id: StableId
     target_node_id: StableId
     kind: V2StoryEdgeKind
     choice_text: NonBlankText | None
+    # Arbitrary finite JSON story facts remain separate from Bible-owned
+    # entity state vocabulary.  No key-name convention bridges these fields.
     state_effects: dict[str, Any]
+    entity_state_effects: list[RequiredEntityState] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _choice_edges_have_copy(self) -> StoryEdgeV2:
@@ -180,6 +191,9 @@ class StoryEdgeV2(V2Model):
             raise ValueError("choice edges require choice_text")
         if self.kind == V2StoryEdgeKind.CONTINUATION and self.choice_text is not None:
             raise ValueError("continuation edges must not define choice_text")
+        keys = [(item.entity_type, item.entity_id) for item in self.entity_state_effects]
+        if len(keys) != len(set(keys)):
+            raise ValueError("entityStateEffects must name each entity at most once")
         return self
 
 
@@ -212,12 +226,6 @@ class StoryGraphV2(V2Model):
     nodes: Annotated[list[StoryNodeV2], Field(min_length=1)]
     edges: list[StoryEdgeV2]
     join_contracts: list[JoinContractV2]
-
-
-class RequiredEntityState(V2Model):
-    entity_type: EntityType
-    entity_id: StableId
-    state: Annotated[str, Field(min_length=1)]
 
 
 class ContinuityStateV2(V2Model):

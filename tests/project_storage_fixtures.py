@@ -52,7 +52,7 @@ class FixtureProvider:
             topology = _json_after(prompt, "【不可变图骨架清单】")
             payload = {
                 "nodes": [{"id": node["id"], "title": "固定节点", "summary": "角色继续前行。"} for node in topology["nodes"]],
-                "edges": [{"id": edge["id"], "choiceText": "继续" if edge["kind"] == "choice" else None, "stateEffects": {"route": edge["id"]} if edge["kind"] == "choice" else {}} for edge in topology["edges"]],
+                "edges": [{"id": edge["id"], "choiceText": "继续" if edge["kind"] == "choice" else None, "stateEffects": {"route": edge["id"]} if edge["kind"] == "choice" else {}, "entityStateEffects": []} for edge in topology["edges"]],
                 "joinContracts": [{"id": item["id"], "requiredStateKeys": [], "allowedDifferences": [], "reconciliation": "不同路线汇合。", "notes": ""} for item in topology["joinContracts"]],
             }
         elif "【目标故事节点】" in prompt:

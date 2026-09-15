@@ -74,6 +74,7 @@ from .generation.work_units import (
     FRAGMENT_ID_BINDING_VERSION,
     CompiledWorkUnitRequest,
     JoinStateEffectRepairFact,
+    ContinuityEntityStateRepairFact,
     SemanticRepairFact,
     StoryboardTimingRepairPlanFact,
     WorkUnitContractError,
@@ -82,6 +83,7 @@ from .generation.work_units import (
     assert_join_state_effect_repair_fact_matches_source,
     parse_semantic_repair_fact,
     assert_continuity_repair_fact_matches_source,
+    assert_continuity_entity_state_repair_fact_matches_source,
     assert_semantic_repair_fact_matches_issue,
     semantic_repair_facts,
     serialize_semantic_repair_fact,
@@ -1065,6 +1067,7 @@ class DurableWorkUnitRunner:
             if (
                 isinstance(fact, StoryboardTimingRepairPlanFact)
                 or isinstance(fact, JoinStateEffectRepairFact)
+                or isinstance(fact, ContinuityEntityStateRepairFact)
                 or fact.code
                 in {
                     "semantic.continuity_beat_sequence_mismatch",
@@ -1116,6 +1119,21 @@ class DurableWorkUnitRunner:
                                 else None
                             ),
                         )
+                except ValueError as error:
+                    raise CorrectionSourceContractError(str(error)) from error
+            if isinstance(fact, ContinuityEntityStateRepairFact):
+                assert source_value is not None
+                try:
+                    assert_continuity_entity_state_repair_fact_matches_source(
+                        fact,
+                        source_value,
+                        stage=work_unit.stage,
+                        bible=(
+                            dependencies.get(StageName.STORY_BIBLE)
+                            if work_unit.stage in {StageName.SCENE_BEATS, StageName.STORYBOARD}
+                            else None
+                        ),
+                    )
                 except ValueError as error:
                     raise CorrectionSourceContractError(str(error)) from error
             if isinstance(fact, JoinStateEffectRepairFact):

@@ -294,9 +294,14 @@ _DIRECTIVES: tuple[_DirectiveDefinition, ...] = (
             "semantic.continuity_fact_not_json",
             "semantic.continuity_delta_not_json",
         ),
-        required_fact_models={},
+        required_fact_models={
+            "semantic.invalid_continuity_entity_state": "ContinuityEntityStateRepairFact",
+        },
         text=(
-            "对 continuity entity/state 问题按 path 使用目标 Schema 允许的故事圣经实体和状态；"
+            "对 semantic.invalid_continuity_entity_state，只以同 code/path 的 ContinuityEntityStateRepairFact 为权威："
+            "保持 target、entityStateIndex、entityType 与 entityId 不变，且只把 state 改为 allowedStates 的逐字成员；"
+            "不得删除、替换、移动该 entityStates 项或从验证器说明猜测词汇。"
+            "对 semantic.unknown_continuity_entity 按 path 使用目标 Schema 允许的故事圣经实体；"
             "对 fact/delta not_json 只把该 path 的值改为有限 JSON，并保留原有叙事意图。"
         ),
     ),

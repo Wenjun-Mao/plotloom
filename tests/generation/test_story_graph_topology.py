@@ -67,6 +67,7 @@ def _complete_fill(topology) -> dict:
                     or (item.source_node_id, item.target_node_id) in join_pairs
                     else {}
                 ),
+                "entityStateEffects": [],
             }
             for item in topology.edges
         ],
@@ -314,6 +315,56 @@ def test_non_join_nonfinite_state_effect_gets_a_topology_bound_repair_fact() -> 
     assert fact.repair_action == "replace_with_finite_json"
 
 
+def test_typed_graph_entity_state_effects_require_exact_frozen_bible_membership() -> None:
+    brief = _brief()
+    topology = plan_story_graph_topology(project_id="project-a", brief=brief)
+    bible = StoryBibleV2(
+        logline="站台等待。", premise="选择改变站台状态。", genre="", tone="", audience="",
+        narrative_promise="", visual_language="", themes=[], world_rules=[], known_facts=[],
+        open_questions=[], source_notes=[], characters=[], props=[],
+        locations=[{
+            "id": "loc_station", "name": "站台", "description": "空站台。",
+            "visualAnchors": [], "soundAnchors": [],
+            "allowedStates": ["空无一人", "林澈在场", "站务员在场（未定）"],
+            "continuityRules": [],
+        }],
+    )
+    fill = _complete_fill(topology)
+    edge = fill["edges"][0]
+    edge["entityStateEffects"] = [{
+        "entityType": "location", "entityId": "loc_station", "state": "站务员在场",
+    }]
+    adapter = StoryGraphContentFillValidationAdapter(
+        topology=topology, brief=brief, bible=bible
+    )
+    rejected = adapter.validate(fill, context=SemanticValidationContext(stage="story_graph"))
+    assert ("semantic.invalid_entity_state_effect", ("edges", edge["id"], "entityStateEffects", "0", "state")) in {
+        (issue.code, tuple(str(part) for part in issue.path)) for issue in rejected.issues
+    }
+
+    edge["entityStateEffects"][0]["state"] = "站务员在场（未定）"
+    accepted = adapter.validate(fill, context=SemanticValidationContext(stage="story_graph"))
+    assert accepted.accepted is True
+
+    edge["entityStateEffects"][0]["entityId"] = "missing_station"
+    unknown = adapter.validate(fill, context=SemanticValidationContext(stage="story_graph"))
+    assert any(issue.code == "semantic.unknown_entity_state_effect_entity" for issue in unknown.issues)
+    edge["entityStateEffects"][0]["entityId"] = "loc_station"
+    edge["entityStateEffects"][0]["entityType"] = "character"
+    wrong_type = adapter.validate(fill, context=SemanticValidationContext(stage="story_graph"))
+    assert any(issue.code == "semantic.unknown_entity_state_effect_entity" for issue in wrong_type.issues)
+    edge["entityStateEffects"] = []
+    edge["stateEffects"] = {"loc_station_state": "free-form story fact"}
+    assert adapter.validate(fill, context=SemanticValidationContext(stage="story_graph")).accepted is True
+
+    edge["entityStateEffects"] = [
+        {"entityType": "location", "entityId": "loc_station", "state": "空无一人"},
+        {"entityType": "location", "entityId": "loc_station", "state": "林澈在场"},
+    ]
+    duplicate = adapter.validate(fill, context=SemanticValidationContext(stage="story_graph"))
+    assert any(issue.code == "semantic.value_error" or issue.code == "semantic.duplicate_entity_state_effect" for issue in duplicate.issues)
+
+
 def test_planner_reports_stable_pre_provider_errors() -> None:
     with pytest.raises(StoryGraphTopologyError) as limited:
         plan_story_graph_topology(project_id="project-a", brief=_brief(node_budget=8))
@@ -485,7 +536,7 @@ def test_work_unit_compiler_exposes_content_only_graph_schema() -> None:
         story_graph_topology=topology,
     )
 
-    assert compiled.contract.schema_id == "story_graph_content_fill.v3"
+    assert compiled.contract.schema_id == "story_graph_content_fill.v4"
     assert compiled.response_schema["properties"]["nodes"]["minItems"] == len(
         topology.nodes
     )

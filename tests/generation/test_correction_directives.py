@@ -297,6 +297,11 @@ def test_derived_continuity_issue_is_deferred_until_exact_fact_is_safe(
     blocker = _issue(blocker_code, blocker_path)
     sequence = _issue(sequence_code, sequence_path)
 
+    if blocker_code == "semantic.invalid_continuity_entity_state":
+        with pytest.raises(CorrectionDirectivePlanError, match="ContinuityEntityStateRepairFact"):
+            compile_correction_instruction_plan([blocker, sequence], [])
+        return
+
     plan = compile_correction_instruction_plan([blocker, sequence], [])
 
     assert plan.executable_issue_indexes == (0,)
@@ -379,27 +384,8 @@ def test_prompt_fact_bindings_use_executable_local_issue_indexes() -> None:
     fact = _join_allowed_fact()
     fact_issue = _issue(fact.code, fact.path)
 
-    plan = compile_correction_instruction_plan(
-        [sequence, blocker, fact_issue],
-        [fact],
-    )
-
-    assert plan.executable_issue_indexes == (1, 2)
-    assert plan.deferred_issue_indexes == (0,)
-    selection = plan.prompt_evidence["issueSelection"]
-    assert selection["factBindings"] == [
-        {
-            "factIndex": 0,
-            "issueIndex": 1,
-            "code": fact.code,
-            "path": list(fact.path),
-            "model": "JoinAllowedDifferencesRepairFact",
-        }
-    ]
-    assert all(
-        binding["issueIndex"] < len(selection["executableIssues"])
-        for binding in selection["factBindings"]
-    )
+    with pytest.raises(CorrectionDirectivePlanError, match="ContinuityEntityStateRepairFact"):
+        compile_correction_instruction_plan([sequence, blocker, fact_issue], [fact])
 
 
 def test_known_schema_and_extraction_codes_need_no_semantic_fact() -> None:

@@ -77,13 +77,39 @@ deferred details are included in a model-visible message or response schema.
 The model-facing projection contains only executable code/path pairs and
 bindings whose indexes are local to that executable projection.
 
-`WorkUnitPromptContract m1.12t` freezes the correction policy, issue selector,
+`WorkUnitPromptContract m1.13` freezes the correction policy, issue selector,
 directive registry, evidence projection, and response-schema compiler versions
 on the primary attempt. Each correction additionally freezes SHA-256 hashes of
 the issue selection, selected directive set, evidence projection, and full
 narrowed schema. Resume and correction lineage compare those immutable
 snapshots and reject compiler drift. Terminal historical artifacts remain raw
 evidence; their absent fields are not injected, re-saved, or re-hashed.
+
+### Bible vocabulary and authored entity-state effects have separate owners
+
+`stateEffects` remains the Story Graph author's arbitrary finite-JSON fact
+map. It never acquires entity identity through a suffix, prose, or synonym. An
+edge that changes a Story Bible character, location, or prop instead carries
+an explicit `entityStateEffects` item with `entityType`, `entityId`, and
+`state`. The Bible author owns the allowed vocabulary; the graph/fragment
+author chooses an actual member; trusted code validates exact entity/type and
+membership before graph seal or canonical save. Typed effects travel unchanged
+through the graph binder and Scene Beats incident-edge context. They are not
+converted from historical `stateEffects`, and arbitrary facts remain separate.
+
+For `semantic.invalid_continuity_entity_state`, current correction contracts
+emit a source-rebound `ContinuityEntityStateRepairFact`: the exact response
+path, response-local boundary identity, entity type/ID, array index, and the
+ordered allowed-state vocabulary from the frozen Bible. Its schema overlay and
+application postcondition require that same entry and identity to remain and
+allow only the listed literals. The directive may rely only on that fact, not
+on an absent schema enum or validator prose. Unknown entities, wrong types,
+and malformed or stale facts receive no vocabulary authority and fail closed.
+
+This changes current generation semantics, so planning, work-unit, directive,
+and response-schema versions advance together. Nonterminal plans under the
+prior planning version fail recovery rather than resuming with a different
+contract. Retained raw prompts, responses, seals, and hashes remain untouched.
 
 ### Join corrections retain only source-proven valid sibling assignments
 
@@ -110,8 +136,8 @@ constraints. Immediately before compiling a correction, Plotloom re-extracts
 the rejected final and deterministically re-derives the whole join fact against
 the frozen topology and validation issues; a fabricated edge ID, changed value,
 or fact rebound to another source is rejected. The current policy/compiler
-identities are `bounded_correction.v22`, `correction_directives.v4`,
-`correction_evidence_projection.v3`, and `correction_response_schema.v4`.
+identities are `bounded_correction.v23`, `correction_directives.v5`,
+`correction_evidence_projection.v3`, and `correction_response_schema.v5`.
 Older artifacts retain their original JSON, hashes, and seals; they are neither
 rewritten nor relabelled as evidence for this contract.
 

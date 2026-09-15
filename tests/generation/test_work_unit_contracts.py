@@ -29,6 +29,8 @@ from plotloom.generation.contracts import ValidationIssue
 from plotloom.generation.correction_directives import (
     compile_correction_instruction_plan,
 )
+from plotloom.generation.correction_postconditions import validate_correction_postconditions
+from plotloom.generation.correction_schema import compile_correction_response_schema
 from plotloom.generation.validation import SemanticValidationContext
 from plotloom.generation.fragment_semantics import (
     continuity_state_issues,
@@ -40,9 +42,12 @@ from plotloom.generation.work_units import (
     WorkUnitPromptContract,
     CueOrderRepairAssignment,
     CueOrderRepairFact,
+    ContinuityEntityStateRepairFact,
+    assert_continuity_entity_state_repair_fact_matches_source,
     assert_cue_order_repair_fact_matches_source,
     canonical_audio_event_id,
     canonical_fragment_id,
+    continuity_entity_state_repair_facts,
     compile_work_unit_request,
     scene_beats_cue_order_repair_facts,
     scene_beats_dialogue_node_budget_repair_facts,
@@ -1466,6 +1471,76 @@ def test_scene_fragment_rejects_invalid_continuity_vocabulary_and_sequence_befor
         "semantic.continuity_beat_sequence_mismatch",
         ("scenes", 0),
     ) in {(issue.code, issue.path) for issue in sequence_report.issues}
+
+
+def test_continuity_state_correction_rebinds_exact_response_entry_to_bible_vocabulary() -> None:
+    brief, snapshot, plan, _, graph, _ = _plan_and_inputs()
+    bible = _bible_with_hero()
+    stage_plan = plan_stage(
+        plan, stage=StageName.SCENE_BEATS,
+        dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph}, brief=brief,
+    )
+    unit = stage_plan.work_units[0]
+    compiled = compile_work_unit_request(
+        generation_plan=plan, stage_plan=stage_plan, work_unit=unit,
+        dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=brief, canonical_snapshot=snapshot, instructions="preserve the project brief",
+    )
+    rejected_value = _scene_output()
+    rejected_value["scenes"][0]["entryState"] = _character_state("missing").model_dump(
+        mode="json", by_alias=True
+    )
+    report = compiled.validator.validate(
+        rejected_value, context=SemanticValidationContext(stage="scene_beats")
+    )
+    facts = semantic_repair_facts(
+        rejected_value, report.issues, stage=StageName.SCENE_BEATS, bible=bible,
+        scoped_context=compiled.validator.scoped_context,
+        dialogue_capacity_guidance=compiled.contract.dialogue_capacity_guidance,
+        dialogue_timing_profile=stage_plan.dialogue_timing_profile,
+        node_duration_budget_units=compiled.contract.node_duration_budget_units,
+        join_state_value_requirements=compiled.validator.scoped_context["join_state_value_requirements"],
+    )
+    fact = next(item for item in facts if isinstance(item, ContinuityEntityStateRepairFact))
+    assert fact.path == ("scenes", 0, "entryState", "entityStates", 0, "state")
+    assert fact.entity_id == "hero"
+    assert fact.allowed_states == ("alert", "calm")
+    assert_continuity_entity_state_repair_fact_matches_source(
+        fact, rejected_value, stage=StageName.SCENE_BEATS, bible=bible
+    )
+    directive_plan = compile_correction_instruction_plan(report.issues, facts)
+    assert "continuity_values" in [directive.id for directive in directive_plan.directives]
+    overlay = compile_correction_response_schema(compiled.response_schema, [fact])
+    assert fact.code in overlay.applied_fact_codes
+
+    repaired = deepcopy(rejected_value)
+    repaired["scenes"][0]["entryState"]["entityStates"][0]["state"] = "alert"
+    assert validate_correction_postconditions(repaired, [fact]) == ()
+    repaired["scenes"][0]["entryState"]["entityStates"][0]["entityId"] = "other"
+    assert validate_correction_postconditions(repaired, [fact])
+
+
+def test_storyboard_continuity_state_repair_keeps_the_typed_fact() -> None:
+    bible = _bible_with_hero()
+    value = _storyboard_output(beat_ids=["beat-node-a"])
+    value["shots"][0]["exitState"] = _character_state("missing").model_dump(
+        mode="json", by_alias=True
+    )
+    issue = ValidationIssue(
+        code="semantic.invalid_continuity_entity_state",
+        message="fixture",
+        path=("shots", 0, "exitState", "entityStates", 0, "state"),
+    )
+    facts = continuity_entity_state_repair_facts(
+        value, (issue,), stage=StageName.STORYBOARD, bible=bible
+    )
+    assert len(facts) == 1
+    fact = facts[0]
+    assert fact.target.kind == "shot"
+    assert fact.target.id == "shot-a"
+    assert_continuity_entity_state_repair_fact_matches_source(
+        fact, value, stage=StageName.STORYBOARD, bible=bible
+    )
 
 
 def test_storyboard_fragment_rejects_canonical_gate_semantics_before_binding() -> None:

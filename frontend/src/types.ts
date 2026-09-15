@@ -93,6 +93,7 @@ export interface StoryEdge {
   kind: "choice" | "continuation";
   choiceText: string | null;
   stateEffects: Record<string, unknown>;
+  entityStateEffects: RequiredEntityState[];
 }
 
 export interface JoinContract {

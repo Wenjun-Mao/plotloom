@@ -389,8 +389,8 @@ export function graphIssueTarget(graph: StoryGraph, issue: ValidationIssue): Gra
   if (collection === "edges") {
     const edge = /^\d+$/.test(token) ? graph.edges[Number(token)] : graph.edges.find((candidate) => candidate.id === token);
     const stateEffectPath = remainder.split(".");
-    const field = stateEffectPath[0] === "stateEffects" && stateEffectPath[1]
-      ? `stateEffects.${stateEffectPath[1]}`
+    const field = (stateEffectPath[0] === "stateEffects" || stateEffectPath[0] === "entityStateEffects") && stateEffectPath[1]
+      ? `${stateEffectPath[0]}.${stateEffectPath[1]}${stateEffectPath[2] ? `.${stateEffectPath[2]}` : ""}`
       : stateEffectPath[0] || "entity";
     return edge ? { entity: { kind: "edge", id: edge.id }, field } : undefined;
   }
