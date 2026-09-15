@@ -83,7 +83,7 @@ IGNORED_WORKTREE_ROOTS = {
     "node_modules",
 }
 LOCAL_WORKTREE_DOTENV_PATTERN = re.compile(r"^\.env(?:\..+)?\.local$")
-APPROVED_UNTRACKED_WORKTREE_ROOTS = {"outputs"}
+APPROVED_UNTRACKED_WORKTREE_ROOTS = {".playwright-cli", "outputs"}
 FORBIDDEN_PRODUCT_IDENTITY_MARKERS = {
     "Narrative Forge",
     "NARRATIVE_FORGE",
@@ -279,6 +279,7 @@ def test_clean_repository_has_only_declared_product_roots() -> None:
 
 def test_root_hygiene_allows_only_declared_untracked_local_state(tmp_path: Path) -> None:
     (tmp_path / "outputs").mkdir()
+    (tmp_path / ".playwright-cli").mkdir()
     for name in (".env.local", ".env.h3-pilot.local"):
         (tmp_path / name).touch()
 
@@ -288,6 +289,7 @@ def test_root_hygiene_allows_only_declared_untracked_local_state(tmp_path: Path)
     assert _unexpected_worktree_roots(tmp_path) == ["unknown-predecessor"]
 
     assert _unexpected_tracked_roots([Path("outputs/project.json")]) == ["outputs"]
+    assert _unexpected_tracked_roots([Path(".playwright-cli/state.json")]) == [".playwright-cli"]
     assert _unexpected_tracked_roots([Path(".env.h3-pilot.local")]) == [".env.h3-pilot.local"]
 
     (tmp_path / "backend").mkdir()

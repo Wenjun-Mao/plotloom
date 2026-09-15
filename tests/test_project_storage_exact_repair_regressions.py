@@ -337,6 +337,31 @@ def test_exact_repair_scope_and_binding_tampering_fail_before_child_materializat
     assert store.run_trace(source.id).model_dump(mode="json") == source_before
 
 
+def test_legacy_exact_repair_scope_without_pending_siblings_preserves_its_raw_hash(
+    tmp_path: Path,
+) -> None:
+    """Adding a defaulted field must not rewrite or reject historical scope JSON."""
+
+    store = _storage(tmp_path).projects.create(FIXED_CHINESE_BRIEF)
+    source, unit = _rejected_bible_unit(store)
+    child = _create_exact_repair(store, source.id, unit.id, key="legacy-scope-json").run
+    with store.repository._write() as session:  # noqa: SLF001 - historical JSON boundary proof
+        row = session.get(WorkUnitRepairScopeRow, child.id)
+        assert row is not None
+        legacy_scope = {
+            key: value
+            for key, value in row.scope.items()
+            if key not in {"pendingSiblingWorkUnitIds", "scopeHash"}
+        }
+        legacy_hash = stable_hash(legacy_scope)
+        row.scope = {**legacy_scope, "scopeHash": legacy_hash}
+        row.scope_hash = legacy_hash
+
+    scope = store.generation.get_work_unit_repair_scope(child.id)
+    assert scope.pending_sibling_work_unit_ids == []
+    assert scope.scope_hash == legacy_hash
+
+
 def test_tampered_frozen_upstream_binding_never_materializes_a_child_candidate(
     tmp_path: Path,
 ) -> None:

@@ -44,10 +44,10 @@ Frontend unit tests (149), TypeScript typecheck, production build, generated
 static freshness, `uv build --wheel`, and the fresh installed-wheel smoke all
 passed. The frontend build emitted its existing >500 kB chunk-size warning.
 
-The full Python suite reached the pre-existing extraction-environment failure
-`tests/test_extraction_contract.py::test_clean_repository_has_only_declared_product_roots`:
-undeclared local root `.playwright-cli`. It is outside this scoped delta and
-was preserved; this record does not claim the full-suite gate passed.
+The full locked Python suite passed: 527 tests. The filesystem-only root
+allowlist now names the already ignored `.playwright-cli/` local browser-state
+directory while continuing to reject any tracked path below it; no local browser
+evidence was deleted or otherwise changed.
 
 ## Acceptance disposition
 
