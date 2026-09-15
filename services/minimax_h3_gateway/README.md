@@ -10,7 +10,8 @@ Plotloom is now wired to this gateway through the versioned
 for deployment, security, Plotloom configuration, lifecycle, recovery, and
 the exact limits of verified behavior.
 
-The local service contract has six bearer-authenticated client operations:
+The local service contract has six bearer-authenticated client operations plus
+one unauthenticated health route:
 
 1. `POST /v1/assets` stores one PNG, JPEG, or WebP reference frame from a
    multipart file or a private/public `http(s)` `sourceUrl` JSON body.
@@ -20,10 +21,10 @@ The local service contract has six bearer-authenticated client operations:
 3. `POST /v1/video-jobs/from-image` combines image ingestion and job admission
    for a multipart file or `sourceUrl`; it returns the ordinary queued-job
    response but deliberately has no idempotency-key contract.
-4. `GET /v1/video-jobs/{id}` reports a known job; `GET .../output` serves its
-   gateway-managed completed MP4.
-5. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
-6. `GET /health` exposes safe readiness and queue counts.
+4. `GET /v1/video-jobs/{id}` reports a known job.
+5. `GET /v1/video-jobs/{id}/output` serves its gateway-managed completed MP4.
+6. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
+7. `GET /health` exposes safe readiness and queue counts without a bearer key.
 
 For a colleague-facing, copy-paste client guide—including Spark's current
 Tailnet base URL and a test image—see

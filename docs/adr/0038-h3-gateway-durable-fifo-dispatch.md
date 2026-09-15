@@ -11,7 +11,8 @@ durable order for multiple Plotloom requests.
 
 ## Decision
 
-The gateway keeps its narrow private HTTP boundary:
+The gateway keeps six bearer-authenticated client operations plus a narrow
+unauthenticated health route:
 
 1. `POST /v1/assets` stores one validated reference asset from a multipart
    image or private `sourceUrl` retrieval.
@@ -22,10 +23,12 @@ The gateway keeps its narrow private HTTP boundary:
 3. `POST /v1/video-jobs/from-image` is a stateless convenience admission that
    stores one supplied image and queues one ordinary job. Its input and retry
    boundary are recorded in ADR 0040.
-4. `GET /v1/video-jobs/{id}` returns the known state; `GET .../output` serves
-   only the completed known MP4 owned by the gateway, while `POST .../cancel`
-   cancels only a still-queued job.
-5. `GET /health` returns safe H3 readiness, catalog and queue counts.
+4. `GET /v1/video-jobs/{id}` returns the known state.
+5. `GET /v1/video-jobs/{id}/output` serves only the completed known MP4 owned
+   by the gateway.
+6. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
+7. `GET /health` returns safe H3 readiness, catalog and queue counts without
+   a bearer key.
 
 The gateway owns one FIFO dispatch worker. It submits at most one of its jobs
 to ComfyUI at a time and waits while trusted external ComfyUI work is already
