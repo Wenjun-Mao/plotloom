@@ -74,6 +74,41 @@ def test_h3_adapter_direct_image_contract_requires_a_frozen_profile() -> None:
         adapter.prediction_id(_job("queued", False), expected_profile_id=None)
 
 
+def test_h3_adapter_requires_explicit_and_exclusive_center_crop_consent() -> None:
+    adapter = MiniMaxH3GatewayAdapter()
+    with pytest.raises(VideoProviderError, match="allowCenterCrop"):
+        adapter.production_contract(
+            requested_seconds=5, resolution="576x1024", audio=True,
+            aspect_policy="cover_center_crop", allow_letterbox=False,
+            allow_center_crop=False, seed=7, profile_id=_PROFILE,
+        )
+    contract = adapter.production_contract(
+        requested_seconds=5, resolution="576x1024", audio=True,
+        aspect_policy="cover_center_crop", allow_letterbox=False,
+        allow_center_crop=True, seed=7, profile_id=_PROFILE,
+    )
+    assert contract.request_snapshot() == {
+        "durationSeconds": 5, "resolution": "576x1024", "audio": True,
+        "aspectPolicy": "cover_center_crop", "seed": 7, "profileId": _PROFILE,
+        "profileVersion": 1, "width": 576, "height": 1024,
+        "allowLetterbox": False, "allowCenterCrop": True,
+    }
+    with pytest.raises(VideoProviderError, match="mutually exclusive"):
+        adapter.production_contract(
+            requested_seconds=5, resolution="576x1024", audio=True,
+            aspect_policy="cover_center_crop", allow_letterbox=True,
+            allow_center_crop=True, seed=7, profile_id=_PROFILE,
+        )
+
+
+def test_h3_adapter_rejects_a_gateway_response_that_changes_the_frozen_crop_mode() -> None:
+    with pytest.raises(VideoProviderError, match="aspect policy"):
+        MiniMaxH3GatewayAdapter.prediction_id(
+            _job("queued", False), expected_profile_id=_PROFILE,
+            expected_aspect_policy="cover_center_crop",
+        )
+
+
 def test_h3_adapter_reports_retained_output_expiry() -> None:
     with pytest.raises(VideoOutputContractError, match="h3_gateway_output_expired"):
         MiniMaxH3GatewayAdapter.completed_output(_job("succeeded", False), expected_profile_id=_PROFILE)

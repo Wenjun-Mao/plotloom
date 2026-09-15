@@ -31,11 +31,12 @@ class OfflineH3GatewayFake:
         assert isinstance(payload["seed"], int)
         assert payload["durationSeconds"] == 5
         self.profile_id = payload["profileId"]
-        return self._job("submitted", output_ready=False, aspect_policy=payload["aspectPolicy"])
+        self.aspect_policy = payload["aspectPolicy"]
+        return self._job("submitted", output_ready=False, aspect_policy=self.aspect_policy)
 
     def poll(self, job_id: str) -> dict[str, object]:
         assert job_id == "h3_0123456789abcdef0123456789abcdef"
-        return self._job("succeeded", output_ready=True, aspect_policy="cover_center_crop")
+        return self._job("succeeded", output_ready=True, aspect_policy=self.aspect_policy)
 
     def _job(self, status: str, *, output_ready: bool, aspect_policy: object) -> dict[str, object]:
         return {
@@ -65,3 +66,4 @@ class OfflineH3GatewayFake:
             return output.read_bytes()
     def __init__(self) -> None:
         self.profile_id: str | None = None
+        self.aspect_policy: object = "reject_mismatch"

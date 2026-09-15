@@ -82,6 +82,7 @@ def register_project_folder_video_routes(
                 audio=body.audio,
                 aspect_policy=body.aspect_policy,
                 allow_letterbox=body.allow_letterbox,
+                allow_center_crop=body.allow_center_crop,
                 seed=body.seed,
                 profile_id=body.profile_id,
             )

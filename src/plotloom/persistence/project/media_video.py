@@ -144,10 +144,11 @@ class VideoJobPersistence:
                 raise InvalidTransitionError("selected keyframe bytes are unavailable")
             # New catalog-backed H3 contracts use an exact profile geometry.
             # A mismatched source is normally rejected before a row,
-            # reservation, or provider call. The narrow exception is an
-            # explicit frozen letterbox request: the creator is asking the
-            # gateway to retain black canvas as part of the input, not asking
-            # Plotloom to waive profile, provenance, or output checks.
+            # reservation, or provider call. The narrow exceptions are
+            # explicit frozen input-frame modes: letterbox asks the gateway to
+            # retain black canvas, while centered crop asks that same gateway
+            # to crop the frozen original. Neither waives profile, provenance,
+            # or output checks and neither creates a local derivative.
             if (
                 production_contract is not None
                 and production_contract.profile_id is not None
@@ -155,7 +156,9 @@ class VideoJobPersistence:
                 and production_contract.height is not None
             ):
                 expected_policy = (
-                    "contain_pad"
+                    "cover_center_crop"
+                    if production_contract.allow_center_crop
+                    else "contain_pad"
                     if production_contract.allow_letterbox
                     else "reject_mismatch"
                 )
@@ -165,6 +168,7 @@ class VideoJobPersistence:
                     )
                 if (
                     not production_contract.allow_letterbox
+                    and not production_contract.allow_center_crop
                     and not has_matching_aspect(
                         asset.width,
                         asset.height,

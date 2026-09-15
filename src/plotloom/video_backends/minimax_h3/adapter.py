@@ -105,12 +105,16 @@ class MiniMaxH3GatewayAdapter:
     """Compile and validate only profiles in the private H3 catalog."""
 
     adapter_id = "minimax_h3_gateway"
+    # This extends the existing V4 request parser without changing its gateway
+    # identity. Keeping the version lets already-frozen V4 H3 requests resume
+    # against the same compatible adapter after restart.
     adapter_version = "4"
     _JOB_ID = re.compile(r"^h3_[0-9a-f]{32}$")
     # New Plotloom work must receive a fully composed reviewed keyframe.
     _ASPECT_POLICIES = frozenset({"cover_center_crop", "contain_pad", "reject_mismatch"})
     _NEW_JOB_ASPECT_POLICY = "reject_mismatch"
     _LETTERBOX_ASPECT_POLICY = "contain_pad"
+    _CENTER_CROP_ASPECT_POLICY = "cover_center_crop"
 
     def _profile(self, profile_id: str | None, *, default_if_missing: bool = False) -> H3Profile:
         if profile_id is None and not default_if_missing:
@@ -129,6 +133,7 @@ class MiniMaxH3GatewayAdapter:
         audio: bool | None,
         aspect_policy: str | None,
         allow_letterbox: bool,
+        allow_center_crop: bool,
         seed: int | None,
         profile_id: str | None,
     ) -> VideoProductionContract:
@@ -139,13 +144,18 @@ class MiniMaxH3GatewayAdapter:
             raise VideoProviderError("H3 resolution capability mismatch")
         if audio not in {None, True}:
             raise VideoProviderError("H3 native audio is required")
+        if allow_letterbox and allow_center_crop:
+            raise VideoProviderError("H3 input-frame modes are mutually exclusive")
         expected_policy = (
-            self._LETTERBOX_ASPECT_POLICY if allow_letterbox else self._NEW_JOB_ASPECT_POLICY
+            self._CENTER_CROP_ASPECT_POLICY if allow_center_crop
+            else self._LETTERBOX_ASPECT_POLICY if allow_letterbox
+            else self._NEW_JOB_ASPECT_POLICY
         )
         if aspect_policy != expected_policy:
             raise VideoProviderError(
                 "H3 new jobs require reject_mismatch with a prepared keyframe, "
-                "or explicit allowLetterbox with contain_pad"
+                "explicit allowLetterbox with contain_pad, or explicit "
+                "allowCenterCrop with cover_center_crop"
             )
         return VideoProductionContract(
             adapter_id=self.adapter_id,
@@ -158,6 +168,7 @@ class MiniMaxH3GatewayAdapter:
             audio=True,
             aspect_policy=aspect_policy,
             allow_letterbox=allow_letterbox,
+            allow_center_crop=allow_center_crop,
             seed=seed if seed is not None else randbits(63),
             cost_policy="local_capacity_v1",
             profile_id=profile.profile_id,
@@ -186,6 +197,7 @@ class MiniMaxH3GatewayAdapter:
             "requiresAspectPolicy": False,
             "inputAspectPolicy": self._NEW_JOB_ASPECT_POLICY,
             "allowsLetterbox": True,
+            "allowsCenterCrop": True,
             "tracksPaidWanPilot": False,
             "profileContractVersion": H3_PROFILE_CONTRACT_VERSION,
             "defaultProfileId": DEFAULT_H3_PROFILE_ID,
@@ -217,7 +229,13 @@ class MiniMaxH3GatewayAdapter:
         }
 
     @classmethod
-    def prediction_id(cls, payload: dict[str, Any], *, expected_profile_id: str | None) -> str:
+    def prediction_id(
+        cls,
+        payload: dict[str, Any],
+        *,
+        expected_profile_id: str | None,
+        expected_aspect_policy: str | None = None,
+    ) -> str:
         value = payload.get("id")
         if not isinstance(value, str) or not cls._JOB_ID.fullmatch(value):
             raise VideoProviderError("H3 response has no documented job ID")
@@ -226,11 +244,23 @@ class MiniMaxH3GatewayAdapter:
         expected = expected_profile_id
         if payload.get("profileId") != expected:
             raise VideoProviderError("H3 response profile does not match frozen job")
+        if expected_aspect_policy is not None and payload.get("aspectPolicy") != expected_aspect_policy:
+            raise VideoProviderError("H3 response aspect policy does not match frozen job")
         return value
 
     @classmethod
-    def completed_output(cls, payload: dict[str, Any], *, expected_profile_id: str | None) -> str | None:
-        cls.prediction_id(payload, expected_profile_id=expected_profile_id)
+    def completed_output(
+        cls,
+        payload: dict[str, Any],
+        *,
+        expected_profile_id: str | None,
+        expected_aspect_policy: str | None = None,
+    ) -> str | None:
+        cls.prediction_id(
+            payload,
+            expected_profile_id=expected_profile_id,
+            expected_aspect_policy=expected_aspect_policy,
+        )
         status = payload.get("status")
         if not isinstance(status, str):
             raise VideoProviderError("H3 job response has no documented status")
@@ -244,7 +274,11 @@ class MiniMaxH3GatewayAdapter:
             raise VideoProviderError("H3 completed response is invalid")
         if payload.get("outputReady") is not True:
             raise VideoOutputContractError("h3_gateway_output_expired")
-        return cls.prediction_id(payload, expected_profile_id=expected_profile_id)
+        return cls.prediction_id(
+            payload,
+            expected_profile_id=expected_profile_id,
+            expected_aspect_policy=expected_aspect_policy,
+        )
 
     @classmethod
     def validate_output_reference(cls, value: str) -> None:

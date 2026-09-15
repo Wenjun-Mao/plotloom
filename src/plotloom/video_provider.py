@@ -202,9 +202,10 @@ class VideoProductionContract:
     aspect_policy: str | None
     seed: int | None
     cost_policy: Literal["wan_paid_pilot_v1", "local_capacity_v1"]
-    # Only catalog-backed H3 contracts persist this author opt-in. Historical
+    # Only catalog-backed H3 contracts persist these author opt-ins. Historical
     # Wan and V1 H3 snapshot bytes stay untouched.
     allow_letterbox: bool = False
+    allow_center_crop: bool = False
     # Optional profile metadata is used by gateway-owned catalog adapters.
     # Wan V1/V2 snapshots intentionally omit it byte-for-byte.
     profile_id: str | None = None
@@ -242,11 +243,17 @@ class VideoProductionContract:
                 or self.height % 32
             ):
                 raise ValueError("video profile contract is invalid")
-            expected_policy = "contain_pad" if self.allow_letterbox else "reject_mismatch"
+            if self.allow_letterbox and self.allow_center_crop:
+                raise ValueError("video input-frame modes are mutually exclusive")
+            expected_policy = (
+                "cover_center_crop" if self.allow_center_crop
+                else "contain_pad" if self.allow_letterbox
+                else "reject_mismatch"
+            )
             if self.aspect_policy != expected_policy:
                 raise ValueError("video input-frame mode does not match its aspect policy")
-        elif self.allow_letterbox:
-            raise ValueError("letterbox mode requires a frozen video profile")
+        elif self.allow_letterbox or self.allow_center_crop:
+            raise ValueError("input-frame mode requires a frozen video profile")
 
     def provider_snapshot(self) -> dict[str, Any]:
         return {
@@ -281,6 +288,7 @@ class VideoProductionContract:
                 "width": self.width,
                 "height": self.height,
                 "allowLetterbox": self.allow_letterbox,
+                "allowCenterCrop": self.allow_center_crop,
             }
         return request
 
@@ -326,9 +334,21 @@ class VideoAdapterPort(Protocol):
         profile_id: str | None,
     ) -> dict[str, Any]: ...
 
-    def prediction_id(self, payload: dict[str, Any], *, expected_profile_id: str | None = None) -> str: ...
+    def prediction_id(
+        self,
+        payload: dict[str, Any],
+        *,
+        expected_profile_id: str | None = None,
+        expected_aspect_policy: str | None = None,
+    ) -> str: ...
 
-    def completed_output(self, payload: dict[str, Any], *, expected_profile_id: str | None = None) -> str | None: ...
+    def completed_output(
+        self,
+        payload: dict[str, Any],
+        *,
+        expected_profile_id: str | None = None,
+        expected_aspect_policy: str | None = None,
+    ) -> str | None: ...
 
     def validate_output_reference(self, value: str) -> None: ...
 
@@ -342,6 +362,7 @@ class VideoAdapterPort(Protocol):
         audio: bool | None,
         aspect_policy: str | None,
         allow_letterbox: bool,
+        allow_center_crop: bool,
         seed: int | None,
         profile_id: str | None,
     ) -> VideoProductionContract | None: ...
@@ -371,13 +392,14 @@ class AtlasWanAdapter:
         audio: bool | None,
         aspect_policy: str | None,
         allow_letterbox: bool,
+        allow_center_crop: bool,
         seed: int | None,
         profile_id: str | None = None,
     ) -> None:
         # V1 Wan snapshots have no seed or aspect-policy fields. Keep that
         # historical request projection exact rather than allowing future
         # backend fields to leak into it.
-        if aspect_policy is not None or allow_letterbox or seed is not None or profile_id is not None:
+        if aspect_policy is not None or allow_letterbox or allow_center_crop or seed is not None or profile_id is not None:
             raise VideoProviderError("Atlas Wan does not accept H3 aspect policy or seed")
         return None
 
@@ -422,7 +444,12 @@ class AtlasWanAdapter:
         return {"model": caps.model, "prompt": prompt, "image": uploaded_asset, "duration": duration, "resolution": resolution, "audio": True}
 
     @staticmethod
-    def prediction_id(payload: dict[str, Any], *, expected_profile_id: str | None = None) -> str:
+    def prediction_id(
+        payload: dict[str, Any],
+        *,
+        expected_profile_id: str | None = None,
+        expected_aspect_policy: str | None = None,
+    ) -> str:
         if expected_profile_id is not None:
             raise VideoProviderError("Wan P2 response includes an unsupported profile")
         data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
@@ -432,7 +459,12 @@ class AtlasWanAdapter:
         return value
 
     @staticmethod
-    def completed_output(payload: dict[str, Any], *, expected_profile_id: str | None = None) -> str | None:
+    def completed_output(
+        payload: dict[str, Any],
+        *,
+        expected_profile_id: str | None = None,
+        expected_aspect_policy: str | None = None,
+    ) -> str | None:
         if expected_profile_id is not None:
             raise VideoProviderError("Wan P2 response includes an unsupported profile")
         data = payload.get("data") if isinstance(payload.get("data"), dict) else payload

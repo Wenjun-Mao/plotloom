@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from ...domain import ProjectLifecycleStatus, StageName
 from ...exceptions import InvalidTransitionError, NotFoundError, SchemaResetRequiredError
-from ..codec import _stored_utc
+from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ManagedAssetRow,
     ProjectRow,
@@ -86,6 +86,16 @@ class VideoJobCurrentness:
         project = session.get(ProjectRow, row.project_id)
         snapshot = row.snapshot
         if project is None or ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ACTIVE:
+            return False
+        # Currentness must not make a mutated frozen request dispatchable. The
+        # row retains both an identity-bound request hash and a content hash so
+        # a change to an explicit input-frame mode cannot borrow the original
+        # reviewed selection's currentness.
+        if (
+            stable_hash(snapshot) != row.snapshot_hash
+            or stable_hash({"snapshot": snapshot, "idempotencyKey": row.idempotency_key})
+            != row.request_hash
+        ):
             return False
         try:
             approval = self._admission.approval_is_active_in_session(session, str(snapshot["approvalId"]))

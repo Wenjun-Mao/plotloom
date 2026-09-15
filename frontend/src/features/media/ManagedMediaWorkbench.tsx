@@ -238,8 +238,6 @@ export function ManagedMediaWorkbench({
   });
   const {
     prepareImageJob,
-    requestKeyframeAdaptation,
-    acceptPreparedCrop,
     copyImageJob,
     refreshImageJob,
     cancelImageJob,
@@ -475,8 +473,6 @@ export function ManagedMediaWorkbench({
         onSelectKeyframe={() => void selectKeyframe()}
         onCreatePreview={() => void createPreview()}
         onSelectPreview={selectPreview}
-        onPreparedCrop={(assetId) => void acceptPreparedCrop(assetId)}
-        onRequestKeyframeAdaptation={requestKeyframeAdaptation}
       />
     </Panel>
   );

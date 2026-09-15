@@ -58,6 +58,7 @@ class VideoJobService:
         audio: bool | None,
         aspect_policy: str | None,
         allow_letterbox: bool,
+        allow_center_crop: bool,
         seed: int | None,
         profile_id: str | None,
     ) -> dict[str, Any]:
@@ -69,6 +70,7 @@ class VideoJobService:
             audio=audio,
             aspect_policy=aspect_policy,
             allow_letterbox=allow_letterbox,
+            allow_center_crop=allow_center_crop,
             seed=seed,
             profile_id=profile_id,
         )
@@ -201,7 +203,9 @@ class VideoJobService:
                 submitted = self.provider.submit(payload, idempotency_key=video_job_id)
             try:
                 prediction = self.adapter.prediction_id(
-                    submitted, expected_profile_id=self._profile_id(job["snapshot"])
+                    submitted,
+                    expected_profile_id=self._profile_id(job["snapshot"]),
+                    expected_aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
                 )
             except VideoProviderError as error:
                 raise WanDispatchError(WanDispatchDiagnostic("submit_response_parse", "invalid_envelope")) from error
@@ -226,6 +230,7 @@ class VideoJobService:
             output = self.adapter.completed_output(
                 self._poll_current_backend(video_job_id, job["providerPredictionId"]),
                 expected_profile_id=profile_id,
+                expected_aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
             )
             if output is None:
                 return job

@@ -19,7 +19,8 @@ class VideoJobRequest(CamelModel):
     expected_selection_revision: int = Field(ge=1)
     idempotency_key: str = Field(min_length=8, max_length=255)
     # The active trusted adapter fills its observed defaults. New H3 work pins
-    # `reject_mismatch`; the broader literals remain readable for historical
+    # `reject_mismatch` unless the author records one explicit gateway-owned
+    # input-frame choice; the broader literals remain readable for historical
     # snapshots and direct gateway recovery only.
     requested_duration_seconds: Literal[5] | None = None
     resolution: str | None = Field(default=None, min_length=3, max_length=32)
@@ -29,6 +30,10 @@ class VideoJobRequest(CamelModel):
     # deliberately narrower than a general validation bypass: output-profile,
     # provenance, currentness, and selection checks still apply.
     allow_letterbox: bool = False
+    # This records consent for the gateway, and only the gateway, to make a
+    # deterministic centered crop from the still whose original bytes and
+    # reviewed binding remain frozen in the video snapshot.
+    allow_center_crop: bool = False
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
     profile_id: str | None = Field(default=None, min_length=3, max_length=63, pattern=r"^[a-z][a-z0-9_]{0,62}$")
 

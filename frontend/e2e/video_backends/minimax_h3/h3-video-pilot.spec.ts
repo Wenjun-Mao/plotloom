@@ -58,12 +58,12 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const profile = panel.getByLabel("H3 输出 Profile（必选）");
   await expect(profile).toHaveValue("minimax_h3_fp8_turbo4_portrait_576x1024_v1");
   await expect(panel.getByRole("button", { name: "冻结当前审核关键帧" })).toBeDisabled();
-  await expect(panel.getByTestId("h3-aspect-preparation")).toContainText("不会再以黑边或提交时裁切");
+  await expect(panel.getByTestId("h3-aspect-preparation")).toContainText("默认拒绝比例不符");
 
-  // Letterboxing is an author decision made before the job is frozen. It is
-  // not a storyboard Gate bypass and it remains explicit in the request.
-  await panel.getByLabel("允许黑边画布（保留当前横幅构图）").check();
-  await expect(panel.getByTestId("h3-letterbox-allowed")).toContainText("contain_pad");
+  // Crop consent is an author decision made before the job is frozen. The
+  // original selected bytes remain bound; only the gateway transforms them.
+  await panel.getByLabel("允许网关居中裁切（保留原审核关键帧）").check();
+  await expect(panel.getByTestId("h3-center-crop-allowed")).toContainText("cover_center_crop");
   await expect(panel.getByRole("button", { name: "冻结当前审核关键帧" })).toBeEnabled();
 
   const preparedPost = page.waitForResponse((response) => (
@@ -74,11 +74,11 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const preparedResponse = await preparedPost;
   expect(preparedResponse.ok()).toBeTruthy();
   expect(preparedResponse.request().postDataJSON()).toMatchObject({
-    requestedDurationSeconds: 5, resolution: "576x1024", audio: true, aspectPolicy: "contain_pad", allowLetterbox: true,
+    requestedDurationSeconds: 5, resolution: "576x1024", audio: true, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false,
     profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
   });
   const prepared = await preparedResponse.json() as { id: string; snapshot: { request: object } };
-  expect(prepared.snapshot.request).toMatchObject({ aspectPolicy: "contain_pad", allowLetterbox: true });
+  expect(prepared.snapshot.request).toMatchObject({ aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false });
 
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconcile = page.waitForResponse((response) => (

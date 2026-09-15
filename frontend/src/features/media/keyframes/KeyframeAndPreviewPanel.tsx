@@ -6,7 +6,6 @@ import type {
   Shot,
   StillPreview,
   StoryboardReview,
-  VideoBackendProfile,
   VisualIntent,
   VisualWorkbench,
 } from "../../../types";
@@ -69,8 +68,6 @@ export function KeyframeAndPreviewPanel({
   onSelectKeyframe,
   onCreatePreview,
   onSelectPreview,
-  onPreparedCrop,
-  onRequestKeyframeAdaptation,
 }: {
   projectId?: string;
   workbench: VisualWorkbench;
@@ -104,8 +101,6 @@ export function KeyframeAndPreviewPanel({
   onSelectKeyframe: () => void;
   onCreatePreview: () => void;
   onSelectPreview: (previewId: string) => void;
-  onPreparedCrop: (assetId: string) => void;
-  onRequestKeyframeAdaptation: (profile: VideoBackendProfile) => void;
 }) {
   const intentDraft = intentEditor.value;
   const setIntentDraft = intentEditor.update;
@@ -387,11 +382,8 @@ export function KeyframeAndPreviewPanel({
         approvalId={review?.activeApproval?.id}
         storyboardRevision={storyboardRevision}
         selectionRevision={workbench.selectionRevision}
-        reviewedKeyframe={selectedBinding}
         keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
         readOnly={readOnly}
-        onPreparedCrop={onPreparedCrop}
-        onRequestKeyframeAdaptation={onRequestKeyframeAdaptation}
       />
     </>
   );

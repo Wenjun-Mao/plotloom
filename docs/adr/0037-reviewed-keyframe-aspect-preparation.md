@@ -26,44 +26,47 @@ profile-owned input-frame mode freezes `contain_pad` with the job and permits a
 mismatched reviewed keyframe. It means black bands are intentional input
 composition—not an implicit crop, a model correction request, or a bypass of
 the selected-keyframe, provenance, profile, output-geometry, or review rules.
-The choice is made in media preparation before the video job is frozen; it is
-not a Storyboard Gate decision.
 
-For a mismatch, Plotloom offers three explicit preparation paths:
+For the Step 4 pilot, the user has also approved an explicit,
+mutually-exclusive `allowCenterCrop` choice. It freezes
+`cover_center_crop` with the selected H3 profile. The gateway alone performs
+that deterministic centered crop from the original reviewed source bytes;
+Plotloom neither creates a local derivative nor starts an ImageGen sizing
+attempt. The frozen job still records the original asset ID/hash, reviewed
+binding, source provenance, profile and explicit choice. The choice is made in
+media preparation before the video job is frozen; it is not a Storyboard Gate
+decision, and small aspect differences never imply consent.
+
+For a mismatch, Plotloom offers these explicit preparation paths:
 
 1. select or import an already matching source;
-2. create a deterministic centered-crop managed asset at one reviewed H3
-   profile size; or
-3. prepare a manual Codex ImageGen keyframe-adaptation job, which freezes the
-   current reviewed keyframe, selected H3 profile, source binding, and exact
-   required delivery geometry.
+2. freeze `allowCenterCrop` and let the gateway apply its reviewed centered
+   crop to the original source; or
+3. freeze `allowLetterbox` and let the gateway apply intentional black canvas.
 
-Neither path silently replaces the reviewed keyframe. A creator must inspect
-the derived or generated asset, record its VisualIntent, and explicitly select
-it for the shot before video admission. Adaptation deliveries whose dimensions
-do not exactly match the frozen target profile are rejected.
+None of these paths silently replaces the reviewed keyframe. Existing managed
+derivative and ImageGen-adaptation history stays readable, but is not created
+by the Step 4 crop choice.
 
 ## Consequences
 
-- `cover_center_crop` remains a gateway capability solely to interpret
-  historical frozen jobs. New H3 work may use `contain_pad` only through the
-  explicit frozen `allowLetterbox` mode.
-- A deterministic crop has source-hash, source-binding, target-profile and
-  transform provenance, but is not mistaken for model-generated imagery.
-- Image adaptation reuses the same-host P1 package/delivery boundary. The
-  specialist receives the source keyframe as a named reference and an exact
-  output contract; its output remains an unselected candidate pending review.
-- New `keyframe_adaptation` request and output roles are additive. Existing
-  P1 original/refinement packages retain their exact contracts.
+- `cover_center_crop` is available to new H3 work only through the explicit
+  frozen `allowCenterCrop` mode; `contain_pad` remains available only through
+  the explicit frozen `allowLetterbox` mode. `reject_mismatch` remains the
+  default.
+- The input-frame flags are mutually exclusive and are bound to the policy in
+  the immutable request. Gateway responses that report a different policy are
+  rejected before their known ID can advance the job.
+- Currentness checks both request and snapshot hashes before dispatch, so a
+  tampered crop choice cannot borrow a current reviewed selection.
 - The UI may describe a target profile and mismatch but the server owns all
-  dimensions and rechecks currentness before it creates either derivative.
+  dimensions and rechecks currentness before it freezes the gateway request.
 
 ## Follow-up guardrails
 
-Tests must prove that default H3 admission rejects padding/cropping policies
-and aspect mismatches before a reservation or provider call; an explicit
-letterbox request is accepted only with `contain_pad` and retains all other
-checks; deterministic crop provenance cannot be forged or applied after
-selection changes; adaptation packages include their source keyframe and
-reject wrong-sized deliveries; and neither derivative becomes the selected
-keyframe implicitly.
+Tests must prove that default H3 admission rejects mismatches before a
+reservation or provider call; an explicit letterbox request is accepted only
+with `contain_pad`; an explicit crop request is accepted only with
+`cover_center_crop`; both retain all other checks; the original reviewed bytes
+and source binding survive restart; and a tampered frozen choice becomes
+non-current rather than dispatchable.

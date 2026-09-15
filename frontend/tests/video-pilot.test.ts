@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { VideoPilotPanel, selectedSceneVideos } from "../src/video-pilot";
 import { plotloomApi } from "../src/api";
-import type { ManagedAsset, ReviewedKeyframe, Shot, VideoBackend, VideoJob } from "../src/types";
+import type { ManagedAsset, Shot, VideoBackend, VideoJob } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -79,12 +79,12 @@ it("keeps retrieval available after a known-ID cancel intent", async () => {
   expect(retrieve?.disabled).toBe(false);
 });
 
-it("requires an explicit H3 letterbox opt-in for a mismatched keyframe", async () => {
+it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async () => {
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
     enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "3", provider: "minimax_h3_gateway",
     model: "minimax_h3_fp8_turbo4_portrait_576x1024_v1", durationSeconds: 5, resolution: "576x1024",
     width: 576, height: 1024, fps: 24, frameCount: 124, nativeAudio: true,
-    requiresAspectPolicy: false, inputAspectPolicy: "reject_mismatch", tracksPaidWanPilot: false,
+    requiresAspectPolicy: false, inputAspectPolicy: "reject_mismatch", allowsCenterCrop: true, tracksPaidWanPilot: false,
     defaultProfileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
     profiles: [{
       id: "minimax_h3_fp8_turbo4_portrait_576x1024_v1", version: 1, label: "Portrait · Fast · 576 × 1024",
@@ -94,35 +94,41 @@ it("requires an explicit H3 letterbox opt-in for a mismatched keyframe", async (
   });
   vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });
   const prepare = vi.spyOn(plotloomApi, "prepareVideoJob").mockResolvedValue(job("project", "shot"));
-  const reviewedKeyframe: ReviewedKeyframe = {
-    id: "binding", assetId: "wide", shotId: "shot", sceneId: "scene", selectionRevision: 1,
-    visualIntentId: "intent", visualIntentRevision: 1, compatibilityNote: "reviewed source",
-  };
   const wideKeyframe: ManagedAsset = {
     id: "wide", projectId: "project", originalHash: "a".repeat(64), displayHash: "b".repeat(64),
     mimeType: "image/png", byteSize: 1, width: 640, height: 360, createdAt: "2026-01-01T00:00:00Z", provenance: null,
   };
   await act(async () => root.render(createElement(VideoPilotPanel, {
-    ...props("project", "shot", "scene"), reviewedKeyframe, keyframe: wideKeyframe,
+    ...props("project", "shot", "scene"), keyframe: wideKeyframe,
   })));
   await act(async () => { await Promise.resolve(); });
 
   expect(host.textContent).toContain("MiniMax H3 本地视频候选");
   const freeze = [...host.querySelectorAll("button")].find((item) => item.textContent === "冻结当前审核关键帧");
   expect(freeze?.disabled).toBe(true);
-  expect(host.querySelector('[data-testid="h3-aspect-preparation"]')?.textContent).toContain("不会再以黑边或提交时裁切");
-  expect([...host.querySelectorAll("button")].find((item) => item.textContent === "创建居中裁切候选")).toBeDefined();
-  const letterbox = host.querySelector('input[type="checkbox"]') as HTMLInputElement;
-  expect(letterbox.checked).toBe(false);
+  expect(host.querySelector('[data-testid="h3-aspect-preparation"]')?.textContent).toContain("默认拒绝比例不符");
+  const crop = host.querySelectorAll('input[type="radio"]')[1] as HTMLInputElement;
+  expect(crop.checked).toBe(false);
+  await act(async () => {
+    crop.click();
+    await Promise.resolve();
+  });
+  expect(freeze?.disabled).toBe(false);
+  expect(host.querySelector('[data-testid="h3-center-crop-allowed"]')?.textContent).toContain("cover_center_crop");
+  await act(async () => { freeze?.click(); await Promise.resolve(); });
+  expect(prepare).toHaveBeenCalledWith("project", expect.objectContaining({
+    resolution: "576x1024", requestedDurationSeconds: 5, audio: true, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false,
+    profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+  }));
+  const letterbox = host.querySelectorAll('input[type="radio"]')[2] as HTMLInputElement;
   await act(async () => {
     letterbox.click();
     await Promise.resolve();
   });
-  expect(freeze?.disabled).toBe(false);
   expect(host.querySelector('[data-testid="h3-letterbox-allowed"]')?.textContent).toContain("contain_pad");
   await act(async () => { freeze?.click(); await Promise.resolve(); });
-  expect(prepare).toHaveBeenCalledWith("project", expect.objectContaining({
-    resolution: "576x1024", requestedDurationSeconds: 5, audio: true, aspectPolicy: "contain_pad", allowLetterbox: true,
+  expect(prepare).toHaveBeenLastCalledWith("project", expect.objectContaining({
+    aspectPolicy: "contain_pad", allowLetterbox: true, allowCenterCrop: false,
     profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
   }));
   expect(host.textContent).not.toContain("100 秒额度");

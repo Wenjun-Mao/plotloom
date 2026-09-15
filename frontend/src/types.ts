@@ -326,6 +326,7 @@ export interface VideoBackend {
   requiresAspectPolicy?: boolean;
   inputAspectPolicy?: "reject_mismatch";
   allowsLetterbox?: boolean;
+  allowsCenterCrop?: boolean;
   tracksPaidWanPilot?: boolean;
   profileContractVersion?: number;
   defaultProfileId?: string;

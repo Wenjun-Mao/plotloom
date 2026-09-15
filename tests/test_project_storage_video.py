@@ -7,6 +7,7 @@ from collections.abc import Callable
 from dataclasses import replace
 from hashlib import sha256
 from io import BytesIO
+import json
 from pathlib import Path
 import shutil
 import sqlite3
@@ -22,6 +23,7 @@ from plotloom.domain import StageName
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
 from plotloom.project_storage import ProjectStorageConflictError, ProjectStorageError
+from plotloom.persistence.codec import stable_hash
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_provider import VideoBackendInstanceIdentity
@@ -38,6 +40,7 @@ class FakeH3:
         self.downloads = 0
         self.preflight_calls = 0
         self.upload_calls = 0
+        self.images: list[bytes] = []
         self.poll_calls = 0
         self.before_preflight: Callable[[], None] | None = None
         self.submit_error: Exception | None = None
@@ -57,14 +60,16 @@ class FakeH3:
     def submit_image(self, image: bytes, *, mime_type: str, payload: dict) -> dict:
         assert image and mime_type == "image/png" and payload["durationSeconds"] == 5
         self.upload_calls += 1
+        self.images.append(image)
         self.submits.append(payload)
+        self.aspect_policy = payload["aspectPolicy"]
         if self.submit_error is not None:
             raise self.submit_error
         return _h3_job("submitted", False, payload["profileId"], payload["aspectPolicy"])
 
     def poll(self, prediction_id: str) -> dict:
         self.poll_calls += 1
-        return _h3_job("succeeded", True, "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "reject_mismatch", identifier=prediction_id)
+        return _h3_job("succeeded", True, "minimax_h3_fp8_turbo4_portrait_576x1024_v1", getattr(self, "aspect_policy", "reject_mismatch"), identifier=prediction_id)
 
     def download(self, reference: str) -> bytes:
         assert reference == "h3_0123456789abcdef0123456789abcdef"
@@ -80,9 +85,9 @@ def _h3_job(status: str, output_ready: bool, profile_id: str, aspect_policy: str
             "generationElapsedMs": None, "outputReady": output_ready, "error": None}
 
 
-def _png() -> bytes:
+def _png(width: int = 576, height: int = 1024) -> bytes:
     output = BytesIO()
-    Image.new("RGB", (576, 1024), (20, 30, 40)).save(output, format="PNG")
+    Image.new("RGB", (width, height), (20, 30, 40)).save(output, format="PNG")
     return output.getvalue()
 
 
@@ -165,7 +170,8 @@ def _install_visible_fixture_character(store: ProjectStore) -> None:
 
 
 def _approved_keyframe(
-    client: TestClient, storage: ProjectFolderStorage, project_id: str
+    client: TestClient, storage: ProjectFolderStorage, project_id: str,
+    *, keyframe_bytes: bytes | None = None,
 ) -> tuple[dict, dict]:
     store = storage.projects.open(project_id)
     try:
@@ -185,7 +191,7 @@ def _approved_keyframe(
     ).json()["decision"]
     asset = client.post(
         f"/api/v2/projects/{project_id}/managed-assets",
-        files={"image": ("keyframe.png", _png(), "image/png")},
+        files={"image": ("keyframe.png", keyframe_bytes or _png(), "image/png")},
         data={"origin": "offline H3 fixture", "rights": "unknown", "declared_additions_json": "[]"},
     ).json()
     draft = client.put(
@@ -386,6 +392,127 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
         f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/media"
     )
     assert restored_media.content == b"offline-h3-project-video"
+
+
+def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamper_stales(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    original = _png(941, 1672)
+    approval, context = _approved_keyframe(
+        client, storage, project_id, keyframe_bytes=original
+    )
+    body = {
+        "approvalId": approval["id"], "shotId": context["shot"].id,
+        "storyboardRevision": context["revision"],
+        "expectedSelectionRevision": context["selection"]["selectionRevision"],
+        "idempotencyKey": "explicit-gateway-crop", "aspectPolicy": "cover_center_crop",
+        "allowCenterCrop": True, "allowLetterbox": False, "seed": 41,
+    }
+    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body)
+    assert prepared.status_code == 201, prepared.text
+    job = prepared.json()
+    frozen_keyframe = job["snapshot"]["keyframe"]
+    assert frozen_keyframe["bindingId"] == context["selection"]["id"]
+    assert frozen_keyframe["assetId"] == context["selection"]["assetId"]
+    assert (frozen_keyframe["width"], frozen_keyframe["height"]) == (941, 1672)
+    assert job["snapshot"]["request"] == {
+        "durationSeconds": 5, "resolution": "576x1024", "audio": True,
+        "aspectPolicy": "cover_center_crop", "seed": 41,
+        "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+        "profileVersion": 1, "width": 576, "height": 1024,
+        "allowLetterbox": False, "allowCenterCrop": True,
+    }
+
+    # Restart only the application composition; the frozen project database
+    # and original asset must be sufficient to send the exact reviewed bytes.
+    restarted_client = TestClient(create_project_folder_authoring_app(
+        storage, video_provider=provider, video_adapter=MiniMaxH3GatewayAdapter(),
+        video_probe=lambda _content: ObservedVideo(5.167, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124),
+    ))
+    after_restart = restarted_client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]
+    assert len(after_restart) == 1
+    assert after_restart[0]["id"] == job["id"] and after_restart[0]["current"] is True
+    submitted = restarted_client.post(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit")
+    assert submitted.status_code == 200 and provider.images == [original]
+    assert provider.submits[0]["aspectPolicy"] == "cover_center_crop"
+
+    tampered = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs",
+        json={**body, "idempotencyKey": "tampered-gateway-crop", "seed": 42},
+    )
+    assert tampered.status_code == 201, tampered.text
+    tampered_job = tampered.json()
+    home = storage.projects.open(project_id)
+    try:
+        database = home.database_path
+    finally:
+        home.close()
+    altered_snapshot = tampered_job["snapshot"]
+    altered_snapshot["request"]["allowCenterCrop"] = False
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE v2_video_jobs SET snapshot = ? WHERE id = ?",
+            (json.dumps(altered_snapshot), tampered_job["id"]),
+        )
+    listed = client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]
+    assert next(item for item in listed if item["id"] == tampered_job["id"])["current"] is False
+    assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{tampered_job['id']}/submit").status_code == 409
+    assert len(provider.submits) == 1
+
+
+def test_historical_h3_letterbox_snapshot_remains_restart_dispatchable(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(
+        client, storage, project_id, keyframe_bytes=_png(941, 1672)
+    )
+    body = {
+        "approvalId": approval["id"], "shotId": context["shot"].id,
+        "storyboardRevision": context["revision"],
+        "expectedSelectionRevision": context["selection"]["selectionRevision"],
+        "idempotencyKey": "historical-letterbox", "aspectPolicy": "contain_pad",
+        "allowLetterbox": True, "seed": 43,
+    }
+    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body)
+    assert prepared.status_code == 201, prepared.text
+    job = prepared.json()
+    historical = job["snapshot"]
+    # V4 snapshots predate the additive crop consent field. Preserve their
+    # exact request projection and its recalculated stored integrity hashes.
+    historical["request"].pop("allowCenterCrop")
+    home = storage.projects.open(project_id)
+    try:
+        database = home.database_path
+    finally:
+        home.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE v2_video_jobs SET snapshot = ?, snapshot_hash = ?, request_hash = ? WHERE id = ?",
+            (
+                json.dumps(historical), stable_hash(historical),
+                stable_hash({"snapshot": historical, "idempotencyKey": body["idempotencyKey"]}), job["id"],
+            ),
+        )
+    restarted_client = TestClient(create_project_folder_authoring_app(
+        storage, video_provider=provider, video_adapter=MiniMaxH3GatewayAdapter(),
+        video_probe=lambda _content: ObservedVideo(5.167, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124),
+    ))
+    restored = restarted_client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]
+    assert restored[0]["current"] is True
+    assert restarted_client.post(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit").status_code == 200
+    assert provider.submits[0]["aspectPolicy"] == "contain_pad"
 
 
 def test_application_reservation_is_idempotent_and_enforces_cross_project_cap(

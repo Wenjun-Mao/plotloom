@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ManagedAsset, ReviewedKeyframe, Shot, VideoBackend, VideoBackendProfile, VideoJob, VideoPilotBudget } from "./types";
+import type { ManagedAsset, Shot, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import { Button, Panel } from "./components";
 import { MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
@@ -118,18 +118,15 @@ function OrderedVideoPlayback({ projectId, jobs }: { projectId: string; jobs: Vi
   </section>;
 }
 
-export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevision, selectionRevision, reviewedKeyframe, keyframe, readOnly, onPreparedCrop, onRequestKeyframeAdaptation }: {
+export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevision, selectionRevision, keyframe, readOnly }: {
   projectId?: string; shot?: Shot; approvalId?: string; storyboardRevision?: number; selectionRevision: number;
-  reviewedKeyframe?: ReviewedKeyframe; keyframe?: ManagedAsset; readOnly: boolean;
-  onPreparedCrop?: (assetId: string) => Promise<void> | void;
-  onRequestKeyframeAdaptation?: (profile: VideoBackendProfile) => void;
+  keyframe?: ManagedAsset; readOnly: boolean;
 }) {
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
   const [backend, setBackend] = useState<VideoBackend | null>(null);
   const [jobs, setJobs] = useState<VideoJob[]>([]);
   const [h3ProfileId, setH3ProfileId] = useState("");
-  const [allowLetterbox, setAllowLetterbox] = useState(false);
-  const [preparingAspect, setPreparingAspect] = useState(false);
+  const [h3InputFrameMode, setH3InputFrameMode] = useState<"reject_mismatch" | "cover_center_crop" | "contain_pad">("reject_mismatch");
   const [error, setError] = useState("");
   const refreshToken = useRef(0);
   const currentProjectRef = useRef(projectId);
@@ -148,7 +145,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     setBudget(nextBudget); setBackend(nextBackend); setJobs(nextJobs.jobs);
   };
   useEffect(() => {
-    setBudget(null); setBackend(null); setJobs([]); setError(""); setH3ProfileId(""); setAllowLetterbox(false); setPreparingAspect(false);
+    setBudget(null); setBackend(null); setJobs([]); setError(""); setH3ProfileId(""); setH3InputFrameMode("reject_mismatch");
     void refresh().catch((reason) => setError(reason instanceof Error ? reason.message : "无法读取视频试点状态"));
     return () => { refreshToken.current += 1; };
   }, [projectId]);
@@ -176,8 +173,9 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       } : {}),
       ...(profile ? { profileId: profile.id } : {}),
       ...(h3 ? {
-        aspectPolicy: h3AspectMismatch && allowLetterbox ? "contain_pad" as const : "reject_mismatch" as const,
-        allowLetterbox: h3AspectMismatch && allowLetterbox,
+        aspectPolicy: h3AspectMismatch ? h3InputFrameMode : "reject_mismatch" as const,
+        allowLetterbox: h3AspectMismatch && h3InputFrameMode === "contain_pad",
+        allowCenterCrop: h3AspectMismatch && h3InputFrameMode === "cover_center_crop",
       } : {}),
     };
     try { await plotloomApi.prepareVideoJob(projectId, request); await refresh(); }
@@ -204,21 +202,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     selectedProfile && keyframe
       && keyframe.width * selectedProfile.height !== keyframe.height * selectedProfile.width,
   );
-  const createCenterCrop = async () => {
-    if (!projectId || !reviewedKeyframe || !selectedProfile) return;
-    setPreparingAspect(true); setError("");
-    try {
-      const result = await plotloomApi.createReviewedKeyframeCenterCrop(projectId, reviewedKeyframe.id, {
-        targetProfileId: selectedProfile.id,
-        expectedSelectionRevision: selectionRevision,
-      });
-      await onPreparedCrop?.(result.asset.id);
-      await refresh();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "无法创建居中裁切关键帧");
-    } finally { setPreparingAspect(false); }
-  };
-  const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !reviewedKeyframe || !keyframe || (h3AspectMismatch && !allowLetterbox)));
+  const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
   return <Panel data-testid="video-pilot-panel"><strong>{h3 ? "MiniMax H3 本地视频候选" : "P2 Wan 视频试点"}</strong>
     {h3 && backend
       ? <MiniMaxH3Summary backend={backend} profile={selectedProfile} />
@@ -228,15 +212,15 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {h3 && selectedProfile && keyframe && !h3AspectMismatch && <small className="notice" data-testid="h3-aspect-ready">当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例匹配；将以 reject_mismatch 冻结。</small>}
     {h3 && selectedProfile && keyframe && h3AspectMismatch && <div className="notice warning" data-testid="h3-aspect-preparation">
       <strong>当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例不符。</strong>
-      <small>不会再以黑边或提交时裁切来掩盖差异。请选择匹配的已审核图，或先创建一个待审核的新关键帧。</small>
-      <div className="button-row">
-        <Button disabled={readOnly || preparingAspect} onClick={() => void createCenterCrop()}>创建居中裁切候选</Button>
-        <Button disabled={readOnly || preparingAspect || !onRequestKeyframeAdaptation} onClick={() => onRequestKeyframeAdaptation?.(selectedProfile)}>准备 ImageGen 比例适配</Button>
-      </div>
-      <label><input type="checkbox" checked={allowLetterbox} disabled={readOnly || backend?.allowsLetterbox === false} onChange={(event) => setAllowLetterbox(event.target.checked)} /> 允许黑边画布（保留当前横幅构图）</label>
-      {allowLetterbox
+      <small>默认拒绝比例不符。以下选择只会冻结对原审核关键帧的网关输入处理，不会替换原始字节、来源、审核选择或当前性检查。</small>
+      <label><input type="radio" name="h3-input-frame-mode" checked={h3InputFrameMode === "reject_mismatch"} disabled={readOnly} onChange={() => setH3InputFrameMode("reject_mismatch")} /> 保持拒绝比例不符（默认）</label>
+      <label><input type="radio" name="h3-input-frame-mode" checked={h3InputFrameMode === "cover_center_crop"} disabled={readOnly || backend?.allowsCenterCrop === false} onChange={() => setH3InputFrameMode("cover_center_crop")} /> 允许网关居中裁切（保留原审核关键帧）</label>
+      <label><input type="radio" name="h3-input-frame-mode" checked={h3InputFrameMode === "contain_pad"} disabled={readOnly || backend?.allowsLetterbox === false} onChange={() => setH3InputFrameMode("contain_pad")} /> 允许黑边画布（保留当前横幅构图）</label>
+      {h3InputFrameMode === "cover_center_crop"
+        ? <small data-testid="h3-center-crop-allowed">将以 cover_center_crop 冻结：仅网关对冻结的原图执行居中裁切；不会创建本地裁切或 ImageGen 比例适配。</small>
+        : h3InputFrameMode === "contain_pad"
         ? <small data-testid="h3-letterbox-allowed">将以 contain_pad 冻结：黑边是明确的输入画面，不会跳过输出 profile、来源或审核选择检查。</small>
-        : <small>两种准备结果都不会自动替换当前关键帧：请检查、保存 VisualIntent，并重新审核选择。</small>}
+        : <small>请选择匹配的已审核图，或明确选择一种网关输入画面处理。</small>}
     </div>}
     {h3 && selectedProfile && !keyframe && <small className="notice warning">先为当前镜头审核选择一张关键帧，才能验证其与 H3 profile 的比例。</small>}
     {backend?.tracksPaidWanPilot !== false && <small>额度：{budget ? `${budget.reservedSeconds}/${budget.limitSeconds} 秒已保留，余 ${budget.remainingSeconds} 秒` : "读取中"}</small>}
