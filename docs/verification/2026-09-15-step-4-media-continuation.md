@@ -213,3 +213,51 @@ Step 4 remains partial. The next permitted action is to restore an attended
 playback environment and perform genuine audiovisual review before any explicit
 video selection or sequential/recovery exercise; the exhausted ImageGen and H3
 pilot allowances do not authorize another generation or dispatch.
+
+## Native Chrome continuation — retained playback works; audiovisual acceptance remains unavailable
+
+Captured 2026-09-15 on the retained project only, at the later Step 4
+continuation. No generation, upload, provider call, dispatch, replay, new
+reservation, selection, configuration change, source change, snapshot, close,
+or restore was performed. The two H3 candidates remain unselected.
+
+The earlier failure was specific to the in-app-browser renderer: it crashed as
+playback began. Native Google Chrome was available through the attended desktop
+surface even though it was not registered as a browser-automation provider.
+The normal project-folder workbench opened the same retained project and played
+both candidates to their `5.167`-second endpoints:
+
+- `vj_86676092a8e84516922f650838c752e0` / SHA-256
+  `1e95ed45f20f6287f6686a246f1e0164db6dd549d87472e30b1437cbd6302dc6`;
+- `vj_fffbcebbca8945fc99dbae42863f70b2` / SHA-256
+  `45079df8f791cc3d32440b507a3c5d063bc52caf98ae750be216c22435b8854d`.
+
+Chrome initially displayed its ordinary transient “Unable to play media” state
+for the second candidate while it was loading. Its normal play control then
+rendered and advanced that same candidate from `0:00`, through an observed
+`0:03` frame, to `0:05`; no persistent playback failure or server error was
+observed. The first candidate likewise reached `0:05`. This is bounded
+temporal/frame evidence that native Chrome can consume the candidates, not a
+creative review of the clips.
+
+Read-only technical checks independently found each retained file to be an
+H.264 `576×1024`, 24-fps video stream plus stereo 32-kHz AAC audio, duration
+`5.167` seconds; `ffmpeg` decoded each complete video and audio stream without
+errors. The normal media endpoint returned `206` range responses with
+`Accept-Ranges: bytes` and `Content-Type: video/mp4`; complete endpoint reads
+matched the two retained SHA-256 values above. These checks establish storage,
+integrity, route, decode, and Chrome playback behavior. They do not establish
+that the audio was heard or suitable.
+
+The exact remaining sensory limitation is audio observation: this agent can
+operate the Chrome player and observe sampled visual frames/timeline progress,
+but has no audio-output or hearing channel. A play control, Chromium's
+“Audio playing” label, AAC metadata, decoded samples, and screenshots cannot
+support a claim about ambience, dialogue, intelligibility, lip sync,
+performance, or full audiovisual continuity. Therefore neither candidate was
+explicitly selected, and selected sequential playback, project close/reopen,
+snapshot, and isolated restore were correctly not exercised. No product defect
+is demonstrated: the original crash belongs to the unavailable in-app renderer,
+while the retained bytes, serving route, and native Chrome playback are sound.
+The next action requires a genuinely audio-observable review surface; it does
+not authorize another generation, dispatch, or recurring retry loop.
