@@ -73,4 +73,19 @@ paid call, retained-pilot mutation, deployment, or creative-media work was used.
 This receipt establishes the bounded structural-player implementation and native
 browser proof. It does not claim a complete produced story, retained-pilot
 coverage, creative/media qualification, Alpha readiness, or release. Step 5
-remains pending director acceptance of this evidence.
+is director-accepted for this bounded structural preview at `fcf7c44`.
+
+### Director verification and limits
+
+- Fresh `uv run --locked pytest -q`: 551 passed, one existing Starlette warning.
+- Fresh production FastAPI branching browser journey: passed (43.1 seconds),
+  including both endings and restart.
+- The worker's reported “16 unrelated Python failures” was withdrawn: it came
+  from a historical pytest cache, not a retained current-run failure log.
+- No product code changed in the minimal-proof checkpoint. The earlier paused
+  playback failure remains unexplained and was not reproduced in this proof;
+  this is not a root-cause-fix claim. The worker also reported a pre-telemetry
+  pass, while the director's fresh run used the committed telemetry test.
+- Native playback remains the chosen preview approach; stitching is not needed
+  to pass this bounded fixture. Complete produced branching footage and creative
+  acceptance remain separate work.
