@@ -3,7 +3,9 @@
 ## Status
 
 Accepted direction and P0 architecture amendment, 2026-09-11, following the two
-external reviews and user authorization to amend the records. Not implemented.
+external reviews and user authorization to amend the records. P0 is not
+implemented by this status line; the bounded Step 5 structural-preview contract
+below was implemented on 2026-09-16.
 The P0 implementation plan revision 1 was approved on 2026-09-11. This record
 amends ADRs 0012/0016 only for the explicit non-generative paths below; it does
 not lift provider `production_pipeline_not_ready` checks. Later media execution
@@ -109,6 +111,30 @@ must remain readable and unchanged.
 
 The implemented P0 storage, endpoint, selection and lifecycle details are
 recorded in [ADR 0027](0027-managed-imported-still-preview-contract.md).
+
+## Step 5 minimal preview contract (2026-09-16)
+
+The authorized Step 5 player is a **structural author preview**, not an execution
+engine for the story's descriptive state fields. One browser-local session pins
+the current canonical graph, scene/shot order, and the current selected,
+ingested video bindings. It starts at `startNodeId`, plays each node's ordered
+scene clips by observed media duration, and retains the final decoded frame at a
+decision or ending. A decision waits forever for a button click; that click alone
+selects one canonical outgoing edge. A node with exactly one continuation may
+advance automatically only after its local clips finish. Endings hold and expose
+an explicit restart. Missing, stale, revoked, corrupt, or unselected media is
+shown as a blocking gap rather than skipped or generated.
+
+The session never writes canonical content. A project, graph, storyboard/scene
+order, or selected-media membership change is a reset boundary; unmount and
+superseded events cannot advance a replacement session. A restart clears all
+choice history. The player may visit a shared node once an explicit selected edge
+reaches it, but it does **not** execute `stateEffects`, `entityStateEffects`, or
+free-form `JoinContract.reconciliation`: those fields have no defined executable
+meaning in the current author model. Interpreting them would invent a stateful
+runtime contract. Full incoming-state and join reconciliation remain a separately
+authorized engine, as do save games, publication, export/stitching, and any claim
+of a complete produced branching story.
 
 ## Follow-up
 

@@ -79,7 +79,11 @@ duration for playback without silently rewriting authoritative story timing.
 Director/reviewer performs routine checks; ask the user only for material creative
 choices or judgments that cannot be established from available evidence.
 
-Step 5 builds on that usable sequential workflow. Keep the broader
+Step 5 builds on that usable sequential workflow. The minimal player is a
+structural author preview: it may traverse canonical edges and reuse a reached
+shared node, but does not execute edge effects or prose/JSON join reconciliation.
+Its session is local and pinned to graph/order/current selected media; source
+changes reset it rather than altering canon. Keep the broader
 [product-direction ADR](../adr/0026-story-to-playable-product-direction.md) and
 [historical Alpha roadmap](story-to-playable-alpha.md) as context, not authorization
 for deferred features. Two-shot or branching acceptance is not automatically formal
@@ -127,7 +131,7 @@ an editing/mixing feature.
 | 2 | Complete — all four current contract groups director-accepted and pushed; media safety closeout `889d19f` accepted | [Coverage summary](../verification/2026-09-14-retained-runtime-coverage-summary.md); accepted three-scenario slice `01874da`; [generation receipt](../verification/2026-09-15-step-2-generation-contracts.md); [authoring/control receipt](../verification/2026-09-15-step-2-authoring-control-contracts.md); [qualification-tools receipt](../verification/2026-09-15-step-2-qualification-contracts.md); [media/H3 receipt](../verification/2026-09-15-step-2-media-h3-contracts.md) | Historical pending inventory rows remain unresolved by design; this does not claim Alpha, live, or creative qualification | Use the accepted current-contract baseline for the separately controlled storage transition |
 | 3 | Accepted and pushed (`6b3f7f5`); independent safety review passed | [Storage plan](project-folder-storage-plan.md), [read-only preflight](../verification/2026-09-15-step-3-storage-preflight.md), and [transition receipt](../verification/2026-09-15-step-3-storage-transition.md) | No legacy import, deletion, or live-provider evidence claimed; those remain outside this step | Use the fresh local storage baseline for the Step 4 creative journey when the production media gate is available |
 | 4 | Complete — retained two-clip selected-route playback and recovery proof observed on accepted `ab7fc46` | [Readiness preflight](../verification/2026-09-15-step-4-two-shot-pilot.md); [reviewed recovery continuation](../verification/2026-09-15-step-4-reviewed-recovery-blocker.md); [selected-path source receipt](../verification/2026-09-15-step-4-selected-path-and-terminal-publication.md); [operational proof](../verification/2026-09-16-step-4-retained-playback-and-recovery.md); ADR 0037; ADR 0051 | This proves only the retained two-clip fragment: the explicit route reports four missing clips. It makes no dialogue, lip-sync, human/product, Alpha, or release claim. | Begin Step 5's complete branching player only with separate authorization. |
-| 5 | Planned | ADR 0026 pause-and-choose direction | Accepted sequential workflow | Implement the small branching player after step 4 |
+| 5 | Implemented — fixture verification complete; product acceptance bounded | ADR 0026 Step 5 session contract; [receipt](../verification/2026-09-16-step-5-branching-preview.md) | Retained pilot still has missing route footage, and the local multi-job browser fixture cannot establish full native-ended branching playback | Obtain produced branch media and a fresh audiovisual review only under separate authorization |
 
 ## Deferred
 

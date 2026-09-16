@@ -90,6 +90,11 @@ test("P2 H3 selected pair plays in order and survives file-SQLite restart", asyn
   await page.getByLabel("路径过滤").selectOption({ index: 1 });
 
   const sequence = page.getByTestId("video-sequence-player");
+  // Step 5 shares this production FastAPI page and must surface its separate
+  // structural session without pretending the retained two-clip route is a
+  // complete branching story.
+  await expect(page.getByTestId("branching-video-preview")).toBeVisible();
+  await expect(page.getByTestId("branching-missing-media")).toBeVisible();
   const firstSequencePlayer = page.getByTestId(`video-sequence-job-${firstJobId}`);
   const secondSequencePlayer = page.getByTestId(`video-sequence-job-${secondJobId}`);
   await expect(firstSequencePlayer).toBeVisible();

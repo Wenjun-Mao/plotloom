@@ -3,6 +3,7 @@ import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBa
 import { plotloomApi } from "./api";
 import { Button, Panel } from "./components";
 import { deriveRoutes, groupStoryboard } from "./model";
+import { BranchingVideoPreview } from "./branching-video-preview";
 import { MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
@@ -272,6 +273,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       {selectedSequence.missingShotTitles.length > 0 && <small className="notice warning">路径尚不完整：缺少 {selectedSequence.missingShotTitles.join("、")} 的已选择视频。</small>}
     </section>}
     {projectId && selectedSequence && selectedSequence.jobs.length > 0 && <OrderedVideoPlayback projectId={projectId} jobs={selectedSequence.jobs} sourceIdentity={selectedSequence.sourceIdentity} />}
+    {projectId && <BranchingVideoPreview projectId={projectId} jobs={jobs} storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} />}
     {visibleJobs.map((job) => <article key={job.id} data-testid={`video-job-${job.id}`}><strong>{frozenShot(job).title || frozenShot(job).id}</strong> · <strong>{job.state}</strong> · {job.requestedSeconds}s {job.observed ? `· ${job.observed.durationSeconds.toFixed(2)}s 实测` : ""}
       <small> · {jobStatus(job)}</small>
       {job.state === "ingested" && projectId && <video controls preload="metadata" src={plotloomApi.videoJobMediaUrl(projectId, job.id)} data-testid={`video-job-player-${job.id}`} />}
