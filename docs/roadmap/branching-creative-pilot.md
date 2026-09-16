@@ -1,6 +1,6 @@
 # Complete branching creative pilot
 
-Status: **Draft — generation allowance and scope awaiting approval**.
+Status: **Approved, revision 1 — scope and new generation caps approved 2026-09-16**.
 Baseline: accepted structural preview at `3d86c54`. This extends, rather than
 reopens, the five-step reliable-creative-workflow plan.
 
@@ -37,14 +37,14 @@ Otherwise use one newly reviewed identity reference.
    both endings and restart in the production browser. Repeat after project reopen.
    Capture concise evidence and report creative acceptance separately from tests.
 
-## Proposed execution allowance
+## Approved execution allowance
 
 - At most **5 ImageGen calls** total: one identity plus four keyframes. Reusing an
   identity leaves an unused call; it does not authorize another kind of work.
 - At most **4 H3 submissions**, five seconds each (20 requested seconds total).
   No Atlas calls, paid fallback or backend/configuration changes.
 - Failed calls consume the cap. No automatic resubmission of unknown outcomes.
-- These are proposed new caps, not a renewal of the exhausted Step 4 allowance.
+- These are new caps, separate from the exhausted Step 4 allowance.
 
 ## Delivery and acceptance boundaries
 
