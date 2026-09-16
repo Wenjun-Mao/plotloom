@@ -8,10 +8,14 @@ complete, or that the product, Alpha, or release is accepted.
 
 ## Retained selected media and review lineage
 
-| Job | Frozen shot / scene | Stored SHA-256 | Persisted selected review |
+| Job | Frozen shot / scene | Stored SHA-256 | Persisted selected video review (`v2_video_reviews.id`) |
 | --- | --- | --- | --- |
-| `vj_86676092a8e84516922f650838c752e0` | `44598e70-49fc-519e-b71d-5c99f51dcd90` / `174495ff-40eb-5ba9-9840-c3027b95b1d5` | `1e95ed45f20f6287f6686a246f1e0164db6dd549d87472e30b1437cbd6302dc6` | `c96eb974-797b-48f5-9513-53e201312156` |
-| `vj_fffbcebbca8945fc99dbae42863f70b2` | `97c4a139-57fa-52b0-bf19-2dd5ef018391` / `5f0f0ba2-3515-5595-a797-5e2ad415a77b` | `45079df8f791cc3d32440b507a3c5d063bc52caf98ae750be216c22435b8854d` | `ba10dcb0-8293-4c42-8b9c-c100b28714b0` |
+| `vj_86676092a8e84516922f650838c752e0` | `44598e70-49fc-519e-b71d-5c99f51dcd90` / `174495ff-40eb-5ba9-9840-c3027b95b1d5` | `1e95ed45f20f6287f6686a246f1e0164db6dd549d87472e30b1437cbd6302dc6` | `f7d7195f-69d1-4c7e-ba7c-a713017f5d85` |
+| `vj_fffbcebbca8945fc99dbae42863f70b2` | `97c4a139-57fa-52b0-bf19-2dd5ef018391` / `5f0f0ba2-3515-5595-a797-5e2ad415a77b` | `45079df8f791cc3d32440b507a3c5d063bc52caf98ae750be216c22435b8854d` | `05ee01c0-039e-43eb-b05c-6a74617f5f27` |
+
+Director acceptance checked these selected video review IDs directly in both
+original and restored databases. The earlier table mistakenly listed the
+distinct same-person keyframe reviews; no persisted review data was changed.
 
 Both jobs read as `ingested`, `current`, and selected before and after
 recovery. Their frozen `cueIds` are empty: the first carries distant-train
