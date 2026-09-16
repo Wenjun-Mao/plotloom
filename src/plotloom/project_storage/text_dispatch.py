@@ -131,41 +131,6 @@ class ProjectRunDispatcher:
             raise NotFoundError("generation run is not known by this application index")
         return project_id
 
-    def create_repair(
-        self,
-        source_run_id: str,
-        *,
-        provider_snapshot: Mapping[str, Any],
-        stage: StageName | None,
-        instructions: str | None,
-    ) -> GenerationRun:
-        store = self.open_run_project(source_run_id)
-        route = self._route_for_snapshot(
-            run_id=new_id(),
-            project_id=store.manifest.project_id,
-            provider_snapshot=provider_snapshot,
-        )
-        created = False
-        try:
-            self.storage.application.reserve_run_route(route)
-            with store.generation.admit_provider_snapshot(dict(provider_snapshot)):
-                run = store.generation.create_repair_run(
-                    source_run_id,
-                    stage=stage,
-                    instructions=instructions,
-                    provider_snapshot=dict(provider_snapshot),
-                    run_id=route.run_id,
-                )
-            created = True
-            self.storage.application.confirm_run_route(run.id, status=run.status.value)
-            return run
-        except BaseException:
-            if not created:
-                self.storage.application.discard_pending_run_route(route.run_id)
-            raise
-        finally:
-            store.close()
-
     def create_exact_repair(
         self, source_run_id: str, work_unit_id: str, *, idempotency_key: str
     ) -> tuple[GenerationRun, bool]:

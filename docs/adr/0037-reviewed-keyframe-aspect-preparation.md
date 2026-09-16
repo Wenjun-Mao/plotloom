@@ -48,6 +48,12 @@ None of these paths silently replaces the reviewed keyframe. Existing managed
 derivative and ImageGen-adaptation history stays readable, but is not created
 by the Step 4 crop choice.
 
+That historical-readability statement is superseded as an implementation
+policy by the lean current-contract rule: it does not require compatibility
+adapters, replay paths, or preservation of obsolete APIs. Retained current
+assets and evidence stay protected; obsolete development contracts may be
+removed after their current callers are inventoried.
+
 ## Consequences
 
 - `cover_center_crop` is available to new H3 work only through the explicit

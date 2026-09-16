@@ -322,6 +322,6 @@ class ProjectRecoveryService:
 
     @staticmethod
     def _specialist_blockers(store: Any) -> list[str]:
-        image_busy = [job for job in store.media.list_image_jobs(store.manifest.project_id) if job.get("state") not in {"delivered", "rejected"}]
+        image_busy = [job for job in store.media.list_image_jobs(store.manifest.project_id) if job.get("state") not in {"delivered", "rejected", "cancelled"}]
         reference_busy = [proposal for proposal in store.media.list_character_reference_proposals(store.manifest.project_id) if proposal.get("state") not in {"delivered", "rejected"}]
         return (["image_publication_active"] if image_busy else []) + (["character_reference_publication_active"] if reference_busy else [])

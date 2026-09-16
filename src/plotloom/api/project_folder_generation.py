@@ -15,7 +15,6 @@ from .models import (
     ExactWorkUnitRepairRequest,
     PipelineRunRequest,
     RebuildRequest,
-    RepairRequest,
     _normalize_idempotency_key,
     _session_api_key,
 )
@@ -140,25 +139,6 @@ def register_project_folder_generation_routes(
     @app.post("/api/v2/runs/{run_id}/cancel", response_model=GenerationRun)
     def cancel_run(run_id: str) -> GenerationRun:
         return dispatcher.request_cancel(run_id)
-
-    @app.post(
-        "/api/v2/runs/{run_id}/repairs",
-        response_model=GenerationRun,
-        status_code=status.HTTP_202_ACCEPTED,
-        deprecated=True,
-    )
-    def create_repair(run_id: str, body: RepairRequest, request: Request) -> GenerationRun:
-        dispatcher.require_open_run_project(run_id)
-        snapshot = admission.admit_text_backend(body.provider_profile_id, request)
-        admission.text_submission_session_key(snapshot, request)
-        run = dispatcher.create_repair(
-            run_id,
-            provider_snapshot=snapshot,
-            stage=body.stage,
-            instructions=body.instructions,
-        )
-        submit(run, request)
-        return run
 
     @app.post(
         "/api/v2/runs/{run_id}/work-units/{work_unit_id}/repairs",

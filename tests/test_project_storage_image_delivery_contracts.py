@@ -263,6 +263,24 @@ def test_cancelled_image_job_records_late_delivery_without_publishing_a_candidat
         client.close()
 
 
+def test_cancelled_image_job_unblocks_snapshot_and_close(tmp_path: Path) -> None:
+    client, project_id, job, _delivery = _ready_exported_job(tmp_path)
+    try:
+        cancelled = client.post(
+            f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/cancel",
+            json={"reason": "operator stopped the fixture"},
+        )
+        assert cancelled.status_code == 200, cancelled.text
+        assert cancelled.json()["state"] == "cancelled"
+        snapshot = client.post(f"/api/v2/projects/{project_id}/snapshots")
+        assert snapshot.status_code == 201, snapshot.text
+        assert snapshot.json()["status"] == "complete"
+        closed = client.post(f"/api/v2/projects/{project_id}/close")
+        assert closed.status_code == 200, closed.text
+    finally:
+        client.close()
+
+
 def test_image_delivery_refresh_is_concurrently_idempotent_at_the_project_owner(
     tmp_path: Path,
 ) -> None:

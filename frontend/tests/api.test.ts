@@ -153,7 +153,7 @@ describe("PlotloomApiClient", () => {
     expect(providerSessionKeys.read("anonymous")).toBe("stale-but-unneeded-secret");
   });
 
-  it("scopes rebuild, repair, and resume credentials to the explicit profile", async () => {
+  it("scopes rebuild and resume credentials to the explicit profile", async () => {
     providerSessionKeys.write("default", "default-secret");
     providerSessionKeys.write("quality", "quality-secret");
     const fetcher = vi.fn(async () => new Response(JSON.stringify({ id: "run-1", status: "queued" }), {
@@ -163,13 +163,11 @@ describe("PlotloomApiClient", () => {
     const client = new PlotloomApiClient(fetcher as unknown as typeof fetch);
 
     await client.rebuild("p1", "story_graph", "quality");
-    await client.repairRun("parent", "story_graph", "修正结构", "quality");
     await client.resumeRun("run-1", "quality");
 
     const calls = fetcher.mock.calls as unknown as Array<[string, RequestInit]>;
     expect(JSON.parse(String(calls[0][1].body))).toEqual({ fromStage: "story_graph", providerProfileId: "quality" });
-    expect(JSON.parse(String(calls[1][1].body))).toEqual({ stage: "story_graph", instructions: "修正结构", providerProfileId: "quality" });
-    expect(calls[2][0]).toBe("/api/v2/runs/run-1/resume");
+    expect(calls[1][0]).toBe("/api/v2/runs/run-1/resume");
     for (const [, init] of calls) {
       expect(new Headers(init.headers).get("X-Plotloom-Session-API-Key")).toBe("quality-secret");
       expect(String(init.body)).not.toContain("quality-secret");

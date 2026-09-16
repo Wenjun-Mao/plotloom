@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ManagedAsset, Shot, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
+import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import { Button, Panel } from "./components";
+import { deriveRoutes, groupStoryboard } from "./model";
 import { MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
@@ -16,11 +17,48 @@ function frozenShot(job: VideoJob): FrozenShot {
  * Keeping this projection here means stale, rejected, pending, and merely
  * ingested candidates cannot be made to look like an accepted adjoining cut.
  */
-export function selectedSceneVideos(jobs: VideoJob[], sceneId?: string): VideoJob[] {
-  if (!sceneId) return [];
-  return jobs
-    .filter((job) => job.state === "ingested" && job.current && job.selected && frozenShot(job).sceneId === sceneId)
-    .sort((left, right) => (frozenShot(left).order ?? Number.MAX_SAFE_INTEGER) - (frozenShot(right).order ?? Number.MAX_SAFE_INTEGER) || left.id.localeCompare(right.id));
+export type SelectedRouteSequence = {
+  jobs: VideoJob[];
+  missingShotTitles: string[];
+  sourceIdentity: string;
+};
+
+/**
+ * Projects selected jobs onto one author-selected, currently valid graph route.
+ * The storyboard is the order authority: frozen job fields only establish that
+ * a candidate belongs to one of its route-scoped shots.
+ */
+export function selectedRouteVideos(
+  jobs: VideoJob[],
+  storyboard: Storyboard,
+  sceneBeats: SceneBeatPlan,
+  graph: StoryGraph,
+  routeId?: string,
+): SelectedRouteSequence | null {
+  if (!routeId) return null;
+  const route = deriveRoutes(graph).find((candidate) => candidate.id === routeId);
+  if (!route) return null;
+  const routeShots = groupStoryboard(storyboard, sceneBeats, route)
+    .flatMap((group) => group.shots.map((shot) => ({ shot, sceneId: group.sceneId })));
+  const selectedByShotId = new Map<string, VideoJob[]>();
+  jobs.forEach((job) => {
+    const frozen = frozenShot(job);
+    if (job.state !== "ingested" || !job.current || !job.selected || !frozen.id || !frozen.sceneId) return;
+    selectedByShotId.set(frozen.id, [...(selectedByShotId.get(frozen.id) || []), job]);
+  });
+  const sequence = routeShots.flatMap(({ shot, sceneId }) => (
+    (selectedByShotId.get(shot.id) || [])
+      .filter((job) => frozenShot(job).sceneId === sceneId)
+      .sort((left, right) => left.id.localeCompare(right.id))
+  ));
+  const missingShotTitles = routeShots
+    .filter(({ shot, sceneId }) => !(selectedByShotId.get(shot.id) || []).some((job) => frozenShot(job).sceneId === sceneId))
+    .map(({ shot }) => shot.title || shot.id);
+  return {
+    jobs: sequence,
+    missingShotTitles,
+    sourceIdentity: `${route.id}:${routeShots.map(({ shot, sceneId }) => `${sceneId}/${shot.id}/${shot.order}`).join("|")}`,
+  };
 }
 
 function jobStatus(job: VideoJob): string {
@@ -30,13 +68,13 @@ function jobStatus(job: VideoJob): string {
   return "当前";
 }
 
-function OrderedVideoPlayback({ projectId, jobs }: { projectId: string; jobs: VideoJob[] }) {
+function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: string; jobs: VideoJob[]; sourceIdentity: string }) {
   const player = useRef<HTMLVideoElement>(null);
   const identityFor = (job: VideoJob) => `${projectId}:${job.id}`;
   // A position is meaningful only inside one exact selected sequence. Keeping
   // the active source as an identity (rather than a numeric position) stops a
   // changed project, scene, or selection membership from borrowing playback.
-  const scopeIdentity = `${projectId}:${jobs.map((job) => job.id).join("|")}`;
+  const scopeIdentity = `${projectId}:${sourceIdentity}:${jobs.map((job) => job.id).join("|")}`;
   const renderedScopeRef = useRef(scopeIdentity);
   const scopeChanged = renderedScopeRef.current !== scopeIdentity;
   renderedScopeRef.current = scopeIdentity;
@@ -118,9 +156,9 @@ function OrderedVideoPlayback({ projectId, jobs }: { projectId: string; jobs: Vi
   </section>;
 }
 
-export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevision, selectionRevision, keyframe, readOnly }: {
+export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevision, selectionRevision, keyframe, storyboard, sceneBeats, graph, routeId, readOnly }: {
   projectId?: string; shot?: Shot; approvalId?: string; storyboardRevision?: number; selectionRevision: number;
-  keyframe?: ManagedAsset; readOnly: boolean;
+  keyframe?: ManagedAsset; storyboard: Storyboard; sceneBeats: SceneBeatPlan; graph: StoryGraph; routeId?: string; readOnly: boolean;
 }) {
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
   const [backend, setBackend] = useState<VideoBackend | null>(null);
@@ -194,7 +232,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const visibleJobs = shot ? jobs.filter((job) => frozenShot(job).id === shot.id) : [];
   // State refreshes are asynchronous. Never use an old project's retained
   // jobs to construct URLs under the newly selected project identity.
-  const selectedSequence = selectedSceneVideos(jobs.filter((job) => job.projectId === projectId), shot?.sceneId);
+  const selectedSequence = selectedRouteVideos(jobs.filter((job) => job.projectId === projectId), storyboard, sceneBeats, graph, routeId);
   const h3 = isMiniMaxH3Backend(backend);
   const availableH3Profiles = h3Profiles(backend);
   const selectedProfile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
@@ -228,7 +266,12 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     <div className="button-row"><Button disabled={cannotPrepare} onClick={() => void prepare()}>冻结当前审核关键帧</Button></div>
     {shot && <small>仅显示当前镜头：{shot.title}（{shot.id}）</small>}
     {error && <small className="notice warning">{error}</small>}
-    {projectId && selectedSequence.length > 0 && <OrderedVideoPlayback projectId={projectId} jobs={selectedSequence} />}
+    {projectId && selectedSequence && <section className="video-sequence-status" data-testid="video-route-sequence-status">
+      <strong>已选择路径片段</strong>
+      <small>{selectedSequence.jobs.length} 个已选择视频 / {selectedSequence.jobs.length + selectedSequence.missingShotTitles.length} 个路径镜头</small>
+      {selectedSequence.missingShotTitles.length > 0 && <small className="notice warning">路径尚不完整：缺少 {selectedSequence.missingShotTitles.join("、")} 的已选择视频。</small>}
+    </section>}
+    {projectId && selectedSequence && selectedSequence.jobs.length > 0 && <OrderedVideoPlayback projectId={projectId} jobs={selectedSequence.jobs} sourceIdentity={selectedSequence.sourceIdentity} />}
     {visibleJobs.map((job) => <article key={job.id} data-testid={`video-job-${job.id}`}><strong>{frozenShot(job).title || frozenShot(job).id}</strong> · <strong>{job.state}</strong> · {job.requestedSeconds}s {job.observed ? `· ${job.observed.durationSeconds.toFixed(2)}s 实测` : ""}
       <small> · {jobStatus(job)}</small>
       {job.state === "ingested" && projectId && <video controls preload="metadata" src={plotloomApi.videoJobMediaUrl(projectId, job.id)} data-testid={`video-job-player-${job.id}`} />}

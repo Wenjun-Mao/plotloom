@@ -26,7 +26,6 @@ from .canonical_schema import (
     DialogueTimingProfile,
     DialogueTimingRule,
     DEFAULT_DIALOGUE_TIMING_PROFILE,
-    DEFAULT_ZH_CN_DIALOGUE_TIMING_PROFILE,
     DramaticSceneV2,
     EntitySpecV2,
     EntityType,
@@ -59,7 +58,6 @@ from .timeline import (
 )
 from .canonical_schema import (
     default_dialogue_timing_profile,
-    default_zh_cn_dialogue_timing_profile,
 )
 
 

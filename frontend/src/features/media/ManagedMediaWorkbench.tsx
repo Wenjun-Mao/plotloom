@@ -4,8 +4,10 @@ import type {
   CharacterReferenceProposal,
   ImageJob,
   SamePersonComparison,
+  SceneBeatPlan,
   Shot,
   StoryBible,
+  StoryGraph,
   Storyboard,
   StoryboardReview,
   VisualWorkbench,
@@ -43,6 +45,9 @@ export function ManagedMediaWorkbench({
   projectId,
   storyboard,
   bible,
+  graph,
+  sceneBeats,
+  routeId,
   selectedShot,
   storyboardRevision,
   storyBibleRevision,
@@ -56,6 +61,9 @@ export function ManagedMediaWorkbench({
   projectId?: string;
   storyboard: Storyboard;
   bible: StoryBible;
+  graph: StoryGraph;
+  sceneBeats: SceneBeatPlan;
+  routeId?: string;
   selectedShot: Shot | undefined;
   storyboardRevision?: number;
   storyBibleRevision?: number;
@@ -457,6 +465,10 @@ export function ManagedMediaWorkbench({
         mediaDraftsEnabled={mediaDraftsEnabled}
         review={review}
         storyboardRevision={storyboardRevision}
+        storyboard={storyboard}
+        sceneBeats={sceneBeats}
+        graph={graph}
+        routeId={routeId}
         maxPreviewLength={maxPreviewLength}
         previewLength={previewLength}
         setPreviewLength={setPreviewLength}

@@ -467,19 +467,6 @@ export class PlotloomApiClient {
     return this.request(`/runs/${encodeURIComponent(runId)}/cancel`, { method: "POST", body: "{}" });
   }
 
-  repairRun(
-    runId: string,
-    stage: ServerStageName,
-    instructions: string,
-    providerProfileId = "default",
-    includeSessionKey = true,
-  ): Promise<PipelineRun> {
-    return this.request(`/runs/${encodeURIComponent(runId)}/repairs`, {
-      method: "POST",
-      body: JSON.stringify({ stage, instructions, providerProfileId }),
-    }, includeSessionKey, providerProfileId);
-  }
-
   /**
    * Exact work-unit repair inherits the parent run's frozen profile. The
    * request body is deliberately secret-free and cannot switch profile.

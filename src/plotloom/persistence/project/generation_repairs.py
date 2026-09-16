@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
-from ...domain import ArtifactKind, AttemptStatus, CanonicalSnapshot, GenerationRun, RepairSource, RunKind, RunStatus, StageName, StagePayload, WorkUnitRepairEligibility, WorkUnitRepairRunCreation, WorkUnitRepairScope
+from ...domain import CanonicalSnapshot, GenerationRun, RunKind, StageName, StagePayload, WorkUnitRepairEligibility, WorkUnitRepairRunCreation, WorkUnitRepairScope
 from ...generation.planning import DEFAULT_STAGE_BUDGETS, GenerationPlan, StageBudget, create_generation_plan
 from ..schema import GenerationPlanRow, GenerationRunRow, GenerationWorkUnitRow, StagePlanRow, StoryGraphTopologyRow, WorkUnitRepairIdempotencyRow, WorkUnitRepairScopeRow
 from ...exceptions import InvalidTransitionError, NotFoundError, RepairEligibilityError
@@ -49,103 +49,6 @@ class ProjectGenerationRepairPersistence:
         with access.leases.read() as session:
             child = access.rows.run(session, child_run_id)
             return self._repair_scope.dependencies(session, child, stage)
-    def create_repair_run(
-        self,
-        source_run_id: str,
-        *,
-        stage: StageName | None = None,
-        instructions: str | None = None,
-        provider_snapshot: dict[str, Any] | None = None,
-        run_id: str | None = None,
-    ) -> GenerationRun:
-        access = self._access
-        source = self._snapshots.get_run(source_run_id)
-        if source.status != RunStatus.QUARANTINED:
-            raise InvalidTransitionError("repairs may only be created from a quarantined run")
-        source_trace = self._evidence.get_run_trace(source_run_id)
-        if not source_trace.snapshot_is_current:
-            raise InvalidTransitionError(
-                "repair source inputs changed after quarantine; start a fresh rebuild from current canonical heads"
-            )
-        if stage is not None and stage not in source.requested_stages:
-            raise InvalidTransitionError("repair stage must belong to the source run's requestedStages")
-        failed_attempts = [
-            attempt
-            for attempt in source_trace.attempts
-            if attempt.status == AttemptStatus.FAILED
-        ]
-        if not failed_attempts:
-            raise InvalidTransitionError(
-                "repair requires a failed model attempt with rejected response evidence; start a rebuild instead"
-            )
-        failed_attempt = failed_attempts[-1]
-        if failed_attempt.work_unit_id is not None:
-            raise InvalidTransitionError(
-                "exact work-unit repair is not implemented; start a rebuild from the failed stage instead"
-            )
-        failed_stage = failed_attempt.stage
-        attempt_artifacts = [
-            artifact
-            for artifact in source_trace.artifacts
-            if artifact.attempt_id == failed_attempt.id and artifact.stage == failed_stage
-        ]
-        response = next(
-            (artifact for artifact in attempt_artifacts if artifact.kind == ArtifactKind.RESPONSE),
-            None,
-        )
-        validation = next(
-            (artifact for artifact in attempt_artifacts if artifact.kind == ArtifactKind.VALIDATION),
-            None,
-        )
-        rejected = (
-            validation is not None
-            and isinstance(validation.content, dict)
-            and validation.content.get("accepted") is False
-        )
-        if response is None or not rejected:
-            raise InvalidTransitionError(
-                "repair requires the failed attempt's response and rejected validation artifacts"
-            )
-        if stage is not None and stage != failed_stage:
-            raise InvalidTransitionError(
-                f"repair stage must match the quarantined attempt stage {failed_stage.value}"
-            )
-        target = failed_stage
-        requested = source.requested_stages
-        reused_candidate_artifact_ids: dict[StageName, str] = {}
-        repair_index = requested.index(target)
-        for reused_stage in requested[:repair_index]:
-            candidate = next(
-                (
-                    artifact
-                    for artifact in reversed(source_trace.artifacts)
-                    if artifact.stage == reused_stage and artifact.kind == ArtifactKind.CANDIDATE
-                ),
-                None,
-            )
-            if candidate is None:
-                raise InvalidTransitionError(
-                    f"repair source has no accepted candidate for {reused_stage.value}"
-                )
-            reused_candidate_artifact_ids[reused_stage] = candidate.id
-        repair_source = RepairSource(
-            failed_attempt_id=failed_attempt.id,
-            response_artifact_id=response.id,
-            validation_artifact_id=validation.id,
-            reused_candidate_artifact_ids=reused_candidate_artifact_ids,
-        )
-        return self._snapshots.create_run(
-            source.project_id,
-            RunKind.REPAIR,
-            requested,
-            instructions=instructions,
-            parent_run_id=source.id,
-            repair_stage=target,
-            repair_source=repair_source,
-            provider_snapshot=provider_snapshot,
-            run_id=run_id,
-        )
-
     def get_repair_eligible_work_units(self, run_id: str) -> list[WorkUnitRepairEligibility]:
         """Return server-owned exact-repair decisions for one source run."""
         access = self._access

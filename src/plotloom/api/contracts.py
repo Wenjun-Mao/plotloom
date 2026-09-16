@@ -232,12 +232,6 @@ class RebuildRequest(CamelModel):
         return self
 
 
-class RepairRequest(CamelModel):
-    stage: StageName | None = None
-    instructions: str | None = None
-    provider_profile_id: str | None = Field(default=None, pattern=PROFILE_ID_PATTERN)
-
-
 class ExactWorkUnitRepairRequest(CamelModel):
     """A deliberately empty command body.
 

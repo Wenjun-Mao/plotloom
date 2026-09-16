@@ -111,7 +111,7 @@ def close_blockers(store: object) -> list[str]:
     # Manual image and character-reference packages are filesystem publications.
     # Their exported/prepared states cannot prove the external specialist is idle,
     # so close fails closed until they become delivery/rejection terminal records.
-    if any(job.get("state") not in {"delivered", "rejected"} for job in media.list_image_jobs(project_id)):
+    if any(job.get("state") not in {"delivered", "rejected", "cancelled"} for job in media.list_image_jobs(project_id)):
         blockers.append("image_publication_active")
     if any(proposal.get("state") not in {"delivered", "rejected"} for proposal in media.list_character_reference_proposals(project_id)):
         blockers.append("character_reference_publication_active")

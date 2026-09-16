@@ -78,16 +78,22 @@ test("P2 H3 selected pair plays in order and survives file-SQLite restart", asyn
   // The adjoining fixture follows the same authored review/selection path.
   // It reuses the explicitly retained local still; the distinct candidate is
   // the separately ingested, reviewed video job for the adjoining shot.
-  await page.getByLabel("编辑镜头 压力下坠").click();
-  await expect(panel.getByText("仅显示当前镜头：压力下坠（shot_02）")).toBeVisible();
+  await page.getByLabel("编辑镜头 双键升起").click();
+  await expect(panel.getByText("仅显示当前镜头：双键升起（shot_03）")).toBeVisible();
   await page.getByLabel("审核兼容性说明").fill("Current approved adjoining shot keyframe.");
   await page.getByTestId("select-reviewed-keyframe").click();
   const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId);
+
+  // An explicit route is required before the selected-path player appears;
+  // its missing-clip status must remain visible rather than implying a full
+  // stitched playthrough.
+  await page.getByLabel("路径过滤").selectOption({ index: 1 });
 
   const sequence = page.getByTestId("video-sequence-player");
   const firstSequencePlayer = page.getByTestId(`video-sequence-job-${firstJobId}`);
   const secondSequencePlayer = page.getByTestId(`video-sequence-job-${secondJobId}`);
   await expect(firstSequencePlayer).toBeVisible();
+  await expect(page.getByTestId("video-route-sequence-status")).toContainText("路径尚不完整");
   const firstSource = await firstSequencePlayer.getAttribute("src");
   expect(firstSource).toContain(`/video-jobs/${firstJobId}/media`);
   const secondPath = `/api/v2/projects/${projectId}/video-jobs/${secondJobId}/media`;
@@ -134,6 +140,7 @@ test("P2 H3 selected pair plays in order and survives file-SQLite restart", asyn
 
   await workbench.restartBackend();
   await page.reload();
+  await page.getByLabel("路径过滤").selectOption({ index: 1 });
   await expect(page.getByTestId(`video-sequence-job-${firstJobId}`)).toBeVisible();
   const persisted = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`);
   expect(persisted.ok()).toBeTruthy();

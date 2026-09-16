@@ -1,9 +1,9 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
-import { VideoPilotPanel, selectedSceneVideos } from "../src/video-pilot";
+import { VideoPilotPanel, selectedRouteVideos } from "../src/video-pilot";
 import { plotloomApi } from "../src/api";
-import type { ManagedAsset, Shot, VideoBackend, VideoJob } from "../src/types";
+import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -33,10 +33,34 @@ function selectedJob(id: string, order: number, overrides: Partial<VideoJob> = {
   };
 }
 
+function routeContext(shotIds: string[], sceneId = "scene"): { storyboard: Storyboard; sceneBeats: SceneBeatPlan; graph: StoryGraph; routeId: string } {
+  return {
+    graph: {
+      startNodeId: "start",
+      nodes: [
+        { id: "start", title: "Start", kind: "start", summary: "" },
+        { id: "story-node", title: "Route scene", kind: "scene", summary: "" },
+        { id: "end", title: "End", kind: "ending", summary: "" },
+      ],
+      edges: [
+        { id: "first", sourceNodeId: "start", targetNodeId: "story-node", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+        { id: "last", sourceNodeId: "story-node", targetNodeId: "end", kind: "continuation", choiceText: null, stateEffects: {}, entityStateEffects: [] },
+      ],
+      joinContracts: [],
+    },
+    sceneBeats: { scenes: [{ id: sceneId, storyNodeId: "story-node", title: "Route scene", order: 1 } as SceneBeatPlan["scenes"][number]], beats: [], dialogueCues: [] },
+    storyboard: { shots: shotIds.map((id, index) => ({ id, sceneId, title: id, order: index + 1 } as Shot)), shotBeatLinks: [] },
+    routeId: "start/story-node/end",
+  };
+}
+
 function props(projectId: string, shotId: string, sceneId?: string) {
+  const route = routeContext([...new Set(["shot-1", "shot-2", "shot-3", shotId])]);
   return {
     projectId, shot: { id: shotId, title: `Shot ${shotId}`, sceneId } as Shot,
     approvalId: "approval", storyboardRevision: 1, selectionRevision: 1, readOnly: false,
+    ...route,
+    routeId: sceneId === "other" ? undefined : route.routeId,
   };
 }
 
@@ -134,14 +158,49 @@ it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async
   expect(host.textContent).not.toContain("100 秒额度");
 });
 
-it("orders only current explicitly selected ingested candidates for one scene", () => {
+it("orders only current explicitly selected ingested candidates on one explicit route", () => {
   const first = selectedJob("first", 1);
   const second = selectedJob("second", 2);
   const stale = selectedJob("stale", 3, { current: false });
   const pending = selectedJob("pending", 4, { state: "submitted" });
   const unselected = selectedJob("unselected", 5, { selected: false });
   const otherScene = selectedJob("other", 1, { snapshot: { shot: { id: "other", sceneId: "other-scene", order: 1 } } });
-  expect(selectedSceneVideos([second, stale, otherScene, pending, unselected, first], "scene").map((item) => item.id)).toEqual(["first", "second"]);
+  const route = routeContext(["shot-1", "shot-2", "shot-3"]);
+  expect(selectedRouteVideos([second, stale, otherScene, pending, unselected, first], route.storyboard, route.sceneBeats, route.graph, route.routeId)?.jobs.map((item) => item.id)).toEqual(["first", "second"]);
+  expect(selectedRouteVideos([second], route.storyboard, route.sceneBeats, route.graph, "missing")).toBeNull();
+});
+
+it("orders consecutive route scenes and excludes a selected sibling branch", () => {
+  const nodeKind = (id: string): StoryGraph["nodes"][number]["kind"] => {
+    if (id === "start") return "start";
+    if (id === "decision") return "decision";
+    if (id === "end") return "ending";
+    return "scene";
+  };
+  const graph: StoryGraph = {
+    startNodeId: "start",
+    nodes: ["start", "common", "decision", "left", "right", "end"].map((id) => ({ id, title: id, kind: nodeKind(id), summary: "" })),
+    edges: [
+      ["start", "common"], ["common", "decision"], ["decision", "left"], ["decision", "right"], ["left", "end"], ["right", "end"],
+    ].map(([sourceNodeId, targetNodeId], index) => ({ id: `${index}`, sourceNodeId, targetNodeId, kind: sourceNodeId === "decision" ? "choice" as const : "continuation" as const, choiceText: null, stateEffects: {}, entityStateEffects: [] })),
+    joinContracts: [],
+  };
+  const storyboard = { shots: [
+    { id: "common-shot", sceneId: "common-scene", title: "Common", order: 1 },
+    { id: "left-shot", sceneId: "left-scene", title: "Left", order: 1 },
+    { id: "right-shot", sceneId: "right-scene", title: "Right", order: 1 },
+  ] as Shot[], shotBeatLinks: [] } satisfies Storyboard;
+  const sceneBeats = { scenes: [
+    { id: "common-scene", storyNodeId: "common", title: "Common", order: 1 },
+    { id: "left-scene", storyNodeId: "left", title: "Left", order: 2 },
+    { id: "right-scene", storyNodeId: "right", title: "Right", order: 2 },
+  ] as SceneBeatPlan["scenes"], beats: [], dialogueCues: [] };
+  const selected = [
+    selectedJob("common", 1, { snapshot: { shot: { id: "common-shot", sceneId: "common-scene", order: 1 } } }),
+    selectedJob("left", 1, { snapshot: { shot: { id: "left-shot", sceneId: "left-scene", order: 1 } } }),
+    selectedJob("right", 1, { snapshot: { shot: { id: "right-shot", sceneId: "right-scene", order: 1 } } }),
+  ];
+  expect(selectedRouteVideos(selected, storyboard, sceneBeats, graph, "start/common/decision/left/end")?.jobs.map((job) => job.id)).toEqual(["common", "left"]);
 });
 
 it("scopes selected playback by project, scene, and current selected membership", async () => {
@@ -175,6 +234,7 @@ it("scopes selected playback by project, scene, and current selected membership"
   });
   membershipReview.resolve(undefined);
   await act(async () => { await membershipReview.promise; await Promise.resolve(); await Promise.resolve(); });
+  await render("old", "shot-3", "scene");
   expect(host.querySelector('[data-testid="video-sequence-job-old-first"]')).not.toBeNull();
   expect(host.querySelector('[data-testid="video-sequence-job-old-second"]')).toBeNull();
 

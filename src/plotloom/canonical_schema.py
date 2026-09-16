@@ -415,16 +415,6 @@ def default_dialogue_timing_profile() -> DialogueTimingProfile:
     return DEFAULT_DIALOGUE_TIMING_PROFILE.model_copy(deep=True)
 
 
-# Compatibility exports for callers written during the first M1-12A slice.
-DEFAULT_ZH_CN_DIALOGUE_TIMING_PROFILE = DEFAULT_DIALOGUE_TIMING_PROFILE
-
-
-def default_zh_cn_dialogue_timing_profile() -> DialogueTimingProfile:
-    """Deprecated alias for :func:`default_dialogue_timing_profile`."""
-
-    return default_dialogue_timing_profile()
-
-
 class SceneBeatPlanV2(V2Model):
     scenes: list[DramaticSceneV2]
     beats: list[BeatV2]

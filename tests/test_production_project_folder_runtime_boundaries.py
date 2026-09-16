@@ -143,7 +143,6 @@ def test_closed_project_run_commands_and_startup_leave_db_and_evidence_unchanged
         assert not lock_path.exists()
 
         assert client.post(f"/api/v2/runs/{run_id}/cancel").status_code == 409
-        assert client.post(f"/api/v2/runs/{run_id}/repairs", json={}).status_code == 409
         exact = client.post(
             f"/api/v2/runs/{run_id}/work-units/missing/repairs",
             json={},

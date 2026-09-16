@@ -3,8 +3,11 @@ import type {
   ImageJob,
   ManagedAsset,
   ReviewedKeyframe,
+  SceneBeatPlan,
   Shot,
   StillPreview,
+  StoryGraph,
+  Storyboard,
   StoryboardReview,
   VisualIntent,
   VisualWorkbench,
@@ -52,6 +55,10 @@ export function KeyframeAndPreviewPanel({
   mediaDraftsEnabled,
   review,
   storyboardRevision,
+  storyboard,
+  sceneBeats,
+  graph,
+  routeId,
   maxPreviewLength,
   previewLength,
   setPreviewLength,
@@ -85,6 +92,10 @@ export function KeyframeAndPreviewPanel({
   mediaDraftsEnabled: boolean;
   review: StoryboardReview | null | undefined;
   storyboardRevision?: number;
+  storyboard: Storyboard;
+  sceneBeats: SceneBeatPlan;
+  graph: StoryGraph;
+  routeId?: string;
   maxPreviewLength: number;
   previewLength: number;
   setPreviewLength: Dispatch<SetStateAction<number>>;
@@ -383,6 +394,10 @@ export function KeyframeAndPreviewPanel({
         storyboardRevision={storyboardRevision}
         selectionRevision={workbench.selectionRevision}
         keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
+        storyboard={storyboard}
+        sceneBeats={sceneBeats}
+        graph={graph}
+        routeId={routeId}
         readOnly={readOnly}
       />
     </>

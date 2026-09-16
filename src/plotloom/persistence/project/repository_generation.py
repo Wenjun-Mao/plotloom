@@ -165,23 +165,6 @@ class ProjectGenerationRepository:
     ) -> dict[StageName, StagePayload]:
         return self._repairs.get_repair_stage_dependencies(child_run_id, stage)
 
-    def create_repair_run(
-        self,
-        source_run_id: str,
-        *,
-        stage: StageName | None = None,
-        instructions: str | None = None,
-        provider_snapshot: dict[str, Any] | None = None,
-        run_id: str | None = None,
-    ) -> GenerationRun:
-        return self._repairs.create_repair_run(
-            source_run_id,
-            stage=stage,
-            instructions=instructions,
-            provider_snapshot=provider_snapshot,
-            run_id=run_id,
-        )
-
     def prepare_repair_stage_reuse(
         self, child_run_id: str, stage: StageName
     ) -> list[FragmentReuseBinding]:

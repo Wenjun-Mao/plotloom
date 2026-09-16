@@ -53,7 +53,6 @@ from .contracts import (
     ProjectRunsResponse as ProjectRunsResponse,
     ProviderSettingsUpdate as ProviderSettingsUpdate,
     RebuildRequest as RebuildRequest,
-    RepairRequest as RepairRequest,
     StageEnvelopesResponse as StageEnvelopesResponse,
     StagePatchRequest as StagePatchRequest,
     StoryboardApprovalRequest as StoryboardApprovalRequest,

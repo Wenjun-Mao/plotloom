@@ -288,8 +288,3 @@ class ProjectGenerationReusePersistence:
             )
             child_unit.status = WorkUnitStatus.SUCCEEDED.value
             return artifact
-    def materialize_reused_fragment(self, child_run_id: str, binding_id: str) -> Artifact:
-        """Compatibility spelling for the explicit fragment-binding command."""
-        access = self._access
-
-        return self.materialize_fragment_reuse_binding(child_run_id, binding_id)
