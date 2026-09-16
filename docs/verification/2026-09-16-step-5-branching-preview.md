@@ -17,57 +17,60 @@ choice clicks are ignored, and replaced/unmounted media is paused. The preview
 does not execute edge effects or join reconciliation prose/JSON. A reached
 shared node is structural reuse only, not stateful published-runtime behavior.
 
-## Source and focused-check evidence
+## Gated browser evidence
+
+The earlier production failure reported media readiness but not the imperative
+`play()` promise, native events, or committed-element lifetime. The current
+bounded proof therefore tested those layers in order, with the same established
+offline H3 fixture bytes. The fixture gateway writes only to its own temporary
+directory; no new footage or retained pilot media was created or changed.
+
+1. `frontend/e2e/native-video-probe.spec.ts` first serves those bytes from the
+   Vite origin through a test-local route and mounts one plain `<video>` plus
+   one `Play` button with `page.setContent`. It neither creates a project nor
+   mounts Plotloom's React player. A real click produces `play`, `playing`, a
+   resolved `play()` promise, progressing `currentTime`, and a native `ended`
+   event on the same connected element.
+2. Its second test stays isolated and proves the smallest reusable sequence:
+   one video reaches its final hold, an explicit A/B click alone selects the
+   next playback, restart resets to time zero, and both endings reach native
+   end. It does not synthesize media events or introduce a graph/runtime model.
+3. `frontend/e2e/branching-video-preview.spec.ts` then exercises the real
+   FastAPI project route, canonical four-node graph, four selected offline-H3
+   jobs, and the committed structural player. Browser-side test telemetry
+   records attachment/removal, `play()` call/result, and native media events.
+   The verified journey is explicit start → native-ended ordinary successor →
+   decision hold → A ending → restart with a new media identity → B ending.
+   All six real `play()` calls resolved and all six distinct session identities
+   reached native `ended`; no play rejection occurred. The test retains the
+   old-element handles and proves each superseded start, successor, and ending
+   is paused and disconnected. Its telemetry records the six distinct identities
+   that actually play and end, while also observing the mounted and removed
+   lifecycle identities (development StrictMode may remount an identity). The
+   test retains its final screenshot.
+
+## Checks run on this candidate
 
 - `npm --prefix frontend run test -- --run tests/video-pilot.test.ts` — 14
-  focused tests pass for both branch choices, one-choice decisions, final hold,
-  new-episode restart, missing/corrupt media, duplicate events, and reset/pause
-  boundaries. These tests use DOM events and do not establish native playback.
+  focused structural-player tests passed.
 - `npm --prefix frontend run typecheck` and `npm --prefix frontend run
-  typecheck:e2e` passed for the candidate before browser work began.
-- Existing FastAPI/browser production regression `frontend/e2e/video-pilot.spec.ts`
-  retains its local-H3 downloaded-MP4 native-ended selected-pair playback proof;
-  it now also confirms the Step 5 player and its honest missing-media state on
-  that page. The retained two-clip pilot still lacks four route clips.
-- The existing selected-pair browser test remains a separate Step 4 proof only;
-  it does not exercise a complete branching journey.
+  typecheck:e2e` — passed.
+- `npm --prefix frontend run test:e2e -- --grep 'plain same-origin offline H3
+  video plays|isolated native video choice sequence'` — both isolated browser
+  rungs passed.
+- `npm --prefix frontend run test:e2e -- --grep 'production FastAPI fixture
+  plays both native-ended branches and resets an episode'` — passed with the
+  lifecycle telemetry above.
+- `npm --prefix frontend run build:deterministic` — passed; generated static
+  assets were already current.
 
-## Native branching failure preserved
-
-`frontend/e2e/branching-video-preview.spec.ts` is retained as the production
-FastAPI offline fixture. It creates a canonical four-node graph, obtains four
-selected H3 fixture clips through the normal project routes, confirms a ranged
-media response, and requires native start → decision → both selected endings
-across a restart. It does not inject `ended` events.
-
-The fixture's canonical-admission and response-identity mistakes were corrected
-before native playback was assessed. The first genuine browser journey showed
-the start clip reach its native end and the decision media mount, but the decision
-remained at `currentTime = 0`. A second bounded lifecycle attempt preserved a
-more direct diagnostic: after the explicit start-button click, the served clip
-reported `readyState: 4`, `duration: 5.166667`, `networkState: 1`, `error: null`,
-`paused: true`, and `currentTime: 0` after nine seconds. This establishes a
-browser lifecycle capability boundary rather than absent, corrupt, or unserved
-fixture media. The fixture currently records no `play`/`playing`/`pause` event
-trace and no direct play-promise outcome, so it cannot distinguish browser/
-fixture policy from an external DOM owner; it must not be described as a proven
-player-ref defect. The failing test and Playwright error context remain the
-executable diagnostic; no successful final-frame screenshot exists to retain.
-
-One attended independent Terra read-only review examined the exact media ref,
-identity cleanup, and click path. It found no remaining scoped frontend
-lifecycle cause: cleanup captures the superseded committed element, and the
-initial click does not change media identity. It recommended no further source
-mutation under the stop condition; a future authorized investigation needs
-browser event/promise telemetry or parent/DOM-owner inspection.
-
-Per the bounded-delivery stop condition, no third native-playback attempt was
-made. No provider, upload, paid call, retained-pilot mutation, or deployment was
-used for this work.
+The separate Step 4 selected-pair browser test remains a retained regression
+only; it does not replace this complete four-node fixture. No provider, upload,
+paid call, retained-pilot mutation, deployment, or creative-media work was used.
 
 ## Acceptance status
 
-This receipt does **not** establish fixture verification or Step 5 acceptance.
-The retained pilot has missing route footage, and the player also needs a newly
-authorized lifecycle correction followed by fresh browser proof before any
-creative-media review can be considered.
+This receipt establishes the bounded structural-player implementation and native
+browser proof. It does not claim a complete produced story, retained-pilot
+coverage, creative/media qualification, Alpha readiness, or release. Step 5
+remains pending director acceptance of this evidence.

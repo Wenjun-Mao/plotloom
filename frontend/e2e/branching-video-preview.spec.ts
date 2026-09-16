@@ -7,6 +7,54 @@ import type { Locator, Page } from "@playwright/test";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
 
+type MediaTrace = { type: string; identity: string; connected: boolean; currentTime: number; paused: boolean };
+
+async function installMediaTrace(page: Page) {
+  await page.addInitScript(() => {
+    type Trace = { type: string; identity: string; connected: boolean; currentTime: number; paused: boolean };
+    const trace: Trace[] = [];
+    const observed = new WeakSet<HTMLVideoElement>();
+    const identity = (video: HTMLVideoElement) => video.dataset.playbackIdentity || video.dataset.testid || "unidentified";
+    const record = (type: string, video: HTMLVideoElement) => trace.push({
+      type, identity: identity(video), connected: video.isConnected,
+      currentTime: Number(video.currentTime.toFixed(3)), paused: video.paused,
+    });
+    const observe = (node: Node) => {
+      if (!(node instanceof HTMLVideoElement) || !node.dataset.testid?.startsWith("branching-video-job-")) return;
+      if (!observed.has(node)) {
+        observed.add(node);
+        record("attached", node);
+        for (const event of ["play", "playing", "pause", "ended", "error"]) node.addEventListener(event, () => record(event, node));
+      }
+      if (!node.isConnected) record("removed", node);
+    };
+    new MutationObserver((records) => records.forEach((record) => {
+      record.addedNodes.forEach(observe);
+      record.removedNodes.forEach(observe);
+    })).observe(document, { childList: true, subtree: true });
+    const nativePlay = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function () {
+      const video = this as HTMLVideoElement;
+      if (video.dataset.testid?.startsWith("branching-video-job-")) record("play-called", video);
+      return Promise.resolve(nativePlay.call(this)).then(
+        (value) => {
+          if (video.dataset.testid?.startsWith("branching-video-job-")) record("play-resolved", video);
+          return value;
+        },
+        (reason) => {
+          if (video.dataset.testid?.startsWith("branching-video-job-")) record("play-rejected", video);
+          throw reason;
+        },
+      );
+    };
+    (window as typeof window & { readBranchingMediaTrace: () => Trace[] }).readBranchingMediaTrace = () => trace;
+    (window as typeof window & { clearBranchingMediaTrace: () => void }).clearBranchingMediaTrace = () => {
+      trace.splice(0, trace.length);
+      document.querySelectorAll<HTMLVideoElement>('[data-testid^="branching-video-job-"]').forEach((video) => record("attached", video));
+    };
+  });
+}
+
 function branchingFixture() {
   const project = structuredClone(demoProject);
   project.brief = {
@@ -74,6 +122,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
 
 test("production FastAPI fixture plays both native-ended branches and resets an episode", async ({ page, request, workbench }) => {
   test.setTimeout(120_000);
+  await installMediaTrace(page);
   const project = branchingFixture();
   const created = await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: {
     brief: project.brief,
@@ -123,9 +172,16 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
 
   const preview = page.getByTestId("branching-video-preview");
   const start = page.getByTestId(`branching-video-job-${jobIds[0]}`);
+  await expect(start).toBeVisible();
+  // The fixture's authoring phase can mount partial projections. Measure only
+  // the completed canonical four-node session exercised below.
+  await page.evaluate(() => (window as typeof window & { clearBranchingMediaTrace: () => void }).clearBranchingMediaTrace());
   const startSource = await start.getAttribute("src");
   expect(startSource).toContain(`/video-jobs/${jobIds[0]}/media`);
   expect((await request.get(`${workbench.apiOrigin}${startSource}`, { headers: { Range: "bytes=0-15" } })).status()).toBe(206);
+  const initialStart = await start.elementHandle();
+  if (!initialStart) throw new Error("initial branching video did not mount");
+  const initialStartIdentity = await start.getAttribute("data-playback-identity");
   await expect.poll(() => start.evaluate((video) => (video as HTMLVideoElement).readyState), { timeout: 9_000 }).toBeGreaterThan(0);
   await preview.getByRole("button", { name: "播放当前" }).click();
   await expect.poll(() => start.evaluate((video) => {
@@ -138,6 +194,9 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
 
   const decision = page.getByTestId(`branching-video-job-${jobIds[1]}`);
   await expect(decision).toBeVisible({ timeout: 9_000 });
+  await expect.poll(() => initialStart.evaluate((video) => ({ connected: video.isConnected, paused: (video as HTMLVideoElement).paused }))).toEqual({ connected: false, paused: true });
+  const firstDecision = await decision.elementHandle();
+  if (!firstDecision) throw new Error("ordinary successor video did not mount");
   await expect(preview.getByTestId("branching-choices")).toHaveCount(0);
   await expect.poll(() => decision.evaluate((video) => (video as HTMLVideoElement).currentTime), { timeout: 9_000 }).toBeGreaterThan(0);
   await expect.poll(() => decision.evaluate((video) => (video as HTMLVideoElement).ended), { timeout: 9_000 }).toBeTruthy();
@@ -146,15 +205,19 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   await preview.getByRole("button", { name: "选择左侧" }).click();
   const left = page.getByTestId(`branching-video-job-${jobIds[2]}`);
   await expect(left).toBeVisible();
+  await expect.poll(() => firstDecision.evaluate((video) => ({ connected: video.isConnected, paused: (video as HTMLVideoElement).paused }))).toEqual({ connected: false, paused: true });
+  const firstLeft = await left.elementHandle();
+  if (!firstLeft) throw new Error("selected ending video did not mount");
   await expect.poll(() => left.evaluate((video) => (video as HTMLVideoElement).currentTime), { timeout: 9_000 }).toBeGreaterThan(0);
   await expect.poll(() => left.evaluate((video) => (video as HTMLVideoElement).ended), { timeout: 9_000 }).toBeTruthy();
   await expect(preview.getByRole("button", { name: "重新开始分支预览" })).toBeVisible();
 
-  const firstEpisode = await left.getAttribute("data-playback-identity");
   await preview.getByRole("button", { name: "重新开始分支预览" }).click();
   const restartedStart = page.getByTestId(`branching-video-job-${jobIds[0]}`);
-  expect(await restartedStart.getAttribute("data-playback-identity")).not.toBe(firstEpisode);
+  expect(await restartedStart.getAttribute("data-playback-identity")).not.toBe(initialStartIdentity);
   await expect(restartedStart.evaluate((video) => (video as HTMLVideoElement).paused)).resolves.toBeTruthy();
+  await expect(restartedStart.evaluate((video) => (video as HTMLVideoElement).currentTime)).resolves.toBe(0);
+  await expect.poll(() => firstLeft.evaluate((video) => ({ connected: video.isConnected, paused: (video as HTMLVideoElement).paused }))).toEqual({ connected: false, paused: true });
   await preview.getByRole("button", { name: "播放当前" }).click();
   await expect.poll(() => restartedStart.evaluate((video) => (video as HTMLVideoElement).currentTime), { timeout: 9_000 }).toBeGreaterThan(0);
   await expect(decision).toBeVisible({ timeout: 9_000 });
@@ -166,5 +229,21 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   await expect.poll(() => right.evaluate((video) => (video as HTMLVideoElement).currentTime), { timeout: 9_000 }).toBeGreaterThan(0);
   await expect.poll(() => right.evaluate((video) => (video as HTMLVideoElement).ended), { timeout: 9_000 }).toBeTruthy();
   await expect(preview.getByRole("button", { name: "重新开始分支预览" })).toBeVisible();
+  const trace = await page.evaluate(() => (window as typeof window & { readBranchingMediaTrace: () => MediaTrace[] }).readBranchingMediaTrace());
+  expect(trace.filter((event) => event.type === "play-called")).toHaveLength(6);
+  expect(trace.filter((event) => event.type === "play-resolved")).toHaveLength(6);
+  expect(trace.filter((event) => event.type === "ended")).toHaveLength(6);
+  expect(new Set(trace.filter((event) => event.type === "play-called").map((event) => event.identity)).size).toBe(6);
+  expect(new Set(trace.filter((event) => event.type === "ended").map((event) => event.identity)).size).toBe(6);
+  const attached = trace.filter((event) => event.type === "attached");
+  const removed = trace.filter((event) => event.type === "removed");
+  // Vite's development StrictMode can mount an identity more than once. The
+  // session contract is one distinct identity per real progression, while
+  // every superseded progression identity must be observed as removed.
+  expect(new Set(attached.map((event) => event.identity)).size).toBeGreaterThanOrEqual(6);
+  expect(new Set(removed.map((event) => event.identity)).size).toBeGreaterThanOrEqual(5);
+  expect(trace).not.toEqual(expect.arrayContaining([expect.objectContaining({ type: "play-rejected" })]));
+  expect(trace.filter((event) => ["play", "playing", "ended"].includes(event.type)).every((event) => event.connected)).toBeTruthy();
+  expect(trace.filter((event) => event.type === "removed").every((event) => !event.connected)).toBeTruthy();
   await page.screenshot({ path: test.info().outputPath("step-5-branching-native-browser.png"), fullPage: true });
 });
