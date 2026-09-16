@@ -16,7 +16,7 @@
 | Accepted ImageGen delivery receipts | 5 |
 | Reviewed/selected still keyframes | 4 of 4 |
 | Ingested/selected H3 clips | 4 / 4 |
-| Native path playback/reopen | not executed: native Chrome automation is unavailable on this host |
+| Native path playback/reopen | **blocked after native Chrome reproduction**; see checkpoint 4 evidence below |
 
 ## Accepted opening clip
 
@@ -48,8 +48,18 @@ The hashes above match the respective ingested jobs' `outputHash` values. These 
 - The decision delivery initially surfaced one rejected receipt for an incorrect identity-hash attestation; the corrected receipt is accepted and bound to the frozen reference hash. The rejected receipt remains auditable and was not repurposed.
 - Cleanup was attempted once for every generated ImageGen file. The shared staging root `/Users/wjmao/.codex/generated_images/01a0aa8a-87ac-7352-9af6-0c51314984b8` is mode `0755`, so the helper refused its current-user-private-root check. No permissions were changed and no deletion workaround was used. The preserved staged task files are `exec-372a3297-199e-4d75-9817-25b34185deae.png`, `exec-18bfd9ca-c8d5-4936-b933-61c732438531.png`, `exec-02698f01-4539-483e-b4d8-b76407657de2.png`, `exec-d8bca3f4-012e-45dd-af6a-16421d5ae9dd.png`, and `exec-cc59abe2-ac2d-4391-b08d-fe5111763b38.png`.
 
-## Native playback/reopen boundary and next scope
+## Checkpoint 4 native playback/reopen evidence — blocked
 
-- Native Chrome automation is unavailable on this host. The approved return and departure paths were therefore not played or reopened natively, and no simulated playback evidence is recorded. A current in-app page confirmed all four video jobs are ingested and selected, but that is state inspection, not native playback.
+- The previous statement that native Chrome automation was unavailable is corrected. Google Chrome was accessible through the native-app surface with a full accessibility tree; its absence from the browser-provider inventory did not establish native-app unavailability.
+- A fresh native Chrome tab opened the retained project at `http://127.0.0.1:8775/v2/?project=4d7d4856-e407-4467-9432-3d9187b9edf8`, while preserving the existing pilot tab. The app showed the retained project title, revision `r1`, all four stages `READY`, and the opening as an explicitly selected `ingested` H3 clip. A native screenshot of this reopened project and a second screenshot of the failed departure branch were captured during the attended observation; the computer-use surface does not provide a durable local screenshot pathname.
+- Native Chrome played the opening clip after an explicit click. Its media control reached `5.167` seconds and the app advanced to **末班车前的选择** (last-train decision), where its final frame held and both canonical choices were available: **归还吊坠** and **带着吊坠离开**.
+- The return choice advanced to **归还：短暂的连接** with history `f7eb0970-6135-4841-ae67-54d40e6401f6 → 6246cf1c-da87-41ba-8aae-dbb9609cd3eb`, then the native UI reported **“Unable to play media.”** The departure choice was independently retried after a page reload; it advanced to **带走：未解的离开** with history `f7eb0970-6135-4841-ae67-54d40e6401f6 → 5af5b8c8-b30d-4575-8c97-eaedf9edd1a3` and produced the same native error. No third attempt was made.
+- The reload re-opened the same retained project with revision `r1` and its opening selection intact. This is page-level reopen evidence only; it is not a passing close/reopen recovery proof, because the terminal branches could not complete.
+- Read-only range requests for all four project video endpoints returned `206 Partial Content`, `Accept-Ranges: bytes`, `Content-Type: video/mp4`, and the expected sizes. Fresh SHA-256 checks of the four retained review copies match their recorded output hashes. This proves stored-byte and range-route integrity only; it does not override the native-player error or establish audiovisual acceptance. Codex did not hear audio; the only audio acceptance remains the attributed user review above.
+
+### Root-cause boundary and next scope
+
+- The demonstrated failure belongs at the native playback/player boundary: the selected opening plays and transitions, while both selected terminal clips reach their canonical nodes but emit the player error despite hash-valid, range-servable bytes. This verification-only assignment makes no claim that the failure is a media-generation defect, an asset-corruption defect, or a completed product diagnosis. Do not add retry/correction machinery as a workaround.
+- A bounded follow-up should capture the browser media error details and correlate them with the exact terminal media requests, then repair the responsible player or serving contract with regression coverage. It must preserve the selected clips and their review lineage.
 - No new generation was performed after approval; the ImageGen and H3 caps remain exhausted. All current artifacts are preserved.
 - Regeneration of multiple candidate clips, review-connected alternatives, final-only selection, and deletion of rejected alternatives are a separate requested product scope. They were not implemented in this assignment.

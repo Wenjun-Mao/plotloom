@@ -37,6 +37,18 @@ Otherwise use one newly reviewed identity reference.
    both endings and restart in the production browser. Repeat after project reopen.
    Capture concise evidence and report creative acceptance separately from tests.
 
+### Checkpoint 4 verification update — 2026-09-16
+
+Native Chrome is available and the earlier browser-provider inference was wrong.
+The retained project was reopened in a fresh native tab; its opening clip played to
+the decision hold and exposed both canonical choices. Each choice reached its
+distinct terminal node but the native player then reported **“Unable to play
+media.”** The terminal clips are still selected and hash-valid, and their range
+routes are readable, but that does not satisfy complete-path playback, final-hold,
+restart, or durable recovery acceptance. Verification stopped after one attempt
+per ending; no media, source, configuration, or selection was changed. See the
+receipt for exact native observations and the bounded player/serving follow-up.
+
 ## Approved execution allowance
 
 - At most **5 ImageGen calls** total: one identity plus four keyframes. Reusing an
