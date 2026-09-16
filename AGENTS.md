@@ -1,6 +1,8 @@
 # Plotloom development contract
 
-- Fix root causes and contracts rather than symptoms; preserve behavioral regression coverage when changing architecture or fixtures.
+- Fix root causes and contracts rather than symptoms; preserve regression coverage for current supported behavior.
+- Breaking changes and targeted development-data resets are the preferred default. Do not add or retain backward-compatibility layers, historical replay support, or automatic backups unless explicitly required. Remove obsolete code and tests with retired contracts; prefer the smallest current-contract implementation.
+- Keep resets and deletions scoped to identified disposable data. Preserve current user-valued assets and work unless their removal is explicitly authorized; retain credential protection, transaction integrity, and unknown-dispatch safety. This policy does not authorize broad deletion or removal of current product features such as snapshot/restore.
 - Keep credentials out of project state, persistence, logs, traces, and public settings.
 - Preserve the extraction boundary: production code must not import or read Narrative Forge V1 runtime paths or data.
 - Record durable changes to public APIs, prompt/schema contracts, persistence, runtime behavior, or workflow semantics as concise ADRs.
@@ -9,7 +11,7 @@
 
 ## Bounded delivery
 
-- Before a generation-contract fix, identify which fields the author, model, and trusted code own. Check primary prompt, response schema, binder, and validator agreement before adding correction machinery. Amend the relevant ADR before changing ownership; preserve raw evidence and historical contracts.
+- Before a generation-contract fix, identify which fields the author, model, and trusted code own. Check primary prompt, response schema, binder, and validator agreement before adding correction machinery. Amend the relevant ADR before changing ownership; do not rewrite retained evidence to imply it satisfied a newer contract. Old contracts need not remain executable.
 - Keep approved scope, phase-specific instructions and progress in the roadmap, not this file. Start at `docs/roadmap/README.md`; each assignment must identify its approved step, deliverable, evidence, exclusions and stopping condition.
 - Use one source owner by default and GPT-5.6 Terra for delegated work unless a concrete exception is justified. Keep briefs bounded with minimal history. Use an independent review on a stable candidate; reopen only for concrete findings or material changes. Do not leave delegated work without a supported completion-reporting path.
 - Fix demonstrated blockers within scope; defer optional improvements. A review finding is not authorization to expand scope. Material changes to the approved outcome, acceptance, risk or authority require user agreement before implementation.

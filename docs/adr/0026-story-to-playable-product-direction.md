@@ -27,6 +27,11 @@ the intended first-video experience.
   called an image backend, nor a dependency on this coding session in the product.
 - Deliver a visual pilot, an audiovisual clip, an in-app sequential scene and
   finally a playable branching sequence. Native audio is included when supported.
+- Before branching playback, selected clips preview one explicit valid Story Graph
+  route. The preview derives scene and shot order from the canonical plan and
+  excludes every unchosen branch; it does not stitch media or become a second
+  story model. Later publishing may derive separate segments between explicit
+  decision points, but mixing/export is not part of the MVP preview.
 - Initial decision playback stops after the node sequence, holds the last frame,
   shows options and waits indefinitely. No timed/implicit choice. Chosen edges
   follow the canonical graph; playback is not another authoring authority.
