@@ -135,6 +135,9 @@ an editing/mixing feature.
 
 ## Deferred
 
+Next proposed bounded deliverable: [complete branching creative pilot](branching-creative-pilot.md).
+This draft requires a new generation allowance; previous caps remain exhausted.
+
 T2V authoring controls, broader duration/end-frame controls, new backend expansion,
 automatic image-specialist transport, seven-day cleanup, full editing/mixing,
 timed choices and general collaboration are not prerequisites for this sequence.
