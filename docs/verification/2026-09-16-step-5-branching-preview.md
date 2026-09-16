@@ -2,7 +2,8 @@
 
 ## Scope and implementation
 
-Implemented the authorized minimal structural author preview. It uses the
+The authorized minimal structural author preview has source-level implementation
+work. It uses the intended
 canonical StoryGraph start node, scene/shot ordering, and only current,
 explicitly selected, ingested video jobs. Node-local media plays in order,
 ordinary one-successor nodes may continue automatically, decision nodes retain
@@ -16,39 +17,57 @@ choice clicks are ignored, and replaced/unmounted media is paused. The preview
 does not execute edge effects or join reconciliation prose/JSON. A reached
 shared node is structural reuse only, not stateful published-runtime behavior.
 
-## Evidence
+## Source and focused-check evidence
 
-- `npm --prefix frontend run test -- --run tests/video-pilot.test.ts` — 13
-  focused tests pass: both branch choices, one-choice decisions, final hold and
-  restart, missing/corrupt media, duplicate ended/click events, and reset/pause
-  boundaries.
+- `npm --prefix frontend run test -- --run tests/video-pilot.test.ts` — 14
+  focused tests pass for both branch choices, one-choice decisions, final hold,
+  new-episode restart, missing/corrupt media, duplicate events, and reset/pause
+  boundaries. These tests use DOM events and do not establish native playback.
 - `npm --prefix frontend run typecheck` and `npm --prefix frontend run
-  typecheck:e2e` pass; `npm --prefix frontend run build:deterministic` refreshed
-  `src/plotloom/static/`.
+  typecheck:e2e` passed for the candidate before browser work began.
 - Existing FastAPI/browser production regression `frontend/e2e/video-pilot.spec.ts`
   retains its local-H3 downloaded-MP4 native-ended selected-pair playback proof;
   it now also confirms the Step 5 player and its honest missing-media state on
   that page. The retained two-clip pilot still lacks four route clips.
-- Independent Terra read-only review found and the implementation repaired: a
-  one-edge decision auto-advance, session media cleanup, and corrupt-media
-  gap reporting. The re-review reported no material remaining finding.
-- `uv build --wheel --out-dir .local/relay/1e5693db-0798-42ef-ad16-d7328950fc44/wheel-BpCrM4`
-  plus `uv run --locked python scripts/smoke_installed_wheel.py <wheel-dir>`
-  passed in a fresh isolated installation.
+- The existing selected-pair browser test remains a separate Step 4 proof only;
+  it does not exercise a complete branching journey.
 
-## Browser-evidence boundary
+## Native branching failure preserved
 
-An attempted standalone four-job branching FastAPI/browser fixture was not
-retained: the local H3 browser media element loaded but did not advance under
-that synthetic multi-job setup, including when `play()` was invoked directly.
-It therefore cannot honestly evidence a full native-ended branching journey.
-The focused DOM tests use test-only fixture jobs and native-style events; they
-are implementation verification, not produced-story acceptance. No provider,
-upload, dispatch, paid call, or retained-pilot mutation was used for Step 5.
+`frontend/e2e/branching-video-preview.spec.ts` is retained as the production
+FastAPI offline fixture. It creates a canonical four-node graph, obtains four
+selected H3 fixture clips through the normal project routes, confirms a ranged
+media response, and requires native start → decision → both selected endings
+across a restart. It does not inject `ended` events.
+
+The fixture's canonical-admission and response-identity mistakes were corrected
+before native playback was assessed. The first genuine browser journey showed
+the start clip reach its native end and the decision media mount, but the decision
+remained at `currentTime = 0`. A second bounded lifecycle attempt preserved a
+more direct diagnostic: after the explicit start-button click, the served clip
+reported `readyState: 4`, `duration: 5.166667`, `networkState: 1`, `error: null`,
+`paused: true`, and `currentTime: 0` after nine seconds. This establishes a
+browser lifecycle capability boundary rather than absent, corrupt, or unserved
+fixture media. The fixture currently records no `play`/`playing`/`pause` event
+trace and no direct play-promise outcome, so it cannot distinguish browser/
+fixture policy from an external DOM owner; it must not be described as a proven
+player-ref defect. The failing test and Playwright error context remain the
+executable diagnostic; no successful final-frame screenshot exists to retain.
+
+One attended independent Terra read-only review examined the exact media ref,
+identity cleanup, and click path. It found no remaining scoped frontend
+lifecycle cause: cleanup captures the superseded committed element, and the
+initial click does not change media identity. It recommended no further source
+mutation under the stop condition; a future authorized investigation needs
+browser event/promise telemetry or parent/DOM-owner inspection.
+
+Per the bounded-delivery stop condition, no third native-playback attempt was
+made. No provider, upload, paid call, retained-pilot mutation, or deployment was
+used for this work.
 
 ## Acceptance status
 
-This receipt establishes the bounded implementation and fixture verification,
-not full live branching audiovisual acceptance. The retained pilot has missing
-route footage, and a complete produced branching story needs a separately
-authorized media/creative review once that footage exists.
+This receipt does **not** establish fixture verification or Step 5 acceptance.
+The retained pilot has missing route footage, and the player also needs a newly
+authorized lifecycle correction followed by fresh browser proof before any
+creative-media review can be considered.

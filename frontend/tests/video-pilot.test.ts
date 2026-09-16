@@ -73,6 +73,7 @@ async function render(projectId: string, shotId: string, sceneId?: string) {
 beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
+  vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
   vi.spyOn(plotloomApi, "getVideoPilotBudget").mockResolvedValue({ limitSeconds: 100, reservedSeconds: 0, remainingSeconds: 100, attempts: [] });
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
     enabled: true, adapterId: "atlas_wan", adapterVersion: "1", provider: "atlascloud",
@@ -241,6 +242,7 @@ it("pins selected media by canonical node order and surfaces missing branching m
 
 it("waits at a decision, follows only the clicked edge, holds an ending, and ignores duplicate ended events", async () => {
   const fixture = branchingFixture();
+  const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
   await act(async () => root.render(createElement(BranchingVideoPreview, {
     projectId: "project", jobs: fixture.selected, storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph,
   })));
@@ -250,6 +252,7 @@ it("waits at a decision, follows only the clicked edge, holds an ending, and ign
   await act(async () => { scene.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
   const decision = host.querySelector('[data-testid="branching-video-job-decision-job"]') as HTMLVideoElement;
   expect(decision).not.toBeNull();
+  expect(play).toHaveBeenCalledTimes(1);
   expect(host.querySelector('[data-testid="branching-choices"]')).toBeNull();
   await act(async () => { decision.dispatchEvent(new Event("ended", { bubbles: true })); decision.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
   const choices = [...host.querySelectorAll('[data-testid="branching-choices"] button')] as HTMLButtonElement[];
@@ -257,10 +260,31 @@ it("waits at a decision, follows only the clicked edge, holds an ending, and ign
   await act(async () => { choices.find((choice) => choice.textContent === "right")?.click(); await Promise.resolve(); });
   expect(host.querySelector('[data-testid="branching-video-job-right-job"]')).not.toBeNull();
   expect(host.querySelector('[data-testid="branching-video-job-left-job"]')).toBeNull();
+  expect(play).toHaveBeenCalledTimes(2);
   const right = host.querySelector('[data-testid="branching-video-job-right-job"]') as HTMLVideoElement;
   await act(async () => { right.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
   expect(host.querySelector('[data-testid="branching-video-job-right-job"]')).not.toBeNull();
   expect([...host.querySelectorAll("button")].some((button) => button.textContent === "重新开始分支预览")).toBe(true);
+});
+
+it("creates a fresh media episode when an ending is restarted", async () => {
+  const fixture = branchingFixture();
+  await act(async () => root.render(createElement(BranchingVideoPreview, {
+    projectId: "project", jobs: fixture.selected, storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph,
+  })));
+  const scene = host.querySelector('[data-testid="branching-video-job-scene-job"]') as HTMLVideoElement;
+  await act(async () => { scene.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
+  const decision = host.querySelector('[data-testid="branching-video-job-decision-job"]') as HTMLVideoElement;
+  await act(async () => { decision.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
+  await act(async () => { [...host.querySelectorAll('[data-testid="branching-choices"] button')].find((choice) => choice.textContent === "left")?.dispatchEvent(new MouseEvent("click", { bubbles: true })); await Promise.resolve(); });
+  const ending = host.querySelector('[data-testid="branching-video-job-left-job"]') as HTMLVideoElement;
+  await act(async () => { ending.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
+  ending.currentTime = 0.5;
+  await act(async () => { [...host.querySelectorAll("button")].find((button) => button.textContent === "重新开始分支预览")?.click(); await Promise.resolve(); });
+  const restarted = host.querySelector('[data-testid="branching-video-job-scene-job"]') as HTMLVideoElement;
+  expect(restarted).not.toBe(scene);
+  expect(restarted.currentTime).toBe(0);
+  expect(host.querySelector('[data-testid="branching-choices"]')).toBeNull();
 });
 
 it("does not auto-traverse a canonical decision with one outgoing edge, including an empty decision node", async () => {

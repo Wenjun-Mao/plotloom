@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { SceneBeatPlan, StoryEdge, StoryGraph, StoryNode, Storyboard, VideoJob } from "./types";
 import { plotloomApi } from "./api";
 import { Button } from "./components";
@@ -84,26 +84,23 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     [projectId, jobs, storyboard, sceneBeats, graph],
   );
   const player = useRef<HTMLVideoElement>(null);
-  const [activePlayer, setActivePlayer] = useState<HTMLVideoElement | null>(null);
-  const bindPlayer = useCallback((element: HTMLVideoElement | null) => {
-    player.current = element;
-    setActivePlayer(element);
-  }, []);
   const transitionRef = useRef("");
   const handledMediaRef = useRef("");
+  const autoplayedMediaRef = useRef("");
   const mediaFailureRef = useRef<string | null>(null);
   const currentMediaIdentityRef = useRef("");
   const [nodeId, setNodeId] = useState(graph.startNodeId);
+  const [episode, setEpisode] = useState(0);
   const [visit, setVisit] = useState(0);
   const [clipIndex, setClipIndex] = useState(0);
   const [nodeComplete, setNodeComplete] = useState(false);
-  const [autoplayMediaIdentity, setAutoplayMediaIdentity] = useState<string | null>(null);
+  const [shouldAutoplay, setShouldAutoplay] = useState(false);
   const [mediaFailure, setMediaFailure] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [playbackError, setPlaybackError] = useState("");
   const node = manifest.nodes.get(nodeId);
   const current = node?.jobs[clipIndex];
-  const nodeIdentity = `${manifest.identity}:${visit}:${nodeId}`;
+  const nodeIdentity = `${manifest.identity}:${episode}:${visit}:${nodeId}`;
   const mediaIdentity = current ? `${nodeIdentity}:${current.id}` : "";
   currentMediaIdentityRef.current = mediaIdentity;
 
@@ -112,58 +109,68 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     setVisit(0);
     setClipIndex(0);
     setNodeComplete(false);
-    setAutoplayMediaIdentity(null);
+    setShouldAutoplay(false);
     setMediaFailure(null);
     setHistory([]);
     setPlaybackError("");
     transitionRef.current = "";
     handledMediaRef.current = "";
+    autoplayedMediaRef.current = "";
     mediaFailureRef.current = null;
   }, [manifest.identity, graph.startNodeId]);
 
   useEffect(() => {
-    const active = activePlayer;
+    // Capture the committed element. On a keyed replacement React first mounts
+    // the next media element, while this cleanup still pauses only the exact
+    // superseded source rather than racing its next play() request.
+    const active = player.current;
     return () => { active?.pause(); };
-  }, [activePlayer, manifest.identity, mediaIdentity]);
+  }, [mediaIdentity]);
 
-  const moveTo = (edge: StoryEdge) => {
+  const moveTo = (edge: StoryEdge, autoplay: boolean) => {
     if (transitionRef.current === nodeIdentity) return;
     transitionRef.current = nodeIdentity;
     setHistory((currentHistory) => [...currentHistory, edge.id]);
     setNodeId(edge.targetNodeId);
     setVisit((currentVisit) => currentVisit + 1);
     setClipIndex(0);
+    if (autoplay) autoplayedMediaRef.current = "";
     setNodeComplete(false);
+    setShouldAutoplay(autoplay);
     setMediaFailure(null);
     mediaFailureRef.current = null;
     setPlaybackError("");
   };
-  const finishNode = () => {
+  const finishNode = (autoplaySuccessor: boolean) => {
     if (!node || node.missingShotTitles.length || mediaFailureRef.current || transitionRef.current === nodeIdentity) return;
     if (node.node.kind === "decision" || node.node.kind === "ending" || node.outgoing.length !== 1) {
+      setShouldAutoplay(false);
       setNodeComplete(true);
       return;
     }
-    moveTo(node.outgoing[0]);
+    moveTo(node.outgoing[0], autoplaySuccessor);
   };
 
   useEffect(() => {
     if (!node || node.jobs.length || node.missingShotTitles.length) return;
-    finishNode();
+    // An empty structural chain may select the first playable node, but it
+    // never manufactures the initial user gesture required to start media.
+    finishNode(false);
   }, [nodeIdentity, node]); // Empty structural nodes may continue; missing media never does.
 
   useEffect(() => {
     const active = player.current;
-    if (!autoplayMediaIdentity || autoplayMediaIdentity !== mediaIdentity || !active) return;
-    setAutoplayMediaIdentity(null);
+    if (!shouldAutoplay || !mediaIdentity || !active || autoplayedMediaRef.current === mediaIdentity) return;
+    autoplayedMediaRef.current = mediaIdentity;
+    setShouldAutoplay(false);
     setMediaFailure(null);
     mediaFailureRef.current = null;
-    void active.play().catch((reason: unknown) => {
+    void Promise.resolve(active.play()).catch((reason: unknown) => {
       if (player.current !== active || currentMediaIdentityRef.current !== mediaIdentity) return;
       const detail = reason instanceof Error && reason.message ? `：${reason.message}` : "";
       setPlaybackError(`无法自动播放下一镜头${detail}`);
     });
-  }, [activePlayer, autoplayMediaIdentity, mediaIdentity]);
+  }, [mediaIdentity, shouldAutoplay]);
 
   if (!node) {
     return <section className="video-sequence" data-testid="branching-video-preview">
@@ -173,17 +180,14 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   const isDecision = node.node.kind === "decision" || node.outgoing.length > 1;
   const isEnding = node.node.kind === "ending" || node.outgoing.length === 0;
   const missingMedia = [...node.missingShotTitles, ...(mediaFailure ? [mediaFailure] : [])];
-  const currentPlayer = () => player.current
-    ?? (current ? document.querySelector<HTMLVideoElement>(`[data-testid="branching-video-job-${current.id}"]`) : null)
-    ?? activePlayer;
   const play = () => {
-    const active = currentPlayer();
+    const active = player.current;
     if (!active || !mediaIdentity) {
       setPlaybackError("播放器尚未准备完成");
       return;
     }
     setPlaybackError("");
-    void active.play().catch((reason: unknown) => {
+    void Promise.resolve(active.play()).catch((reason: unknown) => {
       if (player.current !== active || currentMediaIdentityRef.current !== mediaIdentity) return;
       const detail = reason instanceof Error && reason.message ? `：${reason.message}` : "";
       setPlaybackError(`无法播放当前镜头${detail}`);
@@ -192,12 +196,15 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   const restart = () => {
     transitionRef.current = "";
     handledMediaRef.current = "";
+    autoplayedMediaRef.current = "";
     mediaFailureRef.current = null;
     setNodeId(graph.startNodeId);
+    setEpisode((currentEpisode) => currentEpisode + 1);
     setVisit(0);
     setClipIndex(0);
     setNodeComplete(false);
-    setAutoplayMediaIdentity(null);
+    setShouldAutoplay(false);
+    setMediaFailure(null);
     setHistory([]);
     setPlaybackError("");
   };
@@ -205,11 +212,12 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     if (endedIdentity !== mediaIdentity || mediaFailureRef.current || handledMediaRef.current === endedIdentity || transitionRef.current === nodeIdentity) return;
     handledMediaRef.current = endedIdentity;
     if (clipIndex + 1 < node.jobs.length) {
-      setAutoplayMediaIdentity(`${nodeIdentity}:${node.jobs[clipIndex + 1].id}`);
+      autoplayedMediaRef.current = "";
+      setShouldAutoplay(true);
       setClipIndex((index) => index + 1);
       return;
     }
-    finishNode();
+    finishNode(true);
   };
   return <section className="video-sequence" data-testid="branching-video-preview">
     <strong>暂停选择分支预览</strong>
@@ -220,14 +228,16 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
         key={mediaIdentity}
         controls
         preload="metadata"
-        ref={bindPlayer}
+        ref={player}
         src={plotloomApi.videoJobMediaUrl(projectId, current.id)}
         data-testid={`branching-video-job-${current.id}`}
         data-playback-identity={mediaIdentity}
         onEnded={(event) => advanceClip(event.currentTarget.dataset.playbackIdentity)}
-        onError={() => {
+        onError={(event) => {
+          if (event.currentTarget.dataset.playbackIdentity !== mediaIdentity || currentMediaIdentityRef.current !== mediaIdentity) return;
           const failure = frozenShot(current).title || frozenShot(current).id || current.id;
           mediaFailureRef.current = failure;
+          setShouldAutoplay(false);
           setMediaFailure(failure);
         }}
       />
@@ -237,7 +247,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     {!missingMedia.length && !current && <small>此节点没有已编排镜头。</small>}
     {playbackError && <small className="notice warning" role="status">{playbackError}</small>}
     {!missingMedia.length && nodeComplete && isDecision && <div className="button-row" data-testid="branching-choices">
-      {node.outgoing.map((edge) => <Button key={edge.id} onClick={() => moveTo(edge)}>{edge.choiceText || `前往 ${manifest.nodes.get(edge.targetNodeId)?.node.title || edge.targetNodeId}`}</Button>)}
+      {node.outgoing.map((edge) => <Button key={edge.id} onClick={() => moveTo(edge, true)}>{edge.choiceText || `前往 ${manifest.nodes.get(edge.targetNodeId)?.node.title || edge.targetNodeId}`}</Button>)}
     </div>}
     {!missingMedia.length && nodeComplete && isEnding && <div className="button-row"><Button onClick={restart}>重新开始分支预览</Button></div>}
   </section>;

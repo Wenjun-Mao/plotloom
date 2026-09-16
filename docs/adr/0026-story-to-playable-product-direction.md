@@ -5,7 +5,8 @@
 Accepted direction and P0 architecture amendment, 2026-09-11, following the two
 external reviews and user authorization to amend the records. P0 is not
 implemented by this status line; the bounded Step 5 structural-preview contract
-below was implemented on 2026-09-16.
+below has source-level implementation work, but its required native browser
+playback journey is not accepted.
 The P0 implementation plan revision 1 was approved on 2026-09-11. This record
 amends ADRs 0012/0016 only for the explicit non-generative paths below; it does
 not lift provider `production_pipeline_not_ready` checks. Later media execution
@@ -135,6 +136,19 @@ meaning in the current author model. Interpreting them would invent a stateful
 runtime contract. Full incoming-state and join reconciliation remain a separately
 authorized engine, as do save games, publication, export/stitching, and any claim
 of a complete produced branching story.
+
+### Native media-session gate
+
+The browser implementation must treat the actual committed video element as the
+owner of an imperative `play()` request. It must prove, with decodable media
+served through the production route, that an explicit initial gesture starts the
+start node; a native `ended` event starts an ordinary successor; a choice gesture
+starts only its target; and a fresh restart creates a new media identity at time
+zero. Cleanup may pause only the superseded element and must not pause the
+replacement or mask a failed play promise. DOM unit events establish state
+semantics only; they do not satisfy this gate. Until the browser proof passes,
+the player remains an unaccepted structural preview rather than Step 5 product
+acceptance.
 
 ## Follow-up
 
