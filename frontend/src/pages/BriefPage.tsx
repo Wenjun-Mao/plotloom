@@ -11,7 +11,9 @@ type BriefPageProps = {
   graph?: StoryGraph;
   proposalRunning?: boolean;
   proposalReady?: boolean;
+  storyboardRunning?: boolean;
   onGenerateProposal?: (brief: ProjectBrief) => Promise<void>;
+  onGenerateStoryboard?: () => Promise<void>;
   onReviewStage?: (stage: "bible" | "graph") => void;
   onContinueToPlanning?: () => void;
 };
@@ -22,7 +24,7 @@ const defaultWorkingTitle = "未命名故事";
  * The brief remains the canonical input. This page only composes its first two
  * canonical downstream stages into a review; it does not own proposal state.
  */
-export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, onGenerateProposal, onReviewStage, onContinueToPlanning }: BriefPageProps) {
+export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
   const [draft, setDraft] = useState(value);
   const set = <K extends keyof ProjectBrief>(key: K, next: ProjectBrief[K]) => setDraft((current) => {
     const updated = { ...current, [key]: next };
@@ -90,11 +92,11 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
         {endings.length ? <ul>{endings.map((node) => <li key={node.id}><strong>{node.title}</strong>：{node.summary}</li>)}</ul> : <p>此提案尚未定义结局。</p>}
       </Panel>
       <Panel>
-        <div className="section-title"><span>Production scope</span><strong>仅 Story Bible 与剧情 DAG</strong></div>
-        <p>已推导：{graph.nodes.length} 个叙事节点、{graph.edges.filter((edge) => edge.kind === "choice").length} 个选择、{endings.length} 个结局。下一阶段仍未生成场景、分镜或媒体。</p>
+        <div className="section-title"><span>Production scope</span><strong>Story Bible 与剧情 DAG 已审阅</strong></div>
+        <p>已推导：{graph.nodes.length} 个叙事节点、{graph.edges.filter((edge) => edge.kind === "choice").length} 个选择、{endings.length} 个结局。场景与分镜仅在下方明确请求后生成；媒体不在本步骤内。</p>
         <p>计划目标：每条路径约 {draft.targetPlaythroughSeconds} 秒、每场 {draft.shotsPerSceneMin}–{draft.shotsPerSceneMax} 个镜头；这些不是成本或实际时长估算。</p>
         {!proposalReady && <p className="event-detail">提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。</p>}
-        <div className="button-row"><Button variant="quiet" onClick={() => onReviewStage?.("bible")}>细化人物与设定</Button><Button variant="quiet" onClick={() => onReviewStage?.("graph")}>细化分支与结局</Button>{onContinueToPlanning && <Button variant="primary" disabled={!proposalReady} onClick={onContinueToPlanning}>接受提案，进入分镜规划</Button>}</div>
+        <div className="button-row"><Button variant="quiet" onClick={() => onReviewStage?.("bible")}>细化人物与设定</Button><Button variant="quiet" onClick={() => onReviewStage?.("graph")}>细化分支与结局</Button>{onContinueToPlanning && <Button variant="quiet" disabled={!proposalReady} onClick={onContinueToPlanning}>进入场景编辑</Button>}{onGenerateStoryboard && <Button variant="primary" disabled={!proposalReady || saving || storyboardRunning} onClick={() => void onGenerateStoryboard()}>{storyboardRunning ? "正在生成场景与分镜…" : "生成可编辑场景与分镜"}</Button>}</div>
       </Panel>
     </div>}
   </div>;
