@@ -27,6 +27,12 @@ from ..domain import (
     WorkUnitRepairScope,
 )
 from ..exceptions import NotFoundError, RevisionConflictError
+from ..source_outline_contracts import (
+    OutlineAcceptRequest, OutlineCandidate, OutlineReopenRequest, SourceMaterial,
+    SourceOutlineReviewState,
+)
+from ..creative_handoff_contracts import CreativeHandoffRequest
+from ..creative_handoff_exchange import ValidatedCreativeDelivery
 from ..persistence import ProjectSQLiteRepository
 from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
 from .format import (
@@ -386,6 +392,44 @@ class ProjectStore:
 
     def authoring_drafts(self) -> list[AuthoringDraft]:
         return self.authoring.list_authoring_drafts(self.manifest.project_id)
+
+    def source_outline_state(self) -> SourceOutlineReviewState:
+        return self.repository.source_outline.get_state(self.manifest.project_id)
+
+    def save_source_material(
+        self, *, expected_source_revision: int, material: SourceMaterial
+    ) -> SourceOutlineReviewState:
+        return self.repository.source_outline.save_source(
+            self.manifest.project_id,
+            expected_source_revision=expected_source_revision,
+            material=material,
+        )
+
+    def prepare_outline_candidate(self, request: CreativeHandoffRequest) -> OutlineCandidate:
+        return self.repository.source_outline.prepare_candidate(self.manifest.project_id, request)
+
+    def admit_outline_delivery(self, delivery: ValidatedCreativeDelivery) -> OutlineCandidate:
+        return self.repository.source_outline.admit_delivery(self.manifest.project_id, delivery)
+
+    def accept_outline_candidate(self, request: OutlineAcceptRequest) -> SourceOutlineReviewState:
+        return self.repository.source_outline.accept_candidate(self.manifest.project_id, request)
+
+    def reopen_outline(self, request: OutlineReopenRequest) -> SourceOutlineReviewState:
+        return self.repository.source_outline.reopen_outline(self.manifest.project_id, request)
+
+    def outline_candidate_report(self, job_id: str) -> str:
+        return self.repository.source_outline.candidate_report(self.manifest.project_id, job_id)
+
+    def outline_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
+        return self.repository.source_outline.candidate_request(self.manifest.project_id, job_id)
+
+    def creative_handoff_exchange(self):
+        """Return the confined project-owned manual creative exchange root."""
+
+        from ..creative_handoff_exchange import CreativeHandoffExchange
+
+        outputs = _require_real_directory(self.home / "outputs", label="project outputs root")
+        return CreativeHandoffExchange(outputs / "creative-handoff")
 
     def save_authoring_draft(
         self,

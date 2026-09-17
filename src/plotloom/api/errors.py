@@ -28,6 +28,7 @@ from ..managed_media import (
 from ..image_job_contracts import (
     ImageJobError,
 )
+from ..creative_handoff_contracts import CreativeHandoffError
 from ..generation.story_graph_topology import StoryGraphTopologyError
 from ..validation import DomainValidationError, pydantic_issues
 
@@ -169,6 +170,19 @@ def register_api_error_handlers(app: FastAPI) -> None:
         )
         return JSONResponse(
             status_code=status_code, content={"code": error.code, "message": str(error)}
+        )
+
+    @app.exception_handler(CreativeHandoffError)
+    async def creative_handoff_handler(
+        _request: Request, error: CreativeHandoffError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=(
+                status.HTTP_409_CONFLICT
+                if error.code in {"delivery_stale", "delivery_conflict", "delivery_identity_mismatch", "request_identity_mismatch", "package_conflict"}
+                else status.HTTP_422_UNPROCESSABLE_CONTENT
+            ),
+            content={"code": error.code, "message": str(error)},
         )
 
     @app.exception_handler(LifecycleContentionError)

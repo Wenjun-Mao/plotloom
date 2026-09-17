@@ -45,6 +45,10 @@ import type {
   VideoJob,
   VideoBackend,
   VideoPilotBudget,
+  SourceMaterial,
+  SourceOutlineReviewState,
+  OutlineCandidate,
+  OutlineCandidatePreparation,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -499,6 +503,36 @@ export class PlotloomApiClient {
 
   getMediaTask(taskId: string): Promise<MediaTask> {
     return this.request(`/media-tasks/${encodeURIComponent(taskId)}`);
+  }
+
+  getSourceOutline(projectId: string, signal?: AbortSignal): Promise<SourceOutlineReviewState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline`, { signal });
+  }
+
+  saveSourceMaterial(projectId: string, expectedSourceRevision: number, material: SourceMaterial): Promise<SourceOutlineReviewState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/source`, {
+      method: "PUT", body: JSON.stringify({ expectedSourceRevision, material }),
+    });
+  }
+
+  prepareOutlineCandidate(projectId: string): Promise<OutlineCandidatePreparation> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates`, { method: "POST" });
+  }
+
+  refreshOutlineCandidate(projectId: string, jobId: string): Promise<OutlineCandidate> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" });
+  }
+
+  acceptOutlineCandidate(projectId: string, body: { jobId: string; expectedSourceRevision: number; expectedOutlineRevision: number }): Promise<SourceOutlineReviewState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/accept`, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  reopenOutline(projectId: string, expectedOutlineRevision: number): Promise<SourceOutlineReviewState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/reopen`, { method: "POST", body: JSON.stringify({ expectedOutlineRevision }) });
+  }
+
+  outlineCandidateReportUrl(projectId: string, jobId: string): string {
+    return `${this.base}/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/report`;
   }
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }

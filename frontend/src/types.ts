@@ -1127,3 +1127,57 @@ export interface TextProviderProfileProbe {
   reasonCode: string;
   observedAt: string | null;
 }
+
+export type SourceKind = "synopsis" | "imported_text" | "existing_work";
+
+export interface SourceMaterial {
+  kind: SourceKind;
+  title: string;
+  text: string;
+  attribution: string;
+  rightsDeclaration: string;
+  adaptationIntent: string;
+  inventedAdditions: string | null;
+}
+
+export interface SourceRevision {
+  revision: number;
+  contentHash: string;
+  material: SourceMaterial;
+  createdAt: string;
+}
+
+export interface OutlineCandidate {
+  jobId: string;
+  sourceRevision: number;
+  expectedOutlineRevision: number;
+  status: "prepared" | "ready";
+  deliveryId: string | null;
+  manifestHash: string | null;
+  outline: Record<string, unknown> | null;
+  reportAvailable: boolean;
+  createdAt: string;
+  deliveredAt: string | null;
+}
+
+export interface OutlineCandidatePreparation extends OutlineCandidate {
+  packagePath: string;
+  deliveryPath: string;
+  assignment: string;
+}
+
+export interface AcceptedOutlineRevision {
+  revision: number;
+  sourceRevision: number;
+  candidateJobId: string;
+  contentHash: string;
+  outline: Record<string, unknown>;
+  acceptedAt: string;
+}
+
+export interface SourceOutlineReviewState {
+  source: SourceRevision | null;
+  candidate: OutlineCandidate | null;
+  acceptedOutline: AcceptedOutlineRevision | null;
+  outlineStatus: "missing" | "candidate_ready" | "accepted" | "reopened";
+}

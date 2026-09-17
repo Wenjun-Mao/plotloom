@@ -23,7 +23,11 @@ from ...domain import (
 )
 from ...exceptions import InvalidTransitionError, NotFoundError
 from ..database import RepositoryDatabase
-from ..schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES, GenerationRunRow, ProjectOperationalStateRow, ProjectRow, StageHeadRow
+from ..schema import (
+    PROJECT_TEXT_PIPELINE_TABLE_NAMES, GenerationRunRow, ProjectOperationalStateRow,
+    ProjectRow, SourceOutlineCandidateRow, SourceOutlineHeadRow,
+    SourceOutlineRevisionRow, SourceOutlineSourceRevisionRow, StageHeadRow,
+)
 from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
 from .access import ProjectCodecs, ProjectGuards, ProjectLeases, ProjectPersistenceAccess, ProjectRows
 from .approvals import ProjectApprovalPersistence
@@ -50,6 +54,7 @@ from .generation_reuse import ProjectGenerationReusePersistence
 from .generation_snapshots import ProjectGenerationSnapshots
 from .lifecycle import ProjectLifecyclePersistence
 from .media import ProjectMediaPersistence
+from .source_outline import ProjectSourceOutlinePersistence
 from .repository_codecs import (
     approval_decision_from_row, artifact_from_row, assert_active_project,
     assert_lifecycle_revision, attempt_from_row, decode_current_stage_payload,
@@ -103,6 +108,21 @@ class ProjectSQLiteRepository:
         self.engine, self._sessions, self._write_lock = (
             self._database.engine, self._database.sessions, self._database.write_lock
         )
+        if not read_only:
+            # Project folders predate F1A. This is a narrow additive migration:
+            # it creates only the independent review tables and never rewrites
+            # a source, canonical stage, media record, or project manifest.
+            from ..schema import Base
+
+            Base.metadata.create_all(
+                self.engine,
+                tables=[
+                    SourceOutlineHeadRow.__table__,
+                    SourceOutlineSourceRevisionRow.__table__,
+                    SourceOutlineCandidateRow.__table__,
+                    SourceOutlineRevisionRow.__table__,
+                ],
+            )
         self._generation_admission = ProjectGenerationAdmission()
 
         self._project_access = ProjectPersistenceAccess(
@@ -137,6 +157,7 @@ class ProjectSQLiteRepository:
         self._media = ProjectMediaPersistence(
             self._project_access, self._canonical, self._drafts, accounting=None
         )
+        self.source_outline = ProjectSourceOutlinePersistence(self._project_access)
         self._generation_access = GenerationPersistenceAccess(
             leases=GenerationLeases(
                 read=self._read, write=self._write, lifecycle_write=self._lifecycle_write,
@@ -280,6 +301,7 @@ class ProjectSQLiteRepository:
                     content_hash=None, schema_version=CURRENT_STAGE_SCHEMA_VERSION,
                     input_revisions={}, stale_reasons=[], updated_at=project.updated_at,
                 ))
+            self.source_outline.initialize(session, project.id, created_at=project.created_at)
             session.flush()
             for initial_stage in normalized_stages:
                 payload = stage_payload_model(
