@@ -70,19 +70,21 @@ from .generation.responses import (
 )
 from .generation.secrets import SecretLease
 from .generation.validation import SemanticValidationContext
+from .generation.storyboard_presence_repair import (
+    RequiredEntityPresenceRepairFact,
+    assert_required_entity_presence_repair_fact_matches_source,
+)
 from .generation.work_units import (
     AUDIO_EVENT_ID_BINDING_VERSION,
     FRAGMENT_ID_BINDING_VERSION,
     CompiledWorkUnitRequest,
     JoinStateEffectRepairFact,
     ContinuityEntityStateRepairFact,
-    RequiredEntityPresenceRepairFact,
     SemanticRepairFact,
     StoryboardTimingRepairPlanFact,
     WorkUnitContractError,
     compile_work_unit_request,
     assert_cue_order_repair_fact_matches_source,
-    assert_required_entity_presence_repair_fact_matches_source,
     assert_join_state_effect_repair_fact_matches_source,
     parse_semantic_repair_fact,
     assert_continuity_repair_fact_matches_source,

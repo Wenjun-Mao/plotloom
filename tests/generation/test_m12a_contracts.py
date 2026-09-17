@@ -30,13 +30,17 @@ from plotloom.generation.correction_contract import (
     CORRECTION_RESPONSE_SCHEMA_VERSION,
 )
 from plotloom.generation.validation import SemanticValidationContext
+from plotloom.generation.storyboard_presence_repair import (
+    RequiredEntityPresenceRepairFact,
+    assert_required_entity_presence_repair_fact_matches_source,
+    storyboard_required_entity_presence_repair_facts,
+)
 from plotloom.generation.work_units import (
     BeatContent,
     AudioTimingRepairFact,
     DialogueCueContent,
     DialogueCapacityRepairFact,
     DramaticSceneContent,
-    RequiredEntityPresenceRepairFact,
     RequiredEntityStateRepairFact,
     SceneBeatsFragmentOutput,
     ShotContent,
@@ -47,9 +51,7 @@ from plotloom.generation.work_units import (
     scene_beats_dialogue_capacity_repair_facts,
     semantic_repair_facts,
     storyboard_audio_timing_repair_facts,
-    storyboard_required_entity_presence_repair_facts,
     storyboard_required_entity_state_repair_facts,
-    assert_required_entity_presence_repair_fact_matches_source,
 )
 
 
@@ -764,6 +766,21 @@ def test_m12a_required_entity_presence_keeps_validation_strict_and_projects_depi
             output,
             issues=report.issues,
         )
+
+    malformed = _board_output()
+    malformed["shots"][0]["requiredEntityStates"] = [
+        {"entityType": "prop", "entityId": "prop", "state": "intact"},
+    ]
+    del malformed["shots"][0]["title"]
+    malformed_issue = ValidationIssue(
+        code="semantic.required_entity_not_in_shot",
+        message="stable fixture",
+        path=("shots", 0, "requiredEntityStates", 0, "entityId"),
+    )
+    assert storyboard_required_entity_presence_repair_facts(
+        malformed,
+        (malformed_issue,),
+    ) == ()
 
     depicted = _board_output()
     assert board.validator.validate(

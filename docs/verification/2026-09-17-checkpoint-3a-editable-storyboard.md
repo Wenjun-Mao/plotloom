@@ -26,7 +26,7 @@ qualification.
 | frontend typecheck and E2E typecheck | passed. |
 | targeted production browser: proposal continuation | passed: upstream byte/revision preservation, admission failure, Scene Beats + Storyboard range, saved Scene Beats edit/reload, Storyboard-only range, and current no-op. |
 | targeted production browser: exact repair | passed: a quarantined Scene Beats shard was server-authorized, repaired exactly, and persisted after reload. |
-| full serial production browser suite | 46 tests ran; one native H3 playback/restart test exceeded its 45-second timeout. Its isolated retry passed in 18 seconds. This is retained as a full-suite flake, not silently treated as a clean full-suite pass. |
+| retained full serial production browser suite | 46 tests ran; the selected-pair test exhausted its own 45-second budget. The retained trace shows native playback completed, restart/reload began at +37.88s, reload itself completed in 75ms, route-selector hydration took 4.40s, and the post-restart player visibility check was still pending at the deadline; the `GET video-jobs` began only after teardown at +45.23s. The isolated run passed in 18.1s. This is test-budget exhaustion from combining independent contracts, not a stalled API or a clean full-suite pass. |
 | deterministic frontend build | passed and refreshed `src/plotloom/static/`; Vite retained its existing over-500kB chunk warning. |
 | `uv run --locked pytest -q` | 557 passed; one FastAPI/TestClient deprecation warning. |
 | wheel build and installed-wheel smoke | passed. |
@@ -115,9 +115,44 @@ acceptance or checkpoint-3B qualification.
 | `uv run --locked pytest -q` | 559 passed; one existing FastAPI/TestClient deprecation warning |
 | frontend unit and typecheck | 158 tests passed; typecheck passed |
 | deterministic frontend build/static freshness | passed; existing over-500 kB Vite warning remains |
-| full serial production browser suite | 45/46 passed; `video-pilot.spec.ts:150` timed out after restart/reload while requesting `GET video-jobs` |
+| retained full serial production browser suite | 45/46 passed; the timeout was caused by the preceding combined native-playback and restart-persistence test budget, not by `GET video-jobs` itself. |
 | isolated `video-pilot` diagnostic | passed in 18.1s; this does not establish a playback failure |
 | wheel build and installed-wheel smoke | passed |
 
 Logs and live API evidence are retained under the Relay assignment scratch
 directory. The owned runtime was stopped after evidence capture.
+
+### Checkpoint-closeout test rationale
+
+Native selected-pair progression/final hold and file-SQLite restart persistence
+remain separate, meaningful production contracts. The retained timeout combined
+both after the same costly fixture setup, so the test process reached its
+per-test deadline while the post-restart page was still hydrating; Playwright
+then closed the request context before the final API assertion could start.
+The tests are therefore split without increasing the global timeout, adding a
+retry, removing an assertion, or changing playback behavior. The native test
+retains real media progression, restart, and final-hold checks. The persistence
+test retains selected-ID, exact byte-range, reload, and backend-restart checks.
+The preserved original trace and serial log, plus the serial traced
+`video-pilot.spec.ts` repeat-each-three evidence, are kept in the checkpoint
+closeout Relay scratch directory. This is engineering verification only; it
+does not change Storyboard Approval or checkpoint-3B status.
+
+### Checkpoint-closeout verification
+
+The presence-repair extraction preserves the original full
+`StoryboardFragmentOutput` parse before its narrow fact projection; malformed
+fragments fail closed and cannot mint a repair fact. `work_units` re-exports
+the moved fragment models and fact, so its current correction union and public
+imports remain intact. An independent Terra read-only review found no P1/P2
+findings after this check.
+
+| Check | Result |
+| --- | --- |
+| focused generation/continuity/work-unit contracts | 94 passed |
+| locked Python suite | 559 passed; one existing FastAPI/TestClient deprecation warning |
+| frontend units, TypeScript and E2E typecheck | 158 unit tests passed; both typechecks passed |
+| deterministic frontend build/static freshness | passed; existing over-500 kB Vite chunk warning remains |
+| selected-pair serial traced reproduction | two split tests × three repeats passed; six retained traces, with no failure attachments |
+| full single-worker production browser suite | 47 passed in 8.3 minutes |
+| wheel and installed-wheel smoke | passed; wheel SHA-256 `07c9840388df4eeae0bd0b8f4012c2d98efb13f2c1f7665d60e44f915e618146` |

@@ -1,8 +1,8 @@
-import { expect, test } from "./fixture";
+import { expect, test, type Workbench } from "./fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Locator, Page } from "@playwright/test";
+import type { APIRequestContext, Locator, Page } from "@playwright/test";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
@@ -35,7 +35,19 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   return reconciled.id;
 }
 
-test("P2 H3 selected pair plays in order and survives file-SQLite restart", async ({ page, request, workbench }) => {
+type SelectedPair = {
+  projectId: string;
+  firstJobId: string;
+  secondJobId: string;
+  firstSource: string;
+  secondSource: string;
+};
+
+async function prepareSelectedPair(
+  page: Page,
+  request: APIRequestContext,
+  workbench: Workbench,
+): Promise<SelectedPair> {
   const created = await request.post(`${workbench.apiOrigin}/api/v2/projects`, { data: { brief: demoProject.brief, initialStages: [
     { stage: "story_bible", payload: demoProject.storyBible }, { stage: "story_graph", payload: demoProject.storyGraph },
     { stage: "scene_beats", payload: demoProject.sceneBeats }, { stage: "storyboard", payload: demoProject.storyboard },
@@ -88,6 +100,19 @@ test("P2 H3 selected pair plays in order and survives file-SQLite restart", asyn
   // its missing-clip status must remain visible rather than implying a full
   // stitched playthrough.
   await page.getByLabel("路径过滤").selectOption({ index: 1 });
+  const firstSource = await page.getByTestId(`video-sequence-job-${firstJobId}`).getAttribute("src");
+  expect(firstSource).toContain(`/video-jobs/${firstJobId}/media`);
+  return {
+    projectId,
+    firstJobId,
+    secondJobId,
+    firstSource: firstSource!,
+    secondSource: `${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${secondJobId}/media`,
+  };
+}
+
+test("P2 H3 selected pair plays in order with a native final hold", async ({ page, request, workbench }) => {
+  const selected = await prepareSelectedPair(page, request, workbench);
 
   const sequence = page.getByTestId("video-sequence-player");
   // Step 5 shares this production FastAPI page and must surface its separate
@@ -95,23 +120,17 @@ test("P2 H3 selected pair plays in order and survives file-SQLite restart", asyn
   // complete branching story.
   await expect(page.getByTestId("branching-video-preview")).toBeVisible();
   await expect(page.getByTestId("branching-missing-media")).toBeVisible();
-  const firstSequencePlayer = page.getByTestId(`video-sequence-job-${firstJobId}`);
-  const secondSequencePlayer = page.getByTestId(`video-sequence-job-${secondJobId}`);
+  const firstSequencePlayer = page.getByTestId(`video-sequence-job-${selected.firstJobId}`);
+  const secondSequencePlayer = page.getByTestId(`video-sequence-job-${selected.secondJobId}`);
   await expect(firstSequencePlayer).toBeVisible();
   await expect(page.getByTestId("video-route-sequence-status")).toContainText("路径尚不完整");
-  const firstSource = await firstSequencePlayer.getAttribute("src");
-  expect(firstSource).toContain(`/video-jobs/${firstJobId}/media`);
-  const secondPath = `/api/v2/projects/${projectId}/video-jobs/${secondJobId}/media`;
-  const secondSource = `${workbench.apiOrigin}${secondPath}`;
-  const firstBytes = await request.get(`${workbench.apiOrigin}${firstSource}`, { headers: { Range: "bytes=0-15" } });
-  expect(firstBytes.status()).toBe(206);
 
   // This is an actual native playback/ended transition of the downloaded MP4,
   // rather than a synthetic event. The second source must then begin playing.
   await sequence.getByRole("button", { name: "播放当前" }).click();
   await expect.poll(() => firstSequencePlayer.evaluate((video) => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
   await expect(secondSequencePlayer).toBeVisible({ timeout: 9_000 });
-  expect(await secondSequencePlayer.getAttribute("src")).toBe(secondPath);
+  expect(await secondSequencePlayer.getAttribute("src")).toBe(`/api/v2/projects/${selected.projectId}/video-jobs/${selected.secondJobId}/media`);
   await expect.poll(() => secondSequencePlayer.evaluate((video) => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
 
   await sequence.getByRole("button", { name: "上一镜头" }).click();
@@ -142,18 +161,27 @@ test("P2 H3 selected pair plays in order and survives file-SQLite restart", asyn
     { timeout: 9_000 },
   ).toBeTruthy();
   await expect(secondSequencePlayer).toBeVisible();
+});
 
+test("P2 H3 selected pair persists selected IDs and bytes through file-SQLite restart", async ({ page, request, workbench }) => {
+  const selected = await prepareSelectedPair(page, request, workbench);
+  const firstBytes = await request.get(`${workbench.apiOrigin}${selected.firstSource}`, { headers: { Range: "bytes=0-15" } });
+  expect(firstBytes.status()).toBe(206);
+
+  // Restart persistence is deliberately separate from native playback: both
+  // contracts are meaningful, but their combined browser setup exceeded the
+  // per-test budget despite the backend being healthy.
   await workbench.restartBackend();
   await page.reload();
   await page.getByLabel("路径过滤").selectOption({ index: 1 });
-  await expect(page.getByTestId(`video-sequence-job-${firstJobId}`)).toBeVisible();
-  const persisted = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs`);
+  await expect(page.getByTestId(`video-sequence-job-${selected.firstJobId}`)).toBeVisible();
+  const persisted = await request.get(`${workbench.apiOrigin}/api/v2/projects/${selected.projectId}/video-jobs`);
   expect(persisted.ok()).toBeTruthy();
   const selectedJobs = ((await persisted.json()) as { jobs: Array<{ id: string; selected: boolean }> }).jobs
     .filter((job) => job.selected).map((job) => job.id).sort();
-  expect(selectedJobs).toEqual([firstJobId, secondJobId].sort());
-  const afterFirstBytes = await request.get(`${workbench.apiOrigin}${firstSource}`, { headers: { Range: "bytes=0-15" } });
-  const afterSecondBytes = await request.get(secondSource, { headers: { Range: "bytes=0-15" } });
+  expect(selectedJobs).toEqual([selected.firstJobId, selected.secondJobId].sort());
+  const afterFirstBytes = await request.get(`${workbench.apiOrigin}${selected.firstSource}`, { headers: { Range: "bytes=0-15" } });
+  const afterSecondBytes = await request.get(selected.secondSource, { headers: { Range: "bytes=0-15" } });
   expect(afterFirstBytes.status()).toBe(206);
   expect(afterSecondBytes.status()).toBe(206);
   expect(await afterFirstBytes.body()).toEqual(await firstBytes.body());
