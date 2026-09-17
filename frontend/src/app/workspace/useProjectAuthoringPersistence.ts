@@ -7,7 +7,7 @@ import type { ProjectDraftQuiescence } from "../../features/authoring/projectDra
 import { markDownstreamStale, mergeProjectResponse, serverStages, stageLabels } from "../../model";
 import { initialStagesThrough, projectCreationBody, projectCreationRequest, workspaceWithStageDraft } from "../../project-creation";
 import type { ProjectResource, ServerStageName, WorkspaceProject } from "../../types";
-import { authoringDraftKey, canonicalDraftConsumption, messageFrom, newClientDraftOwner, validationIssuesFrom, type DurableDraftStatus, type WorkspaceOperation } from "./contracts";
+import { authoringDraftKey, canonicalDraftConsumption, messageFrom, newClientDraftOwner, sameDraftPayload, validationIssuesFrom, type DurableDraftStatus, type WorkspaceOperation } from "./contracts";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 
 type AuthoringSession = Pick<WorkspaceSession,
@@ -156,6 +156,26 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
       } else {
         if (source.durableDraftsEnabled.current && getDraft(source.session.project, "brief") && !await flushAuthoringDraft("brief")) return;
         const serverDraft = source.session.serverDrafts.current.get(authoringDraftKey(source.session.project.id, "brief"));
+        // A canonical Brief write invalidates every generated stage. Do not
+        // manufacture that invalidation merely to acknowledge an unchanged
+        // editor buffer: discard its exact draft receipt instead.
+        if (sameDraftPayload(nextLocal.brief, source.session.project.brief)) {
+          if (serverDraft) {
+            const receipt = await plotloomApi.discardAuthoringDraft(source.session.project.id, {
+              editorScope: "brief", entityId: "root", expectedDraftRevision: serverDraft.draftRevision,
+            });
+            if (!source.session.isCurrent(operation)) return undefined;
+            if (receipt !== serverDraft.draftRevision) throw new Error("当前草稿在丢弃前已变化");
+            source.session.serverDrafts.current.delete(authoringDraftKey(source.session.project.id, "brief"));
+            setDurableDraftStatus("idle");
+          } else if (!source.durableDraftsEnabled.current) {
+            discardDraft(source.session.project, "brief");
+          }
+          if (!source.session.isCurrent(operation)) return undefined;
+          currentDraft.current = undefined;
+          setRestoredDraft(undefined);
+          return source.session.project.id;
+        }
         const consumed = canonicalDraftConsumption(serverDraft, "brief", source.session.project.revision, nextLocal.brief);
         const saved: { project: ProjectResource; consumedDraftRevision?: number } = consumed
           ? await plotloomApi.patchProjectWithDraft(source.session.project.id, source.session.project.revision, nextLocal.brief, consumed)

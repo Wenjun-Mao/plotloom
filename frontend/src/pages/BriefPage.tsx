@@ -33,6 +33,10 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
   const hasProposal = Boolean(bible?.logline && graph?.nodes.length);
   const decisions = graph?.nodes.filter((node) => node.kind === "decision") || [];
   const endings = graph?.nodes.filter((node) => node.kind === "ending") || [];
+  const graphNodes = new Map(graph?.nodes.map((node) => [node.id, node]) || []);
+  const choiceEdges = (graph?.edges || []).filter((edge) => edge.kind === "choice");
+  const choiceSources = (graph?.nodes || []).filter((node) => choiceEdges.some((edge) => edge.sourceNodeId === node.id));
+  const choicesFor = (nodeId: string) => choiceEdges.filter((edge) => edge.sourceNodeId === nodeId);
   return <div className="page">
     <PageHeader eyebrow="01 · Synopsis → proposal" title="项目简报" description="从梗概生成可审阅故事提案；不会自动生成场景、分镜或媒体。" actions={<><Button variant="quiet" disabled={saving} onClick={() => void onSave(canonicalDraft())}>{saving ? "保存中…" : "保存简报"}</Button>{onGenerateProposal && <Button variant="primary" disabled={saving || proposalRunning || !draft.synopsis.trim()} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button>}</>} />
     <div className="two-column wide-left">
@@ -82,7 +86,7 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
       </Panel>
       <Panel>
         <div className="section-title"><span>Branches and endings</span><strong>{decisions.length} 个决定 · {endings.length} 个结局</strong></div>
-        {decisions.length ? <ul>{decisions.map((node) => <li key={node.id}><strong>{node.title}</strong>：{node.summary}</li>)}</ul> : <p>此提案尚未定义选择节点。</p>}
+        {choiceSources.length ? <ul>{choiceSources.map((node) => <li key={node.id}><strong>{node.title}</strong>：{node.summary}<ul>{choicesFor(node.id).map((edge) => { const target = graphNodes.get(edge.targetNodeId); return <li key={edge.id}><strong>{edge.choiceText || "未命名选择"}</strong> → {target?.kind === "ending" ? "结局：" : "节点："}<strong>{target?.title || edge.targetNodeId}</strong>{target?.summary ? `：${target.summary}` : ""}</li>; })}</ul></li>)}</ul> : <p>此提案尚未定义选择节点。</p>}
         {endings.length ? <ul>{endings.map((node) => <li key={node.id}><strong>{node.title}</strong>：{node.summary}</li>)}</ul> : <p>此提案尚未定义结局。</p>}
       </Panel>
       <Panel>

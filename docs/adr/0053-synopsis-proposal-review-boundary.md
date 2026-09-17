@@ -8,9 +8,17 @@ proposal. The proposal UI composes those canonical revisions for review; it
 does not persist a proposal record, create a new run kind, or introduce an
 approval framework.
 
-A proposal run requests exactly `story_bible` and `story_graph`. Its review
+A proposal run resolves canonical stage heads after the Brief save: a missing
+or stale Bible requests `story_bible` and `story_graph`, while a current Bible
+with a missing or stale Graph requests only `story_graph`. When both are
+current, the Generate control does not create an implicit replacement run. An
+unchanged, normalized Brief is not canonically saved; any exact authoring-draft
+receipt is discarded instead, so it cannot make accepted proposal stages stale.
+Its review
 states the derived graph counts separately from the author's planning target,
-and it explicitly names scenes, shots, and media as out of scope. Editing
+shows each canonical choice text with its direct target's title and summary,
+labels ending targets without asserting reachability, and explicitly names
+scenes, shots, and media as out of scope. Editing
 remains in the canonical Brief, Bible, and Graph editors. A missing working
 title is normalized to the visible `未命名故事` default only when saved; supplied
 values remain unchanged.

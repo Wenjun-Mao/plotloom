@@ -75,6 +75,17 @@ test("keeps a disabled selected profile visible while rejecting new run admissio
   );
   expect(rejected.status()).toBe(409);
   expect((await rejected.json()).message).toContain("disabled");
+
+  // This suite shares the production-shaped profile catalog. Restore the
+  // availability mutation after proving admission rejects it so later journeys
+  // begin from the fixture's enabled baseline.
+  const disabledProfile = await request.get(`${workbench.apiOrigin}/api/v2/text-provider-profiles/default`);
+  expect(disabledProfile.ok()).toBeTruthy();
+  const { availabilityRevision } = await disabledProfile.json() as { availabilityRevision: number };
+  const restored = await request.put(`${workbench.apiOrigin}/api/v2/text-provider-profiles/default/availability`, {
+    data: { expectedAvailabilityRevision: availabilityRevision, enabled: true },
+  });
+  expect(restored.ok()).toBeTruthy();
 });
 
 test("merges availability without losing an unsaved profile draft, session key, or conflict state", async ({ page, request, workbench }) => {
@@ -179,6 +190,11 @@ test("merges availability without losing an unsaved profile draft, session key, 
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem("plotloom:provider-session-keys"))).toBe(
     JSON.stringify({ default: "draft-key-after-conflict" }),
   );
+  const finalProfile = await readProfile();
+  const restored = await request.put(`${profileUrl}/availability`, {
+    data: { expectedAvailabilityRevision: finalProfile.availabilityRevision, enabled: true },
+  });
+  expect(restored.ok()).toBeTruthy();
 });
 
 test("persists a copied profile through the real API without persisting its browser key", async ({ page, request, workbench }) => {

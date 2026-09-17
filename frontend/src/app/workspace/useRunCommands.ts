@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { plotloomApi } from "../../api";
 import { providerSessionKeys } from "../../session-key";
-import { stageForPage, type WorkspaceOperation } from "./contracts";
+import { headsByStage, stageForPage, type WorkspaceOperation } from "./contracts";
 import type { PipelineRun, QuarantineItem, ServerStageName, TextProviderProfileView } from "../../types";
 import type { WorkspaceSession } from "./useWorkspaceSession";
 
@@ -54,9 +54,25 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
     if (profiles.draft.enabled === false) { setError("当前活动 Profile 已停用；请先在设置中启用可用 Profile。不会自动切换后端。"); return; }
     const operation = currentness.capture(); setBusy(true); setError("");
     try {
+      // Resolve the canonical heads after the Brief save, not from this hook's
+      // pre-save render. This keeps a Bible refinement eligible for Graph-only
+      // regeneration instead of treating it as an obsolete proposal snapshot.
+      const heads = headsByStage((await plotloomApi.getStages(projectId)).stages);
+      if (!currentness.isCurrent(operation)) return;
+      const bibleCurrent = heads.story_bible?.status === "ready";
+      const graphCurrent = heads.story_graph?.status === "ready";
+      const stages: ServerStageName[] = !bibleCurrent
+        ? ["story_bible", "story_graph"]
+        : !graphCurrent
+          ? ["story_graph"]
+          : [];
+      if (!stages.length) {
+        setError("当前故事提案已经是最新版本；可直接细化内容或进入分镜规划。");
+        return;
+      }
       const saved = await prepareProfile();
       if (!currentness.isCurrent(operation)) return;
-      const started = await plotloomApi.startRun(projectId, ["story_bible", "story_graph"], saved.profileId, saved.configuration.textAuthMode === "bearer");
+      const started = await plotloomApi.startRun(projectId, stages, saved.profileId, saved.configuration.textAuthMode === "bearer");
       if (!currentness.isCurrent(operation)) return;
       // A proposal is a review of these two existing stages, not a new run type
       // or a transition into scenes/storyboard. Keep the user in that review.
