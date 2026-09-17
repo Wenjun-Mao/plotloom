@@ -26,6 +26,7 @@ from .snapshot_files import (
     _source_file,
 )
 from .snapshot_contract import ProjectSnapshotManifest, SnapshotFile, _Payload
+from .video_candidate_transition import expected_project_schema_objects
 
 
 _ASSET_PREFIX = PurePosixPath("assets")
@@ -87,12 +88,19 @@ def _expected_schema_objects() -> list[tuple[str, str, str, str | None]]:
 
 
 _EXPECTED_SCHEMA_OBJECTS = _expected_schema_objects()
+_PRE_SELECTION_SCHEMA_OBJECTS = expected_project_schema_objects(
+    include_video_candidate_selection=False
+)
 
 
 def _assert_schema_contract(connection: sqlite3.Connection) -> None:
     """Reject schema objects before reading any application-controlled table."""
 
     actual = _schema_objects(connection)
+    if actual == list(_PRE_SELECTION_SCHEMA_OBJECTS):
+        raise ProjectStorageCorruptionError(
+            "project snapshot requires a writable video selection transition before restore"
+        )
     prohibited = {kind for kind, _name, _table, _sql in actual} - {"table", "index"}
     if prohibited or actual != _EXPECTED_SCHEMA_OBJECTS:
         raise ProjectStorageCorruptionError(

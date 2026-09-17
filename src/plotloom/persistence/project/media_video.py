@@ -438,19 +438,6 @@ class VideoJobPersistence:
                     row.state, row.updated_at = "discard_pending", utc_now()
             return [{"id": row.id, "uri": row.output_uri} for row in rows]
 
-    def discard_unselected_video_candidates(
-        self, project_id: str, *, shot_id: str, expected_selection_revision: int,
-    ) -> list[dict[str, str | None]]:
-        with self._access.leases.read() as session:
-            rows = list(session.scalars(select(VideoJobRow).where(VideoJobRow.project_id == project_id)).all())
-            candidate_ids = [row.id for row in rows if self._shot_id(row) == shot_id and row.state in {"ingested", "discard_pending"}]
-        selection = self._selection_id(project_id, shot_id)
-        return self.discard_video_candidates(
-            project_id, shot_id=shot_id,
-            video_job_ids=[item for item in candidate_ids if item != selection],
-            expected_selection_revision=expected_selection_revision,
-        ) if candidate_ids and any(item != selection for item in candidate_ids) else []
-
     def finalize_video_candidate_disposal(self, project_id: str, video_job_ids: list[str]) -> None:
         with self._access.leases.lifecycle_write() as session:
             rows = list(session.scalars(select(VideoJobRow).where(VideoJobRow.id.in_(video_job_ids))).all())
@@ -477,11 +464,6 @@ class VideoJobPersistence:
             return session.scalar(select(RunArtifactBlobRow.run_id).where(
                 RunArtifactBlobRow.relative_path == uri
             ).limit(1)) is not None
-
-    def _selection_id(self, project_id: str, shot_id: str) -> str | None:
-        with self._access.leases.read() as session:
-            row = session.get(VideoCandidateSelectionRow, {"project_id": project_id, "shot_id": shot_id})
-            return row.selected_video_job_id if row is not None else None
 
     @staticmethod
     def _shot_id(row: VideoJobRow) -> str:

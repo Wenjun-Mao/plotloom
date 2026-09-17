@@ -106,6 +106,23 @@ it("keeps retrieval available after a known-ID cancel intent", async () => {
   expect(retrieve?.disabled).toBe(false);
 });
 
+it("pauses every native candidate peer before allowing a new candidate to play", async () => {
+  const first = { ...job("project", "shot"), id: "first", state: "ingested" as const };
+  const second = { ...job("project", "shot"), id: "second", state: "ingested" as const };
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [first, second] });
+  const paused: HTMLMediaElement[] = [];
+  vi.mocked(HTMLMediaElement.prototype.pause).mockImplementation(function (this: HTMLMediaElement) {
+    paused.push(this);
+  });
+  await render("project", "shot");
+  const firstPlayer = host.querySelector('[data-testid="video-job-player-first"]') as HTMLVideoElement;
+  const secondPlayer = host.querySelector('[data-testid="video-job-player-second"]') as HTMLVideoElement;
+  expect(firstPlayer).not.toBeNull();
+  expect(secondPlayer).not.toBeNull();
+  await act(async () => { firstPlayer.dispatchEvent(new Event("play", { bubbles: true })); });
+  expect(paused).toEqual([secondPlayer]);
+});
+
 it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async () => {
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
     enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "3", provider: "minimax_h3_gateway",

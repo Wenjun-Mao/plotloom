@@ -48,6 +48,11 @@ from .recovery_control import (
     recovered_generation_run_ids,
     recovery_operations_present,
 )
+from .video_candidate_transition import (
+    ProjectSelectionTransitionRequiredError,
+    selection_schema_status,
+    transition_video_candidate_selection,
+)
 
 
 class ProjectRecoveryRequiredError(ProjectStorageError):
@@ -165,6 +170,7 @@ class ProjectStore:
         read_only: bool = False,
         defer_wal: bool = False,
         access_lease: ProjectAccessLease | None = None,
+        transition_video_selection: bool = True,
     ) -> "ProjectStore":
         if project_home.is_symlink() or not project_home.is_dir():
             raise ProjectStorageConfinementError(
@@ -180,6 +186,31 @@ class ProjectStore:
             raise ProjectStorageCorruptionError(
                 "project manifest does not meet this storage format"
             ) from error
+        database_path = home / manifest.database_path
+        if not database_path.exists() or not database_path.is_file():
+            raise ProjectStorageCorruptionError(
+                "project database is missing or not a regular file"
+            )
+        schema_status = selection_schema_status(database_path, manifest.project_id)
+        if schema_status == "transition_required":
+            if read_only:
+                raise ProjectSelectionTransitionRequiredError(
+                    "video selection transition requires a writable project open"
+                )
+            if not transition_video_selection:
+                # Explicit reopen performs its state transition before calling
+                # the same bounded schema transition under its exclusive lease.
+                pass
+            elif (
+                access_lease is None
+                or access_lease.descriptor < 0
+                or access_lease.mode != "exclusive"
+            ):
+                raise ProjectSelectionTransitionRequiredError(
+                    "video selection transition requires an exclusive project lease"
+                )
+            else:
+                transition_video_candidate_selection(database_path, manifest.project_id)
         store = cls(
             home,
             manifest,
@@ -194,6 +225,27 @@ class ProjectStore:
             store.repository.close()
             raise
         return store
+
+    def transition_video_candidate_selection(
+        self, *, allow_closed: bool = False
+    ) -> bool:
+        """Complete the known one-time folder transition under this lease."""
+
+        if self._read_only:
+            raise ProjectSelectionTransitionRequiredError(
+                "video selection transition requires a writable project open"
+            )
+        if (
+            self._access_lease is None
+            or self._access_lease.descriptor < 0
+            or self._access_lease.mode != "exclusive"
+        ):
+            raise ProjectSelectionTransitionRequiredError(
+                "video selection transition requires an exclusive project lease"
+            )
+        return transition_video_candidate_selection(
+            self.database_path, self.manifest.project_id, allow_closed=allow_closed
+        )
 
     def _validate_opened_project(self) -> None:
         if not self.database_path.exists() or not self.database_path.is_file():

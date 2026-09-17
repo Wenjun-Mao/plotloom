@@ -9,6 +9,15 @@ candidate.  Selecting supplies the expected selection revision and atomically
 replaces that record; a stale intent fails rather than winning by arrival order.
 Preparing another candidate does not change that record.
 
+Project-folder databases created immediately before this authority existed use
+one explicit, writable format-8 transition.  It admits only the exact known
+pre-selection project schema, creates the selection table transactionally, and
+backfills a shot only when its latest retained review is `select`. Existing
+selection rows are never rewritten.  Read-only inspection, closed-project
+admission, restore validation, and any unknown schema fail with a clear
+transition-required or unsupported-schema error; none creates a table as a
+fallback.
+
 Disposal is an explicit candidate operation.  It rechecks the shot, project,
 selection revision, job state, and selected candidate before marking only named
 ingested candidates `discard_pending`.  Project storage then removes an owned
@@ -24,4 +33,6 @@ shot safely changes only that shot.  Active or unknown-outcome jobs and
 cross-project/shot IDs cannot be discarded.  Content-addressed bytes shared by
 another retained video job stay in place.  This supersedes the previous
 "latest review wins" projection in ADR 0051 without changing its route-order
-authority or playback guards.
+authority or playback guards. The transition is intentionally not a generic
+project migration framework or continuing read authority: after it commits,
+the selection table is the only authority.

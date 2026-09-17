@@ -38,6 +38,11 @@ from .format import (
     _write_new_file,
 )
 from .project_handle import ProjectStore
+from .recovery_validation import database_state
+from .video_candidate_transition import (
+    ProjectSelectionTransitionRequiredError,
+    selection_schema_status,
+)
 from .operational_state import (
     ProjectAccessLease,
     ProjectBusyError,
@@ -192,9 +197,16 @@ class ProjectDirectoryRegistry:
                 lease = ProjectAccessLease.acquire(
                     candidate, mode="shared", create=False
                 )
-                store = ProjectStore.open(
-                    candidate, read_only=True, access_lease=lease
-                )
+                try:
+                    store = ProjectStore.open(
+                        candidate, read_only=True, access_lease=lease
+                    )
+                except ProjectSelectionTransitionRequiredError:
+                    # Keep this known legacy folder discoverable so an admitted
+                    # writable open can perform its one-time transition.
+                    lease.close()
+                    homes.append(ProjectHome(path=candidate.resolve(), manifest=manifest))
+                    continue
                 store.close()
             except (ProjectStorageError, ValueError, SQLAlchemyError):
                 continue
@@ -205,6 +217,30 @@ class ProjectDirectoryRegistry:
         """Open an admitted shared handle; closed homes never reopen implicitly."""
 
         home = self._project_home(project_id)
+        if (
+            selection_schema_status(
+                home.path / home.manifest.database_path, home.manifest.project_id
+            )
+            == "transition_required"
+        ):
+            if database_state(
+                home.path / home.manifest.database_path, home.manifest.project_id
+            ) != "open":
+                raise ProjectClosedError(
+                    "project_closed: reopen it explicitly before editing"
+                )
+            # The only project-schema mutation is serialized under an
+            # exclusive folder lease. The returned handle below is a fresh,
+            # ordinary shared lease after the transaction commits.
+            transition_lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
+            try:
+                transitioned = ProjectStore.open(
+                    home.path, defer_wal=True, access_lease=transition_lease
+                )
+            except BaseException:
+                transition_lease.close()
+                raise
+            transitioned.close()
         lease = ProjectAccessLease.acquire(home.path, mode="shared")
         try:
             store = ProjectStore.open(
@@ -268,11 +304,23 @@ class ProjectDirectoryRegistry:
     def reopen_project(self, project_id: str) -> int:
         """Explicitly reopen a closed folder without dispatching or replaying work."""
 
-        store = self._exclusive_store(project_id)
+        home = self._project_home(project_id)
+        lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
+        try:
+            store = ProjectStore.open(
+                home.path, access_lease=lease, transition_video_selection=False
+            )
+        except BaseException:
+            lease.close()
+            raise
         try:
             state, revision = store.repository.operational_state()
             if state == "open":
+                store.transition_video_candidate_selection()
                 return revision
+            # Reopening is the sole explicit operation allowed to advance a
+            # closed legacy folder before it can accept ordinary writes.
+            store.transition_video_candidate_selection(allow_closed=True)
             _state, revision = store.repository.set_operational_state(
                 expected_revision=revision, state="open"
             )

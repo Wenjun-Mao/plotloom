@@ -214,15 +214,6 @@ class ProjectVideoRepository:
         )
         self._delete_pending_candidate_artifacts(project_id, pending)
 
-    def discard_unselected_video_candidates(
-        self, project_id: str, *, shot_id: str, expected_selection_revision: int,
-    ) -> None:
-        self._assert_project(project_id)
-        pending = self._video.discard_unselected_video_candidates(
-            project_id, shot_id=shot_id, expected_selection_revision=expected_selection_revision,
-        )
-        self._delete_pending_candidate_artifacts(project_id, pending)
-
     def _delete_pending_candidate_artifacts(self, project_id: str, pending: list[dict[str, str | None]]) -> None:
         """Complete a marked disposal only after shared-reference rechecks."""
         deleted_uris: set[str] = set()

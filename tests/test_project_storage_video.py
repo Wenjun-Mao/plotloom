@@ -21,8 +21,11 @@ from plotloom.canonical_schema import CharacterV2
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
 from plotloom.project_generation_storage import ProjectPipelineExecutor
-from plotloom.project_storage import ProjectFolderStorage, ProjectStore
+from plotloom.project_storage import ProjectArtifactStore, ProjectFolderStorage, ProjectStore
 from plotloom.project_storage import ProjectStorageConflictError, ProjectStorageError
+from plotloom.project_storage.operational_state import ProjectAccessLease
+from plotloom.project_storage.recovery_validation import assert_database_contract
+from plotloom.project_storage.video_candidate_transition import ProjectSelectionTransitionRequiredError
 from plotloom.persistence.codec import stable_hash
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from plotloom.video_ingestion import ObservedVideo
@@ -457,6 +460,193 @@ def test_video_candidates_keep_selection_and_dispose_only_unselected_shared_byte
     reopened = storage.projects.open(project_id)
     reopened.close()
     assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/media").status_code == 200
+
+
+def test_prechange_project_folder_transitions_selection_on_writable_production_open(
+    tmp_path: Path,
+) -> None:
+    """A format-8 folder from before candidate selection must move once, not fall back."""
+
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+    candidate = _prepare_video(client, project_id, approval, context, key="prechange-selection")
+    assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit").status_code == 200
+    assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
+    assert client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/review",
+        json={"reviewer": "fixture", "decision": "select", "note": "Retained before transition.", "expectedSelectionRevision": 0},
+    ).status_code == 201
+
+    current = storage.projects.open(project_id)
+    try:
+        database = current.database_path
+    finally:
+        current.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute("PRAGMA foreign_keys=OFF")
+        connection.execute("DROP TABLE v2_video_candidate_selections")
+        connection.commit()
+    before_inspection = database.read_bytes()
+
+    # A regular shared work handle cannot advance schema authority while a
+    # second handle may still observe the old folder. Registry.open first
+    # obtains an exclusive transition lease, then returns a new shared handle.
+    shared_lease = ProjectAccessLease.acquire(database.parent, mode="shared")
+    try:
+        with pytest.raises(ProjectSelectionTransitionRequiredError, match="exclusive project lease"):
+            ProjectStore.open(database.parent, access_lease=shared_lease)
+    finally:
+        shared_lease.close()
+    assert database.read_bytes() == before_inspection
+
+    # The real read-only project-folder path must identify the required
+    # transition without changing a closed-over historical database.
+    with pytest.raises(ProjectStorageError, match="selection transition"):
+        storage.projects.inspect(project_id)
+    assert database.read_bytes() == before_inspection
+    with pytest.raises(ProjectStorageError, match="writable video selection transition"):
+        assert_database_contract(database, store.manifest)
+    assert database.read_bytes() == before_inspection
+
+    # Registry.open is the production writable path. It performs one bounded
+    # transition and the retained selection remains its original job/review.
+    transitioned = storage.projects.open(project_id)
+    try:
+        selected = [
+            item
+            for item in transitioned.media.direct_video.list_video_jobs(project_id)
+            if item["selected"]
+        ]
+        assert [(item["id"], item["selectionRevision"]) for item in selected] == [
+            (candidate["id"], 1)
+        ]
+    finally:
+        transitioned.close()
+    reopened = storage.projects.open(project_id)
+    try:
+        selected = [
+            item
+            for item in reopened.media.direct_video.list_video_jobs(project_id)
+            if item["selected"]
+        ]
+        assert [(item["id"], item["selectionRevision"]) for item in selected] == [
+            (candidate["id"], 1)
+        ]
+    finally:
+        reopened.close()
+
+
+def test_bulk_video_discard_keeps_new_candidates_and_rejects_stale_selection(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3(outputs=[b"first", b"second", b"third"])
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+
+    def ingest(key: str) -> dict:
+        candidate = _prepare_video(client, project_id, approval, context, key=key)
+        assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit").status_code == 200
+        assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
+        return candidate
+
+    first, second = ingest("bulk-first"), ingest("bulk-second")
+    assert client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/review",
+        json={"reviewer": "fixture", "decision": "select", "note": "Keep first.", "expectedSelectionRevision": 0},
+    ).status_code == 201
+    confirmed_ids = [second["id"]]
+
+    # This candidate arrives after the reviewer has confirmed the exact bulk
+    # target set; the request must never recalculate a broader set server-side.
+    third = ingest("bulk-arrived-after-confirmation")
+    discarded = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/discard-unselected",
+        json={"shotId": context["shot"].id, "videoJobIds": confirmed_ids, "expectedSelectionRevision": 1},
+    )
+    assert discarded.status_code == 204, discarded.text
+    states = {item["id"]: item["state"] for item in client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]}
+    assert states[second["id"]] == "discarded"
+    assert states[third["id"]] == "ingested"
+
+    assert client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{third['id']}/review",
+        json={"reviewer": "fixture", "decision": "select", "note": "Replace selection.", "expectedSelectionRevision": 1},
+    ).status_code == 201
+    stale = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/discard-unselected",
+        json={"shotId": context["shot"].id, "videoJobIds": [first["id"]], "expectedSelectionRevision": 1},
+    )
+    assert stale.status_code == 409
+    states = {item["id"]: item["state"] for item in client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]}
+    assert states[first["id"]] == "ingested"
+
+
+def test_interrupted_video_disposal_reopens_and_retries_without_retained_blob_damage(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = FakeH3(outputs=[b"discarded-by-interruption", b"retained-shared", b"retained-shared"])
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+
+    def ingest(key: str) -> dict:
+        candidate = _prepare_video(client, project_id, approval, context, key=key)
+        assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit").status_code == 200
+        assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
+        return candidate
+
+    interrupted, selected, shared = ingest("interrupt-delete"), ingest("keep-selected"), ingest("keep-shared")
+    assert client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{selected['id']}/review",
+        json={"reviewer": "fixture", "decision": "select", "note": "Keep selected bytes.", "expectedSelectionRevision": 0},
+    ).status_code == 201
+    opened = storage.projects.open(project_id)
+    try:
+        interrupted_uri = opened.media.direct_video.get_video_output_storage(project_id, interrupted["id"])["uri"]
+    finally:
+        opened.close()
+    original_delete = ProjectArtifactStore.delete
+
+    def delete_then_interrupt(self: ProjectArtifactStore, uri: str) -> None:
+        original_delete(self, uri)
+        if uri == interrupted_uri:
+            raise RuntimeError("simulated interruption after bytes removal")
+
+    monkeypatch.setattr(ProjectArtifactStore, "delete", delete_then_interrupt)
+    with pytest.raises(RuntimeError, match="after bytes removal"):
+        client.post(
+            f"/api/v2/projects/{project_id}/video-jobs/{interrupted['id']}/discard",
+            json={"expectedSelectionRevision": 1},
+        )
+    monkeypatch.setattr(ProjectArtifactStore, "delete", original_delete)
+
+    reopened = storage.projects.open(project_id)
+    try:
+        states = {item["id"]: item["state"] for item in reopened.media.direct_video.list_video_jobs(project_id)}
+        assert states[interrupted["id"]] == "discard_pending"
+    finally:
+        reopened.close()
+    retried = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{interrupted['id']}/discard",
+        json={"expectedSelectionRevision": 1},
+    )
+    assert retried.status_code == 204, retried.text
+    states = {item["id"]: item["state"] for item in client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]}
+    assert states[interrupted["id"]] == "discarded"
+    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{selected['id']}/media").content == b"retained-shared"
+    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{shared['id']}/media").content == b"retained-shared"
 
 
 def test_video_disposal_keeps_a_cross_kind_managed_asset_blob(
