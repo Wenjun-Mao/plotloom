@@ -173,6 +173,46 @@ ternaries. No broad refactoring or further proof of already accepted media playb
 Keep a single receipt and update this tracker. Director accepts/pushes, then proceeds
 to 3B after evaluating the actual gaps, without routine user confirmation.
 
+## Checkpoint 3B — contrasting story and targeted revision qualification
+
+Use the accepted current runtime, not a new generation subsystem. Create one
+fresh project with a grounded, dialogue-led family dilemma, contrasting with
+`潮汐译信`: two adult siblings must decide whether to sell their late mother's
+small repair shop before a buyer's deadline; an unfinished repair reveals a
+promise one sibling made. Keep the story small, with two meaningful endings,
+clear choice consequences, and no supernatural premise. Freeze the exact Chinese
+synopsis and existing supported structure settings in the receipt before running.
+
+First use the normal synopsis/proposal and explicit storyboard-continuation
+workflow. Run at most one initial proposal and one downstream continuation with
+their existing bounded corrections. A failure is evidence: diagnose before any
+additional run; do not silently retry, bypass gates, or edit the database.
+Preserve all older projects, provider settings, and valued assets.
+
+Review the resulting text for causal choices and distinct endings, character and
+prop continuity, actionable shot composition, dialogue attribution/performance,
+audio/timing fit, and needless repetition. Cite concrete scenes/shots/cues and
+separate schema/gate success from creative judgment. Use an attended independent
+Terra review; it is an engineering creative review, not human Approval.
+
+Demonstrate targeted authoring through existing editors: save/reload one shot's
+action/composition improvement without changing other shots or upstream content;
+then edit one Dialogue Cue in Scene Beats, verify canonical single-source dialogue
+and downstream staleness, and explicitly regenerate only Storyboard once if
+needed. Preserve Brief/Bible/Graph, and prove unrelated Scene Beats/cues unchanged.
+Do not promise shot-local model regeneration if the current product only supports
+stage-level rebuild: report that actual granularity and any authored-shot loss
+as a product limitation rather than silently claiming preservation.
+
+This first 3B slice is qualification, not speculative source changes. Deliver a
+receipt and tracker update with exact revisions/hashes, UI save/reopen evidence,
+quality findings, and any smallest proposed fix. No media generation, profile/env
+changes, new Approval, resets, broad refactor, or new repair machinery. Stop on a
+material gap and return a diagnosis instead of enlarging scope. Two failures of
+the same criterion require reassessment. Stop owned services. Docs-only checks
+are proportionate; executable regression suites become required if a later
+separately bounded correction changes product code. Director accepts and pushes.
+
 ## M2 decisions to resolve before their checkpoint
 
 Suggested initial envelope: roughly 1–3 minutes per path, a few meaningful choices,
