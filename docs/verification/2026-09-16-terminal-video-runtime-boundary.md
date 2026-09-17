@@ -98,3 +98,75 @@ Checkpoint 4 remains blocked. The selected clips, review lineage, exhausted
 generation budget, and existing failure evidence are untouched. There is no
 product acceptance, media-decode acceptance, full-path acceptance, or proposed
 implementation in this diagnostic.
+
+## Controlled continuation — 2026-09-17
+
+This addendum corrects one premise of the initial boundary without changing its
+historical observations. The statement that restarting the retained checkout
+would violate the same-production-bytes condition was wrong for the approved
+follow-up. The retained checkout, its `outputs/` project folder, and the
+production static bundle are the authorized comparison target. Starting and
+stopping its normal localhost server does not substitute the media bytes.
+
+### Live identity
+
+There was no listener on `127.0.0.1:8775`. The assigned operator started the
+checkout normally with `uv run --locked plotloom`, bound to localhost, and did
+not alter configuration, credentials, project state, selections, media, or
+providers. The project endpoint then loaded
+`4d7d4856-e407-4467-9432-3d9187b9edf8`.
+
+The live responses and `src/plotloom/static/` matched exactly:
+
+| Role | SHA-256 |
+| --- | --- |
+| `/v2/` / `src/plotloom/static/index.html` | `f9bd0c147d0cbef3d4c97a5aafaee1ac0b0d14e2ef7758561ec3e0746395cebe` |
+| `/v2/workbench.js` / `src/plotloom/static/workbench.js` | `6fb8962db46215ac8b5374c6df4f70f679e8fc336f381eb7072779610d52060d` |
+| `/v2/workbench.css` / `src/plotloom/static/workbench.css` | `035c6d1e7689f75ffe464a65293688464409d78d24d1503b2262efe8facf66ff` |
+
+The selected return terminal was the one controlled subject:
+`vj_d3de4bbe38af4993acad08cbba2517f5`. Its live production URL returned
+`200`, `Accept-Ranges: bytes`, `video/mp4`, and `689729` bytes. The served body
+and retained project asset both hash to
+`2fc8c0ca52a7822859e18c06c01db2fc7bc20cfdd334142a89be89b4798107fd`.
+
+### One terminal, two native contexts
+
+An ignored localhost diagnostic page used only a native `<video controls>`
+element with that exact production URL and passive event/property display. One
+explicit native play produced `loadstart`, `loadedmetadata`, `canplay`, and
+`playing`; before play it had duration `5.167`, `readyState=4`,
+`networkState=1`, and no `MediaError`.
+
+The real production workbench was then reopened in native Chrome. Its opening
+clip completed, the decision clip reached the completed decision hold, and the
+two canonical choices appeared. Taking **归还吊坠** moved through the genuine
+branch transition to the same return job. Chrome briefly painted the native
+control text “Unable to play media.” at time zero. That display alone did not
+identify an error layer, so the live terminal element was read passively in
+DevTools; no prototype, event, source, or media mutation was used. It reported:
+
+```text
+currentSrc: .../video-jobs/vj_d3de4bbe38af4993acad08cbba2517f5/media
+currentTime: 5.167
+duration: 5.167
+paused: true
+ended: true
+readyState: 4
+networkState: 1
+errorCode: null
+errorMessage: null
+```
+
+The matching Performance resource entry was initiated by `video`, with
+`decodedBodySize=689729`, `transferSize=690029`, and `duration=28.5ms`.
+
+### Disposition
+
+This is one same-byte terminal comparison in two contexts, not a broad replay.
+The plain player and the real return transition both reached native playback;
+the branch terminal ultimately ended with no `MediaError`. The transient native
+control text is preserved as an observation, but it is not evidence of a
+decode, serving, or player failure. No root cause is established and no product
+fix is proposed. This narrow success does not accept full-path playback,
+restart, the other ending, audible review, or creative acceptance.

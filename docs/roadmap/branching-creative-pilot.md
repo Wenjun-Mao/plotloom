@@ -62,6 +62,23 @@ serving/runtime observability boundary. See
 `docs/verification/2026-09-16-terminal-video-runtime-boundary.md` for the
 recorded evidence and bounded continuation.
 
+### Checkpoint 4 controlled continuation — 2026-09-17
+
+The prior diagnostic's prohibition on restarting the retained checkout was
+incorrect. The approved continuation started the normal localhost checkout
+runtime with the retained project outputs, then proved the live shell,
+workbench bundle, stylesheet, and selected return-terminal response were the
+same recorded bytes. One native plain-player attempt reached `playing` with no
+`MediaError`. One genuine opening → decision → return transition reached the
+same terminal job and ultimately `ended=true`, `readyState=4`, and no
+`MediaError`; an immediate native-control “Unable to play media.” display was
+transient and did not correspond to the element's passive final error state.
+
+This clears only the former inability to perform the same-byte comparison. It
+does not establish a root cause, a product fix, complete-path/restart behavior,
+the other ending, audio review, or creative acceptance. The exact bounded
+receipt is `docs/verification/2026-09-16-terminal-video-runtime-boundary.md`.
+
 ## Approved execution allowance
 
 - At most **5 ImageGen calls** total: one identity plus four keyframes. Reusing an
