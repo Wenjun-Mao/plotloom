@@ -109,13 +109,19 @@ def compile_edge_entry_state_contract(graph: StoryGraphV2) -> EdgeEntryStateCont
         ):
             assignment_edges = tuple(edge_id for edge_id, _state in assignments)
             if len(assignments) != len(incoming_edges):
+                missing_edge_ids = sorted(
+                    edge.id for edge in incoming_edges if edge.id not in assignment_edges
+                )
                 issues.append(
                     EdgeEntryStateIssue(
                         code="edge_entry_entity_state_incomplete",
                         path=f"nodes.{target_node_id}.entityStateEffects.{entity_type.value}.{entity_id}",
                         message=(
-                            "a typed direct-edge entry state must be assigned by every "
-                            "incoming edge or omitted by all of them"
+                            f"target node {target_node_id!r} receives {entity_type.value} "
+                            f"{entity_id!r} from edges {', '.join(assignment_edges)}, but "
+                            f"incoming edges {', '.join(missing_edge_ids)} omit it; edit every "
+                            "incoming edge to assign the same state, or remove the assignment "
+                            "from all incoming edges before saving or resubmitting the graph"
                         ),
                     )
                 )
@@ -127,8 +133,11 @@ def compile_edge_entry_state_contract(graph: StoryGraphV2) -> EdgeEntryStateCont
                         code="edge_entry_entity_state_conflict",
                         path=f"nodes.{target_node_id}.entityStateEffects.{entity_type.value}.{entity_id}",
                         message=(
-                            "conflicting typed direct-edge states need a path-aware "
-                            "representation and cannot share one scene entry"
+                            f"target node {target_node_id!r} receives conflicting {entity_type.value} "
+                            f"{entity_id!r} states from incoming edges "
+                            f"{', '.join(f'{edge_id}={state!r}' for edge_id, state in assignments)}; "
+                            "edit those edges to assign one identical state, or remove the assignment "
+                            "from all incoming edges before saving or resubmitting the graph"
                         ),
                     )
                 )

@@ -104,6 +104,19 @@ Storyboard-only rebuild. It generated no media and changed no source, frontend
 asset, profile, environment, credential, provider setting, reset, or Approval.
 The owned local runtime was stopped after evidence collection.
 
+### Post-qualification boundary clarification
+
+The later bounded engineering correction records a defect in the prospective
+typed direct-edge contract, not a change to this frozen runtime evidence. The
+prior audit statement that Graph admission already rejected unsupported typed
+multi-input joins was incorrect: the same compiler ran only during Scene Beats
+planning and canonical validation. The original Scene Beats prompt already
+instructed typed entry state; the missing layer was executable Graph admission.
+Current prospective V2 graph seal and manual-save validation compile the
+contract before persistence. This receipt's retained Graph and Scene Beats
+revisions were not rewritten or re-evaluated as though they used that newer
+admission contract.
+
 Documentation-only verification is proportionate here: `git diff --check` was
 run after the receipt and tracker update. No executable regression suite was run,
 because no product code changed. This receipt is a diagnosis and evidence record,

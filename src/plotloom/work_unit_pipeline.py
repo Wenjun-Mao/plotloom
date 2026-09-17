@@ -74,6 +74,11 @@ from .generation.storyboard_presence_repair import (
     RequiredEntityPresenceRepairFact,
     assert_required_entity_presence_repair_fact_matches_source,
 )
+from .generation.scene_beats_edge_entry import (
+    EdgeEntryEntityStateRepairFact,
+    assert_edge_entry_entity_state_repair_fact_matches_source,
+    edge_entry_state_requirements,
+)
 from .generation.work_units import (
     AUDIO_EVENT_ID_BINDING_VERSION,
     FRAGMENT_ID_BINDING_VERSION,
@@ -1079,6 +1084,7 @@ class DurableWorkUnitRunner:
                 isinstance(fact, StoryboardTimingRepairPlanFact)
                 or isinstance(fact, JoinStateEffectRepairFact)
                 or isinstance(fact, ContinuityEntityStateRepairFact)
+                or isinstance(fact, EdgeEntryEntityStateRepairFact)
                 or isinstance(fact, RequiredEntityPresenceRepairFact)
                 or fact.code
                 in {
@@ -1144,6 +1150,18 @@ class DurableWorkUnitRunner:
                             dependencies.get(StageName.STORY_BIBLE)
                             if work_unit.stage in {StageName.SCENE_BEATS, StageName.STORYBOARD}
                             else None
+                        ),
+                    )
+                except ValueError as error:
+                    raise CorrectionSourceContractError(str(error)) from error
+            if isinstance(fact, EdgeEntryEntityStateRepairFact):
+                assert source_value is not None
+                try:
+                    assert_edge_entry_entity_state_repair_fact_matches_source(
+                        fact,
+                        source_value,
+                        requirements=edge_entry_state_requirements(
+                            getattr(base_compiled.validator, "scoped_context", {})
                         ),
                     )
                 except ValueError as error:

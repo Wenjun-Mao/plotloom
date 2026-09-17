@@ -63,6 +63,9 @@ from plotloom.generation.storyboard_timing_repair import (
     StoryboardTimingRepairPlanFact,
     build_storyboard_timing_guidance,
 )
+from plotloom.generation.scene_beats_edge_entry import (
+    assert_edge_entry_entity_state_repair_fact_matches_source,
+)
 from plotloom.json_value_contract import finite_canonical_json
 from plotloom.validation import (
     _continuity_state_issues,
@@ -1256,6 +1259,30 @@ def test_typed_direct_edge_state_binds_first_scene_only_and_allows_later_transit
     corrected = deepcopy(output)
     corrected["scenes"][0]["entryState"]["entityStates"] = [alert]
     assert validate_correction_postconditions(corrected, edge_facts) == ()
+
+    # Correction authority is re-derived from the rejected response and the
+    # frozen work-unit requirements; self-consistent forged evidence cannot
+    # reach a correction request.
+    fact = edge_facts[0]
+    requirements = compiled.validator.scoped_context["edge_entry_state_requirements"]
+    assert_edge_entry_entity_state_repair_fact_matches_source(
+        fact, output, requirements=requirements
+    )
+    with pytest.raises(ValueError, match="typed edge-entry repair fact"):
+        assert_edge_entry_entity_state_repair_fact_matches_source(
+            fact, corrected, requirements=requirements
+        )
+    for forged in (
+        fact.model_copy(update={"scene_local_id": "another-scene"}),
+        fact.model_copy(update={"path": ("scenes", 0, "entryState", "entityStates", "character", "other")}),
+        fact.model_copy(update={"entity_id": "other"}),
+        fact.model_copy(update={"expected_state": "calm"}),
+        fact.model_copy(update={"contract_hash": "f" * 64}),
+    ):
+        with pytest.raises(ValueError, match="typed edge-entry repair fact"):
+            assert_edge_entry_entity_state_repair_fact_matches_source(
+                forged, output, requirements=requirements
+            )
 
 
 def test_scene_fragment_rejects_nonfinite_join_fact_and_continuity_delta() -> None:

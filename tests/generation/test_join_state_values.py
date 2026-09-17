@@ -30,6 +30,7 @@ from plotloom.edge_entry_states import (
     compile_edge_entry_state_contract,
 )
 from plotloom.canonical_schema import EntityType, RequiredEntityState
+from plotloom.validation import DomainValidationError, validate_story_graph
 
 
 def _graph(
@@ -220,6 +221,23 @@ def test_contract_rejects_missing_and_conflicting_incoming_assignments() -> None
         issue for issue in conflict.value.issues if issue.code == "join_state_effect_conflict"
     )
     assert conflict_issue.path.endswith(".requiredStateKeys.shared")
+
+
+def test_graph_admission_rejects_path_dependent_typed_entry_state_before_scene_beats() -> None:
+    """Graph sealing cannot defer an unrepresentable direct-input join to planning."""
+
+    graph = _graph()
+    graph.edges[3].entity_state_effects = [
+        RequiredEntityState(entity_type=EntityType.CHARACTER, entity_id="mira", state="calm")
+    ]
+    with pytest.raises(DomainValidationError) as rejected:
+        validate_story_graph(graph, _brief(), strict_v2=True)
+
+    issue = next(item for item in rejected.value.issues if item["code"] == "edge_entry_entity_state_incomplete")
+    assert issue["path"] == "nodes.join.entityStateEffects.character.mira"
+    assert "left-join" in issue["message"]
+    assert "right-join" in issue["message"]
+    assert "saving or resubmitting" in issue["message"]
 
 
 def test_contract_rejects_unreconciled_variants_and_non_finite_json() -> None:

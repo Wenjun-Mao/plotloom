@@ -329,6 +329,10 @@ def validate_story_graph(
                 )
             )
             compile_join_state_value_contract(v2_graph)
+            # A graph with path-dependent typed entry state has no truthful
+            # single Scene Beats entry.  Admit this at the Graph boundary,
+            # not only when a later stage happens to compile the contract.
+            compile_edge_entry_state_contract(v2_graph)
         except ValidationError as error:
             issues.extend(
                 _issue(
@@ -342,6 +346,11 @@ def validate_story_graph(
                 )
             )
         except JoinStateValueContractError as error:
+            issues.extend(
+                _issue(issue.code, issue.path, issue.message)
+                for issue in error.issues
+            )
+        except EdgeEntryStateContractError as error:
             issues.extend(
                 _issue(issue.code, issue.path, issue.message)
                 for issue in error.issues

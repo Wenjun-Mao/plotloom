@@ -25,12 +25,12 @@ from .work_units import (
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
     CueOrderRepairFact,
-    EdgeEntryEntityStateRepairFact,
     JoinAllowedDifferencesRepairFact,
     JoinStateEffectRepairFact,
     SemanticRepairFact,
     StoryboardTimingRepairPlanFact,
 )
+from .scene_beats_edge_entry import EdgeEntryEntityStateRepairFact
 
 
 class CorrectionResponseSchemaError(ValueError):
