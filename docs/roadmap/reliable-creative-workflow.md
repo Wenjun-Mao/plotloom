@@ -2,6 +2,12 @@
 
 Revision 1 — **Approved**, 2026-09-15.
 
+Historical delivery contract as of 2026-09-16. Current authority and progress move
+to [Playable MVP milestones](playable-mvp-milestones.md). The dated baseline,
+next-action wording, and pilot allowances below are preserved historical records,
+not current instructions. Branching pilot acceptance and video alternatives now
+have newer evidence linked from the current tracker.
+
 ## Outcome and authority
 
 Deliver a reliable two-shot creative workflow, then a small pause-and-choose
