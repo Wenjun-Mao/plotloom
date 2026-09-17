@@ -53,6 +53,11 @@ it is out of scope here.
   CAS races leave accepted content unchanged.  Tests cover those conditions.
 - Reports are derived candidate views, served only after the same candidate has
   passed transport and currentness admission; JSON is the accepted authority.
+- The F1A shell presents an upstream-derived report as unreviewed candidate
+  material. If an upstream template uses editorial language such as “signed
+  off”, that label has no F1A acceptance meaning and must be disclosed before
+  the raw report is opened; F1A does not rewrite a hash-bound delivery artifact
+  to remove it.
 - The project lifecycle scans every persisted prepared outline candidate, not
   only the current head, so a stale or replaced job remains busy while it could
   still publish.

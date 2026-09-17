@@ -218,7 +218,7 @@ test.describe("project-folder Close", () => {
 
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /05 分镜工作台/ }).click();
+    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
     await expect(page.getByTestId("visual-intent-source-refs")).toHaveValue(durableSource);
   });
 
@@ -249,7 +249,7 @@ test.describe("project-folder Close", () => {
 
     await workbench.restartBackend();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /05 分镜工作台/ }).click();
+    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
     await page.getByLabel("当前媒体镜头").selectOption(shotIds[0]);
     await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(originalDirection);
   });
@@ -278,7 +278,7 @@ test.describe("project-folder Close", () => {
     await page.evaluate(() => sessionStorage.clear());
 
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /05 分镜工作台/ }).click();
+    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
     await expect(page.getByTestId("image-job-presentation-change")).toHaveValue("");
     const drafts = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/authoring-drafts`);
     expect(await drafts.json()).toEqual([]);

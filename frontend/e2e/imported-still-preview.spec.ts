@@ -13,7 +13,7 @@ test.describe("P0 imported still preview journey", () => {
   test("persists an explicit reviewed intent, refreshes applicability, and refuses deletion", async ({ page, request, workbench }, testInfo) => {
     const projectId = await createCanonicalProject(request, workbench.apiOrigin);
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /05 分镜工作台/ }).click();
+    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
 
     await page.getByLabel("审核人标签").fill("P0 file-SQLite browser reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();

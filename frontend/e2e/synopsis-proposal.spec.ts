@@ -58,7 +58,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   expect((await bibleSave).ok()).toBeTruthy();
   const authoredBible = (await readJson<{ stages: Array<{ head: { stage: string; revision: number }; payload: unknown }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).stages.find((stage) => stage.head.stage === "story_bible");
   expect(authoredBible).toMatchObject({ head: { revision: 2 }, payload: { logline: "夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。" } });
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 项目简报/ }).click();
+  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /项目简报/ }).click();
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
   await page.reload();
   await expect(page.getByTestId("story-proposal-review")).toContainText("夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。");
@@ -128,7 +128,7 @@ test("keeps an authored Bible intact when its graph-only proposal regeneration i
     && /\/api\/v2\/projects\/[^/]+\/stages\/story_bible$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "保存故事圣经" }).click();
   expect((await bibleSave).ok()).toBeTruthy();
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 项目简报/ }).click();
+  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /项目简报/ }).click();
   await page.reload();
   await expect(page.getByText("提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
   await page.route("**/api/v2/projects/*/pipeline-runs", async (route) => {
@@ -188,7 +188,7 @@ test("continues a current proposal through the smallest editable storyboard rang
     && /\/api\/v2\/projects\/[^/]+\/stages\/scene_beats$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "保存节拍计划" }).click();
   expect((await sceneSave).ok()).toBeTruthy();
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 项目简报/ }).click();
+  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /项目简报/ }).click();
   const storyboardOnlyRequest = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "生成可编辑场景与分镜" }).click();

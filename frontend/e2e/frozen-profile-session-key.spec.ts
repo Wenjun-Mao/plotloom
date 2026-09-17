@@ -109,7 +109,7 @@ async function configureFrozenBearerProfile(
 async function createDemoProject(page: Page, frontendOrigin: string): Promise<string> {
   await page.goto(`${frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^05 分镜工作台/ }).click();
+  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
   const created = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === "/api/v2/projects");
   await page.getByRole("button", { name: "保存分镜" }).click();

@@ -116,8 +116,9 @@ async function createDemoProject(page: Page, frontendOrigin: string): Promise<st
 }
 
 async function navigateToStage(page: Page, name: string): Promise<void> {
+  const label = name.replace(/^\d+\s+/, "");
   await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", {
-    name: new RegExp(`^${escapeRegex(name)}`),
+    name: new RegExp(escapeRegex(label)),
   }).click();
 }
 

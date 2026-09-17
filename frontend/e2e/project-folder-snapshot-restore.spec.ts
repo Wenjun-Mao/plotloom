@@ -18,7 +18,7 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   await page.getByLabel("片名").fill(durableTitle);
   await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
 
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /05 分镜工作台/ }).click();
+  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
   await page.getByLabel("审核人标签").fill("snapshot fixture reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("Offline reviewed still retained by the portable snapshot.");
@@ -80,7 +80,7 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   const restoredWorkbench = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/visual-workbench`);
   expect(restoredWorkbench.ok(), await restoredWorkbench.text()).toBeTruthy();
   expect((await restoredWorkbench.json() as { reviewedKeyframes: unknown[] }).reviewedKeyframes).toHaveLength(1);
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /05 分镜工作台/ }).click();
+  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
   await expect(page.getByAltText(/Imported candidate/)).toBeVisible();
   // The worker-scoped fixture can serve later project-folder tests. Its public
   // restart helper intentionally defaults to these original paths, so restore

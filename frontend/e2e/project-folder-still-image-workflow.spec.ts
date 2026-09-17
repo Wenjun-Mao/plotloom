@@ -24,7 +24,7 @@ test.describe("project-folder still-image workflow", () => {
     );
     await page
       .getByRole("navigation", { name: "工作台阶段" })
-      .getByRole("button", { name: /05 分镜工作台/ })
+      .getByRole("button", { name: /分镜工作台/ })
       .click();
     await page.getByLabel("审核人标签").fill("project-folder browser reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();

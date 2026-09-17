@@ -166,7 +166,8 @@ async function openSampleProject(page: Page): Promise<void> {
 }
 
 async function navigateToStage(page: Page, name: string): Promise<void> {
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: new RegExp(`^${escapeRegex(name)}`) }).click();
+  const label = name.replace(/^\d+\s+/, "");
+  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: new RegExp(escapeRegex(label)) }).click();
 }
 
 function escapeRegex(value: string): string {

@@ -57,7 +57,7 @@ test.describe("M1-B0 query navigation shell", () => {
     await expect(page.getByText("Plotloom 服务：连接中", { exact: true })).toBeVisible();
     await page
       .getByRole("navigation", { name: "工作台阶段" })
-      .getByRole("button", { name: /^02 故事圣经/ })
+      .getByRole("button", { name: /故事圣经/ })
       .click();
     await expect(page).toHaveURL(new RegExp(`project=${escapeRegex(projectId)}&stage=bible`));
 
@@ -99,7 +99,7 @@ async function persistSampleProject(page: import("@playwright/test").Page, front
   await page.getByRole("button", { name: "打开示例项目" }).click();
   await page
     .getByRole("navigation", { name: "工作台阶段" })
-    .getByRole("button", { name: /^05 分镜工作台/ })
+    .getByRole("button", { name: /分镜工作台/ })
     .click();
   const created = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === "/api/v2/projects");

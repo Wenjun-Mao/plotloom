@@ -220,7 +220,7 @@ test.describe("P1 self-contained copied image brief", () => {
     );
     await page
       .getByRole("navigation", { name: "工作台阶段" })
-      .getByRole("button", { name: /05 分镜工作台/ })
+      .getByRole("button", { name: /分镜工作台/ })
       .click();
     await page
       .getByLabel("审核人标签")

@@ -12,7 +12,7 @@ test.describe("scene-beats structural deletion", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
     await page.getByRole("navigation", { name: "工作台阶段" })
-      .getByRole("button", { name: /^04 场景节拍/ }).click();
+      .getByRole("button", { name: /场景节拍/ }).click();
 
     // The first scene owns these descendants in the demo.  Cancelling proves
     // the dialog is a review step rather than an eager cascade.

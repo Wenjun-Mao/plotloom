@@ -116,6 +116,10 @@ Do not demand backwards compatibility for retired development formats; preserve
 valued projects/assets and current integrity safeguards. Resets are scoped to
 identified disposable data, not blanket cleanup authorization.
 
+GitHub CI is a deliberate manual-trigger check, not an automatic acceptance
+blocker for every push. Run it when its evidence is needed; retain the workflow's
+jobs and `workflow_dispatch` entrypoint rather than adding a separate CI path.
+
 Verify progressively: focused tests while editing; relevant production UI/runtime
 journey and independent source-backed review on a stable candidate; broader
 Python/frontend/build/wheel gates proportional to executable changes. Docs-only
