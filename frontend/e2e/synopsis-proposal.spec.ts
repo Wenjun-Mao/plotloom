@@ -29,7 +29,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   await pollRun(request, workbench.apiOrigin, run.id, "succeeded");
 
   await expect(page.getByTestId("story-proposal-review")).toBeVisible({ timeout: 20_000 });
-  await expect(page.getByText("仅 Story Bible 与剧情 DAG", { exact: true })).toBeVisible();
+  await expect(page.getByText("Story Bible 与剧情 DAG 已审阅", { exact: true })).toBeVisible();
   const stageResponse = await readJson<{ stages: Array<{ head: { stage: string; revision: number; status: string } }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`);
   const stages = stageResponse.stages;
   expect(stages.map((item) => item.head.stage)).toEqual(["story_bible", "story_graph", "scene_beats", "storyboard"]);
@@ -63,7 +63,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   await page.reload();
   await expect(page.getByTestId("story-proposal-review")).toContainText("夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。");
   await expect(page.getByText("提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "接受提案，进入分镜规划" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "进入场景编辑" })).toBeDisabled();
   const graphOnly = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "生成故事提案" }).click();
@@ -87,10 +87,10 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   expect(refreshedRun.request().postDataJSON()).toMatchObject({ stages: ["story_bible", "story_graph"] });
   await pollRun(request, workbench.apiOrigin, (await refreshedRun.json() as { id: string }).id, "succeeded");
   await page.getByRole("button", { name: "刷新服务器版本" }).click();
-  await expect(page.getByRole("button", { name: "接受提案，进入分镜规划" })).toBeEnabled({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: "进入场景编辑" })).toBeEnabled({ timeout: 20_000 });
 
   const pipelineCount = await requestCount(request, workbench.apiOrigin, projectId);
-  await page.getByRole("button", { name: "接受提案，进入分镜规划" }).click();
+  await page.getByRole("button", { name: "进入场景编辑" }).click();
   await expect(page.getByRole("heading", { name: "场景、节拍与对白" })).toBeVisible();
   expect(await requestCount(request, workbench.apiOrigin, projectId)).toBe(pipelineCount);
 });
@@ -138,6 +138,68 @@ test("keeps an authored Bible intact when its graph-only proposal regeneration i
   await expect(page.getByText("文本后端尚未就绪；请稍后重试。", { exact: true })).toBeVisible();
   const bible = (await readJson<{ stages: Array<{ head: { stage: string; revision: number }; payload: { logline?: string } }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).stages.find((stage) => stage.head.stage === "story_bible");
   expect(bible).toMatchObject({ head: { revision: 2 }, payload: { logline: authoredLogline } });
+});
+
+test("continues a current proposal through the smallest editable storyboard range without replacing its upstream", async ({ page, request, workbench }) => {
+  await configurePublicNoAuthProfile(request, workbench.apiOrigin, workbench.providerOrigin);
+  await page.goto(`${workbench.frontendOrigin}/v2/?stage=brief`);
+  await page.getByRole("button", { name: "创建空白项目" }).click();
+  await page.getByLabel("故事梗概").fill("一名港口口译员发现潮汐会抹去未被说出的证词，她必须在弟弟归来前公开真相。 ");
+  const proposalRequest = page.waitForResponse((response) => response.request().method() === "POST"
+    && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
+  await page.getByRole("button", { name: "生成故事提案" }).click();
+  await expect(page).toHaveURL(/[?&]project=/);
+  const projectId = new URL(page.url()).searchParams.get("project");
+  if (!projectId) throw new Error("proposal creation did not bind a project ID");
+  const proposal = await proposalRequest;
+  await pollRun(request, workbench.apiOrigin, (await proposal.json() as { id: string }).id, "succeeded");
+  const upstream = await readJson<{ revision: number; stages: Array<{ head: { stage: string; revision: number }; payload: unknown }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`);
+  const canonicalProject = await readJson<{ revision: number }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}`);
+  const bible = upstream.stages.find((stage) => stage.head.stage === "story_bible");
+  const graph = upstream.stages.find((stage) => stage.head.stage === "story_graph");
+
+  // An admission failure must leave the reviewed proposal intact and offer no
+  // client-side fallback that could re-request its upstream stages.
+  await page.route("**/api/v2/projects/*/pipeline-runs", async (route) => {
+    await route.fulfill({ status: 422, contentType: "application/json", body: JSON.stringify({ message: "文本后端暂不可用；请检查设置后使用隔离修复或重新运行。" }) });
+  });
+  await page.getByRole("button", { name: "生成可编辑场景与分镜" }).click();
+  await expect(page.getByText("文本后端暂不可用；请检查设置后使用隔离修复或重新运行。", { exact: true })).toBeVisible();
+  expect(await readJson(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).toEqual(upstream);
+  await page.unroute("**/api/v2/projects/*/pipeline-runs");
+
+  const continuationRequest = page.waitForResponse((response) => response.request().method() === "POST"
+    && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
+  await page.getByRole("button", { name: "生成可编辑场景与分镜" }).click();
+  const continuation = await continuationRequest;
+  expect(continuation.request().postDataJSON()).toMatchObject({ stages: ["scene_beats", "storyboard"] });
+  await pollRun(request, workbench.apiOrigin, (await continuation.json() as { id: string }).id, "succeeded");
+  const afterContinuation = await readJson<{ stages: Array<{ head: { stage: string; revision: number; status: string }; payload: unknown }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`);
+  expect(afterContinuation.stages.find((stage) => stage.head.stage === "story_bible")).toEqual(bible);
+  expect(afterContinuation.stages.find((stage) => stage.head.stage === "story_graph")).toEqual(graph);
+  expect(afterContinuation.stages.filter((stage) => ["scene_beats", "storyboard"].includes(stage.head.stage)).every((stage) => stage.head.status === "ready" && stage.head.revision === 1)).toBeTruthy();
+  expect((await readJson<{ revision: number }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}`)).revision).toBe(canonicalProject.revision);
+
+  await page.reload();
+  await page.getByRole("button", { name: "进入场景编辑" }).click();
+  await expect(page.getByTestId("scene-beats-page")).toBeVisible();
+  await page.getByLabel("场景标题").first().fill("港口的潮声证词");
+  const sceneSave = page.waitForResponse((response) => response.request().method() === "PATCH"
+    && /\/api\/v2\/projects\/[^/]+\/stages\/scene_beats$/.test(new URL(response.url()).pathname));
+  await page.getByRole("button", { name: "保存节拍计划" }).click();
+  expect((await sceneSave).ok()).toBeTruthy();
+  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 项目简报/ }).click();
+  const storyboardOnlyRequest = page.waitForResponse((response) => response.request().method() === "POST"
+    && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
+  await page.getByRole("button", { name: "生成可编辑场景与分镜" }).click();
+  const storyboardOnly = await storyboardOnlyRequest;
+  expect(storyboardOnly.request().postDataJSON()).toMatchObject({ stages: ["storyboard"] });
+  await pollRun(request, workbench.apiOrigin, (await storyboardOnly.json() as { id: string }).id, "succeeded");
+
+  const runCount = await requestCount(request, workbench.apiOrigin, projectId);
+  await page.getByRole("button", { name: "生成可编辑场景与分镜" }).click();
+  await expect(page.getByText("场景与分镜已经是最新版本；不会创建替换运行。", { exact: true })).toBeVisible();
+  expect(await requestCount(request, workbench.apiOrigin, projectId)).toBe(runCount);
 });
 
 async function configurePublicNoAuthProfile(request: APIRequestContext, apiOrigin: string, providerOrigin: string): Promise<void> {

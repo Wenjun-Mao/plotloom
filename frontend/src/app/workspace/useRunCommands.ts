@@ -81,6 +81,37 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
     } catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
   }, [currentness, pollRun, prepareProfile, profiles.draft.enabled, session, setBusy, setError]);
+  const startStoryboard = useCallback(async (projectId: string) => {
+    if (!projectId) { setError("请先保存并审阅故事提案，再生成场景与分镜。"); return; }
+    if (profiles.draft.enabled === false) { setError("当前活动 Profile 已停用；请先在设置中启用可用 Profile。不会自动切换后端。"); return; }
+    const operation = currentness.capture(); setBusy(true); setError("");
+    try {
+      // Resolve heads at click time. The proposal owns Bible/Graph; this
+      // continuation may only fill its downstream missing or stale range.
+      const heads = headsByStage((await plotloomApi.getStages(projectId)).stages);
+      if (!currentness.isCurrent(operation)) return;
+      if (heads.story_bible?.status !== "ready" || heads.story_graph?.status !== "ready") {
+        setError("故事提案已过期或不完整；请先重新生成 Story Bible 与剧情 DAG。");
+        return;
+      }
+      const stages: ServerStageName[] = heads.scene_beats?.status !== "ready"
+        ? ["scene_beats", "storyboard"]
+        : heads.storyboard?.status !== "ready"
+          ? ["storyboard"]
+          : [];
+      if (!stages.length) {
+        setError("场景与分镜已经是最新版本；不会创建替换运行。");
+        return;
+      }
+      const saved = await prepareProfile();
+      if (!currentness.isCurrent(operation)) return;
+      const started = await plotloomApi.startRun(projectId, stages, saved.profileId, saved.configuration.textAuthMode === "bearer");
+      if (!currentness.isCurrent(operation)) return;
+      session.acceptRun(started);
+      await pollRun(started.id, projectId);
+    } catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
+    finally { if (currentness.isCurrent(operation)) setBusy(false); }
+  }, [currentness, pollRun, prepareProfile, profiles.draft.enabled, session, setBusy, setError]);
   const cancelRun = useCallback(async () => {
     if (!isSelectedRun(run)) return;
     const operation = currentness.capture();
@@ -110,5 +141,5 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
   }, [activePage, currentness, hasDraft, openTrace, prepareProfile, project.id, setBusy, setError]);
-  return { startRun, startProposal, cancelRun, resumeRun, repair, rebuild };
+  return { startRun, startProposal, startStoryboard, cancelRun, resumeRun, repair, rebuild };
 }
