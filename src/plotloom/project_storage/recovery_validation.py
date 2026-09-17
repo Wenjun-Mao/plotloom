@@ -214,7 +214,7 @@ def referenced_asset_paths(database: Path) -> set[PurePosixPath]:
         video_rows = list(
             connection.execute(
                 "SELECT output_uri, output_hash FROM v2_video_jobs "
-                "WHERE output_uri IS NOT NULL OR output_hash IS NOT NULL"
+            "WHERE state != 'discard_pending' AND (output_uri IS NOT NULL OR output_hash IS NOT NULL)"
             )
         )
     finally:

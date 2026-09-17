@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from ...domain import StageName, new_id, utc_now
 from ...exceptions import (
@@ -49,8 +50,6 @@ class VideoPilotAccountingPort(Protocol):
     def release_before_dispatch(
         self, session: Session, *, video_job_id: str, seconds: int, now: Any
     ) -> None: ...
-
-
 class VideoJobPersistence:
     """Own video lifecycle facts and atomic application-accounting mutations."""
 

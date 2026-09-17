@@ -138,8 +138,8 @@ def register_project_folder_video_routes(
     @app.post("/api/v2/projects/{project_id}/video-jobs/discard-unselected", status_code=status.HTTP_204_NO_CONTENT)
     def discard_unselected_video_jobs(project_id: str, body: VideoDiscardUnselectedRequest) -> Response:
         with opened_project(project_id) as store:
-            _local_repository(store).discard_unselected_video_candidates(
-                project_id, shot_id=body.shot_id,
+            _local_repository(store).discard_video_candidates(
+                project_id, shot_id=body.shot_id, video_job_ids=body.video_job_ids,
                 expected_selection_revision=body.expected_selection_revision,
             )
         return Response(status_code=status.HTTP_204_NO_CONTENT)

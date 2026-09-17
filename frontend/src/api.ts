@@ -517,7 +517,7 @@ export class PlotloomApiClient {
   cancelVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }); }
   reviewVideoJob(projectId: string, id: string, decision: "select" | "reject", reviewer: string, note: string, expectedSelectionRevision: number): Promise<unknown> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/review`, { method: "POST", body: JSON.stringify({ decision, reviewer, note, expectedSelectionRevision }) }); }
   discardVideoJob(projectId: string, id: string, expectedSelectionRevision: number): Promise<void> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/discard`, { method: "POST", body: JSON.stringify({ expectedSelectionRevision }) }); }
-  discardUnselectedVideoJobs(projectId: string, shotId: string, expectedSelectionRevision: number): Promise<void> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/discard-unselected`, { method: "POST", body: JSON.stringify({ shotId, expectedSelectionRevision }) }); }
+  discardUnselectedVideoJobs(projectId: string, shotId: string, videoJobIds: string[], expectedSelectionRevision: number): Promise<void> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/discard-unselected`, { method: "POST", body: JSON.stringify({ shotId, videoJobIds, expectedSelectionRevision }) }); }
   videoJobMediaUrl(projectId: string, id: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/media`; }
 
   getProviderSettings(): Promise<ProviderSettings> {

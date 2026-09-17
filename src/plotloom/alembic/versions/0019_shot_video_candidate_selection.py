@@ -20,6 +20,24 @@ def upgrade() -> None:
         sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
         sa.UniqueConstraint("project_id", "shot_id", name="uq_v2_video_candidate_selection_shot"),
     )
+    # One explicit transition preserves retained selections made under the
+    # retired latest-review projection. New reads use this table exclusively.
+    op.execute("""
+        INSERT INTO v2_video_candidate_selections
+          (project_id, shot_id, selected_video_job_id, revision, updated_at)
+        SELECT job.project_id, json_extract(job.snapshot, '$.shot.id'), review.video_job_id, 1, review.created_at
+        FROM v2_video_reviews AS review
+        JOIN v2_video_jobs AS job ON job.id = review.video_job_id
+        WHERE review.decision = 'select'
+          AND review.id = (
+            SELECT newer.id
+            FROM v2_video_reviews AS newer
+            JOIN v2_video_jobs AS newer_job ON newer_job.id = newer.video_job_id
+            WHERE newer_job.project_id = job.project_id
+              AND json_extract(newer_job.snapshot, '$.shot.id') = json_extract(job.snapshot, '$.shot.id')
+            ORDER BY newer.created_at DESC, newer.id DESC LIMIT 1
+          )
+    """)
 
 
 def downgrade() -> None:

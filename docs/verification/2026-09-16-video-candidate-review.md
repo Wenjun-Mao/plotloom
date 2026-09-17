@@ -39,8 +39,10 @@ discarded rows left a half-addressed hash that broke reopen validation, and the
 blob guard omitted managed/runtime artifact owners.  Both are fixed and the
 new regressions above cover the corrected contracts.
 
-The attempted complete locked Python suite did not provide a clean candidate
-gate: its existing last-failed cache records 16 failures outside this slice
-(generation/provider, pipeline, gateway and legacy repository tests).  No
-failure was attributed to the candidate changes, but the full-suite gate needs
-a clean director-owned baseline rerun before release acceptance.
+The earlier receipt incorrectly treated a stale `lastfailed` cache as a current
+locked-suite result. It is not verification evidence. The amended candidate's
+retained Relay log records the actual locked result: **553 passed, 1 warning**
+with exit status 0. The first logged run exposed only the disposable in-repo
+wheel-smoke environment as duplicate package data; moving that scratch venv
+outside the repository fixed the test environment without changing product
+code.
