@@ -1,7 +1,7 @@
 # Playable MVP milestones
 
-Revision 2 — **Approved**, 2026-09-16. Director owns acceptance; Relay coordinates
-bounded serial delivery. M1 is accepted; current authorized implementation: checkpoint 2.
+Revision 3 — **Approved**, 2026-09-17. Director owns acceptance; Relay coordinates
+bounded serial delivery. M1 and checkpoint 2 are accepted; current implementation: checkpoint 3A below, under the user's instruction to continue without routine confirmations.
 Later checkpoints establish direction, not blanket implementation authority.
 
 ## Product outcome
@@ -23,7 +23,7 @@ remain the initial direction; detailed editing remains available.
 | Checkpoint | User outcome / acceptance | Current status and gap |
 | --- | --- | --- |
 | 1 — M1: one playable story | Direct Play entry; explicit start, complete opening/decision, both choices/endings, restart; loading/error handling; repeat after reopen without authoring UI | Director-accepted at `6941f2e`. Dedicated Play URL reuses existing player and canonical data; both retained-pilot paths completed before/after reopen. [Receipt](../verification/2026-09-16-m1-playable-story-view.md). M2 remains planned, not accepted. |
-| 2 — Synopsis to proposal | Minimal input produces understandable characters, setting, dramatic direction, branches/endings and production scope; optional defaults and actionable unsupported-input feedback | Implemented locally; director acceptance pending. Reuses Brief/Bible/Graph and existing generation; focused browser regressions plus one fresh default-profile live trial cover proposal, Bible refinement, Graph-only regeneration, reload, and explicit continuation before downstream production. [Map](checkpoint-2-synopsis-proposal-map.md). |
+| 2 — Synopsis to proposal | Minimal input produces understandable characters, setting, dramatic direction, branches/endings and production scope; optional defaults and actionable unsupported-input feedback | Director-accepted at `6e3ad75`; offline gates and fresh local-profile proposal/refinement/reload trial passed. Engineering acceptance, not human creative approval or arbitrary-synopsis qualification. [Receipt](../verification/2026-09-17-checkpoint-2-synopsis-proposal.md). |
 | 3 — Proposal to production-ready storyboard | Coherent scenes, beats, dialogue, sound and shots; targeted revision/recovery without unnecessary replacement of accepted work | Planned. Four-stage generation demonstrated; qualify narrative quality and user recovery across distinct stories. |
 | 4 — Consistent visual package | Select/refine proposed identity references and keyframes; supplied references can be preserved; changed inputs identify affected assets | Planned. Cross-shot pilot and manual specialist handoff exist; developer-free handoff/transport and reference UX need explicit resolution for M2. |
 | 5 — Reviewed audiovisual candidates | Generate alternatives, compare, regenerate, select and discard; failures/reopen are usable; audio/dialogue limitations explicit | Partial foundation accepted at `8ba34aa`: candidate workflow verified offline, H3 pilot live; complete real alternative-review journey and modest dialogue workflow remain. |
@@ -134,6 +134,44 @@ production browser suite and installed-wheel smoke. Update this tracker and one
 receipt; director accepts/pushes. Record a concise ADR only for a new durable
 contract. No broader editor redesign, new backend, media work, CI overhaul, storage
 compatibility framework or change to M1 playback. Later checkpoints remain gated.
+
+## Checkpoint 3A — reviewed proposal to editable storyboard
+
+Start with the reference proposal `潮汐译信` from checkpoint 2 (resolve its exact
+project ID from retained evidence, never guess). Map the current Scene Beats,
+Storyboard editors, generation controls, gates and repair actions briefly, then
+deliver the smallest usable continuation through those existing owners.
+
+From a current reviewed Bible/Graph, provide an explicit action to generate only
+the missing/stale Scene Beats and Storyboard range. Preserve current authored
+upstream payloads/revisions; never save unchanged inputs merely to trigger a run.
+Current Scene Beats with stale Storyboard requests Storyboard only; both current
+means no implicit replacement. Surface progress, actionable validation/quarantine
+and existing sanctioned exact-repair/rebuild controls without a parallel job system.
+Do not create automatic retries beyond current frozen execution policy.
+
+The result must be reviewable/editable through existing fields for scenes, beats,
+dialogue, audio and shots, with required gate failures visible and linked to their
+owners where existing facilities permit. Explain derived timing and dialogue's
+single authority. No new media, automatic Approval, timeline, schema redesign,
+generic migration or new creative-repair algorithm. Preserve retained pilots.
+
+Regression evidence: production browser journey from current proposal to generated
+editable storyboard; save/reload a normal edit; prove exact upstream content/revision
+preservation, minimal requested stages and no-op when ready; exercise one offline
+failure and existing authorized recovery path. Use actual production static output.
+Run one bounded local-profile continuation of the reference story, review narrative
+causality/continuity/performability and gate results, and document flaws honestly.
+One additional contrasting story and broader targeted-revision qualification remain
+checkpoint 3B; do not mark all of checkpoint 3 complete from this slice alone.
+
+Use attended Terra independent review, focused checks then final locked Python,
+frontend units/typecheck/build/static, browser and installed-wheel gates. Fix only
+demonstrated in-scope blockers, with two-failure reassessment. Remove duplication
+within touched generation controls; use explicit conditionals rather than nested
+ternaries. No broad refactoring or further proof of already accepted media playback.
+Keep a single receipt and update this tracker. Director accepts/pushes, then proceeds
+to 3B after evaluating the actual gaps, without routine user confirmation.
 
 ## M2 decisions to resolve before their checkpoint
 

@@ -4,6 +4,11 @@ Captured 2026-09-17 against the local checkpoint-2 candidate. This records
 implementation and automated verification; director product acceptance and any
 push remain separate.
 
+Director accepted `6e3ad75` for the bounded checkpoint-2 outcome after reviewing
+the preservation fix, browser regression evidence and live trial record. Relay's
+final locked gate records 557 Python tests and 158 frontend tests passing. This is
+engineering acceptance; no new human creative approval or M2 completion is claimed.
+
 ## Delivered boundary
 
 - The existing Brief is the required synopsis input. An omitted working title
