@@ -1,7 +1,7 @@
 # Playable MVP milestones
 
-Revision 1 — **Approved**, 2026-09-16. Director owns acceptance; Relay coordinates
-bounded serial delivery. Current authorized implementation: checkpoint 1 only.
+Revision 2 — **Approved**, 2026-09-16. Director owns acceptance; Relay coordinates
+bounded serial delivery. M1 is accepted; current authorized implementation: checkpoint 2.
 Later checkpoints establish direction, not blanket implementation authority.
 
 ## Product outcome
@@ -23,7 +23,7 @@ remain the initial direction; detailed editing remains available.
 | Checkpoint | User outcome / acceptance | Current status and gap |
 | --- | --- | --- |
 | 1 — M1: one playable story | Direct Play entry; explicit start, complete opening/decision, both choices/endings, restart; loading/error handling; repeat after reopen without authoring UI | Director-accepted at `6941f2e`. Dedicated Play URL reuses existing player and canonical data; both retained-pilot paths completed before/after reopen. [Receipt](../verification/2026-09-16-m1-playable-story-view.md). M2 remains planned, not accepted. |
-| 2 — Synopsis to proposal | Minimal input produces understandable characters, setting, dramatic direction, branches/endings and production scope; optional defaults and actionable unsupported-input feedback | Planned. Existing Brief and generation are foundations, not independent-user acceptance. |
+| 2 — Synopsis to proposal | Minimal input produces understandable characters, setting, dramatic direction, branches/endings and production scope; optional defaults and actionable unsupported-input feedback | Authorized next. Reuse Brief/Bible/Graph and existing generation; prove the proposal review loop before downstream production. |
 | 3 — Proposal to production-ready storyboard | Coherent scenes, beats, dialogue, sound and shots; targeted revision/recovery without unnecessary replacement of accepted work | Planned. Four-stage generation demonstrated; qualify narrative quality and user recovery across distinct stories. |
 | 4 — Consistent visual package | Select/refine proposed identity references and keyframes; supplied references can be preserved; changed inputs identify affected assets | Planned. Cross-shot pilot and manual specialist handoff exist; developer-free handoff/transport and reference UX need explicit resolution for M2. |
 | 5 — Reviewed audiovisual candidates | Generate alternatives, compare, regenerate, select and discard; failures/reopen are usable; audio/dialogue limitations explicit | Partial foundation accepted at `8ba34aa`: candidate workflow verified offline, H3 pilot live; complete real alternative-review journey and modest dialogue workflow remain. |
@@ -90,6 +90,50 @@ refactoring. Preserve all retained assets and unrelated user work. Existing loca
 runtime startup for proof is authorized; stop owned services after verification.
 Escalate missing browser access, materially incompatible pilot data, or a required
 scope expansion rather than weakening acceptance or silently substituting fixtures.
+
+## Checkpoint 2 execution contract
+
+User explicitly authorized continuation after trying M1: "I tried it, it worked
+as expected." Director stopped the trial runtime; retained project stays intact.
+
+Deliver the smallest understandable synopsis-to-proposal flow. Synopsis is the
+required creative input; a working title and current supported production defaults
+can be supplied and clearly labeled for editing. Expose advanced settings without
+requiring users to understand DAG budgets. Do not silently override explicit input.
+
+First map existing Brief, Bible, Graph and stage-generation owners briefly. Prefer
+a review composition over their canonical data and existing editors, not a second
+proposal database or new orchestration engine. Generate only what the proposal
+needs; do not auto-generate scenes, shots or media before the user chooses to
+continue. Show characters, setting, dramatic premise/direction, understandable
+branch consequences/endings and the proposed production scope. Distinguish actual
+derived counts from estimated timing; do not promise provider cost or exact runtime.
+
+The user can refine the proposal, save it, reopen it, and explicitly accept/continue
+to later storyboard work using existing canonical save/currentness boundaries.
+Proposal acceptance is not storyboard Gate/Approval or audiovisual approval.
+Do not introduce a new approval framework. Show concrete input/planning/provider
+errors and useful next actions; do not invent a general semantic classifier for
+every unsupported synopsis. Changes cannot silently overwrite accepted downstream
+work or bypass existing stale-stage behavior.
+
+Evidence: production FastAPI browser journey from a new synopsis to generated
+proposal, edit/save/reload, explicit continuation boundary, and actionable failure;
+test optional defaults vs explicit values and stage scope. One bounded real active
+local text-profile trial on a fresh project demonstrates that the proposal is
+understandable and faithful; record technical/creative limitations honestly. No
+ImageGen/H3 calls or existing-pilot mutations are needed. Text endpoint/profile
+changes are excluded; if unavailable, preserve offline delivery but report live
+acceptance pending, not success. Two failed attempts at one criterion trigger
+reassessment rather than repeated dispatch.
+
+Keep implementation modular without unnecessary wrapper layers; remove replaced
+paths within the slice. Attended independent Terra review, focused checks first,
+then final locked Python, frontend units/typechecks/build/static freshness,
+production browser suite and installed-wheel smoke. Update this tracker and one
+receipt; director accepts/pushes. Record a concise ADR only for a new durable
+contract. No broader editor redesign, new backend, media work, CI overhaul, storage
+compatibility framework or change to M1 playback. Later checkpoints remain gated.
 
 ## M2 decisions to resolve before their checkpoint
 

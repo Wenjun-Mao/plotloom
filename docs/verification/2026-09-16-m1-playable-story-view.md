@@ -10,6 +10,10 @@ Relay verification review. Recorded final checks include 557 Python tests and
 158 frontend tests passing. The bounded M1 viewing outcome is accepted, not M2;
 the departure defect and prior user-attributed audio approval remain unchanged.
 
+User trial acceptance: "I tried it, it worked as expected." The user then requested
+shutdown and checkpoint 2. Director stopped the owned localhost runtime cleanly;
+no retained media or selections were changed by shutdown.
+
 ## Gap map and decision
 
 Before this slice, `BranchingVideoPreview` already projected canonical graph,
