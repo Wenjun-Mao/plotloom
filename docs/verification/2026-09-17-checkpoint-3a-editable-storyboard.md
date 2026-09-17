@@ -156,3 +156,18 @@ findings after this check.
 | selected-pair serial traced reproduction | two split tests × three repeats passed; six retained traces, with no failure attachments |
 | full single-worker production browser suite | 47 passed in 8.3 minutes |
 | wheel and installed-wheel smoke | passed; wheel SHA-256 `07c9840388df4eeae0bd0b8f4012c2d98efb13f2c1f7665d60e44f915e618146` |
+
+### Director disposition — 2026-09-17
+
+Engineering delivery is accepted at `77cc4b4` after review of the source diff,
+retained live continuation, strict-validation boundary, split browser assertions,
+and actual verification logs. This supersedes the earlier pending engineering
+disposition, not the limits on creative approval or checkpoint 3B.
+
+Relay 0.3.4's `lib/source.mjs` hard-codes a 120-second per-check timeout.
+Its serial browser check therefore could not finish; the identical direct command
+passed 47/47 in 8.3 minutes. The director used supported source recovery to preserve
+the clean commit and release ownership, recording the Relay execution as failed,
+not verified or waived. No plugin, check contract, or test timeout was changed.
+Direct product-verification evidence and this acceptance are separate from that
+workflow failure. Next: bounded contrasting-story and targeted-revision qualification.
