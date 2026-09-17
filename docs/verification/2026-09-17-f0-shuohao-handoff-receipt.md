@@ -73,3 +73,19 @@ delivery protection, specialist operation, and one traceable source-faithful
 candidate. Not accepted or implemented: creative quality, source-rights
 clearance, UI integration, canonical schema/install, review UI, media
 generation, or retirement of old authoring paths.
+
+## F0 recovery correction — 2026-09-17
+
+The preserved evidence above describes the candidate at `c2921ce`; it does not
+prove full F0 acceptance. Recovery found two foundation gaps: CI did not
+initialize the project-local submodule, and candidate reading rechecked only
+`request.json` even though the specialist consumes instructions and `inputs`.
+The current candidate requires recursive CI checkout, validates the full frozen
+package before readiness, and rejects an initialized submodule whose `HEAD`
+does not equal Plotloom's recorded Git gitlink. These are transport and
+reproducibility corrections, not a new canonical system.
+
+F0 remains a checkout-operated candidate transport. It does not support the
+specialist from an installed wheel and it has no chosen, implemented, or proven
+review/canonical-install owner. The F1 UI/install decision and its owner proof
+remain open; creative/product acceptance is still unclaimed.

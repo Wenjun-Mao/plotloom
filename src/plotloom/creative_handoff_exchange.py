@@ -93,18 +93,37 @@ class CreativeHandoffExchange:
         """Freeze the vendored skill and local specialist used by a package."""
 
         repository = Path(__file__).resolve().parents[2]
+        submodule = repository / "third_party" / "shuohao-skills"
         upstream_skill = repository / "third_party" / "shuohao-skills" / "skills" / f"novel-{request.stage}" / "SKILL.md"
         specialist_skill = repository / ".agents" / "skills" / "plotloom-shuohao-specialist" / "SKILL.md"
         if not upstream_skill.is_file() or not specialist_skill.is_file():
-            raise CreativeHandoffError("execution_pin_missing", "pinned upstream and specialist skills must exist in this checkout")
-        revision = subprocess.run(
-            ["git", "-C", str(repository / "third_party" / "shuohao-skills"), "rev-parse", "HEAD"],
+            raise CreativeHandoffError(
+                "execution_pin_missing",
+                "pinned upstream and specialist skills must exist in the repository checkout",
+            )
+        gitlink = subprocess.run(
+            ["git", "-C", str(repository), "ls-tree", "HEAD", "--", "third_party/shuohao-skills"],
             capture_output=True, text=True, check=False,
         )
-        if revision.returncode != 0:
-            raise CreativeHandoffError("execution_pin_missing", "pinned upstream revision is unavailable")
+        lines = gitlink.stdout.strip().splitlines()
+        if gitlink.returncode != 0 or len(lines) != 1:
+            raise CreativeHandoffError("execution_pin_missing", "recorded Shuohao submodule gitlink is unavailable")
+        fields = lines[0].split(maxsplit=2)
+        if len(fields) != 3 or fields[0] != "160000" or fields[1] != "commit":
+            raise CreativeHandoffError("execution_pin_missing", "Shuohao dependency is not a recorded submodule gitlink")
+        recorded_revision = fields[2].split("\t", 1)[0]
+        revision = subprocess.run(
+            ["git", "-C", str(submodule), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=False,
+        )
+        checked_out_revision = revision.stdout.strip()
+        if revision.returncode != 0 or checked_out_revision != recorded_revision:
+            raise CreativeHandoffError(
+                "execution_pin_missing",
+                "checked-out Shuohao revision does not match the repository-recorded submodule gitlink",
+            )
         return {
-            "upstreamRevision": revision.stdout.strip(),
+            "upstreamRevision": recorded_revision,
             "upstreamSkillHash": sha256(upstream_skill.read_bytes()).hexdigest(),
             "specialistSkillHash": sha256(specialist_skill.read_bytes()).hexdigest(),
         }
@@ -142,6 +161,29 @@ class CreativeHandoffExchange:
         })
         return projected, instructions, template, {"request.json", "COPY_ASSIGNMENT.txt", TEMPLATE_FILENAME, "inputs"}
 
+    def _verify_frozen_package(self, request: CreativeHandoffRequest) -> tuple[Path, dict[str, Any]]:
+        """Confirm every specialist-consumed package file still matches its projection."""
+
+        job_root = self._job_root(request.job_id)
+        package = job_root / "package"
+        projected, instructions, template, expected = self._projection(request)
+        names = self._names(package, package=True)
+        if names != expected:
+            raise CreativeHandoffError("package_conflict", "existing package has unexpected entries")
+        if _read_regular(package / "request.json", max_bytes=1_000_000, package=True) != canonical_json(projected):
+            raise CreativeHandoffError("package_conflict", "existing package differs from frozen request")
+        if _read_regular(package / "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
+            raise CreativeHandoffError("package_conflict", "existing package instructions differ from frozen request")
+        if _read_regular(package / TEMPLATE_FILENAME, max_bytes=20_000, package=True) != template:
+            raise CreativeHandoffError("package_conflict", "existing package template differs from frozen request")
+        inputs = package / "inputs"
+        if self._names(inputs, package=True) != set(request.input_artifacts):
+            raise CreativeHandoffError("package_conflict", "existing package inputs differ from frozen request")
+        for filename, payload in request.input_artifacts.items():
+            if _read_regular(inputs / filename, max_bytes=1_000_000, package=True) != canonical_json(payload):
+                raise CreativeHandoffError("package_conflict", "existing package input differs from frozen request")
+        return job_root, projected
+
     def write_package(self, request: CreativeHandoffRequest) -> dict[str, str]:
         request.assert_secret_free()
         job_root = self._job_root(request.job_id)
@@ -150,20 +192,7 @@ class CreativeHandoffExchange:
         projected, instructions, template, expected = self._projection(request)
         names = self._names(package, package=True)
         if names:
-            if names != expected:
-                raise CreativeHandoffError("package_conflict", "existing package has unexpected entries")
-            if _read_regular(package / "request.json", max_bytes=1_000_000, package=True) != canonical_json(projected):
-                raise CreativeHandoffError("package_conflict", "existing package differs from frozen request")
-            if _read_regular(package / "COPY_ASSIGNMENT.txt", max_bytes=20_000, package=True) != instructions:
-                raise CreativeHandoffError("package_conflict", "existing package instructions differ from frozen request")
-            if _read_regular(package / TEMPLATE_FILENAME, max_bytes=20_000, package=True) != template:
-                raise CreativeHandoffError("package_conflict", "existing package template differs from frozen request")
-            inputs = package / "inputs"
-            if self._names(inputs, package=True) != set(request.input_artifacts):
-                raise CreativeHandoffError("package_conflict", "existing package inputs differ from frozen request")
-            for filename, payload in request.input_artifacts.items():
-                if _read_regular(inputs / filename, max_bytes=1_000_000, package=True) != canonical_json(payload):
-                    raise CreativeHandoffError("package_conflict", "existing package input differs from frozen request")
+            self._verify_frozen_package(request)
             return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
         inputs = package / "inputs"
         inputs.mkdir(mode=0o700)
@@ -176,11 +205,7 @@ class CreativeHandoffExchange:
 
     def read_delivery(self, request: CreativeHandoffRequest) -> ValidatedCreativeDelivery | None:
         request.assert_secret_free()
-        job_root = self._job_root(request.job_id)
-        package = job_root / "package"
-        projected, _, _, _ = self._projection(request)
-        if _read_regular(package / "request.json", max_bytes=1_000_000, package=True) != canonical_json(projected):
-            raise CreativeHandoffError("package_conflict", "package no longer matches frozen request")
+        job_root, projected = self._verify_frozen_package(request)
         delivery = job_root / "delivery"
         names = self._names(delivery)
         if not names:

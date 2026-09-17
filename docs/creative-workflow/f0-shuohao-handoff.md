@@ -13,6 +13,10 @@ the smallest reproducible copy: a clean checkout uses
 `git clone --recurse-submodules`; Plotloom never reads the user-home research
 clone or installs the skills globally. The upstream is Apache-2.0 and its
 NOTICE is retained in the submodule and attributed in the repository NOTICE.
+The exchange compares the initialized submodule `HEAD` to Plotloom's recorded
+Git gitlink before it freezes a package; a merely available upstream checkout is
+not a pin. This deliberately operates from a source checkout: an installed
+Plotloom wheel does not package or resolve the specialist/upstream skill tree.
 
 The F0 CLI is deliberately small:
 
@@ -44,11 +48,14 @@ candidate and report bytes to its job/request/stage and to the pinned upstream
 revision/skill hash plus local specialist skill hash. The exchange is a
 **transport** validator, not a second semantic validator: the specialist runs
 the upstream validator, while a future existing review/canonical owner decides
-semantic acceptance. It rejects malformed packages, non-exact delivery shapes,
-identity and execution-pin mismatches, hashes, and symlinks. `assert_current`
-rejects a candidate whose frozen revision is no
-longer current. Neither method can write accepted project content: only the
-existing review/canonical owner may do that after a later integration decision.
+semantic acceptance. Before it even reports a candidate ready, it verifies every
+specialist-consumed package entry (`request.json`, instructions, template, and
+each input) against the frozen projection. It rejects malformed packages,
+non-exact delivery shapes, identity and execution-pin mismatches, hashes, and
+symlinks. `assert_current` rejects a candidate whose frozen revision is no
+longer current. Neither method can write accepted project content: F0 defines
+no review or installation owner, and only a later selected existing
+review/canonical owner may install after an integration decision.
 
 ## Deliberate exclusions
 

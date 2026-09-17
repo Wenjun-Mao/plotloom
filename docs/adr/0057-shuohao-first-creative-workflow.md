@@ -28,9 +28,14 @@ F0 pins upstream `4322897e6d2bdaf66365534fd40194360c75a85f` as the
 `third_party/shuohao-skills` submodule, retaining its Apache-2.0 LICENSE and
 NOTICE. The project-local `CreativeHandoffExchange` freezes a self-contained
 single-stage request and admits only a traceable candidate plus derived report.
-The author owns source/adaptation and acceptance; the specialist owns proposed
-upstream-shaped JSON; trusted code owns hashes, stale-revision admission,
-review, and any canonical installation. F0 does not install candidates.
+It verifies the initialized submodule against Plotloom's recorded Git gitlink
+and verifies every specialist-consumed package file again at candidate-read
+time. The author owns source/adaptation and acceptance; the specialist owns
+proposed upstream-shaped JSON; F0 trusted code owns package/delivery transport
+integrity and stale-revision admission. A later selected existing owner, not
+F0, owns review and any canonical installation. F0 does not install candidates
+and its specialist seam is intentionally checkout-operated, not packaged-wheel
+runtime support.
 
 Source may be a synopsis developed into a short story/treatment, externally
 written material, or an existing work. Preserve source versus adaptation choices.
