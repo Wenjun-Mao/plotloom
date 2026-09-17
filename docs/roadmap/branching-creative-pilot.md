@@ -4,6 +4,11 @@ Status: **Approved, revision 1 — scope and new generation caps approved 2026-0
 Baseline: accepted structural preview at `3d86c54`. This extends, rather than
 reopens, the five-step reliable-creative-workflow plan.
 
+Director disposition at `b939d01`: bounded native playback of both endings,
+restart and persisted selections across close/reopen accepted. Full replay of
+both paths after reopen remains unverified; pin/staging limitations remain open.
+See the [pilot receipt](../verification/2026-09-16-branching-creative-pilot-receipt.md).
+
 ## Outcome and choices
 
 Deliver one small cinematic-realism story that can be played from its beginning

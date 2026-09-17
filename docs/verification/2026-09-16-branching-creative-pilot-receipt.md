@@ -21,7 +21,7 @@
 ## Accepted opening clip
 
 - Opening H3 job: `vj_fe20e9c8b4834933b3621e02adb9f256`.
-- User review record: `d56a8851-85a-4fbd-a173-05e122491aa5`, reviewer `user`, decision `select`.
+- User review record: `d56a8851-85a4-4fbd-a173-05e122491aa5`, reviewer `user`, decision `select`.
 - Exact attributed acceptance: **“Everything is good with the video.”**
 - The accepted bytes are `0be698d070a0a5353b24516456d4203c0bfac897246eef595478b32de640062a`; this matches both the job `outputHash` and the hash-verified review copy at `outputs/20260916T140747516355Z__4d7d4856-e407-4467-9432-3d9187b9edf8/review/opening-h3-vj_fe20e9c8b4834933b3621e02adb9f256.mp4`.
 - The director accepts this opening for creative-pilot use with the procedural limitation below. It must never be described as having a compliant pre-generation package pin.
@@ -107,10 +107,10 @@ project and began at **发现吊坠** with no choice history.
   `9e9355179e826c8eaebf0cce65a4194781c34f621f09c619fb29d654a791c100`.
   These live selected flags are derived from the persisted review decisions, so
   the post-reopen result confirms the selection/review lineage represented by
-  records `d56a8851-85a-4fbd-a173-05e122491aa5`,
+  records `d56a8851-85a4-4fbd-a173-05e122491aa5`,
   `27125b2e-6941-4568-a302-eb9df5b8a152`,
   `747a048a-0443-4326-974f-c1bce61d3cc0`, and
-  `fbb495a0-8008-4426-830d-bfb133835030` remained effective.
+  `fbb495a0-8008-4428-830d-bfb133835030` remained effective.
 
 Checkpoint 4's native playback, restart, and close/reopen evidence is complete.
 This is not director creative acceptance or a claim that the transient label has
@@ -118,3 +118,14 @@ a diagnosed product cause. The opening's late package pin, the refused
 shared-root staging cleanup, the user's noted intermittent departure face defects,
 and the fact that Codex did not independently hear audio all remain as recorded
 above; none was changed or waived here.
+
+## Director disposition
+
+Accepted the bounded native playback/restart and persisted-selection close/reopen
+evidence at `b939d01`, together with the user's attributed approvals. A read-only
+query of `v2_video_reviews` confirmed the four selection records and corrected
+the opening/departure ID transcription errors above. No media was altered.
+Complete playback of both paths **after** reopen was not recorded; the plan's
+stronger repeat-after-reopen criterion remains unverified. This is not blanket
+completion of every plan criterion, Alpha qualification, or resolution of the
+pin/staging limitations. The requested multi-candidate workflow is not implemented.
