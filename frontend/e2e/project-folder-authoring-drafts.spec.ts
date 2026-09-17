@@ -10,9 +10,9 @@ test.describe("project-folder authoring drafts", () => {
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = new URL(page.url()).searchParams.get("project")!;
 
-    // The newer local revision is recorded while the first PUT is deliberately
-    // held. Its acknowledgement must cause the autosave drain to persist that
-    // newer buffer, rather than leaving it only in tab session storage.
+    // The second idle timer fires while the first PUT is deliberately held.
+    // Its newer typing must be queued after the first acknowledgement rather
+    // than surviving only in tab session storage.
     let releaseFirstDraftRequest: (() => void) | undefined;
     const firstDraftRequestReleased = new Promise<void>((resolve) => { releaseFirstDraftRequest = resolve; });
     let markFirstDraftRequest: (() => void) | undefined;
@@ -30,11 +30,13 @@ test.describe("project-folder authoring drafts", () => {
     await page.getByLabel("片名").fill("E2E：传输中的较早草稿");
     await firstDraftRequestStarted;
     const coalescedTitle = "E2E：传输中继续输入的最终草稿";
-    const coalescedDraftSaved = waitForAuthoringDraftSave(page, projectId, coalescedTitle);
     await page.getByLabel("片名").fill(coalescedTitle);
+    await page.waitForTimeout(800);
     releaseFirstDraftRequest?.();
-    expect((await coalescedDraftSaved).ok()).toBeTruthy();
     await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
+    await expect.poll(async () => (await workbenchRequest(
+      workbench.apiOrigin, `/api/v2/projects/${projectId}/authoring-drafts`,
+    ))[0]?.payload.title).toBe(coalescedTitle);
     await page.unroute(draftEndpoint);
     await saveBriefAndAwaitPatch(page, projectId, coalescedTitle);
     await expect(page.getByLabel("片名")).toHaveValue(coalescedTitle);
@@ -125,19 +127,6 @@ async function workbenchRequest(apiOrigin: string, path: string): Promise<any> {
 
 function briefTitle(request: Request): string | undefined {
   return (request.postDataJSON() as { brief?: { title?: string } }).brief?.title;
-}
-
-function authoringDraftTitle(request: Request): string | undefined {
-  return (request.postDataJSON() as { payload?: { title?: string } }).payload?.title;
-}
-
-function waitForAuthoringDraftSave(page: Page, projectId: string, expectedTitle: string): Promise<Response> {
-  return page.waitForResponse((response) => {
-    const request = response.request();
-    return request.method() === "PUT"
-      && new URL(request.url()).pathname === `/api/v2/projects/${projectId}/authoring-drafts`
-      && authoringDraftTitle(request) === expectedTitle;
-  });
 }
 
 function waitForBriefSave(page: Page, projectId: string, expectedTitle: string): Promise<Response> {
