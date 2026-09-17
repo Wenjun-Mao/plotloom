@@ -88,8 +88,10 @@ This is independent engineering/creative review, not human creative Approval.
 
 ## Disposition and proposed next slice
 
-This experiment is structurally positive only until the independent content
-review is recorded. It remains isolated evidence, not checkpoint acceptance.
+This experiment is structurally positive only. The independent attended,
+read-only content review is recorded above; it remains isolated evidence, not
+checkpoint acceptance, integration authorization, reliability evidence, or
+creative Approval.
 
 If director review accepts both structural and content observations, the
 smallest existing-pipeline integration proposal is one explicitly selected
