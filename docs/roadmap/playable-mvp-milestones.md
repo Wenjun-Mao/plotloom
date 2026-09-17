@@ -83,13 +83,14 @@ that lack them, never fabricated or silently counted as passed.
 
 ## Checkpoints and live tracker
 
-All rows below are **planned**, except bounded F4 feasibility noted above.
+F0 is implemented as a candidate-only technical foundation; all remaining rows
+below are **planned**, except bounded F4 feasibility noted above.
 Characters/art/script may iterate together; ordering describes acceptance
 dependencies, not a rigid waterfall. Each delivery updates this table.
 
 | ID | Deliverable and reuse | Acceptance evidence / next exit | Replacement obligation |
 | --- | --- | --- | --- |
-| F0 — Foundation and handoff | Pin Shuohao; repo specialist; minimal project-local request/candidate handoff and existing review ownership | Fresh disposable Terra task reads a self-contained job, returns a traceable candidate and report; malformed/stale delivery cannot overwrite accepted work; no user-home runtime dependency. Pin/license and five-stage field/gap map recorded. | Identify old authoring entrypoints to retire; no parallel general orchestration framework. |
+| F0 — Foundation and handoff **(implemented; [receipt](../verification/2026-09-17-f0-shuohao-handoff-receipt.md))** | Pinned Shuohao; repo specialist; minimal project-local request/candidate handoff and existing review ownership | Fresh disposable Terra task read a self-contained job and returned a traceable, validated outline candidate/report; malformed/stale delivery is rejected before an owner can install it; no user-home runtime dependency. Pin/license and five-stage field/gap map recorded. | Old authoring entrypoints are identified but not yet retired; no parallel general orchestration framework. |
 | F1 — Source + novel-outline | Three source routes; reviewed story direction, characters/assets inventory, sections, choices and endings | One fresh synopsis develops source material and a reviewable one-choice/two-ending outline. Imported writing/existing-text paths preserve supplied text in fixtures; real chosen source has inspectable provenance. User can refine/save/reopen; choice → consequence is understandable. Missing source or unsupported structure is explicit. | Replace overlapping Brief/Bible/Graph proposal-writing logic as new path becomes usable; retain routing authority, not a second graph. |
 | F2 — novel-characters | Shared character bible, motivation, appearance/voice direction, identity references; existing ImageGen handoff | Two distinct shots/poses retain approved identity reference; supplied reference can be retained; edits identify affected downstream work. Text direction is not proof of generated voice consistency. | Consolidate duplicated character prompts/forms with stage data and existing identity review. |
 | F3 — novel-art | Shared locations/props, visual anchors and justified state/lighting variants | Referenced assets are inspectable and reused across sections; missing or changed reference is surfaced; setting/prop identity survives representative shots. No physical interpretation inferred solely from an ambiguous state label. | Replace duplicated asset-authoring rules; retain managed asset storage/selection. |
