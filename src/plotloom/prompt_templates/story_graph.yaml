@@ -1,5 +1,5 @@
 id: story_graph
-version: "3.1.0"
+version: "3.2.0"
 stage: story_graph
 description: Design narrative nodes and transitions without shot-level detail.
 system: |-
@@ -20,6 +20,7 @@ user: |-
   建立完整故事图：startNodeId 指向唯一 kind=start 的节点；nodes 中每项只填写 id、title、summary、kind；edges 中每项填写稳定 id、sourceNodeId、targetNodeId、kind，并在 choice 边填写 choiceText、stateEffects 与 entityStateEffects。stateEffects 只保存任意 JSON 叙事事实；角色、地点、道具的状态必须在 entityStateEffects 用 entityType/entityId/state 显式引用故事圣经 allowedStates，不能依赖 *_state 键名。
   ending 节点必须终止；互动项目必须让每项选择产生可感知的 stateEffects，并保证所有目标 ID 存在；线性关系使用 continuation 边。
   对每个实际汇流点填写唯一 joinContract，准确列出 incomingNodeIds、requiredStateKeys、allowedDifferences、reconciliation 和 notes。
+  stateEffects 的汇流差异只由 joinContract 表达，始终是通用 JSON 叙事事实；不能代表、推断或放宽 entityStateEffects。对任一 targetNodeId 的所有直接入边逐个实体检查：要么所有入边都省略该 entityStateEffects，要么每条入边都为该实体赋完全相同的 state。不得以路径差异、较早边的状态或 stateEffects 的差异来补足部分赋值或解释冲突。若叙事需要不兼容的实体状态，必须明确修订上游因果内容使其可协调；不得为了通过校验而编造状态、抹除有意义的状态赋值，或改变图拓扑。
   不要把多个尚未拆分的故事阶段伪装成一个节点，也不要在本阶段生成景别、时长或媒体提示词。
 variables:
   story_bible:

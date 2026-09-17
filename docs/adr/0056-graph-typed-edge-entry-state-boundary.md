@@ -27,6 +27,22 @@ same state. Partial or conflicting assignments fail closed: the current
 single-entry scene representation has no path-aware typed-state variant.
 Later scenes and beats remain free to make explicit, valid transitions.
 
+## Prompt-contract amendment
+
+The graph author and model own the causal content and the explicit direct-edge
+assignments.  The model must treat generic `stateEffects` join variance as
+separate from typed `entityStateEffects`: for each entity at a target, every
+direct incoming edge either omits it or every direct incoming edge assigns the
+same state.  It must resolve an incompatible narrative through explicit upstream
+causal content revision, never by fabricating a state, erasing a meaningful
+assignment merely to pass validation, or changing topology.
+
+Trusted code continues to own vocabulary, topology, and fail-closed validation;
+the JSON schema cannot express this cross-edge relation.  Prompt template
+versions `story_graph` 3.2.0 and `story_graph_content_fill` 2.7.0 therefore
+state the already-enforced rule without expanding code, schema, or historical
+artifact authority.
+
 ## Consequences
 
 The contract prevents an unsupported graph from sealing or being manually

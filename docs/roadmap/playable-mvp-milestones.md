@@ -213,6 +213,22 @@ the same criterion require reassessment. Stop owned services. Docs-only checks
 are proportionate; executable regression suites become required if a later
 separately bounded correction changes product code. Director accepts and pushes.
 
+### Prospective typed-edge prompt agreement — 2026-09-17
+
+The bounded follow-up found a prompt-contract gap, not a new 3B creative-quality
+finding: current Graph admission already rejects unsupported partial or
+conflicting typed direct-edge states, while the Graph and immutable content-fill
+prompts did not state that cross-edge requirement.  The prospective templates now
+separate generic `stateEffects` join variance from typed `entityStateEffects` and
+require each affected entity to be either omitted by every direct incoming edge
+or assigned the same state by each of them.  Incompatible narrative content must
+be reconciled upstream; it must not be fabricated, erased merely for validation,
+or solved by topology change.  ADR 0056 records owner boundaries; the schema is
+unchanged because it cannot encode the cross-edge relation.  Retained 3B data,
+plans, snapshots, and historical evidence remain untouched.  See
+`docs/verification/2026-09-17-graph-typed-join-prompt-agreement.md`; this is a
+small engineering correction, not checkpoint-3B quality acceptance.
+
 ## M2 decisions to resolve before their checkpoint
 
 Suggested initial envelope: roughly 1–3 minutes per path, a few meaningful choices,

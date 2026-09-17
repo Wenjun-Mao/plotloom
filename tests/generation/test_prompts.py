@@ -153,6 +153,33 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
         assert "两端共同声明的键" in spec.user
 
 
+def test_graph_prompts_render_the_typed_direct_incoming_edge_agreement() -> None:
+    """The author sees the same cross-edge rule enforced at graph admission."""
+
+    renderer = PromptRenderer()
+    common = {
+        "story_bible": {},
+        "graph_constraints": {},
+        "json_schema": {"type": "object"},
+    }
+    graph = renderer.render("story_graph", common)
+    content_fill = renderer.render(
+        "story_graph_content_fill",
+        {**common, "story_graph_topology": {}},
+    )
+
+    for rendered, version in ((graph, "3.2.0"), (content_fill, "2.7.0")):
+        instruction = rendered.messages[1].content
+        assert rendered.trace.prompt_version == version
+        assert "stateEffects 的汇流差异" in instruction
+        assert "不能代表、推断或放宽 entityStateEffects" in instruction
+        assert "所有直接入边" in instruction
+        assert "要么所有入边都省略" in instruction
+        assert "每条入边都为该实体赋完全相同的 state" in instruction
+        assert "编造状态、抹除有意义的状态赋值" in instruction
+        assert "改变图拓扑" in instruction or "修改节点、边和汇流合同的图拓扑" in instruction
+
+
 def test_storyboard_schema_and_media_prompts_are_separate() -> None:
     renderer = PromptRenderer()
     storyboard_schema = {

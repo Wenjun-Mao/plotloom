@@ -1,5 +1,5 @@
 id: story_graph_content_fill
-version: "2.6.0"
+version: "2.7.0"
 stage: story_graph
 description: Fill narrative content into an immutable Story Graph topology.
 system: |-
@@ -24,7 +24,7 @@ user: |-
   严格按清单顺序输出全部 nodes、edges 和 joinContracts；每个 id 必须逐字符原样复制，不能缩写、翻译、重新生成或替换。数组数量必须与 Schema 的 minItems/maxItems 完全相同。
   仅为骨架中每个 node ID 填写 title、summary；为每个 edge ID 填写 choiceText、stateEffects、entityStateEffects；为每个 joinContract ID 填写 requiredStateKeys、allowedDifferences、reconciliation、notes。
   choice 边必须有 choiceText；互动项目的选择必须产生可感知的 stateEffects。continuation 边的 choiceText 应为 null。
-  stateEffects 是穿过该 edge 后生效的任意有限 JSON 叙事事实；不得用键名约定（例如 *_state）表达故事圣经实体状态。entityStateEffects 是另一份显式清单：每项必须填写 entityType、entityId、state，并且 entityId/状态逐字来自【故事圣经】对应实体的 allowedStates；同一 edge 中同一实体只能出现一次。只有 entityStateEffects 才能表达角色、地点或道具的状态效果，stateEffects 不与它竞争。没有实体状态效果时仍输出 []。requiredStateKeys 是每条直接进入该汇流的 edge 都必须明确赋值、并在汇流入口检查的状态键：在确定 requiredStateKeys 后，找到骨架中每条 targetNodeId 等于该 joinNodeId 的 edge，并在它的 stateEffects 中逐字符写出每个 required key。即使某个值源自更早的选择，也必须在这条直接入边上重申其当前值，不能要求后续场景自行推断路径历史。allowedDifferences 必须是 requiredStateKeys 的子集；未列入 allowedDifferences 的 key 在所有直接入边上必须使用完全相同的 JSON 值，列入的 key 可以不同。两个数组内的键都必须非空且各自唯一；先确定 requiredStateKeys，再只从其中逐字符复制键到 allowedDifferences。若没有合理差异就输出 []；allowedDifferences 非空时，reconciliation 必须明确说明如何保留并处理各入边差异。
+  stateEffects 是穿过该 edge 后生效的任意有限 JSON 叙事事实；不得用键名约定（例如 *_state）表达故事圣经实体状态。entityStateEffects 是另一份显式清单：每项必须填写 entityType、entityId、state，并且 entityId/状态逐字来自【故事圣经】对应实体的 allowedStates；同一 edge 中同一实体只能出现一次。只有 entityStateEffects 才能表达角色、地点或道具的状态效果，stateEffects 不与它竞争。没有实体状态效果时仍输出 []。requiredStateKeys 是每条直接进入该汇流的 edge 都必须明确赋值、并在汇流入口检查的状态键：在确定 requiredStateKeys 后，找到骨架中每条 targetNodeId 等于该 joinNodeId 的 edge，并在它的 stateEffects 中逐字符写出每个 required key。即使某个值源自更早的选择，也必须在这条直接入边上重申其当前值，不能要求后续场景自行推断路径历史。allowedDifferences 必须是 requiredStateKeys 的子集；未列入 allowedDifferences 的 key 在所有直接入边上必须使用完全相同的 JSON 值，列入的 key 可以不同。两个数组内的键都必须非空且各自唯一；先确定 requiredStateKeys，再只从其中逐字符复制键到 allowedDifferences。若没有合理差异就输出 []；allowedDifferences 非空时，reconciliation 必须明确说明如何保留并处理各入边差异。上述 stateEffects 的汇流差异只属于通用 JSON 叙事事实，不能代表、推断或放宽 entityStateEffects。对骨架中任一 targetNodeId 的所有直接入边逐个实体检查：要么所有入边都省略该 entityStateEffects，要么每条入边都为该实体赋完全相同的 state；不得以路径差异、较早边状态或 stateEffects 差异补足部分赋值或解释冲突。若既有内容需要不兼容的实体状态，明确修订上游因果内容使其可协调；不得为了通过校验而编造状态、抹除有意义的状态赋值，或修改节点、边和汇流合同的图拓扑。
 variables:
   story_bible:
     required: true

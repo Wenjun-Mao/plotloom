@@ -240,6 +240,58 @@ def test_graph_admission_rejects_path_dependent_typed_entry_state_before_scene_b
     assert "saving or resubmitting" in issue["message"]
 
 
+def test_graph_admission_examples_match_typed_direct_incoming_prompt_rule() -> None:
+    """Omission and equal assignments pass; partial and conflicting ones fail."""
+
+    validate_story_graph(_graph(), _brief(), strict_v2=True)
+
+    equal = _graph()
+    for edge in equal.edges[3:5]:
+        edge.entity_state_effects = [
+            RequiredEntityState(
+                entity_type=EntityType.CHARACTER,
+                entity_id="mira",
+                state="calm",
+            )
+        ]
+    validate_story_graph(equal, _brief(), strict_v2=True)
+
+    incomplete = _graph()
+    incomplete.edges[3].entity_state_effects = [
+        RequiredEntityState(
+            entity_type=EntityType.CHARACTER,
+            entity_id="mira",
+            state="calm",
+        )
+    ]
+    with pytest.raises(DomainValidationError) as partial_rejection:
+        validate_story_graph(incomplete, _brief(), strict_v2=True)
+    assert {issue["code"] for issue in partial_rejection.value.issues} >= {
+        "edge_entry_entity_state_incomplete"
+    }
+
+    conflicting = _graph()
+    conflicting.edges[3].entity_state_effects = [
+        RequiredEntityState(
+            entity_type=EntityType.CHARACTER,
+            entity_id="mira",
+            state="calm",
+        )
+    ]
+    conflicting.edges[4].entity_state_effects = [
+        RequiredEntityState(
+            entity_type=EntityType.CHARACTER,
+            entity_id="mira",
+            state="alert",
+        )
+    ]
+    with pytest.raises(DomainValidationError) as conflict_rejection:
+        validate_story_graph(conflicting, _brief(), strict_v2=True)
+    assert {issue["code"] for issue in conflict_rejection.value.issues} >= {
+        "edge_entry_entity_state_conflict"
+    }
+
+
 def test_contract_rejects_unreconciled_variants_and_non_finite_json() -> None:
     with pytest.raises(JoinStateValueContractError) as unreconciled:
         compile_join_state_value_contract(_graph(reconciliation=""))
