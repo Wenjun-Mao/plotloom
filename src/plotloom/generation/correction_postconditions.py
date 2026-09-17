@@ -20,6 +20,7 @@ from .work_units import (
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
     CueOrderRepairFact,
+    EdgeEntryEntityStateRepairFact,
     JoinAllowedDifferencesRepairFact,
     JoinStateEffectRepairFact,
     SemanticRepairFact,
@@ -62,6 +63,8 @@ def validate_correction_postconditions(
             valid = _continuity_sequence_satisfied(response, fact)
         elif isinstance(fact, ContinuityEntityStateRepairFact):
             valid = _continuity_entity_state_repair_satisfied(response, fact)
+        elif isinstance(fact, EdgeEntryEntityStateRepairFact):
+            valid = _edge_entry_entity_state_satisfied(response, fact)
         elif isinstance(fact, CueOrderRepairFact):
             valid = _cue_order_satisfied(response, fact)
         elif isinstance(fact, StoryboardTimingRepairPlanFact):
@@ -254,6 +257,27 @@ def _continuity_entity_state_repair_satisfied(
         and assignment.get("entityType") == fact.entity_type.value
         and assignment.get("entityId") == fact.entity_id
         and assignment.get("state") in fact.allowed_states
+    )
+
+
+def _edge_entry_entity_state_satisfied(
+    response: Any,
+    fact: EdgeEntryEntityStateRepairFact,
+) -> bool:
+    scene = _unique_collection_item(response, "scenes", "localSceneId", fact.scene_local_id)
+    if scene is None or scene.get("order") != 1:
+        return False
+    state = scene.get("entryState")
+    if not isinstance(state, Mapping):
+        return False
+    return _entity_assignment_satisfied(
+        state,
+        ContinuityEntityStateAssignment(
+            kind="entity_state",
+            entity_type=fact.entity_type,
+            entity_id=fact.entity_id,
+            expected_state=fact.expected_state,
+        ),
     )
 
 

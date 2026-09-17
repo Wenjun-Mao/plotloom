@@ -766,7 +766,7 @@ def test_scene_work_unit_prompt_only_contains_the_selected_node_and_public_schem
     assert compiled.contract.work_unit_id == unit.unit_id
     assert compiled.contract.stage_plan_hash == stage_plan.stage_plan_hash
     assert compiled.contract.prompt_id == "scene_beats_fragment"
-    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v12"
+    assert compiled.rendered.output.schema_id == "scene_beats.fragment.v13"
     assert "allowedStates" in message
     assert "scene.entryState →" in message
     scene_properties = compiled.response_schema["properties"]["scenes"]["items"][
@@ -868,7 +868,7 @@ def test_scene_prompt_separates_regular_facts_from_typed_incoming_entity_effects
     message = compiled.rendered.messages[1].content
     incident_edge = compiled.validator.scoped_context["incident_edges"][0]
 
-    assert compiled.contract.prompt_version == "3.13.0"
+    assert compiled.contract.prompt_version == "3.14.0"
     assert incident_edge["stateEffects"] == {
         "loc_station_state": "misleading ordinary fact",
     }
@@ -1176,6 +1176,86 @@ def test_join_continuity_keys_are_explicit_in_schema_prompt_and_validation() -> 
         context=SemanticValidationContext(stage="scene_beats"),
     )
     assert accepted.accepted is True
+
+
+def test_typed_direct_edge_state_binds_first_scene_only_and_allows_later_transition() -> None:
+    brief, snapshot, plan, bible, graph, _ = _plan_and_inputs()
+    bible = _bible_with_hero()
+    graph.edges[0].entity_state_effects = [
+        RequiredEntityState(entity_type="character", entity_id="hero", state="alert")
+    ]
+    stage_plan = plan_stage(
+        plan,
+        stage=StageName.SCENE_BEATS,
+        dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=brief,
+    )
+    unit = next(item for item in stage_plan.work_units if item.selector.stable_id == "node-b")
+    compiled = compile_work_unit_request(
+        generation_plan=plan,
+        stage_plan=stage_plan,
+        work_unit=unit,
+        dependencies={StageName.STORY_BIBLE: bible, StageName.STORY_GRAPH: graph},
+        brief=brief,
+        canonical_snapshot=snapshot,
+        instructions="preserve the project brief",
+    )
+    requirements = compiled.validator.scoped_context["edge_entry_state_requirements"]
+    assert requirements["requiredEntityStates"] == [
+        {
+            "entityType": "character",
+            "entityId": "hero",
+            "state": "alert",
+            "incomingEdgeIds": ["edge-a-b"],
+        }
+    ]
+    schema_scene = compiled.response_schema["properties"]["scenes"]["items"]
+    assert schema_scene["allOf"][-1]["if"]["properties"]["order"] == {"const": 1}
+    assert '"requiredEntityStates"' in compiled.rendered.messages[1].content
+
+    output = _scene_output()
+    alert = {"entityType": "character", "entityId": "hero", "state": "alert"}
+    calm = {"entityType": "character", "entityId": "hero", "state": "calm"}
+    output["scenes"][0]["entryState"]["entityStates"] = [alert]
+    output["beats"][0]["entryState"]["entityStates"] = [alert]
+    output["beats"][0]["exitState"]["entityStates"] = [calm]
+    output["scenes"][0]["exitState"]["entityStates"] = [calm]
+    assert compiled.validator.validate(
+        output, context=SemanticValidationContext(stage="scene_beats")
+    ).accepted is True
+
+    output["scenes"][0]["entryState"]["entityStates"] = [calm]
+    rejected = compiled.validator.validate(
+        output, context=SemanticValidationContext(stage="scene_beats")
+    )
+    assert rejected.accepted is False
+    assert "semantic.edge_entry_entity_state_mismatch" in {
+        issue.code for issue in rejected.issues
+    }
+    facts = semantic_repair_facts(
+        output,
+        rejected.issues,
+        stage=StageName.SCENE_BEATS,
+        bible=bible,
+        dialogue_capacity_guidance=compiled.contract.dialogue_capacity_guidance,
+        dialogue_timing_profile=stage_plan.dialogue_timing_profile,
+        node_duration_budget_units=compiled.contract.node_duration_budget_units,
+        join_state_value_requirements=compiled.validator.scoped_context["join_state_value_requirements"],
+        scoped_context=compiled.validator.scoped_context,
+    )
+    edge_facts = [
+        fact for fact in facts
+        if fact.code == "semantic.edge_entry_entity_state_mismatch"
+    ]
+    assert len(edge_facts) == 1
+    assert edge_facts[0].expected_state == "alert"
+    directive_plan = compile_correction_instruction_plan(rejected.issues, facts)
+    assert "edge_entry_entity_state" in {
+        directive.id for directive in directive_plan.directives
+    }
+    corrected = deepcopy(output)
+    corrected["scenes"][0]["entryState"]["entityStates"] = [alert]
+    assert validate_correction_postconditions(corrected, edge_facts) == ()
 
 
 def test_scene_fragment_rejects_nonfinite_join_fact_and_continuity_delta() -> None:

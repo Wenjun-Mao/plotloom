@@ -52,6 +52,11 @@ class ProjectGenerationRecoveryPersistence:
             "be resumed safely. Submit a new run to regenerate Scene Beats under "
             "the current trusted join-entry value contract."
         )
+        obsolete_edge_entry_state_error = (
+            "This run uses an obsolete Scene Beats typed edge-entry contract and cannot "
+            "be resumed safely. Submit a new run to regenerate Scene Beats under the "
+            "current direct-edge entry-state contract."
+        )
         obsolete_generation_planning_error = (
             "This run uses an obsolete generation planning policy and cannot be "
             "resumed safely. Submit a new run under the current executable "
@@ -143,10 +148,15 @@ class ProjectGenerationRecoveryPersistence:
                             if obsolete_contract_code
                             == "recovery.join_state_value_contract_obsolete"
                             else (
-                                obsolete_storyboard_timing_provenance_error
+                                obsolete_edge_entry_state_error
                                 if obsolete_contract_code
-                                == "recovery.storyboard_timing_provenance_missing"
-                                else obsolete_generation_planning_error
+                                == "recovery.edge_entry_state_contract_obsolete"
+                                else (
+                                    obsolete_storyboard_timing_provenance_error
+                                    if obsolete_contract_code
+                                    == "recovery.storyboard_timing_provenance_missing"
+                                    else obsolete_generation_planning_error
+                                )
                             )
                         )
                     )
@@ -437,7 +447,7 @@ class ProjectGenerationRecoveryPersistence:
         return None
 
     def _recovery_obsolete_contract_stage(self, session: object, run: GenerationRunRow, code: str) -> StageName:
-        if code in {"recovery.scene_timing_contract_obsolete", "recovery.join_state_value_contract_obsolete"}:
+        if code in {"recovery.scene_timing_contract_obsolete", "recovery.join_state_value_contract_obsolete", "recovery.edge_entry_state_contract_obsolete"}:
             return StageName.SCENE_BEATS
         if code == "recovery.storyboard_timing_provenance_missing":
             return StageName.STORYBOARD

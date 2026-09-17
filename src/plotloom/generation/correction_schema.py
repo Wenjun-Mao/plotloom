@@ -25,6 +25,7 @@ from .work_units import (
     ContinuityScalarAssignment,
     ContinuitySequenceRepairFact,
     CueOrderRepairFact,
+    EdgeEntryEntityStateRepairFact,
     JoinAllowedDifferencesRepairFact,
     JoinStateEffectRepairFact,
     SemanticRepairFact,
@@ -193,6 +194,21 @@ def compile_correction_response_schema(
                 raise CorrectionResponseSchemaError(
                     "conflicting continuity entity-state repair facts target the same response path"
                 )
+            applied_codes.add(fact.code)
+            continue
+
+        if isinstance(fact, EdgeEntryEntityStateRepairFact):
+            target_key = ("scenes", "localSceneId", fact.scene_local_id, "entryState")
+            target_constraints = continuity_requirements.setdefault(
+                target_key,
+                {"facts": {}, "entities": {}, "scalars": {}},
+            )
+            _merge_exact_constraint(
+                target_constraints["entities"],
+                (fact.entity_type.value, fact.entity_id),
+                fact.expected_state,
+                label="typed direct-edge entry state",
+            )
             applied_codes.add(fact.code)
             continue
 

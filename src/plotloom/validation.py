@@ -43,6 +43,10 @@ from .join_state_values import (
     JoinStateValueContractError,
     compile_join_state_value_contract,
 )
+from .edge_entry_states import (
+    EdgeEntryStateContractError,
+    compile_edge_entry_state_contract,
+)
 
 
 class ValidationIssue(dict):
@@ -431,6 +435,15 @@ def validate_scene_beat_coverage(
                 _issue(issue.code, issue.path, issue.message)
                 for issue in error.issues
             )
+    edge_entry_states = None
+    if strict_v2 and isinstance(graph, StoryGraphV2):
+        try:
+            edge_entry_states = compile_edge_entry_state_contract(graph)
+        except EdgeEntryStateContractError as error:
+            issues.extend(
+                _issue(issue.code, issue.path, issue.message)
+                for issue in error.issues
+            )
     join_values_by_contract = (
         {
             (entry.join_contract_id, entry.state_key): entry.expected_join_entry_value
@@ -455,6 +468,7 @@ def validate_scene_beat_coverage(
                             f"join scene entry state is missing required fact: {key}",
                         )
                     )
+
                 for scene in join_scenes:
                     if key not in scene.entry_state.facts:
                         issues.append(
@@ -511,6 +525,39 @@ def validate_scene_beat_coverage(
                             f"incoming node {incoming_node_id} exit state is missing required fact: {key}",
                         )
                     )
+
+    if edge_entry_states is not None:
+        for node_id, requirements in edge_entry_states.requirements_by_target.items():
+            first_scenes = [
+                scene for scene in scenes_by_node.get(node_id, []) if scene.order == 1
+            ]
+            for scene in first_scenes:
+                states = {
+                    (state.entity_type, state.entity_id): state.state
+                    for state in scene.entry_state.entity_states
+                }
+                for requirement in requirements:
+                    path = (
+                        f"scenes.{scene.id}.entryState.entityStates."
+                        f"{requirement.entity_type.value}.{requirement.entity_id}"
+                    )
+                    actual = states.get((requirement.entity_type, requirement.entity_id))
+                    if actual is None:
+                        issues.append(
+                            _issue(
+                                "edge_entry_entity_state_missing",
+                                path,
+                                "first target-scene entry is missing a typed direct-edge state",
+                            )
+                        )
+                    elif actual != requirement.state:
+                        issues.append(
+                            _issue(
+                                "edge_entry_entity_state_mismatch",
+                                path,
+                                "first target-scene entry differs from its typed direct-edge state",
+                            )
+                        )
 
     if issues:
         raise DomainValidationError(issues)

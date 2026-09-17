@@ -323,7 +323,7 @@ def test_join_array_projection_is_exact_deterministic_and_non_mutating() -> None
     first = compile_correction_response_schema(base, [_join_array_fact()])
     second = compile_correction_response_schema(base, [_join_array_fact()])
 
-    assert CORRECTION_RESPONSE_SCHEMA_VERSION == "correction_response_schema.v5"
+    assert CORRECTION_RESPONSE_SCHEMA_VERSION == "correction_response_schema.v6"
     assert base == original
     assert first.schema == second.schema
     assert first.schema_hash == second.schema_hash

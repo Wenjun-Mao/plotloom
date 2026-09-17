@@ -126,11 +126,11 @@ from .storyboard_presence_repair import (
 from .validation import CanonicalStageValidationAdapter, SemanticValidationContext, ValidationAdapter
 
 
-WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.13"
+WORK_UNIT_PROMPT_CONTRACT_VERSION = "m1.14"
 FRAGMENT_ID_BINDING_VERSION = "fragment_ids.v1"
 AUDIO_EVENT_ID_BINDING_VERSION = "audio_event_ids.v1"
 STORYBOARD_PRIMARY_COVERAGE_BINDING_VERSION = "storyboard_primary_coverage.v1"
-SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v12"
+SCENE_BEATS_FRAGMENT_SCHEMA_ID = "scene_beats.fragment.v13"
 STORYBOARD_FRAGMENT_SCHEMA_ID = "storyboard.fragment.v6"
 
 
@@ -973,6 +973,39 @@ class JoinEntryStateValueRepairFact(CamelModel):
         return self
 
 
+class EdgeEntryEntityStateRepairFact(CamelModel):
+    """Exact typed edge state owed by the first target scene in one response."""
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    code: Literal[
+        "semantic.edge_entry_entity_state_missing",
+        "semantic.edge_entry_entity_state_mismatch",
+    ]
+    path: tuple[str | int, ...]
+    contract_version: str = Field(min_length=1)
+    contract_hash: str = Field(min_length=64, max_length=64)
+    scene_local_id: NonBlankText
+    entity_type: EntityType
+    entity_id: NonBlankText
+    expected_state: NonBlankText
+
+    @model_validator(mode="after")
+    def validate_exact_entry_path(self) -> "EdgeEntryEntityStateRepairFact":
+        if (
+            len(self.path) != 6
+            or self.path[0] != "scenes"
+            or not isinstance(self.path[1], int)
+            or isinstance(self.path[1], bool)
+            or self.path[1] < 0
+            or self.path[2:4] != ("entryState", "entityStates")
+            or self.path[4] != self.entity_type.value
+            or self.path[5] != self.entity_id
+        ):
+            raise ValueError("path must identify one first-scene typed entry state")
+        return self
+
+
 class AudioTimingRepairFact(CamelModel):
     """One deterministic, path-bound correction for a timed audio event.
 
@@ -1148,6 +1181,7 @@ CurrentSemanticRepairFact: TypeAlias = Annotated[
     | EdgeStateEffectJsonRepairFact
     | JoinReconciliationRepairFact
     | JoinEntryStateValueRepairFact
+    | EdgeEntryEntityStateRepairFact
     | AudioTimingRepairFact
     | RequiredEntityStateRepairFact
     | RequiredEntityPresenceRepairFact
@@ -1384,6 +1418,8 @@ class WorkUnitPromptContract(_FrozenModel):
     dialogue_capacity_guidance: DialogueCapacityNodeGuidance | None = None
     join_state_value_contract_version: str | None = None
     join_state_value_contract_hash: str | None = None
+    edge_entry_state_contract_version: str | None = None
+    edge_entry_state_contract_hash: str | None = None
     # Current Storyboard corrections require a tiny projection of sealed cue
     # timings and the selected scene cap.  It contains no dialogue text,
     # provider response, secret, or mutable project data.
@@ -1522,6 +1558,25 @@ class WorkUnitPromptContract(_FrozenModel):
         if self.stage != StageName.SCENE_BEATS and has_join_contract:
             raise ValueError(
                 "join state value contracts only belong to Scene Beats"
+            )
+        has_edge_entry_version = self.edge_entry_state_contract_version is not None
+        has_edge_entry_hash = self.edge_entry_state_contract_hash is not None
+        if has_edge_entry_version != has_edge_entry_hash:
+            raise ValueError(
+                "edge entry state contract version and hash must be set together"
+            )
+        has_edge_entry_contract = has_edge_entry_version and has_edge_entry_hash
+        if (
+            self.stage == StageName.SCENE_BEATS
+            and self.contract_version == WORK_UNIT_PROMPT_CONTRACT_VERSION
+            and not has_edge_entry_contract
+        ):
+            raise ValueError(
+                "current Scene Beats contracts require exact typed edge-entry states"
+            )
+        if self.stage != StageName.SCENE_BEATS and has_edge_entry_contract:
+            raise ValueError(
+                "edge entry state contracts only belong to Scene Beats"
             )
         if (
             self.stage == StageName.STORYBOARD
@@ -1828,11 +1883,19 @@ def compile_work_unit_request(
         if work_unit.stage == StageName.SCENE_BEATS
         else None
     )
+    edge_entry_state_requirements = (
+        _edge_entry_state_requirements(scoped_context)
+        if work_unit.stage == StageName.SCENE_BEATS
+        else None
+    )
     if work_unit.stage == StageName.SCENE_BEATS:
         if (
             stage_plan.join_state_value_contract_version is None
             or stage_plan.join_state_value_contract_hash is None
             or join_state_requirements is None
+            or stage_plan.edge_entry_state_contract_version is None
+            or stage_plan.edge_entry_state_contract_hash is None
+            or edge_entry_state_requirements is None
         ):
             raise WorkUnitContractError(
                 "current Scene Beats StagePlan has no frozen join state value contract"
@@ -1845,6 +1908,15 @@ def compile_work_unit_request(
         ):
             raise WorkUnitContractError(
                 "Scene Beats context does not match the StagePlan join state value contract"
+            )
+        if (
+            edge_entry_state_requirements["contractVersion"]
+            != stage_plan.edge_entry_state_contract_version
+            or edge_entry_state_requirements["contractHash"]
+            != stage_plan.edge_entry_state_contract_hash
+        ):
+            raise WorkUnitContractError(
+                "Scene Beats context does not match the StagePlan typed edge-entry contract"
             )
     contract = WorkUnitPromptContract(
         contract_version=WORK_UNIT_PROMPT_CONTRACT_VERSION,
@@ -1925,6 +1997,16 @@ def compile_work_unit_request(
         join_state_value_contract_hash=(
             str(join_state_requirements["contractHash"])
             if join_state_requirements is not None
+            else None
+        ),
+        edge_entry_state_contract_version=(
+            str(edge_entry_state_requirements["contractVersion"])
+            if edge_entry_state_requirements is not None
+            else None
+        ),
+        edge_entry_state_contract_hash=(
+            str(edge_entry_state_requirements["contractHash"])
+            if edge_entry_state_requirements is not None
             else None
         ),
         storyboard_timing_guidance=storyboard_timing_guidance,
@@ -2089,6 +2171,7 @@ def _prompt_variables(
             "incident_edges": scoped_context["incident_edges"],
             "join_contracts": scoped_context["join_contracts"],
             "continuity_requirements": _continuity_requirements(scoped_context),
+            "edge_entry_state_requirements": _edge_entry_state_requirements(scoped_context),
             "beat_constraints": stage_constraints,
             "node_timing_allocation": scoped_context["scene_timing_allocation"],
             "dialogue_capacity_guidance": scoped_context[
@@ -3176,6 +3259,81 @@ def scene_beats_join_entry_repair_facts(
     return tuple(facts)
 
 
+def scene_beats_edge_entry_entity_state_repair_facts(
+    value: Any,
+    issues: tuple[ValidationIssue, ...],
+    *,
+    requirements: Mapping[str, Any],
+) -> tuple[EdgeEntryEntityStateRepairFact, ...]:
+    """Bind a rejected first-scene typed state to the frozen direct-edge value."""
+
+    relevant = tuple(
+        issue for issue in issues
+        if issue.code in {
+            "semantic.edge_entry_entity_state_missing",
+            "semantic.edge_entry_entity_state_mismatch",
+        }
+    )
+    if not relevant:
+        return ()
+    try:
+        output = SceneBeatsFragmentOutput.model_validate(value, by_alias=True, by_name=False)
+    except ValidationError:
+        return ()
+    contract_version = requirements.get("contractVersion")
+    contract_hash = requirements.get("contractHash")
+    required_states = requirements.get("requiredEntityStates")
+    if (
+        not isinstance(contract_version, str)
+        or not contract_version
+        or not isinstance(contract_hash, str)
+        or len(contract_hash) != 64
+        or not isinstance(required_states, list)
+    ):
+        return ()
+    expected_by_key = {
+        (item.get("entityType"), item.get("entityId")): item.get("state")
+        for item in required_states
+        if isinstance(item, Mapping)
+    }
+    facts: list[EdgeEntryEntityStateRepairFact] = []
+    for issue in relevant:
+        path = issue.path
+        if (
+            len(path) != 6
+            or path[0] != "scenes"
+            or not isinstance(path[1], int)
+            or isinstance(path[1], bool)
+            or path[1] < 0
+            or path[1] >= len(output.scenes)
+            or path[2:4] != ("entryState", "entityStates")
+            or not isinstance(path[4], str)
+            or not isinstance(path[5], str)
+        ):
+            continue
+        scene = output.scenes[path[1]]
+        expected_state = expected_by_key.get((path[4], path[5]))
+        if scene.order != 1 or not isinstance(expected_state, str) or not expected_state:
+            continue
+        try:
+            entity_type = EntityType(path[4])
+        except ValueError:
+            continue
+        facts.append(
+            EdgeEntryEntityStateRepairFact(
+                code=issue.code,
+                path=path,
+                contract_version=contract_version,
+                contract_hash=contract_hash,
+                scene_local_id=scene.local_scene_id,
+                entity_type=entity_type,
+                entity_id=path[5],
+                expected_state=expected_state,
+            )
+        )
+    return tuple(facts)
+
+
 def scene_beats_dialogue_capacity_repair_facts(
     value: Any,
     issues: tuple[ValidationIssue, ...],
@@ -3903,6 +4061,15 @@ def semantic_repair_facts(
             if join_state_value_requirements is not None
             else ()
         )
+        edge_entry_facts = (
+            scene_beats_edge_entry_entity_state_repair_facts(
+                value,
+                issues,
+                requirements=_edge_entry_state_requirements(scoped_context),
+            )
+            if scoped_context is not None
+            else ()
+        )
         node_budget_facts = scene_beats_dialogue_node_budget_repair_facts(
             value,
             issues,
@@ -3921,6 +4088,7 @@ def semantic_repair_facts(
             *continuity_facts,
             *capacity_facts,
             *join_facts,
+            *edge_entry_facts,
             *node_budget_facts,
             *cue_order_facts,
         )
@@ -4160,6 +4328,7 @@ def _scene_beats_semantic_issues(
         issues.append(_issue("semantic.duplicate_beat_id", "beats", "fragment contains duplicate beat IDs"))
     known_characters = {item.id for item in bible.characters}
     known_locations = {item.id for item in bible.locations}
+    edge_entry_requirements = _edge_entry_state_requirements(scoped_context)
     beats_by_scene: dict[str, list[BeatContent]] = {}
     for beat in output.beats:
         beats_by_scene.setdefault(beat.scene_local_id, []).append(beat)
@@ -4223,6 +4392,32 @@ def _scene_beats_semantic_issues(
                 path=("scenes", index, "entryState"),
             )
         )
+        if scene.order == 1:
+            states = {
+                (state.entity_type.value, state.entity_id): state.state
+                for state in scene.entry_state.entity_states
+            }
+            for requirement in edge_entry_requirements["requiredEntityStates"]:
+                entity_type = requirement["entityType"]
+                entity_id = requirement["entityId"]
+                path = ("scenes", index, "entryState", "entityStates", entity_type, entity_id)
+                actual = states.get((entity_type, entity_id))
+                if actual is None:
+                    issues.append(
+                        _issue(
+                            "semantic.edge_entry_entity_state_missing",
+                            path,
+                            "first scene entry is missing a typed state from its direct incoming edge",
+                        )
+                    )
+                elif actual != requirement["state"]:
+                    issues.append(
+                        _issue(
+                            "semantic.edge_entry_entity_state_mismatch",
+                            path,
+                            "first scene entry differs from a typed state on its direct incoming edge",
+                        )
+                    )
         issues.extend(
             continuity_state_issues(
                 scene.exit_state,
@@ -4681,6 +4876,10 @@ def _bind_fragment_foreign_keys(
             scene_properties["entryState"],
             continuity["requiredEntryFacts"],
         )
+        _require_first_scene_entity_state_values(
+            definitions["DramaticSceneContent"],
+            _edge_entry_state_requirements(scoped_context)["requiredEntityStates"],
+        )
         return
 
     if work_unit.stage != StageName.STORYBOARD:
@@ -4806,6 +5005,52 @@ def _continuity_requirements(
     return deepcopy(dict(value))
 
 
+def _edge_entry_state_requirements(
+    scoped_context: Mapping[str, Any],
+) -> dict[str, Any]:
+    value = scoped_context.get("edge_entry_state_requirements")
+    if not isinstance(value, Mapping):
+        raise WorkUnitContractError(
+            "Scene Beats context has no frozen typed edge-entry requirements"
+        )
+    version = value.get("contractVersion")
+    contract_hash = value.get("contractHash")
+    requirements = value.get("requiredEntityStates")
+    if (
+        not isinstance(version, str)
+        or not version
+        or not isinstance(contract_hash, str)
+        or len(contract_hash) != 64
+        or not isinstance(requirements, list)
+    ):
+        raise WorkUnitContractError(
+            "Scene Beats typed edge-entry requirements are malformed"
+        )
+    seen: set[tuple[str, str]] = set()
+    for requirement in requirements:
+        if not isinstance(requirement, Mapping):
+            raise WorkUnitContractError("Scene Beats typed edge-entry requirement is malformed")
+        entity_type = requirement.get("entityType")
+        entity_id = requirement.get("entityId")
+        state = requirement.get("state")
+        edge_ids = requirement.get("incomingEdgeIds")
+        key = (entity_type, entity_id)
+        if (
+            not isinstance(entity_type, str)
+            or not isinstance(entity_id, str)
+            or not entity_id
+            or not isinstance(state, str)
+            or not state
+            or not isinstance(edge_ids, list)
+            or not edge_ids
+            or any(not isinstance(edge_id, str) or not edge_id for edge_id in edge_ids)
+            or key in seen
+        ):
+            raise WorkUnitContractError("Scene Beats typed edge-entry requirement is malformed")
+        seen.add(key)
+    return deepcopy(dict(value))
+
+
 def _require_state_fact_values(
     schema_node: dict[str, Any],
     facts: Mapping[str, Any],
@@ -4832,6 +5077,49 @@ def _require_state_fact_values(
             },
         }
     )
+
+
+def _require_first_scene_entity_state_values(
+    scene_schema: dict[str, Any],
+    requirements: list[Mapping[str, Any]],
+) -> None:
+    """Constrain only order-one scene entries; later state changes stay authored."""
+
+    if not requirements:
+        return
+    entry_constraints = []
+    for requirement in requirements:
+        entry_constraints.append(
+            {
+                "contains": {
+                    "type": "object",
+                    "required": ["entityType", "entityId", "state"],
+                    "properties": {
+                        "entityType": {"const": requirement["entityType"]},
+                        "entityId": {"const": requirement["entityId"]},
+                        "state": {"const": requirement["state"]},
+                    },
+                },
+                "minContains": 1,
+                "maxContains": 1,
+            }
+        )
+    first_scene_constraint = {
+        "if": {
+            "properties": {"order": {"const": 1}},
+            "required": ["order"],
+        },
+        "then": {
+            "properties": {
+                "entryState": {
+                    "properties": {
+                        "entityStates": {"allOf": entry_constraints},
+                    }
+                }
+            }
+        },
+    }
+    scene_schema.setdefault("allOf", []).append(first_scene_constraint)
 
 
 def _resolve_schema(schema_node: Any, root: Mapping[str, Any]) -> Any:

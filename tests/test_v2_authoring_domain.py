@@ -802,6 +802,82 @@ def test_v2_join_entry_values_come_from_post_edge_effects() -> None:
     )
 
 
+def test_typed_direct_edge_state_is_required_only_at_the_target_first_scene_entry() -> None:
+    bible, plan, _, profile = _authoring_fixture()
+    bible = bible.model_copy(
+        update={
+            "characters": [
+                bible.characters[0].model_copy(update={"allowed_states": ["calm", "focused"]})
+            ]
+        }
+    )
+    graph = StoryGraphV2(
+        start_node_id="source",
+        nodes=[
+            StoryNodeV2(id="source", title="Source", summary="source", kind="start"),
+            StoryNodeV2(id="node-1", title="Target", summary="target", kind="ending"),
+        ],
+        edges=[
+            StoryEdgeV2(
+                id="source-target",
+                source_node_id="source",
+                target_node_id="node-1",
+                kind="continuation",
+                choice_text=None,
+                state_effects={},
+                entity_state_effects=[
+                    RequiredEntityState(entity_type=EntityType.CHARACTER, entity_id="mira", state="calm")
+                ],
+            )
+        ],
+        join_contracts=[],
+    )
+    source_scene = plan.scenes[0].model_copy(
+        update={"id": "scene-source", "story_node_id": "source", "beat_ids": ["beat-source"]}
+    )
+    source_beat = plan.beats[0].model_copy(
+        update={"id": "beat-source", "scene_id": "scene-source"}
+    )
+    plan = plan.model_copy(
+        update={"scenes": [source_scene, *plan.scenes], "beats": [source_beat, *plan.beats]}
+    )
+    brief = ProjectBrief(title="x", synopsis="y", ending_count=1, desired_join_count=0, decision_points_per_path=0, node_budget=2, shots_per_scene_min=1, shots_per_scene_max=1)
+    assert validate_stage_payload(
+        StageName.SCENE_BEATS,
+        plan,
+        schema_version=2,
+        brief=brief,
+        bible=bible,
+        graph=graph,
+        dialogue_timing_profile=profile,
+    ) is None
+
+    focused = RequiredEntityState(entity_type=EntityType.CHARACTER, entity_id="mira", state="focused")
+    changed_state = _state(focused)
+    mismatched = plan.model_copy(
+        update={
+            "scenes": [
+                plan.scenes[0],
+                plan.scenes[1].model_copy(update={"entry_state": changed_state, "exit_state": changed_state}),
+            ],
+            "beats": [
+                plan.beats[0],
+                plan.beats[1].model_copy(update={"entry_state": changed_state, "exit_state": changed_state}),
+            ],
+        }
+    )
+    with pytest.raises(DomainValidationError) as captured:
+        validate_stage_payload(
+            StageName.SCENE_BEATS,
+            mismatched,
+            schema_version=2,
+            brief=brief,
+            bible=bible,
+            graph=graph,
+            dialogue_timing_profile=profile,
+        )
+    assert {issue["code"] for issue in captured.value.issues} == {"edge_entry_entity_state_mismatch"}
+
 def test_coverage_gate_ids_use_shot_and_beat_identity() -> None:
     bible, plan, board, profile = _authoring_fixture()
     gate_ids = {

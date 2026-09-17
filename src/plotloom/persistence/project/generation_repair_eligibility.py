@@ -18,6 +18,7 @@ from ...generation.scene_timing_allocation import (
     SCENE_TIMING_ALLOCATION_VERSION, SceneTimingAllocation,
 )
 from ...join_state_values import JOIN_STATE_VALUE_CONTRACT_VERSION
+from ...edge_entry_states import EDGE_ENTRY_STATE_CONTRACT_VERSION
 from ..codec import stable_hash
 from ..schema import (
     ArtifactRow, GenerationAttemptRow, GenerationPlanRow, GenerationRunRow,
@@ -144,6 +145,11 @@ class GenerationRepairEligibility:
             or parsed_plan.join_state_value_contract_hash is None
         ):
             return "recovery.join_state_value_contract_obsolete"
+        if (
+            parsed_plan.edge_entry_state_contract_version != EDGE_ENTRY_STATE_CONTRACT_VERSION
+            or parsed_plan.edge_entry_state_contract_hash is None
+        ):
+            return "recovery.edge_entry_state_contract_obsolete"
         return None
 
     def eligibility(

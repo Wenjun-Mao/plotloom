@@ -293,6 +293,23 @@ _DIRECTIVES: tuple[_DirectiveDefinition, ...] = (
         ),
     ),
     _DirectiveDefinition(
+        id="edge_entry_entity_state",
+        codes=(
+            "semantic.edge_entry_entity_state_missing",
+            "semantic.edge_entry_entity_state_mismatch",
+        ),
+        required_fact_models={
+            "semantic.edge_entry_entity_state_missing": "EdgeEntryEntityStateRepairFact",
+            "semantic.edge_entry_entity_state_mismatch": "EdgeEntryEntityStateRepairFact",
+        },
+        text=(
+            "对 typed direct-edge entry state 的 missing 或 mismatch，只以同 code/path 的 "
+            "EdgeEntryEntityStateRepairFact 为权威：在 sceneLocalId 的 entryState.entityStates "
+            "中保留唯一 entityType/entityId 项并把 state 逐字写为 expectedState。不得改变 "
+            "scene order、后续 scene 或 beat 的状态，也不得创造实体或状态词汇。"
+        ),
+    ),
+    _DirectiveDefinition(
         id="continuity_values",
         codes=(
             "semantic.unknown_continuity_entity",

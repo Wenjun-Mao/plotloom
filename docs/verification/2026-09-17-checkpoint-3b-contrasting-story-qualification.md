@@ -77,26 +77,24 @@ It found the following, which prevents creative qualification:
   declined repair and has no on-screen repair bridge. The smallest product fix is
   to retain the early decision state across the join, or add the missing repair
   causal beat before that hand-off.
-- **P2 — dialogue/audio-plan mismatch:** `债务重压与无声抵抗`
-  (`26294f56…`) has two attributed cues totaling its 10.72 seconds, while its
-  audio plan contains only footsteps and shoulder contact, not speech.
-  `立场的固化` (`b4c23f09…`) similarly has spoken cues/action but only
-  sigh/watch sound effects. This passes schema but weakens executable timing.
+- **Withdrawn — dialogue/audio-plan mismatch:** this was not a mechanical
+  defect. `cueIds` own speech scheduling, and the cited cue totals fit their
+  shots (10,720/10,720 and 6,420/18,000 units). Ambient/foley audio plans need
+  not duplicate dialogue. The unnamed silent customer is likewise not a
+  mechanical contract violation.
 - **P2 — repeated middle conflict:** `夕阳下的对峙` and `立场的固化`
   restate the phone-versus-watch disagreement with little new consequence before
   the final choice. The sell signing/hand-off and keep torn-contract/watch
   close-up are stronger endpoints; the middle needs causal advancement.
-- **P2 — untracked payoff character:** `交付与告别` relies on a customer who
-  is only offscreen/background, rather than a Bible character/entity. That
-  weakens the promised long-waiting-customer payoff.
+- **Withdrawn — untracked payoff character:** the silent/offscreen customer is
+  not a mechanical contract violation. Whether to author that payoff character
+  more explicitly remains a creative-quality question, not a gate failure.
 
-The runtime also exposes a preservation limitation. The normal shot edit was
-successfully saved and visible after reload, but the later permitted
-**stage-level** Storyboard rebuild replaced it. On r3 the same shot's action and
-composition are generated values, not the saved authored text. This was not a
-shot-local model regeneration and authored-shot preservation is not currently
-demonstrated across a Storyboard rebuild. It is recorded as a product gap rather
-than treated as a passing targeted-revision capability.
+The normal shot edit was successfully saved and visible after reload. The later
+permitted **stage-level** Storyboard rebuild intentionally replaced the stage;
+r1→r2 changed only the targeted shot and the other 12 shots were byte-identical.
+The rebuild's granularity is a product limitation, not unexpected data loss or
+a claim of shot-local regeneration.
 
 ## Boundary, verification, and disposition
 
@@ -114,5 +112,5 @@ not a request to broaden scope or repair the uncovered defects.
 **Disposition:** mechanical stage gates and the upstream stale/rebuild boundary
 are demonstrated, but checkpoint 3B is **not quality-qualified** and checkpoint
 3 remains unaccepted. A later separately authorized correction should address the
-P1 causal-state/repair bridge first, then re-evaluate audio-plan coherence,
-repetition, and stage-level authored-shot preservation.
+P1 causal-state/repair bridge first, then re-evaluate repetition and the
+product-level choice of rebuild granularity.

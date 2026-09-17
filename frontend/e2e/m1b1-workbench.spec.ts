@@ -82,6 +82,18 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await expect(page.getByLabel("备注")).toHaveValue(contractNotes);
 
     await navigateToStage(page, "04 场景节拍");
+    // The graph's newly authored typed effect is a post-edge assignment.  Its
+    // target is scene_memory's first entry, so make that direct boundary
+    // explicit through the ordinary scene editor before saving the aggregate.
+    await page.getByTestId("scene-card-scene_memory").click();
+    const memoryEntry = page.getByTestId("continuity-场景入口连续性");
+    await memoryEntry.getByRole("button", { name: "＋ 实体状态" }).click();
+    await memoryEntry.getByLabel("实体", { exact: true }).selectOption("char_ruanxing");
+    await memoryEntry.getByLabel("状态").fill("focused");
+    await expect(memoryEntry.getByLabel("实体", { exact: true })).toHaveValue("char_ruanxing");
+    await expect(memoryEntry.getByLabel("状态")).toHaveValue("focused");
+
+    await page.getByTestId("scene-card-scene_arrival").click();
     const sceneTitle = "E2E M1-B1：抵达控制室";
     await page.getByLabel("场景标题").fill(sceneTitle);
     const beat = page.getByTestId("beat-card-b1");

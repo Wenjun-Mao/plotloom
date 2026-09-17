@@ -25,6 +25,11 @@ from plotloom.join_state_values import (
     JoinStateValueContractError,
     compile_join_state_value_contract,
 )
+from plotloom.edge_entry_states import (
+    EdgeEntryStateContractError,
+    compile_edge_entry_state_contract,
+)
+from plotloom.canonical_schema import EntityType, RequiredEntityState
 
 
 def _graph(
@@ -164,6 +169,39 @@ def test_node_requirements_apply_only_to_post_edge_join_entry() -> None:
     assert contract.requirements_for_node("start")["requiredEntryFacts"] == {}
     assert contract.requirements_for_node("decision")["requiredEntryFacts"] == {}
     assert contract.requirements_for_node("left")["requiredEntryFacts"] == {}
+
+
+def test_typed_direct_edge_requirements_preserve_omission_and_fail_closed_at_multiple_inputs() -> None:
+    graph = _graph()
+    graph.edges[1].entity_state_effects = [
+        RequiredEntityState(entity_type=EntityType.CHARACTER, entity_id="mira", state="calm")
+    ]
+    contract = compile_edge_entry_state_contract(graph)
+    assert contract.requirements_for_node("left")["requiredEntityStates"] == [
+        {
+            "entityType": "character",
+            "entityId": "mira",
+            "state": "calm",
+            "incomingEdgeIds": ["choose-left"],
+        }
+    ]
+    assert contract.requirements_for_node("right")["requiredEntityStates"] == []
+
+    graph.edges[3].entity_state_effects = [
+        RequiredEntityState(entity_type=EntityType.CHARACTER, entity_id="mira", state="calm")
+    ]
+    graph.edges[4].entity_state_effects = [
+        RequiredEntityState(entity_type=EntityType.CHARACTER, entity_id="mira", state="calm")
+    ]
+    convergent = compile_edge_entry_state_contract(graph)
+    assert convergent.requirements_for_node("join")["requiredEntityStates"][0]["state"] == "calm"
+
+    graph.edges[4].entity_state_effects = [
+        RequiredEntityState(entity_type=EntityType.CHARACTER, entity_id="mira", state="alert")
+    ]
+    with pytest.raises(EdgeEntryStateContractError) as conflict:
+        compile_edge_entry_state_contract(graph)
+    assert {issue.code for issue in conflict.value.issues} == {"edge_entry_entity_state_conflict"}
 
 
 def test_contract_rejects_missing_and_conflicting_incoming_assignments() -> None:

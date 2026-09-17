@@ -1,5 +1,5 @@
 id: scene_beats_fragment
-version: "3.13.0"
+version: "3.14.0"
 stage: scene_beats
 description: Create a closed dramatic-scene/beat fragment for one Story Graph node.
 system: |-
@@ -25,6 +25,9 @@ user: |-
   【本节点必须兑现的连续性键】
   {{ continuity_requirements | tojson }}
 
+  【本节点首场必须兑现的 typed 入边状态】
+  {{ edge_entry_state_requirements | tojson }}
+
   【节拍约束】
   {{ beat_constraints | tojson }}
 
@@ -48,7 +51,7 @@ user: |-
   每个 scene 和 beat 的 entryState、exitState 都必须完整输出 facts、entityStates、screenDirection、lighting、sound、notes；每个 entityStates 项均填写 entityType、entityId、state。没有内容时也分别写出 {}、[] 或 null，不能省略任何一项。sound 只表示在该连续性边界持续存在的环境声或声音条件，不表示一次性的动作音效；翻纸、钟响、脚步等只在当前 beat 的 description 或可观察动作中描写，除非它们确实跨越边界持续存在，否则 boundary sound 必须为 null。
   entryState 与 exitState 中每个 entityStates.entityId 必须是【故事圣经】中对应 entityType 的实体，state 必须逐字属于该实体的 allowedStates；不要把人物、地点或道具的自由描述伪装成状态。返回前先写出并逐项复核完整状态链：scene.entryState → beat 1.entryState → beat 1.exitState → … → 最后一个 beat.exitState → scene.exitState。相邻两端同时声明同一事实、实体状态、screenDirection、lighting 或 sound 时必须逐值一致，尤其复核第一条和最后一条边界。状态变化只发生在同一个 beat 的 entryState → exitState 内；后一 beat 的 entryState 必须逐值复制前一 beat.exitState 中两端共同声明的键。不要在同一相邻边界为同一键写出旧值和新值。
   【本节点必须兑现的连续性键】是服务端从已封存 Story Graph 的直接汇流入边编译出的精确合同。把 requiredEntryFacts 中每个 value 当作不透明 JSON 字面量：requiredEntryFactKeys 中每个键都必须出现在每个 scene.entryState.facts，并逐字符、逐对象成员、逐数组元素及原顺序复制同名 JSON 值；不得手工重建或截断 UUID，不得改写字符串、挑选或重排分支，也不得简化带 $plotloom 标记的 variant map。空对象表示本节点不是汇流入口。edge.stateEffects 是普通的任意有限 JSON 叙事事实；无论键名是否含 *_state，都绝不能把它推断为人物、地点或道具的故事圣经状态。edge.stateEffects 在来源节点 exitState 之后才生效，因此不得把分支专用值伪造到来源节点共享的 exitState。
-  只有 edge.entityStateEffects 才是故事圣经实体状态的显式引用：每项的 entityType、entityId、state 已在 Story Graph 封存时按【故事圣经】验证。对于以本节点为 target 的入边，其 entityStateEffects 在来源节点 exitState 之后、目标节点 entryState 之前生效；若本节点输出同一实体的 entryState 或后续连续性边界，就逐字承接该 typed effect 的 state，且绝不把它移到来源节点、从普通 stateEffects 推断，或把不同入边的值自行合并。typed effect 没有为某实体赋值时，仍只使用故事圣经 allowedStates 中的字面量决定该实体的状态。
+  只有 edge.entityStateEffects 才是故事圣经实体状态的显式引用：每项的 entityType、entityId、state 已在 Story Graph 封存时按【故事圣经】验证；它在来源节点 exitState 之后、目标节点 entryState 之前生效。【本节点首场必须兑现的 typed 入边状态】是唯一可执行的 target-entry 合同。把其中 requiredEntityStates 逐字写入且只写入 order=1 scene 的 entryState.entityStates；不得把它们移到来源节点 exitState、从普通 stateEffects 推断、在不同入边间自行合并，或强加到 order>1 的 scene / 任何后续 beat 边界。空数组表示没有 direct-edge typed entry 约束；typed effect 没有为某实体赋值时，仍只使用故事圣经 allowedStates 中的字面量决定该实体的状态。
 variables:
   story_bible:
     required: true
@@ -60,6 +63,8 @@ variables:
     required: true
   continuity_requirements:
     required: true
+  edge_entry_state_requirements:
+    required: true
   beat_constraints:
     required: true
   node_timing_allocation:
@@ -70,5 +75,5 @@ variables:
     required: true
 output:
   format: json
-  schema_id: scene_beats.fragment.v12
+  schema_id: scene_beats.fragment.v13
   structured_output_mode: prefer

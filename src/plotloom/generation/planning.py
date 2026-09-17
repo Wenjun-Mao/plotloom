@@ -23,6 +23,10 @@ from ..domain import (
     default_dialogue_timing_profile,
 )
 from ..join_state_values import JoinStateValueContractError, compile_join_state_value_contract
+from ..edge_entry_states import (
+    EdgeEntryStateContractError,
+    compile_edge_entry_state_contract,
+)
 from .dialogue_capacity import (
     DialogueCapacityPlan,
     DialogueCapacityPlanningError,
@@ -204,6 +208,8 @@ class StagePlan(PlanningModel):
     # consume, so startup recovery never rebuilds them under new semantics.
     join_state_value_contract_version: str | None = None
     join_state_value_contract_hash: str | None = None
+    edge_entry_state_contract_version: str | None = None
+    edge_entry_state_contract_hash: str | None = None
     work_units: tuple[GenerationWorkUnit, ...]
     stage_plan_hash: str
 
@@ -251,6 +257,14 @@ class StagePlan(PlanningModel):
             raise ValueError("join state value contract only belongs to Scene Beats")
         if has_join_hash and len(self.join_state_value_contract_hash or "") != 64:
             raise ValueError("join state value contract hash must be a SHA-256 hex digest")
+        has_edge_entry_version = self.edge_entry_state_contract_version is not None
+        has_edge_entry_hash = self.edge_entry_state_contract_hash is not None
+        if has_edge_entry_version != has_edge_entry_hash:
+            raise ValueError("edge entry state contract version and hash must be set together")
+        if self.stage != StageName.SCENE_BEATS and has_edge_entry_version:
+            raise ValueError("edge entry state contract only belongs to Scene Beats")
+        if has_edge_entry_hash and len(self.edge_entry_state_contract_hash or "") != 64:
+            raise ValueError("edge entry state contract hash must be a SHA-256 hex digest")
         if has_dialogue_capacity_profile:
             if self.scene_timing_allocation is None:
                 raise ValueError("dialogue capacity requires a scene timing allocation")
@@ -482,6 +496,8 @@ def plan_stage(
     dialogue_capacity_plan: DialogueCapacityPlan | None = None
     join_state_value_contract_version: str | None = None
     join_state_value_contract_hash: str | None = None
+    edge_entry_state_contract_version: str | None = None
+    edge_entry_state_contract_hash: str | None = None
     if stage == StageName.SCENE_BEATS:
         graph = dependency_values.get(StageName.STORY_GRAPH)
         if not isinstance(graph, StoryGraphV2):
@@ -513,6 +529,16 @@ def plan_stage(
             ) from exc
         join_state_value_contract_version = join_state_values.version
         join_state_value_contract_hash = join_state_values.contract_hash
+        try:
+            edge_entry_states = compile_edge_entry_state_contract(graph)
+        except EdgeEntryStateContractError as exc:
+            raise PlanningError(
+                "sealed Story Graph cannot produce an exact typed edge-entry contract",
+                code="planning.edge_entry_state_contract_unresolvable",
+                stage=stage,
+            ) from exc
+        edge_entry_state_contract_version = edge_entry_states.version
+        edge_entry_state_contract_hash = edge_entry_states.contract_hash
         dialogue_timing_profile = (
             scene_beats_dialogue_timing_profile
             if scene_beats_dialogue_timing_profile is not None
@@ -580,6 +606,14 @@ def plan_stage(
         dependency_payload["join_state_value_contract"] = {
             "version": join_state_value_contract_version,
             "hash": join_state_value_contract_hash,
+        }
+    if (
+        edge_entry_state_contract_version is not None
+        and edge_entry_state_contract_hash is not None
+    ):
+        dependency_payload["edge_entry_state_contract"] = {
+            "version": edge_entry_state_contract_version,
+            "hash": edge_entry_state_contract_hash,
         }
     dependency_json = canonical_json(dependency_payload)
     dependency_hash = sha256_text(dependency_json)
@@ -653,6 +687,12 @@ def plan_stage(
             join_state_value_contract_version
         )
         unsigned["join_state_value_contract_hash"] = join_state_value_contract_hash
+    if (
+        edge_entry_state_contract_version is not None
+        and edge_entry_state_contract_hash is not None
+    ):
+        unsigned["edge_entry_state_contract_version"] = edge_entry_state_contract_version
+        unsigned["edge_entry_state_contract_hash"] = edge_entry_state_contract_hash
     return StagePlan(
         run_id=generation_plan.run_id,
         stage=stage,
@@ -664,6 +704,8 @@ def plan_stage(
         storyboard_dialogue_timing_profile=storyboard_dialogue_timing_profile,
         join_state_value_contract_version=join_state_value_contract_version,
         join_state_value_contract_hash=join_state_value_contract_hash,
+        edge_entry_state_contract_version=edge_entry_state_contract_version,
+        edge_entry_state_contract_hash=edge_entry_state_contract_hash,
         work_units=work_units,
         stage_plan_hash=sha256_text(canonical_json(unsigned)),
     )
@@ -904,6 +946,14 @@ def _unit_dependency_payload(
                 code="planning.join_state_value_contract_unresolvable",
                 stage=stage,
             ) from error
+        try:
+            edge_entry_states = compile_edge_entry_state_contract(graph)
+        except EdgeEntryStateContractError as error:
+            raise PlanningError(
+                "sealed Story Graph cannot produce an exact typed edge-entry contract",
+                code="planning.edge_entry_state_contract_unresolvable",
+                stage=stage,
+            ) from error
         context = {
             "story_bible": _json_value(bible),
             "story_node": _json_value(node),
@@ -920,6 +970,9 @@ def _unit_dependency_payload(
             ],
             "join_state_value_requirements": (
                 join_state_values.requirements_for_node(selector.stable_id)
+            ),
+            "edge_entry_state_requirements": (
+                edge_entry_states.requirements_for_node(selector.stable_id)
             ),
             "scene_timing_allocation": {
                 "allocationVersion": scene_timing_allocation.allocation_version,
