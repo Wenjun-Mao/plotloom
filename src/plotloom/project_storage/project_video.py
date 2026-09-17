@@ -195,12 +195,43 @@ class ProjectVideoRepository:
         return self._video.get_video_output_storage(project_id, video_job_id)
 
     def review_video_job(
-        self, project_id: str, video_job_id: str, *, reviewer: str, decision: str, note: str
+        self, project_id: str, video_job_id: str, *, reviewer: str, decision: str, note: str,
+        expected_selection_revision: int,
     ) -> dict[str, Any]:
         self._assert_project(project_id)
         return self._video.review_video_job(
-            project_id, video_job_id, reviewer=reviewer, decision=decision, note=note
+            project_id, video_job_id, reviewer=reviewer, decision=decision,
+            note=note, expected_selection_revision=expected_selection_revision,
         )
+
+    def discard_video_candidates(
+        self, project_id: str, *, shot_id: str, video_job_ids: list[str], expected_selection_revision: int,
+    ) -> None:
+        self._assert_project(project_id)
+        pending = self._video.discard_video_candidates(
+            project_id, shot_id=shot_id, video_job_ids=video_job_ids,
+            expected_selection_revision=expected_selection_revision,
+        )
+        self._delete_pending_candidate_artifacts(project_id, pending)
+
+    def discard_unselected_video_candidates(
+        self, project_id: str, *, shot_id: str, expected_selection_revision: int,
+    ) -> None:
+        self._assert_project(project_id)
+        pending = self._video.discard_unselected_video_candidates(
+            project_id, shot_id=shot_id, expected_selection_revision=expected_selection_revision,
+        )
+        self._delete_pending_candidate_artifacts(project_id, pending)
+
+    def _delete_pending_candidate_artifacts(self, project_id: str, pending: list[dict[str, str | None]]) -> None:
+        """Complete a marked disposal only after shared-reference rechecks."""
+        deleted_uris: set[str] = set()
+        for item in pending:
+            uri = item["uri"]
+            if uri and uri not in deleted_uris and not self._video.video_output_has_retained_reference(project_id, uri):
+                self.store.artifacts.delete(uri)
+                deleted_uris.add(uri)
+        self._video.finalize_video_candidate_disposal(project_id, [str(item["id"]) for item in pending]) if pending else None
 
     def recovery_provider_state(self, video_job_id: str) -> str | None:
         control = self.store.recovery_control()

@@ -50,6 +50,7 @@ class VideoReviewRequest(CamelModel):
     reviewer: str = Field(min_length=1, max_length=160)
     decision: Literal["select", "reject"]
     note: str = Field(min_length=2, max_length=2_000)
+    expected_selection_revision: int = Field(ge=0)
 
     @field_validator("reviewer", "note")
     @classmethod
@@ -58,3 +59,11 @@ class VideoReviewRequest(CamelModel):
         if not value:
             raise ValueError("review text must not be blank")
         return value
+
+
+class VideoDiscardRequest(CamelModel):
+    expected_selection_revision: int = Field(ge=0)
+
+
+class VideoDiscardUnselectedRequest(VideoDiscardRequest):
+    shot_id: str = Field(min_length=1, max_length=100)

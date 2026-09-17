@@ -135,6 +135,19 @@ class VideoReviewRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class VideoCandidateSelectionRow(Base):
+    """The revisioned, per-shot authority for one selected video candidate."""
+
+    __tablename__ = "v2_video_candidate_selections"
+    __table_args__ = (UniqueConstraint("project_id", "shot_id", name="uq_v2_video_candidate_selection_shot"),)
+
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True)
+    shot_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    selected_video_job_id: Mapped[str | None] = mapped_column(ForeignKey("v2_video_jobs.id", ondelete="RESTRICT"), nullable=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class ProjectVideoDispatchRow(Base):
     """Project evidence binding one job to an application-owned lease ID.
 

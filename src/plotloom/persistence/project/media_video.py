@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any, Protocol
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from ...domain import StageName, new_id, utc_now
 from ...exceptions import (
@@ -21,6 +20,8 @@ from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ManagedAssetRow,
     ReviewedShotBindingRow,
+    RunArtifactBlobRow,
+    VideoCandidateSelectionRow,
     VideoJobRow,
     VideoReviewRow,
     VisualIntentRow,
@@ -72,8 +73,6 @@ class VideoJobPersistence:
         self._same_person = same_person
         self._currentness = currentness
         self._accounting = accounting
-
-
     def video_budget(self) -> dict[str, Any]:
         if self._accounting is None:
             raise InvalidTransitionError(
@@ -358,16 +357,24 @@ class VideoJobPersistence:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)
             rows = session.scalars(select(VideoJobRow).where(VideoJobRow.project_id == project_id).order_by(VideoJobRow.created_at.desc(), VideoJobRow.id.desc())).all()
-            decisions = session.scalars(select(VideoReviewRow).where(VideoReviewRow.video_job_id.in_([row.id for row in rows])).order_by(VideoReviewRow.created_at.desc(), VideoReviewRow.id.desc())).all()
-            latest: dict[str, VideoReviewRow] = {}
-            jobs_by_id = {row.id: row for row in rows}
-            latest_by_shot: dict[str, VideoReviewRow] = {}
-            for decision in decisions:
-                latest.setdefault(decision.video_job_id, decision)
-                source = jobs_by_id.get(decision.video_job_id)
-                if source is not None:
-                    latest_by_shot.setdefault(str(source.snapshot.get("shot", {}).get("id")), decision)
-            return [self._currentness.video_job_dict(row, current=self._currentness.video_job_current_in_session(session, row), selected=(latest_by_shot.get(str(row.snapshot.get("shot", {}).get("id"))) is not None and latest_by_shot[str(row.snapshot.get("shot", {}).get("id"))].video_job_id == row.id and latest_by_shot[str(row.snapshot.get("shot", {}).get("id"))].decision == "select" and self._currentness.video_job_current_in_session(session, row))) for row in rows]
+            reviews_by_job: dict[str, list[dict[str, str]]] = {}
+            for review in session.scalars(
+                select(VideoReviewRow).where(VideoReviewRow.video_job_id.in_([row.id for row in rows]))
+                .order_by(VideoReviewRow.created_at.asc(), VideoReviewRow.id.asc())
+            ):
+                reviews_by_job.setdefault(review.video_job_id, []).append({
+                    "id": review.id, "reviewer": review.reviewer, "decision": review.decision,
+                    "note": review.note, "createdAt": _stored_utc(review.created_at).isoformat(),
+                })
+            selections = {
+                row.shot_id: row
+                for row in session.scalars(
+                    select(VideoCandidateSelectionRow).where(
+                        VideoCandidateSelectionRow.project_id == project_id
+                    )
+                )
+            }
+            return [self._video_job_projection(session, row, selections) | {"reviews": reviews_by_job.get(row.id, [])} for row in rows]
 
     def get_video_output_storage(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:
@@ -376,13 +383,118 @@ class VideoJobPersistence:
                 raise NotFoundError("locally ingested video candidate not found")
             return {"uri": job.output_uri, "hash": job.output_hash, "mimeType": "video/mp4"}
 
-    def review_video_job(self, project_id: str, video_job_id: str, *, reviewer: str, decision: str, note: str) -> dict[str, Any]:
+    def review_video_job(self, project_id: str, video_job_id: str, *, reviewer: str, decision: str, note: str, expected_selection_revision: int) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
             job = session.get(VideoJobRow, video_job_id)
             if job is None or job.project_id != project_id:
                 raise NotFoundError("video job not found")
             if job.state != "ingested" or not self._currentness.video_job_current_in_session(session, job):
                 raise InvalidTransitionError("only a current locally ingested video candidate can be reviewed")
+            shot_id = self._shot_id(job)
+            selection = session.get(
+                VideoCandidateSelectionRow, {"project_id": project_id, "shot_id": shot_id}
+            )
+            actual_revision = selection.revision if selection is not None else 0
+            if actual_revision != expected_selection_revision:
+                raise RevisionConflictError("video-candidate-selection", expected_selection_revision, actual_revision)
             review = VideoReviewRow(id=new_id(), video_job_id=job.id, reviewer=reviewer, decision=decision, note=note, created_at=utc_now())
             session.add(review)
-            return {"id": review.id, "videoJobId": job.id, "reviewer": reviewer, "decision": decision, "note": note, "createdAt": _stored_utc(review.created_at).isoformat()}
+            if decision == "select":
+                now = utc_now()
+                if selection is None:
+                    selection = VideoCandidateSelectionRow(
+                        project_id=project_id, shot_id=shot_id,
+                        selected_video_job_id=job.id, revision=1, updated_at=now,
+                    )
+                    session.add(selection)
+                else:
+                    selection.selected_video_job_id = job.id
+                    selection.revision += 1
+                    selection.updated_at = now
+            return {"id": review.id, "videoJobId": job.id, "reviewer": reviewer, "decision": decision, "note": note, "createdAt": _stored_utc(review.created_at).isoformat(), "selectionRevision": selection.revision if selection is not None else actual_revision}
+
+    def discard_video_candidates(
+        self, project_id: str, *, shot_id: str, video_job_ids: list[str], expected_selection_revision: int,
+    ) -> list[dict[str, str | None]]:
+        """Mark exactly named, unselected ingested candidates for recoverable cleanup."""
+        if not video_job_ids or len(set(video_job_ids)) != len(video_job_ids):
+            raise InvalidTransitionError("discard must name each candidate exactly once")
+        with self._access.leases.lifecycle_write() as session:
+            self._access.guards.active(self._access.rows.project(session, project_id))
+            selection = session.get(VideoCandidateSelectionRow, {"project_id": project_id, "shot_id": shot_id})
+            actual_revision = selection.revision if selection is not None else 0
+            if actual_revision != expected_selection_revision:
+                raise RevisionConflictError("video-candidate-selection", expected_selection_revision, actual_revision)
+            rows = list(session.scalars(select(VideoJobRow).where(VideoJobRow.id.in_(video_job_ids))).all())
+            if len(rows) != len(video_job_ids) or any(row.project_id != project_id or self._shot_id(row) != shot_id for row in rows):
+                raise NotFoundError("video discard candidate not found for this project shot")
+            selected_id = selection.selected_video_job_id if selection is not None else None
+            for row in rows:
+                if row.id == selected_id:
+                    raise InvalidTransitionError("the selected video candidate cannot be discarded")
+                if row.state not in {"ingested", "discard_pending"}:
+                    raise InvalidTransitionError("only an ingested candidate with a known local output can be discarded")
+            for row in rows:
+                if row.state == "ingested":
+                    row.state, row.updated_at = "discard_pending", utc_now()
+            return [{"id": row.id, "uri": row.output_uri} for row in rows]
+
+    def discard_unselected_video_candidates(
+        self, project_id: str, *, shot_id: str, expected_selection_revision: int,
+    ) -> list[dict[str, str | None]]:
+        with self._access.leases.read() as session:
+            rows = list(session.scalars(select(VideoJobRow).where(VideoJobRow.project_id == project_id)).all())
+            candidate_ids = [row.id for row in rows if self._shot_id(row) == shot_id and row.state in {"ingested", "discard_pending"}]
+        selection = self._selection_id(project_id, shot_id)
+        return self.discard_video_candidates(
+            project_id, shot_id=shot_id,
+            video_job_ids=[item for item in candidate_ids if item != selection],
+            expected_selection_revision=expected_selection_revision,
+        ) if candidate_ids and any(item != selection for item in candidate_ids) else []
+
+    def finalize_video_candidate_disposal(self, project_id: str, video_job_ids: list[str]) -> None:
+        with self._access.leases.lifecycle_write() as session:
+            rows = list(session.scalars(select(VideoJobRow).where(VideoJobRow.id.in_(video_job_ids))).all())
+            if len(rows) != len(video_job_ids) or any(row.project_id != project_id or row.state != "discard_pending" for row in rows):
+                raise InvalidTransitionError("video candidate disposal is no longer pending")
+            for row in rows:
+                row.state, row.output_uri, row.output_hash, row.updated_at = "discarded", None, None, utc_now()
+
+    def video_output_has_retained_reference(self, project_id: str, uri: str) -> bool:
+        with self._access.leases.read() as session:
+            if session.scalar(select(VideoJobRow.id).where(
+                VideoJobRow.project_id == project_id,
+                VideoJobRow.output_uri == uri,
+                VideoJobRow.state.not_in(("discard_pending", "discarded")),
+            ).limit(1)) is not None:
+                return True
+            if session.scalar(select(ManagedAssetRow.id).where(
+                ManagedAssetRow.project_id == project_id,
+                (ManagedAssetRow.original_uri == uri) | (ManagedAssetRow.display_uri == uri),
+            ).limit(1)) is not None:
+                return True
+            # One project database owns all of its run-artifact inventories,
+            # so a matching path in this table is necessarily project-local.
+            return session.scalar(select(RunArtifactBlobRow.run_id).where(
+                RunArtifactBlobRow.relative_path == uri
+            ).limit(1)) is not None
+
+    def _selection_id(self, project_id: str, shot_id: str) -> str | None:
+        with self._access.leases.read() as session:
+            row = session.get(VideoCandidateSelectionRow, {"project_id": project_id, "shot_id": shot_id})
+            return row.selected_video_job_id if row is not None else None
+
+    @staticmethod
+    def _shot_id(row: VideoJobRow) -> str:
+        shot = row.snapshot.get("shot")
+        if not isinstance(shot, dict) or not isinstance(shot.get("id"), str):
+            raise InvalidTransitionError("video candidate has no valid frozen shot")
+        return shot["id"]
+
+    def _video_job_projection(self, session: Session, row: VideoJobRow, selections: dict[str, VideoCandidateSelectionRow]) -> dict[str, Any]:
+        current = self._currentness.video_job_current_in_session(session, row)
+        selection = selections.get(self._shot_id(row))
+        return self._currentness.video_job_dict(
+            row, current=current,
+            selected=bool(selection and selection.selected_video_job_id == row.id and current),
+        ) | {"selectionRevision": selection.revision if selection is not None else 0}

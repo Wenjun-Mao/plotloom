@@ -57,20 +57,20 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   await expect(panel.getByText("MiniMax H3 本地视频候选")).toBeVisible();
   const profile = panel.getByLabel("H3 输出 Profile（必选）");
   await expect(profile).toHaveValue("minimax_h3_fp8_turbo4_portrait_576x1024_v1");
-  await expect(panel.getByRole("button", { name: "冻结当前审核关键帧" })).toBeDisabled();
+  await expect(panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" })).toBeDisabled();
   await expect(panel.getByTestId("h3-aspect-preparation")).toContainText("默认拒绝比例不符");
 
   // Crop consent is an author decision made before the job is frozen. The
   // original selected bytes remain bound; only the gateway transforms them.
   await panel.getByLabel("允许网关居中裁切（保留原审核关键帧）").check();
   await expect(panel.getByTestId("h3-center-crop-allowed")).toContainText("cover_center_crop");
-  await expect(panel.getByRole("button", { name: "冻结当前审核关键帧" })).toBeEnabled();
+  await expect(panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" })).toBeEnabled();
 
   const preparedPost = page.waitForResponse((response) => (
     response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`
   ));
-  await panel.getByRole("button", { name: "冻结当前审核关键帧" }).click();
+  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
   const preparedResponse = await preparedPost;
   expect(preparedResponse.ok()).toBeTruthy();
   expect(preparedResponse.request().postDataJSON()).toMatchObject({
@@ -92,7 +92,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
     response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs/${prepared.id}/review`
   ));
-  await panel.getByRole("button", { name: "显式选择" }).click();
+  await panel.getByRole("button", { name: "选择此候选" }).click();
   expect((await review).ok()).toBeTruthy();
 
   await expect.poll(async () => {
@@ -106,5 +106,6 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
 
   await workbench.restartBackend();
   await page.reload();
+  await page.getByLabel("路径过滤").selectOption({ index: 1 });
   await expect(page.getByTestId(`video-sequence-job-${prepared.id}`)).toBeVisible();
 });

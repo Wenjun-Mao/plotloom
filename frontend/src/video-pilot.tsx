@@ -66,6 +66,8 @@ function jobStatus(job: VideoJob): string {
   if (job.cancelRequestedAt) return "取消意图已记录：保留已知远端任务，但不会采用输出";
   if (!job.current) return "冻结输入已失效";
   if (job.selected) return "当前镜头的已显式选择";
+  if (job.state === "discard_pending") return "正在永久删除候选媒体；可安全重试";
+  if (job.state === "discarded") return "已永久删除候选媒体；仅保留最小记录";
   return "当前";
 }
 
@@ -264,7 +266,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {h3 && selectedProfile && !keyframe && <small className="notice warning">先为当前镜头审核选择一张关键帧，才能验证其与 H3 profile 的比例。</small>}
     {backend?.tracksPaidWanPilot !== false && <small>额度：{budget ? `${budget.reservedSeconds}/${budget.limitSeconds} 秒已保留，余 ${budget.remainingSeconds} 秒` : "读取中"}</small>}
     {h3 && <MiniMaxH3ReviewNotice />}
-    <div className="button-row"><Button disabled={cannotPrepare} onClick={() => void prepare()}>冻结当前审核关键帧</Button></div>
+    <div className="button-row"><Button disabled={cannotPrepare} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>
     {shot && <small>仅显示当前镜头：{shot.title}（{shot.id}）</small>}
     {error && <small className="notice warning">{error}</small>}
     {projectId && selectedSequence && <section className="video-sequence-status" data-testid="video-route-sequence-status">
@@ -276,14 +278,23 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {projectId && <BranchingVideoPreview projectId={projectId} jobs={jobs} storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} />}
     {visibleJobs.map((job) => <article key={job.id} data-testid={`video-job-${job.id}`}><strong>{frozenShot(job).title || frozenShot(job).id}</strong> · <strong>{job.state}</strong> · {job.requestedSeconds}s {job.observed ? `· ${job.observed.durationSeconds.toFixed(2)}s 实测` : ""}
       <small> · {jobStatus(job)}</small>
+      <small> · 选择版本 {job.selectionRevision} · 冻结设置 {JSON.stringify(job.snapshot.request || {})}</small>
+      {job.reviews.map((review) => <small key={review.id}> · 审阅：{review.reviewer} / {review.decision} / {review.note}</small>)}
       {job.state === "ingested" && projectId && <video controls preload="metadata" src={plotloomApi.videoJobMediaUrl(projectId, job.id)} data-testid={`video-job-player-${job.id}`} />}
       <div className="button-row">
         {job.state === "prepared" && <Button disabled={readOnly} onClick={() => void act(() => plotloomApi.submitVideoJob(projectId!, job.id), "提交未完成")}>提交一次</Button>}
         {(job.state === "submitted" || job.state === "retrieve_needed") && <Button disabled={readOnly} onClick={() => void act(() => plotloomApi.reconcileVideoJob(projectId!, job.id), "获取结果未完成")}>获取结果</Button>}
         {["prepared", "dispatching", "submitted", "retrieve_needed", "outcome_unknown"].includes(job.state) && !job.cancelRequestedAt && <Button variant="danger" disabled={readOnly} onClick={() => void act(() => plotloomApi.cancelVideoJob(projectId!, job.id), "取消意图未记录")}>记录取消意图</Button>}
-        {job.state === "ingested" && <Button disabled={readOnly || !job.current} onClick={() => void act(() => plotloomApi.reviewVideoJob(projectId!, job.id, "select", "local reviewer", "Explicit candidate selection after audiovisual review."), "选择未完成")}>显式选择</Button>}
+        {job.state === "ingested" && <Button disabled={readOnly || !job.current} onClick={() => void act(() => plotloomApi.reviewVideoJob(projectId!, job.id, "select", "local reviewer", "Explicit candidate selection after audiovisual review.", job.selectionRevision), "选择未完成")}>选择此候选</Button>}
+        {job.state === "ingested" && !job.selected && <Button variant="danger" disabled={readOnly} onClick={() => {
+          if (window.confirm("永久删除此未选择视频候选？此操作不可撤销。")) void act(() => plotloomApi.discardVideoJob(projectId!, job.id, job.selectionRevision), "删除未完成");
+        }}>永久删除</Button>}
       </div>
       {job.error && <small>{job.error}</small>}</article>)}
     {shot && visibleJobs.length === 0 && <small>当前镜头尚无冻结的视频请求。</small>}
+    {shot && visibleJobs.some((job) => job.state === "ingested" && !job.selected) && <Button variant="danger" disabled={readOnly} onClick={() => {
+      const revision = visibleJobs[0]?.selectionRevision ?? 0;
+      if (window.confirm("永久删除当前镜头所有未选择的视频候选？此操作不可撤销。")) void act(() => plotloomApi.discardUnselectedVideoJobs(projectId!, shot.id, revision), "批量删除未完成");
+    }}>删除全部未选择候选</Button>}
   </Panel>;
 }

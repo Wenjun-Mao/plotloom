@@ -21,8 +21,8 @@ function deferred<T>() {
 function job(projectId: string, shotId: string): VideoJob {
   return {
     id: `job-${projectId}`, projectId, state: "prepared", cancelRequestedAt: null,
-    requestedSeconds: 5, current: true, selected: false, providerPredictionId: null,
-    outputHash: null, observed: null, error: null, snapshot: { shot: { id: shotId, title: `Shot ${shotId}` } },
+    requestedSeconds: 5, current: true, selected: false, selectionRevision: 0, providerPredictionId: null,
+    outputHash: null, observed: null, error: null, reviews: [], snapshot: { shot: { id: shotId, title: `Shot ${shotId}` } },
   };
 }
 
@@ -131,7 +131,7 @@ it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async
   await act(async () => { await Promise.resolve(); });
 
   expect(host.textContent).toContain("MiniMax H3 本地视频候选");
-  const freeze = [...host.querySelectorAll("button")].find((item) => item.textContent === "冻结当前审核关键帧");
+  const freeze = [...host.querySelectorAll("button")].find((item) => item.textContent === "生成另一候选（冻结当前审核关键帧）");
   expect(freeze?.disabled).toBe(true);
   expect(host.querySelector('[data-testid="h3-aspect-preparation"]')?.textContent).toContain("默认拒绝比例不符");
   const crop = host.querySelectorAll('input[type="radio"]')[1] as HTMLInputElement;

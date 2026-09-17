@@ -161,6 +161,17 @@ class ProjectArtifactStore:
             )
         )
 
+    def delete(self, uri: str) -> None:
+        """Delete one verified, project-owned content-addressed blob.
+
+        Callers must first remove every durable reference.  This deliberately
+        has no recursive form and reuses the same confinement checks as reads.
+        """
+        relative = _relative_owned_path(uri)
+        path = self._owned._path_for(relative, final_must_exist=False)
+        if path.exists():
+            self._owned._path_for(relative, final_must_exist=True).unlink()
+
 
 class ProjectRunArtifactStore(ProjectArtifactStore):
     """Run-bound adapter that records every opaque runtime byte in project storage."""

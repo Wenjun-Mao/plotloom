@@ -350,11 +350,13 @@ export interface VideoBackendProfile {
 export interface VideoJob {
   id: string;
   projectId: string;
-  state: "prepared" | "dispatching" | "submitted" | "outcome_unknown" | "retrieve_needed" | "ingested" | "cancelled" | "failed";
+  state: "prepared" | "dispatching" | "submitted" | "outcome_unknown" | "retrieve_needed" | "ingested" | "discard_pending" | "discarded" | "cancelled" | "failed";
   cancelRequestedAt: string | null;
   requestedSeconds: number;
   current: boolean;
   selected: boolean;
+  selectionRevision: number;
+  reviews: Array<{ id: string; reviewer: string; decision: "select" | "reject"; note: string; createdAt: string }>;
   providerPredictionId: string | null;
   outputHash: string | null;
   observed: {

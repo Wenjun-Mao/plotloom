@@ -35,7 +35,7 @@ from tests.project_storage_fixtures import fixture_profile as _fixture_profile
 class FakeH3:
     """Typed transport fixture; it never sends a network request."""
 
-    def __init__(self, *, endpoint: str = "http://127.0.0.1:9010") -> None:
+    def __init__(self, *, endpoint: str = "http://127.0.0.1:9010", outputs: list[bytes] | None = None) -> None:
         self.submits: list[dict] = []
         self.downloads = 0
         self.preflight_calls = 0
@@ -45,6 +45,7 @@ class FakeH3:
         self.before_preflight: Callable[[], None] | None = None
         self.submit_error: Exception | None = None
         self._endpoint = endpoint
+        self._outputs = outputs
 
     def configured_backend_identity(self) -> VideoBackendInstanceIdentity:
         return VideoBackendInstanceIdentity.from_public_configuration(
@@ -74,6 +75,8 @@ class FakeH3:
     def download(self, reference: str) -> bytes:
         assert reference == "h3_0123456789abcdef0123456789abcdef"
         self.downloads += 1
+        if self._outputs:
+            return self._outputs[min(self.downloads - 1, len(self._outputs) - 1)]
         return b"offline-h3-project-video"
 
 
@@ -347,7 +350,7 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
     assert provider.downloads == 1
     selected = client.post(
         f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/review",
-        json={"reviewer": "project-video fixture", "decision": "select", "note": "Store this local candidate."},
+        json={"reviewer": "project-video fixture", "decision": "select", "note": "Store this local candidate.", "expectedSelectionRevision": 0},
     )
     assert selected.status_code == 201, selected.text
     media = client.get(
@@ -385,6 +388,7 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
             "reviewer": "offline restore fixture",
             "decision": "select",
             "note": "The retained local candidate remains selected.",
+            "expectedSelectionRevision": 1,
         },
     )
     assert local_review.status_code == 201, local_review.text
@@ -392,6 +396,107 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
         f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/media"
     )
     assert restored_media.content == b"offline-h3-project-video"
+
+
+def test_video_candidates_keep_selection_and_dispose_only_unselected_shared_bytes(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+
+    first = _prepare_video(client, project_id, approval, context, key="candidate-one")
+    second = _prepare_video(client, project_id, approval, context, key="candidate-two")
+    assert first["id"] != second["id"]
+    for candidate in (first, second):
+        assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit").status_code == 200
+        assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
+
+    selected_first = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/review",
+        json={"reviewer": "fixture", "decision": "select", "note": "First reviewed candidate.", "expectedSelectionRevision": 0},
+    )
+    assert selected_first.status_code == 201, selected_first.text
+    jobs = {item["id"]: item for item in client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]}
+    assert jobs[first["id"]]["selected"] is True and jobs[second["id"]]["selected"] is False
+
+    selected_second = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/review",
+        json={"reviewer": "fixture", "decision": "select", "note": "Second reviewed candidate.", "expectedSelectionRevision": 1},
+    )
+    assert selected_second.status_code == 201, selected_second.text
+    stale = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/review",
+        json={"reviewer": "fixture", "decision": "select", "note": "This stale intent must lose.", "expectedSelectionRevision": 1},
+    )
+    assert stale.status_code == 409
+
+    discarded = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/discard",
+        json={"expectedSelectionRevision": 2},
+    )
+    assert discarded.status_code == 204, discarded.text
+    jobs = {item["id"]: item for item in client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]}
+    assert jobs[first["id"]]["state"] == "discarded"
+    assert jobs[second["id"]]["selected"] is True
+    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/media").status_code == 404
+    # The fixture provider intentionally returns identical bytes; disposal of
+    # the first candidate must not erase the selected candidate's shared blob.
+    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/media").status_code == 200
+    selected_discard = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/discard",
+        json={"expectedSelectionRevision": 2},
+    )
+    assert selected_discard.status_code == 409
+    # Discarded rows retain no half-addressed output metadata, so reopening
+    # the file-SQLite project validates the remaining selected candidate.
+    reopened = storage.projects.open(project_id)
+    reopened.close()
+    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/media").status_code == 200
+
+
+def test_video_disposal_keeps_a_cross_kind_managed_asset_blob(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3(outputs=[b"first-candidate", b"selected-candidate"])
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+    first = _prepare_video(client, project_id, approval, context, key="cross-kind-first")
+    second = _prepare_video(client, project_id, approval, context, key="cross-kind-second")
+    for candidate in (first, second):
+        assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit").status_code == 200
+        assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
+    assert client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/review",
+        json={"reviewer": "fixture", "decision": "select", "note": "Keep the second candidate.", "expectedSelectionRevision": 0},
+    ).status_code == 201
+    opened = storage.projects.open(project_id)
+    retained = opened.media.direct_video.get_video_output_storage(project_id, first["id"])
+    retained_bytes = opened.artifacts.get(retained["uri"])
+    opened.media.record_managed_import(
+        project_id, original_hash=sha256(retained_bytes).hexdigest(), display_hash=sha256(retained_bytes).hexdigest(),
+        mime_type="video/mp4", byte_size=len(retained_bytes), width=1, height=1,
+        declaration={"source": "cross-kind disposal fixture"},
+        publish=lambda: (retained["uri"], retained["uri"]),
+    )
+    opened.close()
+    assert client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/discard",
+        json={"expectedSelectionRevision": 1},
+    ).status_code == 204
+    reopened = storage.projects.open(project_id)
+    assert reopened.artifacts.get(retained["uri"]) == retained_bytes
+    reopened.close()
+    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/media").status_code == 404
+    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/media").status_code == 200
 
 
 def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamper_stales(
@@ -973,6 +1078,7 @@ def test_reviewed_video_selection_stales_when_its_identity_reference_is_replaced
             "reviewer": "project-video fixture",
             "decision": "select",
             "note": "The local fixture is explicitly reviewed before it is used.",
+            "expectedSelectionRevision": 0,
         },
     )
     assert selected.status_code == 201, selected.text

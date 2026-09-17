@@ -541,6 +541,7 @@ def test_production_runtime_composes_the_typed_h3_video_path(tmp_path: Path) -> 
                 "reviewer": "runtime H3 fixture",
                 "decision": "select",
                 "note": "Select the locally ingested H3 fixture.",
+                "expectedSelectionRevision": 0,
             },
         )
         assert reviewed.status_code == 201

@@ -34,7 +34,7 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
     response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`,
   );
-  await panel.getByRole("button", { name: "冻结当前审核关键帧" }).click();
+  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
   const preparedRequest = await preparedResponse;
   expect(preparedRequest.ok(), await preparedRequest.text()).toBeTruthy();
   const prepared = await preparedRequest.json() as { id: string };
@@ -43,8 +43,25 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   await expect(job.getByRole("button", { name: "获取结果" })).toBeVisible();
   await job.getByRole("button", { name: "获取结果" }).click();
   await expect(page.getByTestId(`video-job-player-${prepared.id}`)).toBeVisible();
-  await job.getByRole("button", { name: "显式选择" }).click();
+  await job.getByRole("button", { name: "选择此候选" }).click();
+  await page.getByLabel("路径过滤").selectOption({ index: 1 });
   await expect(page.getByTestId(`video-sequence-job-${prepared.id}`)).toBeVisible();
+  // A second deliberate generation uses a new client idempotency key.  It
+  // must leave the first selected candidate playable until the reviewer makes
+  // a fresh, explicit selection.
+  const alternativeResponse = page.waitForResponse((response) =>
+    response.request().method() === "POST"
+    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`,
+  );
+  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
+  const alternative = await (await alternativeResponse).json() as { id: string };
+  expect(alternative.id).not.toBe(prepared.id);
+  const alternativeJob = page.getByTestId(`video-job-${alternative.id}`);
+  await alternativeJob.getByRole("button", { name: "提交一次" }).click();
+  await alternativeJob.getByRole("button", { name: "获取结果" }).click();
+  await alternativeJob.getByRole("button", { name: "选择此候选" }).click();
+  await expect(page.getByTestId(`video-sequence-job-${alternative.id}`)).toBeVisible();
+  await expect(page.getByTestId(`video-sequence-job-${prepared.id}`)).toHaveCount(0);
   const localMedia = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${prepared.id}/media`, {
     headers: { Range: "bytes=0-15" },
   });
@@ -73,10 +90,16 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
     PLOTLOOM_APPLICATION_DATA_DIR: path.join(isolatedRoot, "application"),
   });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-  await expect(page.getByTestId(`video-sequence-job-${prepared.id}`)).toBeVisible();
-  const restoredMedia = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${prepared.id}/media`);
+  await page.getByLabel("路径过滤").selectOption({ index: 1 });
+  await expect(page.getByTestId(`video-sequence-job-${alternative.id}`)).toBeVisible();
+  const restoredMedia = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${alternative.id}/media`);
   expect(restoredMedia.ok()).toBeTruthy();
   expect((await restoredMedia.body()).byteLength).toBeGreaterThan(100);
+  page.once("dialog", (dialog) => dialog.accept());
+  await page.getByTestId(`video-job-${prepared.id}`).getByRole("button", { name: "永久删除" }).click();
+  await expect(page.getByTestId(`video-job-${prepared.id}`)).toContainText("已永久删除候选媒体");
+  expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${prepared.id}/media`)).status()).toBe(404);
+  expect((await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${alternative.id}/media`)).ok()).toBeTruthy();
   // Do not leak this isolated restore root into a later worker-scoped browser
   // journey; the fixture's default restart returns to its original paths.
   await workbench.restartBackend();

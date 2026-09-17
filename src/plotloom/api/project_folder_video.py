@@ -12,7 +12,7 @@ from ..project_storage.application_store import ApplicationStore
 from ..project_storage.project_handle import ProjectStore
 from ..project_storage.project_video import ProjectVideoRepository
 from ..project_storage.video_service import ProjectVideoService
-from ..video_contracts import VideoJobRequest, VideoReviewRequest
+from ..video_contracts import VideoDiscardRequest, VideoDiscardUnselectedRequest, VideoJobRequest, VideoReviewRequest
 
 
 def register_project_folder_video_routes(
@@ -116,7 +116,33 @@ def register_project_folder_video_routes(
                 reviewer=body.reviewer,
                 decision=body.decision,
                 note=body.note,
+                expected_selection_revision=body.expected_selection_revision,
             )
+
+    @app.post("/api/v2/projects/{project_id}/video-jobs/{video_job_id}/discard", status_code=status.HTTP_204_NO_CONTENT)
+    def discard_video_job(project_id: str, video_job_id: str, body: VideoDiscardRequest) -> Response:
+        with opened_project(project_id) as store:
+            job = next((item for item in _local_repository(store).list_video_jobs(project_id) if item["id"] == video_job_id), None)
+            if job is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="video discard candidate not found")
+            shot = job.get("snapshot", {}).get("shot", {})
+            shot_id = shot.get("id") if isinstance(shot, dict) else None
+            if not isinstance(shot_id, str):
+                raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="video candidate has no valid frozen shot")
+            _local_repository(store).discard_video_candidates(
+                project_id, shot_id=shot_id, video_job_ids=[video_job_id],
+                expected_selection_revision=body.expected_selection_revision,
+            )
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    @app.post("/api/v2/projects/{project_id}/video-jobs/discard-unselected", status_code=status.HTTP_204_NO_CONTENT)
+    def discard_unselected_video_jobs(project_id: str, body: VideoDiscardUnselectedRequest) -> Response:
+        with opened_project(project_id) as store:
+            _local_repository(store).discard_unselected_video_candidates(
+                project_id, shot_id=body.shot_id,
+                expected_selection_revision=body.expected_selection_revision,
+            )
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
 
     @app.get("/api/v2/projects/{project_id}/video-jobs/{video_job_id}/media")
     def serve_video_media(

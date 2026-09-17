@@ -97,7 +97,7 @@ function branchingFixture() {
 async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string): Promise<string> {
   const allowLetterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
-  await panel.getByRole("button", { name: "冻结当前审核关键帧" }).click();
+  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconciled = page.waitForResponse((response) => {
     const pathname = new URL(response.url()).pathname;
@@ -114,7 +114,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
     && new URL(response.url()).pathname.startsWith(`/api/v2/projects/${projectId}/video-jobs/`)
     && new URL(response.url()).pathname.endsWith("/review")
   ));
-  await panel.getByRole("button", { name: "显式选择" }).click();
+  await panel.getByRole("button", { name: "选择此候选" }).click();
   const response = await selected;
   expect(response.ok()).toBeTruthy();
   return job.id;
