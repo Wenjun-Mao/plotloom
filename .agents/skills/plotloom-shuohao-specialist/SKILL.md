@@ -36,7 +36,8 @@ not a backend job, a review decision, or permission to edit canon.
    Never create `package/delivery`. Do not produce media in this F0 path.
 3. Copy the completion template to `delivery/completion.json` and fill it
    truthfully: actual byte hashes, checked-out code revision, this skill's hash,
-   model/reasoning only when known, and concrete limitations. Publish the
+   model/reasoning when known (including a coordinator-specified execution
+   model), and concrete limitations. Publish the
    completion file last, once; do not edit it or either declared output later.
 4. Re-read the manifest and compare job ID, request hash, stage, filenames, and
    hashes with the frozen request. Report only the package and candidate paths.
