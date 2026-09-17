@@ -89,3 +89,11 @@ F0 remains a checkout-operated candidate transport. It does not support the
 specialist from an installed wheel and it has no chosen, implemented, or proven
 review/canonical-install owner. The F1 UI/install decision and its owner proof
 remain open; creative/product acceptance is still unclaimed.
+
+Recovery verification at `447f8ff`: a new `git clone --recurse-submodules`
+checked out the recorded `4322897e6d2bdaf66365534fd40194360c75a85f` gitlink
+and passed the focused exchange suite (9 passed). The full Python suite passed
+(574 passed; one existing Starlette deprecation warning), and the built wheel
+passed `scripts/smoke_installed_wheel.py`. No frontend or browser suite was
+rerun because this recovery changes only the backend handoff seam, CI checkout,
+and documentation.
