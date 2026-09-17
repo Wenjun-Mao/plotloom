@@ -10,7 +10,7 @@ export type DraftRecoverySource = "server" | "session" | "reconcile";
 export type DurableDraftStatus = "idle" | "saving" | "saved" | "failed" | "conflict";
 
 export const navigation: { id: PageId; index: string; label: string; description: string }[] = [
-  { id: "brief", index: "01", label: "项目简报", description: "边界与预算" },
+  { id: "brief", index: "01", label: "项目简报", description: "梗概与提案" },
   { id: "bible", index: "02", label: "故事圣经", description: "人物与规则" },
   { id: "graph", index: "03", label: "剧情 DAG", description: "分支与汇合" },
   { id: "beats", index: "04", label: "场景节拍", description: "原子事件" },

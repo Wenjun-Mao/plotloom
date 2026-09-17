@@ -4,7 +4,7 @@ import { ApiError, plotloomApi } from "../../api";
 import { discardDraft, discardDraftRecord, findProjectDrafts, getDraft, putDraft, type DraftRecord, type DraftScope } from "../../draft-registry";
 import { useAuthoringDraftAutosave } from "../../features/authoring/useAuthoringDraftAutosave";
 import type { ProjectDraftQuiescence } from "../../features/authoring/projectDraftQuiescence";
-import { markDownstreamStale, mergeProjectResponse, stageLabels } from "../../model";
+import { markDownstreamStale, mergeProjectResponse, serverStages, stageLabels } from "../../model";
 import { initialStagesThrough, projectCreationBody, projectCreationRequest, workspaceWithStageDraft } from "../../project-creation";
 import type { ProjectResource, ServerStageName, WorkspaceProject } from "../../types";
 import { authoringDraftKey, canonicalDraftConsumption, messageFrom, newClientDraftOwner, validationIssuesFrom, type DurableDraftStatus, type WorkspaceOperation } from "./contracts";
@@ -122,7 +122,7 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     void session.reloadCanonicalProject(projectId, epoch);
   }, []);
 
-  const createProjectFrom = useCallback(async (nextLocal: WorkspaceProject, operation: WorkspaceOperation, initialStage?: ServerStageName) => {
+  const createProjectFrom = useCallback(async (nextLocal: WorkspaceProject, operation: WorkspaceOperation, initialStage?: ServerStageName): Promise<string | undefined> => {
     const source = current.current;
     const request = projectCreationRequest(nextLocal.brief, initialStage ? initialStagesThrough(nextLocal, initialStage) : []);
     const body = projectCreationBody(request);
@@ -132,25 +132,27 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
       createKeys.current.set(body, idempotencyKey);
     }
     const created = await plotloomApi.createProject(request, idempotencyKey);
-    if (!source.session.isCurrent(operation)) return false;
+    if (!source.session.isCurrent(operation)) return undefined;
     const storyboardReady = created.stages.some((stage) => stage.head.stage === "storyboard" && stage.head.status === "ready");
     const review = storyboardReady ? await plotloomApi.getStoryboardReview(created.id).catch(() => null) : null;
-    if (!source.session.isCurrent(operation)) return false;
+    if (!source.session.isCurrent(operation)) return undefined;
     source.session.acceptCreatedProject(nextLocal, created, review);
     createKeys.current.delete(body);
     cancelSave();
-    return true;
+    return created.id;
   }, [cancelSave]);
 
-  const commitProject = useCallback(async (patch: Partial<WorkspaceProject>) => {
+  const commitProject = useCallback(async (patch: Partial<WorkspaceProject>): Promise<string | undefined> => {
     const generation = beginSave();
-    if (!generation) return;
+    if (!generation) return undefined;
     const source = current.current;
     const operation = source.session.capture();
     const nextLocal = mergeProjectResponse(source.session.project, patch);
     try {
       if (!source.session.project.id) {
-        if (!await createProjectFrom(nextLocal, operation, nextLocal.initialStageOnFirstSave)) return;
+        const createdId = await createProjectFrom(nextLocal, operation, nextLocal.initialStageOnFirstSave);
+        if (!createdId) return undefined;
+        return createdId;
       } else {
         if (source.durableDraftsEnabled.current && getDraft(source.session.project, "brief") && !await flushAuthoringDraft("brief")) return;
         const serverDraft = source.session.serverDrafts.current.get(authoringDraftKey(source.session.project.id, "brief"));
@@ -168,14 +170,18 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
           refreshStaleAcceptedProject(source.session.project.id);
           return;
         }
-        source.session.acceptCanonicalProject(mergeProjectResponse(nextLocal, saved.project));
+        // The project contract invalidates every canonical stage when its Brief
+        // changes. ProjectResource intentionally carries no stage envelopes,
+        // so retain the existing heads but immediately project that server
+        // invalidation until the next canonical aggregate reload.
+        source.session.acceptCanonicalProject({
+          ...mergeProjectResponse(nextLocal, saved.project),
+          staleStages: [...serverStages],
+        });
         currentDraft.current = undefined;
         setRestoredDraft(undefined);
-        return;
+        return saved.project.id;
       }
-      discardDraft(source.session.project, "brief");
-      currentDraft.current = undefined;
-      setRestoredDraft(undefined);
     } catch (error) {
       if (!source.session.isCurrent(operation)) return;
       source.feedback.setError(messageFrom(error));

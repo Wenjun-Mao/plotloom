@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { plotloomApi } from "../../api";
+import { ApiError, plotloomApi } from "../../api";
 import { findProjectDrafts } from "../../draft-registry";
 import { providerSessionKeys } from "../../session-key";
 import type { AuthoringDraft, PipelineRun } from "../../types";
@@ -131,12 +131,19 @@ function resumeActiveRun(
   }
   if (blocked) return;
   const profileId = String(run.providerSnapshot.profileId || "default");
+  // The aggregate load can overlap an independently submitted run completing.
+  // A resulting resume conflict is a terminal-run observation race, not a
+  // project-load failure.
   void plotloomApi.resumeRun(run.id, profileId, run.providerSnapshot.textAuthMode !== "none")
-    .then(() => {
-      if (isCurrent()) input.observeRun(run.id, projectId);
-    })
+    .then(() => { if (isCurrent()) input.observeRun(run.id, projectId); })
     .catch((error) => {
       if (!isCurrent()) return;
+      if (error instanceof ApiError && error.status === 409) {
+        // It became terminal during resume. Keep the canonical project and let
+        // the normal observer load its final progress.
+        input.observeRun(run.id, projectId);
+        return;
+      }
       input.session.rejectProjectLoad(undefined);
       input.reportMessage(`无法加载项目 ${projectId}：${messageFrom(error)}。项目未加载；没有回退到示例。`);
     });

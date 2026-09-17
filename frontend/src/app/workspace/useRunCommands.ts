@@ -49,6 +49,22 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
   }, [currentness, openTrace, prepareProfile, profiles.draft.enabled, project.id, setBusy, setError]);
+  const startProposal = useCallback(async (projectId: string) => {
+    if (!projectId) { setError("请先保存梗概，再生成故事提案。"); return; }
+    if (profiles.draft.enabled === false) { setError("当前活动 Profile 已停用；请先在设置中启用可用 Profile。不会自动切换后端。"); return; }
+    const operation = currentness.capture(); setBusy(true); setError("");
+    try {
+      const saved = await prepareProfile();
+      if (!currentness.isCurrent(operation)) return;
+      const started = await plotloomApi.startRun(projectId, ["story_bible", "story_graph"], saved.profileId, saved.configuration.textAuthMode === "bearer");
+      if (!currentness.isCurrent(operation)) return;
+      // A proposal is a review of these two existing stages, not a new run type
+      // or a transition into scenes/storyboard. Keep the user in that review.
+      session.acceptRun(started);
+      await pollRun(started.id, projectId);
+    } catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
+    finally { if (currentness.isCurrent(operation)) setBusy(false); }
+  }, [currentness, pollRun, prepareProfile, profiles.draft.enabled, session, setBusy, setError]);
   const cancelRun = useCallback(async () => {
     if (!isSelectedRun(run)) return;
     const operation = currentness.capture();
@@ -78,5 +94,5 @@ export function useRunCommands({ session, profiles, pollRun, openTrace, setBusy,
     catch (error) { if (currentness.isCurrent(operation)) setError(describeError(error)); }
     finally { if (currentness.isCurrent(operation)) setBusy(false); }
   }, [activePage, currentness, hasDraft, openTrace, prepareProfile, project.id, setBusy, setError]);
-  return { startRun, cancelRun, resumeRun, repair, rebuild };
+  return { startRun, startProposal, cancelRun, resumeRun, repair, rebuild };
 }

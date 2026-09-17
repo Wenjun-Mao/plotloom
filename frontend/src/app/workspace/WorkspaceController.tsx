@@ -79,7 +79,7 @@ export default function WorkspaceController() {
       current: authoring.currentDraft,
       durableEnabled: durableDraftsEnabledRef,
       flush: authoring.flushAuthoringDraft,
-      commitProject: authoring.commitProject,
+      commitProject: async (patch) => { await authoring.commitProject(patch); },
       commitStage: authoring.commitStage,
       clearRecovery: () => recovery.setRecovery(undefined),
       clearConflict: () => authoring.setDraftConflict(undefined),
@@ -92,7 +92,7 @@ export default function WorkspaceController() {
   const lifecycle = useProjectLifecycle({
     session,
     currentDraft: authoring.currentDraft,
-    commitProject: authoring.commitProject,
+    commitProject: async (patch) => { await authoring.commitProject(patch); },
     commitStage: authoring.commitStage,
     discardCurrentAuthoringDraft: authoring.discardCurrentAuthoringDraft,
     mediaDraftQuiescence,
@@ -229,7 +229,7 @@ export default function WorkspaceController() {
   ];
   const page = useMemo(() => {
     switch (activePage) {
-      case "brief": return <BriefPage key={`${editorRevisionKey(project, "brief")}:${recovery.editorNonce}`} value={recoveredValue("brief", project.brief)} saving={authoring.projectSaving || projectReadOnly} onSave={(brief) => authoring.commitProject({ brief })} onDraftChange={(value) => authoring.rememberDraft("brief", value)} />;
+      case "brief": return <BriefPage key={`${editorRevisionKey(project, "brief")}:${recovery.editorNonce}`} value={recoveredValue("brief", project.brief)} bible={project.storyBible} graph={project.storyGraph} saving={authoring.projectSaving || projectReadOnly} proposalRunning={Boolean(running && run?.requestedStages.length === 2 && run.requestedStages[0] === "story_bible" && run.requestedStages[1] === "story_graph")} proposalReady={Boolean(stageHeads.story_bible?.status === "ready" && stageHeads.story_graph?.status === "ready" && !project.staleStages.includes("story_bible") && !project.staleStages.includes("story_graph"))} onSave={(brief) => authoring.commitProject({ brief })} onGenerateProposal={async (brief) => { const projectId = await authoring.commitProject({ brief }); if (projectId) await commands.startProposal(projectId); }} onDraftChange={(value) => authoring.rememberDraft("brief", value)} onReviewStage={(stage) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage })} onContinueToPlanning={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "beats" })} />;
       case "bible": return <StoryBiblePage key={`${editorRevisionKey(project, "story_bible")}:${recovery.editorNonce}`} projectId={project.id} storyBibleRevision={stageHeads.story_bible?.revision} value={recoveredValue("story_bible", project.storyBible)} stale={project.staleStages.includes("story_bible")} saving={authoring.projectSaving || projectReadOnly} entityId={routeEntity} referenceContext={{ sceneBeats: project.sceneBeats, storyboard: project.storyboard }} issues={validationIssues.story_bible} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: StoryBible) => authoring.commitStage("story_bible", value)} onDraftChange={(value) => authoring.rememberDraft("story_bible", value)} />;
       case "graph": return <GraphPage key={`${editorRevisionKey(project, "story_graph")}:${recovery.editorNonce}`} value={recoveredValue("story_graph", project.storyGraph)} stale={project.staleStages.includes("story_graph")} saving={authoring.projectSaving || projectReadOnly} entityId={routeEntity} sceneReferences={project.sceneBeats.scenes.map((scene) => ({ id: scene.id, storyNodeId: scene.storyNodeId, title: scene.title }))} issues={validationIssues.story_graph} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: StoryGraph) => authoring.commitStage("story_graph", value)} onDraftChange={(value) => authoring.rememberDraft("story_graph", value)} />;
       case "beats": return <SceneBeatsPage key={`${editorRevisionKey(project, "scene_beats")}:${recovery.editorNonce}`} value={recoveredValue("scene_beats", project.sceneBeats)} stale={project.staleStages.includes("scene_beats")} saving={authoring.projectSaving || projectReadOnly} entityId={routeEntity} referenceContext={{ nodes: project.storyGraph.nodes, characters: project.storyBible.characters, locations: project.storyBible.locations, props: project.storyBible.props, storyboard: { shots: project.storyboard.shots.map(({ id, sceneId, cueIds }) => ({ id, sceneId, cueIds })), shotBeatLinks: project.storyboard.shotBeatLinks.map(({ shotId, beatId }) => ({ shotId, beatId })) } }} issues={validationIssues.scene_beats} onEntitySelect={workspaceNavigation.selectRouteEntity} onSave={(value: SceneBeatPlan) => authoring.commitStage("scene_beats", value)} onDraftChange={(value) => authoring.rememberDraft("scene_beats", value)} />;
