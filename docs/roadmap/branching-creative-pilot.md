@@ -49,6 +49,19 @@ restart, or durable recovery acceptance. Verification stopped after one attempt
 per ending; no media, source, configuration, or selection was changed. See the
 receipt for exact native observations and the bounded player/serving follow-up.
 
+### Checkpoint 4 diagnostic boundary — 2026-09-16
+
+The bounded follow-up first found that the retained production runtime was no
+longer serving the retained project in native Chrome: it showed `Failed to fetch`
+and `PLOTLOOM 服务：未连接`. The checkout build was identified, but no live static
+or media response was available to establish its production-byte identity. The
+prescribed single-terminal plain-player-versus-branch comparison was therefore
+not run: a checkout restart, review copy, or alternate endpoint would not test
+the prior same-byte production failure. Checkpoint 4 remains blocked at the
+serving/runtime observability boundary. See
+`docs/verification/2026-09-16-terminal-video-runtime-boundary.md` for the
+recorded evidence and bounded continuation.
+
 ## Approved execution allowance
 
 - At most **5 ImageGen calls** total: one identity plus four keyframes. Reusing an
