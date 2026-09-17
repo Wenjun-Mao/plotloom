@@ -38,7 +38,7 @@ added.
 | --- | --- |
 | focused rendered-prompt and Graph-admission tests | `uv run --locked pytest -q tests/generation/test_prompts.py tests/generation/test_join_state_values.py` — 17 passed |
 | locked Python suite | `uv run --locked pytest -q` — 565 passed; one existing FastAPI/TestClient deprecation warning |
-| direct serial production browser suite | `npm --prefix frontend run test:e2e` — 47 passed in 1.4m |
+| direct full production browser suite (default worker count, not single-worker) | `npm --prefix frontend run test:e2e` — 47 passed in 1.4m |
 | fresh package check | `uv build --wheel` plus `uv run --locked python scripts/smoke_installed_wheel.py dist` — passed |
 | diff hygiene | `git diff --check` — passed |
 
@@ -61,3 +61,10 @@ This closes the explicit Graph prompt-agreement correction only. It does not
 resolve the retained checkpoint-3B causal/creative findings and does not assert
 human or product acceptance. Director acceptance, merge, and push remain
 separate.
+
+Director engineering acceptance: `c738e63` closes the typed-entry enforcement,
+source-binding, modularity, and explicit prompt-agreement correction. Retained
+logs were inspected; the browser run's earlier “serial” label was incorrect and
+is corrected above. Its full default-worker pass is the fresh browser evidence
+for this template-only delta; no single-worker rerun is claimed. Checkpoint 3B
+still requires a bounded live requalification and concrete causal review.
