@@ -88,6 +88,24 @@ def _cue_order_fact():
     )
 
 
+def _required_entity_presence_fact():
+    return parse_semantic_repair_fact(
+        {
+            "code": "semantic.required_entity_not_in_shot",
+            "path": ["shots", 0, "requiredEntityStates", 0, "entityId"],
+            "shotLocalId": "shot-a",
+            "entityType": "prop",
+            "entityId": "letter",
+            "state": "mailed",
+            "characterIds": ["hero"],
+            "locationId": "pier",
+            "propIds": [],
+            "action": "主角独自面对离岸的海。",
+            "composition": "画面没有信件。",
+        }
+    )
+
+
 def test_single_typed_fact_selects_only_its_static_directive() -> None:
     fact = _join_allowed_fact()
     issue = _issue(fact.code, fact.path)
@@ -235,6 +253,22 @@ def test_cue_order_fact_selects_only_exact_membership_directive() -> None:
     ]
     assert "CueOrderRepairFact" in plan.directives[0].text
     assert "expectedOrder" in plan.directives[0].text
+    assert plan.prompt_evidence["facts"] == [
+        fact.model_dump(mode="json", by_alias=True, exclude_none=True)
+    ]
+
+
+def test_required_entity_presence_fact_carries_same_shot_depiction_provenance() -> None:
+    fact = _required_entity_presence_fact()
+    issue = _issue(fact.code, fact.path)
+
+    plan = compile_correction_instruction_plan([issue], [fact])
+
+    assert [directive.id for directive in plan.directives] == [
+        "shot_entity_and_cue_order"
+    ]
+    assert "RequiredEntityPresenceRepairFact" in plan.directives[0].text
+    assert "entryState/exitState" in plan.directives[0].text
     assert plan.prompt_evidence["facts"] == [
         fact.model_dump(mode="json", by_alias=True, exclude_none=True)
     ]

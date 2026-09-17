@@ -1059,6 +1059,55 @@ class RequiredEntityStateRepairFact(CamelModel):
         return self
 
 
+class RequiredEntityPresenceRepairFact(CamelModel):
+    """Source-bound depiction context for one absent required entity state.
+
+    The fact does not choose whether to delete the requirement or add depicted
+    membership. It makes that bounded creative choice auditable by carrying
+    only the rejected requirement and the same-shot fields that establish what
+    the response actually depicts.
+    """
+
+    model_config = CamelModel.model_config | {"frozen": True}
+
+    code: Literal["semantic.required_entity_not_in_shot"]
+    path: tuple[str | int, ...]
+    shot_local_id: NonBlankText
+    entity_type: EntityType
+    entity_id: NonBlankText
+    state: NonBlankText
+    character_ids: tuple[NonBlankText, ...]
+    location_id: NonBlankText | None
+    prop_ids: tuple[NonBlankText, ...]
+    action: str
+    composition: str
+
+    @model_validator(mode="after")
+    def validate_absent_same_shot_membership(self) -> "RequiredEntityPresenceRepairFact":
+        if (
+            len(self.path) != 5
+            or self.path[0] != "shots"
+            or not isinstance(self.path[1], int)
+            or isinstance(self.path[1], bool)
+            or self.path[1] < 0
+            or self.path[2] != "requiredEntityStates"
+            or not isinstance(self.path[3], int)
+            or isinstance(self.path[3], bool)
+            or self.path[3] < 0
+            or self.path[4] != "entityId"
+        ):
+            raise ValueError("path must identify one requiredEntityStates entityId")
+        if self.entity_type == EntityType.CHARACTER:
+            is_present = self.entity_id in self.character_ids
+        elif self.entity_type == EntityType.LOCATION:
+            is_present = self.entity_id == self.location_id
+        else:
+            is_present = self.entity_id in self.prop_ids
+        if is_present:
+            raise ValueError("presence repair fact requires an entity absent from its shot")
+        return self
+
+
 class ContinuityEntityStateRepairFact(CamelModel):
     """One source-bound Bible vocabulary repair at a continuity boundary.
 
@@ -1141,6 +1190,7 @@ CurrentSemanticRepairFact: TypeAlias = Annotated[
     | JoinEntryStateValueRepairFact
     | AudioTimingRepairFact
     | RequiredEntityStateRepairFact
+    | RequiredEntityPresenceRepairFact
     | ContinuityEntityStateRepairFact,
     Field(discriminator="code"),
 ]
@@ -2964,6 +3014,71 @@ def storyboard_required_entity_state_repair_facts(
     return tuple(facts)
 
 
+def storyboard_required_entity_presence_repair_facts(
+    value: Any,
+    issues: tuple[ValidationIssue, ...],
+) -> tuple[RequiredEntityPresenceRepairFact, ...]:
+    """Project rejected shot membership and depiction context without choosing a fix."""
+
+    relevant_issues = tuple(
+        issue
+        for issue in issues
+        if issue.code == "semantic.required_entity_not_in_shot"
+    )
+    if not relevant_issues:
+        return ()
+    try:
+        output = StoryboardFragmentOutput.model_validate(
+            value,
+            by_alias=True,
+            by_name=False,
+        )
+    except ValidationError:
+        return ()
+    facts: list[RequiredEntityPresenceRepairFact] = []
+    for issue in relevant_issues:
+        path = issue.path
+        if (
+            len(path) != 5
+            or path[0] != "shots"
+            or not isinstance(path[1], int)
+            or isinstance(path[1], bool)
+            or path[1] < 0
+            or path[2] != "requiredEntityStates"
+            or not isinstance(path[3], int)
+            or isinstance(path[3], bool)
+            or path[3] < 0
+            or path[4] != "entityId"
+        ):
+            continue
+        shot_index = path[1]
+        state_index = path[3]
+        if shot_index >= len(output.shots):
+            continue
+        shot = output.shots[shot_index]
+        if state_index >= len(shot.required_entity_states):
+            continue
+        requirement = shot.required_entity_states[state_index]
+        if required_entity_is_in_shot(requirement, shot):
+            continue
+        facts.append(
+            RequiredEntityPresenceRepairFact(
+                code=issue.code,
+                path=path,
+                shot_local_id=shot.local_shot_id,
+                entity_type=requirement.entity_type,
+                entity_id=requirement.entity_id,
+                state=requirement.state,
+                character_ids=tuple(shot.character_ids),
+                location_id=shot.location_id,
+                prop_ids=tuple(shot.prop_ids),
+                action=shot.action,
+                composition=shot.composition,
+            )
+        )
+    return tuple(facts)
+
+
 def continuity_entity_state_repair_facts(
     value: Any,
     issues: tuple[ValidationIssue, ...],
@@ -3897,6 +4012,9 @@ def semantic_repair_facts(
             if bible is not None
             else ()
         )
+        required_entity_presence_facts = (
+            storyboard_required_entity_presence_repair_facts(value, issues)
+        )
         timing_facts = storyboard_timing_repair_facts(
             value,
             issues,
@@ -3911,6 +4029,7 @@ def semantic_repair_facts(
             *continuity_entity_state_facts,
             *continuity_facts,
             *required_entity_state_facts,
+            *required_entity_presence_facts,
             *timing_facts,
             *audio_facts,
         )
@@ -4046,6 +4165,24 @@ def assert_semantic_repair_fact_matches_issue(
     if not any(issue.code == fact.code and issue.path == fact.path for issue in issues):
         raise ValueError(
             "deterministic repair fact has no matching stable validation issue"
+        )
+
+
+def assert_required_entity_presence_repair_fact_matches_source(
+    fact: RequiredEntityPresenceRepairFact,
+    source_value: Any,
+    *,
+    issues: tuple[ValidationIssue, ...],
+) -> None:
+    """Prove a persisted depiction fact was derived from its rejected response."""
+
+    current_facts = storyboard_required_entity_presence_repair_facts(
+        source_value,
+        issues,
+    )
+    if fact not in current_facts:
+        raise ValueError(
+            "required-entity presence repair fact does not match the rejected source"
         )
 
 

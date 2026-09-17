@@ -150,8 +150,8 @@ constraints. Immediately before compiling a correction, Plotloom re-extracts
 the rejected final and deterministically re-derives the whole join fact against
 the frozen topology and validation issues; a fabricated edge ID, changed value,
 or fact rebound to another source is rejected. The current policy/compiler
-identities are `bounded_correction.v23`, `correction_directives.v5`,
-`correction_evidence_projection.v3`, and `correction_response_schema.v5`.
+identities are `bounded_correction.v24`, `correction_directives.v6`,
+`correction_evidence_projection.v4`, and `correction_response_schema.v5`.
 Older artifacts retain their original JSON, hashes, and seals; they are neither
 rewritten nor relabelled as evidence for this contract.
 

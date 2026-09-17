@@ -132,7 +132,7 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     assert "本轮适用的静态纠错指令" in correction_spec.user
     assert "只执行上方本轮列出的静态指令" in correction_spec.user
     assert scene_spec.version == "3.13.0"
-    assert correction_spec.version == "3.11.0"
+    assert correction_spec.version == "3.12.0"
     assert "每换一个 beat 都必须重新从 1 开始" in scene_spec.user
     assert "两条 cue 的 order 都是 1" in scene_spec.user
     assert "sound 只表示在该连续性边界持续存在" in scene_spec.user
@@ -147,7 +147,7 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     storyboard_fragment_spec, _spec_hash, _source = repository.load(
         "storyboard_fragment"
     )
-    assert storyboard_fragment_spec.version == "3.4.0"
+    assert storyboard_fragment_spec.version == "3.5.0"
     for spec in (scene_spec, storyboard_fragment_spec):
         assert "状态变化只发生在同一个" in spec.user
         assert "两端共同声明的键" in spec.user

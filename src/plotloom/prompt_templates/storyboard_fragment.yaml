@@ -1,5 +1,5 @@
 id: storyboard_fragment
-version: "3.4.0"
+version: "3.5.0"
 stage: storyboard
 description: Create a closed shot/coverage fragment for one dramatic scene.
 system: |-
@@ -37,7 +37,7 @@ user: |-
   primaryShotLocalIdByBeat 必须包含 Schema 中每一个 beat ID，且每个值必须是本次 shots 中的 localShotId；系统据此确定性生成每个 beat 恰好一个 PRIMARY link。supportingBeatLinks 只能从 Schema 的 beatId enum 中选择，可额外提供 SUPPORTING 覆盖；没有补充覆盖时也必须返回空数组 []。
   一个 shot 可覆盖一个连续 beat 段；当 shotsPerSceneMax 小于 beat 数量时，必须让同一个 localShotId 覆盖多个连续 beats，并在 action 中描述连续推进，不能遗漏 beat。
   所有 durationUnits 都使用整数毫秒，所有 shots 的 durationUnits 总和不得超过【目标戏剧场景】的 durationBudgetUnits。cueIds 仅可从 Schema 提供的 cue ID enum 选择。每个 cue 在本场景的调度必须恰好一次，且不能在同一或多个 shot 中重复；同一 shot 中 cueIds 必须按【该场景节拍】的 beat.order、再按该 beat 内 cue.order 的 canonical 顺序排列，且对应 estimatedDurationUnits 总和不得超过该 shot.durationUnits。绝不能输出 dialogue 文本字段。audioPlan 是唯一声音合同，且只包含 events；events 可以为 []，没有明确叙事需要时必须使用 []，不要为了填字段虚构声音。每个 event 只填写 kind、description、startOffsetUnits 与 durationUnits；canonical audio event ID 由系统在验证后确定性生成，绝不能输出 id。kind 只能是 ambience、sound_effect、diegetic_sound、diegetic_music 或 score；逐项复核 startOffsetUnits + durationUnits 必须小于或等于本 shot 的 durationUnits，绝不能输出 audio 自由字符串。
-  requiredEntityStates 是镜头所需实体状态的显式引用；每项均填写 entityType、entityId、state，entityId 只能引用故事圣经中对应类型的角色、地点或道具，state 必须是该实体 allowedStates 中的值，且实体必须实际出现在同一 shot：character 在 characterIds、location 等于 locationId、prop 在 propIds。不要输出 provider reference slot、URL 或素材路径。
+  requiredEntityStates 只记录这个镜头实际描绘的实体状态；每项均填写 entityType、entityId、state，entityId 只能引用故事圣经中对应类型的角色、地点或道具，state 必须是该实体 allowedStates 中的值，且实体必须实际出现在同一 shot：character 在 characterIds、location 等于 locationId、prop 在 propIds。人物在场外、物件已经寄走、或世界连续性中的进入/离开事实不能仅因叙事相关而写入 requiredEntityStates；这些场外连续性只属于 entryState/exitState。不要为了通过验证把未被 action 或 composition 描绘的角色、地点或道具加入镜头。不要输出 provider reference slot、URL 或素材路径。
   每个 shot 的 entryState、exitState 都必须完整输出 facts、entityStates、screenDirection、lighting、sound、notes；每个 entityStates 项均填写 entityType、entityId、state，且必须是故事圣经中对应类型实体的 allowedStates 值。整个场景必须满足 scene.entryState → 按 shot.order 排列的 shot.entryState/exitState → scene.exitState 的连续性：相邻两端同时声明同一事实、实体状态、screenDirection、lighting 或 sound 时必须逐值一致。状态变化只发生在同一个 shot 的 entryState → exitState 内；后一 shot 的 entryState 必须逐值复制前一 shot.exitState 中两端共同声明的键。不要在同一相邻边界为同一键写出旧值和新值。没有内容时也分别写出 {}、[] 或 null，不能省略任何一项。
   不要生成供应商专用的图片或视频提示词；媒体提示词由后续版本化模板独立编译。
 variables:

@@ -65,3 +65,59 @@ quality/recovery gap, not a reason to relax validators or invent repair
 semantics.
 
 The owned local runtime stopped after evidence capture.
+
+## Follow-up: prospective entity-presence correction and one current continuation
+
+The retained run above remains frozen evidence and was not edited or repaired.
+Its `semantic.required_entity_not_in_shot` failures were valid: required state
+membership is shot depiction, while the missing brother and mailed letter are
+world/continuity facts. The demonstrated fault was the correction contract: it
+gave the model a generic add-or-delete instruction without source-bound
+same-shot membership, action, or composition context.
+
+The prospective correction records that context in
+`RequiredEntityPresenceRepairFact`; its directive prefers deleting an
+off-screen requirement and permits membership only when the shot actually
+depicts the entity. The strict membership validator is unchanged. [ADR
+0055](../adr/0055-storyboard-required-entity-presence-correction.md) records
+the ownership boundary. New primary and correction prompt identities are
+versioned; no old prompt, plan, hash, or retry evidence was rewritten.
+
+Focused regression covers the off-screen brother/mailed-prop case, a genuinely
+depicted state, strict rejection, directive evidence, and rejection-source
+provenance. An independent Terra read-only review reported no findings.
+
+### Current-contract continuation
+
+The supported path was a fresh pipeline continuation, not exact repair: run
+`d8fa2bc5-102f-409b-a8cb-851789a573a4` requested only `scene_beats` and
+`storyboard` from the unchanged default local profile. Its immutable snapshot
+retained Bible r2 hash `8c1db99d…a7859f6` and Graph r2 hash
+`b5e7ad75…9176a4d5`. It sealed all 8 Scene Beats and all 8 Storyboard units,
+then atomically installed Scene Beats r1 (8 scenes, 16 beats, 15 dialogue
+cues) and Storyboard r1 (15 shots). One Scene Beats primary response failed
+`semantic.continuity_beat_sequence_mismatch`; the existing visible bounded
+correction succeeded. There were no quarantines and no further dispatch.
+
+Storyboard r1 has 43 required entity states and none is outside same-shot
+membership. Gate set `storyboard.v2` passed all 508 results. It has no active
+Approval and no approval decisions. The scene progression carries the letter,
+branch choice, city/brother consequences, join, and two endings through
+editable fields; dialogue is nevertheless sparse and repeats the central
+choice/apology. This is engineering evidence only, not human creative
+acceptance or checkpoint-3B qualification.
+
+### Follow-up verification
+
+| Check | Result |
+| --- | --- |
+| focused generation contract tests | 49 passed |
+| `uv run --locked pytest -q` | 559 passed; one existing FastAPI/TestClient deprecation warning |
+| frontend unit and typecheck | 158 tests passed; typecheck passed |
+| deterministic frontend build/static freshness | passed; existing over-500 kB Vite warning remains |
+| full serial production browser suite | 45/46 passed; `video-pilot.spec.ts:150` timed out after restart/reload while requesting `GET video-jobs` |
+| isolated `video-pilot` diagnostic | passed in 18.1s; this does not establish a playback failure |
+| wheel build and installed-wheel smoke | passed |
+
+Logs and live API evidence are retained under the Relay assignment scratch
+directory. The owned runtime was stopped after evidence capture.

@@ -381,10 +381,17 @@ _DIRECTIVES: tuple[_DirectiveDefinition, ...] = (
             "semantic.required_entity_not_in_shot",
             "semantic.cue_canonical_order",
         ),
-        required_fact_models={},
+        required_fact_models={
+            "semantic.required_entity_not_in_shot": "RequiredEntityPresenceRepairFact",
+        },
         text=(
-            "对 semantic.required_entity_not_in_shot，将实体加入同一 shot 的对应引用或删除不需要的"
-            " requirement；对 semantic.cue_canonical_order，按 beat.order、再 cue.order 重排 cueIds。"
+            "对 semantic.required_entity_not_in_shot，只以同 code/path 的 "
+            "RequiredEntityPresenceRepairFact 为权威：它记录被拒绝 requirement、同一 shot 已描绘的"
+            "成员以及该镜头的 action/composition。若 action 与 composition 没有描绘该实体，优先删除"
+            "该场外 requirement；不得为通过验证而把已寄出、离场或其他未描绘实体加入 characterIds、"
+            "locationId 或 propIds。世界连续性仍属于 entryState/exitState。只有 action 或 composition"
+            "确实描绘该实体时，才把它加入对应同一 shot 成员。不得发明实体、状态或场外动作。"
+            "对 semantic.cue_canonical_order，按 beat.order、再 cue.order 重排 cueIds。"
         ),
     ),
 )

@@ -1,5 +1,5 @@
 id: work_unit_correction
-version: "3.11.0"
+version: "3.12.0"
 stage: correction
 description: Correct one rejected final response without changing its frozen contract.
 system: |-

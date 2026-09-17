@@ -36,6 +36,7 @@ from plotloom.generation.work_units import (
     DialogueCueContent,
     DialogueCapacityRepairFact,
     DramaticSceneContent,
+    RequiredEntityPresenceRepairFact,
     RequiredEntityStateRepairFact,
     SceneBeatsFragmentOutput,
     ShotContent,
@@ -44,8 +45,11 @@ from plotloom.generation.work_units import (
     canonical_audio_event_id,
     canonical_fragment_id,
     scene_beats_dialogue_capacity_repair_facts,
+    semantic_repair_facts,
     storyboard_audio_timing_repair_facts,
+    storyboard_required_entity_presence_repair_facts,
     storyboard_required_entity_state_repair_facts,
+    assert_required_entity_presence_repair_fact_matches_source,
 )
 
 
@@ -63,7 +67,10 @@ def _inputs() -> tuple[ProjectBrief, StoryBibleV2, StoryGraphV2, SceneBeatPlanV2
     bible = StoryBibleV2(
         logline="l", premise="p", genre="", tone="", audience="", narrative_promise="",
         visual_language="", themes=[], world_rules=[], known_facts=[], open_questions=[], source_notes=[],
-        characters=[CharacterV2(id="speaker", name="说话者", description="", visual_anchors=[], sound_anchors=[], allowed_states=["awake"], continuity_rules=[], role=None, goal="", traits=[], voice_anchors=[])],
+        characters=[
+            CharacterV2(id="speaker", name="说话者", description="", visual_anchors=[], sound_anchors=[], allowed_states=["awake"], continuity_rules=[], role=None, goal="", traits=[], voice_anchors=[]),
+            CharacterV2(id="offscreen", name="离场者", description="", visual_anchors=[], sound_anchors=[], allowed_states=["missing"], continuity_rules=[], role=None, goal="", traits=[], voice_anchors=[]),
+        ],
         locations=[],
         props=[PropV2(id="prop", name="道具", description="", visual_anchors=[], sound_anchors=[], allowed_states=["intact"], continuity_rules=[])],
     )
@@ -690,6 +697,81 @@ def test_m12a_entity_state_repair_fact_fails_closed_without_state_vocabulary() -
         (issue,),
         bible=bible,
     ) == ()
+
+
+def test_m12a_required_entity_presence_keeps_validation_strict_and_projects_depiction_context() -> None:
+    _, bible, _, _, _ = _inputs()
+    output = _board_output()
+    shot = output["shots"][0]
+    shot["action"] = "说话者独自站在空码头，望向已经离岸的潮水。"
+    shot["composition"] = "中景只保留说话者和空手。"
+    shot["requiredEntityStates"] = [
+        {"entityType": "character", "entityId": "offscreen", "state": "missing"},
+        {"entityType": "prop", "entityId": "prop", "state": "intact"},
+    ]
+    board = _compiled(StageName.STORYBOARD)
+    report = board.validator.validate(
+        output,
+        context=SemanticValidationContext(stage="storyboard"),
+    )
+
+    assert report.accepted is False
+    assert [issue.code for issue in report.issues] == [
+        "semantic.required_entity_not_in_shot",
+        "semantic.required_entity_not_in_shot",
+    ]
+    facts = storyboard_required_entity_presence_repair_facts(output, report.issues)
+    assert facts == (
+        RequiredEntityPresenceRepairFact(
+            code="semantic.required_entity_not_in_shot",
+            path=("shots", 0, "requiredEntityStates", 0, "entityId"),
+            shot_local_id="shot",
+            entity_type="character",
+            entity_id="offscreen",
+            state="missing",
+            character_ids=("speaker",),
+            location_id=None,
+            prop_ids=(),
+            action=shot["action"],
+            composition=shot["composition"],
+        ),
+        RequiredEntityPresenceRepairFact(
+            code="semantic.required_entity_not_in_shot",
+            path=("shots", 0, "requiredEntityStates", 1, "entityId"),
+            shot_local_id="shot",
+            entity_type="prop",
+            entity_id="prop",
+            state="intact",
+            character_ids=("speaker",),
+            location_id=None,
+            prop_ids=(),
+            action=shot["action"],
+            composition=shot["composition"],
+        ),
+    )
+    assert_required_entity_presence_repair_fact_matches_source(
+        facts[0], output, issues=report.issues
+    )
+    assert semantic_repair_facts(
+        output,
+        report.issues,
+        stage=StageName.STORYBOARD,
+        bible=bible,
+    ) == facts
+    with pytest.raises(ValueError, match="does not match"):
+        assert_required_entity_presence_repair_fact_matches_source(
+            facts[0].model_copy(update={"action": "篡改"}),
+            output,
+            issues=report.issues,
+        )
+
+    depicted = _board_output()
+    assert board.validator.validate(
+        depicted,
+        context=SemanticValidationContext(stage="storyboard"),
+    ).accepted
+    assert storyboard_required_entity_presence_repair_facts(depicted, ()) == ()
+    assert "只记录这个镜头实际描绘的实体状态" in board.rendered.messages[1].content
 
 
 def test_m12a_storyboard_fragment_rejects_legacy_raw_dialogue_and_audio() -> None:

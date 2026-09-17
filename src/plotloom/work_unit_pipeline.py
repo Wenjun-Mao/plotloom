@@ -76,11 +76,13 @@ from .generation.work_units import (
     CompiledWorkUnitRequest,
     JoinStateEffectRepairFact,
     ContinuityEntityStateRepairFact,
+    RequiredEntityPresenceRepairFact,
     SemanticRepairFact,
     StoryboardTimingRepairPlanFact,
     WorkUnitContractError,
     compile_work_unit_request,
     assert_cue_order_repair_fact_matches_source,
+    assert_required_entity_presence_repair_fact_matches_source,
     assert_join_state_effect_repair_fact_matches_source,
     parse_semantic_repair_fact,
     assert_continuity_repair_fact_matches_source,
@@ -1075,6 +1077,7 @@ class DurableWorkUnitRunner:
                 isinstance(fact, StoryboardTimingRepairPlanFact)
                 or isinstance(fact, JoinStateEffectRepairFact)
                 or isinstance(fact, ContinuityEntityStateRepairFact)
+                or isinstance(fact, RequiredEntityPresenceRepairFact)
                 or fact.code
                 in {
                     "semantic.continuity_beat_sequence_mismatch",
@@ -1140,6 +1143,16 @@ class DurableWorkUnitRunner:
                             if work_unit.stage in {StageName.SCENE_BEATS, StageName.STORYBOARD}
                             else None
                         ),
+                    )
+                except ValueError as error:
+                    raise CorrectionSourceContractError(str(error)) from error
+            if isinstance(fact, RequiredEntityPresenceRepairFact):
+                assert source_value is not None
+                try:
+                    assert_required_entity_presence_repair_fact_matches_source(
+                        fact,
+                        source_value,
+                        issues=tuple(validated_issues),
                     )
                 except ValueError as error:
                     raise CorrectionSourceContractError(str(error)) from error
