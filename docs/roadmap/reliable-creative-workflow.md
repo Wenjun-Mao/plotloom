@@ -135,6 +135,10 @@ an editing/mixing feature.
 
 ## Deferred
 
+Current next implementation: [video candidate review](video-candidate-review.md),
+approved generate/compare/select/discard workflow. Codex ImageGen and owner H3
+development calls are pre-authorized; no other provider fallback is authorized.
+
 Next approved bounded deliverable: [complete branching creative pilot](branching-creative-pilot.md).
 Its separate allowance is 5 ImageGen calls and 4 five-second H3 submissions;
 previous caps remain exhausted.

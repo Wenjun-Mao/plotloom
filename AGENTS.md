@@ -4,6 +4,7 @@
 - Breaking changes and targeted development-data resets are the preferred default. Do not add or retain backward-compatibility layers, historical replay support, or automatic backups unless explicitly required. Remove obsolete code and tests with retired contracts; prefer the smallest current-contract implementation.
 - Keep resets and deletions scoped to identified disposable data. Preserve current user-valued assets and work unless their removal is explicitly authorized; retain credential protection, transaction integrity, and unknown-dispatch safety. This policy does not authorize broad deletion or removal of current product features such as snapshot/restore.
 - Keep credentials out of project state, persistence, logs, traces, and public settings.
+- Development/test generation through Codex ImageGen and the owner's H3 gateway is pre-authorized; no per-call user approval is needed. Use bounded experiments and preserve dispatch safety. Other providers or paid fallbacks require explicit approval; generation authority does not imply creative acceptance or deletion authority.
 - Preserve the extraction boundary: production code must not import or read Narrative Forge V1 runtime paths or data.
 - Record durable changes to public APIs, prompt/schema contracts, persistence, runtime behavior, or workflow semantics as concise ADRs.
 - Keep generated frontend assets in `src/plotloom/static/` fresh whenever `frontend/` changes.
