@@ -7,6 +7,7 @@ from hashlib import sha256
 from pathlib import Path
 
 import pytest
+from sqlalchemy import update
 
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
@@ -17,7 +18,14 @@ from plotloom.source_outline_contracts import (
     SourceMaterial,
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.exceptions import RevisionConflictError
+from plotloom.domain import ProjectLifecycleStatus, utc_now
+from plotloom.exceptions import (
+    InvalidTransitionError,
+    ProjectBusyError as LifecycleProjectBusyError,
+    RevisionConflictError,
+)
+from plotloom.persistence.schema import ProjectRow
+from plotloom.project_storage import ProjectBusyError
 
 
 def _material(kind: str = "synopsis") -> SourceMaterial:
@@ -133,6 +141,7 @@ def test_stale_foreign_and_racing_deliveries_cannot_change_accepted_content(tmp_
             second.admit_outline_delivery(delivery)
         assert second.source_outline_state().accepted_outline is None
 
+        first.cancel_outline_candidate(request.job_id)
         first.save_source_material(expected_source_revision=1, material=_material("imported_text"))
         with pytest.raises(RevisionConflictError):
             first.save_source_material(expected_source_revision=1, material=_material("existing_work"))
@@ -166,8 +175,10 @@ def test_malformed_and_racing_candidate_admission_leave_accepted_outline_unchang
             exchange.read_delivery(request)
         assert store.source_outline_state().accepted_outline is None
 
-        # A clean subsequent package uses a new identity; malformed delivery
-        # remains only rejected handoff evidence and cannot be installed.
+        # A malformed external folder does not itself terminally resolve the
+        # persisted publication. The author explicitly cancels it before a
+        # different frozen identity can be prepared.
+        store.cancel_outline_candidate(request.job_id)
         next_request = CreativeHandoffRequest.model_validate(
             request.model_dump(mode="python") | {"job_id": "ch_" + "b" * 32}
         )
@@ -177,6 +188,8 @@ def test_malformed_and_racing_candidate_admission_leave_accepted_outline_unchang
         accepted = store.accept_outline_candidate(OutlineAcceptRequest(
             job_id=ready.job_id, expected_source_revision=1, expected_outline_revision=0,
         ))
+        with pytest.raises(InvalidTransitionError, match="accepted"):
+            store.cancel_outline_candidate(ready.job_id)
         with pytest.raises(RevisionConflictError):
             store.accept_outline_candidate(OutlineAcceptRequest(
                 job_id=ready.job_id, expected_source_revision=1, expected_outline_revision=0,
@@ -184,3 +197,101 @@ def test_malformed_and_racing_candidate_admission_leave_accepted_outline_unchang
         assert store.source_outline_state().accepted_outline == accepted.accepted_outline
     finally:
         store.close()
+
+
+def test_cancelled_outline_publication_unblocks_lifecycle_and_rejects_late_install(
+    tmp_path: Path,
+) -> None:
+    """A persisted prepared job stays busy until its own terminal cancellation."""
+
+    storage = _storage(tmp_path)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    source = _material()
+    store.save_source_material(expected_source_revision=0, material=source)
+    request = _request(project_id, source)
+    store.prepare_outline_candidate(request)
+    delayed_delivery = _deliver(store, request)
+    lifecycle_revision = store.project().lifecycle_revision
+    with pytest.raises(InvalidTransitionError, match="cancel the prepared"):
+        store.save_source_material(expected_source_revision=1, material=_material("imported_text"))
+    replacement = CreativeHandoffRequest.model_validate(
+        request.model_dump(mode="python") | {"job_id": "ch_" + "b" * 32}
+    )
+    with pytest.raises(InvalidTransitionError, match="cancel the prepared"):
+        store.prepare_outline_candidate(replacement)
+    store.close()
+
+    with pytest.raises(ProjectBusyError, match="source_outline_publication_active"):
+        storage.projects.close_project(project_id)
+    with pytest.raises(ProjectBusyError, match="source_outline_publication_active"):
+        storage.lifecycle.archive(project_id, expected_lifecycle_revision=lifecycle_revision)
+    with pytest.raises(ProjectBusyError, match="source_outline_publication_active"):
+        storage.recovery.create_snapshot(project_id)
+    store = storage.projects.open(project_id)
+    try:
+        with pytest.raises(LifecycleProjectBusyError):
+            store.archive(expected_lifecycle_revision=lifecycle_revision)
+    finally:
+        store.close()
+
+    store = storage.projects.open(project_id)
+    try:
+        cancelled = store.cancel_outline_candidate(request.job_id)
+        assert cancelled.candidate is not None
+        assert cancelled.candidate.status == "cancelled"
+        with pytest.raises(CreativeHandoffError, match="cancelled"):
+            store.admit_outline_delivery(delayed_delivery)
+        with pytest.raises(CreativeHandoffError, match="cancelled"):
+            store.outline_candidate_request(request.job_id)
+        with pytest.raises(InvalidTransitionError, match="not ready"):
+            store.accept_outline_candidate(OutlineAcceptRequest(
+                job_id=request.job_id, expected_source_revision=1,
+                expected_outline_revision=0,
+            ))
+        assert store.source_outline_state().accepted_outline is None
+    finally:
+        store.close()
+
+    assert storage.recovery.create_snapshot(project_id).status == "complete"
+    assert storage.projects.close_project(project_id) >= 1
+
+
+def test_prepared_outline_publication_blocks_permanent_delete_of_historical_archive(
+    tmp_path: Path,
+) -> None:
+    """The permanent-delete boundary also scans persisted prepared jobs.
+
+    Normal archive first rejects a prepared job.  This setup represents an
+    archived folder created before that guard existed, so the delete guard is
+    independently proven against the actual persisted candidate row.
+    """
+
+    storage = _storage(tmp_path)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    source = _material()
+    store.save_source_material(expected_source_revision=0, material=source)
+    store.prepare_outline_candidate(_request(project_id, source))
+    # An older release could have persisted this impossible combination before
+    # the shared lifecycle guard existed. Set up that exact historical row
+    # directly, then prove the current permanent-delete boundary still refuses
+    # to erase a project while its specialist can publish.
+    project = store.project()
+    with store.repository.engine.begin() as connection:
+        connection.execute(update(ProjectRow).where(ProjectRow.id == project_id).values(
+            lifecycle_status=ProjectLifecycleStatus.ARCHIVED.value,
+            lifecycle_revision=project.lifecycle_revision + 1,
+            archived_at=utc_now(),
+            updated_at=utc_now(),
+        ))
+    archived = store.project()
+    title = archived.brief.title
+    store.close()
+
+    with pytest.raises(ProjectBusyError, match="source_outline_publication_active"):
+        storage.lifecycle.permanently_delete(
+            project_id,
+            expected_lifecycle_revision=archived.lifecycle_revision,
+            confirmation_title=title,
+        )

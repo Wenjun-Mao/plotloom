@@ -67,7 +67,7 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
       </article>
 
       <article className="panel source-outline-candidate" data-testid="source-outline-candidate">
-        <header><span>02 · Candidate only</span><strong>{candidate ? `${candidate.status === "ready" ? "可审核" : "等待 specialist"} · ${candidate.jobId.slice(0, 11)}` : "尚无候选"}</strong></header>
+        <header><span>02 · Candidate only</span><strong>{candidate ? `${candidate.status === "ready" ? "可审核" : candidate.status === "accepted" ? "已接受" : candidate.status === "cancelled" ? "已取消" : "等待 specialist"} · ${candidate.jobId.slice(0, 11)}` : "尚无候选"}</strong></header>
         <p>候选只能来自当前接受的来源和大纲版本；它不会自动替换已接受内容。</p>
         {!candidate && <Button variant="primary" disabled={readOnly || busy || !state.source} onClick={() => {
           setBusy(true); setError("");
@@ -81,6 +81,7 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
             setBusy(true); setError("");
             void plotloomApi.refreshOutlineCandidate(projectId, candidate.jobId).then(load).catch((refreshError) => setError(sourceMessage(refreshError))).finally(() => setBusy(false));
           }}>{busy ? "正在检查…" : "刷新 specialist delivery"}</Button>}
+          {(candidate.status === "prepared" || candidate.status === "ready") && <Button variant="danger" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.cancelOutlineCandidate(projectId, candidate.jobId))}>取消并废弃此 handoff</Button>}
           {candidate.status === "ready" && <><details><summary>查看上游 outline.json</summary><pre>{JSON.stringify(candidate.outline, null, 2)}</pre></details>{candidate.reportAvailable && <iframe title="derived upstream outline report" className="source-outline-report" sandbox="" src={plotloomApi.outlineCandidateReportUrl(projectId, candidate.jobId)} />}</>}
           {candidate.status === "ready" && state.source && <Button variant="primary" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.acceptOutlineCandidate(projectId, { jobId: candidate.jobId, expectedSourceRevision: state.source!.revision, expectedOutlineRevision: accepted?.revision || 0 }))}>显式接受此候选</Button>}
         </>}

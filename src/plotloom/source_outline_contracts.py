@@ -11,7 +11,7 @@ from .domain import CamelModel, contains_secret_setting, contains_secret_value
 
 
 SourceKind = Literal["synopsis", "imported_text", "existing_work"]
-CandidateStatus = Literal["prepared", "ready"]
+CandidateStatus = Literal["prepared", "ready", "accepted", "cancelled"]
 OutlineReviewStatus = Literal["missing", "candidate_ready", "accepted", "reopened"]
 
 

@@ -417,6 +417,9 @@ class ProjectStore:
     def reopen_outline(self, request: OutlineReopenRequest) -> SourceOutlineReviewState:
         return self.repository.source_outline.reopen_outline(self.manifest.project_id, request)
 
+    def cancel_outline_candidate(self, job_id: str) -> SourceOutlineReviewState:
+        return self.repository.source_outline.cancel_candidate(self.manifest.project_id, job_id)
+
     def outline_candidate_report(self, job_id: str) -> str:
         return self.repository.source_outline.candidate_report(self.manifest.project_id, job_id)
 

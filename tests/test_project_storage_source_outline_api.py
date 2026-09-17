@@ -66,3 +66,39 @@ def test_source_outline_http_exposes_source_candidate_and_accepted_as_distinct_r
         assert review["source"]["revision"] == 1
         assert review["candidate"]["jobId"] == candidate["jobId"]
         assert review["acceptedOutline"] is None
+
+
+def test_source_outline_cancel_is_durable_and_unblocks_a_closed_project(tmp_path: Path) -> None:
+    app = build_runtime_app(_settings(tmp_path))
+    material = {
+        "kind": "synopsis", "title": "取消测试",
+        "text": "一个准备中的 handoff 必须由作者显式取消。",
+        "attribution": "测试作者",
+        "rightsDeclaration": "仅测试；不构成法律确认。",
+        "adaptationIntent": "保留取消的明确边界。",
+        "inventedAdditions": None,
+    }
+    with TestClient(app) as client:
+        first = client.post("/api/v2/projects", json={"brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True)})
+        second = client.post("/api/v2/projects", json={"brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True)})
+        assert first.status_code == second.status_code == 201
+        project_id = first.json()["id"]
+        other_id = second.json()["id"]
+        saved = client.put(f"/api/v2/projects/{project_id}/source-outline/source", json={"expectedSourceRevision": 0, "material": material})
+        assert saved.status_code == 200, saved.text
+        prepared = client.post(f"/api/v2/projects/{project_id}/source-outline/candidates")
+        assert prepared.status_code == 201, prepared.text
+        job_id = prepared.json()["jobId"]
+
+        assert client.post(f"/api/v2/projects/{project_id}/close").json()["code"] == "project_busy"
+        assert client.post(f"/api/v2/projects/{project_id}/snapshots").json()["code"] == "project_busy"
+        assert client.post(f"/api/v2/projects/{other_id}/source-outline/candidates/{job_id}/cancel").status_code == 404
+
+        cancelled = client.post(f"/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/cancel")
+        assert cancelled.status_code == 200, cancelled.text
+        assert cancelled.json()["candidate"]["status"] == "cancelled"
+        assert client.post(f"/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/refresh").json()["code"] == "delivery_cancelled"
+        assert client.post(f"/api/v2/projects/{project_id}/close").status_code == 200
+        closed_write = client.put(f"/api/v2/projects/{project_id}/source-outline/source", json={"expectedSourceRevision": 1, "material": material})
+        assert closed_write.status_code == 409
+        assert closed_write.json()["code"] == "project_closed"

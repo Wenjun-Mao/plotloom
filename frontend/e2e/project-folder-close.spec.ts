@@ -7,6 +7,35 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
 
 test.describe("project-folder Close", () => {
+  test("cancels a prepared source-outline handoff before Close, then reopens", async ({ page, workbench }) => {
+    await page.goto(`${workbench.frontendOrigin}/v2/`);
+    await page.getByRole("button", { name: "打开示例项目" }).click();
+    await page.getByRole("button", { name: "保存简报" }).click();
+    await expect(page).toHaveURL(/[?&]project=/);
+    await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
+    const projectId = new URL(page.url()).searchParams.get("project")!;
+    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
+    await page.getByLabel("标题").fill("E2E：取消 handoff 后关闭");
+    await page.getByLabel("来源正文或 treatment").fill("作者必须先取消正在等待 specialist 的候选，才能关闭项目。");
+    await page.getByLabel("归属 / 署名声明").fill("E2E 测试作者");
+    await page.getByLabel("使用权或许可声明").fill("仅用于 E2E 测试；不构成法律确认。");
+    await page.getByLabel("改编意图").fill("验证取消、关闭和重新打开的持久化边界。");
+    await page.getByRole("button", { name: "保存接受的来源" }).click();
+    await page.getByRole("button", { name: "准备 specialist handoff" }).click();
+    await expect(page.getByText("等待 specialist")).toBeVisible();
+    await page.getByRole("button", { name: "取消并废弃此 handoff" }).click();
+    await expect(page.getByText("已取消")).toBeVisible();
+
+    await page.getByRole("button", { name: "当前项目 · 切换" }).click();
+    const closeResponse = waitForCloseResponse(page, projectId);
+    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "关闭项目" }).click();
+    expect((await closeResponse).ok()).toBeTruthy();
+    await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
+    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
+    await expect(page.getByRole("heading", { name: "来源与小说大纲" })).toBeVisible();
+    await expect(page.getByText("已取消")).toBeVisible();
+  });
+
   test("immediately drains an authoring draft, closes, reopens, and recovers after a file-SQLite restart", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();

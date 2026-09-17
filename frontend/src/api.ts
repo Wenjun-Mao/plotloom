@@ -523,6 +523,10 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" });
   }
 
+  cancelOutlineCandidate(projectId: string, jobId: string): Promise<SourceOutlineReviewState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" });
+  }
+
   acceptOutlineCandidate(projectId: string, body: { jobId: string; expectedSourceRevision: number; expectedOutlineRevision: number }): Promise<SourceOutlineReviewState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/accept`, { method: "POST", body: JSON.stringify(body) });
   }

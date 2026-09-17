@@ -28,7 +28,9 @@ from ..exceptions import (
     NotFoundError,
     ProjectManagedAssetsPresentError,
     RevisionConflictError,
+    ProjectBusyError as LifecycleProjectBusyError,
 )
+from ..creative_handoff_contracts import CreativeHandoffError
 from ..project_storage import (
     ProjectFolderStorage,
     ProjectBusyError,
@@ -231,6 +233,15 @@ def create_project_folder_authoring_app(
             content={"code": "project_busy", "message": str(error)},
         )
 
+    @app.exception_handler(LifecycleProjectBusyError)
+    async def persisted_project_busy_handler(
+        _request: Request, error: LifecycleProjectBusyError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"code": "project_busy", "message": str(error)},
+        )
+
     @app.exception_handler(ProjectClosedError)
     async def project_closed_handler(
         _request: Request, error: ProjectClosedError
@@ -256,6 +267,22 @@ def create_project_folder_authoring_app(
         return JSONResponse(
             status_code=status.HTTP_409_CONFLICT,
             content={"code": "invalid_transition", "message": str(error)},
+        )
+
+    @app.exception_handler(CreativeHandoffError)
+    async def project_folder_creative_handoff_handler(
+        _request: Request, error: CreativeHandoffError
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=(
+                status.HTTP_409_CONFLICT
+                if error.code in {
+                    "delivery_stale", "delivery_conflict", "delivery_identity_mismatch",
+                    "request_identity_mismatch", "package_conflict", "delivery_cancelled",
+                }
+                else status.HTTP_422_UNPROCESSABLE_CONTENT
+            ),
+            content={"code": error.code, "message": str(error)},
         )
 
     @app.exception_handler(ProjectManagedAssetsPresentError)

@@ -31,7 +31,11 @@ from .format import (
     _utc_folder_timestamp,
     _write_new_file,
 )
-from .operational_state import ProjectAccessLease, ProjectBusyError
+from .operational_state import (
+    ProjectAccessLease,
+    ProjectBusyError,
+    source_outline_publication_blockers,
+)
 from .recovery_control import (
     ProjectRecoveryControl,
     acknowledge_recovery_control,
@@ -324,4 +328,8 @@ class ProjectRecoveryService:
     def _specialist_blockers(store: Any) -> list[str]:
         image_busy = [job for job in store.media.list_image_jobs(store.manifest.project_id) if job.get("state") not in {"delivered", "rejected", "cancelled"}]
         reference_busy = [proposal for proposal in store.media.list_character_reference_proposals(store.manifest.project_id) if proposal.get("state") not in {"delivered", "rejected"}]
-        return (["image_publication_active"] if image_busy else []) + (["character_reference_publication_active"] if reference_busy else [])
+        return (
+            (["image_publication_active"] if image_busy else [])
+            + (["character_reference_publication_active"] if reference_busy else [])
+            + source_outline_publication_blockers(store)
+        )

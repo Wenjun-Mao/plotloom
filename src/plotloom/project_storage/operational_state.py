@@ -115,4 +115,19 @@ def close_blockers(store: object) -> list[str]:
         blockers.append("image_publication_active")
     if any(proposal.get("state") not in {"delivered", "rejected"} for proposal in media.list_character_reference_proposals(project_id)):
         blockers.append("character_reference_publication_active")
+    blockers.extend(source_outline_publication_blockers(store))
     return blockers
+
+
+def source_outline_publication_blockers(store: object) -> list[str]:
+    """Prepared outline handoffs remain externally publishable until cancelled."""
+
+    repository = store.repository  # type: ignore[attr-defined]
+    project_id = store.manifest.project_id  # type: ignore[attr-defined]
+    with repository.engine.connect() as connection:
+        prepared = connection.exec_driver_sql(
+            "SELECT 1 FROM v2_source_outline_candidates "
+            "WHERE project_id = ? AND status = 'prepared' LIMIT 1",
+            (project_id,),
+        ).first()
+    return ["source_outline_publication_active"] if prepared is not None else []

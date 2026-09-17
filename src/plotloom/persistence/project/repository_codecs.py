@@ -62,6 +62,7 @@ from ..schema import (
     GenerationWorkUnitRow,
     MediaTaskRow,
     ProjectRow,
+    SourceOutlineCandidateRow,
     SealedStageAggregateRow,
     StageHeadRow,
     StagePlanRow,
@@ -304,7 +305,7 @@ def assert_lifecycle_revision(row: ProjectRow, expected_revision: int) -> None:
 
 
 def project_is_busy_in_session(session: Session, project_id: str) -> bool:
-    """Preserve lifecycle admission across runs, media tasks, and work units."""
+    """Preserve lifecycle admission across durable and external work."""
 
     nonterminal_run = session.scalar(
         select(GenerationRunRow.id).where(
@@ -328,7 +329,16 @@ def project_is_busy_in_session(session: Session, project_id: str) -> bool:
             ),
         ).limit(1)
     )
+    prepared_outline_publication = session.scalar(
+        select(SourceOutlineCandidateRow.job_id).where(
+            SourceOutlineCandidateRow.project_id == project_id,
+            SourceOutlineCandidateRow.status == "prepared",
+        ).limit(1)
+    )
     return any(
         item is not None
-        for item in (nonterminal_run, nonterminal_media, nonterminal_work_unit)
+        for item in (
+            nonterminal_run, nonterminal_media, nonterminal_work_unit,
+            prepared_outline_publication,
+        )
     )

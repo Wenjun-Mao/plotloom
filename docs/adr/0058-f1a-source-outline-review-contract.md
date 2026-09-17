@@ -28,6 +28,16 @@ changes review state without replacing accepted content.  Source edits retain
 prior accepted evidence and make a previously installed outline explicitly
 reopened; they never auto-install or erase a candidate.
 
+A prepared specialist publication is active external work, not an inert draft:
+it blocks close, archive, permanent deletion, and snapshot until the author
+explicitly cancels it.  Verified completion moves it to `ready`; explicit
+acceptance moves it to `accepted`; cancellation moves it to `cancelled`.
+`ready`, `accepted`, and `cancelled` are terminal because the completion
+manifest was admitted, canon was explicitly installed, or the frozen job was
+made ineligible for delivery.  A cancelled job cannot refresh, admit a late
+delivery, or be accepted.  A new source edit or replacement candidate cannot
+silently orphan a prepared publication.
+
 The record is project-local SQLite state.  Its small additive schema is created
 for writable existing project folders as a compatibility-preserving migration;
 no source, outline, media, or prior canonical-stage content is transformed.
@@ -43,5 +53,8 @@ it is out of scope here.
   CAS races leave accepted content unchanged.  Tests cover those conditions.
 - Reports are derived candidate views, served only after the same candidate has
   passed transport and currentness admission; JSON is the accepted authority.
+- The project lifecycle scans every persisted prepared outline candidate, not
+  only the current head, so a stale or replaced job remains busy while it could
+  still publish.
 - Rights and attribution are captured verbatim as supplied.  The product makes
   no clearance or ownership assertion from them.

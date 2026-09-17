@@ -1151,7 +1151,7 @@ export interface OutlineCandidate {
   jobId: string;
   sourceRevision: number;
   expectedOutlineRevision: number;
-  status: "prepared" | "ready";
+  status: "prepared" | "ready" | "accepted" | "cancelled";
   deliveryId: string | null;
   manifestHash: string | null;
   outline: Record<string, unknown> | null;

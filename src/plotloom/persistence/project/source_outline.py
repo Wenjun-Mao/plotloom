@@ -142,6 +142,7 @@ class ProjectSourceOutlinePersistence:
             head = self._head(session, project_id, create=True)
             if head.source_revision != expected_source_revision:
                 raise RevisionConflictError("source-outline source", expected_source_revision, head.source_revision)
+            self._assert_no_prepared_publication(session, project_id)
             if head.source_revision:
                 prior = session.scalar(select(SourceOutlineSourceRevisionRow).where(
                     SourceOutlineSourceRevisionRow.project_id == project_id,
@@ -182,7 +183,10 @@ class ProjectSourceOutlinePersistence:
             if existing is not None:
                 if existing.project_id != project_id or existing.request != request.model_dump(mode="json", by_alias=True):
                     raise CreativeHandoffError("request_identity_mismatch", "creative job identifier is already bound to another request")
+                if existing.status != "prepared":
+                    raise CreativeHandoffError("delivery_stale", "outline job identity is already terminal")
                 return self._candidate(existing)
+            self._assert_no_prepared_publication(session, project_id)
             now = utc_now()
             row = SourceOutlineCandidateRow(
                 job_id=request.job_id, project_id=project_id,
@@ -215,10 +219,14 @@ class ProjectSourceOutlinePersistence:
                 raise CreativeHandoffError("delivery_identity_mismatch", "delivery request differs from prepared candidate")
             if candidate.source_revision != head.source_revision or candidate.expected_outline_revision != head.outline_revision:
                 raise CreativeHandoffError("delivery_stale", "candidate source or accepted outline revision is stale")
+            if candidate.status == "cancelled":
+                raise CreativeHandoffError("delivery_cancelled", "outline candidate was cancelled and cannot receive delivery")
             if candidate.status == "ready":
                 if candidate.manifest_hash != delivery.manifest_hash:
                     raise CreativeHandoffError("delivery_conflict", "a different delivery already occupies this candidate")
                 return self._candidate(candidate)
+            if candidate.status != "prepared":
+                raise CreativeHandoffError("delivery_stale", "outline candidate is no longer awaiting delivery")
             candidate.status = "ready"
             candidate.delivery_id = delivery.manifest.delivery_id
             candidate.manifest_hash = delivery.manifest_hash
@@ -250,6 +258,7 @@ class ProjectSourceOutlinePersistence:
             head.outline_revision += 1
             head.outline_status = "accepted"
             head.updated_at = now
+            candidate.status = "accepted"
             session.add(SourceOutlineRevisionRow(
                 id=new_id(), project_id=project_id, revision=head.outline_revision,
                 source_revision=head.source_revision, candidate_job_id=candidate.job_id,
@@ -266,16 +275,37 @@ class ProjectSourceOutlinePersistence:
                 raise RevisionConflictError("source-outline outline", request.expected_outline_revision, head.outline_revision)
             if not head.outline_revision:
                 raise InvalidTransitionError("no accepted outline exists to reopen")
+            self._assert_no_prepared_publication(session, project_id)
             head.outline_status = "reopened"
             head.candidate_job_id = None
             head.updated_at = utc_now()
+            return self._state_in_session(session, project_id, head)
+
+    def cancel_candidate(self, project_id: str, job_id: str) -> SourceOutlineReviewState:
+        """Durably discard one manual publication before it can install canon."""
+
+        with self._access.leases.lifecycle_write() as session:
+            project = self._access.rows.project(session, project_id)
+            self._access.guards.active(project)
+            head = self._head(session, project_id, create=True)
+            candidate = session.get(SourceOutlineCandidateRow, job_id)
+            if candidate is None or candidate.project_id != project_id:
+                raise NotFoundError("project outline candidate is unavailable")
+            if candidate.status == "accepted":
+                raise InvalidTransitionError("an accepted outline candidate cannot be cancelled")
+            if candidate.status == "cancelled":
+                return self._state_in_session(session, project_id, head)
+            candidate.status = "cancelled"
+            if head.candidate_job_id == candidate.job_id:
+                head.outline_status = "reopened" if head.outline_revision else "missing"
+                head.updated_at = utc_now()
             return self._state_in_session(session, project_id, head)
 
     def candidate_report(self, project_id: str, job_id: str) -> str:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)
             candidate = session.get(SourceOutlineCandidateRow, job_id)
-            if candidate is None or candidate.project_id != project_id or candidate.status != "ready" or candidate.report_html is None:
+            if candidate is None or candidate.project_id != project_id or candidate.status not in {"ready", "accepted"} or candidate.report_html is None:
                 raise NotFoundError("ready outline candidate report is unavailable")
             return candidate.report_html
 
@@ -285,7 +315,20 @@ class ProjectSourceOutlinePersistence:
             candidate = session.get(SourceOutlineCandidateRow, job_id)
             if candidate is None or candidate.project_id != project_id:
                 raise NotFoundError("project outline candidate is unavailable")
+            if candidate.status == "cancelled":
+                raise CreativeHandoffError("delivery_cancelled", "outline candidate was cancelled and cannot be refreshed")
             return CreativeHandoffRequest.model_validate(candidate.request)
+
+    @staticmethod
+    def _assert_no_prepared_publication(session: Any, project_id: str) -> None:
+        prepared = session.scalar(select(SourceOutlineCandidateRow.job_id).where(
+            SourceOutlineCandidateRow.project_id == project_id,
+            SourceOutlineCandidateRow.status == "prepared",
+        ).limit(1))
+        if prepared is not None:
+            raise InvalidTransitionError(
+                "cancel the prepared outline specialist publication before changing review state"
+            )
 
     def _state_in_session(self, session: Any, project_id: str, head: SourceOutlineHeadRow) -> SourceOutlineReviewState:
         source = None

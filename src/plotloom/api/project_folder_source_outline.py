@@ -103,6 +103,16 @@ def register_project_folder_source_outline_routes(
                 )
             return store.admit_outline_delivery(delivery)
 
+    @app.post(
+        "/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/cancel",
+        response_model=SourceOutlineReviewState,
+    )
+    def cancel_source_outline_candidate(
+        project_id: str, job_id: str
+    ) -> SourceOutlineReviewState:
+        with opened_project(project_id) as store:
+            return store.cancel_outline_candidate(job_id)
+
     @app.get(
         "/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/report",
         response_class=HTMLResponse,
