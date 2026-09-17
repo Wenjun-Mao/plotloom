@@ -5,6 +5,11 @@ Date: 2026-09-16. Scope: checkpoint 1 only from
 records implementation and verification, not director acceptance, push, M2
 readiness, new generation, or a new audio judgment.
 
+Director acceptance: `6941f2e` accepted after source, retained visual evidence and
+Relay verification review. Recorded final checks include 557 Python tests and
+158 frontend tests passing. The bounded M1 viewing outcome is accepted, not M2;
+the departure defect and prior user-attributed audio approval remain unchanged.
+
 ## Gap map and decision
 
 Before this slice, `BranchingVideoPreview` already projected canonical graph,
