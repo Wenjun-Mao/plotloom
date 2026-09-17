@@ -72,12 +72,14 @@ export function branchingPreviewManifest(
   return { identity, nodes };
 }
 
-export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats, graph }: {
+export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats, graph, title = "暂停选择分支预览", restartLabel = "重新开始分支预览" }: {
   projectId: string;
   jobs: VideoJob[];
   storyboard: Storyboard;
   sceneBeats: SceneBeatPlan;
   graph: StoryGraph;
+  title?: string;
+  restartLabel?: string;
 }) {
   const manifest = useMemo(
     () => branchingPreviewManifest(projectId, jobs, storyboard, sceneBeats, graph),
@@ -220,7 +222,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     finishNode(true);
   };
   return <section className="video-sequence" data-testid="branching-video-preview">
-    <strong>暂停选择分支预览</strong>
+    <strong>{title}</strong>
     <small>当前节点：{node.node.title || node.node.id}。选择历史：{history.length ? history.join(" → ") : "尚未选择"}</small>
     {missingMedia.length > 0 && <small className="notice warning" data-testid="branching-missing-media">此节点缺少当前可用媒体：{missingMedia.join("、")}。预览不会跳过或生成缺失镜头。</small>}
     {!missingMedia.length && current && <>
@@ -249,6 +251,6 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     {!missingMedia.length && nodeComplete && isDecision && <div className="button-row" data-testid="branching-choices">
       {node.outgoing.map((edge) => <Button key={edge.id} onClick={() => moveTo(edge, true)}>{edge.choiceText || `前往 ${manifest.nodes.get(edge.targetNodeId)?.node.title || edge.targetNodeId}`}</Button>)}
     </div>}
-    {!missingMedia.length && nodeComplete && isEnding && <div className="button-row"><Button onClick={restart}>重新开始分支预览</Button></div>}
+    {!missingMedia.length && nodeComplete && isEnding && <div className="button-row"><Button onClick={restart}>{restartLabel}</Button></div>}
   </section>;
 }

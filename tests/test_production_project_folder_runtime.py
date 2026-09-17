@@ -117,6 +117,42 @@ def _activate_fixture_profile(client: TestClient) -> None:
     ).status_code == 200
 
 
+def test_runtime_startup_admits_the_known_writable_selection_transition(
+    tmp_path: Path,
+) -> None:
+    """Startup must not inspect a known active legacy folder before admitting it."""
+
+    settings = _settings(tmp_path)
+    app = build_runtime_app(settings, text_provider_resolver=FixtureResolver())
+    with TestClient(app) as client:
+        created = client.post(
+            "/api/v2/projects",
+            json={"brief": FIXED_CHINESE_BRIEF.model_dump(mode="json", by_alias=True)},
+        )
+        assert created.status_code == 201
+        project_id = created.json()["id"]
+        store = app.state.project_folder_storage.projects.open(project_id)
+        try:
+            database = store.database_path
+        finally:
+            store.close()
+
+    # This is the exact immediately preceding schema, not an arbitrary DB
+    # mutation supported by runtime. The next production startup must route it
+    # through the registry's admitted writable transition before recovery reads.
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TABLE v2_video_candidate_selections")
+        connection.commit()
+
+    restarted = build_runtime_app(settings, text_provider_resolver=FixtureResolver())
+    with TestClient(restarted) as client:
+        assert client.get(f"/api/v2/projects/{project_id}").status_code == 200
+    with sqlite3.connect(database) as connection:
+        assert connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'v2_video_candidate_selections'"
+        ).fetchone() == ("v2_video_candidate_selections",)
+
+
 def _png() -> bytes:
     output = BytesIO()
     Image.new("RGB", (576, 1024), (20, 30, 40)).save(output, format="PNG")

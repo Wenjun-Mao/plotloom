@@ -18,6 +18,13 @@ admission, restore validation, and any unknown schema fail with a clear
 transition-required or unsupported-schema error; none creates a table as a
 fallback.
 
+Runtime startup admits an active folder through that same writable registry
+open before it reads startup-recovery state. A closed folder remains excluded
+and receives an empty recovery plan; startup never opens it implicitly. This
+keeps the one-time transition on the normal production path instead of letting
+an earlier read-only recovery inspection make an otherwise admitted project
+unstartable.
+
 Disposal is an explicit candidate operation.  It rechecks the shot, project,
 selection revision, job state, and selected candidate before marking only named
 ingested candidates `discard_pending`.  Project storage then removes an owned

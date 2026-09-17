@@ -15,9 +15,11 @@ from ..pipeline import PipelineEngine, RunSecretBroker, TextProviderResolver
 from ..providers import ProviderPorts
 from ..runtime import RunContext
 from .composition import ProjectFolderStorage
+from .operational_state import ProjectClosedError
 from .application_store import ApplicationRunRoute
 from .format import ProjectStorageCorruptionError
 from .project_handle import ProjectStore
+from .video_candidate_transition import ProjectSelectionTransitionRequiredError
 
 
 @dataclass
@@ -53,7 +55,16 @@ class ProjectRunDispatcher:
     def rebuild_index(self) -> None:
         routes: list[ApplicationRunRoute] = []
         for home in self.storage.projects.discover():
-            store = self.storage.projects.inspect(home.manifest.project_id)
+            try:
+                store = self.storage.projects.inspect(home.manifest.project_id)
+            except ProjectSelectionTransitionRequiredError:
+                # Discovery retains the exact legacy folder so the normal
+                # writable admission path can advance it before the index
+                # reads it. Closed folders remain explicitly owner-opened.
+                try:
+                    store = self.storage.projects.open(home.manifest.project_id)
+                except ProjectClosedError:
+                    continue
             try:
                 routes.extend(
                     self._route_for_run(run)
@@ -68,18 +79,26 @@ class ProjectRunDispatcher:
 
         plans: dict[str, StartupRecoveryPlan] = {}
         for home in self.storage.projects.discover():
-            inspection = self.storage.projects.inspect(home.manifest.project_id)
             try:
-                state, _revision = inspection.repository.operational_state()
-            finally:
-                inspection.close()
-            if state != "open":
-                plans[home.manifest.project_id] = StartupRecoveryPlan()
-                continue
-            # Inspection intentionally ends before recovery. An OPEN project is
-            # then re-admitted through the mutation-capable handle required by
-            # reconciliation; CLOSED projects never receive this path.
-            store = self.storage.projects.open(home.manifest.project_id)
+                inspection = self.storage.projects.inspect(home.manifest.project_id)
+            except ProjectSelectionTransitionRequiredError:
+                # An active legacy folder cannot be inspected yet. Admit it
+                # through the one normal writable open, which performs the
+                # bounded selection transition before recovery reads it.
+                try:
+                    store = self.storage.projects.open(home.manifest.project_id)
+                except ProjectClosedError:
+                    plans[home.manifest.project_id] = StartupRecoveryPlan()
+                    continue
+            else:
+                try:
+                    state, _revision = inspection.repository.operational_state()
+                finally:
+                    inspection.close()
+                if state != "open":
+                    plans[home.manifest.project_id] = StartupRecoveryPlan()
+                    continue
+                store = self.storage.projects.open(home.manifest.project_id)
             try:
                 plans[home.manifest.project_id] = (
                     store.generation.reconcile_startup_jobs()
