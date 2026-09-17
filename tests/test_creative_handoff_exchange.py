@@ -25,6 +25,7 @@ def _request(*, revision: int = 3) -> CreativeHandoffRequest:
 
 def _complete(exchange: CreativeHandoffExchange, request: CreativeHandoffRequest) -> None:
     paths = exchange.write_package(request)
+    package_request = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"])
     delivery.mkdir()
     candidate = canonical_json({"source": "Ferry", "params": {"episodes": 1}})
@@ -42,7 +43,9 @@ def _complete(exchange: CreativeHandoffExchange, request: CreativeHandoffRequest
         "executorProvenance": {
             "codeRevision": "5add328ff8423f0e4ab31cce1459e208712ff20f",
             "skillVersion": "plotloom-shuohao-specialist.v1",
-            "skillHash": "a" * 64,
+            "skillHash": package_request["executionPin"]["specialistSkillHash"],
+            "upstreamRevision": package_request["executionPin"]["upstreamRevision"],
+            "upstreamSkillHash": package_request["executionPin"]["upstreamSkillHash"],
             "model": "gpt-5.6-terra",
             "reasoningEffort": "high",
         },
@@ -107,3 +110,18 @@ def test_delivery_requires_exact_derived_report_and_candidate_set(tmp_path: Path
         exchange.read_delivery(request)
 
     assert error.value.code == "delivery_partial"
+
+
+def test_delivery_cannot_claim_an_unpinned_specialist_or_upstream_skill(tmp_path: Path) -> None:
+    request = _request()
+    exchange = CreativeHandoffExchange(tmp_path / "exchange")
+    _complete(exchange, request)
+    manifest_path = tmp_path / "exchange" / "jobs" / request.job_id / "delivery" / "completion.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["executorProvenance"]["upstreamSkillHash"] = "b" * 64
+    manifest_path.write_bytes(canonical_json(manifest))
+
+    with pytest.raises(CreativeHandoffError, match="pinned specialist") as error:
+        exchange.read_delivery(request)
+
+    assert error.value.code == "delivery_execution_mismatch"

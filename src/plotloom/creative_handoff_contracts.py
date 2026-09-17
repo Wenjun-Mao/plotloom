@@ -89,6 +89,8 @@ class CreativeExecutorProvenance(CamelModel):
     code_revision: str = Field(min_length=7, max_length=64, pattern=r"^[a-f0-9]+$")
     skill_version: str = Field(min_length=1, max_length=80)
     skill_hash: str = Field(pattern=SHA256_PATTERN)
+    upstream_revision: str = Field(min_length=7, max_length=64, pattern=r"^[a-f0-9]+$")
+    upstream_skill_hash: str = Field(pattern=SHA256_PATTERN)
     model: str | None = Field(default=None, max_length=128)
     reasoning_effort: str | None = Field(default=None, max_length=32)
 

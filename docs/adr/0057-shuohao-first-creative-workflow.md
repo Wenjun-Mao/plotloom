@@ -1,6 +1,6 @@
 # ADR 0057: Shuohao-first creative workflow
 
-Status: Accepted direction, 2026-09-17; implementation pending.
+Status: Accepted direction, 2026-09-17; F0 foundation implemented, F1–F10 pending.
 
 ## Context
 

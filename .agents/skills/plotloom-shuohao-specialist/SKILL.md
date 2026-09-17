@@ -31,8 +31,9 @@ not a backend job, a review decision, or permission to edit canon.
 
 1. Follow the upstream skill's stage boundaries and validators. Seed-derived
    facts in supplied inputs are trusted context, not fields to reinvent.
-2. Write exactly `delivery/<candidateFilename>` and derive exactly
-   `delivery/report.html`. Do not produce media in this F0 path.
+2. From the package directory, write exactly the sibling
+   `../delivery/<candidateFilename>` and derive `../delivery/report.html`.
+   Never create `package/delivery`. Do not produce media in this F0 path.
 3. Copy the completion template to `delivery/completion.json` and fill it
    truthfully: actual byte hashes, checked-out code revision, this skill's hash,
    model/reasoning only when known, and concrete limitations. Publish the

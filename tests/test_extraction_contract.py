@@ -53,6 +53,7 @@ ALLOWED_REPOSITORY_ROOTS = {
     ".env.example",
     ".github",
     ".gitignore",
+    ".gitmodules",
     ".python-version",
     "AGENTS.md",
     "LICENSE",
@@ -65,6 +66,7 @@ ALLOWED_REPOSITORY_ROOTS = {
     "services",
     "src",
     "tests",
+    "third_party",
     "uv.lock",
 }
 ALLOWED_SERVICE_DIRECTORY = "minimax_h3_gateway"

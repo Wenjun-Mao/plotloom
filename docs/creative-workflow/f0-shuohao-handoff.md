@@ -40,9 +40,13 @@ work, rather than a hidden developer-edit workflow.
 
 The request carries a self-contained source object, upstream JSON inputs, a
 creative brief, and `expectedStageRevision`. The completion receipt binds the
-candidate and report bytes to its job/request/stage. The exchange rejects
-malformed packages, non-exact delivery shapes, identity mismatches, hashes, and
-symlinks. `assert_current` rejects a candidate whose frozen revision is no
+candidate and report bytes to its job/request/stage and to the pinned upstream
+revision/skill hash plus local specialist skill hash. The exchange is a
+**transport** validator, not a second semantic validator: the specialist runs
+the upstream validator, while a future existing review/canonical owner decides
+semantic acceptance. It rejects malformed packages, non-exact delivery shapes,
+identity and execution-pin mismatches, hashes, and symlinks. `assert_current`
+rejects a candidate whose frozen revision is no
 longer current. Neither method can write accepted project content: only the
 existing review/canonical owner may do that after a later integration decision.
 

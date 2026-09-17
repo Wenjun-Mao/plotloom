@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import os
 import stat
+import subprocess
 from dataclasses import dataclass
 from hashlib import sha256
 from pathlib import Path
@@ -87,6 +88,27 @@ class CreativeHandoffExchange:
     def _candidate_filename(stage: str) -> str:
         return {"outline": "outline.json", "characters": "cast.json", "art": "art.json", "script": "script.json", "storyboard": "storyboard.json"}[stage]
 
+    @staticmethod
+    def _pinned_execution(request: CreativeHandoffRequest) -> dict[str, str]:
+        """Freeze the vendored skill and local specialist used by a package."""
+
+        repository = Path(__file__).resolve().parents[2]
+        upstream_skill = repository / "third_party" / "shuohao-skills" / "skills" / f"novel-{request.stage}" / "SKILL.md"
+        specialist_skill = repository / ".agents" / "skills" / "plotloom-shuohao-specialist" / "SKILL.md"
+        if not upstream_skill.is_file() or not specialist_skill.is_file():
+            raise CreativeHandoffError("execution_pin_missing", "pinned upstream and specialist skills must exist in this checkout")
+        revision = subprocess.run(
+            ["git", "-C", str(repository / "third_party" / "shuohao-skills"), "rev-parse", "HEAD"],
+            capture_output=True, text=True, check=False,
+        )
+        if revision.returncode != 0:
+            raise CreativeHandoffError("execution_pin_missing", "pinned upstream revision is unavailable")
+        return {
+            "upstreamRevision": revision.stdout.strip(),
+            "upstreamSkillHash": sha256(upstream_skill.read_bytes()).hexdigest(),
+            "specialistSkillHash": sha256(specialist_skill.read_bytes()).hexdigest(),
+        }
+
     def _projection(self, request: CreativeHandoffRequest) -> tuple[dict[str, Any], bytes, bytes, set[str]]:
         frozen_hash = request_hash(request)
         candidate_filename = self._candidate_filename(request.stage)
@@ -96,11 +118,13 @@ class CreativeHandoffExchange:
             "candidateFilename": candidate_filename,
             "reportFilename": "report.html",
             "upstreamSkillPath": f"third_party/shuohao-skills/skills/novel-{request.stage}/SKILL.md",
+            "executionPin": self._pinned_execution(request),
         }
         instructions = (
             "Read request.json, each inputs/*.json file, and the pinned upstream skill path. "
-            f"Write the stage-shaped candidate JSON to delivery/{candidate_filename}, then derive "
-            "delivery/report.html from that candidate. Finally publish delivery/completion.json once. "
+            f"Write the stage-shaped candidate JSON to the sibling ../delivery/{candidate_filename}, then derive "
+            "../delivery/report.html from that candidate. Never create package/delivery. Finally publish "
+            "../delivery/completion.json once. "
             "This is a candidate only: do not edit project canon, approvals, selections, or request files.\n"
         ).encode()
         template = canonical_json({
@@ -110,7 +134,10 @@ class CreativeHandoffExchange:
             "report": {"filename": "report.html", "sha256": "0" * 64},
             "executorProvenance": {
                 "codeRevision": "checked-out-commit", "skillVersion": "plotloom-shuohao-specialist.v1",
-                "skillHash": "0" * 64, "model": None, "reasoningEffort": None,
+                "skillHash": projected["executionPin"]["specialistSkillHash"],
+                "upstreamRevision": projected["executionPin"]["upstreamRevision"],
+                "upstreamSkillHash": projected["executionPin"]["upstreamSkillHash"],
+                "model": None, "reasoningEffort": None,
             }, "limitations": [],
         })
         return projected, instructions, template, {"request.json", "COPY_ASSIGNMENT.txt", TEMPLATE_FILENAME, "inputs"}
@@ -170,6 +197,14 @@ class CreativeHandoffExchange:
             raise CreativeHandoffError("delivery_identity_mismatch", "completion manifest does not belong to this frozen creative request")
         if manifest.candidate.filename != projected["candidateFilename"] or manifest.report.filename != projected["reportFilename"]:
             raise CreativeHandoffError("delivery_identity_mismatch", "completion manifest names unsupported outputs")
+        expected_pin = projected["executionPin"]
+        provenance = manifest.executor_provenance
+        if (
+            provenance.skill_hash != expected_pin["specialistSkillHash"]
+            or provenance.upstream_revision != expected_pin["upstreamRevision"]
+            or provenance.upstream_skill_hash != expected_pin["upstreamSkillHash"]
+        ):
+            raise CreativeHandoffError("delivery_execution_mismatch", "delivery was not produced with the pinned specialist and upstream skill")
         candidate_bytes = _read_regular(delivery / manifest.candidate.filename, max_bytes=2_000_000)
         report = _read_regular(delivery / manifest.report.filename, max_bytes=2_000_000)
         if sha256(candidate_bytes).hexdigest() != manifest.candidate.sha256 or sha256(report).hexdigest() != manifest.report.sha256:
