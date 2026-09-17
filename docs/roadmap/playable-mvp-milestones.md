@@ -30,6 +30,19 @@ remain the initial direction; detailed editing remains available.
 | 6 — Complete interactive film | All intended routes use selected media, missing coverage is visible, audiovisual transitions and decisions work | Planned. Small pilot proven; qualify completeness and transitions for supported story scope. No invented game-state semantics. |
 | 7 — M2: independent creation and delivery | Users finish fresh contrasting stories without developer assistance and open/share the supported playable output | Planned. Qualify complete authoring/revision/recovery and settle browser delivery/hosting scope. |
 
+**3B tracker correction — Shuohao trial:** The `23985ce` receipt's Shuohao
+clause is superseded as flawed projection evidence: it wrongly treated contract
+tearing and sale deferral as pre-entry. The corrected bounded rerun is complete
+but not accepted: a frozen verbatim-state-versus-summary projection, one native
+Terra High 30-second draft, and an independent read-only review keep the watch
+already repaired and realize tearing/deferral in scene narrative. Upstream
+truthfully fails only the source-absent hook/cliff and hook-claim gates. This
+demonstrates workflow-plus-model feasibility, not causal superiority over Qwen.
+It permits only future thin adapter investigation for bounded terminal or
+complete linear excerpts—never custom two-phase resumption or integration
+authorization. Checkpoint 3B remains not quality-qualified; checkpoint 3 and
+human Approval remain unaccepted.
+
 Accepted baseline: clean pushed `8ba34aa`. Evidence:
 [branching pilot](../verification/2026-09-16-branching-creative-pilot-receipt.md),
 [native playback diagnosis](../verification/2026-09-16-terminal-video-runtime-boundary.md),
