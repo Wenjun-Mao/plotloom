@@ -24,6 +24,14 @@ and HTML remain derived views, not competing data authorities. Reuse report UI
 safely and preserve license/NOTICE. A versioned integration decides exact schema
 ownership before changing current canonical storage.
 
+F0 pins upstream `4322897e6d2bdaf66365534fd40194360c75a85f` as the
+`third_party/shuohao-skills` submodule, retaining its Apache-2.0 LICENSE and
+NOTICE. The project-local `CreativeHandoffExchange` freezes a self-contained
+single-stage request and admits only a traceable candidate plus derived report.
+The author owns source/adaptation and acceptance; the specialist owns proposed
+upstream-shaped JSON; trusted code owns hashes, stale-revision admission,
+review, and any canonical installation. F0 does not install candidates.
+
 Source may be a synopsis developed into a short story/treatment, externally
 written material, or an existing work. Preserve source versus adaptation choices.
 Interactive stories are DAGs of stable sections with shared character/art data,
