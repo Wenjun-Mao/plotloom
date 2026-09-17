@@ -198,6 +198,10 @@ test.describe("P1 self-contained copied image brief", () => {
     request,
     workbench,
   }, testInfo) => {
+    // This one journey verifies original acceptance, refinement acceptance, stale
+    // inapplicability, and tampered-manifest rejection; give its distinct phases
+    // a local budget without changing the suite's 45-second default.
+    test.setTimeout(75_000);
     await page.addInitScript(() => {
       Object.defineProperty(navigator, "clipboard", {
         configurable: true,
