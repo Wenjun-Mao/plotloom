@@ -1,6 +1,6 @@
 # Video candidates: generate, compare, select, discard
 
-Status: Approved revision 1, user instruction 2026-09-16.
+Status: Delivered correction, implementation `2925fddc84cea4c6da88db97ac74b4280c2d8f9b`; director acceptance/push pending.
 Baseline: `24fee13`; reuse existing project-owned video jobs and reviews.
 
 ## Outcome
@@ -64,3 +64,16 @@ One Relay Terra-high coordinator owns serial implementation. Director handles
 acceptance/push; stop for material scope changes or after two failed attempts at
 the same criterion. No broad storage redesign, image-candidate redesign, staging
 cleanup project, old-pilot requalification or unbounded regeneration loop.
+
+## Correction closeout
+
+The preserved `9348c70` candidate omitted the folder-runtime transition:
+Alembic 0019 was not invoked by `ProjectStore.open(create_schema=False)`, so a
+pre-change project folder could lack selection authority. The delivered bounded
+transition admits only the exact format-8 pre-selection schema, runs once under
+an exclusive project lease, backfills the retired latest-review projection, and
+never mutates read-only inspection, a normal closed admission, restore
+validation, or unsupported schemas. It adds committed production-path coverage
+for transition/reopen/idempotence, explicit bulk targets and stale selection,
+native audio peer pause, and crash-safe deletion retry. Exact final verification
+is recorded in `docs/verification/2026-09-16-video-candidate-review.md`.
