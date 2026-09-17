@@ -79,6 +79,25 @@ does not establish a root cause, a product fix, complete-path/restart behavior,
 the other ending, audio review, or creative acceptance. The exact bounded
 receipt is `docs/verification/2026-09-16-terminal-video-runtime-boundary.md`.
 
+### Checkpoint 4 native completion — 2026-09-17
+
+The remaining native checks are complete. In a fresh native Google Chrome tab,
+the retained checkout at `a68310014e407ff68ff5d711933fb1e449a0b2b2` replayed
+opening and decision to their true ends, then selected departure. Passive
+inspection of the actual departure terminal found `ended=true`, `readyState=4`,
+and no `MediaError`; its transient “Unable to play media.” control label is not
+treated as a failure. The native restart control reset the episode to its opening
+state. The project was then normally closed and reopened, with all four selected
+current video jobs, hashes, and review-derived selections preserved at revision
+1. The already established return-terminal evidence was reused rather than
+replayed.
+
+This closes Checkpoint 4 evidence only. Director creative acceptance remains
+separate. It does not resolve or waive the historical opening late-pin defect,
+refused shared-root staging cleanup, the user's noted intermittent departure
+face defects, or Codex's lack of independent audio listening. See the creative
+pilot receipt for the exact observation and identifiers.
+
 ## Approved execution allowance
 
 - At most **5 ImageGen calls** total: one identity plus four keyframes. Reusing an

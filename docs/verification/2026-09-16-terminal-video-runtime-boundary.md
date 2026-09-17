@@ -170,3 +170,15 @@ control text is preserved as an observation, but it is not evidence of a
 decode, serving, or player failure. No root cause is established and no product
 fix is proposed. This narrow success does not accept full-path playback,
 restart, the other ending, audible review, or creative acceptance.
+
+### Subsequent native completion — 2026-09-17
+
+The remaining departure, restart, and project close/reopen checks were completed
+later against the same retained checkout and live byte identity. The departure
+terminal reached `ended=true`, `readyState=4`, and no `MediaError` despite the
+same transient native control label; restart reset the player to its opening
+state; normal project close/reopen preserved the four current selected video jobs
+and their review-derived selections. This preserves the bounded return evidence
+above rather than rewriting it as a broader replay. The full receipt is
+`docs/verification/2026-09-16-branching-creative-pilot-receipt.md`; director
+creative acceptance remains separate.
