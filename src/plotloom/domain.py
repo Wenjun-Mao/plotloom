@@ -1480,7 +1480,7 @@ def contains_secret_value(value: Any) -> bool:
 
     return any(
         is_secret_setting_name(match.group(1))
-        for match in re.finditer(r"(?<![A-Za-z0-9_-])([A-Za-z][A-Za-z0-9_-]*)\s*=", candidate)
+        for match in re.finditer(r"(?<![A-Za-z0-9_-])([A-Za-z][A-Za-z0-9_-]*)\s*=(?!=)", candidate)
     )
 
 

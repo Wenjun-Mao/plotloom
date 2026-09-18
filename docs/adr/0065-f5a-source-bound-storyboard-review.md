@@ -47,3 +47,19 @@ projection, shot/media compiler, player change, selected reference, dispatch
 control, or H3-duration behaviour. A later product integration must make its
 own source-to-product ownership decision and cannot treat a review revision as
 an approved production payload.
+
+## Integration closeout correction
+
+Re-copy and ready-delivery replay must check the complete current binding before
+returning frozen evidence. Idempotency proves byte identity, not currentness.
+All three timing parameters (`minCutSeconds`, `maxCutSeconds`,
+`maxSegmentSeconds`) must agree with the trusted binding. The review inspection
+shows upstream `frame`, camera/size, character/prop reference needs, scene index,
+source beat ranges and unchanged H3 direction including dialogue; it does not
+parse H3 into a new dialogue or production schema.
+
+The real report contains JavaScript equality (`e.key === 'Escape'`). Credential
+assignment scanning distinguishes `=` from equality operators so valid reports
+remain snapshot-portable. Credential assignments, known secret forms and
+credential-bearing URLs remain forbidden. Rewriting reports or bypassing the
+snapshot secret check would break evidence integrity or credential protection.

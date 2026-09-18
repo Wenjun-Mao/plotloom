@@ -1,0 +1,1171 @@
+{
+  "source": "Beacon choice — current F4 proof",
+  "lang": "en",
+  "style": "realistic",
+  "promptLang": "en",
+  "params": {
+    "maxSegmentSeconds": 15,
+    "minCutSeconds": 2,
+    "maxCutSeconds": 8,
+    "maxOnScreen": 3,
+    "tolerance": 0.15
+  },
+  "episodes": [
+    {
+      "ep": 1,
+      "segments": [
+        {
+          "id": "E01-01",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                1,
+                1
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper hurries to the desk as rain taps the salted window., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                2,
+                2
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she lifts the loose cable from the worn wood., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                3,
+                3
+              ],
+              "seconds": 5.6,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, one cable. two places need it., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 5.00-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. the beacon keeper hurries to the desk as rain taps the salted window..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. She lifts the loose cable from the worn wood..\n[Shot 3] At 00:05.000, the camera cuts to <Picture 3>. The camera uses a Push In. One cable. Two places need it.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] One cable. Two places need it.</d>\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E01-02",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                4,
+                4
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she turns toward the brass lamp and then toward the dock chart., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                5,
+                5
+              ],
+              "seconds": 6,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon guides sailors home., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                6,
+                6
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper checks the dark dock mark on the chart., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 8.50-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. She turns toward the brass lamp and then toward the dock chart..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. The beacon guides sailors home.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The beacon guides sailors home.</d>\n[Shot 3] At 00:08.500, the camera cuts to <Picture 3>. The camera uses a Push In. the beacon keeper checks the dark dock mark on the chart..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E01-03",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                7,
+                7
+              ],
+              "seconds": 6.4,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the dock keeps the boats together., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                8,
+                8
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she lays the cable between the lamp and the chart., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                9,
+                9
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, a gust presses rain against the window., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 6.40-second mark of the target video; Picture 3 (from Shot 3) aligns with the 8.90-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. The dock keeps the boats together.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The dock keeps the boats together.</d>\n[Shot 2] At 00:06.400, the camera cuts to <Picture 2>. The camera uses a Static Shot. She lays the cable between the lamp and the chart..\n[Shot 3] At 00:08.900, the camera cuts to <Picture 3>. The camera uses a Push In. A gust presses rain against the window..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E01-04",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                10,
+                10
+              ],
+              "seconds": 3.8,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, i cannot power both., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                11,
+                11
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper opens the beacon switch cover but does not connect it., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                12,
+                12
+              ],
+              "seconds": 8,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, if i light the beacon, the dock goes dark., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 3.80-second mark of the target video; Picture 3 (from Shot 3) aligns with the 6.30-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. I cannot power both.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] I cannot power both.</d>\n[Shot 2] At 00:03.800, the camera cuts to <Picture 2>. The camera uses a Static Shot. the beacon keeper opens the beacon switch cover but does not connect it..\n[Shot 3] At 00:06.300, the camera cuts to <Picture 3>. The camera uses a Push In. If I light the beacon, the dock goes dark.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] If I light the beacon, the dock goes dark.</d>\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E01-05",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                13,
+                13
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she closes the beacon cover and reaches for the dock switch., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                14,
+                14
+              ],
+              "seconds": 8,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, if i light the dock, the beacon goes dark., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                15,
+                15
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper withdraws her hand from the dock switch., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 10.50-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. She closes the beacon cover and reaches for the dock switch..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. If I light the dock, the beacon goes dark.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] If I light the dock, the beacon goes dark.</d>\n[Shot 3] At 00:10.500, the camera cuts to <Picture 3>. The camera uses a Push In. the beacon keeper withdraws her hand from the dock switch..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E01-06",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                16,
+                16
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she looks from the lamp to the chart again., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                17,
+                17
+              ],
+              "seconds": 5.6,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the storm will not wait for me., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                18,
+                18
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she coils the cable once and holds both ends apart., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 8.10-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. She looks from the lamp to the chart again..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. The storm will not wait for me.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The storm will not wait for me.</d>\n[Shot 3] At 00:08.100, the camera cuts to <Picture 3>. The camera uses a Push In. She coils the cable once and holds both ends apart..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E01-07",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                19,
+                19
+              ],
+              "seconds": 6.9,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, i have to choose where the power goes., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                20,
+                20
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the unconnected cable rests across the desk between both switches., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 6.90-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. I have to choose where the power goes.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] I have to choose where the power goes.</d>\n[Shot 2] At 00:06.900, the camera cuts to <Picture 2>. The camera uses a Static Shot. The unconnected cable rests across the desk between both switches..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        }
+      ]
+    },
+    {
+      "ep": 2,
+      "segments": [
+        {
+          "id": "E02-01",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                1,
+                1
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper connects the cable to the beacon switch as rain strikes the window., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                2,
+                2
+              ],
+              "seconds": 2.7,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, beacon first., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                3,
+                3
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she presses the switch and the brass lamp comes alive., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                4,
+                4
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper watches the light fill the salted glass., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 5.20-second mark of the target video; Picture 4 (from Shot 4) aligns with the 7.70-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. the beacon keeper connects the cable to the beacon switch as rain strikes the window..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. Beacon first.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] Beacon first.</d>\n[Shot 3] At 00:05.200, the camera cuts to <Picture 3>. The camera uses a Push In. She presses the switch and the brass lamp comes alive..\n[Shot 4] At 00:07.700, the camera cuts to <Picture 4>. The camera uses a Static Shot. the beacon keeper watches the light fill the salted glass..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E02-02",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                5,
+                5
+              ],
+              "seconds": 6,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, sailors can see the channel now., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                6,
+                6
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she checks the dock mark on the chart again., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                7,
+                7
+              ],
+              "seconds": 5.6,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the dock has no power tonight., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 6.00-second mark of the target video; Picture 3 (from Shot 3) aligns with the 8.50-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. Sailors can see the channel now.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] Sailors can see the channel now.</d>\n[Shot 2] At 00:06.000, the camera cuts to <Picture 2>. The camera uses a Static Shot. She checks the dock mark on the chart again..\n[Shot 3] At 00:08.500, the camera cuts to <Picture 3>. The camera uses a Push In. The dock has no power tonight.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The dock has no power tonight.</d>\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E02-03",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                8,
+                8
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper folds the unused dock lead away from the switch., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                9,
+                9
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon lamp holds steady through another gust., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                10,
+                10
+              ],
+              "seconds": 6.9,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, keep shining. they need the way home., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 5.00-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. the beacon keeper folds the unused dock lead away from the switch..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. The beacon lamp holds steady through another gust..\n[Shot 3] At 00:05.000, the camera cuts to <Picture 3>. The camera uses a Push In. Keep shining. They need the way home.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] Keep shining. They need the way home.</d>\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E02-04",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                11,
+                11
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she stands beside the window and follows the channel below., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                12,
+                12
+              ],
+              "seconds": 3.6,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the choice is made., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                13,
+                13
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper steadies the brass lamp with one hand., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                14,
+                14
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she leaves the dock switch covered and unpowered., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 6.10-second mark of the target video; Picture 4 (from Shot 4) aligns with the 8.60-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. She stands beside the window and follows the channel below..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. The choice is made.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The choice is made.</d>\n[Shot 3] At 00:06.100, the camera cuts to <Picture 3>. The camera uses a Push In. the beacon keeper steadies the brass lamp with one hand..\n[Shot 4] At 00:08.600, the camera cuts to <Picture 4>. The camera uses a Static Shot. She leaves the dock switch covered and unpowered..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E02-05",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                15,
+                15
+              ],
+              "seconds": 3.8,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon stays on., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                16,
+                16
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, a distant boat light moves toward the beacon through the rain., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                17,
+                17
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper keeps watch at the window., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                18,
+                18
+              ],
+              "seconds": 4.9,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, come through the channel., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 3.80-second mark of the target video; Picture 3 (from Shot 3) aligns with the 6.30-second mark of the target video; Picture 4 (from Shot 4) aligns with the 8.80-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. The beacon stays on.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The beacon stays on.</d>\n[Shot 2] At 00:03.800, the camera cuts to <Picture 2>. The camera uses a Static Shot. A distant boat light moves toward the beacon through the rain..\n[Shot 3] At 00:06.300, the camera cuts to <Picture 3>. The camera uses a Push In. the beacon keeper keeps watch at the window..\n[Shot 4] At 00:08.800, the camera cuts to <Picture 4>. The camera uses a Static Shot. Come through the channel.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] Come through the channel.</d>\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E02-06",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                19,
+                20
+              ],
+              "seconds": 5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she checks that the beacon cable is seated in its switch. then the beacon keeper smooths the chart flat on the desk., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                21,
+                21
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she listens as rain passes across the roof., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                22,
+                22
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper looks once more toward the dark dock mark., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 5.00-second mark of the target video; Picture 3 (from Shot 3) aligns with the 7.50-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. She checks that the beacon cable is seated in its switch. Then the beacon keeper smooths the chart flat on the desk..\n[Shot 2] At 00:05.000, the camera cuts to <Picture 2>. The camera uses a Static Shot. She listens as rain passes across the roof..\n[Shot 3] At 00:07.500, the camera cuts to <Picture 3>. The camera uses a Push In. the beacon keeper looks once more toward the dark dock mark..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E02-07",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                23,
+                23
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she turns back to the steady beacon lamp., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                24,
+                24
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Pan Right",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper remains at the window as the boat light moves on., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                25,
+                25
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Pull Out",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon continues to shine while the dock remains dark., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 5.00-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Static Shot. She turns back to the steady beacon lamp..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Pan Right. the beacon keeper remains at the window as the boat light moves on..\n[Shot 3] At 00:05.000, the camera cuts to <Picture 3>. The camera uses a Pull Out. The beacon continues to shine while the dock remains dark..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        }
+      ]
+    },
+    {
+      "ep": 3,
+      "segments": [
+        {
+          "id": "E03-01",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                1,
+                1
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper connects the cable to the dock switch as rain strikes the window., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                2,
+                2
+              ],
+              "seconds": 2.2,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, dock first., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                3,
+                3
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she presses the switch and checks the dock mark on the chart., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                4,
+                4
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper watches the dock lights answer below., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 4.70-second mark of the target video; Picture 4 (from Shot 4) aligns with the 7.20-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. the beacon keeper connects the cable to the dock switch as rain strikes the window..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. Dock first.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] Dock first.</d>\n[Shot 3] At 00:04.700, the camera cuts to <Picture 3>. The camera uses a Push In. She presses the switch and checks the dock mark on the chart..\n[Shot 4] At 00:07.200, the camera cuts to <Picture 4>. The camera uses a Static Shot. the beacon keeper watches the dock lights answer below..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E03-02",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                5,
+                5
+              ],
+              "seconds": 6,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the boats have a place to come in., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                6,
+                6
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she turns back to the brass beacon lamp., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                7,
+                7
+              ],
+              "seconds": 6,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon has no power tonight., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 6.00-second mark of the target video; Picture 3 (from Shot 3) aligns with the 8.50-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. The boats have a place to come in.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The boats have a place to come in.</d>\n[Shot 2] At 00:06.000, the camera cuts to <Picture 2>. The camera uses a Static Shot. She turns back to the brass beacon lamp..\n[Shot 3] At 00:08.500, the camera cuts to <Picture 3>. The camera uses a Push In. The beacon has no power tonight.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The beacon has no power tonight.</d>\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E03-03",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                8,
+                8
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper covers the unused beacon switch., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                9,
+                9
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the dark brass lamp reflects the cold dawn., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                10,
+                10
+              ],
+              "seconds": 4.9,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, stay together at the dock., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 5.00-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. the beacon keeper covers the unused beacon switch..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. The dark brass lamp reflects the cold dawn..\n[Shot 3] At 00:05.000, the camera cuts to <Picture 3>. The camera uses a Push In. Stay together at the dock.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] Stay together at the dock.</d>\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E03-04",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                11,
+                11
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she stands beside the window and follows the dock line below., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                12,
+                12
+              ],
+              "seconds": 3.6,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the choice is made., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                13,
+                13
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper keeps her hand near the dock switch., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                14,
+                14
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she leaves the beacon lamp unlit., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 6.10-second mark of the target video; Picture 4 (from Shot 4) aligns with the 8.60-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. She stands beside the window and follows the dock line below..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. The choice is made.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The choice is made.</d>\n[Shot 3] At 00:06.100, the camera cuts to <Picture 3>. The camera uses a Push In. the beacon keeper keeps her hand near the dock switch..\n[Shot 4] At 00:08.600, the camera cuts to <Picture 4>. The camera uses a Static Shot. She leaves the beacon lamp unlit..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E03-05",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                15,
+                15
+              ],
+              "seconds": 3.3,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the dock stays on., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                16,
+                16
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, several boat lights gather near the dock through the rain., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                17,
+                17
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper keeps watch from the window., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                18,
+                18
+              ],
+              "seconds": 2.9,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, come in safely., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 3.30-second mark of the target video; Picture 3 (from Shot 3) aligns with the 5.80-second mark of the target video; Picture 4 (from Shot 4) aligns with the 8.30-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. The dock stays on.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] The dock stays on.</d>\n[Shot 2] At 00:03.300, the camera cuts to <Picture 2>. The camera uses a Static Shot. Several boat lights gather near the dock through the rain..\n[Shot 3] At 00:05.800, the camera cuts to <Picture 3>. The camera uses a Push In. the beacon keeper keeps watch from the window..\n[Shot 4] At 00:08.300, the camera cuts to <Picture 4>. The camera uses a Static Shot. Come in safely.. The lone keeper with a steady, pressured voice (S1) says: <d>[Chinese] Come in safely.</d>\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E03-06",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                19,
+                19
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she checks that the dock cable is seated in its switch., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                20,
+                20
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper smooths the chart flat on the desk., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                21,
+                21
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she listens as rain passes across the roof., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                22,
+                22
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper looks once more at the dark beacon lamp., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                23,
+                23
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Pan Right",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she turns back toward the lit dock line., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 5.00-second mark of the target video; Picture 4 (from Shot 4) aligns with the 7.50-second mark of the target video; Picture 5 (from Shot 5) aligns with the 10.00-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. She checks that the dock cable is seated in its switch..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. the beacon keeper smooths the chart flat on the desk..\n[Shot 3] At 00:05.000, the camera cuts to <Picture 3>. The camera uses a Push In. She listens as rain passes across the roof..\n[Shot 4] At 00:07.500, the camera cuts to <Picture 4>. The camera uses a Static Shot. the beacon keeper looks once more at the dark beacon lamp..\n[Shot 5] At 00:10.000, the camera cuts to <Picture 5>. The camera uses a Pan Right. She turns back toward the lit dock line..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        },
+        {
+          "id": "E03-07",
+          "sceneIndex": 1,
+          "cuts": [
+            {
+              "beats": [
+                24,
+                24
+              ],
+              "seconds": 2.5,
+              "size": "wide",
+              "camera": "Tracking Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "wide shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper stays at the window while the boats draw closer., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                25,
+                25
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, she keeps the beacon switch cover closed., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                26,
+                26
+              ],
+              "seconds": 2.5,
+              "size": "close",
+              "camera": "Push In",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "close-up of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the beacon keeper rests her hand beside the powered dock switch., cinematic film still, cold gray-green palette, 16:9"
+            },
+            {
+              "beats": [
+                27,
+                27
+              ],
+              "seconds": 2.5,
+              "size": "medium",
+              "camera": "Static Shot",
+              "characters": [
+                "keeper"
+              ],
+              "props": [],
+              "frame": "medium shot of a lone beacon keeper in a rain-dark coat inside a worn beacon room at cold dawn, salted window, brass lamp, desk and dock chart visible, the dock remains powered while the beacon stays dark., cinematic film still, cold gray-green palette, 16:9"
+            }
+          ],
+          "h3Prompt": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 2) aligns with the 2.50-second mark of the target video; Picture 3 (from Shot 3) aligns with the 5.00-second mark of the target video; Picture 4 (from Shot 4) aligns with the 7.50-second mark of the target video.\n\nintegrated_multimodal_description:\n[Shot 1] Cinematic, live-action, cold gray-green palette. The composition of <Picture 1> holds the beacon keeper in the dawn room. The camera uses a Tracking Shot. the beacon keeper stays at the window while the boats draw closer..\n[Shot 2] At 00:02.500, the camera cuts to <Picture 2>. The camera uses a Static Shot. She keeps the beacon switch cover closed..\n[Shot 3] At 00:05.000, the camera cuts to <Picture 3>. The camera uses a Push In. the beacon keeper rests her hand beside the powered dock switch..\n[Shot 4] At 00:07.500, the camera cuts to <Picture 4>. The camera uses a Static Shot. The dock remains powered while the beacon stays dark..\n\noverall_soundscape: Rain taps the salted window, wind pushes along the roof, and the room's wood creaks around the switches.\n\nnon_diegetic_music: Low sustained strings at a restrained tempo."
+        }
+      ]
+    }
+  ]
+}

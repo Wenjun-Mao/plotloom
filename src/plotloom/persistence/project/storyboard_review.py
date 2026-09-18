@@ -132,13 +132,13 @@ class ProjectStoryboardReviewPersistence:
                 raise CreativeHandoffError("delivery_stale", "delivery is not the current prepared storyboard review")
             if row.status == "cancelled":
                 raise CreativeHandoffError("delivery_cancelled", "storyboard review candidate was cancelled")
+            binding = StoryboardReviewBinding.model_validate(row.binding)
+            if row.status not in {"prepared", "ready"} or row.expected_review_revision != head.revision or self._stale(session, project_id, binding):
+                raise CreativeHandoffError("delivery_stale", "storyboard review candidate context is stale")
             if row.status == "ready":
                 if row.manifest_hash != delivery.manifest_hash:
                     raise CreativeHandoffError("delivery_conflict", "different delivery already occupies storyboard review candidate")
                 return self._candidate(row)
-            binding = StoryboardReviewBinding.model_validate(row.binding)
-            if row.status != "prepared" or row.expected_review_revision != head.revision or self._stale(session, project_id, binding):
-                raise CreativeHandoffError("delivery_stale", "storyboard review candidate context is stale")
             current, script, outline, cast, _art = self._context(session, project_id)
             self._validate(delivery.candidate, current, script, outline, cast)
             row.status, row.delivery_id, row.manifest_hash, row.storyboard, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
@@ -188,6 +188,11 @@ class ProjectStoryboardReviewPersistence:
             row = session.get(StoryboardReviewCandidateRow, job_id)
             if row is None or row.project_id != project_id or row.status == "cancelled":
                 raise NotFoundError("project storyboard review candidate is unavailable")
+            if row.status in {"prepared", "ready"}:
+                head = self._head(session, project_id)
+                binding = StoryboardReviewBinding.model_validate(row.binding)
+                if head.candidate_job_id != job_id or row.expected_review_revision != head.revision or self._stale(session, project_id, binding):
+                    raise CreativeHandoffError("delivery_stale", "storyboard review handoff context is stale")
             return CreativeHandoffRequest.model_validate(row.request)
 
     @staticmethod
@@ -200,6 +205,7 @@ class ProjectStoryboardReviewPersistence:
             raise ValueError("storyboard episodes must exactly match the frozen F4 section-to-episode mapping")
         params = storyboard.get("params")
         expected_params = {
+            "minCutSeconds": binding.review_min_cut_seconds,
             "maxCutSeconds": binding.review_max_cut_seconds,
             "maxSegmentSeconds": binding.review_max_segment_seconds,
         }
