@@ -1,4 +1,4 @@
-# F5 storyboard production-seam receipt — bounded, blocked candidate
+# F5 storyboard production-seam receipt — bounded timing evidence and failed correction
 
 Date: 2026-09-18. Baseline: `1364daa49e455836a784c0febf0e434928115b7c`.
 
@@ -36,11 +36,16 @@ The raw frozen inputs and derived outputs are local, ignored proof artifacts:
 - [pinned HTML render](../../.local/relay/e75c2655-e7ce-4053-ab42-38fa26d0d412/f5-storyboard-proof/report.html) — SHA-256 `60b8efcc2b5a94faf568ad7c40fcaacd92115d730dd3a4925584a4c98ffb817a`
 - [completion receipt](../../.local/relay/e75c2655-e7ce-4053-ab42-38fa26d0d412/f4-current-proof/outputs/20260918T063228536312Z__d3ad5da3-905e-4eb2-90c8-7d52d1cb4fd0/outputs/creative-handoff/jobs/ch_f5storyboardproof20260918/delivery/completion.json) — SHA-256 `7e2819632e44a42beee3ca1b7d361ef3bc65dc602c2cf0e32174c9ecd3febc7e`
 
-The three sections have respectively 7/19/84s, 7/21/91s, and 7/21/91s
-(segments/cuts/seconds). All ordered beat claims, source-owned dialogue blocks,
-H3 prompt structure/cut times, identity/scene/prop references, section order,
-and both distinct route consequences pass the pinned checks. No candidate cut
-contains footage or consequence language from the other ending.
+The historical candidate's three sections are respectively 7/19/84s,
+7/21/91s, and 7/21/91s (segments/cuts/seconds). Its opening is within the
+90-second section cap, but each ending is one second over it. That omission was
+not an upstream `novel-storyboard` gate and the prior receipt incorrectly left
+the historical candidate sounding section-cap compliant. Both complete routes
+remain within 180 seconds (175 seconds), but a route cap does not waive an
+individual section cap. Ordered beat claims, source-owned dialogue blocks, H3
+prompt structure/cut times, identity/scene/prop references, section order, and
+both distinct route consequences pass the recorded pinned checks. No candidate
+cut contains footage or consequence language from the other ending.
 
 The candidate is intentionally **not valid for production**. The pinned
 `novel-storyboard` `dialogue-fit` gate fails for 12 script-owned r2 lines:
@@ -50,12 +55,12 @@ The candidate is intentionally **not valid for production**. The pinned
 - Beacon ending: beats 5 (6.0s), 7 (5.6s), and 10 (6.9s).
 - Dock ending: beats 5 (6.0s) and 7 (6.0s).
 
-At the pinned script estimator of 4.5 characters/second, each exceeds the
-upstream hard cut maximum of 5 seconds. Dialogue text, order, and speakers are
-script-owned; splitting or rewriting them, enlarging a cut, or masking the
-failure would change that contract. The first build had a local beat-range
-grouping defect; one targeted correction removed it. This final validation has
-only the source-timing failure above, so no further candidate revision was made.
+At the pinned script estimator of 4.5 characters/second, each exceeds that
+historical candidate's declared 5-second cut maximum. Five seconds is the
+upstream default, not a hard pinned limit: `paramsOf` merges the candidate's
+`params.maxCutSeconds` over that default, so an explicit value of 8 is accepted
+unchanged by the validator. Dialogue text, order, and speakers remain
+script-owned; this correction work did not rewrite or split them.
 
 Checks run:
 
@@ -68,15 +73,55 @@ Checks run:
 - F0 `read_delivery` plus currentness assertion — passed, manifest hash
   `b68b35391fabe7c7e0d21708cae2003d65daef16bd2f0757af5c604c090dc648`.
 
+## 8-second timing correction — failed, preserved
+
+One fresh review-only candidate and its one targeted correction are retained in
+the ignored scratch directory
+`.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/`.
+They consume an exact byte copy of F4 script r2: byte SHA-256
+`2dff9844bd36aac4a50c977fe2aa51c3f5b816e1dc05d734eb79aea2024aebfd` and
+canonical content SHA-256
+`ca7dc718a5164656c1da2bf7e88a6a8c7f8e8922e7269186eb973fb225ee6358`.
+The historical F5 package was independently re-read and its
+`assert_current(..., current_stage_revision=0)` check passed; this new raw
+candidate is only review material and is not a new F0 exchange delivery.
+
+The first fresh JSON candidate is preserved as `storyboard-first-invalid.json`.
+It serialized singleton beat claims as `[n]`, rather than the required `[n,n]`,
+so the pinned validator rejected coverage and derived durations. The sole
+targeted correction normalized those claims and regenerated the raw candidate,
+Markdown, and HTML reports. Its raw artifacts are:
+
+- [corrected candidate JSON](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/storyboard.json) — SHA-256 `88b2babc94f2edadc0b1582197c243e46cfd40fe388117686081ed39c1c07dc8`
+- [corrected Markdown render](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/storyboard.md) — SHA-256 `d27a627744273248e63776dac19f4a0c92171abd19023ec21fb639d8ba042f8b`
+- [corrected HTML render](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/report.html) — SHA-256 `dd95eb6742ac64f92c66888f2623983453cc345f3530127dc16cc10f30e2a48e`
+- [pinned validation log](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/validate-correction.log), [checkup log](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/checkup-correction.log), and [explicit cap check](../../.local/relay/6529f443-12be-441f-b046-c3444e76cf1a/f5-eight-second-review/explicit-caps.json)
+
+The correction proves the relevant upstream timing fact: its explicit
+`params.maxCutSeconds: 8` passes the cut-length and dialogue-fit gates; its
+opening has an actual 8-second cut. It preserves every one of the 22 script
+dialogue lines verbatim in speaker/order sequence and retains episode bindings
+1/2/3 for `opening`/`beacon`/`dock`. It also meets the strict section caps at
+80.3/78.5/78.9 seconds and the complete-route caps at 158.8/159.2 seconds.
+
+It is nevertheless invalid: `E02-06` is 17.5 seconds, exceeding the pinned
+15-second segment maximum. `validate` and `checkup` therefore fail exactly one
+gate. This follows the targeted correction, so the attempt stops here rather
+than applying another resegmentation. The pinned upstream selftest still passes
+254 assertions. This is technical failure evidence only, not a valid candidate,
+creative review, production admission, or proof that variable-duration H3 can
+be deployed. Current production H3 remains fixed to five seconds; any
+variable-duration production support needs a separate qualification.
+
 ## Reference and production mapping
 
 | Frozen upstream field | Existing owner / exact gap | F5A boundary |
 | --- | --- | --- |
-| `segment.id`, `sceneIndex`, ordered `cuts[].beats`, `seconds` | Existing `Storyboard.shots` has shot ID/order/duration and `shot_beat_links`, but F4's flow indexes are not canonical Scene Beat IDs. | Bind each F4 flow beat to the existing canonical beat identity before projecting one ordered canonical shot per cut; preserve upstream segment grouping as review-only metadata. |
+| `segment.id`, `sceneIndex`, ordered `cuts[].beats`, `seconds` | Existing `Storyboard.shots` has shot ID/order/duration and `shot_beat_links`; F4 flow indexes are upstream review coordinates. | A later product owner may define traceable source-to-shot mapping. This F5 evidence neither creates nor requires a V2 SceneBeats projection; upstream segment grouping remains review-only metadata. |
 | cut size/camera/frame/action/characters/props | Existing `Shot` owns size, movement, visual/motion intent, action, character/location/prop IDs and continuity fields. | Map only after a source-bound candidate/review owner exists; do not make an independent F5 shot store. `S01` and `keeper` are required inputs, not selected media. |
 | exact dialogue and per-cut H3 `<d>` blocks | Script owns dialogue; existing `Shot.dialogue`/`audio` and `MediaPromptCompiler.video` own canonical presentation and derived video prompt inputs. | Preserve script dialogue as the source of truth. Upstream `h3Prompt` is review direction, not a dispatch payload. Retire any direct upstream-H3 prompt passthrough rather than add a second media compiler. |
 | upstream multi-picture segment alignment and sub-frame needs | No existing Plotloom direct-H3 path accepts multi-picture segment alignment. The H3 transport submits exactly one approved keyframe plus `prompt`, profile, aspect policy, seed and duration. | Represent each required cut keyframe as an existing reviewed-shot/keyframe need; do not claim any scene/identity/prop reference is selected. A segment-to-multiple-input dispatch adapter is a later, separately proven decision. |
-| upstream 2–5s cuts / ≤15s segments | The upstream candidate passes 2–5s cut and ≤15s segment gates except dialogue-fit. The current H3 adapter freezes every profile's production contract to 5 seconds, although its catalog public descriptor advertises a 5–15 range. | Resolve the script dialogue timing contract first; then decide whether F5A maps a cut 1:1 to a fixed 5s direct-H3 job or has an explicitly tested split/recomposition rule. No implicit duration conversion. |
+| upstream candidate cut/segment limits | The historical candidate declared 2–5s cuts and passed the ≤15s segment gate except dialogue-fit. `paramsOf` allows an explicit candidate cut maximum, as the failed correction's 8-second cut proves; the correction still fails its 17.5-second segment. The current H3 adapter freezes every profile's production contract to 5 seconds, although its catalog public descriptor advertises a 5–15 range. | First produce a fully valid review candidate under one explicit timing contract; only then decide whether a later F5A maps a cut 1:1 to a fixed 5s direct-H3 job or has an explicitly tested split/recomposition rule. No implicit duration conversion. |
 | native audio convention in upstream H3 prompt | Current adapter requires `audio=True`, and output validation expects AAC, but no source here establishes deployed speech, speaker attribution, voice consistency, or prompt-control behavior. | Leave these capabilities unknown and reserve their real gateway test for F6; do not decide TTS or voice control in F5A. |
 
 The source basis is `src/plotloom/domain.py` (`Shot`/`Storyboard`),
@@ -88,12 +133,11 @@ reviewed selected keyframe, identity/reference and currentness gates).
 
 ## Next bounded action and limits
 
-The smallest F5A integration decision is to choose one durable owner for the
-script's long dialogue: either revise the accepted script to fit the pinned
-2–5s upstream cut contract, or change/pin a different upstream timing contract
-with an ADR and a fresh candidate. Only after that decision should a thin
-candidate-to-existing-`Storyboard` projection bind F4 flow beats to canonical
-beat IDs and reuse the existing review/keyframe/media owners.
+The next bounded action is a fresh, independently scoped resegmentation only
+after reassessing the retained 17.5-second failure. It must preserve the
+script-owned dialogue and satisfy every upstream segment gate before any product
+integration decision. No V2 SceneBeats projection is a prerequisite of that
+review work; existing review/keyframe/media owners remain unchanged.
 
 No project database was edited. No Approval, reference selection, image/media
 generation, gateway preflight/dispatch, audio experiment, frontend/schema work,
@@ -116,3 +160,19 @@ only one reviewed selected keyframe through its fixed 5-second direct H3 job;
 upstream multi-picture segment alignment remains noncanonical review material
 until an explicit, tested integration decision. This review is technical only;
 it grants no creative approval or production admission.
+
+### Independent correction review
+
+An independent attended read-only Codex reviewer inspected the preserved fresh
+candidate, reports, validation/checkup logs, cap calculation, and source/currentness
+log. The reviewer reported its runtime as GPT-5 rather than the requested Terra
+label; that attribution mismatch is retained as a verification gap, not relabelled.
+It independently found the F4 r2 byte/canonical hashes correct, all 22 dialogue
+lines verbatim and in speaker/order sequence, the episode bindings 1/2/3 aligned
+to `opening`/`beacon`/`dock`, and two actual 8-second opening cuts accepted by
+the configured 2–8 second gate. It confirmed the sole corrected-candidate
+failure: `E02-06` at 17.5 seconds over the 15-second segment cap. The reviewer
+also confirmed section caps 80.3/78.5/78.9 seconds and route caps 158.8/159.2
+seconds, and found no basis to upgrade this technical failure evidence into
+creative approval, production admission, deployed H3 timing support, reference
+selection, media dispatch, or voice/speaker-control proof.
