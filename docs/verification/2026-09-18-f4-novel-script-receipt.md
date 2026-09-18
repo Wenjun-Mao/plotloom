@@ -1,60 +1,82 @@
 # F4 novel-script receipt
 
-Date: 2026-09-18. Baseline: `6b73e60426323d75f62862f35997cd8a9bc52c16`.
+Date: 2026-09-18. Current-contract baseline:
+`1c7867f001be33155a7d52a631d1bda1123eff35`.
 
-## Historical candidate and correction status
+## Scope and outcome
 
-The prior F4 candidate remains preserved historical specialist evidence and
-retains its original receipt attribution. It did **not** satisfy the corrected
-F4 admission contract: prepared publication was not proven to block recovery
-snapshots, format-9 folders were still admitted through generic schema paths,
-the target could be interpreted as an equal three-episode duration, mapping
-was only bijective rather than exact, and the review UI did not make current
-JSON/report ownership fully explicit. It must not be represented as having
-passed the later format-10, exact-binding, route-cap, or deferred-response
-contract.
+This is one disposable, current-contract F4 technical proof, not a human
+creative acceptance or an F5/media/TTS action. The retained one-choice,
+two-ending fixture was copied through the normal production browser into
+project `d3ad5da3-905e-4eb2-90c8-7d52d1cb4fd0`. It accepted the fresh
+specialist delivery as script r1, then reopened and saved a source-faithful
+opening-only terminal-status clarification as r2. The beacon and dock sections
+remained byte-identical under canonical JSON hashing.
 
-The correction preserves one upstream `script.json` as creative authority and
-adds only trusted admission facts: exact ordered `sectionBindings`, frozen
-graph-derived section/route caps, currentness, lifecycle blocking, and scoped
-episode replacement. The author target is a hard maximum per complete route,
-not a runtime requirement. Reports remain original pinned upstream derived
-artifacts and visibly distinguish an edited current script from their original
-candidate revision. No F5/media/TTS work, fresh creative generation, retained
-pilot mutation, or human creative approval occurred.
+The exact second/current package is
+`.local/relay/e75c2655-e7ce-4053-ab42-38fa26d0d412/f4-current-proof/outputs/20260918T063228536312Z__d3ad5da3-905e-4eb2-90c8-7d52d1cb4fd0/outputs/creative-handoff/jobs/ch_edd631abfb5f463989b92d02f983050e/`.
+It preserves `opening → 1`, `beacon → 2`, `dock → 3`; the two complete paths
+are `opening → beacon` and `opening → dock`, each capped at 180 seconds. The
+candidate/report SHA-256 values are respectively
+`1cf76e8a153056b8e6533e2f5b3d944ebd1b2ed4449a527253b679d67e1ba88c` and
+`57ece178e16d2b71d25aa5e426b722bf99bf71042e0e1ec8eb2e697c34ac5322`.
+Completion provenance pins Terra/high plus the skill/upstream revisions. Its
+delivery ID contains the native task prefix; the full native task identity
+`01a0b33f-d4d6-7471-a15f-bf4ae0060c80` and Relay release ticket
+`b21d88e6-ec5a-4537-809f-d3b0d89ed5c6:365` are preserved by this receipt.
+No earlier task or model evidence was reused.
 
-## Attended proof and review
+## Retained first attempt and delegation correction
 
-The disposable production-browser project `884cd1ca-11d7-4223-8f0f-05078e3173e7`
-was created through the normal project API. Its final frozen package and raw
-delivery remain locally under `.local/relay/3498b951-455c-4082-aeee-d7939c4fef9b/f4-live-proof/`.
-The attended Terra/high specialist delivered all three sections, bound
-`opening → 1`, `beacon → 2`, and `dock → 3`, with 180 seconds total / 60
-seconds per section. The project technically accepted that historical delivery
-as script revision 1 under the earlier contract only.
+The first script delivery remains preserved at job
+`ch_081aaec783bd434392e7e12455a029dd`. It passed the upstream validator but
+was correctly refused by current Plotloom admission because it omitted the
+required top-level `sectionBindings`; it is not rewritten or presented as
+current-contract evidence.
 
-Two earlier candidate attempts were cancelled, not accepted: one invented
-episodic hook/cliff claims and wrapped the derived report; the next exposed that
-the frozen duration was not represented and fell back to upstream's three-minute
-default. The earlier work correctly retained terminal/entry status, byte-pure
-reports, and `lang: en`, but its review cannot certify a contract introduced
-later. Fresh current-contract specialist proof is pending the director's next
-bounded action. This remains technical/structural evidence only, not human
-creative approval.
+Only that first candidate was an earlier actual candidate attempt. A purported
+second author child never wrote a candidate: it mistakenly invoked its parent's
+Relay ticket and received the expected actor mismatch. This was an assignment
+error, not a Relay/plugin defect and not a second creative attempt. The current
+Terra/high coordinator authored the one remaining replacement package under its
+own valid Relay assignment.
 
-The correction itself received a separate [read-only admission-boundary
-review](2026-09-18-f4-admission-correction-review.md). That review covers the
-new offline contract and does not reclassify the historical candidate.
+## Technical evidence
 
-## Historical verification
+- Read every frozen input, the Plotloom specialist contract, the pinned
+  `novel-script` contract and its script-pass/schema references before writing.
+- Pinned upstream `validate` passed: 3 episodes, 3 scenes, 22 dialogue lines;
+  estimated 236.5 seconds against its structural 270-second episode aggregate.
+  This is an intentionally non-episode pilot: hook/cliff strings and aggregate
+  mutually-exclusive-ending duration are structural upstream fields, not
+  product episode approval. The frozen section and complete-route ceilings are
+  the applicable limits.
+- The byte-pure pinned HTML render passed and visibly retained each route-entry
+  and terminal-status field. Plotloom labels the report as the original
+  read-only specialist report; r2 does not rewrite it.
+- In the headed production browser: re-copied the frozen handoff, refreshed the
+  exact delivery, technically accepted it, reloaded and inspected current JSON
+  plus the original report, reopened `opening`, saved only its terminal-status
+  wording, and verified canonical hashes for the untouched `beacon` and `dock`
+  episodes (`e30d47503f15c40a01b5ee08fcdba08967707b0a2ca4ab6c89a87614272c7fff`
+  and `7190d8f131b2a50ad299053f1f8ee50bd60103f168a4f6678573469467050f09`).
+- Restarted the owned backend and reloaded the browser: persisted script r2
+  remained visible with hash
+  `ca7dc718a5164656c1da2bf7e88a6a8c7f8e8922e7269186eb973fb225ee6358`.
+- `uv run --locked pytest -q tests/test_project_storage_art.py -k 'f4'` —
+  passed, 6 selected tests. No full suite/CI was run because this delivery adds
+  proof/receipt evidence rather than implementation.
 
-- `uv run --locked pytest -q tests/test_project_storage_art.py` — historical
-  pass under the earlier contract. It is not proof of this correction.
-- `npm run typecheck` in `frontend/` — passed.
-- `npm exec -- playwright test --config playwright.config.ts e2e/art-review.spec.ts --grep 'F4 accepts'` in `frontend/` — passed: 1 production-browser journey. It prepares, refreshes, accepts, reopens, saves one stable section, restarts, and confirms the other bound episode remains present.
-- `npm run build` in `frontend/` — passed; checked-in `src/plotloom/static/` is fresh. Vite retains its existing >500 kB chunk warning.
-- Final attended package: pinned `validate` passed 3 episodes / 3 scenes / 12 dialogue lines at 180s; pinned HTML re-render was byte-identical to the delivered report. This validates the original specialist package, not its later admission semantics.
+## Review and limits
 
-`uv run --locked ruff check …` was attempted but the environment has no `ruff`
-executable (`Failed to spawn: ruff`). `compileall` was used for the edited
-Python modules instead; it passed.
+An independent read-only review found no candidate-content blocker. It verified
+all bindings, the 157.6-second beacon route and 158.2-second dock route, both
+decision consequences, and both delivery hashes. It also confirms the upstream
+report itself retains its structural “Cold open hook”, “Cliffhanger”, and
+aggregate-duration labels; those labels are deliberately not rewritten. The
+separate Plotloom UI/receipt makes their non-episode product-inapplicability
+explicit, while preserving section/route caps as applicable.
+
+The review is technical only and cannot grant creative approval. No ImageGen,
+H3, TTS, Qwen, F5 work, project-canon mutation outside this disposable proof,
+or retained project change occurred.
