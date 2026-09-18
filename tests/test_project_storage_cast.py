@@ -46,18 +46,28 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
 
 def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_path: Path) -> None:
     store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
-    context = _context(); store.repository.cast._source_outline.get_state = lambda _project_id: context  # type: ignore[method-assign]
+    context = _context()
+
+    def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
+        assert context.source and context.accepted_outline and context.accepted_section_map
+        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
+
+    store.repository.cast._context = bound_context  # type: ignore[method-assign]
     try:
-        binding = CastBinding(source_revision=1, source_content_hash=context.source.content_hash, outline_revision=1, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=1, section_map_content_hash=context.accepted_section_map.content_hash, section_ids=["opening", "beacon", "dock"])
-        request = CreativeHandoffRequest(job_id="ch_" + "b" * 32, project_id=store.manifest.project_id, section_id="shared-cast", stage="characters", expected_stage_revision=0, source=context.source.material.model_dump(mode="json", by_alias=True), input_artifacts={"outline.json": context.accepted_outline.outline, "section-map.json": context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)}, creative_brief="fixture")
-        store.prepare_cast_candidate(request, binding)
+        binding, *_ = bound_context(None, store.manifest.project_id)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "b" * 32)
         ready = store.admit_cast_delivery(_deliver(store, request))
         edited = dict(ready.cast or {}); edited["characters"] = [dict(edited["characters"][0], persona={"motivation": "Save both crews", "appearance": "Windburned", "arc": "Chooses"})]
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=edited, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         assert accepted.accepted_cast is not None and accepted.accepted_cast.cast["characters"][0]["persona"]["motivation"] == "Save both crews"
+        replacement, _replacement_request = store.prepare_cast_candidate("ch_" + "c" * 32)
+        recovered = store.cancel_cast_candidate(replacement.job_id)
+        assert recovered.status == "accepted"
+        next_candidate, _next_request = store.prepare_cast_candidate("ch_" + "d" * 32)
+        store.cancel_cast_candidate(next_candidate.job_id)
         context = _context(2)
         assert store.cast_state().status == "stale"
-        with pytest.raises(CreativeHandoffError, match="stale"):
-            store.prepare_cast_candidate(request.model_copy(update={"job_id": "ch_" + "c" * 32, "expected_stage_revision": 1}), binding)
+        assert store.cast_state().status == "stale"
     finally:
         store.close()

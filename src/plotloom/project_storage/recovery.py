@@ -34,6 +34,7 @@ from .format import (
 from .operational_state import (
     ProjectAccessLease,
     ProjectBusyError,
+    cast_publication_blockers,
     source_outline_publication_blockers,
 )
 from .recovery_control import (
@@ -332,4 +333,5 @@ class ProjectRecoveryService:
             (["image_publication_active"] if image_busy else [])
             + (["character_reference_publication_active"] if reference_busy else [])
             + source_outline_publication_blockers(store)
+            + cast_publication_blockers(store)
         )

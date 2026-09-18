@@ -33,7 +33,7 @@ from ..source_outline_contracts import (
 )
 from ..creative_handoff_contracts import CreativeHandoffRequest
 from ..creative_handoff_exchange import ValidatedCreativeDelivery
-from ..cast_contracts import CastAcceptRequest, CastBinding, CastCandidate, CastReopenRequest, CastReviewState
+from ..cast_contracts import CastAcceptRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
 from ..persistence import ProjectSQLiteRepository
 from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
 from .format import (
@@ -444,8 +444,8 @@ class ProjectStore:
     def cast_state(self) -> CastReviewState:
         return self.repository.cast.get_state(self.manifest.project_id)
 
-    def prepare_cast_candidate(self, request: CreativeHandoffRequest, binding: CastBinding) -> CastCandidate:
-        return self.repository.cast.prepare_candidate(self.manifest.project_id, request, binding)
+    def prepare_cast_candidate(self, job_id: str) -> tuple[CastCandidate, CreativeHandoffRequest]:
+        return self.repository.cast.prepare_candidate(self.manifest.project_id, job_id)
 
     def admit_cast_delivery(self, delivery: ValidatedCreativeDelivery) -> CastCandidate:
         return self.repository.cast.admit_delivery(self.manifest.project_id, delivery)
@@ -456,8 +456,14 @@ class ProjectStore:
     def reopen_cast(self, request: CastReopenRequest) -> CastReviewState:
         return self.repository.cast.reopen(self.manifest.project_id, request)
 
+    def save_reopened_cast(self, request: CastSaveRequest) -> CastReviewState:
+        return self.repository.cast.save_reopened(self.manifest.project_id, request)
+
     def cancel_cast_candidate(self, job_id: str) -> CastReviewState:
         return self.repository.cast.cancel_candidate(self.manifest.project_id, job_id)
+
+    def cast_consumer_identity(self, cast_character_id: str) -> str:
+        return self.repository.cast.consumer_identity_for(self.manifest.project_id, cast_character_id)
 
     def cast_candidate_report(self, job_id: str) -> str:
         return self.repository.cast.candidate_report(self.manifest.project_id, job_id)

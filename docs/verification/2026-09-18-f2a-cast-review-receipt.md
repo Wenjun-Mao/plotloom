@@ -8,8 +8,8 @@ creative acceptance, media production, or voice-consistency proof.
 
 - The F0 frozen handoff exchange now carries a `characters` package with the
   accepted source, upstream outline, and F1B section map as explicit inputs.
-- A project-owned cast owner freezes source/outline/section-map hashes,
-  revisions, and stable section IDs; it admits only current, pinned-specialist
+- A project-owned cast owner freezes source/outline/section-map and installed graph
+  hashes, revisions, and stable section IDs from one transaction snapshot; it admits only current, pinned-specialist
   deliveries, supports cancellation, rejects late/stale delivery, and makes
   prepared external publication visible to project lifecycle controls.
 - Explicit acceptance saves one immutable upstream-shaped `cast.json` revision

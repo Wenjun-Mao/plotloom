@@ -14,11 +14,13 @@ route and makes F2 depend on obsolete generation.
 ## Decision
 
 F2A adds a focused project-owned cast review record. A candidate freezes exact
-source, outline, and current section-map revisions/hashes plus the three stable
-section IDs. The specialist owns the unmodified upstream-shaped `cast.json` and
+source, outline, current section-map, and installed canonical graph revisions/hashes
+plus the three stable section IDs. The specialist owns the unmodified upstream-shaped `cast.json` and
 derived report; the author explicitly accepts the candidate under CAS. Trusted
 code owns package provenance, narrow structural checks (object, stable unique
 character IDs), currentness, persistence, and late/cancelled-delivery refusal.
+The binding and its CAS checks read these records in the same transaction snapshot;
+a current section map alone is not evidence that its graph remains installed.
 
 The accepted payload is one cast authority. Its explicit `castCharacterId` to
 `consumerCharacterId` mapping is the thin seam for existing character-reference

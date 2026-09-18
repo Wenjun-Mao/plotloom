@@ -166,7 +166,7 @@ class ProjectSQLiteRepository:
             self._project_access, self._canonical, self._drafts, accounting=None
         )
         self.source_outline = ProjectSourceOutlinePersistence(self._project_access, self._canonical)
-        self.cast = ProjectCastPersistence(self._project_access, self.source_outline)
+        self.cast = ProjectCastPersistence(self._project_access)
         self._generation_access = GenerationPersistenceAccess(
             leases=GenerationLeases(
                 read=self._read, write=self._write, lifecycle_write=self._lifecycle_write,

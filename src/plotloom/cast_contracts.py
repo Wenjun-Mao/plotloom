@@ -13,7 +13,7 @@ CastStatus = Literal["missing", "prepared", "candidate_ready", "accepted", "reop
 
 
 class CastBinding(CamelModel):
-    """Exact F1 records that a cast proposal is allowed to describe."""
+    """Exact F1 records and installed graph that a cast proposal may describe."""
 
     source_revision: int = Field(ge=1)
     source_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
@@ -21,6 +21,8 @@ class CastBinding(CamelModel):
     outline_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     section_map_revision: int = Field(ge=1)
     section_map_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    graph_revision: int = Field(ge=1)
+    graph_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     section_ids: list[str] = Field(min_length=3, max_length=3)
 
     @field_validator("section_ids")
@@ -82,6 +84,15 @@ class CastAcceptRequest(CamelModel):
     # The author may refine proposal-owned direction in ordinary forms. Stable
     # upstream character IDs remain frozen by the prepared candidate.
     cast: dict[str, Any] | None = None
+
+
+class CastSaveRequest(CamelModel):
+    """CAS-protected author save after explicitly reopening accepted cast work."""
+
+    expected_cast_revision: int = Field(ge=1)
+    binding: CastBinding
+    cast: dict[str, Any]
+    consumer_mappings: list[CastConsumerMapping] = Field(min_length=1)
 
 
 class CastReopenRequest(CamelModel):
