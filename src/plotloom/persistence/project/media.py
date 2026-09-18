@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from .access import ProjectPersistenceAccess
+from .art import ProjectArtPersistence
 from .canonical import ProjectCanonicalPersistence
 from .cast import ProjectCastPersistence
 from .drafts import ProjectDraftPersistence
@@ -32,6 +33,7 @@ class ProjectMediaPersistence:
         canonical: ProjectCanonicalPersistence,
         drafts: ProjectDraftPersistence,
         cast: ProjectCastPersistence,
+        art: ProjectArtPersistence,
         accounting: VideoPilotAccountingPort | None,
     ) -> None:
         admission = KeyframeAdmission(access)
@@ -70,7 +72,7 @@ class ProjectMediaPersistence:
         self.proposals: CharacterReferenceProposalPersistence = (
             CharacterReferenceProposalPersistence(access, canonical, references)
         )
-        self.art_references: ArtReferenceProposalPersistence = ArtReferenceProposalPersistence(access)
+        self.art_references: ArtReferenceProposalPersistence = ArtReferenceProposalPersistence(access, art)
         self.same_person: SamePersonReviewPersistence = same_person
         self.video_currentness: VideoJobCurrentness = video_currentness
         self.image_currentness: ImageJobCurrentness = image_currentness

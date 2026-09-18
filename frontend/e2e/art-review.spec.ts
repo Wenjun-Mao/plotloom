@@ -206,6 +206,49 @@ test.describe("F3A production art review", () => {
       await page.unroute(`**/api/v2/projects/${firstProjectId}/art/candidates`, heldRoute);
     }
   });
+
+  test("contains a held F3B copy across A-to-B-to-A project ownership", async ({ page, request, workbench }) => {
+    const firstProjectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f3b-held-first");
+    const secondProjectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f3b-held-second");
+    const prepared = await getJson<any>(request.post(`${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/art-reference-proposals`, {
+      data: { subjectType: "scene", subjectId: "S01", renderDirection: "Held copy fixture." },
+    }));
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=source`);
+    const firstStudies = page.getByTestId("art-reference-studies");
+    await expect(firstStudies.getByRole("button", { name: "复制 ImageGen 任务" })).toBeVisible();
+
+    let release!: () => void;
+    let markStarted!: () => void;
+    const started = new Promise<void>((resolve) => { markStarted = resolve; });
+    const held = new Promise<void>((resolve) => { release = resolve; });
+    const heldRoute = async (route: import("@playwright/test").Route) => {
+      if (route.request().method() !== "POST") return route.continue();
+      markStarted();
+      await held;
+      try {
+        await route.continue();
+      } catch {
+        // Navigation can abort an already-owned request after its response.
+      }
+    };
+    await page.route(`**/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/copy`, heldRoute);
+    try {
+      await firstStudies.getByRole("button", { name: "复制 ImageGen 任务" }).click();
+      await started;
+      await switchProject(page, secondProjectId);
+      await switchProject(page, firstProjectId);
+      await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
+      const returnedPanel = page.getByTestId("art-review");
+      await expect(returnedPanel).toBeVisible();
+      await expect(returnedPanel.getByLabel("复制给 specialist 的冻结任务")).toHaveCount(0);
+      release();
+      await expect(returnedPanel.getByLabel("复制给 specialist 的冻结任务")).toHaveCount(0);
+      await expect(returnedPanel.getByTestId("art-reference-studies").getByRole("button", { name: "复制 ImageGen 任务" })).toBeEnabled();
+    } finally {
+      release?.();
+      await page.unroute(`**/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/copy`, heldRoute);
+    }
+  });
 });
 
 async function createAcceptedCastProject(request: Api, apiOrigin: string, label: string): Promise<string> {

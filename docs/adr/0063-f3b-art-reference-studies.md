@@ -13,11 +13,14 @@ job store would duplicate the existing manual ImageGen and managed-asset path.
 
 F3B adds an accepted-art-bound exploratory proposal on the existing manual
 ImageGen exchange. The author chooses only a current stable `scene` or `prop`
-ID and supplies a thin render-direction overlay. Trusted code freezes the
-accepted art revision/hash and the exact subject hash, copies/verifies the
-package, owns currentness, cancellation and lifecycle blockers, and imports
-verified candidate bytes as managed assets. ImageGen owns only untrusted
-candidate bytes and its prompt/provenance declaration.
+ID and supplies a thin render-direction overlay. Trusted code resolves that
+subject through the canonical art owner's session-local current-subject
+admission: both the accepted art revision/hash and its complete
+source/outline/map/graph/cast binding must remain current. It then freezes the
+exact subject hash, copies/verifies the package, owns cancellation and
+lifecycle blockers, and imports verified candidate bytes as managed assets.
+ImageGen owns only untrusted candidate bytes and its prompt/provenance
+declaration.
 
 The overlay explicitly records cinematic realism beside the preserved upstream
 semi-realistic painterly `art.json` direction; it does not reinterpret the
@@ -26,9 +29,10 @@ art acceptance, production selection, a Shot, an Approval, or F5/F7 proof.
 
 ## Consequences and guardrails
 
-- A changed/reopened accepted-art revision makes an older proposal visibly
-  stale and prevents Copy or current delivery admission; original bytes and
-  inapplicable late-delivery evidence remain retained.
+- A changed/reopened accepted-art revision, or an upstream change that makes
+  the accepted-art binding stale, makes an older proposal visibly stale and
+  prevents prepare, Copy, export, or current delivery admission; original
+  bytes and inapplicable late-delivery evidence remain retained.
 - Explicit cancellation is terminal, releases close/snapshot publication
   blockers, and refuses late acceptance. It does not delete the package or
   accepted art.

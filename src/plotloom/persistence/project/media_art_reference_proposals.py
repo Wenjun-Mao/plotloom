@@ -15,7 +15,6 @@ from ...exceptions import InvalidTransitionError, NotFoundError
 from ...image_job_contracts import ImageJobError
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
-    ArtHeadRow,
     ArtReferenceProposalCandidateRow,
     ArtReferenceProposalDeliveryRow,
     ArtReferenceProposalRow,
@@ -25,6 +24,7 @@ from ..schema import (
     ProjectRow,
 )
 from .access import ProjectPersistenceAccess
+from .art import ProjectArtPersistence
 from .media_assets import ManagedAssetPersistence
 from .media_identifiers import new_image_job_id
 
@@ -39,8 +39,8 @@ def _content_hash(value: dict[str, Any]) -> str:
 class ArtReferenceProposalPersistence:
     """Keep F3B study lifecycle separate from art canon and production shots."""
 
-    def __init__(self, access: ProjectPersistenceAccess) -> None:
-        self._access = access
+    def __init__(self, access: ProjectPersistenceAccess, art: ProjectArtPersistence) -> None:
+        self._access, self._art = access, art
 
     @staticmethod
     def _proposal_dict(row: ArtReferenceProposalRow, *, current: bool) -> dict[str, Any]:
@@ -54,23 +54,13 @@ class ArtReferenceProposalPersistence:
             "createdAt": _stored_utc(row.created_at).isoformat(),
         }
 
-    @staticmethod
     def _accepted_subject(
+        self,
         session: Session, project_id: str, subject_type: ArtSubjectType, subject_id: str
     ) -> tuple[ArtRevisionRow, dict[str, Any]]:
-        head = session.get(ArtHeadRow, project_id)
-        if head is None or head.status != "accepted" or head.revision < 1:
-            raise InvalidTransitionError("art reference studies require current accepted art")
-        revision = session.scalar(select(ArtRevisionRow).where(
-            ArtRevisionRow.project_id == project_id, ArtRevisionRow.revision == head.revision
-        ))
-        if revision is None:
-            raise InvalidTransitionError("accepted art revision is unavailable")
-        plural = "scenes" if subject_type == "scene" else "props"
-        subject = next((item for item in revision.art.get(plural, []) if isinstance(item, dict) and item.get("id") == subject_id), None)
-        if subject is None:
-            raise InvalidTransitionError("art reference subject must be a stable ID in current accepted art")
-        return revision, subject
+        return self._art.accepted_current_subject(
+            session, project_id, subject_type, subject_id
+        )
 
     def _proposal_is_current_in_session(self, session: Session, proposal: ArtReferenceProposalRow) -> bool:
         if proposal.state == "cancelled":

@@ -168,7 +168,7 @@ class ProjectSQLiteRepository:
         self.cast = ProjectCastPersistence(self._project_access)
         self.art = ProjectArtPersistence(self._project_access, self.cast)
         self._media = ProjectMediaPersistence(
-            self._project_access, self._canonical, self._drafts, self.cast, accounting=None
+            self._project_access, self._canonical, self._drafts, self.cast, self.art, accounting=None
         )
         self._generation_access = GenerationPersistenceAccess(
             leases=GenerationLeases(

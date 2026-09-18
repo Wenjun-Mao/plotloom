@@ -247,3 +247,65 @@ def test_art_reference_study_browser_lifecycle_persists_and_stales(tmp_path: Pat
         assert "art_reference_publication_active" not in close_blockers(final_store)
     finally:
         final_store.close()
+
+
+def test_art_reference_studies_use_the_complete_current_art_context(tmp_path: Path) -> None:
+    """Upstream staleness blocks F3B without rewriting delivered evidence."""
+
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    try:
+        binding = _prepare_art_context(store)
+        candidate, request = store.prepare_art_candidate("ch_" + "u" * 32)
+        ready = store.admit_art_delivery(_deliver(store, request))
+        store.accept_art_candidate(ArtAcceptRequest(
+            job_id=candidate.job_id, expected_art_revision=0, binding=binding, art=ready.art
+        ))
+    finally:
+        store.close()
+
+    client = TestClient(create_project_folder_authoring_app(storage))
+    first = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals", json={
+        "subjectType": "scene", "subjectId": "S01", "renderDirection": "Cinematic realism, no people.",
+    })
+    assert first.status_code == 201, first.text
+    first_proposal = first.json()["proposal"]
+    first_copy = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{first_proposal['id']}/copy")
+    assert first_copy.status_code == 200, first_copy.text
+    _write_art_reference_delivery(Path(first_copy.json()["deliveryPath"]), first_proposal)
+    assert client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{first_proposal['id']}/refresh").json()["state"] == "accepted"
+
+    pending = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals", json={
+        "subjectType": "scene", "subjectId": "S01", "renderDirection": "A pending late-delivery study.",
+    })
+    assert pending.status_code == 201, pending.text
+    pending_proposal = pending.json()["proposal"]
+    pending_copy = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{pending_proposal['id']}/copy")
+    assert pending_copy.status_code == 200, pending_copy.text
+
+    edited_store = storage.projects.open(project_id)
+    try:
+        edited_store.save_source_material(expected_source_revision=1, material=SourceMaterial(
+            kind="synopsis", title="Tide Light", text="A source revision invalidates the accepted art binding.",
+            attribution="fixture", rights_declaration="fixture", adaptation_intent="fixture",
+        ))
+    finally:
+        edited_store.close()
+
+    art = client.get(f"/api/v2/projects/{project_id}/art").json()
+    assert art["acceptedArt"]["revision"] == 1
+    assert art["status"] == "stale"
+    visible = client.get(f"/api/v2/projects/{project_id}/art-reference-proposals")
+    assert visible.status_code == 200
+    assert all(not proposal["current"] for proposal in visible.json()["proposals"])
+    assert client.post(f"/api/v2/projects/{project_id}/art-reference-proposals", json={
+        "subjectType": "scene", "subjectId": "S01", "renderDirection": "Must not prepare from stale art.",
+    }).status_code == 409
+    assert client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{first_proposal['id']}/copy").status_code == 409
+
+    _write_art_reference_delivery(Path(pending_copy.json()["deliveryPath"]), pending_proposal)
+    late = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{pending_proposal['id']}/refresh")
+    assert late.status_code == 200, late.text
+    assert late.json()["state"] == "inapplicable"
+    assert late.json()["candidates"] == []

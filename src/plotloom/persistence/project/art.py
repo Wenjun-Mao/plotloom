@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 import tempfile
-from typing import Any
+from typing import Any, Literal
 
 from sqlalchemy import select
 
@@ -73,6 +73,34 @@ class ProjectArtPersistence:
         )
         reasons = [f"{label} {'revision' if field.endswith('revision') else 'content'} changed" for field, label in fields if getattr(current, field) != getattr(binding, field)]
         return reasons + (["section context changed"] if current.section_ids != binding.section_ids else [])
+
+    def accepted_current_subject(
+        self,
+        session: Any,
+        project_id: str,
+        subject_type: Literal["scene", "prop"],
+        subject_id: str,
+    ) -> tuple[ArtRevisionRow, dict[str, Any]]:
+        """Resolve a stable subject only while its complete art context is current."""
+
+        head = self._head(session, project_id)
+        if head.status != "accepted" or head.revision < 1:
+            raise InvalidTransitionError("art reference studies require current accepted art")
+        revision = session.scalar(select(ArtRevisionRow).where(
+            ArtRevisionRow.project_id == project_id, ArtRevisionRow.revision == head.revision
+        ))
+        if revision is None:
+            raise InvalidTransitionError("accepted art revision is unavailable")
+        if self._stale(session, project_id, ArtBinding.model_validate(revision.binding)):
+            raise InvalidTransitionError("art reference studies require current accepted art")
+        plural = "scenes" if subject_type == "scene" else "props"
+        subject = next(
+            (item for item in revision.art.get(plural, []) if isinstance(item, dict) and item.get("id") == subject_id),
+            None,
+        )
+        if subject is None:
+            raise InvalidTransitionError("art reference subject must be a stable ID in current accepted art")
+        return revision, subject
 
     def get_state(self, project_id: str) -> ArtReviewState:
         with self._access.leases.read() as session:
