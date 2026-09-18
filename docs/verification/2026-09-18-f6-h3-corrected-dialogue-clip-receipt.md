@@ -1,5 +1,18 @@
 # F6 corrected H3 dialogue clip — bounded live receipt
 
+## Subsequent attributed human review
+
+The user reviewed the hash-bound corrected clip and rejected its audiovisual
+quality: an unintelligible character-spoken utterance lasting under one second
+appears around 4s before the recognizable `我在这里。`. Unwanted burned-in
+subtitles display `我在这里` during both utterances. This is failed audiovisual
+qualification, not a failure of the objective delivery contract. The clip stays
+unselected; no database review mutation or new generation accompanies this note.
+Cause remains unestablished. The roadmap separates future source-guided H3
+prompt optimization, existing candidate review, and a contingent audio-strategy
+decision. The earlier hearing-unavailable text below records the worker's
+historical observation boundary, superseded only by this attributed human review.
+
 Date: 2026-09-18. This receipt records the **second and final** submission in
 the original two-clip F6 budget. It is an isolated technical/test fixture,
 not F5 installation, creative approval, audiovisual acceptance, or a selected
