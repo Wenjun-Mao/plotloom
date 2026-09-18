@@ -21,7 +21,7 @@ export function useCharacterReferenceActions({
   setReferenceComplementaryAssetIds,
   refresh,
   proposalCharacterId,
-  storyBibleRevision,
+  castRevision,
   proposalDirection,
   proposalParentCandidateAssetId,
   setProposalDirection,
@@ -49,7 +49,7 @@ export function useCharacterReferenceActions({
   setReferenceComplementaryAssetIds: Dispatch<SetStateAction<string[]>>;
   refresh: (signal?: AbortSignal) => Promise<void>;
   proposalCharacterId: string;
-  storyBibleRevision?: number;
+  castRevision?: number;
   proposalDirection: string;
   proposalParentCandidateAssetId: string;
   setProposalDirection: Dispatch<SetStateAction<string>>;
@@ -72,6 +72,7 @@ export function useCharacterReferenceActions({
     try {
       await plotloomApi.selectCharacterReference(projectId, {
         characterId: referenceCharacterId,
+        authority: "story_bible",
         primaryAssetId: referencePrimaryAssetId,
         complementaryAssetIds: referenceComplementaryAssetIds,
         expectedReferenceRevision: state?.revision ?? 0,
@@ -119,7 +120,7 @@ export function useCharacterReferenceActions({
     if (
       !projectId ||
       !proposalCharacterId ||
-      !storyBibleRevision ||
+      !castRevision ||
       !proposalDirection.trim()
     )
       return;
@@ -128,7 +129,7 @@ export function useCharacterReferenceActions({
     try {
       await plotloomApi.prepareCharacterReferenceProposal(projectId, {
         characterId: proposalCharacterId,
-        storyBibleRevision,
+        castRevision,
         visualDirection: proposalDirection.trim(),
         parentCandidateAssetId: proposalParentCandidateAssetId || undefined,
       });
@@ -229,4 +230,3 @@ export function useCharacterReferenceActions({
     recordSamePersonReview,
   };
 }
-

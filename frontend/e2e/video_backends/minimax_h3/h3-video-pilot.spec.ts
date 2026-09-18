@@ -40,7 +40,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const characterId = demoProject.storyboard.shots[0].characterIds[0];
   const referenceState = visualState.characterReferences.states.find((state) => state.characterId === characterId);
   const reference = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-references`, { data: {
-    characterId, primaryAssetId: selectedKeyframe.assetId, complementaryAssetIds: [],
+    characterId, authority: "story_bible", primaryAssetId: selectedKeyframe.assetId, complementaryAssetIds: [],
     expectedReferenceRevision: referenceState?.revision ?? 0, reviewer: "H3 browser reviewer",
     notes: "Explicit fixture reference for the visible character.",
   } });

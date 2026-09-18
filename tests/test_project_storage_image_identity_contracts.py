@@ -248,6 +248,7 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
             f"/api/v2/projects/{project_id}/character-references",
             json={
                 "characterId": "fixture-hero",
+                "authority": "story_bible",
                 "primaryAssetId": reference.json()["id"],
                 "complementaryAssetIds": [],
                 "expectedReferenceRevision": 0,
@@ -407,6 +408,7 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
             f"/api/v2/projects/{project_id}/character-references",
             json={
                 "characterId": "fixture-hero",
+                "authority": "story_bible",
                 "primaryAssetId": replacement_asset.json()["id"],
                 "complementaryAssetIds": [],
                 "expectedReferenceRevision": selected_reference.json()["stateRevision"],

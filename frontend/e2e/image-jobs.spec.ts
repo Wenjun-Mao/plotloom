@@ -48,7 +48,7 @@ type PackagePaths = {
   deliveryPath: string;
 };
 
-test.describe("P1.5 story-first character references", () => {
+test.describe.skip("retired Story-Bible proposal surface", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test("uses a saved Story Bible without downstream stages or Approval for proposal, refinement, and explicit replacement", async ({

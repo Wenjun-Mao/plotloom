@@ -79,7 +79,7 @@ async function prepareSelectedPair(
   const characterId = demoProject.storyboard.shots[0].characterIds[0];
   const referenceState = visual.characterReferences.states.find((state) => state.characterId === characterId);
   const reference = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-references`, { data: {
-    characterId, primaryAssetId: selected.assetId, complementaryAssetIds: [],
+    characterId, authority: "story_bible", primaryAssetId: selected.assetId, complementaryAssetIds: [],
     expectedReferenceRevision: referenceState?.revision ?? 0, reviewer: "P2 H3 browser reviewer",
     notes: "Explicit fixture reference for the visible character.",
   } });

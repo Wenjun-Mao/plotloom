@@ -281,6 +281,7 @@ def _select_character_reference(
         f"/api/v2/projects/{project_id}/character-references",
         json={
             "characterId": context["shot"].character_ids[0],
+            "authority": "story_bible",
             "primaryAssetId": asset_id,
             "complementaryAssetIds": [],
             "expectedReferenceRevision": expected_revision,

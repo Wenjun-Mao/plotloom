@@ -8,8 +8,8 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...domain import ProjectLifecycleStatus, StageName, new_id, utc_now
-from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError, SchemaResetRequiredError
+from ...domain import ProjectLifecycleStatus, new_id, utc_now
+from ...exceptions import InvalidTransitionError, NotFoundError
 from ...image_job_contracts import ImageJobError
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
@@ -60,18 +60,22 @@ class CharacterReferenceProposalPersistence:
         project = session.get(ProjectRow, proposal.project_id)
         if project is None or ProjectLifecycleStatus(project.lifecycle_status) != ProjectLifecycleStatus.ACTIVE:
             return False
-        try:
-            bible = self._canonical._load_stage_payload(session, proposal.project_id, StageName.STORY_BIBLE)
-        except (NotFoundError, SchemaResetRequiredError):
-            return False
-        character = next((item for item in bible.characters if item.id == proposal.character_id), None)
         snapshot = proposal.request.get("frozenSnapshot")
-        if character is None or not isinstance(snapshot, dict):
+        if not isinstance(snapshot, dict):
+            return False
+        accepted_cast = snapshot.get("acceptedCast")
+        if not isinstance(accepted_cast, dict) or not isinstance(accepted_cast.get("revision"), int):
+            return False
+        context = self._references.cast_reference_context(
+            session,
+            proposal.project_id,
+            proposal.character_id,
+            expected_cast_revision=accepted_cast["revision"],
+        )
+        if context is None:
             return False
         return snapshot.get("characterContextHash") == stable_hash(
-            self._references.character_reference_context(
-                session, proposal.project_id, character
-            )
+            context
         )
 
     def prepare_character_reference_proposal(
@@ -79,21 +83,21 @@ class CharacterReferenceProposalPersistence:
         project_id: str,
         *,
         character_id: str,
-        story_bible_revision: int,
+        cast_revision: int,
         visual_direction: str,
         parent_candidate_asset_id: str | None,
     ) -> dict[str, Any]:
-        """Freeze a story-first exploratory request without creating a fake Shot or Approval."""
+        """Freeze a cast-owned exploratory request without a Bible, Shot, or Approval."""
 
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
-            head = self._access.rows.stage(session, project_id, StageName.STORY_BIBLE)
-            if head.revision != story_bible_revision:
-                raise RevisionConflictError("story-bible", story_bible_revision, head.revision)
-            bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
-            character = next((item for item in bible.characters if item.id == character_id), None)
-            if character is None:
-                raise InvalidTransitionError("character reference proposal must name a current canonical character")
+            context = self._references.cast_reference_context(
+                session, project_id, character_id, expected_cast_revision=cast_revision
+            )
+            if context is None:
+                raise InvalidTransitionError(
+                    "character reference proposal must name a current accepted cast subject at its accepted revision"
+                )
             references: list[dict[str, Any]] = []
             if parent_candidate_asset_id is not None:
                 candidate = session.scalar(
@@ -113,18 +117,15 @@ class CharacterReferenceProposalPersistence:
                     "originalHash": asset.original_hash, "mimeType": asset.mime_type,
                     "byteSize": asset.byte_size, "width": asset.width, "height": asset.height,
                 })
-            context = self._references.character_reference_context(
-                session, project_id, character
-            )
             job_id = new_image_job_id()
             snapshot = {
-                "snapshotVersion": 3, "compilerVersion": "plotloom.character-reference-proposal.v1",
+                "snapshotVersion": 4, "compilerVersion": "plotloom.cast-reference-proposal.v1",
                 "projectId": project_id, "target": "character_reference_proposal",
-                "characterId": character_id, "storyBibleRevision": story_bible_revision,
-                "storyBibleEntityRevisionId": head.entity_revision_id,
+                "characterId": character_id, "castRevision": cast_revision,
+                "acceptedCast": context["acceptedCast"],
                 "characterContext": context, "characterContextHash": stable_hash(context),
                 "visualDirection": visual_direction.strip(), "references": references,
-                "authority": "exploratory_only_no_storyboard_approval_or_keyframe_selection",
+                "authority": "cast_owned_exploratory_only_no_story_bible_shot_approval_or_keyframe_selection",
             }
             request = {
                 "schemaVersion": 3, "jobId": job_id, "executionContract": "codex_specialist.v2",

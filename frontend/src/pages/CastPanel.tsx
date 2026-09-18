@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
 import type { CastReviewState } from "../types";
+import { CastReferenceStudiesPanel } from "./CastReferenceStudiesPanel";
 
 export function CastPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
   const [state, setState] = useState<CastReviewState>(); const [assignment, setAssignment] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [editedCast, setEditedCast] = useState<Record<string, unknown>>({});
@@ -26,6 +27,7 @@ export function CastPanel({ projectId, readOnly }: { projectId: string; readOnly
     </>}
     {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；为 F2B 的既有角色参考/媒体消费者保留明确 ID 映射。</small><Button variant="quiet" disabled={readOnly || busy || state.status === "reopened"} onClick={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision))}>重新打开角色提案</Button></>}
     {accepted && state.status === "reopened" && <><section className="cast-forms"><strong>重新打开后编辑并保存</strong>{castCharacters.map((character, index) => <fieldset key={String(character.id || index)}><legend>{String(character.name || character.id || `角色 ${index + 1}`)}</legend><label>动机<textarea disabled={readOnly || busy} value={String((character.persona as Record<string, unknown> | undefined)?.motivation || "")} onChange={event => updateDirection(index, "persona", "motivation", event.target.value)} /></label><label>外观<textarea disabled={readOnly || busy} value={String((character.persona as Record<string, unknown> | undefined)?.appearance || "")} onChange={event => updateDirection(index, "persona", "appearance", event.target.value)} /></label><label>声音方向<textarea disabled={readOnly || busy} value={String((character.voice as Record<string, unknown> | undefined)?.timbre || "")} onChange={event => updateDirection(index, "voice", "timbre", event.target.value)} /></label></fieldset>)}</section><Button variant="primary" disabled={readOnly || busy || castCharacters.length === 0} onClick={() => act(() => plotloomApi.saveReopenedCast(projectId, { expectedCastRevision: accepted.revision, binding: accepted.binding, cast: editedCast, consumerMappings: accepted.consumerMappings }))}>保存重新打开的角色</Button></>}
+    {accepted && state.status === "accepted" && <CastReferenceStudiesPanel projectId={projectId} accepted={accepted} readOnly={readOnly || busy} />}
     {assignment && <label>复制给 specialist 的冻结任务<textarea readOnly value={assignment} rows={5} /></label>}{error && <ErrorNotice message={error} />}
   </article>;
 }

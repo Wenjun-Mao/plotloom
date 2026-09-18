@@ -291,7 +291,7 @@ export function ManagedMediaWorkbench({
     setReferenceComplementaryAssetIds,
     refresh,
     proposalCharacterId,
-    storyBibleRevision,
+    castRevision: undefined,
     proposalDirection,
     proposalParentCandidateAssetId,
     setProposalDirection,

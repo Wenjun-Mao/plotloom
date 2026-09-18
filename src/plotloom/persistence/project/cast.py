@@ -116,6 +116,61 @@ class ProjectCastPersistence:
             "image": character.get("image"),
         }
 
+    def reference_subject_in_session(
+        self,
+        session: Any,
+        project_id: str,
+        consumer_character_id: str,
+        *,
+        expected_cast_revision: int | None = None,
+    ) -> dict[str, Any] | None:
+        """Resolve the one current cast-owned subject used by F2B work.
+
+        Exploratory reference studies have no Story Bible or shot authority.
+        They therefore freeze this mapped cast subject directly.  Keeping this
+        lookup beside the cast owner makes reopening/staleness invalidate the
+        subject before any media owner can prepare or accept new work.
+        """
+
+        identity = self.identity_context_in_session(
+            session, project_id, consumer_character_id
+        )
+        if identity is None:
+            return None
+        if (
+            expected_cast_revision is not None
+            and identity["revision"] != expected_cast_revision
+        ):
+            return None
+        head = self._head(session, project_id)
+        accepted = session.scalar(
+            select(CastRevisionRow).where(
+                CastRevisionRow.project_id == project_id,
+                CastRevisionRow.revision == identity["revision"],
+            )
+        )
+        if accepted is None or head.status != "accepted":
+            return None
+        cast_character = next(
+            (
+                item
+                for item in accepted.cast.get("characters", [])
+                if isinstance(item, dict) and item.get("id") == identity["castCharacterId"]
+            ),
+            None,
+        )
+        if cast_character is None:
+            return None
+        persona = cast_character.get("persona")
+        return {
+            "consumerCharacterId": consumer_character_id,
+            "castCharacterId": identity["castCharacterId"],
+            "displayName": cast_character.get("name") or identity["castCharacterId"],
+            "acceptedCast": identity,
+            "appearance": persona.get("appearance") if isinstance(persona, dict) else None,
+            "image": cast_character.get("image"),
+        }
+
     def get_state(self, project_id: str) -> CastReviewState:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)

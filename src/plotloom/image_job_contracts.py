@@ -73,6 +73,7 @@ class CharacterReferenceDecisionRequest(CamelModel):
     """An explicit, revision-checked choice of project-owned identity assets."""
 
     character_id: str = Field(min_length=1, max_length=128)
+    authority: Literal["cast", "story_bible"]
     primary_asset_id: str = Field(min_length=1, max_length=36)
     complementary_asset_ids: list[str] = Field(default_factory=list, max_length=2)
     expected_reference_revision: int = Field(ge=0)
@@ -94,10 +95,10 @@ class CharacterReferenceRevocationRequest(CamelModel):
 
 
 class CharacterReferenceProposalRequest(CamelModel):
-    """Exploratory, story-first appearance work with no storyboard Approval."""
+    """Exploratory cast appearance work with no Bible, shot, or Approval."""
 
     character_id: str = Field(min_length=1, max_length=128)
-    story_bible_revision: int = Field(ge=1)
+    cast_revision: int = Field(ge=1)
     visual_direction: str = Field(min_length=1, max_length=4_000)
     parent_candidate_asset_id: str | None = Field(default=None, max_length=36)
 

@@ -98,3 +98,38 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
         assert store.cast_state().status == "stale"
     finally:
         store.close()
+
+
+def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tmp_path: Path) -> None:
+    """F2B has cast authority only; adding a Bible to make this pass is forbidden."""
+    store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
+    context = _context()
+
+    def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
+        assert context.source and context.accepted_outline and context.accepted_section_map
+        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
+
+    store.repository.cast._context = bound_context  # type: ignore[method-assign]
+    try:
+        binding, *_ = bound_context(None, store.manifest.project_id)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "e" * 32)
+        store.admit_cast_delivery(_deliver(store, request))
+        accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=None, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
+        proposal = store.media.prepare_character_reference_proposal(
+            store.manifest.project_id,
+            character_id="lin",
+            cast_revision=accepted.accepted_cast.revision,
+            visual_direction="Three-quarter portrait, standing at a rain-dark beacon window.",
+            parent_candidate_asset_id=None,
+        )["proposal"]
+        frozen = proposal["request"]["frozenSnapshot"]
+        assert frozen["castRevision"] == 1
+        assert frozen["acceptedCast"]["contentHash"] == accepted.accepted_cast.content_hash
+        assert frozen["characterContext"]["authority"] == "cast"
+        assert frozen["characterContext"]["appearance"] == "Windburned"
+        store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        assert proposal["current"] is True
+        assert store.media.character_reference_proposal_delivery_context(store.manifest.project_id, proposal["id"])["current"] is False
+    finally:
+        store.close()

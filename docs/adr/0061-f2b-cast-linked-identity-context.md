@@ -24,6 +24,12 @@ dependent image jobs and same-person reviews consequently become inapplicable
 through their existing currentness checks. The image production snapshot also
 retains the accepted-cast projection beside its existing reference lineage.
 
+F2B exploratory proposals and their explicit reference decisions name `cast`
+authority and an accepted cast revision. They resolve the mapped cast subject
+directly and freeze its display name, appearance/image direction, revision and
+hash without loading a Story Bible. Story-Bible reference decisions name
+`story_bible` authority explicitly; requests never fall back between owners.
+
 ## Consequences and guardrails
 
 - Cast IDs stay author/model-owned upstream facts, validated as nonblank and
@@ -32,3 +38,5 @@ retains the accepted-cast projection beside its existing reference lineage.
   without changing the vendored upstream schema or skill.
 - Cast updates never replace original media bytes or silently rewrite a
   reference selection; a new current selection and review are required.
+- F2B studies are exploratory reference evidence only. They do not manufacture
+  a Shot binding or satisfy F5/F7 production cross-shot review requirements.

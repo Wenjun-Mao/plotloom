@@ -119,13 +119,13 @@ class ProjectMediaRepository:
     def create_character_reference_decision(
         self, project_id: str, *, character_id: str, primary_asset_id: str,
         complementary_asset_ids: list[str], expected_reference_revision: int,
-        reviewer: str, notes: str,
+        reviewer: str, notes: str, authority: str,
     ) -> JsonObject:
         return self._references.create_character_reference_decision(
             project_id, character_id=character_id, primary_asset_id=primary_asset_id,
             complementary_asset_ids=complementary_asset_ids,
             expected_reference_revision=expected_reference_revision, reviewer=reviewer,
-            notes=notes,
+            notes=notes, authority=authority,
         )
 
     def revoke_character_reference_decision(
@@ -142,12 +142,12 @@ class ProjectMediaRepository:
         return self._references.list_character_reference_decisions(project_id)
 
     def prepare_character_reference_proposal(
-        self, project_id: str, *, character_id: str, story_bible_revision: int,
+        self, project_id: str, *, character_id: str, cast_revision: int,
         visual_direction: str, parent_candidate_asset_id: str | None,
     ) -> JsonObject:
         return self._proposals.prepare_character_reference_proposal(
             project_id, character_id=character_id,
-            story_bible_revision=story_bible_revision, visual_direction=visual_direction,
+            cast_revision=cast_revision, visual_direction=visual_direction,
             parent_candidate_asset_id=parent_candidate_asset_id,
         )
 

@@ -41,6 +41,7 @@ class CharacterReferencePersistence:
 
         payload = character.model_dump(mode="json", by_alias=True)
         context = {
+            "authority": "story_bible",
             "characterId": payload["id"],
             "description": payload["description"],
             "visualAnchors": payload["visualAnchors"],
@@ -54,6 +55,66 @@ class CharacterReferencePersistence:
         if accepted_cast is not None:
             context["acceptedCast"] = accepted_cast
         return context
+
+    def cast_reference_context(
+        self,
+        session: Session,
+        project_id: str,
+        character_id: str,
+        *,
+        expected_cast_revision: int | None = None,
+    ) -> dict[str, Any] | None:
+        """Return the cast-owned F2B subject without consulting Story Bible."""
+
+        subject = self._cast.reference_subject_in_session(
+            session,
+            project_id,
+            character_id,
+            expected_cast_revision=expected_cast_revision,
+        )
+        if subject is None:
+            return None
+        return {
+            "authority": "cast",
+            "characterId": subject["consumerCharacterId"],
+            "displayName": subject["displayName"],
+            "appearance": subject["appearance"],
+            "image": subject["image"],
+            "acceptedCast": subject["acceptedCast"],
+        }
+
+    def current_cast_reference_in_session(
+        self, session: Session, project_id: str, character_id: str
+    ) -> CharacterReferenceDecisionRow | None:
+        """Return an active reference selected against the current cast subject."""
+
+        state = session.get(CharacterReferenceStateRow, (project_id, character_id))
+        if state is None or state.active_decision_id is None:
+            return None
+        decision = session.get(CharacterReferenceDecisionRow, state.active_decision_id)
+        if (
+            decision is None
+            or decision.project_id != project_id
+            or decision.character_id != character_id
+            or decision.revoked_at is not None
+        ):
+            return None
+        context = self.cast_reference_context(session, project_id, character_id)
+        if context is None or decision.character_context_hash != stable_hash(context):
+            return None
+        assets = [
+            session.get(ManagedAssetRow, asset_id)
+            for asset_id in [decision.primary_asset_id, *list(decision.complementary_asset_ids)]
+        ]
+        hashes = {item["assetId"]: item["originalHash"] for item in decision.asset_hashes}
+        if any(
+            asset is None
+            or asset.project_id != project_id
+            or hashes.get(asset.id) != asset.original_hash
+            for asset in assets
+        ):
+            return None
+        return decision
 
     @staticmethod
     def _character_reference_state_in_session(
@@ -115,16 +176,25 @@ class CharacterReferencePersistence:
         expected_reference_revision: int,
         reviewer: str,
         notes: str,
+        authority: str,
     ) -> dict[str, Any]:
         """Select, never infer, a compact stable-identity reference set."""
 
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
-            bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
-            character = next((item for item in bible.characters if item.id == character_id), None)
-            if character is None:
-                raise InvalidTransitionError("character reference must name a current canonical character")
+            if authority == "cast":
+                context = self.cast_reference_context(session, project_id, character_id)
+                if context is None:
+                    raise InvalidTransitionError("character reference must name a current accepted cast subject")
+            elif authority == "story_bible":
+                bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
+                character = next((item for item in bible.characters if item.id == character_id), None)
+                if character is None:
+                    raise InvalidTransitionError("character reference must name a current canonical character")
+                context = self.character_reference_context(session, project_id, character)
+            else:
+                raise InvalidTransitionError("character reference authority is unsupported")
             now = utc_now()
             state = self._character_reference_state_in_session(session, project_id, character_id, now)
             if state.revision != expected_reference_revision:
@@ -135,7 +205,6 @@ class CharacterReferencePersistence:
             assets = [session.get(ManagedAssetRow, asset_id) for asset_id in asset_ids]
             if any(asset is None or asset.project_id != project_id for asset in assets):
                 raise NotFoundError("character reference asset not found in this project")
-            context = self.character_reference_context(session, project_id, character)
             state.revision += 1
             state.updated_at = now
             decision = CharacterReferenceDecisionRow(
@@ -185,19 +254,6 @@ class CharacterReferencePersistence:
     def list_character_reference_decisions(self, project_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)
-            # The visual workbench is available from project creation, while a
-            # Story Bible is an authored prerequisite for selecting a reference
-            # (not for inspecting an empty history). Preserve hard failures for
-            # a corrupt installed stage, but represent an uninstalled Story
-            # Bible as an empty current-character set.
-            bible_head = self._access.rows.stage(session, project_id, StageName.STORY_BIBLE)
-            if bible_head.entity_revision_id is None:
-                characters: dict[str, Any] = {}
-            else:
-                bible = self._canonical._load_stage_payload(
-                    session, project_id, StageName.STORY_BIBLE
-                )
-                characters = {item.id: item for item in bible.characters}
             rows = session.scalars(
                 select(CharacterReferenceDecisionRow)
                 .where(CharacterReferenceDecisionRow.project_id == project_id)
@@ -211,17 +267,34 @@ class CharacterReferencePersistence:
                 "states": [{
                     "characterId": character_id, "revision": state.revision,
                     "activeDecisionId": state.active_decision_id,
-                    "current": self.current_character_reference_in_session(session, project_id, characters[character_id]) is not None
-                    if character_id in characters else False,
+                    "current": self._decision_is_current_in_session(session, project_id, state.active_decision_id),
                 } for character_id, state in sorted(state_by_character.items())],
                 "decisions": [self._reference_decision_dict(
                     row,
                     current=(
                         row.revoked_at is None
-                        and row.character_id in characters
                         and state_by_character.get(row.character_id) is not None
                         and state_by_character[row.character_id].active_decision_id == row.id
-                        and self.current_character_reference_in_session(session, project_id, characters[row.character_id]) is not None
+                        and self._decision_is_current_in_session(session, project_id, row.id)
                     ),
                 ) for row in rows],
             }
+
+    def _decision_is_current_in_session(
+        self, session: Session, project_id: str, decision_id: str | None
+    ) -> bool:
+        if decision_id is None:
+            return False
+        decision = session.get(CharacterReferenceDecisionRow, decision_id)
+        if decision is None or decision.project_id != project_id or decision.revoked_at is not None:
+            return False
+        if decision.character_context.get("authority") == "cast":
+            return self.current_cast_reference_in_session(session, project_id, decision.character_id) is not None
+        if decision.character_context.get("authority") != "story_bible":
+            return False
+        try:
+            bible = self._canonical._load_stage_payload(session, project_id, StageName.STORY_BIBLE)
+        except NotFoundError:
+            return False
+        character = next((item for item in bible.characters if item.id == decision.character_id), None)
+        return character is not None and self.current_character_reference_in_session(session, project_id, character) is not None

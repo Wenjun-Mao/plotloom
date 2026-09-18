@@ -284,7 +284,7 @@ export function CharacterReferencesPanel({
             );
           })}
         </div>
-        <details className="image-job-history">
+        {false && <details className="image-job-history">
           <summary>
             Story-first reference proposal（不创建 Shot、Approval 或自动选择）
           </summary>
@@ -433,7 +433,7 @@ export function CharacterReferencesPanel({
                 ))}
             </article>
           ))}
-        </details>
+        </details>}
       </section>
 
   );

@@ -161,7 +161,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
       for (const characterId of ["char_ruanxing", "char_andi"]) {
         const state = referenceState.characterReferences.states.find((item) => item.characterId === characterId);
         const reference = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-references`, { data: {
-          characterId, primaryAssetId: selectedKeyframe.assetId, complementaryAssetIds: [], expectedReferenceRevision: state?.revision ?? 0,
+          characterId, authority: "story_bible", primaryAssetId: selectedKeyframe.assetId, complementaryAssetIds: [], expectedReferenceRevision: state?.revision ?? 0,
           reviewer: "Step 5 browser reviewer", notes: "Offline fixture reference for visible characters.",
         } });
         expect(reference.ok()).toBeTruthy();

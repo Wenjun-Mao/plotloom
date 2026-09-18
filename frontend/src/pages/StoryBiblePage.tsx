@@ -298,7 +298,7 @@ function StoryFirstCharacterReferences({
     try {
       await plotloomApi.prepareCharacterReferenceProposal(projectId, {
         characterId,
-        storyBibleRevision,
+        castRevision: storyBibleRevision,
         visualDirection: direction.trim(),
         parentCandidateAssetId: parentCandidateAssetId || undefined,
       });
@@ -322,6 +322,7 @@ function StoryFirstCharacterReferences({
     try {
       await plotloomApi.selectCharacterReference(projectId, {
         characterId,
+        authority: "cast",
         primaryAssetId: assetId,
         complementaryAssetIds: [],
         expectedReferenceRevision: state?.revision ?? 0,
@@ -874,12 +875,6 @@ export function StoryBiblePage({
           />
         </div>
       </Panel>
-      <StoryFirstCharacterReferences
-        projectId={projectId}
-        bible={value}
-        storyBibleRevision={storyBibleRevision}
-        readOnly={saving}
-      />
       {issues.length > 0 && (
         <Panel className="form-card" data-testid="bible-issues">
           <span className="eyebrow">Validation issues</span>

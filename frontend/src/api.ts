@@ -274,7 +274,7 @@ export class PlotloomApiClient {
   }
 
   selectCharacterReference(projectId: string, body: {
-    characterId: string; primaryAssetId: string; complementaryAssetIds: string[]; expectedReferenceRevision: number; reviewer: string; notes: string;
+    characterId: string; authority: "cast" | "story_bible"; primaryAssetId: string; complementaryAssetIds: string[]; expectedReferenceRevision: number; reviewer: string; notes: string;
   }): Promise<CharacterReferenceDecision> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/character-references`, { method: "POST", body: JSON.stringify(body) });
   }
@@ -290,7 +290,7 @@ export class PlotloomApiClient {
   }
 
   prepareCharacterReferenceProposal(projectId: string, body: {
-    characterId: string; storyBibleRevision: number; visualDirection: string; parentCandidateAssetId?: string;
+    characterId: string; castRevision: number; visualDirection: string; parentCandidateAssetId?: string;
   }): Promise<{ proposal: CharacterReferenceProposal }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals`, { method: "POST", body: JSON.stringify(body) });
   }
