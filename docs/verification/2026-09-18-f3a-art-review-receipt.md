@@ -13,7 +13,7 @@ acceptance, generated media, or F3B reference qualification.
 - The pinned `novel-art` validator and renderer remain the semantic/report
   tools; Plotloom validates identity, provenance, lifecycle and currentness.
 
-## Attended isolated proof
+## Historical attended isolated proof
 
 The older F2A/F2B retained project roots at
 `.local/relay/*/f2b-live-proof/` were read only and preserved. The current
@@ -33,12 +33,56 @@ explicitly accepted r1, reopened it, edited only text while preserving IDs, and
 saved r2 (`2f91d782f818…`). Browser reload and backend restart still visibly
 reported accepted art r2. No ImageGen, H3, video, or selected asset occurred.
 
+This is historical attended evidence, not the missing committed regression for
+the runtime corrected from `96557331537b22023fd4c80bb8bd32ca6d16cec4`.
+The older F2B roots do not prove the current F3A browser path; their role here
+is limited to explaining the isolated fixture's source facts.
+
+## New production-browser regression
+
+Source correction: `bfc2b57eb25a074236db37f82cb7ae2d2525e553`.
+
+`frontend/e2e/art-review.spec.ts` starts the production FastAPI composition
+against a test-owned file-SQLite project folder, with Vite and Playwright. It
+uses a real accepted source, outline, section map, installed graph, and cast;
+the only external seam is writing an upstream-valid `art.json` package into the
+actual frozen delivery folder. It does not monkeypatch art ownership or fake an
+acceptance response.
+
+The four browser journeys prove:
+
+- prepare → reload → re-copy of the same frozen package, ready rejection/cancel,
+  and a distinct replacement job;
+- author edit/explicit accept, current accepted JSON inspection without reopen,
+  an original-report warning after the edit, reopen/save r2, reload, and backend
+  restart;
+- prepared-publication snapshot/close blocking, then cancellation, close, and
+  explicit reopen; and
+- a held old-project prepare response cannot alter the destination project's
+  art panel.
+
+The regression also asserts that only the established graph stage is populated:
+no Story Bible, scene-beats, or storyboard is created. The accepted JSON is now
+rendered read-only outside reopen; reopening changes edit authority only. This
+fix implements ADR 0062's existing requirement that accepted art remains
+readable, rather than changing art ownership or report provenance.
+
 ## Verification
 
 - `node third_party/shuohao-skills/skills/novel-art/scripts/novel-art.mjs validate … --cast …` — passed.
 - `uv run pytest tests/test_project_storage_art.py tests/test_project_storage_cast.py -q` — 4 passed.
 - `npm run typecheck` and `npm run build` — passed; the pre-existing >500 kB
   chunk warning remains. Build refreshed `src/plotloom/static/`.
+- `npm run typecheck:e2e` — passed.
+- `npm exec -- playwright test e2e/art-review.spec.ts` — 4 passed. Raw output
+  and the initial failure traces are retained under the ticket's ignored
+  `.local/relay/3714b906-a6cc-4b23-ab32-1f1e28229598/` scratch directory.
+
+## Remaining gaps
+
+This regression is technical workflow evidence only. It does not establish
+human creative acceptance, generated environment/prop references, media or
+asset currentness, F3B qualification, or a live specialist candidate.
 
 ## F3B seam
 
