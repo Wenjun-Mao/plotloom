@@ -62,7 +62,7 @@ from ..schema import (
     GenerationWorkUnitRow,
     MediaTaskRow,
     ProjectRow,
-    SourceOutlineCandidateRow,
+    SourceOutlineCandidateRow, ArtCandidateRow,
     SealedStageAggregateRow,
     StageHeadRow,
     StagePlanRow,
@@ -335,10 +335,17 @@ def project_is_busy_in_session(session: Session, project_id: str) -> bool:
             SourceOutlineCandidateRow.status == "prepared",
         ).limit(1)
     )
+    prepared_art_publication = session.scalar(
+        select(ArtCandidateRow.job_id).where(
+            ArtCandidateRow.project_id == project_id,
+            ArtCandidateRow.status == "prepared",
+        ).limit(1)
+    )
     return any(
         item is not None
         for item in (
             nonterminal_run, nonterminal_media, nonterminal_work_unit,
             prepared_outline_publication,
+            prepared_art_publication,
         )
     )

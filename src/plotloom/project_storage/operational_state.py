@@ -117,6 +117,7 @@ def close_blockers(store: object) -> list[str]:
         blockers.append("character_reference_publication_active")
     blockers.extend(source_outline_publication_blockers(store))
     blockers.extend(cast_publication_blockers(store))
+    blockers.extend(art_publication_blockers(store))
     return blockers
 
 
@@ -139,3 +140,10 @@ def cast_publication_blockers(store: object) -> list[str]:
     with repository.engine.connect() as connection:
         prepared = connection.exec_driver_sql("SELECT 1 FROM v2_cast_candidates WHERE project_id = ? AND status = 'prepared' LIMIT 1", (project_id,)).first()
     return ["cast_publication_active"] if prepared is not None else []
+
+def art_publication_blockers(store: object) -> list[str]:
+    repository = store.repository  # type: ignore[attr-defined]
+    project_id = store.manifest.project_id  # type: ignore[attr-defined]
+    with repository.engine.connect() as connection:
+        prepared = connection.exec_driver_sql("SELECT 1 FROM v2_art_candidates WHERE project_id = ? AND status = 'prepared' LIMIT 1", (project_id,)).first()
+    return ["art_publication_active"] if prepared is not None else []

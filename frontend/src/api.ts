@@ -53,6 +53,9 @@ import type {
   CastReviewState,
   CastCandidate,
   CastCandidatePreparation,
+  ArtReviewState,
+  ArtCandidate,
+  ArtCandidatePreparation,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -563,6 +566,15 @@ export class PlotloomApiClient {
   reopenCast(projectId: string, expectedCastRevision: number): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/reopen`, { method: "POST", body: JSON.stringify({ expectedCastRevision }) }); }
   saveReopenedCast(projectId: string, body: { expectedCastRevision: number; binding: unknown; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; cast: Record<string, unknown> }): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/save`, { method: "POST", body: JSON.stringify(body) }); }
   castCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/report`; }
+
+  getArt(projectId: string): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art`); }
+  prepareArtCandidate(projectId: string): Promise<ArtCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates`, { method: "POST" }); }
+  refreshArtCandidate(projectId: string, jobId: string): Promise<ArtCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
+  cancelArtCandidate(projectId: string, jobId: string): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
+  acceptArtCandidate(projectId: string, body: { jobId: string; expectedArtRevision: number; binding: unknown; art: Record<string, unknown> }): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/accept`, { method: "POST", body: JSON.stringify(body) }); }
+  reopenArt(projectId: string, expectedArtRevision: number): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/reopen`, { method: "POST", body: JSON.stringify({ expectedArtRevision }) }); }
+  saveReopenedArt(projectId: string, body: { expectedArtRevision: number; binding: unknown; art: Record<string, unknown> }): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/save`, { method: "POST", body: JSON.stringify(body) }); }
+  artCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/report`; }
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
   getVideoBackend(): Promise<VideoBackend> { return this.request("/video-backend"); }

@@ -4,6 +4,7 @@ import { Button, ErrorNotice, Spinner } from "../components";
 import type { SourceMaterial, SourceOutlineReviewState, StoryGraph } from "../types";
 import { SectionMapPanel } from "./SectionMapPanel";
 import { CastPanel } from "./CastPanel";
+import { ArtPanel } from "./ArtPanel";
 import { deriveRoutes } from "../model";
 
 const blankSource: SourceMaterial = {
@@ -144,6 +145,7 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
         }}
       />
       <CastPanel projectId={projectId} readOnly={readOnly} />
+      <ArtPanel projectId={projectId} readOnly={readOnly} />
     </div>
   </section>;
 }

@@ -34,6 +34,7 @@ from ..source_outline_contracts import (
 from ..creative_handoff_contracts import CreativeHandoffRequest
 from ..creative_handoff_exchange import ValidatedCreativeDelivery
 from ..cast_contracts import CastAcceptRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
+from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
 from ..persistence import ProjectSQLiteRepository
 from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
 from .format import (
@@ -470,6 +471,33 @@ class ProjectStore:
 
     def cast_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
         return self.repository.cast.candidate_request(self.manifest.project_id, job_id)
+
+    def art_state(self) -> ArtReviewState:
+        return self.repository.art.get_state(self.manifest.project_id)
+
+    def prepare_art_candidate(self, job_id: str) -> tuple[ArtCandidate, CreativeHandoffRequest]:
+        return self.repository.art.prepare_candidate(self.manifest.project_id, job_id)
+
+    def admit_art_delivery(self, delivery: ValidatedCreativeDelivery) -> ArtCandidate:
+        return self.repository.art.admit_delivery(self.manifest.project_id, delivery)
+
+    def accept_art_candidate(self, request: ArtAcceptRequest) -> ArtReviewState:
+        return self.repository.art.accept_candidate(self.manifest.project_id, request)
+
+    def reopen_art(self, request: ArtReopenRequest) -> ArtReviewState:
+        return self.repository.art.reopen(self.manifest.project_id, request)
+
+    def save_reopened_art(self, request: ArtSaveRequest) -> ArtReviewState:
+        return self.repository.art.save_reopened(self.manifest.project_id, request)
+
+    def cancel_art_candidate(self, job_id: str) -> ArtReviewState:
+        return self.repository.art.cancel_candidate(self.manifest.project_id, job_id)
+
+    def art_candidate_report(self, job_id: str) -> str:
+        return self.repository.art.candidate_report(self.manifest.project_id, job_id)
+
+    def art_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
+        return self.repository.art.candidate_request(self.manifest.project_id, job_id)
 
     def save_authoring_draft(
         self,
