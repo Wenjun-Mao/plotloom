@@ -1,11 +1,14 @@
 # Plotloom external review — start here
 
+> **Archive status (2026-09-18):** Historical/supporting record retained for context and evidence; it is not an active delivery plan or a completion claim. See [the roadmap entrypoint](../../../README.md).
+
+
 This GitHub-only package supports two independent reviews of the proposed
-story-to-playable roadmap. Read the [roadmap](../story-to-playable-alpha.md),
+story-to-playable roadmap. Read the [roadmap](../../superseded/2026-09-10-story-to-playable-alpha.md),
 then give each reviewer its **complete prompt**, not just a repository link:
 
-1. [Reviewer A: creative workflow and audiovisual continuity](creative-workflow.md)
-2. [Reviewer B: architecture boundaries and bounded delivery](architecture-delivery.md)
+1. [Reviewer A: creative workflow and audiovisual continuity](2026-09-10-creative-workflow.md)
+2. [Reviewer B: architecture boundaries and bounded delivery](2026-09-10-architecture-delivery.md)
 
 Both prompts are self-contained. Supporting documents and all required source
 are in this repository; no local filesystem access is required.
@@ -21,11 +24,11 @@ are in this repository; no local filesystem access is required.
 
 ## Supporting evidence
 
-- [Proposed decision record](../../adr/0026-story-to-playable-product-direction.md)
-- [Capability/progress matrix](../capability-matrix.md)
-- [Text qualification completion plan](../m1c-completion-plan.md)
-- [Retained readiness verification ledger](../../verification/2026-09-10-provider-readiness-offline-candidate.md)
-- [Retained disconnected-workbench screenshot](../../verification/assets/provider-readiness-disconnected-1440x900.png)
+- [Proposed decision record](../../../../adr/0026-story-to-playable-product-direction.md)
+- [Capability/progress matrix](../../superseded/2026-09-02-capability-matrix.md)
+- [Text qualification completion plan](../../superseded/2026-09-07-m1c-completion-plan.md)
+- [Retained readiness verification ledger](../../../../verification/2026-09-10-provider-readiness-offline-candidate.md)
+- [Retained disconnected-workbench screenshot](../../../../verification/assets/provider-readiness-disconnected-1440x900.png)
 
 The architecture prompt supplies the exact source paths to inspect. Reports
 must distinguish directly inspected facts, repository receipts, supplied

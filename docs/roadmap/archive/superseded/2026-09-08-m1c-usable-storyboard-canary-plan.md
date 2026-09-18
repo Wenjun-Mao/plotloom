@@ -1,5 +1,8 @@
 # M1-C usable storyboard canary
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Status: **Approved**  
 Approved: 2026-09-08  
 Source baseline: `29a4998fcf3143579c4b04aea1fa90b692178684` on `codex/m1b-alpha`
@@ -91,4 +94,3 @@ Stop safely and report instead of expanding scope when any of these occurs:
 - success would require a prompt, schema, binder, validator, persistence, or
   provider-adapter change;
 - the exact baseline cannot be reproduced without rewriting repository history.
-

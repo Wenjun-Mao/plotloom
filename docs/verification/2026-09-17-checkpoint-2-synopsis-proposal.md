@@ -24,7 +24,7 @@ engineering acceptance; no new human creative approval or M2 completion is claim
   stays disabled after a Brief/Bible/Graph stale transition until proposal
   stages are regenerated.
 - The proposed UI maps are in
-  [checkpoint-2-synopsis-proposal-map.md](../roadmap/checkpoint-2-synopsis-proposal-map.md);
+  [checkpoint-2-synopsis-proposal-map.md](../roadmap/archive/historical/2026-09-16-checkpoint-2-synopsis-proposal-map.md);
   the durable ownership decision is ADR 0053.
 
 ## Automated evidence

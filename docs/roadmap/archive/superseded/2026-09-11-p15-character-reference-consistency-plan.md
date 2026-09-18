@@ -1,5 +1,8 @@
 # P1.5 — Approved character references and cross-shot identity
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Status: **Approved revision 1**. The user approved implementation with “go”,
 including the repository skill and replaceable specialist execution boundary.
 No implementation or visual qualification is claimed by this document.
@@ -8,13 +11,13 @@ No implementation or visual qualification is claimed by this document.
 
 Implementation candidate `09f0397` is merged into local main for safekeeping and
 a clean restart, not accepted as complete. The
-[director review](../verification/2026-09-12-p15-director-review.md) owns the open
+[director review](../../../verification/2026-09-12-p15-director-review.md) owns the open
 corrections: reviewer attribution, proposal-refinement UI, frozen-reference visual
 comparison, and remaining entrypoint/story-first evidence. Preserve the existing
 pilot; do not repeat generation merely to repair these gaps.
 
 Correction candidate status is recorded separately in the
-[P1.5 correction receipt](../verification/2026-09-12-p15-corrections.md). It is
+[P1.5 correction receipt](../../../verification/2026-09-12-p15-corrections.md). It is
 implementation/verification evidence only: stable gates and independent director
 review remain required, and it does not revise the retained pilot history or claim
 milestone/Flow completion.

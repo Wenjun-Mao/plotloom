@@ -1,5 +1,8 @@
 # P1 — Codex image jobs with a manual handoff
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Status: **Approved — revision 2**, 2026-09-11. This is the approved scope; it
 does not by itself claim implementation, director acceptance, a production
 release, or external-provider qualification. It supersedes the unapproved
@@ -9,11 +12,11 @@ external-endpoint-first revision 1.
 
 The prior local candidate at `fe7c1ca` established a real original and
 reference-based built-in-imagegen refinement through the manual exchange; see
-the [initial receipt](../verification/2026-09-11-p1-codex-image-jobs.md). Its
+the [initial receipt](../../../verification/2026-09-11-p1-codex-image-jobs.md). Its
 copied refinement brief, however, did not itself carry the later supplied
 facial-clarity/practical-lighting direction or the resolved authored context.
 The self-contained copied-brief correction is an implementation candidate with
-its own [regression receipt](../verification/2026-09-11-p1-self-contained-brief-correction.md).
+its own [regression receipt](../../../verification/2026-09-11-p1-self-contained-brief-correction.md).
 **Director acceptance remains pending**; the retained asset regression does not
 represent a new ImageGen execution or creative approval.
 
@@ -44,11 +47,11 @@ for this slice. No specialist success message automatically approves an image.
 - Old Flow envelope failures remain historical workflow limitations; no metadata
   deletion, rewritten envelope or force-close is authorized.
 
-Governing records: [roadmap](story-to-playable-alpha.md),
-[ADR 0012](../adr/0012-approved-storyboards-and-production-units.md),
-[ADR 0016](../adr/0016-versioned-authoring-quality-gates-and-approval.md),
-[ADR 0027](../adr/0027-managed-imported-still-preview-contract.md), and
-[ADR 0028](../adr/0028-agent-operated-image-jobs.md).
+Governing records: [roadmap](2026-09-10-story-to-playable-alpha.md),
+[ADR 0012](../../../adr/0012-approved-storyboards-and-production-units.md),
+[ADR 0016](../../../adr/0016-versioned-authoring-quality-gates-and-approval.md),
+[ADR 0027](../../../adr/0027-managed-imported-still-preview-contract.md), and
+[ADR 0028](../../../adr/0028-agent-operated-image-jobs.md).
 
 ## Scope and consequential decisions
 

@@ -152,8 +152,8 @@ acceptance.
 
 ## Follow-up
 
-See [the roadmap](../roadmap/story-to-playable-alpha.md) for milestones, open
+See [the roadmap](../roadmap/archive/superseded/2026-09-10-story-to-playable-alpha.md) for milestones, open
 questions and independent-review synthesis. The
-[P0 implementation plan](../roadmap/p0-imported-still-preview-plan.md) owns the
+[P0 implementation plan](../roadmap/archive/superseded/2026-09-11-p0-imported-still-preview-plan.md) owns the
 bounded next implementation proposal. No source change is implied by accepting
 the roadmap; execution needs approval of that plan and a separate handoff.

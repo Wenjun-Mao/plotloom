@@ -1,5 +1,8 @@
 # Reviewer B — architecture boundaries and bounded delivery
 
+> **Archive status (2026-09-18):** Historical/supporting record retained for context and evidence; it is not an active delivery plan or a completion claim. See [the roadmap entrypoint](../../../README.md).
+
+
 Status: self-contained planning prompt; not dispatched. Copy this entire file
 as the prompt. Source and supporting documents are published for GitHub-only
 review as described below. Work independently of Reviewer A.
@@ -21,8 +24,8 @@ of the source and packet to this repository. If source is unavailable to you,
 state that and provide conditional design critique from this prompt; never
 silently inspect another revision and treat it as this one.
 
-The [proposed roadmap](../story-to-playable-alpha.md) and
-[ADR 0026](../../adr/0026-story-to-playable-product-direction.md) are subsequent
+The [proposed roadmap](../../superseded/2026-09-10-story-to-playable-alpha.md) and
+[ADR 0026](../../../../adr/0026-story-to-playable-product-direction.md) are subsequent
 committed documentation-only review drafts, NOT files claimed to exist in the
 source baseline. Open them at the same packet revision as this prompt and report
 that revision separately. Local `.env`, databases, media, complete LLM traces and private
@@ -38,7 +41,7 @@ Useful exact-source paths if accessible:
 - `src/plotloom/domain.py`, `media.py`, `media_jobs.py`, `artifacts.py`
 - Relevant media/profile/Approval boundaries in `api.py`, `persistence.py`
 - `src/plotloom/alpha_acceptance.py`, `frontend/src/pages/StoryboardPage.tsx`
-- `docs/roadmap/capability-matrix.md`, `docs/roadmap/m1c-completion-plan.md`
+- `docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md`, `docs/roadmap/archive/superseded/2026-09-07-m1c-completion-plan.md`
 
 Read targeted ownership paths, not the whole repository. Historical ADR context
 may describe older behavior; implementation and dated receipts must be separated.

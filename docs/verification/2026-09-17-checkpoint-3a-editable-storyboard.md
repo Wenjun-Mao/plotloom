@@ -16,7 +16,7 @@ qualification.
   and rebuild owners. It adds neither an approval nor a retry/recovery policy.
 - The ownership/currentness contract is [ADR 0054](../adr/0054-editable-storyboard-continuation-currentness.md).
   The short existing-capability map is
-  [checkpoint-3a-storyboard-continuation-map.md](../roadmap/checkpoint-3a-storyboard-continuation-map.md).
+  [checkpoint-3a-storyboard-continuation-map.md](../roadmap/archive/historical/2026-09-17-checkpoint-3a-storyboard-continuation-map.md).
 
 ## Automated evidence
 

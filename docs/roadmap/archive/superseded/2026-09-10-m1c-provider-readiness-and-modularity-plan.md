@@ -1,5 +1,8 @@
 # M1-C provider readiness and modularity plan
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Status: **Approved**  
 Approved: 2026-09-10  
 Source baseline: `05518ee` on `codex/m1b-alpha`, clean when inspected
@@ -342,6 +345,6 @@ Return to the director before continuing if:
 ## Relationship to existing plans
 
 This plan supersedes only the pending adapter/readiness portion of checkpoint
-2E in [M1-C completion plan](m1c-completion-plan.md). It does not supersede the
+2E in [M1-C completion plan](2026-09-07-m1c-completion-plan.md). It does not supersede the
 accepted canary result, ADR 0024's independent-qualification policy, or later
 M1-C candidate, qualification, and delivery gates.

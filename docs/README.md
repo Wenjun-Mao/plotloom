@@ -11,7 +11,7 @@
 - [H3 gateway-managed output retention](adr/0039-h3-gateway-managed-output-retention.md)
 - [Saved-profile conformance runner](conformance.md)
 - [Three-story Alpha acceptance runner](alpha-acceptance.md)
-- [Capability and adoption matrix](roadmap/capability-matrix.md)
+- [Capability and adoption matrix](roadmap/archive/superseded/2026-09-02-capability-matrix.md)
 - Current ADRs: [0004](adr/0004-canonical-generation-contract.md),
   [0005](adr/0005-generation-runs-and-quarantine.md),
   [0006](adr/0006-media-adapter-boundary.md),

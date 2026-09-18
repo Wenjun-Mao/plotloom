@@ -1,8 +1,11 @@
 # P2: reviewed two-shot audiovisual checkpoint
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Revision 1 — **Approved by the user in the director task; ready for bounded Relay delivery**.
 Baseline: clean `main` at `704c5fd62f6db707ee6860e069fe65903b933dc0`.
-This is a bounded continuation of [the P2 plan](p2-wan-audiovisual-pilot-plan.md),
+This is a bounded continuation of [the P2 plan](2026-09-12-p2-wan-audiovisual-pilot-plan.md),
 not a replacement of its historical approval or the one-attempt pricing waiver.
 User approval authorizes execution within the limits below; each Relay assignment
 must state its narrower source and live-call authority explicitly.
@@ -17,7 +20,7 @@ checkpoint result, not permission to relax the gate.
 
 Current evidence: one real ingested clip with H.264/AAC, measured 5.038005 seconds
 and 1048 × 878 pixels; browser playback is proven, audiovisual quality is not.
-See [the live receipt](../verification/2026-09-12-p2-waived-rate-video-attempt.md).
+See [the live receipt](../../../verification/2026-09-12-p2-waived-rate-video-attempt.md).
 Shared ledger is 10/100 requested seconds reserved. The historical unknown job
 remains unknown and must never be replayed, reconciled speculatively or refunded.
 

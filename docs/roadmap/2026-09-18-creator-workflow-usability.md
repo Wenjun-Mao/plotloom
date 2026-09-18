@@ -1,7 +1,7 @@
 # Creator workflow usability — review plan
 
 Status: **Draft delivery plan; walkthrough direction agreed.**
-Date: 2026-09-18. Parent: [playable MVP tracker](playable-mvp-milestones.md).
+Date: 2026-09-18. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
 Implementation and generation remain paused. This plan does not dispatch work.
 
 ## Outcome and evidence
@@ -72,6 +72,21 @@ independent stable-delta review per implementation slice. Cover navigation,
 project switches, async ownership, report isolation, revision display and retained
 review actions. Do not rerun every backend suite for a text-only adjustment.
 Include a realistic narrow viewport; compare layout and usability, not only test counts.
+
+## Next proposed delivery — representative story/branch prototype
+
+The user has approved this usability direction and a representative story/branch
+prototype as the next proposed delivery. When separately dispatched, it should use
+one genuine small story to make the opening → decision → two-consequence
+relationship readable across the stage workspace, screenplay and storyboard views.
+It must reuse the canonical graph and accepted/current content owners; it must not
+create a second graph, mutate accepted content, connect F5 to production media, or
+start provider/generation work.
+
+Implementation is paused for this documentation assignment. U0 settles the
+prototype's language and content policy from the pinned skills, renderers and real
+artifacts; Chinese-first remains a recommendation, not a decision. The prototype
+is evidence for U1/U2 presentation choices, not product or creative acceptance.
 
 ## Language decision to settle in U0
 

@@ -4,15 +4,20 @@ Revision 4 — **Approved direction and checkpoint roadmap**, 2026-09-17.
 The user approved the architecture and requested this full roadmap. This is the
 single current tracker; bounded implementation assignments remain director-owned.
 [ADR 0057](../adr/0057-shuohao-first-creative-workflow.md) records the ownership
-decision. [Revision 3 history](playable-mvp-milestones-r3-history.md) preserves
+decision. [Revision 3 history](archive/superseded/2026-09-17-playable-mvp-milestones-r3-history.md) preserves
 earlier scope and evidence, not the current assignment queue.
 
 ## Current review pause
 
 Implementation and generation are paused for the attended creator walkthrough.
-The [usability review plan](creator-workflow-usability.md) captures agreed findings
+The [usability review plan](2026-09-18-creator-workflow-usability.md) captures agreed findings
 and proposed priorities; language policy and delivery approval remain open.
 It separates presentation work from F5-to-production integration and H3 tuning.
+
+The user-approved usability direction and representative story/branch prototype are
+the next proposed delivery, but implementation remains paused during this
+documentation assignment. The prototype will settle its content and language
+details through U0 rather than treating them as decided by this tracker.
 
 ## Outcomes and starting point
 

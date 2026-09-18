@@ -34,7 +34,7 @@ retaining the separation between durable identity and shot state, costume,
 composition and style.
 
 The bounded implementation is recorded in the
-[P1.5 plan](../roadmap/p15-character-reference-consistency-plan.md). It remains
+[P1.5 plan](../roadmap/archive/superseded/2026-09-11-p15-character-reference-consistency-plan.md). It remains
 an acceptance-pending identity guarantee and does not authorize video.
 
 The agreed specialist direction is a versioned, repository-scoped skill with

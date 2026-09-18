@@ -84,7 +84,7 @@ uv run python scripts/smoke_installed_wheel.py dist
 在 `--qualify-m15` 严格模式下各完成 3 次原子安装、各至少 10/12
 阶段首轮通过后才可标记完成；较小批次只算诊断 probe。
 
-更完整的开发说明见 [docs/development.md](docs/development.md)，能力进度见 [docs/roadmap/capability-matrix.md](docs/roadmap/capability-matrix.md)，架构与研究资料索引见 [docs/README.md](docs/README.md)。
+更完整的开发说明见 [docs/development.md](docs/development.md)，能力进度见 [docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md](docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md)，架构与研究资料索引见 [docs/README.md](docs/README.md)。
 
 ## 版本边界
 

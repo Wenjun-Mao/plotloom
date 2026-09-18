@@ -1,5 +1,8 @@
 # P1 image-workflow usability checkpoint
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Status: Approved revision 1, 2026-09-11. User approved the director's bounded usability follow-up. Character-reference expansion is assessment/design only in this checkpoint.
 
 ## Outcome and baseline

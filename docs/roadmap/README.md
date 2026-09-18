@@ -1,15 +1,17 @@
 # Plotloom roadmap entrypoint
 
-The current delivery authority is [Playable MVP milestones](playable-mvp-milestones.md).
+The current delivery authority is [Playable MVP milestones](2026-09-17-playable-mvp-milestones.md).
 It owns the approved sequence, release boundary, acceptance criteria and progress.
-Revision 4 adopts the Shuohao-first five-stage creative workflow and Terra repo
-specialist. Start with F0; the prior custom-authoring qualification queue is
-superseded. [Revision 3 history](playable-mvp-milestones-r3-history.md) retains
-earlier approvals, experiments and unresolved quality findings.
+The next proposed delivery is the user-approved usability direction and representative
+story/branch prototype in [Creator workflow usability](2026-09-18-creator-workflow-usability.md).
+Implementation and generation remain paused while its U0 language/content details
+are settled through that prototype.
 
-Other plans and verification receipts retain their historical meaning. In particular,
-[Reliable creative workflow](reliable-creative-workflow.md) retains the completed
-five-step foundation history, not the next assignment queue.
-[Story to playable Alpha](story-to-playable-alpha.md) explains the broader product
-direction but its dated status is not the current progress tracker. Technical plans
-and ADRs remain supporting references; they do not independently expand current scope.
+## Archive index
+
+- [Completed records](archive/completed/) contain only two plans with explicit completion receipts: retained-Flow reconciliation and codebase modularization.
+- [Superseded plans](archive/superseded/) preserve retired delivery authority and unresolved evidence without relabelling it as complete. Revision 3 history remains there for prior MVP approvals and experiments.
+- [Historical/supporting records](archive/historical/) retain technical maps, open-acceptance records, and the undisbursed external-review package; they are neither active plans nor completion claims.
+- [Exact relocation map and date basis](archive/README.md) records every old-to-new path. Dates come from a document's original approval/creation when explicit; otherwise they use its earliest Git addition and are marked as such.
+
+Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.

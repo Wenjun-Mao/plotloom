@@ -1,5 +1,8 @@
 # P0 — Imported assets and reviewed still preview
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Revision: **1 / Approved**, 2026-09-11. User explicitly approved this plan,
 including the bounded retention/permanent-delete policy. Implementation has not
 been dispatched. Execution follows the separate frozen-assignment handoff below;
@@ -37,7 +40,7 @@ branching playback, independent text qualification or media-provider readiness.
 
 ## Governing decisions
 
-Follow [ADR 0026](../adr/0026-story-to-playable-product-direction.md) and its
+Follow [ADR 0026](../../../adr/0026-story-to-playable-product-direction.md) and its
 explicit amendments to ADRs 0012/0016. Retain ADR 0023 bounded delivery and the
 canonical, immutable-history and secret boundaries in repository `AGENTS.md`.
 

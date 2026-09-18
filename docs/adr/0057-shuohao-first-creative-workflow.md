@@ -66,7 +66,7 @@ qualification precedes substantial dialogue production.
 
 ## Guardrails
 
-The [revision-4 roadmap](../roadmap/playable-mvp-milestones.md) is current authority.
+The [revision-4 roadmap](../roadmap/2026-09-17-playable-mvp-milestones.md) is current authority.
 Earlier ADRs/receipts remain evidence for retained behavior, not authority to
 resume the superseded authoring qualification queue. No claim that old 3B passed.
 F0–F10 require usable outputs, source-backed review and explicit replacement scope.

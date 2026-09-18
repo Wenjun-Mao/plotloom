@@ -149,7 +149,7 @@ Do not claim implementation or release acceptance from this decision record.
 
 ## Related records
 
-- [Completion plan](../roadmap/m1c-completion-plan.md)
+- [Completion plan](../roadmap/archive/superseded/2026-09-07-m1c-completion-plan.md)
 - [Model-neutral generation](0013-model-neutral-reliable-generation.md)
 - [Alpha provenance](0021-alpha-source-provenance.md)
 - [Bounded delivery](0023-bounded-delivery-and-evidence.md)

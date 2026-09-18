@@ -1,5 +1,8 @@
 # Codebase modularization: persistence-first structure proposal
 
+> **Archive status (2026-09-18):** Completed record retained for its evidence; it is not an active delivery plan. See [the roadmap entrypoint](../../README.md).
+
+
 **Status:** all four modularization steps are complete: the responsibility map,
 project/application persistence and storage extraction, corrected frontend
 workspace extraction, and the justified-only assessment of the remaining large
@@ -425,7 +428,7 @@ further extraction is necessary to complete the approved storage milestone or
 to repair a demonstrated ownership conflict. It is not: no source change is
 authorized by this assessment. The detailed evidence and historical-receipt
 supersession pointers are in
-[`docs/verification/2026-09-14-modularization-step-4-assessment.md`](../verification/2026-09-14-modularization-step-4-assessment.md).
+[`docs/verification/2026-09-14-modularization-step-4-assessment.md`](../../../verification/2026-09-14-modularization-step-4-assessment.md).
 
 | Candidate (current lines) | Actual responsibility and dependency boundary | Decision and precise future trigger |
 | --- | --- | --- |

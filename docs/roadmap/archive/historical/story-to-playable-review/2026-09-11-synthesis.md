@@ -1,11 +1,14 @@
 # External review synthesis — 2026-09-11
 
+> **Archive status (2026-09-18):** Historical/supporting record retained for context and evidence; it is not an active delivery plan or a completion claim. See [the roadmap entrypoint](../../../README.md).
+
+
 Status: **recommendations for discussion**, not an approved architecture amendment
 or implementation authorization. The published roadmap and ADR 0026 are unchanged.
 
 **Subsequent disposition, 2026-09-11:** the user authorized roadmap/ADR amendments.
 The accepted P0 three-way boundary and adjoining-shot direction are now captured
-in ADR 0026 and the roadmap; the [P0 implementation plan](../p0-imported-still-preview-plan.md)
+in ADR 0026 and the roadmap; the [P0 implementation plan](../../superseded/2026-09-11-p0-imported-still-preview-plan.md)
 revision 1 was subsequently approved by the user on 2026-09-11. The assessment below records the original review, not a
 retroactive acceptance or implementation claim. Raw reports remain unchanged.
 
@@ -76,13 +79,13 @@ These checks were targeted source inspection, not runtime tests or a complete au
 
 | Claim | Local evidence | Assessment |
 |---|---|---|
-| Still preview needs a clearer authority amendment | [ADR 0016](../../adr/0016-versioned-authoring-quality-gates-and-approval.md), media-boundary paragraph | Confirmed: rule explicitly includes reference bindings, not only remote calls |
-| Existing byte store is reusable but imports need separate ownership | [artifacts.py](../../../src/plotloom/artifacts.py), `put/get`; [persistence.py](../../../src/plotloom/persistence.py), `add_artifact` | Confirmed: hash-addressed bytes; run/attempt lineage is required for generation evidence |
+| Still preview needs a clearer authority amendment | [ADR 0016](../../../../adr/0016-versioned-authoring-quality-gates-and-approval.md), media-boundary paragraph | Confirmed: rule explicitly includes reference bindings, not only remote calls |
+| Existing byte store is reusable but imports need separate ownership | [artifacts.py](../../../../../src/plotloom/artifacts.py), `put/get`; [persistence.py](../../../../../src/plotloom/persistence.py), `add_artifact` | Confirmed: hash-addressed bytes; run/attempt lineage is required for generation evidence |
 | Existing-path put does not validate existing bytes | `LocalArtifactStore.put` returns when path exists; `get` verifies hash | Confirmed source behavior; import must verify usable bytes before publishing its record; no general repair system needed |
-| Legacy worker is not ready to reopen | [media_jobs.py](../../../src/plotloom/media_jobs.py), `_execute_task`, `_poll`, `_succeed` | Hard stop confirmed; unreachable legacy uncertainty/failure/output-URI semantics need bounded replacement before P1 |
-| Legacy adapters silently constrain inputs | [media.py](../../../src/plotloom/media.py), `references[:4]`, `max(4, _duration(params))` | Confirmed source behavior, not validated contemporary endpoint limits |
-| Join compiler is not a complete playback state engine | [join_state_values.py](../../../src/plotloom/join_state_values.py), `compile_join_state_value_contract` | Explicitly excludes initial-state inference/arbitrary propagation; preserves `join_variant.v1` descriptors |
-| Q still requires two profiles | [alpha_acceptance.py](../../../src/plotloom/alpha_acceptance.py), constants, `run_alpha_acceptance`, CLI | Confirmed executable cardinality guard; not merely stale prose |
+| Legacy worker is not ready to reopen | [media_jobs.py](../../../../../src/plotloom/media_jobs.py), `_execute_task`, `_poll`, `_succeed` | Hard stop confirmed; unreachable legacy uncertainty/failure/output-URI semantics need bounded replacement before P1 |
+| Legacy adapters silently constrain inputs | [media.py](../../../../../src/plotloom/media.py), `references[:4]`, `max(4, _duration(params))` | Confirmed source behavior, not validated contemporary endpoint limits |
+| Join compiler is not a complete playback state engine | [join_state_values.py](../../../../../src/plotloom/join_state_values.py), `compile_join_state_value_contract` | Explicitly excludes initial-state inference/arbitrary propagation; preserves `join_variant.v1` descriptors |
+| Q still requires two profiles | [alpha_acceptance.py](../../../../../src/plotloom/alpha_acceptance.py), constants, `run_alpha_acceptance`, CLI | Confirmed executable cardinality guard; not merely stale prose |
 
 Provider facts in A's report are not newly reverified by this synthesis and are
 not accepted as implementation specifications. Prior planning documentation

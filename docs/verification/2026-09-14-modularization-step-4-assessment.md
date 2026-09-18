@@ -65,7 +65,7 @@ earlier generation-ownership overstatement.
 - Read-only source/caller and current line-count checks covered the candidates
   listed above, including conformance and remaining large authoring pages.
 - Path/reference validation confirmed each cited source file and the approved
-  `docs/roadmap/project-folder-storage-plan.md` close, snapshot/restore, video,
+  `docs/roadmap/archive/historical/2026-09-13-project-folder-storage-plan.md` close, snapshot/restore, video,
   accounting and cutover sequence.
 - `git diff --check` was run before commit.
 

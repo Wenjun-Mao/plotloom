@@ -1,5 +1,8 @@
 # Checkpoint 2 capability and UI gap map
 
+> **Archive status (2026-09-18):** Historical/supporting record retained for context and evidence; it is not an active delivery plan or a completion claim. See [the roadmap entrypoint](../../README.md).
+
+
 Approved step: Playable MVP milestone checkpoint 2, synopsis to proposal.
 
 | Owner | Current authority | Checkpoint-2 use / gap closed |

@@ -13,7 +13,7 @@ integration, and a releasable standalone product.
 ## Decision
 
 - Track adoption by user or system capability, not by source file. The
-  authoritative living tracker is `docs/roadmap/capability-matrix.md`.
+  authoritative living tracker is `docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md`.
 - Pin every source assessment to an exact audited revision. The tracker records
   provenance and license boundaries separately from Plotloom implementation status.
 - Give every capability one source disposition: **Adopt**, **Adapt**,

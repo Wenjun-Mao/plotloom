@@ -1,5 +1,8 @@
 # M1-C completion plan
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Planning baseline: `ea2d6e1` on `codex/m1b-alpha`, clean when inspected on
 2026-09-07. This document records the next work; no new generation, tests, or
 acceptance runs were performed to write it. Later tasks must verify their
@@ -9,13 +12,13 @@ The next product outcome is a complete `default` llama storyboard that can be
 inspected, edited, and reopened in the workbench. The first retained canary
 quarantined at Story Graph; it is evidence to diagnose, not a successful result.
 On 2026-09-07 the
-user approved [ADR 0024](../adr/0024-pluggable-text-backends-and-independent-qualification.md):
+user approved [ADR 0024](../../../adr/0024-pluggable-text-backends-and-independent-qualification.md):
 pluggable backend availability and independent qualification. The vLLM
 `qwen36_35b` lane is deferred and is not retried. Release now requires the core
 gates plus independently qualified advertised backend configurations (at least
 one), rather than two available hosts together. Each backend still needs nine
 successful runs and three blinded reviews. The old 18-run/six-review gate keeps
-its historical meaning; it has not passed. The [capability matrix](capability-matrix.md)
+its historical meaning; it has not passed. The [capability matrix](2026-09-02-capability-matrix.md)
 is the product progress authority; this file owns the execution order.
 
 **Approved execution adjustment (2026-09-07):** close the two concrete
@@ -29,7 +32,7 @@ this amendment changes their delivery order, not the meaning of old evidence.
 ## Preserve the completed baseline
 
 Planning addendum: the user has requested review of the next product direction
-before further execution. [Story to playable Alpha](story-to-playable-alpha.md)
+before further execution. [Story to playable Alpha](2026-09-10-story-to-playable-alpha.md)
 contains that roadmap and two independent-review prompts. Its proposed import
 pilot can use an existing reviewed storyboard without representing text
 qualification as complete. This is a docs-only planning checkpoint; the gates
@@ -254,7 +257,7 @@ literal run-count quota.
 ### 4. Qualify the supported backend
 
 Use the new versioned single-backend mode described by ADR 0024, after step 2E
-implements and verifies it; the existing [Alpha CLI](../alpha-acceptance.md)
+implements and verifies it; the existing [Alpha CLI](../../../alpha-acceptance.md)
 still requires two profiles until then. Use the same fixed stories:
 one selected backend × three stories × three repetitions. Keep its source
 checkout unchanged for the entire run. An exact committed worktree may be used
@@ -413,7 +416,7 @@ terminal canary record at the end supersedes their current/next-action entries:
 - **Usage:** task response count, fresh/cached input tokens, total/reasoning output
   tokens, and cost deltas are unavailable in the exposed task usage records.
   No instrumentation was added and no savings or enforced spending cap is claimed.
-- **Operating rules:** [ADR 0023](../adr/0023-bounded-delivery-and-evidence.md),
+- **Operating rules:** [ADR 0023](../../../adr/0023-bounded-delivery-and-evidence.md),
   surfaced through root `AGENTS.md`.
 
 For a fresh execution task, pass this file, the verified baseline/worktree,
@@ -426,9 +429,9 @@ that checkpoint and stop at its stated boundary.
 **Decision (2026-09-07):** the current fixes are sufficient to attempt the
 two-profile real canary without another rewrite. This is a regression-backed
 readiness decision, not a prediction that either provider will succeed. ADRs
-[0018](../adr/0018-trusted-story-timing-allocation.md),
-[0019](../adr/0019-exact-fragment-and-join-state-contracts.md), and
-[0022](../adr/0022-executable-correction-contracts.md) remain authoritative.
+[0018](../../../adr/0018-trusted-story-timing-allocation.md),
+[0019](../../../adr/0019-exact-fragment-and-join-state-contracts.md), and
+[0022](../../../adr/0022-executable-correction-contracts.md) remain authoritative.
 
 | Field | Author/model creative intent | Uniquely derivable values / current code policy | Validation authority |
 |---|---|---|---|

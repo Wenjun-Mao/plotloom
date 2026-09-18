@@ -1,5 +1,8 @@
 # Checkpoint 3A existing-capability and gap map
 
+> **Archive status (2026-09-18):** Historical/supporting record retained for context and evidence; it is not an active delivery plan or a completion claim. See [the roadmap entrypoint](../../README.md).
+
+
 `ProjectBrief`, Story Bible, and Story Graph are canonical author-owned inputs;
 the pipeline owns generated Scene Beats and Storyboard; the browser owns only
 the explicit request and view state. `StageHead.status` is the currentness

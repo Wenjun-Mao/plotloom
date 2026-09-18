@@ -1,5 +1,8 @@
 # P2-H3: local MiniMax-H3 adapter
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Status: prepared from the evidenced private gateway baseline.  This is an
 implementation plan, not a claim that H3 candidates have passed creative
 review.

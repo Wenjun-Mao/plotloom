@@ -1,7 +1,10 @@
 # Story to playable Alpha: development roadmap
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 > Historical roadmap and design context. For current scope, progress and next steps,
-> use [Reliable creative workflow](reliable-creative-workflow.md). The dated status
+> use [Reliable creative workflow](2026-09-15-reliable-creative-workflow.md). The dated status
 > statements below are preserved as history, not current completion claims.
 
 Status: **progress reconciled; P2 plan prepared, 2026-09-12**.
@@ -11,7 +14,7 @@ Current baseline: pushed `4eb98d4`, with
 P0/P1 and their corrections are accepted and merged. P1.5 workflow and bounded
 identity/framing review are closed; its known profile glove-side defect remains
 excluded from video inputs. No universal visual-fidelity or Alpha claim is made.
-Next: [P2 Wan audiovisual pilot](p2-wan-audiovisual-pilot-plan.md), Wan only,
+Next: [P2 Wan audiovisual pilot](2026-09-12-p2-wan-audiovisual-pilot-plan.md), Wan only,
 100 requested seconds including retries and unknown submissions. No paid video
 has been generated. The initial external-review context below is historical;
 this paragraph and section 1 supersede its candidate/acceptance-pending status.
@@ -19,16 +22,16 @@ this paragraph and section 1 supersede its candidate/acceptance-pending status.
 **Historical review context (2026-09-11):** User-approved
 direction and P0 authority boundaries are recorded in ADR 0026. This is not
 authorization to implement every milestone or evidence of available media
-production. The bounded [P0 plan](p0-imported-still-preview-plan.md) revision 1 is Approved;
+production. The bounded [P0 plan](2026-09-11-p0-imported-still-preview-plan.md) revision 1 is Approved;
 later technical details remain subject to their own planning and acceptance.
 
 **P1 direction amendment, 2026-09-11:** the user selected a Codex image specialist
 with manual job handoff as the first image backend. See
-[ADR 0028](../adr/0028-agent-operated-image-jobs.md) and the
-[approved P1 revision 2 plan](p1-image-generation-plan.md). Automatic dispatch and external
+[ADR 0028](../../../adr/0028-agent-operated-image-jobs.md) and the
+[approved P1 revision 2 plan](2026-09-11-p1-image-generation-plan.md). Automatic dispatch and external
 image-provider qualification are not P1 prerequisites. P1 has a locally
 verified, manually operated Codex-job implementation candidate; its initial
-receipt is [2026-09-11 P1 Codex image jobs](../verification/2026-09-11-p1-codex-image-jobs.md).
+receipt is [2026-09-11 P1 Codex image jobs](../../../verification/2026-09-11-p1-codex-image-jobs.md).
 The self-contained copied-brief correction is separately recorded and **director
 acceptance remains pending**. This does not qualify a general provider backend,
 P2, or an Alpha release.
@@ -46,15 +49,15 @@ The outcome is a **short, playable branching audiovisual story inside Plotloom**
 The creator starts mainly with a synopsis, chooses and refines proposals, and
 can edit details. Intermediate deliveries must be useful on their own.
 
-Read this roadmap first, then [ADR 0026](../adr/0026-story-to-playable-product-direction.md)
-for decision boundaries. The [capability matrix](capability-matrix.md) remains
-the implementation progress authority. The [M1-C completion plan](m1c-completion-plan.md)
+Read this roadmap first, then [ADR 0026](../../../adr/0026-story-to-playable-product-direction.md)
+for decision boundaries. The [capability matrix](2026-09-02-capability-matrix.md) remains
+the implementation progress authority. The [M1-C completion plan](2026-09-07-m1c-completion-plan.md)
 still owns text qualification; this roadmap does not waive its gates.
 
 External review prompts are in
-[creative workflow review](story-to-playable-review/creative-workflow.md) and
-[architecture and delivery review](story-to-playable-review/architecture-delivery.md).
-Both reports have been returned. Their [synthesis](story-to-playable-review/synthesis.md)
+[creative workflow review](../historical/story-to-playable-review/2026-09-10-creative-workflow.md) and
+[architecture and delivery review](../historical/story-to-playable-review/2026-09-10-architecture-delivery.md).
+Both reports have been returned. Their [synthesis](../historical/story-to-playable-review/2026-09-11-synthesis.md)
 records evidence limits and Use/Test/Park/Discard dispositions; the original
 review prompts retain their publication-time context.
 
@@ -68,7 +71,7 @@ review prompts retain their publication-time context.
 | Images/still previews | Managed imports, manual specialist jobs, references, explicit review/selection and restart-persistent previews implemented and exercised | General automatic image backend and universal likeness/state fidelity |
 | Video | Wan-only direction and 100-second pilot allowance settled | Submission/recovery, video ingestion, native-audio review and clip playback remain P2 work |
 
-Evidence: [readiness ledger](../verification/2026-09-10-provider-readiness-offline-candidate.md).
+Evidence: [readiness ledger](../../../verification/2026-09-10-provider-readiness-offline-candidate.md).
 The earlier canary was at a different source revision and is not relabelled as
 current acceptance. Existing alpha code still advertises the legacy matrix;
 single-backend qualification support must be checked and completed narrowly
@@ -135,7 +138,7 @@ before showing a picture. Exact task/file boundaries are planned at each slice.
 | Q — Text qualification closeout | One explicitly supported text configuration; other profiles remain independently experimental/deferred | Existing core gates, 9 fixed runs, three blinded reviews, source-bound receipt and fresh CI before claiming M1-C |
 | P0 — Imported visual pilot | Import four real images, compare alternatives, select three consecutive shots in one scene and play a labelled still animatic | Real FastAPI/browser journey; exact approved projection, original bytes and selections survive refresh/restart; replacement/history, stale/revoked and missing/corrupt states distinguished |
 | P1 — Specialist-backed image jobs | Prepare/copy a frozen job to the Codex image specialist; Refresh to ingest, compare and select generated/refined keyframes | Approved job identity, observed imagegen execution, complete validated delivery, idempotent Refresh, explicit selection and restart persistence; no automatic bridge required |
-| P1.5 — Character references and cross-shot identity | Propose/import a character appearance, explicitly approve its reference set and reuse it across distinct shots | Three independently generated shots visibly read as the same person; exact reference lineage, explicit visual review and stale propagation survive refresh/restart. [Approved scope](p15-character-reference-consistency-plan.md); required before moving into video |
+| P1.5 — Character references and cross-shot identity | Propose/import a character appearance, explicitly approve its reference set and reuse it across distinct shots | Three independently generated shots visibly read as the same person; exact reference lineage, explicit visual review and stale propagation survive refresh/restart. [Approved scope](2026-09-11-p15-character-reference-consistency-plan.md); required before moving into video |
 | P2 — First audiovisual clip | Animate one selected keyframe with one short line and environmental sound; play it inside Plotloom | Real video downloaded and inspected, native audio present and reviewed, exact reference/shot/cue lineage retained |
 | P2 exit experiment — The adjoining shot | Add one neighbouring clip with the same character; test a distinct short cue if evaluating voice consistency | Normal-speed, muted and audio-only review across the cut and final hold; do not expand scene production until blocking continuity defects are resolved |
 | P3 — Sequential audiovisual scene | Play several selected clips in shot order inside Plotloom | Play/pause/seek and shot navigation; measured durations; no accidental repeated/cut dialogue; refresh retains selected sequence |
@@ -302,7 +305,7 @@ Changing a selected artifact creates new bindings/snapshots, not rewritten histo
 
 ## 7. Applying the efficiency lessons
 
-Follow [ADR 0023](../adr/0023-bounded-delivery-and-evidence.md), with these concrete
+Follow [ADR 0023](../../../adr/0023-bounded-delivery-and-evidence.md), with these concrete
 checks at each milestone:
 
 1. Name one creator-visible outcome, verified baseline, owned files, cheapest
@@ -340,9 +343,9 @@ Keep reports unchanged and record synthesis separately, classifying insights as
 Use/Test/Park/Discard. Verify relied-upon claims proportionately. Reviewer
 agreement is not product acceptance or an instruction to rewrite existing code.
 
-The [synthesis](story-to-playable-review/synthesis.md) was reviewed and the user
+The [synthesis](../historical/story-to-playable-review/2026-09-11-synthesis.md) was reviewed and the user
 authorized these amendments and approved revision 1 of the bounded
-[P0 implementation plan](p0-imported-still-preview-plan.md). Next is the separate
+[P0 implementation plan](2026-09-11-p0-imported-still-preview-plan.md). Next is the separate
 execution handoff. Q remains separately scoped and open. No extra consultation
 round, automatic live generation or detailed speculative task tree for P1–P4 is
 required. The prior GitHub packet remains identifiable by commit; these later

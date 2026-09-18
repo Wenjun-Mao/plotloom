@@ -1,5 +1,8 @@
 # Project-folder storage: breaking cutover and portable recovery
 
+> **Archive status (2026-09-18):** Historical/supporting record retained for context and evidence; it is not an active delivery plan or a completion claim. See [the roadmap entrypoint](../../README.md).
+
+
 Revision 1 — **Historical approved implementation plan** (2026-09-13). The
 original baseline was clean `main`, `162061d5ec0b735b40d34c94c6a66da5c52bc25c`.
 Subsequent bounded checkpoints have started implementation; this document
@@ -251,7 +254,7 @@ remain explicitly outside this implementation.
 ## Checkpoint 1 record (2026-09-13)
 
 Baseline `1141269772c2303deab4a860f5f402ce54fe7a18` was clean. The bounded
-construction result is [ADR 0040](../adr/0040-project-folder-storage-boundary.md):
+construction result is [ADR 0040](../../../adr/0040-project-folder-storage-boundary.md):
 an unwired `project_storage` composition seam with a manifest-discovered project
 directory registry, one project SQLite database plus confined owned assets per
 project, and a separately rooted application store for public profile selection
@@ -263,7 +266,7 @@ credential-shaped profile configuration.
 This is not a cutover and introduces no shipped legacy/new selectable mode.
 The retained runtime, pilot data, provider calls, gateway, and old storage paths
 remain unchanged. Exact remaining work is recorded in the checkpoint receipt:
-[project-folder-storage-checkpoint-1](../verification/2026-09-13-project-folder-storage-checkpoint-1.md).
+[project-folder-storage-checkpoint-1](../../../verification/2026-09-13-project-folder-storage-checkpoint-1.md).
 
 ## Checkpoint 2A correction record (2026-09-13)
 
@@ -284,7 +287,7 @@ evidence with no partial canonical heads, stale exact-repair refusal,
 foreign-project rejection, secret-free bearer/none broker operation, and no
 automatic replay after an interrupted dispatch. The retained runtime and data
 remain unwired; no migration, import, cutover, provider call, or live network
-work is authorized by this correction. See [the 2A direct receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2a-direct.md).
+work is authorized by this correction. See [the 2A direct receipt](../../../verification/2026-09-13-project-folder-storage-checkpoint-2a-direct.md).
 
 ## Checkpoint 2B authoring-draft record (2026-09-13)
 
@@ -305,7 +308,7 @@ blur/navigation flushing, two-tab conflict preservation, canonical non-mutation
 until explicit Save, and editable server-draft recovery after a file-SQLite
 process restart. Visual-intent/media drafts, close/quiescence, snapshots/restore,
 live routing, and all retained-data cutover work remain deferred. See [the 2B
-receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2b-authoring-drafts.md).
+receipt](../../../verification/2026-09-13-project-folder-storage-checkpoint-2b-authoring-drafts.md).
 
 ## Checkpoint 2C still/image record (2026-09-13)
 
@@ -344,7 +347,7 @@ late delivery, and restart recovery of the same project-owned bytes. Character
 reference/proposal and same-person review routes share the same ported tables
 and direct handle. Live ImageGen/provider/gateway calls, video, close,
 snapshot/restore, retained-runtime cutover, compatibility mode, and legacy
-data mutation remain deferred. See [the 2C receipt](../verification/2026-09-13-project-folder-storage-checkpoint-2c-still-image.md).
+data mutation remain deferred. See [the 2C receipt](../../../verification/2026-09-13-project-folder-storage-checkpoint-2c-still-image.md).
 
 ## Checkpoint 2D close/quiescence record (2026-09-14)
 
@@ -364,7 +367,7 @@ clearing a server-backed image direction uses the same exact-discard rule.
 Failed CAS, conflict, or transport work leaves the folder open and data
 recoverable. Snapshot/restore, video, retained-runtime cutover, legacy-data
 migration, and live-provider evidence remain outside this slice. See [the close
-receipt](../verification/2026-09-14-project-folder-close-quiescence.md).
+receipt](../../../verification/2026-09-14-project-folder-close-quiescence.md).
 
 ## Checkpoint 3 portable-recovery record (2026-09-14)
 
@@ -388,7 +391,7 @@ the original project and application paths disappear; interruption, integrity,
 missing-media, writer-busy, direct-folder-state, and identity-conflict checks
 are part of the storage contract. Retained-runtime cutover, legacy import,
 video/accounting work, remote reconciliation, cloud sync, and live providers
-remain outside this checkpoint. See [the portable-recovery receipt](../verification/2026-09-14-project-folder-portable-recovery.md).
+remain outside this checkpoint. See [the portable-recovery receipt](../../../verification/2026-09-14-project-folder-portable-recovery.md).
 
 The accepted recovery hardening requires a strict snapshot tree rather than a
 database-derived list alone: every declared regular byte and only its required
@@ -405,7 +408,7 @@ submit, reconcile, or mislabel those operations as succeeded.
 
 ## Checkpoint 2E project-video/accounting record (2026-09-14)
 
-[ADR 0045](../adr/0045-project-video-dispatch-ownership.md) advances the direct
+[ADR 0045](../../../adr/0045-project-video-dispatch-ownership.md) advances the direct
 composition to format-7. The project folder owns each frozen H3 request,
 provider/job identity, local output bytes and hash, review, and selection; the
 separate installation application database owns only immutable dispatch
@@ -423,7 +426,7 @@ nonterminal video rows: a known remote ID may be explicitly reconciled only
 through the matching configured H3 adapter; an unknown or pre-dispatch row is
 never replayed. Close now refuses any nonterminal video job. The retained
 runtime, legacy data, gateway deployment, Wan ledger, and all cutover work are
-unchanged. See [the 2E receipt](../verification/2026-09-14-project-folder-video-accounting.md).
+unchanged. See [the 2E receipt](../../../verification/2026-09-14-project-folder-video-accounting.md).
 
 ### 2E dispatch-boundary correction (2026-09-14)
 
@@ -462,7 +465,7 @@ scope.
 
 ## Source-retirement record (2026-09-14)
 
-[ADR 0048](../adr/0048-retire-shared-repository-runtime.md) completes the
+[ADR 0048](../../../adr/0048-retire-shared-repository-runtime.md) completes the
 source-only retirement identified by the production-browser parity caller
 inventory. The old shared repository facade, old FastAPI composition/routes,
 public compatibility aliases, and the uncalled generic media worker are removed
@@ -474,6 +477,6 @@ application store through a read-only snapshot, then execute each sample in a
 disposable project folder using its explicit project generation owner. This
 preserves frozen profile/run contracts, project-owned evidence, secret-safe
 receipts, blinded Alpha review publication, and unknown-outcome/no-replay
-semantics. The accompanying [retirement receipt](../verification/2026-09-14-shared-runtime-retirement.md)
+semantics. The accompanying [retirement receipt](../../../verification/2026-09-14-shared-runtime-retirement.md)
 records caller and obsolete-test disposition; retained-data archive/config
 switch remains the next separately controlled work after verification.

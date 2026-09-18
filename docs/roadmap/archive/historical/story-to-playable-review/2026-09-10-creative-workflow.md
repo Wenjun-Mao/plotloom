@@ -1,5 +1,8 @@
 # Reviewer A — creative workflow and audiovisual continuity
 
+> **Archive status (2026-09-18):** Historical/supporting record retained for context and evidence; it is not an active delivery plan or a completion claim. See [the roadmap entrypoint](../../../README.md).
+
+
 Status: ready as a self-contained planning prompt; not dispatched. Copy the
 whole document as the prompt. The roadmap is optional supporting detail, not a
 substitute for the context below. Work independently of Reviewer B.
@@ -30,8 +33,8 @@ No private story, generated sample, asset, model response or API key is supplied
 Repository discovery: https://github.com/Wenjun-Mao/plotloom
 Source baseline: [`9afbefd2f82a620d79b82cd6607571057f23a6c4`](https://github.com/Wenjun-Mao/plotloom/tree/9afbefd2f82a620d79b82cd6607571057f23a6c4).
 Review publication branch: `codex/m1b-alpha`, not `main`. The subsequent
-documentation-only [roadmap](../story-to-playable-alpha.md) and
-[proposed ADR](../../adr/0026-story-to-playable-product-direction.md) accompany
+documentation-only [roadmap](../../superseded/2026-09-10-story-to-playable-alpha.md) and
+[proposed ADR](../../../../adr/0026-story-to-playable-product-direction.md) accompany
 this prompt on GitHub. Source inspection is not required for your role; do not
 pretend to have inspected inaccessible material or substitute another revision.
 

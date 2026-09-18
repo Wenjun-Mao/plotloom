@@ -31,7 +31,7 @@ The correction moves the contract to trusted preparation:
   inapplicable. Refresh preserves its late receipt but publishes no candidate.
 
 [ADR 0028](../adr/0028-agent-operated-image-jobs.md) now records this ownership
-and currentness contract. The [P1 plan](../roadmap/p1-image-generation-plan.md)
+and currentness contract. The [P1 plan](../roadmap/archive/superseded/2026-09-11-p1-image-generation-plan.md)
 remains **Approved — revision 2** with implementation and acceptance kept
 separate.
 

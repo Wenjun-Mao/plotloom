@@ -1,5 +1,8 @@
 # Retained Flow reconciliation before P0
 
+> **Archive status (2026-09-18):** Completed record retained for its evidence; it is not an active delivery plan. See [the roadmap entrypoint](../../README.md).
+
+
 Revision 2 — **Bounded metadata retirement complete**, 2026-09-11.
 After the initial no-deletion guard stopped execution, the user separately
 approved a verified byte-preserving backup outside repository/Flow roots and

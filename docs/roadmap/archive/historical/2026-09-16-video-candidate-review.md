@@ -1,5 +1,8 @@
 # Video candidates: generate, compare, select, discard
 
+> **Archive status (2026-09-18):** Historical/supporting record retained for context and evidence; it is not an active delivery plan or a completion claim. See [the roadmap entrypoint](../../README.md).
+
+
 Status: Delivered correction, implementation `2925fddc84cea4c6da88db97ac74b4280c2d8f9b`; director acceptance/push pending.
 Baseline: `24fee13`; reuse existing project-owned video jobs and reviews.
 

@@ -1,7 +1,7 @@
 # M1 playable story view receipt
 
 Date: 2026-09-16. Scope: checkpoint 1 only from
-[Playable MVP milestones](../roadmap/playable-mvp-milestones.md). This receipt
+[Playable MVP milestones](../roadmap/2026-09-17-playable-mvp-milestones.md). This receipt
 records implementation and verification, not director acceptance, push, M2
 readiness, new generation, or a new audio judgment.
 

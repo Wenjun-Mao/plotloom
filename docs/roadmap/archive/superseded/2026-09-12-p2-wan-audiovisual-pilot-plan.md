@@ -1,5 +1,8 @@
 # P2: bounded Wan audiovisual pilot
 
+> **Archive status (2026-09-18):** Superseded historical plan; unresolved items remain unresolved and this file is not an active delivery plan. See [the current tracker](../../2026-09-17-playable-mvp-milestones.md) and [roadmap entrypoint](../../README.md).
+
+
 Revision 1 — prepared 2026-09-12; **approved for P2 checkpoint 1 implementation**.
 This remains not an implementation or video-acceptance receipt. User-selected provider, model and
 100-second live allowance are settled; this planning turn makes no paid calls.
@@ -23,9 +26,9 @@ reviewed storyboard pilot; it is required for the combined qualified Alpha.
 
 ## Image checkpoint disposition
 
-The [creator rehearsal](../verification/2026-09-12-p15-creator-rehearsal.md),
-[corrections](../verification/2026-09-12-p15-corrections.md), and
-[controlled framing trial](../verification/2026-09-12-p15-controlled-shot-framing-trial.md)
+The [creator rehearsal](../../../verification/2026-09-12-p15-creator-rehearsal.md),
+[corrections](../../../verification/2026-09-12-p15-corrections.md), and
+[controlled framing trial](../../../verification/2026-09-12-p15-controlled-shot-framing-trial.md)
 establish the bounded P1.5 workflow and same-person appearance across distinct
 shots. This closes that development checkpoint, **not universal fidelity or
 production approval of its outputs**. Identity, composition and state are
@@ -38,7 +41,7 @@ Do not automatically transfer any historical Approval to a new storyboard.
 
 ## Ownership and implementation surface
 
-See [ADR 0031](../adr/0031-bounded-wan-video-production.md). Canonical Shot,
+See [ADR 0031](../../../adr/0031-bounded-wan-video-production.md). Canonical Shot,
 DialogueCue and AudioPlan remain author-owned. A video production snapshot freezes
 the exact active Approval, canonical/entity revisions, selected keyframe/hash,
 reference decision/review lineage, intended action, cue text/language/performance,

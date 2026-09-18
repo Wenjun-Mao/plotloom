@@ -87,8 +87,8 @@ and formal Alpha gates remain authoritative.
 
 ## Related records
 
-- [M1-C completion plan](../roadmap/m1c-completion-plan.md)
-- [Capability matrix](../roadmap/capability-matrix.md)
+- [M1-C completion plan](../roadmap/archive/superseded/2026-09-07-m1c-completion-plan.md)
+- [Capability matrix](../roadmap/archive/superseded/2026-09-02-capability-matrix.md)
 - [Trusted timing ownership](0018-trusted-story-timing-allocation.md)
 - [Fragment and join contracts](0019-exact-fragment-and-join-state-contracts.md)
 - [Current correction contracts](0022-executable-correction-contracts.md)

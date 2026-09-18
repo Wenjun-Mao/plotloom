@@ -1,5 +1,8 @@
 # API modularization proposal
 
+> **Archive status (2026-09-18):** Historical/supporting record retained for context and evidence; it is not an active delivery plan or a completion claim. See [the roadmap entrypoint](../../README.md).
+
+
 **Status:** director-approved and implemented as a behavior-preserving API
 modularization checkpoint. The project-folder storage destination is already
 decided by the approved storage plan; only its production cutover timing
