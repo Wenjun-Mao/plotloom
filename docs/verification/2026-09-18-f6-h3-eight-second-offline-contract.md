@@ -1,6 +1,7 @@
 # F6 H3 eight-second offline contract verification
 
-Date: 2026-09-18. Tested source revision is recorded with the delivery commit.
+Date: 2026-09-18. The original executable delivery is `2e70cdf`; the
+coverage-inventory correction and fresh final verification are `09b0d50`.
 
 ## Scope and result
 
@@ -33,11 +34,11 @@ paid-pilot ledger.
     restart, submit/poll duration-frame-seed mismatch refusal, observed-output
     mismatch refusal, hash/currentness, backend binding, and dispatch lease
     units.
-- `uv run --locked pytest -q --maxfail=2`
-  - stopped after 379 passing tests at two pre-existing extraction-contract
-    hygiene failures: a root-level `output` directory and earlier ignored Relay
-    clones under `.local/relay/` are discovered as undeclared roots/copies.
-    They were preserved as required; no source test was relaxed or allowlisted.
+- An earlier dirty-root `uv run --locked pytest -q --maxfail=2` run stopped
+  after 379 passing tests at extraction-contract hygiene failures from a
+  root-level `output` directory and prior ignored Relay clones. That partial
+  run was not used as final verification and masked the stale retained-runtime
+  inventory assertion records.
 - `cd frontend && npm run typecheck && npm run test -- --run`
   - passed: TypeScript check; 18 files / 162 tests.
 - `cd frontend && npm run build:deterministic`
@@ -47,6 +48,36 @@ paid-pilot ledger.
   - passed: one offline production-browser journey. It keeps five seconds as
     the initial choice, selects eight explicitly, freezes 192/24 in the
     request, and ingests the matching fixture through a backend restart.
+
+## Coverage reconciliation and final verification
+
+The retained-runtime inventory compares the fixed retirement baseline
+`e658057..f908c51`; its historical entries, dispositions, and review statuses
+were not changed. An independent Terra/high read-only review compared the
+actual replacements at `a87d43d..2e70cdf` assertion-by-assertion. Three cited
+replacements were unchanged. Two current replacement fingerprints required
+refresh: the direct-H3 claim test now records its frozen five-second request as
+`reserved`/`dispatch_claimed` units, while retaining explicit absence of both
+Wan-ledger tables; the output-profile rejection fixture now passes its frozen
+duration/frame/fps expectations while retaining the same mismatch rejection.
+The inventory at `09b0d50` records only those current source hashes/assertions
+and corrects two mapping notes to describe frozen requested-seconds accounting
+rather than obsolete zero-unit accounting.
+
+A new recursive clean clone at
+`.local/relay/eee84fab-7105-4a92-8a3a-813b9337e57f/checkout`, pinned to
+`09b0d50b2c110b613046ebdf3b3e00fb324952cd` with the pinned Shuohao submodule,
+ran `uv run --locked pytest -q` without `--maxfail`: **633 passed, 1 existing
+TestClient deprecation warning**. Its `python-full.log` is retained beside the
+clone. `uv run --locked python scripts/retained_runtime_coverage_inventory.py
+--check` also passed there (`inventory-check.log`).
+
+The director's installed-wheel build/smoke had already passed for executable
+baseline `2e70cdf`; `09b0d50` changes only verification documentation, so that
+same executable baseline remains applicable and no wheel rerun was needed.
+No frontend or production-browser check was rerun for the inventory-only
+correction. This is production-readiness evidence only, not live H3,
+native-audio, or human audiovisual acceptance.
 
 ## Boundaries retained
 
