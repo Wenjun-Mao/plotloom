@@ -13,10 +13,10 @@ from pydantic import Field, field_validator
 
 from ..domain import CamelModel
 
-# F3A persists its own review rows.  Older folders are deliberately refused at
+# F4 persists script admission rows. Older folders are deliberately refused at
 # manifest admission: there is no migration/fallback layer that could leave a
 # partially-open folder to fail later on a missing-table query.
-PROJECT_STORAGE_FORMAT_VERSION = 9
+PROJECT_STORAGE_FORMAT_VERSION = 10
 PROJECT_DATABASE_RELATIVE_PATH = "project.sqlite3"
 PROJECT_MANIFEST_FILENAME = "project.json"
 
@@ -110,6 +110,22 @@ class ProjectManifest(CamelModel):
     database_path: Literal[PROJECT_DATABASE_RELATIVE_PATH] = (
         PROJECT_DATABASE_RELATIVE_PATH
     )
+
+
+def parse_project_manifest(value: dict[str, Any]) -> ProjectManifest:
+    """Admit only the current breaking folder format with reset guidance."""
+
+    if value.get("formatVersion") == 9 or value.get("format_version") == 9:
+        raise ProjectStorageCorruptionError(
+            "project folder format 9 is unsupported by F4; reset required: "
+            "create a new format-10 project (the existing folder is unchanged)"
+        )
+    try:
+        return ProjectManifest.model_validate(value)
+    except ValueError as error:
+        raise ProjectStorageCorruptionError(
+            "project manifest does not meet the format-10 storage contract"
+        ) from error
 
 
 class OwnedArtifact(CamelModel):

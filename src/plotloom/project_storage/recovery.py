@@ -30,12 +30,14 @@ from .format import (
     _require_real_directory,
     _utc_folder_timestamp,
     _write_new_file,
+    parse_project_manifest,
 )
 from .operational_state import (
     ProjectAccessLease,
     ProjectBusyError,
     art_publication_blockers,
     cast_publication_blockers,
+    script_publication_blockers,
     source_outline_publication_blockers,
 )
 from .recovery_control import (
@@ -253,7 +255,7 @@ class ProjectRecoveryService:
                 source_lease = ProjectAccessLease.acquire(root, mode="exclusive")
                 manifest_path = root / PROJECT_MANIFEST_FILENAME
                 try:
-                    manifest = ProjectManifest.model_validate(_read_json(manifest_path))
+                    manifest = parse_project_manifest(_read_json(manifest_path))
                 except ValueError as error:
                     raise ProjectStorageCorruptionError("restore source has no supported project manifest") from error
                 database = root / PROJECT_DATABASE_RELATIVE_PATH
@@ -289,7 +291,7 @@ class ProjectRecoveryService:
                     )
             _assert_snapshot_tree(temporary, files)
             assert_payload_inventory(temporary, frozen_inventory)
-            copied_manifest = ProjectManifest.model_validate(_read_json(temporary / PROJECT_MANIFEST_FILENAME))
+            copied_manifest = parse_project_manifest(_read_json(temporary / PROJECT_MANIFEST_FILENAME))
             if copied_manifest != manifest:
                 raise ProjectStorageCorruptionError("restore manifest changed while it was copied")
             destination_database = temporary / PROJECT_DATABASE_RELATIVE_PATH
@@ -338,4 +340,5 @@ class ProjectRecoveryService:
             + source_outline_publication_blockers(store)
             + cast_publication_blockers(store)
             + art_publication_blockers(store)
+            + script_publication_blockers(store)
         )

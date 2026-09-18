@@ -281,6 +281,7 @@ test.describe("F3A production art review", () => {
     const preparedResponse = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates`);
     await panel.getByRole("button", { name: "准备并复制 script specialist handoff" }).click();
     const prepared = await (await preparedResponse).json() as ScriptPreparation;
+    const frozenRequest = await readFile(path.join(prepared.packagePath, "request.json"));
     // A deliberately opt-in capture makes an attended specialist handoff from
     // this exact production-browser project reproducible without retaining a
     // normal browser-test fixture or mutating product roots.
@@ -294,6 +295,17 @@ test.describe("F3A production art review", () => {
         projectId, packagePath: path.join(copiedJobRoot, "package"), deliveryPath: path.join(copiedJobRoot, "delivery"),
       }, null, 2));
     }
+    await page.reload();
+    const recopy = page.waitForResponse((response) => response.request().method() === "GET"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates/${prepared.jobId}/handoff`);
+    await panel.getByRole("button", { name: "重新复制冻结 handoff" }).click();
+    const recovered = await recopy;
+    expect(recovered.ok(), await recovered.text()).toBeTruthy();
+    const recoveredBody = await recovered.json() as ScriptPreparation;
+    expect(recoveredBody.jobId).toBe(prepared.jobId);
+    expect(recoveredBody.packagePath).toBe(prepared.packagePath);
+    expect(recoveredBody.deliveryPath).toBe(prepared.deliveryPath);
+    expect(await readFile(path.join(recoveredBody.packagePath, "request.json"))).toEqual(frozenRequest);
     await writeStageDelivery(prepared, "script.json", scriptFixture(), "f4-script", "script");
     const refreshed = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates/${prepared.jobId}/refresh`);
     await panel.getByRole("button", { name: "刷新 specialist delivery" }).click();

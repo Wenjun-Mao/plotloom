@@ -1257,7 +1257,15 @@ export interface ArtCandidatePreparation extends ArtCandidate { packagePath: str
 export interface AcceptedArtRevision { revision: number; candidateJobId: string; contentHash: string; binding: ArtBinding; art: Record<string, unknown>; acceptedAt: string; }
 export interface ArtReviewState { candidate: ArtCandidate | null; acceptedArt: AcceptedArtRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: string[]; }
 
-export interface ScriptBinding extends ArtBinding { artRevision: number; artContentHash: string; }
+export interface ScriptBinding extends ArtBinding {
+  artRevision: number;
+  artContentHash: string;
+  targetPlaythroughSeconds: number;
+  timingAllocationHash: string;
+  sectionBindings: Array<{ sectionId: string; episode: number }>;
+  sectionDurationCaps: Array<{ sectionId: string; durationCapMilliseconds: number }>;
+  completeRouteSectionIds: string[][];
+}
 export interface ScriptCandidate { jobId: string; expectedScriptRevision: number; binding: ScriptBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; script: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface ScriptCandidatePreparation extends ScriptCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedScriptRevision { revision: number; candidateJobId: string; contentHash: string; binding: ScriptBinding; script: Record<string, unknown>; acceptedAt: string; }

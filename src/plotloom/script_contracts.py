@@ -16,6 +16,10 @@ class ScriptBinding(ArtBinding):
     art_revision: int = Field(ge=1)
     art_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     target_playthrough_seconds: int = Field(ge=3)
+    timing_allocation_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    section_bindings: list["ScriptSectionBinding"] = Field(min_length=3, max_length=3)
+    section_duration_caps: list["ScriptSectionDurationCap"] = Field(min_length=3, max_length=3)
+    complete_route_section_ids: list[list[str]] = Field(min_length=2, max_length=2)
 
 
 class ScriptSectionBinding(CamelModel):
@@ -23,6 +27,13 @@ class ScriptSectionBinding(CamelModel):
 
     section_id: str = Field(min_length=1)
     episode: int = Field(ge=1)
+
+
+class ScriptSectionDurationCap(CamelModel):
+    """Trusted, graph-derived maximum for one F1B stable section."""
+
+    section_id: str = Field(min_length=1)
+    duration_cap_milliseconds: int = Field(ge=1)
 
 
 class ScriptCandidate(CamelModel):

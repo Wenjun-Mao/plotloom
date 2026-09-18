@@ -49,6 +49,7 @@ from .format import (
     _read_json,
     _require_real_directory,
     _utc_folder_timestamp,
+    parse_project_manifest,
 )
 from .operational_state import ProjectAccessLease
 from .recovery_control import (
@@ -191,11 +192,9 @@ class ProjectStore:
         if manifest_path.is_symlink() or not manifest_path.is_file():
             raise ProjectStorageCorruptionError("project home has no regular manifest")
         try:
-            manifest = ProjectManifest.model_validate(_read_json(manifest_path))
-        except ValueError as error:
-            raise ProjectStorageCorruptionError(
-                "project manifest does not meet this storage format"
-            ) from error
+            manifest = parse_project_manifest(_read_json(manifest_path))
+        except ProjectStorageCorruptionError:
+            raise
         database_path = home / manifest.database_path
         if not database_path.exists() or not database_path.is_file():
             raise ProjectStorageCorruptionError(

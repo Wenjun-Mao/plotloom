@@ -20,6 +20,8 @@ from plotloom.creative_handoff_contracts import CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.exceptions import NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
+from plotloom.project_storage.format import ProjectStorageCorruptionError
+from plotloom.project_storage.operational_state import ProjectBusyError
 from plotloom.project_storage.operational_state import close_blockers
 from plotloom.project_storage.video_candidate_transition import (
     ProjectSchemaTransitionRequiredError,
@@ -250,8 +252,8 @@ def _pilot_script() -> dict[str, object]:
 
     def episode(number: int) -> dict[str, object]:
         return {
-            "ep": number, "targetSeconds": 50, "hook": f"Section {number} begins in motion", "cliff": f"Section {number} leaves a consequence open", "hookBeat": [1, 1], "beatsClaimed": [],
-            "scenes": [{"sceneId": "S01", "lighting": "dawn", "characters": [], "props": [], "flow": [{"action": f"Lin crosses the beacon room, action {index}."} for index in range(20)]}],
+            "ep": number, "targetSeconds": 25, "hook": f"Section {number} begins in motion", "cliff": f"Section {number} leaves a consequence open", "hookBeat": [1, 1], "beatsClaimed": [],
+            "scenes": [{"sceneId": "S01", "lighting": "dawn", "characters": [], "props": [], "flow": [{"action": f"Lin crosses the beacon room, action {index}."} for index in range(10)]}],
         }
 
     return {"source": "Tide Light", "sectionBindings": [{"sectionId": "opening", "episode": 1}, {"sectionId": "ending-a", "episode": 2}, {"sectionId": "ending-b", "episode": 3}], "episodes": [episode(1), episode(2), episode(3)]}
@@ -292,6 +294,125 @@ def test_f4_script_accepts_whole_pilot_preserves_scoped_edits_and_rejects_late_d
         assert "art_reference_publication_active" not in close_blockers(final_store)
     finally:
         final_store.close()
+
+
+def test_f4_script_admission_freezes_exact_mapping_caps_and_target_currentness(tmp_path: Path) -> None:
+    """F4 timing is a graph-derived ceiling, never a three-episode total."""
+
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"target_playthrough_seconds": 180}))
+    try:
+        binding = _prepare_art_context(store)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "t" * 32)
+        art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
+        candidate, request = store.prepare_script_candidate("ch_" + "x" * 32)
+        assert [item.duration_cap_milliseconds for item in candidate.binding.section_duration_caps] == [90_000, 90_000, 90_000]
+        assert candidate.binding.complete_route_section_ids == [["opening", "ending-a"], ["opening", "ending-b"]]
+        assert request.input_artifacts["script-admission.json"]["targetPlaythroughSeconds"] == 180
+
+        swapped = _pilot_script()
+        swapped["sectionBindings"] = [
+            {"sectionId": "opening", "episode": 2},
+            {"sectionId": "ending-a", "episode": 1},
+            {"sectionId": "ending-b", "episode": 3},
+        ]
+        with pytest.raises(ValueError, match="exactly match the frozen"):
+            store.admit_script_delivery(_deliver_stage(store, request, "script.json", swapped, "swapped-script"))
+    finally:
+        store.close()
+
+
+def test_f4_script_target_change_stales_prepared_delivery(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"target_playthrough_seconds": 180}))
+    try:
+        binding = _prepare_art_context(store)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "n" * 32)
+        art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
+        _candidate, request = store.prepare_script_candidate("ch_" + "m" * 32)
+        current = store.project()
+        store.update_brief(current.brief.model_copy(update={"target_playthrough_seconds": 181}), expected_revision=current.revision)
+        with pytest.raises(Exception, match="stale"):
+            store.admit_script_delivery(_deliver_stage(store, request, "script.json", _pilot_script(), "stale-target"))
+    finally:
+        store.close()
+
+
+def test_f4_script_source_change_stales_prepared_delivery(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    try:
+        binding = _prepare_art_context(store)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "i" * 32)
+        art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
+        _candidate, request = store.prepare_script_candidate("ch_" + "j" * 32)
+        store.save_source_material(expected_source_revision=1, material=SourceMaterial(
+            kind="synopsis", title="Tide Light", text="A changed source invalidates the prepared script.",
+            attribution="fixture", rights_declaration="fixture", adaptation_intent="fixture",
+        ))
+        with pytest.raises(Exception, match="stale"):
+            store.admit_script_delivery(_deliver_stage(store, request, "script.json", _pilot_script(), "stale-source"))
+    finally:
+        store.close()
+
+
+def test_f4_script_target_change_stales_ready_candidate_acceptance(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"target_playthrough_seconds": 180}))
+    try:
+        binding = _prepare_art_context(store)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "g" * 32)
+        art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
+        candidate, script_request = store.prepare_script_candidate("ch_" + "h" * 32)
+        ready = store.admit_script_delivery(_deliver_stage(store, script_request, "script.json", _pilot_script(), "ready-before-target-change"))
+        current = store.project()
+        store.update_brief(current.brief.model_copy(update={"target_playthrough_seconds": 181}), expected_revision=current.revision)
+        with pytest.raises(Exception, match="changed before acceptance"):
+            store.accept_script_candidate(ScriptAcceptRequest(job_id=candidate.job_id, expected_script_revision=0, binding=ready.binding, script=ready.script))
+    finally:
+        store.close()
+
+
+def test_f4_prepared_script_blocks_snapshot_until_cancel_and_late_delivery_stays_refused(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    try:
+        binding = _prepare_art_context(store)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "p" * 32)
+        art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
+        candidate, request = store.prepare_script_candidate("ch_" + "y" * 32)
+    finally:
+        store.close()
+
+    with pytest.raises(ProjectBusyError, match="script_publication_active"):
+        storage.recovery.create_snapshot(project_id)
+    opened = storage.projects.open(project_id)
+    try:
+        opened.cancel_script_candidate(candidate.job_id)
+        with pytest.raises(Exception, match="current prepared|unavailable|cancelled"):
+            opened.admit_script_delivery(_deliver_stage(opened, request, "script.json", _pilot_script(), "late-script"))
+    finally:
+        opened.close()
+    assert storage.recovery.create_snapshot(project_id).status == "complete"
+
+
+def test_format_9_folder_is_refused_with_reset_required_guidance(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id, manifest_path = store.manifest.project_id, store.home / "project.json"
+    store.close()
+    manifest = json.loads(manifest_path.read_text())
+    manifest["formatVersion"] = 9
+    manifest_path.write_text(json.dumps(manifest))
+
+    with pytest.raises(ProjectStorageCorruptionError, match="format 9 is unsupported by F4; reset required"):
+        storage.projects.open(project_id)
 
 
 def test_art_reference_studies_use_the_complete_current_art_context(tmp_path: Path) -> None:

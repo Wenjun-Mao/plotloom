@@ -36,6 +36,7 @@ from .format import (
     _require_real_directory,
     _utc_folder_timestamp,
     _write_new_file,
+    parse_project_manifest,
 )
 from .project_handle import ProjectStore
 from .recovery_validation import database_state
@@ -148,11 +149,9 @@ class ProjectDirectoryRegistry:
         if manifest_path.is_symlink() or not manifest_path.is_file():
             raise ProjectStorageCorruptionError("reserved project home has no regular manifest")
         try:
-            manifest = ProjectManifest.model_validate(_read_json(manifest_path))
-        except ValueError as error:
-            raise ProjectStorageCorruptionError(
-                "reserved project manifest does not meet this storage format"
-            ) from error
+            manifest = parse_project_manifest(_read_json(manifest_path))
+        except ProjectStorageCorruptionError:
+            raise
         if manifest.project_id != project.id or manifest.created_at != project.created_at:
             raise ProjectStorageCorruptionError(
                 "reserved project manifest does not match its idempotency reservation"
@@ -193,7 +192,7 @@ class ProjectDirectoryRegistry:
             if manifest_path.is_symlink() or not manifest_path.is_file():
                 continue
             try:
-                manifest = ProjectManifest.model_validate(_read_json(manifest_path))
+                manifest = parse_project_manifest(_read_json(manifest_path))
                 lease = ProjectAccessLease.acquire(
                     candidate, mode="shared", create=False
                 )
@@ -481,6 +480,17 @@ class ProjectDirectoryRegistry:
             home for home in self.discover() if home.manifest.project_id == project_id
         ]
         if not matches:
+            # A rejected manifest must remain diagnosable by its known project
+            # identity. In particular, format-9 is not silently hidden as a
+            # missing folder: callers receive its reset-required admission
+            # failure before any schema-opening path can mutate it.
+            for candidate in self.outputs_root.iterdir():
+                manifest_path = candidate / PROJECT_MANIFEST_FILENAME
+                if candidate.is_symlink() or not candidate.is_dir() or manifest_path.is_symlink() or not manifest_path.is_file():
+                    continue
+                raw = _read_json(manifest_path)
+                if raw.get("projectId") == project_id or raw.get("project_id") == project_id:
+                    parse_project_manifest(raw)
             raise ProjectStorageError(
                 f"project not found in outputs root: {project_id}"
             )

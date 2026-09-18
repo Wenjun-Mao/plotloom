@@ -17,6 +17,7 @@ from .format import (
     ProjectManifest,
     ProjectStorageCorruptionError,
     _read_json,
+    parse_project_manifest,
 )
 from .recovery_control import RECOVERY_CONTROL_FILENAME, validate_recovery_control
 from .snapshot_files import (
@@ -344,7 +345,7 @@ def validate_snapshot_payloads(root: Path, manifest: ProjectSnapshotManifest) ->
     if not required.issubset(declared):
         raise ProjectStorageCorruptionError("snapshot manifest omits required project files")
     try:
-        on_disk_manifest = ProjectManifest.model_validate(
+        on_disk_manifest = parse_project_manifest(
             _read_json(root / PROJECT_MANIFEST_FILENAME)
         )
     except ValueError as error:
