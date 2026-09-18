@@ -91,6 +91,10 @@ _EXPECTED_SCHEMA_OBJECTS = _expected_schema_objects()
 _PRE_SELECTION_SCHEMA_OBJECTS = expected_project_schema_objects(
     include_video_candidate_selection=False
 )
+_PRE_ART_REFERENCE_SCHEMA_OBJECTS = expected_project_schema_objects(
+    include_video_candidate_selection=True,
+    include_art_reference_proposals=False,
+)
 
 
 def _assert_schema_contract(connection: sqlite3.Connection) -> None:
@@ -100,6 +104,10 @@ def _assert_schema_contract(connection: sqlite3.Connection) -> None:
     if actual == list(_PRE_SELECTION_SCHEMA_OBJECTS):
         raise ProjectStorageCorruptionError(
             "project snapshot requires a writable video selection transition before restore"
+        )
+    if actual == list(_PRE_ART_REFERENCE_SCHEMA_OBJECTS):
+        raise ProjectStorageCorruptionError(
+            "project snapshot requires a writable art reference transition before restore"
         )
     prohibited = {kind for kind, _name, _table, _sql in actual} - {"table", "index"}
     if prohibited or actual != _EXPECTED_SCHEMA_OBJECTS:

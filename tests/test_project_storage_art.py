@@ -5,6 +5,7 @@ import json
 from hashlib import sha256
 from io import BytesIO
 from pathlib import Path
+import sqlite3
 
 import pytest
 from fastapi.testclient import TestClient
@@ -19,6 +20,10 @@ from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.exceptions import NotFoundError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.operational_state import close_blockers
+from plotloom.project_storage.video_candidate_transition import (
+    ProjectSchemaTransitionRequiredError,
+    project_schema_status,
+)
 from plotloom.source_outline_contracts import (
     BranchOutcome, OutlineAcceptRequest, SectionChoice, SectionMap,
     SectionMapGraphInstallRequest, SectionMapSaveRequest, SourceMaterial,
@@ -125,6 +130,40 @@ def test_art_routes_are_user_reachable(tmp_path: Path) -> None:
     assert response.json() == {"candidate": None, "acceptedArt": None, "status": "missing", "staleReasons": []}
 
 
+def test_f3a_project_schema_gets_the_empty_f3b_tables_on_admitted_open(tmp_path: Path) -> None:
+    """The exact F3A project schema upgrades without rewriting project data."""
+
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application"
+    )
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id, database = store.manifest.project_id, store.database_path
+    store.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute("PRAGMA foreign_keys=OFF")
+        for table in (
+            "v2_art_reference_proposal_candidates",
+            "v2_art_reference_proposal_deliveries",
+            "v2_art_reference_proposals",
+        ):
+            connection.execute(f"DROP TABLE {table}")
+        connection.commit()
+
+    assert project_schema_status(database, project_id) == "art_reference_transition_required"
+    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
+        storage.projects.inspect(project_id)
+
+    # Normal writable admission holds the exclusive lease for this empty-table
+    # transition; all existing F3A rows remain untouched.
+    transitioned = storage.projects.open(project_id)
+    try:
+        assert transitioned.manifest.project_id == project_id
+        assert transitioned.media.list_art_reference_proposals(project_id) == []
+    finally:
+        transitioned.close()
+    assert project_schema_status(database, project_id) == "current"
+
+
 def _reference_png() -> bytes:
     output = BytesIO()
     Image.new("RGB", (32, 24), (42, 72, 84)).save(output, format="PNG")
@@ -194,8 +233,15 @@ def test_art_reference_study_browser_lifecycle_persists_and_stales(tmp_path: Pat
     later = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals", json={"subjectType": "scene", "subjectId": "S01", "renderDirection": "Cinematic realism, no people."})
     assert later.status_code == 201, later.text
     active = later.json()["proposal"]
+    copied_late = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{active['id']}/copy")
+    assert copied_late.status_code == 200, copied_late.text
     cancellation = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{active['id']}/cancel", json={"reason": "Operator ended the package before delivery."})
     assert cancellation.status_code == 200
+    _write_art_reference_delivery(Path(copied_late.json()["deliveryPath"]), active)
+    late = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{active['id']}/refresh")
+    assert late.status_code == 200, late.text
+    assert late.json()["state"] == "inapplicable"
+    assert late.json()["candidates"] == []
     final_store = storage.projects.open(project_id)
     try:
         assert "art_reference_publication_active" not in close_blockers(final_store)

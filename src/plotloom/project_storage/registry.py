@@ -40,8 +40,8 @@ from .format import (
 from .project_handle import ProjectStore
 from .recovery_validation import database_state
 from .video_candidate_transition import (
-    ProjectSelectionTransitionRequiredError,
-    selection_schema_status,
+    ProjectSchemaTransitionRequiredError,
+    project_schema_status,
 )
 from .operational_state import (
     ProjectAccessLease,
@@ -201,7 +201,7 @@ class ProjectDirectoryRegistry:
                     store = ProjectStore.open(
                         candidate, read_only=True, access_lease=lease
                     )
-                except ProjectSelectionTransitionRequiredError:
+                except ProjectSchemaTransitionRequiredError:
                     # Keep this known legacy folder discoverable so an admitted
                     # writable open can perform its one-time transition.
                     lease.close()
@@ -218,10 +218,10 @@ class ProjectDirectoryRegistry:
 
         home = self._project_home(project_id)
         if (
-            selection_schema_status(
+            project_schema_status(
                 home.path / home.manifest.database_path, home.manifest.project_id
             )
-            == "transition_required"
+            != "current"
         ):
             if database_state(
                 home.path / home.manifest.database_path, home.manifest.project_id
@@ -308,7 +308,7 @@ class ProjectDirectoryRegistry:
         lease = ProjectAccessLease.acquire(home.path, mode="exclusive")
         try:
             store = ProjectStore.open(
-                home.path, access_lease=lease, transition_video_selection=False
+                home.path, access_lease=lease, apply_project_schema_transition=False
             )
         except BaseException:
             lease.close()
@@ -316,11 +316,11 @@ class ProjectDirectoryRegistry:
         try:
             state, revision = store.repository.operational_state()
             if state == "open":
-                store.transition_video_candidate_selection()
+                store.transition_project_schema()
                 return revision
             # Reopening is the sole explicit operation allowed to advance a
             # closed legacy folder before it can accept ordinary writes.
-            store.transition_video_candidate_selection(allow_closed=True)
+            store.transition_project_schema(allow_closed=True)
             _state, revision = store.repository.set_operational_state(
                 expected_revision=revision, state="open"
             )

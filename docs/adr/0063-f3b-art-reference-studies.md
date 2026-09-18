@@ -35,3 +35,8 @@ art acceptance, production selection, a Shot, an Approval, or F5/F7 proof.
 - The package retains the existing pinned ImageGen preflight, exact staging
   cleanup and managed-asset provenance. No provider, queue, or media store is
   added.
+- Project folders use their own exact SQLite schema and do not run application
+  Alembic migrations. The immediately preceding F3A folder schema therefore
+  receives one exclusive-lease, additive transition that creates only the
+  three empty F3B proposal tables and validates the exact result. It does not
+  rewrite project rows, replay work, or support older mixed schemas.

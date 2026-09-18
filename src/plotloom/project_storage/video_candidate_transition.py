@@ -1,4 +1,4 @@
-"""One bounded project-folder transition to video selection authority."""
+"""Bounded additive transitions for the immediately preceding folder schemas."""
 
 from __future__ import annotations
 
@@ -10,6 +10,9 @@ from typing import Literal
 from sqlalchemy import create_engine
 
 from ..persistence.schema import (
+    ArtReferenceProposalCandidateRow,
+    ArtReferenceProposalDeliveryRow,
+    ArtReferenceProposalRow,
     Base,
     PROJECT_TEXT_PIPELINE_TABLE_NAMES,
     VideoCandidateSelectionRow,
@@ -17,12 +20,27 @@ from ..persistence.schema import (
 from .format import ProjectStorageCorruptionError
 
 
-class ProjectSelectionTransitionRequiredError(ProjectStorageCorruptionError):
+class ProjectSchemaTransitionRequiredError(ProjectStorageCorruptionError):
+    """A known immediately preceding folder needs an admitted writable open."""
+
+
+class ProjectSelectionTransitionRequiredError(ProjectSchemaTransitionRequiredError):
     """A known pre-selection folder needs an admitted writable open once."""
 
 
-SchemaStatus = Literal["current", "transition_required"]
+class ProjectArtReferenceTransitionRequiredError(ProjectSchemaTransitionRequiredError):
+    """A current F3A folder needs the empty F3B proposal tables once."""
+
+
+SchemaStatus = Literal[
+    "current", "selection_transition_required", "art_reference_transition_required"
+]
 _SELECTION_TABLE = VideoCandidateSelectionRow.__tablename__
+_ART_REFERENCE_TABLES = (
+    ArtReferenceProposalRow.__table__,
+    ArtReferenceProposalDeliveryRow.__table__,
+    ArtReferenceProposalCandidateRow.__table__,
+)
 
 
 def _schema_objects(connection: object) -> list[tuple[str, str, str, str | None]]:
@@ -44,15 +62,18 @@ def _schema_objects(connection: object) -> list[tuple[str, str, str, str | None]
     ]
 
 
-@lru_cache(maxsize=2)
+@lru_cache(maxsize=4)
 def expected_project_schema_objects(
     *, include_video_candidate_selection: bool,
+    include_art_reference_proposals: bool = True,
 ) -> tuple[tuple[str, str, str, str | None], ...]:
-    """Return the exact current or immediately preceding project schema."""
+    """Return the exact current schema or one permitted immediate predecessor."""
 
     table_names = set(PROJECT_TEXT_PIPELINE_TABLE_NAMES)
     if not include_video_candidate_selection:
         table_names.remove(_SELECTION_TABLE)
+    if not include_art_reference_proposals:
+        table_names.difference_update(table.name for table in _ART_REFERENCE_TABLES)
     engine = create_engine("sqlite://")
     try:
         Base.metadata.create_all(
@@ -64,8 +85,8 @@ def expected_project_schema_objects(
         engine.dispose()
 
 
-def selection_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
-    """Classify only the exact supported current and pre-selection schemas."""
+def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
+    """Classify only exact current and immediately preceding folder schemas."""
 
     try:
         connection = sqlite3.connect(f"file:{database_path}?mode=ro", uri=True)
@@ -83,11 +104,11 @@ def selection_schema_status(database_path: Path, project_id: str) -> SchemaStatu
             connection.close()
     except sqlite3.Error as error:
         raise ProjectStorageCorruptionError(
-            "project database cannot establish its video selection schema"
+            "project database cannot establish its project schema"
         ) from error
     if projects != [(project_id,)] or len(states) != 1 or states[0][0] not in {"open", "closed"}:
         raise ProjectStorageCorruptionError(
-            "project database cannot establish its video selection identity"
+            "project database cannot establish its project identity"
         )
     if actual == expected_project_schema_objects(include_video_candidate_selection=True):
         return "current"
@@ -96,26 +117,50 @@ def selection_schema_status(database_path: Path, project_id: str) -> SchemaStatu
         == expected_project_schema_objects(include_video_candidate_selection=False)
         and user_version == (0,)
     ):
-        return "transition_required"
+        return "selection_transition_required"
+    if (
+        actual
+        == expected_project_schema_objects(
+            include_video_candidate_selection=True,
+            include_art_reference_proposals=False,
+        )
+        and user_version == (0,)
+    ):
+        return "art_reference_transition_required"
     raise ProjectStorageCorruptionError(
-        "project database schema is unsupported for video candidate selection"
+        "project database schema is unsupported for the current project contract"
     )
 
 
-def transition_video_candidate_selection(
+def transition_required_error(
+    status: SchemaStatus, *, reason: str = "an explicitly reopened project"
+) -> ProjectSchemaTransitionRequiredError:
+    if status == "selection_transition_required":
+        return ProjectSelectionTransitionRequiredError(
+            f"video selection transition requires {reason}"
+        )
+    if status == "art_reference_transition_required":
+        return ProjectArtReferenceTransitionRequiredError(
+            f"art reference transition requires {reason}"
+        )
+    raise AssertionError(f"current project schema does not need a transition: {status}")
+
+
+def transition_project_schema(
     database_path: Path,
     project_id: str,
     *,
     allow_closed: bool = False,
 ) -> bool:
-    """Install selection authority once from the exact prior folder schema.
+    """Install the one matching additive schema change from an exact prior schema.
 
     The source check happens again under ``BEGIN IMMEDIATE``.  This keeps a
     stale caller from creating a table in an arbitrary or concurrently changed
     project database.
     """
 
-    if selection_schema_status(database_path, project_id) == "current":
+    status = project_schema_status(database_path, project_id)
+    if status == "current":
         return False
     engine = create_engine(f"sqlite:///{database_path}")
     try:
@@ -123,46 +168,53 @@ def transition_video_candidate_selection(
             connection.exec_driver_sql("PRAGMA foreign_keys=ON")
             connection.exec_driver_sql("BEGIN IMMEDIATE")
             try:
-                if selection_schema_status(database_path, project_id) != "transition_required":
+                current_status = project_schema_status(database_path, project_id)
+                if current_status == "current":
+                    return False
+                if current_status != status:
                     raise ProjectStorageCorruptionError(
-                        "project database changed before video selection transition"
+                        "project database changed before project schema transition"
                     )
                 state = connection.exec_driver_sql(
                     "SELECT state FROM v2_project_operational_states WHERE project_id = ?",
                     (project_id,),
                 ).scalar_one()
                 if state != "open" and not allow_closed:
-                    raise ProjectSelectionTransitionRequiredError(
-                        "video selection transition requires an explicitly reopened project"
+                    raise transition_required_error(status)
+                if status == "selection_transition_required":
+                    VideoCandidateSelectionRow.__table__.create(connection)
+                    connection.exec_driver_sql(
+                        """
+                        INSERT INTO v2_video_candidate_selections
+                          (project_id, shot_id, selected_video_job_id, revision, updated_at)
+                        SELECT job.project_id, json_extract(job.snapshot, '$.shot.id'), review.video_job_id, 1, review.created_at
+                        FROM v2_video_reviews AS review
+                        JOIN v2_video_jobs AS job ON job.id = review.video_job_id
+                        WHERE review.decision = 'select'
+                          AND review.id = (
+                            SELECT newer.id
+                            FROM v2_video_reviews AS newer
+                            JOIN v2_video_jobs AS newer_job ON newer_job.id = newer.video_job_id
+                            WHERE newer_job.project_id = job.project_id
+                              AND json_extract(newer_job.snapshot, '$.shot.id') = json_extract(job.snapshot, '$.shot.id')
+                            ORDER BY newer.created_at DESC, newer.id DESC LIMIT 1
+                          )
+                        """
                     )
-                VideoCandidateSelectionRow.__table__.create(connection)
-                connection.exec_driver_sql(
-                    """
-                    INSERT INTO v2_video_candidate_selections
-                      (project_id, shot_id, selected_video_job_id, revision, updated_at)
-                    SELECT job.project_id, json_extract(job.snapshot, '$.shot.id'), review.video_job_id, 1, review.created_at
-                    FROM v2_video_reviews AS review
-                    JOIN v2_video_jobs AS job ON job.id = review.video_job_id
-                    WHERE review.decision = 'select'
-                      AND review.id = (
-                        SELECT newer.id
-                        FROM v2_video_reviews AS newer
-                        JOIN v2_video_jobs AS newer_job ON newer_job.id = newer.video_job_id
-                        WHERE newer_job.project_id = job.project_id
-                          AND json_extract(newer_job.snapshot, '$.shot.id') = json_extract(job.snapshot, '$.shot.id')
-                        ORDER BY newer.created_at DESC, newer.id DESC LIMIT 1
-                      )
-                    """
-                )
+                elif status == "art_reference_transition_required":
+                    for table in _ART_REFERENCE_TABLES:
+                        table.create(connection)
+                else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
+                    raise AssertionError(f"unsupported project transition: {status}")
                 if tuple(_schema_objects(connection)) != expected_project_schema_objects(
                     include_video_candidate_selection=True
                 ):
                     raise ProjectStorageCorruptionError(
-                        "video selection transition did not produce the current project schema"
+                        "project schema transition did not produce the current project schema"
                     )
                 if list(connection.exec_driver_sql("PRAGMA foreign_key_check")):
                     raise ProjectStorageCorruptionError(
-                        "video selection transition found invalid project references"
+                        "project schema transition found invalid project references"
                     )
             except BaseException:
                 connection.rollback()

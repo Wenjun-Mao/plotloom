@@ -19,7 +19,7 @@ from .operational_state import ProjectClosedError
 from .application_store import ApplicationRunRoute
 from .format import ProjectStorageCorruptionError
 from .project_handle import ProjectStore
-from .video_candidate_transition import ProjectSelectionTransitionRequiredError
+from .video_candidate_transition import ProjectSchemaTransitionRequiredError
 
 
 @dataclass
@@ -57,7 +57,7 @@ class ProjectRunDispatcher:
         for home in self.storage.projects.discover():
             try:
                 store = self.storage.projects.inspect(home.manifest.project_id)
-            except ProjectSelectionTransitionRequiredError:
+            except ProjectSchemaTransitionRequiredError:
                 # Discovery retains the exact legacy folder so the normal
                 # writable admission path can advance it before the index
                 # reads it. Closed folders remain explicitly owner-opened.
@@ -81,7 +81,7 @@ class ProjectRunDispatcher:
         for home in self.storage.projects.discover():
             try:
                 inspection = self.storage.projects.inspect(home.manifest.project_id)
-            except ProjectSelectionTransitionRequiredError:
+            except ProjectSchemaTransitionRequiredError:
                 # An active legacy folder cannot be inspected yet. Admit it
                 # through the one normal writable open, which performs the
                 # bounded selection transition before recovery reads it.
