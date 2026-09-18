@@ -29,9 +29,11 @@ class OfflineH3GatewayFake:
         assert isinstance(payload["profileId"], str) and payload["profileId"] in H3_PROFILES_BY_ID
         assert payload["aspectPolicy"] in {"cover_center_crop", "contain_pad", "reject_mismatch"}
         assert isinstance(payload["seed"], int)
-        assert payload["durationSeconds"] == 5
+        assert payload["durationSeconds"] in {5, 8}
         self.profile_id = payload["profileId"]
         self.aspect_policy = payload["aspectPolicy"]
+        self.seed = payload["seed"]
+        self.duration = payload["durationSeconds"]
         return self._job("submitted", output_ready=False, aspect_policy=self.aspect_policy)
 
     def poll(self, job_id: str) -> dict[str, object]:
@@ -42,9 +44,9 @@ class OfflineH3GatewayFake:
         return {
             "id": "h3_0123456789abcdef0123456789abcdef", "status": status,
             "inputMode": "image", "profileId": self.profile_id,
-            "aspectPolicy": aspect_policy, "seed": 1,
-            "requestedDurationSeconds": 5, "frameCount": 124,
-            "actualDurationSeconds": 124 / 24,
+            "aspectPolicy": aspect_policy, "seed": self.seed,
+            "requestedDurationSeconds": self.duration, "frameCount": {5: 124, 8: 192}[self.duration],
+            "actualDurationSeconds": {5: 124, 8: 192}[self.duration] / 24,
             "generationSubmittedAt": None, "generationCompletedAt": None,
             "generationElapsedMs": None, "error": None, "outputReady": output_ready,
         }
@@ -57,13 +59,19 @@ class OfflineH3GatewayFake:
         with TemporaryDirectory(prefix="plotloom-offline-h3-") as directory:
             output = Path(directory) / "clip.mp4"
             completed = subprocess.run([
-                "ffmpeg", "-y", "-f", "lavfi", "-i", f"color=c=black:s={profile.width}x{profile.height}:r=24:d=5.166667",
-                "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=5.166667", "-shortest",
+                "ffmpeg", "-y", "-f", "lavfi", "-i", f"color=c=black:s={profile.width}x{profile.height}:r=24:d={self._delivery_seconds()}",
+                "-f", "lavfi", "-i", f"sine=frequency=440:sample_rate=48000:duration={self._delivery_seconds()}", "-shortest",
                 "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", str(output),
             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30, check=False)
             if completed.returncode:
                 raise RuntimeError("offline H3 fixture generation failed")
             return output.read_bytes()
+
+    def _delivery_seconds(self) -> str:
+        return "5.166667" if self.duration == 5 else "8"
+
     def __init__(self) -> None:
         self.profile_id: str | None = None
         self.aspect_policy: object = "reject_mismatch"
+        self.seed = 1
+        self.duration = 5

@@ -52,11 +52,15 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
     frameCount: 124, nativeAudio: true, requiresAspectPolicy: false,
     inputAspectPolicy: "reject_mismatch",
     defaultProfileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+    qualifiedDurationSeconds: [5, 8],
   });
   const panel = page.getByTestId("video-pilot-panel");
   await expect(panel.getByText("MiniMax H3 本地视频候选")).toBeVisible();
   const profile = panel.getByLabel("H3 输出 Profile（必选）");
   await expect(profile).toHaveValue("minimax_h3_fp8_turbo4_portrait_576x1024_v1");
+  const duration = panel.getByLabel("H3 时长（已审核）");
+  await expect(duration).toHaveValue("5");
+  await duration.selectOption("8");
   await expect(panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" })).toBeDisabled();
   await expect(panel.getByTestId("h3-aspect-preparation")).toContainText("默认拒绝比例不符");
 
@@ -74,11 +78,11 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const preparedResponse = await preparedPost;
   expect(preparedResponse.ok()).toBeTruthy();
   expect(preparedResponse.request().postDataJSON()).toMatchObject({
-    requestedDurationSeconds: 5, resolution: "576x1024", audio: true, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false,
+    requestedDurationSeconds: 8, resolution: "576x1024", audio: true, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false,
     profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
   });
   const prepared = await preparedResponse.json() as { id: string; snapshot: { request: object } };
-  expect(prepared.snapshot.request).toMatchObject({ aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false });
+  expect(prepared.snapshot.request).toMatchObject({ durationSeconds: 8, frameCount: 192, fps: 24, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false });
 
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconcile = page.waitForResponse((response) => (
@@ -100,7 +104,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
     return ((await jobs.json()) as { jobs: Array<{ id: string; selected: boolean; observed: object }> }).jobs.find((job) => job.id === prepared.id);
   }).toMatchObject({
     selected: true,
-    observed: { width: 576, height: 1024, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 124 },
+    observed: { width: 576, height: 1024, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 192 },
   });
   expect(await request.get(`${workbench.apiOrigin}/api/v2/video-pilot-budget`).then((response) => response.json())).toMatchObject({ reservedSeconds: 0 });
 

@@ -212,6 +212,8 @@ class VideoProductionContract:
     profile_version: int | None = None
     width: int | None = None
     height: int | None = None
+    fps: int | None = None
+    frame_count: int | None = None
 
     def __post_init__(self) -> None:
         if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", self.adapter_id):
@@ -228,7 +230,7 @@ class VideoProductionContract:
             raise ValueError("video resolution is required")
         if self.seed is not None and not 0 <= self.seed <= 2**63 - 1:
             raise ValueError("video seed is invalid")
-        profile_parts = (self.profile_id, self.profile_version, self.width, self.height)
+        profile_parts = (self.profile_id, self.profile_version, self.width, self.height, self.fps, self.frame_count)
         if any(part is not None for part in profile_parts):
             if (
                 not isinstance(self.profile_id, str)
@@ -241,6 +243,10 @@ class VideoProductionContract:
                 or self.height < 32
                 or self.width % 32
                 or self.height % 32
+                or not isinstance(self.fps, int)
+                or self.fps < 1
+                or not isinstance(self.frame_count, int)
+                or self.frame_count < 1
             ):
                 raise ValueError("video profile contract is invalid")
             if self.allow_letterbox and self.allow_center_crop:
@@ -287,6 +293,8 @@ class VideoProductionContract:
                 "profileVersion": self.profile_version,
                 "width": self.width,
                 "height": self.height,
+                "fps": self.fps,
+                "frameCount": self.frame_count,
                 "allowLetterbox": self.allow_letterbox,
                 "allowCenterCrop": self.allow_center_crop,
             }
@@ -340,6 +348,13 @@ class VideoAdapterPort(Protocol):
         *,
         expected_profile_id: str | None = None,
         expected_aspect_policy: str | None = None,
+        expected_duration_seconds: int | None = None,
+        expected_frame_count: int | None = None,
+        expected_seed: int | None = None,
+        expected_profile_version: int | None = None,
+        expected_width: int | None = None,
+        expected_height: int | None = None,
+        expected_fps: int | None = None,
     ) -> str: ...
 
     def completed_output(
@@ -348,11 +363,21 @@ class VideoAdapterPort(Protocol):
         *,
         expected_profile_id: str | None = None,
         expected_aspect_policy: str | None = None,
+        expected_duration_seconds: int | None = None,
+        expected_frame_count: int | None = None,
+        expected_seed: int | None = None,
+        expected_profile_version: int | None = None,
+        expected_width: int | None = None,
+        expected_height: int | None = None,
+        expected_fps: int | None = None,
     ) -> str | None: ...
 
     def validate_output_reference(self, value: str) -> None: ...
 
-    def validate_observed_output(self, observed: ObservedVideo, *, profile_id: str | None = None) -> None: ...
+    def validate_observed_output(self, observed: ObservedVideo, *, profile_id: str | None = None,
+                                 requested_seconds: int | None = None, expected_frame_count: int | None = None,
+                                 expected_fps: int | None = None, expected_profile_version: int | None = None,
+                                 expected_width: int | None = None, expected_height: int | None = None) -> None: ...
 
     def production_contract(
         self,
@@ -449,8 +474,25 @@ class AtlasWanAdapter:
         *,
         expected_profile_id: str | None = None,
         expected_aspect_policy: str | None = None,
+        expected_duration_seconds: int | None = None,
+        expected_frame_count: int | None = None,
+        expected_seed: int | None = None,
+        expected_profile_version: int | None = None,
+        expected_width: int | None = None,
+        expected_height: int | None = None,
+        expected_fps: int | None = None,
     ) -> str:
-        if expected_profile_id is not None:
+        if (
+            expected_profile_id is not None
+            or expected_aspect_policy is not None
+            or expected_duration_seconds is not None
+            or expected_frame_count is not None
+            or expected_seed is not None
+            or expected_profile_version is not None
+            or expected_width is not None
+            or expected_height is not None
+            or expected_fps is not None
+        ):
             raise VideoProviderError("Wan P2 response includes an unsupported profile")
         data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
         value = data.get("id") if isinstance(data, dict) else None
@@ -464,8 +506,25 @@ class AtlasWanAdapter:
         *,
         expected_profile_id: str | None = None,
         expected_aspect_policy: str | None = None,
+        expected_duration_seconds: int | None = None,
+        expected_frame_count: int | None = None,
+        expected_seed: int | None = None,
+        expected_profile_version: int | None = None,
+        expected_width: int | None = None,
+        expected_height: int | None = None,
+        expected_fps: int | None = None,
     ) -> str | None:
-        if expected_profile_id is not None:
+        if (
+            expected_profile_id is not None
+            or expected_aspect_policy is not None
+            or expected_duration_seconds is not None
+            or expected_frame_count is not None
+            or expected_seed is not None
+            or expected_profile_version is not None
+            or expected_width is not None
+            or expected_height is not None
+            or expected_fps is not None
+        ):
             raise VideoProviderError("Wan P2 response includes an unsupported profile")
         data = payload.get("data") if isinstance(payload.get("data"), dict) else payload
         if not isinstance(data, dict):
@@ -490,9 +549,22 @@ class AtlasWanAdapter:
         assert_public_https_url(value)
 
     @staticmethod
-    def validate_observed_output(_observed: ObservedVideo, *, profile_id: str | None = None) -> None:
+    def validate_observed_output(
+        _observed: ObservedVideo, *, profile_id: str | None = None,
+        requested_seconds: int | None = None, expected_frame_count: int | None = None,
+        expected_fps: int | None = None, expected_profile_version: int | None = None,
+        expected_width: int | None = None, expected_height: int | None = None,
+    ) -> None:
         # Browser-playability and native-audio checks remain shared ingestion
         # requirements. Atlas has no separately evidenced fixed frame profile.
-        if profile_id is not None:
+        if (
+            profile_id is not None
+            or requested_seconds is not None
+            or expected_frame_count is not None
+            or expected_fps is not None
+            or expected_profile_version is not None
+            or expected_width is not None
+            or expected_height is not None
+        ):
             raise VideoProviderError("Wan P2 output includes an unsupported profile")
         return None

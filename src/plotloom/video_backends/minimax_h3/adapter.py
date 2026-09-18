@@ -40,6 +40,8 @@ class H3Profile:
         return f"{self.width}x{self.height}"
 
     def public_descriptor(self) -> dict[str, Any]:
+        """Gateway health descriptor; preserve the deployed 5--15 envelope."""
+
         return {
             "id": self.profile_id,
             "version": self.profile_version,
@@ -55,6 +57,14 @@ class H3Profile:
             "frameCount": self.frame_count,
             "nativeAudio": self.native_audio,
         }
+
+    def product_descriptor(self) -> dict[str, Any]:
+        """Product projection; profile timing is a five-second default only."""
+
+        descriptor = self.public_descriptor()
+        descriptor.pop("minDurationSeconds")
+        descriptor.pop("maxDurationSeconds")
+        return descriptor
 
 
 # The catalog is deliberately an allowlist, not a width/height calculator.
@@ -99,6 +109,10 @@ H3_PROFILE_CONTRACT_VERSION = 4
 # catalog.  It is distinct from individual frozen profile IDs, which remain
 # valid explicit runtime selections.
 H3_CATALOG_ID = "minimax_h3_gateway_catalog_v4"
+# The gateway can parse 5--15 seconds, but only this product-qualified subset
+# is admitted into new Plotloom jobs.  Do not turn gateway capability into a
+# browser-selectable range without another qualification decision.
+H3_QUALIFIED_DURATION_FRAMES = {5: 124, 8: 192}
 
 
 class MiniMaxH3GatewayAdapter:
@@ -125,6 +139,23 @@ class MiniMaxH3GatewayAdapter:
             raise VideoProviderError("H3 profile is not allowlisted")
         return profile
 
+    def _frozen_profile(
+        self, profile_id: str | None, *, profile_version: int | None = None,
+        width: int | None = None, height: int | None = None, fps: int | None = None,
+    ) -> H3Profile:
+        """Refuse catalog drift when a prepared job resumes after restart."""
+
+        profile = self._profile(profile_id)
+        if any(
+            actual is not None and actual != expected
+            for actual, expected in (
+                (profile_version, profile.profile_version), (width, profile.width),
+                (height, profile.height), (fps, profile.fps),
+            )
+        ):
+            raise VideoProviderError("H3 frozen profile contract no longer matches the trusted catalog")
+        return profile
+
     def production_contract(
         self,
         *,
@@ -138,7 +169,9 @@ class MiniMaxH3GatewayAdapter:
         profile_id: str | None,
     ) -> VideoProductionContract:
         profile = self._profile(profile_id, default_if_missing=True)
-        if requested_seconds not in {None, profile.duration_seconds}:
+        duration = profile.duration_seconds if requested_seconds is None else requested_seconds
+        frame_count = H3_QUALIFIED_DURATION_FRAMES.get(duration)
+        if frame_count is None:
             raise VideoProviderError("H3 duration capability mismatch")
         if resolution not in {None, profile.resolution}:
             raise VideoProviderError("H3 resolution capability mismatch")
@@ -163,7 +196,7 @@ class MiniMaxH3GatewayAdapter:
             provider="minimax_h3_gateway",
             model=profile.profile_id,
             capability_version=H3_PROFILE_CONTRACT_VERSION,
-            requested_seconds=profile.duration_seconds,
+            requested_seconds=duration,
             resolution=profile.resolution,
             audio=True,
             aspect_policy=aspect_policy,
@@ -175,6 +208,8 @@ class MiniMaxH3GatewayAdapter:
             profile_version=profile.profile_version,
             width=profile.width,
             height=profile.height,
+            fps=profile.fps,
+            frame_count=frame_count,
         )
 
     def public_capability(self) -> dict[str, Any]:
@@ -201,7 +236,8 @@ class MiniMaxH3GatewayAdapter:
             "tracksPaidWanPilot": False,
             "profileContractVersion": H3_PROFILE_CONTRACT_VERSION,
             "defaultProfileId": DEFAULT_H3_PROFILE_ID,
-            "profiles": [profile.public_descriptor() for profile in H3_PROFILES],
+            "qualifiedDurationSeconds": sorted(H3_QUALIFIED_DURATION_FRAMES),
+            "profiles": [profile.product_descriptor() for profile in H3_PROFILES],
         }
 
     def compile_image(
@@ -214,9 +250,21 @@ class MiniMaxH3GatewayAdapter:
         aspect_policy: str | None,
         seed: int | None,
         profile_id: str | None,
+        profile_version: int | None = None,
+        width: int | None = None,
+        height: int | None = None,
+        fps: int | None = None,
+        frame_count: int | None = None,
     ) -> dict[str, Any]:
-        profile = self._profile(profile_id)
-        if duration != profile.duration_seconds or resolution != profile.resolution or audio is not True:
+        profile = self._frozen_profile(
+            profile_id, profile_version=profile_version, width=width, height=height, fps=fps,
+        )
+        if (
+            duration not in H3_QUALIFIED_DURATION_FRAMES
+            or resolution != profile.resolution
+            or audio is not True
+            or frame_count is not None and frame_count != H3_QUALIFIED_DURATION_FRAMES[duration]
+        ):
             raise VideoProviderError("H3 frozen request does not match its profile")
         if aspect_policy not in self._ASPECT_POLICIES or seed is None:
             raise VideoProviderError("H3 frozen request is incomplete")
@@ -225,7 +273,7 @@ class MiniMaxH3GatewayAdapter:
             "profileId": profile.profile_id,
             "aspectPolicy": aspect_policy,
             "seed": seed,
-            "durationSeconds": profile.duration_seconds,
+            "durationSeconds": duration,
         }
 
     @classmethod
@@ -235,6 +283,13 @@ class MiniMaxH3GatewayAdapter:
         *,
         expected_profile_id: str | None,
         expected_aspect_policy: str | None = None,
+        expected_duration_seconds: int | None = None,
+        expected_frame_count: int | None = None,
+        expected_seed: int | None = None,
+        expected_profile_version: int | None = None,
+        expected_width: int | None = None,
+        expected_height: int | None = None,
+        expected_fps: int | None = None,
     ) -> str:
         value = payload.get("id")
         if not isinstance(value, str) or not cls._JOB_ID.fullmatch(value):
@@ -242,10 +297,20 @@ class MiniMaxH3GatewayAdapter:
         if expected_profile_id is None:
             raise VideoProviderError("H3 response requires a frozen profile")
         expected = expected_profile_id
+        cls()._frozen_profile(
+            expected_profile_id, profile_version=expected_profile_version,
+            width=expected_width, height=expected_height, fps=expected_fps,
+        )
         if payload.get("profileId") != expected:
             raise VideoProviderError("H3 response profile does not match frozen job")
         if expected_aspect_policy is not None and payload.get("aspectPolicy") != expected_aspect_policy:
             raise VideoProviderError("H3 response aspect policy does not match frozen job")
+        if expected_duration_seconds is not None and payload.get("requestedDurationSeconds") != expected_duration_seconds:
+            raise VideoProviderError("H3 response duration does not match frozen job")
+        if expected_frame_count is not None and payload.get("frameCount") != expected_frame_count:
+            raise VideoProviderError("H3 response frame count does not match frozen job")
+        if expected_seed is not None and payload.get("seed") != expected_seed:
+            raise VideoProviderError("H3 response seed does not match frozen job")
         return value
 
     @classmethod
@@ -255,11 +320,25 @@ class MiniMaxH3GatewayAdapter:
         *,
         expected_profile_id: str | None,
         expected_aspect_policy: str | None = None,
+        expected_duration_seconds: int | None = None,
+        expected_frame_count: int | None = None,
+        expected_seed: int | None = None,
+        expected_profile_version: int | None = None,
+        expected_width: int | None = None,
+        expected_height: int | None = None,
+        expected_fps: int | None = None,
     ) -> str | None:
         cls.prediction_id(
             payload,
             expected_profile_id=expected_profile_id,
             expected_aspect_policy=expected_aspect_policy,
+            expected_duration_seconds=expected_duration_seconds,
+            expected_frame_count=expected_frame_count,
+            expected_seed=expected_seed,
+            expected_profile_version=expected_profile_version,
+            expected_width=expected_width,
+            expected_height=expected_height,
+            expected_fps=expected_fps,
         )
         status = payload.get("status")
         if not isinstance(status, str):
@@ -278,6 +357,13 @@ class MiniMaxH3GatewayAdapter:
             payload,
             expected_profile_id=expected_profile_id,
             expected_aspect_policy=expected_aspect_policy,
+            expected_duration_seconds=expected_duration_seconds,
+            expected_frame_count=expected_frame_count,
+            expected_seed=expected_seed,
+            expected_profile_version=expected_profile_version,
+            expected_width=expected_width,
+            expected_height=expected_height,
+            expected_fps=expected_fps,
         )
 
     @classmethod
@@ -285,18 +371,31 @@ class MiniMaxH3GatewayAdapter:
         if not cls._JOB_ID.fullmatch(value):
             raise VideoProviderError("H3 output reference is not a gateway job ID")
 
-    def validate_observed_output(self, observed: ObservedVideo, *, profile_id: str | None) -> None:
+    def validate_observed_output(
+        self, observed: ObservedVideo, *, profile_id: str | None,
+        requested_seconds: int | None = None, expected_frame_count: int | None = None,
+        expected_fps: int | None = None, expected_profile_version: int | None = None,
+        expected_width: int | None = None, expected_height: int | None = None,
+    ) -> None:
         """Fail closed if delivery differs from the immutable selected profile."""
 
-        profile = self._profile(profile_id)
-        expected_duration = profile.frame_count / profile.fps
+        profile = self._frozen_profile(
+            profile_id, profile_version=expected_profile_version, width=expected_width,
+            height=expected_height, fps=expected_fps,
+        )
+        if requested_seconds not in H3_QUALIFIED_DURATION_FRAMES:
+            raise VideoOutputContractError("h3_output_profile_mismatch")
+        frame_count = H3_QUALIFIED_DURATION_FRAMES[requested_seconds]
+        if expected_frame_count != frame_count or expected_fps != profile.fps:
+            raise VideoOutputContractError("h3_output_profile_mismatch")
+        expected_duration = frame_count / profile.fps
         if (
             (observed.width, observed.height) != (profile.width, profile.height)
             or observed.video_codec != "h264"
             or observed.audio_codec != "aac"
             or observed.frame_rate is None
-            or abs(observed.frame_rate - profile.fps) > 0.01
-            or observed.frame_count != profile.frame_count
+            or abs(observed.frame_rate - expected_fps) > 0.01
+            or observed.frame_count != expected_frame_count
             or abs(observed.duration_seconds - expected_duration) > (1 / profile.fps)
         ):
             raise VideoOutputContractError("h3_output_profile_mismatch")

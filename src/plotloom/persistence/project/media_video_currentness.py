@@ -97,6 +97,9 @@ class VideoJobCurrentness:
             != row.request_hash
         ):
             return False
+        request = snapshot.get("request") if isinstance(snapshot, dict) else None
+        if not isinstance(request, dict) or request.get("durationSeconds") != row.requested_seconds:
+            return False
         try:
             approval = self._admission.approval_is_active_in_session(session, str(snapshot["approvalId"]))
         except (KeyError, InvalidTransitionError, NotFoundError):

@@ -209,7 +209,7 @@ class VideoJobPersistence:
             snapshot = {
                 "snapshotVersion": (
                     1 if production_contract is None
-                    else 3 if production_contract.profile_id is not None
+                    else 4 if production_contract.profile_id is not None
                     else 2
                 ),
                 "compilerVersion": compiler_version, "approvalId": approval.id,

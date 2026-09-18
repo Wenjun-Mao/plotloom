@@ -20,6 +20,7 @@ class VideoDispatchLease(CamelModel):
     dispatch_identity: str = Field(min_length=20, max_length=96)
     resource: str = Field(min_length=1, max_length=120)
     reserved_units: int = Field(ge=0)
+    requires_accounting: bool = False
     state: Literal["reserved", "dispatch_claimed", "released"]
     created_at: datetime
     updated_at: datetime
@@ -52,10 +53,11 @@ class DirectVideoDispatchAccounting:
                 limit_units INTEGER NOT NULL CHECK (limit_units >= 0),
                 reserved_units INTEGER NOT NULL CHECK (reserved_units >= 0),
                 initialized_at TEXT NOT NULL, updated_at TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS direct_video_dispatch_leases (
+                CREATE TABLE IF NOT EXISTS direct_video_dispatch_leases (
                 dispatch_identity TEXT PRIMARY KEY,
                 resource TEXT NOT NULL,
                 reserved_units INTEGER NOT NULL CHECK (reserved_units >= 0),
+                requires_accounting INTEGER NOT NULL DEFAULT 0 CHECK (requires_accounting IN (0, 1)),
                 state TEXT NOT NULL CHECK (state IN ('reserved', 'dispatch_claimed', 'released')),
                 created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS direct_video_dispatch_events (
@@ -64,6 +66,13 @@ class DirectVideoDispatchAccounting:
                 event TEXT NOT NULL CHECK (event IN ('reserved', 'dispatch_claimed', 'released_before_dispatch')),
                 units INTEGER NOT NULL,
                 created_at TEXT NOT NULL);""")
+        columns = {
+            row[1] for row in connection.execute("PRAGMA table_info(direct_video_dispatch_leases)")
+        }
+        if "requires_accounting" not in columns:
+            connection.execute(
+                "ALTER TABLE direct_video_dispatch_leases ADD COLUMN requires_accounting INTEGER NOT NULL DEFAULT 0 CHECK (requires_accounting IN (0, 1))"
+            )
 
     @staticmethod
     def _from_row(row: sqlite3.Row) -> VideoDispatchLease:
@@ -71,6 +80,7 @@ class DirectVideoDispatchAccounting:
             dispatch_identity=row["dispatch_identity"],
             resource=row["resource"],
             reserved_units=row["reserved_units"],
+            requires_accounting=bool(row["requires_accounting"]),
             state=row["state"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
@@ -107,7 +117,7 @@ class DirectVideoDispatchAccounting:
         now = utc_now()
         with self._write() as connection:
             existing = connection.execute(
-                "SELECT dispatch_identity, resource, reserved_units, state, created_at, updated_at FROM direct_video_dispatch_leases WHERE dispatch_identity = ?",
+                "SELECT dispatch_identity, resource, reserved_units, requires_accounting, state, created_at, updated_at FROM direct_video_dispatch_leases WHERE dispatch_identity = ?",
                 (dispatch_identity,),
             ).fetchone()
             if existing is not None:
@@ -115,7 +125,7 @@ class DirectVideoDispatchAccounting:
                 if (
                     lease.resource != resource
                     or lease.reserved_units != reserved_units
-                    or (requires_accounting and reserved_units == 0)
+                    or lease.requires_accounting != requires_accounting
                 ):
                     raise ProjectStorageConflictError(
                         "video dispatch identity conflicts with its immutable reservation"
@@ -138,8 +148,8 @@ class DirectVideoDispatchAccounting:
                     (reserved_units, now.isoformat()),
                 )
             connection.execute(
-                "INSERT INTO direct_video_dispatch_leases (dispatch_identity, resource, reserved_units, state, created_at, updated_at) VALUES (?, ?, ?, 'reserved', ?, ?)",
-                (dispatch_identity, resource, reserved_units, now.isoformat(), now.isoformat()),
+                "INSERT INTO direct_video_dispatch_leases (dispatch_identity, resource, reserved_units, requires_accounting, state, created_at, updated_at) VALUES (?, ?, ?, ?, 'reserved', ?, ?)",
+                (dispatch_identity, resource, reserved_units, int(requires_accounting), now.isoformat(), now.isoformat()),
             )
             connection.execute(
                 "INSERT INTO direct_video_dispatch_events (event_id, dispatch_identity, event, units, created_at) VALUES (?, ?, 'reserved', ?, ?)",
@@ -149,6 +159,7 @@ class DirectVideoDispatchAccounting:
                 dispatch_identity=dispatch_identity,
                 resource=resource,
                 reserved_units=reserved_units,
+                requires_accounting=requires_accounting,
                 state="reserved",
                 created_at=now,
                 updated_at=now,
@@ -160,7 +171,7 @@ class DirectVideoDispatchAccounting:
         now = utc_now()
         with self._write() as connection:
             row = connection.execute(
-                "SELECT dispatch_identity, resource, reserved_units, state, created_at, updated_at FROM direct_video_dispatch_leases WHERE dispatch_identity = ?",
+                "SELECT dispatch_identity, resource, reserved_units, requires_accounting, state, created_at, updated_at FROM direct_video_dispatch_leases WHERE dispatch_identity = ?",
                 (dispatch_identity,),
             ).fetchone()
             if row is None:
@@ -186,7 +197,7 @@ class DirectVideoDispatchAccounting:
         now = utc_now()
         with self._write() as connection:
             row = connection.execute(
-                "SELECT dispatch_identity, resource, reserved_units, state, created_at, updated_at FROM direct_video_dispatch_leases WHERE dispatch_identity = ?",
+                "SELECT dispatch_identity, resource, reserved_units, requires_accounting, state, created_at, updated_at FROM direct_video_dispatch_leases WHERE dispatch_identity = ?",
                 (dispatch_identity,),
             ).fetchone()
             if row is None:
@@ -196,7 +207,7 @@ class DirectVideoDispatchAccounting:
                 return lease
             if lease.state != "reserved":
                 return lease
-            if lease.reserved_units:
+            if lease.requires_accounting and lease.reserved_units:
                 updated = connection.execute(
                     "UPDATE direct_video_accounting SET reserved_units = reserved_units - ?, updated_at = ? WHERE ledger_id = 'direct-video' AND reserved_units >= ?",
                     (lease.reserved_units, now.isoformat(), lease.reserved_units),

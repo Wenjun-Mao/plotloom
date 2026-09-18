@@ -22,7 +22,7 @@ class VideoJobRequest(CamelModel):
     # `reject_mismatch` unless the author records one explicit gateway-owned
     # input-frame choice; the broader literals remain readable for historical
     # snapshots and direct gateway recovery only.
-    requested_duration_seconds: Literal[5] | None = None
+    requested_duration_seconds: Literal[5, 8] | None = None
     resolution: str | None = Field(default=None, min_length=3, max_length=32)
     audio: Literal[True] | None = None
     aspect_policy: Literal["cover_center_crop", "contain_pad", "reject_mismatch"] | None = None

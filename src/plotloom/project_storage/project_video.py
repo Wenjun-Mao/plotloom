@@ -88,6 +88,9 @@ class ProjectVideoRepository:
             )
         provider = self._frozen_direct_h3_provider(job)
         request = job.snapshot.get("request") if isinstance(job.snapshot, dict) else {}
+        requested_seconds = request.get("durationSeconds") if isinstance(request, dict) else None
+        if not isinstance(requested_seconds, int) or requested_seconds < 1:
+            raise InvalidTransitionError("video job has no valid frozen requested duration")
         resource = str(provider["adapterId"])
         identity = self.dispatch_identity(video_job_id)
         # This commits in the application file first. If the process stops
@@ -96,7 +99,7 @@ class ProjectVideoRepository:
         self._application.reserve_video_dispatch(
             dispatch_identity=identity,
             resource=resource,
-            reserved_units=0,
+            reserved_units=requested_seconds,
             requires_accounting=False,
         )
         with self._dispatch.lifecycle_write() as session:

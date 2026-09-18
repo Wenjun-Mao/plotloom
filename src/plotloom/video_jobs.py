@@ -133,6 +133,32 @@ class VideoJobService:
             return request["profileId"]
         return None
 
+    @staticmethod
+    def _frozen_h3_output(snapshot: dict[str, Any]) -> tuple[int | None, int | None, int | None, int | None]:
+        """Read the prepared output contract, never profile defaults after restart."""
+
+        request = snapshot.get("request")
+        if not isinstance(request, dict):
+            return None, None, None, None
+        duration, frame_count, fps, seed = (
+            request.get("durationSeconds"), request.get("frameCount"), request.get("fps"), request.get("seed")
+        )
+        if all(isinstance(value, int) for value in (duration, frame_count, fps, seed)):
+            return duration, frame_count, fps, seed
+        return None, None, None, None
+
+    @staticmethod
+    def _frozen_h3_profile(snapshot: dict[str, Any]) -> tuple[int | None, int | None, int | None]:
+        request = snapshot.get("request")
+        if not isinstance(request, dict):
+            return None, None, None
+        version, width, height = (
+            request.get("profileVersion"), request.get("width"), request.get("height")
+        )
+        if all(isinstance(value, int) for value in (version, width, height)):
+            return version, width, height
+        return None, None, None
+
     def submit(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         preflight = getattr(self.provider, "preflight", None)
         if callable(preflight) and not self.claim_before_provider_calls:
@@ -170,17 +196,21 @@ class VideoJobService:
             submit_image = getattr(self.provider, "submit_image", None)
             if callable(compile_image) and callable(submit_image):
                 try:
+                    duration, _frame_count, _fps, _seed = self._frozen_h3_output(job["snapshot"])
+                    profile_version, width, height = self._frozen_h3_profile(job["snapshot"])
                     # A direct-image provider owns temporary frame admission;
                     # no public asset identifier or idempotency state crosses
                     # the boundary.  This is a capability contract, not a
                     # provider-name special case.
                     payload = compile_image(
-                        prompt=self._prompt(job["snapshot"]), duration=job["requestedSeconds"],
+                        prompt=self._prompt(job["snapshot"]), duration=duration,
                         resolution=job["snapshot"]["request"]["resolution"],
                         audio=job["snapshot"]["request"]["audio"],
                         aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
                         seed=job["snapshot"]["request"].get("seed"),
                         profile_id=self._profile_id(job["snapshot"]),
+                        profile_version=profile_version, width=width, height=height,
+                        fps=_fps, frame_count=_frame_count,
                     )
                 except VideoProviderError as error:
                     raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
@@ -189,9 +219,13 @@ class VideoJobService:
             else:
                 try:
                     uploaded = self.provider.upload(image, mime_type=keyframe["mimeType"])
+                    duration, _frame_count, _fps, _seed = self._frozen_h3_output(job["snapshot"])
+                    # Historical Atlas snapshots have no H3 output fields;
+                    # their retained row duration is still their contract.
+                    compile_duration = duration if duration is not None else job["requestedSeconds"]
                     payload = self.adapter.compile(
                         prompt=self._prompt(job["snapshot"]), uploaded_asset=uploaded,
-                        duration=job["requestedSeconds"], resolution=job["snapshot"]["request"]["resolution"],
+                        duration=compile_duration, resolution=job["snapshot"]["request"]["resolution"],
                         audio=job["snapshot"]["request"]["audio"],
                         aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
                         seed=job["snapshot"]["request"].get("seed"),
@@ -202,10 +236,19 @@ class VideoJobService:
                 self._assert_current_backend(video_job_id)
                 submitted = self.provider.submit(payload, idempotency_key=video_job_id)
             try:
+                duration, frame_count, _fps, seed = self._frozen_h3_output(job["snapshot"])
+                profile_version, width, height = self._frozen_h3_profile(job["snapshot"])
                 prediction = self.adapter.prediction_id(
                     submitted,
                     expected_profile_id=self._profile_id(job["snapshot"]),
                     expected_aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
+                    expected_duration_seconds=duration,
+                    expected_frame_count=frame_count,
+                    expected_seed=seed,
+                    expected_profile_version=profile_version,
+                    expected_width=width,
+                    expected_height=height,
+                    expected_fps=_fps,
                 )
             except VideoProviderError as error:
                 raise WanDispatchError(WanDispatchDiagnostic("submit_response_parse", "invalid_envelope")) from error
@@ -227,10 +270,19 @@ class VideoJobService:
             return job
         try:
             profile_id = self._profile_id(job["snapshot"])
+            duration, frame_count, fps, seed = self._frozen_h3_output(job["snapshot"])
+            profile_version, width, height = self._frozen_h3_profile(job["snapshot"])
             output = self.adapter.completed_output(
                 self._poll_current_backend(video_job_id, job["providerPredictionId"]),
                 expected_profile_id=profile_id,
                 expected_aspect_policy=job["snapshot"]["request"].get("aspectPolicy"),
+                expected_duration_seconds=duration,
+                expected_frame_count=frame_count,
+                expected_seed=seed,
+                expected_profile_version=profile_version,
+                expected_width=width,
+                expected_height=height,
+                expected_fps=fps,
             )
             if output is None:
                 return job
@@ -244,7 +296,12 @@ class VideoJobService:
             observed = self.probe(content)
             if observed.audio_codec is None:
                 raise ValueError("audio_track_missing")
-            self.adapter.validate_observed_output(observed, profile_id=profile_id)
+            self.adapter.validate_observed_output(
+                observed, profile_id=profile_id, requested_seconds=duration,
+                expected_frame_count=frame_count, expected_fps=fps,
+                expected_profile_version=profile_version, expected_width=width,
+                expected_height=height,
+            )
             uri = self.artifacts.put(content)
             return self.repository.record_video_output(
                 project_id, video_job_id, uri=uri, digest=sha256(content).hexdigest(),

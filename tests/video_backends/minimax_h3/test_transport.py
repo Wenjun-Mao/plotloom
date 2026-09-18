@@ -22,11 +22,11 @@ class _Response:
     def close(self) -> None: return None
 
 
-def _job(status: str, output_ready: bool) -> dict[str, object]:
+def _job(status: str, output_ready: bool, *, duration: int = 5, frame_count: int = 124) -> dict[str, object]:
     return {
         "id": _JOB_ID, "status": status, "inputMode": "image", "profileId": _PROFILE,
-        "aspectPolicy": "reject_mismatch", "seed": 1, "requestedDurationSeconds": 5,
-        "frameCount": 124, "actualDurationSeconds": 124 / 24,
+        "aspectPolicy": "reject_mismatch", "seed": 1, "requestedDurationSeconds": duration,
+        "frameCount": frame_count, "actualDurationSeconds": frame_count / 24,
         "generationSubmittedAt": None, "generationCompletedAt": None, "generationElapsedMs": None,
         "error": None, "outputReady": output_ready,
     }
@@ -91,6 +91,7 @@ def test_h3_adapter_requires_explicit_and_exclusive_center_crop_consent() -> Non
         "durationSeconds": 5, "resolution": "576x1024", "audio": True,
         "aspectPolicy": "cover_center_crop", "seed": 7, "profileId": _PROFILE,
         "profileVersion": 1, "width": 576, "height": 1024,
+        "fps": 24, "frameCount": 124,
         "allowLetterbox": False, "allowCenterCrop": True,
     }
     with pytest.raises(VideoProviderError, match="mutually exclusive"):
@@ -129,7 +130,71 @@ def test_h3_adapter_rejects_playable_output_outside_the_frozen_profile() -> None
                 frame_count=124,
             ),
             profile_id=_PROFILE,
+            requested_seconds=5,
+            expected_frame_count=124,
+            expected_fps=24,
         )
+
+
+def test_h3_eight_second_contract_freezes_grid_and_rejects_mismatched_envelopes() -> None:
+    adapter = MiniMaxH3GatewayAdapter()
+    contract = adapter.production_contract(
+        requested_seconds=8, resolution="576x1024", audio=True,
+        aspect_policy="reject_mismatch", allow_letterbox=False,
+        allow_center_crop=False, seed=8, profile_id=_PROFILE,
+    )
+    assert contract.request_snapshot()["frameCount"] == 192
+    assert adapter.compile_image(
+        prompt="one line", duration=8, resolution="576x1024", audio=True,
+        aspect_policy="reject_mismatch", seed=8, profile_id=_PROFILE,
+    )["durationSeconds"] == 8
+    with pytest.raises(VideoProviderError, match="duration"):
+        adapter.prediction_id(
+            _job("queued", False), expected_profile_id=_PROFILE,
+            expected_aspect_policy="reject_mismatch", expected_duration_seconds=8,
+            expected_frame_count=192,
+        )
+    with pytest.raises(VideoProviderError, match="frame count"):
+        adapter.completed_output(
+            _job("succeeded", True, duration=8, frame_count=124), expected_profile_id=_PROFILE,
+            expected_aspect_policy="reject_mismatch", expected_duration_seconds=8,
+            expected_frame_count=192,
+        )
+    with pytest.raises(VideoOutputContractError, match="h3_output_profile_mismatch"):
+        adapter.validate_observed_output(
+            ObservedVideo(124 / 24, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124),
+            profile_id=_PROFILE, requested_seconds=8, expected_frame_count=192, expected_fps=24,
+        )
+
+
+def test_h3_public_profiles_do_not_advertise_the_gateway_duration_range() -> None:
+    capability = MiniMaxH3GatewayAdapter().public_capability()
+    assert capability["qualifiedDurationSeconds"] == [5, 8]
+    assert all(
+        "minDurationSeconds" not in profile and "maxDurationSeconds" not in profile
+        for profile in capability["profiles"]
+    )
+
+
+def test_h3_frozen_profile_geometry_must_match_the_current_catalog() -> None:
+    with pytest.raises(VideoProviderError, match="frozen profile contract"):
+        MiniMaxH3GatewayAdapter().compile_image(
+            prompt="one line", duration=8, resolution="576x1024", audio=True,
+            aspect_policy="reject_mismatch", seed=8, profile_id=_PROFILE,
+            profile_version=1, width=832, height=480, fps=24, frame_count=192,
+        )
+
+
+def test_h3_transport_rejects_submit_duration_or_frame_drift() -> None:
+    class _Drifted(_GatewaySession):
+        def request(self, method: str, url: str, **kwargs: object) -> _Response:
+            if url.endswith("/v1/video-jobs/from-image"):
+                return _Response(202, _job("queued", False, duration=8, frame_count=192))
+            return super().request(method, url, **kwargs)
+
+    transport = MiniMaxH3GatewayTransport("test-key", base_url="http://100.64.1.2:8090", session=_Drifted())
+    with pytest.raises(WanDispatchError):
+        transport.submit_image(b"png", mime_type="image/png", payload={"prompt": "x", "profileId": _PROFILE, "aspectPolicy": "reject_mismatch", "seed": 1, "durationSeconds": 5})
 
 
 def test_h3_transport_rejects_unrecognised_direct_response_shape() -> None:

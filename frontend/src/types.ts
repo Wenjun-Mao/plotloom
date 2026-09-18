@@ -330,6 +330,7 @@ export interface VideoBackend {
   tracksPaidWanPilot?: boolean;
   profileContractVersion?: number;
   defaultProfileId?: string;
+  qualifiedDurationSeconds?: number[];
   profiles?: VideoBackendProfile[];
 }
 

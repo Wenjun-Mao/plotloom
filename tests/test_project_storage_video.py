@@ -62,18 +62,20 @@ class FakeH3:
         return None
 
     def submit_image(self, image: bytes, *, mime_type: str, payload: dict) -> dict:
-        assert image and mime_type == "image/png" and payload["durationSeconds"] == 5
+        assert image and mime_type == "image/png" and payload["durationSeconds"] in {5, 8}
         self.upload_calls += 1
         self.images.append(image)
         self.submits.append(payload)
         self.aspect_policy = payload["aspectPolicy"]
+        self.duration = payload["durationSeconds"]
+        self.seed = payload["seed"]
         if self.submit_error is not None:
             raise self.submit_error
-        return _h3_job("submitted", False, payload["profileId"], payload["aspectPolicy"])
+        return _h3_job("submitted", False, payload["profileId"], payload["aspectPolicy"], duration=self.duration, seed=self.seed)
 
     def poll(self, prediction_id: str) -> dict:
         self.poll_calls += 1
-        return _h3_job("succeeded", True, "minimax_h3_fp8_turbo4_portrait_576x1024_v1", getattr(self, "aspect_policy", "reject_mismatch"), identifier=prediction_id)
+        return _h3_job("succeeded", True, "minimax_h3_fp8_turbo4_portrait_576x1024_v1", getattr(self, "aspect_policy", "reject_mismatch"), identifier=prediction_id, duration=getattr(self, "duration", 5), seed=getattr(self, "seed", 1))
 
     def download(self, reference: str) -> bytes:
         assert reference == "h3_0123456789abcdef0123456789abcdef"
@@ -83,10 +85,11 @@ class FakeH3:
         return b"offline-h3-project-video"
 
 
-def _h3_job(status: str, output_ready: bool, profile_id: str, aspect_policy: str, *, identifier: str = "h3_0123456789abcdef0123456789abcdef") -> dict[str, object]:
+def _h3_job(status: str, output_ready: bool, profile_id: str, aspect_policy: str, *, identifier: str = "h3_0123456789abcdef0123456789abcdef", duration: int = 5, seed: int = 1) -> dict[str, object]:
+    frame_count = {5: 124, 8: 192}[duration]
     return {"id": identifier, "status": status, "inputMode": "image", "profileId": profile_id,
-            "aspectPolicy": aspect_policy, "seed": 1, "requestedDurationSeconds": 5,
-            "frameCount": 124, "actualDurationSeconds": 124 / 24,
+            "aspectPolicy": aspect_policy, "seed": seed, "requestedDurationSeconds": duration,
+            "frameCount": frame_count, "actualDurationSeconds": frame_count / 24,
             "generationSubmittedAt": None, "generationCompletedAt": None,
             "generationElapsedMs": None, "outputReady": output_ready, "error": None}
 
@@ -110,7 +113,9 @@ def _fixture_app(
             video_provider=provider,
             video_adapter=adapter or MiniMaxH3GatewayAdapter(),  # type: ignore[arg-type]
             video_probe=lambda _content: ObservedVideo(
-                5.167, 576, 1024, "h264", "aac", frame_rate=24, frame_count=124
+                {5: 124, 8: 192}[getattr(provider, "duration", 5)] / 24,
+                576, 1024, "h264", "aac", frame_rate=24,
+                frame_count={5: 124, 8: 192}[getattr(provider, "duration", 5)],
             ),
         )
     )
@@ -250,7 +255,8 @@ def _approved_keyframe(
 
 
 def _prepare_video(
-    client: TestClient, project_id: str, approval: dict, context: dict, *, key: str
+    client: TestClient, project_id: str, approval: dict, context: dict, *, key: str,
+    requested_duration_seconds: int | None = None,
 ) -> dict:
     prepared = client.post(
         f"/api/v2/projects/{project_id}/video-jobs",
@@ -262,6 +268,7 @@ def _prepare_video(
             "idempotencyKey": key,
             "aspectPolicy": "reject_mismatch",
             "seed": 31,
+            **({"requestedDurationSeconds": requested_duration_seconds} if requested_duration_seconds is not None else {}),
         },
     )
     assert prepared.status_code == 201, prepared.text
@@ -690,6 +697,67 @@ def test_video_disposal_keeps_a_cross_kind_managed_asset_blob(
     assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/media").status_code == 200
 
 
+def test_eight_second_h3_job_freezes_output_contract_and_survives_restart(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+    job = _prepare_video(
+        client, project_id, approval, context, key="qualified-eight-seconds",
+        requested_duration_seconds=8,
+    )
+    request = job["snapshot"]["request"]
+    assert request["durationSeconds"] == 8
+    assert request["frameCount"] == 192
+    assert request["fps"] == 24
+    restarted = TestClient(create_project_folder_authoring_app(
+        storage, video_provider=provider, video_adapter=MiniMaxH3GatewayAdapter(),
+        video_probe=lambda _content: ObservedVideo(8.0, 576, 1024, "h264", "aac", frame_rate=24, frame_count=192),
+    ))
+    submitted = restarted.post(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit")
+    assert submitted.status_code == 200 and provider.submits[-1]["durationSeconds"] == 8
+    ingested = restarted.post(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/reconcile")
+    assert ingested.status_code == 200
+    assert ingested.json()["observed"]["frameCount"] == 192
+
+    rejected = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs",
+        json={
+            "approvalId": approval["id"], "shotId": context["shot"].id,
+            "storyboardRevision": context["revision"],
+            "expectedSelectionRevision": context["selection"]["selectionRevision"],
+            "idempotencyKey": "unqualified-seven-seconds", "requestedDurationSeconds": 7,
+        },
+    )
+    assert rejected.status_code == 422
+
+
+def test_row_duration_tamper_cannot_change_a_frozen_h3_submission(tmp_path: Path) -> None:
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+    job = _prepare_video(client, project_id, approval, context, key="row-duration-tamper")
+    store = storage.projects.open(project_id)
+    try:
+        database = store.database_path
+    finally:
+        store.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute("UPDATE v2_video_jobs SET requested_seconds = 8 WHERE id = ?", (job["id"],))
+    rejected = client.post(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit")
+    assert rejected.status_code == 409
+    assert provider.submits == []
+
+
 def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamper_stales(
     tmp_path: Path,
 ) -> None:
@@ -722,6 +790,7 @@ def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamp
         "aspectPolicy": "cover_center_crop", "seed": 41,
         "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
         "profileVersion": 1, "width": 576, "height": 1024,
+        "fps": 24, "frameCount": 124,
         "allowLetterbox": False, "allowCenterCrop": True,
     }
 
@@ -893,6 +962,9 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
     finally:
         recovered.close()
     restored_provider = FakeH3()
+    # A known gateway job retains its frozen seed even though the fresh local
+    # fixture instance did not submit it.
+    restored_provider.seed = 14
     restored_client = TestClient(
         create_project_folder_authoring_app(
             restored,
@@ -1069,7 +1141,7 @@ def test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses
         storage.application.path,
         "SELECT event, units FROM direct_video_dispatch_events WHERE dispatch_identity = ? ORDER BY rowid",
         (dispatch_identity,),
-    ) == [("reserved", 0), ("dispatch_claimed", 0)]
+    ) == [("reserved", 5), ("dispatch_claimed", 5)]
 
     project_home = storage.projects.open(project_id)
     try:

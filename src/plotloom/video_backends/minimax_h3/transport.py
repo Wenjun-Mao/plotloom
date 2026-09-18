@@ -21,7 +21,7 @@ from ...video_provider import (
     WanDispatchDiagnostic,
     WanDispatchError,
 )
-from .adapter import H3_PROFILE_CONTRACT_VERSION, H3_PROFILES_BY_ID
+from .adapter import H3_PROFILE_CONTRACT_VERSION, H3_PROFILES_BY_ID, H3_QUALIFIED_DURATION_FRAMES
 
 
 class MiniMaxH3GatewayTransport:
@@ -111,12 +111,22 @@ class MiniMaxH3GatewayTransport:
 
         if set(payload) != {"prompt", "profileId", "aspectPolicy", "seed", "durationSeconds"}:
             raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed"))
+        duration = payload["durationSeconds"]
+        expected_frame_count = H3_QUALIFIED_DURATION_FRAMES.get(duration) if type(duration) is int else None
+        if expected_frame_count is None:
+            raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed"))
         result = self._request_json(
             "submit", "POST", "v1/video-jobs/from-image",
             files={"image": ("approved-keyframe", image, mime_type)},
             data={key: str(value) for key, value in payload.items()},
         )
-        self._validate_job_envelope(result, phase="submit_response_parse")
+        self._validate_job_envelope(
+            result,
+            phase="submit_response_parse",
+            expected_duration_seconds=payload["durationSeconds"],
+            expected_frame_count=expected_frame_count,
+            expected_seed=payload["seed"],
+        )
         if result.get("inputMode") != "image":
             raise WanDispatchError(WanDispatchDiagnostic("submit_response_parse", "invalid_envelope"))
         return result
@@ -208,6 +218,9 @@ class MiniMaxH3GatewayTransport:
         *,
         phase: DispatchPhase,
         expected_id: str | None = None,
+        expected_duration_seconds: int | None = None,
+        expected_frame_count: int | None = None,
+        expected_seed: int | None = None,
     ) -> None:
         expected = {
             "id", "status", "inputMode", "profileId", "aspectPolicy", "seed",
@@ -239,6 +252,13 @@ class MiniMaxH3GatewayTransport:
         duration = value.get("requestedDurationSeconds")
         frame_count = value.get("frameCount")
         if type(duration) is not int or not 5 <= duration <= 15 or type(frame_count) is not int or frame_count % 17 != 5:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        if (
+            expected_duration_seconds is not None and duration != expected_duration_seconds
+            or expected_frame_count is not None and frame_count != expected_frame_count
+        ):
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        if expected_seed is not None and value.get("seed") != expected_seed:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         actual = value.get("actualDurationSeconds")
         if type(actual) not in {float, int} or abs(float(actual) - frame_count / 24) > 0.0001:

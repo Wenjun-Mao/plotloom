@@ -4,7 +4,7 @@ import { plotloomApi } from "./api";
 import { Button, Panel } from "./components";
 import { deriveRoutes, groupStoryboard } from "./model";
 import { BranchingVideoPreview } from "./branching-video-preview";
-import { MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
+import { MiniMaxH3DurationField, MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, h3QualifiedDurations, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
 
@@ -167,6 +167,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const [backend, setBackend] = useState<VideoBackend | null>(null);
   const [jobs, setJobs] = useState<VideoJob[]>([]);
   const [h3ProfileId, setH3ProfileId] = useState("");
+  const [h3DurationSeconds, setH3DurationSeconds] = useState(5);
   const [h3InputFrameMode, setH3InputFrameMode] = useState<"reject_mismatch" | "cover_center_crop" | "contain_pad">("reject_mismatch");
   const [error, setError] = useState("");
   const refreshToken = useRef(0);
@@ -186,7 +187,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     setBudget(nextBudget); setBackend(nextBackend); setJobs(nextJobs.jobs);
   };
   useEffect(() => {
-    setBudget(null); setBackend(null); setJobs([]); setError(""); setH3ProfileId(""); setH3InputFrameMode("reject_mismatch");
+    setBudget(null); setBackend(null); setJobs([]); setError(""); setH3ProfileId(""); setH3DurationSeconds(5); setH3InputFrameMode("reject_mismatch");
     void refresh().catch((reason) => setError(reason instanceof Error ? reason.message : "无法读取视频试点状态"));
     return () => { refreshToken.current += 1; };
   }, [projectId]);
@@ -208,7 +209,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       approvalId, shotId: shot.id, storyboardRevision, expectedSelectionRevision: selectionRevision,
       idempotencyKey: crypto.randomUUID(),
       ...(backend?.enabled ? {
-        requestedDurationSeconds: profile?.durationSeconds ?? backend.durationSeconds,
+        requestedDurationSeconds: h3 ? h3DurationSeconds : profile?.durationSeconds ?? backend.durationSeconds,
         resolution: profile ? `${profile.width}x${profile.height}` : backend.resolution,
         audio: backend.nativeAudio ? true as const : undefined,
       } : {}),
@@ -238,6 +239,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const selectedSequence = selectedRouteVideos(jobs.filter((job) => job.projectId === projectId), storyboard, sceneBeats, graph, routeId);
   const h3 = isMiniMaxH3Backend(backend);
   const availableH3Profiles = h3Profiles(backend);
+  const availableH3Durations = h3QualifiedDurations(backend);
   const selectedProfile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
   const h3AspectMismatch = Boolean(
     selectedProfile && keyframe
@@ -250,6 +252,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       : <p>仅 5 秒 / 720p / 原生音频。提交后本地保守计入共享 100 秒额度；不会自动重试或回退。</p>}
     {backend?.enabled === false && <small className="notice warning">当前运行时未启用经审核的视频后端；不能冻结或提交新候选。</small>}
     {h3 && <MiniMaxH3ProfileField profiles={availableH3Profiles} value={h3ProfileId} onChange={setH3ProfileId} disabled={readOnly} />}
+    {h3 && <MiniMaxH3DurationField values={availableH3Durations} value={h3DurationSeconds} onChange={setH3DurationSeconds} disabled={readOnly} />}
     {h3 && selectedProfile && keyframe && !h3AspectMismatch && <small className="notice" data-testid="h3-aspect-ready">当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例匹配；将以 reject_mismatch 冻结。</small>}
     {h3 && selectedProfile && keyframe && h3AspectMismatch && <div className="notice warning" data-testid="h3-aspect-preparation">
       <strong>当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例不符。</strong>
