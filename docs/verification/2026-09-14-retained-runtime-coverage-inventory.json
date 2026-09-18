@@ -1207,7 +1207,7 @@
       ]
     },
     "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement": {
-      "source_sha256": "24bccb529d9420ffc862f348bf03d1f4209ad1bb1b53a6222b7f91b587328b93",
+      "source_sha256": "71d69d00327fe81b7dde02c10a0d21a972edc82d7273f4f7e6f9784c594299e1",
       "assertions": [
         "approval.status_code == 201",
         "missing.status_code == 422",
@@ -1217,10 +1217,12 @@
         "job_response.status_code == 201",
         "frozen['visibleCharacterIds'] == ['fixture-hero']",
         "frozen['characterIdentity'][0]['referenceDecisionId'] == selected_reference.json()['id']",
+        "frozen['characterIdentity'][0]['acceptedCast'] == accepted_cast",
         "[entry['role'] for entry in frozen['references']] == ['character_identity']",
         "copied.status_code == 200",
         "package_request['packageVersion'] == 4",
         "package_request['references'][0]['role'] == 'character_identity:fixture-hero'",
+        "'characterIdentity[].acceptedCast' in (package / 'COPY_ASSIGNMENT.txt').read_text(encoding='utf-8')",
         "awaiting.status_code == 200",
         "awaiting.json()['state'] == 'awaiting_delivery'",
         "client.get(f'/api/v2/projects/{project_id}/image-jobs').json()['jobs'][0]['deliveries'] == []",

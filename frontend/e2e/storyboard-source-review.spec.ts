@@ -150,5 +150,29 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     }
     await writeFile(file, original); await writeFile(manifestFile, JSON.stringify(manifest));
     expect((await request.post(`${root}/candidates/${prepared.jobId}/refresh`)).ok()).toBeTruthy();
+    const ready = (await json(request.get(root))).candidate;
+    const altered = JSON.parse(original.toString()); altered.params.maxCutSeconds = 9;
+    const alteredBytes = Buffer.from(JSON.stringify(altered));
+    await writeFile(file, alteredBytes);
+    await writeFile(manifestFile, JSON.stringify({ ...manifest, candidate: { ...manifest.candidate, sha256: hash(alteredBytes) } }));
+    const replay = await request.post(`${root}/candidates/${prepared.jobId}/refresh`);
+    expect(replay.status(), await replay.text()).toBe(409);
+    expect((await json(request.get(root))).candidate).toEqual(ready);
+  });
+
+  test("re-copy refuses changed frozen admission bytes without rewriting the package", async ({ request, workbench }) => {
+    const id = await createScriptProject(request, workbench.apiOrigin, "recopy-tamper");
+    const root = endpoint(workbench.apiOrigin, id);
+    const prepared = await json(request.post(`${root}/candidates`));
+    const admissionFile = path.join(prepared.packagePath, "inputs/storyboard-admission.json");
+    const frozen = await readFile(admissionFile);
+    const changed = JSON.parse(frozen.toString()); changed.reviewTiming.minCutSeconds = 1;
+    const tampered = Buffer.from(JSON.stringify(changed));
+    await writeFile(admissionFile, tampered);
+    const recovered = await request.get(`${root}/candidates/${prepared.jobId}/handoff`);
+    expect(recovered.status(), await recovered.text()).toBe(409);
+    expect(await readFile(admissionFile)).toEqual(tampered);
+    await writeFile(admissionFile, frozen);
+    expect((await json(request.get(`${root}/candidates/${prepared.jobId}/handoff`))).assignment).toBe(prepared.assignment);
   });
 });
