@@ -30,6 +30,7 @@ from ..schema import (
     SourceOutlineRevisionRow, SourceOutlineSectionMapHeadRow,
     SourceOutlineSectionMapRevisionRow, SourceOutlineSourceRevisionRow, StageHeadRow,
     CastCandidateRow, CastHeadRow, CastRevisionRow, ArtCandidateRow, ArtHeadRow, ArtRevisionRow,
+    ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow,
 )
 from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
 from .access import ProjectCodecs, ProjectGuards, ProjectLeases, ProjectPersistenceAccess, ProjectRows
@@ -60,6 +61,7 @@ from .media import ProjectMediaPersistence
 from .source_outline import ProjectSourceOutlinePersistence
 from .cast import ProjectCastPersistence
 from .art import ProjectArtPersistence
+from .script import ProjectScriptPersistence
 from .repository_codecs import (
     approval_decision_from_row, artifact_from_row, assert_active_project,
     assert_lifecycle_revision, attempt_from_row, decode_current_stage_payload,
@@ -131,6 +133,7 @@ class ProjectSQLiteRepository:
                     SourceOutlineGraphAdmissionRow.__table__,
                     CastHeadRow.__table__, CastCandidateRow.__table__, CastRevisionRow.__table__,
                     ArtHeadRow.__table__, ArtCandidateRow.__table__, ArtRevisionRow.__table__,
+                    ScriptHeadRow.__table__, ScriptCandidateRow.__table__, ScriptRevisionRow.__table__,
                 ],
             )
         self._generation_admission = ProjectGenerationAdmission()
@@ -167,6 +170,7 @@ class ProjectSQLiteRepository:
         self.source_outline = ProjectSourceOutlinePersistence(self._project_access, self._canonical)
         self.cast = ProjectCastPersistence(self._project_access)
         self.art = ProjectArtPersistence(self._project_access, self.cast)
+        self.script = ProjectScriptPersistence(self._project_access, self.art)
         self._media = ProjectMediaPersistence(
             self._project_access, self._canonical, self._drafts, self.cast, self.art, accounting=None
         )
@@ -317,6 +321,7 @@ class ProjectSQLiteRepository:
             self.source_outline.initialize(session, project.id, created_at=project.created_at)
             self.cast.initialize(session, project.id, created_at=project.created_at)
             self.art.initialize(session, project.id, created_at=project.created_at)
+            self.script.initialize(session, project.id, created_at=project.created_at)
             session.flush()
             for initial_stage in normalized_stages:
                 payload = stage_payload_model(

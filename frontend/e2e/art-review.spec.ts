@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { deflateSync } from "node:zlib";
@@ -22,6 +22,8 @@ type ArtState = {
   acceptedArt: { revision: number; art: Record<string, unknown> } | null;
   status: string;
 };
+
+type ScriptPreparation = { jobId: string; packagePath: string; deliveryPath: string; expectedScriptRevision: number; binding: unknown };
 
 test.describe("F3A production art review", () => {
   test("F3B shows current reference bytes, restart persistence, stale art, and cancellation release", async ({ page, request, workbench }) => {
@@ -270,6 +272,46 @@ test.describe("F3A production art review", () => {
       await page.unroute(`**/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/copy`, heldRoute);
     }
   });
+
+  test("F4 accepts the three-section script, preserves a scoped edit, and survives backend restart", async ({ page, request, workbench }) => {
+    test.setTimeout(75_000);
+    const projectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f4-script");
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
+    const panel = page.getByTestId("script-review");
+    const preparedResponse = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates`);
+    await panel.getByRole("button", { name: "准备并复制 script specialist handoff" }).click();
+    const prepared = await (await preparedResponse).json() as ScriptPreparation;
+    // A deliberately opt-in capture makes an attended specialist handoff from
+    // this exact production-browser project reproducible without retaining a
+    // normal browser-test fixture or mutating product roots.
+    const liveProofRoot = process.env.PLOTLOOM_F4_LIVE_PROOF_DIR;
+    if (liveProofRoot) {
+      await mkdir(liveProofRoot, { recursive: true });
+      await cp(workbench.outputsRoot, path.join(liveProofRoot, "outputs"), { recursive: true });
+      const projectFolder = path.basename(path.resolve(prepared.packagePath, "../../../../.."));
+      const copiedJobRoot = path.join(liveProofRoot, "outputs", projectFolder, "outputs", "creative-handoff", "jobs", prepared.jobId);
+      await writeFile(path.join(liveProofRoot, "proof.json"), JSON.stringify({
+        projectId, packagePath: path.join(copiedJobRoot, "package"), deliveryPath: path.join(copiedJobRoot, "delivery"),
+      }, null, 2));
+    }
+    await writeStageDelivery(prepared, "script.json", scriptFixture(), "f4-script", "script");
+    const refreshed = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates/${prepared.jobId}/refresh`);
+    await panel.getByRole("button", { name: "刷新 specialist delivery" }).click();
+    expect((await refreshed).ok()).toBeTruthy();
+    await panel.getByRole("button", { name: "显式接受完整 pilot 剧本" }).click();
+    await expect(panel).toContainText("已接受 r1");
+    await panel.getByRole("button", { name: "重新打开剧本" }).click();
+    await panel.getByRole("combobox").selectOption("opening");
+    const editor = panel.locator("textarea.source-outline-json");
+    const opening = JSON.parse(await editor.inputValue()) as Record<string, unknown>;
+    await editor.fill(JSON.stringify({ ...opening, cliff: "Edited opening leaves its own consequence." }, null, 2));
+    await panel.getByRole("button", { name: "保存此章节，不覆盖其他章节" }).click();
+    await expect(panel).toContainText("已接受 r2");
+    await workbench.restartBackend(); await page.reload();
+    await expect(panel).toContainText("已接受 r2");
+    const accepted = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/script`));
+    expect(accepted.acceptedScript.script.episodes[2].ep).toBe(3);
+  });
 });
 
 async function createAcceptedCastProject(request: Api, apiOrigin: string, label: string): Promise<string> {
@@ -378,6 +420,7 @@ function sourceMaterial(label: string) { return { kind: "synopsis", title: `Beac
 function sectionMap() { return { sections: [{ sectionId: "opening", title: "Storm warning", summary: "The keeper has one cable and two destinations.", ending: false }, { sectionId: "beacon", title: "Beacon lit", summary: "The beacon guides sailors through the storm.", ending: true }, { sectionId: "dock", title: "Dock lit", summary: "The dock welcomes boats while the beacon goes dark.", ending: true }], choice: { choiceId: "power-choice", sectionId: "opening", prompt: "Where should the keeper send the cable?", outcomes: [{ outcomeId: "beacon-path", label: "Light the beacon", consequence: "The dock loses power.", endingSectionId: "beacon" }, { outcomeId: "dock-path", label: "Light the dock", consequence: "The beacon goes dark.", endingSectionId: "dock" }] } }; }
 function castFixture() { return { source: "F3A browser fixture", summary: "One beacon keeper.", characters: [{ id: "keeper", name: "Mira", persona: { motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }; }
 function artFixture() { const render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"; return { source: "F3A browser fixture", style: "realistic", scenes: [{ id: "S01", name: "Beacon room", primary: true, summary: "The keeper faces a power choice.", anchors: [{ name: "brass lamp", desc: "old brass" }, { name: "window", desc: "salted glass" }, { name: "desk", desc: "worn wood" }], lighting: [{ state: "dawn", prompt: "cold dawn through a window" }], image: { prompt: "empty beacon room", negativePrompt: "people, human figures", sheet: render, tags: [] } }], props: [], sectionUsage: [{ sectionId: "opening", sceneIds: ["S01"], propIds: [] }, { sectionId: "beacon", sceneIds: ["S01"], propIds: [] }, { sectionId: "dock", sceneIds: ["S01"], propIds: [] }] }; }
+function scriptFixture() { const episode = (ep: number) => ({ ep, targetSeconds: 60, hook: `Section ${ep} begins in motion`, cliff: `Section ${ep} leaves a choice open`, hookBeat: [1, 1], beatsClaimed: [], scenes: [{ sceneId: "S01", lighting: "dawn", characters: [], props: [], flow: Array.from({ length: 24 }, (_, index) => ({ action: `Mira crosses the beacon room, action ${index}.` })) }] }); return { source: "F3A browser fixture", sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 2 }, { sectionId: "dock", episode: 3 }], episodes: [episode(1), episode(2), episode(3)] }; }
 function withSummary(art: Record<string, unknown>, summary: string): Record<string, unknown> { return { ...art, scenes: (art.scenes as Array<Record<string, unknown>>).map((scene, index) => index === 0 ? { ...scene, summary } : scene) }; }
 
 async function expectOnlySourceMapGraph(request: Api, apiOrigin: string, projectId: string): Promise<void> {

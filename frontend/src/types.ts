@@ -1256,3 +1256,9 @@ export interface ArtCandidate { jobId: string; expectedArtRevision: number; bind
 export interface ArtCandidatePreparation extends ArtCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedArtRevision { revision: number; candidateJobId: string; contentHash: string; binding: ArtBinding; art: Record<string, unknown>; acceptedAt: string; }
 export interface ArtReviewState { candidate: ArtCandidate | null; acceptedArt: AcceptedArtRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: string[]; }
+
+export interface ScriptBinding extends ArtBinding { artRevision: number; artContentHash: string; }
+export interface ScriptCandidate { jobId: string; expectedScriptRevision: number; binding: ScriptBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; script: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
+export interface ScriptCandidatePreparation extends ScriptCandidate { packagePath: string; deliveryPath: string; assignment: string; }
+export interface AcceptedScriptRevision { revision: number; candidateJobId: string; contentHash: string; binding: ScriptBinding; script: Record<string, unknown>; acceptedAt: string; }
+export interface ScriptReviewState { candidate: ScriptCandidate | null; acceptedScript: AcceptedScriptRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: string[]; }

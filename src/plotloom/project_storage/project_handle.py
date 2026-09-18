@@ -35,6 +35,7 @@ from ..creative_handoff_contracts import CreativeHandoffRequest
 from ..creative_handoff_exchange import ValidatedCreativeDelivery
 from ..cast_contracts import CastAcceptRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
+from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
 from ..persistence import ProjectSQLiteRepository
 from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
 from .format import (
@@ -499,6 +500,33 @@ class ProjectStore:
 
     def art_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
         return self.repository.art.candidate_request(self.manifest.project_id, job_id)
+
+    def script_state(self) -> ScriptReviewState:
+        return self.repository.script.get_state(self.manifest.project_id)
+
+    def prepare_script_candidate(self, job_id: str) -> tuple[ScriptCandidate, CreativeHandoffRequest]:
+        return self.repository.script.prepare_candidate(self.manifest.project_id, job_id)
+
+    def admit_script_delivery(self, delivery: ValidatedCreativeDelivery) -> ScriptCandidate:
+        return self.repository.script.admit_delivery(self.manifest.project_id, delivery)
+
+    def accept_script_candidate(self, request: ScriptAcceptRequest) -> ScriptReviewState:
+        return self.repository.script.accept_candidate(self.manifest.project_id, request)
+
+    def reopen_script(self, request: ScriptReopenRequest) -> ScriptReviewState:
+        return self.repository.script.reopen(self.manifest.project_id, request)
+
+    def save_script_section(self, request: ScriptSectionSaveRequest) -> ScriptReviewState:
+        return self.repository.script.save_section(self.manifest.project_id, request)
+
+    def cancel_script_candidate(self, job_id: str) -> ScriptReviewState:
+        return self.repository.script.cancel_candidate(self.manifest.project_id, job_id)
+
+    def script_candidate_report(self, job_id: str) -> str:
+        return self.repository.script.candidate_report(self.manifest.project_id, job_id)
+
+    def script_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
+        return self.repository.script.candidate_request(self.manifest.project_id, job_id)
 
     def save_authoring_draft(
         self,

@@ -58,6 +58,9 @@ import type {
   ArtCandidatePreparation,
   ArtReferenceProposal,
   ArtReferenceProposalsResponse,
+  ScriptReviewState,
+  ScriptCandidate,
+  ScriptCandidatePreparation,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -598,6 +601,16 @@ export class PlotloomApiClient {
   reopenArt(projectId: string, expectedArtRevision: number): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/reopen`, { method: "POST", body: JSON.stringify({ expectedArtRevision }) }); }
   saveReopenedArt(projectId: string, body: { expectedArtRevision: number; binding: unknown; art: Record<string, unknown> }): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/save`, { method: "POST", body: JSON.stringify(body) }); }
   artCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/report`; }
+
+  getScript(projectId: string): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script`); }
+  prepareScriptCandidate(projectId: string): Promise<ScriptCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/candidates`, { method: "POST" }); }
+  recoverScriptHandoff(projectId: string, jobId: string): Promise<ScriptCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/candidates/${encodeURIComponent(jobId)}/handoff`); }
+  refreshScriptCandidate(projectId: string, jobId: string): Promise<ScriptCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
+  cancelScriptCandidate(projectId: string, jobId: string): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
+  acceptScriptCandidate(projectId: string, body: { jobId: string; expectedScriptRevision: number; binding: unknown; script: Record<string, unknown> }): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/accept`, { method: "POST", body: JSON.stringify(body) }); }
+  reopenScript(projectId: string, expectedScriptRevision: number): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/reopen`, { method: "POST", body: JSON.stringify({ expectedScriptRevision }) }); }
+  saveScriptSection(projectId: string, body: { expectedScriptRevision: number; binding: unknown; sectionId: string; episode: Record<string, unknown> }): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/sections/save`, { method: "POST", body: JSON.stringify(body) }); }
+  scriptCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/script/candidates/${encodeURIComponent(jobId)}/report`; }
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
   getVideoBackend(): Promise<VideoBackend> { return this.request("/video-backend"); }

@@ -13,6 +13,7 @@ from PIL import Image
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest, ArtBinding, ArtReopenRequest, ArtSaveRequest
+from plotloom.script_contracts import ScriptAcceptRequest, ScriptReopenRequest, ScriptSectionSaveRequest
 from plotloom.cast_contracts import CastAcceptRequest, CastConsumerMapping
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
@@ -242,6 +243,50 @@ def test_art_reference_study_browser_lifecycle_persists_and_stales(tmp_path: Pat
     assert late.status_code == 200, late.text
     assert late.json()["state"] == "inapplicable"
     assert late.json()["candidates"] == []
+
+
+def _pilot_script() -> dict[str, object]:
+    """A valid tiny three-section F4 fixture, not a second graph representation."""
+
+    def episode(number: int) -> dict[str, object]:
+        return {
+            "ep": number, "targetSeconds": 50, "hook": f"Section {number} begins in motion", "cliff": f"Section {number} leaves a consequence open", "hookBeat": [1, 1], "beatsClaimed": [],
+            "scenes": [{"sceneId": "S01", "lighting": "dawn", "characters": [], "props": [], "flow": [{"action": f"Lin crosses the beacon room, action {index}."} for index in range(20)]}],
+        }
+
+    return {"source": "Tide Light", "sectionBindings": [{"sectionId": "opening", "episode": 1}, {"sectionId": "ending-a", "episode": 2}, {"sectionId": "ending-b", "episode": 3}], "episodes": [episode(1), episode(2), episode(3)]}
+
+
+def test_f4_script_accepts_whole_pilot_preserves_scoped_edits_and_rejects_late_delivery(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    try:
+        binding = _prepare_art_context(store)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "q" * 32)
+        art_ready = store.admit_art_delivery(_deliver(store, art_request))
+        store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
+        candidate, request = store.prepare_script_candidate("ch_" + "w" * 32)
+        assert "script_publication_active" in close_blockers(store)
+        ready = store.admit_script_delivery(_deliver_stage(store, request, "script.json", _pilot_script(), "script-fixture"))
+        accepted = store.accept_script_candidate(ScriptAcceptRequest(job_id=candidate.job_id, expected_script_revision=0, binding=ready.binding, script=ready.script))
+        assert accepted.accepted_script and accepted.accepted_script.revision == 1
+        original_ending = accepted.accepted_script.script["episodes"][2]
+        store.reopen_script(ScriptReopenRequest(expected_script_revision=1))
+        opening = dict(accepted.accepted_script.script["episodes"][0]); opening["cliff"] = "Opening edit keeps its own consequence"
+        saved = store.save_script_section(ScriptSectionSaveRequest(expected_script_revision=1, binding=accepted.accepted_script.binding, section_id="opening", episode=opening))
+        assert saved.accepted_script and saved.accepted_script.script["episodes"][2] == original_ending
+        pending, pending_request = store.prepare_script_candidate("ch_" + "v" * 32)
+        store.cancel_script_candidate(pending.job_id)
+        with pytest.raises(Exception, match="current prepared|unavailable|cancelled"):
+            store.admit_script_delivery(_deliver_stage(store, pending_request, "script.json", _pilot_script(), "late-script"))
+    finally:
+        store.close()
+    restarted = storage.projects.open(project_id)
+    try:
+        assert restarted.script_state().accepted_script and restarted.script_state().accepted_script.revision == 2
+    finally:
+        restarted.close()
     final_store = storage.projects.open(project_id)
     try:
         assert "art_reference_publication_active" not in close_blockers(final_store)

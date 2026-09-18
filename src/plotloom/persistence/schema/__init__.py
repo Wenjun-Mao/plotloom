@@ -11,6 +11,7 @@ from .project_source_outline import (
 )
 from .project_cast import CastCandidateRow, CastHeadRow, CastRevisionRow
 from .project_art import ArtCandidateRow, ArtHeadRow, ArtRevisionRow
+from .project_script import ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow
 from .project_generation import (
     ArtifactRow, FragmentReuseBindingRow, GenerationAttemptRow, GenerationPlanRow,
     GenerationRunRow, GenerationWorkUnitRow, MediaTaskRow, SealedStageAggregateRow, StagePlanRow,
@@ -48,4 +49,5 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_source_outline_graph_admissions",
     "v2_cast_heads", "v2_cast_candidates", "v2_cast_revisions",
     "v2_art_heads", "v2_art_candidates", "v2_art_revisions",
+    "v2_script_heads", "v2_script_candidates", "v2_script_revisions",
 })
