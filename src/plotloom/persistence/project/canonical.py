@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
+from ...canonical_schema import StoryGraphV2
 from ...domain import (
     STAGE_ORDER, AuthoringDraft, AuthoringDraftScope, DialogueTimingProfile,
     EntityRevision, GateEvaluation, GateEvidence, GateResult, InitialStage,
@@ -76,6 +77,7 @@ class ProjectCanonicalPersistence:
         now: datetime,
         allow_noop: bool,
         dialogue_timing_profile: DialogueTimingProfile | None = None,
+        source_map_graph_admission: bool = False,
     ) -> tuple[StageHead, EntityRevisionRow | None]:
         """Validate and install one canonical revision in the caller's transaction."""
 
@@ -85,24 +87,34 @@ class ProjectCanonicalPersistence:
 
         input_revisions: dict[StageName, int] = {}
         upstream_payloads: dict[StageName, StagePayload] = {}
-        for upstream in upstream_stages(stage):
-            upstream_head = self._access.rows.stage(session, project_row.id, upstream)
-            if upstream_head.status != StageStatus.READY.value:
-                raise StagePrerequisiteError(stage, upstream, upstream_head.status)
-            input_revisions[upstream] = upstream_head.revision
-            upstream_payloads[upstream] = self._load_stage_payload(session, project_row.id, upstream)
+        if source_map_graph_admission:
+            if stage != StageName.STORY_GRAPH or not isinstance(payload, StoryGraphV2):
+                raise TypeError("source-map admission only installs StoryGraphV2")
+            from ...source_outline_contracts import validate_section_map_graph
 
-        brief = ProjectBrief.model_validate(project_row.brief)
-        gate_evaluation = validate_stage_payload(
-            stage,
-            payload,
-            schema_version=CURRENT_STAGE_SCHEMA_VERSION,
-            brief=brief,
-            bible=upstream_payloads.get(StageName.STORY_BIBLE),  # type: ignore[arg-type]
-            graph=upstream_payloads.get(StageName.STORY_GRAPH),  # type: ignore[arg-type]
-            scene_beats=upstream_payloads.get(StageName.SCENE_BEATS),  # type: ignore[arg-type]
-            dialogue_timing_profile=dialogue_timing_profile,
-        )
+            validate_section_map_graph(payload, ProjectBrief.model_validate(project_row.brief))
+        else:
+            for upstream in upstream_stages(stage):
+                upstream_head = self._access.rows.stage(session, project_row.id, upstream)
+                if upstream_head.status != StageStatus.READY.value:
+                    raise StagePrerequisiteError(stage, upstream, upstream_head.status)
+                input_revisions[upstream] = upstream_head.revision
+                upstream_payloads[upstream] = self._load_stage_payload(session, project_row.id, upstream)
+
+        if source_map_graph_admission:
+            gate_evaluation = None
+        else:
+            brief = ProjectBrief.model_validate(project_row.brief)
+            gate_evaluation = validate_stage_payload(
+                stage,
+                payload,
+                schema_version=CURRENT_STAGE_SCHEMA_VERSION,
+                brief=brief,
+                bible=upstream_payloads.get(StageName.STORY_BIBLE),  # type: ignore[arg-type]
+                graph=upstream_payloads.get(StageName.STORY_GRAPH),  # type: ignore[arg-type]
+                scene_beats=upstream_payloads.get(StageName.SCENE_BEATS),  # type: ignore[arg-type]
+                dialogue_timing_profile=dialogue_timing_profile,
+            )
         payload_data = payload.model_dump(mode="json", by_alias=False)
         content_hash = stable_hash(payload_data)
         next_inputs = {key.value: value for key, value in input_revisions.items()}
@@ -172,6 +184,24 @@ class ProjectCanonicalPersistence:
         head.updated_at = now
         self._mark_downstream_stale(session, project_row.id, stage, now)
         return self._access.codecs.stage_head(head), revision_row
+
+    def install_source_map_graph_in_session(
+        self, session: Session, project_row: ProjectRow, graph: StoryGraphV2, *,
+        expected_revision: int, now: datetime,
+    ) -> StageHead:
+        """Install the one F1B graph admission inside its binding transaction."""
+
+        head, _ = self._install_stage_in_session(
+            session,
+            project_row,
+            StageName.STORY_GRAPH,
+            graph,
+            expected_revision=expected_revision,
+            now=now,
+            allow_noop=False,
+            source_map_graph_admission=True,
+        )
+        return head
 
     def update_stage(
         self,

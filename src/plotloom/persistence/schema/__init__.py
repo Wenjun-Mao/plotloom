@@ -5,6 +5,7 @@ from .project_authoring import (
 )
 from .project_source_outline import (
     SourceOutlineCandidateRow, SourceOutlineHeadRow, SourceOutlineRevisionRow,
+    SourceOutlineGraphAdmissionRow,
     SourceOutlineSectionMapHeadRow, SourceOutlineSectionMapRevisionRow,
     SourceOutlineSourceRevisionRow,
 )
@@ -40,4 +41,5 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_source_outline_heads", "v2_source_outline_source_revisions",
     "v2_source_outline_candidates", "v2_source_outline_revisions",
     "v2_source_outline_section_map_heads", "v2_source_outline_section_map_revisions",
+    "v2_source_outline_graph_admissions",
 })

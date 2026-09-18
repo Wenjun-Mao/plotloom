@@ -26,6 +26,26 @@ describe("Plotloom workspace model", () => {
     expect(routes.some((route) => route.nodeIds.at(-1) === "ending_choice")).toBe(true);
   });
 
+  it("derives both F1B routes from the three canonical authored section IDs", () => {
+    const routes = deriveRoutes({
+      startNodeId: "tide-entry",
+      nodes: [
+        { id: "tide-entry", title: "气象站", summary: "选择电力去向。", kind: "start" },
+        { id: "dock-ending", title: "码头结局", summary: "码头得电。", kind: "ending" },
+        { id: "beacon-ending", title: "灯塔结局", summary: "灯塔得电。", kind: "ending" },
+      ],
+      edges: [
+        { id: "dock-route", sourceNodeId: "tide-entry", targetNodeId: "dock-ending", kind: "choice", choiceText: "供电码头", stateEffects: {}, entityStateEffects: [] },
+        { id: "beacon-route", sourceNodeId: "tide-entry", targetNodeId: "beacon-ending", kind: "choice", choiceText: "供电灯塔", stateEffects: {}, entityStateEffects: [] },
+      ],
+      joinContracts: [],
+    });
+    expect(routes).toEqual([
+      { id: "tide-entry/dock-ending", label: "供电码头 → 码头结局", nodeIds: ["tide-entry", "dock-ending"] },
+      { id: "tide-entry/beacon-ending", label: "供电灯塔 → 灯塔结局", nodeIds: ["tide-entry", "beacon-ending"] },
+    ]);
+  });
+
   it("marks only downstream stages stale", () => {
     const updated = markDownstreamStale({ ...demoProject, staleStages: [] }, "story_graph");
     expect(updated.staleStages).toEqual(["scene_beats", "storyboard"]);

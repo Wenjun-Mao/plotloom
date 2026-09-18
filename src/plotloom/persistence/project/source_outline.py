@@ -9,10 +9,11 @@ from sqlalchemy import select
 
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
-from ...domain import new_id, utc_now
+from ...domain import StageName, StageStatus, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...source_outline_contracts import (
     AcceptedOutlineRevision, AcceptedSectionMapRevision,
+    SectionMapGraphInstallRequest, SourceMapGraphAdmission,
     OutlineAcceptRequest,
     OutlineCandidate,
     OutlineReopenRequest,
@@ -20,9 +21,11 @@ from ...source_outline_contracts import (
     SourceMaterial,
     SourceOutlineReviewState,
     SourceRevision,
+    compile_section_map_graph,
 )
 from ..schema import (
     SourceOutlineCandidateRow,
+    SourceOutlineGraphAdmissionRow,
     SourceOutlineHeadRow,
     SourceOutlineRevisionRow,
     SourceOutlineSectionMapHeadRow,
@@ -30,13 +33,15 @@ from ..schema import (
     SourceOutlineSourceRevisionRow,
 )
 from .access import ProjectPersistenceAccess
+from .canonical import ProjectCanonicalPersistence
 
 
 class ProjectSourceOutlinePersistence:
     """Own one accepted source and outline without translating upstream JSON."""
 
-    def __init__(self, access: ProjectPersistenceAccess) -> None:
+    def __init__(self, access: ProjectPersistenceAccess, canonical: ProjectCanonicalPersistence) -> None:
         self._access = access
+        self._canonical = canonical
 
     @staticmethod
     def _source(row: SourceOutlineSourceRevisionRow) -> SourceRevision:
@@ -83,6 +88,22 @@ class ProjectSourceOutlinePersistence:
             content_hash=row.content_hash,
             mapping=row.mapping,
             accepted_at=row.accepted_at,
+        )
+
+    @staticmethod
+    def _graph_admission(row: SourceOutlineGraphAdmissionRow) -> SourceMapGraphAdmission:
+        return SourceMapGraphAdmission(
+            source_revision=row.source_revision,
+            source_content_hash=row.source_content_hash,
+            outline_revision=row.outline_revision,
+            outline_content_hash=row.outline_content_hash,
+            section_map_revision=row.section_map_revision,
+            section_map_content_hash=row.section_map_content_hash,
+            graph_revision=row.graph_revision,
+            graph_content_hash=row.graph_content_hash,
+            status=row.status,
+            stale_reasons=row.stale_reasons,
+            installed_at=row.installed_at,
         )
 
     @staticmethod
@@ -157,6 +178,7 @@ class ProjectSourceOutlinePersistence:
                 outline = self._outline(outline_row)
             section_map_head = session.get(SourceOutlineSectionMapHeadRow, project_id)
             section_map = self._section_map_for_head(session, project_id, section_map_head) if section_map_head else None
+            admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
             return SourceOutlineReviewState(
                 source=source,
                 candidate=self._candidate(candidate) if candidate is not None else None,
@@ -165,6 +187,7 @@ class ProjectSourceOutlinePersistence:
                 accepted_section_map=section_map,
                 section_map_status=section_map_head.status if section_map_head else "missing",
                 section_map_stale_reasons=section_map_head.stale_reasons if section_map_head else [],
+                graph_admission=self._visible_graph_admission(session, project_id, admission),
             )
 
     def save_source(
@@ -194,6 +217,9 @@ class ProjectSourceOutlinePersistence:
             head.updated_at = now
             self._mark_section_map_stale(
                 session, project_id, f"accepted source revision changed to r{head.source_revision}", now
+            )
+            self._mark_source_map_graph_stale(
+                session, project_id, f"accepted source revision changed to r{head.source_revision}"
             )
             session.add(SourceOutlineSourceRevisionRow(
                 id=new_id(), project_id=project_id, revision=head.source_revision,
@@ -302,6 +328,9 @@ class ProjectSourceOutlinePersistence:
             self._mark_section_map_stale(
                 session, project_id, f"accepted outline revision changed to r{head.outline_revision}", now
             )
+            self._mark_source_map_graph_stale(
+                session, project_id, f"accepted outline revision changed to r{head.outline_revision}"
+            )
             session.add(SourceOutlineRevisionRow(
                 id=new_id(), project_id=project_id, revision=head.outline_revision,
                 source_revision=head.source_revision, candidate_job_id=candidate.job_id,
@@ -334,8 +363,14 @@ class ProjectSourceOutlinePersistence:
                 raise NotFoundError("accepted outline revision is missing")
             if outline.content_hash != request.expected_outline_content_hash:
                 raise RevisionConflictError("source-outline outline content", 0, 1)
+            prior_mapping = self._section_map_for_head(session, project_id, section_map_head)
+            if prior_mapping is not None:
+                self._assert_map_ids_unchanged(prior_mapping.mapping, request.mapping)
             payload = request.mapping.model_dump(mode="json", by_alias=True)
             now = utc_now()
+            self._mark_source_map_graph_stale(
+                session, project_id, f"accepted section-map revision changed to r{section_map_head.revision + 1}"
+            )
             section_map_head.revision += 1
             section_map_head.status = "current"
             section_map_head.stale_reasons = []
@@ -345,6 +380,53 @@ class ProjectSourceOutlinePersistence:
                 source_revision=outline_head.source_revision, outline_revision=outline_head.outline_revision,
                 outline_content_hash=outline.content_hash, content_hash=sha256(canonical_json(payload)).hexdigest(),
                 mapping=payload, accepted_at=now,
+            ))
+            return self._state_in_session(session, project_id, outline_head)
+
+    def install_section_map_graph(
+        self, project_id: str, request: SectionMapGraphInstallRequest
+    ) -> SourceOutlineReviewState:
+        """Atomically compile the current map into the sole routing authority."""
+
+        with self._access.leases.lifecycle_write() as session:
+            project = self._access.rows.project(session, project_id)
+            self._access.guards.active(project)
+            outline_head = self._head(session, project_id, create=True)
+            map_head = self._section_map_head(session, project_id, create=True)
+            if map_head.status != "current" or not map_head.revision:
+                raise InvalidTransitionError("a current accepted section map is required before graph installation")
+            if outline_head.outline_status != "accepted":
+                raise InvalidTransitionError("the accepted outline must be current before graph installation")
+            source = session.scalar(select(SourceOutlineSourceRevisionRow).where(
+                SourceOutlineSourceRevisionRow.project_id == project_id,
+                SourceOutlineSourceRevisionRow.revision == outline_head.source_revision,
+            ))
+            outline = session.scalar(select(SourceOutlineRevisionRow).where(
+                SourceOutlineRevisionRow.project_id == project_id,
+                SourceOutlineRevisionRow.revision == outline_head.outline_revision,
+            ))
+            mapping = self._section_map_for_head(session, project_id, map_head)
+            if source is None or outline is None or mapping is None:
+                raise NotFoundError("current source, outline, or section map is missing")
+            self._assert_install_bindings(request, source, outline, mapping)
+            graph_head = self._access.rows.stage(session, project_id, StageName.STORY_GRAPH)
+            if graph_head.revision != request.expected_graph_revision:
+                raise RevisionConflictError("stage:story_graph", request.expected_graph_revision, graph_head.revision)
+            admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
+            if graph_head.revision and (admission is None or admission.graph_revision != graph_head.revision):
+                raise InvalidTransitionError("the current canonical graph is not source-map-owned and cannot be overwritten")
+            graph = compile_section_map_graph(mapping.mapping)
+            now = utc_now()
+            installed = self._canonical.install_source_map_graph_in_session(
+                session, project, graph, expected_revision=request.expected_graph_revision, now=now
+            )
+            session.merge(SourceOutlineGraphAdmissionRow(
+                project_id=project_id,
+                source_revision=source.revision, source_content_hash=source.content_hash,
+                outline_revision=outline.revision, outline_content_hash=outline.content_hash,
+                section_map_revision=mapping.revision, section_map_content_hash=mapping.content_hash,
+                graph_revision=installed.revision, graph_content_hash=installed.content_hash or "",
+                status="current", stale_reasons=[], installed_at=now,
             ))
             return self._state_in_session(session, project_id, outline_head)
 
@@ -440,6 +522,9 @@ class ProjectSourceOutlinePersistence:
             accepted_section_map=section_map,
             section_map_status=section_map_head.status,
             section_map_stale_reasons=section_map_head.stale_reasons,
+            graph_admission=self._visible_graph_admission(
+                session, project_id, session.get(SourceOutlineGraphAdmissionRow, project_id)
+            ),
         )
 
     def _section_map_for_head(
@@ -462,3 +547,74 @@ class ProjectSourceOutlinePersistence:
         head.status = "stale"
         head.stale_reasons = [reason]
         head.updated_at = now
+
+    def _visible_graph_admission(
+        self, session: Any, project_id: str, row: SourceOutlineGraphAdmissionRow | None
+    ) -> SourceMapGraphAdmission | None:
+        if row is None:
+            return None
+        admission = self._graph_admission(row)
+        graph = self._access.rows.stage(session, project_id, StageName.STORY_GRAPH)
+        if graph.revision != row.graph_revision:
+            return admission.model_copy(update={
+                "status": "stale",
+                "stale_reasons": ["canonical graph revision was replaced outside this source-map admission"],
+            })
+        return admission
+
+    @staticmethod
+    def _assert_map_ids_unchanged(previous: Any, next_mapping: Any) -> None:
+        if [section.section_id for section in previous.sections] != [section.section_id for section in next_mapping.sections]:
+            raise InvalidTransitionError("section IDs are immutable after the first accepted section map")
+        if previous.choice.choice_id != next_mapping.choice.choice_id:
+            raise InvalidTransitionError("choice ID is immutable after the first accepted section map")
+        previous_outcomes = [(item.outcome_id, item.ending_section_id) for item in previous.choice.outcomes]
+        next_outcomes = [(item.outcome_id, item.ending_section_id) for item in next_mapping.choice.outcomes]
+        if previous_outcomes != next_outcomes or previous.choice.section_id != next_mapping.choice.section_id:
+            raise InvalidTransitionError("choice outcome and routing IDs are immutable after the first accepted section map")
+
+    @staticmethod
+    def _assert_install_bindings(
+        request: SectionMapGraphInstallRequest,
+        source: SourceOutlineSourceRevisionRow,
+        outline: SourceOutlineRevisionRow,
+        mapping: AcceptedSectionMapRevision,
+    ) -> None:
+        bindings = (
+            ("source", request.expected_source_revision, source.revision),
+            ("outline", request.expected_outline_revision, outline.revision),
+            ("section map", request.expected_section_map_revision, mapping.revision),
+        )
+        for label, expected, actual in bindings:
+            if expected != actual:
+                raise RevisionConflictError(f"source-map graph {label}", expected, actual)
+        hashes = (
+            ("source", request.expected_source_content_hash, source.content_hash),
+            ("outline", request.expected_outline_content_hash, outline.content_hash),
+            ("section map", request.expected_section_map_content_hash, mapping.content_hash),
+        )
+        if any(expected != actual for _, expected, actual in hashes):
+            raise RevisionConflictError("source-map graph input content", 0, 1)
+
+    def _mark_source_map_graph_stale(self, session: Any, project_id: str, reason: str) -> None:
+        admission = session.get(SourceOutlineGraphAdmissionRow, project_id)
+        if admission is None:
+            return
+        admission.status = "stale"
+        admission.stale_reasons = [reason]
+        graph = self._access.rows.stage(session, project_id, StageName.STORY_GRAPH)
+        if graph.revision != admission.graph_revision:
+            return
+        graph.status = StageStatus.STALE.value
+        graph.stale_reasons = [reason]
+        graph.updated_at = utc_now()
+        beats = self._access.rows.stage(session, project_id, StageName.SCENE_BEATS)
+        if beats.status != StageStatus.MISSING.value and beats.input_revisions.get(StageName.STORY_GRAPH.value) == graph.revision:
+            beats.status = StageStatus.STALE.value
+            beats.stale_reasons = [reason]
+            beats.updated_at = graph.updated_at
+            storyboard = self._access.rows.stage(session, project_id, StageName.STORYBOARD)
+            if storyboard.status != StageStatus.MISSING.value and storyboard.input_revisions.get(StageName.SCENE_BEATS.value) == beats.revision:
+                storyboard.status = StageStatus.STALE.value
+                storyboard.stale_reasons = [reason]
+                storyboard.updated_at = graph.updated_at

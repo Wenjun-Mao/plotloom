@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ApiError, plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
-import type { SourceMaterial, SourceOutlineReviewState } from "../types";
+import type { SourceMaterial, SourceOutlineReviewState, StoryGraph } from "../types";
 import { SectionMapPanel } from "./SectionMapPanel";
+import { deriveRoutes } from "../model";
 
 const blankSource: SourceMaterial = {
   kind: "synopsis",
@@ -25,6 +26,7 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
   const [assignment, setAssignment] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [graph, setGraph] = useState<{ payload: StoryGraph; revision: number }>();
   const draftDirty = useRef(false);
 
   const load = async (overwriteDraft = false) => {
@@ -32,6 +34,9 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
     try {
       const next = await plotloomApi.getSourceOutline(projectId);
       setState(next);
+      const stages = await plotloomApi.getStages(projectId);
+      const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
+      setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision } : undefined);
       // React Strict Mode can issue a second initial read after the author
       // begins typing. A late read must not silently erase unsaved source text.
       if (overwriteDraft || !draftDirty.current) {
@@ -53,6 +58,9 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
     try {
       const next = await operation();
       setState(next); setDraft(next.source?.material || blankSource); draftDirty.current = false;
+      const stages = await plotloomApi.getStages(projectId);
+      const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
+      setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision } : undefined);
     } catch (mutationError) { setError(sourceMessage(mutationError)); }
     finally { setBusy(false); }
   };
@@ -109,6 +117,8 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
       <SectionMapPanel
         outline={accepted} accepted={state.acceptedSectionMap} status={state.sectionMapStatus}
         staleReasons={state.sectionMapStaleReasons} readOnly={readOnly} busy={busy}
+        graphAdmission={state.graphAdmission}
+        routes={state.graphAdmission?.status === "current" && graph?.revision === state.graphAdmission.graphRevision ? deriveRoutes(graph.payload) : []}
         onSave={(mapping) => {
           if (!state.source || !accepted) return;
           void mutate(() => plotloomApi.saveSectionMap(projectId, {
@@ -117,6 +127,18 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
             expectedOutlineRevision: accepted.revision,
             expectedOutlineContentHash: accepted.contentHash,
             mapping,
+          }));
+        }}
+        onInstall={() => {
+          const map = state.acceptedSectionMap;
+          const source = state.source;
+          const admission = state.graphAdmission;
+          if (!source || !accepted || !map) return;
+          void mutate(() => plotloomApi.installSectionMapGraph(projectId, {
+            expectedSourceRevision: source.revision, expectedSourceContentHash: source.contentHash,
+            expectedOutlineRevision: accepted.revision, expectedOutlineContentHash: accepted.contentHash,
+            expectedSectionMapRevision: map.revision, expectedSectionMapContentHash: map.contentHash,
+            expectedGraphRevision: admission?.graphRevision || 0,
           }));
         }}
       />

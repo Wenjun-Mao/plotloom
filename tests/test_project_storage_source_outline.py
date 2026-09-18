@@ -15,11 +15,12 @@ from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.source_outline_contracts import (
     BranchOutcome, OutlineAcceptRequest,
     OutlineReopenRequest,
-    SectionChoice, SectionMap, SectionMapSaveRequest, StorySection,
+    SectionChoice, SectionMap, SectionMapGraphInstallRequest, SectionMapSaveRequest, StorySection,
     SourceMaterial,
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
-from plotloom.domain import ProjectLifecycleStatus, utc_now
+from plotloom.domain import ProjectLifecycleStatus, StageName, StageStatus, utc_now
+from plotloom.domain import InitialStage
 from plotloom.exceptions import (
     InvalidTransitionError,
     ProjectBusyError as LifecycleProjectBusyError,
@@ -27,6 +28,7 @@ from plotloom.exceptions import (
 )
 from plotloom.persistence.schema import ProjectRow
 from plotloom.project_storage import ProjectBusyError
+from tests.backend_core.conftest import make_story_bible, make_story_graph
 
 
 def _material(kind: str = "synopsis") -> SourceMaterial:
@@ -165,12 +167,57 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         assert saved.section_map_status == "current"
         assert saved.accepted_section_map is not None
         assert saved.accepted_section_map.mapping == mapping
+        installed = store.install_section_map_graph(SectionMapGraphInstallRequest(
+            expected_source_revision=1, expected_source_content_hash=saved.source.content_hash,  # type: ignore[union-attr]
+            expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
+            expected_section_map_revision=1, expected_section_map_content_hash=saved.accepted_section_map.content_hash,
+            expected_graph_revision=0,
+        ))
+        assert installed.graph_admission is not None
+        assert installed.graph_admission.status == "current"
+        graph = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORY_GRAPH)
+        assert graph.start_node_id == "opening"
+        assert {node.id for node in graph.nodes} == {"opening", "ending-a", "ending-b"}
+        assert [(edge.id, edge.choice_text, edge.state_effects["sourceMapConsequence"]) for edge in graph.edges] == [
+            ("sister", "交给妹妹", "妹妹留下。"), ("captain", "交给船长", "船长启航。"),
+        ]
+        with pytest.raises(RevisionConflictError):
+            store.install_section_map_graph(SectionMapGraphInstallRequest(
+                expected_source_revision=1, expected_source_content_hash=saved.source.content_hash,  # type: ignore[union-attr]
+                expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
+                expected_section_map_revision=1, expected_section_map_content_hash=saved.accepted_section_map.content_hash,
+                expected_graph_revision=0,
+            ))
         project_id = store.manifest.project_id
         store.close()
         store = storage.projects.open(project_id)
         reopened = store.source_outline_state()
         assert reopened.accepted_section_map is not None
         assert reopened.section_map_status == "current"
+        assert reopened.graph_admission is not None and reopened.graph_admission.status == "current"
+
+        edited_mapping = mapping.model_copy(deep=True)
+        edited_mapping.sections[0].summary = "船夫收到最后一封信，并看见风暴逼近。"
+        edited_mapping.choice.prompt = "在风暴前把信交给谁？"
+        edited_mapping.choice.outcomes[0].label = "把信亲手交给妹妹"
+        edited = store.save_section_map(SectionMapSaveRequest(
+            expected_section_map_revision=1, expected_source_revision=1,
+            expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
+            mapping=edited_mapping,
+        ))
+        assert edited.accepted_section_map is not None
+        assert edited.accepted_section_map.mapping.sections[0].section_id == "opening"
+        assert edited.accepted_section_map.mapping.choice.outcomes[0].outcome_id == "sister"
+        assert edited.graph_admission is not None and edited.graph_admission.status == "stale"
+        changed_id = edited_mapping.model_copy(deep=True)
+        changed_id.sections[0].section_id = "other-opening"
+        changed_id.choice.section_id = "other-opening"
+        with pytest.raises(InvalidTransitionError, match="immutable"):
+            store.save_section_map(SectionMapSaveRequest(
+                expected_section_map_revision=2, expected_source_revision=1,
+                expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
+                mapping=changed_id,
+            ))
 
         replacement_request = _request(project_id, source, expected_outline_revision=1, job_suffix="b")
         store.prepare_outline_candidate(replacement_request)
@@ -180,6 +227,9 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         ))
         assert outline_stale.section_map_status == "stale"
         assert outline_stale.section_map_stale_reasons == ["accepted outline revision changed to r2"]
+        assert outline_stale.graph_admission is not None
+        assert outline_stale.graph_admission.status == "stale"
+        assert store.authoring.get_stage_head(project_id, StageName.STORY_GRAPH).status == StageStatus.STALE
 
         changed = _material()
         changed = changed.model_copy(update={"text": changed.text + " 来源经过作者修订。"})
@@ -188,10 +238,79 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         assert stale.section_map_stale_reasons == ["accepted source revision changed to r2"]
         with pytest.raises(RevisionConflictError):
             store.save_section_map(SectionMapSaveRequest(
-                expected_section_map_revision=1, expected_source_revision=1,
+                expected_section_map_revision=2, expected_source_revision=1,
                 expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
                 mapping=mapping,
             ))
+    finally:
+        store.close()
+
+
+def test_section_map_rejects_extra_or_unreachable_sections() -> None:
+    with pytest.raises(ValueError, match="at most 3"):
+        SectionMap(
+            sections=[
+                StorySection(section_id="opening", title="开场", summary="选择开始。"),
+                StorySection(section_id="ending-a", title="A", summary="结束 A。", ending=True),
+                StorySection(section_id="ending-b", title="B", summary="结束 B。", ending=True),
+                StorySection(section_id="unused", title="多余", summary="不可达。", ending=True),
+            ],
+            choice=SectionChoice(
+                choice_id="choice-route", section_id="opening", prompt="选择？",
+                outcomes=[
+                    BranchOutcome(outcome_id="route-a", label="A", consequence="A。", ending_section_id="ending-a"),
+                    BranchOutcome(outcome_id="route-b", label="B", consequence="B。", ending_section_id="ending-b"),
+                ],
+            ),
+        )
+
+
+def test_section_map_install_rejects_stale_inputs_and_never_overwrites_an_unrelated_graph(tmp_path: Path) -> None:
+    storage = _storage(tmp_path)
+    normal_graph = make_story_graph()
+    store = storage.projects.create(FIXED_CHINESE_BRIEF, initial_stages=(
+        InitialStage(stage=StageName.STORY_BIBLE, payload=make_story_bible().model_dump(mode="json", by_alias=True)),
+        InitialStage(stage=StageName.STORY_GRAPH, payload=normal_graph.model_dump(mode="json", by_alias=True)),
+    ))
+    try:
+        source = _material()
+        store.save_source_material(expected_source_revision=0, material=source)
+        request = _request(store.manifest.project_id, source)
+        store.prepare_outline_candidate(request)
+        store.admit_outline_delivery(_deliver(store, request))
+        accepted = store.accept_outline_candidate(OutlineAcceptRequest(
+            job_id=request.job_id, expected_source_revision=1, expected_outline_revision=0,
+        ))
+        outline = accepted.accepted_outline
+        assert outline is not None
+        mapped = store.save_section_map(SectionMapSaveRequest(
+            expected_section_map_revision=0, expected_source_revision=1,
+            expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
+            mapping=SectionMap(
+                sections=[
+                    StorySection(section_id="entry", title="渡口", summary="船夫握着信。"),
+                    StorySection(section_id="ending-a", title="妹妹", summary="妹妹收到信。", ending=True),
+                    StorySection(section_id="ending-b", title="船长", summary="船长带走信。", ending=True),
+                ],
+                choice=SectionChoice(choice_id="delivery", section_id="entry", prompt="交给谁？", outcomes=[
+                    BranchOutcome(outcome_id="sister", label="妹妹", consequence="她留下。", ending_section_id="ending-a"),
+                    BranchOutcome(outcome_id="captain", label="船长", consequence="他启航。", ending_section_id="ending-b"),
+                ]),
+            ),
+        ))
+        assert mapped.accepted_section_map is not None and mapped.source is not None
+        install = dict(
+            expected_source_revision=1, expected_source_content_hash=mapped.source.content_hash,
+            expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
+            expected_section_map_revision=1, expected_section_map_content_hash=mapped.accepted_section_map.content_hash,
+            expected_graph_revision=1,
+        )
+        with pytest.raises(RevisionConflictError):
+            store.install_section_map_graph(SectionMapGraphInstallRequest(**(install | {"expected_source_content_hash": "0" * 64})))
+        assert store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORY_GRAPH) == normal_graph
+        with pytest.raises(InvalidTransitionError, match="not source-map-owned"):
+            store.install_section_map_graph(SectionMapGraphInstallRequest(**install))
+        assert store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORY_GRAPH) == normal_graph
     finally:
         store.close()
 

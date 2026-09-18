@@ -88,3 +88,22 @@ class SourceOutlineSectionMapRevisionRow(Base):
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     mapping: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SourceOutlineGraphAdmissionRow(Base):
+    """Binding receipt for a source-map-owned canonical graph revision."""
+
+    __tablename__ = "v2_source_outline_graph_admissions"
+
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True)
+    source_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    outline_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    outline_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    section_map_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    section_map_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    graph_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    graph_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    stale_reasons: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    installed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

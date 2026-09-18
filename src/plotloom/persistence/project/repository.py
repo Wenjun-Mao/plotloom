@@ -26,6 +26,7 @@ from ..database import RepositoryDatabase
 from ..schema import (
     PROJECT_TEXT_PIPELINE_TABLE_NAMES, GenerationRunRow, ProjectOperationalStateRow,
     ProjectRow, SourceOutlineCandidateRow, SourceOutlineHeadRow,
+    SourceOutlineGraphAdmissionRow,
     SourceOutlineRevisionRow, SourceOutlineSectionMapHeadRow,
     SourceOutlineSectionMapRevisionRow, SourceOutlineSourceRevisionRow, StageHeadRow,
 )
@@ -124,6 +125,7 @@ class ProjectSQLiteRepository:
                     SourceOutlineRevisionRow.__table__,
                     SourceOutlineSectionMapHeadRow.__table__,
                     SourceOutlineSectionMapRevisionRow.__table__,
+                    SourceOutlineGraphAdmissionRow.__table__,
                 ],
             )
         self._generation_admission = ProjectGenerationAdmission()
@@ -160,7 +162,7 @@ class ProjectSQLiteRepository:
         self._media = ProjectMediaPersistence(
             self._project_access, self._canonical, self._drafts, accounting=None
         )
-        self.source_outline = ProjectSourceOutlinePersistence(self._project_access)
+        self.source_outline = ProjectSourceOutlinePersistence(self._project_access, self._canonical)
         self._generation_access = GenerationPersistenceAccess(
             leases=GenerationLeases(
                 read=self._read, write=self._write, lifecycle_write=self._lifecycle_write,

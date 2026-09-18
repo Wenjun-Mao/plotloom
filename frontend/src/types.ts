@@ -1183,6 +1183,7 @@ export interface SourceOutlineReviewState {
   acceptedSectionMap: AcceptedSectionMapRevision | null;
   sectionMapStatus: "missing" | "current" | "stale";
   sectionMapStaleReasons: string[];
+  graphAdmission: SourceMapGraphAdmission | null;
 }
 
 export interface StorySection { sectionId: string; title: string; summary: string; ending: boolean; }
@@ -1192,4 +1193,9 @@ export interface SectionMap { sections: StorySection[]; choice: SectionChoice; }
 export interface AcceptedSectionMapRevision {
   revision: number; sourceRevision: number; outlineRevision: number; outlineContentHash: string;
   contentHash: string; mapping: SectionMap; acceptedAt: string;
+}
+export interface SourceMapGraphAdmission {
+  sourceRevision: number; sourceContentHash: string; outlineRevision: number; outlineContentHash: string;
+  sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string;
+  status: "current" | "stale"; staleReasons: string[]; installedAt: string;
 }

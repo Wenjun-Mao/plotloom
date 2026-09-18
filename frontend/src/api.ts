@@ -540,6 +540,10 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/section-map`, { method: "PUT", body: JSON.stringify(body) });
   }
 
+  installSectionMapGraph(projectId: string, body: { expectedSourceRevision: number; expectedSourceContentHash: string; expectedOutlineRevision: number; expectedOutlineContentHash: string; expectedSectionMapRevision: number; expectedSectionMapContentHash: string; expectedGraphRevision: number }): Promise<SourceOutlineReviewState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/section-map/install-graph`, { method: "POST", body: JSON.stringify(body) });
+  }
+
   outlineCandidateReportUrl(projectId: string, jobId: string): string {
     return `${this.base}/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/report`;
   }

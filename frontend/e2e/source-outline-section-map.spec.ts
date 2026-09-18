@@ -5,9 +5,11 @@ import path from "node:path";
 
 type PreparedOutline = { jobId: string; deliveryPath: string; packagePath: string };
 
-test("maps the accepted Tide Light outline to one explicit choice and two endings, then survives reopen", async ({ page, workbench }) => {
+test("installs the accepted Tide Light map into canonical routes, then survives reopen", async ({ page, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/`);
-  await page.getByRole("button", { name: "打开示例项目" }).click();
+  await page.getByRole("button", { name: "创建空白项目" }).click();
+  await page.getByLabel("片名").fill("潮汐灯");
+  await page.getByLabel("故事梗概").fill("气象站员林澈必须决定有限电缆为码头还是灯塔供电。");
   await page.getByRole("button", { name: "保存简报" }).click();
   await expect(page).toHaveURL(/[?&]project=/);
   const projectId = new URL(page.url()).searchParams.get("project");
@@ -46,13 +48,20 @@ test("maps the accepted Tide Light outline to one explicit choice and two ending
   await expect(map.getByText("当前 r1")).toBeVisible();
   await expect(outcomes.nth(0).getByLabel("选择标签")).toHaveValue("供电码头");
   await expect(outcomes.nth(1).getByLabel("选择标签")).toHaveValue("供电灯塔");
+  await page.getByRole("button", { name: "安装到规范路由图" }).click();
+  const routeCards = map.getByTestId("section-map-route-cards");
+  await expect(routeCards).toContainText("供电码头 → 结局 A");
+  await expect(routeCards).toContainText("供电灯塔 → 结局 B");
+  await expect(map.getByText("规范路由图 r1 · 当前")).toBeVisible();
 
   await page.reload();
   await expect(page.getByTestId("section-map")).toContainText("当前 r1");
+  await expect(page.getByTestId("section-map-route-cards")).toContainText("供电码头 → 结局 A");
   await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(0).getByLabel("后果")).toHaveValue("码头恢复照明，灯塔变暗。 ");
   await workbench.restartBackend();
   await page.reload();
   await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(1).getByLabel("后果")).toHaveValue("灯塔照亮航道，码头停电。 ");
+  await expect(page.getByTestId("section-map-route-cards")).toContainText("供电灯塔 → 结局 B");
 });
 
 async function writeFixtureOutline(prepared: PreparedOutline): Promise<void> {

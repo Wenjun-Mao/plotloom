@@ -40,7 +40,7 @@ def test_source_outline_http_exposes_source_candidate_and_accepted_as_distinct_r
         assert initial.json() == {
             "source": None, "candidate": None, "acceptedOutline": None,
             "outlineStatus": "missing", "acceptedSectionMap": None,
-            "sectionMapStatus": "missing", "sectionMapStaleReasons": [],
+            "sectionMapStatus": "missing", "sectionMapStaleReasons": [], "graphAdmission": None,
         }
         material = {
             "kind": "existing_work", "title": "渡口的信",

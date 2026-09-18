@@ -14,6 +14,7 @@ from ..source_outline_contracts import (
     OutlineCandidate,
     OutlineCandidatePreparation,
     OutlineReopenRequest,
+    SectionMapGraphInstallRequest,
     SectionMapSaveRequest,
     SourceOutlineReviewState,
     SourceSaveRequest,
@@ -158,3 +159,13 @@ def register_project_folder_source_outline_routes(
     ) -> SourceOutlineReviewState:
         with opened_project(project_id) as store:
             return store.save_section_map(body)
+
+    @app.post(
+        "/api/v2/projects/{project_id}/source-outline/section-map/install-graph",
+        response_model=SourceOutlineReviewState,
+    )
+    def install_source_outline_section_map_graph(
+        project_id: str, body: SectionMapGraphInstallRequest
+    ) -> SourceOutlineReviewState:
+        with opened_project(project_id) as store:
+            return store.install_section_map_graph(body)
