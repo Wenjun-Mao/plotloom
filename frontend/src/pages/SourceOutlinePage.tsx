@@ -6,6 +6,7 @@ import { SectionMapPanel } from "./SectionMapPanel";
 import { CastPanel } from "./CastPanel";
 import { ArtPanel } from "./ArtPanel";
 import { ScriptPanel } from "./ScriptPanel";
+import { StoryboardReviewPanel } from "./StoryboardReviewPanel";
 import { deriveRoutes } from "../model";
 
 const blankSource: SourceMaterial = {
@@ -148,6 +149,7 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
       <CastPanel projectId={projectId} readOnly={readOnly} />
       <ArtPanel projectId={projectId} readOnly={readOnly} />
       <ScriptPanel projectId={projectId} readOnly={readOnly} />
+      <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} />
     </div>
   </section>;
 }

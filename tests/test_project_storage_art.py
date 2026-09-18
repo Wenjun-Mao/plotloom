@@ -14,6 +14,7 @@ from PIL import Image
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest, ArtBinding, ArtReopenRequest, ArtSaveRequest
 from plotloom.script_contracts import ScriptAcceptRequest, ScriptReopenRequest, ScriptSectionSaveRequest
+from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
 from plotloom.cast_contracts import CastAcceptRequest, CastConsumerMapping
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffRequest
@@ -404,16 +405,120 @@ def test_f4_prepared_script_blocks_snapshot_until_cancel_and_late_delivery_stays
     assert storage.recovery.create_snapshot(project_id).status == "complete"
 
 
-def test_format_9_folder_is_refused_with_reset_required_guidance(tmp_path: Path) -> None:
+def _accepted_f4_script(store: object) -> None:
+    binding = _prepare_art_context(store)
+    art_candidate, art_request = store.prepare_art_candidate("ch_" + "k" * 32)  # type: ignore[attr-defined]
+    art_ready = store.admit_art_delivery(_deliver(store, art_request))  # type: ignore[attr-defined]
+    store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))  # type: ignore[attr-defined]
+    candidate, request = store.prepare_script_candidate("ch_" + "l" * 32)  # type: ignore[attr-defined]
+    ready = store.admit_script_delivery(_deliver_stage(store, request, "script.json", _pilot_script(), "script-for-storyboard"))  # type: ignore[attr-defined]
+    store.accept_script_candidate(ScriptAcceptRequest(job_id=candidate.job_id, expected_script_revision=0, binding=ready.binding, script=ready.script))  # type: ignore[attr-defined]
+
+
+def test_f5a_freezes_current_f4_identity_blocks_lifecycle_and_refuses_late_delivery(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    try:
+        _accepted_f4_script(store)
+        candidate, request = store.prepare_storyboard_review_candidate("ch_" + "s" * 32)
+        assert candidate.binding.script_revision == 1
+        assert candidate.binding.script_content_hash == store.script_state().accepted_script.content_hash  # type: ignore[union-attr]
+        assert request.input_artifacts.keys() == {"script.json", "outline.json", "cast.json", "art.json", "storyboard-admission.json"}
+        assert request.input_artifacts["storyboard-admission.json"]["sectionBindings"] == [
+            {"sectionId": "opening", "episode": 1}, {"sectionId": "ending-a", "episode": 2}, {"sectionId": "ending-b", "episode": 3},
+        ]
+        assert "storyboard_review_publication_active" in close_blockers(store)
+        store.cancel_storyboard_review_candidate(candidate.job_id)
+        with pytest.raises(Exception, match="current prepared|unavailable|cancelled"):
+            store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", {"episodes": []}, "late-storyboard"))
+    finally:
+        store.close()
+    assert storage.recovery.create_snapshot(project_id).status == "complete"
+
+
+def test_f5a_requires_exact_f4_episode_mapping_before_upstream_validation(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    try:
+        _accepted_f4_script(store)
+        _candidate, request = store.prepare_storyboard_review_candidate("ch_" + "r" * 32)
+        with pytest.raises(ValueError, match="exactly match the frozen F4 section-to-episode mapping"):
+            store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", {"episodes": [{"ep": 2}, {"ep": 1}, {"ep": 3}]}, "swapped-storyboard"))
+    finally:
+        store.close()
+
+
+def test_f5a_uses_a_distinct_source_review_api_not_the_canonical_storyboard_review(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    try:
+        _accepted_f4_script(store)
+    finally:
+        store.close()
+    client = TestClient(create_project_folder_authoring_app(storage))
+    state = client.get(f"/api/v2/projects/{project_id}/storyboard-source-review")
+    assert state.status_code == 200, state.text
+    assert state.json()["status"] == "missing"
+    prepared = client.post(f"/api/v2/projects/{project_id}/storyboard-source-review/candidates")
+    assert prepared.status_code == 201, prepared.text
+    assert prepared.json()["binding"]["scriptRevision"] == 1
+    assert prepared.json()["assignment"].startswith("Plotloom F5A storyboard review assignment")
+
+
+def test_f5a_accepted_review_stales_when_accepted_f4_script_changes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Lifecycle proof; the separate validator owns candidate-content checks."""
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    try:
+        _accepted_f4_script(store)
+        monkeypatch.setattr("plotloom.persistence.project.storyboard_review.ProjectStoryboardReviewPersistence._validate", staticmethod(lambda *_args: None))
+        candidate, request = store.prepare_storyboard_review_candidate("ch_" + "u" * 32)
+        board = {"episodes": [{"ep": 1}, {"ep": 2}, {"ep": 3}]}
+        ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", board, "storyboard-fixture"))
+        # Client input cannot replace the admitted raw JSON that the report describes.
+        with pytest.raises(ValueError, match="storyboard"):
+            StoryboardReviewAcceptRequest.model_validate({
+                "jobId": candidate.job_id, "expectedReviewRevision": 0, "binding": ready.binding.model_dump(mode="json", by_alias=True),
+                "storyboard": {"episodes": [{"ep": 3}, {"ep": 2}, {"ep": 1}]},
+            })
+        accepted = store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
+        assert accepted.accepted_review and accepted.accepted_review.storyboard == board
+        script = store.script_state().accepted_script
+        assert script is not None
+        store.reopen_script(ScriptReopenRequest(expected_script_revision=script.revision))
+        opening = dict(script.script["episodes"][0]); opening["cliff"] = "Changed F4 source authority."
+        store.save_script_section(ScriptSectionSaveRequest(expected_script_revision=script.revision, binding=script.binding, section_id="opening", episode=opening))
+        assert store.storyboard_review_state().status == "stale"
+    finally:
+        store.close()
+
+
+def test_f5a_requires_explicit_decision_before_replacing_a_ready_candidate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    try:
+        _accepted_f4_script(store)
+        monkeypatch.setattr("plotloom.persistence.project.storyboard_review.ProjectStoryboardReviewPersistence._validate", staticmethod(lambda *_args: None))
+        _candidate, request = store.prepare_storyboard_review_candidate("ch_" + "v" * 32)
+        store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", {"episodes": [{"ep": 1}, {"ep": 2}, {"ep": 3}]}, "ready-storyboard"))
+        with pytest.raises(Exception, match="accept or cancel the current storyboard review candidate"):
+            store.prepare_storyboard_review_candidate("ch_" + "w" * 32)
+    finally:
+        store.close()
+
+
+def test_format_10_folder_is_refused_with_reset_required_guidance(tmp_path: Path) -> None:
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     store = storage.projects.create(FIXED_CHINESE_BRIEF)
     project_id, manifest_path = store.manifest.project_id, store.home / "project.json"
     store.close()
     manifest = json.loads(manifest_path.read_text())
-    manifest["formatVersion"] = 9
+    manifest["formatVersion"] = 10
     manifest_path.write_text(json.dumps(manifest))
 
-    with pytest.raises(ProjectStorageCorruptionError, match="format 9 is unsupported by F4; reset required"):
+    with pytest.raises(ProjectStorageCorruptionError, match="format 10 or older is unsupported by F5A; reset required"):
         storage.projects.open(project_id)
 
 

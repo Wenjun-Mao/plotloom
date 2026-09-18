@@ -61,6 +61,9 @@ import type {
   ScriptReviewState,
   ScriptCandidate,
   ScriptCandidatePreparation,
+  StoryboardReviewState,
+  StoryboardReviewCandidate,
+  StoryboardReviewCandidatePreparation,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -611,6 +614,14 @@ export class PlotloomApiClient {
   reopenScript(projectId: string, expectedScriptRevision: number): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/reopen`, { method: "POST", body: JSON.stringify({ expectedScriptRevision }) }); }
   saveScriptSection(projectId: string, body: { expectedScriptRevision: number; binding: unknown; sectionId: string; episode: Record<string, unknown> }): Promise<ScriptReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/script/sections/save`, { method: "POST", body: JSON.stringify(body) }); }
   scriptCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/script/candidates/${encodeURIComponent(jobId)}/report`; }
+
+  getStoryboardSourceReview(projectId: string): Promise<StoryboardReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review`); }
+  prepareStoryboardSourceReviewCandidate(projectId: string): Promise<StoryboardReviewCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates`, { method: "POST" }); }
+  recoverStoryboardSourceReviewHandoff(projectId: string, jobId: string): Promise<StoryboardReviewCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/handoff`); }
+  refreshStoryboardSourceReviewCandidate(projectId: string, jobId: string): Promise<StoryboardReviewCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
+  cancelStoryboardSourceReviewCandidate(projectId: string, jobId: string): Promise<StoryboardReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
+  acceptStoryboardSourceReviewCandidate(projectId: string, body: { jobId: string; expectedReviewRevision: number; binding: unknown }): Promise<StoryboardReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/accept`, { method: "POST", body: JSON.stringify(body) }); }
+  storyboardSourceReviewCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/report`; }
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
   getVideoBackend(): Promise<VideoBackend> { return this.request("/video-backend"); }

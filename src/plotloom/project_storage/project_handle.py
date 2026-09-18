@@ -36,6 +36,7 @@ from ..creative_handoff_exchange import ValidatedCreativeDelivery
 from ..cast_contracts import CastAcceptRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
 from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
+from ..storyboard_review_contracts import StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
 from ..persistence import ProjectSQLiteRepository
 from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
 from .format import (
@@ -526,6 +527,27 @@ class ProjectStore:
 
     def script_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
         return self.repository.script.candidate_request(self.manifest.project_id, job_id)
+
+    def storyboard_review_state(self) -> StoryboardReviewState:
+        return self.repository.storyboard_review.get_state(self.manifest.project_id)
+
+    def prepare_storyboard_review_candidate(self, job_id: str) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
+        return self.repository.storyboard_review.prepare_candidate(self.manifest.project_id, job_id)
+
+    def admit_storyboard_review_delivery(self, delivery: ValidatedCreativeDelivery) -> StoryboardReviewCandidate:
+        return self.repository.storyboard_review.admit_delivery(self.manifest.project_id, delivery)
+
+    def accept_storyboard_review_candidate(self, request: StoryboardReviewAcceptRequest) -> StoryboardReviewState:
+        return self.repository.storyboard_review.accept_candidate(self.manifest.project_id, request)
+
+    def cancel_storyboard_review_candidate(self, job_id: str) -> StoryboardReviewState:
+        return self.repository.storyboard_review.cancel_candidate(self.manifest.project_id, job_id)
+
+    def storyboard_review_candidate_report(self, job_id: str) -> str:
+        return self.repository.storyboard_review.candidate_report(self.manifest.project_id, job_id)
+
+    def storyboard_review_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
+        return self.repository.storyboard_review.candidate_request(self.manifest.project_id, job_id)
 
     def save_authoring_draft(
         self,

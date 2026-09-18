@@ -121,6 +121,7 @@ def close_blockers(store: object) -> list[str]:
     blockers.extend(cast_publication_blockers(store))
     blockers.extend(art_publication_blockers(store))
     blockers.extend(script_publication_blockers(store))
+    blockers.extend(storyboard_review_publication_blockers(store))
     return blockers
 
 
@@ -157,3 +158,11 @@ def script_publication_blockers(store: object) -> list[str]:
     with repository.engine.connect() as connection:
         prepared = connection.exec_driver_sql("SELECT 1 FROM v2_script_candidates WHERE project_id = ? AND status = 'prepared' LIMIT 1", (project_id,)).first()
     return ["script_publication_active"] if prepared is not None else []
+
+
+def storyboard_review_publication_blockers(store: object) -> list[str]:
+    repository = store.repository  # type: ignore[attr-defined]
+    project_id = store.manifest.project_id  # type: ignore[attr-defined]
+    with repository.engine.connect() as connection:
+        prepared = connection.exec_driver_sql("SELECT 1 FROM v2_storyboard_review_candidates WHERE project_id = ? AND status = 'prepared' LIMIT 1", (project_id,)).first()
+    return ["storyboard_review_publication_active"] if prepared is not None else []
