@@ -13,6 +13,7 @@ from .media_image_delivery import ImageJobDeliveryPersistence
 from .media_image_preparation import ImageJobPreparationPersistence
 from .media_keyframes import ReviewedKeyframePersistence
 from .media_reference_proposals import CharacterReferenceProposalPersistence
+from .media_art_reference_proposals import ArtReferenceProposalPersistence
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_video_currentness import VideoJobCurrentness
 from .media_visual_intents import VisualIntentPersistence
@@ -33,6 +34,7 @@ class ProjectMediaRepository:
         keyframes: ReviewedKeyframePersistence,
         references: CharacterReferencePersistence,
         proposals: CharacterReferenceProposalPersistence,
+        art_references: ArtReferenceProposalPersistence,
         same_person: SamePersonReviewPersistence,
         image_preparation: ImageJobPreparationPersistence,
         image_delivery: ImageJobDeliveryPersistence,
@@ -45,6 +47,7 @@ class ProjectMediaRepository:
         self._keyframes = keyframes
         self._references = references
         self._proposals = proposals
+        self._art_references = art_references
         self._same_person = same_person
         self._image_preparation = image_preparation
         self._image_delivery = image_delivery
@@ -190,6 +193,40 @@ class ProjectMediaRepository:
 
     def list_character_reference_proposals(self, project_id: str) -> list[JsonObject]:
         return self._proposals.list_character_reference_proposals(project_id)
+
+    def prepare_art_reference_proposal(
+        self, project_id: str, *, subject_type: str, subject_id: str, render_direction: str,
+    ) -> JsonObject:
+        return self._art_references.prepare_art_reference_proposal(
+            project_id, subject_type=subject_type, subject_id=subject_id, render_direction=render_direction
+        )
+
+    def art_reference_proposal_package_sources(self, project_id: str, proposal_id: str) -> JsonObject:
+        return self._art_references.art_reference_proposal_package_sources(project_id, proposal_id)
+
+    def mark_art_reference_proposal_exported(self, project_id: str, proposal_id: str) -> JsonObject:
+        return self._art_references.mark_art_reference_proposal_exported(project_id, proposal_id)
+
+    def cancel_art_reference_proposal(self, project_id: str, proposal_id: str, reason: str) -> JsonObject:
+        return self._art_references.cancel_art_reference_proposal(project_id, proposal_id, reason)
+
+    def art_reference_proposal_delivery_context(self, project_id: str, proposal_id: str) -> JsonObject:
+        return self._art_references.art_reference_proposal_delivery_context(project_id, proposal_id)
+
+    def record_art_reference_proposal_rejection(self, project_id: str, proposal_id: str, code: str) -> None:
+        self._art_references.record_art_reference_proposal_rejection(project_id, proposal_id, code)
+
+    def record_art_reference_proposal_delivery(
+        self, project_id: str, proposal_id: str, *, delivery_id: str, manifest: JsonObject,
+        manifest_hash: str, outputs: list[JsonObject], publish: Callable[[JsonObject], tuple[str, str]],
+    ) -> JsonObject:
+        return self._art_references.record_art_reference_proposal_delivery(
+            project_id, proposal_id, delivery_id=delivery_id, manifest=manifest,
+            manifest_hash=manifest_hash, outputs=outputs, publish=publish,
+        )
+
+    def list_art_reference_proposals(self, project_id: str) -> list[JsonObject]:
+        return self._art_references.list_art_reference_proposals(project_id)
 
     def record_same_person_review(
         self, project_id: str, *, binding_id: str, expected_review_revision: int,

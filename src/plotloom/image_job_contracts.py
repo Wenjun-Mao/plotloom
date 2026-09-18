@@ -117,6 +117,28 @@ class CharacterReferenceProposalCancellationRequest(CamelModel):
     reason: str = Field(min_length=1, max_length=2_000)
 
 
+class ArtReferenceProposalRequest(CamelModel):
+    """One exploratory environment or prop study bound to accepted ``art.json``."""
+
+    subject_type: Literal["scene", "prop"]
+    subject_id: str = Field(min_length=1, max_length=128)
+    render_direction: str = Field(min_length=1, max_length=4_000)
+
+    @field_validator("subject_id", "render_direction")
+    @classmethod
+    def art_reference_fields_are_nonblank(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("art reference fields must not be blank")
+        return normalized
+
+
+class ArtReferenceProposalCancellationRequest(CamelModel):
+    """Explicitly end an externally publishable art-reference handoff."""
+
+    reason: str = Field(min_length=1, max_length=2_000)
+
+
 class SamePersonReviewItem(CamelModel):
     character_id: str = Field(min_length=1, max_length=128)
     judgment: Literal["pass", "fail"]
@@ -142,7 +164,7 @@ class SamePersonReviewRequest(CamelModel):
 class ImageJobOutput(CamelModel):
     filename: str = Field(min_length=1, max_length=180)
     sha256: str = Field(pattern=SHA256_PATTERN)
-    role: Literal["original", "refinement", "keyframe_adaptation"]
+    role: Literal["original", "refinement", "keyframe_adaptation", "art_reference"]
 
     @field_validator("filename")
     @classmethod

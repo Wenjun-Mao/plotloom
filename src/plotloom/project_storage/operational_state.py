@@ -115,6 +115,8 @@ def close_blockers(store: object) -> list[str]:
         blockers.append("image_publication_active")
     if any(proposal.get("state") not in {"delivered", "rejected", "cancelled"} for proposal in media.list_character_reference_proposals(project_id)):
         blockers.append("character_reference_publication_active")
+    if any(proposal.get("state") not in {"delivered", "rejected", "cancelled"} for proposal in media.list_art_reference_proposals(project_id)):
+        blockers.append("art_reference_publication_active")
     blockers.extend(source_outline_publication_blockers(store))
     blockers.extend(cast_publication_blockers(store))
     blockers.extend(art_publication_blockers(store))

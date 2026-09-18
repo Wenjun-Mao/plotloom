@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { deflateSync } from "node:zlib";
 
 import { demoProject } from "../src/demo";
 import { expect, test } from "./fixture";
@@ -23,6 +24,56 @@ type ArtState = {
 };
 
 test.describe("F3A production art review", () => {
+  test("F3B shows current reference bytes, restart persistence, stale art, and cancellation release", async ({ page, request, workbench }) => {
+    test.setTimeout(75_000);
+    const projectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f3b-study");
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
+    const studies = page.getByTestId("art-reference-studies");
+    const scene = page.getByTestId("art-reference-scene-S01");
+    await expect(studies).toContainText("Cinematic realism");
+    await expect(scene).toContainText("missing");
+    const preparedResponse = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals`);
+    await scene.getByRole("button", { name: "准备研究" }).click();
+    const prepared = await preparedResponse;
+    expect(prepared.status()).toBe(201);
+    const proposal = (await prepared.json() as { proposal: { id: string; request: { frozenSnapshot: { acceptedArt: { revision: number } } } } }).proposal;
+    expect(proposal.request.frozenSnapshot.acceptedArt.revision).toBe(1);
+    const copiedResponse = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals/${proposal.id}/copy`);
+    await scene.getByRole("button", { name: "复制 ImageGen 任务" }).click();
+    await writeArtReferenceDelivery(await copiedResponse);
+    const refreshed = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals/${proposal.id}/refresh`);
+    await scene.getByRole("button", { name: "刷新 delivery" }).click();
+    const refreshResponse = await refreshed;
+    expect(refreshResponse.ok(), await refreshResponse.text()).toBeTruthy();
+    await expect(scene).toContainText("current");
+    await expect(scene.locator("img")).toBeVisible();
+    await workbench.restartBackend();
+    await page.reload();
+    await expect(scene).toContainText("current");
+
+    const art = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/art`));
+    await getJson(request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/art/reopen`, { data: { expectedArtRevision: art.acceptedArt.revision } }));
+    const changed = withSummary(art.acceptedArt.art, "Changed after the reference study was delivered.");
+    await getJson(request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/art/save`, { data: { expectedArtRevision: art.acceptedArt.revision, binding: art.acceptedArt.binding, art: changed } }));
+    await page.reload();
+    await expect(scene).toContainText("changed / stale");
+    const newPrepared = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals`);
+    await scene.getByRole("button", { name: "准备研究" }).click();
+    const active = (await newPrepared).json() as Promise<{ proposal: { id: string } }>;
+    const activeId = (await active).proposal.id;
+    const blocked = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
+    expect(blocked.status()).toBe(409);
+    await scene.getByRole("button", { name: "取消 handoff" }).click();
+    await expect(scene).toContainText("cancelled");
+    const released = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
+    expect(released.ok(), await released.text()).toBeTruthy();
+    expect(activeId).toBeTruthy();
+  });
+
   test("re-copies a frozen handoff, rejects it, and replaces it through the browser", async ({ page, request, workbench }) => {
     const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "replace");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
@@ -185,6 +236,35 @@ async function createAcceptedCastProject(request: Api, apiOrigin: string, label:
   return projectId;
 }
 
+async function createAcceptedArtProject(request: Api, apiOrigin: string, label: string): Promise<string> {
+  const projectId = await createAcceptedCastProject(request, apiOrigin, label);
+  const prepared = await getJson<ArtPreparation>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/art/candidates`));
+  await writeArtDelivery(prepared, `f3b-art-${label}`);
+  const ready = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/art/candidates/${prepared.jobId}/refresh`));
+  await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/art/accept`, {
+    data: { jobId: prepared.jobId, expectedArtRevision: prepared.expectedArtRevision, binding: prepared.binding, art: ready.art },
+  }));
+  return projectId;
+}
+
+async function writeArtReferenceDelivery(response: import("@playwright/test").Response): Promise<void> {
+  expect(response.ok(), await response.text()).toBeTruthy();
+  const copied = await response.json() as { proposal: { id: string; requestHash: string }; packagePath: string; deliveryPath: string };
+  const request = JSON.parse(await readFile(path.join(copied.packagePath, "request.json"), "utf8"));
+  const content = fixturePng();
+  const provenance = { codeRevision: "a".repeat(40), skillVersion: "plotloom-image-specialist.v3", skillHash: "b".repeat(64) };
+  await mkdir(path.join(copied.deliveryPath, "outputs"), { recursive: true });
+  await writeFile(path.join(copied.deliveryPath, "outputs", "study.png"), content);
+  await writeFile(path.join(copied.deliveryPath, "executor-pin.json"), JSON.stringify({ jobId: copied.proposal.id, requestHash: request.requestHash, executionContract: "codex_specialist.v2", ...provenance }));
+  await writeFile(path.join(copied.deliveryPath, "completion.json"), JSON.stringify({
+    schemaVersion: 2, jobId: copied.proposal.id, requestHash: request.requestHash, deliveryId: "f3b-browser-study",
+    actualPrompt: "Cinematic realism beacon room reference study, no people and no hands.",
+    outputs: [{ filename: "study.png", sha256: hash(content), role: "art_reference" }],
+    toolEvidence: { tool: "codex_imagegen", taskId: "f3b-browser-fixture", available: true }, executorProvenance: provenance,
+    limitations: ["Browser fixture; no creative approval."],
+  }));
+}
+
 async function prepareFromBrowser(page: import("@playwright/test").Page, panel: import("@playwright/test").Locator, projectId: string): Promise<ArtPreparation> {
   const prepared = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art/candidates`);
@@ -257,3 +337,26 @@ async function getJson<T>(responseOrPromise: Awaited<ReturnType<Api["get"]>> | P
 }
 
 function hash(value: Buffer): string { return createHash("sha256").update(value).digest("hex"); }
+
+function fixturePng(): Buffer {
+  const width = 32, height = 24;
+  const rows = Buffer.alloc((width * 3 + 1) * height);
+  for (let y = 0; y < height; y += 1) {
+    const offset = y * (width * 3 + 1);
+    for (let x = 0; x < width; x += 1) rows.set([42 + x, 72 + y, 84], offset + 1 + x * 3);
+  }
+  const chunk = (type: string, value: Buffer) => {
+    const name = Buffer.from(type);
+    const length = Buffer.alloc(4); length.writeUInt32BE(value.length);
+    const checksum = Buffer.alloc(4); checksum.writeUInt32BE(crc32(Buffer.concat([name, value])));
+    return Buffer.concat([length, name, value, checksum]);
+  };
+  const header = Buffer.alloc(13); header.writeUInt32BE(width, 0); header.writeUInt32BE(height, 4); header.set([8, 2, 0, 0, 0], 8);
+  return Buffer.concat([Buffer.from("89504e470d0a1a0a", "hex"), chunk("IHDR", header), chunk("IDAT", deflateSync(rows)), chunk("IEND", Buffer.alloc(0))]);
+}
+
+function crc32(value: Buffer): number {
+  let crc = 0xffffffff;
+  for (const byte of value) { crc ^= byte; for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xedb88320 & -(crc & 1)); }
+  return (crc ^ 0xffffffff) >>> 0;
+}

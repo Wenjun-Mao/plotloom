@@ -271,6 +271,11 @@ def published_run_directories(database: Path) -> set[str]:
                 "SELECT id, created_at FROM v2_character_reference_proposals "
                 "WHERE state IN ('delivered', 'rejected')"
             )
+        ) + list(
+            connection.execute(
+                "SELECT id, created_at FROM v2_art_reference_proposals "
+                "WHERE state IN ('delivered', 'rejected')"
+            )
         )
     finally:
         connection.close()

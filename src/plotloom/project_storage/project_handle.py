@@ -599,5 +599,11 @@ class ProjectStore:
             ) from error
         runs = _require_real_directory(self.home / "runs", label="project runs root")
         run_home = runs / f"{timestamp}__{job_id}"
+        # Manual image/reference proposals are durable database records before
+        # their external package exists.  The package owner, not a caller or
+        # specialist, creates this one confined run home on first Copy.
+        # Without it, normal API handoffs depended on a test-only directory
+        # setup and could never reach the exchange's no-follow writer.
+        run_home.mkdir(mode=0o700, exist_ok=True)
         _require_real_directory(run_home, label="project image handoff run")
         return ImageJobExchange(run_home, limits=DEFAULT_MANAGED_MEDIA_LIMITS)

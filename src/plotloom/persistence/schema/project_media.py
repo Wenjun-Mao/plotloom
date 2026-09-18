@@ -336,6 +336,56 @@ class CharacterReferenceProposalCandidateRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class ArtReferenceProposalRow(Base):
+    """A manual environment/prop study tied to one accepted-art revision."""
+
+    __tablename__ = "v2_art_reference_proposals"
+    __table_args__ = (Index("ix_v2_art_reference_proposals_project_created", "project_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(67), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    subject_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    request: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    request_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    cancellation_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ArtReferenceProposalDeliveryRow(Base):
+    __tablename__ = "v2_art_reference_proposal_deliveries"
+    __table_args__ = (
+        UniqueConstraint("proposal_id", "delivery_id", name="uq_v2_art_proposal_delivery_identity"),
+        Index("uq_v2_art_proposal_final_delivery", "proposal_id", unique=True, sqlite_where=text("delivery_id IS NOT NULL")),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    proposal_id: Mapped[str] = mapped_column(ForeignKey("v2_art_reference_proposals.id", ondelete="RESTRICT"), nullable=False)
+    delivery_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    manifest: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
+    manifest_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    state: Mapped[str] = mapped_column(String(24), nullable=False)
+    diagnostic_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ArtReferenceProposalCandidateRow(Base):
+    __tablename__ = "v2_art_reference_proposal_candidates"
+    __table_args__ = (UniqueConstraint("delivery_id", "asset_id", name="uq_v2_art_proposal_candidate_asset"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    proposal_id: Mapped[str] = mapped_column(ForeignKey("v2_art_reference_proposals.id", ondelete="RESTRICT"), nullable=False)
+    delivery_id: Mapped[str] = mapped_column(ForeignKey("v2_art_reference_proposal_deliveries.id", ondelete="RESTRICT"), nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    output_filename: Mapped[str] = mapped_column(String(180), nullable=False)
+    output_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    role: Mapped[str] = mapped_column(String(24), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class SamePersonReviewStateRow(Base):
     __tablename__ = "v2_same_person_review_states"
 

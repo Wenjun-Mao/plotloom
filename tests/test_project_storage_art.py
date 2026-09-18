@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import json
 from hashlib import sha256
+from io import BytesIO
 from pathlib import Path
 
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.art_contracts import ArtAcceptRequest, ArtBinding, ArtReopenRequest, ArtSaveRequest
@@ -121,3 +123,81 @@ def test_art_routes_are_user_reachable(tmp_path: Path) -> None:
     response = client.get(f"/api/v2/projects/{project_id}/art")
     assert response.status_code == 200
     assert response.json() == {"candidate": None, "acceptedArt": None, "status": "missing", "staleReasons": []}
+
+
+def _reference_png() -> bytes:
+    output = BytesIO()
+    Image.new("RGB", (32, 24), (42, 72, 84)).save(output, format="PNG")
+    return output.getvalue()
+
+
+def _write_art_reference_delivery(delivery_path: Path, proposal: dict[str, object]) -> None:
+    request = proposal["request"]
+    assert isinstance(request, dict)
+    request_hash = proposal["requestHash"]
+    assert isinstance(request_hash, str)
+    content = _reference_png()
+    provenance = {"codeRevision": "a" * 40, "skillVersion": "plotloom-image-specialist.v3", "skillHash": "b" * 64}
+    delivery_path.mkdir(exist_ok=True)
+    (delivery_path / "outputs").mkdir()
+    (delivery_path / "outputs" / "study.png").write_bytes(content)
+    (delivery_path / "executor-pin.json").write_text(json.dumps({"jobId": proposal["id"], "requestHash": request_hash, "executionContract": "codex_specialist.v2", **provenance}))
+    (delivery_path / "completion.json").write_text(json.dumps({
+        "schemaVersion": 2, "jobId": proposal["id"], "requestHash": request_hash, "deliveryId": "art-study-001",
+        "actualPrompt": "Cinematic realism environment study, no people and no hands.",
+        "outputs": [{"filename": "study.png", "sha256": sha256(content).hexdigest(), "role": "art_reference"}],
+        "toolEvidence": {"tool": "codex_imagegen", "taskId": "art-reference-fixture", "available": True},
+        "executorProvenance": provenance, "limitations": ["fixture bytes only"],
+    }))
+
+
+def test_art_reference_study_browser_lifecycle_persists_and_stales(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    try:
+        binding = _prepare_art_context(store)
+        candidate, request = store.prepare_art_candidate("ch_" + "r" * 32)
+        ready = store.admit_art_delivery(_deliver(store, request))
+        accepted = store.accept_art_candidate(ArtAcceptRequest(job_id=candidate.job_id, expected_art_revision=0, binding=binding, art=ready.art))
+        assert accepted.accepted_art
+    finally:
+        store.close()
+    client = TestClient(create_project_folder_authoring_app(storage))
+    prepared = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals", json={"subjectType": "scene", "subjectId": "S01", "renderDirection": "Cinematic realism, no people."})
+    assert prepared.status_code == 201, prepared.text
+    proposal = prepared.json()["proposal"]
+    copied = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{proposal['id']}/copy")
+    assert copied.status_code == 200, copied.text
+    assert "Cinematic realism" in proposal["request"]["frozenSnapshot"]["renderDirection"]
+    _write_art_reference_delivery(Path(copied.json()["deliveryPath"]), proposal)
+    delivered = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{proposal['id']}/refresh")
+    assert delivered.status_code == 200, delivered.text
+    assert delivered.json()["state"] == "accepted"
+    assert delivered.json()["candidates"][0]["role"] == "art_reference"
+    reopened = storage.projects.open(project_id)
+    reopened.close()
+    visible = client.get(f"/api/v2/projects/{project_id}/art-reference-proposals")
+    assert visible.status_code == 200
+    assert visible.json()["proposals"][0]["current"] is True
+    # Accepted-art edits keep historic evidence but visibly invalidate its study.
+    edit_store = storage.projects.open(project_id)
+    try:
+        edit_store.reopen_art(ArtReopenRequest(expected_art_revision=1))
+        edited = dict(edit_store.art_state().accepted_art.art)  # type: ignore[union-attr]
+        edited["scenes"] = [dict(edited["scenes"][0], summary="changed accepted art")]
+        edit_store.save_reopened_art(ArtSaveRequest(expected_art_revision=1, binding=binding, art=edited))
+    finally:
+        edit_store.close()
+    stale = client.get(f"/api/v2/projects/{project_id}/art-reference-proposals")
+    assert stale.json()["proposals"][0]["current"] is False
+    later = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals", json={"subjectType": "scene", "subjectId": "S01", "renderDirection": "Cinematic realism, no people."})
+    assert later.status_code == 201, later.text
+    active = later.json()["proposal"]
+    cancellation = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{active['id']}/cancel", json={"reason": "Operator ended the package before delivery."})
+    assert cancellation.status_code == 200
+    final_store = storage.projects.open(project_id)
+    try:
+        assert "art_reference_publication_active" not in close_blockers(final_store)
+    finally:
+        final_store.close()

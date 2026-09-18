@@ -56,6 +56,8 @@ import type {
   ArtReviewState,
   ArtCandidate,
   ArtCandidatePreparation,
+  ArtReferenceProposal,
+  ArtReferenceProposalsResponse,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -308,6 +310,26 @@ export class PlotloomApiClient {
 
   refreshCharacterReferenceProposal(projectId: string, proposalId: string): Promise<{ state: "awaiting_delivery" | "accepted" | "inapplicable"; candidates: CharacterReferenceProposal["deliveries"][number]["candidates"] }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals/${encodeURIComponent(proposalId)}/refresh`, { method: "POST" });
+  }
+
+  getArtReferenceProposals(projectId: string, signal?: AbortSignal): Promise<ArtReferenceProposalsResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/art-reference-proposals`, { signal });
+  }
+
+  prepareArtReferenceProposal(projectId: string, body: { subjectType: "scene" | "prop"; subjectId: string; renderDirection: string }): Promise<{ proposal: ArtReferenceProposal }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/art-reference-proposals`, { method: "POST", body: JSON.stringify(body) });
+  }
+
+  copyArtReferenceProposal(projectId: string, proposalId: string): Promise<{ proposal: ArtReferenceProposal; assignment: string; packagePath: string; deliveryPath: string }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/art-reference-proposals/${encodeURIComponent(proposalId)}/copy`, { method: "POST" });
+  }
+
+  refreshArtReferenceProposal(projectId: string, proposalId: string): Promise<{ state: "awaiting_delivery" | "accepted" | "inapplicable"; candidates: ArtReferenceProposal["deliveries"][number]["candidates"] }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/art-reference-proposals/${encodeURIComponent(proposalId)}/refresh`, { method: "POST" });
+  }
+
+  cancelArtReferenceProposal(projectId: string, proposalId: string, reason: string): Promise<ArtReferenceProposal> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/art-reference-proposals/${encodeURIComponent(proposalId)}/cancel`, { method: "POST", body: JSON.stringify({ reason }) });
   }
 
   getSamePersonReviews(projectId: string, signal?: AbortSignal): Promise<SamePersonReviewsResponse> {

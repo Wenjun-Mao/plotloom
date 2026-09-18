@@ -302,7 +302,10 @@ class ImageJobExchange:
                 "limitations": [],
             })
         else:
-            proposal = request.get("target") == "character_reference_proposal"
+            proposal = request.get("target") in {
+                "character_reference_proposal", "art_reference_proposal"
+            }
+            art_reference = request.get("target") == "art_reference_proposal"
             adaptation = request.get("kind") == "keyframe_adaptation"
             adaptation_contract = request.get("frozenSnapshot", {}).get("keyframeAdaptation", {}).get("outputContract", {})
             adaptation_instruction = (
@@ -316,14 +319,18 @@ class ImageJobExchange:
                 + (
                     "View every role-mapped character_identity reference before generation and report its hashes in referenceUse. "
                     if not proposal else
-                    "This is an exploratory character-reference proposal; it cannot approve or select a reference. "
+                    (
+                        "This is an exploratory art-reference study; it cannot replace accepted art or create a creative approval. "
+                        if art_reference else
+                        "This is an exploratory character-reference proposal; it cannot approve or select a reference. "
+                    )
                 )
                 + adaptation_instruction
                 + "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. Do not write "
                 "SQLite, modify this package, or include sensitive values."
             )
             instructions = (
-                f"Plotloom {'character-reference proposal' if proposal else 'identity-aware image job'} {job_id}\n"
+                f"Plotloom {'art-reference study' if art_reference else 'character-reference proposal' if proposal else 'identity-aware image job'} {job_id}\n"
                 f"Read: {package / 'request.json'}\n"
                 f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n"
                 + (f"Before ImageGen, run: uv run python scripts/pin_image_specialist.py --package {package}\n" if package_version == PINNED_PACKAGE_VERSION else "")
@@ -335,8 +342,13 @@ class ImageJobExchange:
                     "still controls costume, pose, expression, lighting, and camera. parent_output is a separate edit guide "
                     "and never replaces character identity. "
                     if not proposal else
-                    "Use Codex built-in image generation for the frozen Story Bible character context. This result is an "
-                    "exploratory candidate only: do not claim an approved Shot, storyboard Approval, or selected reference. "
+                    (
+                        "Use Codex built-in image generation for the frozen accepted-art subject. This result is an "
+                        "exploratory candidate only: do not claim currentness, art acceptance, or a selected production asset. "
+                        if art_reference else
+                        "Use Codex built-in image generation for the frozen Story Bible character context. This result is an "
+                        "exploratory candidate only: do not claim an approved Shot, storyboard Approval, or selected reference. "
+                    )
                 )
                 + adaptation_instruction
                 + "Disclose the "

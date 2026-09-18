@@ -263,6 +263,7 @@ class ProjectSQLiteRepository:
             keyframes=self._media.keyframes,
             references=self._media.references,
             proposals=self._media.proposals,
+            art_references=self._media.art_references,
             same_person=self._media.same_person,
             image_preparation=self._media.image_preparation,
             image_delivery=self._media.image_delivery,

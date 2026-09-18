@@ -463,6 +463,46 @@ export interface CharacterReferenceProposalsResponse {
   proposals: CharacterReferenceProposal[];
 }
 
+export interface ArtReferenceProposalCandidate {
+  id: string;
+  assetId: string;
+  proposalId: string;
+  outputFilename: string;
+  outputHash: string;
+  role: "art_reference";
+  asset: ManagedAsset | null;
+  createdAt: string;
+}
+
+export interface ArtReferenceProposal {
+  id: string;
+  projectId: string;
+  subjectType: "scene" | "prop";
+  subjectId: string;
+  request: Record<string, unknown>;
+  requestHash: string;
+  state: "prepared" | "exported" | "delivered" | "cancelled";
+  current: boolean;
+  exportedAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  createdAt: string;
+  deliveries: Array<{
+    id: string;
+    deliveryId: string | null;
+    state: "accepted" | "inapplicable" | "rejected";
+    diagnosticCode: string | null;
+    manifestHash: string | null;
+    createdAt: string;
+    candidates: ArtReferenceProposalCandidate[];
+  }>;
+}
+
+export interface ArtReferenceProposalsResponse {
+  configured: boolean;
+  proposals: ArtReferenceProposal[];
+}
+
 export interface ImageJobCandidate {
   id: string;
   assetId: string;
