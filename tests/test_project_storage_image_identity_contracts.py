@@ -16,6 +16,7 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
 from plotloom.project_generation_storage import ProjectPipelineExecutor
 from plotloom.project_storage import ProjectFolderStorage, ProjectStore
+from plotloom.persistence.project.cast import ProjectCastPersistence
 
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
 
@@ -168,8 +169,22 @@ def _identity_delivery(
 
 
 def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch,
 ) -> None:
+    accepted_cast = {
+        "revision": 2,
+        "contentHash": "c" * 64,
+        "castCharacterId": "C01",
+        "appearance": "Short rain-dark hair and a worn navy weatherproof coat.",
+        "image": {"prompt": "Use the accepted coastal watch officer direction."},
+    }
+    monkeypatch.setattr(
+        ProjectCastPersistence,
+        "identity_context_in_session",
+        lambda _self, _session, _project_id, consumer_id: (
+            accepted_cast if consumer_id == "fixture-hero" else None
+        ),
+    )
     storage = ProjectFolderStorage(
         outputs_root=tmp_path / "outputs",
         application_data_root=tmp_path / "application",
@@ -258,6 +273,7 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
         frozen = job["request"]["frozenSnapshot"]
         assert frozen["visibleCharacterIds"] == ["fixture-hero"]
         assert frozen["characterIdentity"][0]["referenceDecisionId"] == selected_reference.json()["id"]
+        assert frozen["characterIdentity"][0]["acceptedCast"] == accepted_cast
         assert [entry["role"] for entry in frozen["references"]] == ["character_identity"]
 
         copied = client.post(f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/copy")
@@ -266,6 +282,9 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
         package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))
         assert package_request["packageVersion"] == 4
         assert package_request["references"][0]["role"] == "character_identity:fixture-hero"
+        assert "characterIdentity[].acceptedCast" in (
+            package / "COPY_ASSIGNMENT.txt"
+        ).read_text(encoding="utf-8")
         delivery = Path(copied.json()["deliveryPath"])
         pin = {
             "jobId": job["id"],

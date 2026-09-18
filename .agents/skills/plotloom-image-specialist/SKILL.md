@@ -11,6 +11,11 @@ Use this skill only for a single Plotloom package path explicitly supplied by th
 
 - Read `request.json`, every provided reference image, and `completion-manifest.example.json` before generating.
 - A P1.5 shot package may include `character_identity:<characterId>` references. View every such reference before calling ImageGen. Treat the role-to-character mapping as mandatory: preserve durable facial/build/anchor identity, while the frozen shot controls state, clothing, composition, action, and other shot-specific facts.
+- When a `character_identity` mapping includes `acceptedCast`, its cast revision,
+  hash, and appearance/image direction are frozen identity facts. Apply them
+  with the supplied reference; do not silently replace that direction with
+  freeform prompt invention. The cast still does not override the frozen shot's
+  state, clothing, composition, action, or other shot-specific facts.
 - Treat a `character_identity` reference as identity-only: do not transfer its pose, framing, crop, camera, lighting, setting, or action. Honor the frozen shot's requested framing, and do not reframe it or add hands or props outside it merely to make a continuity fact visible.
 - A `parent_output` is refinement guidance only. It never replaces `character_identity` references or changes their roles.
 - A `source_keyframe` appears only in a `keyframe_adaptation` package. It is

@@ -330,8 +330,10 @@ class ImageJobExchange:
                 + f"Deliver only under: {job_root / 'delivery'}\n"
                 + (
                     "Use Codex built-in image generation. View every supplied character_identity reference and preserve "
-                    "that person while the frozen canonical shot state controls costume, pose, expression, lighting, and "
-                    "camera. parent_output is a separate edit guide and never replaces character identity. "
+                    "that person. When characterIdentity[].acceptedCast is present, preserve its appearance/image direction "
+                    "as cast-owned identity facts; do not replace it with freeform invention. The frozen canonical shot state "
+                    "still controls costume, pose, expression, lighting, and camera. parent_output is a separate edit guide "
+                    "and never replaces character identity. "
                     if not proposal else
                     "Use Codex built-in image generation for the frozen Story Bible character context. This result is an "
                     "exploratory candidate only: do not claim an approved Shot, storyboard Approval, or selected reference. "
