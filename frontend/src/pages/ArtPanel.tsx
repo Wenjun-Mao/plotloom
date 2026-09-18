@@ -34,6 +34,12 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
     const session = activeProject.current;
     setState(undefined); setStudies([]); setAssignment(""); setDraft(""); setError(""); setBusy(false);
     void load(session);
+    return () => {
+      // An unmounted panel must not let an already-settled child operation
+      // refresh through its captured parent callback. StrictMode immediately
+      // installs a new epoch after this development cleanup.
+      if (ownsProject(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 };
+    };
   }, [projectId, load]);
   useEffect(() => {
     // The accepted revision is the current project-owned record. Reopen changes
@@ -98,6 +104,14 @@ function ArtReferenceStudies({ projectId, art, acceptedRevision, acceptedContent
   const activeSession = useRef({ key: sessionKey, epoch: 0 });
   if (activeSession.current.key !== sessionKey) activeSession.current = { key: sessionKey, epoch: activeSession.current.epoch + 1 };
   const ownsSession = (session: { key: string; epoch: number }) => activeSession.current === session;
+  useEffect(() => {
+    const session = activeSession.current;
+    return () => {
+      // This component owns the reference-operation callback. Invalidate it
+      // before its parent can be unmounted or replaced by another art visit.
+      if (ownsSession(session)) activeSession.current = { key: session.key, epoch: session.epoch + 1 };
+    };
+  }, [sessionKey]);
   const [busySession, setBusySession] = useState<{ key: string; epoch: number }>();
   const studyBusy = busy || busySession === activeSession.current;
   const subjects = (["scene", "prop"] as const).flatMap(subjectType => {

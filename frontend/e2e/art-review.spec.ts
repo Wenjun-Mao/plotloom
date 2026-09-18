@@ -65,6 +65,10 @@ test.describe("F3A production art review", () => {
     await scene.getByRole("button", { name: "准备研究" }).click();
     const active = (await newPrepared).json() as Promise<{ proposal: { id: string } }>;
     const activeId = (await active).proposal.id;
+    // The API response alone does not establish that the browser callback has
+    // completed its mandatory refresh. Wait for that mounted continuation
+    // before exercising a competing lifecycle request.
+    await expect(scene.getByRole("button", { name: "取消 handoff" })).toBeVisible();
     const blocked = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
     expect(blocked.status()).toBe(409);
     await scene.getByRole("button", { name: "取消 handoff" }).click();
@@ -241,9 +245,26 @@ test.describe("F3A production art review", () => {
       const returnedPanel = page.getByTestId("art-review");
       await expect(returnedPanel).toBeVisible();
       await expect(returnedPanel.getByLabel("复制给 specialist 的冻结任务")).toHaveCount(0);
+      const copiedResponse = page.waitForResponse((response) => response.request().method() === "POST"
+        && new URL(response.url()).pathname === `/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/copy`);
+      const postReleaseRefreshes: string[] = [];
+      const recordPostReleaseRefresh = (request: import("@playwright/test").Request) => {
+        if (request.method() === "GET" && new URL(request.url()).pathname === `/api/v2/projects/${firstProjectId}/art-reference-proposals`) {
+          postReleaseRefreshes.push(request.url());
+        }
+      };
+      page.on("request", recordPostReleaseRefresh);
       release();
+      const copied = await copiedResponse;
+      expect(copied.ok(), await copied.text()).toBeTruthy();
+      // The held browser request has responded and the SPA has gone idle, so a
+      // stale continuation cannot be hidden behind an immediate negative check.
+      await page.waitForLoadState("networkidle");
+      page.off("request", recordPostReleaseRefresh);
       await expect(returnedPanel.getByLabel("复制给 specialist 的冻结任务")).toHaveCount(0);
+      await expect(returnedPanel.getByRole("alert")).toHaveCount(0);
       await expect(returnedPanel.getByTestId("art-reference-studies").getByRole("button", { name: "复制 ImageGen 任务" })).toBeEnabled();
+      expect(postReleaseRefreshes).toEqual([]);
     } finally {
       release?.();
       await page.unroute(`**/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/copy`, heldRoute);
