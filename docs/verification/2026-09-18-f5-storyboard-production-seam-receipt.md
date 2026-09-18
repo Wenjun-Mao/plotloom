@@ -1,4 +1,4 @@
-# F5 storyboard production-seam receipt — bounded timing evidence and failed correction
+# F5 storyboard production-seam receipt — bounded timing evidence, failed correction, and content-preserving grouping split
 
 Date: 2026-09-18. Baseline: `1364daa49e455836a784c0febf0e434928115b7c`.
 
@@ -131,13 +131,82 @@ production contract), `transport.py` (one-image payload), and
 `src/plotloom/persistence/project/media_video.py` (current approved storyboard,
 reviewed selected keyframe, identity/reference and currentness gates).
 
+## Content-preserving segment split — valid review-only candidate
+
+The retained timing correction established that `params.maxCutSeconds: 8` is
+accepted unchanged and that all section and route caps can be met, but it left
+one deterministic grouping defect: `E02-06` grouped otherwise valid cut
+durations `[5, 2.5, 2.5, 2.5, 2.5, 2.5]` into 17.5 seconds. This was not a
+script, dialogue-feasibility, cut-duration, or production-H3 issue.
+
+One new derived candidate was made in ignored local scratch, without touching
+either frozen earlier attempt, an F0 package, a database, or production source:
+
+- [baseline correction](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/storyboard.json) — SHA-256 `88b2babc94f2edadc0b1582197c243e46cfd40fe388117686081ed39c1c07dc8`
+- [derived split candidate](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/storyboard-split.json) — SHA-256 `50165863d45e678c28bcf794c6f9f5444b6aa45eef2caa446595dd638313578a`
+- [content-preservation proof](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/content-preservation.json), [explicit cap proof](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/explicit-caps.json), and [raw hashes](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/hashes.log)
+- [pinned validation](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/validate.log), [full-input checkup](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/checkup-full-inputs.log), [Markdown render](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/storyboard-split.md), and [HTML render](../../.local/relay/c82e778f-abcb-4649-815d-d1a9b7801ea7/f5-segment-split/report-split.html)
+
+Only the former `E02-06` was split at its existing third-cut boundary. The
+first retained `E02-06` is 10.0 seconds (`[5, 2.5, 2.5]`) and the new
+`E02-07` is 7.5 seconds (`[2.5, 2.5, 2.5]`). The two affected H3 prompts were
+derived again so their local Shot/Picture numbering and timestamps restart at
+each new segment: 0/5/7.5 seconds and 0/2.5/5 seconds respectively. No cut
+object was rewritten.
+
+The proof flattens every cut object across all three episodes and finds the 71
+objects byte-equivalent in order. It also independently compares the 22
+script-owned dialogue bindings and H3 `<d>[Chinese]` blocks: source, baseline,
+and final each contain the same 22 lines in the same order. The pinned
+`validate` and full-input `checkup` pass all applicable gates; pinned selftest
+still passes 254 assertions. The derived candidate has 21 segments and 71 cuts
+over 237.7 seconds. Explicit non-upstream acceptance caps also pass: sections
+are 80.3/78.5/78.9 seconds (each ≤90), maximum segments are 14.3/14.1/14.5
+seconds (each ≤15), and routes are 158.8/159.2 seconds (each ≤180).
+
+The optional recipe-card gate remains explicitly skipped because no
+`--shots` card library was mounted; this is not recipe-card compatibility
+evidence.
+
+### Historical currentness boundary
+
+The original package's preserved currentness record still says
+`historical-f5-package-currentness passed` with manifest hash
+`b68b35391fabe7c7e0d21708cae2003d65daef16bd2f0757af5c604c090dc648`;
+the original source and package hashes are re-recorded in the new raw hash log.
+A read-only current-reader recheck is also preserved, but exits before delivery
+reading or `assert_current`: today's `CreativeHandoffRequest` rejects six
+legacy request fields. It therefore neither refutes nor freshly confirms that
+historical currentness record. This is a historical request-schema
+incompatibility, not a candidate-content, validation-gate, or timing failure;
+the prior package was not rewritten to accommodate it.
+
+### Independent review
+
+An independent attended read-only review compared the frozen script, baseline,
+derived candidate, preservation and cap proofs, raw validation/render outputs,
+and the current-reader failure. It independently confirmed the sole substantive
+change is the 10.0/7.5-second split; the 71 flattened cuts, 22 dialogue
+bindings, and all local H3 timestamps reconcile. It agrees that the candidate
+is valid review-only resegmentation evidence and that the reader failure is a
+historical-schema evidence gap, not a new candidate failure.
+
+The native reviewer task was launched with the recorded selection
+`gpt-5.6-terra` at `high` reasoning. No separately inspectable runtime-model
+telemetry was returned, so this receipt does not promote that launch selection
+into an execution attestation or rely on model self-description.
+
+This review does not establish production support for variable-duration H3;
+the deployed H3 contract remains fixed at five seconds. It also does not create
+a canonical projection or installation, a selected reference, media dispatch,
+voice proof, creative approval, or F5 product acceptance.
+
 ## Next bounded action and limits
 
-The next bounded action is a fresh, independently scoped resegmentation only
-after reassessing the retained 17.5-second failure. It must preserve the
-script-owned dialogue and satisfy every upstream segment gate before any product
-integration decision. No V2 SceneBeats projection is a prerequisite of that
-review work; existing review/keyframe/media owners remain unchanged.
+The next bounded action is director acceptance of this review-only candidate or
+selection of a source-bound candidate/review-install owner. Product integration
+remains separately scoped. No V2 SceneBeats projection is a prerequisite of
+this review work; existing review/keyframe/media owners remain unchanged.
 
 No project database was edited. No Approval, reference selection, image/media
 generation, gateway preflight/dispatch, audio experiment, frontend/schema work,
