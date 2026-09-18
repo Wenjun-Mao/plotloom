@@ -161,6 +161,13 @@ class ProjectMediaRepository:
     ) -> JsonObject:
         return self._proposals.mark_character_reference_proposal_exported(project_id, proposal_id)
 
+    def cancel_character_reference_proposal(
+        self, project_id: str, proposal_id: str, reason: str
+    ) -> JsonObject:
+        return self._proposals.cancel_character_reference_proposal(
+            project_id, proposal_id, reason
+        )
+
     def character_reference_proposal_delivery_context(
         self, project_id: str, proposal_id: str
     ) -> JsonObject:

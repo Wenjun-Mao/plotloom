@@ -10,6 +10,7 @@ from ..exceptions import (
 )
 from ..managed_media import publish_import
 from ..image_job_contracts import (
+    CharacterReferenceProposalCancellationRequest,
     CharacterReferenceDecisionRequest,
     CharacterReferenceProposalRequest,
     CharacterReferenceRevocationRequest,
@@ -159,6 +160,19 @@ def register_project_folder_image_job_routes(
                 "packagePath": package["packagePath"],
                 "deliveryPath": package["deliveryPath"],
             }
+
+    @app.post(
+        "/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/cancel"
+    )
+    def cancel_project_character_reference_proposal(
+        project_id: str,
+        proposal_id: str,
+        body: CharacterReferenceProposalCancellationRequest,
+    ) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return store.media.cancel_character_reference_proposal(
+                project_id, proposal_id, body.reason
+            )
 
     @app.post(
         "/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/refresh"

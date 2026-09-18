@@ -17,6 +17,7 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.domain import utc_now
+from plotloom.exceptions import InvalidTransitionError
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.source_outline_contracts import (
     AcceptedOutlineRevision, AcceptedSectionMapRevision, SectionChoice, SectionMap,
@@ -128,6 +129,18 @@ def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tm
         assert frozen["acceptedCast"]["contentHash"] == accepted.accepted_cast.content_hash
         assert frozen["characterContext"]["authority"] == "cast"
         assert frozen["characterContext"]["appearance"] == "Windburned"
+        cancelled = store.media.cancel_character_reference_proposal(
+            store.manifest.project_id,
+            proposal["id"],
+            "Operator stopped this exploratory handoff before delivery.",
+        )
+        assert cancelled["state"] == "cancelled"
+        assert cancelled["current"] is False
+        assert cancelled["cancellationReason"] == "Operator stopped this exploratory handoff before delivery."
+        with pytest.raises(InvalidTransitionError, match="no longer current"):
+            store.media.character_reference_proposal_package_sources(
+                store.manifest.project_id, proposal["id"]
+            )
         store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
         assert proposal["current"] is True
         assert store.media.character_reference_proposal_delivery_context(store.manifest.project_id, proposal["id"])["current"] is False

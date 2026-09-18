@@ -111,6 +111,12 @@ class CharacterReferenceProposalRequest(CamelModel):
         return normalized
 
 
+class CharacterReferenceProposalCancellationRequest(CamelModel):
+    """Explicitly stop a prepared or exported exploratory reference handoff."""
+
+    reason: str = Field(min_length=1, max_length=2_000)
+
+
 class SamePersonReviewItem(CamelModel):
     character_id: str = Field(min_length=1, max_length=128)
     judgment: Literal["pass", "fail"]

@@ -176,6 +176,32 @@ class CharacterReferenceProposalPersistence:
                 session.flush()
             return self._proposal_dict(proposal, current=True)
 
+    def cancel_character_reference_proposal(
+        self, project_id: str, proposal_id: str, reason: str
+    ) -> dict[str, Any]:
+        """End a manual handoff so it cannot strand project lifecycle work."""
+
+        normalized_reason = reason.strip()
+        if not normalized_reason or len(normalized_reason) > 2_000:
+            raise ValueError(
+                "character reference proposal cancellation reason must be between 1 and 2,000 characters"
+            )
+        with self._access.leases.lifecycle_write() as session:
+            self._access.guards.active(self._access.rows.project(session, project_id))
+            proposal = session.get(CharacterReferenceProposalRow, proposal_id)
+            if proposal is None or proposal.project_id != project_id:
+                raise NotFoundError("character reference proposal not found")
+            if proposal.state not in {"prepared", "exported", "cancelled"}:
+                raise InvalidTransitionError(
+                    "only a prepared or exported character reference proposal can be cancelled"
+                )
+            if proposal.state != "cancelled":
+                proposal.state = "cancelled"
+                proposal.cancelled_at = utc_now()
+                proposal.cancellation_reason = normalized_reason
+                session.flush()
+            return self._proposal_dict(proposal, current=False)
+
     def character_reference_proposal_delivery_context(self, project_id: str, proposal_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:
             proposal = session.get(CharacterReferenceProposalRow, proposal_id)

@@ -30,6 +30,12 @@ directly and freeze its display name, appearance/image direction, revision and
 hash without loading a Story Bible. Story-Bible reference decisions name
 `story_bible` authority explicitly; requests never fall back between owners.
 
+Prepared or exported cast-reference proposal handoffs have an explicit local
+cancellation transition. Cancellation records the operator reason, makes the
+proposal non-current, rejects any later copy, and admits a late delivery only
+as inapplicable evidence. It does not select a reference or alter canonical
+cast/media state.
+
 ## Consequences and guardrails
 
 - Cast IDs stay author/model-owned upstream facts, validated as nonblank and
@@ -40,3 +46,5 @@ hash without loading a Story Bible. Story-Bible reference decisions name
   reference selection; a new current selection and review are required.
 - F2B studies are exploratory reference evidence only. They do not manufacture
   a Shot binding or satisfy F5/F7 production cross-shot review requirements.
+- The cancellation route is available only through the proposal's project and
+  leaves the original package and any late-delivery evidence intact.

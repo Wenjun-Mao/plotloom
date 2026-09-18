@@ -299,6 +299,10 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals/${encodeURIComponent(proposalId)}/copy`, { method: "POST" });
   }
 
+  cancelCharacterReferenceProposal(projectId: string, proposalId: string, reason: string): Promise<CharacterReferenceProposal> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals/${encodeURIComponent(proposalId)}/cancel`, { method: "POST", body: JSON.stringify({ reason }) });
+  }
+
   refreshCharacterReferenceProposal(projectId: string, proposalId: string): Promise<{ state: "awaiting_delivery" | "accepted" | "inapplicable"; candidates: CharacterReferenceProposal["deliveries"][number]["candidates"] }> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals/${encodeURIComponent(proposalId)}/refresh`, { method: "POST" });
   }
