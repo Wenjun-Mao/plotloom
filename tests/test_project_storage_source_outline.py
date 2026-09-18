@@ -13,8 +13,9 @@ from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHa
 from plotloom.creative_handoff_exchange import canonical_json
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.source_outline_contracts import (
-    OutlineAcceptRequest,
+    BranchOutcome, OutlineAcceptRequest,
     OutlineReopenRequest,
+    SectionChoice, SectionMap, SectionMapSaveRequest, StorySection,
     SourceMaterial,
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
@@ -46,9 +47,11 @@ def _storage(tmp_path: Path) -> ProjectFolderStorage:
     )
 
 
-def _request(project_id: str, source: SourceMaterial, expected_outline_revision: int = 0) -> CreativeHandoffRequest:
+def _request(
+    project_id: str, source: SourceMaterial, expected_outline_revision: int = 0, job_suffix: str = "a",
+) -> CreativeHandoffRequest:
     return CreativeHandoffRequest(
-        job_id="ch_" + "a" * 32,
+        job_id="ch_" + job_suffix * 32,
         project_id=project_id,
         section_id="story",
         stage="outline",
@@ -122,6 +125,73 @@ def test_source_modes_persist_candidate_and_explicit_acceptance(tmp_path: Path, 
         persisted = store.source_outline_state()
         assert persisted.source is not None and persisted.source.material.kind == kind
         assert persisted.accepted_outline == accepted.accepted_outline
+    finally:
+        store.close()
+
+
+def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_change(tmp_path: Path) -> None:
+    storage = _storage(tmp_path)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    try:
+        source = _material()
+        store.save_source_material(expected_source_revision=0, material=source)
+        request = _request(store.manifest.project_id, source)
+        store.prepare_outline_candidate(request)
+        store.admit_outline_delivery(_deliver(store, request))
+        accepted = store.accept_outline_candidate(OutlineAcceptRequest(
+            job_id=request.job_id, expected_source_revision=1, expected_outline_revision=0,
+        ))
+        outline = accepted.accepted_outline
+        assert outline is not None
+        mapping = SectionMap(
+            sections=[
+                StorySection(section_id="opening", title="渡口", summary="船夫收到最后一封信。"),
+                StorySection(section_id="ending-a", title="交给妹妹", summary="妹妹在风暴前读到信。", ending=True),
+                StorySection(section_id="ending-b", title="交给船长", summary="船长带信离岸。", ending=True),
+            ],
+            choice=SectionChoice(
+                choice_id="deliver", section_id="opening", prompt="把信交给谁？",
+                outcomes=[
+                    BranchOutcome(outcome_id="sister", label="交给妹妹", consequence="妹妹留下。", ending_section_id="ending-a"),
+                    BranchOutcome(outcome_id="captain", label="交给船长", consequence="船长启航。", ending_section_id="ending-b"),
+                ],
+            ),
+        )
+        saved = store.save_section_map(SectionMapSaveRequest(
+            expected_section_map_revision=0, expected_source_revision=1,
+            expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
+            mapping=mapping,
+        ))
+        assert saved.section_map_status == "current"
+        assert saved.accepted_section_map is not None
+        assert saved.accepted_section_map.mapping == mapping
+        project_id = store.manifest.project_id
+        store.close()
+        store = storage.projects.open(project_id)
+        reopened = store.source_outline_state()
+        assert reopened.accepted_section_map is not None
+        assert reopened.section_map_status == "current"
+
+        replacement_request = _request(project_id, source, expected_outline_revision=1, job_suffix="b")
+        store.prepare_outline_candidate(replacement_request)
+        store.admit_outline_delivery(_deliver(store, replacement_request))
+        outline_stale = store.accept_outline_candidate(OutlineAcceptRequest(
+            job_id=replacement_request.job_id, expected_source_revision=1, expected_outline_revision=1,
+        ))
+        assert outline_stale.section_map_status == "stale"
+        assert outline_stale.section_map_stale_reasons == ["accepted outline revision changed to r2"]
+
+        changed = _material()
+        changed = changed.model_copy(update={"text": changed.text + " 来源经过作者修订。"})
+        stale = store.save_source_material(expected_source_revision=1, material=changed)
+        assert stale.section_map_status == "stale"
+        assert stale.section_map_stale_reasons == ["accepted source revision changed to r2"]
+        with pytest.raises(RevisionConflictError):
+            store.save_section_map(SectionMapSaveRequest(
+                expected_section_map_revision=1, expected_source_revision=1,
+                expected_outline_revision=outline.revision, expected_outline_content_hash=outline.content_hash,
+                mapping=mapping,
+            ))
     finally:
         store.close()
 

@@ -63,3 +63,28 @@ class SourceOutlineRevisionRow(Base):
     content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     outline: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SourceOutlineSectionMapHeadRow(Base):
+    __tablename__ = "v2_source_outline_section_map_heads"
+
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="missing")
+    stale_reasons: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class SourceOutlineSectionMapRevisionRow(Base):
+    __tablename__ = "v2_source_outline_section_map_revisions"
+    __table_args__ = (UniqueConstraint("project_id", "revision"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    outline_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    outline_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    mapping: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

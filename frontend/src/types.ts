@@ -1180,4 +1180,16 @@ export interface SourceOutlineReviewState {
   candidate: OutlineCandidate | null;
   acceptedOutline: AcceptedOutlineRevision | null;
   outlineStatus: "missing" | "candidate_ready" | "accepted" | "reopened";
+  acceptedSectionMap: AcceptedSectionMapRevision | null;
+  sectionMapStatus: "missing" | "current" | "stale";
+  sectionMapStaleReasons: string[];
+}
+
+export interface StorySection { sectionId: string; title: string; summary: string; ending: boolean; }
+export interface BranchOutcome { outcomeId: string; label: string; consequence: string; endingSectionId: string; }
+export interface SectionChoice { choiceId: string; sectionId: string; prompt: string; outcomes: [BranchOutcome, BranchOutcome]; }
+export interface SectionMap { sections: StorySection[]; choice: SectionChoice; }
+export interface AcceptedSectionMapRevision {
+  revision: number; sourceRevision: number; outlineRevision: number; outlineContentHash: string;
+  contentHash: string; mapping: SectionMap; acceptedAt: string;
 }

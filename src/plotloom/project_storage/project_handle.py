@@ -29,7 +29,7 @@ from ..domain import (
 from ..exceptions import NotFoundError, RevisionConflictError
 from ..source_outline_contracts import (
     OutlineAcceptRequest, OutlineCandidate, OutlineReopenRequest, SourceMaterial,
-    SourceOutlineReviewState,
+    SectionMapSaveRequest, SourceOutlineReviewState,
 )
 from ..creative_handoff_contracts import CreativeHandoffRequest
 from ..creative_handoff_exchange import ValidatedCreativeDelivery
@@ -416,6 +416,9 @@ class ProjectStore:
 
     def reopen_outline(self, request: OutlineReopenRequest) -> SourceOutlineReviewState:
         return self.repository.source_outline.reopen_outline(self.manifest.project_id, request)
+
+    def save_section_map(self, request: SectionMapSaveRequest) -> SourceOutlineReviewState:
+        return self.repository.source_outline.save_section_map(self.manifest.project_id, request)
 
     def cancel_outline_candidate(self, job_id: str) -> SourceOutlineReviewState:
         return self.repository.source_outline.cancel_candidate(self.manifest.project_id, job_id)

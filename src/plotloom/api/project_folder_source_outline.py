@@ -14,6 +14,7 @@ from ..source_outline_contracts import (
     OutlineCandidate,
     OutlineCandidatePreparation,
     OutlineReopenRequest,
+    SectionMapSaveRequest,
     SourceOutlineReviewState,
     SourceSaveRequest,
 )
@@ -147,3 +148,13 @@ def register_project_folder_source_outline_routes(
     ) -> SourceOutlineReviewState:
         with opened_project(project_id) as store:
             return store.reopen_outline(body)
+
+    @app.put(
+        "/api/v2/projects/{project_id}/source-outline/section-map",
+        response_model=SourceOutlineReviewState,
+    )
+    def save_source_outline_section_map(
+        project_id: str, body: SectionMapSaveRequest
+    ) -> SourceOutlineReviewState:
+        with opened_project(project_id) as store:
+            return store.save_section_map(body)

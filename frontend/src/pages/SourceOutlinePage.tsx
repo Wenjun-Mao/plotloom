@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { SourceMaterial, SourceOutlineReviewState } from "../types";
+import { SectionMapPanel } from "./SectionMapPanel";
 
 const blankSource: SourceMaterial = {
   kind: "synopsis",
@@ -104,6 +105,21 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
         <p>当前状态：{state.outlineStatus === "accepted" ? "已接受" : state.outlineStatus === "reopened" ? "已重新打开，需新的候选" : state.outlineStatus === "candidate_ready" ? "候选可审核" : "缺失"}</p>
         {accepted ? <><small>基于来源 r{accepted.sourceRevision} · 候选 {accepted.candidateJobId.slice(0, 11)}</small><details><summary>查看接受的原始 outline.json</summary><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details><Button variant="quiet" disabled={readOnly || busy || state.outlineStatus === "reopened"} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>重新打开，不替换内容</Button></> : <p className="muted">接受操作会新建不可变的大纲 revision；此处绝不从候选静默同步。</p>}
       </article>
+
+      <SectionMapPanel
+        outline={accepted} accepted={state.acceptedSectionMap} status={state.sectionMapStatus}
+        staleReasons={state.sectionMapStaleReasons} readOnly={readOnly} busy={busy}
+        onSave={(mapping) => {
+          if (!state.source || !accepted) return;
+          void mutate(() => plotloomApi.saveSectionMap(projectId, {
+            expectedSectionMapRevision: state.acceptedSectionMap?.revision || 0,
+            expectedSourceRevision: state.source!.revision,
+            expectedOutlineRevision: accepted.revision,
+            expectedOutlineContentHash: accepted.contentHash,
+            mapping,
+          }));
+        }}
+      />
     </div>
   </section>;
 }

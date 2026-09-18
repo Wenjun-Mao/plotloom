@@ -5,6 +5,7 @@ from .project_authoring import (
 )
 from .project_source_outline import (
     SourceOutlineCandidateRow, SourceOutlineHeadRow, SourceOutlineRevisionRow,
+    SourceOutlineSectionMapHeadRow, SourceOutlineSectionMapRevisionRow,
     SourceOutlineSourceRevisionRow,
 )
 from .project_generation import (
@@ -38,4 +39,5 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_video_jobs", "v2_video_reviews", "v2_video_candidate_selections", "v2_project_video_dispatches",
     "v2_source_outline_heads", "v2_source_outline_source_revisions",
     "v2_source_outline_candidates", "v2_source_outline_revisions",
+    "v2_source_outline_section_map_heads", "v2_source_outline_section_map_revisions",
 })

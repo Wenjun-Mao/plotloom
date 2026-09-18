@@ -47,6 +47,7 @@ import type {
   VideoPilotBudget,
   SourceMaterial,
   SourceOutlineReviewState,
+  SectionMap,
   OutlineCandidate,
   OutlineCandidatePreparation,
 } from "./types";
@@ -533,6 +534,10 @@ export class PlotloomApiClient {
 
   reopenOutline(projectId: string, expectedOutlineRevision: number): Promise<SourceOutlineReviewState> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/reopen`, { method: "POST", body: JSON.stringify({ expectedOutlineRevision }) });
+  }
+
+  saveSectionMap(projectId: string, body: { expectedSectionMapRevision: number; expectedSourceRevision: number; expectedOutlineRevision: number; expectedOutlineContentHash: string; mapping: SectionMap }): Promise<SourceOutlineReviewState> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/section-map`, { method: "PUT", body: JSON.stringify(body) });
   }
 
   outlineCandidateReportUrl(projectId: string, jobId: string): string {

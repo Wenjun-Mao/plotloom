@@ -26,7 +26,8 @@ from ..database import RepositoryDatabase
 from ..schema import (
     PROJECT_TEXT_PIPELINE_TABLE_NAMES, GenerationRunRow, ProjectOperationalStateRow,
     ProjectRow, SourceOutlineCandidateRow, SourceOutlineHeadRow,
-    SourceOutlineRevisionRow, SourceOutlineSourceRevisionRow, StageHeadRow,
+    SourceOutlineRevisionRow, SourceOutlineSectionMapHeadRow,
+    SourceOutlineSectionMapRevisionRow, SourceOutlineSourceRevisionRow, StageHeadRow,
 )
 from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
 from .access import ProjectCodecs, ProjectGuards, ProjectLeases, ProjectPersistenceAccess, ProjectRows
@@ -121,6 +122,8 @@ class ProjectSQLiteRepository:
                     SourceOutlineSourceRevisionRow.__table__,
                     SourceOutlineCandidateRow.__table__,
                     SourceOutlineRevisionRow.__table__,
+                    SourceOutlineSectionMapHeadRow.__table__,
+                    SourceOutlineSectionMapRevisionRow.__table__,
                 ],
             )
         self._generation_admission = ProjectGenerationAdmission()
