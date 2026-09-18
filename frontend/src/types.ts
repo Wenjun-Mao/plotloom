@@ -1199,3 +1199,7 @@ export interface SourceMapGraphAdmission {
   sectionMapRevision: number; sectionMapContentHash: string; graphRevision: number; graphContentHash: string;
   status: "current" | "stale"; staleReasons: string[]; installedAt: string;
 }
+export interface CastBinding { sourceRevision: number; sourceContentHash: string; outlineRevision: number; outlineContentHash: string; sectionMapRevision: number; sectionMapContentHash: string; sectionIds: string[]; }
+export interface CastCandidate { jobId: string; expectedCastRevision: number; binding: CastBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; cast: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
+export interface AcceptedCastRevision { revision: number; candidateJobId: string; contentHash: string; binding: CastBinding; cast: Record<string, unknown>; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; acceptedAt: string; }
+export interface CastReviewState { candidate: CastCandidate | null; acceptedCast: AcceptedCastRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: string[]; }

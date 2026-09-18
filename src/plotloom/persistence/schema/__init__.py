@@ -9,6 +9,7 @@ from .project_source_outline import (
     SourceOutlineSectionMapHeadRow, SourceOutlineSectionMapRevisionRow,
     SourceOutlineSourceRevisionRow,
 )
+from .project_cast import CastCandidateRow, CastHeadRow, CastRevisionRow
 from .project_generation import (
     ArtifactRow, FragmentReuseBindingRow, GenerationAttemptRow, GenerationPlanRow,
     GenerationRunRow, GenerationWorkUnitRow, MediaTaskRow, SealedStageAggregateRow, StagePlanRow,
@@ -42,4 +43,5 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_source_outline_candidates", "v2_source_outline_revisions",
     "v2_source_outline_section_map_heads", "v2_source_outline_section_map_revisions",
     "v2_source_outline_graph_admissions",
+    "v2_cast_heads", "v2_cast_candidates", "v2_cast_revisions",
 })

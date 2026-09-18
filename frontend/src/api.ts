@@ -50,6 +50,8 @@ import type {
   SectionMap,
   OutlineCandidate,
   OutlineCandidatePreparation,
+  CastReviewState,
+  CastCandidate,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -547,6 +549,14 @@ export class PlotloomApiClient {
   outlineCandidateReportUrl(projectId: string, jobId: string): string {
     return `${this.base}/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/report`;
   }
+
+  getCast(projectId: string): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast`); }
+  prepareCastCandidate(projectId: string): Promise<CastCandidate & { assignment: string }> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates`, { method: "POST" }); }
+  refreshCastCandidate(projectId: string, jobId: string): Promise<CastCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
+  cancelCastCandidate(projectId: string, jobId: string): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
+  acceptCastCandidate(projectId: string, body: { jobId: string; expectedCastRevision: number; binding: unknown; consumerMappings: Array<{ castCharacterId: string; consumerCharacterId: string }>; cast: Record<string, unknown> }): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/accept`, { method: "POST", body: JSON.stringify(body) }); }
+  reopenCast(projectId: string, expectedCastRevision: number): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/reopen`, { method: "POST", body: JSON.stringify({ expectedCastRevision }) }); }
+  castCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/report`; }
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
   getVideoBackend(): Promise<VideoBackend> { return this.request("/video-backend"); }

@@ -1,0 +1,30 @@
+import { useEffect, useState } from "react";
+import { plotloomApi } from "../api";
+import { Button, ErrorNotice } from "../components";
+import type { CastReviewState } from "../types";
+
+export function CastPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
+  const [state, setState] = useState<CastReviewState>(); const [assignment, setAssignment] = useState(""); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [editedCast, setEditedCast] = useState<Record<string, unknown>>({});
+  const load = () => void plotloomApi.getCast(projectId).then(setState).catch(error => setError(error.message));
+  useEffect(load, [projectId]);
+  useEffect(() => { if (state?.candidate?.status === "ready" && state.candidate.cast) setEditedCast(structuredClone(state.candidate.cast)); }, [state?.candidate?.jobId, state?.candidate?.status]);
+  const act = (operation: () => Promise<CastReviewState | unknown>) => { setBusy(true); setError(""); void operation().then(() => load()).catch(error => setError(error.message)).finally(() => setBusy(false)); };
+  if (!state) return null;
+  const candidate = state.candidate; const accepted = state.acceptedCast;
+  const castCharacters = Array.isArray(editedCast.characters) ? editedCast.characters as Array<Record<string, unknown>> : [];
+  const updateDirection = (index: number, group: "persona" | "voice", key: "motivation" | "appearance" | "timbre", value: string) => setEditedCast(current => ({ ...current, characters: castCharacters.map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...(character[group] as Record<string, unknown> || {}), [key]: value } } : character) }));
+  return <article className="panel cast-panel" data-testid="cast-review">
+    <header><span>05 · F2A character proposal</span><strong>{state.status === "stale" ? "上下文已过期" : accepted ? `已接受 r${accepted.revision}` : candidate?.status === "ready" ? "可审核" : candidate?.status === "prepared" ? "等待 specialist" : "尚无角色候选"}</strong></header>
+    <p>共享角色只在此处接受一次，绑定当前来源、大纲和稳定章节。上游报告是只读、未审核候选；文字方向不是声音或身份一致性的证明。</p>
+    {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
+    {!candidate && <Button variant="primary" disabled={readOnly || busy} onClick={() => { setBusy(true); void plotloomApi.prepareCastCandidate(projectId).then(result => { setAssignment(result.assignment); load(); }).catch(error => setError(error.message)).finally(() => setBusy(false)); }}>准备并复制 specialist handoff</Button>}
+    {candidate && <><small>冻结 source r{candidate.binding.sourceRevision} · outline r{candidate.binding.outlineRevision} · sections {candidate.binding.sectionIds.join(" · ")}</small>
+      {candidate.status === "prepared" && <><Button disabled={readOnly || busy} onClick={() => act(() => plotloomApi.refreshCastCandidate(projectId, candidate.jobId))}>刷新 specialist delivery</Button><Button variant="danger" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelCastCandidate(projectId, candidate.jobId))}>取消 handoff</Button></>}
+      {candidate.status === "ready" && <><details><summary>查看上游 cast.json</summary><pre>{JSON.stringify(candidate.cast, null, 2)}</pre></details>{candidate.reportAvailable && <details><summary>打开只读上游报告</summary><iframe title="derived upstream cast report" className="source-outline-report" sandbox="" src={plotloomApi.castCandidateReportUrl(projectId, candidate.jobId)} /></details>}
+        <section className="cast-forms"><strong>角色动机、外观与声音方向（作者可编辑）</strong>{castCharacters.map((character, index) => <fieldset key={String(character.id || index)}><legend>{String(character.name || character.id || `角色 ${index + 1}`)}</legend><label>动机<textarea disabled={readOnly || busy} value={String((character.persona as Record<string, unknown> | undefined)?.motivation || "")} onChange={event => updateDirection(index, "persona", "motivation", event.target.value)} /></label><label>外观<textarea disabled={readOnly || busy} value={String((character.persona as Record<string, unknown> | undefined)?.appearance || "")} onChange={event => updateDirection(index, "persona", "appearance", event.target.value)} /></label><label>声音方向<textarea disabled={readOnly || busy} value={String((character.voice as Record<string, unknown> | undefined)?.timbre || "")} onChange={event => updateDirection(index, "voice", "timbre", event.target.value)} /></label></fieldset>)}</section>
+        <Button variant="primary" disabled={readOnly || busy || castCharacters.length === 0} onClick={() => act(() => plotloomApi.acceptCastCandidate(projectId, { jobId: candidate.jobId, expectedCastRevision: candidate.expectedCastRevision, binding: candidate.binding, cast: editedCast, consumerMappings: castCharacters.map(character => ({ castCharacterId: String(character.id), consumerCharacterId: String(character.id) })) }))}>显式接受此角色提案</Button></>}
+    </>}
+    {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；为 F2B 的既有角色参考/媒体消费者保留明确 ID 映射。</small><Button variant="quiet" disabled={readOnly || busy || state.status === "reopened"} onClick={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision))}>重新打开角色提案</Button></>}
+    {assignment && <label>复制给 specialist 的冻结任务<textarea readOnly value={assignment} rows={5} /></label>}{error && <ErrorNotice message={error} />}
+  </article>;
+}

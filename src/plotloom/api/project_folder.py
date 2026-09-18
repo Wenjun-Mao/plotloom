@@ -70,6 +70,7 @@ from .models import (
     _normalize_idempotency_key,
 )
 from .project_folder_source_outline import register_project_folder_source_outline_routes
+from .project_folder_cast import register_project_folder_cast_routes
 from .project_folder_media import register_project_folder_media_routes
 from .project_folder_image_jobs import register_project_folder_image_job_routes
 from .project_folder_video import register_project_folder_video_routes
@@ -730,6 +731,7 @@ def create_project_folder_authoring_app(
         service=video_service,
     )
     register_project_folder_source_outline_routes(app, opened_project)
+    register_project_folder_cast_routes(app, opened_project)
     if run_dispatcher is not None and text_admission is not None:
         register_project_folder_generation_routes(
             app, run_dispatcher, admission=text_admission

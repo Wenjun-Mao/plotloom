@@ -29,6 +29,7 @@ from ..schema import (
     SourceOutlineGraphAdmissionRow,
     SourceOutlineRevisionRow, SourceOutlineSectionMapHeadRow,
     SourceOutlineSectionMapRevisionRow, SourceOutlineSourceRevisionRow, StageHeadRow,
+    CastCandidateRow, CastHeadRow, CastRevisionRow,
 )
 from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
 from .access import ProjectCodecs, ProjectGuards, ProjectLeases, ProjectPersistenceAccess, ProjectRows
@@ -57,6 +58,7 @@ from .generation_snapshots import ProjectGenerationSnapshots
 from .lifecycle import ProjectLifecyclePersistence
 from .media import ProjectMediaPersistence
 from .source_outline import ProjectSourceOutlinePersistence
+from .cast import ProjectCastPersistence
 from .repository_codecs import (
     approval_decision_from_row, artifact_from_row, assert_active_project,
     assert_lifecycle_revision, attempt_from_row, decode_current_stage_payload,
@@ -126,6 +128,7 @@ class ProjectSQLiteRepository:
                     SourceOutlineSectionMapHeadRow.__table__,
                     SourceOutlineSectionMapRevisionRow.__table__,
                     SourceOutlineGraphAdmissionRow.__table__,
+                    CastHeadRow.__table__, CastCandidateRow.__table__, CastRevisionRow.__table__,
                 ],
             )
         self._generation_admission = ProjectGenerationAdmission()
@@ -163,6 +166,7 @@ class ProjectSQLiteRepository:
             self._project_access, self._canonical, self._drafts, accounting=None
         )
         self.source_outline = ProjectSourceOutlinePersistence(self._project_access, self._canonical)
+        self.cast = ProjectCastPersistence(self._project_access, self.source_outline)
         self._generation_access = GenerationPersistenceAccess(
             leases=GenerationLeases(
                 read=self._read, write=self._write, lifecycle_write=self._lifecycle_write,
@@ -307,6 +311,7 @@ class ProjectSQLiteRepository:
                     input_revisions={}, stale_reasons=[], updated_at=project.updated_at,
                 ))
             self.source_outline.initialize(session, project.id, created_at=project.created_at)
+            self.cast.initialize(session, project.id, created_at=project.created_at)
             session.flush()
             for initial_stage in normalized_stages:
                 payload = stage_payload_model(
