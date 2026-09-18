@@ -27,7 +27,9 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
     load();
   }, [projectId, load]);
   useEffect(() => {
-    const art = state?.candidate?.status === "ready" ? state.candidate.art : state?.status === "reopened" ? state.acceptedArt?.art : undefined;
+    // The accepted revision is the current project-owned record. Reopen changes
+    // only whether it is editable; it must never be the sole way to inspect it.
+    const art = state?.candidate?.status === "ready" ? state.candidate.art : state?.acceptedArt?.art;
     if (art) setDraft(JSON.stringify(art, null, 2));
   }, [state?.candidate?.jobId, state?.candidate?.status, state?.acceptedArt?.revision, state?.status]);
   const act = (operation: () => Promise<unknown>) => {
@@ -55,7 +57,7 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备并复制 art specialist handoff</Button>}
     {candidate && <CandidateReview candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} draft={draft} setDraft={setDraft} recover={recover} refresh={() => act(() => plotloomApi.refreshArtCandidate(projectId, candidate.jobId))} cancel={() => act(() => plotloomApi.cancelArtCandidate(projectId, candidate.jobId))} accept={accept} />}
-    {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；文本与报告可审阅，但尚无图片或选择资产。</small>{reportJobId && <Report projectId={projectId} jobId={reportJobId} />}<Button variant="quiet" disabled={readOnly || busy || state.status === "reopened"} onClick={() => act(() => plotloomApi.reopenArt(projectId, accepted.revision))}>重新打开美术提案</Button></>}
+    {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；文本与报告可审阅，但尚无图片或选择资产。</small>{state.status !== "reopened" && <Editor disabled draft={draft} setDraft={setDraft} />}{reportJobId && <Report projectId={projectId} jobId={reportJobId} />}<Button variant="quiet" disabled={readOnly || busy || state.status === "reopened"} onClick={() => act(() => plotloomApi.reopenArt(projectId, accepted.revision))}>重新打开美术提案</Button></>}
     {accepted && state.status === "reopened" && <><Editor disabled={readOnly || busy} draft={draft} setDraft={setDraft} /><Button variant="primary" disabled={readOnly || busy} onClick={save}>保存重新打开的美术</Button></>}
     {assignment && <label>复制给 specialist 的冻结任务<textarea readOnly value={assignment} rows={5} /></label>}
     {error && <ErrorNotice message={error} />}
