@@ -773,11 +773,11 @@
       ]
     },
     "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger": {
-      "source_sha256": "ebd53cc5a33025b1c7d420d27521bf1bbe233af04e9d2809e2cf701b24fc0360",
+      "source_sha256": "5844de62949a1c0c27c6ff0e775f92ca54ad3c4088c4359f24ecf589e5587235",
       "assertions": [
         "submitted.status_code == 200",
         "provider.preflight_calls == provider.upload_calls == len(provider.submits) == 1",
-        "_sqlite_rows(storage.application.path, 'SELECT event, units FROM direct_video_dispatch_events WHERE dispatch_identity = ? ORDER BY rowid', (dispatch_identity,)) == [('reserved', 0), ('dispatch_claimed', 0)]",
+        "_sqlite_rows(storage.application.path, 'SELECT event, units FROM direct_video_dispatch_events WHERE dispatch_identity = ? ORDER BY rowid', (dispatch_identity,)) == [('reserved', 5), ('dispatch_claimed', 5)]",
         "not {'v2_video_pilot_ledger', 'v2_video_pilot_ledger_events'}.intersection((name for name, in _sqlite_rows(project_database, \"SELECT name FROM sqlite_master WHERE type = 'table'\")))",
         "not {'v2_video_pilot_ledger', 'v2_video_pilot_ledger_events'}.intersection((name for name, in _sqlite_rows(storage.application.path, \"SELECT name FROM sqlite_master WHERE type = 'table'\")))",
         "_sqlite_rows(storage.application.path, 'SELECT state FROM direct_video_dispatch_leases WHERE dispatch_identity = ?', (dispatch_identity,)) == [('dispatch_claimed',)]",
@@ -1243,7 +1243,7 @@
       ]
     },
     "tests/video_backends/minimax_h3/test_transport.py::test_h3_adapter_rejects_playable_output_outside_the_frozen_profile": {
-      "source_sha256": "b324d57a398298b6204e21dfcf8443082403ae427e67340030c54021d00b3ed8",
+      "source_sha256": "a1a3ce19fc13a57e07229dc8428bd177e6dd138cd76c6c0e9b5b6c9fff757649",
       "assertions": [
         "raises: pytest.raises(VideoOutputContractError, match='h3_output_profile_mismatch')"
       ]
@@ -4065,7 +4065,7 @@
         "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
         "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
-      "mapping_note": "The direct project H3 owner freezes its V4 adapter/backend binding before durable claim, records only local-capacity zero-unit accounting, and proves no retained Wan ledger is created.",
+      "mapping_note": "The direct project H3 owner freezes its V4 adapter/backend binding before durable claim, records frozen requested seconds in its direct dispatch lease, and proves no retained Wan ledger is created.",
       "review_status": "verified"
     },
     {
@@ -4102,7 +4102,7 @@
         "tests/test_project_storage_video.py::test_direct_h3_dispatch_persists_claims_before_provider_calls_and_never_uses_wan_ledger",
         "tests/test_project_storage_video.py::test_direct_dispatch_faults_and_cancel_race_never_call_provider_or_replay"
       ],
-      "mapping_note": "The direct project H3 owner freezes its V4 adapter/backend binding before durable claim, records only local-capacity zero-unit accounting, and proves no retained Wan ledger is created.",
+      "mapping_note": "The direct project H3 owner freezes its V4 adapter/backend binding before durable claim, records frozen requested seconds in its direct dispatch lease, and proves no retained Wan ledger is created.",
       "review_status": "verified"
     },
     {
