@@ -31,6 +31,10 @@ not a backend job, a review decision, or permission to edit canon.
   Each ID must be nonblank and unique. This is Plotloom's narrow receiving
   extension to the upstream shape: do not invent a replacement identity store
   or alter upstream fields to satisfy it.
+- For an `art` candidate, honor the request's explicit Plotloom `sectionUsage`
+  extension. It is code-owned linkage, not upstream art semantics: emit exactly
+  the supplied section IDs once, and use only the candidate's stable scene/prop
+  IDs. Do not invent an episode, hook, or parallel graph to populate it.
 
 ## Delivery
 

@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 from hashlib import sha256
+import json
+from pathlib import Path
+import subprocess
+import tempfile
 from typing import Any
 
 from sqlalchemy import select
@@ -87,7 +91,7 @@ class ProjectArtPersistence:
             if session.scalar(select(ArtCandidateRow.job_id).where(ArtCandidateRow.project_id == project_id, ArtCandidateRow.status == "prepared").limit(1)):
                 raise InvalidTransitionError("cancel the prepared art specialist publication before changing review state")
             binding, source, outline, mapping, cast = self._context(session, project_id)
-            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-art", stage="art", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": mapping, "cast.json": cast}, creative_brief="Create one upstream-shaped art.json candidate for the accepted source, outline, stable section context, and accepted cast. Use the section-map IDs as the thin explicit projection of upstream episode references; do not invent episodes, hooks, physical setting facts, or props from ambiguous state labels. Preserve reviewable stable scene and prop IDs. Cinematic realism is inherited author direction, while the upstream realistic preset is semi-realistic painterly: record that unresolved render-style qualification for F3B rather than silently changing the cast or style. This is a candidate only, not image generation, an asset selection, or project canon.")
+            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-art", stage="art", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": mapping, "cast.json": cast}, creative_brief="Create one upstream-shaped art.json candidate for the accepted source, outline, stable section context, and accepted cast. Plotloom additionally owns a required top-level sectionUsage array: write exactly one {sectionId, sceneIds, propIds} object for each section-map ID; sceneIds must be nonempty declared art scene IDs, propIds declared art prop IDs, and no other IDs are allowed. This is only a thin projection, not a second episode/graph model. Do not invent episodes, hooks, physical setting facts, or props from ambiguous state labels. Preserve reviewable stable scene and prop IDs. Cinematic realism is inherited author direction, while the upstream realistic preset is semi-realistic painterly: record that unresolved render-style qualification for F3B rather than silently changing the cast or style. This is a candidate only, not image generation, an asset selection, or project canon.")
             request.assert_secret_free()
             now = utc_now()
             row = ArtCandidateRow(job_id=job_id, project_id=project_id, expected_art_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, art=None, report_html=None, created_at=now, delivered_at=None)
@@ -112,7 +116,8 @@ class ProjectArtPersistence:
                 return self._candidate(row)
             if row.status != "prepared" or row.expected_art_revision != head.revision or self._stale(session, project_id, ArtBinding.model_validate(row.binding)):
                 raise CreativeHandoffError("delivery_stale", "art candidate context is stale")
-            _validate_art(delivery.candidate)
+            cast = self._context(session, project_id)[4]
+            _validate_art(delivery.candidate, cast, ArtBinding.model_validate(row.binding).section_ids)
             row.status, row.delivery_id, row.manifest_hash, row.art, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             head.status, head.updated_at = "candidate_ready", row.delivered_at
             return self._candidate(row)
@@ -129,7 +134,7 @@ class ProjectArtPersistence:
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "art candidate context changed before acceptance")
             art = request.art or row.art
-            _validate_art(art)
+            _validate_art(art, self._context(session, project_id)[4], binding.section_ids)
             if _art_ids(art) != _art_ids(row.art):
                 raise ValueError("accepted art cannot change frozen scene or prop IDs")
             now = utc_now()
@@ -165,7 +170,7 @@ class ProjectArtPersistence:
             binding = ArtBinding.model_validate(previous.binding)
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "accepted art context changed before saving edits")
-            _validate_art(request.art)
+            _validate_art(request.art, self._context(session, project_id)[4], binding.section_ids)
             if _art_ids(request.art) != _art_ids(previous.art):
                 raise ValueError("reopened art cannot change stable scene or prop IDs")
             now = utc_now()
@@ -191,6 +196,18 @@ class ProjectArtPersistence:
             row = session.get(ArtCandidateRow, job_id)
             if row is None or row.project_id != project_id or row.status not in {"ready", "accepted"} or row.report_html is None:
                 raise NotFoundError("ready art report is unavailable")
+            head = self._head(session, project_id)
+            accepted = session.scalar(select(ArtRevisionRow).where(
+                ArtRevisionRow.project_id == project_id,
+                ArtRevisionRow.revision == head.revision,
+                ArtRevisionRow.candidate_job_id == job_id,
+            ))
+            if accepted is not None and canonical_json(accepted.art) != canonical_json(row.art):
+                return (
+                    "<!doctype html><html><body><p><strong>Original specialist report.</strong> "
+                    "The accepted art.json was edited after this report was derived; this report does not describe the current accepted revision.</p>"
+                    f"<hr>{row.report_html}</body></html>"
+                )
             return row.report_html
 
     def candidate_request(self, project_id: str, job_id: str) -> CreativeHandoffRequest:
@@ -216,9 +233,64 @@ def _art_ids(art: dict[str, Any]) -> tuple[tuple[str, ...], tuple[str, ...]]:
     return tuple(scene_ids), tuple(prop_ids)
 
 
-def _validate_art(art: dict[str, Any]) -> None:
+def _validate_art(
+    art: dict[str, Any], cast: dict[str, Any], section_ids: list[str]
+) -> None:
     if contains_secret_setting(art) or contains_secret_value(art):
         raise ValueError("art must not contain credentials")
-    if not isinstance(art.get("source"), str) or not isinstance(art.get("style"), str):
-        raise ValueError("upstream art must retain source and style")
-    _art_ids(art)
+    scene_ids, prop_ids = _art_ids(art)
+    _validate_with_upstream_art_validator(art, cast)
+    _validate_section_usage(art, scene_ids, prop_ids, section_ids)
+
+
+def _validate_with_upstream_art_validator(art: dict[str, Any], cast: dict[str, Any]) -> None:
+    """Use the pinned novel-art validator; Plotloom does not reproduce its gates."""
+
+    repository = Path(__file__).resolve().parents[4]
+    validator = repository / "third_party" / "shuohao-skills" / "skills" / "novel-art" / "scripts" / "novel-art.mjs"
+    if not validator.is_file():
+        raise ValueError("pinned upstream novel-art validator is unavailable")
+    with tempfile.TemporaryDirectory(prefix="plotloom-art-validate-") as directory:
+        root = Path(directory)
+        art_path, cast_path = root / "art.json", root / "cast.json"
+        art_path.write_text(json.dumps(art, ensure_ascii=False), encoding="utf-8")
+        cast_path.write_text(json.dumps(cast, ensure_ascii=False), encoding="utf-8")
+        result = subprocess.run(
+            ["node", str(validator), "validate", str(art_path), "--cast", str(cast_path)],
+            capture_output=True, text=True, check=False,
+        )
+    if result.returncode:
+        detail = (result.stdout or result.stderr).strip()
+        raise ValueError(f"upstream novel-art validation failed: {detail}")
+
+
+def _validate_section_usage(
+    art: dict[str, Any], scene_ids: tuple[str, ...], prop_ids: tuple[str, ...], section_ids: list[str]
+) -> None:
+    """Bind Plotloom's only extension to the frozen F1B section IDs."""
+
+    usage = art.get("sectionUsage")
+    if not isinstance(usage, list) or not usage:
+        raise ValueError("art must contain a nonempty Plotloom sectionUsage projection")
+    seen_sections: set[str] = set()
+    for item in usage:
+        if not isinstance(item, dict):
+            raise ValueError("sectionUsage entries must be objects")
+        if set(item) != {"sectionId", "sceneIds", "propIds"}:
+            raise ValueError("sectionUsage entries may contain only sectionId, sceneIds, and propIds")
+        section_id, scenes, props = item.get("sectionId"), item.get("sceneIds"), item.get("propIds", [])
+        if not isinstance(section_id, str) or not section_id.strip() or section_id in seen_sections:
+            raise ValueError("sectionUsage needs unique nonblank section IDs")
+        if not isinstance(scenes, list) or not scenes or not isinstance(props, list):
+            raise ValueError("sectionUsage needs nonempty sceneIds and array propIds")
+        if any(not isinstance(value, str) or value not in scene_ids for value in scenes):
+            raise ValueError("sectionUsage references an unknown scene ID")
+        if any(not isinstance(value, str) or value not in prop_ids for value in props):
+            raise ValueError("sectionUsage references an unknown prop ID")
+        if len(set(scenes)) != len(scenes) or len(set(props)) != len(props):
+            raise ValueError("sectionUsage references must not repeat IDs")
+        if section_id not in section_ids:
+            raise ValueError("sectionUsage references an unknown frozen section ID")
+        seen_sections.add(section_id)
+    if seen_sections != set(section_ids):
+        raise ValueError("sectionUsage must cover exactly the frozen section IDs")

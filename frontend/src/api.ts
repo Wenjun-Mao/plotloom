@@ -569,6 +569,7 @@ export class PlotloomApiClient {
 
   getArt(projectId: string): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art`); }
   prepareArtCandidate(projectId: string): Promise<ArtCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates`, { method: "POST" }); }
+  recoverArtHandoff(projectId: string, jobId: string): Promise<ArtCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/handoff`); }
   refreshArtCandidate(projectId: string, jobId: string): Promise<ArtCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
   cancelArtCandidate(projectId: string, jobId: string): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
   acceptArtCandidate(projectId: string, body: { jobId: string; expectedArtRevision: number; binding: unknown; art: Record<string, unknown> }): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/accept`, { method: "POST", body: JSON.stringify(body) }); }

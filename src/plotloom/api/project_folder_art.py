@@ -11,6 +11,10 @@ from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtCandidatePreparat
 
 
 def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[str], Any]) -> None:
+    def preparation(store: Any, candidate: ArtCandidate, request: Any) -> ArtCandidatePreparation:
+        paths = store.creative_handoff_exchange().write_package(request)
+        return ArtCandidatePreparation.model_validate(candidate.model_dump(mode="python", by_alias=False) | {"package_path": paths["packagePath"], "delivery_path": paths["deliveryPath"], "assignment": f"Plotloom art assignment for {request.job_id}: read {paths['packagePath']}/request.json and follow its COPY_ASSIGNMENT.txt. Write only art.json, report.html, and completion.json under {paths['deliveryPath']}. This cannot accept or alter project canon."})
+
     @app.get("/api/v2/projects/{project_id}/art", response_model=ArtReviewState)
     def get_art(project_id: str) -> ArtReviewState:
         with opened_project(project_id) as store: return store.art_state()
@@ -19,8 +23,16 @@ def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[s
     def prepare_art(project_id: str) -> ArtCandidatePreparation:
         with opened_project(project_id) as store:
             candidate, request = store.prepare_art_candidate(f"ch_{uuid4().hex}")
-            paths = store.creative_handoff_exchange().write_package(request)
-            return ArtCandidatePreparation.model_validate(candidate.model_dump(mode="python", by_alias=False) | {"package_path": paths["packagePath"], "delivery_path": paths["deliveryPath"], "assignment": f"Plotloom art assignment for {request.job_id}: read {paths['packagePath']}/request.json and follow its COPY_ASSIGNMENT.txt. Write only art.json, report.html, and completion.json under {paths['deliveryPath']}. This cannot accept or alter project canon."})
+            return preparation(store, candidate, request)
+
+    @app.get("/api/v2/projects/{project_id}/art/candidates/{job_id}/handoff", response_model=ArtCandidatePreparation)
+    def recover_art_handoff(project_id: str, job_id: str) -> ArtCandidatePreparation:
+        with opened_project(project_id) as store:
+            state = store.art_state()
+            candidate = state.candidate
+            if candidate is None or candidate.job_id != job_id or candidate.status != "prepared":
+                raise HTTPException(status_code=409, detail="only the current prepared art handoff can be recovered")
+            return preparation(store, candidate, store.art_candidate_request(job_id))
 
     @app.post("/api/v2/projects/{project_id}/art/candidates/{job_id}/refresh", response_model=ArtCandidate)
     def refresh_art(project_id: str, job_id: str) -> ArtCandidate:

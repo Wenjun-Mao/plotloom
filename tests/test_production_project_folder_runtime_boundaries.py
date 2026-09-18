@@ -182,7 +182,7 @@ def test_new_project_visual_workbench_is_readable_before_story_bible_exists(
 def test_format_7_project_folder_is_rejected_before_runtime_admission(
     tmp_path: Path,
 ) -> None:
-    """The typed runtime-artifact inventory is a format-8 schema contract."""
+    """The typed runtime-artifact inventory is a format-9 schema contract."""
 
     app = build_runtime_app(_settings(tmp_path))
     with TestClient(app) as client:

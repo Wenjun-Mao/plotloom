@@ -13,7 +13,10 @@ from pydantic import Field, field_validator
 
 from ..domain import CamelModel
 
-PROJECT_STORAGE_FORMAT_VERSION = 8
+# F3A persists its own review rows.  Older folders are deliberately refused at
+# manifest admission: there is no migration/fallback layer that could leave a
+# partially-open folder to fail later on a missing-table query.
+PROJECT_STORAGE_FORMAT_VERSION = 9
 PROJECT_DATABASE_RELATIVE_PATH = "project.sqlite3"
 PROJECT_MANIFEST_FILENAME = "project.json"
 
