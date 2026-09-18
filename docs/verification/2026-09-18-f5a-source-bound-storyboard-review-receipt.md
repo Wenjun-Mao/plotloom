@@ -38,6 +38,15 @@ accept/reopen state transition; production admission always invokes the pinned
 validator. No gateway, ImageGen, H3, provider, database fixture, retained
 project, upstream/submodule, or human creative artifact was changed.
 
+The original baseline receipt was incomplete: prepared F5A publication was not
+an explicit snapshot/recovery blocker, duration limits were left solely to the
+upstream validator, and a retained stale review trapped replacement. The
+correction freezes F4 caps/routes plus 2–8 second cuts and 15-second segments,
+checks actual raw cuts before upstream validation, releases recovery after
+cancellation, and makes recovered handoff text visible/copyable. UI responses
+are ownership-guarded, so delayed load/refresh/error/busy callbacks cannot
+mutate a switched or unmounted project.
+
 An independent attended Terra/high read-only review found and the coordinator
 resolved two material lifecycle defects before this receipt: F5A acceptance no
 longer permits client JSON to differ from the admitted candidate/report bytes,

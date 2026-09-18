@@ -1270,7 +1270,7 @@ export interface ScriptCandidate { jobId: string; expectedScriptRevision: number
 export interface ScriptCandidatePreparation extends ScriptCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedScriptRevision { revision: number; candidateJobId: string; contentHash: string; binding: ScriptBinding; script: Record<string, unknown>; acceptedAt: string; }
 export interface ScriptReviewState { candidate: ScriptCandidate | null; acceptedScript: AcceptedScriptRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "reopened" | "stale"; staleReasons: string[]; }
-export interface StoryboardReviewBinding extends ScriptBinding { scriptRevision: number; scriptContentHash: string; }
+export interface StoryboardReviewBinding extends ScriptBinding { scriptRevision: number; scriptContentHash: string; reviewMinCutSeconds: number; reviewMaxCutSeconds: number; reviewMaxSegmentSeconds: number; }
 export interface StoryboardReviewCandidate { jobId: string; expectedReviewRevision: number; binding: StoryboardReviewBinding; status: "prepared" | "ready" | "accepted" | "cancelled"; deliveryId: string | null; manifestHash: string | null; storyboard: Record<string, unknown> | null; reportAvailable: boolean; createdAt: string; deliveredAt: string | null; }
 export interface StoryboardReviewCandidatePreparation extends StoryboardReviewCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedStoryboardReviewRevision { revision: number; candidateJobId: string; contentHash: string; binding: StoryboardReviewBinding; storyboard: Record<string, unknown>; acceptedAt: string; }

@@ -25,9 +25,19 @@ shots or authorise media work.
 The pinned `novel-storyboard` validator is run against the frozen script and
 execution-only upstream outline/cast inputs. The receiving check also requires
 the candidate's episode set and order to exactly match F4's frozen mapping.
+It freezes F4's section caps and complete routes with an explicit review-only
+timing policy: cuts are 2–8 seconds and segments at most 15 seconds. The
+admission artifact and raw candidate params must agree exactly, so a specialist
+cannot raise its own limits; actual cut totals are checked before upstream
+validation.
 Any change to the accepted script or an inherited source, outline, map, graph,
 cast, art, target, timing allocation, or mapping makes candidate admission and
 review state stale.
+
+Prepared F5A publication also blocks snapshot/recovery as it already blocks
+close/archive/delete. Cancellation releases every lifecycle operation while
+preserving late delivery as inapplicable evidence. A stale accepted revision is
+inspectable history; it does not prevent a replacement once F4 is current.
 
 ## Consequences
 

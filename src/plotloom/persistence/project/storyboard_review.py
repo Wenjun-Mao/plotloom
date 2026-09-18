@@ -67,7 +67,14 @@ class ProjectStoryboardReviewPersistence:
         current, _source, outline, mapping, cast, art = self._script._context(session, project_id)
         if current != inherited:
             raise InvalidTransitionError("the accepted F4 script binding is stale")
-        return StoryboardReviewBinding(**inherited.model_dump(mode="python"), script_revision=script.revision, script_content_hash=script.content_hash), script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art
+        return StoryboardReviewBinding(
+            **inherited.model_dump(mode="python"),
+            script_revision=script.revision,
+            script_content_hash=script.content_hash,
+            review_min_cut_seconds=2,
+            review_max_cut_seconds=8,
+            review_max_segment_seconds=15,
+        ), script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art
 
     def _stale(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> list[str]:
         try:
@@ -82,7 +89,9 @@ class ProjectStoryboardReviewPersistence:
             self._access.rows.project(session, project_id); head = self._head(session, project_id)
             candidate = session.get(StoryboardReviewCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(StoryboardReviewRevisionRow).where(StoryboardReviewRevisionRow.project_id == project_id, StoryboardReviewRevisionRow.revision == head.revision)) if head.revision else None
-            raw_binding = accepted.binding if accepted else candidate.binding if candidate else None
+            # A current replacement candidate is the active review seam even
+            # when the retained accepted revision is stale historical evidence.
+            raw_binding = candidate.binding if candidate else accepted.binding if accepted else None
             stale = self._stale(session, project_id, StoryboardReviewBinding.model_validate(raw_binding)) if raw_binding else []
             return StoryboardReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_review=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
@@ -95,8 +104,19 @@ class ProjectStoryboardReviewPersistence:
             ).limit(1)):
                 raise InvalidTransitionError("explicitly accept or cancel the current storyboard review candidate before preparing another")
             binding, script, outline, cast, art = self._context(session, project_id)
-            admission = {"scriptRevision": binding.script_revision, "scriptContentHash": binding.script_content_hash, "sectionBindings": [item.model_dump(mode="json", by_alias=True) for item in binding.section_bindings]}
-            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts={"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission}, creative_brief="Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash and the ordered stable section-to-episode mapping; retain every mapped episode exactly once and in that order. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. Run the pinned novel-storyboard validate and render commands, and derive report.html unchanged. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support.")
+            admission = {
+                "scriptRevision": binding.script_revision,
+                "scriptContentHash": binding.script_content_hash,
+                "sectionBindings": [item.model_dump(mode="json", by_alias=True) for item in binding.section_bindings],
+                "sectionDurationCaps": [item.model_dump(mode="json", by_alias=True) for item in binding.section_duration_caps],
+                "completeRouteSectionIds": binding.complete_route_section_ids,
+                "reviewTiming": {
+                    "minCutSeconds": binding.review_min_cut_seconds,
+                    "maxCutSeconds": binding.review_max_cut_seconds,
+                    "maxSegmentSeconds": binding.review_max_segment_seconds,
+                },
+            }
+            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts={"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission}, creative_brief="Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, section/route duration caps, and review timing. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to maxCutSeconds 8 and maxSegmentSeconds 15; every cut must be 2–8 seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. Run the pinned novel-storyboard validate and render commands, and derive report.html unchanged. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support.")
             request.assert_secret_free(); now = utc_now()
             row = StoryboardReviewCandidateRow(job_id=job_id, project_id=project_id, expected_review_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, storyboard=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row); head.candidate_job_id, head.status, head.updated_at = job_id, "prepared", now
@@ -178,6 +198,42 @@ class ProjectStoryboardReviewPersistence:
         expected = [item.episode for item in binding.section_bindings]
         if not isinstance(episodes, list) or [item.get("ep") for item in episodes if isinstance(item, dict)] != expected or len(episodes) != len(expected):
             raise ValueError("storyboard episodes must exactly match the frozen F4 section-to-episode mapping")
+        params = storyboard.get("params")
+        expected_params = {
+            "maxCutSeconds": binding.review_max_cut_seconds,
+            "maxSegmentSeconds": binding.review_max_segment_seconds,
+        }
+        if not isinstance(params, dict) or any(params.get(key) != value for key, value in expected_params.items()):
+            raise ValueError("storyboard params must exactly match the frozen review timing limits")
+        caps = {item.section_id: item.duration_cap_milliseconds / 1_000 for item in binding.section_duration_caps}
+        actual: dict[str, float] = {}
+        for section in binding.section_bindings:
+            episode = next((item for item in episodes if isinstance(item, dict) and item.get("ep") == section.episode), None)
+            segments = episode.get("segments") if isinstance(episode, dict) else None
+            if not isinstance(segments, list):
+                raise ValueError(f"episode {section.episode} is missing storyboard segments")
+            episode_seconds = 0.0
+            for segment in segments:
+                cuts = segment.get("cuts") if isinstance(segment, dict) else None
+                if not isinstance(cuts, list) or not cuts:
+                    raise ValueError(f"episode {section.episode} has an invalid storyboard segment")
+                segment_seconds = 0.0
+                for cut in cuts:
+                    seconds = cut.get("seconds") if isinstance(cut, dict) else None
+                    if not isinstance(seconds, (int, float)) or isinstance(seconds, bool):
+                        raise ValueError(f"episode {section.episode} has a cut without seconds")
+                    if not binding.review_min_cut_seconds <= seconds <= binding.review_max_cut_seconds:
+                        raise ValueError(f"episode {section.episode} cut duration violates frozen review timing")
+                    segment_seconds += seconds
+                if segment_seconds > binding.review_max_segment_seconds + 0.0001:
+                    raise ValueError(f"episode {section.episode} segment duration violates frozen review timing")
+                episode_seconds += segment_seconds
+            if episode_seconds > caps[section.section_id] + 0.0001:
+                raise ValueError(f"episode {section.episode} exceeds its frozen F4 section duration cap")
+            actual[section.section_id] = episode_seconds
+        for route in binding.complete_route_section_ids:
+            if sum(actual[section_id] for section_id in route) > binding.target_playthrough_seconds + 0.0001:
+                raise ValueError("a complete storyboard route exceeds the frozen F4 playthrough maximum")
         root = Path(__file__).resolve().parents[4]
         validator = root / "third_party/shuohao-skills/skills/novel-storyboard/scripts/novel-storyboard.mjs"
         if not validator.is_file():

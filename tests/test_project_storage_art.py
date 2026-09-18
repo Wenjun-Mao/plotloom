@@ -24,6 +24,7 @@ from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.format import ProjectStorageCorruptionError
 from plotloom.project_storage.operational_state import ProjectBusyError
 from plotloom.project_storage.operational_state import close_blockers
+from plotloom.project_storage.recovery import ProjectRecoveryService
 from plotloom.project_storage.video_candidate_transition import (
     ProjectSchemaTransitionRequiredError,
     project_schema_status,
@@ -429,6 +430,11 @@ def test_f5a_freezes_current_f4_identity_blocks_lifecycle_and_refuses_late_deliv
             {"sectionId": "opening", "episode": 1}, {"sectionId": "ending-a", "episode": 2}, {"sectionId": "ending-b", "episode": 3},
         ]
         assert "storyboard_review_publication_active" in close_blockers(store)
+        assert "storyboard_review_publication_active" in ProjectRecoveryService._specialist_blockers(store)
+        store.close()
+        with pytest.raises(ProjectBusyError, match="storyboard_review_publication_active"):
+            storage.recovery.create_snapshot(project_id)
+        store = storage.projects.open(project_id)
         store.cancel_storyboard_review_candidate(candidate.job_id)
         with pytest.raises(Exception, match="current prepared|unavailable|cancelled"):
             store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", {"episodes": []}, "late-storyboard"))
@@ -445,6 +451,34 @@ def test_f5a_requires_exact_f4_episode_mapping_before_upstream_validation(tmp_pa
         _candidate, request = store.prepare_storyboard_review_candidate("ch_" + "r" * 32)
         with pytest.raises(ValueError, match="exactly match the frozen F4 section-to-episode mapping"):
             store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", {"episodes": [{"ep": 2}, {"ep": 1}, {"ep": 3}]}, "swapped-storyboard"))
+    finally:
+        store.close()
+
+
+def test_f5a_rejects_delivery_timing_that_raises_frozen_limits_before_upstream_validation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """F5A owns its frozen review caps; the upstream gate is an additional check."""
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    try:
+        _accepted_f4_script(store)
+        candidate, _request = store.prepare_storyboard_review_candidate("ch_" + "t" * 32)
+        # The candidate is structurally enough for the local F5A gate. A mock
+        # upstream process proves this rejection happens before its invocation.
+        called = False
+        def upstream(*_args: object, **_kwargs: object) -> object:
+            nonlocal called
+            called = True
+            return type("Result", (), {"returncode": 0, "stdout": "", "stderr": ""})()
+        monkeypatch.setattr("plotloom.persistence.project.storyboard_review.subprocess.run", upstream)
+        board = {"params": {"maxCutSeconds": 9, "maxSegmentSeconds": 15}, "episodes": [
+            {"ep": 1, "segments": [{"cuts": [{"seconds": 3}]}]},
+            {"ep": 2, "segments": [{"cuts": [{"seconds": 3}]}]},
+            {"ep": 3, "segments": [{"cuts": [{"seconds": 3}]}]},
+        ]}
+        with pytest.raises(ValueError, match="frozen review timing limits"):
+            from plotloom.persistence.project.storyboard_review import ProjectStoryboardReviewPersistence
+            ProjectStoryboardReviewPersistence._validate(board, candidate.binding, {}, {}, {})
+        assert called is False
     finally:
         store.close()
 

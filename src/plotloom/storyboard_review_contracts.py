@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from .domain import CamelModel
 from .script_contracts import ScriptBinding, ScriptSectionBinding, ScriptSectionDurationCap
@@ -18,6 +18,17 @@ class StoryboardReviewBinding(ScriptBinding):
 
     script_revision: int = Field(ge=1)
     script_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    # These are review-admission limits, not H3 capabilities.  They are frozen
+    # with the script binding so a delivery cannot loosen its own timing gate.
+    review_min_cut_seconds: int = Field(ge=2, le=8)
+    review_max_cut_seconds: int = Field(ge=2, le=8)
+    review_max_segment_seconds: int = Field(ge=1, le=15)
+
+    @model_validator(mode="after")
+    def _valid_review_timing(self) -> "StoryboardReviewBinding":
+        if self.review_min_cut_seconds > self.review_max_cut_seconds:
+            raise ValueError("review minimum cut duration cannot exceed its maximum")
+        return self
 
 
 class StoryboardReviewCandidate(CamelModel):

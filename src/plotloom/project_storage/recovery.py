@@ -38,6 +38,7 @@ from .operational_state import (
     art_publication_blockers,
     cast_publication_blockers,
     script_publication_blockers,
+    storyboard_review_publication_blockers,
     source_outline_publication_blockers,
 )
 from .recovery_control import (
@@ -341,4 +342,5 @@ class ProjectRecoveryService:
             + cast_publication_blockers(store)
             + art_publication_blockers(store)
             + script_publication_blockers(store)
+            + storyboard_review_publication_blockers(store)
         )
