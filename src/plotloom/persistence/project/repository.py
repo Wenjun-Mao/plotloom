@@ -162,11 +162,11 @@ class ProjectSQLiteRepository:
         self._catalog.bind_canonical(self._canonical)
         self._drafts = ProjectDraftPersistence(self._project_access, self._canonical)
         self._workflow = ProjectAuthoringWorkflow(self._project_access, self._drafts, self._canonical)
-        self._media = ProjectMediaPersistence(
-            self._project_access, self._canonical, self._drafts, accounting=None
-        )
         self.source_outline = ProjectSourceOutlinePersistence(self._project_access, self._canonical)
         self.cast = ProjectCastPersistence(self._project_access)
+        self._media = ProjectMediaPersistence(
+            self._project_access, self._canonical, self._drafts, self.cast, accounting=None
+        )
         self._generation_access = GenerationPersistenceAccess(
             leases=GenerationLeases(
                 read=self._read, write=self._write, lifecycle_write=self._lifecycle_write,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
+from .cast import ProjectCastPersistence
 from .drafts import ProjectDraftPersistence
 from .media_admission import KeyframeAdmission
 from .media_assets import ManagedAssetPersistence
@@ -29,10 +30,11 @@ class ProjectMediaPersistence:
         access: ProjectPersistenceAccess,
         canonical: ProjectCanonicalPersistence,
         drafts: ProjectDraftPersistence,
+        cast: ProjectCastPersistence,
         accounting: VideoPilotAccountingPort | None,
     ) -> None:
         admission = KeyframeAdmission(access)
-        references = CharacterReferencePersistence(access, canonical)
+        references = CharacterReferencePersistence(access, canonical, cast)
         image_currentness = ImageJobCurrentness(access, canonical, admission, references)
         same_person = SamePersonReviewPersistence(access, canonical, admission, references)
         video_currentness = VideoJobCurrentness(

@@ -73,8 +73,10 @@ current graph admission r1,
   `1d721ceeea2e2b828f35f1d41d49168e98b756d9a96a44774c638b7c418f66cd`.
   The pinned `novel-outline` validator passed.
 - The cast package was prepared from the accepted source, outline, and section
-  map. Its completion metadata declares `gpt-5.6-terra` at high reasoning;
-  it is a package provenance assertion, not independent provider telemetry.
+  map. Native creation/task history records that the Terra high-reasoning
+  coordinator authored both candidates after reading the full specialist skill
+  and frozen references. The completion metadata remains a package provenance
+  assertion, not independent external-provider telemetry.
   The first UI admission (`ch_f99ca1ed7fc6405e9414e5a0a7e44cc2`) correctly
   rejected the otherwise upstream-valid cast because the receiving contract
   requires stable character IDs. It was cancelled through the UI, retained as
@@ -114,11 +116,12 @@ current graph admission r1,
 
 ### Remaining boundary
 
-This proof does not establish a fresh externally witnessed Terra invocation,
-human creative acceptance, identity reference, voice consistency, media output,
-or F2B. The completion file's provider/reasoning declaration is retained for
-audit but must not be upgraded into any of those claims without independent
-provider evidence and the required attended reviews.
+This proof does not establish human creative acceptance, identity reference,
+voice consistency, media output, or F2B. The native creation/task history
+supports the stated Terra coordinator authorship; the completion file's
+provider/reasoning declaration alone must not be upgraded into external
+provider telemetry, human creativity, or any image/voice claim without the
+required attended reviews.
 
 ## Independent read-only review
 

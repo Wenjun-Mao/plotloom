@@ -7,7 +7,12 @@ from pathlib import Path
 
 import pytest
 
-from plotloom.cast_contracts import CastAcceptRequest, CastBinding, CastConsumerMapping
+from plotloom.cast_contracts import (
+    CastAcceptRequest,
+    CastBinding,
+    CastConsumerMapping,
+    CastReopenRequest,
+)
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from plotloom.creative_handoff_exchange import canonical_json
@@ -57,10 +62,32 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
     try:
         binding, *_ = bound_context(None, store.manifest.project_id)
         _candidate, request = store.prepare_cast_candidate("ch_" + "b" * 32)
+        assert "characters[].id values" in request.creative_brief
+        package_paths = store.creative_handoff_exchange().write_package(request)
+        frozen_instructions = (
+            Path(package_paths["packagePath"]) / "COPY_ASSIGNMENT.txt"
+        ).read_text()
+        assert "characters[].id must be unique and nonblank" in frozen_instructions
         ready = store.admit_cast_delivery(_deliver(store, request))
         edited = dict(ready.cast or {}); edited["characters"] = [dict(edited["characters"][0], persona={"motivation": "Save both crews", "appearance": "Windburned", "arc": "Chooses"})]
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=edited, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         assert accepted.accepted_cast is not None and accepted.accepted_cast.cast["characters"][0]["persona"]["motivation"] == "Save both crews"
+        with store.repository._read() as session:  # type: ignore[attr-defined]
+            identity = store.repository.cast.identity_context_in_session(  # type: ignore[attr-defined]
+                session, store.manifest.project_id, "lin"
+            )
+        assert identity == {
+            "revision": 1,
+            "contentHash": accepted.accepted_cast.content_hash,
+            "castCharacterId": "lin",
+            "appearance": "Windburned",
+            "image": None,
+        }
+        store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        with store.repository._read() as session:  # type: ignore[attr-defined]
+            assert store.repository.cast.identity_context_in_session(  # type: ignore[attr-defined]
+                session, store.manifest.project_id, "lin"
+            ) is None
         replacement, _replacement_request = store.prepare_cast_candidate("ch_" + "c" * 32)
         recovered = store.cancel_cast_candidate(replacement.job_id)
         assert recovered.status == "accepted"

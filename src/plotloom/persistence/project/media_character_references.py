@@ -18,21 +18,29 @@ from ..schema import (
 )
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
+from .cast import ProjectCastPersistence
 
 
 class CharacterReferencePersistence:
     """Own selected character-reference facts and their session currentness."""
 
-    def __init__(self, access: ProjectPersistenceAccess, canonical: ProjectCanonicalPersistence) -> None:
+    def __init__(
+        self,
+        access: ProjectPersistenceAccess,
+        canonical: ProjectCanonicalPersistence,
+        cast: ProjectCastPersistence,
+    ) -> None:
         self._access = access
         self._canonical = canonical
+        self._cast = cast
 
-    @staticmethod
-    def character_reference_context(character: Any) -> dict[str, Any]:
+    def character_reference_context(
+        self, session: Session, project_id: str, character: Any
+    ) -> dict[str, Any]:
         """Freeze only identity-relevant canonical facts; display-name edits do not transfer identity."""
 
         payload = character.model_dump(mode="json", by_alias=True)
-        return {
+        context = {
             "characterId": payload["id"],
             "description": payload["description"],
             "visualAnchors": payload["visualAnchors"],
@@ -40,6 +48,12 @@ class CharacterReferencePersistence:
             "continuityRules": payload["continuityRules"],
             "allowedStates": payload["allowedStates"],
         }
+        accepted_cast = self._cast.identity_context_in_session(
+            session, project_id, payload["id"]
+        )
+        if accepted_cast is not None:
+            context["acceptedCast"] = accepted_cast
+        return context
 
     @staticmethod
     def _character_reference_state_in_session(
@@ -79,7 +93,7 @@ class CharacterReferencePersistence:
             return None
         if decision.revoked_at is not None:
             return None
-        context = self.character_reference_context(character)
+        context = self.character_reference_context(session, project_id, character)
         if decision.character_context_hash != stable_hash(context):
             return None
         asset_ids = [decision.primary_asset_id, *list(decision.complementary_asset_ids)]
@@ -121,7 +135,7 @@ class CharacterReferencePersistence:
             assets = [session.get(ManagedAssetRow, asset_id) for asset_id in asset_ids]
             if any(asset is None or asset.project_id != project_id for asset in assets):
                 raise NotFoundError("character reference asset not found in this project")
-            context = self.character_reference_context(character)
+            context = self.character_reference_context(session, project_id, character)
             state.revision += 1
             state.updated_at = now
             decision = CharacterReferenceDecisionRow(

@@ -118,6 +118,12 @@ export function SamePersonReviewPanel({
                       frozen decision {mapping.referenceDecisionId.slice(0, 8)}{" "}
                       · {asset.originalHash.slice(0, 12)}
                     </small>
+                    {mapping.acceptedCast && (
+                      <small>
+                        accepted cast {mapping.acceptedCast.castCharacterId} · r
+                        {mapping.acceptedCast.revision} · {mapping.acceptedCast.contentHash.slice(0, 12)}
+                      </small>
+                    )}
                   </article>
                 );
               }),

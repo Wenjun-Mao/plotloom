@@ -139,11 +139,18 @@ class CreativeHandoffExchange:
             "upstreamSkillPath": f"third_party/shuohao-skills/skills/novel-{request.stage}/SKILL.md",
             "executionPin": self._pinned_execution(request),
         }
+        character_id_instruction = (
+            "For characters, preserve established characters[].id values; every "
+            "characters[].id must be unique and nonblank. "
+            if request.stage == "characters"
+            else ""
+        )
         instructions = (
             "Read request.json, each inputs/*.json file, and the pinned upstream skill path. "
             f"Write the stage-shaped candidate JSON to the sibling ../delivery/{candidate_filename}, then derive "
             "../delivery/report.html from that candidate. Never create package/delivery. Finally publish "
             "../delivery/completion.json once. "
+            f"{character_id_instruction}"
             "This is a candidate only: do not edit project canon, approvals, selections, or request files.\n"
         ).encode()
         template = canonical_json({

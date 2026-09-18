@@ -207,6 +207,9 @@ export function CharacterReferencesPanel({
         <div className="media-candidate-grid" aria-label="当前角色身份参考比较">
           {bible.characters.map((character) => {
             const decision = currentReferenceByCharacter.get(character.id);
+            const acceptedCast = decision?.characterContext.acceptedCast as
+              | { revision?: number; contentHash?: string; castCharacterId?: string }
+              | undefined;
             const referenceAssetIds = decision
               ? [decision.primaryAssetId, ...decision.complementaryAssetIds]
               : [];
@@ -254,6 +257,12 @@ export function CharacterReferencesPanel({
                   {decision?.notes ??
                     "P1.5 image job 会在准备时拒绝可见角色缺少参考的镜头。"}
                 </small>
+                {acceptedCast && (
+                  <small data-testid={`cast-linked-reference-${character.id}`}>
+                    接受的 cast · {acceptedCast.castCharacterId} · r
+                    {acceptedCast.revision} · {acceptedCast.contentHash?.slice(0, 12)}
+                  </small>
+                )}
                 {decision && (
                   <div className="button-row">
                     <small>
@@ -429,4 +438,3 @@ export function CharacterReferencesPanel({
 
   );
 }
-

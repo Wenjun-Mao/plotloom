@@ -500,6 +500,13 @@ export interface ImageJob {
         characterId: string;
         referenceDecisionId: string;
         referenceRevision: number;
+        acceptedCast?: {
+          revision: number;
+          contentHash: string;
+          castCharacterId: string;
+          appearance: string | null;
+          image: unknown;
+        } | null;
         assets: Array<{ assetId: string; originalHash: string }>;
       }>;
       keyframeAdaptation?: {

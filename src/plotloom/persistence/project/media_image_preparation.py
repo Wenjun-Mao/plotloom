@@ -135,6 +135,7 @@ class ImageJobPreparationPersistence:
                         "characterId": character_id, "referenceDecisionId": decision.id,
                         "referenceRevision": decision.reference_revision,
                         "characterContextHash": decision.character_context_hash,
+                        "acceptedCast": decision.character_context.get("acceptedCast"),
                         "assets": identity_assets,
                     })
 

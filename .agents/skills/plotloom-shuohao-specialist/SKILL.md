@@ -27,6 +27,10 @@ not a backend job, a review decision, or permission to edit canon.
   `candidateFilename` (`outline.json`, `cast.json`, `art.json`, `script.json`,
   or `storyboard.json`). The HTML report is derived from that JSON; it is never
   an editable authority.
+- For a `characters` candidate, preserve every established `characters[].id`.
+  Each ID must be nonblank and unique. This is Plotloom's narrow receiving
+  extension to the upstream shape: do not invent a replacement identity store
+  or alter upstream fields to satisfy it.
 
 ## Delivery
 

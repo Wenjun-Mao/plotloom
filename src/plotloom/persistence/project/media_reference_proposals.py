@@ -68,7 +68,11 @@ class CharacterReferenceProposalPersistence:
         snapshot = proposal.request.get("frozenSnapshot")
         if character is None or not isinstance(snapshot, dict):
             return False
-        return snapshot.get("characterContextHash") == stable_hash(self._references.character_reference_context(character))
+        return snapshot.get("characterContextHash") == stable_hash(
+            self._references.character_reference_context(
+                session, proposal.project_id, character
+            )
+        )
 
     def prepare_character_reference_proposal(
         self,
@@ -109,7 +113,9 @@ class CharacterReferenceProposalPersistence:
                     "originalHash": asset.original_hash, "mimeType": asset.mime_type,
                     "byteSize": asset.byte_size, "width": asset.width, "height": asset.height,
                 })
-            context = self._references.character_reference_context(character)
+            context = self._references.character_reference_context(
+                session, project_id, character
+            )
             job_id = new_image_job_id()
             snapshot = {
                 "snapshotVersion": 3, "compilerVersion": "plotloom.character-reference-proposal.v1",

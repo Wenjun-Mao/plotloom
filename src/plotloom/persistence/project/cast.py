@@ -67,6 +67,55 @@ class ProjectCastPersistence:
         reasons = [f"{label} {'revision' if field.endswith('revision') else 'content'} changed" for field, label in fields if getattr(current, field) != getattr(binding, field)]
         return reasons + (["section context changed"] if current.section_ids != binding.section_ids else [])
 
+    def identity_context_in_session(
+        self, session: Any, project_id: str, consumer_character_id: str
+    ) -> dict[str, Any] | None:
+        """Return current accepted cast facts for one mapped media consumer.
+
+        The cast remains its own accepted revision; this is only the narrow
+        consumer-ID bridge used by the existing reference owner. A reopened
+        or source-stale cast deliberately has no current identity projection.
+        """
+
+        head = self._head(session, project_id)
+        if head.status != "accepted" or not head.revision:
+            return None
+        accepted = session.scalar(
+            select(CastRevisionRow).where(
+                CastRevisionRow.project_id == project_id,
+                CastRevisionRow.revision == head.revision,
+            )
+        )
+        if accepted is None or self._stale(
+            session, project_id, CastBinding.model_validate(accepted.binding)
+        ):
+            return None
+        cast_id = next(
+            (
+                item["castCharacterId"]
+                for item in accepted.consumer_mappings
+                if item.get("consumerCharacterId") == consumer_character_id
+            ),
+            None,
+        )
+        character = next(
+            (
+                item for item in accepted.cast.get("characters", [])
+                if isinstance(item, dict) and item.get("id") == cast_id
+            ),
+            None,
+        )
+        if not isinstance(cast_id, str) or not isinstance(character, dict):
+            return None
+        persona = character.get("persona")
+        return {
+            "revision": accepted.revision,
+            "contentHash": accepted.content_hash,
+            "castCharacterId": cast_id,
+            "appearance": persona.get("appearance") if isinstance(persona, dict) else None,
+            "image": character.get("image"),
+        }
+
     def get_state(self, project_id: str) -> CastReviewState:
         with self._access.leases.read() as session:
             self._access.rows.project(session, project_id)
@@ -84,7 +133,7 @@ class ProjectCastPersistence:
             binding, source, outline, section_map = self._context(session, project_id)
             if session.scalar(select(CastCandidateRow.job_id).where(CastCandidateRow.project_id == project_id, CastCandidateRow.status == "prepared").limit(1)):
                 raise InvalidTransitionError("cancel the prepared cast specialist publication before changing review state")
-            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-cast", stage="characters", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": section_map}, creative_brief="Create one upstream-shaped cast.json candidate for the accepted source, outline, and installed stable section context. Shared characters are authored once; preserve stable character IDs and make section presence/context explicit. This is a candidate only, not voice evidence, media generation, or project canon.")
+            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-cast", stage="characters", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": section_map}, creative_brief="Create one upstream-shaped cast.json candidate for the accepted source, outline, and installed stable section context. Shared characters are authored once; preserve established characters[].id values, and require every characters[].id to be unique and nonblank. Make section presence/context explicit. This is a candidate only, not voice evidence, media generation, or project canon.")
             request.assert_secret_free()
             now = utc_now()
             row = CastCandidateRow(job_id=job_id, project_id=project_id, expected_cast_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, cast=None, report_html=None, created_at=now, delivered_at=None)
