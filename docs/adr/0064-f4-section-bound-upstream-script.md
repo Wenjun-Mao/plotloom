@@ -41,8 +41,10 @@ still-used media path.
 Upstream validation and its HTML render remain authoritative derived artifacts:
 they are not wrapped or altered by Plotloom. The pilot is honestly non-episode:
 required upstream hook/cliff strings state route-entry/terminal applicability,
-while Plotloom's review surface labels hook/cliff and duration output as
-structural-only rather than product pacing acceptance.
+while Plotloom's review surface labels hook/cliff and aggregate duration across
+mutually exclusive endings as structural-only rather than product pacing
+acceptance. Frozen per-section and complete-route ceilings remain applicable
+technical admission constraints.
 
 ## Consequences
 

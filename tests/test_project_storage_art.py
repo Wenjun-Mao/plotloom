@@ -310,6 +310,8 @@ def test_f4_script_admission_freezes_exact_mapping_caps_and_target_currentness(t
         assert [item.duration_cap_milliseconds for item in candidate.binding.section_duration_caps] == [90_000, 90_000, 90_000]
         assert candidate.binding.complete_route_section_ids == [["opening", "ending-a"], ["opening", "ending-b"]]
         assert request.input_artifacts["script-admission.json"]["targetPlaythroughSeconds"] == 180
+        assert "aggregate duration across mutually exclusive endings as product-inapplicable" in request.creative_brief
+        assert "frozen per-section and complete-route caps remain applicable" in request.creative_brief
 
         swapped = _pilot_script()
         swapped["sectionBindings"] = [
