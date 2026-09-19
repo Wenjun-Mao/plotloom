@@ -7,7 +7,13 @@ export type PrototypeEpisode = {
   targetSeconds?: number;
   hook?: string;
   cliff?: string;
-  scenes?: Array<{ sceneId?: string; flow?: ScriptLine[] }>;
+  scenes?: Array<{
+    sceneId?: string;
+    lighting?: string;
+    characters?: string[];
+    props?: string[];
+    flow?: ScriptLine[];
+  }>;
 };
 
 export type PrototypeScript = {

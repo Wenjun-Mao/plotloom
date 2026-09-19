@@ -42,3 +42,40 @@ computing gzip size...
 - Use build.rollupOptions.output.manualChunks to improve chunking
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
 ✓ built in 678ms
+
+--- continuation: creator-stage/navigation and scene-context evidence ---
+
+$ (cd frontend && npm run typecheck)
+
+> @plotloom/workbench@0.1.0 typecheck
+> tsc --noEmit
+
+$ (cd frontend && npm test -- --runInBand)
+
+CACError: Unknown option `--runInBand`
+
+# Vitest rejected the Jest-only flag before running tests.
+
+$ (cd frontend && npm test)
+
+Test Files  18 passed (18)
+Tests  164 passed (164)
+
+$ (cd frontend && npm exec playwright test -- --config playwright.config.ts e2e/story-prototype.spec.ts)
+
+# First update attempt failed: expected retired “已接受剧本 r1” label.
+# Second update attempt failed: expected “来源与大纲”; the existing source page
+# heading is “来源与小说大纲”. Both failures were corrected in the test.
+1 passed (4.6s)
+
+$ (cd frontend && npm run build:deterministic)
+
+✓ 255 modules transformed.
+../src/plotloom/static/index.html       0.82 kB │ gzip:   0.51 kB
+../src/plotloom/static/workbench.css   61.76 kB │ gzip:  11.64 kB
+../src/plotloom/static/workbench.js   756.07 kB │ gzip: 228.74 kB
+✓ built in 658ms
+
+# Production-static read-only browser check: http://127.0.0.1:8776/v2/?view=story-prototype&project=e04939c9-85bc-447b-aa51-192477c3ad4b
+# Loaded accepted disposable fixture; dock selection changed the route to
+# “Light the dock → Dock lit” and preserved the opening plus dock sections.
