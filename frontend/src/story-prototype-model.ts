@@ -47,7 +47,7 @@ export function prototypeReadiness(
 }
 
 /**
- * F5A owns only its raw review evidence.  It is safe to present beside F4
+ * Storyboard review owns only its raw review evidence.  It is safe to present beside the screenplay
  * only when both point to the exact same current script and graph binding.
  */
 export function storyboardPrototypeReadiness(
@@ -59,7 +59,7 @@ export function storyboardPrototypeReadiness(
   const scriptUnavailable = prototypeReadiness(scriptStatus, graphHead, script.binding);
   if (scriptUnavailable) return scriptUnavailable;
   const accepted = review.acceptedReview;
-  if (review.status !== "accepted" || !accepted) return "当前没有可阅读的已接受分镜评审。请先在工作台完成当前 F5A review。";
+  if (review.status !== "accepted" || !accepted) return "当前没有可阅读的已确认分镜评审。请先在工作台完成当前分镜评审。";
   if (accepted.binding.scriptRevision !== script.revision || accepted.binding.scriptContentHash !== script.contentHash) {
     return "分镜评审绑定的剧本不是当前已接受版本。请先处理工作台中的版本变更。";
   }

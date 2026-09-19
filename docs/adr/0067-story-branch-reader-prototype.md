@@ -37,3 +37,17 @@ It does not embed or transform the report, preserving its sandbox boundary.
   is independent and defaults to English. A whole-workflow language decision
   therefore remains deferred; this prototype does not translate existing
   English source or change prompt ownership.
+
+## Amendment: independent screenplay and storyboard admission (2026-09-19)
+
+The screenplay reader is admitted solely by the current accepted script and its
+exact current canonical-graph binding. Storyboard retrieval, availability, or
+currentness is not a screenplay prerequisite. The storyboard reader is a
+separate, fail-closed view: it is admitted only when its accepted review binds
+to that exact current script, graph, and section mapping. A missing, stale, or
+unavailable storyboard therefore presents a local explanation while leaving the
+screenplay route usable.
+
+The two views are mutually focused rather than appended. Route and shared
+opening selection remain in memory when switching views. Creator-facing copy
+uses “已确认剧本” and “已确认分镜评审”; stage identifiers remain technical-only.

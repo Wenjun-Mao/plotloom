@@ -79,7 +79,7 @@ describe("Plotloom workspace model", () => {
     expect(prototypeReadiness("accepted", { ...currentHead, contentHash: "newer-graph-hash" }, binding)).toContain("不是当前版本");
   });
 
-  it("admits only the current accepted F5A review and preserves F4 route order", () => {
+  it("admits only the current accepted storyboard review and preserves screenplay route order", () => {
     const binding = { graphRevision: 4, graphContentHash: "graph-hash", sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 2 }] } as any;
     const script = { revision: 3, contentHash: "script-hash", binding };
     const review = { status: "accepted", acceptedReview: { binding: { ...binding, scriptRevision: 3, scriptContentHash: "script-hash" }, storyboard: { episodes: [{ ep: 2, segments: [] }, { ep: 1, segments: [] }] } } } as any;
@@ -88,7 +88,7 @@ describe("Plotloom workspace model", () => {
 
     expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, review)).toBeUndefined();
     expect(storyboardEpisodesForRoute(review.acceptedReview.storyboard, binding.sectionBindings, routes[0]).map((item) => item.episode.ep)).toEqual([1, 2]);
-    expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, status: "stale" })).toContain("没有可阅读的已接受分镜评审");
+    expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, status: "stale" })).toContain("没有可阅读的已确认分镜评审");
     expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, acceptedReview: { ...review.acceptedReview, binding: { ...review.acceptedReview.binding, scriptContentHash: "old-script" } } })).toContain("绑定的剧本不是当前已接受版本");
     expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, acceptedReview: { ...review.acceptedReview, binding: { ...review.acceptedReview.binding, graphContentHash: "old-graph" } } })).toContain("绑定的故事图不是当前版本");
     expect(storyboardPrototypeReadiness("accepted", { status: "ready", revision: 4, contentHash: "graph-hash" }, script, { ...review, acceptedReview: { ...review.acceptedReview, binding: { ...review.acceptedReview.binding, sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 3 }] } } })).toContain("章节对应与当前剧本不一致");

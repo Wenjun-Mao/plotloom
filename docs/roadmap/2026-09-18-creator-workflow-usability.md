@@ -160,3 +160,15 @@ GET-only reader behavior, route filtering, collapsed prompt disclosure, stale
 refusal, and screenshots at 1440 px and 768 px. Deterministic static assets were
 rebuilt. The independent read-only stable-delta review outcome is recorded in the
 corresponding verification receipt.
+
+## U2 reader admission correction — 2026-09-19
+
+The preceding storyboard-reader receipt describes the superseded combined
+admission boundary and remains retained as historical evidence. The current
+reader follows the amendment to ADR 0067: current accepted screenplay plus
+canonical graph admits the screenplay independently; storyboard review is a
+separate, exact-binding, fail-closed view. Its unavailable state does not clear
+the screenplay. The reader selects one focused view at a time and retains route
+and shared-opening focus across the switch. See the correction verification
+receipt for the independent F4 multi-scene proof, valid storyboard route proof,
+stale local refusal, and viewport evidence.
