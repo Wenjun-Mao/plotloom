@@ -35,6 +35,15 @@ to one column without horizontal clipping; at desktop width, the selected
 reader is presented without the other reader appended below it. These captures
 are technical layout evidence, not creative or media acceptance.
 
+## Independent review
+
+An attended independent Terra read-only review of committed implementation
+`e2f9b390c1adf421be2cedff702a7c8e0ccb42ad` approved the exact delta with no
+findings. It inspected the retained F4-only preview and confirmed independent
+screenplay admission, local storyboard refusal, mutually exclusive views,
+route/opening preservation, creator-facing terminology, sandboxed report, and
+absence of page mutation paths. It did not rerun checks or alter source.
+
 ## Exclusions
 
 No backend, schema, prompt, provider, generation, production-media, report
