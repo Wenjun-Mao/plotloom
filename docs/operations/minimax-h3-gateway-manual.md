@@ -16,9 +16,10 @@ The underlying Spark/ComfyUI installation is documented separately from this
 gateway runbook: [reproducible setup guide](../../services/minimax_h3_gateway/docs/h3-reproducible-setup.md),
 [rationale and operations manual](../../services/minimax_h3_gateway/docs/h3-rationale-and-operations.md),
 and [current-installation manifest](../../services/minimax_h3_gateway/h3-current-installation.v1.yaml).
-Those documents intentionally record the observed 4-step sampling divergence
-until its profile-owned repair is qualified; this operator manual must not be
-read as proof that a running H3 container has the intended creative recipe.
+The [corrected candidate manifest](../../services/minimax_h3_gateway/h3-corrected-turbo4-candidate.v1.yaml)
+defines the explicit v2 profile recipe. It remains a candidate until its
+real-model baseline is reviewed; a running H3 container alone is not proof of
+creative qualification.
 
 ## 1. What this system is—and is not
 
@@ -80,7 +81,7 @@ The implementation and decision records are:
 
 - Gateway service: [`services/minimax_h3_gateway`](../../services/minimax_h3_gateway/)
 - Gateway catalog: [`profile_catalog.py`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profile_catalog.py)
-- Profile-neutral workflow template: [`minimax_h3_turbo4_template_v1.json`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_turbo4_template_v1.json)
+- Active profile-rendered workflow: [`minimax_h3_template_v2.json`](../../services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json)
 - Plotloom adapter: [`adapter.py`](../../src/plotloom/video_backends/minimax_h3/adapter.py)
   and [`transport.py`](../../src/plotloom/video_backends/minimax_h3/transport.py)
 - Boundary decisions: [ADR 0033](../adr/0033-private-minimax-h3-gateway.md), [ADR 0036](../adr/0036-minimax-h3-profile-catalog.md)
@@ -105,6 +106,7 @@ The implementation and decision records are:
 
    ```text
    MiniMaxH3ImageToVideo
+   MiniMaxH3SigmaShift
    minimax_h3_fl2va_pruned_fp8_scaled.safetensors
    qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
    minimax_h3_video_vae_fp16.safetensors
@@ -190,8 +192,8 @@ An expected health response is structurally equivalent to:
 ```json
 {
   "status": "ok",
-  "profileContractVersion": 4,
-  "profiles": [{"id": "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "width": 576, "height": 1024}],
+  "profileContractVersion": 5,
+  "profiles": [{"id": "minimax_h3_fp8_turbo4_portrait_576x1024_v2", "width": 576, "height": 1024}],
   "queuedJobs": 0,
   "activeDispatches": 0,
   "dispatchConcurrency": 1
@@ -224,16 +226,17 @@ PLOTLOOM_ENABLE_WAN_P2=false
 PLOTLOOM_ENABLE_H3_GATEWAY=true
 VIDEO_PROVIDER=minimax_h3_gateway
 VIDEO_BASE_URL=http://100.x.y.z:8090
-VIDEO_MODEL=minimax_h3_gateway_catalog_v4
+VIDEO_MODEL=minimax_h3_gateway_catalog_v5
 VIDEO_AUTH_MODE=bearer
 VIDEO_MODEL_API_KEY=the-same-value-as-H3_API_KEY
 ```
 
-`VIDEO_MODEL=minimax_h3_gateway_catalog_v4` is Plotloom's default,
-recommended reviewed-catalog admission marker while the gateway reports the V4
-direct-generation contract and its six reviewed profiles. A profile ID from
-that reviewed catalog is also a supported explicit runtime selection; the
-retired V3 marker and any other value are rejected before transport creation.
+`VIDEO_MODEL=minimax_h3_gateway_catalog_v5` is Plotloom's default,
+recommended reviewed-catalog admission marker while the gateway reports the V5
+profile contract and its six corrected candidate profiles. A profile ID from
+that reviewed catalog is also a supported explicit runtime selection; v1 IDs
+remain readable only for historical jobs and are rejected before new transport
+creation.
 
 Restart Plotloom after changing `.env`. A host environment variable takes
 precedence over `.env`, so investigate both if the running service reports an

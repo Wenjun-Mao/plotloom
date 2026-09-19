@@ -11,9 +11,9 @@ from .profile_catalog import GatewayProfile
 
 
 def load_h3_template() -> dict[str, Any]:
-    """Load the profile-neutral reviewed H3 graph template."""
+    """Load the profile-rendered reviewed H3 graph template."""
 
-    path = Path(__file__).with_name("profiles") / "minimax_h3_turbo4_template_v1.json"
+    path = Path(__file__).with_name("profiles") / "minimax_h3_template_v2.json"
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -29,12 +29,21 @@ def render_workflow(
             return {key: replace(child) for key, child in value.items()}
         if isinstance(value, list):
             return [replace(child) for child in value]
+        recipe = profile.recipe
         return {
             "__PROMPT__": prompt,
             "__SEED__": seed,
             "__WIDTH__": profile.width,
             "__HEIGHT__": profile.height,
             "__FRAME_COUNT__": frame_count,
+            "__LORA_FILE__": recipe.lora_file,
+            "__LORA_STRENGTH__": recipe.lora_strength,
+            "__INFERENCE_STEPS__": recipe.inference_steps,
+            "__VIDEO_SIGMA_SHIFT__": recipe.video_sigma_shift,
+            "__AUDIO_SIGMA_SHIFT__": recipe.audio_sigma_shift,
+            "__SAMPLER__": recipe.sampler,
+            "__SCHEDULER__": recipe.scheduler,
+            "__DENOISE__": recipe.denoise,
         }.get(value, value)
 
     workflow = replace(workflow)

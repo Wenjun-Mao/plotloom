@@ -17,6 +17,7 @@ from .profile_catalog import (
     FRAMES_PER_SECOND,
     H3_GATEWAY_PROFILES,
     PROFILE_CONTRACT_VERSION,
+    admitted_profile,
     frame_count_for_duration_seconds,
     profile,
 )
@@ -57,7 +58,7 @@ class H3Gateway:
     def validate_image_job_request(self, request: CreateImageJobRequest) -> None:
         """Reject profile/duration configuration before a URL fetch or write."""
 
-        self._selected_profile(request.profile_id)
+        self._admitted_profile(request.profile_id)
         frame_count_for_duration_seconds(request.duration_seconds)
 
     def create_image_job(self, request: CreateImageJobRequest, *, start_content: bytes, end_content: bytes | None = None) -> dict[str, Any]:
@@ -78,14 +79,14 @@ class H3Gateway:
             raise
 
     def create_text_job(self, request: CreateTextJobRequest) -> dict[str, Any]:
-        self._selected_profile(request.profile_id)
+        self._admitted_profile(request.profile_id)
         return self._create_job(
             input_mode="text", prompt=request.prompt, profile_id=request.profile_id,
             aspect_policy=None, seed=request.seed, duration_seconds=request.duration_seconds, assets=[],
         )
 
     def _create_job(self, *, input_mode: str, prompt: str, profile_id: str, aspect_policy: str | None, seed: int | None, duration_seconds: int, assets: list[dict[str, Any]]) -> dict[str, Any]:
-        selected_profile = self._selected_profile(profile_id)
+        selected_profile = self._admitted_profile(profile_id)
         frame_count = frame_count_for_duration_seconds(duration_seconds)
         if input_mode == "image":
             if aspect_policy is None or not assets:
@@ -128,9 +129,9 @@ class H3Gateway:
                     pass
 
     @staticmethod
-    def _selected_profile(profile_id: str):
+    def _admitted_profile(profile_id: str):
         try:
-            return profile(profile_id)
+            return admitted_profile(profile_id)
         except KeyError as error:
             raise GatewayError("profile_not_supported", 422) from error
 

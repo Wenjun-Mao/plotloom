@@ -16,7 +16,8 @@ from plotloom_h3_gateway.profile_catalog import H3_GATEWAY_PROFILES, frame_count
 from plotloom_h3_gateway.workflow import load_h3_template, render_workflow
 
 
-PROFILE = "minimax_h3_fp8_turbo4_landscape_832x480_v1"
+PROFILE = "minimax_h3_fp8_turbo4_landscape_832x480_v2"
+RETIRED_PROFILE = "minimax_h3_fp8_turbo4_landscape_832x480_v1"
 AUTH = {"Authorization": "Bearer test-key"}
 
 
@@ -71,6 +72,11 @@ def _object_info() -> dict[str, object]:
         ("LoraLoaderModelOnly", "lora_name", ["minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"]),
     ):
         result[node] = {"input": {"required": {field: [values]}}}
+    for node in (
+        "MiniMaxH3SigmaShift", "KSamplerSelect", "BasicScheduler",
+        "BasicGuider", "SamplerCustomAdvanced",
+    ):
+        result[node] = {"input": {"required": {}}}
     return result
 
 
@@ -103,6 +109,16 @@ def test_retired_creation_routes_are_not_registered(tmp_path: Path) -> None:
     client, _ = _client(tmp_path)
     assert client.post("/v1/assets", headers=AUTH).status_code == 404
     assert client.post("/v1/video-jobs", headers=AUTH).status_code == 404
+
+
+def test_retired_observed_profile_cannot_receive_new_work(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    response = client.post(
+        "/v1/video-jobs/from-text", headers=AUTH,
+        json={"prompt": "No new work on a retired recipe.", "profileId": RETIRED_PROFILE},
+    )
+    assert response.status_code == 422
+    assert response.json() == {"error": "profile_not_supported"}
 
 
 def test_image_json_and_multipart_start_only_are_direct_jobs(tmp_path: Path) -> None:
@@ -185,6 +201,26 @@ def test_workflow_has_intended_zero_one_two_frame_connections() -> None:
         assert set(node for node in graph if node.startswith("h3_")) == ({"h3_start_frame"} if start and not end else {"h3_start_frame", "h3_end_frame"} if start and end else set())
 
 
+def test_workflow_renders_the_complete_corrected_sampling_recipe() -> None:
+    profile = H3_GATEWAY_PROFILES[0]
+    graph = render_workflow(
+        load_h3_template()["prompt"], profile=profile, prompt="x",
+        start_input_name=None, end_input_name=None, seed=1, frame_count=124,
+    )
+    assert graph["105:121"]["inputs"] == {
+        "lora_name": "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+        "strength_model": 1.0, "model": ["105:6", 0],
+    }
+    assert graph["105:122"]["class_type"] == "MiniMaxH3SigmaShift"
+    assert graph["105:122"]["inputs"] == {
+        "model": ["105:121", 0], "shift_video": 6.0, "shift_audio": 3.0,
+    }
+    assert graph["105:9"]["inputs"] == {
+        "scheduler": "simple", "steps": 4, "denoise": 1.0, "model": ["105:122", 0],
+    }
+    assert graph["105:17"]["inputs"]["sampler_name"] == "res_multistep"
+
+
 def test_legacy_job_migration_keeps_a_readable_start_binding(tmp_path: Path) -> None:
     path = tmp_path / "legacy.sqlite3"; asset_path = tmp_path / "asset.png"; asset_path.write_bytes(_png())
     connection = sqlite3.connect(path)
@@ -193,7 +229,7 @@ def test_legacy_job_migration_keeps_a_readable_start_binding(tmp_path: Path) -> 
       CREATE TABLE jobs (id TEXT PRIMARY KEY, asset_id TEXT NOT NULL, profile_id TEXT NOT NULL, aspect_policy TEXT NOT NULL, prompt TEXT NOT NULL, seed INTEGER NOT NULL, prepared_input_name TEXT NOT NULL, status TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
     """)
     connection.execute("INSERT INTO assets VALUES ('asset_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'image/png', 832, 480, 'x', ?, CURRENT_TIMESTAMP)", (str(asset_path),))
-    connection.execute("INSERT INTO jobs (id, asset_id, profile_id, aspect_policy, prompt, seed, prepared_input_name, status) VALUES ('h3_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'asset_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', ?, 'reject_mismatch', 'x', 1, '2026-01-01T00-00-00Z_h3_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png', 'succeeded')", (PROFILE,))
+    connection.execute("INSERT INTO jobs (id, asset_id, profile_id, aspect_policy, prompt, seed, prepared_input_name, status) VALUES ('h3_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'asset_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', ?, 'reject_mismatch', 'x', 1, '2026-01-01T00-00-00Z_h3_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.png', 'succeeded')", (RETIRED_PROFILE,))
     connection.commit(); connection.close()
     store = GatewayStore(path)
     job = store.get_job("h3_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")

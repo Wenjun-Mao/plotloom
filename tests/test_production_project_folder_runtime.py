@@ -30,6 +30,8 @@ class _RuntimeFakeH3:
     def __init__(self) -> None:
         self.submits: list[dict] = []
         self.downloads = 0
+        self.profile_id = "minimax_h3_fp8_turbo4_portrait_576x1024_v2"
+        self.aspect_policy = "reject_mismatch"
 
     def configured_backend_identity(self) -> VideoBackendInstanceIdentity:
         return VideoBackendInstanceIdentity.from_public_configuration(
@@ -42,10 +44,12 @@ class _RuntimeFakeH3:
     def submit_image(self, image: bytes, *, mime_type: str, payload: dict) -> dict:
         assert image and mime_type == "image/png" and payload["durationSeconds"] == 5
         self.submits.append(payload)
+        self.profile_id = payload["profileId"]
+        self.aspect_policy = payload["aspectPolicy"]
         return _h3_job("submitted", False, payload["profileId"], payload["aspectPolicy"])
 
     def poll(self, prediction_id: str) -> dict:
-        return _h3_job("succeeded", True, "minimax_h3_fp8_turbo4_portrait_576x1024_v1", "reject_mismatch", identifier=prediction_id)
+        return _h3_job("succeeded", True, self.profile_id, self.aspect_policy, identifier=prediction_id)
 
     def download(self, reference: str) -> bytes:
         assert reference == "h3_0123456789abcdef0123456789abcdef"

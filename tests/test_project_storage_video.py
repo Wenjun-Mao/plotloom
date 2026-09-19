@@ -45,6 +45,7 @@ class FakeH3:
         self.upload_calls = 0
         self.images: list[bytes] = []
         self.poll_calls = 0
+        self.profile_id = "minimax_h3_fp8_turbo4_portrait_576x1024_v2"
         self.before_preflight: Callable[[], None] | None = None
         self.submit_error: Exception | None = None
         self._endpoint = endpoint
@@ -67,6 +68,7 @@ class FakeH3:
         self.images.append(image)
         self.submits.append(payload)
         self.aspect_policy = payload["aspectPolicy"]
+        self.profile_id = payload["profileId"]
         self.duration = payload["durationSeconds"]
         self.seed = payload["seed"]
         if self.submit_error is not None:
@@ -75,7 +77,7 @@ class FakeH3:
 
     def poll(self, prediction_id: str) -> dict:
         self.poll_calls += 1
-        return _h3_job("succeeded", True, "minimax_h3_fp8_turbo4_portrait_576x1024_v1", getattr(self, "aspect_policy", "reject_mismatch"), identifier=prediction_id, duration=getattr(self, "duration", 5), seed=getattr(self, "seed", 1))
+        return _h3_job("succeeded", True, self.profile_id, getattr(self, "aspect_policy", "reject_mismatch"), identifier=prediction_id, duration=getattr(self, "duration", 5), seed=getattr(self, "seed", 1))
 
     def download(self, reference: str) -> bytes:
         assert reference == "h3_0123456789abcdef0123456789abcdef"
@@ -788,8 +790,8 @@ def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamp
     assert job["snapshot"]["request"] == {
         "durationSeconds": 5, "resolution": "576x1024", "audio": True,
         "aspectPolicy": "cover_center_crop", "seed": 41,
-        "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
-        "profileVersion": 1, "width": 576, "height": 1024,
+        "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v2",
+        "profileVersion": 2, "width": 576, "height": 1024,
         "fps": 24, "frameCount": 124,
         "allowLetterbox": False, "allowCenterCrop": True,
     }

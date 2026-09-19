@@ -15,7 +15,8 @@ For the underlying Spark/ComfyUI engine rather than the gateway API, use the
 [H3 rationale and operations manual](docs/h3-rationale-and-operations.md), and
 the secret-free [current-installation manifest](h3-current-installation.v1.yaml).
 The manifest deliberately distinguishes the observed live installation from a
-qualified inference profile.
+qualified inference profile. New work uses the separate corrected candidate
+manifest until real-model qualification promotes it.
 
 The local service contract has five bearer-authenticated client operations plus
 one unauthenticated health route:

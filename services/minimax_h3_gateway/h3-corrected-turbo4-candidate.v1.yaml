@@ -1,0 +1,61 @@
+manifestVersion: 1
+kind: minimax_h3_sampling_candidate
+capturedAt: "2026-09-19"
+
+# This declares the first corrected candidate against the observed Spark
+# runtime. It contains no endpoint, bearer secret, prompt, input media, or
+# generated media. Qualification remains pending live baseline review.
+status:
+  lifecycle: candidate
+  qualification: pending_real_model_baseline
+  replacesObservedProfileIds:
+    - minimax_h3_fp8_turbo4_portrait_576x1024_v1
+    - minimax_h3_fp8_turbo4_portrait_608x1088_v1
+    - minimax_h3_fp8_turbo4_portrait_704x1280_v1
+    - minimax_h3_fp8_turbo4_landscape_832x480_v1
+    - minimax_h3_fp8_turbo4_landscape_960x544_v1
+    - minimax_h3_fp8_turbo4_landscape_1280x704_v1
+
+runtimeAuthority:
+  observedInstallation: h3-current-installation.v1.yaml
+  profileCatalog: src/plotloom_h3_gateway/profile_catalog.py
+  workflowTemplate: src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json
+  workflowTemplateSha256: b1c05a67b6ea33be08c671c72e424cc2efe5b3380303463daec04101c22a5d17
+  profileContractVersion: 5
+
+samplingRecipe:
+  id: lightx2v_fl2va_turbo4_v1_768p
+  version: 1
+  modelFamily: minimax_h3_fl2va
+  loraFile: minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors
+  loraStrength: 1.0
+  inferenceSteps: 4
+  videoSigmaShift: 6.0
+  audioSigmaShift: 3.0
+  sampler: res_multistep
+  scheduler: simple
+  denoise: 1.0
+  source: https://github.com/ModelTC/LightX2V/blob/main/README.md
+
+admittedProfileIds:
+  - minimax_h3_fp8_turbo4_portrait_576x1024_v2
+  - minimax_h3_fp8_turbo4_portrait_608x1088_v2
+  - minimax_h3_fp8_turbo4_portrait_704x1280_v2
+  - minimax_h3_fp8_turbo4_landscape_832x480_v2
+  - minimax_h3_fp8_turbo4_landscape_960x544_v2
+  - minimax_h3_fp8_turbo4_landscape_1280x704_v2
+
+qualificationPlan:
+  fixedControls:
+    - runtime manifest
+    - profile recipe
+    - prompt and frame conditioning
+    - seed, geometry, and frame count
+  nextComparisons:
+    - corrected baseline without fast fp8 matrix multiplication
+    - same candidate with fast fp8 matrix multiplication
+    - newer 4-step and 8-step complete LightX2V recipes
+  promotionRule: >-
+    Retain exact media and technical evidence, obtain visual/audio review, and
+    make an explicit production selection. No candidate is promoted by an
+    automated benchmark alone.

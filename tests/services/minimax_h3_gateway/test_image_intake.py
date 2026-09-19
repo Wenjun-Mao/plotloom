@@ -12,7 +12,7 @@ from PIL import Image
 from plotloom_h3_gateway.app import GatewaySettings, create_app
 
 
-PROFILE = "minimax_h3_fp8_turbo4_landscape_832x480_v1"
+PROFILE = "minimax_h3_fp8_turbo4_landscape_832x480_v2"
 AUTH = {"Authorization": "Bearer test-key"}
 
 

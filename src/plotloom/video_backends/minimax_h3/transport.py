@@ -21,7 +21,12 @@ from ...video_provider import (
     WanDispatchDiagnostic,
     WanDispatchError,
 )
-from .adapter import H3_PROFILE_CONTRACT_VERSION, H3_PROFILES_BY_ID, H3_QUALIFIED_DURATION_FRAMES
+from .adapter import (
+    H3_ALL_PROFILES_BY_ID,
+    H3_PROFILE_CONTRACT_VERSION,
+    H3_PROFILES_BY_ID,
+    H3_QUALIFIED_DURATION_FRAMES,
+)
 
 
 class MiniMaxH3GatewayTransport:
@@ -233,7 +238,9 @@ class MiniMaxH3GatewayTransport:
         identifier = value.get("id")
         if not isinstance(identifier, str) or not cls._JOB_ID.fullmatch(identifier) or (expected_id is not None and identifier != expected_id):
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
-        if value.get("profileId") not in H3_PROFILES_BY_ID:
+        # The health catalog lists current admission targets, while status
+        # remains able to read a frozen historical v1 gateway job.
+        if value.get("profileId") not in H3_ALL_PROFILES_BY_ID:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("status") not in {
             "reserved", "queued", "submitting", "submitted", "running",

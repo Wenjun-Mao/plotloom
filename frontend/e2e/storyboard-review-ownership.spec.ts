@@ -48,9 +48,20 @@ for (const transition of ["A-B-A", "unmount"] as const) {
         }
         await page.route(pattern, routeHandler);
         try {
-          if (operation === "load") await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`);
-          else await page.getByTestId("storyboard-review").getByRole("button", { name: operation === "copy" ? "重新复制冻结 handoff" : "刷新 specialist delivery" }).click();
+          // Do not await a full navigation while its initial API load is
+          // intentionally withheld below. On a slower runner, the app can
+          // start that fetch before `goto` settles, which deadlocks the test
+          // before it reaches `release`.
+          const initialNavigation = operation === "load"
+            ? page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`, { waitUntil: "domcontentloaded" })
+            : undefined;
+          if (operation !== "load") {
+            await page.getByTestId("storyboard-review").getByRole("button", {
+              name: operation === "copy" ? "重新复制冻结 handoff" : "刷新 specialist delivery",
+            }).click();
+          }
           await started;
+          await initialNavigation;
           if (transition === "A-B-A") { await switchProject(page, other); await switchProject(page, id); }
           else {
             await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /剧情 DAG/ }).click();

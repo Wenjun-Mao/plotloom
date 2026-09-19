@@ -5,9 +5,9 @@ uses on Spark. It is deliberately secret-free: it does not contain a Tailnet
 address, bearer value, customer prompt, input image, or generated media.
 
 Use the adjacent [current-installation manifest](../h3-current-installation.v1.yaml)
-for pinned versions, asset hashes, and the observed runtime. The manifest is
-an inventory of the live September 2026 installation, not an approved
-inference recipe: its known sampling-contract divergence is documented below.
+for pinned versions, asset hashes, and the observed runtime. The versioned
+[corrected candidate manifest](../h3-corrected-turbo4-candidate.v1.yaml)
+defines the exact inference recipe to qualify against that runtime.
 
 ## 1. Scope and prerequisites
 
@@ -134,8 +134,9 @@ PY
 curl --fail http://127.0.0.1:8188/object_info > /tmp/comfy-object-info.json
 ```
 
-The object information must advertise `MiniMaxH3ImageToVideo` and every file
-listed in the manifest. This verifies availability, not creative quality.
+The object information must advertise `MiniMaxH3ImageToVideo`,
+`MiniMaxH3SigmaShift`, and every file listed in the manifest. This verifies
+availability, not creative quality.
 
 ## 5. Start the optional typed gateway
 
@@ -172,11 +173,12 @@ There are two distinct checks:
    dimensions, valid H.264/AAC streams, frame-grid duration, and recorded
    sampling recipe.
 
-Do not use the current checked-in Turbo template as a new qualification
-baseline yet. It is missing the explicit `MiniMaxH3SigmaShift` required by the
-installed 4-step LoRA. The next H3 maintenance slice will add profile-owned
-sampling fields and qualify a corrected recipe before this guide's observed
-state can be promoted to `qualified`.
+Use the profile-rendered `minimax_h3_template_v2.json`, not the retained
+observed v1 template, for new work. The current v2 profile catalog explicitly
+renders LightX2V FL2VA Turbo 4-step v1.0 as `4 steps / video shift 6 / audio
+shift 3`, with `res_multistep` / `simple` and denoise `1.0`. It is a candidate
+until a retained real-model baseline passes review; the old v1 profile IDs
+remain historical-only and cannot receive new jobs.
 
 ## 7. Update, rollback, and reboot
 

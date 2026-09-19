@@ -466,7 +466,7 @@ def test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source
             json={"assetId": source.json()["id"], "shotId": shot["id"], "sceneId": shot["sceneId"], "expectedSelectionRevision": 0, "storyboardRevision": storyboard["head"]["revision"], "approvalId": approval_id, "compatibilityNote": "Creator reviewed the landscape source.", "visualIntentId": intent.json()["id"], "visualIntentRevision": intent.json()["revision"]},
         )
         assert selected.status_code == 201, selected.text
-        profile_id = "minimax_h3_fp8_turbo4_portrait_576x1024_v1"
+        profile_id = "minimax_h3_fp8_turbo4_portrait_576x1024_v2"
         direction = client.put(
             f"/api/v2/projects/{project_id}/authoring-drafts",
             json={"editorScope": "image_direction", "entityId": f"{shot['id']}:keyframe_adaptation:{profile_id}", "baseCanonicalRevision": storyboard["head"]["revision"], "expectedDraftRevision": 0, "payload": {"shotId": shot["id"], "targetId": f"keyframe_adaptation:{profile_id}", "contextId": "geometry-fixture", "presentationChange": "Recompose for the frozen portrait frame."}},

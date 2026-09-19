@@ -126,12 +126,12 @@ it("pauses every native candidate peer before allowing a new candidate to play",
 it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async () => {
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
     enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "3", provider: "minimax_h3_gateway",
-    model: "minimax_h3_fp8_turbo4_portrait_576x1024_v1", durationSeconds: 5, resolution: "576x1024",
+    model: "minimax_h3_fp8_turbo4_portrait_576x1024_v2", durationSeconds: 5, resolution: "576x1024",
     width: 576, height: 1024, fps: 24, frameCount: 124, nativeAudio: true,
     requiresAspectPolicy: false, inputAspectPolicy: "reject_mismatch", allowsCenterCrop: true, tracksPaidWanPilot: false,
-    defaultProfileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+    defaultProfileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v2",
     profiles: [{
-      id: "minimax_h3_fp8_turbo4_portrait_576x1024_v1", version: 1, label: "Portrait · Fast · 576 × 1024",
+      id: "minimax_h3_fp8_turbo4_portrait_576x1024_v2", version: 2, label: "Portrait · Fast · 576 × 1024 · Corrected recipe",
       orientation: "portrait", tier: "fast", width: 576, height: 1024, durationSeconds: 5,
       fps: 24, frameCount: 124, nativeAudio: true,
     }],
@@ -162,7 +162,7 @@ it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async
   await act(async () => { freeze?.click(); await Promise.resolve(); });
   expect(prepare).toHaveBeenCalledWith("project", expect.objectContaining({
     resolution: "576x1024", requestedDurationSeconds: 5, audio: true, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false,
-    profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+    profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v2",
   }));
   const letterbox = host.querySelectorAll('input[type="radio"]')[2] as HTMLInputElement;
   await act(async () => {
@@ -173,7 +173,7 @@ it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async
   await act(async () => { freeze?.click(); await Promise.resolve(); });
   expect(prepare).toHaveBeenLastCalledWith("project", expect.objectContaining({
     aspectPolicy: "contain_pad", allowLetterbox: true, allowCenterCrop: false,
-    profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+    profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v2",
   }));
   expect(host.textContent).not.toContain("100 秒额度");
 });

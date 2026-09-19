@@ -51,12 +51,12 @@ H3 始终一次生成一条。
 
 | 方向 | 输出尺寸 | `profileId` |
 | --- | ---: | --- |
-| 横版快速 | 832 × 480 | `minimax_h3_fp8_turbo4_landscape_832x480_v1` |
-| 横版标准 | 960 × 544 | `minimax_h3_fp8_turbo4_landscape_960x544_v1` |
-| 横版高分 | 1280 × 704 | `minimax_h3_fp8_turbo4_landscape_1280x704_v1` |
-| 竖版快速 | 576 × 1024 | `minimax_h3_fp8_turbo4_portrait_576x1024_v1` |
-| 竖版标准 | 608 × 1088 | `minimax_h3_fp8_turbo4_portrait_608x1088_v1` |
-| 竖版高分 | 704 × 1280 | `minimax_h3_fp8_turbo4_portrait_704x1280_v1` |
+| 横版快速 | 832 × 480 | `minimax_h3_fp8_turbo4_landscape_832x480_v2` |
+| 横版标准 | 960 × 544 | `minimax_h3_fp8_turbo4_landscape_960x544_v2` |
+| 横版高分 | 1280 × 704 | `minimax_h3_fp8_turbo4_landscape_1280x704_v2` |
+| 竖版快速 | 576 × 1024 | `minimax_h3_fp8_turbo4_portrait_576x1024_v2` |
+| 竖版标准 | 608 × 1088 | `minimax_h3_fp8_turbo4_portrait_608x1088_v2` |
+| 竖版高分 | 704 × 1280 | `minimax_h3_fp8_turbo4_portrait_704x1280_v2` |
 
 `seed` 也是可选。省略时服务器会生成随机 seed；返回的任务和状态响应都会给出
 最终采用的 `seed`，方便复查。
@@ -115,7 +115,7 @@ http:
         "sourceUrl": "https://example.internal/scene-start.png",
         "endSourceUrl": "https://example.internal/scene-end.png",
         "prompt": "Cinematic medium shot. The explorer crosses the cabin slowly; natural movement, stable camera, coherent lighting.",
-        "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v1",
+        "profileId": "minimax_h3_fp8_turbo4_portrait_576x1024_v2",
         "aspectPolicy": "reject_mismatch",
         "seed": 42,
         "durationSeconds": 8
@@ -170,7 +170,7 @@ http:
     data: |-
       {
         "prompt": "A small lunar research station wakes before dawn. Slow camera drift, cinematic realism, subtle machinery and natural room tone.",
-        "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v1",
+        "profileId": "minimax_h3_fp8_turbo4_landscape_832x480_v2",
         "durationSeconds": 5
       }
 auth:

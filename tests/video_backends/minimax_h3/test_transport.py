@@ -9,7 +9,7 @@ from plotloom.video_provider import VideoOutputContractError, VideoProviderError
 
 
 _JOB_ID = "h3_0123456789abcdef0123456789abcdef"
-_PROFILE = "minimax_h3_fp8_turbo4_portrait_576x1024_v1"
+_PROFILE = "minimax_h3_fp8_turbo4_portrait_576x1024_v2"
 
 
 class _Response:
@@ -90,7 +90,7 @@ def test_h3_adapter_requires_explicit_and_exclusive_center_crop_consent() -> Non
     assert contract.request_snapshot() == {
         "durationSeconds": 5, "resolution": "576x1024", "audio": True,
         "aspectPolicy": "cover_center_crop", "seed": 7, "profileId": _PROFILE,
-        "profileVersion": 1, "width": 576, "height": 1024,
+        "profileVersion": 2, "width": 576, "height": 1024,
         "fps": 24, "frameCount": 124,
         "allowLetterbox": False, "allowCenterCrop": True,
     }

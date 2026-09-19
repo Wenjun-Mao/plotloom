@@ -66,11 +66,11 @@ Conversely, a Turbo adapter is not adequately described by `turbo=true` and a
 step count. Its LoRA, shifts, sampler, scheduler, and denoise must travel
 together as an explicit, versioned recipe.
 
-## 4. Current state and the known divergence
+## 4. Corrected candidate and retained observed history
 
-The observed engine has the right 4-step v1.0 768p LightX2V LoRA, strength
-`1.0`, four steps, `res_multistep`, `simple`, and denoise `1.0`. It does not,
-however, render ComfyUI's `MiniMaxH3SigmaShift` node.
+The retained observed v1 engine had the right 4-step v1.0 768p LightX2V LoRA,
+strength `1.0`, four steps, `res_multistep`, `simple`, and denoise `1.0`. It
+did not, however, render ComfyUI's `MiniMaxH3SigmaShift` node.
 
 ComfyUI defaults H3 to video shift `12` and audio shift `3`. LightX2V's
 published 4-step 768p FL2VA recipe is `4 steps / 6 video shift / 3 audio
@@ -84,11 +84,12 @@ the model, geometry, frames, and number of denoising evaluations are unchanged.
 It does mean historical clips are not an authoritative quality baseline for
 the canonical 4-step recipe.
 
-The repair belongs in the profile/workflow contract: render the appropriate
-`MiniMaxH3SigmaShift` node for each profile, bind it into both scheduler and
-model conditioning, and test the rendered graph. A gateway-side workaround or
-per-request hidden adjustment would make evidence and later profile changes
-harder to interpret.
+The repair is now implemented as profile contract version 5: new v2 geometry
+profiles atomically render `MiniMaxH3SigmaShift(6, 3)` between their LoRA and
+both scheduler/model-conditioning consumers. The old v1 IDs map only to an
+explicit `12 / 3` historical recipe and are rejected for new work. A
+gateway-side workaround or per-request hidden adjustment would make evidence
+and later profile changes harder to interpret.
 
 ## 5. Geometry, duration, and frame conditioning
 
@@ -125,8 +126,8 @@ The following states keep experiments from silently becoming production:
 
 The immediate comparison sequence is:
 
-1. Correct the current 4-step v1.0 recipe to its explicit `6 / 3` shifts and
-   establish a new quality baseline.
+1. Re-baseline the implemented 4-step v1.0 candidate with its explicit `6 / 3`
+   shifts.
 2. On that corrected recipe, compare current launch settings with only
    `--fast fp8_matrix_mult` added. ComfyUI labels this flag experimental, so
    it needs a visual and stability check as well as a timing check. [ComfyUI

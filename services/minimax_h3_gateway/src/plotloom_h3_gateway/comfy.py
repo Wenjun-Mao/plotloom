@@ -6,7 +6,7 @@ from typing import Any
 import requests
 
 from .contracts import GatewayError, GatewaySettings
-from .profile_catalog import TURBO_4STEP_LORA
+from .profile_catalog import active_lora_files
 
 
 class ComfyClient:
@@ -34,7 +34,6 @@ class ComfyClient:
             ("CLIPLoader", "clip_name", "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"),
             ("VAELoader", "vae_name", "minimax_h3_video_vae_fp16.safetensors"),
             ("VAELoader", "vae_name", "minimax_h3_audio_vae_fp32.safetensors"),
-            ("LoraLoaderModelOnly", "lora_name", TURBO_4STEP_LORA),
         )
         for node_type, input_name, expected in required:
             try:
@@ -43,7 +42,17 @@ class ComfyClient:
                 raise GatewayError("comfy_profile_unavailable", 503) from error
             if not isinstance(options, list) or expected not in options:
                 raise GatewayError("comfy_profile_unavailable", 503)
-        if "MiniMaxH3ImageToVideo" not in object_info or "PrimitiveInt" not in object_info:
+        try:
+            lora_names = object_info["LoraLoaderModelOnly"]["input"]["required"]["lora_name"][0]
+        except (KeyError, IndexError, TypeError) as error:
+            raise GatewayError("comfy_profile_unavailable", 503) from error
+        if not isinstance(lora_names, list) or not active_lora_files().issubset(lora_names):
+            raise GatewayError("comfy_profile_unavailable", 503)
+        required_nodes = {
+            "MiniMaxH3ImageToVideo", "MiniMaxH3SigmaShift", "PrimitiveInt",
+            "KSamplerSelect", "BasicScheduler", "BasicGuider", "SamplerCustomAdvanced",
+        }
+        if not required_nodes.issubset(object_info):
             raise GatewayError("comfy_profile_unavailable", 503)
         try:
             optional = object_info["MiniMaxH3ImageToVideo"]["input"]["optional"]

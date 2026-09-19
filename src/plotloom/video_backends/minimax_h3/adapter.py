@@ -33,7 +33,7 @@ class H3Profile:
     min_duration_seconds: int = 5
     max_duration_seconds: int = 15
     native_audio: bool = True
-    lora_id: str = "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"
+    sampling_recipe: "H3SamplingRecipe | None" = None
 
     @property
     def resolution(self) -> str:
@@ -42,7 +42,7 @@ class H3Profile:
     def public_descriptor(self) -> dict[str, Any]:
         """Gateway health descriptor; preserve the deployed 5--15 envelope."""
 
-        return {
+        descriptor = {
             "id": self.profile_id,
             "version": self.profile_version,
             "label": self.label,
@@ -57,6 +57,9 @@ class H3Profile:
             "frameCount": self.frame_count,
             "nativeAudio": self.native_audio,
         }
+        if self.sampling_recipe is not None:
+            descriptor["samplingRecipe"] = self.sampling_recipe.public_descriptor()
+        return descriptor
 
     def product_descriptor(self) -> dict[str, Any]:
         """Product projection; profile timing is a five-second default only."""
@@ -67,48 +70,123 @@ class H3Profile:
         return descriptor
 
 
+@dataclass(frozen=True)
+class H3SamplingRecipe:
+    """Exact recipe held in a frozen client-side H3 profile contract."""
+
+    recipe_id: str
+    recipe_version: int
+    lora_file: str
+    lora_strength: float
+    inference_steps: int
+    video_sigma_shift: float
+    audio_sigma_shift: float
+    sampler: str
+    scheduler: str
+    denoise: float
+
+    def public_descriptor(self) -> dict[str, Any]:
+        return {
+            "id": self.recipe_id,
+            "version": self.recipe_version,
+            "loraFile": self.lora_file,
+            "loraStrength": self.lora_strength,
+            "inferenceSteps": self.inference_steps,
+            "videoSigmaShift": self.video_sigma_shift,
+            "audioSigmaShift": self.audio_sigma_shift,
+            "sampler": self.sampler,
+            "scheduler": self.scheduler,
+            "denoise": self.denoise,
+        }
+
+
 # The catalog is deliberately an allowlist, not a width/height calculator.
-# Each entry corresponds to a trusted gateway workflow rendering and is frozen
-# into the job snapshot.
-H3_PORTRAIT_FAST = H3Profile(
-    "minimax_h3_fp8_turbo4_portrait_576x1024_v1", 1, "Portrait · Fast · 576 × 1024",
-    "portrait", "fast", 576, 1024,
+# Every v2 profile carries the complete published recipe. The original v1
+# profile IDs stay internal so a frozen historical job can still be read and
+# validated against its observed 12/3 ComfyUI-default trajectory.
+_LEGACY_IMPLICIT_RECIPE = H3SamplingRecipe(
+    "lightx2v_fl2va_turbo4_v1_implicit_h3_defaults",
+    1,
+    "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+    1.0,
+    4,
+    12.0,
+    3.0,
+    "res_multistep",
+    "simple",
+    1.0,
 )
-H3_PORTRAIT_STANDARD = H3Profile(
-    "minimax_h3_fp8_turbo4_portrait_608x1088_v1", 1, "Portrait · Standard · 608 × 1088",
-    "portrait", "standard", 608, 1088,
+_CORRECTED_TURBO4_V1_RECIPE = H3SamplingRecipe(
+    "lightx2v_fl2va_turbo4_v1_768p",
+    1,
+    "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+    1.0,
+    4,
+    6.0,
+    3.0,
+    "res_multistep",
+    "simple",
+    1.0,
 )
-H3_PORTRAIT_HIGH = H3Profile(
-    "minimax_h3_fp8_turbo4_portrait_704x1280_v1", 1, "Portrait · High resolution · 704 × 1280",
-    "portrait", "high_resolution", 704, 1280,
-)
-H3_LANDSCAPE_FAST = H3Profile(
-    "minimax_h3_fp8_turbo4_landscape_832x480_v1", 1, "Landscape · Fast · 832 × 480",
-    "landscape", "fast", 832, 480,
-)
-H3_LANDSCAPE_STANDARD = H3Profile(
-    "minimax_h3_fp8_turbo4_landscape_960x544_v1", 1, "Landscape · Standard · 960 × 544",
-    "landscape", "standard", 960, 544,
-)
-H3_LANDSCAPE_HIGH = H3Profile(
-    "minimax_h3_fp8_turbo4_landscape_1280x704_v1", 1, "Landscape · High resolution · 1280 × 704",
-    "landscape", "high_resolution", 1280, 704,
-)
-H3_PROFILES = (
-    H3_PORTRAIT_FAST,
-    H3_PORTRAIT_STANDARD,
-    H3_PORTRAIT_HIGH,
-    H3_LANDSCAPE_FAST,
-    H3_LANDSCAPE_STANDARD,
-    H3_LANDSCAPE_HIGH,
-)
+
+
+def _profiles(
+    *,
+    version: int,
+    recipe: H3SamplingRecipe,
+    corrected: bool,
+) -> tuple[H3Profile, ...]:
+    suffix = f"v{version}"
+    label_suffix = (
+        " · Corrected recipe" if corrected else " · Retired observed recipe"
+    )
+    geometries = (
+        ("portrait", "fast", "576x1024", "Portrait · Fast", 576, 1024),
+        ("portrait", "standard", "608x1088", "Portrait · Standard", 608, 1088),
+        (
+            "portrait",
+            "high_resolution",
+            "704x1280",
+            "Portrait · High resolution",
+            704,
+            1280,
+        ),
+        ("landscape", "fast", "832x480", "Landscape · Fast", 832, 480),
+        ("landscape", "standard", "960x544", "Landscape · Standard", 960, 544),
+        (
+            "landscape",
+            "high_resolution",
+            "1280x704",
+            "Landscape · High resolution",
+            1280,
+            704,
+        ),
+    )
+    return tuple(
+        H3Profile(
+            profile_id=f"minimax_h3_fp8_turbo4_{orientation}_{resolution}_{suffix}",
+            profile_version=version,
+            label=f"{label} · {width} × {height}{label_suffix}",
+            orientation=orientation,
+            tier=tier,
+            width=width,
+            height=height,
+            sampling_recipe=recipe,
+        )
+        for orientation, tier, resolution, label, width, height in geometries
+    )
+
+
+H3_RETIRED_PROFILES = _profiles(version=1, recipe=_LEGACY_IMPLICIT_RECIPE, corrected=False)
+H3_PROFILES = _profiles(version=2, recipe=_CORRECTED_TURBO4_V1_RECIPE, corrected=True)
 H3_PROFILES_BY_ID = {profile.profile_id: profile for profile in H3_PROFILES}
-DEFAULT_H3_PROFILE_ID = H3_PORTRAIT_FAST.profile_id
-H3_PROFILE_CONTRACT_VERSION = 4
+H3_ALL_PROFILES_BY_ID = {profile.profile_id: profile for profile in H3_RETIRED_PROFILES + H3_PROFILES}
+DEFAULT_H3_PROFILE_ID = H3_PROFILES[0].profile_id
+H3_PROFILE_CONTRACT_VERSION = 5
 # This identifier is the client-side admission anchor for the reviewed gateway
 # catalog.  It is distinct from individual frozen profile IDs, which remain
 # valid explicit runtime selections.
-H3_CATALOG_ID = "minimax_h3_gateway_catalog_v4"
+H3_CATALOG_ID = "minimax_h3_gateway_catalog_v5"
 # The gateway can parse 5--15 seconds, but only this product-qualified subset
 # is admitted into new Plotloom jobs.  Do not turn gateway capability into a
 # browser-selectable range without another qualification decision.
@@ -145,7 +223,11 @@ class MiniMaxH3GatewayAdapter:
     ) -> H3Profile:
         """Refuse catalog drift when a prepared job resumes after restart."""
 
-        profile = self._profile(profile_id)
+        if profile_id is None:
+            raise VideoProviderError("H3 frozen request requires an explicit profile")
+        profile = H3_ALL_PROFILES_BY_ID.get(profile_id)
+        if profile is None:
+            raise VideoProviderError("H3 frozen profile contract no longer matches the trusted catalog")
         if any(
             actual is not None and actual != expected
             for actual, expected in (
