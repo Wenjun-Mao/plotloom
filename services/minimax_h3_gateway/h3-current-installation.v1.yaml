@@ -53,10 +53,10 @@ comfyUi:
     pytorch: 2.14.0+cu130
     cuda: "13.0"
     attention: sage
-    reserveVramGiB: 16
+    reserveVramGiB: null
     bf16Unet: true
     bf16TextEncoder: true
-    bf16Vae: false
+    bf16Vae: true
     pinnedMemory: disabled
     customNodes: []
   launchArguments:
@@ -71,8 +71,7 @@ comfyUi:
     - --use-sage-attention
     - --bf16-unet
     - --bf16-text-enc
-    - --reserve-vram
-    - "16"
+    - --bf16-vae
   modelRoot:
     hostPath: /home/wjmao/models/comfyui-h3
     containerPath: /opt/ComfyUI/models

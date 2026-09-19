@@ -28,6 +28,17 @@ Before beginning, provide:
 - a private filesystem for models, input, output, and gateway state;
 - a normal, non-root Linux user who owns those directories.
 
+`ffprobe` is not a gateway dependency, but install the host `ffmpeg` package
+when operating the service. It provides the standard, independent way to
+inspect a retained MP4's stream codecs, geometry, frame rate, and duration
+without copying it out of managed storage:
+
+```sh
+sudo apt-get update
+sudo apt-get install --yes ffmpeg
+ffprobe -version
+```
+
 Keep all large model assets beneath the established host root:
 
 ```text
@@ -100,9 +111,9 @@ matching filename is not sufficient evidence of matching weights.
 
 ## 4. Start the engine with the observed runtime policy
 
-The current Spark policy uses SageAttention, BF16 for the UNet and text
-encoder, FP32/default handling for the VAE, 16 GiB of reserved unified memory,
-and a loopback-only ComfyUI port:
+The observed Spark policy uses SageAttention and BF16 for the UNet, text
+encoder, and VAE. It leaves `SPARK_RESERVE_VRAM` unset so ComfyUI uses its own
+default headroom, and uses a loopback-only ComfyUI port:
 
 ```sh
 cd /home/wjmao/services/spark-comfyui
@@ -110,8 +121,7 @@ cd /home/wjmao/services/spark-comfyui
 BIND_ADDR=127.0.0.1 \
 SPARK_ATTENTION=sage \
 SPARK_BF16=1 \
-SPARK_BF16_VAE=0 \
-SPARK_RESERVE_VRAM=16 \
+SPARK_BF16_VAE=1 \
 SHM_SIZE=16g \
 ./spark-comfyui.sh --mounts ./spark-h3-mounts.conf service
 ```
@@ -119,7 +129,10 @@ SHM_SIZE=16g \
 This service is restart-managed by Docker and survives a host reboot. It
 intentionally exposes ComfyUI only at `127.0.0.1:8188`; the gateway reaches it
 through host networking. Do not bind ComfyUI to Tailnet, LAN, or internet
-interfaces.
+interfaces. `--mounts ./spark-h3-mounts.conf` is mandatory: omitting it starts
+a healthy-looking ComfyUI instance with the runner's default model directory,
+where the H3 assets are invisible and the gateway must reject work with
+`comfy_profile_unavailable`.
 
 Confirm live runtime identity after startup:
 
@@ -137,6 +150,15 @@ curl --fail http://127.0.0.1:8188/object_info > /tmp/comfy-object-info.json
 The object information must advertise `MiniMaxH3ImageToVideo`,
 `MiniMaxH3SigmaShift`, and every file listed in the manifest. This verifies
 availability, not creative quality.
+
+For a completed gateway-managed MP4, inspect it in place rather than relying
+on browser playback alone:
+
+```sh
+ffprobe -v error \
+  -show_entries format=duration:stream=codec_type,codec_name,width,height,r_frame_rate \
+  -of json /path/to/gateway-data/outputs/<managed-file>.mp4
+```
 
 ## 5. Start the optional typed gateway
 

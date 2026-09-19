@@ -1,0 +1,62 @@
+manifestVersion: 1
+kind: minimax_h3_sampling_evaluation
+capturedAt: "2026-09-19"
+
+# This is a reproducible experimental record, not an H3 gateway catalog entry
+# and not a Plotloom-admitted profile. It deliberately records an upstream
+# contract conflict rather than hiding it behind an ambiguous "turbo8" name.
+status:
+  lifecycle: experiment_only
+  productionAdmission: prohibited
+  reason: >-
+    LightX2V's current model-spec README and its downloadable I2VA ComfyUI
+    graph disagree about the 8-step 768p video sigma shift. Visual output from
+    either setting cannot resolve source authority by itself.
+
+runtimeAuthority:
+  observedInstallation: h3-current-installation.v1.yaml
+  workflowTemplate: src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json
+  profileContractVersion: 5
+
+asset:
+  role: LightX2V FL2VA Turbo LoRA
+  relativePath: loras/minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors
+  bytes: 1956193000
+  sha256: 08cfe946033af7d27719b964b6e0a0e50c32138daabbd6ce4137e23df6bf9980
+  source: https://huggingface.co/lightx2v/Minimax-h3-Turbo
+
+fixedRecipeFields:
+  loraStrength: 1.0
+  inferenceSteps: 8
+  audioSigmaShift: 3.0
+  sampler: euler
+  scheduler: simple
+  denoise: 1.0
+
+candidates:
+  - id: lightx2v_fl2va_turbo8_v1_768p_readme_6_3
+    videoSigmaShift: 6.0
+    source: https://github.com/ModelTC/Minimax-H3-Turbo/blob/main/README.md
+    sourceStatement: >-
+      Model specification and Studio recommendation list eight NFE, video
+      shift 6, and audio shift 3 for the 768p 8-step FL2VA adapter.
+  - id: lightx2v_fl2va_turbo8_v1_768p_example_12_3
+    videoSigmaShift: 12.0
+    source: https://github.com/ModelTC/Minimax-H3-Turbo/blob/main/example_workflows/video_minimax_h3_i2v_lightx2v_turbo.json
+    sourceStatement: >-
+      The downloadable I2VA ComfyUI graph names the same 8-step 768p LoRA and
+      serializes video/audio shifts 12 and 3.
+
+comparisonPolicy:
+  fixedControls:
+    - runtime revision and normal launch flags
+    - prompt and frame conditioning
+    - seed, geometry, and frame count
+  requiredEvidence:
+    - output dimensions, codecs, audio stream, frame count, and duration
+    - generation elapsed time including an explicit cold/warm label
+    - human review of visual continuity and prompted audio
+  promotionRule: >-
+    Do not add either candidate to the public gateway catalog until upstream
+    guidance is reconciled and the selected complete recipe is independently
+    reviewed and accepted.

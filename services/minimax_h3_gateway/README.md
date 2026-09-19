@@ -18,6 +18,10 @@ The manifest deliberately distinguishes the observed live installation from a
 qualified inference profile. New work uses the separate corrected candidate
 manifest until real-model qualification promotes it.
 
+The separate [8-step sampling evaluation manifest](h3-8step-sampling-evaluation.v1.yaml)
+records an upstream recipe conflict and its bounded experiments. It is not a
+public profile catalog and cannot be selected by a gateway caller or Plotloom.
+
 The local service contract has five bearer-authenticated client operations plus
 one unauthenticated health route:
 

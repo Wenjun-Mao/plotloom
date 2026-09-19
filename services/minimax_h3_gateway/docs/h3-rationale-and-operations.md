@@ -141,6 +141,14 @@ option. The associated Comfy guidance says a profile should set LoRA, step
 count, and both shifts together; its published 768p 8-step values are `8 / 6
 / 3`. [Model table and guidance](https://github.com/ModelTC/Minimax-H3-Turbo/blob/main/README.md)
 
+As of 2026-09-19, LightX2V's downloadable I2VA ComfyUI example graph conflicts
+with that table: it names the 8-step 768p LoRA and serializes `8 / 12 / 3`.
+This makes an eight-step comparison a documented upstream-contract conflict,
+not a reason to guess or to reinterpret an existing profile. The `8 / 6 / 3`
+recipe may be run only as a separately recorded experiment until the upstream
+project reconciles its model specification and example graph. Neither version
+is an admitted Plotloom profile merely because it renders.
+
 Do not infer that a sampler validated for the eight-step profile is automatically
 better for the four-step profile. The currently observed four-step graph uses
 `res_multistep`/`simple`; candidate recipes must state and test their own
