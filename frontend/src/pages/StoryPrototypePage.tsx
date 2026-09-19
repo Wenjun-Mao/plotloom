@@ -2,11 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { plotloomApi } from "../api";
 import { Badge, ErrorNotice, Spinner } from "../components";
-import { derivePrototypeRoutes, episodeForSection, episodesForRoute, prototypeReadiness, type PrototypeEpisode, type PrototypeRoute, type PrototypeScript, type ScriptLine } from "../story-prototype-model";
-import type { AcceptedScriptRevision, ArtReviewState, CastReviewState, StoryGraph } from "../types";
+import { derivePrototypeRoutes, episodeForSection, episodesForRoute, storyboardEpisodesForRoute, storyboardPrototypeReadiness, type PrototypeEpisode, type PrototypeRoute, type PrototypeScript, type PrototypeStoryboard, type PrototypeStoryboardEpisode, type ScriptLine } from "../story-prototype-model";
+import type { AcceptedScriptRevision, AcceptedStoryboardReviewRevision, ArtReviewState, CastReviewState, StoryGraph } from "../types";
 
 type PrototypeNames = { characters: Record<string, string>; props: Record<string, string>; scenes: Record<string, string> };
-type PrototypeData = { graph: StoryGraph; script: PrototypeScript; accepted: AcceptedScriptRevision; projectTitle: string; names: PrototypeNames };
+type PrototypeData = { graph: StoryGraph; script: PrototypeScript; accepted: AcceptedScriptRevision; storyboard: PrototypeStoryboard; storyboardReview: AcceptedStoryboardReviewRevision; projectTitle: string; names: PrototypeNames };
 
 /** An opt-in reader: it has no mutation callback and loads canonical owners directly. */
 export function StoryPrototypePage() {
@@ -23,22 +23,25 @@ export function StoryPrototypePage() {
       plotloomApi.getProject(projectId),
       plotloomApi.getStages(projectId),
       plotloomApi.getScript(projectId),
+      plotloomApi.getStoryboardSourceReview(projectId),
       plotloomApi.getCast(projectId).catch(() => null),
       plotloomApi.getArt(projectId).catch(() => null),
     ])
-      .then(([project, stages, scriptState, castState, artState]) => {
+      .then(([project, stages, scriptState, storyboardState, castState, artState]) => {
         const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
         const graph = graphStage?.payload as StoryGraph | null;
         if (!graph || !scriptState.acceptedScript) throw new Error("这个项目尚未同时具备可阅读的故事和已确认剧本。");
-        const unavailable = prototypeReadiness(scriptState.status, graphStage?.head, scriptState.acceptedScript.binding);
+        const storyboardReview = storyboardState.acceptedReview;
+        if (!storyboardReview) throw new Error("当前没有可阅读的已接受分镜评审。请先在工作台完成当前 F5A review。");
+        const unavailable = storyboardPrototypeReadiness(scriptState.status, graphStage?.head, scriptState.acceptedScript, storyboardState);
         if (unavailable) throw new Error(unavailable);
-        if (active) setData({ graph, script: scriptState.acceptedScript.script as PrototypeScript, accepted: scriptState.acceptedScript, projectTitle: project.brief.title, names: displayNames(castState, artState) });
+        if (active) setData({ graph, script: scriptState.acceptedScript.script as PrototypeScript, accepted: scriptState.acceptedScript, storyboard: storyboardReview.storyboard as PrototypeStoryboard, storyboardReview, projectTitle: project.brief.title, names: displayNames(castState, artState) });
       })
       .catch((reason) => { if (active) setError(reason instanceof Error ? reason.message : "无法读取故事原型。"); });
     return () => { active = false; };
   }, [projectId]);
 
-  const routes = useMemo(() => data ? derivePrototypeRoutes(data.graph, data.accepted.binding.sectionBindings) : [], [data]);
+  const routes = useMemo(() => data ? derivePrototypeRoutes(data.graph, data.storyboardReview.binding.sectionBindings) : [], [data]);
   const selectedRoute = routes.find((route) => route.id === selectedRouteId) || routes[0];
   const selectedNode = selectedNodeId || selectedRoute?.sectionIds[0] || "";
   useEffect(() => {
@@ -55,7 +58,7 @@ export function StoryPrototypePage() {
     if (containingRoute) setSelectedRouteId(containingRoute.id);
   };
 
-  if (!projectId) return <PrototypeShell><section className="prototype-empty"><strong>需要一个项目</strong><p>从已有已确认剧本的项目打开此只读阅读页：在地址中加入 <code>?view=story-prototype&amp;project=…</code>。</p></section></PrototypeShell>;
+  if (!projectId) return <PrototypeShell><section className="prototype-empty"><strong>需要一个项目</strong><p>从已有已确认剧本和分镜评审的项目打开此只读阅读页：在地址中加入 <code>?view=story-prototype&amp;project=…</code>。</p></section></PrototypeShell>;
   if (error) return <PrototypeShell><ErrorNotice message={error} /></PrototypeShell>;
   if (!data || !selectedRoute) return <PrototypeShell><div className="prototype-loading"><Spinner label="正在读取故事和剧本" /></div></PrototypeShell>;
 
@@ -68,8 +71,8 @@ export function StoryPrototypePage() {
     <main className="story-prototype" data-testid="story-prototype">
       <CreatorStageNavigation projectId={projectId} />
       <section className="prototype-intro">
-        <div><span className="eyebrow">故事 / 剧本</span><h1>{data.projectTitle || "故事与分支"}</h1><p>选择一条路径或一个情节，再按顺序阅读对应剧本。界面为中文；下方英文内容保持原样。</p></div>
-        <div className="prototype-version"><strong>当前阅读内容</strong><span>已确认剧本</span><small>这里显示目前确认的版本；不会更改内容，也不会生成素材。</small></div>
+        <div><span className="eyebrow">故事 / 剧本 / 分镜</span><h1>{data.projectTitle || "故事与分支"}</h1><p>选择一条路径，按已确认剧本与对应分镜评审的顺序阅读。界面为中文；英文源内容保持原样。</p></div>
+        <div className="prototype-version"><strong>当前阅读内容</strong><span>已确认 F4 剧本 + F5A 分镜评审</span><small>这里不会更改内容、生成素材或将分镜转为产品镜头。</small></div>
       </section>
       <BranchMap graph={data.graph} routes={routes} selectedRoute={selectedRoute} selectedNode={selectedNode} onNode={chooseNode} onRoute={setSelectedRouteId} />
       <section className="prototype-reading" aria-labelledby="prototype-reading-title">
@@ -79,8 +82,10 @@ export function StoryPrototypePage() {
         </div>
         {selectedEpisode && !selectedRoute.sectionIds.includes(selectedNode) && <EpisodeCard graph={data.graph} names={data.names} sectionId={selectedNode} episode={selectedEpisode} focused onFocus={chooseNode} />}
       </section>
-      <footer className="prototype-boundary"><strong>接下来</strong><span>本页只用于阅读故事和剧本，不能在这里保存或生成。制作素材仍需在各自的工作区单独处理。</span></footer>
-      <details className="prototype-details"><summary>技术详情</summary><dl><div><dt>剧本版本</dt><dd>r{data.accepted.revision}</dd></div><div><dt>内容标识</dt><dd>{data.accepted.contentHash}</dd></div><div><dt>故事版本</dt><dd>r{data.accepted.binding.graphRevision}</dd></div><div><dt>章节对应</dt><dd>{data.accepted.binding.sectionBindings.map((item) => `${item.sectionId} → E${item.episode.toString().padStart(2, "0")}`).join(" · ")}</dd></div></dl></details>
+      <StoryboardReader graph={data.graph} script={data.script} names={data.names} route={selectedRoute} storyboard={data.storyboard} bindings={data.storyboardReview.binding.sectionBindings} onFocus={chooseNode} />
+      <section className="prototype-report"><details><summary>打开原始上游报告（只读评审证据）</summary><iframe title="original upstream storyboard report" sandbox="" src={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, data.storyboardReview.candidateJobId)} /></details></section>
+      <footer className="prototype-boundary"><strong>阅读边界</strong><span>分镜中的时长是评审用预计时长，不代表实际音频或成片时长。此页只用于阅读当前绑定的故事、剧本和分镜评审，不能在这里保存、生成或投产。</span></footer>
+      <details className="prototype-details"><summary>技术详情</summary><dl><div><dt>剧本版本</dt><dd>r{data.accepted.revision}</dd></div><div><dt>分镜评审版本</dt><dd>r{data.storyboardReview.revision}</dd></div><div><dt>内容标识</dt><dd>{data.storyboardReview.contentHash}</dd></div><div><dt>故事版本</dt><dd>r{data.accepted.binding.graphRevision}</dd></div><div><dt>章节对应</dt><dd>{data.storyboardReview.binding.sectionBindings.map((item) => `${item.sectionId} → E${item.episode.toString().padStart(2, "0")}`).join(" · ")}</dd></div></dl></details>
     </main>
   </PrototypeShell>;
 }
@@ -123,6 +128,31 @@ function SceneHeading({ scene, index, names }: { scene: NonNullable<PrototypeEpi
 }
 
 function ScriptRow({ item, names }: { item: ScriptLine; names: PrototypeNames }) { return item.line ? <div className="script-row dialogue"><span>{item.speaker ? names.characters[item.speaker] || item.speaker : "角色"}</span><p>{item.line}</p><small>{item.delivery || ""}</small></div> : <div className="script-row action"><span>动作</span><p>{item.action || ""}</p></div>; }
+
+function StoryboardReader({ graph, script, names, route, storyboard, bindings, onFocus }: { graph: StoryGraph; script: PrototypeScript; names: PrototypeNames; route: PrototypeRoute; storyboard: PrototypeStoryboard; bindings: Array<{ sectionId: string; episode: number }>; onFocus: (id: string) => void }) {
+  const episodes = storyboardEpisodesForRoute(storyboard, bindings, route);
+  return <section className="storyboard-reader" aria-labelledby="storyboard-reader-title" data-testid="storyboard-reader"><div className="prototype-reading-header"><div><span className="eyebrow">分镜阅读</span><h2 id="storyboard-reader-title">按路径查看章节、段落与镜头</h2><p>镜头描述来自已接受的 F5A 评审；没有随附图像时会明确说明。</p></div><Badge tone="accent">只读评审</Badge></div>{episodes.map(({ sectionId, episode }) => <StoryboardEpisodeCard key={sectionId} graph={graph} script={script} names={names} sectionId={sectionId} episode={episode} onFocus={onFocus} />)}</section>;
+}
+
+function StoryboardEpisodeCard({ graph, script, names, sectionId, episode, onFocus }: { graph: StoryGraph; script: PrototypeScript; names: PrototypeNames; sectionId: string; episode: PrototypeStoryboardEpisode; onFocus: (id: string) => void }) {
+  const segments = episode.segments || [];
+  return <article className="storyboard-episode" data-storyboard-section={sectionId}><button type="button" className="storyboard-episode-heading" onClick={() => onFocus(sectionId)}><span>章节 E{(episode.ep || 0).toString().padStart(2, "0")}</span><strong>{nodeTitle(graph, sectionId)}</strong><small>{segments.length ? `${segments.length} 个分段` : "源分镜未提供分段"}</small></button>{segments.map((segment, segmentIndex) => <StoryboardSegment key={segment.id || segmentIndex} segment={segment} index={segmentIndex} scene={sceneForSegment(script, sectionId, segment.sceneIndex, names)} />)}</article>;
+}
+
+function StoryboardSegment({ segment, index, scene }: { segment: NonNullable<PrototypeStoryboardEpisode["segments"]>[number]; index: number; scene: string | undefined }) {
+  const cuts = segment.cuts || [];
+  const duration = cuts.reduce((total, cut) => total + (typeof cut.seconds === "number" ? cut.seconds : 0), 0);
+  return <section className="storyboard-segment"><header><div><span>分段 {index + 1}{segment.id ? ` · ${segment.id}` : ""}</span><strong>{scene || "源分镜未提供场景上下文"}</strong></div><small>{duration ? `分段预计 ${formatSeconds(duration)}` : "未提供分段时长"}</small></header><div className="storyboard-cuts">{cuts.length ? cuts.map((cut, cutIndex) => <article className="storyboard-cut" key={cutIndex}><div className="cut-index">镜头 {cutIndex + 1}</div><div className="cut-frame"><span>画面 / 动作</span><p>{cut.frame || "源分镜未提供画面描述。"}</p><small>未提供参考图像</small></div><dl><div><dt>预计时长</dt><dd>{typeof cut.seconds === "number" ? formatSeconds(cut.seconds) : "未提供"}</dd></div><div><dt>景别</dt><dd>{cut.size || "未提供"}</dd></div><div><dt>镜头运动</dt><dd>{cut.camera || "未提供"}</dd></div></dl></article>) : <p className="storyboard-missing">源分镜未提供镜头。</p>}</div>{segment.h3Prompt && <details className="generation-instructions"><summary>查看生成说明</summary><pre>{segment.h3Prompt}</pre></details>}</section>;
+}
+
+function sceneForSegment(script: PrototypeScript, sectionId: string, sceneIndex: number | undefined, names: PrototypeNames): string | undefined {
+  if (!sceneIndex) return undefined;
+  const scene = episodeForSection(script, sectionId)?.scenes?.[sceneIndex - 1];
+  if (!scene) return undefined;
+  return scene.sceneId ? names.scenes[scene.sceneId] || `场景 ${sceneIndex}` : `场景 ${sceneIndex}`;
+}
+
+function formatSeconds(value: number): string { return `${value.toFixed(value % 1 ? 1 : 0)} 秒`; }
 function nodeTitle(graph: StoryGraph, nodeId: string): string { return graph.nodes.find((node) => node.id === nodeId)?.title || nodeId; }
 function routeTitle(route: PrototypeRoute): string { return route.label || route.sectionIds.join(" → "); }
 

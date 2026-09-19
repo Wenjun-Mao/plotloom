@@ -129,3 +129,34 @@ Once approved for delivery, use Relay serial ownership and default Terra/high.
 Each assignment names a small outcome and concrete removed/reused surfaces.
 Escalate changes to creative authority, destructive actions, new providers,
 production mapping or audio strategy; routine UI choices stay within the plan.
+
+## U2 storyboard-reader delivery receipt — 2026-09-19
+
+**Approved boundary.** The user approved a read-only, route-focused story-reader
+usability slice after the attended review: the story structure was clear; only the
+detached wide-screen connector strokes were minor polish. This receipt records the
+bounded presentation approval only. It does not accept creative/media output, F5A
+as production input, M2, U3/F7, or a whole-workflow language change.
+
+**Delivered surface.** `?view=story-prototype&project=<id>` now admits reading only
+when the current accepted F4 script, current canonical graph, and accepted F5A
+storyboard review all share the exact frozen binding. It retains canonical route and
+chapter order, excludes sibling-route screenplay and F5A segments, presents chapter
+→ segment → cut with source scene context where bound, cut-level estimated durations,
+frame/action, camera, size, F4 dialogue, and explicit missing-image honesty. Chinese
+reader chrome leaves the English source unchanged. Stored `h3Prompt` is collapsed
+under “查看生成说明”; identifiers/hashes/mappings are under “技术详情”. The original
+upstream report remains separately labelled in a sandboxed frame.
+
+**Refusal and exclusions.** Missing, stale, reopened, mismatched, or incomplete
+F4/F5A/graph bindings clear the reader rather than mixing retained evidence. The
+surface has no save, generation, media, or production actions and creates no
+SceneBeats/Bible projection. It does not modify projects, approvals, assets, or
+provider state.
+
+**Evidence.** Focused model tests cover currentness and route order. Production
+FastAPI browser proof creates a disposable deterministic F4/F5A fixture, verifies
+GET-only reader behavior, route filtering, collapsed prompt disclosure, stale
+refusal, and screenshots at 1440 px and 768 px. Deterministic static assets were
+rebuilt. The independent read-only stable-delta review outcome is recorded in the
+corresponding verification receipt.

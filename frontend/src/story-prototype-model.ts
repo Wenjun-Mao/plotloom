@@ -1,5 +1,5 @@
 import { deriveRoutes, type StoryRoute } from "./model";
-import type { ScriptBinding, ScriptReviewState, StageHead, StoryGraph } from "./types";
+import type { ScriptBinding, ScriptReviewState, StageHead, StoryGraph, StoryboardReviewState } from "./types";
 
 export type ScriptLine = { action?: string; speaker?: string; line?: string; delivery?: string };
 export type PrototypeEpisode = {
@@ -27,6 +27,11 @@ export interface PrototypeRoute extends StoryRoute {
   sectionIds: string[];
 }
 
+export type PrototypeCut = { seconds?: number; size?: string; camera?: string; frame?: string };
+export type PrototypeSegment = { id?: string; sceneIndex?: number; cuts?: PrototypeCut[]; h3Prompt?: string };
+export type PrototypeStoryboardEpisode = { ep?: number; segments?: PrototypeSegment[] };
+export type PrototypeStoryboard = { episodes?: PrototypeStoryboardEpisode[] };
+
 /** Reject historical or edited script state rather than presenting it as current. */
 export function prototypeReadiness(
   scriptStatus: ScriptReviewState["status"],
@@ -38,6 +43,32 @@ export function prototypeReadiness(
   if (graphHead.revision !== binding.graphRevision || graphHead.contentHash !== binding.graphContentHash) {
     return "剧本绑定的剧情图不是当前版本。请先处理工作台中的版本变更。";
   }
+  return undefined;
+}
+
+/**
+ * F5A owns only its raw review evidence.  It is safe to present beside F4
+ * only when both point to the exact same current script and graph binding.
+ */
+export function storyboardPrototypeReadiness(
+  scriptStatus: ScriptReviewState["status"],
+  graphHead: Pick<StageHead, "status" | "revision" | "contentHash"> | undefined,
+  script: { revision: number; contentHash: string; binding: ScriptBinding },
+  review: StoryboardReviewState,
+): string | undefined {
+  const scriptUnavailable = prototypeReadiness(scriptStatus, graphHead, script.binding);
+  if (scriptUnavailable) return scriptUnavailable;
+  const accepted = review.acceptedReview;
+  if (review.status !== "accepted" || !accepted) return "当前没有可阅读的已接受分镜评审。请先在工作台完成当前 F5A review。";
+  if (accepted.binding.scriptRevision !== script.revision || accepted.binding.scriptContentHash !== script.contentHash) {
+    return "分镜评审绑定的剧本不是当前已接受版本。请先处理工作台中的版本变更。";
+  }
+  if (accepted.binding.graphRevision !== script.binding.graphRevision || accepted.binding.graphContentHash !== script.binding.graphContentHash) {
+    return "分镜评审绑定的故事图不是当前版本。请先处理工作台中的版本变更。";
+  }
+  const expected = script.binding.sectionBindings.map(({ sectionId, episode }) => `${sectionId}:${episode}`);
+  const actual = accepted.binding.sectionBindings.map(({ sectionId, episode }) => `${sectionId}:${episode}`);
+  if (expected.join("|") !== actual.join("|")) return "分镜评审的章节对应与当前剧本不一致，不能混合阅读。";
   return undefined;
 }
 
@@ -61,5 +92,18 @@ export function episodesForRoute(script: PrototypeScript, route: PrototypeRoute)
   return route.sectionIds.flatMap((sectionId) => {
     const episode = episodeForSection(script, sectionId);
     return episode ? [{ sectionId, episode }] : [];
+  });
+}
+
+/** Keep the F4 binding as the route order authority; F5 supplies only its matching episode evidence. */
+export function storyboardEpisodesForRoute(
+  storyboard: PrototypeStoryboard,
+  bindings: Array<{ sectionId: string; episode: number }>,
+  route: PrototypeRoute,
+): Array<{ sectionId: string; episode: PrototypeStoryboardEpisode }> {
+  return route.sectionIds.flatMap((sectionId) => {
+    const binding = bindings.find((item) => item.sectionId === sectionId);
+    const episode = storyboard.episodes?.find((item) => item.ep === binding?.episode);
+    return binding && episode ? [{ sectionId, episode }] : [];
   });
 }
