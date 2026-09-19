@@ -49,16 +49,19 @@ evidence, including the preserved failures, is retained in
 
 Headless Chromium screenshots were inspected after the passing browser run:
 
-- `frontend/test-results/story-prototype-reads-the--3aa0b--screenplay-without-writing/story-prototype-1440.png`
-  — 1440 × 4101, opening and beacon route.
-- `frontend/test-results/story-prototype-reads-the--3aa0b--screenplay-without-writing/story-prototype-768.png`
-  — 768 × 4536, dock route after selection.
+- `frontend/test-results/story-prototype-reads-orde-94cfd--screenplay-without-writing/story-prototype-1440.png`
+  — 1440 × 4153, opening and beacon route.
+- `frontend/test-results/story-prototype-reads-orde-94cfd--screenplay-without-writing/story-prototype-768.png`
+  — 768 × 4588, dock route after selection.
 
-At both widths the first viewport contains one compact creator-stage navigation,
-the opening-to-two-ending map, current route focus, and a readable screenplay
-column. The narrow layout wraps the stage pills, stacks the branch map, and
-keeps scene context and screenplay lines within the viewport without horizontal
-clipping. The English screenplay text was not translated or edited.
+At both retained widths the first viewport contains one compact creator-stage
+navigation, the opening-to-two-ending map, current route focus, and a readable
+screenplay column. The exact 768 px screenshot shows the branch canvas in its
+two-column grid: the opening card is on the left and the two choice cards are
+on the right. The CSS defines a one-column, stacked branch canvas only at
+`max-width: 760px`; that below-760 px behavior is source-defined but was not
+demonstrated by a retained screenshot. The English screenplay text was not
+translated or edited.
 
 ## Read-only preview
 
@@ -121,6 +124,15 @@ passed. `npm run build:deterministic` refreshed
 `src/plotloom/static/workbench.js`; Vite's existing over-500 kB chunk warning
 remains. The initial root-directory Playwright invocation is retained as a
 non-test configuration-path failure in the accompanying log.
+
+Receipt correction on 2026-09-18: the focused source reads confirm the reader
+still binds `episode.targetSeconds` directly and the current regression still
+uses the ordered two-scene fixture. The root-directory Playwright failure above
+remains evidence of a command invoked from the wrong directory, not a test
+result. `72edb23` was already equal to `origin/main` when this receipt was
+corrected, an unexpected remote-advance fact relative to the delivery's
+explicit no-push instruction; this correction did not perform a remote
+operation. The focused recheck and its exact output are appended to the log.
 
 An independent read-only stable-delta review found no P0–P2 findings. It
 confirmed the direct `episode.targetSeconds` binding, the retained

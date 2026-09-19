@@ -117,3 +117,35 @@ vite v7.3.6 building client environment for production...
 
 (!) Existing Vite chunk-size warning: workbench.js remains over 500 kB.
 ✓ built in 663ms
+
+--- receipt correction: retained screenshot paths and focused recheck ---
+
+# The prior screenshot directory name was retired when the multi-scene test was
+# renamed. The retained outputs are:
+# frontend/test-results/story-prototype-reads-orde-94cfd--screenplay-without-writing/story-prototype-1440.png
+# frontend/test-results/story-prototype-reads-orde-94cfd--screenplay-without-writing/story-prototype-768.png
+# At exactly 768 px, the inspected screenshot retains the branch canvas's
+# two-column layout. The source stylesheet defines stacking only at
+# @media (max-width: 760px); no below-760 screenshot was claimed or added.
+
+$ npm --prefix frontend run typecheck
+
+> @plotloom/workbench@0.1.0 typecheck
+> tsc --noEmit
+
+$ npm --prefix frontend run typecheck:e2e
+
+> @plotloom/workbench@0.1.0 typecheck:e2e
+> tsc --project e2e/tsconfig.json
+
+$ (cd frontend && npm exec playwright test -- --config playwright.config.ts e2e/story-prototype.spec.ts)
+
+Running 1 test using 1 worker
+
+  ✓  1 e2e/story-prototype.spec.ts:4:1 › reads ordered multi-scene canonical screenplay without writing (2.9s)
+
+  1 passed (4.5s)
+
+# Node emitted a non-failing NO_COLOR/FORCE_COLOR warning before the focused
+# browser test. The root-directory config-path failure above remains preserved.
+# No build was required: this correction changes scoped documentation only.
