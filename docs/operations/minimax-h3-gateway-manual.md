@@ -12,6 +12,14 @@ For exact machine-readable behavior, the source profile and tests remain the
 implementation authority. This manual links them rather than duplicating an
 unsafe or easily stale deployment recipe.
 
+The underlying Spark/ComfyUI installation is documented separately from this
+gateway runbook: [reproducible setup guide](../../services/minimax_h3_gateway/docs/h3-reproducible-setup.md),
+[rationale and operations manual](../../services/minimax_h3_gateway/docs/h3-rationale-and-operations.md),
+and [current-installation manifest](../../services/minimax_h3_gateway/h3-current-installation.v1.yaml).
+Those documents intentionally record the observed 4-step sampling divergence
+until its profile-owned repair is qualified; this operator manual must not be
+read as proof that a running H3 container has the intended creative recipe.
+
 ## 1. What this system is—and is not
 
 Plotloom uses MiniMax-H3 through a small authenticated gateway running on
@@ -91,7 +99,7 @@ The implementation and decision records are:
 1. Docker and Docker Compose are available on Spark.
 2. ComfyUI is running and is reachable only at `http://127.0.0.1:8188` from
    the host.
-3. The MiniMax-H3 custom node and the exact profile assets are installed in
+3. The built-in MiniMax-H3 node and the exact profile assets are installed in
    ComfyUI. The gateway's readiness check requires the following values to
    appear in ComfyUI's `/object_info` response:
 

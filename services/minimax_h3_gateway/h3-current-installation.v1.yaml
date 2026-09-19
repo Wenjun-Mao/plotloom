@@ -1,0 +1,156 @@
+manifestVersion: 1
+kind: minimax_h3_current_installation_inventory
+capturedAt: "2026-09-19"
+
+# This is a secret-free inventory of the live Spark installation, not a claim
+# that its current inference recipe is qualified for future deployments.
+status:
+  observedLive: true
+  qualification: blocked
+  reason: >-
+    The active LightX2V FL2VA 4-step v1.0 768p LoRA graph omits an explicit
+    MiniMaxH3SigmaShift node. ComfyUI consequently uses its base H3 default
+    video/audio shifts (12/3), while the adapter's published recipe requires
+    6/3. Do not reproduce this implicit recipe for a new production install.
+  remediation: >-
+    Make the complete sampling recipe a profile-owned, rendered and tested
+    contract before this inventory is promoted to a qualified baseline.
+
+authority:
+  documentation:
+    reproducibleSetup: docs/h3-reproducible-setup.md
+    rationale: docs/h3-rationale-and-operations.md
+  source:
+    gatewayProfileCatalog: src/plotloom_h3_gateway/profile_catalog.py
+    renderedWorkflowTemplate: src/plotloom_h3_gateway/profiles/minimax_h3_turbo4_template_v1.json
+    templateSha256: 731b8bd612ab3cbf4579a921710cd346a3575092fc8537d620f89c428714d83c
+  capturedFrom:
+    plotloomCommit: 12163bfe0d0f50016ff79db6c49b8732287389ed
+    method: live host inspection plus source inspection
+
+host:
+  hostname: gx10-1523
+  operatingSystem: Ubuntu 24.04.5 LTS
+  architecture: aarch64
+  kernel: 7.0.0-1019-nvidia
+  accelerator:
+    name: NVIDIA GB10
+    driver: 580.173.02
+    cudaComputeCapability: "12.1"
+
+comfyUi:
+  runnerRepository: https://github.com/bjarkebolding/spark-comfyui.git
+  runnerCommit: 408a3d3c7c47725851358ec745efb255d5ff7316
+  containerImage:
+    tag: spark-comfyui:latest
+    imageId: sha256:d45ca7983d4eda39cdd4df3bd03921b28754b2c15ce17f906032ef4dafd1cabc
+  coreCommit: d43a5fa20c8547ff42d13232f589a06536c42b97
+  endpoint:
+    hostBinding: 127.0.0.1:8188
+    containerPort: 8188
+  runtime:
+    python: 3.12.3
+    pytorch: 2.14.0+cu130
+    cuda: "13.0"
+    attention: sage
+    reserveVramGiB: 16
+    bf16Unet: true
+    bf16TextEncoder: true
+    bf16Vae: false
+    pinnedMemory: disabled
+    customNodes: []
+  launchArguments:
+    - --listen
+    - 0.0.0.0
+    - --port
+    - "8188"
+    - --enable-manager
+    - --preview-method
+    - auto
+    - --disable-pinned-memory
+    - --use-sage-attention
+    - --bf16-unet
+    - --bf16-text-enc
+    - --reserve-vram
+    - "16"
+  modelRoot:
+    hostPath: /home/wjmao/models/comfyui-h3
+    containerPath: /opt/ComfyUI/models
+
+assets:
+  - role: FL2VA diffusion model
+    relativePath: diffusion_models/minimax_h3_fl2va_pruned_fp8_scaled.safetensors
+    bytes: 20958205608
+    sha256: 12944c1f7791637e7de12208aef04da82bd26b95271b1b47d817364315ade993
+    source: https://huggingface.co/Comfy-Org/MiniMax-H3
+  - role: MiniMax-H3 Qwen3-VL text encoder
+    relativePath: text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors
+    bytes: 15687142551
+    sha256: 35a88d51044231fe332301d7a62aa81e3f2cba62febeb446e2c1e3e0ef76f2c6
+    source: https://huggingface.co/Comfy-Org/MiniMax-H3
+  - role: video VAE
+    relativePath: vae/minimax_h3_video_vae_fp16.safetensors
+    bytes: 5207808496
+    sha256: 7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522
+    source: https://huggingface.co/Comfy-Org/MiniMax-H3
+  - role: audio VAE
+    relativePath: vae/minimax_h3_audio_vae_fp32.safetensors
+    bytes: 605254808
+    sha256: 8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
+    source: https://huggingface.co/Comfy-Org/MiniMax-H3
+  - role: LightX2V FL2VA Turbo LoRA
+    relativePath: loras/minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors
+    bytes: 1956192992
+    sha256: c396a9a06f58399e9df9754b18299818d84a2ddd371724ba48fe4a41221437dc
+    source: https://huggingface.co/lightx2v/Minimax-h3-Turbo
+
+observedWorkflow:
+  mode: FL2VA
+  inputFrames: zero_one_or_two
+  output:
+    fps: 24
+    videoCodec: h264
+    audioCodec: aac
+  activeTurboRecipe:
+    loraFile: minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors
+    loraStrength: 1.0
+    inferenceSteps: 4
+    sampler: res_multistep
+    scheduler: simple
+    denoise: 1.0
+    explicitSigmaShiftNode: false
+    effectiveVideoSigmaShift: 12
+    effectiveAudioSigmaShift: 3
+  adapterPublishedRecipe:
+    inferenceSteps: 4
+    videoSigmaShift: 6
+    audioSigmaShift: 3
+    source: https://github.com/ModelTC/LightX2V/blob/main/README.md
+
+reviewedGeometryCatalog:
+  durationSeconds:
+    minimum: 5
+    maximum: 15
+    default: 5
+  frameCount:
+    fps: 24
+    formula: 17k_plus_5
+    fiveSecondRequest: 124
+  profiles:
+    - minimax_h3_fp8_turbo4_portrait_576x1024_v1
+    - minimax_h3_fp8_turbo4_portrait_608x1088_v1
+    - minimax_h3_fp8_turbo4_portrait_704x1280_v1
+    - minimax_h3_fp8_turbo4_landscape_832x480_v1
+    - minimax_h3_fp8_turbo4_landscape_960x544_v1
+    - minimax_h3_fp8_turbo4_landscape_1280x704_v1
+
+gateway:
+  sourceRoot: services/minimax_h3_gateway
+  containerNetwork: host
+  gatewayDataRetention:
+    completedMp4Hours: 72
+    sqliteRecordDays: 30
+  credentialPolicy: serverOnlyBearerSecret
+  publicCreationRoutes:
+    - POST /v1/video-jobs/from-image
+    - POST /v1/video-jobs/from-text

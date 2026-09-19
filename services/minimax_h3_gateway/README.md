@@ -10,6 +10,13 @@ Plotloom is now wired to this gateway through the versioned
 for deployment, security, Plotloom configuration, lifecycle, recovery, and
 the exact limits of verified behavior.
 
+For the underlying Spark/ComfyUI engine rather than the gateway API, use the
+[reproducible H3 setup guide](docs/h3-reproducible-setup.md), the
+[H3 rationale and operations manual](docs/h3-rationale-and-operations.md), and
+the secret-free [current-installation manifest](h3-current-installation.v1.yaml).
+The manifest deliberately distinguishes the observed live installation from a
+qualified inference profile.
+
 The local service contract has five bearer-authenticated client operations plus
 one unauthenticated health route:
 
