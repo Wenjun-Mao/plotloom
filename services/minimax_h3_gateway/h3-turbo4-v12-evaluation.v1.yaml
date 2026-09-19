@@ -1,0 +1,50 @@
+manifestVersion: 1
+kind: minimax_h3_sampling_evaluation
+capturedAt: "2026-09-19"
+
+# This is a reproducible experiment record. It is not an admitted gateway
+# profile and does not change Plotloom's v2 four-step v1.0 catalog.
+status:
+  lifecycle: experiment_only
+  productionAdmission: prohibited_pending_human_review
+  statedVendorIntent: improved audio quality relative to v1.1 while retaining a fast four-step path
+
+runtimeAuthority:
+  observedInstallation: h3-current-installation.v1.yaml
+  workflowTemplate: src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json
+  profileContractVersion: 5
+
+asset:
+  role: LightX2V FL2VA Turbo LoRA
+  relativePath: loras/minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors
+  bytes: 1956193000
+  sha256: c8168ebc17bbacc4296103dda2fec1ba85b24392fa08cf2bfbcef0cff0dc3cc8
+  source: https://huggingface.co/lightx2v/Minimax-h3-Turbo
+
+samplingRecipe:
+  id: lightx2v_fl2va_turbo4_v1_2_768p
+  loraStrength: 1.0
+  inferenceSteps: 4
+  videoSigmaShift: 6.0
+  audioSigmaShift: 3.0
+  sampler: euler
+  scheduler: simple
+  denoise: 1.0
+  source: https://huggingface.co/lightx2v/Minimax-h3-Turbo/discussions/52
+  sourceStatement: >-
+    LightX2V's v1.2 release note specifies steps 4, video shift 6, audio shift
+    3, sampler Euler, and resolution up to 768p.
+
+comparisonPolicy:
+  fixedControls:
+    - runtime revision and normal launch flags
+    - prompt and frame conditioning
+    - seed, geometry, and frame count
+  requiredEvidence:
+    - output dimensions, codecs, audio stream, frame count, and duration
+    - generation elapsed time including an explicit cold/warm label
+    - human review of visual continuity and prompted audio
+  promotionRule: >-
+    A release note and a successful render do not promote the LoRA. Add a new
+    explicit public profile only after a human review accepts the complete
+    recipe and the gateway/Plotloom contract is versioned together.

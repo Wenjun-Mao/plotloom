@@ -79,6 +79,26 @@ single still and level measurement cannot assess temporal consistency,
 dialogue intelligibility, or creative quality. Human playback review is still
 required.
 
+## Four-step v1.2 probe
+
+LightX2V's v1.2 release note supplies a complete four-step 768p recipe: four
+steps, shifts `6 / 3`, Euler/simple, and a stated aim of improved audio quality
+relative to v1.1. The installed 1,956,193,000-byte ComfyUI LoRA matches
+SHA-256 `c8168ebc17bbacc4296103dda2fec1ba85b24392fa08cf2bfbcef0cff0dc3cc8`.
+
+Its first fixed-control render delivered H.264/AAC, `832 × 480`, 24 fps, and
+5.167 seconds in 76.902 seconds after the ComfyUI restart. Its audio
+`volumedetect` result was mean -29.5 dB and max -10.1 dB. That is a signal
+measurement, not an intelligibility or quality score.
+
+An identical re-submission was fully served from ComfyUI's execution cache in
+1.04 seconds and is excluded from every timing conclusion. A distinct-seed,
+uncached warmed timing run completed in 66.103 seconds, also with the required
+technical media contract. The source manifest records its exact recipe and
+vendor source. As with the 8-step probes, these are private direct-ComfyUI
+evaluation artifacts, not gateway-managed deliveries; a human must review the
+matched-control clip before any profile is proposed for admission.
+
 ## What this does not establish
 
 - It does not declare the corrected v2 profiles production-quality for all

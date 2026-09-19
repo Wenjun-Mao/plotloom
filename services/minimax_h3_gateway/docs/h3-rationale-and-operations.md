@@ -136,6 +136,11 @@ The immediate comparison sequence is:
    4-step v1.0 baseline, a newer 4-step candidate, and the 8-step v1.0 768p
    quality candidate.
 
+LightX2V's v1.2 four-step 768p release note describes an audio-quality-focused
+candidate and specifies `4 / 6 / 3`, Euler/simple. Its complete experimental
+record is [kept separately](../h3-turbo4-v12-evaluation.v1.yaml); it is not a
+reason to alter the corrected v1.0 profile in place.
+
 LightX2V identifies its 8-step v1.0 768p LoRA as a higher video/audio-quality
 option. The associated Comfy guidance says a profile should set LoRA, step
 count, and both shifts together; its published 768p 8-step values are `8 / 6
