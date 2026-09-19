@@ -1,7 +1,7 @@
 # H3 dialogue visual-text robustness study
 
 Date: 2026-09-19
-Status: technical execution complete; human creative review pending
+Status: technical execution and initial human creative review complete; broader qualification pending
 
 ## Question
 
@@ -67,16 +67,44 @@ The MP4s remain on Spark at:
 They are direct ComfyUI experiment outputs, not gateway-managed assets; delete
 them manually after review rather than expecting gateway retention to apply.
 
-## Required human review and decision rule
+## Initial human review
+
+The reviewer inspected all twelve clips and recorded the following observed
+issues. An unlisted clip had no issue recorded in this pass; that means only
+that it passed this narrow single-shot review, not that it is globally
+qualified.
+
+| Complete recipe | Prompt contract | Seed | Observation |
+| --- | --- | ---: | --- |
+| v1.0 `res_multistep` | audio-only / no-text | 41398272 | Face/teeth defect. |
+| v1.0 `res_multistep` | inline dialogue | 20260919 | Visible subtitle artifact. |
+| v1.0 `res_multistep` | inline dialogue | 41398272 | Face/teeth defect, less obvious than its audio-only counterpart. |
+| v1.2 `euler` | inline dialogue | 130117 | Face/teeth defect, less obvious. |
+| v1.2 `euler` | audio-only / no-text | all three | No issue reported; all three judged good. |
+
+No subtitle was reported for either audio-only condition or for v1.2 inline
+dialogue. The evidence supports treating the visual/audio separation as a
+useful H3 prompt-contract candidate, but does **not** prove that it alone
+eliminates text artifacts: the sample is three seeds from one source image and
+the complete v1.2 recipe also changed the LoRA and sampler.
+
+The complete v1.2/Euler plus audio-only contract is the strongest result in
+this bounded study. It is a qualification candidate, not a promotion: its
+quality must still be checked across more than one shot type, geometry and
+frame-conditioning mode before it can replace the current public v1.0
+profiles.
+
+## Next decision rule
 
 For every clip, score visible writing (none/minor/material), text legibility,
 Mandarin audibility and intelligibility, lip synchronization, continuity,
 motion and framing.
 
-- If the audio-only contract suppresses visible-text artifacts under both
-  recipes, the next implementation belongs at a named H3 adapter prompt-render
-  boundary, not as a sampler workaround.
-- If v1.2 is materially better under the same prompt contract, it becomes a
-  separate profile-admission candidate, still requiring broader shot testing.
-- If neither condition holds, retain the current profile and expand the prompt
-  study before changing anything.
+- Define and test a named H3-only audiovisual prompt renderer at the adapter
+  boundary; do not alter Plotloom's provider-neutral frozen prompt projection.
+- Admit v1.2/Euler only as a distinct, opt-in candidate profile, never as an
+  in-place reinterpretation of the existing v1.0 profile IDs.
+- Before any default change, test that pair on dialogue and non-dialogue shots,
+  both landscape and portrait geometry, and start-only plus start/end-frame
+  conditioning. Score text artifacts, speech, facial integrity, continuity,
+  motion and framing.

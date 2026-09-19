@@ -11,6 +11,30 @@ status:
     Separate visual text/subtitle artifacts caused by an undifferentiated
     dialogue prompt from artifacts attributable to a four-step sampling recipe.
 
+initialHumanReview:
+  completedAt: "2026-09-19"
+  findings:
+    - recipe: turbo4_v1_0_res_multistep_6_3
+      promptContract: audio_only_visual_no_text_v1
+      seed: 41398272
+      observation: face_teeth_defect
+    - recipe: turbo4_v1_0_res_multistep_6_3
+      promptContract: inline_dialogue_v1
+      seed: 20260919
+      observation: visible_subtitle_artifact
+    - recipe: turbo4_v1_0_res_multistep_6_3
+      promptContract: inline_dialogue_v1
+      seed: 41398272
+      observation: face_teeth_defect_less_obvious
+    - recipe: turbo4_v1_2_euler_6_3
+      promptContract: inline_dialogue_v1
+      seed: 130117
+      observation: face_teeth_defect_less_obvious
+    - recipe: turbo4_v1_2_euler_6_3
+      promptContract: audio_only_visual_no_text_v1
+      seeds: [130117, 41398272, 20260919]
+      observation: all_good_in_initial_single_shot_review
+
 fixedControls:
   runtimeManifest: h3-current-installation.v1.yaml
   workflowTemplate: src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json
