@@ -98,3 +98,31 @@ http://127.0.0.1:5173/v2/?view=story-prototype&project=<accepted-f4-project-id>
 This is a UI prototype only. Browser/test success is not human usability or
 creative acceptance, and it does not approve media generation or create
 production media.
+
+## Follow-up: episode-target label and multi-scene retention
+
+The reader now displays upstream `episode.targetSeconds` as `章节目标时长 {n} 秒`.
+This is author/model-owned script intent, not an estimated read time or a
+measured runtime. The graph-derived `sectionDurationCaps` remain a separate
+trusted `ScriptBinding` admission concern; the reader does not project or
+reinterpret them.
+
+The focused browser regression prepares an otherwise disposable, accepted
+fixture whose opening episode contains two ordered scenes. It verifies each
+scene remains a separate group with its own resolved heading, lighting,
+characters, props where present, and line content: `Beacon room` / `dawn` /
+`Mira` precedes `Dock platform` / `lantern` / `Ilan` / `Signal lamp`. It retains
+the branch selection and no-non-GET assertions, including the navigation back
+to the source workspace.
+
+From `frontend/`, `npm run typecheck`, `npm run typecheck:e2e`, and
+`npm exec playwright test -- --config playwright.config.ts e2e/story-prototype.spec.ts`
+passed. `npm run build:deterministic` refreshed
+`src/plotloom/static/workbench.js`; Vite's existing over-500 kB chunk warning
+remains. The initial root-directory Playwright invocation is retained as a
+non-test configuration-path failure in the accompanying log.
+
+An independent read-only stable-delta review found no P0–P2 findings. It
+confirmed the direct `episode.targetSeconds` binding, the retained
+binding/admission-only role of `sectionDurationCaps`, the two-scene browser
+assertions, and the refreshed static bundle.

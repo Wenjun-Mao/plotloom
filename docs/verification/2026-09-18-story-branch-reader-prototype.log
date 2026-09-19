@@ -79,3 +79,41 @@ $ (cd frontend && npm run build:deterministic)
 # Production-static read-only browser check: http://127.0.0.1:8776/v2/?view=story-prototype&project=e04939c9-85bc-447b-aa51-192477c3ad4b
 # Loaded accepted disposable fixture; dock selection changed the route to
 # “Light the dock → Dock lit” and preserved the opening plus dock sections.
+
+--- follow-up: episode-target label and multi-scene reader regression ---
+
+$ (cd frontend && npm run typecheck)
+
+> @plotloom/workbench@0.1.0 typecheck
+> tsc --noEmit
+
+$ (cd frontend && npm run typecheck:e2e)
+
+> @plotloom/workbench@0.1.0 typecheck:e2e
+> tsc --project e2e/tsconfig.json
+
+$ (repo root && npm --prefix frontend exec playwright test -- --config playwright.config.ts e2e/story-prototype.spec.ts)
+
+Error: /Users/wjmao/projects/HU/plotloom/playwright.config.ts does not exist
+
+# Playwright resolves --config from the current directory. This invocation ran
+# no tests; the focused command below was rerun from frontend/.
+
+$ (cd frontend && npm exec playwright test -- --config playwright.config.ts e2e/story-prototype.spec.ts)
+
+Running 1 test using 1 worker
+
+  ✓  e2e/story-prototype.spec.ts:4:1 › reads ordered multi-scene canonical screenplay without writing (3.1s)
+
+  1 passed (5.1s)
+
+$ (cd frontend && npm run build:deterministic)
+
+vite v7.3.6 building client environment for production...
+✓ 255 modules transformed.
+../src/plotloom/static/index.html       0.82 kB │ gzip:   0.51 kB
+../src/plotloom/static/workbench.css   61.76 kB │ gzip:  11.64 kB
+../src/plotloom/static/workbench.js   756.07 kB │ gzip: 228.73 kB
+
+(!) Existing Vite chunk-size warning: workbench.js remains over 500 kB.
+✓ built in 663ms

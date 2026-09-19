@@ -22,7 +22,7 @@ export async function fixture(name: string): Promise<any> {
 export function endpoint(origin: string, projectId: string): string {
   return `${origin}/api/v2/projects/${projectId}/storyboard-source-review`;
 }
-export async function createScriptProject(request: APIRequestContext, origin: string, label: string): Promise<string> {
+export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}): Promise<string> {
   const root = `${origin}/api/v2/projects`;
   const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, title: `F5A ${label}`, targetPlaythroughSeconds: 180 } } }));
   const id = created.id;
@@ -40,9 +40,9 @@ export async function createScriptProject(request: APIRequestContext, origin: st
     expectedSourceRevision: 1, expectedSourceContentHash: map.source.contentHash, expectedOutlineRevision: 1, expectedOutlineContentHash: map.acceptedOutline.contentHash,
     expectedSectionMapRevision: 1, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0,
   } }));
-  for (const stage of ["cast", "art", "script"]) {
+  for (const stage of ["cast", "art", "script"] as const) {
     const prepared = await json(request.post(`${url}/${stage}/candidates`));
-    await writeDelivery(prepared, stage === "cast" ? "characters" : stage, await fixture(`${stage}.json`));
+    await writeDelivery(prepared, stage === "cast" ? "characters" : stage, candidates[stage] ?? await fixture(`${stage}.json`));
     const ready = await json(request.post(`${url}/${stage}/candidates/${prepared.jobId}/refresh`));
     const body: Record<string, unknown> = { jobId: prepared.jobId, binding: prepared.binding, [`expected${stage[0].toUpperCase()}${stage.slice(1)}Revision`]: 0 };
     if (stage === "cast") body.consumerMappings = ready.cast.characters.map((character: { id: string }) => ({ castCharacterId: character.id, consumerCharacterId: character.id }));
