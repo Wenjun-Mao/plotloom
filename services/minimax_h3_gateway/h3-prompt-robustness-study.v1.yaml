@@ -1,0 +1,65 @@
+manifestVersion: 1
+kind: minimax_h3_prompt_robustness_study
+capturedAt: "2026-09-19"
+
+# This is a bounded real-model experiment. It cannot select a gateway profile
+# and does not modify Plotloom's general video prompt compiler.
+status:
+  lifecycle: experiment_only
+  productionAdmission: prohibited_pending_human_review
+  purpose: >-
+    Separate visual text/subtitle artifacts caused by an undifferentiated
+    dialogue prompt from artifacts attributable to a four-step sampling recipe.
+
+fixedControls:
+  runtimeManifest: h3-current-installation.v1.yaml
+  workflowTemplate: src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json
+  geometry: 832x480
+  fps: 24
+  frameCount: 124
+  durationSecondsApproximate: 5.167
+  startFrame: one fixed astronaut image with no visible writing
+  seeds: [130117, 41398272, 20260919]
+
+recipes:
+  - id: turbo4_v1_0_res_multistep_6_3
+    lora: minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors
+    steps: 4
+    videoSigmaShift: 6
+    audioSigmaShift: 3
+    sampler: res_multistep
+    scheduler: simple
+  - id: turbo4_v1_2_euler_6_3
+    lora: minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors
+    steps: 4
+    videoSigmaShift: 6
+    audioSigmaShift: 3
+    sampler: euler
+    scheduler: simple
+
+promptContracts:
+  - id: inline_dialogue_v1
+    description: >-
+      Mirrors Plotloom's current undifferentiated visual/action/dialogue/sound
+      projection, including an exact Mandarin spoken line.
+  - id: audio_only_visual_no_text_v1
+    description: >-
+      Separates visual and audio instructions, specifies that spoken Mandarin
+      exists only in the audio track, and forbids visible written language.
+
+reviewRubric:
+  - any visible writing, captions, subtitles, or typography (pass/fail)
+  - text artifact severity and legibility (none / minor / material)
+  - Mandarin audibility and intelligibility
+  - lip synchronization
+  - character and scene continuity
+  - temporal stability, motion, and framing
+  - elapsed time and output stream integrity
+
+decisionRule: >-
+  Do not promote a recipe from this study alone. If the audio-only contract
+  suppresses text artifacts across recipes, define and test an H3-specific
+  prompt rendering policy at the adapter boundary. If a recipe remains
+  materially better under the same prompt contract, it may become a separate
+  profile-admission candidate. The upstream-conflicted eight-step recipe is
+  intentionally excluded.

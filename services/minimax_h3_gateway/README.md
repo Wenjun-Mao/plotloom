@@ -23,6 +23,28 @@ records an upstream recipe conflict and its bounded experiments. It is not a
 public profile catalog and cannot be selected by a gateway caller or Plotloom.
 The [four-step v1.2 evaluation manifest](h3-turbo4-v12-evaluation.v1.yaml)
 records its vendor-specified candidate independently for the same reason.
+The bounded [dialogue visual-text robustness study](h3-prompt-robustness-study.v1.yaml)
+tests prompt rendering against visible-text artifacts without changing an
+admitted profile; its Spark-only runner lives in `tools/`.
+
+### Bounded prompt study runner
+
+Run the study only on Spark, directly against loopback ComfyUI, while its
+queue is empty. It requires an existing image already under ComfyUI's input
+mount and writes its media under the supplied experiment subfolder:
+
+```sh
+python3 services/minimax_h3_gateway/tools/h3_prompt_robustness_study.py \
+  --template services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json \
+  --input-name <existing-comfy-input.png> \
+  --output-subfolder experiments/<study-id> \
+  --receipt /home/wjmao/services/spark-comfyui/data/output/experiments/<study-id>-receipt.json
+```
+
+It submits twelve direct, serial ComfyUI experiments: three fixed seeds × two
+declared recipes × two prompt contracts. It refuses to begin if ComfyUI already
+has queued work. Its JSON receipt contains identifiers, prompt hashes, output
+descriptors and timings—not prompt text, credentials, or a profile promotion.
 
 The local service contract has five bearer-authenticated client operations plus
 one unauthenticated health route:
