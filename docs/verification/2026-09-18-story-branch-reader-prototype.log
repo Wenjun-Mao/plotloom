@@ -1,0 +1,44 @@
+$ (cd frontend && npm run typecheck)
+
+> @plotloom/workbench@0.1.0 typecheck
+> tsc --noEmit
+
+$ (cd frontend && npm test)
+
+> @plotloom/workbench@0.1.0 test
+> vitest run --config vitest.config.ts
+
+ RUN  v4.1.11 /Users/wjmao/projects/HU/plotloom/frontend
+
+ Test Files  18 passed (18)
+      Tests  164 passed (164)
+   Start at  20:29:26
+   Duration  1.74s (transform 2.77s, setup 0ms, import 3.62s, tests 1.51s, environment 7.82s)
+
+$ (cd frontend && npm exec playwright test -- --config playwright.config.ts e2e/story-prototype.spec.ts)
+
+Running 1 test using 1 worker
+
+  ✓  1 e2e/story-prototype.spec.ts:4:1 › reads the canonical branch graph and accepted screenplay without writing (2.0s)
+
+  1 passed (3.7s)
+
+$ (cd frontend && npm run build)
+
+> @plotloom/workbench@0.1.0 build
+> vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 255 modules transformed.
+rendering chunks...
+computing gzip size...
+../src/plotloom/static/index.html       0.82 kB │ gzip:   0.51 kB
+../src/plotloom/static/workbench.css   60.34 kB │ gzip:  11.40 kB
+../src/plotloom/static/workbench.js   754.11 kB │ gzip: 228.14 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 678ms

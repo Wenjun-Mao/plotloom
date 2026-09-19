@@ -1,8 +1,9 @@
 # Creator workflow usability — review plan
 
-Status: **Draft delivery plan; walkthrough direction agreed.**
+Status: **Bounded representative story/branch prototype approved; broader U1–U4 redesign remains unapproved.**
 Date: 2026-09-18. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
-Implementation and generation remain paused. This plan does not dispatch work.
+Only the representative U2 reader below is dispatched. Generation remains
+paused; this approval does not dispatch the broader redesign.
 
 ## Outcome and evidence
 
@@ -83,17 +84,21 @@ It must reuse the canonical graph and accepted/current content owners; it must n
 create a second graph, mutate accepted content, connect F5 to production media, or
 start provider/generation work.
 
-Implementation is paused for this documentation assignment. U0 settles the
-prototype's language and content policy from the pinned skills, renderers and real
-artifacts; Chinese-first remains a recommendation, not a decision. The prototype
-is evidence for U1/U2 presentation choices, not product or creative acceptance.
+The approved delivery is an isolated, read-only story-and-branch route for one
+genuine small story. It must read the canonical graph and accepted F4 binding,
+show one opening and two consequences, and keep the English screenplay source
+unchanged under Chinese UI. This settles only the prototype's presentation
+boundary; it is evidence for U1/U2 choices, not product or creative acceptance.
 
-## Language decision to settle in U0
+## Deferred whole-workflow language decision
 
 The user agreed to one language initially, including text boxes and generated
 material, not just navigation. Chinese-first is the current recommendation,
-**not a settled implementation choice**. Check the pinned five-stage skills,
-renderers and existing authoring fields before confirming feasibility.
+**not a settled whole-workflow implementation choice**. The bounded prototype
+uses Chinese UI while preserving the retained English script verbatim. Pinned
+script/storyboard renderers separately support Chinese/English report chrome;
+storyboard prompt language remains independently English by default. No prompt,
+source-content, or general localization change is authorized here.
 
 The proposal must cover labels, help/errors, defaults, authored/generated story
 direction, reports and future specialist instructions. Preserve supplied source

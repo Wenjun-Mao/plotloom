@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { demoProject, demoRun } from "../src/demo";
 import { deriveRoutes, groupStoryboard, markDownstreamStale, summarizeWorkUnitStatuses, toggleContiguousStageRange, traceEvents } from "../src/model";
+import { derivePrototypeRoutes, episodesForRoute, prototypeReadiness } from "../src/story-prototype-model";
 import type { RunTrace } from "../src/types";
 
 describe("Plotloom workspace model", () => {
@@ -44,6 +45,38 @@ describe("Plotloom workspace model", () => {
       { id: "tide-entry/dock-ending", label: "供电码头 → 码头结局", nodeIds: ["tide-entry", "dock-ending"] },
       { id: "tide-entry/beacon-ending", label: "供电灯塔 → 灯塔结局", nodeIds: ["tide-entry", "beacon-ending"] },
     ]);
+  });
+
+  it("maps accepted F4 bindings onto canonical routes and excludes the sibling ending", () => {
+    const graph = {
+      startNodeId: "opening",
+      nodes: [
+        { id: "opening", title: "Storm warning", summary: "One cable.", kind: "start" as const },
+        { id: "beacon", title: "Beacon lit", summary: "Sailors see home.", kind: "ending" as const },
+        { id: "dock", title: "Dock lit", summary: "Boats stay together.", kind: "ending" as const },
+      ],
+      edges: [
+        { id: "beacon-path", sourceNodeId: "opening", targetNodeId: "beacon", kind: "choice" as const, choiceText: "Light the beacon", stateEffects: { sourceMapConsequence: "The dock loses power." }, entityStateEffects: [] },
+        { id: "dock-path", sourceNodeId: "opening", targetNodeId: "dock", kind: "choice" as const, choiceText: "Light the dock", stateEffects: { sourceMapConsequence: "The beacon goes dark." }, entityStateEffects: [] },
+      ], joinContracts: [],
+    };
+    const script = { sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 2 }, { sectionId: "dock", episode: 3 }], episodes: [{ ep: 1 }, { ep: 2 }, { ep: 3 }] };
+    const routes = derivePrototypeRoutes(graph, script.sectionBindings);
+
+    expect(routes.map((route) => route.sectionIds)).toEqual([["opening", "beacon"], ["opening", "dock"]]);
+    expect(episodesForRoute(script, routes[0]).map((item) => item.sectionId)).toEqual(["opening", "beacon"]);
+    expect(episodesForRoute(script, routes[0]).map((item) => item.sectionId)).not.toContain("dock");
+  });
+
+  it("refuses stale/reopened script state and an out-of-binding canonical graph", () => {
+    const binding = { graphRevision: 4, graphContentHash: "graph-hash" };
+    const currentHead = { status: "ready" as const, revision: 4, contentHash: "graph-hash" };
+
+    expect(prototypeReadiness("accepted", currentHead, binding)).toBeUndefined();
+    expect(prototypeReadiness("stale", currentHead, binding)).toContain("不是可阅读的已接受版本");
+    expect(prototypeReadiness("reopened", currentHead, binding)).toContain("不是可阅读的已接受版本");
+    expect(prototypeReadiness("accepted", { ...currentHead, status: "stale" }, binding)).toContain("剧情图不可用或已过期");
+    expect(prototypeReadiness("accepted", { ...currentHead, contentHash: "newer-graph-hash" }, binding)).toContain("不是当前版本");
   });
 
   it("marks only downstream stages stale", () => {

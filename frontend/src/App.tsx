@@ -1,5 +1,6 @@
 import WorkspaceApp from "./app/WorkspaceApp";
 import { PlayView } from "./play/PlayView";
+import { StoryPrototypePage } from "./pages/StoryPrototypePage";
 
 /**
  * The Play view deliberately branches before the workspace mounts.  Its URL is
@@ -7,7 +8,8 @@ import { PlayView } from "./play/PlayView";
  * not another editor route or persisted player session.
  */
 export default function App() {
-  return new URLSearchParams(window.location.search).get("view") === "play"
-    ? <PlayView />
-    : <WorkspaceApp />;
+  const view = new URLSearchParams(window.location.search).get("view");
+  if (view === "play") return <PlayView />;
+  if (view === "story-prototype") return <StoryPrototypePage />;
+  return <WorkspaceApp />;
 }
