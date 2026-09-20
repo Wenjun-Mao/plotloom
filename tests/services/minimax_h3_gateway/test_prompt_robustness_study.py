@@ -79,6 +79,9 @@ def test_vertical_qualification_matrix_has_stronger_repeated_portrait_coverage()
     import h3_vertical_recipe_qualification as study
 
     assert (study.WIDTH, study.HEIGHT, study.FRAME_COUNT) == (608, 1088, 124)
+    assert study.SUPPORTED_PORTRAIT_GEOMETRIES == {
+        (576, 1024), (608, 1088), (704, 1280),
+    }
     assert len(study.RECIPES) == 3
     assert len(study.SCENES) == 2
     assert len(study.SEEDS) == 6
@@ -142,3 +145,59 @@ def test_vertical_qualification_can_rerun_only_an_invalid_recipe(
     assert {case["recipeId"] for case in payload["cases"]} == {
         "turbo8_v1_0_euler_6_3_readme"
     }
+
+
+def test_vertical_qualification_accepts_an_approved_alternate_geometry(
+    monkeypatch, capsys,
+) -> None:
+    import h3_vertical_recipe_qualification as study
+    import json
+
+    template_path = (
+        Path(__file__).parents[3]
+        / "services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json"
+    )
+    monkeypatch.setattr(
+        study.sys,
+        "argv",
+        [
+            "h3_vertical_recipe_qualification.py",
+            "--template", str(template_path),
+            "--dialogue-input-name", "dialogue.png",
+            "--motion-input-name", "motion.png",
+            "--output-subfolder", "experiments/study",
+            "--receipt", "/tmp/receipt.json",
+            "--width", "704", "--height", "1280",
+            "--recipe-id", "turbo4_v1_2_euler_6_3",
+            "--dry-run",
+        ],
+    )
+
+    assert study.main() == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["caseCount"] == 12
+    assert payload["geometry"] == {"width": 704, "height": 1280, "frameCount": 124}
+
+
+def test_vertical_qualification_rejects_unapproved_geometry(monkeypatch) -> None:
+    import h3_vertical_recipe_qualification as study
+
+    monkeypatch.setattr(
+        study.sys,
+        "argv",
+        [
+            "h3_vertical_recipe_qualification.py",
+            "--template", "template.json",
+            "--dialogue-input-name", "dialogue.png",
+            "--motion-input-name", "motion.png",
+            "--output-subfolder", "experiments/study",
+            "--receipt", "/tmp/receipt.json",
+            "--width", "832", "--height", "480",
+            "--dry-run",
+        ],
+    )
+
+    import pytest
+
+    with pytest.raises(ValueError, match="approved portrait geometry"):
+        study.main()

@@ -51,7 +51,8 @@ executionIncident:
     in the rendered graph. Rerun only the invalid eight-step subset.
 
 design:
-  geometry: 608x1088
+  primaryGeometry: 608x1088
+  approvedPortraitGeometries: [576x1024, 608x1088, 704x1280]
   fps: 24
   frameCount: 124
   durationSecondsApproximate: 5.167

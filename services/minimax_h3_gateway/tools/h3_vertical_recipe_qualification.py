@@ -22,6 +22,11 @@ from h3_prompt_robustness_study import Recipe, prompt_sha256, render_workflow, w
 WIDTH = 608
 HEIGHT = 1088
 FRAME_COUNT = 124
+SUPPORTED_PORTRAIT_GEOMETRIES = frozenset({
+    (576, 1024),
+    (608, 1088),
+    (704, 1280),
+})
 SEEDS = (130117, 41398272, 20260919, 9048391, 27501834, 77261003)
 RECIPES = (
     Recipe(
@@ -89,6 +94,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--motion-input-name", required=True)
     parser.add_argument("--output-subfolder", required=True)
     parser.add_argument("--receipt", type=Path, required=True)
+    parser.add_argument("--width", type=int, default=WIDTH)
+    parser.add_argument("--height", type=int, default=HEIGHT)
     parser.add_argument("--comfy-url", default="http://127.0.0.1:8188")
     parser.add_argument("--timeout-seconds", type=float, default=1200)
     parser.add_argument("--poll-seconds", type=float, default=2)
@@ -104,6 +111,10 @@ def main() -> int:
     args = parse_args()
     if args.timeout_seconds <= 0 or args.poll_seconds <= 0:
         raise ValueError("timeout and poll intervals must be positive")
+    geometry = (args.width, args.height)
+    if geometry not in SUPPORTED_PORTRAIT_GEOMETRIES:
+        accepted = ", ".join(f"{width}x{height}" for width, height in sorted(SUPPORTED_PORTRAIT_GEOMETRIES))
+        raise ValueError(f"width and height must select one approved portrait geometry: {accepted}")
     document = json.loads(args.template.read_text(encoding="utf-8"))
     template = document.get("prompt") if isinstance(document, dict) else None
     if not isinstance(template, dict):
@@ -127,7 +138,7 @@ def main() -> int:
     ]
     if args.dry_run:
         print(json.dumps({
-            "caseCount": len(cases), "geometry": {"width": WIDTH, "height": HEIGHT, "frameCount": FRAME_COUNT},
+            "caseCount": len(cases), "geometry": {"width": args.width, "height": args.height, "frameCount": FRAME_COUNT},
             "cases": [
                 {"recipeId": recipe.identifier, "sceneId": scene_id, "promptSha256": prompt_sha256(prompt), "seed": seed}
             for recipe, scene_id, prompt, seed, _ in cases
@@ -144,8 +155,11 @@ def main() -> int:
         started = time.monotonic()
         graph = render_workflow(
             template, recipe=recipe, prompt=prompt, seed=seed, input_name=input_name,
-            output_prefix=f"{args.output_subfolder}/{recipe.identifier}_{scene_id}_seed-{seed}",
-            width=WIDTH, height=HEIGHT, frame_count=FRAME_COUNT,
+            output_prefix=(
+                f"{args.output_subfolder}/{recipe.identifier}_{scene_id}_"
+                f"{args.width}x{args.height}_seed-{seed}"
+            ),
+            width=args.width, height=args.height, frame_count=FRAME_COUNT,
         )
         response = session.post(
             f"{args.comfy_url}/prompt",
@@ -176,7 +190,7 @@ def main() -> int:
     receipt = {
         "manifestVersion": 1,
         "kind": "minimax_h3_vertical_recipe_qualification",
-        "geometry": {"width": WIDTH, "height": HEIGHT, "frameCount": FRAME_COUNT, "fps": 24},
+        "geometry": {"width": args.width, "height": args.height, "frameCount": FRAME_COUNT, "fps": 24},
         "recipes": [
             {
                 "id": recipe.identifier, "loraFile": recipe.lora_file,
