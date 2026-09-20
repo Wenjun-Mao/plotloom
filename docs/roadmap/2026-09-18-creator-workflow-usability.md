@@ -235,3 +235,29 @@ remain within the already-approved read-only U3 boundary: they create no new
 owner, prompt, selection, provider call, generation, or write route. The final
 receipt records fresh browser, production walkthrough, visual, and independent
 post-fix review evidence; earlier review evidence is pre-fix only.
+
+## U3 character-stage integration — 2026-09-20
+
+**Approved workflow purpose.** A creator visits **角色** to establish a
+character’s text and reusable appearance for future shots: review/accept the
+cast text, compare retained appearance candidates, explicitly select an
+identity reference with reviewer notes and revision protection, or prepare a
+manual refinement handoff from a recognizable parent. Viewing is not a write,
+does not select a candidate, refresh a delivery, or prepare a handoff.
+Preparation is not provider/ImageGen dispatch.
+
+**Exact surface change.** The standalone
+`?view=character-reference-review` gallery, its duplicate stage navigation and
+the duplicate `CastReferenceStudiesPanel` are retired. Their image-first
+candidate/status/parent/instruction/technical presentation is reused inside the
+new workspace `stage=characters` entry beside the retained `CastPanel` text
+review. Selection/reviewer/notes/CAS and proposal prepare/copy/refresh/cancel
+reuse existing F2B APIs and semantics. Art, source, screenplay, storyboard and
+Play are excluded.
+
+**Acceptance boundary.** Accepted cast admits actions. Reopened or stale cast
+keeps retained evidence visible but supplies actionable refusal rather than new
+work. Candidate, selected decision, historical, missing and failed evidence
+remain distinct; asset failures and parent lineage preserve the prior U3
+ownership guarantees. Fixture evidence does not substitute for the pending
+human creator walkthrough acceptance.

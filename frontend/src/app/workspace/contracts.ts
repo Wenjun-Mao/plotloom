@@ -3,7 +3,7 @@ import { ApiError } from "../../api";
 import type { AuthoringDraft, CanonicalDraftConsumption, ServerStageName, StageEnvelope, StageHead, ValidationIssue, WorkspaceProject } from "../../types";
 import type { DraftScope } from "../../draft-registry";
 
-export type PageId = "source" | "brief" | "bible" | "graph" | "beats" | "storyboard" | "trace" | "quarantine";
+export type PageId = "source" | "characters" | "brief" | "bible" | "graph" | "beats" | "storyboard" | "trace" | "quarantine";
 export type NavigationTarget = { project: string; stage: PageId; entity: string; run: string; history: "push" | "pop"; forceReload?: boolean };
 export type WorkspaceOperation = { epoch: number; projectId: string; stage: PageId };
 export type DraftRecoverySource = "server" | "session" | "reconcile";
@@ -11,13 +11,14 @@ export type DurableDraftStatus = "idle" | "saving" | "saved" | "failed" | "confl
 
 export const navigation: { id: PageId; index: string; label: string; description: string }[] = [
   { id: "source", index: "01", label: "来源与大纲", description: "来源、候选与接受" },
-  { id: "brief", index: "02", label: "项目简报", description: "梗概与提案" },
-  { id: "bible", index: "03", label: "故事圣经", description: "人物与规则" },
-  { id: "graph", index: "04", label: "剧情 DAG", description: "分支与汇合" },
-  { id: "beats", index: "05", label: "场景节拍", description: "原子事件" },
-  { id: "storyboard", index: "06", label: "分镜工作台", description: "路径与媒体" },
-  { id: "trace", index: "07", label: "运行轨迹", description: "Prompt 与证据" },
-  { id: "quarantine", index: "08", label: "隔离修复", description: "安全失败" },
+  { id: "characters", index: "02", label: "角色", description: "文字与外观参考" },
+  { id: "brief", index: "03", label: "项目简报", description: "梗概与提案" },
+  { id: "bible", index: "04", label: "故事圣经", description: "人物与规则" },
+  { id: "graph", index: "05", label: "剧情 DAG", description: "分支与汇合" },
+  { id: "beats", index: "06", label: "场景节拍", description: "原子事件" },
+  { id: "storyboard", index: "07", label: "分镜工作台", description: "路径与媒体" },
+  { id: "trace", index: "08", label: "运行轨迹", description: "Prompt 与证据" },
+  { id: "quarantine", index: "09", label: "隔离修复", description: "安全失败" },
 ];
 
 export const editableStages: ServerStageName[] = ["story_bible", "story_graph", "scene_beats", "storyboard"];

@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { plotloomApi } from "../src/api";
-import { CharacterReferenceGalleryPage } from "../src/pages/CharacterReferenceGalleryPage";
+import { CharacterReferenceReviewPanel } from "../src/pages/CharacterReferenceGalleryPage";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -94,8 +94,8 @@ async function flushReact() {
 }
 
 async function renderProject(projectId: string) {
-  window.history.replaceState({}, "", `/?view=character-reference-review&project=${projectId}`);
-  await act(async () => { root.render(createElement(CharacterReferenceGalleryPage)); });
+  window.history.replaceState({}, "", `/?project=${projectId}&stage=characters`);
+  await act(async () => { root.render(createElement(CharacterReferenceReviewPanel, { projectId, readOnly: false })); });
   await flushReact();
 }
 

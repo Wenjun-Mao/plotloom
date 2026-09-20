@@ -1,4 +1,4 @@
-# ADR 0071: Read-only character-reference gallery
+# ADR 0071: Character-stage image review
 
 Status: Accepted, 2026-09-20.
 
@@ -13,20 +13,25 @@ needed.
 
 ## Decision
 
-Add `?view=character-reference-review&project=<id>` as a GET-only creator
-surface. It composes the existing accepted-cast, character-reference decision,
-proposal/delivery and managed-asset read owners directly. Accepted cast supplies
-the admitted subject list; decisions supply the selected identity reference;
-proposals and deliveries supply candidate state and refinement parent; managed
-assets supply bytes. The route does not require a Story Bible, script or
-storyboard and persists no selection, gallery state or projection.
+The original decision added a separate GET-only gallery. Review showed it
+separated readable images from the decisions a creator came to make. Replace it
+with the focused `stage=characters` workspace surface: existing F2A cast text
+review followed by the image-first F2B review. It composes the existing
+accepted-cast, character-reference decision, proposal/delivery and managed-asset
+owners directly. Accepted cast supplies the admitted subject list; decisions
+supply the selected identity reference; proposals and deliveries supply candidate
+state and refinement parent; managed assets supply bytes. It needs no Story
+Bible, script or storyboard and persists no presentation state or projection.
 
 The Chinese presentation marks selected-current, merely-current candidate,
 historical/stale, missing and failed evidence separately. It exposes a frozen
 direction only when the stored proposal's frozen snapshot actually contains it.
-IDs, hashes and provenance remain in separate collapsed technical details. The
-route has no preparation, generation, refresh, import, selection or disposal
-action; existing authoring actions stay in F2B.
+IDs, hashes and provenance remain in separate collapsed technical details.
+Ordinary viewing performs only reads. Explicit controls beside the images retain
+the existing selection CAS/reviewer/notes request and manual proposal prepare,
+copy, refresh and cancel lifecycle. Preparation is only a manual specialist
+handoff, not ImageGen dispatch. Reopened or stale cast retains evidence but
+disables selection, refinement and preparation.
 
 ## Consequences and guardrails
 
@@ -37,8 +42,10 @@ action; existing authoring actions stay in F2B.
   replaced with a substitute image.
 - A proposal's currentness and each delivery state remain distinct; a current
   proposal is not a selection, and a delivered output is not creative approval.
-- The route links from the existing prototype creator navigation and back while
-  retaining separate screenplay and storyboard routes.
+- Retire the standalone `?view=character-reference-review` destination, its
+  duplicate creator-stage navigation and `CastReferenceStudiesPanel`. Reuse its
+  image/lineage/status presentation with CastPanel/API owners. Story, Art,
+  screenplay, storyboard and Play remain independently owned.
 
 ## Acceptance correction — 2026-09-20
 
@@ -59,4 +66,6 @@ Refinement lineage is now a recognizable parent card with its image, role, and
 focusable link to the parent candidate; unavailable or missing parent evidence
 remains explicitly unavailable. These are presentation-only corrections: they
 do not change the canonical decision, proposal, delivery, or managed-asset
-owners, and the route remains GET-only.
+owners. In the integrated Characters stage, ordinary viewing remains GET-only;
+only the explicit decision and handoff controls write through their existing
+owners.

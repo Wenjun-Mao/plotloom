@@ -3,7 +3,6 @@ import { ApiError, plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { SourceMaterial, SourceOutlineReviewState, StoryGraph } from "../types";
 import { SectionMapPanel } from "./SectionMapPanel";
-import { CastPanel } from "./CastPanel";
 import { ArtPanel } from "./ArtPanel";
 import { ScriptPanel } from "./ScriptPanel";
 import { StoryboardReviewPanel } from "./StoryboardReviewPanel";
@@ -146,7 +145,6 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
           }));
         }}
       />
-      <CastPanel projectId={projectId} readOnly={readOnly} />
       <ArtPanel projectId={projectId} readOnly={readOnly} />
       <ScriptPanel projectId={projectId} readOnly={readOnly} />
       <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} />
