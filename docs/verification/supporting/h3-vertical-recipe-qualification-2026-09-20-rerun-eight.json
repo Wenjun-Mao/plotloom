@@ -1,0 +1,180 @@
+{
+  "manifestVersion": 1,
+  "kind": "minimax_h3_vertical_recipe_qualification",
+  "geometry": {
+    "width": 608,
+    "height": 1088,
+    "frameCount": 124,
+    "fps": 24
+  },
+  "recipes": [
+    {
+      "id": "turbo8_v1_0_euler_6_3_readme",
+      "loraFile": "minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+      "inferenceSteps": 8,
+      "videoSigmaShift": 6.0,
+      "audioSigmaShift": 3.0,
+      "sampler": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0
+    }
+  ],
+  "results": [
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 130117,
+      "comfyPromptId": "3b9c43cd-2032-4e52-9c07-e9f5a9bed2b2",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 178335
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 41398272,
+      "comfyPromptId": "0e4cdbcf-abec-41af-8d5a-ea579f90105b",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 176278
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 20260919,
+      "comfyPromptId": "4be08d09-fd58-4af1-8295-cc92fa40b240",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 176316
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 9048391,
+      "comfyPromptId": "ed2a493f-967d-4a54-bd82-00e5269e8c4e",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 176304
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 27501834,
+      "comfyPromptId": "fa9f3ba5-f916-4c67-82ba-4c7cdf14d11e",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 176317
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 77261003,
+      "comfyPromptId": "8f953e22-0d7d-4e75-a1d7-27cf1e4696d9",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 176295
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 130117,
+      "comfyPromptId": "d33f771d-91c5-4227-8f9e-d4c836bf9799",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 180320
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 41398272,
+      "comfyPromptId": "e2a3a34b-0b17-4551-817c-a0a6a1084b8b",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 176319
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 20260919,
+      "comfyPromptId": "3a484bd7-2e8b-468a-9280-ba3cd78e85f5",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 176301
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 9048391,
+      "comfyPromptId": "7c558556-0bf5-4202-91ef-8f919112659e",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 176483
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 27501834,
+      "comfyPromptId": "72bb602d-99d4-4214-8a2f-863d0fafd093",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 174514
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 77261003,
+      "comfyPromptId": "a902fdaf-21b4-4cf1-a632-9ad94ecdff4e",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20-rerun-eight",
+        "type": "output"
+      },
+      "generationElapsedMs": 176445
+    }
+  ]
+}

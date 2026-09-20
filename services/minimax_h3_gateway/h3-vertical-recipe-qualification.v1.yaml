@@ -9,6 +9,34 @@ status:
     Select a portrait-first H3 quality candidate with more repeated samples
     before comparing the selected recipe across all reviewed geometries.
 
+humanReview:
+  reviewedAt: "2026-09-20"
+  reviewerScope: >-
+    Six fixed seeds for each dialogue and motion portrait condition at
+    608x1088. Observations are exploratory visual review, not a statistical
+    quality claim.
+  retiredFromFollowUp:
+    - candidate: turbo4_v1_0_res_multistep_6_3
+      reason: >-
+        All reviewed dialogue clips showed subtitle-like text artifacts and
+        all reviewed motion clips showed a minor eye defect.
+  finalistsForCrossGeometryQualification:
+    - turbo4_v1_2_euler_6_3
+    - turbo8_v1_0_euler_6_3_readme
+  observations:
+    turbo4_v1_2_euler_6_3:
+      dialogue: no issue reported across six reviewed clips
+      motion: >-
+        Minor eye defects persisted in all six clips; they were less obvious
+        than v1.0 four-step. Three seeds showed mild or obvious frame shake.
+    turbo8_v1_0_euler_6_3_readme:
+      dialogue: >-
+        No issue reported across six valid rerun clips; the reviewer perceived
+        possibly sharper imagery than four-step, without a firm comparison.
+      motion: >-
+        Two seeds showed blinking lights and two others slight or obvious
+        frame shake. No aggregate quality claim is made from this sample.
+
 executionIncident:
   detectedAt: "2026-09-19"
   affectedCandidate: turbo8_v1_0_euler_6_3_readme
@@ -68,6 +96,7 @@ reviewRubric:
   - output stream integrity and elapsed time
 
 nextStage: >-
-  After a human selects a recipe from this vertical-first study, test only the
-  winner across portrait 576x1024, 608x1088 and 704x1280 plus the reviewed
-  horizontal tiers. Do not use this experiment to change public profiles.
+  Compare the two human-selected finalists across portrait 576x1024,
+  608x1088 and 704x1280, then the reviewed horizontal tiers. Use at least one
+  dialogue and one motion condition. Do not use this experiment to change
+  public profiles.
