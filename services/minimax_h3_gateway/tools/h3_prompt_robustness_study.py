@@ -34,22 +34,69 @@ SEEDS = (130117, 41398272, 20260919)
 
 @dataclass(frozen=True)
 class Recipe:
-    """The complete sampling contract for one directly rendered LoRA."""
+    """A complete, directly rendered H3 sampling contract.
+
+    A base recipe deliberately has no LoRA or sigma-shift override.  That is a
+    topology choice, not an implicit strength-zero variant of a Turbo recipe.
+    """
 
     identifier: str
-    lora_file: str
+    lora_file: str | None
+    lora_strength: float | None
     inference_steps: int
-    video_sigma_shift: float
-    audio_sigma_shift: float
+    video_sigma_shift: float | None
+    audio_sigma_shift: float | None
     sampler: str
     scheduler: str
     denoise: float
+
+    def uses_turbo_lora(self) -> bool:
+        return self.lora_file is not None
+
+    def validate(self) -> None:
+        turbo_fields = (
+            self.lora_file,
+            self.lora_strength,
+            self.video_sigma_shift,
+            self.audio_sigma_shift,
+        )
+        if self.uses_turbo_lora():
+            if any(value is None for value in turbo_fields):
+                raise ValueError("a Turbo recipe requires LoRA and explicit sigma-shift fields")
+        elif any(value is not None for value in turbo_fields):
+            raise ValueError("a base recipe cannot contain LoRA or sigma-shift override fields")
+
+    def public_descriptor(self) -> dict[str, Any]:
+        if self.uses_turbo_lora():
+            topology = "turbo_lora_with_explicit_sigma_shift"
+            effective_shifts: dict[str, float] = {
+                "video": float(self.video_sigma_shift),
+                "audio": float(self.audio_sigma_shift),
+            }
+        else:
+            topology = "base_model_with_native_sigma_defaults"
+            # Verified against the installed ComfyUI MiniMaxH3Model constructor.
+            effective_shifts = {"video": 12.0, "audio": 3.0}
+        return {
+            "id": self.identifier,
+            "topology": topology,
+            "loraFile": self.lora_file,
+            "loraStrength": self.lora_strength,
+            "inferenceSteps": self.inference_steps,
+            "videoSigmaShiftOverride": self.video_sigma_shift,
+            "audioSigmaShiftOverride": self.audio_sigma_shift,
+            "effectiveSigmaShifts": effective_shifts,
+            "sampler": self.sampler,
+            "scheduler": self.scheduler,
+            "denoise": self.denoise,
+        }
 
 
 RECIPES = (
     Recipe(
         identifier="turbo4_v1_0_res_multistep_6_3",
         lora_file="minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+        lora_strength=1.0,
         inference_steps=4,
         video_sigma_shift=6.0,
         audio_sigma_shift=3.0,
@@ -60,6 +107,7 @@ RECIPES = (
     Recipe(
         identifier="turbo4_v1_2_euler_6_3",
         lora_file="minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors",
+        lora_strength=1.0,
         inference_steps=4,
         video_sigma_shift=6.0,
         audio_sigma_shift=3.0,
@@ -114,6 +162,7 @@ def render_workflow(
 
     if width <= 0 or height <= 0 or frame_count <= 0:
         raise ValueError("geometry and frame count must be positive")
+    recipe.validate()
 
     graph = _replace(
         copy.deepcopy(template),
@@ -124,7 +173,7 @@ def render_workflow(
             "__HEIGHT__": height,
             "__FRAME_COUNT__": frame_count,
             "__LORA_FILE__": recipe.lora_file,
-            "__LORA_STRENGTH__": 1.0,
+            "__LORA_STRENGTH__": recipe.lora_strength,
             "__INFERENCE_STEPS__": recipe.inference_steps,
             "__VIDEO_SIGMA_SHIFT__": recipe.video_sigma_shift,
             "__AUDIO_SIGMA_SHIFT__": recipe.audio_sigma_shift,
@@ -133,6 +182,8 @@ def render_workflow(
             "__DENOISE__": recipe.denoise,
         },
     )
+    if not recipe.uses_turbo_lora():
+        _render_base_model_topology(graph)
     graph["h3_prompt_study_start_frame"] = {
         "class_type": "LoadImage", "inputs": {"image": input_name},
     }
@@ -140,6 +191,25 @@ def render_workflow(
     graph["105:104"]["inputs"].pop("last_frame", None)
     graph["92"]["inputs"]["filename_prefix"] = output_prefix
     return graph
+
+
+def _render_base_model_topology(graph: dict[str, Any]) -> None:
+    """Remove Turbo-only nodes and bind both consumers to the base model.
+
+    The installed H3 model's native shifts are 12/3.  Keeping a sigma-shift
+    node with those values would look equivalent today, but would conceal the
+    important contract that base inference intentionally uses model defaults.
+    """
+
+    for node_id in ("105:121", "105:122"):
+        if node_id not in graph:
+            raise ValueError(f"H3 template is missing expected Turbo node {node_id}")
+        graph.pop(node_id)
+    for node_id in ("105:9", "105:16"):
+        node = graph.get(node_id)
+        if not isinstance(node, dict) or not isinstance(node.get("inputs"), dict):
+            raise ValueError(f"H3 template is missing expected model consumer {node_id}")
+        node["inputs"]["model"] = ["105:6", 0]
 
 
 def _history_output(record: object) -> dict[str, str] | None:
@@ -259,17 +329,7 @@ def main() -> int:
         "kind": "minimax_h3_prompt_robustness_study",
         "inputName": args.input_name,
         "geometry": {"width": WIDTH, "height": HEIGHT, "frameCount": FRAME_COUNT, "fps": 24},
-        "recipes": [
-            {
-                "id": recipe.identifier, "loraFile": recipe.lora_file,
-                "inferenceSteps": recipe.inference_steps,
-                "videoSigmaShift": recipe.video_sigma_shift,
-                "audioSigmaShift": recipe.audio_sigma_shift,
-                "sampler": recipe.sampler, "scheduler": recipe.scheduler,
-                "denoise": recipe.denoise,
-            }
-            for recipe in RECIPES
-        ],
+        "recipes": [recipe.public_descriptor() for recipe in RECIPES],
         "results": results,
     }
     args.receipt.parent.mkdir(parents=True, exist_ok=True)

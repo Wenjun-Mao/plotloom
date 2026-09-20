@@ -87,6 +87,9 @@ def test_vertical_qualification_matrix_has_stronger_repeated_portrait_coverage()
     assert len(study.SEEDS) == 6
     assert len(study.RECIPES) * len(study.SCENES) * len(study.SEEDS) == 36
     assert study.RECIPES[-1].identifier == "turbo8_v1_0_euler_6_3_readme"
+    assert study.EXPLICIT_BASE_RECIPE.identifier == "base20_res_multistep_native_12_3"
+    assert study.EXPLICIT_BASE_RECIPE.lora_file is None
+    assert study.EXPLICIT_BASE_RECIPE.video_sigma_shift is None
 
 
 def test_eight_step_qualification_recipe_renders_eight_steps_not_four() -> None:
@@ -112,6 +115,33 @@ def test_eight_step_qualification_recipe_renders_eight_steps_not_four() -> None:
         "model": ["105:121", 0], "shift_video": 6.0, "shift_audio": 3.0,
     }
     assert graph["105:17"]["inputs"]["sampler_name"] == "euler"
+
+
+def test_base_qualification_recipe_removes_turbo_nodes_and_uses_native_defaults() -> None:
+    import h3_vertical_recipe_qualification as study
+    import h3_prompt_robustness_study as renderer
+    import json
+
+    template_path = (
+        Path(__file__).parents[3]
+        / "services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json"
+    )
+    base = study.EXPLICIT_BASE_RECIPE
+    graph = renderer.render_workflow(
+        json.loads(template_path.read_text(encoding="utf-8"))["prompt"],
+        recipe=base, prompt="x", seed=1, input_name="portrait.png",
+        output_prefix="experiments/study/base20", width=608, height=1088,
+        frame_count=124,
+    )
+
+    assert "105:121" not in graph
+    assert "105:122" not in graph
+    assert graph["105:9"]["inputs"]["steps"] == 20
+    assert graph["105:9"]["inputs"]["model"] == ["105:6", 0]
+    assert graph["105:16"]["inputs"]["model"] == ["105:6", 0]
+    assert graph["105:17"]["inputs"]["sampler_name"] == "res_multistep"
+    assert base.public_descriptor()["topology"] == "base_model_with_native_sigma_defaults"
+    assert base.public_descriptor()["effectiveSigmaShifts"] == {"video": 12.0, "audio": 3.0}
 
 
 def test_vertical_qualification_can_rerun_only_an_invalid_recipe(
@@ -144,6 +174,39 @@ def test_vertical_qualification_can_rerun_only_an_invalid_recipe(
     assert payload["caseCount"] == 12
     assert {case["recipeId"] for case in payload["cases"]} == {
         "turbo8_v1_0_euler_6_3_readme"
+    }
+
+
+def test_vertical_qualification_requires_explicit_base_recipe_selection(
+    monkeypatch, capsys,
+) -> None:
+    import h3_vertical_recipe_qualification as study
+    import json
+
+    template_path = (
+        Path(__file__).parents[3]
+        / "services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json"
+    )
+    monkeypatch.setattr(
+        study.sys,
+        "argv",
+        [
+            "h3_vertical_recipe_qualification.py",
+            "--template", str(template_path),
+            "--dialogue-input-name", "dialogue.png",
+            "--motion-input-name", "motion.png",
+            "--output-subfolder", "experiments/study",
+            "--receipt", "/tmp/receipt.json",
+            "--recipe-id", "base20_res_multistep_native_12_3",
+            "--dry-run",
+        ],
+    )
+
+    assert study.main() == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["caseCount"] == 12
+    assert {case["recipeId"] for case in payload["cases"]} == {
+        "base20_res_multistep_native_12_3"
     }
 
 

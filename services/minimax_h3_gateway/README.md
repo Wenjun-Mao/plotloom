@@ -23,6 +23,10 @@ records an upstream recipe conflict and its bounded experiments. It is not a
 public profile catalog and cannot be selected by a gateway caller or Plotloom.
 The [four-step v1.2 evaluation manifest](h3-turbo4-v12-evaluation.v1.yaml)
 records its vendor-specified candidate independently for the same reason.
+The [20-step base evaluation manifest](h3-base20-evaluation.v1.yaml) defines
+the non-Turbo candidate: its graph removes, rather than zeroes, the Turbo LoRA
+and sigma-shift override nodes so it uses H3's native 12/3 shift defaults.
+It remains experiment-only until its first real-model screen is reviewed.
 The bounded [dialogue visual-text robustness study](h3-prompt-robustness-study.v1.yaml)
 tests prompt rendering against visible-text artifacts without changing an
 admitted profile; its Spark-only runner lives in `tools/`.

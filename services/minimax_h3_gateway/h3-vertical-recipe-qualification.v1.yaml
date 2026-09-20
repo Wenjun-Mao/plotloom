@@ -23,6 +23,10 @@ humanReview:
   finalistsForCrossGeometryQualification:
     - turbo4_v1_2_euler_6_3
     - turbo8_v1_0_euler_6_3_readme
+  pendingThirdCandidate:
+    id: base20_res_multistep_native_12_3
+    manifest: h3-base20-evaluation.v1.yaml
+    status: pending_608x1088_first_screen
   observations:
     turbo4_v1_2_euler_6_3:
       dialogue: no issue reported across six reviewed clips
@@ -97,7 +101,7 @@ reviewRubric:
   - output stream integrity and elapsed time
 
 nextStage: >-
-  Compare the two human-selected finalists across portrait 576x1024,
-  608x1088 and 704x1280, then the reviewed horizontal tiers. Use at least one
-  dialogue and one motion condition. Do not use this experiment to change
-  public profiles.
+  Complete the two-Turbo finalist comparison at portrait 576x1024 and
+  704x1280. Run the separately declared 20-step base first screen at 608x1088
+  before admitting it to those extra geometries. Do not use either experiment
+  to change public profiles.

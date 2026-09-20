@@ -32,6 +32,7 @@ RECIPES = (
     Recipe(
         identifier="turbo4_v1_0_res_multistep_6_3",
         lora_file="minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+        lora_strength=1.0,
         inference_steps=4,
         video_sigma_shift=6.0,
         audio_sigma_shift=3.0,
@@ -42,6 +43,7 @@ RECIPES = (
     Recipe(
         identifier="turbo4_v1_2_euler_6_3",
         lora_file="minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors",
+        lora_strength=1.0,
         inference_steps=4,
         video_sigma_shift=6.0,
         audio_sigma_shift=3.0,
@@ -52,6 +54,7 @@ RECIPES = (
     Recipe(
         identifier="turbo8_v1_0_euler_6_3_readme",
         lora_file="minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+        lora_strength=1.0,
         inference_steps=8,
         video_sigma_shift=6.0,
         audio_sigma_shift=3.0,
@@ -59,6 +62,17 @@ RECIPES = (
         scheduler="simple",
         denoise=1.0,
     ),
+)
+EXPLICIT_BASE_RECIPE = Recipe(
+    identifier="base20_res_multistep_native_12_3",
+    lora_file=None,
+    lora_strength=None,
+    inference_steps=20,
+    video_sigma_shift=None,
+    audio_sigma_shift=None,
+    sampler="res_multistep",
+    scheduler="simple",
+    denoise=1.0,
 )
 SCENES = {
     "dialogue_portrait_v1": {
@@ -120,9 +134,11 @@ def main() -> int:
     if not isinstance(template, dict):
         raise ValueError("template must contain a prompt graph")
     selected_recipe_ids = set(args.recipe_id)
-    selected_recipes = tuple(
-        recipe for recipe in RECIPES
-        if not selected_recipe_ids or recipe.identifier in selected_recipe_ids
+    available_recipes = RECIPES + (EXPLICIT_BASE_RECIPE,)
+    selected_recipes = (
+        tuple(recipe for recipe in available_recipes if recipe.identifier in selected_recipe_ids)
+        if selected_recipe_ids
+        else RECIPES
     )
     if not selected_recipes or selected_recipe_ids.difference(recipe.identifier for recipe in selected_recipes):
         raise ValueError("recipe-id must name one or more declared recipes")
@@ -191,17 +207,7 @@ def main() -> int:
         "manifestVersion": 1,
         "kind": "minimax_h3_vertical_recipe_qualification",
         "geometry": {"width": args.width, "height": args.height, "frameCount": FRAME_COUNT, "fps": 24},
-        "recipes": [
-            {
-                "id": recipe.identifier, "loraFile": recipe.lora_file,
-                "inferenceSteps": recipe.inference_steps,
-                "videoSigmaShift": recipe.video_sigma_shift,
-                "audioSigmaShift": recipe.audio_sigma_shift,
-                "sampler": recipe.sampler, "scheduler": recipe.scheduler,
-                "denoise": recipe.denoise,
-            }
-            for recipe in selected_recipes
-        ],
+        "recipes": [recipe.public_descriptor() for recipe in selected_recipes],
         "results": results,
     }
     args.receipt.parent.mkdir(parents=True, exist_ok=True)

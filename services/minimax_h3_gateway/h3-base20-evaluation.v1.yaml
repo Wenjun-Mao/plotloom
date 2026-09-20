@@ -1,0 +1,66 @@
+manifestVersion: 1
+kind: minimax_h3_base20_evaluation
+capturedAt: "2026-09-20"
+
+# This is an experiment contract, not a public gateway profile. It adds a
+# non-Turbo quality candidate without changing any existing Turbo semantics.
+status:
+  lifecycle: candidate_pending_first_screen
+  productionAdmission: prohibited
+  purpose: >-
+    Evaluate the unadapted 20-step FL2VA base model as a third quality
+    candidate beside the two surviving Turbo candidates.
+
+runtimeAuthority:
+  installationInventory: h3-current-installation.v1.yaml
+  workflowTemplate: src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json
+  verifiedOn: "2026-09-20"
+  verificationMethod: >-
+    Inspection of the installed ComfyUI MiniMaxH3Model constructor and
+    MiniMaxH3SigmaShift node on Spark. The model's native video/audio defaults
+    are 12/3; the override node is not part of the base graph.
+  relevantSourcePaths:
+    - /opt/ComfyUI/comfy/ldm/minimax/model.py
+    - /opt/ComfyUI/comfy_extras/nodes_minimax_h3.py
+
+candidate:
+  id: base20_res_multistep_native_12_3
+  topology: base_model_with_native_sigma_defaults
+  lora: absent
+  removedTemplateNodes:
+    - "105:121 LoraLoaderModelOnly"
+    - "105:122 MiniMaxH3SigmaShift"
+  directBaseModelConsumers:
+    - "105:9 BasicScheduler"
+    - "105:16 BasicGuider"
+  inferenceSteps: 20
+  videoSigmaShiftOverride: absent
+  audioSigmaShiftOverride: absent
+  effectiveNativeVideoSigmaShift: 12
+  effectiveNativeAudioSigmaShift: 3
+  sampler: res_multistep
+  scheduler: simple
+  denoise: 1.0
+
+firstScreen:
+  geometry: 608x1088
+  fps: 24
+  frameCount: 124
+  durationSecondsApproximate: 5.167
+  seedSet: [130117, 41398272, 20260919, 9048391, 27501834, 77261003]
+  scenes: [dialogue_portrait_v1, motion_portrait_v1]
+  totalClips: 12
+  controls: >-
+    Reuse the native 608x1088 inputs, prompt contracts, seed set, normal
+    Spark runtime, codecs, audio path and frame count used by the valid
+    vertical qualification screen.
+
+admissionRule:
+  firstScreen: >-
+    Require technical stream verification and human review before rendering
+    additional geometries. Do not infer base quality from theoretical step
+    count or from elapsed time alone.
+  crossGeometry: >-
+    If the first screen passes, compare this exact base candidate with the two
+    Turbo finalists at 576x1024 and 704x1280 using the same paired scenes and
+    seeds. Public profile promotion remains a separate decision.
