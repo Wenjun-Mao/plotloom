@@ -9,6 +9,19 @@ status:
     Select a portrait-first H3 quality candidate with more repeated samples
     before comparing the selected recipe across all reviewed geometries.
 
+executionIncident:
+  detectedAt: "2026-09-19"
+  affectedCandidate: turbo8_v1_0_euler_6_3_readme
+  scope: 12 originally labeled eight-step clips
+  rootCause: >-
+    The first study runner stored the eight-step LoRA and sampler but rendered
+    a hard-coded four-step value, so the graph did not contain the declared
+    complete recipe.
+  disposition: >-
+    Exclude all observations from those twelve clips. The runner now carries a
+    complete immutable recipe object and a regression test asserts eight steps
+    in the rendered graph. Rerun only the invalid eight-step subset.
+
 design:
   geometry: 608x1088
   fps: 24

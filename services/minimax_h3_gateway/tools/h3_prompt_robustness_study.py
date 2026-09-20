@@ -29,30 +29,43 @@ import requests
 WIDTH = 832
 HEIGHT = 480
 FRAME_COUNT = 124
-VIDEO_SHIFT = 6.0
-AUDIO_SHIFT = 3.0
-SCHEDULER = "simple"
-DENOISE = 1.0
 SEEDS = (130117, 41398272, 20260919)
 
 
 @dataclass(frozen=True)
 class Recipe:
+    """The complete sampling contract for one directly rendered LoRA."""
+
     identifier: str
     lora_file: str
+    inference_steps: int
+    video_sigma_shift: float
+    audio_sigma_shift: float
     sampler: str
+    scheduler: str
+    denoise: float
 
 
 RECIPES = (
     Recipe(
         identifier="turbo4_v1_0_res_multistep_6_3",
         lora_file="minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+        inference_steps=4,
+        video_sigma_shift=6.0,
+        audio_sigma_shift=3.0,
         sampler="res_multistep",
+        scheduler="simple",
+        denoise=1.0,
     ),
     Recipe(
         identifier="turbo4_v1_2_euler_6_3",
         lora_file="minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors",
+        inference_steps=4,
+        video_sigma_shift=6.0,
+        audio_sigma_shift=3.0,
         sampler="euler",
+        scheduler="simple",
+        denoise=1.0,
     ),
 )
 
@@ -112,12 +125,12 @@ def render_workflow(
             "__FRAME_COUNT__": frame_count,
             "__LORA_FILE__": recipe.lora_file,
             "__LORA_STRENGTH__": 1.0,
-            "__INFERENCE_STEPS__": 4,
-            "__VIDEO_SIGMA_SHIFT__": VIDEO_SHIFT,
-            "__AUDIO_SIGMA_SHIFT__": AUDIO_SHIFT,
+            "__INFERENCE_STEPS__": recipe.inference_steps,
+            "__VIDEO_SIGMA_SHIFT__": recipe.video_sigma_shift,
+            "__AUDIO_SIGMA_SHIFT__": recipe.audio_sigma_shift,
             "__SAMPLER__": recipe.sampler,
-            "__SCHEDULER__": SCHEDULER,
-            "__DENOISE__": DENOISE,
+            "__SCHEDULER__": recipe.scheduler,
+            "__DENOISE__": recipe.denoise,
         },
     )
     graph["h3_prompt_study_start_frame"] = {
@@ -246,7 +259,17 @@ def main() -> int:
         "kind": "minimax_h3_prompt_robustness_study",
         "inputName": args.input_name,
         "geometry": {"width": WIDTH, "height": HEIGHT, "frameCount": FRAME_COUNT, "fps": 24},
-        "sampling": {"videoSigmaShift": VIDEO_SHIFT, "audioSigmaShift": AUDIO_SHIFT, "steps": 4, "scheduler": SCHEDULER, "denoise": DENOISE},
+        "recipes": [
+            {
+                "id": recipe.identifier, "loraFile": recipe.lora_file,
+                "inferenceSteps": recipe.inference_steps,
+                "videoSigmaShift": recipe.video_sigma_shift,
+                "audioSigmaShift": recipe.audio_sigma_shift,
+                "sampler": recipe.sampler, "scheduler": recipe.scheduler,
+                "denoise": recipe.denoise,
+            }
+            for recipe in RECIPES
+        ],
         "results": results,
     }
     args.receipt.parent.mkdir(parents=True, exist_ok=True)

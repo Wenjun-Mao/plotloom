@@ -27,17 +27,32 @@ RECIPES = (
     Recipe(
         identifier="turbo4_v1_0_res_multistep_6_3",
         lora_file="minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+        inference_steps=4,
+        video_sigma_shift=6.0,
+        audio_sigma_shift=3.0,
         sampler="res_multistep",
+        scheduler="simple",
+        denoise=1.0,
     ),
     Recipe(
         identifier="turbo4_v1_2_euler_6_3",
         lora_file="minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors",
+        inference_steps=4,
+        video_sigma_shift=6.0,
+        audio_sigma_shift=3.0,
         sampler="euler",
+        scheduler="simple",
+        denoise=1.0,
     ),
     Recipe(
         identifier="turbo8_v1_0_euler_6_3_readme",
         lora_file="minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+        inference_steps=8,
+        video_sigma_shift=6.0,
+        audio_sigma_shift=3.0,
         sampler="euler",
+        scheduler="simple",
+        denoise=1.0,
     ),
 )
 SCENES = {
@@ -77,6 +92,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--comfy-url", default="http://127.0.0.1:8188")
     parser.add_argument("--timeout-seconds", type=float, default=1200)
     parser.add_argument("--poll-seconds", type=float, default=2)
+    parser.add_argument(
+        "--recipe-id", action="append", default=[],
+        help="Run only this declared recipe ID; repeat only for an explicit subset.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
@@ -89,13 +108,20 @@ def main() -> int:
     template = document.get("prompt") if isinstance(document, dict) else None
     if not isinstance(template, dict):
         raise ValueError("template must contain a prompt graph")
+    selected_recipe_ids = set(args.recipe_id)
+    selected_recipes = tuple(
+        recipe for recipe in RECIPES
+        if not selected_recipe_ids or recipe.identifier in selected_recipe_ids
+    )
+    if not selected_recipes or selected_recipe_ids.difference(recipe.identifier for recipe in selected_recipes):
+        raise ValueError("recipe-id must name one or more declared recipes")
     input_names = {
         "dialogue_portrait_v1": args.dialogue_input_name,
         "motion_portrait_v1": args.motion_input_name,
     }
     cases = [
         (recipe, scene_id, str(scene["prompt"]), seed, input_names[scene_id])
-        for recipe in RECIPES
+        for recipe in selected_recipes
         for scene_id, scene in SCENES.items()
         for seed in SEEDS
     ]
@@ -104,7 +130,7 @@ def main() -> int:
             "caseCount": len(cases), "geometry": {"width": WIDTH, "height": HEIGHT, "frameCount": FRAME_COUNT},
             "cases": [
                 {"recipeId": recipe.identifier, "sceneId": scene_id, "promptSha256": prompt_sha256(prompt), "seed": seed}
-                for recipe, scene_id, prompt, seed, _ in cases
+            for recipe, scene_id, prompt, seed, _ in cases
             ],
         }, ensure_ascii=False, indent=2))
         return 0
@@ -151,6 +177,17 @@ def main() -> int:
         "manifestVersion": 1,
         "kind": "minimax_h3_vertical_recipe_qualification",
         "geometry": {"width": WIDTH, "height": HEIGHT, "frameCount": FRAME_COUNT, "fps": 24},
+        "recipes": [
+            {
+                "id": recipe.identifier, "loraFile": recipe.lora_file,
+                "inferenceSteps": recipe.inference_steps,
+                "videoSigmaShift": recipe.video_sigma_shift,
+                "audioSigmaShift": recipe.audio_sigma_shift,
+                "sampler": recipe.sampler, "scheduler": recipe.scheduler,
+                "denoise": recipe.denoise,
+            }
+            for recipe in selected_recipes
+        ],
         "results": results,
     }
     args.receipt.parent.mkdir(parents=True, exist_ok=True)

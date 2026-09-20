@@ -1,0 +1,480 @@
+{
+  "manifestVersion": 1,
+  "kind": "minimax_h3_vertical_recipe_qualification",
+  "geometry": {
+    "width": 608,
+    "height": 1088,
+    "frameCount": 124,
+    "fps": 24
+  },
+  "results": [
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 130117,
+      "comfyPromptId": "11b5b8f6-5fb6-469d-ba0a-543f8b1fd772",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_dialogue_portrait_v1_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 120279
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 41398272,
+      "comfyPromptId": "fdbaf4e4-9b38-465e-9f2a-2599217e4331",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_dialogue_portrait_v1_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114199
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 20260919,
+      "comfyPromptId": "413771aa-6eb0-4778-8a7b-ce6a79e3b25a",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_dialogue_portrait_v1_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114205
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 9048391,
+      "comfyPromptId": "ced7acf4-078e-4c11-b219-124614d33612",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_dialogue_portrait_v1_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114176
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 27501834,
+      "comfyPromptId": "1cd35b0b-6777-4f48-9f44-b0de4f862111",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_dialogue_portrait_v1_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114169
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 77261003,
+      "comfyPromptId": "65f9c262-7067-4a1d-ac5b-b316270d82cb",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_dialogue_portrait_v1_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114185
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 130117,
+      "comfyPromptId": "3e5edd8e-0535-478d-8a17-2adeb63ceb29",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_motion_portrait_v1_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 120227
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 41398272,
+      "comfyPromptId": "c3e56010-454d-4f9e-a0d7-1c3c9a123da3",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_motion_portrait_v1_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114196
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 20260919,
+      "comfyPromptId": "56c0bf0d-4e20-42b2-9aa7-443bb886ea9e",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_motion_portrait_v1_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 116179
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 9048391,
+      "comfyPromptId": "9a228ade-9f32-4266-b838-211135ba4baa",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_motion_portrait_v1_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 116199
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 27501834,
+      "comfyPromptId": "f7f12c4c-7818-4791-bba7-3733d6709cec",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_motion_portrait_v1_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114619
+    },
+    {
+      "recipeId": "turbo4_v1_0_res_multistep_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 77261003,
+      "comfyPromptId": "248b8fa5-bfd4-48a3-a52b-ac420f888e96",
+      "output": {
+        "filename": "turbo4_v1_0_res_multistep_6_3_motion_portrait_v1_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114177
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 130117,
+      "comfyPromptId": "65e57322-bd3b-46f9-ab41-497241f391f1",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_dialogue_portrait_v1_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 122246
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 41398272,
+      "comfyPromptId": "2ca40486-23bd-4b96-b1a4-d940509f5c88",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_dialogue_portrait_v1_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114217
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 20260919,
+      "comfyPromptId": "af987201-9efd-4915-8616-917845ad5f49",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_dialogue_portrait_v1_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 112207
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 9048391,
+      "comfyPromptId": "4b424c89-f9d4-456e-8a2d-b6bc9f4e795a",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_dialogue_portrait_v1_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114337
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 27501834,
+      "comfyPromptId": "6ee0a07e-da90-42db-b3e8-eacff8897fba",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_dialogue_portrait_v1_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114255
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 77261003,
+      "comfyPromptId": "ed3f733f-21b5-4522-9314-214624adaa3b",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_dialogue_portrait_v1_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114202
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 130117,
+      "comfyPromptId": "563b53d1-eb8a-48e7-b3cf-becdafbe409e",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_motion_portrait_v1_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 120222
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 41398272,
+      "comfyPromptId": "8c78d853-6d0b-4550-9fac-54c6d0ae7763",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_motion_portrait_v1_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114167
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 20260919,
+      "comfyPromptId": "0cacfc65-0503-4596-b224-32b6a5e14ae4",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_motion_portrait_v1_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114194
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 9048391,
+      "comfyPromptId": "39076513-afb3-4cc4-b478-1c7c4655093a",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_motion_portrait_v1_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114218
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 27501834,
+      "comfyPromptId": "4cea2c7a-bb7f-4f6f-abbe-656d1aeb07db",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_motion_portrait_v1_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114178
+    },
+    {
+      "recipeId": "turbo4_v1_2_euler_6_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 77261003,
+      "comfyPromptId": "d1500a29-a10c-45a5-b2d3-9bf3817e67b9",
+      "output": {
+        "filename": "turbo4_v1_2_euler_6_3_motion_portrait_v1_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114190
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 130117,
+      "comfyPromptId": "606fb36e-2b7c-41c5-8a76-6540c2075502",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 122387
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 41398272,
+      "comfyPromptId": "bc22a171-d430-455f-9d0d-b9187a73e82f",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114330
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 20260919,
+      "comfyPromptId": "0fe89ac2-2e83-4062-b207-d2e9e05dcf71",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114285
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 9048391,
+      "comfyPromptId": "dee2fb96-8085-4dae-b047-29f6e96268ee",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114192
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 27501834,
+      "comfyPromptId": "6a3de252-5aa8-4c68-aa97-fb0bea64f4b2",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114163
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 77261003,
+      "comfyPromptId": "18152b05-11f4-440f-8b62-2915605fc188",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_dialogue_portrait_v1_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114252
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 130117,
+      "comfyPromptId": "a28e5e7f-9512-4c48-8ab1-b4d5e5e6457b",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 120195
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 41398272,
+      "comfyPromptId": "d272cf66-a291-4ca6-838e-d04ac0898583",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 116202
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 20260919,
+      "comfyPromptId": "852016c2-e260-46b4-a874-004137206011",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114198
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 9048391,
+      "comfyPromptId": "25bf1274-2aaf-47d5-abe6-830277e80ab0",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 116231
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 27501834,
+      "comfyPromptId": "41dd139a-13c7-4394-a0bf-5070c0f697a1",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114198
+    },
+    {
+      "recipeId": "turbo8_v1_0_euler_6_3_readme",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 77261003,
+      "comfyPromptId": "fd945583-18bf-4e2d-a805-516dc0548580",
+      "output": {
+        "filename": "turbo8_v1_0_euler_6_3_readme_motion_portrait_v1_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-vertical-recipe-qualification-2026-09-20",
+        "type": "output"
+      },
+      "generationElapsedMs": 114189
+    }
+  ]
+}

@@ -27,6 +27,8 @@ def test_study_matrix_is_bounded_and_keeps_the_recipes_complete() -> None:
     assert len(study.SEEDS) == 3
     assert all(recipe.lora_file.endswith(".safetensors") for recipe in study.RECIPES)
     assert all(recipe.sampler in {"res_multistep", "euler"} for recipe in study.RECIPES)
+    assert all(recipe.inference_steps == 4 for recipe in study.RECIPES)
+    assert all((recipe.video_sigma_shift, recipe.audio_sigma_shift) == (6.0, 3.0) for recipe in study.RECIPES)
 
 
 def test_study_renderer_has_exactly_one_start_frame_and_no_end_frame() -> None:
@@ -82,3 +84,61 @@ def test_vertical_qualification_matrix_has_stronger_repeated_portrait_coverage()
     assert len(study.SEEDS) == 6
     assert len(study.RECIPES) * len(study.SCENES) * len(study.SEEDS) == 36
     assert study.RECIPES[-1].identifier == "turbo8_v1_0_euler_6_3_readme"
+
+
+def test_eight_step_qualification_recipe_renders_eight_steps_not_four() -> None:
+    import h3_vertical_recipe_qualification as study
+    import h3_prompt_robustness_study as renderer
+    import json
+
+    template_path = (
+        Path(__file__).parents[3]
+        / "services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json"
+    )
+    eight_step = study.RECIPES[-1]
+    graph = renderer.render_workflow(
+        json.loads(template_path.read_text(encoding="utf-8"))["prompt"],
+        recipe=eight_step, prompt="x", seed=1, input_name="portrait.png",
+        output_prefix="experiments/study/eight-step", width=608, height=1088,
+        frame_count=124,
+    )
+
+    assert eight_step.inference_steps == 8
+    assert graph["105:9"]["inputs"]["steps"] == 8
+    assert graph["105:122"]["inputs"] == {
+        "model": ["105:121", 0], "shift_video": 6.0, "shift_audio": 3.0,
+    }
+    assert graph["105:17"]["inputs"]["sampler_name"] == "euler"
+
+
+def test_vertical_qualification_can_rerun_only_an_invalid_recipe(
+    monkeypatch, capsys,
+) -> None:
+    import h3_vertical_recipe_qualification as study
+    import json
+
+    template_path = (
+        Path(__file__).parents[3]
+        / "services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json"
+    )
+    monkeypatch.setattr(
+        study.sys,
+        "argv",
+        [
+            "h3_vertical_recipe_qualification.py",
+            "--template", str(template_path),
+            "--dialogue-input-name", "dialogue.png",
+            "--motion-input-name", "motion.png",
+            "--output-subfolder", "experiments/study",
+            "--receipt", "/tmp/receipt.json",
+            "--recipe-id", "turbo8_v1_0_euler_6_3_readme",
+            "--dry-run",
+        ],
+    )
+
+    assert study.main() == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["caseCount"] == 12
+    assert {case["recipeId"] for case in payload["cases"]} == {
+        "turbo8_v1_0_euler_6_3_readme"
+    }
