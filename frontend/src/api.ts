@@ -586,7 +586,7 @@ export class PlotloomApiClient {
     return `${this.base}/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/report`;
   }
 
-  getCast(projectId: string): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast`); }
+  getCast(projectId: string, signal?: AbortSignal): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast`, { signal }); }
   prepareCastCandidate(projectId: string): Promise<CastCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates`, { method: "POST" }); }
   refreshCastCandidate(projectId: string, jobId: string): Promise<CastCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
   cancelCastCandidate(projectId: string, jobId: string): Promise<CastReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }

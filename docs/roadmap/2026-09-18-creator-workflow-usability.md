@@ -223,3 +223,15 @@ production FastAPI/file-SQLite browser journey proves GET-only viewing,
 subject/project ownership isolation, missing/stale states, route continuity,
 and wide/narrow presentation; retained technical fixtures remain clearly
 non-generated layout proof, not creative evidence.
+
+## U3 acceptance correction — 2026-09-20
+
+The first U3 delivery receipt required a bounded correction before acceptance.
+The corrected gallery preserves selected-primary ownership when its metadata or
+bytes are unavailable, uses one identity-scoped error-aware presentation for
+every gallery image role, invalidates held gallery reads on unmount/project
+change, and makes parent lineage recognizable and focusable. These corrections
+remain within the already-approved read-only U3 boundary: they create no new
+owner, prompt, selection, provider call, generation, or write route. The final
+receipt records fresh browser, production walkthrough, visual, and independent
+post-fix review evidence; earlier review evidence is pre-fix only.

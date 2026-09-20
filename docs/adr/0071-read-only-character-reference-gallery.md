@@ -39,3 +39,24 @@ action; existing authoring actions stay in F2B.
   proposal is not a selection, and a delivered output is not creative approval.
 - The route links from the existing prototype creator navigation and back while
   retaining separate screenplay and storyboard routes.
+
+## Acceptance correction — 2026-09-20
+
+The initial gallery presentation did not fully preserve those owners at the
+image boundary. A current decision is now the exclusive hero owner: when its
+primary asset record is absent or its image cannot be read, the hero states
+that selected reference as unavailable and does not substitute a current or
+historical candidate. Alternatives remain visible only in their own comparison
+cards.
+
+One error-aware asset presentation owns absent metadata and browser HTTP/decode
+failure for selected, candidate, complementary, historical, and lineage-parent
+images. Its failure state is keyed by project, subject, and asset identity, so
+an old failure cannot carry into another subject or project. Gallery fetches
+are abortable and invalidate their request owner on unmount and project change.
+
+Refinement lineage is now a recognizable parent card with its image, role, and
+focusable link to the parent candidate; unavailable or missing parent evidence
+remains explicitly unavailable. These are presentation-only corrections: they
+do not change the canonical decision, proposal, delivery, or managed-asset
+owners, and the route remains GET-only.

@@ -36,13 +36,14 @@ export function CharacterReferenceGalleryPage() {
   useEffect(() => {
     if (!projectId) return;
     const owner = ++requestOwner.current;
+    const controller = new AbortController();
     setData(undefined); setError(""); setSelectedSubjectId("");
     void Promise.all([
-      plotloomApi.getProject(projectId),
-      plotloomApi.getCast(projectId),
-      plotloomApi.getCharacterReferences(projectId),
-      plotloomApi.getCharacterReferenceProposals(projectId),
-      plotloomApi.getVisualWorkbench(projectId),
+      plotloomApi.getProject(projectId, controller.signal),
+      plotloomApi.getCast(projectId, controller.signal),
+      plotloomApi.getCharacterReferences(projectId, controller.signal),
+      plotloomApi.getCharacterReferenceProposals(projectId, controller.signal),
+      plotloomApi.getVisualWorkbench(projectId, controller.signal),
     ]).then(([project, cast, references, proposals, workbench]) => {
       if (requestOwner.current !== owner) return;
       setData({
@@ -56,6 +57,10 @@ export function CharacterReferenceGalleryPage() {
     }).catch((reason: unknown) => {
       if (requestOwner.current === owner) setError(reason instanceof Error ? reason.message : "无法读取角色参考。");
     });
+    return () => {
+      controller.abort();
+      if (requestOwner.current === owner) requestOwner.current += 1;
+    };
   }, [projectId]);
 
   const subjects = useMemo(() => data ? gallerySubjects(data.accepted, data.proposals) : [], [data]);
@@ -104,19 +109,27 @@ function SubjectGallery({ projectId, subject, data }: { projectId: string; subje
   const selectedAsset = selectedDecision ? assets.get(selectedDecision.primaryAssetId) : undefined;
   const currentCandidate = candidates.find((candidate) => candidate.proposal.current && candidate.delivery.state === "accepted" && candidate.asset);
   const historicalCandidate = candidates.find((candidate) => candidate.asset);
-  const hero = selectedAsset ? { asset: selectedAsset, label: "当前已选择的身份参考" } : currentCandidate?.asset ? { asset: currentCandidate.asset, label: "当前候选，尚未选择" } : historicalCandidate?.asset ? { asset: historicalCandidate.asset, label: "历史候选，未被选择" } : undefined;
+  // A current decision owns the hero even when its managed asset is unavailable.
+  // Showing a candidate there would misrepresent an alternative as the selection.
+  const hero = selectedDecision
+    ? { asset: selectedAsset, assetId: selectedDecision.primaryAssetId, label: "当前已选择的身份参考", selected: true }
+    : currentCandidate?.asset
+      ? { asset: currentCandidate.asset, assetId: currentCandidate.asset.id, label: "当前候选，尚未选择", selected: false }
+      : historicalCandidate?.asset
+        ? { asset: historicalCandidate.asset, assetId: historicalCandidate.asset.id, label: "历史候选，未被选择", selected: false }
+        : undefined;
 
   return <section className="reference-subject-gallery" aria-labelledby="reference-subject-title">
     <header className="reference-subject-heading"><div><span className="eyebrow">当前主体</span><h2 id="reference-subject-title">{subject.name}</h2><p>{selectedDecision?.current ? `已选择身份参考 r${selectedDecision.referenceRevision}。候选与选择不同：仅明确选择才会成为当前身份参考。` : "尚未选择身份参考。现有候选不会因查看而自动成为选择。"}</p></div><span className={selectedDecision?.current ? "reference-state selected" : "reference-state missing"}>{selectedDecision?.current ? "已选择" : "未选择"}</span></header>
-    {hero ? <figure className="reference-hero"><img src={plotloomApi.managedAssetUrl(projectId, hero.asset.id)} alt={`${subject.name} ${hero.label}`} /><figcaption><strong>{hero.label}</strong><span>{hero.asset.width} × {hero.asset.height}</span></figcaption></figure> : <div className="reference-no-image" data-testid="reference-no-image"><strong>尚无可显示的图像</strong><p>{candidates.length ? "保留记录未提供可用图像；请查看下方缺失或失败状态。" : "此主体还没有既有候选或已选择参考。"}</p></div>}
+    {hero ? <figure className={`reference-hero${hero.selected ? " selected-hero" : ""}`} data-testid={hero.selected ? "reference-selected-hero" : "reference-candidate-hero"}><AssetPresentation projectId={projectId} subjectId={subject.id} asset={hero.asset} assetId={hero.assetId} alt={`${subject.name} ${hero.label}`} unavailableLabel={hero.selected ? "当前已选择的身份参考图像不可用" : `${hero.label}图像不可用`} /><figcaption><strong>{hero.label}</strong><span>{hero.asset ? `${hero.asset.width} × ${hero.asset.height}` : "已选择资产缺失"}</span></figcaption></figure> : <div className="reference-no-image" data-testid="reference-no-image"><strong>尚无可显示的图像</strong><p>{candidates.length ? "保留记录未提供可用图像；请查看下方缺失或失败状态。" : "此主体还没有既有候选或已选择参考。"}</p></div>}
     <section className="reference-alternatives" aria-label={`${subject.name} 的候选和参考`}>
       <header><div><span className="eyebrow">候选与参考</span><h3>比较已有图像</h3></div><small>{candidates.length ? `${candidates.length} 条保留候选记录` : "没有候选记录"}</small></header>
       <div className="reference-card-grid">
-        {selectedDecision && selectedDecision.complementaryAssetIds.map((assetId) => <SelectedAssetCard key={`complementary:${assetId}`} projectId={projectId} asset={assets.get(assetId)} assetId={assetId} />)}
-        {candidates.map((candidate) => <CandidateCard key={candidate.id} projectId={projectId} candidate={candidate} selected={selectedAssetIds.has(candidate.assetId)} />)}
-        {incompleteDeliveries.map(({ proposal, delivery }) => <DeliveryEvidenceCard key={`delivery:${delivery.id}`} proposal={proposal} delivery={delivery} />)}
-        {undeliveredProposals.map((proposal) => <UndeliveredProposalCard key={`proposal:${proposal.id}`} proposal={proposal} />)}
-        {historicalDecisions.flatMap((decision) => [decision.primaryAssetId, ...decision.complementaryAssetIds].map((assetId) => <HistoricalSelectionCard key={`history:${decision.id}:${assetId}`} projectId={projectId} decision={decision} asset={assets.get(assetId)} assetId={assetId} />))}
+        {selectedDecision && selectedDecision.complementaryAssetIds.map((assetId) => <SelectedAssetCard key={`complementary:${assetId}`} projectId={projectId} subjectId={subject.id} asset={assets.get(assetId)} assetId={assetId} />)}
+        {candidates.map((candidate) => <CandidateCard key={candidate.id} projectId={projectId} subjectId={subject.id} candidate={candidate} selected={selectedAssetIds.has(candidate.assetId)} parent={candidate.proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === candidate.proposal.parentCandidateAssetId) : undefined} />)}
+        {incompleteDeliveries.map(({ proposal, delivery }) => <DeliveryEvidenceCard key={`delivery:${delivery.id}`} projectId={projectId} subjectId={subject.id} proposal={proposal} delivery={delivery} parent={proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === proposal.parentCandidateAssetId) : undefined} />)}
+        {undeliveredProposals.map((proposal) => <UndeliveredProposalCard key={`proposal:${proposal.id}`} projectId={projectId} subjectId={subject.id} proposal={proposal} parent={proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === proposal.parentCandidateAssetId) : undefined} />)}
+        {historicalDecisions.flatMap((decision) => [decision.primaryAssetId, ...decision.complementaryAssetIds].map((assetId) => <HistoricalSelectionCard key={`history:${decision.id}:${assetId}`} projectId={projectId} subjectId={subject.id} decision={decision} asset={assets.get(assetId)} assetId={assetId} />))}
         {!selectedDecision && candidates.length === 0 && incompleteDeliveries.length === 0 && undeliveredProposals.length === 0 && historicalDecisions.length === 0 && <p className="reference-empty-list">尚未选择身份参考，也没有参考候选。</p>}
       </div>
     </section>
@@ -124,35 +137,51 @@ function SubjectGallery({ projectId, subject, data }: { projectId: string; subje
   </section>;
 }
 
-function SelectedAssetCard({ projectId, asset, assetId }: { projectId: string; asset: ManagedAsset | undefined; assetId: string }) {
-  return <article className="reference-card selected-reference">{asset ? <img src={plotloomApi.managedAssetUrl(projectId, asset.id)} alt="已选择的辅助身份参考" /> : <MissingAsset assetId={assetId} />}<div><span className="reference-state selected">已选择的辅助参考</span><small>{asset ? `${asset.width} × ${asset.height}` : "资产缺失"}</small></div></article>;
+function SelectedAssetCard({ projectId, subjectId, asset, assetId }: { projectId: string; subjectId: string; asset: ManagedAsset | undefined; assetId: string }) {
+  return <article className="reference-card selected-reference">{<AssetPresentation projectId={projectId} subjectId={subjectId} asset={asset} assetId={assetId} alt="已选择的辅助身份参考" unavailableLabel="已选择的辅助身份参考图像不可用" />}<div><span className="reference-state selected">已选择的辅助参考</span><small>{asset ? `${asset.width} × ${asset.height}` : "资产缺失"}</small></div></article>;
 }
 
-function CandidateCard({ projectId, candidate, selected }: { projectId: string; candidate: Candidate; selected: boolean }) {
+function CandidateCard({ projectId, subjectId, candidate, selected, parent }: { projectId: string; subjectId: string; candidate: Candidate; selected: boolean; parent: Candidate | undefined }) {
   const state = selected ? ["selected", "当前已选择"] as const : candidate.proposal.current && candidate.delivery.state === "accepted" && candidate.asset ? ["candidate", "当前候选，未选择"] as const : candidate.delivery.state !== "accepted" ? ["failed", deliveryLabel(candidate.delivery.state)] as const : ["historical", candidate.proposal.current ? "候选资产缺失" : "历史 / 已过期候选"] as const;
   const direction = frozenDirection(candidate.proposal);
-  return <article className="reference-card" data-testid={`reference-candidate-${candidate.assetId}`}>
-    {candidate.asset ? <img src={plotloomApi.managedAssetUrl(projectId, candidate.asset.id)} alt={`${state[1]} ${candidate.role === "refinement" ? "细化" : "原始"}候选`} /> : <MissingAsset assetId={candidate.assetId} />}
-    <div className="reference-card-body"><span className={`reference-state ${state[0]}`}>{state[1]}</span><strong>{candidate.role === "refinement" ? "细化候选" : "原始候选"}</strong><small>{candidate.asset ? `${candidate.asset.width} × ${candidate.asset.height}` : "未提供可用资产"}</small>{candidate.proposal.parentCandidateAssetId && <p className="reference-parent">细化自 <code>{candidate.proposal.parentCandidateAssetId.slice(0, 12)}</code></p>}{direction && <details className="reference-instructions"><summary>查看生成说明</summary><pre>{direction}</pre></details>}<details className="reference-technical"><summary>技术详情</summary><dl><div><dt>提案</dt><dd>{candidate.proposal.id}</dd></div><div><dt>请求标识</dt><dd>{candidate.proposal.requestHash}</dd></div><div><dt>交付状态</dt><dd>{candidate.delivery.state}</dd></div><div><dt>输出标识</dt><dd>{candidate.outputHash}</dd></div>{candidate.delivery.manifestHash && <div><dt>交付清单</dt><dd>{candidate.delivery.manifestHash}</dd></div>}{candidate.asset?.provenance && <div><dt>来源</dt><dd>{candidate.asset.provenance.origin}</dd></div>}</dl></details></div>
+  return <article id={candidateAnchorId(candidate)} className="reference-card" data-testid={`reference-candidate-${candidate.assetId}`} tabIndex={-1}>
+    <AssetPresentation projectId={projectId} subjectId={subjectId} asset={candidate.asset ?? undefined} assetId={candidate.assetId} alt={`${state[1]} ${candidate.role === "refinement" ? "细化" : "原始"}候选`} unavailableLabel={`${candidate.role === "refinement" ? "细化" : "原始"}候选图像不可用`} />
+    <div className="reference-card-body"><span className={`reference-state ${state[0]}`}>{state[1]}</span><strong>{candidate.role === "refinement" ? "细化候选" : "原始候选"}</strong><small>{candidate.asset ? `${candidate.asset.width} × ${candidate.asset.height}` : "未提供可用资产"}</small>{candidate.proposal.parentCandidateAssetId && <ParentReference projectId={projectId} subjectId={subjectId} assetId={candidate.proposal.parentCandidateAssetId} parent={parent} />}{direction && <details className="reference-instructions"><summary>查看生成说明</summary><pre>{direction}</pre></details>}<details className="reference-technical"><summary>技术详情</summary><dl><div><dt>提案</dt><dd>{candidate.proposal.id}</dd></div><div><dt>请求标识</dt><dd>{candidate.proposal.requestHash}</dd></div><div><dt>交付状态</dt><dd>{candidate.delivery.state}</dd></div><div><dt>输出标识</dt><dd>{candidate.outputHash}</dd></div>{candidate.delivery.manifestHash && <div><dt>交付清单</dt><dd>{candidate.delivery.manifestHash}</dd></div>}{candidate.asset?.provenance && <div><dt>来源</dt><dd>{candidate.asset.provenance.origin}</dd></div>}</dl></details></div>
   </article>;
 }
 
-function DeliveryEvidenceCard({ proposal, delivery }: { proposal: CharacterReferenceProposal; delivery: CharacterReferenceProposal["deliveries"][number] }) {
+function DeliveryEvidenceCard({ projectId, subjectId, proposal, delivery, parent }: { projectId: string; subjectId: string; proposal: CharacterReferenceProposal; delivery: CharacterReferenceProposal["deliveries"][number]; parent: Candidate | undefined }) {
   const direction = frozenDirection(proposal);
-  return <article className="reference-card delivery-evidence"><div className="reference-missing-asset"><strong>{deliveryLabel(delivery.state)}</strong><small>{delivery.diagnosticCode || "此交付没有可显示的图像输出。"}</small></div><div className="reference-card-body"><span className="reference-state failed">{deliveryLabel(delivery.state)}</span><strong>{proposal.parentCandidateAssetId ? "细化交付" : "原始交付"}</strong>{proposal.parentCandidateAssetId && <p className="reference-parent">细化自 <code>{proposal.parentCandidateAssetId.slice(0, 12)}</code></p>}{direction && <details className="reference-instructions"><summary>查看生成说明</summary><pre>{direction}</pre></details>}<details className="reference-technical"><summary>技术详情</summary><dl><div><dt>提案</dt><dd>{proposal.id}</dd></div><div><dt>请求标识</dt><dd>{proposal.requestHash}</dd></div><div><dt>交付状态</dt><dd>{delivery.state}</dd></div>{delivery.diagnosticCode && <div><dt>诊断</dt><dd>{delivery.diagnosticCode}</dd></div>}{delivery.manifestHash && <div><dt>交付清单</dt><dd>{delivery.manifestHash}</dd></div>}</dl></details></div></article>;
+  return <article className="reference-card delivery-evidence"><div className="reference-missing-asset"><strong>{deliveryLabel(delivery.state)}</strong><small>{delivery.diagnosticCode || "此交付没有可显示的图像输出。"}</small></div><div className="reference-card-body"><span className="reference-state failed">{deliveryLabel(delivery.state)}</span><strong>{proposal.parentCandidateAssetId ? "细化交付" : "原始交付"}</strong>{proposal.parentCandidateAssetId && <ParentReference projectId={projectId} subjectId={subjectId} assetId={proposal.parentCandidateAssetId} parent={parent} />}{direction && <details className="reference-instructions"><summary>查看生成说明</summary><pre>{direction}</pre></details>}<details className="reference-technical"><summary>技术详情</summary><dl><div><dt>提案</dt><dd>{proposal.id}</dd></div><div><dt>请求标识</dt><dd>{proposal.requestHash}</dd></div><div><dt>交付状态</dt><dd>{delivery.state}</dd></div>{delivery.diagnosticCode && <div><dt>诊断</dt><dd>{delivery.diagnosticCode}</dd></div>}{delivery.manifestHash && <div><dt>交付清单</dt><dd>{delivery.manifestHash}</dd></div>}</dl></details></div></article>;
 }
 
-function UndeliveredProposalCard({ proposal }: { proposal: CharacterReferenceProposal }) {
+function UndeliveredProposalCard({ projectId, subjectId, proposal, parent }: { projectId: string; subjectId: string; proposal: CharacterReferenceProposal; parent: Candidate | undefined }) {
   const direction = frozenDirection(proposal);
   const state = proposal.state === "cancelled" ? "已取消，未交付" : proposal.state === "exported" ? "已导出，等待交付" : "已准备，尚未交付";
-  return <article className="reference-card delivery-evidence"><div className="reference-missing-asset"><strong>{state}</strong><small>没有交付记录，因此没有可显示图像。</small></div><div className="reference-card-body"><span className="reference-state historical">{state}</span><strong>{proposal.parentCandidateAssetId ? "细化提案" : "原始提案"}</strong>{proposal.parentCandidateAssetId && <p className="reference-parent">细化自 <code>{proposal.parentCandidateAssetId.slice(0, 12)}</code></p>}{direction && <details className="reference-instructions"><summary>查看生成说明</summary><pre>{direction}</pre></details>}<details className="reference-technical"><summary>技术详情</summary><dl><div><dt>提案</dt><dd>{proposal.id}</dd></div><div><dt>请求标识</dt><dd>{proposal.requestHash}</dd></div><div><dt>提案状态</dt><dd>{proposal.state}</dd></div></dl></details></div></article>;
+  return <article className="reference-card delivery-evidence"><div className="reference-missing-asset"><strong>{state}</strong><small>没有交付记录，因此没有可显示图像。</small></div><div className="reference-card-body"><span className="reference-state historical">{state}</span><strong>{proposal.parentCandidateAssetId ? "细化提案" : "原始提案"}</strong>{proposal.parentCandidateAssetId && <ParentReference projectId={projectId} subjectId={subjectId} assetId={proposal.parentCandidateAssetId} parent={parent} />}{direction && <details className="reference-instructions"><summary>查看生成说明</summary><pre>{direction}</pre></details>}<details className="reference-technical"><summary>技术详情</summary><dl><div><dt>提案</dt><dd>{proposal.id}</dd></div><div><dt>请求标识</dt><dd>{proposal.requestHash}</dd></div><div><dt>提案状态</dt><dd>{proposal.state}</dd></div></dl></details></div></article>;
 }
 
-function HistoricalSelectionCard({ projectId, decision, asset, assetId }: { projectId: string; decision: CharacterReferenceDecision; asset: ManagedAsset | undefined; assetId: string }) {
-  return <article className="reference-card historical-selection">{asset ? <img src={plotloomApi.managedAssetUrl(projectId, asset.id)} alt="历史身份参考，当前不可用" /> : <MissingAsset assetId={assetId} />}<div className="reference-card-body"><span className="reference-state historical">历史选择，当前不可用</span><strong>身份参考 r{decision.referenceRevision}</strong><small>{asset ? `${asset.width} × ${asset.height}` : "已选择资产缺失"}</small><details className="reference-technical"><summary>技术详情</summary><dl><div><dt>选择</dt><dd>{decision.id}</dd></div><div><dt>状态</dt><dd>{decision.revokedAt ? "revoked" : "superseded_or_stale"}</dd></div><div><dt>备注</dt><dd>{decision.notes}</dd></div>{asset?.provenance && <div><dt>来源</dt><dd>{asset.provenance.origin}</dd></div>}</dl></details></div></article>;
+function HistoricalSelectionCard({ projectId, subjectId, decision, asset, assetId }: { projectId: string; subjectId: string; decision: CharacterReferenceDecision; asset: ManagedAsset | undefined; assetId: string }) {
+  return <article className="reference-card historical-selection"><AssetPresentation projectId={projectId} subjectId={subjectId} asset={asset} assetId={assetId} alt="历史身份参考，当前不可用" unavailableLabel="历史身份参考图像不可用" /><div className="reference-card-body"><span className="reference-state historical">历史选择，当前不可用</span><strong>身份参考 r{decision.referenceRevision}</strong><small>{asset ? `${asset.width} × ${asset.height}` : "已选择资产缺失"}</small><details className="reference-technical"><summary>技术详情</summary><dl><div><dt>选择</dt><dd>{decision.id}</dd></div><div><dt>状态</dt><dd>{decision.revokedAt ? "revoked" : "superseded_or_stale"}</dd></div><div><dt>备注</dt><dd>{decision.notes}</dd></div>{asset?.provenance && <div><dt>来源</dt><dd>{asset.provenance.origin}</dd></div>}</dl></details></div></article>;
 }
 
-function MissingAsset({ assetId }: { assetId: string }) { return <div className="reference-missing-asset"><strong>图像不可用</strong><small>保留资产 {assetId.slice(0, 12)} 缺失或交付未产生可显示文件。</small></div>; }
+function AssetPresentation({ projectId, subjectId, asset, assetId, alt, unavailableLabel }: { projectId: string; subjectId: string; asset: ManagedAsset | undefined; assetId: string; alt: string; unavailableLabel: string }) {
+  const identity = `${projectId}:${subjectId}:${assetId}`;
+  const [failedIdentity, setFailedIdentity] = useState<string | null>(null);
+  const unavailable = !asset || failedIdentity === identity;
+  if (unavailable) return <MissingAsset assetId={assetId} label={unavailableLabel} />;
+  return <img src={plotloomApi.managedAssetUrl(projectId, asset.id)} alt={alt} onError={() => setFailedIdentity(identity)} />;
+}
+
+function ParentReference({ projectId, subjectId, assetId, parent }: { projectId: string; subjectId: string; assetId: string; parent: Candidate | undefined }) {
+  const parentName = parent ? `${parent.role === "refinement" ? "细化" : "原始"}候选` : "保留父候选";
+  const target = parent ? candidateAnchorId(parent) : undefined;
+  const focusParent = () => target && document.getElementById(target)?.focus();
+  return <div className="reference-parent"><span>来源父图</span>{parent ? <a href={`#${target}`} onClick={focusParent}>{parentName}</a> : <strong>{parentName}（记录缺失）</strong>}<AssetPresentation projectId={projectId} subjectId={subjectId} asset={parent?.asset ?? undefined} assetId={assetId} alt={`${parentName} 缩略图`} unavailableLabel="父候选图像不可用" /></div>;
+}
+
+function candidateAnchorId(candidate: Candidate): string { return `reference-candidate-${candidate.id}`; }
+function MissingAsset({ assetId, label = "图像不可用" }: { assetId: string; label?: string }) { return <div className="reference-missing-asset" data-testid={`reference-image-unavailable-${assetId}`}><strong>{label}</strong><small>保留资产 {assetId.slice(0, 12)} 缺失、HTTP 读取失败或无法解码。</small></div>; }
 function GalleryShell({ children }: { children: ReactNode }) { return <div className="reference-gallery-shell">{children}</div>; }
 function EmptyState({ title, message }: { title: string; message: string }) { return <section className="reference-gallery-empty"><strong>{title}</strong><p>{message}</p></section>; }
 

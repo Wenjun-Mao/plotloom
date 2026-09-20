@@ -19,8 +19,17 @@ projection or write path. ADR 0071 records the durable view boundary.
 - `npm run typecheck` — passed.
 - `npm run typecheck:e2e` — passed.
 - `npm test` — 18 files / 165 tests passed.
+- `npx vitest run --config src/pages/CharacterReferenceGalleryPage.vitest.config.ts`
+  — 1 focused in-scope gallery test passed. It fails a selected hero, changes
+  the preserved gallery component to a second subject with the same asset, and
+  verifies the image presentation recovers under the new identity.
 - `npx playwright test --config playwright.config.ts e2e/cast-reference-studies.spec.ts`
-  — 3 production FastAPI/file-SQLite browser journeys passed.
+  — 4 production FastAPI/file-SQLite browser journeys passed, including held
+  gallery response invalidation, selected-image HTTP failure, and parent-link
+  hash/focus behavior.
+- `npx playwright test --config playwright.config.ts e2e/story-prototype.spec.ts`
+  — 3 production browser journeys passed (multi-scene screenplay admission,
+  focused screenplay/storyboard route switching, and stale storyboard refusal).
 - `npm run build:deterministic` — passed; refreshed
   `src/plotloom/static/workbench.css` and `workbench.js`.
 - `git diff --check` — passed.
@@ -49,17 +58,53 @@ assets or missing cards, derives subjects only from accepted cast mappings, and
 joins each candidate to the provenance-bearing managed-asset record. The
 focused suite above was rerun after those corrections.
 
-## Walkthrough availability
+## Superseded walkthrough statement
 
-No persistent walkthrough URL is supplied. Read-only inspection found no
-running retained Plotloom server or existing compatible retained project. The
-only safe compatible proof available in this checkout is the supported
-production FastAPI/file-SQLite fixture, whose roots are deliberately temporary
-and whose retained raster is explicitly non-generated test evidence. Creating
-a persistent project/output root merely to publish a URL would write outside
-this assignment's approved scope and would not be a truthful existing-project
-walkthrough. H3 remained disabled throughout; no provider or gateway call was
-made.
+The prior statement that a persistent walkthrough was outside scope was
+incorrect: the approved acceptance correction expressly authorizes a separate,
+disposable persistent technical fixture. That prior walkthrough was unattempted,
+not blocked. Its independent review was also pre-fix only and cannot establish
+acceptance of the corrected image and lifecycle contract. This receipt is
+updated with the actual post-fix walkthrough and review evidence below.
+
+## Post-fix persistent production walkthrough
+
+Executed after the correction against the normal production entrypoint, not
+`OfflineH3GatewayFake`: `PLOTLOOM_ENABLE_H3_GATEWAY=false PLOTLOOM_HOST=127.0.0.1
+PLOTLOOM_PORT=49071 PORT=49071 PLOTLOOM_OUTPUTS_DIR=<ignored persistent
+outputs root> PLOTLOOM_APPLICATION_DATA_DIR=<ignored persistent application
+root> uv run --locked plotloom`. The process remains available at
+`http://127.0.0.1:49071` (PID 4006). Its disposable, ignored roots are
+`.local/relay/4f01b0c1-25e6-4447-bcd4-695fe58f8859/persistent-u3/outputs` and
+`.local/relay/4f01b0c1-25e6-4447-bcd4-695fe58f8859/persistent-u3/application`.
+
+The separate project is `35271279-3269-431b-8088-165c1705bc2e`, visibly titled
+“U3 persistent technical fixture — non-generated raster.” Its setup reused the
+supported cast-only creation and proposal-delivery package-validation flow to
+write two labelled retained P0 test rasters (original and refinement); no
+ImageGen, H3 gateway, or other provider was called. The fixture setup writes
+are separate from the following gallery viewing evidence.
+
+At `http://127.0.0.1:49071/v2/?view=character-reference-review&project=35271279-3269-431b-8088-165c1705bc2e`, both served gallery assets decoded as
+`image/png` at 1672 × 941. The view showed selected r2, the explicit
+unselected original alternative, historical r1, and a recognizable original
+parent thumbnail/link under the selected refinement. Browser snapshots and
+inspected screenshots at wide and 768 × 900 narrow viewports confirmed readable
+layout. The script navigation reached the intentional cast-only unavailable
+state rather than fabricating screenplay data. Browser gallery viewing was
+GET-only; no project revision or gallery-owned state changed after fixture
+setup.
+
+## Independent post-fix review
+
+An independent Terra/high, read-only review was performed after all final code
+and regression evidence changes. Exact final report: “Final scoped review:
+**approved — no findings.** The receipt now distinguishes the dedicated passing
+identity-recovery test from `npm test`; the current candidate satisfies the
+requested corrections and remains read-only/GET-only.” Earlier review findings
+on the identity-reset proof, parent-link focus, and receipt wording were
+corrected before this final review; those prior reviews are not acceptance
+evidence.
 
 ## Product acceptance boundary
 

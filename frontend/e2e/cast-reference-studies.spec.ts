@@ -17,7 +17,7 @@ type Proposal = {
   parentCandidateAssetId: string | null;
   state: string;
   current: boolean;
-  deliveries: Array<{ state: string; candidates: Array<{ assetId: string }> }>;
+  deliveries: Array<{ state: string; candidates: Array<{ id: string; assetId: string }> }>;
 };
 
 test.describe("F2B cast-owned reference studies", () => {
@@ -46,6 +46,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await refreshProposalFromBrowser(page, projectId, original.id);
     const deliveredOriginal = await proposal(request, workbench.apiOrigin, projectId, original.id);
     const originalCandidate = deliveredOriginal.deliveries[0]!.candidates[0]!.assetId;
+    const originalCandidateId = deliveredOriginal.deliveries[0]!.candidates[0]!.id;
     await panel.getByRole("button", { name: "Select identity reference" }).click();
     await expect(panel.getByTestId("cast-current-reference")).toContainText("current r1");
 
@@ -65,6 +66,8 @@ test.describe("F2B cast-owned reference studies", () => {
     await workbench.restartBackend();
     await page.reload();
     await expect(panel.getByTestId("cast-current-reference")).toContainText("current r2");
+    const deliveredRefinement = await proposal(request, workbench.apiOrigin, projectId, refinement.id);
+    const refinementCandidate = deliveredRefinement.deliveries[0]!.candidates[0]!.assetId;
     const viewingMethods: string[] = [];
     const recordGalleryRequest = (browserRequest: import("@playwright/test").Request) => {
       if (new URL(browserRequest.url()).pathname.includes(`/api/v2/projects/${projectId}/`)) viewingMethods.push(browserRequest.method());
@@ -80,7 +83,12 @@ test.describe("F2B cast-owned reference studies", () => {
       await expect(selectedCard).toContainText("当前已选择");
       await selectedCard.getByText("查看生成说明", { exact: true }).click();
       await expect(selectedCard).toContainText("Three-quarter study at the storm beacon window.");
-      await expect(gallery.getByText("细化自", { exact: false })).toBeVisible();
+      await expect(gallery.getByText("来源父图", { exact: true })).toBeVisible();
+      const parentLink = gallery.getByRole("link", { name: "原始候选" });
+      await expect(parentLink).toBeVisible();
+      await parentLink.click();
+      await expect(page).toHaveURL(new RegExp(`#reference-candidate-${originalCandidateId}$`));
+      await expect(page.locator(`#reference-candidate-${originalCandidateId}`)).toBeFocused();
       await selectedCard.getByText("技术详情", { exact: true }).click();
       await expect(selectedCard).toContainText("请求标识");
       await expect(selectedCard).toContainText("来源");
@@ -97,6 +105,22 @@ test.describe("F2B cast-owned reference studies", () => {
     }
     expect(viewingMethods).not.toHaveLength(0);
     expect(viewingMethods.every((method) => method === "GET")).toBeTruthy();
+
+    // A current selection remains the hero if its bytes cannot load. The
+    // other delivered candidate is still an explicit alternative, never a
+    // silent replacement for that selection.
+    await page.route(`**/api/v2/projects/${projectId}/managed-assets/${originalCandidate}/display`, async (route) => {
+      await route.fulfill({ status: 503, contentType: "text/plain", body: "fixture image intentionally unavailable" });
+    });
+    try {
+      await page.goto(`${workbench.frontendOrigin}/v2/?view=character-reference-review&project=${projectId}`);
+      const selectedHero = page.getByTestId("reference-selected-hero");
+      await expect(selectedHero).toContainText("当前已选择的身份参考图像不可用");
+      await expect(selectedHero.getByTestId(`reference-image-unavailable-${originalCandidate}`)).toBeVisible();
+      await expect(page.getByTestId(`reference-candidate-${refinementCandidate}`).getByRole("img")).toBeVisible();
+    } finally {
+      await page.unroute(`**/api/v2/projects/${projectId}/managed-assets/${originalCandidate}/display`);
+    }
     const sourceState = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline`));
     await getJson(request.put(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline/source`, {
       data: { expectedSourceRevision: sourceState.source.revision, material: { ...sourceState.source.material, text: "A U3 stale-selection presentation check." } },
@@ -199,6 +223,37 @@ test.describe("F2B cast-owned reference studies", () => {
     } finally {
       releasePreparation?.();
       await page.unroute(`**/api/v2/projects/${firstProjectId}/character-reference-proposals`, heldRoute);
+    }
+  });
+
+  test("invalidates held gallery reads after a project change", async ({ page, request, workbench }) => {
+    const firstProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "gallery-held-first");
+    const secondProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "gallery-held-second");
+    let release: (() => void) | undefined;
+    let signal: (() => void) | undefined;
+    const started = new Promise<void>((resolve) => { signal = resolve; });
+    const released = new Promise<void>((resolve) => { release = resolve; });
+    const heldProject = async (route: import("@playwright/test").Route) => {
+      signal?.();
+      await released;
+      try {
+        await route.continue();
+      } catch {
+        // The gallery's cleanup aborts the old project read after navigation.
+      }
+    };
+    await page.route(`**/api/v2/projects/${firstProjectId}`, heldProject);
+    try {
+      await page.goto(`${workbench.frontendOrigin}/v2/?view=character-reference-review&project=${firstProjectId}`);
+      await started;
+      await page.goto(`${workbench.frontendOrigin}/v2/?view=character-reference-review&project=${secondProjectId}`);
+      await expect(page.getByTestId("character-reference-gallery")).toContainText("F2B cast-only gallery-held-second");
+      release?.();
+      await expect(page.getByTestId("character-reference-gallery")).toContainText("F2B cast-only gallery-held-second");
+      await expect(page.getByTestId("character-reference-gallery")).not.toContainText("gallery-held-first");
+    } finally {
+      release?.();
+      await page.unroute(`**/api/v2/projects/${firstProjectId}`, heldProject);
     }
   });
 });
