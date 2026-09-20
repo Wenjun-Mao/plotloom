@@ -106,6 +106,56 @@ on the identity-reset proof, parent-link focus, and receipt wording were
 corrected before this final review; those prior reviews are not acceptance
 evidence.
 
+## Same-document gallery ownership regression closure
+
+The prior Playwright case named `invalidates held gallery reads after a project
+change` remains useful browser evidence, but its two `page.goto(...)` calls
+destroy the first document. It therefore cannot by itself prove cleanup and
+owner invalidation when this gallery component changes projects while a React
+root remains mounted.
+
+The focused identity-reset test was moved from `src/pages/` to the standard
+`frontend/tests/` convention, and its bespoke page-only Vitest configuration
+was removed. `npm --prefix frontend test` now discovers it together with the
+actual-component delayed-response regressions in
+`tests/character-reference-gallery.test.ts`. The tests mount one root, change
+the project through `window.history` plus a supported React rerender, and use
+controllable API promises that deliberately ignore `AbortSignal`. They settle
+the new project first, explicitly flush React work, then settle the old
+project's complete success or reject its old project read. In both cases the
+new title remains visible and the old data/error cannot replace it. The tests
+also assert that every old gallery request signal was aborted. The existing
+same-asset subject identity-reset proof remains there, alongside a
+selected-primary-missing-metadata assertion that ensures a selected hero is
+not silently replaced by an available candidate.
+
+Regression sensitivity was demonstrated locally without retaining a runtime
+change: the component's success and error owner guards were temporarily
+disabled, then only the two same-document tests were run. Both failed: late
+old success replaced “New project” with “Old project”, and late old rejection
+replaced the gallery with “old request failed”. The guards were restored before
+the passing focused and full standard-suite checks below. This is evidence that
+the tests exercise the actual gallery lifecycle contract, not an isolated
+helper.
+
+Final tests-only closure checks:
+
+- `npm --prefix frontend test -- character-reference-gallery` — 1 file / 4
+  tests passed under the standard `vitest.config.ts` discovery configuration.
+- `npm --prefix frontend run typecheck` — passed.
+- `npm --prefix frontend test` — passed after the final independent review.
+- `git diff --check` — passed.
+
+An independent Terra/high read-only review of this latest test/docs delta found
+no issues. It inspected the mounted-root/history transition, deliberate
+AbortSignal-ignoring deferred promises, explicit post-settlement React flushes,
+success and rejection assertions, cleanup signal checks, and the absence of a
+production-source delta.
+
+The persistent production preview (PID 4006 on port 49071) and its existing
+project `35271279-3269-431b-8088-165c1705bc2e` were not restarted, written, or
+otherwise used by this tests-only closure.
+
 ## Product acceptance boundary
 
 The browser and visual evidence verifies the presentation contract. It does not
