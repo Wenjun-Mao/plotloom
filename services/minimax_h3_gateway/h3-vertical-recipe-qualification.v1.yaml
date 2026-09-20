@@ -1,0 +1,60 @@
+manifestVersion: 1
+kind: minimax_h3_vertical_recipe_qualification
+capturedAt: "2026-09-19"
+
+status:
+  lifecycle: experiment_only
+  productionAdmission: prohibited_pending_human_review
+  purpose: >-
+    Select a portrait-first H3 quality candidate with more repeated samples
+    before comparing the selected recipe across all reviewed geometries.
+
+design:
+  geometry: 608x1088
+  fps: 24
+  frameCount: 124
+  durationSecondsApproximate: 5.167
+  fixedSeeds: [130117, 41398272, 20260919, 9048391, 27501834, 77261003]
+  scenes:
+    - dialogue_portrait_v1
+    - motion_portrait_v1
+  recipeIds:
+    - turbo4_v1_0_res_multistep_6_3
+    - turbo4_v1_2_euler_6_3
+    - turbo8_v1_0_euler_6_3_readme
+  totalClips: 36
+
+promptPolicy:
+  id: audio_only_visual_no_text_v1
+  rules:
+    - explicitly separate visual and audio instructions
+    - place dialogue only in the audio instruction
+    - prohibit visible language, captions, subtitles, titles, signage and UI text
+
+eightStepAuthority:
+  candidate: turbo8_v1_0_euler_6_3_readme
+  lora: minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors
+  inferenceSteps: 8
+  videoSigmaShift: 6
+  audioSigmaShift: 3
+  sampler: euler
+  scheduler: simple
+  rationale: >-
+    The current ModelTC model specification and Studio recommendation specify
+    the 768p eight-step FL2VA recipe as 8 NFE with video/audio shifts 6/3.
+  unresolvedConflict: >-
+    The downloadable I2VA Comfy graph still serializes 12/3 for this LoRA;
+    it is excluded from this candidate and remains experiment-only.
+
+reviewRubric:
+  - visible text artifact severity
+  - teeth, mouth and facial integrity
+  - Mandarin audibility, intelligibility and lip synchronization
+  - character continuity and framing
+  - temporal stability and motion
+  - output stream integrity and elapsed time
+
+nextStage: >-
+  After a human selects a recipe from this vertical-first study, test only the
+  winner across portrait 576x1024, 608x1088 and 704x1280 plus the reviewed
+  horizontal tiers. Do not use this experiment to change public profiles.

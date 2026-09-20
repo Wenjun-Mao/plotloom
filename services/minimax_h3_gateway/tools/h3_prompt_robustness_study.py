@@ -94,18 +94,22 @@ def _replace(value: Any, replacements: dict[str, Any]) -> Any:
 
 def render_workflow(
     template: dict[str, Any], *, recipe: Recipe, prompt: str, seed: int,
-    input_name: str, output_prefix: str,
+    input_name: str, output_prefix: str, width: int = WIDTH, height: int = HEIGHT,
+    frame_count: int = FRAME_COUNT,
 ) -> dict[str, Any]:
     """Render a one-frame H3 graph with an explicit, complete recipe."""
+
+    if width <= 0 or height <= 0 or frame_count <= 0:
+        raise ValueError("geometry and frame count must be positive")
 
     graph = _replace(
         copy.deepcopy(template),
         {
             "__PROMPT__": prompt,
             "__SEED__": seed,
-            "__WIDTH__": WIDTH,
-            "__HEIGHT__": HEIGHT,
-            "__FRAME_COUNT__": FRAME_COUNT,
+            "__WIDTH__": width,
+            "__HEIGHT__": height,
+            "__FRAME_COUNT__": frame_count,
             "__LORA_FILE__": recipe.lora_file,
             "__LORA_STRENGTH__": 1.0,
             "__INFERENCE_STEPS__": 4,

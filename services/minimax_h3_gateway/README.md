@@ -46,6 +46,12 @@ declared recipes × two prompt contracts. It refuses to begin if ComfyUI already
 has queued work. Its JSON receipt contains identifiers, prompt hashes, output
 descriptors and timings—not prompt text, credentials, or a profile promotion.
 
+The separate `tools/h3_vertical_recipe_qualification.py` runs the larger,
+vertical-first qualification matrix declared in
+[`h3-vertical-recipe-qualification.v1.yaml`](h3-vertical-recipe-qualification.v1.yaml).
+It compares complete recipes only; it is not a gateway operation or a public
+profile selector.
+
 The local service contract has five bearer-authenticated client operations plus
 one unauthenticated health route:
 

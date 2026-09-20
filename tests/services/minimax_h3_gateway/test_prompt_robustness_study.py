@@ -7,10 +7,10 @@ from pathlib import Path
 
 
 def _study_module():
-    path = (
-        Path(__file__).parents[3]
-        / "services/minimax_h3_gateway/tools/h3_prompt_robustness_study.py"
-    )
+    tools_path = Path(__file__).parents[3] / "services/minimax_h3_gateway/tools"
+    path = tools_path / "h3_prompt_robustness_study.py"
+    if str(tools_path) not in sys.path:
+        sys.path.insert(0, str(tools_path))
     spec = importlib.util.spec_from_file_location("h3_prompt_robustness_study", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -51,3 +51,34 @@ def test_study_renderer_has_exactly_one_start_frame_and_no_end_frame() -> None:
     }
     assert graph["105:9"]["inputs"]["steps"] == 4
     assert graph["92"]["inputs"]["filename_prefix"] == "experiments/study/case"
+
+
+def test_study_renderer_accepts_explicit_native_portrait_geometry() -> None:
+    study = _study_module()
+    template_path = (
+        Path(__file__).parents[3]
+        / "services/minimax_h3_gateway/src/plotloom_h3_gateway/profiles/minimax_h3_template_v2.json"
+    )
+    import json
+
+    graph = study.render_workflow(
+        json.loads(template_path.read_text(encoding="utf-8"))["prompt"],
+        recipe=study.RECIPES[0], prompt="x", seed=1, input_name="portrait.png",
+        output_prefix="experiments/study/portrait", width=608, height=1088,
+        frame_count=124,
+    )
+
+    assert graph["115"]["inputs"]["value"] == 608
+    assert graph["116"]["inputs"]["value"] == 1088
+    assert graph["105:107"]["inputs"]["value"] == 124
+
+
+def test_vertical_qualification_matrix_has_stronger_repeated_portrait_coverage() -> None:
+    import h3_vertical_recipe_qualification as study
+
+    assert (study.WIDTH, study.HEIGHT, study.FRAME_COUNT) == (608, 1088, 124)
+    assert len(study.RECIPES) == 3
+    assert len(study.SCENES) == 2
+    assert len(study.SEEDS) == 6
+    assert len(study.RECIPES) * len(study.SCENES) * len(study.SEEDS) == 36
+    assert study.RECIPES[-1].identifier == "turbo8_v1_0_euler_6_3_readme"
