@@ -5,7 +5,7 @@ capturedAt: "2026-09-20"
 # This is an experiment contract, not a public gateway profile. It adds a
 # non-Turbo quality candidate without changing any existing Turbo semantics.
 status:
-  lifecycle: candidate_pending_first_screen
+  lifecycle: portrait_cross_geometry_reviewed
   productionAdmission: prohibited
   purpose: >-
     Evaluate the unadapted 20-step FL2VA base model as a third quality
@@ -55,12 +55,33 @@ firstScreen:
     Spark runtime, codecs, audio path and frame count used by the valid
     vertical qualification screen.
 
+completedPortraitCrossGeometryScreen:
+  reviewedAt: "2026-09-20"
+  geometries: [576x1024, 608x1088, 704x1280]
+  clipsPerGeometry: 12
+  totalClips: 36
+  technicalVerification:
+    videoCodec: h264
+    audioCodec: aac
+    frameCount: 124
+    result: all_36_streams_match_the_frozen_contract
+  humanReview:
+    result: no_issue_reported_across_all_36_clips
+    boundary: >-
+      This is a narrow, paired portrait screen using two source images, two
+      scenes and six seeds. It is evidence of a strong candidate, not a claim
+      of universal H3 quality or permission to publish a gateway profile.
+  retainedReceipts:
+    - docs/verification/supporting/h3-base20-cross-geometry-2026-09-20-576x1024.json
+    - docs/verification/supporting/h3-base20-cross-geometry-2026-09-20-608x1088.json
+    - docs/verification/supporting/h3-base20-cross-geometry-2026-09-20-704x1280.json
+
 admissionRule:
   firstScreen: >-
     Require technical stream verification and human review before rendering
     additional geometries. Do not infer base quality from theoretical step
     count or from elapsed time alone.
-  crossGeometry: >-
-    If the first screen passes, compare this exact base candidate with the two
-    Turbo finalists at 576x1024 and 704x1280 using the same paired scenes and
-    seeds. Public profile promotion remains a separate decision.
+  nextRequiredEvidence: >-
+    Before public profile admission, test distinct-shot character continuity,
+    two-frame conditioning, and reviewed horizontal geometry. Record elapsed
+    time and capacity behavior separately from creative quality.

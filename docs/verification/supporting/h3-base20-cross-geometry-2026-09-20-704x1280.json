@@ -1,0 +1,186 @@
+{
+  "manifestVersion": 1,
+  "kind": "minimax_h3_vertical_recipe_qualification",
+  "geometry": {
+    "width": 704,
+    "height": 1280,
+    "frameCount": 124,
+    "fps": 24
+  },
+  "recipes": [
+    {
+      "id": "base20_res_multistep_native_12_3",
+      "topology": "base_model_with_native_sigma_defaults",
+      "loraFile": null,
+      "loraStrength": null,
+      "inferenceSteps": 20,
+      "videoSigmaShiftOverride": null,
+      "audioSigmaShiftOverride": null,
+      "effectiveSigmaShifts": {
+        "video": 12.0,
+        "audio": 3.0
+      },
+      "sampler": "res_multistep",
+      "scheduler": "simple",
+      "denoise": 1.0
+    }
+  ],
+  "results": [
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 130117,
+      "comfyPromptId": "a39b5cb6-2f1e-46a5-b54f-8ed56945fe3f",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_dialogue_portrait_v1_704x1280_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 556954
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 41398272,
+      "comfyPromptId": "b0170a1c-ffd0-4c98-b11a-cda850568468",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_dialogue_portrait_v1_704x1280_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 548868
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 20260919,
+      "comfyPromptId": "6414cac0-4932-4509-a47f-be476efe44de",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_dialogue_portrait_v1_704x1280_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 550914
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 9048391,
+      "comfyPromptId": "24644c2f-835b-414c-af5e-7a3a852db880",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_dialogue_portrait_v1_704x1280_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 552884
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 27501834,
+      "comfyPromptId": "64d48835-5e5a-475d-9a28-d9b11a9b53c9",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_dialogue_portrait_v1_704x1280_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 550934
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "dialogue_portrait_v1",
+      "promptSha256": "14a7c261ddf382390e6b3ac4cd4dee0a6c492cec91ecf9f4af7609e5cd9edd98",
+      "seed": 77261003,
+      "comfyPromptId": "e2f8c81e-82c6-45c2-99f1-738af92d4f9c",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_dialogue_portrait_v1_704x1280_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 554963
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 130117,
+      "comfyPromptId": "12067fac-7329-49fa-9cf7-fdf104faae2f",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_motion_portrait_v1_704x1280_seed-130117_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 560959
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 41398272,
+      "comfyPromptId": "db583501-4224-4966-8041-0f7e805228c6",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_motion_portrait_v1_704x1280_seed-41398272_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 552903
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 20260919,
+      "comfyPromptId": "848481c3-78cf-4461-901a-6b74c30a6770",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_motion_portrait_v1_704x1280_seed-20260919_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 552956
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 9048391,
+      "comfyPromptId": "54829e1e-3a45-46f7-8408-fad3cfefb21e",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_motion_portrait_v1_704x1280_seed-9048391_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 554882
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 27501834,
+      "comfyPromptId": "6935ad82-1c1a-4033-9e61-5d1514718c8b",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_motion_portrait_v1_704x1280_seed-27501834_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 549179
+    },
+    {
+      "recipeId": "base20_res_multistep_native_12_3",
+      "sceneId": "motion_portrait_v1",
+      "promptSha256": "5a23de12a53d495235735f7dcb0e110491f8be08c4d579811dc4ceca917b8448",
+      "seed": 77261003,
+      "comfyPromptId": "c24d8492-eea8-44f7-90af-b60e160f3c0c",
+      "output": {
+        "filename": "base20_res_multistep_native_12_3_motion_portrait_v1_704x1280_seed-77261003_00001_.mp4",
+        "subfolder": "experiments/h3-base20-cross-geometry-2026-09-20-704x1280",
+        "type": "output"
+      },
+      "generationElapsedMs": 550953
+    }
+  ]
+}

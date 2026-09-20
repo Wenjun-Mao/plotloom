@@ -40,6 +40,22 @@ humanReview:
       motion: >-
         Two seeds showed blinking lights and two others slight or obvious
         frame shake. No aggregate quality claim is made from this sample.
+  crossGeometryReview:
+    reviewedAt: "2026-09-20"
+    geometryScope: [576x1024, 704x1280]
+    turbo4_v1_2_euler_6_3:
+      dialogue: no issue reported in all twelve additional clips
+      motion: >-
+        At 576x1024 one image drift and two shakes were reported; at
+        704x1280 two shakes and one combined drift/shake were reported.
+    turbo8_v1_0_euler_6_3_readme:
+      dialogue: no issue reported in all twelve additional clips
+      motion: >-
+        At 576x1024 three shakes were reported; at 704x1280 two blinking-light
+        cases and one shake were reported.
+    disposition: >-
+      Both remain fast experiment candidates, but neither demonstrated the
+      temporal stability needed to displace the reviewed base-20 candidate.
 
 executionIncident:
   detectedAt: "2026-09-19"
@@ -101,7 +117,7 @@ reviewRubric:
   - output stream integrity and elapsed time
 
 nextStage: >-
-  Complete the two-Turbo finalist comparison at portrait 576x1024 and
-  704x1280. Run the separately declared 20-step base first screen at 608x1088
-  before admitting it to those extra geometries. Do not use either experiment
-  to change public profiles.
+  Treat base20_res_multistep_native_12_3 as the portrait quality candidate for
+  its next validation gates. Keep the two Turbo recipes experiment-only until
+  a speed/quality catalog decision; do not use any experiment result to change
+  public profiles.
