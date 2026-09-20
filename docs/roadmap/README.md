@@ -2,10 +2,11 @@
 
 The current delivery authority is [Playable MVP milestones](2026-09-17-playable-mvp-milestones.md).
 It owns the approved sequence, release boundary, acceptance criteria and progress.
-The current approved next slice is the read-only U2 route-focused storyboard review
-prototype in [Creator workflow usability](2026-09-18-creator-workflow-usability.md).
-It is limited to current F4 script, F5A storyboard-review evidence, and the canonical
-graph; generation and the broader U1–U4 redesign remain out of scope.
+The completed U2 route-focused storyboard reader and its 2026-09-20 connector
+polish are recorded in [Creator workflow usability](2026-09-18-creator-workflow-usability.md).
+The next proposal is a separately unapproved, bounded U3 image-first review of
+already-owned references. Generation and the broader U1–U4 redesign remain out
+of scope.
 
 ## Archive index
 

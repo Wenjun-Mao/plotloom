@@ -61,8 +61,14 @@ test("switches route-focused screenplay and matching storyboard without appendin
   await instructions.locator("summary").click();
   await expect(instructions.locator("pre")).toContainText("How the reference pictures align");
   await page.screenshot({ path: testInfo.outputPath("storyboard-f5-1440.png"), fullPage: true });
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await prototype.locator(".branch-map").screenshot({ path: testInfo.outputPath("branch-map-f5-1920.png") });
+  await page.screenshot({ path: testInfo.outputPath("storyboard-f5-1920.png"), fullPage: true });
   await page.setViewportSize({ width: 768, height: 900 });
+  await prototype.locator(".branch-map").screenshot({ path: testInfo.outputPath("branch-map-f5-768.png") });
   await page.screenshot({ path: testInfo.outputPath("storyboard-f5-768.png"), fullPage: true });
+  await page.setViewportSize({ width: 720, height: 900 });
+  await prototype.locator(".branch-map").screenshot({ path: testInfo.outputPath("branch-map-f5-720.png") });
   await prototype.getByRole("button", { name: "剧本" }).click();
   await expect(prototype.getByTestId("route-reader")).toContainText("Dock first.");
   expect(writes).toEqual([]);

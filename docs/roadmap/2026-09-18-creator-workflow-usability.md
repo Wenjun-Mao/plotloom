@@ -172,3 +172,32 @@ the screenplay. The reader selects one focused view at a time and retains route
 and shared-opening focus across the switch. See the correction verification
 receipt for the independent F4 multi-scene proof, valid storyboard route proof,
 stale local refusal, and viewport evidence.
+
+## U2 reader connector polish and attended usability acceptance — 2026-09-20
+
+The user approved the storyboard reader's usability after the attended review:
+it looks good except for the detached connector strokes in the wide branch map.
+That is presentation feedback only, not creative, generated-media, F5A
+production, M2, U3/F7, or language acceptance. The connector correction keeps
+the canonical graph as the only route owner and changes no reader admission,
+project, review, media, or provider state.
+
+The defect was a layout-ownership problem: each destination card independently
+positioned a viewport-relative stroke, so its fragments could detach from cards
+and overlap the heading at wide widths. The corrected map owns one connector in
+the grid track between the opening and its two explicit choices. Its trunk and
+arms align to the two equal choice rows; the narrow single-column layout hides
+the decorative connector rather than leaving fragments. The focused production
+browser proof retains F4-only multi-scene screenplay admission, exact F5A
+storyboard admission, route focus, and GET-only reading, while adding retained
+1920 px visual evidence alongside the wide and narrow captures. See the
+[connector-polish receipt](../verification/2026-09-20-u2-reader-connector-polish.md).
+
+**Next proposal, not yet approved or implemented:** U3's first bounded
+image-first review should expose one already-owned character/environment/prop
+reference set for the same small story, with a large current image and plainly
+labelled alternatives or missing states. It should keep refinement lineage,
+generation instructions, IDs, and provenance collapsed; reuse existing media
+and reference owners; and make no generation, selection, provider, production,
+or language-contract change. An attended review should decide whether that
+single reference surface is clear before any broader gallery or U3 work.
