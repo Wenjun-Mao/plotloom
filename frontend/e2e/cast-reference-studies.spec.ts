@@ -21,7 +21,7 @@ type Proposal = {
 };
 
 test.describe("F2B cast-owned reference studies", () => {
-  test("uses a cast-only production fixture through original, refinement, and restart", async ({ page, request, workbench }) => {
+  test("uses a cast-only production fixture through original, refinement, and restart", async ({ page, request, workbench }, testInfo) => {
     test.setTimeout(75_000);
     const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "journey");
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
@@ -30,6 +30,13 @@ test.describe("F2B cast-owned reference studies", () => {
     const panel = page.getByTestId("cast-reference-studies");
     await expect(panel).toBeVisible();
     await expect(panel).toContainText("no Story Bible, Shot, Approval");
+    // U3 admits this cast-only project before it has any reference image. It
+    // must not reach for a Bible, screenplay, or storyboard to fill the gap.
+    await page.goto(`${workbench.frontendOrigin}/v2/?view=character-reference-review&project=${projectId}`);
+    const emptyGallery = page.getByTestId("character-reference-gallery");
+    await expect(emptyGallery).toContainText("尚未选择身份参考");
+    await expect(emptyGallery.getByTestId("reference-no-image")).toBeVisible();
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
     await panel.getByLabel("Reference decision reviewer").fill("F2B browser fixture reviewer");
     await panel.getByLabel("Selection notes").fill("Retained test-only raster fixture; this is a technical regression selection.");
     await panel.getByLabel("Pose / composition direction").fill("Three-quarter study at the storm beacon window.");
@@ -58,6 +65,45 @@ test.describe("F2B cast-owned reference studies", () => {
     await workbench.restartBackend();
     await page.reload();
     await expect(panel.getByTestId("cast-current-reference")).toContainText("current r2");
+    const viewingMethods: string[] = [];
+    const recordGalleryRequest = (browserRequest: import("@playwright/test").Request) => {
+      if (new URL(browserRequest.url()).pathname.includes(`/api/v2/projects/${projectId}/`)) viewingMethods.push(browserRequest.method());
+    };
+    page.on("request", recordGalleryRequest);
+    try {
+      await page.goto(`${workbench.frontendOrigin}/v2/?view=character-reference-review&project=${projectId}`);
+      const gallery = page.getByTestId("character-reference-gallery");
+      await expect(gallery).toContainText("先看图像，再看技术细节");
+      await expect(gallery.getByText("当前已选择的身份参考", { exact: true })).toBeVisible();
+      await expect(gallery.getByRole("img").first()).toBeVisible();
+      const selectedCard = gallery.getByTestId(`reference-candidate-${originalCandidate}`);
+      await expect(selectedCard).toContainText("当前已选择");
+      await selectedCard.getByText("查看生成说明", { exact: true }).click();
+      await expect(selectedCard).toContainText("Three-quarter study at the storm beacon window.");
+      await expect(gallery.getByText("细化自", { exact: false })).toBeVisible();
+      await selectedCard.getByText("技术详情", { exact: true }).click();
+      await expect(selectedCard).toContainText("请求标识");
+      await expect(selectedCard).toContainText("来源");
+      await page.screenshot({ path: testInfo.outputPath("u3-character-reference-gallery-1440x900.png"), animations: "disabled" });
+      await page.setViewportSize({ width: 768, height: 900 });
+      await expect(gallery.getByRole("img").first()).toBeVisible();
+      await page.screenshot({ path: testInfo.outputPath("u3-character-reference-gallery-768x900.png"), animations: "disabled" });
+      await gallery.getByRole("link", { name: "剧本" }).click();
+      await expect(page).toHaveURL(new RegExp(`view=story-prototype.*project=${projectId}|project=${projectId}.*view=story-prototype`));
+      await page.goto(`${workbench.frontendOrigin}/v2/?view=character-reference-review&project=${projectId}`);
+      await expect(page.getByTestId("character-reference-gallery")).toBeVisible();
+    } finally {
+      page.off("request", recordGalleryRequest);
+    }
+    expect(viewingMethods).not.toHaveLength(0);
+    expect(viewingMethods.every((method) => method === "GET")).toBeTruthy();
+    const sourceState = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline`));
+    await getJson(request.put(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline/source`, {
+      data: { expectedSourceRevision: sourceState.source.revision, material: { ...sourceState.source.material, text: "A U3 stale-selection presentation check." } },
+    }));
+    await page.goto(`${workbench.frontendOrigin}/v2/?view=character-reference-review&project=${projectId}`);
+    await expect(page.getByTestId("character-reference-gallery")).toContainText("已接受角色已过期");
+    await expect(page.getByText("历史选择，当前不可用", { exact: true }).first()).toBeVisible();
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
   });
 
@@ -92,6 +138,9 @@ test.describe("F2B cast-owned reference studies", () => {
     expect(opened.ok(), await opened.text()).toBeTruthy();
     await page.reload();
     await expect(panel).toContainText("Cancelled: Operator cancelled the exploratory reference handoff.");
+    await page.goto(`${workbench.frontendOrigin}/v2/?view=character-reference-review&project=${projectId}`);
+    await expect(page.getByTestId("character-reference-gallery")).toContainText("已过期 / 不适用交付");
+    await expect(page.getByTestId("character-reference-gallery")).toContainText("已取消，未交付");
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
   });
 
@@ -110,6 +159,8 @@ test.describe("F2B cast-owned reference studies", () => {
     await expect(page.getByTestId("cast-reference-studies")).toHaveCount(0);
     const staleCast = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${staleProjectId}/cast`));
     expect(staleCast.status).toBe("stale");
+    await page.goto(`${workbench.frontendOrigin}/v2/?view=character-reference-review&project=${staleProjectId}`);
+    await expect(page.getByTestId("character-reference-gallery")).toContainText("已接受角色已过期");
 
     const firstProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-first");
     const secondProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-second");

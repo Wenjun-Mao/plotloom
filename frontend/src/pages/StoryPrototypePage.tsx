@@ -124,11 +124,12 @@ function PrototypeShell({ children }: { children: ReactNode }) { return <div cla
 function CreatorStageNavigation({ projectId }: { projectId: string }) {
   const workspaceUrl = (stage: string) => `?${new URLSearchParams({ project: projectId, stage }).toString()}`;
   const playUrl = `?${new URLSearchParams({ project: projectId, view: "play" }).toString()}`;
+  const galleryUrl = `?${new URLSearchParams({ project: projectId, view: "character-reference-review" }).toString()}`;
   return <nav className="creator-stage-navigation" aria-label="创作阶段">
     <a href={workspaceUrl("source")}>来源</a>
     <span>故事</span>
     <a href={workspaceUrl("bible")}>人物、地点、道具</a>
-    <span className="unavailable" title="此阅读原型尚未提供美术审阅。">美术 · 尚未提供</span>
+    <a href={galleryUrl}>美术 · 人物参考</a>
     <span className="current" aria-current="step">剧本</span>
     <a href={workspaceUrl("storyboard")}>分镜</a>
     <span className="unavailable" title="制作环节尚未接入此阅读原型。">制作 · 尚未提供</span>

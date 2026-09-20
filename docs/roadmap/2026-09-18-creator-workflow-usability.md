@@ -193,11 +193,33 @@ storyboard admission, route focus, and GET-only reading, while adding retained
 1920 px visual evidence alongside the wide and narrow captures. See the
 [connector-polish receipt](../verification/2026-09-20-u2-reader-connector-polish.md).
 
-**Next proposal, not yet approved or implemented:** U3's first bounded
-image-first review should expose one already-owned character/environment/prop
-reference set for the same small story, with a large current image and plainly
-labelled alternatives or missing states. It should keep refinement lineage,
-generation instructions, IDs, and provenance collapsed; reuse existing media
-and reference owners; and make no generation, selection, provider, production,
-or language-contract change. An attended review should decide whether that
-single reference surface is clear before any broader gallery or U3 work.
+## U3 first character-reference review — 2026-09-20
+
+**Approved boundary.** The user approved the first bounded U3 slice: a
+read-only, image-first character-reference gallery over existing accepted-cast,
+character-reference proposal/decision, and managed-asset owners. This approval
+supersedes only the preceding *unapproved* first-U3 proposal. It does not
+approve a broad U1–U4 redesign, environment/prop galleries, F7, generation,
+selection, import/refresh/disposal operations, provider work, creative asset
+acceptance, or a whole-workflow language change.
+
+**Root cause and ownership note.** Existing F2B data already contains the
+currentness, selected-reference, proposal, delivery, refinement-parent and
+managed-asset facts a creator needs, but those facts are scattered across an
+authoring panel whose controls obscure comparison. The remedy belongs in a
+GET-only presentation route, not a new gallery store, cached projection, or
+selection workflow. Accepted cast owns admissible subjects; reference decisions
+own the selected identity reference; proposals/deliveries own candidate and
+parent lineage; managed assets own image bytes. The route must represent their
+states faithfully, including stale, historical, missing and failed delivery
+evidence.
+
+**Acceptance.** The gallery is cast-only: it requires no Story Bible, script,
+or storyboard. It shows a large best-available image, named subjects,
+alternatives, explicit selected/current/historical state, refinement links, and
+separate collapsed frozen directions and technical provenance. Chinese chrome
+does not translate retained source. It has no mutation callback. A focused
+production FastAPI/file-SQLite browser journey proves GET-only viewing,
+subject/project ownership isolation, missing/stale states, route continuity,
+and wide/narrow presentation; retained technical fixtures remain clearly
+non-generated layout proof, not creative evidence.
