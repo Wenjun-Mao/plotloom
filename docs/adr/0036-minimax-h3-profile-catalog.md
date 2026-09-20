@@ -1,9 +1,9 @@
 # ADR 0036: MiniMax-H3 reviewed profile catalog
 
-**Superseded in part by [ADR 0049](0049-h3-catalog-clean-cutover.md):** the
-V3 clean cutover removes the retained 864 × 480 profile and all implicit
-fallback behavior. This record remains for the history of the V2 catalog
-decision.
+**Superseded by [ADR 0070](0070-h3-quality-resolution-contract.md):** the
+gateway now accepts independent `quality` and `resolution` choices, not a
+combined public profile ID. This record remains only as history of the V2
+catalog decision.
 
 ## Context
 

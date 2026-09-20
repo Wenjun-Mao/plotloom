@@ -100,31 +100,17 @@ class H3SamplingRecipe:
         }
 
 
-# The catalog is deliberately an allowlist, not a width/height calculator.
-# Every v2 profile carries the complete published recipe. The original v1
-# profile IDs stay internal so a frozen historical job can still be read and
-# validated against its observed 12/3 ComfyUI-default trajectory.
-_LEGACY_IMPLICIT_RECIPE = H3SamplingRecipe(
-    "lightx2v_fl2va_turbo4_v1_implicit_h3_defaults",
+# Plotloom stays deliberately narrow: it creates image-to-video work using
+# gateway quality 1 only. The gateway itself owns the broader colleague API.
+_DEFAULT_QUALITY_RECIPE = H3SamplingRecipe(
+    "lightx2v_fl2va_turbo4_v1_2",
     1,
-    "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
-    1.0,
-    4,
-    12.0,
-    3.0,
-    "res_multistep",
-    "simple",
-    1.0,
-)
-_CORRECTED_TURBO4_V1_RECIPE = H3SamplingRecipe(
-    "lightx2v_fl2va_turbo4_v1_768p",
-    1,
-    "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+    "minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors",
     1.0,
     4,
     6.0,
     3.0,
-    "res_multistep",
+    "euler",
     "simple",
     1.0,
 )
@@ -134,12 +120,8 @@ def _profiles(
     *,
     version: int,
     recipe: H3SamplingRecipe,
-    corrected: bool,
 ) -> tuple[H3Profile, ...]:
     suffix = f"v{version}"
-    label_suffix = (
-        " · Corrected recipe" if corrected else " · Retired observed recipe"
-    )
     geometries = (
         ("portrait", "fast", "576x1024", "Portrait · Fast", 576, 1024),
         ("portrait", "standard", "608x1088", "Portrait · Standard", 608, 1088),
@@ -164,9 +146,9 @@ def _profiles(
     )
     return tuple(
         H3Profile(
-            profile_id=f"minimax_h3_fp8_turbo4_{orientation}_{resolution}_{suffix}",
+            profile_id=f"minimax_h3_quality1_{orientation}_{resolution}_{suffix}",
             profile_version=version,
-            label=f"{label} · {width} × {height}{label_suffix}",
+            label=f"{label} · {width} × {height} · Quality 1",
             orientation=orientation,
             tier=tier,
             width=width,
@@ -177,16 +159,15 @@ def _profiles(
     )
 
 
-H3_RETIRED_PROFILES = _profiles(version=1, recipe=_LEGACY_IMPLICIT_RECIPE, corrected=False)
-H3_PROFILES = _profiles(version=2, recipe=_CORRECTED_TURBO4_V1_RECIPE, corrected=True)
+H3_PROFILES = _profiles(version=1, recipe=_DEFAULT_QUALITY_RECIPE)
 H3_PROFILES_BY_ID = {profile.profile_id: profile for profile in H3_PROFILES}
-H3_ALL_PROFILES_BY_ID = {profile.profile_id: profile for profile in H3_RETIRED_PROFILES + H3_PROFILES}
+H3_ALL_PROFILES_BY_ID = H3_PROFILES_BY_ID
 DEFAULT_H3_PROFILE_ID = H3_PROFILES[0].profile_id
-H3_PROFILE_CONTRACT_VERSION = 5
+H3_PROFILE_CONTRACT_VERSION = 6
 # This identifier is the client-side admission anchor for the reviewed gateway
 # catalog.  It is distinct from individual frozen profile IDs, which remain
 # valid explicit runtime selections.
-H3_CATALOG_ID = "minimax_h3_gateway_catalog_v5"
+H3_CATALOG_ID = "minimax_h3_gateway_catalog_v6"
 # The gateway can parse 5--15 seconds, but only this product-qualified subset
 # is admitted into new Plotloom jobs.  Do not turn gateway capability into a
 # browser-selectable range without another qualification decision.
@@ -197,10 +178,7 @@ class MiniMaxH3GatewayAdapter:
     """Compile and validate only profiles in the private H3 catalog."""
 
     adapter_id = "minimax_h3_gateway"
-    # This extends the existing V4 request parser without changing its gateway
-    # identity. Keeping the version lets already-frozen V4 H3 requests resume
-    # against the same compatible adapter after restart.
-    adapter_version = "4"
+    adapter_version = "5"
     _JOB_ID = re.compile(r"^h3_[0-9a-f]{32}$")
     # New Plotloom work must receive a fully composed reviewed keyframe.
     _ASPECT_POLICIES = frozenset({"cover_center_crop", "contain_pad", "reject_mismatch"})
@@ -303,7 +281,7 @@ class MiniMaxH3GatewayAdapter:
             "adapterId": self.adapter_id,
             "adapterVersion": self.adapter_version,
             "provider": "minimax_h3_gateway",
-            "model": default.profile_id,
+            "model": H3_CATALOG_ID,
             "durationSeconds": default.duration_seconds,
             "resolution": default.resolution,
             "width": default.width,
@@ -317,8 +295,13 @@ class MiniMaxH3GatewayAdapter:
             "allowsCenterCrop": True,
             "tracksPaidWanPilot": False,
             "profileContractVersion": H3_PROFILE_CONTRACT_VERSION,
-            "defaultProfileId": DEFAULT_H3_PROFILE_ID,
+            "defaultQuality": 1,
+            # Plotloom's generic video-review UI still needs one internal
+            # geometry selection. It never crosses the gateway boundary: the
+            # transport serializes its resolution with public quality=1.
+            "defaultProfileId": default.profile_id,
             "qualifiedDurationSeconds": sorted(H3_QUALIFIED_DURATION_FRAMES),
+            "resolutions": [profile.resolution for profile in H3_PROFILES],
             "profiles": [profile.product_descriptor() for profile in H3_PROFILES],
         }
 
@@ -352,7 +335,8 @@ class MiniMaxH3GatewayAdapter:
             raise VideoProviderError("H3 frozen request is incomplete")
         return {
             "prompt": prompt,
-            "profileId": profile.profile_id,
+            "quality": 1,
+            "resolution": profile.resolution,
             "aspectPolicy": aspect_policy,
             "seed": seed,
             "durationSeconds": duration,
@@ -378,13 +362,12 @@ class MiniMaxH3GatewayAdapter:
             raise VideoProviderError("H3 response has no documented job ID")
         if expected_profile_id is None:
             raise VideoProviderError("H3 response requires a frozen profile")
-        expected = expected_profile_id
-        cls()._frozen_profile(
+        profile = cls()._frozen_profile(
             expected_profile_id, profile_version=expected_profile_version,
             width=expected_width, height=expected_height, fps=expected_fps,
         )
-        if payload.get("profileId") != expected:
-            raise VideoProviderError("H3 response profile does not match frozen job")
+        if payload.get("quality") != 1 or payload.get("resolution") != profile.resolution:
+            raise VideoProviderError("H3 response quality or resolution does not match frozen job")
         if expected_aspect_policy is not None and payload.get("aspectPolicy") != expected_aspect_policy:
             raise VideoProviderError("H3 response aspect policy does not match frozen job")
         if expected_duration_seconds is not None and payload.get("requestedDurationSeconds") != expected_duration_seconds:

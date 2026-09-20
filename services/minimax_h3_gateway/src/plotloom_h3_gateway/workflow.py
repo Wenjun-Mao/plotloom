@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .naming import is_safe_path_part
-from .profile_catalog import GatewayProfile
+from .profile_catalog import H3ExecutionProfile
 
 
 def load_h3_template() -> dict[str, Any]:
@@ -18,7 +18,7 @@ def load_h3_template() -> dict[str, Any]:
 
 
 def render_workflow(
-    template: dict[str, Any], *, profile: GatewayProfile, prompt: str,
+    template: dict[str, Any], *, execution: H3ExecutionProfile, prompt: str,
     start_input_name: str | None, end_input_name: str | None, seed: int, frame_count: int,
 ) -> dict[str, Any]:
     """Render a reviewed H3 graph with zero, one, or two optional frame inputs."""
@@ -29,24 +29,25 @@ def render_workflow(
             return {key: replace(child) for key, child in value.items()}
         if isinstance(value, list):
             return [replace(child) for child in value]
-        recipe = profile.recipe
+        recipe = execution.recipe
         return {
             "__PROMPT__": prompt,
             "__SEED__": seed,
-            "__WIDTH__": profile.width,
-            "__HEIGHT__": profile.height,
+            "__WIDTH__": execution.width,
+            "__HEIGHT__": execution.height,
             "__FRAME_COUNT__": frame_count,
-            "__LORA_FILE__": recipe.lora_file,
-            "__LORA_STRENGTH__": recipe.lora_strength,
             "__INFERENCE_STEPS__": recipe.inference_steps,
-            "__VIDEO_SIGMA_SHIFT__": recipe.video_sigma_shift,
-            "__AUDIO_SIGMA_SHIFT__": recipe.audio_sigma_shift,
             "__SAMPLER__": recipe.sampler,
             "__SCHEDULER__": recipe.scheduler,
             "__DENOISE__": recipe.denoise,
         }.get(value, value)
 
     workflow = replace(workflow)
+    if execution.recipe.topology == "turbo":
+        _render_turbo_topology(workflow, execution)
+    else:
+        _render_base_topology(workflow)
+
     h3_inputs = workflow["105:104"]["inputs"]
     for socket, input_name, node_id in (
         ("first_frame", start_input_name, "h3_start_frame"),
@@ -58,6 +59,36 @@ def render_workflow(
         else:
             h3_inputs.pop(socket, None)
     return workflow
+
+
+def _render_turbo_topology(workflow: dict[str, Any], execution: H3ExecutionProfile) -> None:
+    """Render the reviewed Turbo path with explicit LoRA and 6/3 shifts."""
+
+    recipe = execution.recipe
+    if (
+        recipe.lora_file is None or recipe.lora_strength is None
+        or recipe.video_sigma_shift is None or recipe.audio_sigma_shift is None
+    ):
+        raise ValueError("turbo recipe is incomplete")
+    workflow["105:121"]["inputs"] = {
+        "lora_name": recipe.lora_file,
+        "strength_model": recipe.lora_strength,
+        "model": ["105:6", 0],
+    }
+    workflow["105:122"]["inputs"] = {
+        "model": ["105:121", 0],
+        "shift_video": recipe.video_sigma_shift,
+        "shift_audio": recipe.audio_sigma_shift,
+    }
+
+
+def _render_base_topology(workflow: dict[str, Any]) -> None:
+    """Use H3 native 12/3 defaults: no Turbo LoRA or shift override nodes."""
+
+    workflow.pop("105:121", None)
+    workflow.pop("105:122", None)
+    for node_id in ("105:9", "105:16"):
+        workflow[node_id]["inputs"]["model"] = ["105:6", 0]
 
 
 def single_output_descriptor(outputs: object) -> dict[str, str] | None:

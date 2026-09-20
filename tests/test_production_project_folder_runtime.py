@@ -30,7 +30,8 @@ class _RuntimeFakeH3:
     def __init__(self) -> None:
         self.submits: list[dict] = []
         self.downloads = 0
-        self.profile_id = "minimax_h3_fp8_turbo4_portrait_576x1024_v2"
+        self.quality = 1
+        self.resolution = "576x1024"
         self.aspect_policy = "reject_mismatch"
 
     def configured_backend_identity(self) -> VideoBackendInstanceIdentity:
@@ -44,12 +45,13 @@ class _RuntimeFakeH3:
     def submit_image(self, image: bytes, *, mime_type: str, payload: dict) -> dict:
         assert image and mime_type == "image/png" and payload["durationSeconds"] == 5
         self.submits.append(payload)
-        self.profile_id = payload["profileId"]
+        self.quality = payload["quality"]
+        self.resolution = payload["resolution"]
         self.aspect_policy = payload["aspectPolicy"]
-        return _h3_job("submitted", False, payload["profileId"], payload["aspectPolicy"])
+        return _h3_job("submitted", False, self.quality, self.resolution, payload["aspectPolicy"])
 
     def poll(self, prediction_id: str) -> dict:
-        return _h3_job("succeeded", True, self.profile_id, self.aspect_policy, identifier=prediction_id)
+        return _h3_job("succeeded", True, self.quality, self.resolution, self.aspect_policy, identifier=prediction_id)
 
     def download(self, reference: str) -> bytes:
         assert reference == "h3_0123456789abcdef0123456789abcdef"
@@ -57,8 +59,8 @@ class _RuntimeFakeH3:
         return b"runtime-h3-video"
 
 
-def _h3_job(status: str, output_ready: bool, profile_id: str, aspect_policy: str, *, identifier: str = "h3_0123456789abcdef0123456789abcdef") -> dict[str, object]:
-    return {"id": identifier, "status": status, "inputMode": "image", "profileId": profile_id,
+def _h3_job(status: str, output_ready: bool, quality: int, resolution: str, aspect_policy: str, *, identifier: str = "h3_0123456789abcdef0123456789abcdef") -> dict[str, object]:
+    return {"id": identifier, "status": status, "inputMode": "image", "quality": quality, "resolution": resolution,
             "aspectPolicy": aspect_policy, "seed": 31, "requestedDurationSeconds": 5,
             "frameCount": 124, "actualDurationSeconds": 124 / 24,
             "generationSubmittedAt": None, "generationCompletedAt": None,

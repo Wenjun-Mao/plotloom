@@ -1,6 +1,9 @@
 # ADR 0069: H3 explicit sampling recipes and profile cutover
 
-**Status:** Accepted
+**Status:** Superseded by ADR 0070 for the public gateway contract
+
+The sampling diagnosis remains historical evidence. ADR 0070 replaces its
+retained-profile and public-catalog design with the quality/resolution contract.
 
 ## Context
 

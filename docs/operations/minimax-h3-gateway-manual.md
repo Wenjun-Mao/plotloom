@@ -16,16 +16,15 @@ The underlying Spark/ComfyUI installation is documented separately from this
 gateway runbook: [reproducible setup guide](../../services/minimax_h3_gateway/docs/h3-reproducible-setup.md),
 [rationale and operations manual](../../services/minimax_h3_gateway/docs/h3-rationale-and-operations.md),
 and [current-installation manifest](../../services/minimax_h3_gateway/h3-current-installation.v1.yaml).
-The [corrected candidate manifest](../../services/minimax_h3_gateway/h3-corrected-turbo4-candidate.v1.yaml)
-defines the explicit v2 profile recipe. It remains a candidate until its
-real-model baseline is reviewed; a running H3 container alone is not proof of
-creative qualification.
+The qualification manifests record the evidence behind the currently admitted
+quality paths. A running H3 container alone is never proof of creative
+acceptance.
 
 ## 1. What this system is—and is not
 
 Plotloom uses MiniMax-H3 through a small authenticated gateway running on
-Spark. The gateway owns a small reviewed profile catalog, not arbitrary
-dimensions or ComfyUI graphs:
+Spark. The gateway owns four reviewed quality paths and six exact output
+resolutions, not arbitrary dimensions or ComfyUI graphs:
 
 | Tier | Landscape | Portrait |
 | --- | --- | --- |
@@ -33,9 +32,16 @@ dimensions or ComfyUI graphs:
 | Standard | 960×544 | 608×1088 |
 | High resolution | 1280×704 | 704×1280 |
 
-Every catalog entry uses MiniMax-H3 FL2VA FP8 and the official 4-step 768p
-Turbo LoRA. The gateway can render zero, one, or two H3 frame sockets: text
-exploration, start-frame I2V, or start/end-frame I2V. It accepts requested
+| `quality` | Frozen path |
+| ---: | --- |
+| 1 | V1.2 Turbo-4 / Euler / explicit 6:3 shifts |
+| 2 | V1.0 Turbo-4 / res_multistep / explicit 6:3 shifts |
+| 3 | V1.0 Turbo-8 / Euler / explicit 6:3 shifts |
+| 8 | Base-20 / res_multistep / native 12:3, no Turbo LoRA |
+
+Quality 1 is the public default and the only quality selected by Plotloom.
+The gateway can render zero, one, or two H3 frame sockets: text exploration,
+start-frame I2V, or start/end-frame I2V. It accepts requested
 whole-second durations 5–15 and snaps them to the node's 24 fps `17k + 5`
 frame grid (5 seconds is 124 frames, about 5.167 seconds). Output is H.264/AAC.
 Portrait 576×1024 is Plotloom's new-job default. “High resolution” means more
@@ -44,8 +50,8 @@ pixels only; it is not a creative-quality or production-ready claim.
 It is **not** a general ComfyUI proxy. Neither Plotloom nor a browser can send
 arbitrary graph JSON, custom node names, model paths, seed overrides outside a
 frozen job, dimensions, duration, or a provider endpoint. The gateway accepts
-only a frozen prompt, one catalog profile ID, permitted duration/seed choices,
-and—where I2V is used—an explicit input-aspect policy.
+only a frozen prompt, a quality, an exact resolution, permitted duration/seed
+choices, and—where I2V is used—an explicit input-aspect policy.
 
 The gateway can create a video with an AAC track. It does not mean dialogue,
 lip sync, performance, voice continuity, character continuity, or a creative
@@ -63,7 +69,7 @@ browser ◄──── reviewed MP4 candidate ◄────┤
   no endpoint or key                      ▼
                                       ComfyUI :8188
                                       bound to 127.0.0.1
-                                      reviewed H3 profile catalog + local models
+                                      reviewed H3 quality/resolution catalog + local models
 ```
 
 The browser talks only to Plotloom. Plotloom's H3 transport accepts a
@@ -88,10 +94,9 @@ The implementation and decision records are:
   and [ADR 0034](../adr/0034-provider-neutral-video-adapters-and-local-h3.md);
   [ADR 0035](../adr/0035-backend-owned-video-modules.md) records the module
   and service-package ownership boundary, while [ADR 0038](../adr/0038-h3-gateway-durable-fifo-dispatch.md)
-  records the gateway-owned FIFO worker. [ADR 0049](../adr/0049-h3-catalog-clean-cutover.md)
-  supersedes the retained-profile portion of ADR 0036 with the V3 profile
-  clean cutover. [ADR 0050](../adr/0050-unified-h3-generation-contract.md)
-  records the V4 direct-generation contract.
+  records the gateway-owned FIFO worker. [ADR 0050](../adr/0050-unified-h3-generation-contract.md)
+  records the direct-generation boundary and [ADR 0070](../adr/0070-h3-quality-resolution-contract.md)
+  records the quality/resolution clean cutover.
 
 ## 3. Before deployment
 
@@ -112,6 +117,8 @@ The implementation and decision records are:
    minimax_h3_video_vae_fp16.safetensors
    minimax_h3_audio_vae_fp32.safetensors
    minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors
+   minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors
+   minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors
    ```
 
 4. Keep the large model artefacts under `/home/wjmao/models`. Configure
@@ -192,8 +199,10 @@ An expected health response is structurally equivalent to:
 ```json
 {
   "status": "ok",
-  "profileContractVersion": 5,
-  "profiles": [{"id": "minimax_h3_fp8_turbo4_portrait_576x1024_v2", "width": 576, "height": 1024}],
+  "generationContractVersion": 6,
+  "defaultQuality": 1,
+  "qualities": [1, 2, 3, 8],
+  "resolutions": ["832x480", "960x544", "1280x704", "576x1024", "608x1088", "704x1280"],
   "queuedJobs": 0,
   "activeDispatches": 0,
   "dispatchConcurrency": 1
@@ -202,7 +211,7 @@ An expected health response is structurally equivalent to:
 
 `/health` intentionally performs a ComfyUI/profile preflight. A running
 container is therefore not enough: do not enable Plotloom until `/health`
-returns `ok` with the full reviewed catalog and contract version.
+returns `ok` with all four quality paths and contract version.
 
 For an ordinary restart after configuration-free changes:
 
@@ -226,17 +235,15 @@ PLOTLOOM_ENABLE_WAN_P2=false
 PLOTLOOM_ENABLE_H3_GATEWAY=true
 VIDEO_PROVIDER=minimax_h3_gateway
 VIDEO_BASE_URL=http://100.x.y.z:8090
-VIDEO_MODEL=minimax_h3_gateway_catalog_v5
+VIDEO_MODEL=minimax_h3_gateway_catalog_v6
 VIDEO_AUTH_MODE=bearer
 VIDEO_MODEL_API_KEY=the-same-value-as-H3_API_KEY
 ```
 
-`VIDEO_MODEL=minimax_h3_gateway_catalog_v5` is Plotloom's default,
-recommended reviewed-catalog admission marker while the gateway reports the V5
-profile contract and its six corrected candidate profiles. A profile ID from
-that reviewed catalog is also a supported explicit runtime selection; v1 IDs
-remain readable only for historical jobs and are rejected before new transport
-creation.
+`VIDEO_MODEL=minimax_h3_gateway_catalog_v6` is Plotloom's default admission
+marker. Plotloom sends its reviewed image bytes using gateway quality `1` and
+the selected exact resolution. It does not expose T2V or the other quality
+paths as an authoring choice.
 
 Restart Plotloom after changing `.env`. A host environment variable takes
 precedence over `.env`, so investigate both if the running service reports an
@@ -318,7 +325,7 @@ The following is a private service contract; it is not a browser API.
 
 `POST /v1/assets` and `POST /v1/video-jobs` are retired and return 404.
 Job response fields are deliberately closed: `id`, `status`, `inputMode`,
-`profileId`, `aspectPolicy`, resolved `seed`, `requestedDurationSeconds`,
+resolved `quality`, `resolution`, `aspectPolicy`, `seed`, `requestedDurationSeconds`,
 `frameCount`, `actualDurationSeconds`, `generationSubmittedAt`,
 `generationCompletedAt`, `generationElapsedMs`, `error`, and `outputReady`.
 `generationElapsedMs` starts after ComfyUI accepts the workflow and ends when
@@ -422,14 +429,12 @@ Do **not** make any of the following as an SSH-only tweak:
 - point Plotloom at another model or arbitrary URL;
 - accept a mismatched output because it plays in a browser.
 
-Each alters a production contract. The required path is: add a new gateway
-profile/version in source, add or update a separate Plotloom adapter capability
-version, freeze it in production snapshots, add request/response/output tests,
-run a bounded probe, record the evidence, and then enable it deliberately.
-The current catalog is a clean-cutover contract: a retired profile is not
-accepted, inferred, migrated, or replayed by new code. Existing completed
-MP4s remain ordinary retained files until their scheduled expiry, but do not
-create a runtime compatibility path.
+Each alters a production contract. The required path is: add a versioned
+quality path in source, update the separate Plotloom adapter capability,
+freeze it in gateway job snapshots, add request/response/output tests, run a
+bounded probe, record the evidence, and then enable it deliberately. This is
+a clean cutover: prior `profileId` state must be archived and reset, never
+migrated or replayed under a new quality meaning.
 
 Normal code updates are safer: pull a reviewed `main`, rebuild the gateway
 image, verify `/health`, run the relevant Plotloom checks, and only then
@@ -467,7 +472,7 @@ can establish whether this H3 baseline is useful for sequential storytelling.
 
 Before an operator declares the H3 path usable after a restart or handoff:
 
-- [ ] ComfyUI is loopback-only and `/health` reports contract version 4 and the full reviewed catalog.
+- [ ] ComfyUI is loopback-only and `/health` reports generation contract version 6, all four quality values, and all six resolutions.
 - [ ] H3 model artefacts remain under `/home/wjmao/models` and are visible to
       ComfyUI under the exact required names.
 - [ ] Gateway is bound to Spark's Tailnet address, not `0.0.0.0`.

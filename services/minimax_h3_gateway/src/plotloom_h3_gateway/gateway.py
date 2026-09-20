@@ -14,12 +14,14 @@ from .contracts import CreateImageJobRequest, CreateTextJobRequest, GatewayError
 from .media import GatewayFiles
 from .naming import timestamped_storage_name
 from .profile_catalog import (
+    DEFAULT_QUALITY,
     FRAMES_PER_SECOND,
-    H3_GATEWAY_PROFILES,
-    PROFILE_CONTRACT_VERSION,
-    admitted_profile,
+    GENERATION_CONTRACT_VERSION,
+    QUALITY_RECIPES,
+    RESOLUTIONS,
+    admitted_execution,
+    execution_from_snapshot,
     frame_count_for_duration_seconds,
-    profile,
 )
 from .source_images import SourceImageFetcher
 from .store import GatewayStore
@@ -49,8 +51,9 @@ class H3Gateway:
         self.comfy.preflight()
         queued, active = self.store.queue_counts()
         return {
-            "status": "ok", "profileContractVersion": PROFILE_CONTRACT_VERSION,
-            "profiles": [item.public_descriptor() for item in H3_GATEWAY_PROFILES],
+            "status": "ok", "generationContractVersion": GENERATION_CONTRACT_VERSION,
+            "defaultQuality": DEFAULT_QUALITY, "qualities": sorted(QUALITY_RECIPES),
+            "resolutions": [item.value for item in RESOLUTIONS],
             "inputModes": ["image", "text"], "queuedJobs": queued, "activeDispatches": active,
             "dispatchConcurrency": 1,
         }
@@ -58,7 +61,7 @@ class H3Gateway:
     def validate_image_job_request(self, request: CreateImageJobRequest) -> None:
         """Reject profile/duration configuration before a URL fetch or write."""
 
-        self._admitted_profile(request.profile_id)
+        self._admitted_execution(request.quality, request.resolution)
         frame_count_for_duration_seconds(request.duration_seconds)
 
     def create_image_job(self, request: CreateImageJobRequest, *, start_content: bytes, end_content: bytes | None = None) -> dict[str, Any]:
@@ -69,7 +72,8 @@ class H3Gateway:
             if end_content is not None:
                 assets.append(self.files.add_asset(end_content))
             return self._create_job(
-                input_mode="image", prompt=request.prompt, profile_id=request.profile_id,
+                input_mode="image", prompt=request.prompt, quality=request.quality,
+                resolution=request.resolution,
                 aspect_policy=request.aspect_policy, seed=request.seed,
                 duration_seconds=request.duration_seconds, assets=assets,
             )
@@ -79,20 +83,20 @@ class H3Gateway:
             raise
 
     def create_text_job(self, request: CreateTextJobRequest) -> dict[str, Any]:
-        self._admitted_profile(request.profile_id)
         return self._create_job(
-            input_mode="text", prompt=request.prompt, profile_id=request.profile_id,
+            input_mode="text", prompt=request.prompt, quality=request.quality,
+            resolution=request.resolution,
             aspect_policy=None, seed=request.seed, duration_seconds=request.duration_seconds, assets=[],
         )
 
-    def _create_job(self, *, input_mode: str, prompt: str, profile_id: str, aspect_policy: str | None, seed: int | None, duration_seconds: int, assets: list[dict[str, Any]]) -> dict[str, Any]:
-        selected_profile = self._admitted_profile(profile_id)
+    def _create_job(self, *, input_mode: str, prompt: str, quality: int, resolution: str, aspect_policy: str | None, seed: int | None, duration_seconds: int, assets: list[dict[str, Any]]) -> dict[str, Any]:
+        execution = self._admitted_execution(quality, resolution)
         frame_count = frame_count_for_duration_seconds(duration_seconds)
         if input_mode == "image":
             if aspect_policy is None or not assets:
                 raise GatewayError("image_file_required", 422)
             for asset in assets:
-                self.files.validate_job_input(asset=asset, profile=selected_profile, policy=aspect_policy)
+                self.files.validate_job_input(asset=asset, execution=execution, policy=aspect_policy)
         elif input_mode != "text" or assets or aspect_policy is not None:
             raise GatewayError("request_invalid", 422)
 
@@ -105,11 +109,12 @@ class H3Gateway:
         prepared: list[dict[str, Any]] = []
         try:
             for frame, asset in zip(frames, assets, strict=True):
-                self.files.prepare_job_frame(frame=frame, asset=asset, profile=selected_profile, policy=aspect_policy)  # type: ignore[arg-type]
+                self.files.prepare_job_frame(frame=frame, asset=asset, execution=execution, policy=aspect_policy)  # type: ignore[arg-type]
                 prepared.append(frame)
             return self.store.reserve_job(
                 {
-                    "id": job_id, "input_mode": input_mode, "profile_id": profile_id,
+                    "id": job_id, "input_mode": input_mode, "quality": quality,
+                    "resolution": resolution, "execution_snapshot_json": execution.snapshot_json(),
                     "aspect_policy": aspect_policy, "prompt": prompt, "seed": resolved_seed,
                     "requested_duration_seconds": duration_seconds, "frame_count": frame_count,
                     "fps": FRAMES_PER_SECOND,
@@ -129,11 +134,12 @@ class H3Gateway:
                     pass
 
     @staticmethod
-    def _admitted_profile(profile_id: str):
+    def _admitted_execution(quality: int, resolution: str):
         try:
-            return admitted_profile(profile_id)
+            return admitted_execution(quality=quality, resolution=resolution)
         except KeyError as error:
-            raise GatewayError("profile_not_supported", 422) from error
+            code = "quality_not_supported" if error.args == ("quality",) else "resolution_not_supported"
+            raise GatewayError(code, 422) from error
 
     def dispatch_once(self) -> dict[str, Any] | None:
         for active in self.store.list_active_jobs():
@@ -143,20 +149,23 @@ class H3Gateway:
         try:
             if self.comfy.queue_depth() > 0:
                 return None
-            self.comfy.preflight()
         except GatewayError:
             return None
+        # Validate only the selected frozen execution after claim. A current
+        # catalog addition must not make an older queued snapshot un-runnable.
         job = self.store.claim_next_queued()
         if job is None:
             return None
         try:
             frames = {str(frame["role"]): str(frame["prepared_input_name"]) for frame in self.store.get_job_frames(str(job["id"]))}
+            execution = execution_from_snapshot(str(job["execution_snapshot_json"]))
+            self.comfy.preflight(execution)
             workflow = render_workflow(
-                self.workflow_template["prompt"], profile=profile(str(job["profile_id"])),
+                self.workflow_template["prompt"], execution=execution,
                 prompt=str(job["prompt"]), start_input_name=frames.get("start"), end_input_name=frames.get("end"),
                 seed=int(job["seed"]), frame_count=int(job["frame_count"]),
             )
-        except (KeyError, TypeError, ValueError):
+        except (GatewayError, KeyError, TypeError, ValueError):
             return self.store.update_job(str(job["id"]), status="failed", error_code="dispatch_local_precondition_failed")
         try:
             prompt_id = self.comfy.submit(workflow=workflow, client_id=str(job["id"]))

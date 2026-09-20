@@ -42,7 +42,7 @@ def create_app(settings: GatewaySettings | None = None, *, session: requests.Ses
             if gateway.settings.dispatch_worker_enabled:
                 worker.stop()
 
-    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="4.0", lifespan=lifespan)
+    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="6.0", lifespan=lifespan)
     app.state.gateway = gateway
 
     def authorize(authorization: str | None = Header(default=None)) -> None:
@@ -94,7 +94,8 @@ def _job_response(gateway: H3Gateway, job: dict[str, Any]) -> dict[str, Any]:
         elapsed = (int(end) if isinstance(end, int) else _now_ms()) - int(job["generation_submitted_at_ms"])
     return {
         "id": job["id"], "status": job["status"], "inputMode": job["input_mode"],
-        "profileId": job["profile_id"], "aspectPolicy": job["aspect_policy"], "seed": job["seed"],
+        "quality": job["quality"], "resolution": job["resolution"],
+        "aspectPolicy": job["aspect_policy"], "seed": job["seed"],
         "requestedDurationSeconds": job["requested_duration_seconds"], "frameCount": job["frame_count"],
         "actualDurationSeconds": job["frame_count"] / job["fps"],
         "generationSubmittedAt": submitted, "generationCompletedAt": completed,
@@ -135,7 +136,7 @@ async def _json_object(request: Request) -> dict[str, Any]:
 
 async def _read_multipart_images(request: Request) -> tuple[bytes, bytes | None, dict[str, Any]]:
     form = await request.form()
-    allowed = {"image", "endImage", "prompt", "aspectPolicy", "profileId", "seed", "durationSeconds"}
+    allowed = {"image", "endImage", "prompt", "aspectPolicy", "quality", "resolution", "seed", "durationSeconds"}
     received = set(form.keys())
     if received - allowed or any(len(form.getlist(field)) != 1 for field in received):
         raise GatewayError("request_fields_invalid", 422)

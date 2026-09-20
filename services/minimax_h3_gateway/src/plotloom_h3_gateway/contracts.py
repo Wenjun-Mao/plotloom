@@ -72,12 +72,8 @@ class _GenerationParameters(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     prompt: str = Field(min_length=1, max_length=8_000)
-    profile_id: str = Field(
-        alias="profileId",
-        min_length=3,
-        max_length=63,
-        pattern=r"^[a-z][a-z0-9_]{0,62}$",
-    )
+    quality: int = Field(default=1)
+    resolution: str = Field(min_length=7, max_length=9, pattern=r"^[0-9]{3,4}x[0-9]{3,4}$")
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
     duration_seconds: int = Field(default=5, alias="durationSeconds", ge=5, le=15)
 

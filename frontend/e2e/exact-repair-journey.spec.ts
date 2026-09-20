@@ -38,7 +38,10 @@ test("repairs exactly one late scene-beats shard through the real browser and pu
 
   await navigateToStage(page, "07 隔离修复");
   const exactRepair = page.locator("#workspace-main").getByRole("button", { name: "修复这个 work unit" });
-  await expect(exactRepair).toBeVisible();
+  // The API has already proved the quarantined unit. Under the four-worker
+  // suite, give the independently fetched repair projection time to hydrate
+  // rather than treating the default locator timeout as product behavior.
+  await expect(exactRepair).toBeVisible({ timeout: 30_000 });
   const repairResponse = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/runs/${sourceRun.id}/work-units/${failedUnit!.workUnitId}/repairs`);
   await exactRepair.click();

@@ -4,8 +4,8 @@ This is the private, typed API in front of Spark's loopback-only ComfyUI
 service. It is deliberately **not** a ComfyUI proxy: callers cannot submit
 workflows, select model files, or reach ComfyUI directly.
 
-Plotloom is now wired to this gateway through the versioned
-`minimax_h3_gateway.v4` adapter. Use the complete
+Plotloom is wired to this gateway through the versioned
+`minimax_h3_gateway.v6` adapter contract. Use the complete
 [H3 gateway operator and maintainer manual](../../docs/operations/minimax-h3-gateway-manual.md)
 for deployment, security, Plotloom configuration, lifecycle, recovery, and
 the exact limits of verified behavior.
@@ -19,14 +19,14 @@ qualified inference profile. New work uses the separate corrected candidate
 manifest until real-model qualification promotes it.
 
 The separate [8-step sampling evaluation manifest](h3-8step-sampling-evaluation.v1.yaml)
-records an upstream recipe conflict and its bounded experiments. It is not a
-public profile catalog and cannot be selected by a gateway caller or Plotloom.
-The [four-step v1.2 evaluation manifest](h3-turbo4-v12-evaluation.v1.yaml)
-records its vendor-specified candidate independently for the same reason.
+and [four-step v1.2 evaluation manifest](h3-turbo4-v12-evaluation.v1.yaml)
+record the evidence behind public gateway quality paths. The gateway exposes
+only their reviewed, versioned recipe definitions—not arbitrary node choices.
 The [20-step base evaluation manifest](h3-base20-evaluation.v1.yaml) defines
 the non-Turbo candidate: its graph removes, rather than zeroes, the Turbo LoRA
 and sigma-shift override nodes so it uses H3's native 12/3 shift defaults.
-It remains experiment-only until its first real-model screen is reviewed.
+Its real-model screen is recorded in the portrait cross-geometry review and it
+is available as public quality `8`.
 The bounded [dialogue visual-text robustness study](h3-prompt-robustness-study.v1.yaml)
 tests prompt rendering against visible-text artifacts without changing an
 admitted profile; its Spark-only runner lives in `tools/`.
@@ -57,7 +57,8 @@ It compares complete recipes only; it is not a gateway operation or a public
 profile selector.
 
 The local service contract has five bearer-authenticated client operations plus
-one unauthenticated health route:
+one unauthenticated health route. Creation uses a required exact `resolution`
+and optional `quality` (default `1`); it never accepts `profileId`:
 
 1. `POST /v1/video-jobs/from-image` accepts a required start frame and optional
    end frame (multipart files or JSON URLs) and durably queues one job.
@@ -101,7 +102,7 @@ state rather than preserving UUID-only files.
 
 Keep ComfyUI on `127.0.0.1:8188`, bind this gateway only to Spark's Tailscale
 address, and keep its bearer key server-side. Do not replace the documented
-profile catalog with an SSH-only edit: profile changes require a new versioned
+quality catalog with an SSH-only edit: quality changes require a new versioned
 gateway/Plotloom contract and verification.
 
 ## Module boundary and future extraction

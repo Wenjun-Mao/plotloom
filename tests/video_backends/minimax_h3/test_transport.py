@@ -9,7 +9,7 @@ from plotloom.video_provider import VideoOutputContractError, VideoProviderError
 
 
 _JOB_ID = "h3_0123456789abcdef0123456789abcdef"
-_PROFILE = "minimax_h3_fp8_turbo4_portrait_576x1024_v2"
+_PROFILE = H3_PROFILES[0].profile_id
 
 
 class _Response:
@@ -24,7 +24,8 @@ class _Response:
 
 def _job(status: str, output_ready: bool, *, duration: int = 5, frame_count: int = 124) -> dict[str, object]:
     return {
-        "id": _JOB_ID, "status": status, "inputMode": "image", "profileId": _PROFILE,
+        "id": _JOB_ID, "status": status, "inputMode": "image", "quality": 1,
+        "resolution": "576x1024",
         "aspectPolicy": "reject_mismatch", "seed": 1, "requestedDurationSeconds": duration,
         "frameCount": frame_count, "actualDurationSeconds": frame_count / 24,
         "generationSubmittedAt": None, "generationCompletedAt": None, "generationElapsedMs": None,
@@ -37,7 +38,7 @@ class _GatewaySession:
     def request(self, method: str, url: str, **kwargs: object) -> _Response:
         self.calls.append((method, url, dict(kwargs)))
         if url.endswith("/health"):
-            return _Response(200, {"status": "ok", "profileContractVersion": H3_PROFILE_CONTRACT_VERSION, "profiles": [profile.public_descriptor() for profile in H3_PROFILES], "inputModes": ["image", "text"], "queuedJobs": 0, "activeDispatches": 0, "dispatchConcurrency": 1})
+            return _Response(200, {"status": "ok", "generationContractVersion": H3_PROFILE_CONTRACT_VERSION, "defaultQuality": 1, "qualities": [1, 2, 3, 8], "resolutions": ["832x480", "960x544", "1280x704", "576x1024", "608x1088", "704x1280"], "inputModes": ["image", "text"], "queuedJobs": 0, "activeDispatches": 0, "dispatchConcurrency": 1})
         if url.endswith("/v1/video-jobs/from-image"): return _Response(202, _job("queued", False))
         if url.endswith(f"/v1/video-jobs/{_JOB_ID}"): return _Response(200, _job("succeeded", True))
         raise AssertionError(url)
@@ -50,7 +51,7 @@ class _GatewaySession:
 def test_h3_transport_uses_only_the_direct_multipart_gateway_envelope() -> None:
     session = _GatewaySession(); transport = MiniMaxH3GatewayTransport("test-key", base_url="http://100.64.1.2:8090", session=session)
     transport.preflight()
-    submitted = transport.submit_image(b"png", mime_type="image/png", payload={"prompt": "one line", "profileId": _PROFILE, "aspectPolicy": "reject_mismatch", "seed": 1, "durationSeconds": 5})
+    submitted = transport.submit_image(b"png", mime_type="image/png", payload={"prompt": "one line", "quality": 1, "resolution": "576x1024", "aspectPolicy": "reject_mismatch", "seed": 1, "durationSeconds": 5})
     polled = transport.poll(_JOB_ID); media = transport.download(_JOB_ID)
     assert transport._session.trust_env is False
     assert submitted["id"] == _JOB_ID and polled["outputReady"] is True and media == b"mp4"
@@ -58,6 +59,7 @@ def test_h3_transport_uses_only_the_direct_multipart_gateway_envelope() -> None:
     assert all(call[2].get("allow_redirects") is False for call in session.calls)
     assert session.calls[1][1].endswith("/v1/video-jobs/from-image")
     assert session.calls[1][2]["data"]["durationSeconds"] == "5"
+    assert session.calls[1][2]["data"]["quality"] == "1"
     assert "idempotencyKey" not in session.calls[1][2]["data"]
 
 
@@ -90,7 +92,7 @@ def test_h3_adapter_requires_explicit_and_exclusive_center_crop_consent() -> Non
     assert contract.request_snapshot() == {
         "durationSeconds": 5, "resolution": "576x1024", "audio": True,
         "aspectPolicy": "cover_center_crop", "seed": 7, "profileId": _PROFILE,
-        "profileVersion": 2, "width": 576, "height": 1024,
+        "profileVersion": 1, "width": 576, "height": 1024,
         "fps": 24, "frameCount": 124,
         "allowLetterbox": False, "allowCenterCrop": True,
     }
@@ -194,7 +196,7 @@ def test_h3_transport_rejects_submit_duration_or_frame_drift() -> None:
 
     transport = MiniMaxH3GatewayTransport("test-key", base_url="http://100.64.1.2:8090", session=_Drifted())
     with pytest.raises(WanDispatchError):
-        transport.submit_image(b"png", mime_type="image/png", payload={"prompt": "x", "profileId": _PROFILE, "aspectPolicy": "reject_mismatch", "seed": 1, "durationSeconds": 5})
+        transport.submit_image(b"png", mime_type="image/png", payload={"prompt": "x", "quality": 1, "resolution": "576x1024", "aspectPolicy": "reject_mismatch", "seed": 1, "durationSeconds": 5})
 
 
 def test_h3_transport_rejects_unrecognised_direct_response_shape() -> None:
@@ -204,4 +206,4 @@ def test_h3_transport_rejects_unrecognised_direct_response_shape() -> None:
             return super().request(method, url, **kwargs)
     transport = MiniMaxH3GatewayTransport("test-key", base_url="http://100.64.1.2:8090", session=_Malformed())
     with pytest.raises(WanDispatchError):
-        transport.submit_image(b"png", mime_type="image/png", payload={"prompt": "x", "profileId": _PROFILE, "aspectPolicy": "reject_mismatch", "seed": 1, "durationSeconds": 5})
+        transport.submit_image(b"png", mime_type="image/png", payload={"prompt": "x", "quality": 1, "resolution": "576x1024", "aspectPolicy": "reject_mismatch", "seed": 1, "durationSeconds": 5})

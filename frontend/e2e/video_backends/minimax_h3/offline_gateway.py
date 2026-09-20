@@ -5,7 +5,7 @@ import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from plotloom.video_backends.minimax_h3 import H3_PROFILES_BY_ID
+from plotloom.video_backends.minimax_h3 import H3_PROFILES
 from plotloom.video_provider import VideoBackendInstanceIdentity
 
 
@@ -26,11 +26,13 @@ class OfflineH3GatewayFake:
         """Mirror the direct multipart image boundary used by Plotloom."""
 
         assert image and mime_type.startswith("image/")
-        assert isinstance(payload["profileId"], str) and payload["profileId"] in H3_PROFILES_BY_ID
+        assert payload["quality"] == 1
+        assert isinstance(payload["resolution"], str)
+        assert any(profile.resolution == payload["resolution"] for profile in H3_PROFILES)
         assert payload["aspectPolicy"] in {"cover_center_crop", "contain_pad", "reject_mismatch"}
         assert isinstance(payload["seed"], int)
         assert payload["durationSeconds"] in {5, 8}
-        self.profile_id = payload["profileId"]
+        self.resolution = payload["resolution"]
         self.aspect_policy = payload["aspectPolicy"]
         self.seed = payload["seed"]
         self.duration = payload["durationSeconds"]
@@ -43,7 +45,7 @@ class OfflineH3GatewayFake:
     def _job(self, status: str, *, output_ready: bool, aspect_policy: object) -> dict[str, object]:
         return {
             "id": "h3_0123456789abcdef0123456789abcdef", "status": status,
-            "inputMode": "image", "profileId": self.profile_id,
+            "inputMode": "image", "quality": 1, "resolution": self.resolution,
             "aspectPolicy": aspect_policy, "seed": self.seed,
             "requestedDurationSeconds": self.duration, "frameCount": {5: 124, 8: 192}[self.duration],
             "actualDurationSeconds": {5: 124, 8: 192}[self.duration] / 24,
@@ -53,9 +55,9 @@ class OfflineH3GatewayFake:
 
     def download(self, job_id: str) -> bytes:
         assert job_id == "h3_0123456789abcdef0123456789abcdef"
-        if self.profile_id is None:
-            raise RuntimeError("offline H3 fixture has no frozen profile")
-        profile = H3_PROFILES_BY_ID[self.profile_id]
+        profile = next((item for item in H3_PROFILES if item.resolution == self.resolution), None)
+        if profile is None:
+            raise RuntimeError("offline H3 fixture has no frozen resolution")
         with TemporaryDirectory(prefix="plotloom-offline-h3-") as directory:
             output = Path(directory) / "clip.mp4"
             completed = subprocess.run([
@@ -71,7 +73,7 @@ class OfflineH3GatewayFake:
         return "5.166667" if self.duration == 5 else "8"
 
     def __init__(self) -> None:
-        self.profile_id: str | None = None
+        self.resolution = "576x1024"
         self.aspect_policy: object = "reject_mismatch"
         self.seed = 1
         self.duration = 5

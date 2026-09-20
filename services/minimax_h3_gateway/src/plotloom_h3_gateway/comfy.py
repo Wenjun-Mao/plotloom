@@ -6,7 +6,7 @@ from typing import Any
 import requests
 
 from .contracts import GatewayError, GatewaySettings
-from .profile_catalog import active_lora_files
+from .profile_catalog import H3ExecutionProfile, active_lora_files
 
 
 class ComfyClient:
@@ -26,7 +26,7 @@ class ComfyClient:
             raise GatewayError("comfy_queue_invalid", 503)
         return len(active) + len(pending)
 
-    def preflight(self) -> None:
+    def preflight(self, execution: H3ExecutionProfile | None = None) -> None:
         self._get_json("/system_stats", code="comfy_unavailable")
         object_info = self._get_json("/object_info", code="comfy_profile_unavailable")
         required = (
@@ -42,16 +42,21 @@ class ComfyClient:
                 raise GatewayError("comfy_profile_unavailable", 503) from error
             if not isinstance(options, list) or expected not in options:
                 raise GatewayError("comfy_profile_unavailable", 503)
-        try:
-            lora_names = object_info["LoraLoaderModelOnly"]["input"]["required"]["lora_name"][0]
-        except (KeyError, IndexError, TypeError) as error:
-            raise GatewayError("comfy_profile_unavailable", 503) from error
-        if not isinstance(lora_names, list) or not active_lora_files().issubset(lora_names):
-            raise GatewayError("comfy_profile_unavailable", 503)
         required_nodes = {
-            "MiniMaxH3ImageToVideo", "MiniMaxH3SigmaShift", "PrimitiveInt",
-            "KSamplerSelect", "BasicScheduler", "BasicGuider", "SamplerCustomAdvanced",
+            "MiniMaxH3ImageToVideo", "PrimitiveInt", "KSamplerSelect",
+            "BasicScheduler", "BasicGuider", "SamplerCustomAdvanced",
         }
+        required_loras = active_lora_files() if execution is None else (
+            frozenset({execution.recipe.lora_file}) if execution.recipe.lora_file else frozenset()
+        )
+        if required_loras:
+            required_nodes |= {"LoraLoaderModelOnly", "MiniMaxH3SigmaShift"}
+            try:
+                lora_names = object_info["LoraLoaderModelOnly"]["input"]["required"]["lora_name"][0]
+            except (KeyError, IndexError, TypeError) as error:
+                raise GatewayError("comfy_profile_unavailable", 503) from error
+            if not isinstance(lora_names, list) or not required_loras.issubset(lora_names):
+                raise GatewayError("comfy_profile_unavailable", 503)
         if not required_nodes.issubset(object_info):
             raise GatewayError("comfy_profile_unavailable", 503)
         try:

@@ -19,7 +19,7 @@ from .contracts import (
     GatewaySettings,
 )
 from .naming import ASSET_ID, H3_JOB_ID, is_owned_storage_name, is_safe_path_part, timestamped_storage_name
-from .profile_catalog import GatewayProfile
+from .profile_catalog import H3ExecutionProfile
 from .store import GatewayStore
 
 
@@ -67,7 +67,7 @@ class GatewayFiles:
         )
 
     def validate_job_input(
-        self, *, asset: dict[str, Any], profile: GatewayProfile, policy: AspectPolicy
+        self, *, asset: dict[str, Any], execution: H3ExecutionProfile, policy: AspectPolicy
     ) -> None:
         """Reject a known aspect mismatch before it creates a failed job record."""
 
@@ -82,8 +82,8 @@ class GatewayFiles:
         _validate_aspect_policy(
             source_width=source_width,
             source_height=source_height,
-            target_width=profile.width,
-            target_height=profile.height,
+            target_width=execution.width,
+            target_height=execution.height,
             policy=policy,
         )
 
@@ -100,15 +100,15 @@ class GatewayFiles:
         self.store.delete_unreferenced_asset(str(asset["id"]))
 
     def prepare_job_frame(
-        self, *, frame: dict[str, Any], asset: dict[str, Any], profile: GatewayProfile, policy: AspectPolicy
+        self, *, frame: dict[str, Any], asset: dict[str, Any], execution: H3ExecutionProfile, policy: AspectPolicy
     ) -> None:
         """Normalize either optional H3 frame through the same policy."""
 
         _prepare_input(
             source=Path(str(asset["path"])),
             destination=self.settings.comfy_input_dir / str(frame["prepared_input_name"]),
-            target_width=profile.width,
-            target_height=profile.height,
+            target_width=execution.width,
+            target_height=execution.height,
             policy=policy,
         )
 

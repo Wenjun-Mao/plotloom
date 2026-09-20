@@ -22,9 +22,7 @@ from ...video_provider import (
     WanDispatchError,
 )
 from .adapter import (
-    H3_ALL_PROFILES_BY_ID,
     H3_PROFILE_CONTRACT_VERSION,
-    H3_PROFILES_BY_ID,
     H3_QUALIFIED_DURATION_FRAMES,
 )
 
@@ -85,8 +83,10 @@ class MiniMaxH3GatewayTransport:
         if (
             not isinstance(payload, dict)
             or payload.get("status") != "ok"
-            or payload.get("profileContractVersion") != H3_PROFILE_CONTRACT_VERSION
-            or payload.get("profiles") != [profile.public_descriptor() for profile in H3_PROFILES_BY_ID.values()]
+            or payload.get("generationContractVersion") != H3_PROFILE_CONTRACT_VERSION
+            or payload.get("defaultQuality") != 1
+            or payload.get("qualities") != [1, 2, 3, 8]
+            or payload.get("resolutions") != ["832x480", "960x544", "1280x704", "576x1024", "608x1088", "704x1280"]
             or payload.get("inputModes") != ["image", "text"]
             or type(payload.get("queuedJobs")) is not int
             or payload["queuedJobs"] < 0
@@ -114,7 +114,7 @@ class MiniMaxH3GatewayTransport:
     def submit_image(self, image: bytes, *, mime_type: str, payload: dict[str, Any]) -> dict[str, Any]:
         """Submit a frozen Plotloom keyframe through the direct gateway route."""
 
-        if set(payload) != {"prompt", "profileId", "aspectPolicy", "seed", "durationSeconds"}:
+        if set(payload) != {"prompt", "quality", "resolution", "aspectPolicy", "seed", "durationSeconds"}:
             raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed"))
         duration = payload["durationSeconds"]
         expected_frame_count = H3_QUALIFIED_DURATION_FRAMES.get(duration) if type(duration) is int else None
@@ -228,7 +228,7 @@ class MiniMaxH3GatewayTransport:
         expected_seed: int | None = None,
     ) -> None:
         expected = {
-            "id", "status", "inputMode", "profileId", "aspectPolicy", "seed",
+            "id", "status", "inputMode", "quality", "resolution", "aspectPolicy", "seed",
             "requestedDurationSeconds", "frameCount", "actualDurationSeconds",
             "generationSubmittedAt", "generationCompletedAt", "generationElapsedMs",
             "error", "outputReady",
@@ -238,9 +238,11 @@ class MiniMaxH3GatewayTransport:
         identifier = value.get("id")
         if not isinstance(identifier, str) or not cls._JOB_ID.fullmatch(identifier) or (expected_id is not None and identifier != expected_id):
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
-        # The health catalog lists current admission targets, while status
-        # remains able to read a frozen historical v1 gateway job.
-        if value.get("profileId") not in H3_ALL_PROFILES_BY_ID:
+        if value.get("quality") not in {1, 2, 3, 8}:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        if value.get("resolution") not in {
+            "832x480", "960x544", "1280x704", "576x1024", "608x1088", "704x1280",
+        }:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("status") not in {
             "reserved", "queued", "submitting", "submitted", "running",

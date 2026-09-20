@@ -187,7 +187,12 @@ def _assert_services_root_is_gateway_only(root: Path, tracked_paths: list[Path])
     actual_service_paths = {
         path.relative_to(root).as_posix()
         for path in services_root.rglob("*")
-        if path.is_file() or path.is_symlink()
+        # Importing the gateway during its own test run writes Python bytecode
+        # next to the source. It is ignored repository-wide and is runtime
+        # debris, not a second service or an untracked implementation file.
+        if (path.is_file() or path.is_symlink())
+        and "__pycache__" not in path.parts
+        and path.suffix != ".pyc"
     }
     assert actual_service_paths == tracked_service_paths, (
         "services must contain only tracked gateway files; unexpected: "

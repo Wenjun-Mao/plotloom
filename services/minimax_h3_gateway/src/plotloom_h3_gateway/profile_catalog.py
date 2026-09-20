@@ -1,197 +1,178 @@
-"""Versioned MiniMax-H3 profiles and complete sampling recipes.
+"""Reviewed MiniMax-H3 quality and resolution contract.
 
-The public gateway catalog contains only currently admitted profiles. Retired
-profiles remain addressable internally so that a historical job keeps its
-original interpretation, but they can never be selected for new work.
+The public gateway accepts a deliberately small pair of independent choices:
+an integer quality level and an exact output resolution. A job freezes their
+fully resolved execution descriptor at admission; this catalog is therefore
+only an admission source, never a mutable dispatch dependency.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import asdict, dataclass
 from typing import Any
 
 
-PROFILE_CONTRACT_VERSION = 5
+GENERATION_CONTRACT_VERSION = 6
 FRAMES_PER_SECOND = 24
 MIN_DURATION_SECONDS = 5
 MAX_DURATION_SECONDS = 15
 FRAME_GRID_INTERVAL = 17
 FRAME_GRID_OFFSET = 5
+DEFAULT_QUALITY = 1
+WORKFLOW_RENDERER_VERSION = 3
 
 
 @dataclass(frozen=True)
 class H3SamplingRecipe:
-    """Atomic, reviewed H3 sampling values rendered into every workflow."""
+    """One complete, reviewed H3 sampling path."""
 
     recipe_id: str
     recipe_version: int
-    lora_file: str
-    lora_strength: float
+    topology: str
+    lora_file: str | None
+    lora_strength: float | None
     inference_steps: int
-    video_sigma_shift: float
-    audio_sigma_shift: float
+    video_sigma_shift: float | None
+    audio_sigma_shift: float | None
     sampler: str
     scheduler: str
     denoise: float
 
-    def public_descriptor(self) -> dict[str, Any]:
-        return {
-            "id": self.recipe_id,
-            "version": self.recipe_version,
-            "loraFile": self.lora_file,
-            "loraStrength": self.lora_strength,
-            "inferenceSteps": self.inference_steps,
-            "videoSigmaShift": self.video_sigma_shift,
-            "audioSigmaShift": self.audio_sigma_shift,
-            "sampler": self.sampler,
-            "scheduler": self.scheduler,
-            "denoise": self.denoise,
-        }
 
-
-# This recipe is retained only to read and, if needed, finish a job accepted
-# by the original gateway. Its 12/3 values reproduce the former implicit
-# ComfyUI defaults; it is intentionally not an admission target.
-LEGACY_IMPLICIT_TURBO4_V1 = H3SamplingRecipe(
-    "lightx2v_fl2va_turbo4_v1_implicit_h3_defaults",
-    1,
-    "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
-    1.0,
-    4,
-    12.0,
-    3.0,
-    "res_multistep",
-    "simple",
-    1.0,
-)
-
-# LightX2V's published FL2VA 4-step v1.0 768p recipe. The explicit 6/3
-# shifts are the material repair: no rendered graph may inherit H3 defaults.
-LIGHTX2V_FL2VA_TURBO4_V1 = H3SamplingRecipe(
-    "lightx2v_fl2va_turbo4_v1_768p",
-    1,
-    "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
-    1.0,
-    4,
-    6.0,
-    3.0,
-    "res_multistep",
-    "simple",
-    1.0,
-)
+@dataclass(frozen=True)
+class H3Resolution:
+    value: str
+    width: int
+    height: int
 
 
 @dataclass(frozen=True)
-class GatewayProfile:
-    profile_id: str
-    profile_version: int
-    label: str
-    orientation: str
-    tier: str
-    width: int
-    height: int
-    recipe: H3SamplingRecipe
-    accepts_new_jobs: bool
-    duration_seconds: int = 5
-    fps: int = FRAMES_PER_SECOND
-    frame_count: int = 124
+class H3ExecutionProfile:
+    """A fully materialized, dispatch-safe quality/resolution selection."""
 
-    def public_descriptor(self) -> dict[str, Any]:
+    quality: int
+    resolution: H3Resolution
+    recipe: H3SamplingRecipe
+
+    @property
+    def width(self) -> int:
+        return self.resolution.width
+
+    @property
+    def height(self) -> int:
+        return self.resolution.height
+
+    def snapshot(self) -> dict[str, Any]:
+        """Return the exact execution semantics saved with every job."""
+
         return {
-            "id": self.profile_id,
-            "version": self.profile_version,
-            "label": self.label,
-            "orientation": self.orientation,
-            "tier": self.tier,
+            "generationContractVersion": GENERATION_CONTRACT_VERSION,
+            "workflowRendererVersion": WORKFLOW_RENDERER_VERSION,
+            "quality": self.quality,
+            "resolution": self.resolution.value,
             "width": self.width,
             "height": self.height,
-            "durationSeconds": self.duration_seconds,
-            "minDurationSeconds": MIN_DURATION_SECONDS,
-            "maxDurationSeconds": MAX_DURATION_SECONDS,
-            "fps": self.fps,
-            "frameCount": self.frame_count,
-            "nativeAudio": True,
-            "samplingRecipe": self.recipe.public_descriptor(),
+            "fps": FRAMES_PER_SECOND,
+            "recipe": asdict(self.recipe),
         }
 
+    def snapshot_json(self) -> str:
+        return json.dumps(self.snapshot(), sort_keys=True, separators=(",", ":"))
 
-def _profiles(
-    *,
-    version: int,
-    recipe: H3SamplingRecipe,
-    accepts_new_jobs: bool,
-) -> tuple[GatewayProfile, ...]:
-    suffix = f"v{version}"
-    label_suffix = (
-        " · Corrected recipe" if accepts_new_jobs else " · Retired observed recipe"
+
+RESOLUTIONS = tuple(
+    H3Resolution(value, width, height)
+    for value, width, height in (
+        ("832x480", 832, 480),
+        ("960x544", 960, 544),
+        ("1280x704", 1280, 704),
+        ("576x1024", 576, 1024),
+        ("608x1088", 608, 1088),
+        ("704x1280", 704, 1280),
     )
-    geometries = (
-        ("portrait", "fast", "576x1024", "Portrait · Fast", 576, 1024),
-        ("portrait", "standard", "608x1088", "Portrait · Standard", 608, 1088),
-        (
-            "portrait",
-            "high_resolution",
-            "704x1280",
-            "Portrait · High resolution",
-            704,
-            1280,
-        ),
-        ("landscape", "fast", "832x480", "Landscape · Fast", 832, 480),
-        ("landscape", "standard", "960x544", "Landscape · Standard", 960, 544),
-        (
-            "landscape",
-            "high_resolution",
-            "1280x704",
-            "Landscape · High resolution",
-            1280,
-            704,
-        ),
-    )
-    return tuple(
-        GatewayProfile(
-            profile_id=f"minimax_h3_fp8_turbo4_{orientation}_{resolution}_{suffix}",
-            profile_version=version,
-            label=f"{label} · {width} × {height}{label_suffix}",
-            orientation=orientation,
-            tier=tier,
-            width=width,
-            height=height,
-            recipe=recipe,
-            accepts_new_jobs=accepts_new_jobs,
+)
+RESOLUTIONS_BY_VALUE = {item.value: item for item in RESOLUTIONS}
+
+QUALITY_RECIPES = {
+    1: H3SamplingRecipe(
+        "lightx2v_fl2va_turbo4_v1_2", 1, "turbo",
+        "minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors", 1.0,
+        4, 6.0, 3.0, "euler", "simple", 1.0,
+    ),
+    2: H3SamplingRecipe(
+        "lightx2v_fl2va_turbo4_v1_0", 1, "turbo",
+        "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors", 1.0,
+        4, 6.0, 3.0, "res_multistep", "simple", 1.0,
+    ),
+    3: H3SamplingRecipe(
+        "lightx2v_fl2va_turbo8_v1_0", 1, "turbo",
+        "minimax_h3_fl2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors", 1.0,
+        8, 6.0, 3.0, "euler", "simple", 1.0,
+    ),
+    8: H3SamplingRecipe(
+        "minimax_h3_base20", 1, "base", None, None,
+        20, None, None, "res_multistep", "simple", 1.0,
+    ),
+}
+
+
+def admitted_execution(*, quality: int, resolution: str) -> H3ExecutionProfile:
+    """Resolve a caller's two public choices or reject them deterministically."""
+
+    recipe = QUALITY_RECIPES.get(quality)
+    selected_resolution = RESOLUTIONS_BY_VALUE.get(resolution)
+    if recipe is None:
+        raise KeyError("quality")
+    if selected_resolution is None:
+        raise KeyError("resolution")
+    return H3ExecutionProfile(quality=quality, resolution=selected_resolution, recipe=recipe)
+
+
+def execution_from_snapshot(value: str) -> H3ExecutionProfile:
+    """Rehydrate only an already-frozen execution descriptor for dispatch."""
+
+    try:
+        payload = json.loads(value)
+        if not isinstance(payload, dict):
+            raise ValueError
+        recipe_payload = payload["recipe"]
+        if (
+            payload["generationContractVersion"] != GENERATION_CONTRACT_VERSION
+            or payload["workflowRendererVersion"] != WORKFLOW_RENDERER_VERSION
+            or not isinstance(recipe_payload, dict)
+        ):
+            raise ValueError
+        # Do not resolve the stored choice through QUALITY_RECIPES here. A
+        # queued job owns its complete recipe and must survive a later catalog
+        # edit or retirement unchanged.
+        quality = int(payload["quality"])
+        resolution = H3Resolution(
+            str(payload["resolution"]), int(payload["width"]), int(payload["height"])
         )
-        for orientation, tier, resolution, label, width, height in geometries
-    )
-
-
-H3_RETIRED_GATEWAY_PROFILES = _profiles(
-    version=1, recipe=LEGACY_IMPLICIT_TURBO4_V1, accepts_new_jobs=False,
-)
-H3_GATEWAY_PROFILES = _profiles(
-    version=2, recipe=LIGHTX2V_FL2VA_TURBO4_V1, accepts_new_jobs=True,
-)
-H3_ALL_GATEWAY_PROFILES = H3_RETIRED_GATEWAY_PROFILES + H3_GATEWAY_PROFILES
-H3_GATEWAY_PROFILES_BY_ID = {item.profile_id: item for item in H3_ALL_GATEWAY_PROFILES}
-
-
-def profile(profile_id: str) -> GatewayProfile:
-    """Find a profile for a stored job, including a retired historical one."""
-
-    value = H3_GATEWAY_PROFILES_BY_ID.get(profile_id)
-    if value is None:
-        raise KeyError(profile_id)
-    return value
-
-
-def admitted_profile(profile_id: str) -> GatewayProfile:
-    """Find a current profile that may receive a brand-new job."""
-
-    value = profile(profile_id)
-    if not value.accepts_new_jobs:
-        raise KeyError(profile_id)
-    return value
+        if RESOLUTIONS_BY_VALUE.get(resolution.value) != resolution:
+            raise ValueError
+        recipe = H3SamplingRecipe(**recipe_payload)
+        if recipe.topology not in {"turbo", "base"}:
+            raise ValueError
+        if recipe.topology == "turbo" and (
+            not recipe.lora_file or recipe.lora_strength is None
+            or recipe.video_sigma_shift is None or recipe.audio_sigma_shift is None
+        ):
+            raise ValueError
+        if recipe.topology == "base" and any(
+            item is not None
+            for item in (recipe.lora_file, recipe.lora_strength, recipe.video_sigma_shift, recipe.audio_sigma_shift)
+        ):
+            raise ValueError
+        return H3ExecutionProfile(quality, resolution, recipe)
+    except (KeyError, TypeError, ValueError):
+        raise ValueError("invalid frozen H3 execution snapshot") from None
 
 
 def active_lora_files() -> frozenset[str]:
-    return frozenset(item.recipe.lora_file for item in H3_GATEWAY_PROFILES)
+    return frozenset(
+        recipe.lora_file for recipe in QUALITY_RECIPES.values() if recipe.lora_file is not None
+    )
 
 
 def frame_count_for_duration_seconds(duration_seconds: int) -> int:

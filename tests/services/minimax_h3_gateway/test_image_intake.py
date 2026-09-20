@@ -12,7 +12,7 @@ from PIL import Image
 from plotloom_h3_gateway.app import GatewaySettings, create_app
 
 
-PROFILE = "minimax_h3_fp8_turbo4_landscape_832x480_v2"
+RESOLUTION = "832x480"
 AUTH = {"Authorization": "Bearer test-key"}
 
 
@@ -47,7 +47,7 @@ def test_json_url_start_end_fetches_and_persists_no_source_url(tmp_path: Path) -
     source = _SourceSession([_png(), _png()]); client = _client(tmp_path, source)
     response = client.post("/v1/video-jobs/from-image", headers=AUTH, json={
         "sourceUrl": "http://100.64.35.71/start.png", "endSourceUrl": "http://100.64.35.71/end.png",
-        "prompt": "A return signal becomes clear.", "profileId": PROFILE,
+        "prompt": "A return signal becomes clear.", "resolution": RESOLUTION,
         "aspectPolicy": "reject_mismatch", "seed": 2,
     })
     assert response.status_code == 202
@@ -60,7 +60,7 @@ def test_json_url_start_end_fetches_and_persists_no_source_url(tmp_path: Path) -
 
 def test_invalid_end_frame_cleans_the_accepted_start_frame(tmp_path: Path) -> None:
     client = _client(tmp_path, _SourceSession([]))
-    response = client.post("/v1/video-jobs/from-image", headers=AUTH, data={"prompt": "A quiet turn.", "profileId": PROFILE, "aspectPolicy": "reject_mismatch"}, files={"image": ("start.png", _png(), "image/png"), "endImage": ("end.bin", b"not an image", "image/png")})
+    response = client.post("/v1/video-jobs/from-image", headers=AUTH, data={"prompt": "A quiet turn.", "resolution": RESOLUTION, "aspectPolicy": "reject_mismatch"}, files={"image": ("start.png", _png(), "image/png"), "endImage": ("end.bin", b"not an image", "image/png")})
     assert response.status_code == 422
     assert response.json() == {"error": "image_decode_invalid"}
     with client.app.state.gateway.store._connect() as connection:
@@ -70,9 +70,9 @@ def test_invalid_end_frame_cleans_the_accepted_start_frame(tmp_path: Path) -> No
 
 def test_rejected_aspect_or_unknown_profile_never_orphans_start_or_fetches(tmp_path: Path) -> None:
     source = _SourceSession([_png()]); client = _client(tmp_path, source)
-    rejected = client.post("/v1/video-jobs/from-image", headers=AUTH, data={"prompt": "x", "profileId": PROFILE, "aspectPolicy": "reject_mismatch"}, files={"image": ("portrait.png", _png(576, 1024), "image/png")})
+    rejected = client.post("/v1/video-jobs/from-image", headers=AUTH, data={"prompt": "x", "resolution": RESOLUTION, "aspectPolicy": "reject_mismatch"}, files={"image": ("portrait.png", _png(576, 1024), "image/png")})
     assert rejected.json() == {"error": "input_aspect_mismatch"}
     assert list((tmp_path / "data" / "assets").iterdir()) == []
-    unsupported = client.post("/v1/video-jobs/from-image", headers=AUTH, json={"sourceUrl": "http://100.64.35.71/a.png", "prompt": "x", "profileId": "not_a_profile", "aspectPolicy": "reject_mismatch"})
-    assert unsupported.json() == {"error": "profile_not_supported"}
+    unsupported = client.post("/v1/video-jobs/from-image", headers=AUTH, json={"sourceUrl": "http://100.64.35.71/a.png", "prompt": "x", "resolution": "900x900", "aspectPolicy": "reject_mismatch"})
+    assert unsupported.json() == {"error": "resolution_not_supported"}
     assert source.calls == []

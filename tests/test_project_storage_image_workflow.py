@@ -204,7 +204,7 @@ def test_project_owned_image_handoff_isolated_across_restart_and_stales_after_in
 
     # Adaptation direction has a distinct target identity, so its receipt can
     # neither consume the original direction nor a candidate refinement.
-    adaptation_profile_id = "minimax_h3_fp8_turbo4_portrait_576x1024_v2"
+    adaptation_profile_id = "minimax_h3_quality1_portrait_576x1024_v1"
     adaptation_draft = client.put(
         f"/api/v2/projects/{first_id}/authoring-drafts",
         json={

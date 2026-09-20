@@ -650,7 +650,7 @@
       ]
     },
     "tests/test_project_storage_image_delivery_contracts.py::test_keyframe_adaptation_enforces_frozen_geometry_without_reselecting_source": {
-      "source_sha256": "6a52655bc67b422ac69e2bef727990525ebca65507a02c3c0035de4e28e11163",
+      "source_sha256": "dc4838b91c1ac7430aff45dc630942161dcb970e6e6abdc609b7e6114c55b169",
       "assertions": [
         "source.status_code == 201",
         "intent_draft.status_code == 200",
@@ -666,7 +666,7 @@
       ]
     },
     "tests/test_project_storage_image_workflow.py::test_project_owned_image_handoff_isolated_across_restart_and_stales_after_intent_replacement": {
-      "source_sha256": "c23df78ad787b7596df78b8ffede04d42308adebd392ce632c0217df2c401eea",
+      "source_sha256": "795384b0e3805d227692ebffb6284e32834689aba86b41861c107b771b79f114",
       "assertions": [
         "client.get('/api/v2/authoring-draft-capabilities').json() == {'durableProjectDrafts': True, 'durableMediaDrafts': True, 'explicitProjectClose': True, 'portableSnapshots': True}",
         "imported.status_code == 201",

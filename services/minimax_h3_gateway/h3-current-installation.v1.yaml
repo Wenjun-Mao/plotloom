@@ -13,15 +13,16 @@ status:
     video/audio shifts (12/3), while the adapter's published recipe requires
     6/3. Do not reproduce this implicit recipe for a new production install.
   remediation: >-
-    Make the complete sampling recipe a profile-owned, rendered and tested
-    contract before this inventory is promoted to a qualified baseline.
+    Historical v1.0 observations are preserved here. The active gateway
+    contract is quality/resolution based; see ADR 0070 and its operator manual
+    before reproducing or changing a production installation.
 
 authority:
   documentation:
     reproducibleSetup: docs/h3-reproducible-setup.md
     rationale: docs/h3-rationale-and-operations.md
   source:
-    gatewayProfileCatalog: src/plotloom_h3_gateway/profile_catalog.py
+    gatewayQualityResolutionCatalog: src/plotloom_h3_gateway/profile_catalog.py
     renderedWorkflowTemplate: src/plotloom_h3_gateway/profiles/minimax_h3_turbo4_template_v1.json
     templateSha256: 731b8bd612ab3cbf4579a921710cd346a3575092fc8537d620f89c428714d83c
   capturedFrom:
@@ -126,7 +127,21 @@ observedWorkflow:
     audioSigmaShift: 3
     source: https://github.com/ModelTC/LightX2V/blob/main/README.md
 
-reviewedGeometryCatalog:
+gatewayQualityResolutionContract:
+  version: 6
+  defaultQuality: 1
+  qualities:
+    1: V1.2 Turbo-4 / Euler / explicit 6-3 shifts
+    2: V1.0 Turbo-4 / res_multistep / explicit 6-3 shifts
+    3: V1.0 Turbo-8 / Euler / explicit 6-3 shifts
+    8: Base-20 / res_multistep / native 12-3 shifts / no Turbo LoRA
+  resolutions:
+    - 832x480
+    - 960x544
+    - 1280x704
+    - 576x1024
+    - 608x1088
+    - 704x1280
   durationSeconds:
     minimum: 5
     maximum: 15
@@ -135,13 +150,6 @@ reviewedGeometryCatalog:
     fps: 24
     formula: 17k_plus_5
     fiveSecondRequest: 124
-  profiles:
-    - minimax_h3_fp8_turbo4_portrait_576x1024_v1
-    - minimax_h3_fp8_turbo4_portrait_608x1088_v1
-    - minimax_h3_fp8_turbo4_portrait_704x1280_v1
-    - minimax_h3_fp8_turbo4_landscape_832x480_v1
-    - minimax_h3_fp8_turbo4_landscape_960x544_v1
-    - minimax_h3_fp8_turbo4_landscape_1280x704_v1
 
 gateway:
   sourceRoot: services/minimax_h3_gateway

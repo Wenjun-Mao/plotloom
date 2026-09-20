@@ -13,6 +13,19 @@ from .contracts import (
 )
 
 
+def _has_retired_contract(connection: sqlite3.Connection) -> bool:
+    """Identify a retired database before schema setup can touch it."""
+
+    tables = {
+        str(row[0])
+        for row in connection.execute("SELECT name FROM sqlite_master WHERE type = 'table'")
+    }
+    if "jobs" not in tables:
+        return False
+    columns = {str(row["name"]) for row in connection.execute("PRAGMA table_info(jobs)")}
+    return "execution_snapshot_json" not in columns
+
+
 class GatewayStore:
     """Small durable control plane; no raw Comfy payloads or secrets.
 
@@ -24,61 +37,26 @@ class GatewayStore:
         path.parent.mkdir(parents=True, exist_ok=True)
         self._path = path
         with self._connect() as connection:
+            # A release cutover must never alter an old control-plane file on
+            # the way to refusing it. The operator archives that state, then
+            # starts this contract with a new empty data directory.
+            if _has_retired_contract(connection):
+                raise RuntimeError(
+                    "gateway state reset required: retired profileId state cannot use the quality contract"
+                )
             connection.executescript(_CURRENT_SCHEMA)
             self._migrate(connection)
 
     @staticmethod
     def _migrate(connection: sqlite3.Connection) -> None:
-        """Upgrade old one-asset rows into start-frame bindings.
-
-        This retains existing job IDs, status, outputs, and retention fields.
-        Only retired creation routes lose compatibility.
-        """
+        """Refuse retired state instead of silently changing its semantics."""
 
         columns = {str(row["name"]) for row in connection.execute("PRAGMA table_info(jobs)")}
         asset_columns = {str(row["name"]) for row in connection.execute("PRAGMA table_info(assets)")}
-        if "purge_pending" not in asset_columns:
-            connection.execute("ALTER TABLE assets ADD COLUMN purge_pending INTEGER NOT NULL DEFAULT 0")
-        if "input_mode" in columns:
-            connection.execute("DROP INDEX IF EXISTS jobs_idempotency_key_unique")
-            return
-        # Old deployments can predate some output columns. Complete that legacy
-        # projection before rebuilding the local jobs table.
-        for name, definition in (
-            ("managed_output_name", "TEXT"), ("output_sha256", "TEXT"),
-            ("output_size_bytes", "INTEGER"), ("output_expires_at", "TEXT"),
-            ("error_code", "TEXT"), ("comfy_prompt_id", "TEXT"),
-            ("output_filename", "TEXT"), ("output_subfolder", "TEXT"),
-            ("output_type", "TEXT"), ("updated_at", "TEXT"),
-        ):
-            if name not in columns:
-                connection.execute(f"ALTER TABLE jobs ADD COLUMN {name} {definition}")
-        # ``_CURRENT_SCHEMA`` may have created this empty child table before
-        # discovering an old jobs layout. No modern binding can exist until
-        # the rebuild below, so it is safe to recreate it with the new parent.
-        connection.execute("DROP TABLE IF EXISTS job_frame_bindings")
-        connection.execute("ALTER TABLE jobs RENAME TO jobs_legacy")
-        connection.executescript(_JOBS_SCHEMA)
-        connection.execute(
-            """INSERT INTO jobs (
-                 id, input_mode, profile_id, aspect_policy, prompt, seed,
-                 requested_duration_seconds, frame_count, fps, status,
-                 comfy_prompt_id, output_filename, output_subfolder, output_type,
-                 managed_output_name, output_sha256, output_size_bytes,
-                 output_expires_at, error_code, created_at, updated_at
-               ) SELECT id, 'image', profile_id, aspect_policy, prompt, seed,
-                        5, 124, 24, status,
-                        comfy_prompt_id, output_filename, output_subfolder, output_type,
-                        managed_output_name, output_sha256, output_size_bytes,
-                        output_expires_at, error_code, created_at,
-                        COALESCE(updated_at, created_at, CURRENT_TIMESTAMP)
-                 FROM jobs_legacy"""
-        )
-        connection.execute(
-            """INSERT INTO job_frame_bindings (job_id, role, asset_id, prepared_input_name)
-               SELECT id, 'start', asset_id, prepared_input_name FROM jobs_legacy"""
-        )
-        connection.execute("DROP TABLE jobs_legacy")
+        if "purge_pending" not in asset_columns or "execution_snapshot_json" not in columns:
+            raise RuntimeError(
+                "gateway state reset required: retired profileId state cannot use the quality contract"
+            )
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self._path)
@@ -118,9 +96,9 @@ class GatewayStore:
                     connection.rollback()
                     raise GatewayError("asset_not_found", 404)
             connection.execute(
-                """INSERT INTO jobs (id, input_mode, profile_id, aspect_policy, prompt, seed,
+                """INSERT INTO jobs (id, input_mode, quality, resolution, execution_snapshot_json, aspect_policy, prompt, seed,
                    requested_duration_seconds, frame_count, fps, status)
-                   VALUES (:id, :input_mode, :profile_id, :aspect_policy, :prompt, :seed,
+                   VALUES (:id, :input_mode, :quality, :resolution, :execution_snapshot_json, :aspect_policy, :prompt, :seed,
                    :requested_duration_seconds, :frame_count, :fps, 'queued')""", values,
             )
             connection.executemany(
@@ -268,7 +246,8 @@ CREATE TABLE IF NOT EXISTS assets (
 );
 CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY, input_mode TEXT NOT NULL CHECK(input_mode IN ('image', 'text')),
-  profile_id TEXT NOT NULL, aspect_policy TEXT, prompt TEXT NOT NULL, seed INTEGER NOT NULL,
+  quality INTEGER NOT NULL, resolution TEXT NOT NULL, execution_snapshot_json TEXT NOT NULL,
+  aspect_policy TEXT, prompt TEXT NOT NULL, seed INTEGER NOT NULL,
   requested_duration_seconds INTEGER NOT NULL, frame_count INTEGER NOT NULL, fps INTEGER NOT NULL,
   status TEXT NOT NULL, comfy_prompt_id TEXT, generation_submitted_at_ms INTEGER,
   generation_completed_at_ms INTEGER, output_filename TEXT, output_subfolder TEXT,
@@ -278,27 +257,6 @@ CREATE TABLE IF NOT EXISTS jobs (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS job_frame_bindings (
-  job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK(role IN ('start', 'end')),
-  asset_id TEXT NOT NULL REFERENCES assets(id), prepared_input_name TEXT NOT NULL,
-  PRIMARY KEY(job_id, role)
-);
-CREATE INDEX IF NOT EXISTS job_frame_bindings_asset_idx ON job_frame_bindings(asset_id);
-"""
-
-_JOBS_SCHEMA = """
-CREATE TABLE jobs (
-  id TEXT PRIMARY KEY, input_mode TEXT NOT NULL CHECK(input_mode IN ('image', 'text')),
-  profile_id TEXT NOT NULL, aspect_policy TEXT, prompt TEXT NOT NULL, seed INTEGER NOT NULL,
-  requested_duration_seconds INTEGER NOT NULL, frame_count INTEGER NOT NULL, fps INTEGER NOT NULL,
-  status TEXT NOT NULL, comfy_prompt_id TEXT, generation_submitted_at_ms INTEGER,
-  generation_completed_at_ms INTEGER, output_filename TEXT, output_subfolder TEXT,
-  output_type TEXT, managed_output_name TEXT, output_sha256 TEXT, output_size_bytes INTEGER,
-  output_expires_at TEXT, error_code TEXT,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE job_frame_bindings (
   job_id TEXT NOT NULL REFERENCES jobs(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK(role IN ('start', 'end')),
   asset_id TEXT NOT NULL REFERENCES assets(id), prepared_input_name TEXT NOT NULL,

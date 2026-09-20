@@ -51,13 +51,13 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
     enabled: true, adapterId: "minimax_h3_gateway", width: 576, height: 1024,
     frameCount: 124, nativeAudio: true, requiresAspectPolicy: false,
     inputAspectPolicy: "reject_mismatch",
-    defaultProfileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v2",
+    defaultProfileId: "minimax_h3_quality1_portrait_576x1024_v1",
     qualifiedDurationSeconds: [5, 8],
   });
   const panel = page.getByTestId("video-pilot-panel");
   await expect(panel.getByText("MiniMax H3 本地视频候选")).toBeVisible();
   const profile = panel.getByLabel("H3 输出 Profile（必选）");
-  await expect(profile).toHaveValue("minimax_h3_fp8_turbo4_portrait_576x1024_v2");
+  await expect(profile).toHaveValue("minimax_h3_quality1_portrait_576x1024_v1");
   const duration = panel.getByLabel("H3 时长（已审核）");
   await expect(duration).toHaveValue("5");
   await duration.selectOption("8");
@@ -79,7 +79,7 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   expect(preparedResponse.ok()).toBeTruthy();
   expect(preparedResponse.request().postDataJSON()).toMatchObject({
     requestedDurationSeconds: 8, resolution: "576x1024", audio: true, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false,
-    profileId: "minimax_h3_fp8_turbo4_portrait_576x1024_v2",
+    profileId: "minimax_h3_quality1_portrait_576x1024_v1",
   });
   const prepared = await preparedResponse.json() as { id: string; snapshot: { request: object } };
   expect(prepared.snapshot.request).toMatchObject({ durationSeconds: 8, frameCount: 192, fps: 24, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false });
