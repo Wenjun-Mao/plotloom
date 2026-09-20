@@ -1,7 +1,7 @@
 # H3 vertical-first recipe qualification
 
 Date: 2026-09-20  
-Status: first portrait screen complete; two candidates advance to cross-geometry qualification
+Status: historical first portrait screen; later contract work is recorded in ADR 0070
 
 ## Purpose and controls
 
@@ -62,10 +62,11 @@ These observations are deliberately not a statistical ranking. They establish
 that both finalists merit the next controlled comparison and that no current
 recipe is safe to promote as a public default.
 
-## Next gate
+## Historical next gate
 
-Test the two finalists—not the retired v1.0 four-step recipe—at portrait
-576×1024, 608×1088 and 704×1280 before any landscape work. Retain the dialogue
-and motion conditions, score visual text, face/eye integrity, light behavior,
-frame shake, audio and framing, and keep profile admission prohibited until a
-human reviews those results.
+The stated cross-geometry screen was completed and reviewed in
+[the companion receipt](2026-09-20-h3-portrait-cross-geometry-review.md).
+The subsequent public contract is captured in
+[ADR 0070](../adr/0070-h3-quality-resolution-contract.md); this document
+retains the original screen results and does not itself prescribe the current
+gateway catalog.

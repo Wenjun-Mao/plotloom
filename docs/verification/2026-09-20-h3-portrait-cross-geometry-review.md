@@ -1,7 +1,7 @@
 # H3 portrait cross-geometry review
 
 Date: 2026-09-20  
-Status: base-20 advances as the portrait quality candidate; no public-profile promotion
+Status: historical comparative evidence; the public catalog was later defined in ADR 0070
 
 ## Scope
 
@@ -48,11 +48,12 @@ statistical proof of general superiority. The screen used two related source
 images and two scene types; it does not test a second end frame, a distinct
 character/shot sequence, landscape composition, capacity, or throughput.
 
-## Quality-catalog implication
+## Historical quality-catalog implication
 
-Do not map numeric gateway quality levels yet. The evidence supports a future
-`quality=high` entry backed by the exact base-20 recipe, but a public catalog
-needs immutable profile/version snapshots plus the remaining continuity and
-two-frame tests. The Turbo candidates may later supply a lower-latency tier;
-the current evidence does not justify treating the eight-step candidate as a
-better quality level than V1.2 four-step.
+At the time of this review, no numeric gateway-quality contract existed. The
+evidence supported a future higher-quality base-20 entry and did not establish
+a creative ranking among the Turbo candidates. That next step is now complete:
+[ADR 0070](../adr/0070-h3-quality-resolution-contract.md) defines the explicit
+quality values, frozen execution snapshots and the separate quality/resolution
+contract. This review remains comparative evidence, not a claim that a numeric
+quality is a universal creative ranking.
