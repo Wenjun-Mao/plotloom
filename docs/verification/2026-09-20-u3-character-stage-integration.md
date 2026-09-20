@@ -44,3 +44,57 @@ a prepared-then-cancelled refinement. It visibly demonstrates current selected,
 failed delivery, cancelled handoff and recognizable parent lineage. No provider
 or ImageGen call was made. The previously director-owned preview and its
 persisted roots were not modified.
+
+## Cast synchronization and mutation-session correction — 2026-09-20
+
+**Root cause.** `CharactersPage` mounted `CastPanel` and the image review as
+independent readers. A cast accept/reopen/save refreshed only the text panel, so
+the gallery could retain obsolete admission and direction data. Separately, the
+gallery acquired its refresh owner only after a mutation completed; an
+abort-ignoring old completion could therefore write fields or start a read in a
+new project, subject, or cast session.
+
+**Correction.** The workspace now owns the cast read and a monotonic session.
+Cast accept/reopen/save invalidates it before dispatch and makes retained images
+non-actionable while the cast transition is pending. Returned cast state drives
+both panels, and the gallery performs a guarded refresh of its own current
+decisions/directions. Each image action captures project/cast/subject plus an
+operation owner before dispatch. Only a matching completion may reset drafts,
+show an assignment/error, change busy state, or refresh. Unmount, project and
+subject changes, cast transitions, and abort-ignoring late results are refused.
+No API, schema, provider, persistence, selection CAS, reviewer/notes, or layout
+contract changed. ADR 0071 records this React ownership boundary.
+
+**Executed checks.**
+
+- `npm test` — 19 files / 172 tests passed. The focused gallery unit set now
+  includes seven cases, including abort-ignoring deferred success after reopen,
+  stale copied-assignment refusal during an in-flight reopen, and old-subject
+  rejection refusal.
+- `npm run typecheck` and `npm run typecheck:e2e` — passed.
+- `npx playwright test e2e/cast-reference-studies.spec.ts --config playwright.config.ts --reporter=line`
+  — 4 passed.
+- `npx playwright test e2e/story-prototype.spec.ts --config playwright.config.ts --reporter=line`
+  — 3 passed after the workspace navigation change.
+- `npm run build:deterministic` twice produced identical SHA-256 hashes for
+  `workbench.js`, `workbench.css`, and `index.html`; the regenerated
+  `workbench.js` is included with this correction. Vite emitted its existing
+  >500 kB chunk advisory only.
+
+**Independent review.** A Terra/high read-only review of the initial stable
+delta found two P1 currentness gaps: local result setters preceded their session
+guard, and cast authority was invalidated only after a cast response. The
+correction moved those setters beneath the captured per-operation guard and
+introduced pre-dispatch workspace invalidation; the new deferred tests are
+guard-sensitive to both gaps. A final re-review of the corrected delta is
+recorded below before closeout.
+
+**Walkthrough service.** The retained H3-disabled preview and fixture roots at
+port 49072 were not restarted or otherwise modified by this correction. Human
+creator-usability acceptance remains pending; the technical fixture is not a
+creative or media-acceptance claim.
+
+**Final independent re-review.** Terra/high re-review found and then verified a
+single P2 correction: the session-change GET refresh now catches failures and
+surfaces them only while both its captured cast session and read owner still
+match. The final read-only verdict was **no findings**.

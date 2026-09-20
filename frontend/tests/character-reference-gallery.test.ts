@@ -3,7 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 
 import { plotloomApi } from "../src/api";
-import { CharacterReferenceReviewPanel } from "../src/pages/CharacterReferenceGalleryPage";
+import { CharactersPage } from "../src/pages/CharactersPage";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -44,14 +44,14 @@ function pendingGallery(): PendingGallery {
   };
 }
 
-function galleryResponse(projectId: string, title: string, options: { characters?: { id: string; name: string }[]; decisions?: any[]; proposals?: any[]; assets?: any[] } = {}) {
+function galleryResponse(projectId: string, title: string, options: { characters?: { id: string; name: string }[]; decisions?: any[]; referenceStates?: any[]; proposals?: any[]; assets?: any[] } = {}) {
   const characters = options.characters ?? [{ id: "keeper", name: "Mira" }];
   const asset = { id: "same-asset", projectId, originalHash: "original", displayHash: "display", mimeType: "image/png", byteSize: 20, width: 64, height: 48, createdAt: "2026-09-20T00:00:00Z", provenance: null };
   const decisions = options.decisions ?? characters.map((character) => ({ id: character.id, projectId, characterId: character.id, referenceRevision: 1, characterContext: {}, characterContextHash: character.id, primaryAssetId: asset.id, complementaryAssetIds: [], assetHashes: [], reviewer: "reviewer", notes: "test", current: true, revokedAt: null, revokedBy: null, revocationReason: null, createdAt: "2026-09-20T00:00:00Z" }));
   return {
     project: { id: projectId, brief: { title } },
     cast: { candidate: null, acceptedCast: { revision: 1, candidateJobId: "cast", contentHash: "cast", binding: {}, acceptedAt: "2026-09-20T00:00:00Z", cast: { characters }, consumerMappings: characters.map((character) => ({ castCharacterId: character.id, consumerCharacterId: character.id })) }, status: "accepted", staleReasons: [] },
-    references: { states: [], decisions },
+    references: { states: options.referenceStates ?? [], decisions },
     proposals: { configured: true, proposals: options.proposals ?? [] },
     workbench: { assets: options.assets ?? [asset], selectionRevision: 0, visualIntents: [], reviewedKeyframes: [], characterReferences: { states: [], decisions: [] }, samePersonReviews: { revision: 0, reviews: [] }, previews: [] },
   };
@@ -95,7 +95,7 @@ async function flushReact() {
 
 async function renderProject(projectId: string) {
   window.history.replaceState({}, "", `/?project=${projectId}&stage=characters`);
-  await act(async () => { root.render(createElement(CharacterReferenceReviewPanel, { projectId, readOnly: false })); });
+  await act(async () => { root.render(createElement(CharactersPage, { projectId, readOnly: false })); });
   await flushReact();
 }
 
@@ -113,6 +113,87 @@ async function resolveGallery(pending: PendingGallery, response: ReturnType<type
 
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
+
+function changeValue(element: HTMLInputElement | HTMLTextAreaElement, value: string) {
+  const descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(element), "value");
+  descriptor?.set?.call(element, value);
+  element.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function button(label: string): HTMLButtonElement {
+  const found = [...host.querySelectorAll("button")].find((entry) => entry.textContent === label);
+  if (!found) throw new Error(`Missing button: ${label}`);
+  return found as HTMLButtonElement;
+}
+
+function candidateProposal(projectId: string, characterId = "keeper") {
+  const asset = { id: `${characterId}-asset`, projectId, originalHash: "original", displayHash: "display", mimeType: "image/png", byteSize: 20, width: 64, height: 48, createdAt: "2026-09-20T00:00:00Z", provenance: null };
+  return { asset, proposal: { id: `${characterId}-proposal`, projectId, characterId, current: true, parentCandidateAssetId: null, requestHash: "request", request: {}, deliveries: [{ id: `${characterId}-delivery`, state: "accepted", candidates: [{ id: `${characterId}-candidate`, assetId: asset.id, asset, outputHash: "output", role: "original" }] }] } };
+}
+
+it("does not refresh an old image mutation after reopening invalidates its cast session", async () => {
+  const { asset, proposal } = candidateProposal("project");
+  const response = galleryResponse("project", "Session fixture", { decisions: [], referenceStates: [{ characterId: "keeper", revision: 3 }], proposals: [proposal], assets: [asset] });
+  installResolvedGallery(response);
+  const selection = deferred<any>();
+  vi.spyOn(plotloomApi, "selectCharacterReference").mockImplementation(() => selection.promise);
+  vi.spyOn(plotloomApi, "reopenCast").mockResolvedValue({ ...response.cast, status: "reopened" } as any);
+
+  await renderProject("project");
+  const notes = host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement;
+  await act(async () => { changeValue(notes, "Explicit reviewer note"); });
+  await act(async () => { button("选择身份参考").click(); await Promise.resolve(); });
+  expect(button("重新打开角色提案").disabled).toBe(false);
+  await act(async () => { button("重新打开角色提案").click(); await Promise.resolve(); });
+  await flushReact();
+  expect(host.textContent).toContain("已接受角色已过期");
+  const galleryReadsBeforeOldSuccess = vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length;
+
+  await act(async () => { selection.resolve({}); await Promise.resolve(); });
+  await flushReact();
+  expect(vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls).toHaveLength(galleryReadsBeforeOldSuccess);
+  expect(host.textContent).not.toContain("角色参考操作失败");
+});
+
+it("does not retain a copied assignment from a cast session invalidated in flight", async () => {
+  const { asset, proposal } = candidateProposal("project");
+  const response = galleryResponse("project", "Assignment fixture", { decisions: [], referenceStates: [{ characterId: "keeper", revision: 3 }], proposals: [proposal], assets: [asset] });
+  installResolvedGallery(response);
+  const copied = deferred<any>();
+  const reopening = deferred<any>();
+  vi.spyOn(plotloomApi, "copyCharacterReferenceProposal").mockImplementation(() => copied.promise);
+  vi.spyOn(plotloomApi, "reopenCast").mockImplementation(() => reopening.promise);
+
+  await renderProject("project");
+  await act(async () => { button("复制 handoff").click(); await Promise.resolve(); });
+  await act(async () => { button("重新打开角色提案").click(); await Promise.resolve(); });
+  await flushReact();
+  expect(host.textContent).toContain("角色文字正在更新");
+  expect(button("复制 handoff").disabled).toBe(true);
+  await act(async () => { copied.resolve({ assignment: "old-session assignment must not appear" }); await Promise.resolve(); });
+  await flushReact();
+  expect(host.textContent).not.toContain("old-session assignment must not appear");
+  await act(async () => { reopening.resolve({ ...response.cast, status: "reopened" }); await Promise.resolve(); });
+  await flushReact();
+  expect(host.textContent).toContain("已接受角色已过期");
+});
+
+it("does not surface a rejected mutation from a prior subject session", async () => {
+  const keeper = candidateProposal("project", "keeper"); const watcher = candidateProposal("project", "watcher");
+  installResolvedGallery(galleryResponse("project", "Subject session fixture", { characters: [{ id: "keeper", name: "Mira" }, { id: "watcher", name: "Nia" }], decisions: [], referenceStates: [{ characterId: "keeper", revision: 1 }, { characterId: "watcher", revision: 1 }], proposals: [keeper.proposal, watcher.proposal], assets: [keeper.asset, watcher.asset] }));
+  const selection = deferred<any>();
+  vi.spyOn(plotloomApi, "selectCharacterReference").mockImplementation(() => selection.promise);
+
+  await renderProject("project");
+  await act(async () => { changeValue(host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement, "Keeper note"); button("选择身份参考").click(); await Promise.resolve(); });
+  await act(async () => { (host.querySelectorAll(".reference-subjects button")[1] as HTMLButtonElement).click(); await Promise.resolve(); });
+  const galleryReadsBeforeOldFailure = vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length;
+  await act(async () => { selection.reject(new Error("old keeper mutation rejected")); await Promise.resolve(); });
+  await flushReact();
+  expect(vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls).toHaveLength(galleryReadsBeforeOldFailure);
+  expect(host.textContent).toContain("Nia");
+  expect(host.textContent).not.toContain("old keeper mutation rejected");
+});
 
 it("recovers a failed hero when its preserved component receives another subject identity", async () => {
   installResolvedGallery(galleryResponse("project", "Identity reset fixture", { characters: [{ id: "keeper", name: "Mira" }, { id: "watcher", name: "Nia" }] }));
@@ -149,7 +230,7 @@ it("does not let an old same-document success replace a settled new project", as
   const old = pendingFor("old-project");
   await renderProject("new-project");
   const fresh = pendingFor("new-project");
-  expect(signals.get("old-project")).toHaveLength(5);
+  expect(signals.get("old-project")).toHaveLength(4);
   expect(signals.get("old-project")?.every((signal) => signal.aborted)).toBe(true);
 
   await resolveGallery(fresh, galleryResponse("new-project", "New project"));

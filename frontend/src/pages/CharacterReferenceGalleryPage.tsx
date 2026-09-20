@@ -2,12 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Field, Spinner } from "../components";
-import type { AcceptedCastRevision, CharacterReferenceDecision, CharacterReferenceProposal, ManagedAsset, VisualWorkbench } from "../types";
+import type { AcceptedCastRevision, CastReviewState, CharacterReferenceDecision, CharacterReferenceProposal, ManagedAsset, VisualWorkbench } from "../types";
 
 type GalleryData = {
   title: string;
-  castStatus: string;
-  accepted: AcceptedCastRevision | null;
   decisions: CharacterReferenceDecision[];
   referenceStates: VisualWorkbench["characterReferences"]["states"];
   proposals: CharacterReferenceProposal[];
@@ -29,11 +27,12 @@ type Candidate = {
  * The F2B review belongs beside the cast that admits its subjects.  It only
  * reads until a creator deliberately invokes one of the supplied operations.
  */
-export function CharacterReferenceReviewPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
+export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, castSession, castTransitionPending }: { projectId: string; readOnly: boolean; castState: CastReviewState | undefined; castSession: string; castTransitionPending: boolean }) {
   const [data, setData] = useState<GalleryData>();
   const [error, setError] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const requestOwner = useRef(0);
+  const observedCastSession = useRef(castSession);
 
   useEffect(() => {
     if (!projectId) return;
@@ -42,16 +41,13 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly }: { project
     setData(undefined); setError(""); setSelectedSubjectId("");
     void Promise.all([
       plotloomApi.getProject(projectId, controller.signal),
-      plotloomApi.getCast(projectId, controller.signal),
       plotloomApi.getCharacterReferences(projectId, controller.signal),
       plotloomApi.getCharacterReferenceProposals(projectId, controller.signal),
       plotloomApi.getVisualWorkbench(projectId, controller.signal),
-    ]).then(([project, cast, references, proposals, workbench]) => {
+    ]).then(([project, references, proposals, workbench]) => {
       if (requestOwner.current !== owner) return;
       setData({
         title: project.brief.title,
-        castStatus: cast.status,
-        accepted: cast.acceptedCast,
         decisions: references.decisions,
         referenceStates: references.states,
         proposals: proposals.proposals,
@@ -66,39 +62,56 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly }: { project
     };
   }, [projectId]);
 
-  const subjects = useMemo(() => data ? gallerySubjects(data.accepted, data.proposals) : [], [data]);
+  const subjects = useMemo(() => data ? gallerySubjects(castState?.acceptedCast ?? null, data.proposals) : [], [data, castState?.acceptedCast]);
   useEffect(() => {
     if (subjects.length && !subjects.some((subject) => subject.id === selectedSubjectId)) setSelectedSubjectId(subjects[0].id);
   }, [subjects, selectedSubjectId]);
   const selected = subjects.find((subject) => subject.id === selectedSubjectId) || subjects[0];
 
-  const refresh = async () => {
+  const refresh = async (expectedSession: string) => {
+    if (castSession !== expectedSession) return false;
     const owner = requestOwner.current;
-    const [cast, references, proposals, workbench] = await Promise.all([
-      plotloomApi.getCast(projectId), plotloomApi.getCharacterReferences(projectId),
-      plotloomApi.getCharacterReferenceProposals(projectId), plotloomApi.getVisualWorkbench(projectId),
-    ]);
-    if (requestOwner.current === owner) setData(current => current ? { ...current, castStatus: cast.status, accepted: cast.acceptedCast, decisions: references.decisions, referenceStates: references.states, proposals: proposals.proposals, assets: workbench.assets } : current);
+    try {
+      const [references, proposals, workbench] = await Promise.all([
+        plotloomApi.getCharacterReferences(projectId),
+        plotloomApi.getCharacterReferenceProposals(projectId), plotloomApi.getVisualWorkbench(projectId),
+      ]);
+      if (castSession !== expectedSession || requestOwner.current !== owner) return false;
+      setData(current => current ? { ...current, decisions: references.decisions, referenceStates: references.states, proposals: proposals.proposals, assets: workbench.assets } : current);
+      return true;
+    } catch (reason) {
+      if (castSession === expectedSession && requestOwner.current === owner) setError(reason instanceof Error ? reason.message : "无法刷新角色参考。");
+      return false;
+    }
   };
 
+  // A cast mutation changes which reference evidence is actionable. Keep the
+  // already-rendered comparison visible for the immediate transition, then
+  // refresh its directions and decisions under the new shared session.
+  useEffect(() => {
+    if (observedCastSession.current === castSession) return;
+    observedCastSession.current = castSession;
+    void refresh(castSession);
+  }, [castSession]);
+
   if (error) return <section className="character-reference-review"><ErrorNotice message={error} /></section>;
-  if (!data) return <section className="character-reference-review reference-gallery-loading"><Spinner label="正在读取角色参考" /></section>;
-  if (!data.accepted) return <section className="character-reference-review"><EmptyState title="尚无已接受角色" message="先在上方审核并接受角色文字提案；图像选择不会创建角色或示例图像。" /></section>;
+  if (!data || !castState) return <section className="character-reference-review reference-gallery-loading"><Spinner label="正在读取角色参考" /></section>;
+  if (!castState.acceptedCast) return <section className="character-reference-review"><EmptyState title="尚无已接受角色" message="先在上方审核并接受角色文字提案；图像选择不会创建角色或示例图像。" /></section>;
   if (!selected) return <section className="character-reference-review"><EmptyState title="角色中没有可查看的主体" message="当前已接受角色未提供可映射的主体；这里不会猜测或创建主体。" /></section>;
 
   return <section className="character-reference-review" data-testid="character-reference-gallery">
     <section className="reference-gallery-intro">
       <div><span className="eyebrow">角色外观</span><h2>为未来镜头建立这个角色的外观</h2><p>{data.title} · 先比较已有图像，再明确选择身份参考；也可从可识别父图发起一次细化。准备只生成手动 handoff，不会自动调用 ImageGen。</p></div>
-      <div className={`reference-gallery-cast-state ${data.castStatus === "accepted" ? "current" : "stale"}`}><strong>{data.castStatus === "accepted" ? `已接受角色 r${data.accepted.revision}` : "已接受角色已过期"}</strong><span>{data.castStatus === "accepted" ? "可以审阅、选择和准备新手动任务。" : "保留图像仅供核对；重新接受角色前不能选择、细化或准备新任务。"}</span></div>
+      <div className={`reference-gallery-cast-state ${castState.status === "accepted" && !castTransitionPending ? "current" : "stale"}`}><strong>{castTransitionPending ? "角色文字正在更新" : castState.status === "accepted" ? `已接受角色 r${castState.acceptedCast.revision}` : "已接受角色已过期"}</strong><span>{castTransitionPending ? "角色更新完成前，保留图像仅供核对。" : castState.status === "accepted" ? "可以审阅、选择和准备新手动任务。" : "保留图像仅供核对；重新接受角色前不能选择、细化或准备新任务。"}</span></div>
     </section>
     <div className="reference-gallery-layout">
       <nav className="reference-subjects" aria-label="角色主体"><span>角色主体</span>{subjects.map((subject) => <button key={subject.id} type="button" className={subject.id === selected.id ? "selected" : ""} aria-pressed={subject.id === selected.id} onClick={() => setSelectedSubjectId(subject.id)}><strong>{subject.name}</strong><small>{subject.inAcceptedCast ? "已接受角色" : "仅保留的历史主体"}</small></button>)}</nav>
-      <SubjectGallery key={selected.id} projectId={projectId} subject={selected} data={data} readOnly={readOnly || data.castStatus !== "accepted"} castRevision={data.accepted.revision} onRefresh={refresh} />
+      <SubjectGallery key={selected.id} projectId={projectId} subject={selected} data={data} readOnly={readOnly || castTransitionPending || castState.status !== "accepted"} castRevision={castState.acceptedCast.revision} rootSession={castSession} session={`${castSession}:${selected.id}`} onRefresh={refresh} />
     </div>
   </section>;
 }
 
-function SubjectGallery({ projectId, subject, data, readOnly, castRevision, onRefresh }: { projectId: string; subject: Subject; data: GalleryData; readOnly: boolean; castRevision: number; onRefresh: () => Promise<void> }) {
+function SubjectGallery({ projectId, subject, data, readOnly, castRevision, rootSession, session, onRefresh }: { projectId: string; subject: Subject; data: GalleryData; readOnly: boolean; castRevision: number; rootSession: string; session: string; onRefresh: (expectedSession: string) => Promise<boolean> }) {
   const [reviewer, setReviewer] = useState("creator");
   const [notes, setNotes] = useState("");
   const [direction, setDirection] = useState("");
@@ -106,6 +119,13 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, onRe
   const [assignment, setAssignment] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const active = useRef(true); const sessionRef = useRef(session);
+  const operationOwner = useRef(0);
+  sessionRef.current = session;
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []);
   const assets = new Map(data.assets.map((asset) => [asset.id, asset]));
   const decisions = data.decisions.filter((decision) => decision.characterId === subject.id);
   const selectedDecision = decisions.find((decision) => decision.current);
@@ -128,24 +148,27 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, onRe
         ? { asset: historicalCandidate.asset, assetId: historicalCandidate.asset.id, label: "历史候选，未被选择", selected: false }
         : undefined;
   const referenceState = data.referenceStates.find((state) => state.characterId === subject.id);
-  const act = async (operation: () => Promise<void>) => {
+  const act = async <T,>(operation: () => Promise<T>, applyResult?: (result: T) => void) => {
+    const capturedSession = sessionRef.current;
+    const capturedOwner = ++operationOwner.current;
+    const isCurrent = () => active.current && sessionRef.current === capturedSession && operationOwner.current === capturedOwner;
     setBusy(true); setActionError("");
-    try { await operation(); await onRefresh(); }
-    catch (reason) { setActionError(reason instanceof Error ? reason.message : "角色参考操作失败。"); }
-    finally { setBusy(false); }
+    try {
+      const result = await operation();
+      if (isCurrent()) { applyResult?.(result); await onRefresh(rootSession); }
+    } catch (reason) { if (isCurrent()) setActionError(reason instanceof Error ? reason.message : "角色参考操作失败。"); }
+    finally { if (isCurrent()) setBusy(false); }
   };
   const selectCandidate = (candidate: Candidate) => void act(async () => {
     await plotloomApi.selectCharacterReference(projectId, { characterId: subject.id, authority: "cast", primaryAssetId: candidate.assetId, complementaryAssetIds: [], expectedReferenceRevision: referenceState?.revision ?? 0, reviewer: reviewer.trim(), notes: notes.trim() });
-    setNotes("");
-  });
+  }, () => setNotes(""));
   const prepare = () => void act(async () => {
     await plotloomApi.prepareCharacterReferenceProposal(projectId, { characterId: subject.id, castRevision, visualDirection: direction.trim(), parentCandidateAssetId: parentCandidateAssetId || undefined });
-    setDirection(""); setParentCandidateAssetId("");
-  });
+  }, () => { setDirection(""); setParentCandidateAssetId(""); });
   const copy = (proposal: CharacterReferenceProposal) => void act(async () => {
     const copied = await plotloomApi.copyCharacterReferenceProposal(projectId, proposal.id);
-    setAssignment(copied.assignment);
-  });
+    return copied;
+  }, (copied) => setAssignment(copied.assignment));
   const refreshProposal = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.refreshCharacterReferenceProposal(projectId, proposal.id); });
   const cancel = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.cancelCharacterReferenceProposal(projectId, proposal.id, "Creator cancelled the exploratory reference handoff from Characters."); });
 

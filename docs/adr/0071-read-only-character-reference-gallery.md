@@ -69,3 +69,20 @@ do not change the canonical decision, proposal, delivery, or managed-asset
 owners. In the integrated Characters stage, ordinary viewing remains GET-only;
 only the explicit decision and handoff controls write through their existing
 owners.
+
+## Cast-session currentness amendment — 2026-09-20
+
+The Characters workspace, rather than either sibling panel, owns one monotonic
+cast session. Cast accept, reopen, and save invalidate that session before their
+requests are dispatched; while such a transition is pending, retained image
+evidence stays visible but every image mutation is disabled. The resulting cast
+state then admits the gallery and triggers a guarded read refresh for current
+directions and decisions.
+
+Every image mutation captures the project/cast/subject session and its own
+operation owner before dispatch. Only that still-current operation may apply a
+returned assignment or draft reset, report an error, clear busy state, or start
+a refresh. Unmount, project change, subject switch, and cast-session invalidation
+all reject late success and rejection effects, even when transport ignores abort.
+This is React presentation currentness only: it changes no F2A/F2B API,
+persistence, CAS, reviewer/notes, asset, or provider contract.

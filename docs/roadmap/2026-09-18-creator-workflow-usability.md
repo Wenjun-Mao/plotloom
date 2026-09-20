@@ -261,3 +261,16 @@ work. Candidate, selected decision, historical, missing and failed evidence
 remain distinct; asset failures and parent lineage preserve the prior U3
 ownership guarantees. Fixture evidence does not substitute for the pending
 human creator walkthrough acceptance.
+
+## U3 cast synchronization correction — 2026-09-20
+
+The integrated Characters workspace now owns the current cast session shared by
+F2A text review and F2B image-reference actions. Accept/reopen/save invalidate
+image authority before their requests dispatch, retain evidence in a
+non-actionable transition state, and refresh current image directions/decisions
+only under the resulting session. This is a currentness correction inside the
+approved U3 surface, not new generation, selection semantics, API/schema work,
+or broader U1–U4 approval. The technical receipt records guard-sensitive
+deferred-operation tests, browser coverage, deterministic static freshness and
+the independent-review/re-review trail. Attended creator-usability acceptance
+remains pending.
