@@ -21,6 +21,37 @@ type Proposal = {
 };
 
 test.describe("F2B cast-owned reference studies", () => {
+  test("synchronizes browser cast accept, reopen, and save with the same character-reference session", async ({ page, request, workbench }) => {
+    const { projectId } = await createCastReadyProject(request, workbench.apiOrigin, "session-sync");
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
+    const cast = page.getByTestId("cast-review");
+    await expect(cast.getByRole("button", { name: "显式接受此角色提案" })).toBeEnabled();
+
+    const accepting = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/accept`);
+    await cast.getByRole("button", { name: "显式接受此角色提案" }).click();
+    expect((await accepting).ok()).toBeTruthy();
+    const gallery = page.getByTestId("character-reference-gallery");
+    await expect(gallery).toContainText("已接受角色 r1");
+    await expect(gallery.getByLabel("细化方向")).toBeEditable();
+
+    const reopening = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/reopen`);
+    await cast.getByRole("button", { name: "重新打开角色提案" }).click();
+    expect((await reopening).ok()).toBeTruthy();
+    await expect(gallery).toContainText("已接受角色已过期");
+    await expect(gallery.getByLabel("细化方向")).toBeDisabled();
+
+    const saving = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/save`);
+    await cast.getByRole("button", { name: "保存重新打开的角色" }).click();
+    expect((await saving).ok()).toBeTruthy();
+    await expect(gallery).toContainText("已接受角色 r2");
+    await expect(gallery.getByLabel("细化方向")).toBeEditable();
+    await expect(gallery.getByLabel("细化方向")).toHaveValue("");
+    await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
+  });
+
   test("uses a cast-only production fixture through original, refinement, and restart", async ({ page, request, workbench }, testInfo) => {
     test.setTimeout(75_000);
     const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "journey");
@@ -252,6 +283,20 @@ test.describe("F2B cast-owned reference studies", () => {
 });
 
 async function createAcceptedCastOnlyProject(request: Api, apiOrigin: string, label: string): Promise<string> {
+  const ready = await createCastReadyProject(request, apiOrigin, label);
+  await getJson(request.post(`${apiOrigin}/api/v2/projects/${ready.projectId}/cast/accept`, {
+    data: {
+      jobId: ready.castPrepared.jobId,
+      expectedCastRevision: ready.castPrepared.expectedCastRevision,
+      binding: ready.castPrepared.binding,
+      cast: ready.readyCast.cast,
+      consumerMappings: ready.readyCast.cast.characters.map((character: { id: string }) => ({ castCharacterId: character.id, consumerCharacterId: character.id })),
+    },
+  }));
+  return ready.projectId;
+}
+
+async function createCastReadyProject(request: Api, apiOrigin: string, label: string): Promise<{ projectId: string; castPrepared: any; readyCast: any }> {
   const created = await request.post(`${apiOrigin}/api/v2/projects`, {
     headers: { "Idempotency-Key": `f2b-cast-only-${label}-${Date.now()}` },
     data: { brief: { ...demoProject.brief, title: `F2B cast-only ${label}` } },
@@ -290,16 +335,7 @@ async function createAcceptedCastOnlyProject(request: Api, apiOrigin: string, la
   const castPrepared = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates`));
   await writeCastDelivery(castPrepared);
   const readyCast = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/candidates/${castPrepared.jobId}/refresh`));
-  await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/cast/accept`, {
-    data: {
-      jobId: castPrepared.jobId,
-      expectedCastRevision: castPrepared.expectedCastRevision,
-      binding: castPrepared.binding,
-      cast: readyCast.cast,
-      consumerMappings: readyCast.cast.characters.map((character: { id: string }) => ({ castCharacterId: character.id, consumerCharacterId: character.id })),
-    },
-  }));
-  return projectId;
+  return { projectId, castPrepared, readyCast };
 }
 
 function sourceMaterial(label: string) {

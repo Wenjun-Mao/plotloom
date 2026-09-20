@@ -86,3 +86,32 @@ a refresh. Unmount, project change, subject switch, and cast-session invalidatio
 all reject late success and rejection effects, even when transport ignores abort.
 This is React presentation currentness only: it changes no F2A/F2B API,
 persistence, CAS, reviewer/notes, asset, or provider contract.
+
+## Live session ownership correction — 2026-09-20
+
+The preceding amendment described the intended boundary but its first evidence
+did not prove it. A gallery refresh compared its captured render's `castSession`
+with the same captured expected value, while its read owner changed only on a
+project change. A read begun before a cast transition could therefore still
+publish old directions/decisions or an old error after a newer same-character
+revision had settled. `SubjectGallery` was keyed only by subject ID, so the
+same character retained a prior session's busy flag, drafts, parent choice, and
+assignment area after reopen/save.
+
+`CharactersPage` now owns a live, monotonic session reference. Accept, reopen,
+and save replace that reference before dispatch; the rendered identity also
+tracks the resulting cast status/revision/hash. Initial gallery reads, session
+refreshes, and action-triggered refreshes all acquire a new read owner and may
+commit only if both that owner and the live session still match. A subject gallery
+is keyed by cast session plus subject, so a same-subject transition deliberately
+creates fresh local controls while the prior mounted operation is refused.
+
+Focused deferred tests hold a refresh through reopen/save, settle the newer
+accepted same-character revision, then release old success and rejection; neither
+may replace current evidence or show an error. A second deferred test proves a
+pending prepare cannot strand controls after reopen/save, old local drafts are
+absent, and the fresh control dispatches. A symmetric held selection rejection
+after reopen/save cannot surface an old action error. A production-browser proof
+exercises cast accept, reopen, and save against the FastAPI/file-SQLite fixture
+and checks the gallery's r1 → read-only reopened → editable r2 sequence. These
+guardrails remain presentation-only and preserve the existing F2A/F2B contracts.

@@ -98,3 +98,47 @@ creative or media-acceptance claim.
 single P2 correction: the session-change GET refresh now catches failures and
 surfaces them only while both its captured cast session and read owner still
 match. The final read-only verdict was **no findings**.
+
+## Live session ownership closeout — 2026-09-20
+
+**Prior-proof limit and root cause.** The prior correction's refresh comparison
+used the render closure's `castSession` on both sides. It was not a live owner
+check; a pre-transition refresh could still commit old values or an old rejection
+after the same subject reached a newer accepted cast revision. Its read owner
+also changed only on project changes. Separately, `SubjectGallery` keyed only by
+subject ID, so an invalidated pending operation correctly suppressed its late
+completion but left the retained same-subject controls busy with old drafts.
+
+**Delivered correction.** `CharactersPage` owns a monotonic live session ref
+and advances it before accept/reopen/save dispatch. The gallery uses one live
+read path for initial loads, session loads, and mutation refreshes; each read
+requires its captured session and unique read owner to remain current before
+data or errors publish. A subject gallery is keyed by cast session plus subject,
+which resets reviewer-notes/direction/parent/assignment/busy/error state for the
+new same-subject session. Mutations retain their project/cast/subject/operation
+guard before dispatch and before every local effect. No backend, API, provider,
+persistence, CAS, reviewer/notes, asset, or creative contract changed.
+
+**New evidence.** Focused unit tests first failed on the prior implementation,
+then passed with 12 gallery cases. They hold an initial gallery read across
+reopen/save, separately commit notes and assert the selection request dispatches,
+then hold a mutation-triggered refresh over reopen/save; settle r2 before
+releasing old success or rejection; and prove old r91 data/error cannot render.
+A pending prepare → reopen → save test verifies fresh enabled
+controls, absent stale drafts, ignored old assignment, and a dispatched next
+prepare; a held selection rejection after that same transition cannot surface an
+old mutation error. The added production FastAPI/file-SQLite browser test drives browser
+cast accept → reopen → save and verifies gallery r1 → read-only reopened →
+editable r2. The retained port-49072 preview was unreachable with no listener
+at this run, so it was not restarted or modified; its roots remain untouched.
+
+**Pending.** The recorded checks are technical verification only. Human
+creator-usability acceptance remains pending, and no creative or media outcome
+is accepted by these fixtures.
+
+**Independent final review.** A Terra/high read-only review of the stable delta
+found no P0/P1 defects and identified one P2 evidence gap: no late image-mutation
+rejection after reopen → save. The added focused selection regression holds that
+request, settles r2, then rejects it and proves no stale error appears. The
+narrow Terra/high re-review found **no findings**. It did not run checks or alter
+source; the executions listed here remain the delivery evidence.

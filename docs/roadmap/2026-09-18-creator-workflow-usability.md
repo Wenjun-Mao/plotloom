@@ -274,3 +274,22 @@ or broader U1–U4 approval. The technical receipt records guard-sensitive
 deferred-operation tests, browser coverage, deterministic static freshness and
 the independent-review/re-review trail. Attended creator-usability acceptance
 remains pending.
+
+## U3 live-session closeout — 2026-09-20
+
+**Approved step and deliverable.** Close the three confirmed Characters session
+defects only: live ownership for initial/refresh gallery reads, live ownership
+for image actions, and a fresh same-subject local session after cast
+accept/reopen/save. The deliverable is the bounded `stage=characters` correction,
+focused unit/browser regressions, regenerated static assets, ADR 0071 amendment,
+and updated integration receipt.
+
+**Evidence and exclusions.** Prior captured-value tests did not establish a
+live read boundary, and prior same-subject coverage did not prove local busy/draft
+reset. The replacement evidence holds an old refresh through reopen/save and
+releases its success and rejection only after r2 is current; it separately proves
+pending-prepare → reopen → save creates usable empty controls and dispatches the
+next action. The browser proof drives accept → reopen → save on the production
+fixture. Backend/API/provider/persistence/data work, UI redesign, generation,
+creative acceptance, and a restart of the retained port-49072 preview remain
+excluded. Human creator-usability acceptance is still pending.

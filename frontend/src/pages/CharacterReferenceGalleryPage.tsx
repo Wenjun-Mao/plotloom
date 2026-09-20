@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Field, Spinner } from "../components";
@@ -27,25 +27,25 @@ type Candidate = {
  * The F2B review belongs beside the cast that admits its subjects.  It only
  * reads until a creator deliberately invokes one of the supplied operations.
  */
-export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, castSession, castTransitionPending }: { projectId: string; readOnly: boolean; castState: CastReviewState | undefined; castSession: string; castTransitionPending: boolean }) {
+export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, castSession, castSessionOwner, castTransitionPending }: { projectId: string; readOnly: boolean; castState: CastReviewState | undefined; castSession: string; castSessionOwner: Readonly<{ current: string }>; castTransitionPending: boolean }) {
   const [data, setData] = useState<GalleryData>();
   const [error, setError] = useState("");
   const [selectedSubjectId, setSelectedSubjectId] = useState("");
   const requestOwner = useRef(0);
-  const observedCastSession = useRef(castSession);
+  const observedProjectId = useRef("");
 
-  useEffect(() => {
-    if (!projectId) return;
+  const refresh = useCallback(async (expectedSession: string, signal?: AbortSignal) => {
+    if (castSessionOwner.current !== expectedSession) return false;
     const owner = ++requestOwner.current;
-    const controller = new AbortController();
-    setData(undefined); setError(""); setSelectedSubjectId("");
-    void Promise.all([
-      plotloomApi.getProject(projectId, controller.signal),
-      plotloomApi.getCharacterReferences(projectId, controller.signal),
-      plotloomApi.getCharacterReferenceProposals(projectId, controller.signal),
-      plotloomApi.getVisualWorkbench(projectId, controller.signal),
-    ]).then(([project, references, proposals, workbench]) => {
-      if (requestOwner.current !== owner) return;
+    const isCurrent = () => castSessionOwner.current === expectedSession && requestOwner.current === owner;
+    try {
+      const [project, references, proposals, workbench] = await Promise.all([
+        plotloomApi.getProject(projectId, signal),
+        plotloomApi.getCharacterReferences(projectId, signal),
+        plotloomApi.getCharacterReferenceProposals(projectId, signal),
+        plotloomApi.getVisualWorkbench(projectId, signal),
+      ]);
+      if (!isCurrent()) return false;
       setData({
         title: project.brief.title,
         decisions: references.decisions,
@@ -53,46 +53,32 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
         proposals: proposals.proposals,
         assets: workbench.assets,
       });
-    }).catch((reason: unknown) => {
-      if (requestOwner.current === owner) setError(reason instanceof Error ? reason.message : "无法读取角色参考。");
-    });
+      setError("");
+      return true;
+    } catch (reason) {
+      if (isCurrent()) setError(reason instanceof Error ? reason.message : "无法刷新角色参考。");
+      return false;
+    }
+  }, [castSessionOwner, projectId]);
+
+  useEffect(() => {
+    if (!projectId) return;
+    const projectChanged = observedProjectId.current !== projectId;
+    observedProjectId.current = projectId;
+    if (projectChanged) { setData(undefined); setError(""); setSelectedSubjectId(""); }
+    const controller = new AbortController();
+    void refresh(castSession, controller.signal);
     return () => {
       controller.abort();
-      if (requestOwner.current === owner) requestOwner.current += 1;
+      requestOwner.current += 1;
     };
-  }, [projectId]);
+  }, [castSession, projectId, refresh]);
 
   const subjects = useMemo(() => data ? gallerySubjects(castState?.acceptedCast ?? null, data.proposals) : [], [data, castState?.acceptedCast]);
   useEffect(() => {
     if (subjects.length && !subjects.some((subject) => subject.id === selectedSubjectId)) setSelectedSubjectId(subjects[0].id);
   }, [subjects, selectedSubjectId]);
   const selected = subjects.find((subject) => subject.id === selectedSubjectId) || subjects[0];
-
-  const refresh = async (expectedSession: string) => {
-    if (castSession !== expectedSession) return false;
-    const owner = requestOwner.current;
-    try {
-      const [references, proposals, workbench] = await Promise.all([
-        plotloomApi.getCharacterReferences(projectId),
-        plotloomApi.getCharacterReferenceProposals(projectId), plotloomApi.getVisualWorkbench(projectId),
-      ]);
-      if (castSession !== expectedSession || requestOwner.current !== owner) return false;
-      setData(current => current ? { ...current, decisions: references.decisions, referenceStates: references.states, proposals: proposals.proposals, assets: workbench.assets } : current);
-      return true;
-    } catch (reason) {
-      if (castSession === expectedSession && requestOwner.current === owner) setError(reason instanceof Error ? reason.message : "无法刷新角色参考。");
-      return false;
-    }
-  };
-
-  // A cast mutation changes which reference evidence is actionable. Keep the
-  // already-rendered comparison visible for the immediate transition, then
-  // refresh its directions and decisions under the new shared session.
-  useEffect(() => {
-    if (observedCastSession.current === castSession) return;
-    observedCastSession.current = castSession;
-    void refresh(castSession);
-  }, [castSession]);
 
   if (error) return <section className="character-reference-review"><ErrorNotice message={error} /></section>;
   if (!data || !castState) return <section className="character-reference-review reference-gallery-loading"><Spinner label="正在读取角色参考" /></section>;
@@ -106,12 +92,12 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
     </section>
     <div className="reference-gallery-layout">
       <nav className="reference-subjects" aria-label="角色主体"><span>角色主体</span>{subjects.map((subject) => <button key={subject.id} type="button" className={subject.id === selected.id ? "selected" : ""} aria-pressed={subject.id === selected.id} onClick={() => setSelectedSubjectId(subject.id)}><strong>{subject.name}</strong><small>{subject.inAcceptedCast ? "已接受角色" : "仅保留的历史主体"}</small></button>)}</nav>
-      <SubjectGallery key={selected.id} projectId={projectId} subject={selected} data={data} readOnly={readOnly || castTransitionPending || castState.status !== "accepted"} castRevision={castState.acceptedCast.revision} rootSession={castSession} session={`${castSession}:${selected.id}`} onRefresh={refresh} />
+      <SubjectGallery key={`${castSession}:${selected.id}`} projectId={projectId} subject={selected} data={data} readOnly={readOnly || castTransitionPending || castState.status !== "accepted"} castRevision={castState.acceptedCast.revision} rootSession={castSession} session={`${castSession}:${selected.id}`} castSessionOwner={castSessionOwner} onRefresh={refresh} />
     </div>
   </section>;
 }
 
-function SubjectGallery({ projectId, subject, data, readOnly, castRevision, rootSession, session, onRefresh }: { projectId: string; subject: Subject; data: GalleryData; readOnly: boolean; castRevision: number; rootSession: string; session: string; onRefresh: (expectedSession: string) => Promise<boolean> }) {
+function SubjectGallery({ projectId, subject, data, readOnly, castRevision, rootSession, session, castSessionOwner, onRefresh }: { projectId: string; subject: Subject; data: GalleryData; readOnly: boolean; castRevision: number; rootSession: string; session: string; castSessionOwner: Readonly<{ current: string }>; onRefresh: (expectedSession: string) => Promise<boolean> }) {
   const [reviewer, setReviewer] = useState("creator");
   const [notes, setNotes] = useState("");
   const [direction, setDirection] = useState("");
@@ -151,7 +137,8 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const act = async <T,>(operation: () => Promise<T>, applyResult?: (result: T) => void) => {
     const capturedSession = sessionRef.current;
     const capturedOwner = ++operationOwner.current;
-    const isCurrent = () => active.current && sessionRef.current === capturedSession && operationOwner.current === capturedOwner;
+    const isCurrent = () => active.current && castSessionOwner.current === rootSession && sessionRef.current === capturedSession && operationOwner.current === capturedOwner;
+    if (!isCurrent()) return;
     setBusy(true); setActionError("");
     try {
       const result = await operation();
