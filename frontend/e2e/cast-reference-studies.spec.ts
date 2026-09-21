@@ -234,6 +234,78 @@ test.describe("F2B cast-owned reference studies", () => {
     await expect(gallery.getByTestId("appearance-comparison")).toHaveCount(0);
   });
 
+  test("imports five cast-bound appearance options through the browser without a delivery", async ({ page, request, workbench }, testInfo) => {
+    test.setTimeout(90_000);
+    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "imported-five");
+    const labels = ["Beacon console", "Review shortcut", "Workbench map", "Profile contact sheet", "Workspace correction"];
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
+    const gallery = page.getByTestId("character-reference-gallery");
+    const thumbnails = gallery.getByLabel("已有图片").getByRole("button");
+    for (let index = 0; index < labels.length; index += 1) {
+      const label = labels[index]!;
+      await gallery.getByLabel("图片标签").fill(label);
+      await gallery.getByLabel("来源声明").fill(`Repository-owned technical verification screenshot: ${label}`);
+      await gallery.getByLabel("PNG 或 JPEG").setInputFiles(comparisonFixtureStills[index]!);
+      const attached = page.waitForResponse((response) => response.request().method() === "POST"
+        && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-imported-appearances`);
+      await gallery.getByRole("button", { name: "导入为外观选项" }).click();
+      expect((await attached).ok()).toBeTruthy();
+      await expect(thumbnails).toHaveCount(index + 1);
+    }
+    const imported = await getJson<{ appearances: Array<{ assetId: string; label: string; current: boolean }> }>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-imported-appearances`));
+    expect(imported.appearances).toHaveLength(5);
+    expect(new Set(imported.appearances.map((item) => item.assetId)).size).toBe(5);
+    expect(imported.appearances.every((item) => item.current)).toBeTruthy();
+    await expect(gallery.getByTestId("appearance-viewer")).toContainText("导入图片");
+    await gallery.getByRole("button", { name: "放大查看" }).click();
+    await expect(page.getByRole("dialog", { name: "放大查看图片" }).getByRole("img")).toBeVisible();
+    await page.getByRole("dialog", { name: "放大查看图片" }).getByRole("button", { name: "关闭" }).click();
+
+    await gallery.getByRole("button", { name: "加入 导入图片 · Beacon console" }).click();
+    await gallery.getByRole("button", { name: "加入 导入图片 · Workbench map" }).click();
+    await expect(gallery.getByTestId("appearance-comparison")).toContainText("并排比较 · 2 张");
+    await gallery.getByRole("button", { name: "加入 导入图片 · Workspace correction" }).click();
+    await expect(gallery.getByTestId("appearance-comparison")).toContainText("并排比较 · 3 张");
+    await gallery.getByRole("button", { name: "加入 导入图片 · Review shortcut" }).click();
+    await expect(gallery.getByTestId("appearance-comparison")).toContainText("并排比较 · 4 张");
+    await expect(gallery.getByRole("button", { name: "加入 导入图片 · Profile contact sheet" })).toBeDisabled();
+    await page.screenshot({ path: testInfo.outputPath("f2b-imported-five-1440x900.png"), animations: "disabled" });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await expect(gallery.getByTestId("appearance-comparison")).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("f2b-imported-five-1920x1080.png"), animations: "disabled" });
+
+    await gallery.getByRole("button", { name: "选用当前图片" }).click();
+    await expect(gallery).toContainText("已选择身份参考 r1");
+    await expect(gallery.getByRole("button", { name: "基于当前图片修改" })).toBeDisabled();
+    await expect(gallery).toContainText("不能作为调整父项");
+    await gallery.getByRole("button", { name: "尝试全新方案" }).click();
+    await gallery.getByLabel("想法").fill("Preserve this imported technical reference while clarifying the coat silhouette.");
+    const prepared = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals`);
+    await gallery.getByRole("button", { name: "创建提案" }).click();
+    const preparedResponse = await prepared;
+    expect(preparedResponse.ok(), await preparedResponse.text()).toBeTruthy();
+    const preparedBody = await preparedResponse.json() as { proposal: Proposal };
+    const proposals = await getJson<{ proposals: Proposal[] }>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-reference-proposals`));
+    expect(proposals.proposals.find((proposal) => proposal.id === preparedBody.proposal.id)?.parentCandidateAssetId).toBeNull();
+
+    await page.reload();
+    await expect(gallery).toContainText("已选择身份参考 r1");
+    await expect(thumbnails).toHaveCount(5);
+    await workbench.restartBackend();
+    await page.reload();
+    await expect(gallery).toContainText("已选择身份参考 r1");
+    const cast = page.getByTestId("cast-review");
+    await cast.getByRole("button", { name: "编辑角色设定" }).click();
+    await expect(gallery).toContainText("已接受角色已过期");
+    await cast.getByRole("button", { name: "取消编辑" }).click();
+    await expect(gallery).toContainText("已选择身份参考 r1");
+    const restored = await getJson<{ appearances: Array<{ current: boolean }> }>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-imported-appearances`));
+    expect(restored.appearances).toHaveLength(5);
+    expect(restored.appearances.every((item) => item.current)).toBeTruthy();
+  });
+
   test("cancels prepared and exported handoffs, retaining late delivery as inapplicable across close/reopen", async ({ page, request, workbench }) => {
     const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "cancel");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
