@@ -429,9 +429,12 @@ The bounded correction adds a CAS-protected cancellation transition that
 restores the prior accepted revision without a save or revision increment only
 while its upstream binding remains current; a changed binding remains stale and
 unavailable. Appearance comparison is now an explicit local set of any two to
-four candidates, while retained gallery size remains unrestricted. A separate
-five-image, repository-owned technical fixture follows ordinary proposal,
-export, delivery, refresh, and asset admission without provider calls. Focused
-storage and browser paths cover cancellation, stale non-revival, arbitrary
-non-adjacent 2/3/4 comparison, fourth-cap replacement, no implicit selection,
-and cast-session reset. Desktop inspection is limited to 1440 and 1920.
+four candidates, while retained gallery size remains unrestricted. The
+five-image browser proof runs only in an isolated fake runtime with mocked
+ImageGen delivery evidence: it validates UI/state behavior, not a persistent
+production delivery, and does not replace live ImageGen evidence. Truthful
+managed imports are project-scoped and not gallery candidates; a character-owned
+import membership is an unapproved product seam. Focused storage and browser
+paths cover cancellation, stale non-revival, arbitrary non-adjacent 2/3/4
+comparison, fourth-cap replacement, no implicit selection, and cast-session
+reset. Desktop inspection is limited to 1440 and 1920.

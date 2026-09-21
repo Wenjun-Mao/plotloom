@@ -33,6 +33,17 @@ session or project changes.
 - A stale cancellation cannot restore F2B subject authority.
 - There is no fake save, reacceptance, or revision increment on cancellation.
 - Gallery size is not limited by the four-image comparison cap.
-- A persistent five-image technical fixture uses existing repository screenshots
-  only through supported proposal, export, delivery, refresh, and asset flows;
-  it makes no provider or ImageGen call.
+- The five-image browser proof is an isolated fake-runtime fixture. It uses
+  mocked ImageGen delivery evidence to exercise the normal proposal UI and
+  proves local comparison/state behavior only; it is not persistent production
+  delivery evidence and does not replace separately retained live ImageGen
+  proof.
+
+## Evidence-boundary correction — 2026-09-21
+
+The repository also has a truthful project-level managed-image import path, but
+the Characters gallery only enumerates character-reference proposal deliveries.
+Imported assets are project-scoped and have no character-owned gallery
+membership, so they cannot be safely inferred as five unselected appearance
+options. A character-scoped imported-appearance association is an unapproved
+product seam, not part of this decision or implementation.
