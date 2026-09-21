@@ -9,7 +9,7 @@ canvases were qualified earlier in the linked canvas receipt.
 ## Released behavior
 
 The Spark gateway now advertises exactly these Qwen image canvases through its
-authenticated health projection:
+Tailnet health projection:
 
 `1024x1024`, `832x480`, `960x544`, `1280x704`, `576x1024`, `608x1088`, and
 `704x1280`.
