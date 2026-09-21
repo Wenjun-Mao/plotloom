@@ -25,13 +25,11 @@ class NativeCodexImageDispatcher:
     def dispatch(self, *, job_id: str, package_path: str, delivery_path: str) -> None:
         self.state_root.mkdir(parents=True, exist_ok=True)
         root = self.state_root / job_id
-        try:
-            root.mkdir(mode=0o700)
-        except FileExistsError as error:
+        if root.exists():
             raise ImageJobError(
                 "image_dispatch_already_attempted",
                 "this image job already has a native dispatch attempt; it will not be resent automatically",
-            ) from error
+            )
         active = self.state_root / "inflight.json"
         try:
             descriptor = os.open(active, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -42,6 +40,16 @@ class NativeCodexImageDispatcher:
             ) from error
         with os.fdopen(descriptor, "w", encoding="utf-8") as output:
             json.dump({"jobId": job_id}, output)
+        try:
+            root.mkdir(mode=0o700)
+        except FileExistsError as error:
+            # This can only be a concurrent same-job attempt. It acquired the
+            # lease before us, so release ours rather than stranding others.
+            active.unlink()
+            raise ImageJobError(
+                "image_dispatch_already_attempted",
+                "this image job already has a native dispatch attempt; it will not be resent automatically",
+            ) from error
         receipt = root / "receipt.json"
         message = (
             f"Frozen Plotloom image package assignment for {job_id}. Read and obey the "

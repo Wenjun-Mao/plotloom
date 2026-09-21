@@ -18,18 +18,19 @@ as a completion signal.
 
 The specialist preserved one PNG, executor pin, and completion receipt under
 the disposable project's ignored `outputs/` tree. It neither selected nor
-approved the candidate. The first admission correctly rejected the manifest:
-the reference-free package template told the specialist to emit an empty
-`referenceUse`, while its optional model required a non-empty list. The durable
-fix permits an empty attestation only when the frozen job supplies no identity
-references; identity-bound jobs still require the exact frozen hashes.
+approved the candidate. Auto-observation first saw the normal output-before-
+manifest window and recorded `delivery_partial` rejections. Once the manifest
+appeared it recorded `delivery_manifest_invalid`: the reference-free package
+template told the specialist to emit an empty `referenceUse`, while its optional
+model required a non-empty list. The durable fix permits an empty attestation
+only when the frozen job supplies no identity references; identity-bound jobs
+still require the exact frozen hashes.
 
 That correction changes the package template. Rechecking the already-exported
 package then correctly fails with `package_conflict`: the existing exchange
 verifier compares it to its frozen original package, rather than silently
-rewriting evidence to match the new contract. The automatic UI observer also
-initially repeated this stable rejection; it now stops observing an exported
-job after a recorded rejection.
+rewriting evidence to match the new contract. The observer keeps checking
+transient partial delivery, but stops after this precise package conflict.
 
 **Outcome.** This is a real one-submit transport/ImageGen result, not a
 successful click-to-gallery proof. The requested result cannot be admitted

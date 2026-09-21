@@ -37,6 +37,21 @@ def test_uncertain_dispatch_is_reserved_and_never_retried(tmp_path, monkeypatch)
     dispatcher = NativeCodexImageDispatcher("task-local", tmp_path)
     with pytest.raises(ImageJobError, match="outcome is unknown"):
         dispatcher.dispatch(job_id="ij_abcdefghijklmnopqrst", package_path="/package", delivery_path="/delivery")
+
+
+def test_busy_dispatch_does_not_reserve_an_unqueued_job(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda command, **_kwargs: subprocess.CompletedProcess(command, 0, "Queued", ""),
+    )
+    dispatcher = NativeCodexImageDispatcher("task-local", tmp_path)
+    dispatcher.dispatch(job_id="ij_abcdefghijklmnopqrst", package_path="/one", delivery_path="/one-delivery")
+    with pytest.raises(ImageJobError, match="already in flight"):
+        dispatcher.dispatch(job_id="ij_bcdefghijklmnopqrstu", package_path="/two", delivery_path="/two-delivery")
+    assert not (tmp_path / "ij_bcdefghijklmnopqrstu").exists()
+    dispatcher.complete("ij_abcdefghijklmnopqrst")
+    dispatcher.dispatch(job_id="ij_bcdefghijklmnopqrstu", package_path="/two", delivery_path="/two-delivery")
     assert (tmp_path / "ij_abcdefghijklmnopqrst" / "receipt.json").is_file()
     with pytest.raises(ImageJobError, match="already has a native dispatch attempt"):
         dispatcher.dispatch(job_id="ij_abcdefghijklmnopqrst", package_path="/package", delivery_path="/delivery")
