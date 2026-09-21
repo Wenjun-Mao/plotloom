@@ -270,7 +270,11 @@ class GatewayFiles:
                     raise GatewayError("qwen_image_output_invalid")
                 if str(job.get("background_mode")) == "transparent":
                     alpha = image.getchannel("A") if "A" in image.getbands() else None
-                    if alpha is None or alpha.getextrema()[0] >= 255:
+                    if alpha is None:
+                        raise GatewayError("qwen_image_alpha_missing")
+                    histogram = alpha.histogram()
+                    transparent_ratio = sum(histogram[:6]) / (image.width * image.height)
+                    if alpha.getextrema() != (0, 255) or transparent_ratio <= 0.4:
                         raise GatewayError("qwen_image_alpha_missing")
             digest, size_bytes = _write_bytes_atomically(content, destination)
         except GatewayError as error:

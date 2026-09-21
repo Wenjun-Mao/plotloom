@@ -190,6 +190,7 @@ class H3Gateway:
             "guidanceScale": QWEN_IMAGE_GUIDANCE_SCALE,
             "outputs": 1,
             "outputFormat": "png",
+            "transparentPromptPolicyVersion": 1,
             "rendererVersion": 1,
         }
         import json

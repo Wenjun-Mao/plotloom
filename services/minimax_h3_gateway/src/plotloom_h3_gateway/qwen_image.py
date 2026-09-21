@@ -74,7 +74,7 @@ class QwenImageClient:
     ) -> dict[str, Any]:
         return {
             "model": self.settings.qwen_image_model,
-            "prompt": prompt,
+            "prompt": _provider_prompt(prompt, background_mode),
             "n": 1,
             "size": f"{width}x{height}",
             "num_inference_steps": QWEN_IMAGE_STEPS,
@@ -83,7 +83,7 @@ class QwenImageClient:
             "generator_device": "cpu",
             "output_format": "png",
             "response_format": "b64_json",
-            "background": "transparent" if background_mode == "transparent" else "auto",
+            "background": background_mode,
         }
 
     def _post_json(self, path: str, payload: dict[str, Any]) -> bytes:
@@ -135,3 +135,22 @@ class QwenImageClient:
             return base64.b64decode(encoded, validate=True)
         except (ValueError, TypeError) as error:
             raise GatewayError("qwen_image_response_invalid") from error
+
+
+def _provider_prompt(prompt: str, background_mode: str) -> str:
+    """Add the stable alpha instruction that SGLang does not infer from its field.
+
+    SGLang's ``background`` option selects output encoding but does not become
+    a Qwen conditioning token.  The official Qwen-Image-2.1 alpha case carries
+    an explicit cutout instruction, so the gateway does likewise and then
+    validates the returned alpha plane before publishing the asset.
+    """
+
+    if background_mode != "transparent":
+        return prompt
+    return (
+        f"{prompt.rstrip()}\n\n"
+        "Output requirement: an isolated cutout on a genuinely transparent alpha canvas. "
+        "Everything outside the subject must be fully transparent (alpha 0); no backdrop, "
+        "floor, shadow, lettering, or watermark."
+    )

@@ -62,9 +62,13 @@ qualification, not an environment-only tuning tweak.
 
 The gateway accepts only exact `1024x1024` image jobs until canvas
 qualification completes. It calls SGLang with 40 steps, CFG 1, PNG response,
-and a single server-resolved output. `backgroundMode=transparent` is passed to
-Qwen and then verified as real PNG alpha; it is not a background-removal
-filter. Image output is retained for 72 hours; its job record and transient
+and a single server-resolved output. `backgroundMode=opaque` and
+`backgroundMode=transparent` are passed through exactly to Qwen; transparent
+requests also receive the stable cutout instruction that Qwen requires for
+alpha generation. The gateway accepts a transparent result only when its PNG
+has both alpha 0 and alpha 255, with more than 40% of pixels at alpha 5 or
+below—the same meaningful-alpha threshold used by SGLang's own Qwen test.
+It never applies background removal itself. Image output is retained for 72 hours; its job record and transient
 input image are retained for 30 days. Plotloom must import any selected asset
 it needs to keep.
 
@@ -73,8 +77,8 @@ it needs to keep.
 Before enabling the service, record four 1024×1024 canaries: opaque text,
 opaque one-image edit, transparent text, and transparent one-image edit. Each
 transparent canary must decode as RGBA and contain pixels with alpha below 255.
-Then prove coexistence with the embedding process, resident Qwen service, and
-the established H3 quality-8 memory path.
+Then prove the resident Qwen service and the established H3 quality-8 memory
+path can share the gateway's single generation lane.
 
 Do not expose portrait or landscape Qwen image sizes until each of
 `832x480`, `960x544`, `1280x704`, `576x1024`, `608x1088`, and `704x1280` has

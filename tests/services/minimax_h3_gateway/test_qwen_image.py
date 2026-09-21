@@ -158,7 +158,7 @@ def test_qwen_text_job_uses_documented_generation_shape_and_managed_png(tmp_path
         "model": "Qwen/Qwen-Image-2.1", "prompt": "An observatory at dusk.", "n": 1,
         "size": "1024x1024", "num_inference_steps": 40, "guidance_scale": 1.0,
         "seed": 7, "generator_device": "cpu", "output_format": "png",
-        "response_format": "b64_json", "background": "auto", "enable_cache_dit": False,
+        "response_format": "b64_json", "background": "opaque", "enable_cache_dit": False,
     }
     output = client.get(f"/v1/image-jobs/{accepted['id']}/output", headers=AUTH)
     assert output.headers["content-type"] == "image/png"
@@ -180,6 +180,7 @@ def test_single_reference_edit_accepts_one_file_and_preserves_transparent_png(tm
     url, kwargs = qwen.calls[0]
     assert url.endswith("/v1/images/edits")
     assert kwargs["data"]["background"] == "transparent"
+    assert "Everything outside the subject must be fully transparent" in kwargs["data"]["prompt"]
     assert "image[]" in kwargs["files"]
     missing = client.post(
         "/v1/image-jobs/from-image", headers=AUTH,
@@ -210,6 +211,21 @@ def test_transparent_request_rejects_non_alpha_model_output(tmp_path: Path) -> N
     accepted = client.post(
         "/v1/image-jobs/from-text", headers=AUTH,
         json={"prompt": "A clean cutout.", "resolution": "1024x1024", "backgroundMode": "transparent"},
+    ).json()
+    result = client.app.state.gateway.dispatch_once()
+    assert result is not None and result["status"] == "failed"
+    status = client.get(f"/v1/image-jobs/{accepted['id']}", headers=AUTH).json()
+    assert status["error"] == "qwen_image_alpha_missing"
+
+
+def test_transparent_request_rejects_nearly_opaque_png(tmp_path: Path) -> None:
+    output = Image.new("RGBA", (1024, 1024), (20, 40, 60, 250))
+    buffer = BytesIO()
+    output.save(buffer, "PNG")
+    client, _ = _client(tmp_path, output=buffer.getvalue())
+    accepted = client.post(
+        "/v1/image-jobs/from-text", headers=AUTH,
+        json={"prompt": "A cutout.", "resolution": "1024x1024", "backgroundMode": "transparent"},
     ).json()
     result = client.app.state.gateway.dispatch_once()
     assert result is not None and result["status"] == "failed"
