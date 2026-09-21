@@ -28,6 +28,7 @@ frontend/test-results/
 secrets.json
 /data/
 /outputs/
+/.local/
 
 # Generated reading artifacts
 docs/storyboard-handbook/dist/
