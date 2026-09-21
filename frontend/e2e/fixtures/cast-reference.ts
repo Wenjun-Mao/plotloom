@@ -27,6 +27,7 @@ export type Proposal = {
   deliveries: Array<{
     state: string;
     diagnosticCode?: string;
+    publicationPhase?: string | null;
     candidates: Array<{ id: string; assetId: string }>;
   }>;
 };
@@ -191,6 +192,13 @@ export async function makeProposalManifestInvalid(deliveryPath: string): Promise
   const completionPath = path.join(deliveryPath, "completion.json");
   const manifest = JSON.parse(await readFile(completionPath, "utf8"));
   manifest.toolEvidence.available = false;
+  await writeFile(completionPath, JSON.stringify(manifest));
+}
+
+export async function makeProposalOutputSetPartial(deliveryPath: string): Promise<void> {
+  const completionPath = path.join(deliveryPath, "completion.json");
+  const manifest = JSON.parse(await readFile(completionPath, "utf8"));
+  manifest.outputs.push({ filename: "missing.png", sha256: "0".repeat(64), role: "original" });
   await writeFile(completionPath, JSON.stringify(manifest));
 }
 

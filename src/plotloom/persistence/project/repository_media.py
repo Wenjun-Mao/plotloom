@@ -177,9 +177,11 @@ class ProjectMediaRepository:
         return self._proposals.character_reference_proposal_delivery_context(project_id, proposal_id)
 
     def record_character_reference_proposal_rejection(
-        self, project_id: str, proposal_id: str, code: str
+        self, project_id: str, proposal_id: str, code: str, *, publication_phase: str | None = None,
     ) -> None:
-        self._proposals.record_character_reference_proposal_rejection(project_id, proposal_id, code)
+        self._proposals.record_character_reference_proposal_rejection(
+            project_id, proposal_id, code, publication_phase=publication_phase,
+        )
 
     def record_character_reference_proposal_delivery(
         self, project_id: str, proposal_id: str, *, delivery_id: str,

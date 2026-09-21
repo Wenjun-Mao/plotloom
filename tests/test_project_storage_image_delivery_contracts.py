@@ -162,6 +162,38 @@ def test_image_delivery_rejects_partial_and_hash_tamper_before_candidate_publica
         client.close()
 
 
+def test_repeated_pre_final_delivery_observation_stays_pending_until_completion(
+    tmp_path: Path,
+) -> None:
+    client, project_id, job, delivery = _ready_exported_job(tmp_path)
+    content = _png((10, 10, 10))
+    try:
+        outputs = delivery / "outputs"
+        outputs.mkdir(parents=True, exist_ok=True)
+        (outputs / "candidate.png").write_bytes(content)
+        refresh_path = f"/api/v2/projects/{project_id}/image-jobs/{job['id']}/refresh"
+        for _ in range(3):
+            pending = client.post(refresh_path)
+            assert pending.status_code == 200, pending.text
+            assert pending.json() == {
+                "state": "awaiting_delivery",
+                "candidates": [],
+                "idempotent": False,
+            }
+        listed = client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"]
+        assert listed[0]["deliveries"] == []
+
+        _write_delivery(delivery, job, content, "pending-final-001")
+        accepted = client.post(refresh_path)
+        assert accepted.status_code == 200, accepted.text
+        assert accepted.json()["state"] == "accepted"
+        listed = client.get(f"/api/v2/projects/{project_id}/image-jobs").json()["jobs"]
+        assert len(listed[0]["deliveries"]) == 1
+        assert len(listed[0]["deliveries"][0]["candidates"]) == 1
+    finally:
+        client.close()
+
+
 def test_copied_image_package_rejects_tampered_frozen_snapshot_before_admission(
     tmp_path: Path,
 ) -> None:

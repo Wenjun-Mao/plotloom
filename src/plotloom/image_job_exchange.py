@@ -568,10 +568,12 @@ class ImageJobExchange:
     ) -> ValidatedDelivery | None:
         """Read a completed untrusted package, or report that no delivery exists yet.
 
-        An absent delivery directory (or an empty inbox) is the normal state
-        after Copy.  It is deliberately distinct from an incomplete package:
-        once a writer has placed any entry in the inbox, Refresh continues to
-        fail closed instead of treating a partial handoff as harmless waiting.
+        An absent delivery directory, an empty inbox, and staged output before
+        ``completion.json`` are all normal pending states after Copy. The
+        completion manifest is the specialist's final publication marker: only
+        once it exists can an observer classify malformed bytes as a durable
+        rejected delivery. This keeps repeated polling from manufacturing
+        rejection history while an otherwise valid specialist is still writing.
         """
 
         root = self._root()
@@ -586,24 +588,19 @@ class ImageJobExchange:
             if error.code == "delivery_incomplete":
                 return None
             raise
+        completion_marker_observed = False
         try:
             names = self._directory_names(delivery_fd)
             if not names:
                 return None
             if COMPLETION_FILENAME not in names:
-                if require_executor_pin and names == {EXECUTOR_PIN_FILENAME}:
-                    self._validated_executor_pin(
-                        delivery_fd, job_id=job_id, request_hash=request_hash,
-                        expected_skill_version=expected_executor_skill_version,
-                    )
-                    # A valid pre-generation pin is the one intentional partial
-                    # delivery state for v4 packages. It records that the
-                    # specialist is operating, not that output exists yet.
-                    return None
-                raise ImageJobError(
-                    "delivery_partial",
-                    "delivery has files but no completion manifest",
-                )
+                # The delivery protocol requires the specialist to publish the
+                # manifest last. Outputs, the v4 executor pin, and even a
+                # partially written staging set therefore carry no terminal
+                # meaning before that marker exists. They remain confined and
+                # non-publishing until the next observation sees completion.
+                return None
+            completion_marker_observed = True
             raw = self._read_regular_at(delivery_fd, COMPLETION_FILENAME, max_bytes=1_000_000)
             try:
                 payload = json.loads(raw)
@@ -660,14 +657,19 @@ class ImageJobExchange:
             if require_executor_pin:
                 expected_delivery_names.add(EXECUTOR_PIN_FILENAME)
             if names != expected_delivery_names:
-                raise ImageJobError("delivery_partial", "delivery contains undeclared files")
+                raise ImageJobError(
+                    "delivery_partial", "delivery contains undeclared files", publication_phase="final"
+                )
 
             outputs_fd = self._open_directory(root, ("jobs", job_id, "delivery", "outputs"))
             try:
                 declared = {item.filename for item in manifest.outputs}
                 actual = self._directory_names(outputs_fd)
                 if actual != declared:
-                    raise ImageJobError("delivery_partial", "delivery output set does not exactly match the completion manifest")
+                    raise ImageJobError(
+                        "delivery_partial", "delivery output set does not exactly match the completion manifest",
+                        publication_phase="final",
+                    )
                 outputs: list[ValidatedOutput] = []
                 for declaration in manifest.outputs:
                     content = self._read_regular_at(outputs_fd, declaration.filename, max_bytes=self.limits.max_import_bytes)
@@ -686,6 +688,13 @@ class ImageJobExchange:
                     ))
             finally:
                 os.close(outputs_fd)
+        except ImageJobError as error:
+            # Once the completion marker has been observed, every normalized
+            # delivery error is final-publication evidence. The marker is set
+            # before parsing because malformed completion bytes are final too.
+            if completion_marker_observed and error.publication_phase is None:
+                error.publication_phase = "final"
+            raise
         finally:
             os.close(delivery_fd)
         return ValidatedDelivery(

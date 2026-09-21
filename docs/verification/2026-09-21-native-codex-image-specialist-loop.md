@@ -137,3 +137,31 @@ historical error cards at both desktop and 390px widths. No retry, manual
 refresh, deletion, or cleanup was performed. This is evidence for a separate
 root-cause fix: transient delivery publication must not be persisted as a new
 rejection on every poll while the same package remains in progress.
+
+## Publication-boundary correction — 2026-09-21
+
+The live evidence above remains unchanged. The correction makes
+`completion.json`, rather than the first staged delivery byte, the durable
+publication boundary. Repeated observations of an executor pin, output
+directory, or output bytes without that marker now return `awaiting_delivery`
+and create no delivery rows. Once the marker exists, malformed final manifests,
+executor-pin/provenance mismatches, output-set/hash/raster failures, package
+conflicts, and stale/currentness failures keep their existing meaningful
+rejection handling.
+
+Focused backend coverage performs three pre-final refreshes, asserts zero
+stored deliveries, publishes one valid completion, and asserts exactly one
+accepted delivery/candidate. The Characters browser regression performs at
+least three automatic pre-final polls before final publication and asserts the
+same no-growth result. The existing final-invalid and package-conflict browser
+cases remain passing. The static gallery groups the retained 25 phase-unknown
+historical `delivery_partial` rows into one closed audit disclosure; it does
+not delete or rewrite them or claim that every old partial was transient. New
+post-marker rejections persist explicit `publicationPhase: final`, and actual
+rejected final deliveries remain individual cards.
+
+The admitted ImageGen asset is independently project-managed: its served
+`original` variant hashes to
+`9909481b8aa670947e078428b4837c901db66d8919a840d306b0971027bb2d96`, matching
+the retained completion manifest, rather than relying on the specialist staging
+file. Frontend static assets were rebuilt after this gallery change.

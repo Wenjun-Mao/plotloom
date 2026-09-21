@@ -616,6 +616,8 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .reference-assignment textarea { display: block; border-width: 1px 0 0; border-radius: 0; }
 .reference-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .reference-card-actions .button { min-height: 28px; padding: 5px 7px; font-size: 10px; }
+.reference-card-grid > .transient-delivery-history { grid-column: 1 / -1; max-width: none; margin-top: 0; }
+.transient-delivery-history ul { max-height: 180px; padding: 0 24px 10px; margin: 0; overflow: auto; color: var(--dim); font: 10px/1.5 var(--mono); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }

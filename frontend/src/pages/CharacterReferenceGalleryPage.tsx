@@ -135,8 +135,18 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const historicalDecisions = decisions.filter((decision) => !decision.current);
   const candidates = candidateEntries(data.proposals, subject.id).map((candidate) => ({ ...candidate, asset: assets.get(candidate.assetId) ?? candidate.asset }));
   const selectedParent = candidates.find((candidate) => candidate.assetId === parentCandidateAssetId);
-  const incompleteDeliveries = data.proposals.filter((proposal) => proposal.characterId === subject.id)
-    .flatMap((proposal) => proposal.deliveries.filter((delivery) => delivery.candidates.length === 0).map((delivery) => ({ proposal, delivery })));
+  const observedDeliveries = data.proposals.filter((proposal) => proposal.characterId === subject.id)
+    .flatMap((proposal) => proposal.deliveries.map((delivery) => ({ proposal, delivery })));
+  // Old rows predate publication-phase provenance. Preserve them separately
+  // rather than guessing that every legacy `delivery_partial` was transient;
+  // any newly observed post-completion partial is explicitly `final` and stays
+  // in the visible delivery-failure cards below.
+  const legacyPartialDeliveries = observedDeliveries.filter(({ delivery }) =>
+    delivery.state === "rejected" && delivery.diagnosticCode === "delivery_partial" && delivery.publicationPhase === null,
+  );
+  const incompleteDeliveries = observedDeliveries.filter(({ delivery }) =>
+    delivery.candidates.length === 0 && !legacyPartialDeliveries.some(({ delivery: legacy }) => legacy.id === delivery.id),
+  );
   const undeliveredProposals = data.proposals.filter((proposal) => proposal.characterId === subject.id && proposal.deliveries.length === 0);
   const selectedAssetIds = new Set(selectedDecision ? [selectedDecision.primaryAssetId, ...selectedDecision.complementaryAssetIds] : []);
   const selectedAsset = selectedDecision ? assets.get(selectedDecision.primaryAssetId) : undefined;
@@ -190,6 +200,7 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
         {selectedDecision && selectedDecision.complementaryAssetIds.map((assetId) => <SelectedAssetCard key={`complementary:${assetId}`} projectId={projectId} subjectId={subject.id} asset={assets.get(assetId)} assetId={assetId} />)}
         {candidates.map((candidate) => <CandidateCard key={candidate.id} projectId={projectId} subjectId={subject.id} candidate={candidate} selected={selectedAssetIds.has(candidate.assetId)} parent={candidate.proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === candidate.proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, canSelect: Boolean(reviewer.trim() && notes.trim()), onSelect: () => selectCandidate(candidate), onRefine: () => setParentCandidateAssetId(candidate.assetId), onSend: () => send(candidate.proposal), onRefresh: () => refreshProposal(candidate.proposal), onCancel: () => cancel(candidate.proposal) }} />)}
         {incompleteDeliveries.map(({ proposal, delivery }) => <DeliveryEvidenceCard key={`delivery:${delivery.id}`} projectId={projectId} subjectId={subject.id} proposal={proposal} delivery={delivery} parent={proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, onSend: () => send(proposal), onRefresh: () => refreshProposal(proposal), onCancel: () => cancel(proposal) }} />)}
+        {legacyPartialDeliveries.length > 0 && <LegacyPartialHistory deliveries={legacyPartialDeliveries} />}
         {undeliveredProposals.map((proposal) => <UndeliveredProposalCard key={`proposal:${proposal.id}`} projectId={projectId} subjectId={subject.id} proposal={proposal} parent={proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, onSend: () => send(proposal), onRefresh: () => refreshProposal(proposal), onCancel: () => cancel(proposal) }} />)}
         {historicalDecisions.flatMap((decision) => [decision.primaryAssetId, ...decision.complementaryAssetIds].map((assetId) => <HistoricalSelectionCard key={`history:${decision.id}:${assetId}`} projectId={projectId} subjectId={subject.id} decision={decision} asset={assets.get(assetId)} assetId={assetId} />))}
         {!selectedDecision && candidates.length === 0 && incompleteDeliveries.length === 0 && undeliveredProposals.length === 0 && historicalDecisions.length === 0 && <p className="reference-empty-list">尚未选择身份参考，也没有参考候选。</p>}
@@ -222,6 +233,10 @@ function CandidateCard({ projectId, subjectId, candidate, selected, parent, acti
 function DeliveryEvidenceCard({ projectId, subjectId, proposal, delivery, parent, actions }: { projectId: string; subjectId: string; proposal: CharacterReferenceProposal; delivery: CharacterReferenceProposal["deliveries"][number]; parent: Candidate | undefined; actions: ProposalActions }) {
   const direction = frozenDirection(proposal);
   return <article className="reference-card delivery-evidence" data-proposal-id={proposal.id}><div className="reference-missing-asset"><strong>{deliveryLabel(delivery.state)}</strong><small>{delivery.diagnosticCode || "此交付没有可显示的图像输出。"}</small></div><div className="reference-card-body"><span className="reference-state failed">{deliveryLabel(delivery.state)}</span><strong>{proposal.parentCandidateAssetId ? "细化交付" : "原始交付"}</strong>{proposal.parentCandidateAssetId && <ParentReference projectId={projectId} subjectId={subjectId} assetId={proposal.parentCandidateAssetId} parent={parent} />}<ProposalLifecycle proposal={proposal} actions={actions} /><ProposalDetails proposal={proposal} delivery={delivery} direction={direction} /></div></article>;
+}
+
+function LegacyPartialHistory({ deliveries }: { deliveries: Array<{ proposal: CharacterReferenceProposal; delivery: CharacterReferenceProposal["deliveries"][number] }> }) {
+  return <details className="reference-history transient-delivery-history" data-testid="historical-partial-deliveries"><summary>历史未分类交付观察（{deliveries.length}）</summary><p>这些旧记录缺少 completion.json 发布阶段标记，仍保留以供审计。新的最终交付完整性失败会作为可见的拒绝卡片显示。</p><ul>{deliveries.map(({ proposal, delivery }) => <li key={delivery.id}>{proposal.id} · {delivery.createdAt} · {delivery.diagnosticCode}</li>)}</ul></details>;
 }
 
 function UndeliveredProposalCard({ projectId, subjectId, proposal, parent, actions }: { projectId: string; subjectId: string; proposal: CharacterReferenceProposal; parent: Candidate | undefined; actions: ProposalActions }) {

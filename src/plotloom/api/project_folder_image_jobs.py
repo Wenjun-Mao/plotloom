@@ -239,10 +239,9 @@ def register_project_folder_image_job_routes(
                     "image_exchange_not_configured",
                     "image_exchange_invalid",
                     "invalid_job_id",
-                    "delivery_manifest_secret",
                 }:
                     repository.record_character_reference_proposal_rejection(
-                        project_id, proposal_id, error.code
+                        project_id, proposal_id, error.code, publication_phase=error.publication_phase,
                     )
                 raise
             if delivery is None:

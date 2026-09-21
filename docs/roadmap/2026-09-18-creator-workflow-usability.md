@@ -371,3 +371,18 @@ publication persist repeated `delivery_partial` rejections and clutter the
 gallery. This evidence closes the one-submit technical proof but does not
 constitute creator-usability acceptance; no retry, manual refresh, selection,
 or cleanup is authorized by this step.
+
+**In-scope publication correction — 2026-09-21.** The live trial demonstrated
+that the observer persisted every normal output-before-manifest poll as a
+rejection. The durable contract now treats `completion.json` as the one final
+publication marker: any pre-marker staging state remains pending and creates no
+history; post-marker manifest, integrity, and currentness faults remain durable
+rejections with explicit final-publication provenance. Existing live rows are
+preserved without inference or rewrite: because the old schema lacks that
+provenance, the gallery groups those phase-unknown partial observations in a
+closed audit disclosure, while genuine newly recorded final failures remain
+visible. Focused backend and automatic Characters browser checks prove multiple
+pending polls → one accepted candidate, a final-invalid rejection, and an
+explicit post-marker `delivery_partial` rejection. Static assets are refreshed.
+The real generated candidate is also verified through project-managed asset
+serving, independent of staging.

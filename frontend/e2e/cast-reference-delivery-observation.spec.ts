@@ -2,6 +2,7 @@ import { expect, test, type Workbench } from "./fixture";
 import {
   createAcceptedCastOnlyProject,
   makeProposalManifestInvalid,
+  makeProposalOutputSetPartial,
   makeProposalPackageConflict,
   prepareProposalFromBrowser,
   proposal,
@@ -11,7 +12,7 @@ import {
 } from "./fixtures/cast-reference";
 
 test.describe("Characters delivery observation", () => {
-  test("observes partial delivery and later admits its final result", async ({ page, request, workbench }) => {
+  test("keeps repeated pre-final delivery observations pending and later admits one final result", async ({ page, request, workbench }) => {
     test.setTimeout(30_000);
     const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "partial-final");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
@@ -22,11 +23,22 @@ test.describe("Characters delivery observation", () => {
     try {
       const packagePaths = await sendProposalFromBrowser(page, projectId, prepared.id);
       await writeProposalPartialDelivery(packagePaths.deliveryPath);
-      const partial = await waitForAutomaticRefresh(page, projectId, prepared.id);
-      expect(partial.status()).toBe(422);
-      expect(await partial.json()).toMatchObject({ code: "delivery_partial" });
-      await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, prepared.id)).deliveries[0]?.diagnosticCode).toBe("delivery_partial");
-      await expect(gallery.locator(`[data-proposal-id="${prepared.id}"]`)).toContainText("delivery_partial");
+      let pendingPolls = 0;
+      const observePending = (browserRequest: import("@playwright/test").Request) => {
+        if (browserRequest.method() === "POST" && refreshPath(projectId, prepared.id) === new URL(browserRequest.url()).pathname) pendingPolls += 1;
+      };
+      page.on("request", observePending);
+      try {
+        const pending = await waitForAutomaticRefresh(page, projectId, prepared.id);
+        expect(pending.status()).toBe(200);
+        expect(await pending.json()).toMatchObject({ state: "awaiting_delivery", candidates: [] });
+        await page.waitForTimeout(6_500);
+        expect(pendingPolls).toBeGreaterThanOrEqual(3);
+        await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, prepared.id)).deliveries).toEqual([]);
+        await expect(gallery.locator(`[data-proposal-id="${prepared.id}"]`)).not.toContainText("delivery_partial");
+      } finally {
+        page.off("request", observePending);
+      }
 
       await writeProposalDelivery(packagePaths.deliveryPath, prepared, "f2b-partial-final", "original");
       const admitted = await waitForAutomaticRefresh(page, projectId, prepared.id);
@@ -54,11 +66,12 @@ test.describe("Characters delivery observation", () => {
       await makeProposalManifestInvalid(packagePaths.deliveryPath);
 
       const invalid = await waitForAutomaticRefresh(page, projectId, prepared.id);
-      expect(invalid.status()).toBe(422);
+      expect(invalid.status(), await invalid.text()).toBe(422);
       expect(await invalid.json()).toMatchObject({ code: "delivery_manifest_invalid" });
       await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, prepared.id)).deliveries[0]).toMatchObject({
         state: "rejected",
         diagnosticCode: "delivery_manifest_invalid",
+        publicationPhase: "final",
         candidates: [],
       });
       await expect(gallery.locator(`[data-proposal-id="${prepared.id}"]`)).toContainText("delivery_manifest_invalid");
@@ -76,6 +89,44 @@ test.describe("Characters delivery observation", () => {
       terminallyReleased = true;
     } finally {
       if (!terminallyReleased) await resetDisposableRuntime(workbench, "after-final-invalid-failure");
+    }
+  });
+
+  test("keeps a post-marker partial delivery visible as a final integrity failure", async ({ page, request, workbench }) => {
+    test.setTimeout(20_000);
+    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "final-partial");
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
+    const gallery = page.getByTestId("character-reference-gallery");
+    await gallery.getByLabel("你想改什么").fill("Expose final output-set integrity failure.");
+    const prepared = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
+    let terminallyReleased = false;
+    try {
+      const packagePaths = await sendProposalFromBrowser(page, projectId, prepared.id);
+      await writeProposalDelivery(packagePaths.deliveryPath, prepared, "f2b-final-partial", "original");
+      await makeProposalOutputSetPartial(packagePaths.deliveryPath);
+
+      const invalid = await waitForAutomaticRefresh(page, projectId, prepared.id);
+      expect(invalid.status(), await invalid.text()).toBe(422);
+      expect(await invalid.json()).toMatchObject({ code: "delivery_partial" });
+      await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, prepared.id)).deliveries[0]).toMatchObject({
+        state: "rejected",
+        diagnosticCode: "delivery_partial",
+        publicationPhase: "final",
+        candidates: [],
+      });
+      await expect(gallery.locator(`[data-proposal-id="${prepared.id}"]`)).toContainText("delivery_partial");
+      await expect(gallery.getByTestId("historical-partial-deliveries")).toHaveCount(0);
+
+      const cancelled = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-reference-proposals/${prepared.id}/cancel`, {
+        data: { reason: "Release the test-only native-dispatch lease after final output-set evidence." },
+      });
+      expect(cancelled.ok(), await cancelled.text()).toBeTruthy();
+      await writeProposalDelivery(packagePaths.deliveryPath, prepared, "f2b-final-partial-cleanup", "original");
+      const cleanup = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-reference-proposals/${prepared.id}/refresh`);
+      expect(cleanup.ok(), await cleanup.text()).toBeTruthy();
+      terminallyReleased = true;
+    } finally {
+      if (!terminallyReleased) await resetDisposableRuntime(workbench, "after-final-partial-failure");
     }
   });
 

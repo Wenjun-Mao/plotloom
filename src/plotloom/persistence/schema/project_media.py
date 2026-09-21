@@ -319,6 +319,7 @@ class CharacterReferenceProposalDeliveryRow(Base):
     manifest_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     state: Mapped[str] = mapped_column(String(24), nullable=False)
     diagnostic_code: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    publication_phase: Mapped[str | None] = mapped_column(String(24), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 

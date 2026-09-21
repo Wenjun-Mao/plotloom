@@ -453,6 +453,7 @@ export interface CharacterReferenceProposal {
     deliveryId: string | null;
     state: "accepted" | "inapplicable" | "rejected";
     diagnosticCode: string | null;
+    publicationPhase: "final" | null;
     manifestHash: string | null;
     createdAt: string;
     candidates: CharacterReferenceProposalCandidate[];

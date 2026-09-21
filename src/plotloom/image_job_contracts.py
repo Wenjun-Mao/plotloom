@@ -20,11 +20,18 @@ DELIVERY_ID_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
 
 
 class ImageJobError(ValueError):
-    """A stable, non-secret P1 admission or delivery error."""
+    """A stable, non-secret P1 admission or delivery error.
 
-    def __init__(self, code: str, message: str) -> None:
+    ``publication_phase`` is set only when a completed delivery marker was
+    already observed.  It lets persistence distinguish a final integrity
+    failure from a legacy, pre-marker polling observation without asking the
+    browser to infer that distinction from an error code.
+    """
+
+    def __init__(self, code: str, message: str, *, publication_phase: Literal["final"] | None = None) -> None:
         super().__init__(message)
         self.code = code
+        self.publication_phase = publication_phase
 
 
 class ImageJobCreateRequest(CamelModel):

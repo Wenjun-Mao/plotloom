@@ -209,14 +209,16 @@ class CharacterReferenceProposalPersistence:
                 raise NotFoundError("character reference proposal not found")
             return self._proposal_dict(proposal, current=self._proposal_is_current_in_session(session, proposal))
 
-    def record_character_reference_proposal_rejection(self, project_id: str, proposal_id: str, code: str) -> None:
+    def record_character_reference_proposal_rejection(
+        self, project_id: str, proposal_id: str, code: str, *, publication_phase: str | None = None,
+    ) -> None:
         with self._access.leases.lifecycle_write() as session:
             proposal = session.get(CharacterReferenceProposalRow, proposal_id)
             if proposal is None or proposal.project_id != project_id:
                 raise NotFoundError("character reference proposal not found")
             session.add(CharacterReferenceProposalDeliveryRow(
                 id=new_id(), proposal_id=proposal_id, delivery_id=None, manifest=None, manifest_hash=None,
-                state="rejected", diagnostic_code=code, created_at=utc_now(),
+                state="rejected", diagnostic_code=code, publication_phase=publication_phase, created_at=utc_now(),
             ))
 
     def record_character_reference_proposal_delivery(
@@ -329,6 +331,7 @@ class CharacterReferenceProposalPersistence:
                     "deliveries": [{
                         "id": delivery.id, "deliveryId": delivery.delivery_id, "state": delivery.state,
                         "diagnosticCode": delivery.diagnostic_code, "manifestHash": delivery.manifest_hash,
+                        "publicationPhase": delivery.publication_phase,
                         "createdAt": _stored_utc(delivery.created_at).isoformat(),
                         "candidates": [self._proposal_candidate_dict(session, item) for item in session.scalars(
                             select(CharacterReferenceProposalCandidateRow)

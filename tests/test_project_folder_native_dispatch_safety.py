@@ -26,6 +26,19 @@ class ConflictExchange:
         raise ImageJobError("package_conflict", "fixture froze a conflicting package")
 
 
+class FinalSecretManifestExchange:
+    def verify_package(self, **_kwargs: Any) -> None:
+        return None
+
+    def read_delivery(self, **_kwargs: Any) -> None:
+        # The diagnostic is safe to retain; no untrusted manifest bytes or
+        # secret-like value crosses the persistence boundary.
+        raise ImageJobError(
+            "delivery_manifest_secret", "completion manifest contains secret-like content",
+            publication_phase="final",
+        )
+
+
 class TerminalManifest:
     delivery_id = "fixture-delivery"
 
@@ -49,7 +62,7 @@ class TerminalExchange:
 
 class SafetyMedia:
     def __init__(self) -> None:
-        self.rejections: list[tuple[str, str, str]] = []
+        self.rejections: list[tuple[str, str, str, str | None]] = []
 
     def cancel_character_reference_proposal(
         self, _project_id: str, proposal_id: str, _reason: str
@@ -74,21 +87,22 @@ class SafetyMedia:
         }
 
     def record_character_reference_proposal_rejection(
-        self, project_id: str, proposal_id: str, code: str
+        self, project_id: str, proposal_id: str, code: str, *, publication_phase: str | None = None,
     ) -> None:
-        self.rejections.append((project_id, proposal_id, code))
+        self.rejections.append((project_id, proposal_id, code, publication_phase))
 
 
 class SafetyStore:
-    def __init__(self) -> None:
+    def __init__(self, exchange: Any | None = None) -> None:
         self.media = SafetyMedia()
+        self.exchange = exchange or ConflictExchange()
 
-    def image_exchange_for(self, _context: dict[str, Any]) -> ConflictExchange:
-        return ConflictExchange()
+    def image_exchange_for(self, _context: dict[str, Any]) -> Any:
+        return self.exchange
 
 
-def _client() -> tuple[TestClient, RecordingDispatcher, SafetyStore]:
-    store = SafetyStore()
+def _client(exchange: Any | None = None) -> tuple[TestClient, RecordingDispatcher, SafetyStore]:
+    store = SafetyStore(exchange)
     dispatcher = RecordingDispatcher()
 
     @contextmanager
@@ -198,7 +212,22 @@ def test_package_conflict_does_not_release_native_worker_lease() -> None:
         )
         assert response.status_code == 500
         assert store.media.rejections == [
-            ("project", "ij_abcdefghijklmnopqrst", "package_conflict")
+            ("project", "ij_abcdefghijklmnopqrst", "package_conflict", None)
+        ]
+        assert dispatcher.completed == []
+    finally:
+        client.close()
+
+
+def test_final_secret_manifest_persists_only_safe_final_diagnostic() -> None:
+    client, dispatcher, store = _client(FinalSecretManifestExchange())
+    try:
+        response = client.post(
+            "/api/v2/projects/project/character-reference-proposals/ij_abcdefghijklmnopqrst/refresh"
+        )
+        assert response.status_code == 500
+        assert store.media.rejections == [
+            ("project", "ij_abcdefghijklmnopqrst", "delivery_manifest_secret", "final")
         ]
         assert dispatcher.completed == []
     finally:

@@ -52,6 +52,17 @@ validation is the sole publication path, so a stale, cancelled, foreign, or
 late delivery remains non-publishing, and automatic observation never selects
 a candidate.
 
+`completion.json` is the delivery protocol's final publication marker. Before
+that file exists, an empty delivery, executor pin, output directory, or staged
+output bytes remain a single non-publishing pending state; observers return
+`awaiting_delivery` and do not create durable rejection rows. Once the marker
+exists, the exchange validates its schema, identity, executor pin/provenance,
+declared output set, hashes, raster bounds, and repository currentness. A
+malformed final manifest or any post-marker integrity/currentness failure is a
+meaningful rejected-delivery record. This prevents an ordinary multi-poll
+publication window from flooding gallery history without weakening evidence
+after the specialist has declared completion.
+
 ## Consequences
 
 - The specialist is replaceable behind this small runtime adapter; no provider
@@ -60,3 +71,13 @@ a candidate.
   a reason to fall back to manual copying, H3, Qwen, or automatic retry.
 - A queue receipt and a real ImageGen result are separate evidence. Creative
   acceptance and image selection remain explicit creator actions.
+- Each newly persisted post-marker rejection records `publication_phase=final`.
+  Historical rows deliberately remain phase-unknown: the old schema never
+  recorded whether `completion.json` existed, so the admitted additive
+  project-folder transition leaves them NULL rather than rewriting evidence or
+  falsely labeling every old `delivery_partial` as transient.
+  The gallery places those legacy, unclassified observations in one closed
+  audit disclosure; explicitly final failures remain individually visible.
+  A secret-shaped final manifest persists only the safe
+  `delivery_manifest_secret` code and this phase—never untrusted manifest
+  content or the secret-like value.

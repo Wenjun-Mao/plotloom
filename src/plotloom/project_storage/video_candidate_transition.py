@@ -14,6 +14,7 @@ from ..persistence.schema import (
     ArtReferenceProposalDeliveryRow,
     ArtReferenceProposalRow,
     Base,
+    CharacterReferenceProposalDeliveryRow,
     PROJECT_TEXT_PIPELINE_TABLE_NAMES,
     VideoCandidateSelectionRow,
 )
@@ -32,10 +33,16 @@ class ProjectArtReferenceTransitionRequiredError(ProjectSchemaTransitionRequired
     """A current F3A folder needs the empty F3B proposal tables once."""
 
 
+class ProjectCharacterDeliveryPublicationPhaseTransitionRequiredError(ProjectSchemaTransitionRequiredError):
+    """A prior Characters folder needs final-publication provenance once."""
+
+
 SchemaStatus = Literal[
-    "current", "selection_transition_required", "art_reference_transition_required"
+    "current", "selection_transition_required", "art_reference_transition_required",
+    "character_delivery_publication_phase_transition_required",
 ]
 _SELECTION_TABLE = VideoCandidateSelectionRow.__tablename__
+_CHARACTER_REFERENCE_DELIVERY_TABLE = CharacterReferenceProposalDeliveryRow.__tablename__
 _ART_REFERENCE_TABLES = (
     ArtReferenceProposalRow.__table__,
     ArtReferenceProposalDeliveryRow.__table__,
@@ -66,6 +73,8 @@ def _schema_objects(connection: object) -> list[tuple[str, str, str, str | None]
 def expected_project_schema_objects(
     *, include_video_candidate_selection: bool,
     include_art_reference_proposals: bool = True,
+    include_character_delivery_publication_phase: bool = True,
+    append_character_delivery_publication_phase: bool = False,
 ) -> tuple[tuple[str, str, str, str | None], ...]:
     """Return the exact current schema or one permitted immediate predecessor."""
 
@@ -80,9 +89,36 @@ def expected_project_schema_objects(
             engine, tables=[Base.metadata.tables[name] for name in table_names]
         )
         with engine.connect() as connection:
+            if not include_character_delivery_publication_phase:
+                connection.exec_driver_sql(
+                    f"ALTER TABLE {_CHARACTER_REFERENCE_DELIVERY_TABLE} "
+                    "DROP COLUMN publication_phase"
+                )
+            elif append_character_delivery_publication_phase:
+                # SQLite additive transitions append a column. Accept that
+                # physical ordering as the same current contract as a fresh
+                # table, without rebuilding retained delivery/candidate rows.
+                connection.exec_driver_sql(
+                    f"ALTER TABLE {_CHARACTER_REFERENCE_DELIVERY_TABLE} "
+                    "DROP COLUMN publication_phase"
+                )
+                connection.exec_driver_sql(
+                    f"ALTER TABLE {_CHARACTER_REFERENCE_DELIVERY_TABLE} "
+                    "ADD COLUMN publication_phase VARCHAR(24)"
+                )
             return tuple(_schema_objects(connection))
     finally:
         engine.dispose()
+
+
+def _is_current_schema_objects(actual: tuple[tuple[str, str, str, str | None], ...]) -> bool:
+    return actual in {
+        expected_project_schema_objects(include_video_candidate_selection=True),
+        expected_project_schema_objects(
+            include_video_candidate_selection=True,
+            append_character_delivery_publication_phase=True,
+        ),
+    }
 
 
 def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
@@ -110,8 +146,17 @@ def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
         raise ProjectStorageCorruptionError(
             "project database cannot establish its project identity"
         )
-    if actual == expected_project_schema_objects(include_video_candidate_selection=True):
+    if _is_current_schema_objects(actual):
         return "current"
+    if (
+        actual
+        == expected_project_schema_objects(
+            include_video_candidate_selection=True,
+            include_character_delivery_publication_phase=False,
+        )
+        and user_version == (0,)
+    ):
+        return "character_delivery_publication_phase_transition_required"
     if (
         actual
         == expected_project_schema_objects(include_video_candidate_selection=False)
@@ -142,6 +187,10 @@ def transition_required_error(
     if status == "art_reference_transition_required":
         return ProjectArtReferenceTransitionRequiredError(
             f"art reference transition requires {reason}"
+        )
+    if status == "character_delivery_publication_phase_transition_required":
+        return ProjectCharacterDeliveryPublicationPhaseTransitionRequiredError(
+            f"character delivery publication-phase transition requires {reason}"
         )
     raise AssertionError(f"current project schema does not need a transition: {status}")
 
@@ -204,11 +253,14 @@ def transition_project_schema(
                 elif status == "art_reference_transition_required":
                     for table in _ART_REFERENCE_TABLES:
                         table.create(connection)
+                elif status == "character_delivery_publication_phase_transition_required":
+                    connection.exec_driver_sql(
+                        f"ALTER TABLE {_CHARACTER_REFERENCE_DELIVERY_TABLE} "
+                        "ADD COLUMN publication_phase VARCHAR(24)"
+                    )
                 else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
                     raise AssertionError(f"unsupported project transition: {status}")
-                if tuple(_schema_objects(connection)) != expected_project_schema_objects(
-                    include_video_candidate_selection=True
-                ):
+                if not _is_current_schema_objects(tuple(_schema_objects(connection))):
                     raise ProjectStorageCorruptionError(
                         "project schema transition did not produce the current project schema"
                     )
