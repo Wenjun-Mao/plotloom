@@ -11,6 +11,7 @@ from ..exceptions import (
 from ..managed_media import publish_import
 from ..image_job_contracts import (
     CharacterReferenceProposalCancellationRequest,
+    CharacterImportedAppearanceRequest,
     CharacterReferenceDecisionRequest,
     CharacterReferenceProposalRequest,
     CharacterReferenceRevocationRequest,
@@ -88,6 +89,18 @@ def register_project_folder_image_job_routes(
     def get_project_character_references(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
             return store.media.list_character_reference_decisions(project_id)
+
+    @app.get("/api/v2/projects/{project_id}/character-imported-appearances")
+    def get_imported_character_appearances(project_id: str) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return {"appearances": store.media.list_imported_character_appearances(project_id)}
+
+    @app.post("/api/v2/projects/{project_id}/character-imported-appearances", status_code=status.HTTP_201_CREATED)
+    def attach_imported_character_appearance(project_id: str, body: CharacterImportedAppearanceRequest) -> dict[str, Any]:
+        # assetId belongs to the existing managed-import owner; this endpoint
+        # only establishes subject/context membership and never selects it.
+        with opened_project(project_id) as store:
+            return store.media.attach_imported_character_appearance(project_id, character_id=body.character_id, asset_id=body.asset_id, label=body.label, expected_cast_revision=body.expected_cast_revision)
 
     @app.post(
         "/api/v2/projects/{project_id}/character-references",

@@ -20,7 +20,7 @@ from .project_generation import (
 )
 from .project_media import (
     ArtReferenceProposalCandidateRow, ArtReferenceProposalDeliveryRow, ArtReferenceProposalRow,
-    CharacterReferenceDecisionRow, CharacterReferenceProposalCandidateRow,
+    CharacterImportedAppearanceRow, CharacterReferenceDecisionRow, CharacterReferenceProposalCandidateRow,
     CharacterReferenceProposalDeliveryRow, CharacterReferenceProposalRow, CharacterReferenceStateRow,
     ImageJobCandidateRow, ImageJobDeliveryRow, ImageJobRow, ManagedAssetProvenanceRow, ManagedAssetRow,
     ProductionUnitRow, ReviewedShotBindingRow, SamePersonReviewRow, SamePersonReviewStateRow,
@@ -37,6 +37,7 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_generation_fragment_reuse_bindings", "v2_generation_work_unit_repair_idempotency",
     "v2_generation_story_graph_topologies", "v2_media_tasks", "v2_approval_decisions",
     "v2_managed_assets", "v2_managed_asset_provenance", "v2_visual_intents",
+    "v2_character_imported_appearances",
     "v2_visual_selection_states", "v2_reviewed_shot_bindings", "v2_still_previews",
     "v2_production_units", "v2_image_jobs", "v2_image_job_deliveries", "v2_image_job_candidates",
     "v2_character_reference_states", "v2_character_reference_decisions",

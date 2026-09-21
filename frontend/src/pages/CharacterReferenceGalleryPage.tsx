@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Field, Spinner } from "../components";
-import type { AcceptedCastRevision, CastReviewState, CharacterReferenceDecision, CharacterReferenceProposal, ManagedAsset, VisualWorkbench } from "../types";
+import type { AcceptedCastRevision, CastReviewState, CharacterImportedAppearance, CharacterReferenceDecision, CharacterReferenceProposal, ManagedAsset, VisualWorkbench } from "../types";
 
 type GalleryData = {
   title: string;
   decisions: CharacterReferenceDecision[];
   referenceStates: VisualWorkbench["characterReferences"]["states"];
   proposals: CharacterReferenceProposal[];
+  imported: CharacterImportedAppearance[];
   assets: ManagedAsset[];
 };
 
@@ -21,6 +22,7 @@ type Candidate = {
   delivery: CharacterReferenceProposal["deliveries"][number];
   outputHash: string;
   role: "original" | "refinement";
+  imported?: boolean;
 };
 
 /**
@@ -39,11 +41,11 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
     const owner = ++requestOwner.current;
     const isCurrent = () => castSessionOwner.current === expectedSession && requestOwner.current === owner;
     try {
-      const [project, references, proposals, workbench] = await Promise.all([
+      const [project, references, proposals, workbench, imported] = await Promise.all([
         plotloomApi.getProject(projectId, signal),
         plotloomApi.getCharacterReferences(projectId, signal),
         plotloomApi.getCharacterReferenceProposals(projectId, signal),
-        plotloomApi.getVisualWorkbench(projectId, signal),
+        plotloomApi.getVisualWorkbench(projectId, signal), plotloomApi.getImportedCharacterAppearances(projectId),
       ]);
       if (!isCurrent()) return false;
       setData({
@@ -52,6 +54,7 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
         referenceStates: references.states,
         proposals: proposals.proposals,
         assets: workbench.assets,
+        imported: imported.appearances,
       });
       setError("");
       return true;
@@ -127,6 +130,9 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importLabel, setImportLabel] = useState("");
+  const [importOrigin, setImportOrigin] = useState("");
   const active = useRef(true); const sessionRef = useRef(session);
   const operationOwner = useRef(0);
   sessionRef.current = session;
@@ -138,7 +144,15 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const decisions = data.decisions.filter((decision) => decision.characterId === subject.id);
   const selectedDecision = decisions.find((decision) => decision.current);
   const historicalDecisions = decisions.filter((decision) => !decision.current);
-  const candidates = candidateEntries(data.proposals, subject.id).map((candidate) => ({ ...candidate, asset: assets.get(candidate.assetId) ?? candidate.asset }));
+  const candidates = [
+    ...candidateEntries(data.proposals, subject.id),
+    ...data.imported.filter((item) => item.characterId === subject.id).map((item) => ({
+      id: item.id, assetId: item.assetId, asset: item.asset, outputHash: item.asset.originalHash,
+      role: "original" as const, imported: true,
+      proposal: { id: item.id, projectId, characterId: subject.id, current: item.current, parentCandidateAssetId: null, requestHash: item.characterContextHash, request: { frozenSnapshot: { visualDirection: item.label } }, deliveries: [] } as unknown as CharacterReferenceProposal,
+      delivery: { id: item.id, state: "accepted", candidates: [], diagnosticCode: null, publicationPhase: null } as unknown as CharacterReferenceProposal["deliveries"][number],
+    })),
+  ].map((candidate) => ({ ...candidate, asset: assets.get(candidate.assetId) ?? candidate.asset }));
   const observedDeliveries = data.proposals.filter((proposal) => proposal.characterId === subject.id)
     .flatMap((proposal) => proposal.deliveries.map((delivery) => ({ proposal, delivery })));
   // Old rows predate publication-phase provenance. Preserve them separately
@@ -197,6 +211,11 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   });
   const refreshProposal = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.refreshCharacterReferenceProposal(projectId, proposal.id); });
   const cancel = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.cancelCharacterReferenceProposal(projectId, proposal.id, "Creator cancelled the exploratory reference handoff from Characters."); });
+  const importAppearance = () => void act(async () => {
+    if (!importFile) throw new Error("请选择 PNG 或 JPEG 图片。");
+    const asset = await plotloomApi.importManagedAsset(projectId, importFile, { origin: importOrigin.trim(), rights: "known", rightsNote: "Character appearance technical import." });
+    await plotloomApi.attachImportedCharacterAppearance(projectId, { characterId: subject.id, assetId: asset.id, label: importLabel.trim(), expectedCastRevision: castRevision });
+  }, () => { setImportFile(null); setImportLabel(""); setImportOrigin(""); });
 
   return <section className="reference-subject-gallery" aria-labelledby="reference-subject-title">
     <header className="reference-subject-heading"><div><span className="eyebrow">当前主体</span><h2 id="reference-subject-title">{subject.name}</h2><p>{selectedDecision?.current ? `已选择身份参考 r${selectedDecision.referenceRevision}；查看图片不会改变选择。` : "尚未选择身份参考。查看或比较图片不会自动成为选择。"}</p></div><span className={selectedDecision?.current ? "reference-state selected" : "reference-state missing"}>{selectedDecision?.current ? "已选择" : "未选择"}</span></header>
@@ -213,6 +232,7 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
       </div>
       {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant={compared ? "primary" : "quiet"} disabled={busy || (!compared && comparisonAtCapacity)} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}` : `加入 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" disabled={busy} onClick={() => setComparisonAssetIds([])}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
       {comparisonCandidates.length >= 2 && <div className={`appearance-compare comparison-count-${comparisonCandidates.length}`} data-testid="appearance-comparison"><header><strong>并排比较 · {comparisonCandidates.length} 张</strong><small>当前查看：{viewedImageLabel}；对比不会选用身份参考。</small></header>{comparisonCandidates.map((candidate) => <figure key={candidate.assetId}><figcaption>{candidate.assetId === effectiveViewedAssetId ? "当前查看" : "对比图片"} · {candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}</figcaption><AssetPresentation projectId={projectId} subjectId={subject.id} asset={candidate.asset ?? undefined} assetId={candidate.assetId} alt={`${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))} 比较图片`} unavailableLabel="对比图片不可用" /></figure>)}</div>}
+      <section className="appearance-import"><span className="eyebrow">导入已有图片</span><p>导入会保留来源与权利声明，并只作为未选用的 {subject.name} 外观选项。</p><Field label="图片标签"><input value={importLabel} disabled={readOnly || busy} onChange={(event) => setImportLabel(event.target.value)} /></Field><Field label="来源声明"><input value={importOrigin} disabled={readOnly || busy} onChange={(event) => setImportOrigin(event.target.value)} /></Field><label>PNG 或 JPEG<input type="file" accept="image/png,image/jpeg" disabled={readOnly || busy} onChange={(event) => setImportFile(event.target.files?.[0] ?? null)} /></label><Button variant="quiet" disabled={readOnly || busy || !importFile || !importLabel.trim() || !importOrigin.trim()} onClick={importAppearance}>导入为外观选项</Button></section>
       <section className="appearance-ideas"><span className="eyebrow">新想法</span><h3>用文字探索下一张图片</h3><div className="appearance-mode" role="group" aria-label="提案模式"><Button variant={ideaMode === "refine" ? "primary" : "quiet"} disabled={readOnly || busy || !effectiveViewedAssetId} onClick={() => setIdeaMode("refine")}>基于当前图片修改</Button><Button variant={ideaMode === "fresh" ? "primary" : "quiet"} disabled={readOnly || busy} onClick={() => setIdeaMode("fresh")}>尝试全新方案</Button></div><p>{ideaMode === "refine" ? "会冻结当前查看的图片与这段文字；不会改变当前身份参考。" : "只使用这段文字，不引用当前查看图片；不会改变当前身份参考。"}</p><Field label="想法"><textarea rows={3} value={direction} disabled={readOnly || busy} placeholder="描述希望保留、调整或探索的外观特征。" onChange={(event) => setDirection(event.target.value)} /></Field><div className="button-row"><Button variant="primary" disabled={readOnly || busy || !direction.trim() || (ideaMode === "refine" && !effectiveViewedAssetId)} onClick={prepare}>{busy ? "正在创建…" : "创建提案"}</Button><small>创建后可在下方提案状态中发送；返回图片会加入这里，但不会自动选用。</small></div></section>
       {actionError && <ErrorNotice message={actionError} />}
     </section>
@@ -295,7 +315,8 @@ function candidateEntries(proposals: CharacterReferenceProposal[], characterId: 
 function candidateImageLabel(candidate: Candidate, selected: boolean): string {
   const direction = frozenDirection(candidate.proposal);
   const name = direction ? compactDirection(direction) : candidate.role === "refinement" ? "细化方案" : "新方案";
-  return selected ? `当前身份参考 · ${name}` : `方案 · ${name}`;
+  const prefix = candidate.imported ? "导入图片" : "方案";
+  return selected ? `当前身份参考 · ${name}` : `${prefix} · ${name}`;
 }
 
 function compactDirection(value: string): string {

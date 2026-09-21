@@ -438,3 +438,12 @@ import membership is an unapproved product seam. Focused storage and browser
 paths cover cancellation, stale non-revival, arbitrary non-adjacent 2/3/4
 comparison, fourth-cap replacement, no implicit selection, and cast-session
 reset. Desktop inspection is limited to 1440 and 1920.
+
+**Approved import-to-character extension — 2026-09-21.** Reuse the truthful
+managed-image importer and its origin/rights provenance. Add only a
+character-owned imported-appearance membership bound to a current accepted cast
+subject; it creates browseable unselected options, not a decision or generated
+delivery. Verify import provenance/currentness, no automatic selection, session
+isolation, 2–4 comparison, cancellation, and one retained production-backed
+fixture with existing lawful files. No provider or generated-delivery evidence
+is authorized.

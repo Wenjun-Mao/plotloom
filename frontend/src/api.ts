@@ -362,6 +362,9 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`, { method: "POST", body: form });
   }
 
+  getImportedCharacterAppearances(projectId: string): Promise<{ appearances: import("./types").CharacterImportedAppearance[] }> { return this.request(`/projects/${encodeURIComponent(projectId)}/character-imported-appearances`); }
+  attachImportedCharacterAppearance(projectId: string, body: { characterId: string; assetId: string; label: string; expectedCastRevision: number }): Promise<import("./types").CharacterImportedAppearance> { return this.request(`/projects/${encodeURIComponent(projectId)}/character-imported-appearances`, { method: "POST", body: JSON.stringify(body) }); }
+
   managedAssetUrl(projectId: string, assetId: string, variant: "display" | "original" = "display"): string {
     return `${this.base}/projects/${encodeURIComponent(projectId)}/managed-assets/${encodeURIComponent(assetId)}/${variant}`;
   }

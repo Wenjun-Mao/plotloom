@@ -144,6 +144,12 @@ class ProjectMediaRepository:
     def list_character_reference_decisions(self, project_id: str) -> list[JsonObject]:
         return self._references.list_character_reference_decisions(project_id)
 
+    def attach_imported_character_appearance(self, project_id: str, *, character_id: str, asset_id: str, label: str, expected_cast_revision: int) -> JsonObject:
+        return self._references.attach_imported_appearance(project_id, character_id=character_id, asset_id=asset_id, label=label, expected_cast_revision=expected_cast_revision)
+
+    def list_imported_character_appearances(self, project_id: str) -> list[JsonObject]:
+        return self._references.list_imported_appearances(project_id)
+
     def prepare_character_reference_proposal(
         self, project_id: str, *, character_id: str, cast_revision: int,
         visual_direction: str, parent_candidate_asset_id: str | None,

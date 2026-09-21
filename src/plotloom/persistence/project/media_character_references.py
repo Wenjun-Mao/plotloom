@@ -12,6 +12,7 @@ from ...domain import StageName, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
+    CharacterImportedAppearanceRow,
     CharacterReferenceDecisionRow,
     CharacterReferenceStateRow,
     ManagedAssetRow,
@@ -222,6 +223,46 @@ class CharacterReferencePersistence:
             state.active_decision_id = decision.id
             session.flush()
             return self._reference_decision_dict(decision, current=True) | {"stateRevision": state.revision}
+
+    def attach_imported_appearance(self, project_id: str, *, character_id: str, asset_id: str, label: str, expected_cast_revision: int) -> dict[str, Any]:
+        """Attach an already-provenanced import without selecting it."""
+        with self._access.leases.lifecycle_write() as session:
+            self._access.guards.active(self._access.rows.project(session, project_id))
+            context = self.cast_reference_context(session, project_id, character_id, expected_cast_revision=expected_cast_revision)
+            if context is None:
+                raise InvalidTransitionError("imported appearance requires the current accepted cast subject")
+            asset = session.get(ManagedAssetRow, asset_id)
+            if asset is None or asset.project_id != project_id:
+                raise NotFoundError("imported appearance asset not found in this project")
+            existing = session.scalar(select(CharacterImportedAppearanceRow).where(
+                CharacterImportedAppearanceRow.project_id == project_id,
+                CharacterImportedAppearanceRow.character_id == character_id,
+                CharacterImportedAppearanceRow.asset_id == asset_id,
+            ))
+            if existing is not None:
+                return self._imported_dict(existing, asset, current=existing.character_context_hash == stable_hash(context))
+            row = CharacterImportedAppearanceRow(
+                id=new_id(), project_id=project_id, character_id=character_id, asset_id=asset_id,
+                character_context=context, character_context_hash=stable_hash(context), label=label.strip(), created_at=utc_now(),
+            )
+            session.add(row); session.flush()
+            return self._imported_dict(row, asset, current=True)
+
+    def list_imported_appearances(self, project_id: str) -> list[dict[str, Any]]:
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
+            rows = session.scalars(select(CharacterImportedAppearanceRow).where(CharacterImportedAppearanceRow.project_id == project_id).order_by(CharacterImportedAppearanceRow.created_at, CharacterImportedAppearanceRow.id)).all()
+            result = []
+            for row in rows:
+                asset = session.get(ManagedAssetRow, row.asset_id)
+                context = self.cast_reference_context(session, project_id, row.character_id)
+                if asset is not None:
+                    result.append(self._imported_dict(row, asset, current=context is not None and row.character_context_hash == stable_hash(context)))
+            return result
+
+    @staticmethod
+    def _imported_dict(row: CharacterImportedAppearanceRow, asset: ManagedAssetRow, *, current: bool) -> dict[str, Any]:
+        return {"id": row.id, "projectId": row.project_id, "characterId": row.character_id, "assetId": row.asset_id, "label": row.label, "characterContext": row.character_context, "characterContextHash": row.character_context_hash, "current": current, "createdAt": _stored_utc(row.created_at).isoformat(), "asset": {"id": asset.id, "projectId": asset.project_id, "originalHash": asset.original_hash, "displayHash": asset.display_hash, "mimeType": asset.mime_type, "byteSize": asset.byte_size, "width": asset.width, "height": asset.height, "createdAt": _stored_utc(asset.created_at).isoformat()}}
 
     def revoke_character_reference_decision(
         self,

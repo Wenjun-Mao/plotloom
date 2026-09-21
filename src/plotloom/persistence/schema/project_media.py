@@ -38,6 +38,25 @@ class ManagedAssetProvenanceRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class CharacterImportedAppearanceRow(Base):
+    """One imported project asset intentionally offered to one cast subject."""
+
+    __tablename__ = "v2_character_imported_appearances"
+    __table_args__ = (
+        UniqueConstraint("project_id", "character_id", "asset_id", name="uq_v2_character_imported_appearance"),
+        Index("ix_v2_character_imported_appearances_project_character", "project_id", "character_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    character_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    character_context: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    character_context_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    label: Mapped[str] = mapped_column(String(160), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class VisualIntentRow(Base):
     __tablename__ = "v2_visual_intents"
     __table_args__ = (Index("ix_v2_visual_intents_project_id_asset_id", "project_id", "asset_id"),)

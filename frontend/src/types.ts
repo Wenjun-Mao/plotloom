@@ -238,6 +238,12 @@ export interface ManagedAsset {
   provenance: { origin: string; rights: "known" | "unknown"; rightsNote: string | null; declaredAdditions: string[] } | null;
 }
 
+export interface CharacterImportedAppearance {
+  id: string; projectId: string; characterId: string; assetId: string; label: string;
+  characterContext: Record<string, unknown>; characterContextHash: string; current: boolean;
+  createdAt: string; asset: ManagedAsset;
+}
+
 export interface StillPreviewFrame {
   shotId: string;
   assetId: string;

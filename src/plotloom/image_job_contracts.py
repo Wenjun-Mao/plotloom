@@ -118,6 +118,13 @@ class CharacterReferenceProposalRequest(CamelModel):
         return normalized
 
 
+class CharacterImportedAppearanceRequest(CamelModel):
+    character_id: str = Field(min_length=1, max_length=128)
+    asset_id: str = Field(min_length=1, max_length=36)
+    expected_cast_revision: int = Field(ge=1)
+    label: str = Field(min_length=1, max_length=160)
+
+
 class CharacterReferenceProposalCancellationRequest(CamelModel):
     """Explicitly stop a prepared or exported exploratory reference handoff."""
 
