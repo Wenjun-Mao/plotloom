@@ -407,8 +407,14 @@ accepted-cast session guards, and cancellation safety remain retained. Completed
 cancelled, and attempted proposals must communicate their true state and cannot
 offer a Send action that only fails. Focused browser flows cover
 select/create/send/observe behavior, draft and session isolation, comparison and
-enlarge behavior, plus wide/narrow visual inspection using retained images and
-deterministic fixtures.
+enlarge behavior using retained images and deterministic fixtures.
+
+**Desktop acceptance and deferred responsive polish — 2026-09-21.** This
+creator review is desktop-first: 1440px and 1920px are visual acceptance
+viewports. Smaller desktop windows and phone/narrow-screen polish are deferred:
+preserve inexpensive existing responsive behavior, but do not make 1280px or
+mobile screenshots completion gates for U3. Lifecycle, currentness, and session
+regression coverage remain required independent of viewport.
 
 **Exclusions and stop condition.** No new media generation, provider/settings
 platform work, H3/Qwen integration, new media owner, or unrelated stage redesign

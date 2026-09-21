@@ -93,7 +93,7 @@ test.describe("F2B cast-owned reference studies", () => {
     const refinementPackage = await copyProposalFromBrowser(page, projectId, refinement.id);
     await writeProposalDelivery(refinementPackage.deliveryPath, refinement, "f2b-refinement-browser", "refinement");
     await refreshProposalFromBrowser(page, projectId, refinement.id);
-    await panel.getByRole("button", { name: /细化缩略图/ }).click();
+    await panel.getByRole("button", { name: /细化图片缩略图/ }).click();
     await panel.getByRole("button", { name: "选用当前图片" }).click();
     await expect(panel).toContainText("已选择身份参考 r2");
 
@@ -127,7 +127,7 @@ test.describe("F2B cast-owned reference studies", () => {
       await viewer.getByRole("button", { name: "放大查看" }).click();
       await expect(page.getByRole("dialog", { name: "放大查看图片" }).getByRole("img")).toBeVisible();
       await page.getByRole("dialog", { name: "放大查看图片" }).getByRole("button", { name: "关闭" }).click();
-      await gallery.getByRole("button", { name: /与图片 1 对比/ }).click();
+      await gallery.getByRole("button", { name: /与当前身份参考对比|与细化图片对比|与候选图片对比/ }).click();
       await expect(gallery.getByTestId("appearance-comparison")).toContainText("当前查看");
       await gallery.getByRole("button", { name: "结束对比" }).click();
       await page.screenshot({ path: testInfo.outputPath("u3-character-reference-gallery-1440x900.png"), animations: "disabled" });
@@ -153,7 +153,7 @@ test.describe("F2B cast-owned reference studies", () => {
       const selectedViewer = page.getByTestId("appearance-viewer");
       await expect(selectedViewer).toContainText("当前查看图片不可用");
       await expect(selectedViewer.getByTestId(`reference-image-unavailable-${refinementCandidate}`)).toBeVisible();
-      await expect(page.getByRole("button", { name: "与图片 1 对比" })).toBeVisible();
+      await expect(page.getByRole("button", { name: /与当前身份参考对比|与细化图片对比|与候选图片对比/ })).toBeVisible();
     } finally {
       await page.unroute(`**/api/v2/projects/${projectId}/managed-assets/${refinementCandidate}/display`);
     }

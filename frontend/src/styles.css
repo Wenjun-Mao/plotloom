@@ -646,7 +646,15 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .appearance-dialog img, .appearance-dialog .reference-missing-asset { max-width: 100%; max-height: calc(100vh - 100px); object-fit: contain; background: #07090c; }
 .proposal-lifecycle-status { color: var(--dim); font-size: 10px; }
 
-@media (max-width: 620px) { .appearance-workspace { padding: 13px; }.appearance-viewer > img, .appearance-viewer .reference-no-image { min-height: 250px; }.appearance-compare { grid-template-columns: 1fr; }.appearance-compare > .button { grid-column: auto; }.appearance-compare img, .appearance-compare .reference-missing-asset { height: min(75vw, 360px); }.appearance-viewer-heading { align-items: start; flex-direction: column; } }
+/* The gallery is image-first: on a desktop the subject chooser belongs above
+   the working canvas instead of consuming a second, mostly empty rail. */
+.character-reference-review .reference-gallery-layout { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+.character-reference-review .reference-subjects { display: flex; flex-wrap: wrap; gap: 7px; }
+.character-reference-review .reference-subjects > span { align-self: center; padding: 0 4px 0 0; }
+.character-reference-review .reference-subjects button { flex: 0 1 190px; width: auto; }
+.appearance-compare img { height: auto; min-height: 0; max-height: 360px; aspect-ratio: auto; }
+
+@media (max-width: 620px) { .appearance-workspace { padding: 13px; }.appearance-viewer > img, .appearance-viewer .reference-no-image { min-height: 250px; }.appearance-compare { grid-template-columns: 1fr; }.appearance-compare > .button { grid-column: auto; }.appearance-compare img { height: auto; max-height: none; }.appearance-compare .reference-missing-asset { height: min(75vw, 360px); }.appearance-viewer-heading { align-items: start; flex-direction: column; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }

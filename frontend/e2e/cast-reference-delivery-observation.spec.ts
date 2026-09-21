@@ -74,7 +74,10 @@ test.describe("Characters delivery observation", () => {
         publicationPhase: "final",
         candidates: [],
       });
-      await expect(gallery.locator(`[data-proposal-id="${prepared.id}"]`)).toContainText("delivery_manifest_invalid");
+      const failedCard = gallery.locator(`[data-proposal-id="${prepared.id}"]`).first();
+      await expect(failedCard).toContainText("delivery_manifest_invalid");
+      await expect(failedCard).toContainText("本次交付未通过，未加入图片列表");
+      await expect(failedCard).not.toContainText("返回图片会出现在上方");
 
       // This test's terminal cleanup is an inapplicable delivery, the only
       // supported way to release a lease after observing an invalid outcome.
