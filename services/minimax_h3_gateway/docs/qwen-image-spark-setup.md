@@ -41,10 +41,15 @@ contract.
 4. Verify that `loginctl show-user wjmao -p Linger` is `Linger=yes`, so the
    user service returns after a Spark reboot without an interactive login.
 
-The service uses explicit `--model-id Qwen-Image-2.1` and
-`--pipeline QwenImage21Pipeline` with the local model path. This forces SGLang's
+The service uses explicit `--model-type diffusion`, `--model-id Qwen/Qwen-Image-2.1`,
+and `--pipeline QwenImage21Pipeline` with the local model path. The first option
+selects SGLang's diffusion command parser; the full Hub ID lets its native registry
+match the local checkout. Together they force SGLang's
 native pipeline instead of allowing a generic Diffusers fallback when a local
-directory hides the upstream repository identity. The service otherwise uses
+directory hides the upstream repository identity. `PYTHONPATH` deliberately
+selects the pinned source checkout: installing it editable would require a Rust
+toolchain solely to build optional extensions, while the tested runtime already
+has its compatible binary dependencies. The service otherwise uses
 native precision, resident components, eager execution,
 automatic SDPA, full-image VAE decoding, `--performance-mode speed`, loopback
 binding, one output, and no batching. Any change to those choices is a new
