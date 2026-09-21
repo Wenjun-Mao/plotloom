@@ -18,6 +18,7 @@ from .contracts import (
     GatewayError,
     GatewaySettings,
 )
+from .image_catalog import qwen_image_canvas_from_snapshot
 from .naming import ASSET_ID, is_gateway_job_id, is_owned_storage_name, is_safe_path_part, timestamped_storage_name
 from .profile_catalog import H3ExecutionProfile
 from .store import GatewayStore
@@ -264,9 +265,10 @@ class GatewayFiles:
                 str(job["id"]), status="failed", error_code="gateway_output_storage_invalid"
             )
         try:
+            canvas = qwen_image_canvas_from_snapshot(str(job["execution_snapshot_json"]))
             with Image.open(BytesIO(content)) as image:
                 image.load()
-                if image.format != "PNG" or image.size != (1024, 1024):
+                if image.format != "PNG" or image.size != (canvas.width, canvas.height):
                     raise GatewayError("qwen_image_output_invalid")
                 if str(job.get("background_mode")) == "transparent":
                     alpha = image.getchannel("A") if "A" in image.getbands() else None
@@ -277,6 +279,10 @@ class GatewayFiles:
                     if alpha.getextrema() != (0, 255) or transparent_ratio <= 0.4:
                         raise GatewayError("qwen_image_alpha_missing")
             digest, size_bytes = _write_bytes_atomically(content, destination)
+        except ValueError:
+            return self.store.update_job(
+                str(job["id"]), status="failed", error_code="qwen_image_execution_snapshot_invalid"
+            )
         except GatewayError as error:
             return self.store.update_job(
                 str(job["id"]), status="failed", error_code=error.code
@@ -287,7 +293,7 @@ class GatewayFiles:
             )
         return self.store.mark_managed_output(
             str(job["id"]), output_name=destination.name, digest=digest, size_bytes=size_bytes,
-            mime_type="image/png", width=1024, height=1024,
+            mime_type="image/png", width=canvas.width, height=canvas.height,
         )
 
     def comfy_output_path(self, job: dict[str, Any]) -> Path | None:

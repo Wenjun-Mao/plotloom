@@ -16,7 +16,6 @@ GATEWAY_JOB_RECORD_RETENTION_DAYS = 30
 GATEWAY_KEYFRAME_RETENTION_DAYS = 30
 AspectPolicy = Literal["cover_center_crop", "contain_pad", "reject_mismatch"]
 ImageBackgroundMode = Literal["opaque", "transparent"]
-QWEN_IMAGE_RESOLUTION = "1024x1024"
 QWEN_IMAGE_STEPS = 40
 QWEN_IMAGE_GUIDANCE_SCALE = 1.0
 
@@ -137,12 +136,12 @@ class CreateImageJobFromSourceUrlRequest(CreateImageJobRequest, SourceUrlAssetRe
 
 
 class _QwenImageParameters(BaseModel):
-    """The deliberately narrow, initial Qwen-Image public contract."""
+    """The reviewed, exact-canvas Qwen-Image public contract."""
 
     model_config = ConfigDict(extra="forbid")
 
     prompt: str = Field(min_length=1, max_length=8_000)
-    resolution: Literal["1024x1024"]
+    resolution: str = Field(min_length=7, max_length=9, pattern=r"^[0-9]{3,4}x[0-9]{3,4}$")
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
     background_mode: ImageBackgroundMode = Field(default="opaque", alias="backgroundMode")
 

@@ -507,7 +507,8 @@ decode, and safe managed-output transfer do not reserve the GPU lane.
 | `GET /v1/image-jobs/{id}/output` | Gateway-managed PNG |
 | `POST /v1/image-jobs/{id}/cancel` | Cancel only a queued image job |
 
-Initial image jobs require `resolution: "1024x1024"` and produce exactly one
+Image jobs require one exact `resolution`: `1024x1024`, `832x480`, `960x544`,
+`1280x704`, `576x1024`, `608x1088`, or `704x1280`; they produce exactly one
 PNG. They accept optional `seed` and `backgroundMode` (`opaque` default,
 `transparent` optional). Transparent mode requires actual non-opaque PNG alpha
 from Qwen; the gateway never uses background-removal postprocessing. Multiple
@@ -516,6 +517,7 @@ SGLang access are not supported.
 
 Qwen PNG outputs expire after 72 hours. Job records and transient source images
 expire after 30 days. Import any selected image into Plotloom or another
-durable project store before expiry. The six current H3 canvases need recorded
-Qwen text-generation and one-reference-edit qualification before the image
-contract exposes them. ADR 0072 records this shared scheduling decision.
+durable project store before expiry. The six non-square canvases have recorded
+Qwen text-generation and one-reference-edit qualification. ADR 0072 records
+shared scheduling, while ADR 0073 records the exact image-canvas allow-list
+and frozen snapshot rule.

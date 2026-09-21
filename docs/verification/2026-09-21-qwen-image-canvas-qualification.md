@@ -59,8 +59,9 @@ retained for the product visual review.
 ## Outcome
 
 The model/service can technically generate and edit all six target sizes with
-bounded memory (32.6–34.3 GB in this sample). Public admission remains
-intentionally unchanged pending review of the retained images and a separate
-contract change with gateway regression coverage. This preserves the original
-deployment receipt's boundary rather than silently widening it after an
-out-of-band experiment.
+bounded memory (32.6–34.3 GB in this sample). After the retained set received
+product approval, ADR 0073 promoted the six canvases alongside `1024x1024` as
+the public exact-size allow-list. The promotion adds gateway regression
+coverage and frozen execution snapshots; this receipt remains the evidence
+for that decision rather than silently widening the API from an out-of-band
+experiment.

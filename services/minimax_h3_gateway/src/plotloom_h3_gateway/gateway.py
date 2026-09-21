@@ -18,8 +18,13 @@ from .contracts import (
     GatewayError,
     GatewaySettings,
     QWEN_IMAGE_GUIDANCE_SCALE,
-    QWEN_IMAGE_RESOLUTION,
     QWEN_IMAGE_STEPS,
+)
+from .image_catalog import (
+    QWEN_IMAGE_CONTRACT_VERSION,
+    QWEN_IMAGE_CANVASES,
+    admitted_qwen_image_canvas,
+    qwen_image_canvas_from_snapshot,
 )
 from .media import GatewayFiles
 from .naming import timestamped_storage_name
@@ -74,7 +79,8 @@ class H3Gateway:
             "defaultQuality": DEFAULT_QUALITY, "qualities": sorted(QUALITY_RECIPES),
             "resolutions": [item.value for item in RESOLUTIONS],
             "inputModes": ["image", "text"], "backends": ["h3_video", "qwen_image"],
-            "imageResolutions": [QWEN_IMAGE_RESOLUTION], "queuedJobs": queued, "activeDispatches": active,
+            "imageResolutions": [canvas.resolution for canvas in QWEN_IMAGE_CANVASES],
+            "queuedJobs": queued, "activeDispatches": active,
             "dispatchConcurrency": 1,
         }
 
@@ -167,7 +173,9 @@ class H3Gateway:
         self, *, input_mode: str, prompt: str, resolution: str, background_mode: str,
         seed: int | None, asset: dict[str, Any] | None,
     ) -> dict[str, Any]:
-        if resolution != QWEN_IMAGE_RESOLUTION:
+        try:
+            canvas = admitted_qwen_image_canvas(resolution)
+        except KeyError:
             raise GatewayError("image_resolution_not_supported", 422)
         if input_mode == "image" and asset is None:
             raise GatewayError("image_file_required", 422)
@@ -180,12 +188,12 @@ class H3Gateway:
         # binding for the only image-edit mode we admit.
         frames = ([{"role": "start", "asset_id": str(asset["id"]), "prepared_input_name": ""}] if asset else [])
         snapshot = {
-            "imageContractVersion": 1,
+            "imageContractVersion": QWEN_IMAGE_CONTRACT_VERSION,
             "backend": "qwen_image",
             "model": self.settings.qwen_image_model,
-            "resolution": QWEN_IMAGE_RESOLUTION,
-            "width": 1024,
-            "height": 1024,
+            "resolution": canvas.resolution,
+            "width": canvas.width,
+            "height": canvas.height,
             "steps": QWEN_IMAGE_STEPS,
             "guidanceScale": QWEN_IMAGE_GUIDANCE_SCALE,
             "outputs": 1,
@@ -275,12 +283,17 @@ class H3Gateway:
         job_id = str(job["id"])
         try:
             self.qwen.preflight()
+            canvas = qwen_image_canvas_from_snapshot(str(job["execution_snapshot_json"]))
             source_content: bytes | None = None
             if job["input_mode"] == "image":
                 frames = self.store.get_job_frames(job_id)
                 if len(frames) != 1:
                     raise GatewayError("qwen_image_input_invalid", 422)
                 source_content = self.files.asset_content(frames[0])
+        except ValueError:
+            return self.store.update_job(
+                job_id, status="failed", error_code="qwen_image_execution_snapshot_invalid"
+            )
         except GatewayError as error:
             return self.store.update_job(job_id, status="failed", error_code=error.code)
 
@@ -288,12 +301,12 @@ class H3Gateway:
         try:
             if source_content is None:
                 content = self.qwen.generate(
-                    prompt=str(job["prompt"]), width=1024, height=1024, seed=int(job["seed"]),
+                    prompt=str(job["prompt"]), width=canvas.width, height=canvas.height, seed=int(job["seed"]),
                     background_mode=str(job["background_mode"]),
                 )
             else:
                 content = self.qwen.edit(
-                    prompt=str(job["prompt"]), width=1024, height=1024, seed=int(job["seed"]),
+                    prompt=str(job["prompt"]), width=canvas.width, height=canvas.height, seed=int(job["seed"]),
                     background_mode=str(job["background_mode"]), source_name="reference.png",
                     source_content=source_content,
                 )

@@ -104,12 +104,15 @@ state rather than preserving UUID-only files.
 ## Qwen-Image-2.1 contract
 
 The same authenticated gateway also accepts text-to-image and **single**
-reference-image edit jobs at `/v1/image-jobs`. Initial admission is exactly
-`1024x1024`, one PNG output, 40 steps and CFG 1. `backgroundMode` is either
-`opaque` or `transparent`; transparent requests must return actual PNG alpha
-and are never postprocessed into a cutout. Multi-image editing is not part of
-this contract. See [the Spark Qwen setup guide](docs/qwen-image-spark-setup.md)
-and [ADR 0072](../../docs/adr/0072-shared-qwen-image-and-h3-generation-lane.md).
+reference-image edit jobs at `/v1/image-jobs`. It admits exactly
+`1024x1024`, `832x480`, `960x544`, `1280x704`, `576x1024`, `608x1088`, and
+`704x1280`: no arbitrary dimensions. Every job produces one PNG with 40 steps
+and CFG 1. `backgroundMode` is either `opaque` or `transparent`; transparent
+requests must return actual PNG alpha and are never postprocessed into a
+cutout. Multi-image editing is not part of this contract. See [the Spark Qwen
+setup guide](docs/qwen-image-spark-setup.md), [ADR
+0072](../../docs/adr/0072-shared-qwen-image-and-h3-generation-lane.md), and
+[ADR 0073](../../docs/adr/0073-qwen-image-reviewed-canvas-contract.md).
 
 Keep ComfyUI on `127.0.0.1:8188`, bind this gateway only to Spark's Tailscale
 address, and keep its bearer key server-side. Do not replace the documented

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+import json
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -10,6 +11,11 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from plotloom_h3_gateway.app import GatewaySettings, create_app
+from plotloom_h3_gateway.image_catalog import (
+    QWEN_IMAGE_CANVASES,
+    qwen_image_canvas_from_snapshot,
+)
+from plotloom_h3_gateway.profile_catalog import QUALITY_RECIPES
 
 
 AUTH = {"Authorization": "Bearer test-key"}
@@ -33,12 +39,31 @@ class _ComfySession:
         if url.endswith("/system_stats"):
             return _Response({"system": {}})
         if url.endswith("/object_info"):
-            return _Response({})
+            return _Response(_comfy_object_info())
         raise AssertionError(url)
 
     def post(self, url: str, **_: object) -> _Response:
-        raise AssertionError(url)
+        assert url.endswith("/prompt")
+        return _Response({"prompt_id": "comfy-test"})
 
+
+def _comfy_object_info() -> dict[str, object]:
+    """Provide the complete H3 readiness shape required by public health."""
+
+    loras = [recipe.lora_file for recipe in QUALITY_RECIPES.values() if recipe.lora_file]
+
+    def required(**values: object) -> dict[str, object]:
+        return {"input": {"required": values}}
+
+    return {
+        "MiniMaxH3ImageToVideo": {"input": {"optional": {"first_frame": ["IMAGE"], "last_frame": ["IMAGE"]}}},
+        "PrimitiveInt": {}, "KSamplerSelect": {}, "BasicScheduler": {}, "BasicGuider": {},
+        "SamplerCustomAdvanced": {}, "MiniMaxH3SigmaShift": {},
+        "UNETLoader": required(unet_name=[["minimax_h3_fl2va_pruned_fp8_scaled.safetensors"]]),
+        "CLIPLoader": required(clip_name=[["qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"]]),
+        "VAELoader": required(vae_name=[["minimax_h3_video_vae_fp16.safetensors", "minimax_h3_audio_vae_fp32.safetensors"]]),
+        "LoraLoaderModelOnly": required(lora_name=[loras]),
+    }
 
 class _QwenSession:
     def __init__(self, image: bytes) -> None:
@@ -128,10 +153,10 @@ def test_text_image_contract_is_strict_and_freezes_random_seed(tmp_path: Path) -
     assert "quality" not in job and "requestedDurationSeconds" not in job
     unsupported = client.post(
         "/v1/image-jobs/from-text", headers=AUTH,
-        json={"prompt": "x", "resolution": "576x1024"},
+        json={"prompt": "x", "resolution": "768x768"},
     )
     assert unsupported.status_code == 422
-    assert unsupported.json() == {"error": "request_invalid"}
+    assert unsupported.json() == {"error": "image_resolution_not_supported"}
     profile = client.post(
         "/v1/image-jobs/from-text", headers=AUTH,
         json={"prompt": "x", "resolution": "1024x1024", "profileId": "never"},
@@ -139,30 +164,80 @@ def test_text_image_contract_is_strict_and_freezes_random_seed(tmp_path: Path) -
     assert profile.json() == {"error": "request_invalid"}
 
 
+def test_qwen_catalog_exposes_and_admits_only_reviewed_canvases(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    expected = [canvas.resolution for canvas in QWEN_IMAGE_CANVASES]
+    assert client.get("/health").json()["imageResolutions"] == expected
+
+    for canvas in QWEN_IMAGE_CANVASES:
+        text = client.post(
+            "/v1/image-jobs/from-text", headers=AUTH,
+            json={"prompt": "A bounded canvas check.", "resolution": canvas.resolution},
+        )
+        assert text.status_code == 202, text.text
+        assert text.json()["resolution"] == canvas.resolution
+
+        edit = client.post(
+            "/v1/image-jobs/from-image", headers=AUTH,
+            data={"prompt": "A bounded edit canvas check.", "resolution": canvas.resolution},
+            files={"image": ("reference.png", _png(width=canvas.width, height=canvas.height), "image/png")},
+        )
+        assert edit.status_code == 202, edit.text
+        assert edit.json()["resolution"] == canvas.resolution
+
+
 def test_qwen_text_job_uses_documented_generation_shape_and_managed_png(tmp_path: Path) -> None:
-    client, qwen = _client(tmp_path)
+    client, qwen = _client(tmp_path, output=_png(width=576, height=1024))
     accepted = client.post(
         "/v1/image-jobs/from-text", headers=AUTH,
-        json={"prompt": "An observatory at dusk.", "resolution": "1024x1024", "seed": 7},
+        json={"prompt": "An observatory at dusk.", "resolution": "576x1024", "seed": 7},
     ).json()
     result = client.app.state.gateway.dispatch_once()
     assert result is not None and result["status"] == "succeeded"
     status = client.get(f"/v1/image-jobs/{accepted['id']}", headers=AUTH).json()
     assert status["outputReady"] is True
     assert status["outputContentType"] == "image/png"
-    assert status["outputWidth"] == 1024 and status["outputHeight"] == 1024
+    assert status["outputWidth"] == 576 and status["outputHeight"] == 1024
     assert status["generationElapsedMs"] is not None
     url, kwargs = qwen.calls[0]
     assert url.endswith("/v1/images/generations")
     assert kwargs["json"] == {
         "model": "Qwen/Qwen-Image-2.1", "prompt": "An observatory at dusk.", "n": 1,
-        "size": "1024x1024", "num_inference_steps": 40, "guidance_scale": 1.0,
+        "size": "576x1024", "num_inference_steps": 40, "guidance_scale": 1.0,
         "seed": 7, "generator_device": "cpu", "output_format": "png",
         "response_format": "b64_json", "background": "opaque", "enable_cache_dit": False,
     }
     output = client.get(f"/v1/image-jobs/{accepted['id']}/output", headers=AUTH)
     assert output.headers["content-type"] == "image/png"
     assert output.content.startswith(b"\x89PNG")
+
+
+def test_qwen_snapshot_freezes_its_canvas_and_rejects_mismatched_provider_output(tmp_path: Path) -> None:
+    client, _ = _client(tmp_path)
+    accepted = client.post(
+        "/v1/image-jobs/from-text", headers=AUTH,
+        json={"prompt": "A frozen portrait.", "resolution": "704x1280", "seed": 17},
+    ).json()
+    stored = client.app.state.gateway.store.get_job(accepted["id"])
+    snapshot = json.loads(stored["execution_snapshot_json"])
+    assert snapshot["imageContractVersion"] == 2
+    assert snapshot["resolution"] == "704x1280"
+    assert (snapshot["width"], snapshot["height"]) == (704, 1280)
+    assert qwen_image_canvas_from_snapshot(stored["execution_snapshot_json"]).resolution == "704x1280"
+
+    result = client.app.state.gateway.dispatch_once()
+    assert result is not None and result["status"] == "failed"
+    assert result["error_code"] == "qwen_image_output_invalid"
+
+
+def test_qwen_square_snapshot_version_remains_readable() -> None:
+    snapshot = json.dumps({
+        "imageContractVersion": 1,
+        "resolution": "1024x1024",
+        "width": 1024,
+        "height": 1024,
+    })
+    assert qwen_image_canvas_from_snapshot(snapshot).resolution == "1024x1024"
 
 
 def test_single_reference_edit_accepts_one_file_and_preserves_transparent_png(tmp_path: Path) -> None:

@@ -200,9 +200,11 @@ auth:
 ## 8A. Qwen-Image：文生图与单图编辑
 
 Qwen-Image-2.1 与 H3 使用同一 Tailscale 地址、同一 Bearer 和同一个 FIFO。
-任何时刻只有一条 H3 或 Qwen 推理在运行。图片接口第一版只接受
-`"1024x1024"`，固定返回一张 PNG；不接受 `quality`、时长、`profileId`、
-多图编辑或任意模型参数。`seed` 可省略，状态响应会返回服务器实际使用的 seed。
+任何时刻只有一条 H3 或 Qwen 推理在运行。图片接口只接受下列精确画布：
+`"1024x1024"`、`"832x480"`、`"960x544"`、`"1280x704"`、
+`"576x1024"`、`"608x1088"`、`"704x1280"`；固定返回一张 PNG。不能传入任意
+宽高，也不接受 `quality`、时长、`profileId`、多图编辑或任意模型参数。`seed` 可省略，
+状态响应会返回服务器实际使用的 seed。
 
 `backgroundMode` 可为 `opaque`（默认）或 `transparent`。`transparent` 是要求
 模型输出 alpha 的模式，不是后处理抠图；若模型结果没有真实 alpha，任务会失败。
@@ -226,7 +228,7 @@ http:
     data: |-
       {
         "prompt": "电影感写实肖像，一名宇航员站在月球观测站内，柔和侧光，细节清晰。",
-        "resolution": "1024x1024",
+        "resolution": "576x1024",
         "backgroundMode": "opaque"
       }
 auth:
@@ -243,7 +245,7 @@ auth:
 | --- | --- | --- |
 | `image` | File | 必填；唯一参考图 |
 | `prompt` | Text | 必填；明确要保留和要修改的部分 |
-| `resolution` | Text | 必填；只能 `1024x1024` |
+| `resolution` | Text | 必填；只能是 `1024x1024`、`832x480`、`960x544`、`1280x704`、`576x1024`、`608x1088` 或 `704x1280` |
 | `seed` | Text | 可选整数 |
 | `backgroundMode` | Text | 可选；`opaque` 或 `transparent` |
 
@@ -257,6 +259,7 @@ auth:
 | --- | --- |
 | `request_body_invalid` / `request_fields_invalid` | JSON 与 multipart 混用、字段拼写错误或重复字段 |
 | `request_invalid` | 请求含 `profileId`、`assetId`、`idempotencyKey` 或不属于该路由的字段 |
+| `image_resolution_not_supported` | Qwen 图像任务的 `resolution` 不在七个已审核画布中 |
 | `quality_not_supported` | 只可使用 `1`、`2`、`3`、`8` |
 | `resolution_not_supported` | 使用上表中的精确 `resolution` |
 | `image_file_required` | multipart I2V 缺少 `image` |

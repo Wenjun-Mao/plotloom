@@ -60,9 +60,10 @@ qualification, not an environment-only tuning tweak.
 
 ## Gateway contract and retention
 
-The gateway accepts only exact `1024x1024` image jobs until canvas
-qualification completes. It calls SGLang with 40 steps, CFG 1, PNG response,
-and a single server-resolved output. `backgroundMode=opaque` and
+The gateway accepts only these exact image canvases: `1024x1024`, `832x480`,
+`960x544`, `1280x704`, `576x1024`, `608x1088`, and `704x1280`. It calls SGLang
+with 40 steps, CFG 1, PNG response, and a single server-resolved output.
+`backgroundMode=opaque` and
 `backgroundMode=transparent` are passed through exactly to Qwen; transparent
 requests also receive the stable cutout instruction that Qwen requires for
 alpha generation. The gateway accepts a transparent result only when its PNG
@@ -80,7 +81,9 @@ transparent canary must decode as RGBA and contain pixels with alpha below 255.
 Then prove the resident Qwen service and the established H3 quality-8 memory
 path can share the gateway's single generation lane.
 
-Do not expose portrait or landscape Qwen image sizes until each of
-`832x480`, `960x544`, `1280x704`, `576x1024`, `608x1088`, and `704x1280` has
-passed both text generation and single-reference editing with a recorded
-dimension, stability, memory, and visual review.
+The six non-square canvases completed one text-generation and one
+single-reference-edit qualification each on 2026-09-21. The retained
+[canvas qualification receipt](../../../docs/verification/2026-09-21-qwen-image-canvas-qualification.md)
+records the exact sizes, timings, memory, and review copies. Do not add an
+arbitrary new canvas without an equivalent qualification and a new versioned
+gateway contract.
