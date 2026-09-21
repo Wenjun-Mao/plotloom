@@ -6,10 +6,19 @@ a backend proxy: callers cannot submit workflows, select model files, or reach
 either runtime directly.
 
 Plotloom is wired to this gateway through the versioned
-`minimax_h3_gateway.v6` adapter contract. Use the complete
-[H3 gateway operator and maintainer manual](../../docs/operations/minimax-h3-gateway-manual.md)
-for deployment, security, Plotloom configuration, lifecycle, recovery, and
-the exact limits of verified behavior.
+`minimax_h3_gateway.v6` adapter contract. The two backend-specific document
+sets are intentionally separate:
+
+- **H3 video:** [operator manual](../../docs/operations/minimax-h3-gateway-manual.md),
+  [Chinese client guide](../../docs/operations/minimax-h3-gateway-client-guide.md),
+  [reproducible setup](docs/h3-reproducible-setup.md), and
+  [sampling rationale](docs/h3-rationale-and-operations.md).
+- **Qwen image:** [operator manual](../../docs/operations/qwen-image-gateway-manual.md),
+  [Chinese client guide](../../docs/operations/qwen-image-gateway-client-guide.md),
+  and [reproducible Spark setup](docs/qwen-image-spark-setup.md).
+
+The [operations index](../../docs/operations/README.md) explains the only
+shared operational boundary: the durable, one-active-inference FIFO.
 
 For the underlying Spark/ComfyUI engine rather than the gateway API, use the
 [reproducible H3 setup guide](docs/h3-reproducible-setup.md), the
@@ -100,24 +109,6 @@ portable UTC timestamp prefix (`YYYY-MM-DDTHH-MM-SSZ_`) before their stable
 `asset_…` or `h3_…` ID. The ID remains the API identifier; the timestamp is
 there for on-host inspection. Deploy the naming contract with a clean gateway
 state rather than preserving UUID-only files.
-
-## Qwen-Image-2.1 contract
-
-The same authenticated gateway also accepts text-to-image and **single**
-reference-image edit jobs at `/v1/image-jobs`. It admits exactly
-`1024x1024`, `832x480`, `960x544`, `1280x704`, `576x1024`, `608x1088`, and
-`704x1280`: no arbitrary dimensions. Every job produces one PNG with 40 steps
-and CFG 1. `backgroundMode` is either `opaque` or `transparent`; transparent
-requests must return actual PNG alpha and are never postprocessed into a
-cutout. Multi-image editing is not part of this contract. See [the Spark Qwen
-setup guide](docs/qwen-image-spark-setup.md), [ADR
-0072](../../docs/adr/0072-shared-qwen-image-and-h3-generation-lane.md), and
-[ADR 0073](../../docs/adr/0073-qwen-image-reviewed-canvas-contract.md).
-
-Keep ComfyUI on `127.0.0.1:8188`, bind this gateway only to Spark's Tailscale
-address, and keep its bearer key server-side. Do not replace the documented
-quality catalog with an SSH-only edit: quality changes require a new versioned
-gateway/Plotloom contract and verification.
 
 ## Module boundary and future extraction
 

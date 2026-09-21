@@ -8,6 +8,13 @@ service should use the separate, copy-paste
 [client guide](minimax-h3-gateway-client-guide.md), which records the current
 Tailnet base URL and a non-secret test image.
 
+Qwen-Image-2.1 is a separate image backend with its own
+[operator manual](qwen-image-gateway-manual.md),
+[Chinese client guide](qwen-image-gateway-client-guide.md), and
+[reproducible setup guide](../../services/minimax_h3_gateway/docs/qwen-image-spark-setup.md).
+The two backends share the durable FIFO, but their generation contracts and
+runtime maintenance procedures are not interchangeable.
+
 For exact machine-readable behavior, the source profile and tests remain the
 implementation authority. This manual links them rather than duplicating an
 unsafe or easily stale deployment recipe.
@@ -485,39 +492,3 @@ Before an operator declares the H3 path usable after a restart or handoff:
       gateway-managed `outputs/` retention is 72 hours and ComfyUI output is
       mounted writable only for exact gateway handoff files.
 - [ ] A new candidate stays unselected until a human reviews the actual MP4.
-
-## 12. Qwen-Image-2.1 shared-lane extension
-
-Qwen-Image-2.1 runs as an always-on, loopback-only SGLang user service at
-`127.0.0.1:30010`. It uses the documented DGX Spark recipe: resident native
-components, eager execution, automatic SDPA, full-image VAE decoding, one
-output, batching disabled, 40 steps, and CFG 1. The checkpoint/cache belongs
-under `/home/wjmao/models/qwen-image-2.1`; exact installation and reboot steps
-are in the tracked [Qwen Spark setup guide](../../services/minimax_h3_gateway/docs/qwen-image-spark-setup.md).
-
-The gateway’s single durable FIFO is shared by H3 and Qwen. Exactly one H3
-ComfyUI or Qwen SGLang inference request runs at a time. Source download,
-decode, and safe managed-output transfer do not reserve the GPU lane.
-
-| Endpoint | Purpose |
-| --- | --- |
-| `POST /v1/image-jobs/from-text` | Qwen text-to-image |
-| `POST /v1/image-jobs/from-image` | Qwen one-reference image edit |
-| `GET /v1/image-jobs/{id}` | Image job status and resolved seed/timing |
-| `GET /v1/image-jobs/{id}/output` | Gateway-managed PNG |
-| `POST /v1/image-jobs/{id}/cancel` | Cancel only a queued image job |
-
-Image jobs require one exact `resolution`: `1024x1024`, `832x480`, `960x544`,
-`1280x704`, `576x1024`, `608x1088`, or `704x1280`; they produce exactly one
-PNG. They accept optional `seed` and `backgroundMode` (`opaque` default,
-`transparent` optional). Transparent mode requires actual non-opaque PNG alpha
-from Qwen; the gateway never uses background-removal postprocessing. Multiple
-reference images, arbitrary dimensions, arbitrary steps, and browser-direct
-SGLang access are not supported.
-
-Qwen PNG outputs expire after 72 hours. Job records and transient source images
-expire after 30 days. Import any selected image into Plotloom or another
-durable project store before expiry. The six non-square canvases have recorded
-Qwen text-generation and one-reference-edit qualification. ADR 0072 records
-shared scheduling, while ADR 0073 records the exact image-canvas allow-list
-and frozen snapshot rule.

@@ -66,6 +66,22 @@ H3 提供受审核的横竖屏档位；默认是 576×1024，另有 832×480、9
 和 adapter 版本。AAC 轨道不等于对白已通过，候选必须由人回放审核。
 不要把 Spark 网关公开到互联网。
 
+### 私有 Qwen-Image-2.1 图片端点
+
+Qwen-Image-2.1 是与 H3 共用 Spark 网关 FIFO 的本地图片后端，但它有独立的
+图片合同和维护边界。运维与恢复见
+[Qwen-Image gateway operator and maintainer manual](docs/operations/qwen-image-gateway-manual.md)，
+同事调用见中文 [Qwen-Image API 使用指南](docs/operations/qwen-image-gateway-client-guide.md)，
+复现实机安装见
+[Qwen-Image-2.1 Spark reproducible setup](services/minimax_h3_gateway/docs/qwen-image-spark-setup.md)。
+
+Qwen 只接受经过验证的七个精确画布：`1024x1024`、横版
+`832x480` / `960x544` / `1280x704`，以及竖版
+`576x1024` / `608x1088` / `704x1280`。它提供文生一张 PNG 和单参考图编辑；
+不提供多图编辑、任意尺寸或浏览器直连 SGLang。`transparent` 请求要求模型交付
+真正的 PNG alpha，网关不会做抠图后处理。图片输出也只在网关中保留 72 小时，
+任务与暂存输入最多保留 30 天；选中的资产应导入 Plotloom。
+
 ## 验证
 
 ```sh
@@ -84,7 +100,7 @@ uv run python scripts/smoke_installed_wheel.py dist
 在 `--qualify-m15` 严格模式下各完成 3 次原子安装、各至少 10/12
 阶段首轮通过后才可标记完成；较小批次只算诊断 probe。
 
-更完整的开发说明见 [docs/development.md](docs/development.md)，能力进度见 [docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md](docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md)，架构与研究资料索引见 [docs/README.md](docs/README.md)。
+更完整的开发说明见 [docs/development.md](docs/development.md)，能力进度见 [docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md](docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md)，架构与研究资料索引见 [docs/README.md](docs/README.md)，而 Spark 的 H3/Qwen 文档入口见 [generation operations index](docs/operations/README.md)。
 
 ## 版本边界
 
