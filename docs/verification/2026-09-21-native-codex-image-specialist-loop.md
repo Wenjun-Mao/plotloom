@@ -55,3 +55,36 @@ the accepted-cast workflow itself is the acceptance criterion.
 The observer reload after a rejected poll is independently reviewed, but does
 not yet have a dedicated browser regression for rejection → reloaded state →
 no further `package_conflict` polling.
+
+## Corrected Characters evidence — deterministic only
+
+No second ImageGen submission or native specialist command was issued for the
+accepted-cast path. The actual browser command was:
+
+```text
+npm --prefix frontend run test:e2e -- --grep 'uses a cast-only production fixture through original, refinement, and restart'
+```
+
+That production-composition fixture created an accepted cast, prepared a
+`character_reference_proposal`, clicked **发送给 specialist**, and observed the
+actual `POST …/character-reference-proposals/{id}/send` route. Its test-only
+dispatcher invokes `/usr/bin/true`, then the fixture writes one hash-valid
+completion package. The gallery admitted that delivery automatically and left
+it unselected until the explicit creator selection. This proves the Characters
+route, explicit-send label, package/currentness admission, and automatic
+accepted-delivery observation; it is not transport or ImageGen evidence.
+
+The browser case intentionally does **not** yet cover partial delivery,
+invalid manifest, or `package_conflict` stop-after-reload behavior for
+Characters. Those remain open scoped browser regressions, not claimed proof.
+
+The safety regression suite additionally verifies that cancellation and
+`package_conflict` retain the local lease, nonzero queue exits become
+`outcome_unknown`, and only an exact-task App Server `thread/read` result of
+`idle` can reconcile that retained lease for a later dispatch. It does not
+query the persistent specialist during this receipt update.
+
+A read-only control-socket probe during this correction found no local Codex
+App Server socket, so it produced no status and released no lease. That is the
+intended fail-closed result; reconciliation is available only when the
+supported status service returns the exact task as `idle`.

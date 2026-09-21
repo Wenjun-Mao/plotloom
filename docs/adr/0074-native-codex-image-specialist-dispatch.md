@@ -24,9 +24,24 @@ job exported. This applies equally to storyboard image jobs and to accepted-cast
 character-reference proposals; both retain their existing repository/package
 owners and validation paths. A crash-safe local reservation prevents every
 retry for that job, including an ambiguous queue outcome. One host-local
-in-flight job is allowed. An accepted/inapplicable delivery, explicit
-cancellation, a confirmed queue rejection, or an immutable package conflict
-releases the global reservation; the per-job receipt still forbids a resend.
+in-flight job is allowed. Only an accepted or inapplicable delivery releases
+the global reservation. Cancellation and an immutable package conflict stop
+publication but are not evidence that the native task stopped; queue timeout
+or any nonzero CLI exit is equally ambiguous. Their leases remain reserved
+until a terminal delivery is admitted, rather than allowing a second specialist
+call to overlap a possibly running first one. Before a later job is rejected as
+busy, Plotloom may reconcile only the exact local task/job lease through the
+supported Codex App Server `thread/read` status: `idle` releases it; `active`,
+`notLoaded`, errors, or an unreadable response do not. This host-local status
+check neither rewrites the package nor treats product cancellation as worker
+termination.
+
+Releasing on cancellation, package conflict, or a nonzero queue exit was
+rejected: each is product or caller state, not a worker-stop acknowledgement.
+Timeout-based or blind stale-lease cleanup was also rejected because it could
+overlap two specialist executions. Lease acquisition, release, and idle
+reconciliation share one host-local lock, so a stale completion cannot remove
+a replacement lease.
 
 Characters presents two distinct creator operations: creating a proposal only
 freezes its accepted-cast request; **发送给 specialist** explicitly queues it.

@@ -348,3 +348,13 @@ attempt, and the Characters gallery observes validated delivery without
 auto-selection. Browser evidence uses only a deterministic completion fixture;
 it does not spend another ImageGen submission. A new bounded live trial remains
 blocked pending explicit authorization after the final preflight.
+
+**Dispatch-safety correction.** Product cancellation and package conflict do
+not prove the native task stopped, and the supported queue CLI offers no
+receipt identity proving that a nonzero exit did not accept a message. Those
+states therefore retain the one-worker host lease; only terminal delivery
+handling releases it, unless a later dispatch obtains exact-task `idle` status
+from the supported Codex App Server `thread/read` API. The deterministic
+Characters browser case covers valid automatic admission only.
+Partial/invalid/conflict-stop browser regressions remain open and must not be
+represented as completed evidence.

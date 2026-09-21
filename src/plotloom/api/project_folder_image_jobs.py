@@ -189,8 +189,6 @@ def register_project_folder_image_job_routes(
             proposal = store.media.cancel_character_reference_proposal(
                 project_id, proposal_id, body.reason
             )
-            if image_dispatcher is not None:
-                image_dispatcher.complete(proposal_id)
             return proposal
 
     @app.post(
@@ -246,10 +244,6 @@ def register_project_folder_image_job_routes(
                     repository.record_character_reference_proposal_rejection(
                         project_id, proposal_id, error.code
                     )
-                if error.code == "package_conflict" and image_dispatcher is not None:
-                    # A frozen package conflict is terminal: the observer
-                    # stops and this job can never validly produce delivery.
-                    image_dispatcher.complete(proposal_id)
                 raise
             if delivery is None:
                 return {
@@ -488,8 +482,6 @@ def register_project_folder_image_job_routes(
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
             job = store.media.cancel_image_job(project_id, job_id, body.reason)
-            if image_dispatcher is not None:
-                image_dispatcher.complete(job_id)
             return job
 
     return app
