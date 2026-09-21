@@ -191,3 +191,47 @@ def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tm
         assert store.media.character_reference_proposal_delivery_context(store.manifest.project_id, proposal["id"])["current"] is False
     finally:
         store.close()
+
+
+def test_imported_appearance_is_cast_bound_and_requires_explicit_selection(tmp_path: Path) -> None:
+    """A managed import gains no identity authority until the creator selects it."""
+
+    store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
+    context = _context()
+
+    def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
+        assert context.source and context.accepted_outline and context.accepted_section_map
+        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
+
+    store.repository.cast._context = bound_context  # type: ignore[method-assign]
+    try:
+        binding, *_ = bound_context(None, store.manifest.project_id)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "i" * 32)
+        store.admit_cast_delivery(_deliver(store, request))
+        accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=None, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
+        content = b"retained imported appearance"
+        uri = store.artifacts.put(content)
+        asset = store.media.record_managed_import(
+            store.manifest.project_id, original_hash=sha256(content).hexdigest(), display_hash=sha256(content).hexdigest(),
+            mime_type="image/png", byte_size=len(content), width=1, height=1,
+            declaration={"origin": "storage fixture", "rights": "known"}, publish=lambda: (uri, uri),
+        )
+        appearance = store.media.attach_imported_character_appearance(
+            store.manifest.project_id, character_id="lin", asset_id=asset["id"], label="Beacon coat reference",
+            expected_cast_revision=accepted.accepted_cast.revision,
+        )
+        assert appearance["current"] is True
+        assert appearance["label"] == "Beacon coat reference"
+        assert store.media.list_imported_character_appearances(store.manifest.project_id)[0]["assetId"] == asset["id"]
+        assert store.media.list_character_reference_decisions(store.manifest.project_id)["decisions"] == []
+
+        selected = store.media.create_character_reference_decision(
+            store.manifest.project_id, character_id="lin", primary_asset_id=asset["id"], complementary_asset_ids=[],
+            expected_reference_revision=0, reviewer=None, notes=None, authority="cast",
+        )
+        assert selected["primaryAssetId"] == asset["id"]
+        store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        assert store.media.list_imported_character_appearances(store.manifest.project_id)[0]["current"] is False
+    finally:
+        store.close()

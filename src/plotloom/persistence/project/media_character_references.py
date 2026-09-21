@@ -226,6 +226,9 @@ class CharacterReferencePersistence:
 
     def attach_imported_appearance(self, project_id: str, *, character_id: str, asset_id: str, label: str, expected_cast_revision: int) -> dict[str, Any]:
         """Attach an already-provenanced import without selecting it."""
+        normalized_label = label.strip()
+        if not normalized_label:
+            raise InvalidTransitionError("imported appearance requires a non-empty label")
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             context = self.cast_reference_context(session, project_id, character_id, expected_cast_revision=expected_cast_revision)
@@ -243,7 +246,7 @@ class CharacterReferencePersistence:
                 return self._imported_dict(existing, asset, current=existing.character_context_hash == stable_hash(context))
             row = CharacterImportedAppearanceRow(
                 id=new_id(), project_id=project_id, character_id=character_id, asset_id=asset_id,
-                character_context=context, character_context_hash=stable_hash(context), label=label.strip(), created_at=utc_now(),
+                character_context=context, character_context_hash=stable_hash(context), label=normalized_label, created_at=utc_now(),
             )
             session.add(row); session.flush()
             return self._imported_dict(row, asset, current=True)
