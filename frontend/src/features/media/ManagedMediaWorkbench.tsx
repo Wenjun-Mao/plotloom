@@ -278,7 +278,10 @@ export function ManagedMediaWorkbench({
       );
       void Promise.all(outstanding.map((job) => plotloomApi.refreshImageJob(projectId, job.id)))
         .then((results) => results.some((result) => result.state !== "awaiting_delivery") ? refresh() : undefined)
-        .catch(() => undefined);
+        // A rejection is durable server state. Reload it before the next tick
+        // so a package conflict stops observation, while a normal partial
+        // delivery remains eligible for its next automatic check.
+        .catch(() => refresh().catch(() => undefined));
     }, 3_000);
     return () => window.clearInterval(timer);
   }, [imageJobs, projectId, refresh]);

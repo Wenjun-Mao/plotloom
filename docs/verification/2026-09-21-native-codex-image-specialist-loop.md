@@ -39,6 +39,13 @@ submission, both outside this trial's authority. The staging cleanup helper
 also refused a mismatched root and the staging PNG remains preserved. No
 creative acceptance or candidate selection is claimed.
 
+**Workflow fit.** This trial entered through the storyboard production
+`ImageJobPanel`: its frozen v3 request is an `original` shot job with no target
+or character references. It did not exercise the intended Characters
+accepted-cast reference-proposal flow, which has a separate proposal target and
+cast/character contract. A future bounded trial must choose that entrypoint if
+the accepted-cast workflow itself is the acceptance criterion.
+
 ## Verification
 
 - `uv run --locked pytest -q tests/test_codex_image_dispatch.py tests/test_project_storage_image_delivery_contracts.py` — 12 passed.
