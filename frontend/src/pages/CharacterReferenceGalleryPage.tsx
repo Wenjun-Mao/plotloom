@@ -213,7 +213,7 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const cancel = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.cancelCharacterReferenceProposal(projectId, proposal.id, "Creator cancelled the exploratory reference handoff from Characters."); });
   const importAppearance = () => void act(async () => {
     if (!importFile) throw new Error("请选择 PNG 或 JPEG 图片。");
-    const asset = await plotloomApi.importManagedAsset(projectId, importFile, { origin: importOrigin.trim(), rights: "known", rightsNote: "Character appearance technical import." });
+    const asset = await plotloomApi.importManagedAsset(projectId, importFile, { origin: importOrigin.trim(), rights: "unknown" });
     await plotloomApi.attachImportedCharacterAppearance(projectId, { characterId: subject.id, assetId: asset.id, label: importLabel.trim(), expectedCastRevision: castRevision });
   }, () => { setImportFile(null); setImportLabel(""); setImportOrigin(""); });
 

@@ -158,3 +158,32 @@ def test_existing_character_folder_keeps_historic_selection_metadata_when_option
     assert row == ("historic reviewer", "historic reason")
     assert nullable["reviewer"] == 0
     assert nullable["notes"] == 0
+
+
+def test_existing_character_folder_adds_imported_appearance_membership_on_open(tmp_path) -> None:
+    """The new membership table is an admitted additive folder transition."""
+
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application"
+    )
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id, database = store.manifest.project_id, store.database_path
+    store.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TABLE v2_character_imported_appearances")
+        connection.commit()
+
+    assert project_schema_status(database, project_id) == "character_imported_appearance_transition_required"
+    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
+        storage.projects.inspect(project_id)
+    opened = storage.projects.open(project_id)
+    try:
+        assert opened.manifest.project_id == project_id
+    finally:
+        opened.close()
+    assert project_schema_status(database, project_id) == "current"
+    with sqlite3.connect(database) as connection:
+        columns = {row[1] for row in connection.execute(
+            "PRAGMA table_info(v2_character_imported_appearances)"
+        )}
+    assert {"project_id", "character_id", "asset_id", "character_context_hash", "label"} <= columns
