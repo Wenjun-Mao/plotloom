@@ -16,6 +16,9 @@ from pydantic import BaseModel, ValidationError
 from .contracts import (
     CreateImageJobFromSourceUrlRequest,
     CreateImageJobRequest,
+    CreateQwenEditImageJobFromSourceUrlRequest,
+    CreateQwenEditImageJobRequest,
+    CreateQwenTextImageJobRequest,
     CreateTextJobRequest,
     GatewayError,
     GatewaySettings,
@@ -25,10 +28,17 @@ from .gateway import H3Gateway
 from .worker import GatewayDispatchWorker
 
 
-def create_app(settings: GatewaySettings | None = None, *, session: requests.Session | Any | None = None, source_session: requests.Session | Any | None = None) -> FastAPI:
+def create_app(
+    settings: GatewaySettings | None = None, *, session: requests.Session | Any | None = None,
+    source_session: requests.Session | Any | None = None,
+    qwen_session: requests.Session | Any | None = None,
+) -> FastAPI:
     """Create the authenticated HTTP boundary around one durable gateway."""
 
-    gateway = H3Gateway(settings or GatewaySettings.from_environment(), session=session, source_session=source_session)
+    gateway = H3Gateway(
+        settings or GatewaySettings.from_environment(), session=session,
+        source_session=source_session, qwen_session=qwen_session,
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -42,7 +52,7 @@ def create_app(settings: GatewaySettings | None = None, *, session: requests.Ses
             if gateway.settings.dispatch_worker_enabled:
                 worker.stop()
 
-    app = FastAPI(title="Plotloom MiniMax-H3 gateway", version="6.0", lifespan=lifespan)
+    app = FastAPI(title="Plotloom generation gateway", version="7.0", lifespan=lifespan)
     app.state.gateway = gateway
 
     def authorize(authorization: str | None = Header(default=None)) -> None:
@@ -72,15 +82,52 @@ def create_app(settings: GatewaySettings | None = None, *, session: requests.Ses
 
     @app.get("/v1/video-jobs/{job_id}", dependencies=[Depends(authorize)])
     def get_video_job(job_id: str) -> dict[str, Any]:
-        return _job_response(gateway, gateway.refresh_job(job_id))
+        job = gateway.refresh_job(job_id)
+        _require_backend(job, "h3_video")
+        return _job_response(gateway, job)
 
     @app.post("/v1/video-jobs/{job_id}/cancel", dependencies=[Depends(authorize)])
     def cancel_video_job(job_id: str) -> dict[str, Any]:
+        job = gateway.store.get_job(job_id)
+        _require_backend(job, "h3_video")
         return _job_response(gateway, gateway.cancel_job(job_id))
 
     @app.get("/v1/video-jobs/{job_id}/output", dependencies=[Depends(authorize)])
     def get_output(job_id: str) -> Response:
+        _require_backend(gateway.store.get_job(job_id), "h3_video")
         return Response(content=gateway.read_output(job_id), media_type="video/mp4")
+
+    @app.post("/v1/image-jobs/from-text", dependencies=[Depends(authorize)], status_code=202)
+    async def create_image_job_from_text(request: Request) -> dict[str, Any]:
+        if _request_media_type(request) != "application/json":
+            raise GatewayError("request_media_type_not_supported", 415)
+        job_request = _validated_model(CreateQwenTextImageJobRequest, await _json_object(request))
+        return _job_response(gateway, gateway.create_qwen_text_image_job(job_request))
+
+    @app.post("/v1/image-jobs/from-image", dependencies=[Depends(authorize)], status_code=202)
+    async def create_image_job_from_image(request: Request) -> dict[str, Any]:
+        source_content, job_request = await _qwen_image_submission(request, gateway)
+        return _job_response(
+            gateway, gateway.create_qwen_edit_image_job(job_request, source_content=source_content)
+        )
+
+    @app.get("/v1/image-jobs/{job_id}", dependencies=[Depends(authorize)])
+    def get_image_job(job_id: str) -> dict[str, Any]:
+        job = gateway.refresh_job(job_id)
+        _require_backend(job, "qwen_image")
+        return _job_response(gateway, job)
+
+    @app.post("/v1/image-jobs/{job_id}/cancel", dependencies=[Depends(authorize)])
+    def cancel_image_job(job_id: str) -> dict[str, Any]:
+        job = gateway.store.get_job(job_id)
+        _require_backend(job, "qwen_image")
+        return _job_response(gateway, gateway.cancel_job(job_id))
+
+    @app.get("/v1/image-jobs/{job_id}/output", dependencies=[Depends(authorize)])
+    def get_image_output(job_id: str) -> Response:
+        job = gateway.store.get_job(job_id)
+        _require_backend(job, "qwen_image")
+        return Response(content=gateway.read_output(job_id), media_type="image/png")
 
     return app
 
@@ -92,16 +139,29 @@ def _job_response(gateway: H3Gateway, job: dict[str, Any]) -> dict[str, Any]:
     if isinstance(job.get("generation_submitted_at_ms"), int):
         end = job.get("generation_completed_at_ms")
         elapsed = (int(end) if isinstance(end, int) else _now_ms()) - int(job["generation_submitted_at_ms"])
-    return {
+    common = {
         "id": job["id"], "status": job["status"], "inputMode": job["input_mode"],
-        "quality": job["quality"], "resolution": job["resolution"],
-        "aspectPolicy": job["aspect_policy"], "seed": job["seed"],
-        "requestedDurationSeconds": job["requested_duration_seconds"], "frameCount": job["frame_count"],
-        "actualDurationSeconds": job["frame_count"] / job["fps"],
         "generationSubmittedAt": submitted, "generationCompletedAt": completed,
         "generationElapsedMs": elapsed, "error": job["error_code"],
         "outputReady": gateway.output_is_ready(job),
     }
+    if job.get("backend", "h3_video") == "qwen_image":
+        return {
+            **common, "resolution": job["resolution"], "backgroundMode": job["background_mode"],
+            "seed": job["seed"], "outputContentType": job["output_mime_type"],
+            "outputWidth": job["output_width"], "outputHeight": job["output_height"],
+        }
+    return {
+        **common, "quality": job["quality"], "resolution": job["resolution"],
+        "aspectPolicy": job["aspect_policy"], "seed": job["seed"],
+        "requestedDurationSeconds": job["requested_duration_seconds"], "frameCount": job["frame_count"],
+        "actualDurationSeconds": job["frame_count"] / job["fps"],
+    }
+
+
+def _require_backend(job: dict[str, Any], backend: str) -> None:
+    if job.get("backend", "h3_video") != backend:
+        raise GatewayError("job_not_found", 404)
 
 
 async def _image_submission(request: Request, gateway: H3Gateway) -> tuple[bytes, bytes | None, CreateImageJobRequest]:
@@ -117,6 +177,21 @@ async def _image_submission(request: Request, gateway: H3Gateway) -> tuple[bytes
         start = gateway.source_images.fetch(source_request.source_url)
         end = gateway.source_images.fetch(source_request.end_source_url) if source_request.end_source_url else None
         return start, end, source_request
+    raise GatewayError("request_media_type_not_supported", 415)
+
+
+async def _qwen_image_submission(
+    request: Request, gateway: H3Gateway
+) -> tuple[bytes, CreateQwenEditImageJobRequest]:
+    media_type = _request_media_type(request)
+    if media_type == "multipart/form-data":
+        image, fields = await _read_qwen_multipart_image(request)
+        return image, _validated_model(CreateQwenEditImageJobRequest, fields)
+    if media_type == "application/json":
+        source_request = _validated_model(
+            CreateQwenEditImageJobFromSourceUrlRequest, await _json_object(request)
+        )
+        return gateway.source_images.fetch(source_request.source_url), source_request
     raise GatewayError("request_media_type_not_supported", 415)
 
 
@@ -150,6 +225,19 @@ async def _read_multipart_images(request: Request) -> tuple[bytes, bytes | None,
     end = await end_image.read(MAX_UPLOAD_BYTES + 1) if end_image is not None else None
     fields = {field: form.get(field) for field in received if field not in {"image", "endImage"}}
     return start, end, fields
+
+
+async def _read_qwen_multipart_image(request: Request) -> tuple[bytes, dict[str, Any]]:
+    form = await request.form()
+    allowed = {"image", "prompt", "resolution", "seed", "backgroundMode"}
+    received = set(form.keys())
+    if received - allowed or any(len(form.getlist(field)) != 1 for field in received):
+        raise GatewayError("request_fields_invalid", 422)
+    image = form.get("image")
+    if image is None or not callable(getattr(image, "read", None)):
+        raise GatewayError("image_file_required", 422)
+    content = await image.read(MAX_UPLOAD_BYTES + 1)
+    return content, {field: form.get(field) for field in received if field != "image"}
 
 
 def _validated_model(model: type[BaseModel], payload: dict[str, Any]) -> Any:

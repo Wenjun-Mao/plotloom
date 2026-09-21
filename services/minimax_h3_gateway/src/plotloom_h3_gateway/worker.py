@@ -1,4 +1,4 @@
-"""Single process-local worker for the gateway's durable FIFO queue."""
+"""Single process-local worker for the shared durable GPU FIFO queue."""
 from __future__ import annotations
 
 import threading
@@ -9,13 +9,13 @@ if TYPE_CHECKING:
 
 
 class GatewayDispatchWorker:
-    """Advance at most one H3/ComfyUI job at a time for one gateway database."""
+    """Advance at most one H3 or Qwen inference job for one gateway database."""
 
     def __init__(self, gateway: H3Gateway) -> None:
         self._gateway = gateway
         self._stopped = threading.Event()
         self._thread = threading.Thread(
-            target=self._run, name="plotloom-h3-dispatch", daemon=True
+            target=self._run, name="plotloom-generation-dispatch", daemon=True
         )
 
     def start(self) -> None:

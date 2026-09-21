@@ -18,7 +18,7 @@ from .contracts import (
     GatewayError,
     GatewaySettings,
 )
-from .naming import ASSET_ID, H3_JOB_ID, is_owned_storage_name, is_safe_path_part, timestamped_storage_name
+from .naming import ASSET_ID, is_gateway_job_id, is_owned_storage_name, is_safe_path_part, timestamped_storage_name
 from .profile_catalog import H3ExecutionProfile
 from .store import GatewayStore
 
@@ -65,6 +65,17 @@ class GatewayFiles:
             digest=sha256(content).hexdigest(),
             path=path,
         )
+
+    def asset_content(self, asset: dict[str, Any]) -> bytes:
+        """Read one database-owned source image for the local Qwen request."""
+
+        path = self.gateway_asset_path(asset)
+        if path is None or not path.is_file() or path.is_symlink():
+            raise GatewayError("input_prepare_failed", 422)
+        try:
+            return path.read_bytes()
+        except OSError as error:
+            raise GatewayError("input_prepare_failed", 422) from error
 
     def validate_job_input(
         self, *, asset: dict[str, Any], execution: H3ExecutionProfile, policy: AspectPolicy
@@ -240,7 +251,39 @@ class GatewayFiles:
                 str(job["id"]), status="transfer_pending", error_code="gateway_output_transfer_pending"
             )
         return self.store.mark_managed_output(
-            str(job["id"]), output_name=destination.name, digest=digest, size_bytes=size_bytes
+            str(job["id"]), output_name=destination.name, digest=digest, size_bytes=size_bytes,
+            mime_type="video/mp4",
+        )
+
+    def store_qwen_image_output(self, job: dict[str, Any], content: bytes) -> dict[str, Any]:
+        """Validate and atomically retain a single SGLang PNG response."""
+
+        destination = self.managed_output_path(job)
+        if destination is None:
+            return self.store.update_job(
+                str(job["id"]), status="failed", error_code="gateway_output_storage_invalid"
+            )
+        try:
+            with Image.open(BytesIO(content)) as image:
+                image.load()
+                if image.format != "PNG" or image.size != (1024, 1024):
+                    raise GatewayError("qwen_image_output_invalid")
+                if str(job.get("background_mode")) == "transparent":
+                    alpha = image.getchannel("A") if "A" in image.getbands() else None
+                    if alpha is None or alpha.getextrema()[0] >= 255:
+                        raise GatewayError("qwen_image_alpha_missing")
+            digest, size_bytes = _write_bytes_atomically(content, destination)
+        except GatewayError as error:
+            return self.store.update_job(
+                str(job["id"]), status="failed", error_code=error.code
+            )
+        except OSError:
+            return self.store.update_job(
+                str(job["id"]), status="failed", error_code="gateway_output_storage_failed"
+            )
+        return self.store.mark_managed_output(
+            str(job["id"]), output_name=destination.name, digest=digest, size_bytes=size_bytes,
+            mime_type="image/png", width=1024, height=1024,
         )
 
     def comfy_output_path(self, job: dict[str, Any]) -> Path | None:
@@ -268,9 +311,10 @@ class GatewayFiles:
     def managed_output_path(self, job: dict[str, Any]) -> Path | None:
         job_id = str(job.get("id", ""))
         name = job.get("managed_output_name")
+        suffixes = (".mp4",) if job.get("backend", "h3_video") == "h3_video" else (".png",)
         if (
-            H3_JOB_ID.fullmatch(job_id) is None
-            or not is_owned_storage_name(name, object_id=job_id, suffixes=(".mp4",))
+            not is_gateway_job_id(job_id)
+            or not is_owned_storage_name(name, object_id=job_id, suffixes=suffixes)
         ):
             return None
         return self.managed_outputs_dir / str(name)
@@ -278,7 +322,7 @@ class GatewayFiles:
     def prepared_input_path(self, *, job_id: str, frame: dict[str, Any]) -> Path | None:
         name = frame.get("prepared_input_name")
         if (
-            H3_JOB_ID.fullmatch(job_id) is None
+            not is_gateway_job_id(job_id)
             or not is_owned_storage_name(
                 name, object_id=job_id, suffixes=(".png",), allow_frame_label=True
             )
@@ -387,6 +431,20 @@ def _copy_file_atomically(source: Path, destination: Path) -> tuple[str, int]:
     try:
         with source.open("rb") as input_file, temporary.open("xb") as output_file:
             shutil.copyfileobj(input_file, output_file, length=1024 * 1024)
+            output_file.flush()
+            os.fsync(output_file.fileno())
+        os.replace(temporary, destination)
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
+    return _file_digest(destination)
+
+
+def _write_bytes_atomically(content: bytes, destination: Path) -> tuple[str, int]:
+    temporary = destination.with_name(f".{destination.name}.{uuid.uuid4().hex}.partial")
+    try:
+        with temporary.open("xb") as output_file:
+            output_file.write(content)
             output_file.flush()
             os.fsync(output_file.fileno())
         os.replace(temporary, destination)

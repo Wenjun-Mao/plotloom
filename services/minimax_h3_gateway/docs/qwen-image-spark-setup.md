@@ -1,0 +1,70 @@
+# Qwen-Image-2.1 on Spark: reproducible private setup
+
+This is the operational source of truth for Spark's local image backend. It
+uses the documented [SGLang Qwen-Image-2.1 Spark recipe](https://docs.sglang.io/cookbook/diffusion/Qwen-Image/Qwen-Image-2.1), not an arbitrary Diffusers or ComfyUI variant.
+
+## Layout and service boundary
+
+```text
+/home/wjmao/models/qwen-image-2.1/model       Qwen checkpoint and HF cache
+/home/wjmao/services/qwen-image-sglang/source pinned SGLang checkout
+/home/wjmao/services/qwen-image-sglang/.venv  pinned runtime environment
+127.0.0.1:30010                               private SGLang API
+100.64.35.71:8090                             authenticated Plotloom gateway
+```
+
+Qwen and H3 stay resident, but the gateway's durable FIFO permits only one
+SGLang or ComfyUI inference request at a time. Do not use the loopback SGLang
+or ComfyUI APIs directly for normal work; doing so bypasses that capacity
+contract.
+
+## Installation and reboot behavior
+
+1. Create `/home/wjmao/services/qwen-image-sglang` and clone an exact SGLang
+   revision. Record its commit SHA, `uv.lock`/resolved package versions, CUDA,
+   PyTorch, and driver details in the deployment receipt.
+2. Create the virtual environment with the SGLang source instructions:
+
+   ```sh
+   uv venv /home/wjmao/services/qwen-image-sglang/.venv --python 3.12
+   uv pip install --python /home/wjmao/services/qwen-image-sglang/.venv/bin/python \
+     "sglang[diffusion]" --prerelease=allow
+   uv pip install --python /home/wjmao/services/qwen-image-sglang/.venv/bin/python \
+     -e "/home/wjmao/services/qwen-image-sglang/source/python[diffusion]"
+   ```
+
+3. Download `Qwen/Qwen-Image-2.1` only into
+   `/home/wjmao/models/qwen-image-2.1/model`; do not allow a default cache
+   elsewhere. Install `deploy/qwen-image-sglang.service` under
+   `~/.config/systemd/user/`, run `systemctl --user daemon-reload`, enable it,
+   and verify `systemctl --user is-enabled qwen-image-sglang`.
+4. Verify that `loginctl show-user wjmao -p Linger` is `Linger=yes`, so the
+   user service returns after a Spark reboot without an interactive login.
+
+The service uses native precision, resident components, eager execution,
+automatic SDPA, full-image VAE decoding, `--performance-mode speed`, loopback
+binding, one output, and no batching. Any change to those choices is a new
+qualification, not an environment-only tuning tweak.
+
+## Gateway contract and retention
+
+The gateway accepts only exact `1024x1024` image jobs until canvas
+qualification completes. It calls SGLang with 40 steps, CFG 1, PNG response,
+and a single server-resolved output. `backgroundMode=transparent` is passed to
+Qwen and then verified as real PNG alpha; it is not a background-removal
+filter. Image output is retained for 72 hours; its job record and transient
+input image are retained for 30 days. Plotloom must import any selected asset
+it needs to keep.
+
+## Required qualification evidence
+
+Before enabling the service, record four 1024×1024 canaries: opaque text,
+opaque one-image edit, transparent text, and transparent one-image edit. Each
+transparent canary must decode as RGBA and contain pixels with alpha below 255.
+Then prove coexistence with the embedding process, resident Qwen service, and
+the established H3 quality-8 memory path.
+
+Do not expose portrait or landscape Qwen image sizes until each of
+`832x480`, `960x544`, `1280x704`, `576x1024`, `608x1088`, and `704x1280` has
+passed both text generation and single-reference editing with a recorded
+dimension, stability, memory, and visual review.

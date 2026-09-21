@@ -15,6 +15,10 @@ MANAGED_OUTPUT_RETENTION_HOURS = 72
 GATEWAY_JOB_RECORD_RETENTION_DAYS = 30
 GATEWAY_KEYFRAME_RETENTION_DAYS = 30
 AspectPolicy = Literal["cover_center_crop", "contain_pad", "reject_mismatch"]
+ImageBackgroundMode = Literal["opaque", "transparent"]
+QWEN_IMAGE_RESOLUTION = "1024x1024"
+QWEN_IMAGE_STEPS = 40
+QWEN_IMAGE_GUIDANCE_SCALE = 1.0
 
 
 class GatewayError(RuntimeError):
@@ -35,6 +39,9 @@ class GatewaySettings:
     comfy_input_dir: Path
     comfy_output_dir: Path = Path("/comfy/output")
     comfy_url: str = "http://127.0.0.1:8188"
+    qwen_image_url: str = "http://127.0.0.1:30010"
+    qwen_image_model: str = "Qwen/Qwen-Image-2.1"
+    qwen_image_request_timeout_seconds: float = 180.0
     request_timeout_seconds: float = 30.0
     source_fetch_connect_timeout_seconds: float = 5.0
     source_fetch_read_timeout_seconds: float = 20.0
@@ -53,6 +60,11 @@ class GatewaySettings:
             comfy_input_dir=Path(os.environ.get("H3_COMFY_INPUT_DIR", "/comfy/input")),
             comfy_output_dir=Path(os.environ.get("H3_COMFY_OUTPUT_DIR", "/comfy/output")),
             comfy_url=os.environ.get("H3_COMFY_URL", "http://127.0.0.1:8188").rstrip("/"),
+            qwen_image_url=os.environ.get("H3_QWEN_IMAGE_URL", "http://127.0.0.1:30010").rstrip("/"),
+            qwen_image_model=os.environ.get("H3_QWEN_IMAGE_MODEL", "Qwen/Qwen-Image-2.1"),
+            qwen_image_request_timeout_seconds=float(
+                os.environ.get("H3_QWEN_IMAGE_REQUEST_TIMEOUT_SECONDS", "180")
+            ),
             source_fetch_connect_timeout_seconds=float(
                 os.environ.get("H3_SOURCE_FETCH_CONNECT_TIMEOUT_SECONDS", "5")
             ),
@@ -122,3 +134,28 @@ class CreateImageJobFromSourceUrlRequest(CreateImageJobRequest, SourceUrlAssetRe
         if value is None:
             return None
         return SourceUrlAssetRequest.model_validate({"sourceUrl": value}).source_url
+
+
+class _QwenImageParameters(BaseModel):
+    """The deliberately narrow, initial Qwen-Image public contract."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    prompt: str = Field(min_length=1, max_length=8_000)
+    resolution: Literal["1024x1024"]
+    seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
+    background_mode: ImageBackgroundMode = Field(default="opaque", alias="backgroundMode")
+
+
+class CreateQwenTextImageJobRequest(_QwenImageParameters):
+    """A Qwen text-to-image request, always producing one PNG."""
+
+
+class CreateQwenEditImageJobRequest(_QwenImageParameters):
+    """A one-reference Qwen image edit; multi-image editing is not admitted."""
+
+
+class CreateQwenEditImageJobFromSourceUrlRequest(
+    CreateQwenEditImageJobRequest, SourceUrlAssetRequest
+):
+    """The JSON image-edit form with exactly one source image URL."""

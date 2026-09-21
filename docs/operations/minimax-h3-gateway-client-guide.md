@@ -197,6 +197,60 @@ auth:
 
 完成 MP4 保留 72 小时；SQLite 任务记录与网关上传图片最多保留 30 天。
 
+## 8A. Qwen-Image：文生图与单图编辑
+
+Qwen-Image-2.1 与 H3 使用同一 Tailscale 地址、同一 Bearer 和同一个 FIFO。
+任何时刻只有一条 H3 或 Qwen 推理在运行。图片接口第一版只接受
+`"1024x1024"`，固定返回一张 PNG；不接受 `quality`、时长、`profileId`、
+多图编辑或任意模型参数。`seed` 可省略，状态响应会返回服务器实际使用的 seed。
+
+`backgroundMode` 可为 `opaque`（默认）或 `transparent`。`transparent` 是要求
+模型输出 alpha 的模式，不是后处理抠图；若模型结果没有真实 alpha，任务会失败。
+完成的 PNG 只保留 72 小时，任务和临时输入最多保留 30 天；要长期保留请导入自己的
+项目资产库。
+
+### Bruno：Qwen 文生图
+
+```yaml
+info:
+  name: Qwen Image - Text to image
+  type: http
+http:
+  method: POST
+  url: http://100.64.35.71:8090/v1/image-jobs/from-text
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |-
+      {
+        "prompt": "电影感写实肖像，一名宇航员站在月球观测站内，柔和侧光，细节清晰。",
+        "resolution": "1024x1024",
+        "backgroundMode": "opaque"
+      }
+auth:
+  type: bearer
+  token: "{{H3_GATEWAY_BEARER}}"
+```
+
+### Bruno：Qwen 单图编辑
+
+使用 `POST http://100.64.35.71:8090/v1/image-jobs/from-image`。在 Bruno 选择
+**Body → Multipart Form**，不要手写 `Content-Type`：
+
+| 字段 | 类型 | 值 |
+| --- | --- | --- |
+| `image` | File | 必填；唯一参考图 |
+| `prompt` | Text | 必填；明确要保留和要修改的部分 |
+| `resolution` | Text | 必填；只能 `1024x1024` |
+| `seed` | Text | 可选整数 |
+| `backgroundMode` | Text | 可选；`opaque` 或 `transparent` |
+
+也可改用 JSON 的可下载 `sourceUrl`，但一次请求不能混用 URL 与文件。查询和下载
+路径把 `h3_...` 任务 ID 换成 `img_...` 任务 ID，并使用 `/v1/image-jobs/{id}`
+和 `/v1/image-jobs/{id}/output`。
+
 ## 9. 常见错误
 
 | 错误码 | 原因与处理 |

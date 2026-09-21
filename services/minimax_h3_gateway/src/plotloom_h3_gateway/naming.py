@@ -8,6 +8,7 @@ from pathlib import Path
 _UTC_FILENAME_TIMESTAMP = "%Y-%m-%dT%H-%M-%SZ"
 _TIMESTAMP_PREFIX = r"\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}Z"
 H3_JOB_ID = re.compile(r"h3_[0-9a-f]{32}\Z")
+IMAGE_JOB_ID = re.compile(r"img_[0-9a-f]{32}\Z")
 ASSET_ID = re.compile(r"asset_[0-9a-f]{32}\Z")
 
 
@@ -40,3 +41,11 @@ def is_safe_path_part(value: str) -> bool:
     """Allow one relative output filename or subfolder, never traversal."""
 
     return not value.startswith(("/", "\\")) and ".." not in Path(value).parts and "\\" not in value
+
+
+def is_gateway_job_id(value: object) -> bool:
+    """Accept only stable IDs created by one of the gateway backends."""
+
+    return isinstance(value, str) and (
+        H3_JOB_ID.fullmatch(value) is not None or IMAGE_JOB_ID.fullmatch(value) is not None
+    )

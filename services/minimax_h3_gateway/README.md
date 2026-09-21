@@ -1,8 +1,9 @@
-# Plotloom MiniMax-H3 gateway
+# Plotloom generation gateway
 
-This is the private, typed API in front of Spark's loopback-only ComfyUI
-service. It is deliberately **not** a ComfyUI proxy: callers cannot submit
-workflows, select model files, or reach ComfyUI directly.
+This is the private, typed API in front of Spark's loopback-only ComfyUI H3
+service and loopback-only SGLang Qwen-Image service. It is deliberately **not**
+a backend proxy: callers cannot submit workflows, select model files, or reach
+either runtime directly.
 
 Plotloom is wired to this gateway through the versioned
 `minimax_h3_gateway.v6` adapter contract. Use the complete
@@ -79,9 +80,9 @@ Tailnet base URL and a test image—see
 [`docs/operations/minimax-h3-gateway-client-guide.md`](../../docs/operations/minimax-h3-gateway-client-guide.md).
 
 The gateway owns one FIFO dispatch worker. Its queue is intentionally not
-length-capped: H3 receives one job at a time, while any further jobs remain
-durably queued. This is a concurrency guarantee, not a retention policy; see
-[ADR 0038](../../docs/adr/0038-h3-gateway-durable-fifo-dispatch.md).
+length-capped: one H3 **or** Qwen inference request runs at a time while any
+further jobs remain durably queued. This is a concurrency guarantee, not a
+retention policy; see [ADR 0072](../../docs/adr/0072-shared-qwen-image-and-h3-generation-lane.md).
 
 After completion, the gateway atomically hands off its one expected MP4 from
 the mounted ComfyUI output directory into gateway-managed storage, then
@@ -99,6 +100,16 @@ portable UTC timestamp prefix (`YYYY-MM-DDTHH-MM-SSZ_`) before their stable
 `asset_…` or `h3_…` ID. The ID remains the API identifier; the timestamp is
 there for on-host inspection. Deploy the naming contract with a clean gateway
 state rather than preserving UUID-only files.
+
+## Qwen-Image-2.1 contract
+
+The same authenticated gateway also accepts text-to-image and **single**
+reference-image edit jobs at `/v1/image-jobs`. Initial admission is exactly
+`1024x1024`, one PNG output, 40 steps and CFG 1. `backgroundMode` is either
+`opaque` or `transparent`; transparent requests must return actual PNG alpha
+and are never postprocessed into a cutout. Multi-image editing is not part of
+this contract. See [the Spark Qwen setup guide](docs/qwen-image-spark-setup.md)
+and [ADR 0072](../../docs/adr/0072-shared-qwen-image-and-h3-generation-lane.md).
 
 Keep ComfyUI on `127.0.0.1:8188`, bind this gateway only to Spark's Tailscale
 address, and keep its bearer key server-side. Do not replace the documented

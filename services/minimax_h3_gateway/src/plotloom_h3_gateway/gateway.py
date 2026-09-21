@@ -1,4 +1,4 @@
-"""Application service coordinating durable H3 jobs and ComfyUI."""
+"""Application service coordinating durable H3 and Qwen generation jobs."""
 from __future__ import annotations
 
 import os
@@ -10,7 +10,17 @@ from typing import Any
 import requests
 
 from .comfy import ComfyClient
-from .contracts import CreateImageJobRequest, CreateTextJobRequest, GatewayError, GatewaySettings
+from .contracts import (
+    CreateImageJobRequest,
+    CreateQwenEditImageJobRequest,
+    CreateQwenTextImageJobRequest,
+    CreateTextJobRequest,
+    GatewayError,
+    GatewaySettings,
+    QWEN_IMAGE_GUIDANCE_SCALE,
+    QWEN_IMAGE_RESOLUTION,
+    QWEN_IMAGE_STEPS,
+)
 from .media import GatewayFiles
 from .naming import timestamped_storage_name
 from .profile_catalog import (
@@ -26,35 +36,45 @@ from .profile_catalog import (
 from .source_images import SourceImageFetcher
 from .store import GatewayStore
 from .workflow import load_h3_template, render_workflow, single_output_descriptor
+from .qwen_image import QwenImageClient
 
 
 class H3Gateway:
-    """The single trusted application boundary for H3 generation work."""
+    """The single trusted application boundary for serialized generation work."""
 
-    def __init__(self, settings: GatewaySettings, *, session: requests.Session | Any | None = None, source_session: requests.Session | Any | None = None) -> None:
+    def __init__(
+        self, settings: GatewaySettings, *, session: requests.Session | Any | None = None,
+        source_session: requests.Session | Any | None = None,
+        qwen_session: requests.Session | Any | None = None,
+    ) -> None:
         if settings.worker_poll_seconds <= 0:
             raise ValueError("worker_poll_seconds must be positive")
         if settings.source_fetch_connect_timeout_seconds <= 0 or settings.source_fetch_read_timeout_seconds <= 0:
             raise ValueError("source fetch timeouts must be positive")
         if settings.source_fetch_max_redirects < 0:
             raise ValueError("source_fetch_max_redirects must not be negative")
+        if settings.qwen_image_request_timeout_seconds <= 0:
+            raise ValueError("qwen_image_request_timeout_seconds must be positive")
         self.settings = settings
         self.store = GatewayStore(self.settings.data_dir / "gateway.sqlite3")
         self.store.recover_interrupted_dispatches()
         self.files = GatewayFiles(settings, self.store)
         self.session = session or requests.Session()
         self.comfy = ComfyClient(settings, self.session)
+        self.qwen = QwenImageClient(settings, qwen_session or requests.Session())
         self.source_images = SourceImageFetcher(settings, session=source_session)
         self.workflow_template = load_h3_template()
 
     def health(self) -> dict[str, Any]:
         self.comfy.preflight()
+        self.qwen.preflight()
         queued, active = self.store.queue_counts()
         return {
             "status": "ok", "generationContractVersion": GENERATION_CONTRACT_VERSION,
             "defaultQuality": DEFAULT_QUALITY, "qualities": sorted(QUALITY_RECIPES),
             "resolutions": [item.value for item in RESOLUTIONS],
-            "inputModes": ["image", "text"], "queuedJobs": queued, "activeDispatches": active,
+            "inputModes": ["image", "text"], "backends": ["h3_video", "qwen_image"],
+            "imageResolutions": [QWEN_IMAGE_RESOLUTION], "queuedJobs": queued, "activeDispatches": active,
             "dispatchConcurrency": 1,
         }
 
@@ -89,6 +109,25 @@ class H3Gateway:
             aspect_policy=None, seed=request.seed, duration_seconds=request.duration_seconds, assets=[],
         )
 
+    def create_qwen_text_image_job(self, request: CreateQwenTextImageJobRequest) -> dict[str, Any]:
+        return self._create_qwen_image_job(
+            input_mode="text", prompt=request.prompt, resolution=request.resolution,
+            background_mode=request.background_mode, seed=request.seed, asset=None,
+        )
+
+    def create_qwen_edit_image_job(
+        self, request: CreateQwenEditImageJobRequest, *, source_content: bytes
+    ) -> dict[str, Any]:
+        asset = self.files.add_asset(source_content)
+        try:
+            return self._create_qwen_image_job(
+                input_mode="image", prompt=request.prompt, resolution=request.resolution,
+                background_mode=request.background_mode, seed=request.seed, asset=asset,
+            )
+        except GatewayError:
+            self.files.discard_unreferenced_asset(asset)
+            raise
+
     def _create_job(self, *, input_mode: str, prompt: str, quality: int, resolution: str, aspect_policy: str | None, seed: int | None, duration_seconds: int, assets: list[dict[str, Any]]) -> dict[str, Any]:
         execution = self._admitted_execution(quality, resolution)
         frame_count = frame_count_for_duration_seconds(duration_seconds)
@@ -113,9 +152,9 @@ class H3Gateway:
                 prepared.append(frame)
             return self.store.reserve_job(
                 {
-                    "id": job_id, "input_mode": input_mode, "quality": quality,
+                    "id": job_id, "backend": "h3_video", "input_mode": input_mode, "quality": quality,
                     "resolution": resolution, "execution_snapshot_json": execution.snapshot_json(),
-                    "aspect_policy": aspect_policy, "prompt": prompt, "seed": resolved_seed,
+                    "aspect_policy": aspect_policy, "background_mode": None, "prompt": prompt, "seed": resolved_seed,
                     "requested_duration_seconds": duration_seconds, "frame_count": frame_count,
                     "fps": FRAMES_PER_SECOND,
                 }, frames,
@@ -123,6 +162,49 @@ class H3Gateway:
         except GatewayError:
             self._discard_prepared_frames(job_id, prepared)
             raise
+
+    def _create_qwen_image_job(
+        self, *, input_mode: str, prompt: str, resolution: str, background_mode: str,
+        seed: int | None, asset: dict[str, Any] | None,
+    ) -> dict[str, Any]:
+        if resolution != QWEN_IMAGE_RESOLUTION:
+            raise GatewayError("image_resolution_not_supported", 422)
+        if input_mode == "image" and asset is None:
+            raise GatewayError("image_file_required", 422)
+        if input_mode == "text" and asset is not None:
+            raise GatewayError("request_invalid", 422)
+        job_id = f"img_{uuid.uuid4().hex}"
+        resolved_seed = seed if seed is not None else int.from_bytes(os.urandom(8), "big") >> 1
+        # Existing H3-only databases accept start/end bindings. New schemas
+        # support source explicitly; start is an equivalent one-reference
+        # binding for the only image-edit mode we admit.
+        frames = ([{"role": "start", "asset_id": str(asset["id"]), "prepared_input_name": ""}] if asset else [])
+        snapshot = {
+            "imageContractVersion": 1,
+            "backend": "qwen_image",
+            "model": self.settings.qwen_image_model,
+            "resolution": QWEN_IMAGE_RESOLUTION,
+            "width": 1024,
+            "height": 1024,
+            "steps": QWEN_IMAGE_STEPS,
+            "guidanceScale": QWEN_IMAGE_GUIDANCE_SCALE,
+            "outputs": 1,
+            "outputFormat": "png",
+            "rendererVersion": 1,
+        }
+        import json
+        return self.store.reserve_job(
+            {
+                "id": job_id, "backend": "qwen_image", "input_mode": input_mode,
+                # These H3 columns remain non-null for records from the same
+                # durable table; zero has no Qwen public meaning.
+                "quality": 0, "resolution": resolution,
+                "execution_snapshot_json": json.dumps(snapshot, sort_keys=True, separators=(",", ":")),
+                "aspect_policy": None, "background_mode": background_mode, "prompt": prompt,
+                "seed": resolved_seed, "requested_duration_seconds": 0,
+                "frame_count": 0, "fps": 0,
+            }, frames,
+        )
 
     def _discard_prepared_frames(self, job_id: str, frames: list[dict[str, Any]]) -> None:
         for frame in frames:
@@ -143,19 +225,29 @@ class H3Gateway:
 
     def dispatch_once(self) -> dict[str, Any] | None:
         for active in self.store.list_active_jobs():
-            self.refresh_job(str(active["id"]))
+            if active.get("backend", "h3_video") == "h3_video":
+                self.refresh_job(str(active["id"]))
         if self.store.list_active_jobs():
             return None
-        try:
-            if self.comfy.queue_depth() > 0:
-                return None
-        except GatewayError:
-            return None
-        # Validate only the selected frozen execution after claim. A current
-        # catalog addition must not make an older queued snapshot un-runnable.
         job = self.store.claim_next_queued()
         if job is None:
             return None
+        if job.get("backend", "h3_video") == "qwen_image":
+            # Do not let an independently-running Comfy task overlap the
+            # shared lane, even though this queued job itself is Qwen.
+            try:
+                if self.comfy.queue_depth() > 0:
+                    return self.store.update_job(str(job["id"]), status="queued")
+            except GatewayError:
+                return self.store.update_job(str(job["id"]), status="queued")
+            return self._dispatch_qwen_image(job)
+        try:
+            if self.comfy.queue_depth() > 0:
+                return self.store.update_job(str(job["id"]), status="queued")
+        except GatewayError:
+            return self.store.update_job(str(job["id"]), status="queued")
+        # Validate only the selected frozen execution after claim. A current
+        # catalog addition must not make an older queued snapshot un-runnable.
         try:
             frames = {str(frame["role"]): str(frame["prepared_input_name"]) for frame in self.store.get_job_frames(str(job["id"]))}
             execution = execution_from_snapshot(str(job["execution_snapshot_json"]))
@@ -175,6 +267,43 @@ class H3Gateway:
             str(job["id"]), status="submitted", comfy_prompt_id=prompt_id,
             generation_submitted_at_ms=_now_ms(),
         )
+
+    def _dispatch_qwen_image(self, job: dict[str, Any]) -> dict[str, Any]:
+        """Run one blocking local SGLang call while holding the shared lane."""
+
+        job_id = str(job["id"])
+        try:
+            self.qwen.preflight()
+            source_content: bytes | None = None
+            if job["input_mode"] == "image":
+                frames = self.store.get_job_frames(job_id)
+                if len(frames) != 1:
+                    raise GatewayError("qwen_image_input_invalid", 422)
+                source_content = self.files.asset_content(frames[0])
+        except GatewayError as error:
+            return self.store.update_job(job_id, status="failed", error_code=error.code)
+
+        self.store.update_job(job_id, status="running", generation_submitted_at_ms=_now_ms())
+        try:
+            if source_content is None:
+                content = self.qwen.generate(
+                    prompt=str(job["prompt"]), width=1024, height=1024, seed=int(job["seed"]),
+                    background_mode=str(job["background_mode"]),
+                )
+            else:
+                content = self.qwen.edit(
+                    prompt=str(job["prompt"]), width=1024, height=1024, seed=int(job["seed"]),
+                    background_mode=str(job["background_mode"]), source_name="reference.png",
+                    source_content=source_content,
+                )
+        except GatewayError as error:
+            status = "outcome_unknown" if error.code == "qwen_image_submit_outcome_unknown" else "failed"
+            return self._generation_completed(job_id, status=status, error_code=error.code)
+        completed = self._generation_completed(
+            job_id, status="transfer_pending", error_code="gateway_output_transfer_pending",
+            managed_output_name=timestamped_storage_name(job_id, ".png"),
+        )
+        return self.files.store_qwen_image_output(completed, content)
 
     def cancel_job(self, job_id: str) -> dict[str, Any]:
         return self.store.cancel_queued_job(job_id)
