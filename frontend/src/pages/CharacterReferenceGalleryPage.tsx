@@ -192,14 +192,14 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
     ? current.filter((item) => item !== assetId)
     : current.length < 4 ? [...current, assetId] : current);
   const referenceState = data.referenceStates.find((state) => state.characterId === subject.id);
-  const act = async <T,>(operation: () => Promise<T>, applyResult?: (result: T) => void) => {
+  const act = async <T,>(operation: (isCurrent: () => boolean) => Promise<T>, applyResult?: (result: T) => void) => {
     const capturedSession = sessionRef.current;
     const capturedOwner = ++operationOwner.current;
     const isCurrent = () => active.current && castSessionOwner.current === rootSession && sessionRef.current === capturedSession && operationOwner.current === capturedOwner;
     if (!isCurrent()) return;
     setBusy(true); setActionError("");
     try {
-      const result = await operation();
+      const result = await operation(isCurrent);
       if (isCurrent()) { applyResult?.(result); await onRefresh(rootSession); }
     } catch (reason) { if (isCurrent()) setActionError(reason instanceof Error ? reason.message : "角色参考操作失败。"); }
     finally { if (isCurrent()) setBusy(false); }
@@ -218,9 +218,13 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   });
   const refreshProposal = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.refreshCharacterReferenceProposal(projectId, proposal.id); });
   const cancel = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.cancelCharacterReferenceProposal(projectId, proposal.id, "Creator cancelled the exploratory reference handoff from Characters."); });
-  const importAppearance = () => void act(async () => {
+  const importAppearance = () => void act(async (isCurrent) => {
     if (!importFile) throw new Error("请选择 PNG 或 JPEG 图片。");
     const asset = await plotloomApi.importManagedAsset(projectId, importFile, { origin: importOrigin.trim(), rights: "unknown" });
+    // The generic import owns durable bytes.  Its subsequent cast-bound
+    // membership is a separate mutation and must not cross a project/cast
+    // session boundary while that upload was in flight.
+    if (!isCurrent()) return;
     await plotloomApi.attachImportedCharacterAppearance(projectId, { characterId: subject.id, assetId: asset.id, label: importLabel.trim(), expectedCastRevision: castRevision });
   }, () => { setImportFile(null); setImportLabel(""); setImportOrigin(""); });
 

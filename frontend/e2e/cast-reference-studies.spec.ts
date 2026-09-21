@@ -399,6 +399,81 @@ test.describe("F2B cast-owned reference studies", () => {
     }
   });
 
+  test("contains held managed imports to their project and cast sessions", async ({ page, request, workbench }) => {
+    test.setTimeout(75_000);
+    const firstProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-import-first");
+    const secondProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "held-import-second");
+    const importedCount = async () => (await getJson<{ appearances: unknown[] }>(request.get(
+      `${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/character-imported-appearances`,
+    ))).appearances.length;
+    let attachmentPosts = 0;
+    page.on("request", (request) => {
+      if (
+        request.method() === "POST"
+        && request.url().includes(`/api/v2/projects/${firstProjectId}/character-imported-appearances`)
+      ) attachmentPosts += 1;
+    });
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=characters`);
+    const firstPanel = page.getByTestId("character-reference-gallery");
+    const holdImport = async (label: string, duringHold: () => Promise<void>) => {
+      let release: (() => void) | undefined;
+      let signal: (() => void) | undefined;
+      const started = new Promise<void>((resolve) => { signal = resolve; });
+      const released = new Promise<void>((resolve) => { release = resolve; });
+      const heldRoute = async (route: import("@playwright/test").Route) => {
+        if (route.request().method() !== "POST") return route.continue();
+        signal?.();
+        await released;
+        try {
+          await route.continue();
+        } catch {
+          // Project navigation intentionally aborts an import that has not
+          // crossed the browser-to-server boundary.
+        }
+      };
+      await page.route(`**/api/v2/projects/${firstProjectId}/managed-assets`, heldRoute);
+      try {
+        await firstPanel.getByLabel("图片标签").fill(label);
+        await firstPanel.getByLabel("来源声明").fill(`Held technical import: ${label}`);
+        await firstPanel.getByLabel("PNG 或 JPEG").setInputFiles(comparisonFixtureStills[0]!);
+        await firstPanel.getByRole("button", { name: "导入为外观选项" }).click();
+        await started;
+        await duringHold();
+        release?.();
+        await page.waitForLoadState("networkidle");
+      } finally {
+        release?.();
+        await page.unroute(`**/api/v2/projects/${firstProjectId}/managed-assets`, heldRoute);
+      }
+    };
+
+    await holdImport("Held project import", async () => {
+      await switchProjectInDirectory(page, secondProjectId);
+      await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^02 角色/ }).click();
+      await expect(page.getByTestId("character-reference-gallery")).not.toContainText("Held project import");
+    });
+    await expect.poll(importedCount).toBe(0);
+    expect(attachmentPosts).toBe(0);
+
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=characters`);
+    await holdImport("Held stale-cast import", async () => {
+      const cast = page.getByTestId("cast-review");
+      await cast.getByRole("button", { name: "编辑角色设定" }).click();
+      await expect(firstPanel).toContainText("已接受角色已过期");
+      const state = await getJson<{ status: string }>(request.get(
+        `${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/cast`,
+      ));
+      expect(state.status).toBe("reopened");
+    });
+    // The delayed membership write uses the captured cast revision and is
+    // stopped in the browser before it can be attached to a stale subject.
+    await expect.poll(importedCount).toBe(0);
+    expect(attachmentPosts).toBe(0);
+    const cast = page.getByTestId("cast-review");
+    await cast.getByRole("button", { name: "取消编辑" }).click();
+    await expect(firstPanel).toContainText("已接受角色 r1");
+  });
+
   test("invalidates held gallery reads after a project change", async ({ page, request, workbench }) => {
     const firstProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "gallery-held-first");
     const secondProjectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "gallery-held-second");
