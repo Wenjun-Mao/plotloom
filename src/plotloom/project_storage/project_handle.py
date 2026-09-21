@@ -33,7 +33,7 @@ from ..source_outline_contracts import (
 )
 from ..creative_handoff_contracts import CreativeHandoffRequest
 from ..creative_handoff_exchange import ValidatedCreativeDelivery
-from ..cast_contracts import CastAcceptRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
+from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
 from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
 from ..storyboard_review_contracts import StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
@@ -461,6 +461,9 @@ class ProjectStore:
 
     def save_reopened_cast(self, request: CastSaveRequest) -> CastReviewState:
         return self.repository.cast.save_reopened(self.manifest.project_id, request)
+
+    def cancel_reopened_cast(self, request: CastCancelReopenRequest) -> CastReviewState:
+        return self.repository.cast.cancel_reopen(self.manifest.project_id, request)
 
     def cancel_cast_candidate(self, job_id: str) -> CastReviewState:
         return self.repository.cast.cancel_candidate(self.manifest.project_id, job_id)

@@ -10,6 +10,7 @@ import pytest
 from plotloom.cast_contracts import (
     CastAcceptRequest,
     CastBinding,
+    CastCancelReopenRequest,
     CastConsumerMapping,
     CastReopenRequest,
 )
@@ -99,6 +100,44 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
         context = _context(2)
         assert store.cast_state().status == "stale"
         assert store.cast_state().status == "stale"
+    finally:
+        store.close()
+
+
+def test_cancel_reopened_cast_restores_only_current_accepted_authority(tmp_path: Path) -> None:
+    store = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application").projects.create(FIXED_CHINESE_BRIEF)
+    context = _context()
+
+    def bound_context(_session: object, _project_id: str) -> tuple[CastBinding, dict[str, object], dict[str, object], dict[str, object]]:
+        assert context.source and context.accepted_outline and context.accepted_section_map
+        binding = CastBinding(source_revision=context.source.revision, source_content_hash=context.source.content_hash, outline_revision=context.accepted_outline.revision, outline_content_hash=context.accepted_outline.content_hash, section_map_revision=context.accepted_section_map.revision, section_map_content_hash=context.accepted_section_map.content_hash, graph_revision=1, graph_content_hash="d" * 64, section_ids=["opening", "beacon", "dock"])
+        return binding, context.source.material.model_dump(mode="json", by_alias=True), context.accepted_outline.outline, context.accepted_section_map.mapping.model_dump(mode="json", by_alias=True)
+
+    store.repository.cast._context = bound_context  # type: ignore[method-assign]
+    try:
+        binding, *_ = bound_context(None, store.manifest.project_id)
+        _candidate, request = store.prepare_cast_candidate("ch_" + "k" * 32)
+        store.admit_cast_delivery(_deliver(store, request))
+        accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=None, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
+        original_hash = accepted.accepted_cast.content_hash if accepted.accepted_cast else ""
+
+        store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        restored = store.cancel_reopened_cast(CastCancelReopenRequest(expected_cast_revision=1))
+        assert restored.status == "accepted"
+        assert restored.accepted_cast is not None
+        assert restored.accepted_cast.revision == 1
+        assert restored.accepted_cast.content_hash == original_hash
+        with store.repository._read() as session:  # type: ignore[attr-defined]
+            assert store.repository.cast.identity_context_in_session(session, store.manifest.project_id, "lin") is not None  # type: ignore[attr-defined]
+
+        store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        context = _context(2)
+        with pytest.raises(CreativeHandoffError, match="cannot be restored"):
+            store.cancel_reopened_cast(CastCancelReopenRequest(expected_cast_revision=1))
+        # The failed cancellation cannot turn a stale accepted revision back on.
+        assert store.cast_state().status == "stale"
+        with store.repository._read() as session:  # type: ignore[attr-defined]
+            assert store.repository.cast.identity_context_in_session(session, store.manifest.project_id, "lin") is None  # type: ignore[attr-defined]
     finally:
         store.close()
 

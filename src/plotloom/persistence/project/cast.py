@@ -6,7 +6,7 @@ from typing import Any
 
 from sqlalchemy import select
 
-from ...cast_contracts import AcceptedCastRevision, CastAcceptRequest, CastBinding, CastCandidate, CastConsumerMapping, CastReopenRequest, CastReviewState, CastSaveRequest
+from ...cast_contracts import AcceptedCastRevision, CastAcceptRequest, CastBinding, CastCancelReopenRequest, CastCandidate, CastConsumerMapping, CastReopenRequest, CastReviewState, CastSaveRequest
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import StageName, StageStatus, contains_secret_setting, contains_secret_value, new_id, utc_now
@@ -276,6 +276,36 @@ class ProjectCastPersistence:
             now = utc_now()
             head.revision, head.status, head.updated_at = head.revision + 1, "accepted", now
             self._save(session, project_id, head.revision, previous.candidate_job_id, binding, request.cast, request.consumer_mappings, now)
+        return self.get_state(project_id)
+
+    def cancel_reopen(self, project_id: str, request: CastCancelReopenRequest) -> CastReviewState:
+        """Restore the existing accepted revision without creating a new one.
+
+        Reopen deliberately revokes identity authority before the editor appears.
+        It can only be reversed while that exact accepted binding is still
+        current; otherwise restoring ``accepted`` would revive stale authority.
+        """
+        with self._access.leases.lifecycle_write() as session:
+            self._access.guards.active(self._access.rows.project(session, project_id))
+            head = self._head(session, project_id)
+            if head.revision != request.expected_cast_revision:
+                raise RevisionConflictError("cast", request.expected_cast_revision, head.revision)
+            if head.status != "reopened":
+                raise InvalidTransitionError("only a reopened cast edit can be cancelled")
+            previous = session.scalar(select(CastRevisionRow).where(
+                CastRevisionRow.project_id == project_id,
+                CastRevisionRow.revision == head.revision,
+            ))
+            if previous is None:
+                raise NotFoundError("accepted cast revision is missing")
+            if self._stale(session, project_id, CastBinding.model_validate(previous.binding)):
+                raise CreativeHandoffError(
+                    "delivery_stale",
+                    "accepted cast context changed while editing; it cannot be restored",
+                )
+            # This is an authority restoration, not acceptance: retain the
+            # revision, canonical row, mappings, and content hash unchanged.
+            head.status, head.updated_at = "accepted", utc_now()
         return self.get_state(project_id)
 
     def cancel_candidate(self, project_id: str, job_id: str) -> CastReviewState:

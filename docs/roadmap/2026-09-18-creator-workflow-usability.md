@@ -422,3 +422,16 @@ is authorized. Technical instructions and provenance stay available in folded
 detail. Stop for a material scope or contract tradeoff; otherwise deliver the
 small cohesive workspace, regenerated static assets, independent stable-delta
 review, and a fresh local production preview for attended creator inspection.
+
+**U3 cancellation and multi-comparison receipt — 2026-09-21.** Reopening cast
+text is confirmed as a durable authority suspension, not a local editor mode.
+The bounded correction adds a CAS-protected cancellation transition that
+restores the prior accepted revision without a save or revision increment only
+while its upstream binding remains current; a changed binding remains stale and
+unavailable. Appearance comparison is now an explicit local set of any two to
+four candidates, while retained gallery size remains unrestricted. A separate
+five-image, repository-owned technical fixture follows ordinary proposal,
+export, delivery, refresh, and asset admission without provider calls. Focused
+storage and browser paths cover cancellation, stale non-revival, arbitrary
+non-adjacent 2/3/4 comparison, fourth-cap replacement, no implicit selection,
+and cast-session reset. Desktop inspection is limited to 1440 and 1920.

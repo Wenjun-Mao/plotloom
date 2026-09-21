@@ -632,7 +632,9 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .appearance-thumbnail span { padding: 0 2px; font-size: 10px; }
 .appearance-compare-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding-top: 3px; color: var(--muted); font-size: 11px; }
 .appearance-compare-controls .button { min-height: 27px; padding: 4px 7px; font-size: 10px; }
-.appearance-compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px; border: 1px solid rgba(126,212,247,.3); border-radius: 6px; background: rgba(126,212,247,.04); }
+.appearance-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; padding: 12px; border: 1px solid rgba(126,212,247,.3); border-radius: 6px; background: rgba(126,212,247,.04); }
+.appearance-compare > header { grid-column: 1 / -1; display: grid; gap: 3px; color: var(--muted); }
+.appearance-compare > header strong { color: var(--text); }
 .appearance-compare figure { display: grid; gap: 7px; min-width: 0; margin: 0; }
 .appearance-compare figcaption { color: var(--blue); font: 700 10px var(--mono); }
 .appearance-compare img, .appearance-compare .reference-missing-asset { width: 100%; height: min(34vw, 360px); min-height: 180px; object-fit: contain; background: #07090c; }

@@ -8,6 +8,15 @@ import { expect, test } from "./fixture";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const retainedStill = path.join(repositoryRoot, "docs/verification/supporting/p0-generated/01-arrival.png");
+// Persistent, repository-owned technical fixture: five distinct existing
+// screenshots, admitted only through the ordinary proposal/delivery flow.
+const comparisonFixtureStills = [
+  "docs/verification/m1-b0-workbench-1440x900.png",
+  "docs/verification/supporting/p0-creator-review-shortcut.png",
+  "docs/verification/supporting/frontend-workbench-modularization-1440x900.png",
+  "docs/verification/supporting/p2-adjoining-profile-contact-sheet.png",
+  "docs/verification/supporting/frontend-workspace-correction-1440x900.png",
+].map((file) => path.join(repositoryRoot, file));
 
 type Api = import("@playwright/test").APIRequestContext;
 type PackagePaths = { packagePath: string; deliveryPath: string };
@@ -41,6 +50,20 @@ test.describe("F2B cast-owned reference studies", () => {
     expect((await reopening).ok()).toBeTruthy();
     await expect(gallery).toContainText("已接受角色已过期");
     await expect(gallery.getByLabel("想法")).toBeDisabled();
+
+    const cancelling = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/reopen/cancel`);
+    await cast.getByLabel("外观").fill("Unsaved edit must not create r2.");
+    await cast.getByRole("button", { name: "取消编辑" }).click();
+    expect((await cancelling).ok()).toBeTruthy();
+    await expect(gallery).toContainText("已接受角色 r1");
+    await expect(gallery.getByLabel("想法")).toBeEditable();
+    await expect(cast).toContainText("Rain-dark hair and a weathered beacon coat");
+
+    const reopeningAgain = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/reopen`);
+    await cast.getByRole("button", { name: "编辑角色设定" }).click();
+    expect((await reopeningAgain).ok()).toBeTruthy();
 
     const saving = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/save`);
@@ -93,7 +116,7 @@ test.describe("F2B cast-owned reference studies", () => {
     const refinementPackage = await copyProposalFromBrowser(page, projectId, refinement.id);
     await writeProposalDelivery(refinementPackage.deliveryPath, refinement, "f2b-refinement-browser", "refinement");
     await refreshProposalFromBrowser(page, projectId, refinement.id);
-    await panel.getByRole("button", { name: /细化图片缩略图/ }).click();
+    await panel.getByRole("button", { name: /方案 · Keep the viewed identity.*缩略图/ }).click();
     await panel.getByRole("button", { name: "选用当前图片" }).click();
     await expect(panel).toContainText("已选择身份参考 r2");
 
@@ -127,9 +150,10 @@ test.describe("F2B cast-owned reference studies", () => {
       await viewer.getByRole("button", { name: "放大查看" }).click();
       await expect(page.getByRole("dialog", { name: "放大查看图片" }).getByRole("img")).toBeVisible();
       await page.getByRole("dialog", { name: "放大查看图片" }).getByRole("button", { name: "关闭" }).click();
-      await gallery.getByRole("button", { name: /与当前身份参考对比|与细化图片对比|与候选图片对比/ }).click();
+      await gallery.getByRole("button", { name: /加入 方案|加入 当前身份参考/ }).first().click();
+      await gallery.getByRole("button", { name: /加入 方案|加入 当前身份参考/ }).first().click();
       await expect(gallery.getByTestId("appearance-comparison")).toContainText("当前查看");
-      await gallery.getByRole("button", { name: "结束对比" }).click();
+      await gallery.getByRole("button", { name: "清空比较" }).click();
       await page.screenshot({ path: testInfo.outputPath("u3-character-reference-gallery-1440x900.png"), animations: "disabled" });
       await page.setViewportSize({ width: 768, height: 900 });
       await expect(gallery.getByRole("img").first()).toBeVisible();
@@ -153,7 +177,7 @@ test.describe("F2B cast-owned reference studies", () => {
       const selectedViewer = page.getByTestId("appearance-viewer");
       await expect(selectedViewer).toContainText("当前查看图片不可用");
       await expect(selectedViewer.getByTestId(`reference-image-unavailable-${refinementCandidate}`)).toBeVisible();
-      await expect(page.getByRole("button", { name: /与当前身份参考对比|与细化图片对比|与候选图片对比/ })).toBeVisible();
+      await expect(page.getByRole("button", { name: /加入 方案|加入 当前身份参考/ }).first()).toBeVisible();
     } finally {
       await page.unroute(`**/api/v2/projects/${projectId}/managed-assets/${refinementCandidate}/display`);
     }
@@ -165,6 +189,49 @@ test.describe("F2B cast-owned reference studies", () => {
     await expect(page.getByTestId("character-reference-gallery")).toContainText("已接受角色已过期");
     await expect(page.getByText("历史选择，当前不可用", { exact: true }).first()).toBeVisible();
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
+  });
+
+  test("compares any explicit two to four members from a five-image technical fixture", async ({ page, request, workbench }, testInfo) => {
+    test.setTimeout(90_000);
+    const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "comparison-five");
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
+    const gallery = page.getByTestId("character-reference-gallery");
+    const labels = ["Beacon console", "Review shortcut", "Workbench map", "Profile contact sheet", "Workspace correction"];
+    for (let index = 0; index < labels.length; index += 1) {
+      await gallery.getByLabel("想法").fill(labels[index]!);
+      const prepared = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
+      const packagePaths = await copyProposalFromBrowser(page, projectId, prepared.id);
+      await writeProposalDelivery(packagePaths.deliveryPath, prepared, `comparison-five-${index}`, "original", comparisonFixtureStills[index]!);
+      await refreshProposalFromBrowser(page, projectId, prepared.id);
+    }
+    await expect(gallery.getByLabel("已有图片").getByRole("button")).toHaveCount(5);
+    for (const label of labels) await expect(gallery.getByText(`方案 · ${label}`, { exact: true })).toBeVisible();
+    // Non-adjacent choices form a two-up comparison and do not select identity.
+    await gallery.getByRole("button", { name: "加入 方案 · Beacon console" }).click();
+    await gallery.getByRole("button", { name: "加入 方案 · Workbench map" }).click();
+    await expect(gallery.getByTestId("appearance-comparison")).toContainText("并排比较 · 2 张");
+    await expect(gallery).toContainText("尚未选择身份参考");
+    // Expand to three then four. A fifth is prevented until one is removed.
+    await gallery.getByRole("button", { name: "加入 方案 · Workspace correction" }).click();
+    await expect(gallery.getByTestId("appearance-comparison")).toContainText("并排比较 · 3 张");
+    await gallery.getByRole("button", { name: "加入 方案 · Review shortcut" }).click();
+    await expect(gallery.getByTestId("appearance-comparison")).toContainText("并排比较 · 4 张");
+    await expect(gallery.getByRole("button", { name: "加入 方案 · Profile contact sheet" })).toBeDisabled();
+    await gallery.getByRole("button", { name: "移出 方案 · Workbench map" }).click();
+    await gallery.getByRole("button", { name: "加入 方案 · Profile contact sheet" }).click();
+    await expect(gallery.getByTestId("appearance-comparison")).toContainText("并排比较 · 4 张");
+    // Changing the viewed image neither selects it nor leaves an invalid
+    // comparison member; the comparison set is reset by the cast session key.
+    await gallery.getByRole("button", { name: "方案 · Review shortcut缩略图" }).click();
+    await expect(gallery.getByTestId("appearance-comparison")).toContainText("当前查看 · 方案 · Review shortcut");
+    await page.screenshot({ path: testInfo.outputPath("f2b-five-image-comparison-1440x900.png"), animations: "disabled" });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await expect(gallery.getByTestId("appearance-comparison")).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("f2b-five-image-comparison-1920x1080.png"), animations: "disabled" });
+    const reopening = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/reopen`);
+    await page.getByTestId("cast-review").getByRole("button", { name: "编辑角色设定" }).click();
+    expect((await reopening).ok()).toBeTruthy();
+    await expect(gallery.getByTestId("appearance-comparison")).toHaveCount(0);
   });
 
   test("cancels prepared and exported handoffs, retaining late delivery as inapplicable across close/reopen", async ({ page, request, workbench }) => {
@@ -455,8 +522,8 @@ async function proposal(request: Api, apiOrigin: string, projectId: string, prop
   return found!;
 }
 
-async function writeProposalDelivery(deliveryPath: string, proposal: Proposal, deliveryId: string, role: "original" | "refinement"): Promise<void> {
-  const content = await readFile(retainedStill);
+async function writeProposalDelivery(deliveryPath: string, proposal: Proposal, deliveryId: string, role: "original" | "refinement", stillPath = retainedStill): Promise<void> {
+  const content = await readFile(stillPath);
   await mkdir(path.join(deliveryPath, "outputs"), { recursive: true });
   await writeFile(path.join(deliveryPath, "outputs", "candidate.png"), content);
   const provenance = { codeRevision: "a".repeat(40), skillVersion: "plotloom-image-specialist.v3", skillHash: "b".repeat(64) };

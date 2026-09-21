@@ -97,3 +97,9 @@ class CastSaveRequest(CamelModel):
 
 class CastReopenRequest(CamelModel):
     expected_cast_revision: int = Field(ge=1)
+
+
+class CastCancelReopenRequest(CamelModel):
+    """CAS-protected abandonment of a durable reopened-cast editing session."""
+
+    expected_cast_revision: int = Field(ge=1)

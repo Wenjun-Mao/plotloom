@@ -24,7 +24,7 @@ export function CastPanel({ projectId, readOnly, state, loadError, onState, onRe
   }, [state?.candidate?.jobId, state?.candidate?.status, state?.acceptedCast?.revision, state?.status]);
 
   const isCurrent = (capturedProject: string, capturedOwner: number) => active.current && projectRef.current === capturedProject && operationOwner.current === capturedOwner;
-  const act = <T,>(operation: () => Promise<T>, applyResult?: (result: T) => void, invalidatesSession = false) => {
+  const act = <T,>(operation: () => Promise<T>, applyResult?: (result: T) => void, invalidatesSession = false, refreshAfterFailure = false) => {
     const capturedProject = projectRef.current; const capturedOwner = ++operationOwner.current;
     if (invalidatesSession) onInvalidate();
     setBusy(true); setError("");
@@ -32,8 +32,13 @@ export function CastPanel({ projectId, readOnly, state, loadError, onState, onRe
       if (!isCurrent(capturedProject, capturedOwner)) return;
       if (isCastState(result)) onState(result);
       else { applyResult?.(result); await onRefresh(); }
-    }).catch((reason: unknown) => {
-      if (isCurrent(capturedProject, capturedOwner)) setError(reason instanceof Error ? reason.message : "角色操作失败。");
+    }).catch(async (reason: unknown) => {
+      if (!isCurrent(capturedProject, capturedOwner)) return;
+      setError(reason instanceof Error ? reason.message : "角色操作失败。");
+      // A failed cancellation can mean its accepted binding changed while the
+      // form was open. Re-read that durable state instead of leaving a local
+      // editor that implies the prior authority can still be restored.
+      if (refreshAfterFailure) await onRefresh();
     }).finally(() => {
       if (isCurrent(capturedProject, capturedOwner)) {
         if (invalidatesSession) onTransitionComplete();
@@ -64,7 +69,7 @@ export function CastPanel({ projectId, readOnly, state, loadError, onState, onRe
       {candidate.status === "prepared" && <section className="cast-next-action"><div><strong>手动任务尚未交付</strong><small>可刷新已有交付，或取消这个手动任务。</small></div><div className="reference-card-actions"><Button disabled={readOnly || busy} onClick={() => act(() => plotloomApi.refreshCastCandidate(projectId, candidate.jobId))}>刷新交付</Button><Button variant="danger" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelCastCandidate(projectId, candidate.jobId))}>取消手动任务</Button></div></section>}
       {candidate.status === "ready" && <><CastEditor characters={castCharacters} disabled={readOnly || busy} onChange={updateDirection} /><Button variant="primary" disabled={readOnly || busy || castCharacters.length === 0} onClick={saveAccepted}>接受这份角色设定</Button></>}
     </>}
-    {accepted && state.status === "reopened" && <><CastEditor characters={castCharacters} disabled={readOnly || busy} onChange={updateDirection} editing /><Button variant="primary" disabled={readOnly || busy || castCharacters.length === 0} onClick={() => act(() => plotloomApi.saveReopenedCast(projectId, { expectedCastRevision: accepted.revision, binding: accepted.binding, cast: editedCast, consumerMappings: accepted.consumerMappings }), undefined, true)}>保存重新打开的角色</Button></>}
+    {accepted && state.status === "reopened" && <><CastEditor characters={castCharacters} disabled={readOnly || busy} onChange={updateDirection} editing /><div className="button-row"><Button variant="primary" disabled={readOnly || busy || castCharacters.length === 0} onClick={() => act(() => plotloomApi.saveReopenedCast(projectId, { expectedCastRevision: accepted.revision, binding: accepted.binding, cast: editedCast, consumerMappings: accepted.consumerMappings }), undefined, true)}>保存重新打开的角色</Button><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelReopenedCast(projectId, accepted.revision), undefined, true, true)}>取消编辑</Button></div><small>取消会丢弃未保存的文本，并仅在上游上下文仍当前时恢复 r{accepted.revision} 的既有授权。</small></>}
     {assignment && <details className="cast-assignment"><summary>查看已复制的手动任务</summary><textarea readOnly rows={5} value={assignment} /></details>}
     {(error || loadError) && <ErrorNotice message={error || loadError} />}
   </article>;

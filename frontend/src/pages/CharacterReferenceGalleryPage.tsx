@@ -121,7 +121,9 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   // using a viewed image remains an explicit creator choice.
   const [ideaMode, setIdeaMode] = useState<"refine" | "fresh">("fresh");
   const [viewedAssetId, setViewedAssetId] = useState("");
-  const [comparisonAssetId, setComparisonAssetId] = useState("");
+  // The gallery can retain any number of alternatives. Comparison is a
+  // deliberate, local review set capped at four; it never selects identity.
+  const [comparisonAssetIds, setComparisonAssetIds] = useState<string[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -159,7 +161,18 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const effectiveViewedAssetId = viewableCandidates.some((candidate) => candidate.assetId === viewedAssetId) ? viewedAssetId : fallbackViewedAssetId;
   const viewedCandidate = viewableCandidates.find((candidate) => candidate.assetId === effectiveViewedAssetId);
   const viewedAsset = viewedCandidate?.asset ?? (selectedDecision?.primaryAssetId === effectiveViewedAssetId ? selectedAsset : undefined);
-  const comparedCandidate = viewableCandidates.find((candidate) => candidate.assetId === comparisonAssetId && candidate.assetId !== effectiveViewedAssetId);
+  const viewedImageLabel = viewedCandidate
+    ? candidateImageLabel(viewedCandidate, selectedAssetIds.has(effectiveViewedAssetId))
+    : selectedDecision?.primaryAssetId === effectiveViewedAssetId ? "当前身份参考"
+      : "当前查看图片";
+  const comparisonCandidates = comparisonAssetIds.flatMap((assetId) => {
+    const candidate = viewableCandidates.find((entry) => entry.assetId === assetId);
+    return candidate ? [candidate] : [];
+  });
+  const comparisonAtCapacity = comparisonCandidates.length >= 4;
+  const toggleComparison = (assetId: string) => setComparisonAssetIds((current) => current.includes(assetId)
+    ? current.filter((item) => item !== assetId)
+    : current.length < 4 ? [...current, assetId] : current);
   const referenceState = data.referenceStates.find((state) => state.characterId === subject.id);
   const act = async <T,>(operation: () => Promise<T>, applyResult?: (result: T) => void) => {
     const capturedSession = sessionRef.current;
@@ -195,11 +208,11 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
         {viewedCandidate && <ProposalDetails proposal={viewedCandidate.proposal} delivery={viewedCandidate.delivery} outputHash={viewedCandidate.outputHash} provenance={viewedCandidate.asset?.provenance?.origin} direction={frozenDirection(viewedCandidate.proposal)} />}
       </div>
       <div className="appearance-thumbnails" aria-label="已有图片">
-        {viewableCandidates.map((candidate) => <button key={candidate.id} type="button" className={`appearance-thumbnail${candidate.assetId === effectiveViewedAssetId ? " viewing" : ""}${selectedAssetIds.has(candidate.assetId) ? " selected" : ""}`} aria-pressed={candidate.assetId === effectiveViewedAssetId} onClick={() => { setViewedAssetId(candidate.assetId); setComparisonAssetId(""); }}><AssetPresentation projectId={projectId} subjectId={subject.id} asset={candidate.asset ?? undefined} assetId={candidate.assetId} alt={`${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}缩略图`} unavailableLabel="候选图片不可用" /><span>{candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}</span></button>)}
+        {viewableCandidates.map((candidate) => <button key={candidate.id} type="button" className={`appearance-thumbnail${candidate.assetId === effectiveViewedAssetId ? " viewing" : ""}${selectedAssetIds.has(candidate.assetId) ? " selected" : ""}`} aria-pressed={candidate.assetId === effectiveViewedAssetId} onClick={() => setViewedAssetId(candidate.assetId)}><AssetPresentation projectId={projectId} subjectId={subject.id} asset={candidate.asset ?? undefined} assetId={candidate.assetId} alt={`${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}缩略图`} unavailableLabel="候选图片不可用" /><span>{candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}</span></button>)}
         {!viewableCandidates.length && <p className="reference-empty-list">没有可浏览的候选图片。</p>}
       </div>
-      {viewableCandidates.length > 1 && <div className="appearance-compare-controls"><span>比较</span>{viewableCandidates.filter((candidate) => candidate.assetId !== effectiveViewedAssetId).map((candidate) => <Button key={candidate.id} variant="quiet" disabled={busy} onClick={() => setComparisonAssetId(candidate.assetId)}>与{candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}对比</Button>)}</div>}
-      {comparedCandidate && <div className="appearance-compare" data-testid="appearance-comparison"><figure><figcaption>当前查看</figcaption><AssetPresentation projectId={projectId} subjectId={subject.id} asset={viewedAsset} assetId={effectiveViewedAssetId} alt="当前查看图片" unavailableLabel="当前查看图片不可用" /></figure><figure><figcaption>对比图片</figcaption><AssetPresentation projectId={projectId} subjectId={subject.id} asset={comparedCandidate.asset ?? undefined} assetId={comparedCandidate.assetId} alt="对比图片" unavailableLabel="对比图片不可用" /></figure><Button variant="quiet" onClick={() => setComparisonAssetId("")}>结束对比</Button></div>}
+      {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant={compared ? "primary" : "quiet"} disabled={busy || (!compared && comparisonAtCapacity)} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}` : `加入 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" disabled={busy} onClick={() => setComparisonAssetIds([])}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
+      {comparisonCandidates.length >= 2 && <div className={`appearance-compare comparison-count-${comparisonCandidates.length}`} data-testid="appearance-comparison"><header><strong>并排比较 · {comparisonCandidates.length} 张</strong><small>当前查看：{viewedImageLabel}；对比不会选用身份参考。</small></header>{comparisonCandidates.map((candidate) => <figure key={candidate.assetId}><figcaption>{candidate.assetId === effectiveViewedAssetId ? "当前查看" : "对比图片"} · {candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}</figcaption><AssetPresentation projectId={projectId} subjectId={subject.id} asset={candidate.asset ?? undefined} assetId={candidate.assetId} alt={`${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))} 比较图片`} unavailableLabel="对比图片不可用" /></figure>)}</div>}
       <section className="appearance-ideas"><span className="eyebrow">新想法</span><h3>用文字探索下一张图片</h3><div className="appearance-mode" role="group" aria-label="提案模式"><Button variant={ideaMode === "refine" ? "primary" : "quiet"} disabled={readOnly || busy || !effectiveViewedAssetId} onClick={() => setIdeaMode("refine")}>基于当前图片修改</Button><Button variant={ideaMode === "fresh" ? "primary" : "quiet"} disabled={readOnly || busy} onClick={() => setIdeaMode("fresh")}>尝试全新方案</Button></div><p>{ideaMode === "refine" ? "会冻结当前查看的图片与这段文字；不会改变当前身份参考。" : "只使用这段文字，不引用当前查看图片；不会改变当前身份参考。"}</p><Field label="想法"><textarea rows={3} value={direction} disabled={readOnly || busy} placeholder="描述希望保留、调整或探索的外观特征。" onChange={(event) => setDirection(event.target.value)} /></Field><div className="button-row"><Button variant="primary" disabled={readOnly || busy || !direction.trim() || (ideaMode === "refine" && !effectiveViewedAssetId)} onClick={prepare}>{busy ? "正在创建…" : "创建提案"}</Button><small>创建后可在下方提案状态中发送；返回图片会加入这里，但不会自动选用。</small></div></section>
       {actionError && <ErrorNotice message={actionError} />}
     </section>
@@ -280,8 +293,14 @@ function candidateEntries(proposals: CharacterReferenceProposal[], characterId: 
 }
 
 function candidateImageLabel(candidate: Candidate, selected: boolean): string {
-  if (selected) return "当前身份参考";
-  return candidate.role === "refinement" ? "细化图片" : "候选图片";
+  const direction = frozenDirection(candidate.proposal);
+  const name = direction ? compactDirection(direction) : candidate.role === "refinement" ? "细化方案" : "新方案";
+  return selected ? `当前身份参考 · ${name}` : `方案 · ${name}`;
+}
+
+function compactDirection(value: string): string {
+  const firstLine = value.replace(/\s+/g, " ").trim().split(/[。！？.!?]/)[0]?.trim() || "未命名方案";
+  return firstLine.length > 32 ? `${firstLine.slice(0, 31)}…` : firstLine;
 }
 
 function frozenDirection(proposal: CharacterReferenceProposal): string | undefined {

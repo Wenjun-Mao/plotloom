@@ -4,7 +4,7 @@ from typing import Any, Callable
 from uuid import uuid4
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
-from ..cast_contracts import CastAcceptRequest, CastCandidate, CastCandidatePreparation, CastReopenRequest, CastReviewState, CastSaveRequest
+from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastCandidatePreparation, CastReopenRequest, CastReviewState, CastSaveRequest
 
 def register_project_folder_cast_routes(app: FastAPI, opened_project: Callable[[str], Any]) -> None:
     @app.get("/api/v2/projects/{project_id}/cast", response_model=CastReviewState)
@@ -42,6 +42,10 @@ def register_project_folder_cast_routes(app: FastAPI, opened_project: Callable[[
     @app.post("/api/v2/projects/{project_id}/cast/reopen",response_model=CastReviewState)
     def reopen_cast(project_id: str,body: CastReopenRequest) -> CastReviewState:
         with opened_project(project_id) as store: return store.reopen_cast(body)
+
+    @app.post("/api/v2/projects/{project_id}/cast/reopen/cancel", response_model=CastReviewState)
+    def cancel_reopened_cast(project_id: str, body: CastCancelReopenRequest) -> CastReviewState:
+        with opened_project(project_id) as store: return store.cancel_reopened_cast(body)
 
     @app.post("/api/v2/projects/{project_id}/cast/save", response_model=CastReviewState)
     def save_reopened_cast(project_id: str, body: CastSaveRequest) -> CastReviewState:
