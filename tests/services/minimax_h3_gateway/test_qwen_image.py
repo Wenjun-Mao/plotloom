@@ -51,7 +51,15 @@ class _QwenSession:
 
     def post(self, url: str, **kwargs: Any) -> _Response:
         self.calls.append((url, kwargs))
-        return _Response({"created": 1, "data": [{"b64_json": base64.b64encode(self.image).decode("ascii")} ]})
+        return _Response({
+            "id": "img-test", "created": 1, "peak_memory_mb": 1.0,
+            "inference_time_s": 0.1, "usage": None,
+            "data": [{
+                "b64_json": base64.b64encode(self.image).decode("ascii"),
+                "url": None, "revised_prompt": "test", "file_path": "/private/output.png",
+                "resize": None,
+            }],
+        })
 
 
 class _SourceResponse:
@@ -207,6 +215,19 @@ def test_transparent_request_rejects_non_alpha_model_output(tmp_path: Path) -> N
     assert result is not None and result["status"] == "failed"
     status = client.get(f"/v1/image-jobs/{accepted['id']}", headers=AUTH).json()
     assert status["error"] == "qwen_image_alpha_missing"
+
+
+def test_qwen_transport_rejects_unexpected_provider_response_shape(tmp_path: Path) -> None:
+    client, qwen = _client(tmp_path)
+    qwen.post = lambda *_args, **_kwargs: _Response({"data": []})  # type: ignore[method-assign]
+    accepted = client.post(
+        "/v1/image-jobs/from-text", headers=AUTH,
+        json={"prompt": "A strict response contract.", "resolution": "1024x1024"},
+    ).json()
+    result = client.app.state.gateway.dispatch_once()
+    assert result is not None and result["status"] == "failed"
+    status = client.get(f"/v1/image-jobs/{accepted['id']}", headers=AUTH).json()
+    assert status["error"] == "qwen_image_response_invalid"
 
 
 def test_qwen_and_h3_share_one_fifo_lane(tmp_path: Path) -> None:

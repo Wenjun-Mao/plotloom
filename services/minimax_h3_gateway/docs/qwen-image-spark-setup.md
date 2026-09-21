@@ -23,15 +23,18 @@ contract.
 1. Create `/home/wjmao/services/qwen-image-sglang` and clone an exact SGLang
    revision. Record its commit SHA, `uv.lock`/resolved package versions, CUDA,
    PyTorch, and driver details in the deployment receipt.
-2. Create the virtual environment with the SGLang source instructions:
+2. Create the virtual environment with the released SGLang diffusion runtime:
 
    ```sh
    uv venv /home/wjmao/services/qwen-image-sglang/.venv --python 3.12
    uv pip install --python /home/wjmao/services/qwen-image-sglang/.venv/bin/python \
      "sglang[diffusion]" --prerelease=allow
-   uv pip install --python /home/wjmao/services/qwen-image-sglang/.venv/bin/python \
-     -e "/home/wjmao/services/qwen-image-sglang/source/python[diffusion]"
    ```
+
+   The service unit then places the pinned checkout's `python/` directory
+   first on `PYTHONPATH`. Do not replace this with an editable install unless
+   the host also has the Rust toolchain needed to build SGLang's optional
+   extensions; the Spark runtime does not require those extensions.
 
 3. Download `Qwen/Qwen-Image-2.1` only into
    `/home/wjmao/models/qwen-image-2.1/model`; do not allow a default cache

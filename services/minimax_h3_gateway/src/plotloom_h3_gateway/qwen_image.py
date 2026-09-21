@@ -104,14 +104,33 @@ class QwenImageClient:
             payload = response.json()
         except (requests.RequestException, ValueError) as error:
             raise GatewayError("qwen_image_generation_failed") from error
-        if not isinstance(payload, dict) or set(payload) - {"data", "created", "model", "usage"}:
+        if not isinstance(payload, dict) or set(payload) != {
+            "id", "created", "data", "peak_memory_mb", "inference_time_s", "usage"
+        }:
+            raise GatewayError("qwen_image_response_invalid")
+        if not isinstance(payload["id"], str) or not payload["id"]:
+            raise GatewayError("qwen_image_response_invalid")
+        if isinstance(payload["created"], bool) or not isinstance(payload["created"], int):
+            raise GatewayError("qwen_image_response_invalid")
+        for field in ("peak_memory_mb", "inference_time_s"):
+            value = payload[field]
+            if value is not None and (isinstance(value, bool) or not isinstance(value, (int, float))):
+                raise GatewayError("qwen_image_response_invalid")
+        usage = payload["usage"]
+        if usage is not None and not isinstance(usage, dict):
             raise GatewayError("qwen_image_response_invalid")
         entries = payload.get("data")
         if not isinstance(entries, list) or len(entries) != 1 or not isinstance(entries[0], dict):
             raise GatewayError("qwen_image_response_invalid")
-        encoded = entries[0].get("b64_json")
-        if set(entries[0]) - {"b64_json", "revised_prompt"} or not isinstance(encoded, str):
+        entry = entries[0]
+        if set(entry) != {"b64_json", "url", "revised_prompt", "file_path", "resize"}:
             raise GatewayError("qwen_image_response_invalid")
+        encoded = entry["b64_json"]
+        if not isinstance(encoded, str) or not encoded or entry["url"] is not None:
+            raise GatewayError("qwen_image_response_invalid")
+        for field in ("revised_prompt", "file_path", "resize"):
+            if entry[field] is not None and not isinstance(entry[field], str):
+                raise GatewayError("qwen_image_response_invalid")
         try:
             return base64.b64decode(encoded, validate=True)
         except (ValueError, TypeError) as error:
