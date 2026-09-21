@@ -49,6 +49,9 @@ the accepted-cast workflow itself is the acceptance criterion.
 ## Verification
 
 - `uv run --locked pytest -q tests/test_codex_image_dispatch.py tests/test_project_storage_image_delivery_contracts.py` — 12 passed.
-- `npm --prefix frontend run typecheck` — passed before the observer stop fix;
-  the follow-up is a one-line type-safe predicate and requires the normal final
-  static rebuild/check before a future trial.
+- `uv run --locked pytest -q tests/test_codex_image_dispatch.py tests/test_project_storage_image_delivery_contracts.py tests/test_project_storage_image_workflow.py` — 14 passed.
+- `npm --prefix frontend run typecheck` and `npm --prefix frontend run build` — passed after the final observer reload correction; tracked static assets are current.
+
+The observer reload after a rejected poll is independently reviewed, but does
+not yet have a dedicated browser regression for rejection → reloaded state →
+no further `package_conflict` polling.
