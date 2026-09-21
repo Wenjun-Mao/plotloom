@@ -358,3 +358,16 @@ message and may occur before an accepted queue request begins, so it cannot
 release this lease. The deterministic Characters browser coverage verifies
 partial-to-final admission, final-invalid persistence, and refreshed
 `package_conflict` state stopping further automatic polling.
+
+**Live technical proof — 2026-09-21.** One authorized real ImageGen
+Characters refinement was sent exactly once from the browser after validating
+the accepted cast, frozen parent hash, isolated H3-disabled runtime, prior
+terminal task evidence, and empty current native lease. The specialist's
+preflight passed; its schema-valid completion was automatically admitted as an
+unselected 1672×941 candidate and released the matching lease. The existing
+cast/reference decision stayed at r1. Desktop and 390px inspection exposed a
+separate, unremediated observer defect: repeated polls during normal delivery
+publication persist repeated `delivery_partial` rejections and clutter the
+gallery. This evidence closes the one-submit technical proof but does not
+constitute creator-usability acceptance; no retry, manual refresh, selection,
+or cleanup is authorized by this step.

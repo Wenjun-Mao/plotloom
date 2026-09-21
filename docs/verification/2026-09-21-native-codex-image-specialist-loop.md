@@ -102,3 +102,38 @@ probe. Starting another App Server would not establish authority over the
 existing desktop task. The safe current alternative is to retain the lease
 until accepted/inapplicable delivery; a future release mechanism needs a queue
 receipt correlated to this job.
+
+## Accepted-cast live trial — 2026-09-21
+
+One newly prepared Characters refinement was sent once through the actual
+browser UI against the retained technical walkthrough. It froze Mira's accepted
+cast r1 (`40a97cb5877b49989e9811008624beb1965eef13fad5336c132ee1e297dbb37a`),
+the parent raster (`42ec6a9e52e84a7df0e5ffe11bbd18f478f2774db16d08d105f602108d4af8e5`),
+and request `ij_5de029b5a8084889af72967ae6393bc9`
+(`f13ad8eb2a25b1fe771246dc7e81d75a933bfe1917716e9f9fafd260d1d27dfa`). H3
+was disabled in the isolated runtime. The prior native job was verified from
+its retained terminal task/result evidence, not from an idle status; its old
+lease and artifacts were not changed.
+
+The UI Send action atomically created the v4 package and schema-v2 completion
+template, then recorded one queued native receipt. The specialist's package
+preflight and parent-hash check passed. Its completed native turn reported a
+built-in ImageGen result; the retained completion manifest records delivery
+`4090f686-5e57-4478-9067-61d6f40605dc`, output
+`exec-b1602196-61dc-480c-a93b-9724bb6a548e.png`, hash
+`9909481b8aa670947e078428b4837c901db66d8919a840d306b0971027bb2d96`, and the
+configured specialist task identity. Automatic gallery observation admitted
+asset `f29892e0-48f4-467d-b8a6-9a9423a7e713` as a 1672×941 **unselected**
+refinement candidate. The existing accepted cast and reference decision remain
+at r1; no selection or creative approval occurred. Terminal accepted delivery
+released the isolated one-worker lease.
+
+**Observed defect, preserved rather than repaired in this bounded trial.** The
+three-second automatic observer records a persistent `delivery_partial`
+rejection each time it sees the specialist's normal pre-completion file set.
+This run retained 25 such rejections before the valid final manifest was
+admitted. The gallery consequently renders the valid candidate alongside those
+historical error cards at both desktop and 390px widths. No retry, manual
+refresh, deletion, or cleanup was performed. This is evidence for a separate
+root-cause fix: transient delivery publication must not be persisted as a new
+rejection on every poll while the same package remains in progress.
