@@ -6,6 +6,7 @@ import pytest
 
 from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
 from plotloom.image_job_contracts import ImageJobError
+from plotloom.image_job_contracts import ImageReferenceUse
 
 
 def test_native_dispatch_queues_one_frozen_package_and_releases_after_delivery(
@@ -39,3 +40,7 @@ def test_uncertain_dispatch_is_reserved_and_never_retried(tmp_path, monkeypatch)
     assert (tmp_path / "ij_abcdefghijklmnopqrst" / "receipt.json").is_file()
     with pytest.raises(ImageJobError, match="already has a native dispatch attempt"):
         dispatcher.dispatch(job_id="ij_abcdefghijklmnopqrst", package_path="/package", delivery_path="/delivery")
+
+
+def test_empty_reference_attestation_is_valid_only_for_reference_free_packages() -> None:
+    assert ImageReferenceUse(viewedReferenceHashes=[], identityNotes="No identity references.").viewed_reference_hashes == []

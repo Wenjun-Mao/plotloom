@@ -379,7 +379,7 @@ class ImageJobExchange:
                 },
                 "limitations": [],
             }
-            if not proposal:
+            if any(item["role"].startswith("character_identity") for item in reference_entries):
                 template_payload["referenceUse"] = {
                     "viewedReferenceHashes": ["replace-with-every-character-identity-hash"],
                     "identityNotes": "describe how identity was preserved; this attestation is not creator approval",

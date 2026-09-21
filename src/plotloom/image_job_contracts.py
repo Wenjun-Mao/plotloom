@@ -188,7 +188,11 @@ class ImageToolEvidence(CamelModel):
 class ImageReferenceUse(CamelModel):
     """A specialist attestation, never a substitute for creator visual review."""
 
-    viewed_reference_hashes: list[str] = Field(min_length=1, max_length=24)
+    # The field is optional for an original job with no identity references.
+    # Delivery admission separately requires the exact frozen identity hashes
+    # whenever the package supplied any, so permitting an explicit empty
+    # attestation cannot weaken identity-bound jobs.
+    viewed_reference_hashes: list[str] = Field(default_factory=list, max_length=24)
     identity_notes: str = Field(min_length=1, max_length=2_000)
 
     @field_validator("viewed_reference_hashes")
