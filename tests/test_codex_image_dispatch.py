@@ -1,24 +1,12 @@
 from __future__ import annotations
 
-import io
 import subprocess
 
 import pytest
 
 from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
-import plotloom.codex_image_dispatch as codex_image_dispatch
 from plotloom.image_job_contracts import ImageJobError
 from plotloom.image_job_contracts import ImageReferenceUse
-
-
-REAL_THREAD_STATUS = NativeCodexImageDispatcher._thread_status
-
-
-@pytest.fixture(autouse=True)
-def unreadable_worker_status(monkeypatch) -> None:
-    """Keep dispatch unit tests isolated from the local Codex app server."""
-
-    monkeypatch.setattr(NativeCodexImageDispatcher, "_thread_status", lambda _self: None)
 
 
 def test_native_dispatch_queues_one_frozen_package_and_releases_after_delivery(
@@ -86,6 +74,13 @@ def test_busy_dispatch_does_not_reserve_an_unqueued_job(tmp_path, monkeypatch) -
         "run",
         lambda command, **_kwargs: subprocess.CompletedProcess(command, 0, "Queued", ""),
     )
+    monkeypatch.setattr(
+        subprocess,
+        "Popen",
+        lambda *_args, **_kwargs: pytest.fail(
+            "a runtime status query cannot release an accepted queued assignment"
+        ),
+    )
     dispatcher = NativeCodexImageDispatcher("task-local", tmp_path)
     dispatcher.dispatch(job_id="ij_abcdefghijklmnopqrst", package_path="/one", delivery_path="/one-delivery")
     with pytest.raises(ImageJobError, match="already in flight"):
@@ -96,35 +91,6 @@ def test_busy_dispatch_does_not_reserve_an_unqueued_job(tmp_path, monkeypatch) -
     assert (tmp_path / "ij_abcdefghijklmnopqrst" / "receipt.json").is_file()
     with pytest.raises(ImageJobError, match="already has a native dispatch attempt"):
         dispatcher.dispatch(job_id="ij_abcdefghijklmnopqrst", package_path="/package", delivery_path="/delivery")
-
-
-def test_authoritative_idle_reconciliation_releases_only_the_matching_lease(
-    tmp_path, monkeypatch
-) -> None:
-    monkeypatch.setattr(
-        subprocess,
-        "run",
-        lambda command, **_kwargs: subprocess.CompletedProcess(command, 0, "Queued", ""),
-    )
-    monkeypatch.setattr(NativeCodexImageDispatcher, "_thread_status", lambda _self: "idle")
-    dispatcher = NativeCodexImageDispatcher("task-local", tmp_path)
-    dispatcher.dispatch(job_id="ij_abcdefghijklmnopqrst", package_path="/one", delivery_path="/one-delivery")
-    assert dispatcher.reconcile_idle_worker() is True
-    assert not (tmp_path / "inflight.json").exists()
-    dispatcher.dispatch(job_id="ij_bcdefghijklmnopqrstu", package_path="/two", delivery_path="/two-delivery")
-
-
-def test_non_idle_or_unreadable_status_never_releases_the_lease(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr(
-        subprocess,
-        "run",
-        lambda command, **_kwargs: subprocess.CompletedProcess(command, 0, "Queued", ""),
-    )
-    monkeypatch.setattr(NativeCodexImageDispatcher, "_thread_status", lambda _self: "active")
-    dispatcher = NativeCodexImageDispatcher("task-local", tmp_path)
-    dispatcher.dispatch(job_id="ij_abcdefghijklmnopqrst", package_path="/one", delivery_path="/one-delivery")
-    assert dispatcher.reconcile_idle_worker() is False
-    assert (tmp_path / "inflight.json").is_file()
 
 
 def test_stale_completion_cannot_release_a_replacement_lease(tmp_path, monkeypatch) -> None:
@@ -144,36 +110,5 @@ def test_stale_completion_cannot_release_a_replacement_lease(tmp_path, monkeypat
 
     assert (tmp_path / "inflight.json").is_file()
     assert "ij_bcdefghijklmnopqrstu" in (tmp_path / "inflight.json").read_text()
-
-
-def test_app_server_idle_status_is_the_only_reconciliation_signal(tmp_path, monkeypatch) -> None:
-    class ProxyProcess:
-        stdin = io.StringIO()
-        stdout = io.StringIO(
-            '{"id":1,"result":{}}\n'
-            '{"id":2,"result":{"thread":{"status":{"type":"idle"}}}}\n'
-        )
-
-        def terminate(self) -> None:
-            pass
-
-        def wait(self, *, timeout: int) -> None:
-            assert timeout == 1
-
-    process = ProxyProcess()
-    monkeypatch.setattr(subprocess, "Popen", lambda *_args, **_kwargs: process)
-    monkeypatch.setattr(
-        codex_image_dispatch.select,
-        "select",
-        lambda streams, *_args: (streams, [], []),
-    )
-    monkeypatch.setattr(NativeCodexImageDispatcher, "_thread_status", REAL_THREAD_STATUS)
-
-    dispatcher = NativeCodexImageDispatcher("task-local", tmp_path)
-
-    assert dispatcher._thread_status() == "idle"
-    assert '"method": "thread/read"' in process.stdin.getvalue()
-
-
 def test_empty_reference_attestation_is_valid_only_for_reference_free_packages() -> None:
     assert ImageReferenceUse(viewedReferenceHashes=[], identityNotes="No identity references.").viewed_reference_hashes == []

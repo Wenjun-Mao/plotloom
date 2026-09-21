@@ -74,17 +74,31 @@ it unselected until the explicit creator selection. This proves the Characters
 route, explicit-send label, package/currentness admission, and automatic
 accepted-delivery observation; it is not transport or ImageGen evidence.
 
-The browser case intentionally does **not** yet cover partial delivery,
-invalid manifest, or `package_conflict` stop-after-reload behavior for
-Characters. Those remain open scoped browser regressions, not claimed proof.
+The scoped browser command additionally runs three deterministic Characters
+cases:
 
-The safety regression suite additionally verifies that cancellation and
-`package_conflict` retain the local lease, nonzero queue exits become
-`outcome_unknown`, and only an exact-task App Server `thread/read` result of
-`idle` can reconcile that retained lease for a later dispatch. It does not
-query the persistent specialist during this receipt update.
+```text
+npm --prefix frontend run test:e2e -- --grep 'Characters delivery observation'
+```
 
-A read-only control-socket probe during this correction found no local Codex
-App Server socket, so it produced no status and released no lease. That is the
-intended fail-closed result; reconciliation is available only when the
-supported status service returns the exact task as `idle`.
+Partial files are observed as `delivery_partial` and later admitted from the
+same delivery path; a final-invalid completion records
+`delivery_manifest_invalid` without a candidate; and a tampered frozen package
+returns `package_conflict`, refreshes the gallery's durable rejected state, and
+makes no further automatic refresh request over the next polling interval.
+Each case asserts the actual `POST …/refresh` response and persisted result;
+none uses ImageGen.
+
+The safety regression suite verifies that cancellation and `package_conflict`
+retain the local lease and nonzero queue exits become `outcome_unknown`. It no
+longer uses App Server `thread/read` for release: that API reports runtime
+status but cannot bind `idle` to this package's accepted queue message, so an
+idle task may still have this dispatch pending. The visible desktop App Server
+in this environment uses stdio and no `app-server-control` Unix socket is
+exposed to Plotloom's process. The only configured identity path is the
+server-owned `PLOTLOOM_CODEX_IMAGE_SPECIALIST_TASK_ID`; no running live
+Plotloom instance with that value was available for a read-only task-status
+probe. Starting another App Server would not establish authority over the
+existing desktop task. The safe current alternative is to retain the lease
+until accepted/inapplicable delivery; a future release mechanism needs a queue
+receipt correlated to this job.

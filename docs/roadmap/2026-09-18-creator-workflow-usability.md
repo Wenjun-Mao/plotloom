@@ -353,8 +353,8 @@ blocked pending explicit authorization after the final preflight.
 not prove the native task stopped, and the supported queue CLI offers no
 receipt identity proving that a nonzero exit did not accept a message. Those
 states therefore retain the one-worker host lease; only terminal delivery
-handling releases it, unless a later dispatch obtains exact-task `idle` status
-from the supported Codex App Server `thread/read` API. The deterministic
-Characters browser case covers valid automatic admission only.
-Partial/invalid/conflict-stop browser regressions remain open and must not be
-represented as completed evidence.
+handling releases it. Codex `thread/read` `idle` does not identify a queued
+message and may occur before an accepted queue request begins, so it cannot
+release this lease. The deterministic Characters browser coverage verifies
+partial-to-final admission, final-invalid persistence, and refreshed
+`package_conflict` state stopping further automatic polling.

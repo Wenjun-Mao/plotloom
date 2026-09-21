@@ -30,18 +30,19 @@ publication but are not evidence that the native task stopped; queue timeout
 or any nonzero CLI exit is equally ambiguous. Their leases remain reserved
 until a terminal delivery is admitted, rather than allowing a second specialist
 call to overlap a possibly running first one. Before a later job is rejected as
-busy, Plotloom may reconcile only the exact local task/job lease through the
-supported Codex App Server `thread/read` status: `idle` releases it; `active`,
-`notLoaded`, errors, or an unreadable response do not. This host-local status
-check neither rewrites the package nor treats product cancellation as worker
-termination.
+busy, Plotloom does not infer that the specialist stopped from Codex task
+status. `thread/read` describes current runtime state but does not identify a
+queued message or prove that an accepted queue request has begun; `idle` can
+therefore precede execution. This avoids treating product cancellation or a
+pending queue as worker termination.
 
 Releasing on cancellation, package conflict, or a nonzero queue exit was
 rejected: each is product or caller state, not a worker-stop acknowledgement.
 Timeout-based or blind stale-lease cleanup was also rejected because it could
-overlap two specialist executions. Lease acquisition, release, and idle
-reconciliation share one host-local lock, so a stale completion cannot remove
-a replacement lease.
+overlap two specialist executions. App Server status reconciliation was rejected
+because it cannot bind `idle` to this dispatch's accepted queue message. Lease
+acquisition and release share one host-local lock, so a stale completion cannot
+remove a replacement lease.
 
 Characters presents two distinct creator operations: creating a proposal only
 freezes its accepted-cast request; **发送给 specialist** explicitly queues it.

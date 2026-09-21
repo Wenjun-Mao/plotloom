@@ -5,16 +5,13 @@ path to a configured local task; queue acknowledgement is not delivery.
 """
 from __future__ import annotations
 
+import fcntl
 import json
 import os
-import select
 import subprocess
-import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-
-import fcntl
 
 from .image_job_contracts import ImageJobError
 
@@ -37,10 +34,6 @@ class NativeCodexImageDispatcher:
                     "image_dispatch_already_attempted",
                     "this image job already has a native dispatch attempt; it will not be resent automatically",
                 )
-            # A cancelled or conflicted package is not proof that its specialist
-            # stopped. Before rejecting a later job as busy, ask the supported
-            # app server whether this exact configured task is authoritatively idle.
-            self._reconcile_idle_worker_locked(active)
             try:
                 descriptor = os.open(
                     active, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
@@ -81,9 +74,8 @@ class NativeCodexImageDispatcher:
         if completed.returncode != 0:
             # The supported queue CLI exposes no receipt identity or outcome
             # guarantee for a nonzero exit.  It may have accepted the message
-            # before the caller lost acknowledgement, so terminal delivery or
-            # authoritative exact-task idle reconciliation may release this
-            # one-worker lease.
+            # before the caller lost acknowledgement. Only terminal delivery
+            # may release this one-worker lease.
             receipt.write_text(json.dumps({"jobId": job_id, "taskId": self.task_id, "state": "outcome_unknown"}), encoding="utf-8")
             raise ImageJobError(
                 "image_dispatch_outcome_unknown",
@@ -97,100 +89,6 @@ class NativeCodexImageDispatcher:
         active = self.state_root / "inflight.json"
         with self._lease_lock():
             self._release_if_owner_locked(active, job_id)
-
-    def reconcile_idle_worker(self) -> bool:
-        """Release only when app-server reports this exact task as idle."""
-
-        active = self.state_root / "inflight.json"
-        with self._lease_lock():
-            return self._reconcile_idle_worker_locked(active)
-
-    def _reconcile_idle_worker_locked(self, active: Path) -> bool:
-        try:
-            record = json.loads(active.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError):
-            return False
-        if (
-            not isinstance(record, dict)
-            or not isinstance(record.get("jobId"), str)
-            or record.get("taskId") != self.task_id
-        ):
-            return False
-        if self._thread_status() != "idle":
-            return False
-        self._release_if_owner_locked(active, record["jobId"])
-        return not active.exists()
-
-    def _thread_status(self) -> str | None:
-        """Read current task state through the supported app-server proxy."""
-
-        requests = "\n".join(
-            (
-                json.dumps(
-                    {
-                        "method": "initialize",
-                        "id": 1,
-                        "params": {
-                            "clientInfo": {
-                                "name": "plotloom_native_image_dispatch",
-                                "title": "Plotloom native image dispatch",
-                                "version": "1",
-                            }
-                        },
-                    }
-                ),
-                json.dumps({"method": "initialized", "params": {}}),
-                json.dumps(
-                    {
-                        "method": "thread/read",
-                        "id": 2,
-                        "params": {"threadId": self.task_id},
-                    }
-                ),
-            )
-        )
-        process: subprocess.Popen[str] | None = None
-        try:
-            process = subprocess.Popen(
-                [self.executable, "app-server", "proxy"],
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-            )
-            if process.stdin is None or process.stdout is None:
-                return None
-            process.stdin.write(f"{requests}\n")
-            process.stdin.flush()
-            deadline = time.monotonic() + 5
-            while time.monotonic() < deadline:
-                ready, _, _ = select.select(
-                    [process.stdout], [], [], deadline - time.monotonic()
-                )
-                if not ready:
-                    break
-                line = process.stdout.readline()
-                if not line:
-                    break
-                try:
-                    response = json.loads(line)
-                    status = response["result"]["thread"]["status"]["type"]
-                except (KeyError, TypeError, json.JSONDecodeError):
-                    continue
-                return status if isinstance(status, str) else None
-        except (OSError, ValueError):
-            return None
-        finally:
-            if process is not None:
-                try:
-                    process.terminate()
-                    process.wait(timeout=1)
-                except (OSError, subprocess.TimeoutExpired):
-                    try:
-                        process.kill()
-                    except OSError:
-                        pass
-        return None
 
     @contextmanager
     def _lease_lock(self):
