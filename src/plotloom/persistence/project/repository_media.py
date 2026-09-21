@@ -122,7 +122,7 @@ class ProjectMediaRepository:
     def create_character_reference_decision(
         self, project_id: str, *, character_id: str, primary_asset_id: str,
         complementary_asset_ids: list[str], expected_reference_revision: int,
-        reviewer: str, notes: str, authority: str,
+        reviewer: str | None, notes: str | None, authority: str,
     ) -> JsonObject:
         return self._references.create_character_reference_decision(
             project_id, character_id=character_id, primary_asset_id=primary_asset_id,

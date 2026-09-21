@@ -385,8 +385,8 @@ export interface CharacterReferenceDecision {
   primaryAssetId: string;
   complementaryAssetIds: string[];
   assetHashes: Array<{ assetId: string; originalHash: string }>;
-  reviewer: string;
-  notes: string;
+  reviewer: string | null;
+  notes: string | null;
   current: boolean;
   revokedAt: string | null;
   revokedBy: string | null;

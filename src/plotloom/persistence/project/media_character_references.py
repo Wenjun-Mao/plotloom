@@ -174,8 +174,8 @@ class CharacterReferencePersistence:
         primary_asset_id: str,
         complementary_asset_ids: list[str],
         expected_reference_revision: int,
-        reviewer: str,
-        notes: str,
+        reviewer: str | None,
+        notes: str | None,
         authority: str,
     ) -> dict[str, Any]:
         """Select, never infer, a compact stable-identity reference set."""
@@ -213,7 +213,8 @@ class CharacterReferencePersistence:
                 character_context_hash=stable_hash(context), primary_asset_id=primary_asset_id,
                 complementary_asset_ids=complementary_asset_ids,
                 asset_hashes=[{"assetId": asset.id, "originalHash": asset.original_hash} for asset in assets if asset is not None],
-                reviewer=reviewer.strip(), notes=notes.strip(), revoked_at=None, revoked_by=None,
+                reviewer=reviewer.strip() if reviewer else None,
+                notes=notes.strip() if notes else None, revoked_at=None, revoked_by=None,
                 revocation_reason=None, created_at=now,
             )
             session.add(decision)

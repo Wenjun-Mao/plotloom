@@ -84,8 +84,8 @@ class CharacterReferenceDecisionRequest(CamelModel):
     primary_asset_id: str = Field(min_length=1, max_length=36)
     complementary_asset_ids: list[str] = Field(default_factory=list, max_length=2)
     expected_reference_revision: int = Field(ge=0)
-    reviewer: str = Field(min_length=1, max_length=160)
-    notes: str = Field(min_length=1, max_length=2_000)
+    reviewer: str | None = Field(default=None, max_length=160)
+    notes: str | None = Field(default=None, max_length=2_000)
 
     @model_validator(mode="after")
     def reference_assets_are_distinct(self) -> "CharacterReferenceDecisionRequest":

@@ -125,7 +125,7 @@ export async function prepareProposalFromBrowser(
 ): Promise<Proposal> {
   const prepared = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals`);
-  await panel.getByRole("button", { name: "创建调整提案" }).click();
+  await panel.getByRole("button", { name: "创建提案" }).click();
   expect((await prepared).status()).toBe(201);
   const latest = await latestProposal(request, apiOrigin, projectId);
   await expect(panel.locator(`[data-proposal-id="${latest.id}"]`).getByRole("button", { name: "发送给 specialist" })).toBeEnabled();

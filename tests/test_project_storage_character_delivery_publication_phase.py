@@ -9,6 +9,7 @@ from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.project_storage.video_candidate_transition import (
     ProjectSchemaTransitionRequiredError,
+    expected_project_schema_objects,
     project_schema_status,
 )
 
@@ -78,3 +79,82 @@ def test_existing_character_folder_adds_publication_phase_on_admitted_open(tmp_p
     assert legacy_delivery == (
         delivery_id, "rejected", "delivery_partial", created_at, None,
     )
+
+
+def test_existing_character_folder_keeps_historic_selection_metadata_when_optional(tmp_path) -> None:
+    """The optional-metadata transition preserves prior authored values exactly."""
+
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application"
+    )
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id, database = store.manifest.project_id, store.database_path
+    store.close()
+    created_at = "2026-09-21 20:00:00.000000"
+    asset_id = "a" * 36
+    decision_id = "d" * 36
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            """
+            INSERT INTO v2_managed_assets
+              (id, project_id, original_uri, original_hash, display_uri, display_hash,
+               mime_type, byte_size, width, height, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (asset_id, project_id, "assets/original.png", "a" * 64,
+             "assets/display.png", "b" * 64, "image/png", 1, 1, 1, created_at),
+        )
+        connection.execute(
+            """
+            INSERT INTO v2_character_reference_decisions
+              (id, project_id, character_id, reference_revision, character_context,
+               character_context_hash, primary_asset_id, complementary_asset_ids, asset_hashes,
+               reviewer, notes, revoked_at, revoked_by, revocation_reason, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?)
+            """,
+            (decision_id, project_id, "legacy-character", 1, "{}", "c" * 64,
+             asset_id, "[]", "[]", "historic reviewer", "historic reason", created_at),
+        )
+        connection.execute("DROP INDEX ix_v2_character_reference_decisions_project_character")
+        connection.execute("DROP TABLE v2_character_reference_decisions")
+        predecessor = next(
+            statement for kind, name, _table, statement in expected_project_schema_objects(
+                include_video_candidate_selection=True
+            ) if kind == "table" and name == "v2_character_reference_decisions"
+        )
+        assert predecessor is not None
+        connection.execute(predecessor.replace(
+            "reviewer VARCHAR(160), \n\tnotes TEXT,",
+            "reviewer VARCHAR(160) NOT NULL, \n\tnotes TEXT NOT NULL,",
+        ))
+        connection.execute(
+            "CREATE INDEX ix_v2_character_reference_decisions_project_character "
+            "ON v2_character_reference_decisions (project_id, character_id, reference_revision)"
+        )
+        connection.execute(
+            """
+            INSERT INTO v2_character_reference_decisions
+              (id, project_id, character_id, reference_revision, character_context,
+               character_context_hash, primary_asset_id, complementary_asset_ids, asset_hashes,
+               reviewer, notes, revoked_at, revoked_by, revocation_reason, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, ?)
+            """,
+            (decision_id, project_id, "legacy-character", 1, "{}", "c" * 64,
+             asset_id, "[]", "[]", "historic reviewer", "historic reason", created_at),
+        )
+        connection.commit()
+
+    assert project_schema_status(database, project_id) == "character_selection_metadata_transition_required"
+    opened = storage.projects.open(project_id)
+    opened.close()
+    assert project_schema_status(database, project_id) == "current"
+    with sqlite3.connect(database) as connection:
+        row = connection.execute(
+            "SELECT reviewer, notes FROM v2_character_reference_decisions WHERE id = ?", (decision_id,)
+        ).fetchone()
+        nullable = {entry[1]: entry[3] for entry in connection.execute(
+            "PRAGMA table_info(v2_character_reference_decisions)"
+        )}
+    assert row == ("historic reviewer", "historic reason")
+    assert nullable["reviewer"] == 0
+    assert nullable["notes"] == 0

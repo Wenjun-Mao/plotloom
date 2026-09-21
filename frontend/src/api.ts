@@ -285,7 +285,7 @@ export class PlotloomApiClient {
   }
 
   selectCharacterReference(projectId: string, body: {
-    characterId: string; authority: "cast" | "story_bible"; primaryAssetId: string; complementaryAssetIds: string[]; expectedReferenceRevision: number; reviewer: string; notes: string;
+    characterId: string; authority: "cast" | "story_bible"; primaryAssetId: string; complementaryAssetIds: string[]; expectedReferenceRevision: number; reviewer?: string; notes?: string;
   }): Promise<CharacterReferenceDecision> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/character-references`, { method: "POST", body: JSON.stringify(body) });
   }

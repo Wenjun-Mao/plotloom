@@ -17,7 +17,7 @@ test.describe("Characters delivery observation", () => {
     const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "partial-final");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const gallery = page.getByTestId("character-reference-gallery");
-    await gallery.getByLabel("你想改什么").fill("Observe a partial package before its final original study.");
+    await gallery.getByLabel("想法").fill("Observe a partial package before its final original study.");
     const prepared = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
     let terminallyReleased = false;
     try {
@@ -46,7 +46,7 @@ test.describe("Characters delivery observation", () => {
       expect(await admitted.json()).toMatchObject({ state: "accepted" });
       terminallyReleased = true;
       await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, prepared.id)).deliveries[0]?.state).toBe("accepted");
-      await expect(gallery).toContainText("当前候选，未选择");
+      await expect(gallery.getByTestId("appearance-viewer")).toContainText("候选图片");
     } finally {
       if (!terminallyReleased) await resetDisposableRuntime(workbench, "after-partial-final-failure");
     }
@@ -57,7 +57,7 @@ test.describe("Characters delivery observation", () => {
     const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "final-invalid");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const gallery = page.getByTestId("character-reference-gallery");
-    await gallery.getByLabel("你想改什么").fill("Persist the final-invalid delivery diagnostic.");
+    await gallery.getByLabel("想法").fill("Persist the final-invalid delivery diagnostic.");
     const prepared = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
     let terminallyReleased = false;
     try {
@@ -97,7 +97,7 @@ test.describe("Characters delivery observation", () => {
     const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "final-partial");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const gallery = page.getByTestId("character-reference-gallery");
-    await gallery.getByLabel("你想改什么").fill("Expose final output-set integrity failure.");
+    await gallery.getByLabel("想法").fill("Expose final output-set integrity failure.");
     const prepared = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
     let terminallyReleased = false;
     try {
@@ -135,7 +135,7 @@ test.describe("Characters delivery observation", () => {
     const projectId = await createAcceptedCastOnlyProject(request, workbench.apiOrigin, "conflict-stop");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const gallery = page.getByTestId("character-reference-gallery");
-    await gallery.getByLabel("你想改什么").fill("Expose the immutable package conflict in the gallery.");
+    await gallery.getByLabel("想法").fill("Expose the immutable package conflict in the gallery.");
     const prepared = await prepareProposalFromBrowser(page, gallery, projectId, request, workbench.apiOrigin);
     let refreshRequests = 0;
     const observeRefresh = (browserRequest: import("@playwright/test").Request) => {

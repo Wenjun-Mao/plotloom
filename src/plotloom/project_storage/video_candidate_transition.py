@@ -14,6 +14,7 @@ from ..persistence.schema import (
     ArtReferenceProposalDeliveryRow,
     ArtReferenceProposalRow,
     Base,
+    CharacterReferenceDecisionRow,
     CharacterReferenceProposalDeliveryRow,
     PROJECT_TEXT_PIPELINE_TABLE_NAMES,
     VideoCandidateSelectionRow,
@@ -37,12 +38,18 @@ class ProjectCharacterDeliveryPublicationPhaseTransitionRequiredError(ProjectSch
     """A prior Characters folder needs final-publication provenance once."""
 
 
+class ProjectCharacterSelectionMetadataTransitionRequiredError(ProjectSchemaTransitionRequiredError):
+    """A prior Characters folder requires optional creator-selection metadata."""
+
+
 SchemaStatus = Literal[
     "current", "selection_transition_required", "art_reference_transition_required",
     "character_delivery_publication_phase_transition_required",
+    "character_selection_metadata_transition_required",
 ]
 _SELECTION_TABLE = VideoCandidateSelectionRow.__tablename__
 _CHARACTER_REFERENCE_DELIVERY_TABLE = CharacterReferenceProposalDeliveryRow.__tablename__
+_CHARACTER_REFERENCE_DECISION_TABLE = CharacterReferenceDecisionRow.__tablename__
 _ART_REFERENCE_TABLES = (
     ArtReferenceProposalRow.__table__,
     ArtReferenceProposalDeliveryRow.__table__,
@@ -118,6 +125,64 @@ def _is_current_schema_objects(actual: tuple[tuple[str, str, str, str | None], .
             include_video_candidate_selection=True,
             append_character_delivery_publication_phase=True,
         ),
+        _metadata_rebuilt_schema(
+            expected_project_schema_objects(include_video_candidate_selection=True)
+        ),
+        _metadata_rebuilt_schema(
+            expected_project_schema_objects(
+                include_video_candidate_selection=True,
+                append_character_delivery_publication_phase=True,
+            )
+        ),
+    }
+
+
+def _metadata_rebuilt_schema(
+    schema: tuple[tuple[str, str, str, str | None], ...],
+) -> tuple[tuple[str, str, str, str | None], ...]:
+    """Match SQLite's deterministic quoting after the required table rename."""
+
+    result: list[tuple[str, str, str, str | None]] = []
+    for kind, name, table_name, statement in schema:
+        if name == _CHARACTER_REFERENCE_DECISION_TABLE and statement is not None:
+            statement = statement.replace(
+                f"CREATE TABLE {_CHARACTER_REFERENCE_DECISION_TABLE}",
+                f'CREATE TABLE "{_CHARACTER_REFERENCE_DECISION_TABLE}"',
+                1,
+            )
+        result.append((kind, name, table_name, statement))
+    return tuple(result)
+
+
+def _required_character_selection_metadata_schema(
+    schema: tuple[tuple[str, str, str, str | None], ...],
+) -> tuple[tuple[str, str, str, str | None], ...]:
+    """Describe the direct predecessor with required reviewer and notes fields."""
+
+    result: list[tuple[str, str, str, str | None]] = []
+    for kind, name, table_name, statement in schema:
+        if name == _CHARACTER_REFERENCE_DECISION_TABLE and statement is not None:
+            statement = statement.replace(
+                "reviewer VARCHAR(160), \n\tnotes TEXT,",
+                "reviewer VARCHAR(160) NOT NULL, \n\tnotes TEXT NOT NULL,",
+            )
+        result.append((kind, name, table_name, statement))
+    return tuple(result)
+
+
+def _requires_character_selection_metadata_transition(
+    actual: tuple[tuple[str, str, str, str | None], ...],
+) -> bool:
+    return actual in {
+        _required_character_selection_metadata_schema(
+            expected_project_schema_objects(include_video_candidate_selection=True)
+        ),
+        _required_character_selection_metadata_schema(
+            expected_project_schema_objects(
+                include_video_candidate_selection=True,
+                append_character_delivery_publication_phase=True,
+            )
+        ),
     }
 
 
@@ -148,6 +213,8 @@ def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
         )
     if _is_current_schema_objects(actual):
         return "current"
+    if _requires_character_selection_metadata_transition(actual) and user_version == (0,):
+        return "character_selection_metadata_transition_required"
     if (
         actual
         == expected_project_schema_objects(
@@ -191,6 +258,10 @@ def transition_required_error(
     if status == "character_delivery_publication_phase_transition_required":
         return ProjectCharacterDeliveryPublicationPhaseTransitionRequiredError(
             f"character delivery publication-phase transition requires {reason}"
+        )
+    if status == "character_selection_metadata_transition_required":
+        return ProjectCharacterSelectionMetadataTransitionRequiredError(
+            f"character selection metadata transition requires {reason}"
         )
     raise AssertionError(f"current project schema does not need a transition: {status}")
 
@@ -257,6 +328,42 @@ def transition_project_schema(
                     connection.exec_driver_sql(
                         f"ALTER TABLE {_CHARACTER_REFERENCE_DELIVERY_TABLE} "
                         "ADD COLUMN publication_phase VARCHAR(24)"
+                    )
+                elif status == "character_selection_metadata_transition_required":
+                    current_schema = expected_project_schema_objects(
+                        include_video_candidate_selection=True
+                    )
+                    create_statement = next(
+                        statement for _kind, name, _table, statement in current_schema
+                        if name == _CHARACTER_REFERENCE_DECISION_TABLE and statement is not None
+                    )
+                    temporary_table = f"{_CHARACTER_REFERENCE_DECISION_TABLE}_metadata_transition"
+                    connection.exec_driver_sql(
+                        create_statement.replace(
+                            f"CREATE TABLE {_CHARACTER_REFERENCE_DECISION_TABLE}",
+                            f"CREATE TABLE {temporary_table}",
+                            1,
+                        )
+                    )
+                    columns = (
+                        "id, project_id, character_id, reference_revision, character_context, "
+                        "character_context_hash, primary_asset_id, complementary_asset_ids, asset_hashes, "
+                        "reviewer, notes, revoked_at, revoked_by, revocation_reason, created_at"
+                    )
+                    connection.exec_driver_sql(
+                        f"INSERT INTO {temporary_table} ({columns}) "
+                        f"SELECT {columns} FROM {_CHARACTER_REFERENCE_DECISION_TABLE}"
+                    )
+                    connection.exec_driver_sql(
+                        "DROP INDEX ix_v2_character_reference_decisions_project_character"
+                    )
+                    connection.exec_driver_sql(f"DROP TABLE {_CHARACTER_REFERENCE_DECISION_TABLE}")
+                    connection.exec_driver_sql(
+                        f"ALTER TABLE {temporary_table} RENAME TO {_CHARACTER_REFERENCE_DECISION_TABLE}"
+                    )
+                    connection.exec_driver_sql(
+                        "CREATE INDEX ix_v2_character_reference_decisions_project_character "
+                        "ON v2_character_reference_decisions (project_id, character_id, reference_revision)"
                     )
                 else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
                     raise AssertionError(f"unsupported project transition: {status}")

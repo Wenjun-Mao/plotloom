@@ -386,3 +386,33 @@ pending polls → one accepted candidate, a final-invalid rejection, and an
 explicit post-marker `delivery_partial` rejection. Static assets are refreshed.
 The real generated candidate is also verified through project-managed asset
 serving, independent of staging.
+
+## U3 unified Appearance workspace — 2026-09-21
+
+**Approved step and deliverable.** Replace the disconnected Characters
+selection, adjustment, and candidate blocks with one image-first Appearance
+workspace. It has a large viewed image with enlarge access, recognizable
+thumbnails, practical two-image comparison, and unambiguous labels for the
+viewed image versus the selected identity reference. Selection appears beside
+the viewed image. One ideas field has two explicit modes: **基于当前图片修改**
+freezes the viewed image as the parent, while **尝试全新方案** uses no parent.
+The existing native proposal dispatch/observation path remains the only send
+and delivery path; returned candidates join the gallery unselected.
+
+**Contract change and evidence.** Reviewer and rationale are not required for
+this creator stage. The selection request/domain contract must own that change;
+the browser must not invent hidden reviewer or reason values. Existing
+decisions, proposals, failed deliveries, selection version/currentness checks,
+accepted-cast session guards, and cancellation safety remain retained. Completed,
+cancelled, and attempted proposals must communicate their true state and cannot
+offer a Send action that only fails. Focused browser flows cover
+select/create/send/observe behavior, draft and session isolation, comparison and
+enlarge behavior, plus wide/narrow visual inspection using retained images and
+deterministic fixtures.
+
+**Exclusions and stop condition.** No new media generation, provider/settings
+platform work, H3/Qwen integration, new media owner, or unrelated stage redesign
+is authorized. Technical instructions and provenance stay available in folded
+detail. Stop for a material scope or contract tradeoff; otherwise deliver the
+small cohesive workspace, regenerated static assets, independent stable-delta
+review, and a fresh local production preview for attended creator inspection.

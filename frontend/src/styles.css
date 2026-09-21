@@ -618,6 +618,35 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .reference-card-actions .button { min-height: 28px; padding: 5px 7px; font-size: 10px; }
 .reference-card-grid > .transient-delivery-history { grid-column: 1 / -1; max-width: none; margin-top: 0; }
 .transient-delivery-history ul { max-height: 180px; padding: 0 24px 10px; margin: 0; overflow: auto; color: var(--dim); font: 10px/1.5 var(--mono); }
+.appearance-workspace { display: grid; gap: 14px; padding: 18px; margin: 24px 0 32px; border: 1px solid var(--line); border-radius: 9px; background: rgba(17,21,27,.6); }
+.appearance-viewer { display: grid; gap: 12px; min-width: 0; }
+.appearance-viewer-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
+.appearance-viewer-heading > div { display: grid; gap: 3px; }
+.appearance-viewer > img { display: block; width: 100%; max-height: min(64vw, 620px); min-height: 340px; object-fit: contain; border: 1px solid var(--line-strong); border-radius: 7px; background: #07090c; }
+.appearance-viewer .reference-no-image { min-height: 340px; padding: 18px; margin: 0; }
+.appearance-thumbnails { display: flex; gap: 9px; min-width: 0; padding: 2px; overflow-x: auto; }
+.appearance-thumbnail { display: grid; flex: 0 0 112px; gap: 6px; padding: 5px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: #0b0f14; text-align: left; }
+.appearance-thumbnail:hover, .appearance-thumbnail.viewing { border-color: rgba(126,212,247,.6); color: var(--text); }
+.appearance-thumbnail.selected { border-color: rgba(103,205,165,.6); }
+.appearance-thumbnail > img, .appearance-thumbnail .reference-missing-asset { width: 100px; height: 78px; min-height: 78px; object-fit: cover; }
+.appearance-thumbnail span { padding: 0 2px; font-size: 10px; }
+.appearance-compare-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding-top: 3px; color: var(--muted); font-size: 11px; }
+.appearance-compare-controls .button { min-height: 27px; padding: 4px 7px; font-size: 10px; }
+.appearance-compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px; border: 1px solid rgba(126,212,247,.3); border-radius: 6px; background: rgba(126,212,247,.04); }
+.appearance-compare figure { display: grid; gap: 7px; min-width: 0; margin: 0; }
+.appearance-compare figcaption { color: var(--blue); font: 700 10px var(--mono); }
+.appearance-compare img, .appearance-compare .reference-missing-asset { width: 100%; height: min(34vw, 360px); min-height: 180px; object-fit: contain; background: #07090c; }
+.appearance-compare > .button { grid-column: 1 / -1; justify-self: end; }
+.appearance-ideas { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
+.appearance-ideas h3 { margin: -5px 0 0; font-size: 18px; }
+.appearance-ideas p { margin: 0; color: var(--muted); font-size: 12px; }
+.appearance-mode { display: flex; flex-wrap: wrap; gap: 7px; }
+.appearance-dialog { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(0,0,0,.78); }
+.appearance-dialog > div { display: grid; justify-items: end; gap: 10px; width: min(1050px, 100%); max-height: 100%; }
+.appearance-dialog img, .appearance-dialog .reference-missing-asset { max-width: 100%; max-height: calc(100vh - 100px); object-fit: contain; background: #07090c; }
+.proposal-lifecycle-status { color: var(--dim); font-size: 10px; }
+
+@media (max-width: 620px) { .appearance-workspace { padding: 13px; }.appearance-viewer > img, .appearance-viewer .reference-no-image { min-height: 250px; }.appearance-compare { grid-template-columns: 1fr; }.appearance-compare > .button { grid-column: auto; }.appearance-compare img, .appearance-compare .reference-missing-asset { height: min(75vw, 360px); }.appearance-viewer-heading { align-items: start; flex-direction: column; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
