@@ -115,3 +115,27 @@ after reopen/save cannot surface an old action error. A production-browser proof
 exercises cast accept, reopen, and save against the FastAPI/file-SQLite fixture
 and checks the gallery's r1 → read-only reopened → editable r2 sequence. These
 guardrails remain presentation-only and preserve the existing F2A/F2B contracts.
+
+## Characters workspace usability amendment — 2026-09-20
+
+The integrated surface still exposed its implementation hierarchy: the global
+shell repeated stages 01–05 in a context rail, always-open inspector data
+consumed working width, accepted cast text was reduced to a hash and reopen
+control, and one mixed image-action form combined a selection decision with a
+future refinement request. These were presentation defects, not missing owners
+or lifecycle guards.
+
+The sidebar remains the one primary stage navigation. Project context and
+inspector status remain reachable in a closed, keyboard-accessible “查看技术详情”
+disclosure. The accepted cast renders its retained author text first, with
+“编辑角色设定” as the explicit existing reopen action and a separate “创建新角色
+提案” action that only prepares its existing manual task. Image review separates
+“选用这张图” (reviewer, reason, and existing CAS selection) from “基于这张图
+调整” (recognizable parent thumbnail and direction). Its creation continues to
+prepare only a manual task; copy, refresh, and cancel remain separate actions.
+Frozen directions, copied task text, IDs, hashes, and delivery provenance stay
+available only through closed details.
+
+This changes no F2A/F2B API, persistence, provider, generation, selection,
+reviewer/notes, asset, or cast-session ownership contract. The session guards
+remain the authority for all reads and mutations.

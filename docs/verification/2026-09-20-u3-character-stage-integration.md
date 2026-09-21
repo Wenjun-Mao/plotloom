@@ -142,3 +142,40 @@ rejection after reopen → save. The added focused selection regression holds th
 request, settles r2, then rejects it and proves no stale error appears. The
 narrow Terra/high re-review found **no findings**. It did not run checks or alter
 source; the executions listed here remain the delivery evidence.
+
+## Characters usability correction — 2026-09-20
+
+**Root cause and boundary.** The retained Characters route had two competing
+stage navigations, permanent diagnostic rails, a hash-first accepted cast, and
+one form that mixed explicit image selection with future adjustment work. The
+correction keeps the sidebar as the only primary stage navigation; moves project
+context and inspector data into closed accessible technical details; renders the
+accepted cast before its explicit existing edit action; and separates “选用这张图”
+from “基于这张图调整”. The latter shows the chosen parent thumbnail and only
+creates a manual task. No API, persistence, provider, generation, decision CAS,
+reviewer/notes, managed-asset, or cast-session contract changed.
+
+**Executed checks.** `npm test` passed: 19 files / 177 tests. `npm run
+typecheck` and `npm run typecheck:e2e` passed. `npx playwright test
+e2e/cast-reference-studies.spec.ts --config playwright.config.ts --reporter=line`
+passed all 5 production FastAPI/file-SQLite scenarios, including one-primary-nav,
+closed-details, task grouping, control-height, existing cast-session, stale, and
+project-change regressions. `npx playwright test e2e/story-prototype.spec.ts
+--config playwright.config.ts --reporter=line` passed 3 scenarios. Two successive
+`npm run build:deterministic` runs produced fresh production static assets; Vite
+reported only its existing >500 kB chunk advisory.
+
+**Personal production-static inspection.** With no service restart and no data
+mutation, the retained H3-disabled walkthrough at
+`http://127.0.0.1:49072/v2/?project=e31b1149-edb6-4611-b76c-accd4210fc22&stage=characters`
+was inspected at 1920×1080, 768×960, and 480×900. The closed technical details,
+accepted text, explicit edit/new-proposal actions, selected image, adjustment
+parent thumbnail, and collapsed frozen-direction details were followed in the
+browser. The initial independent review found narrow topbar controls collapsing
+and shell-level technical leakage; both were corrected before closeout. Final
+768×960 and 480×900 captures are
+`.playwright-cli/page-2026-09-21T01-15-18-397Z.png` and
+`.playwright-cli/page-2026-09-21T01-15-19-370Z.png`: controls retain readable
+button widths and project/profile diagnostics remain inside closed details. A
+Terra/high read-only re-review found **no findings**. This is technical visual
+evidence only; attended creator acceptance remains pending.

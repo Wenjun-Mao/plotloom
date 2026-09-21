@@ -25,30 +25,30 @@ test.describe("F2B cast-owned reference studies", () => {
     const { projectId } = await createCastReadyProject(request, workbench.apiOrigin, "session-sync");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const cast = page.getByTestId("cast-review");
-    await expect(cast.getByRole("button", { name: "显式接受此角色提案" })).toBeEnabled();
+    await expect(cast.getByRole("button", { name: "接受这份角色设定" })).toBeEnabled();
 
     const accepting = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/accept`);
-    await cast.getByRole("button", { name: "显式接受此角色提案" }).click();
+    await cast.getByRole("button", { name: "接受这份角色设定" }).click();
     expect((await accepting).ok()).toBeTruthy();
     const gallery = page.getByTestId("character-reference-gallery");
     await expect(gallery).toContainText("已接受角色 r1");
-    await expect(gallery.getByLabel("细化方向")).toBeEditable();
+    await expect(gallery.getByLabel("你想改什么")).toBeEditable();
 
     const reopening = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/reopen`);
-    await cast.getByRole("button", { name: "重新打开角色提案" }).click();
+    await cast.getByRole("button", { name: "编辑角色设定" }).click();
     expect((await reopening).ok()).toBeTruthy();
     await expect(gallery).toContainText("已接受角色已过期");
-    await expect(gallery.getByLabel("细化方向")).toBeDisabled();
+    await expect(gallery.getByLabel("你想改什么")).toBeDisabled();
 
     const saving = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/save`);
     await cast.getByRole("button", { name: "保存重新打开的角色" }).click();
     expect((await saving).ok()).toBeTruthy();
     await expect(gallery).toContainText("已接受角色 r2");
-    await expect(gallery.getByLabel("细化方向")).toBeEditable();
-    await expect(gallery.getByLabel("细化方向")).toHaveValue("");
+    await expect(gallery.getByLabel("你想改什么")).toBeEditable();
+    await expect(gallery.getByLabel("你想改什么")).toHaveValue("");
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
   });
 
@@ -60,15 +60,20 @@ test.describe("F2B cast-owned reference studies", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const panel = page.getByTestId("character-reference-gallery");
     await expect(panel).toBeVisible();
-    await expect(panel).toContainText("不会自动调用 ImageGen");
+    await expect(page.getByRole("navigation", { name: "工作台阶段" })).toHaveCount(1);
+    await expect(page.locator(".workspace-technical-details")).not.toHaveAttribute("open", "");
+    await expect(page.locator(".topbar-technical-status")).not.toHaveAttribute("open", "");
+    await expect(page.getByText("readiness.not_checked", { exact: false })).not.toBeVisible();
+    await expect(page.locator(".project-switcher")).not.toContainText(projectId);
+    await expect(panel).toContainText("不会自动生成");
     // U3 admits this cast-only project before it has any reference image. It
     // must not reach for a Bible, screenplay, or storyboard to fill the gap.
     const emptyGallery = page.getByTestId("character-reference-gallery");
     await expect(emptyGallery).toContainText("尚未选择身份参考");
     await expect(emptyGallery.getByTestId("reference-no-image")).toBeVisible();
     await panel.getByLabel("审阅者").fill("F2B browser fixture reviewer");
-    await panel.getByLabel("选择说明").fill("Retained test-only raster fixture; this is a technical regression selection.");
-    await panel.getByLabel("细化方向").fill("Three-quarter study at the storm beacon window.");
+    await panel.getByLabel("选择理由").fill("Retained test-only raster fixture; this is a technical regression selection.");
+    await panel.getByLabel("你想改什么").fill("Three-quarter study at the storm beacon window.");
     const original = await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
     const originalPackage = await copyProposalFromBrowser(page, projectId, original.id);
     await writeProposalDelivery(originalPackage.deliveryPath, original, "f2b-original-browser", "original");
@@ -76,19 +81,19 @@ test.describe("F2B cast-owned reference studies", () => {
     const deliveredOriginal = await proposal(request, workbench.apiOrigin, projectId, original.id);
     const originalCandidate = deliveredOriginal.deliveries[0]!.candidates[0]!.assetId;
     const originalCandidateId = deliveredOriginal.deliveries[0]!.candidates[0]!.id;
-    await panel.getByRole("button", { name: "选择身份参考" }).click();
+    await panel.getByRole("button", { name: "选用这张图" }).click();
     await expect(panel).toContainText("已选择身份参考 r1");
 
-    await panel.getByRole("button", { name: "用作细化父图" }).click();
-    await expect(panel.getByLabel("细化父图")).toHaveValue(originalCandidate);
-    await panel.getByLabel("细化方向").fill("Keep the parent identity and clarify the rain-lit eyebrow anchor.");
+    await panel.getByRole("button", { name: "作为调整父图" }).click();
+    await expect(panel.getByLabel("作为依据的父图")).toHaveValue(originalCandidate);
+    await panel.getByLabel("你想改什么").fill("Keep the parent identity and clarify the rain-lit eyebrow anchor.");
     const refinement = await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
     expect(refinement.parentCandidateAssetId).toBe(originalCandidate);
     const refinementPackage = await copyProposalFromBrowser(page, projectId, refinement.id);
     await writeProposalDelivery(refinementPackage.deliveryPath, refinement, "f2b-refinement-browser", "refinement");
     await refreshProposalFromBrowser(page, projectId, refinement.id);
-    await panel.getByLabel("选择说明").fill("Refinement fixture selected after explicit review.");
-    await panel.getByRole("button", { name: "选择身份参考" }).last().click();
+    await panel.getByLabel("选择理由").fill("Refinement fixture selected after explicit review.");
+    await panel.getByRole("button", { name: "选用这张图" }).last().click();
     await expect(panel).toContainText("已选择身份参考 r2");
 
     await page.reload();
@@ -106,12 +111,18 @@ test.describe("F2B cast-owned reference studies", () => {
     try {
       await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
       const gallery = page.getByTestId("character-reference-gallery");
-      await expect(gallery).toContainText("为未来镜头建立这个角色的外观");
+      await expect(gallery).toContainText("外观参考");
       await expect(gallery.getByText("当前已选择的身份参考", { exact: true })).toBeVisible();
       await expect(gallery.getByRole("img").first()).toBeVisible();
       const selectedCard = gallery.getByTestId(`reference-candidate-${originalCandidate}`);
       await expect(selectedCard).toContainText("当前已选择");
-      await selectedCard.getByText("查看生成说明", { exact: true }).click();
+      await expect(gallery.getByRole("heading", { name: "选用这张图" })).toBeVisible();
+      await expect(gallery.getByRole("heading", { name: "基于这张图调整" })).toBeVisible();
+      await expect(selectedCard.locator("details")).not.toHaveAttribute("open", "");
+      const reviewerBox = await gallery.getByLabel("审阅者").boundingBox();
+      const parentBox = await gallery.getByLabel("作为依据的父图").boundingBox();
+      expect(reviewerBox?.height).toBe(parentBox?.height);
+      await selectedCard.getByText("查看生成指令与技术详情", { exact: true }).click();
       await expect(selectedCard).toContainText("Three-quarter study at the storm beacon window.");
       await expect(gallery.getByText("来源父图", { exact: true })).toBeVisible();
       const parentLink = gallery.getByRole("link", { name: "原始候选" });
@@ -119,12 +130,14 @@ test.describe("F2B cast-owned reference studies", () => {
       await parentLink.click();
       await expect(page).toHaveURL(new RegExp(`#reference-candidate-${originalCandidateId}$`));
       await expect(page.locator(`#reference-candidate-${originalCandidateId}`)).toBeFocused();
-      await selectedCard.getByText("技术详情", { exact: true }).click();
+      await expect(selectedCard.locator("details")).toHaveCount(1);
       await expect(selectedCard).toContainText("请求标识");
       await expect(selectedCard).toContainText("来源");
       await page.screenshot({ path: testInfo.outputPath("u3-character-reference-gallery-1440x900.png"), animations: "disabled" });
       await page.setViewportSize({ width: 768, height: 900 });
       await expect(gallery.getByRole("img").first()).toBeVisible();
+      const refreshBox = await page.getByRole("button", { name: "刷新服务器版本" }).boundingBox();
+      expect(refreshBox?.width).toBeGreaterThan(80);
       await page.screenshot({ path: testInfo.outputPath("u3-character-reference-gallery-768x900.png"), animations: "disabled" });
     } finally {
       page.off("request", recordGalleryRequest);
@@ -163,16 +176,16 @@ test.describe("F2B cast-owned reference studies", () => {
     const panel = page.getByTestId("character-reference-gallery");
     await expect(panel).toBeVisible();
 
-    await panel.getByLabel("细化方向").fill("Prepared study cancelled before any copy.");
+    await panel.getByLabel("你想改什么").fill("Prepared study cancelled before any copy.");
     await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
-    await panel.getByRole("button", { name: "取消 handoff" }).click();
+    await panel.getByRole("button", { name: "取消手动任务" }).click();
     await expect(panel).toContainText("已取消，未交付");
 
-    await panel.getByLabel("细化方向").fill("Exported study whose late package must not publish.");
+    await panel.getByLabel("你想改什么").fill("Exported study whose late package must not publish.");
     const exported = await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
     const exportedPackage = await copyProposalFromBrowser(page, projectId, exported.id);
     await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, exported.id)).state).toBe("exported");
-    await panel.getByRole("button", { name: "取消 handoff" }).first().click();
+    await panel.getByRole("button", { name: "取消手动任务" }).first().click();
     await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, exported.id)).state).toBe("cancelled");
     await writeProposalDelivery(exportedPackage.deliveryPath, exported, "f2b-cancelled-late", "original");
     await getJson(request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-reference-proposals/${exported.id}/refresh`));
@@ -215,7 +228,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=characters`);
     const firstPanel = page.getByTestId("character-reference-gallery");
     await expect(firstPanel).toBeVisible();
-    await firstPanel.getByLabel("细化方向").fill("Held first-project study.");
+    await firstPanel.getByLabel("你想改什么").fill("Held first-project study.");
 
     let releasePreparation: (() => void) | undefined;
     let signalPreparation: (() => void) | undefined;
@@ -234,12 +247,12 @@ test.describe("F2B cast-owned reference studies", () => {
     };
     await page.route(`**/api/v2/projects/${firstProjectId}/character-reference-proposals`, heldRoute);
     try {
-      await firstPanel.getByRole("button", { name: "准备手动细化 handoff" }).click();
+      await firstPanel.getByRole("button", { name: "创建调整提案" }).click();
       await preparationStarted;
       await switchProjectInDirectory(page, secondProjectId);
       await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^02 角色/ }).click();
       const secondPanel = page.getByTestId("character-reference-gallery");
-      const secondDirection = secondPanel.getByLabel("细化方向");
+      const secondDirection = secondPanel.getByLabel("你想改什么");
       await expect(secondDirection).toBeEditable();
       await secondDirection.fill("Second-project direction must survive the first request.");
       releasePreparation?.();
@@ -400,10 +413,10 @@ async function writeCastDelivery(prepared: any): Promise<void> {
 
 async function copyProposalFromBrowser(page: import("@playwright/test").Page, projectId: string, proposalId: string): Promise<PackagePaths> {
   const proposalCard = page.locator(`[data-proposal-id="${proposalId}"]`);
-  await expect(proposalCard.getByRole("button", { name: "复制 handoff" })).toBeEnabled();
+  await expect(proposalCard.getByRole("button", { name: "复制手动任务" })).toBeEnabled();
   const copied = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals/${proposalId}/copy`);
-  await proposalCard.getByRole("button", { name: "复制 handoff" }).click();
+  await proposalCard.getByRole("button", { name: "复制手动任务" }).click();
   const response = await copied;
   expect(response.ok(), await response.text()).toBeTruthy();
   return response.json() as Promise<PackagePaths>;
@@ -418,10 +431,10 @@ async function prepareProposalFromBrowser(
 ): Promise<Proposal> {
   const prepared = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals`);
-  await panel.getByRole("button", { name: "准备手动细化 handoff" }).click();
+  await panel.getByRole("button", { name: "创建调整提案" }).click();
   expect((await prepared).status()).toBe(201);
   const latest = await latestProposal(request, apiOrigin, projectId);
-  await expect(panel.locator(`[data-proposal-id="${latest.id}"]`).getByRole("button", { name: "复制 handoff" })).toBeEnabled();
+  await expect(panel.locator(`[data-proposal-id="${latest.id}"]`).getByRole("button", { name: "复制手动任务" })).toBeEnabled();
   return latest;
 }
 

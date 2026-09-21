@@ -150,9 +150,9 @@ it("does not refresh an old image mutation after reopening invalidates its cast 
   await renderProject("project");
   const notes = host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement;
   await act(async () => { changeValue(notes, "Explicit reviewer note"); });
-  await act(async () => { button("选择身份参考").click(); await Promise.resolve(); });
-  expect(button("重新打开角色提案").disabled).toBe(false);
-  await act(async () => { button("重新打开角色提案").click(); await Promise.resolve(); });
+  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
+  expect(button("编辑角色设定").disabled).toBe(false);
+  await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("已接受角色已过期");
   const galleryReadsBeforeOldSuccess = vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length;
@@ -173,11 +173,11 @@ it("does not retain a copied assignment from a cast session invalidated in fligh
   vi.spyOn(plotloomApi, "reopenCast").mockImplementation(() => reopening.promise);
 
   await renderProject("project");
-  await act(async () => { button("复制 handoff").click(); await Promise.resolve(); });
-  await act(async () => { button("重新打开角色提案").click(); await Promise.resolve(); });
+  await act(async () => { button("复制手动任务").click(); await Promise.resolve(); });
+  await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("角色文字正在更新");
-  expect(button("复制 handoff").disabled).toBe(true);
+  expect(button("复制手动任务").disabled).toBe(true);
   await act(async () => { copied.resolve({ assignment: "old-session assignment must not appear" }); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).not.toContain("old-session assignment must not appear");
@@ -202,7 +202,7 @@ it("replaces a held initial gallery read after reopen and save settle a newer sa
 
   await renderProject("project");
   await flushReact();
-  await act(async () => { button("重新打开角色提案").click(); await Promise.resolve(); });
+  await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
   await flushReact();
@@ -223,7 +223,7 @@ it("does not surface a rejected mutation from a prior subject session", async ()
   await renderProject("project");
   await act(async () => { changeValue(host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement, "Keeper note"); });
   await flushReact();
-  await act(async () => { button("选择身份参考").click(); await Promise.resolve(); });
+  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
   expect(plotloomApi.selectCharacterReference).toHaveBeenCalledTimes(1);
   await act(async () => { (host.querySelectorAll(".reference-subjects button")[1] as HTMLButtonElement).click(); await Promise.resolve(); });
   const galleryReadsBeforeOldFailure = vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length;
@@ -258,14 +258,14 @@ it("rejects an old held refresh after the same subject is reopened and saved at 
   const notes = host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement;
   await act(async () => { changeValue(notes, "Commit the keeper note before dispatching."); });
   await flushReact();
-  await act(async () => { button("选择身份参考").click(); await Promise.resolve(); });
+  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
   expect(plotloomApi.selectCharacterReference).toHaveBeenCalledTimes(1);
   phase = "held";
   await act(async () => { selection.resolve({}); await Promise.resolve(); });
   await flushReact();
 
   phase = "newer";
-  await act(async () => { button("重新打开角色提案").click(); await Promise.resolve(); });
+  await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
   await flushReact();
@@ -302,14 +302,14 @@ it("rejects an old held refresh error after the same subject reaches a newer acc
   const notes = host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement;
   await act(async () => { changeValue(notes, "Commit the keeper note before dispatching."); });
   await flushReact();
-  await act(async () => { button("选择身份参考").click(); await Promise.resolve(); });
+  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
   expect(plotloomApi.selectCharacterReference).toHaveBeenCalledTimes(1);
   phase = "held";
   await act(async () => { selection.resolve({}); await Promise.resolve(); });
   await flushReact();
 
   phase = "newer";
-  await act(async () => { button("重新打开角色提案").click(); await Promise.resolve(); });
+  await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
   await flushReact();
@@ -336,10 +336,10 @@ it("rejects a late image-mutation error after the same subject is reopened and s
   const notes = host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement;
   await act(async () => { changeValue(notes, "Commit the selection note before dispatching."); });
   await flushReact();
-  await act(async () => { button("选择身份参考").click(); await Promise.resolve(); });
+  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
   expect(plotloomApi.selectCharacterReference).toHaveBeenCalledTimes(1);
 
-  await act(async () => { button("重新打开角色提案").click(); await Promise.resolve(); });
+  await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
   await flushReact();
@@ -363,29 +363,29 @@ it("remounts same-subject controls across a reopened-and-saved cast session", as
   vi.spyOn(plotloomApi, "saveReopenedCast").mockResolvedValue(castAtRevision(newer, "accepted", 2) as any);
 
   await renderProject("project");
-  const direction = host.querySelector('textarea[placeholder*="描述本次外观研究"]') as HTMLTextAreaElement;
+  const direction = host.querySelector('textarea[placeholder*="描述要保留"]') as HTMLTextAreaElement;
   await act(async () => { changeValue(direction, "Old session direction must be discarded."); });
   await flushReact();
-  await act(async () => { button("准备手动细化 handoff").click(); await Promise.resolve(); });
+  await act(async () => { button("创建调整提案").click(); await Promise.resolve(); });
   expect(plotloomApi.prepareCharacterReferenceProposal).toHaveBeenCalledTimes(1);
 
-  await act(async () => { button("重新打开角色提案").click(); await Promise.resolve(); });
+  await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
   await flushReact();
-  const freshDirection = host.querySelector('textarea[placeholder*="描述本次外观研究"]') as HTMLTextAreaElement;
+  const freshDirection = host.querySelector('textarea[placeholder*="描述要保留"]') as HTMLTextAreaElement;
   expect(freshDirection.disabled).toBe(false);
   expect(freshDirection.value).toBe("");
   expect((host.querySelector("select") as HTMLSelectElement).value).toBe("");
 
   await act(async () => { changeValue(freshDirection, "Fresh session direction dispatches."); });
   await flushReact();
-  await act(async () => { button("准备手动细化 handoff").click(); await Promise.resolve(); });
+  await act(async () => { button("创建调整提案").click(); await Promise.resolve(); });
   expect(plotloomApi.prepareCharacterReferenceProposal).toHaveBeenCalledTimes(2);
   await act(async () => { preparation.resolve({ assignment: "old assignment must not appear" }); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).not.toContain("old assignment must not appear");
-  expect((host.querySelector('textarea[placeholder*="描述本次外观研究"]') as HTMLTextAreaElement).disabled).toBe(false);
+  expect((host.querySelector('textarea[placeholder*="描述要保留"]') as HTMLTextAreaElement).disabled).toBe(false);
 });
 
 it("recovers a failed hero when its preserved component receives another subject identity", async () => {

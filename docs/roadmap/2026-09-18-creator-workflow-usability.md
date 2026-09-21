@@ -293,3 +293,22 @@ next action. The browser proof drives accept → reopen → save on the producti
 fixture. Backend/API/provider/persistence/data work, UI redesign, generation,
 creative acceptance, and a restart of the retained port-49072 preview remain
 excluded. Human creator-usability acceptance is still pending.
+
+## U3 Characters usability correction — 2026-09-20
+
+**Approved step and deliverable.** Correct the retained `stage=characters`
+workspace presentation after the U3 session closeout: one primary stage
+navigation; context and inspector status in a closed accessible technical
+disclosure; readable accepted cast text with explicit edit and separate manual
+new-proposal actions; and unambiguous, separate image-selection and
+parent-based-adjustment tasks. The deliverable includes focused browser layout
+and interaction assertions, regenerated static assets, the ADR 0071 amendment,
+and the integration receipt.
+
+**Evidence and exclusions.** The shell’s duplicated 01–05 context navigation,
+always-open diagnostics, hash-first accepted cast, and mixed selection/refinement
+form were observed presentation defects. This correction removes no access to
+technical context and changes no API, schema, persistence, provider, generation,
+selection CAS, reviewer/notes, asset, cast-session, or other stage contract.
+It does not approve creative/media output or replace the pending attended creator
+walkthrough.
