@@ -306,8 +306,8 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals`, { method: "POST", body: JSON.stringify(body) });
   }
 
-  copyCharacterReferenceProposal(projectId: string, proposalId: string): Promise<{ proposal: CharacterReferenceProposal; assignment: string; packagePath: string; deliveryPath: string }> {
-    return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals/${encodeURIComponent(proposalId)}/copy`, { method: "POST" });
+  sendCharacterReferenceProposal(projectId: string, proposalId: string): Promise<{ proposal: CharacterReferenceProposal; packagePath: string; deliveryPath: string }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/character-reference-proposals/${encodeURIComponent(proposalId)}/send`, { method: "POST" });
   }
 
   cancelCharacterReferenceProposal(projectId: string, proposalId: string, reason: string): Promise<CharacterReferenceProposal> {

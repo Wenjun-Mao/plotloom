@@ -5,10 +5,11 @@
 ## Context
 
 P1.5 already freezes an image package and validates a specialist completion
-manifest, but its `Copy` action depends on a human moving an assignment into a
-Codex task and manually refreshing the gallery. Relay forwarding is reporting,
-not application transport. The recent H3/Qwen capability is not an admitted
-Plotloom image backend.
+manifest, but a creator had to move a `Copy` assignment into a Codex task and
+manually refresh the gallery. The initial trial also exercised a storyboard
+shot instead of the intended accepted-cast Characters flow. Relay forwarding
+is reporting, not application transport. The recent H3/Qwen capability is not
+an admitted Plotloom image backend.
 
 ## Decision
 
@@ -19,13 +20,21 @@ live only in host-local runtime configuration/state, never in project data,
 packages, manifests, or gallery provenance. Queue acceptance is not completion.
 
 Before queuing, Plotloom writes the existing confined package and records the
-job exported. A crash-safe local reservation prevents every retry for that job,
-including an ambiguous queue outcome. One host-local in-flight job is allowed;
-only an accepted/inapplicable delivery or explicit cancellation releases it.
-Existing package/hash/currentness validation is the sole publication path, so a
-stale, cancelled, foreign, or late delivery remains non-publishing. The UI
-observes current exported jobs and refreshes the existing gallery automatically;
-it never selects a candidate.
+job exported. This applies equally to storyboard image jobs and to accepted-cast
+character-reference proposals; both retain their existing repository/package
+owners and validation paths. A crash-safe local reservation prevents every
+retry for that job, including an ambiguous queue outcome. One host-local
+in-flight job is allowed. An accepted/inapplicable delivery, explicit
+cancellation, a confirmed queue rejection, or an immutable package conflict
+releases the global reservation; the per-job receipt still forbids a resend.
+
+Characters presents two distinct creator operations: creating a proposal only
+freezes its accepted-cast request; **发送给 specialist** explicitly queues it.
+The accepted-cast gallery automatically observes current exported proposals
+through the existing refresh endpoint. Existing package/hash/currentness
+validation is the sole publication path, so a stale, cancelled, foreign, or
+late delivery remains non-publishing, and automatic observation never selects
+a candidate.
 
 ## Consequences
 

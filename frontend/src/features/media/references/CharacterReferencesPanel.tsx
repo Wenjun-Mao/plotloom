@@ -59,7 +59,7 @@ export function CharacterReferencesPanel({
   onSelectReference,
   onRevokeReference,
   onPrepareProposal,
-  onCopyProposal,
+  onSendProposal,
   onRefreshProposal,
 }: {
   projectId?: string;
@@ -82,7 +82,7 @@ export function CharacterReferencesPanel({
   onSelectReference: () => void;
   onRevokeReference: (characterId: string) => void;
   onPrepareProposal: () => void;
-  onCopyProposal: (proposalId: string) => void;
+  onSendProposal: (proposalId: string) => void;
   onRefreshProposal: (proposalId: string) => void;
 }) {
   const proposalCandidates = proposals
@@ -380,10 +380,10 @@ export function CharacterReferencesPanel({
                   variant="quiet"
                   disabled={readOnly || busy || !proposal.current}
                   onClick={() =>
-                    void onCopyProposal(proposal.id)
+                    void onSendProposal(proposal.id)
                   }
                 >
-                  Copy proposal assignment
+                  Send to specialist
                 </Button>
                 <Button
                   variant="quiet"

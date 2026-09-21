@@ -14,6 +14,7 @@ from .generation.exceptions import SecretLeaseError
 from .providers import ProviderPorts
 
 if TYPE_CHECKING:
+    from .codex_image_dispatch import NativeCodexImageDispatcher
     from .config import PlotloomSettings
     from .video_ingestion import ObservedVideo
     from .video_provider import VideoAdapterPort, VideoProviderPort
@@ -107,6 +108,7 @@ def build_runtime_app(
     test_video_provider: VideoProviderPort | None = None,
     test_video_adapter: VideoAdapterPort | None = None,
     test_video_probe: Callable[[bytes], ObservedVideo] | None = None,
+    test_image_dispatcher: NativeCodexImageDispatcher | None = None,
     text_provider_resolver: Any | None = None,
 ) -> object:
     """Build the production project-folder runtime.
@@ -288,7 +290,7 @@ def build_runtime_app(
             dispatcher.close()
             run_secrets.close()
 
-    image_dispatcher = (
+    image_dispatcher = test_image_dispatcher or (
         NativeCodexImageDispatcher(
             task_id=settings.codex_image_specialist_task_id,
             state_root=settings.codex_image_dispatch_state_dir,

@@ -65,7 +65,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await expect(page.locator(".topbar-technical-status")).not.toHaveAttribute("open", "");
     await expect(page.getByText("readiness.not_checked", { exact: false })).not.toBeVisible();
     await expect(page.locator(".project-switcher")).not.toContainText(projectId);
-    await expect(panel).toContainText("不会自动生成");
+    await expect(panel).toContainText("必须明确发送给 specialist");
     // U3 admits this cast-only project before it has any reference image. It
     // must not reach for a Bible, screenplay, or storyboard to fill the gap.
     const emptyGallery = page.getByTestId("character-reference-gallery");
@@ -77,7 +77,10 @@ test.describe("F2B cast-owned reference studies", () => {
     const original = await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
     const originalPackage = await copyProposalFromBrowser(page, projectId, original.id);
     await writeProposalDelivery(originalPackage.deliveryPath, original, "f2b-original-browser", "original");
-    await refreshProposalFromBrowser(page, projectId, original.id);
+    // Characters owns delivery observation. The fixture writes a complete
+    // native-shaped delivery and the browser admits it without a manual
+    // refresh or a selection side effect.
+    await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, original.id)).deliveries[0]?.state, { timeout: 10_000 }).toBe("accepted");
     const deliveredOriginal = await proposal(request, workbench.apiOrigin, projectId, original.id);
     const originalCandidate = deliveredOriginal.deliveries[0]!.candidates[0]!.assetId;
     const originalCandidateId = deliveredOriginal.deliveries[0]!.candidates[0]!.id;
@@ -178,14 +181,14 @@ test.describe("F2B cast-owned reference studies", () => {
 
     await panel.getByLabel("你想改什么").fill("Prepared study cancelled before any copy.");
     await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
-    await panel.getByRole("button", { name: "取消手动任务" }).click();
+    await panel.getByRole("button", { name: "取消提案" }).click();
     await expect(panel).toContainText("已取消，未交付");
 
     await panel.getByLabel("你想改什么").fill("Exported study whose late package must not publish.");
     const exported = await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
     const exportedPackage = await copyProposalFromBrowser(page, projectId, exported.id);
     await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, exported.id)).state).toBe("exported");
-    await panel.getByRole("button", { name: "取消手动任务" }).first().click();
+    await panel.getByRole("button", { name: "取消提案" }).first().click();
     await expect.poll(async () => (await proposal(request, workbench.apiOrigin, projectId, exported.id)).state).toBe("cancelled");
     await writeProposalDelivery(exportedPackage.deliveryPath, exported, "f2b-cancelled-late", "original");
     await getJson(request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-reference-proposals/${exported.id}/refresh`));
@@ -413,10 +416,10 @@ async function writeCastDelivery(prepared: any): Promise<void> {
 
 async function copyProposalFromBrowser(page: import("@playwright/test").Page, projectId: string, proposalId: string): Promise<PackagePaths> {
   const proposalCard = page.locator(`[data-proposal-id="${proposalId}"]`);
-  await expect(proposalCard.getByRole("button", { name: "复制手动任务" })).toBeEnabled();
+  await expect(proposalCard.getByRole("button", { name: "发送给 specialist" })).toBeEnabled();
   const copied = page.waitForResponse((response) => response.request().method() === "POST"
-    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals/${proposalId}/copy`);
-  await proposalCard.getByRole("button", { name: "复制手动任务" }).click();
+    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals/${proposalId}/send`);
+  await proposalCard.getByRole("button", { name: "发送给 specialist" }).click();
   const response = await copied;
   expect(response.ok(), await response.text()).toBeTruthy();
   return response.json() as Promise<PackagePaths>;
@@ -434,14 +437,14 @@ async function prepareProposalFromBrowser(
   await panel.getByRole("button", { name: "创建调整提案" }).click();
   expect((await prepared).status()).toBe(201);
   const latest = await latestProposal(request, apiOrigin, projectId);
-  await expect(panel.locator(`[data-proposal-id="${latest.id}"]`).getByRole("button", { name: "复制手动任务" })).toBeEnabled();
+  await expect(panel.locator(`[data-proposal-id="${latest.id}"]`).getByRole("button", { name: "发送给 specialist" })).toBeEnabled();
   return latest;
 }
 
 async function refreshProposalFromBrowser(page: import("@playwright/test").Page, projectId: string, proposalId: string): Promise<void> {
   const refreshed = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals/${proposalId}/refresh`);
-  await page.locator(`[data-proposal-id="${proposalId}"]`).getByRole("button", { name: "刷新交付" }).click();
+  await page.locator(`[data-proposal-id="${proposalId}"]`).getByRole("button", { name: "立即检查交付" }).click();
   expect((await refreshed).ok()).toBeTruthy();
 }
 

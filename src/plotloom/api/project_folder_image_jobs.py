@@ -136,12 +136,14 @@ def register_project_folder_image_job_routes(
                 project_id, **body.model_dump(mode="python", by_alias=False)
             )
 
-    @app.post(
-        "/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/copy"
-    )
-    def copy_project_character_reference_proposal(
+    def send_character_reference_proposal(
         project_id: str, proposal_id: str
     ) -> dict[str, Any]:
+        if image_dispatcher is None:
+            raise ImageJobError(
+                "image_dispatch_unavailable",
+                "native image specialist dispatch is not configured",
+            )
         with opened_project(project_id) as store:
             source = store.media.character_reference_proposal_package_sources(
                 project_id, proposal_id
@@ -156,12 +158,24 @@ def register_project_folder_image_job_routes(
             proposal = store.media.mark_character_reference_proposal_exported(
                 project_id, proposal_id
             )
+            image_dispatcher.dispatch(
+                job_id=proposal_id,
+                package_path=package["packagePath"],
+                delivery_path=package["deliveryPath"],
+            )
             return {
                 "proposal": proposal,
-                "assignment": f"Codex character-reference proposal assignment for {proposal_id}: read {package['packagePath']}/request.json; use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}. This is exploratory and cannot approve a reference.",
                 "packagePath": package["packagePath"],
                 "deliveryPath": package["deliveryPath"],
             }
+
+    @app.post(
+        "/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/send"
+    )
+    def send_project_character_reference_proposal(
+        project_id: str, proposal_id: str
+    ) -> dict[str, Any]:
+        return send_character_reference_proposal(project_id, proposal_id)
 
     @app.post(
         "/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/cancel"
@@ -172,9 +186,12 @@ def register_project_folder_image_job_routes(
         body: CharacterReferenceProposalCancellationRequest,
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.media.cancel_character_reference_proposal(
+            proposal = store.media.cancel_character_reference_proposal(
                 project_id, proposal_id, body.reason
             )
+            if image_dispatcher is not None:
+                image_dispatcher.complete(proposal_id)
+            return proposal
 
     @app.post(
         "/api/v2/projects/{project_id}/character-reference-proposals/{proposal_id}/refresh"
@@ -229,6 +246,10 @@ def register_project_folder_image_job_routes(
                     repository.record_character_reference_proposal_rejection(
                         project_id, proposal_id, error.code
                     )
+                if error.code == "package_conflict" and image_dispatcher is not None:
+                    # A frozen package conflict is terminal: the observer
+                    # stops and this job can never validly produce delivery.
+                    image_dispatcher.complete(proposal_id)
                 raise
             if delivery is None:
                 return {
@@ -236,7 +257,7 @@ def register_project_folder_image_job_routes(
                     "candidates": [],
                     "idempotent": False,
                 }
-            return repository.record_character_reference_proposal_delivery(
+            result = repository.record_character_reference_proposal_delivery(
                 project_id,
                 proposal_id,
                 delivery_id=delivery.manifest.delivery_id,
@@ -247,6 +268,9 @@ def register_project_folder_image_job_routes(
                     store.artifacts, output["content"], output["observed"]
                 ),
             )
+            if image_dispatcher is not None:
+                image_dispatcher.complete(proposal_id)
+            return result
 
     @app.get("/api/v2/projects/{project_id}/same-person-reviews")
     def get_project_same_person_reviews(project_id: str) -> dict[str, Any]:

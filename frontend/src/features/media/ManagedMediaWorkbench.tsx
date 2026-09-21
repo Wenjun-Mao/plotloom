@@ -80,9 +80,6 @@ export function ManagedMediaWorkbench({
     CharacterReferenceProposal[]
   >([]);
   const [imageExchangeConfigured, setImageExchangeConfigured] = useState(false);
-  // Character-reference proposals retain their separate manual handoff.
-  const [, setCopiedAssignment] = useState("");
-  const [, setCopiedAssignmentStatus] = useState<"copied" | "manual" | "">("");
   const [imageJobTarget, setImageJobTarget] = useState<ImageJobDraftTarget>({
     kind: "original",
   });
@@ -289,7 +286,7 @@ export function ManagedMediaWorkbench({
     selectCharacterReference,
     revokeCharacterReference,
     prepareCharacterReferenceProposal,
-    copyCharacterReferenceProposal,
+    sendCharacterReferenceProposal,
     refreshCharacterReferenceProposal,
     recordSamePersonReview,
   } = useCharacterReferenceActions({
@@ -311,8 +308,6 @@ export function ManagedMediaWorkbench({
     proposalParentCandidateAssetId,
     setProposalDirection,
     setProposalParentCandidateAssetId,
-    setCopiedAssignment,
-    setCopiedAssignmentStatus,
     selectedBinding,
     selectedIdentityMapping,
     samePersonReviewer,
@@ -395,7 +390,7 @@ export function ManagedMediaWorkbench({
         onSelectReference={() => void selectCharacterReference()}
         onRevokeReference={(characterId) => void revokeCharacterReference(characterId)}
         onPrepareProposal={() => void prepareCharacterReferenceProposal()}
-        onCopyProposal={(proposalId) => void copyCharacterReferenceProposal(proposalId)}
+        onSendProposal={(proposalId) => void sendCharacterReferenceProposal(proposalId)}
         onRefreshProposal={(proposalId) =>
           void refreshCharacterReferenceProposal(proposalId)
         }

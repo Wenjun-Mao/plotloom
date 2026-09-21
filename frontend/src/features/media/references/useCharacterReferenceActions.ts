@@ -26,8 +26,6 @@ export function useCharacterReferenceActions({
   proposalParentCandidateAssetId,
   setProposalDirection,
   setProposalParentCandidateAssetId,
-  setCopiedAssignment,
-  setCopiedAssignmentStatus,
   selectedBinding,
   selectedIdentityMapping,
   samePersonReviewer,
@@ -54,8 +52,6 @@ export function useCharacterReferenceActions({
   proposalParentCandidateAssetId: string;
   setProposalDirection: Dispatch<SetStateAction<string>>;
   setProposalParentCandidateAssetId: Dispatch<SetStateAction<string>>;
-  setCopiedAssignment: Dispatch<SetStateAction<string>>;
-  setCopiedAssignmentStatus: Dispatch<SetStateAction<"copied" | "manual" | "">>;
   selectedBinding: ReviewedKeyframe | undefined;
   selectedIdentityMapping: unknown[];
   samePersonReviewer: string;
@@ -146,23 +142,21 @@ export function useCharacterReferenceActions({
       setBusy(false);
     }
   };
-  const copyCharacterReferenceProposal = async (proposalId: string) => {
+  const sendCharacterReferenceProposal = async (proposalId: string) => {
     if (!projectId) return;
     setBusy(true);
     setError("");
     try {
-      const copied = await plotloomApi.copyCharacterReferenceProposal(
+      await plotloomApi.sendCharacterReferenceProposal(
         projectId,
         proposalId,
       );
-      setCopiedAssignment(copied.assignment);
-      setCopiedAssignmentStatus("manual");
       await refresh();
     } catch (proposalError) {
       setError(
         proposalError instanceof Error
           ? proposalError.message
-          : "无法复制角色参考 assignment",
+          : "无法发送角色参考提案给 specialist",
       );
     } finally {
       setBusy(false);
@@ -225,7 +219,7 @@ export function useCharacterReferenceActions({
     selectCharacterReference,
     revokeCharacterReference,
     prepareCharacterReferenceProposal,
-    copyCharacterReferenceProposal,
+    sendCharacterReferenceProposal,
     refreshCharacterReferenceProposal,
     recordSamePersonReview,
   };

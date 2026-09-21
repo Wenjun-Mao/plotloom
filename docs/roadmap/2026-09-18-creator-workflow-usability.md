@@ -316,11 +316,12 @@ walkthrough.
 ## P1.5 native specialist loop — 2026-09-21
 
 **Approved step and deliverable.** Prove one smallest real end-to-end image
-loop: a current frozen image job is sent from Plotloom to one persistent native
-Codex image specialist, one real ImageGen result is delivered through the
-existing validation/currentness owner, and it appears in the gallery without
-manual assignment copying or refresh. [ADR 0074](../adr/0074-native-codex-image-specialist-dispatch.md)
-defines this runtime boundary.
+loop: a current frozen accepted-cast character-reference proposal is sent from
+Characters to one persistent native Codex image specialist, one real ImageGen
+result is delivered through the existing validation/currentness owner, and it
+appears in the gallery without manual assignment copying or refresh.
+[ADR 0074](../adr/0074-native-codex-image-specialist-dispatch.md) defines this
+runtime boundary.
 
 **Evidence, exclusions, and stop condition.** The specialist task ID and
 dispatch reservation are host-local, not canonical data. `codex queue` receipt
@@ -339,3 +340,11 @@ already-exported package as a template conflict. The result, package, and
 cleanup refusal remain preserved in the disposable ignored project. No retry,
 selection, creative acceptance, H3, or Qwen fallback is authorized. See the
 [truthful receipt](../verification/2026-09-21-native-codex-image-specialist-loop.md).
+
+**Corrected accepted-cast path — deterministic evidence only.** The actual
+Characters proposal route now reuses the native transport: create freezes the
+accepted-cast package, **发送给 specialist** performs the one explicit queue
+attempt, and the Characters gallery observes validated delivery without
+auto-selection. Browser evidence uses only a deterministic completion fixture;
+it does not spend another ImageGen submission. A new bounded live trial remains
+blocked pending explicit authorization after the final preflight.

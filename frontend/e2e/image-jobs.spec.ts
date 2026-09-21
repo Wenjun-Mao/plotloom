@@ -94,7 +94,7 @@ test.describe.skip("retired Story-Bible proposal surface", () => {
       (response) =>
         response.request().method() === "POST" &&
         new URL(response.url()).pathname ===
-          `/api/v2/projects/${projectId}/character-reference-proposals/${first.id}/copy`,
+          `/api/v2/projects/${projectId}/character-reference-proposals/${first.id}/send`,
     );
     await panel.getByTestId(`story-first-copy-${first.id}`).click();
     const copiedOriginalResponse = await copiedOriginal;
@@ -153,7 +153,7 @@ test.describe.skip("retired Story-Bible proposal surface", () => {
       (response) =>
         response.request().method() === "POST" &&
         new URL(response.url()).pathname ===
-          `/api/v2/projects/${projectId}/character-reference-proposals/${refinement.id}/copy`,
+          `/api/v2/projects/${projectId}/character-reference-proposals/${refinement.id}/send`,
     );
     await panel.getByTestId(`story-first-copy-${refinement.id}`).click();
     const copiedRefinementResponse = await copiedRefinement;

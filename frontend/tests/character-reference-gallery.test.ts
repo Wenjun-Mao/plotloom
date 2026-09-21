@@ -163,24 +163,24 @@ it("does not refresh an old image mutation after reopening invalidates its cast 
   expect(host.textContent).not.toContain("角色参考操作失败");
 });
 
-it("does not retain a copied assignment from a cast session invalidated in flight", async () => {
+it("does not retain an in-flight specialist send from a cast session invalidated in flight", async () => {
   const { asset, proposal } = candidateProposal("project");
   const response = galleryResponse("project", "Assignment fixture", { decisions: [], referenceStates: [{ characterId: "keeper", revision: 3 }], proposals: [proposal], assets: [asset] });
   installResolvedGallery(response);
   const copied = deferred<any>();
   const reopening = deferred<any>();
-  vi.spyOn(plotloomApi, "copyCharacterReferenceProposal").mockImplementation(() => copied.promise);
+  vi.spyOn(plotloomApi, "sendCharacterReferenceProposal").mockImplementation(() => copied.promise);
   vi.spyOn(plotloomApi, "reopenCast").mockImplementation(() => reopening.promise);
 
   await renderProject("project");
-  await act(async () => { button("复制手动任务").click(); await Promise.resolve(); });
+  await act(async () => { button("发送给 specialist").click(); await Promise.resolve(); });
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("角色文字正在更新");
-  expect(button("复制手动任务").disabled).toBe(true);
-  await act(async () => { copied.resolve({ assignment: "old-session assignment must not appear" }); await Promise.resolve(); });
+  expect(button("发送给 specialist").disabled).toBe(true);
+  await act(async () => { copied.resolve({}); await Promise.resolve(); });
   await flushReact();
-  expect(host.textContent).not.toContain("old-session assignment must not appear");
+  expect(host.textContent).not.toContain("角色参考操作失败");
   await act(async () => { reopening.resolve({ ...response.cast, status: "reopened" }); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("已接受角色已过期");

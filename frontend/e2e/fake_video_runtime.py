@@ -7,6 +7,7 @@ import sys
 import uvicorn
 
 from plotloom.config import PlotloomSettings
+from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
 from plotloom.runtime import build_runtime_app, select_available_port
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 
@@ -21,6 +22,11 @@ uvicorn.run(
         settings,
         test_video_provider=OfflineH3GatewayFake(),
         test_video_adapter=MiniMaxH3GatewayAdapter(),
+        test_image_dispatcher=NativeCodexImageDispatcher(
+            "fixture-specialist",
+            settings.application_data_dir / "fixture-native-image-dispatch",
+            executable="/usr/bin/true",
+        ),
     ),
     host=settings.host,
     port=select_available_port(settings.host, settings.port, settings.port_fallback_count),

@@ -179,7 +179,7 @@ class CharacterReferenceProposalPersistence:
     def cancel_character_reference_proposal(
         self, project_id: str, proposal_id: str, reason: str
     ) -> dict[str, Any]:
-        """End a manual handoff so it cannot strand project lifecycle work."""
+        """End a specialist handoff so it cannot strand project lifecycle work."""
 
         normalized_reason = reason.strip()
         if not normalized_reason or len(normalized_reason) > 2_000:

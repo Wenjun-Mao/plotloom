@@ -74,6 +74,24 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
     };
   }, [castSession, projectId, refresh]);
 
+  // A prepared accepted-cast proposal becomes visible in this gallery only
+  // through its existing hash/currentness admission endpoint.  Queue success
+  // is not delivery success, and a package conflict stops repeat observation.
+  useEffect(() => {
+    if (!data) return;
+    const timer = window.setInterval(() => {
+      const outstanding = data.proposals.filter((proposal) =>
+        proposal.current && proposal.state === "exported" && !proposal.deliveries.some(
+          (delivery) => delivery.diagnosticCode === "package_conflict",
+        ),
+      );
+      void Promise.all(outstanding.map((proposal) => plotloomApi.refreshCharacterReferenceProposal(projectId, proposal.id)))
+        .then((results) => results.some((result) => result.state !== "awaiting_delivery") ? refresh(castSession) : undefined)
+        .catch(() => refresh(castSession).catch(() => false));
+    }, 3_000);
+    return () => window.clearInterval(timer);
+  }, [castSession, data, projectId, refresh]);
+
   const subjects = useMemo(() => data ? gallerySubjects(castState?.acceptedCast ?? null, data.proposals) : [], [data, castState?.acceptedCast]);
   useEffect(() => {
     if (subjects.length && !subjects.some((subject) => subject.id === selectedSubjectId)) setSelectedSubjectId(subjects[0].id);
@@ -87,8 +105,8 @@ export function CharacterReferenceReviewPanel({ projectId, readOnly, castState, 
 
   return <section className="character-reference-review" data-testid="character-reference-gallery">
     <section className="reference-gallery-intro">
-      <div><span className="eyebrow">角色外观</span><h2>外观参考</h2><p>{data.title} · 先比较已有图像，再明确选用身份参考；也可基于可识别的父图调整。创建提案只准备手动任务，不会自动生成或复制。</p></div>
-      <div className={`reference-gallery-cast-state ${castState.status === "accepted" && !castTransitionPending ? "current" : "stale"}`}><strong>{castTransitionPending ? "角色文字正在更新" : castState.status === "accepted" ? `已接受角色 r${castState.acceptedCast.revision}` : "已接受角色已过期"}</strong><span>{castTransitionPending ? "角色更新完成前，保留图像仅供核对。" : castState.status === "accepted" ? "可以审阅、选择和准备新手动任务。" : "保留图像仅供核对；重新接受角色前不能选择、细化或准备新任务。"}</span></div>
+      <div><span className="eyebrow">角色外观</span><h2>外观参考</h2><p>{data.title} · 先比较已有图像，再明确选用身份参考；也可基于可识别的父图调整。创建提案只冻结请求；必须明确发送给 specialist，且不会自动选择。</p></div>
+      <div className={`reference-gallery-cast-state ${castState.status === "accepted" && !castTransitionPending ? "current" : "stale"}`}><strong>{castTransitionPending ? "角色文字正在更新" : castState.status === "accepted" ? `已接受角色 r${castState.acceptedCast.revision}` : "已接受角色已过期"}</strong><span>{castTransitionPending ? "角色更新完成前，保留图像仅供核对。" : castState.status === "accepted" ? "可以审阅、选择、准备并发送新提案。" : "保留图像仅供核对；重新接受角色前不能选择、细化、准备或发送新提案。"}</span></div>
     </section>
     <div className="reference-gallery-layout">
       <nav className="reference-subjects" aria-label="角色主体"><span>角色主体</span>{subjects.map((subject) => <button key={subject.id} type="button" className={subject.id === selected.id ? "selected" : ""} aria-pressed={subject.id === selected.id} onClick={() => setSelectedSubjectId(subject.id)}><strong>{subject.name}</strong><small>{subject.inAcceptedCast ? "已接受角色" : "仅保留的历史主体"}</small></button>)}</nav>
@@ -102,7 +120,6 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const [notes, setNotes] = useState("");
   const [direction, setDirection] = useState("");
   const [parentCandidateAssetId, setParentCandidateAssetId] = useState("");
-  const [assignment, setAssignment] = useState("");
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
   const active = useRef(true); const sessionRef = useRef(session);
@@ -153,10 +170,9 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const prepare = () => void act(async () => {
     await plotloomApi.prepareCharacterReferenceProposal(projectId, { characterId: subject.id, castRevision, visualDirection: direction.trim(), parentCandidateAssetId: parentCandidateAssetId || undefined });
   }, () => { setDirection(""); setParentCandidateAssetId(""); });
-  const copy = (proposal: CharacterReferenceProposal) => void act(async () => {
-    const copied = await plotloomApi.copyCharacterReferenceProposal(projectId, proposal.id);
-    return copied;
-  }, (copied) => setAssignment(copied.assignment));
+  const send = (proposal: CharacterReferenceProposal) => void act(async () => {
+    await plotloomApi.sendCharacterReferenceProposal(projectId, proposal.id);
+  });
   const refreshProposal = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.refreshCharacterReferenceProposal(projectId, proposal.id); });
   const cancel = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.cancelCharacterReferenceProposal(projectId, proposal.id, "Creator cancelled the exploratory reference handoff from Characters."); });
 
@@ -165,17 +181,16 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
     {hero ? <figure className={`reference-hero${hero.selected ? " selected-hero" : ""}`} data-testid={hero.selected ? "reference-selected-hero" : "reference-candidate-hero"}><AssetPresentation projectId={projectId} subjectId={subject.id} asset={hero.asset} assetId={hero.assetId} alt={`${subject.name} ${hero.label}`} unavailableLabel={hero.selected ? "当前已选择的身份参考图像不可用" : `${hero.label}图像不可用`} /><figcaption><strong>{hero.label}</strong><span>{hero.asset ? `${hero.asset.width} × ${hero.asset.height}` : "已选择资产缺失"}</span></figcaption></figure> : <div className="reference-no-image" data-testid="reference-no-image"><strong>尚无可显示的图像</strong><p>{candidates.length ? "保留记录未提供可用图像；请查看下方缺失或失败状态。" : "此主体还没有既有候选或已选择参考。"}</p></div>}
     <section className="reference-actions" aria-label={`${subject.name} 的选择与调整`}>
       <section className="reference-task selection-task"><div><span className="eyebrow">选择</span><h3>选用这张图</h3><p>在下方候选卡点击“选用这张图”。审阅者和选择理由会与明确决定一同保存，并受当前版本保护。</p></div><div className="field-grid two compact"><Field label="审阅者"><input value={reviewer} disabled={readOnly || busy} onChange={(event) => setReviewer(event.target.value)} /></Field><Field label="选择理由"><textarea rows={2} value={notes} disabled={readOnly || busy} placeholder="说明为何这张图可作为跨镜头身份参考。" onChange={(event) => setNotes(event.target.value)} /></Field></div></section>
-      <section className="reference-task refinement-task"><div><span className="eyebrow">调整</span><h3>基于这张图调整</h3><p>先选一张可识别的父图，再说明你想改什么。创建只准备手动任务，不会自动生成、复制或改变当前选择。</p></div><div className="field-grid two compact"><Field label="作为依据的父图"><select value={parentCandidateAssetId} disabled={readOnly || busy} onChange={(event) => setParentCandidateAssetId(event.target.value)}><option value="">不使用已有父图</option>{candidates.filter((candidate) => candidate.proposal.current && candidate.delivery.state === "accepted" && candidate.asset).map((candidate, index) => <option key={candidate.assetId} value={candidate.assetId}>候选图 {index + 1} · {candidate.role === "refinement" ? "细化结果" : "原始研究"}</option>)}</select></Field><Field label="你想改什么"><textarea rows={2} value={direction} disabled={readOnly || busy} placeholder="描述要保留或调整的外观特征。" onChange={(event) => setDirection(event.target.value)} /></Field></div>{selectedParent && <ParentPreview projectId={projectId} subjectId={subject.id} parent={selectedParent} />}<div className="button-row"><Button variant="primary" disabled={readOnly || busy || !direction.trim()} onClick={prepare}>{busy ? "正在创建…" : "创建调整提案"}</Button><small>创建后可在对应提案卡中手动复制、刷新或取消。</small></div></section>
-      {assignment && <details className="reference-assignment"><summary>查看已复制的手动任务</summary><textarea readOnly rows={3} value={assignment} /></details>}
+      <section className="reference-task refinement-task"><div><span className="eyebrow">调整</span><h3>基于这张图调整</h3><p>先选一张可识别的父图，再说明你想改什么。创建只冻结提案，不会自动改变当前选择。</p></div><div className="field-grid two compact"><Field label="作为依据的父图"><select value={parentCandidateAssetId} disabled={readOnly || busy} onChange={(event) => setParentCandidateAssetId(event.target.value)}><option value="">不使用已有父图</option>{candidates.filter((candidate) => candidate.proposal.current && candidate.delivery.state === "accepted" && candidate.asset).map((candidate, index) => <option key={candidate.assetId} value={candidate.assetId}>候选图 {index + 1} · {candidate.role === "refinement" ? "细化结果" : "原始研究"}</option>)}</select></Field><Field label="你想改什么"><textarea rows={2} value={direction} disabled={readOnly || busy} placeholder="描述要保留或调整的外观特征。" onChange={(event) => setDirection(event.target.value)} /></Field></div>{selectedParent && <ParentPreview projectId={projectId} subjectId={subject.id} parent={selectedParent} />}<div className="button-row"><Button variant="primary" disabled={readOnly || busy || !direction.trim()} onClick={prepare}>{busy ? "正在创建…" : "创建调整提案"}</Button><small>创建后在提案卡中发送给 specialist；delivery 会自动检查，且不会自动选择。</small></div></section>
       {actionError && <ErrorNotice message={actionError} />}
     </section>
     <section className="reference-alternatives" aria-label={`${subject.name} 的候选和参考`}>
       <header><div><span className="eyebrow">候选与参考</span><h3>比较已有图像</h3></div><small>{candidates.length ? `${candidates.length} 条保留候选记录` : "没有候选记录"}</small></header>
       <div className="reference-card-grid">
         {selectedDecision && selectedDecision.complementaryAssetIds.map((assetId) => <SelectedAssetCard key={`complementary:${assetId}`} projectId={projectId} subjectId={subject.id} asset={assets.get(assetId)} assetId={assetId} />)}
-        {candidates.map((candidate) => <CandidateCard key={candidate.id} projectId={projectId} subjectId={subject.id} candidate={candidate} selected={selectedAssetIds.has(candidate.assetId)} parent={candidate.proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === candidate.proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, canSelect: Boolean(reviewer.trim() && notes.trim()), onSelect: () => selectCandidate(candidate), onRefine: () => setParentCandidateAssetId(candidate.assetId), onCopy: () => copy(candidate.proposal), onRefresh: () => refreshProposal(candidate.proposal), onCancel: () => cancel(candidate.proposal) }} />)}
-        {incompleteDeliveries.map(({ proposal, delivery }) => <DeliveryEvidenceCard key={`delivery:${delivery.id}`} projectId={projectId} subjectId={subject.id} proposal={proposal} delivery={delivery} parent={proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, onCopy: () => copy(proposal), onRefresh: () => refreshProposal(proposal), onCancel: () => cancel(proposal) }} />)}
-        {undeliveredProposals.map((proposal) => <UndeliveredProposalCard key={`proposal:${proposal.id}`} projectId={projectId} subjectId={subject.id} proposal={proposal} parent={proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, onCopy: () => copy(proposal), onRefresh: () => refreshProposal(proposal), onCancel: () => cancel(proposal) }} />)}
+        {candidates.map((candidate) => <CandidateCard key={candidate.id} projectId={projectId} subjectId={subject.id} candidate={candidate} selected={selectedAssetIds.has(candidate.assetId)} parent={candidate.proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === candidate.proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, canSelect: Boolean(reviewer.trim() && notes.trim()), onSelect: () => selectCandidate(candidate), onRefine: () => setParentCandidateAssetId(candidate.assetId), onSend: () => send(candidate.proposal), onRefresh: () => refreshProposal(candidate.proposal), onCancel: () => cancel(candidate.proposal) }} />)}
+        {incompleteDeliveries.map(({ proposal, delivery }) => <DeliveryEvidenceCard key={`delivery:${delivery.id}`} projectId={projectId} subjectId={subject.id} proposal={proposal} delivery={delivery} parent={proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, onSend: () => send(proposal), onRefresh: () => refreshProposal(proposal), onCancel: () => cancel(proposal) }} />)}
+        {undeliveredProposals.map((proposal) => <UndeliveredProposalCard key={`proposal:${proposal.id}`} projectId={projectId} subjectId={subject.id} proposal={proposal} parent={proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, onSend: () => send(proposal), onRefresh: () => refreshProposal(proposal), onCancel: () => cancel(proposal) }} />)}
         {historicalDecisions.flatMap((decision) => [decision.primaryAssetId, ...decision.complementaryAssetIds].map((assetId) => <HistoricalSelectionCard key={`history:${decision.id}:${assetId}`} projectId={projectId} subjectId={subject.id} decision={decision} asset={assets.get(assetId)} assetId={assetId} />))}
         {!selectedDecision && candidates.length === 0 && incompleteDeliveries.length === 0 && undeliveredProposals.length === 0 && historicalDecisions.length === 0 && <p className="reference-empty-list">尚未选择身份参考，也没有参考候选。</p>}
       </div>
@@ -188,11 +203,11 @@ function SelectedAssetCard({ projectId, subjectId, asset, assetId }: { projectId
   return <article className="reference-card selected-reference">{<AssetPresentation projectId={projectId} subjectId={subjectId} asset={asset} assetId={assetId} alt="已选择的辅助身份参考" unavailableLabel="已选择的辅助身份参考图像不可用" />}<div><span className="reference-state selected">已选择的辅助参考</span><small>{asset ? `${asset.width} × ${asset.height}` : "资产缺失"}</small></div></article>;
 }
 
-type ProposalActions = { readOnly: boolean; onCopy: () => void; onRefresh: () => void; onCancel: () => void };
+type ProposalActions = { readOnly: boolean; onSend: () => void; onRefresh: () => void; onCancel: () => void };
 type CandidateActions = ProposalActions & { canSelect: boolean; onSelect: () => void; onRefine: () => void };
 
 function ProposalLifecycle({ proposal, actions }: { proposal: CharacterReferenceProposal; actions: ProposalActions }) {
-  return <div className="reference-card-actions"><Button variant="quiet" disabled={actions.readOnly || !proposal.current} onClick={actions.onCopy}>复制手动任务</Button><Button variant="quiet" disabled={actions.readOnly || proposal.state === "cancelled"} onClick={actions.onRefresh}>刷新交付</Button>{(proposal.state === "prepared" || proposal.state === "exported") && <Button variant="danger" disabled={actions.readOnly} onClick={actions.onCancel}>取消手动任务</Button>}</div>;
+  return <div className="reference-card-actions"><Button variant="quiet" disabled={actions.readOnly || !proposal.current} onClick={actions.onSend}>发送给 specialist</Button><Button variant="quiet" disabled={actions.readOnly || proposal.state === "cancelled"} onClick={actions.onRefresh}>立即检查交付</Button>{(proposal.state === "prepared" || proposal.state === "exported") && <Button variant="danger" disabled={actions.readOnly} onClick={actions.onCancel}>取消提案</Button>}</div>;
 }
 
 function CandidateCard({ projectId, subjectId, candidate, selected, parent, actions }: { projectId: string; subjectId: string; candidate: Candidate; selected: boolean; parent: Candidate | undefined; actions: CandidateActions }) {

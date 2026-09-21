@@ -70,6 +70,10 @@ class NativeCodexImageDispatcher:
             ) from error
         if completed.returncode != 0:
             receipt.write_text(json.dumps({"jobId": job_id, "state": "rejected"}), encoding="utf-8")
+            # A confirmed queue rejection cannot produce a delivery.  The
+            # per-job receipt still prevents an automatic resend, but other
+            # frozen packages must not remain blocked behind this one.
+            self.complete(job_id)
             raise ImageJobError(
                 "image_dispatch_rejected",
                 "native image specialist rejected the queue request; the exported package remains preserved",
