@@ -330,3 +330,12 @@ disabled and excluded; no auto-selection, provider registry, queue framework,
 gallery redesign, or new media owner is authorized. Stop after one accepted,
 unselected, hash-valid gallery candidate with retained package/result evidence,
 or report the bounded native-transport blocker without a speculative fallback.
+
+**Trial receipt — incomplete.** The one allowed native ImageGen submission
+completed but its result did not reach the gallery. The specialist/package
+contract exposed an empty-reference attestation mismatch; the root contract is
+corrected, but current immutable-package verification properly rejects the
+already-exported package as a template conflict. The result, package, and
+cleanup refusal remain preserved in the disposable ignored project. No retry,
+selection, creative acceptance, H3, or Qwen fallback is authorized. See the
+[truthful receipt](../verification/2026-09-21-native-codex-image-specialist-loop.md).

@@ -271,7 +271,9 @@ export function ManagedMediaWorkbench({
   useEffect(() => {
     if (!projectId) return;
     const timer = window.setInterval(() => {
-      const outstanding = imageJobs.filter((job) => job.current && job.state === "exported");
+      const outstanding = imageJobs.filter(
+        (job) => job.current && job.state === "exported" && !job.deliveries.some((delivery) => delivery.state === "rejected"),
+      );
       void Promise.all(outstanding.map((job) => plotloomApi.refreshImageJob(projectId, job.id)))
         .then((results) => results.some((result) => result.state !== "awaiting_delivery") ? refresh() : undefined)
         .catch(() => undefined);
