@@ -41,7 +41,10 @@ contract.
 4. Verify that `loginctl show-user wjmao -p Linger` is `Linger=yes`, so the
    user service returns after a Spark reboot without an interactive login.
 
-The service uses native precision, resident components, eager execution,
+The service uses an explicit `--model-id Qwen-Image-2.1` with the local model
+path. This is required: SGLang uses the ID to select its native
+`QwenImage21Pipeline` rather than attempting a generic Diffusers pipeline.
+The service otherwise uses native precision, resident components, eager execution,
 automatic SDPA, full-image VAE decoding, `--performance-mode speed`, loopback
 binding, one output, and no batching. Any change to those choices is a new
 qualification, not an environment-only tuning tweak.

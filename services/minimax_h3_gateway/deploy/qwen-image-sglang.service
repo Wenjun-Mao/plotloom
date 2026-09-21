@@ -9,7 +9,7 @@ WorkingDirectory=/home/wjmao/services/qwen-image-sglang/source
 Environment=HF_HOME=/home/wjmao/models/qwen-image-2.1/huggingface
 Environment=HF_HUB_CACHE=/home/wjmao/models/qwen-image-2.1/huggingface/hub
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/wjmao/services/qwen-image-sglang/.venv/bin/sglang serve --model-path /home/wjmao/models/qwen-image-2.1/model --performance-mode speed --host 127.0.0.1 --port 30010
+ExecStart=/home/wjmao/services/qwen-image-sglang/.venv/bin/sglang serve --model-path /home/wjmao/models/qwen-image-2.1/model --model-id Qwen-Image-2.1 --performance-mode speed --host 127.0.0.1 --port 30010
 Restart=on-failure
 RestartSec=10
 TimeoutStartSec=15min
