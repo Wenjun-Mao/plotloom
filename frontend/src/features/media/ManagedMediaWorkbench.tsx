@@ -80,10 +80,9 @@ export function ManagedMediaWorkbench({
     CharacterReferenceProposal[]
   >([]);
   const [imageExchangeConfigured, setImageExchangeConfigured] = useState(false);
-  const [copiedAssignment, setCopiedAssignment] = useState("");
-  const [copiedAssignmentStatus, setCopiedAssignmentStatus] = useState<
-    "copied" | "manual" | ""
-  >("");
+  // Character-reference proposals retain their separate manual handoff.
+  const [, setCopiedAssignment] = useState("");
+  const [, setCopiedAssignmentStatus] = useState<"copied" | "manual" | "">("");
   const [imageJobTarget, setImageJobTarget] = useState<ImageJobDraftTarget>({
     kind: "original",
   });
@@ -117,7 +116,6 @@ export function ManagedMediaWorkbench({
   const [playing, setPlaying] = useState(false);
   const [frameIndex, setFrameIndex] = useState(0);
   const requestSequence = useRef(0);
-  const copiedAssignmentRef = useRef<HTMLTextAreaElement>(null);
   const currentApproval: ApprovalDecision | undefined =
     review?.activeApproval ?? undefined;
 
@@ -262,14 +260,24 @@ export function ManagedMediaWorkbench({
     imageJobContextId,
     setBusy,
     setError,
-    setCopiedAssignment,
-    setCopiedAssignmentStatus,
     setImageJobRefreshNotice,
     setImageJobTarget,
     setKeptAssetId,
     setCandidates,
     refresh,
   });
+  // Existing refresh validates immutable package/currentness before it may
+  // publish a candidate. Observe only current exported jobs automatically.
+  useEffect(() => {
+    if (!projectId) return;
+    const timer = window.setInterval(() => {
+      const outstanding = imageJobs.filter((job) => job.current && job.state === "exported");
+      void Promise.all(outstanding.map((job) => plotloomApi.refreshImageJob(projectId, job.id)))
+        .then((results) => results.some((result) => result.state !== "awaiting_delivery") ? refresh() : undefined)
+        .catch(() => undefined);
+    }, 3_000);
+    return () => window.clearInterval(timer);
+  }, [imageJobs, projectId, refresh]);
   const {
     selectCharacterReference,
     revokeCharacterReference,
@@ -395,9 +403,6 @@ export function ManagedMediaWorkbench({
         mediaDraftsEnabled={mediaDraftsEnabled}
         readOnly={readOnly}
         busy={busy}
-        copiedAssignment={copiedAssignment}
-        copiedAssignmentStatus={copiedAssignmentStatus}
-        copiedAssignmentRef={copiedAssignmentRef}
         imageJobs={imageJobs}
         imageJobRefreshNotice={imageJobRefreshNotice}
         selectedBinding={selectedBinding}

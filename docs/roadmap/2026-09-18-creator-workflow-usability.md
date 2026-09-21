@@ -312,3 +312,21 @@ technical context and changes no API, schema, persistence, provider, generation,
 selection CAS, reviewer/notes, asset, cast-session, or other stage contract.
 It does not approve creative/media output or replace the pending attended creator
 walkthrough.
+
+## P1.5 native specialist loop — 2026-09-21
+
+**Approved step and deliverable.** Prove one smallest real end-to-end image
+loop: a current frozen image job is sent from Plotloom to one persistent native
+Codex image specialist, one real ImageGen result is delivered through the
+existing validation/currentness owner, and it appears in the gallery without
+manual assignment copying or refresh. [ADR 0074](../adr/0074-native-codex-image-specialist-dispatch.md)
+defines this runtime boundary.
+
+**Evidence, exclusions, and stop condition.** The specialist task ID and
+dispatch reservation are host-local, not canonical data. `codex queue` receipt
+is only transport evidence; it never proves ImageGen or delivery. One in-flight
+job and at most one real ImageGen submission are permitted. H3 and Qwen remain
+disabled and excluded; no auto-selection, provider registry, queue framework,
+gallery redesign, or new media owner is authorized. Stop after one accepted,
+unselected, hash-valid gallery candidate with retained package/result evidence,
+or report the bounded native-transport blocker without a speculative fallback.

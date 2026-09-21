@@ -140,6 +140,8 @@ class PlotloomSettings(BaseModel):
     image_base_url: str = "http://127.0.0.1"
     image_model: str = "manual_project_folder"
     image_auth_mode: Literal["none", "bearer"] = "none"
+    codex_image_specialist_task_id: str | None = None
+    codex_image_dispatch_state_dir: Path | None = None
     video_provider: str = "minimax_h3_gateway"
     video_base_url: str = "http://127.0.0.1"
     video_model: str = H3_CATALOG_ID
@@ -270,6 +272,11 @@ class PlotloomSettings(BaseModel):
             image_base_url=os.environ.get("IMAGE_BASE_URL") or "http://127.0.0.1",
             image_model=os.environ.get("IMAGE_MODEL") or "manual_project_folder",
             image_auth_mode=os.environ.get("IMAGE_AUTH_MODE") or "none",
+            codex_image_specialist_task_id=os.environ.get("PLOTLOOM_CODEX_IMAGE_SPECIALIST_TASK_ID") or None,
+            codex_image_dispatch_state_dir=(
+                configured_path("PLOTLOOM_CODEX_IMAGE_DISPATCH_STATE_DIR", application_data_dir / "native-image-dispatch")
+                if os.environ.get("PLOTLOOM_CODEX_IMAGE_SPECIALIST_TASK_ID") else None
+            ),
             video_provider=os.environ.get("VIDEO_PROVIDER") or "minimax_h3_gateway",
             video_base_url=os.environ.get("VIDEO_BASE_URL") or "http://127.0.0.1",
             video_model=os.environ.get("VIDEO_MODEL")

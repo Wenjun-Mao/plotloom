@@ -117,6 +117,7 @@ def build_runtime_app(
     """
 
     from .api import create_project_folder_authoring_app
+    from .codex_image_dispatch import NativeCodexImageDispatcher
     from .domain import ProviderProfileCapabilities, ProviderSettings
     from .video_backends.minimax_h3 import (
         H3_CATALOG_ID,
@@ -287,6 +288,14 @@ def build_runtime_app(
             dispatcher.close()
             run_secrets.close()
 
+    image_dispatcher = (
+        NativeCodexImageDispatcher(
+            task_id=settings.codex_image_specialist_task_id,
+            state_root=settings.codex_image_dispatch_state_dir,
+        )
+        if settings.codex_image_specialist_task_id and settings.codex_image_dispatch_state_dir
+        else None
+    )
     app = create_project_folder_authoring_app(
         storage,
         video_provider=video_provider,
@@ -294,6 +303,7 @@ def build_runtime_app(
         video_probe=test_video_probe,
         run_dispatcher=dispatcher,
         text_admission=admission,
+        image_dispatcher=image_dispatcher,
         static_dir=settings.static_dir,
         lifespan=runtime_lifespan,
     )

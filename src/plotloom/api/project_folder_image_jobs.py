@@ -18,6 +18,7 @@ from ..image_job_contracts import (
     SamePersonReviewRequest,
 )
 from ..image_job_exchange import PackageReference
+from ..codex_image_dispatch import NativeCodexImageDispatcher
 from .models import (
     ImageJobCancellationRequest,
     ProjectFolderImageJobCreateRequest,
@@ -31,6 +32,7 @@ def register_project_folder_image_job_routes(
     image_job_target_id: Callable[[ProjectFolderImageJobCreateRequest], str],
     require_media_draft_scope: Callable[..., Any],
     project_h3_target: Callable[[str], dict[str, Any]],
+    image_dispatcher: NativeCodexImageDispatcher | None = None,
 ) -> None:
     def package_references(
         store: Any, sources: list[dict[str, Any]], *, character_roles: bool = False
@@ -334,6 +336,12 @@ def register_project_folder_image_job_routes(
                 ),
             )
             job = store.media.mark_image_job_exported(project_id, job_id)
+            if image_dispatcher is not None:
+                image_dispatcher.dispatch(
+                    job_id=job_id,
+                    package_path=package["packagePath"],
+                    delivery_path=package["deliveryPath"],
+                )
             return {
                 "job": job,
                 "assignment": f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json; use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}.",
@@ -435,7 +443,7 @@ def register_project_folder_image_job_routes(
                             "delivery_geometry_mismatch",
                             "keyframe adaptation delivery must use the frozen role and exact profile dimensions",
                         )
-            return repository.record_image_job_delivery(
+            result = repository.record_image_job_delivery(
                 project_id,
                 job_id,
                 delivery_id=delivery.manifest.delivery_id,
@@ -446,12 +454,18 @@ def register_project_folder_image_job_routes(
                     store.artifacts, output["content"], output["observed"]
                 ),
             )
+            if image_dispatcher is not None:
+                image_dispatcher.complete(job_id)
+            return result
 
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/cancel")
     def cancel_project_image_job(
         project_id: str, job_id: str, body: ImageJobCancellationRequest
     ) -> dict[str, Any]:
         with opened_project(project_id) as store:
-            return store.media.cancel_image_job(project_id, job_id, body.reason)
+            job = store.media.cancel_image_job(project_id, job_id, body.reason)
+            if image_dispatcher is not None:
+                image_dispatcher.complete(job_id)
+            return job
 
     return app

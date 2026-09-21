@@ -26,8 +26,6 @@ export function useImageJobActions({
   imageJobContextId,
   setBusy,
   setError,
-  setCopiedAssignment,
-  setCopiedAssignmentStatus,
   setImageJobRefreshNotice,
   setImageJobTarget,
   setKeptAssetId,
@@ -46,8 +44,6 @@ export function useImageJobActions({
   imageJobContextId: string;
   setBusy: Dispatch<SetStateAction<boolean>>;
   setError: Dispatch<SetStateAction<string>>;
-  setCopiedAssignment: Dispatch<SetStateAction<string>>;
-  setCopiedAssignmentStatus: Dispatch<SetStateAction<"copied" | "manual" | "">>;
   setImageJobRefreshNotice: Dispatch<SetStateAction<Record<string, string>>>;
   setImageJobTarget: Dispatch<SetStateAction<ImageJobDraftTarget>>;
   setKeptAssetId: Dispatch<SetStateAction<string>>;
@@ -84,8 +80,6 @@ export function useImageJobActions({
     }
     setBusy(true);
     setError("");
-    setCopiedAssignment("");
-    setCopiedAssignmentStatus("");
     try {
       await plotloomApi.prepareImageJob(projectId, {
         approvalId: currentApproval.id,
@@ -140,23 +134,16 @@ export function useImageJobActions({
     setError("");
     try {
       const copied = await plotloomApi.copyImageJob(projectId, jobId);
-      setCopiedAssignment(copied.assignment);
-      try {
-        if (!window.isSecureContext || !navigator.clipboard?.writeText)
-          throw new Error("clipboard unavailable");
-        await navigator.clipboard.writeText(copied.assignment);
-        setCopiedAssignmentStatus("copied");
-      } catch {
-        // HTTP and permission-restricted browsers remain usable: expose the
-        // exact assignment as selectable text instead of claiming it copied.
-        setCopiedAssignmentStatus("manual");
-      }
+      setImageJobRefreshNotice((current) => ({
+        ...current,
+        [jobId]: "已发送给专用 specialist；队列接受不代表生成或 delivery。完成后将自动检查 receipt。",
+      }));
       await refresh();
     } catch (jobError) {
       setError(
         jobError instanceof Error
           ? jobError.message
-          : "无法复制 specialist assignment",
+          : "无法发送 specialist image job",
       );
     } finally {
       setBusy(false);

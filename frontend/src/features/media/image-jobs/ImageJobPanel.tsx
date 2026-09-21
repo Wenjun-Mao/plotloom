@@ -1,4 +1,4 @@
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import type { ImageJob, ReviewedKeyframe } from "../../../types";
 import { Badge, Button, Field } from "../../../components";
 import {
@@ -19,9 +19,6 @@ export function ImageJobPanel({
   mediaDraftsEnabled,
   readOnly,
   busy,
-  copiedAssignment,
-  copiedAssignmentStatus,
-  copiedAssignmentRef,
   imageJobs,
   imageJobRefreshNotice,
   selectedBinding,
@@ -39,9 +36,6 @@ export function ImageJobPanel({
   mediaDraftsEnabled: boolean;
   readOnly: boolean;
   busy: boolean;
-  copiedAssignment: string;
-  copiedAssignmentStatus: "copied" | "manual" | "";
-  copiedAssignmentRef: RefObject<HTMLTextAreaElement | null>;
   imageJobs: ImageJob[];
   imageJobRefreshNotice: Record<string, string>;
   selectedBinding: ReviewedKeyframe | undefined;
@@ -54,7 +48,7 @@ export function ImageJobPanel({
       <section className="image-job-panel" data-testid="image-job-panel">
         <div className="section-title">
           <span>Codex image jobs · P1.5</span>
-          <strong>Prepare → Copy → Generate → Refresh → Select</strong>
+          <strong>Prepare → Send → Generate → Auto-check → Select</strong>
         </div>
         {!imageExchangeConfigured && (
           <div className="notice warning">
@@ -64,9 +58,8 @@ export function ImageJobPanel({
           </div>
         )}
         <p className="muted">
-          P1.5 只提供手动 image handoff：当前 storyboard Approval
-          冻结单镜头请求和角色角色映射，Copy 导出 assignment，specialist 在同机
-          inbox 交付，创作者再显式选择。H3 视频候选是独立的冻结、提交与复核流程，绝不由 image handoff 自动生成或选择。
+          当前 storyboard Approval 冻结单镜头请求和角色映射后，专用同机 specialist
+          接收不可变 package；delivery 会自动检查并只在通过既有验证后显示为候选。队列接受不代表生成、delivery、Approval 或选择。H3/Qwen 不参与此流程。
         </p>
         {imageJobPrerequisite && (
           <div className="notice warning" data-testid="image-job-prerequisite">
@@ -189,44 +182,6 @@ export function ImageJobPanel({
             image job
           </Button>
         </div>
-        {copiedAssignment && (
-          <>
-            <Field label="交给 Codex image specialist 的 assignment">
-              <textarea
-                ref={copiedAssignmentRef}
-                data-testid="image-job-assignment"
-                readOnly
-                rows={3}
-                value={copiedAssignment}
-              />
-            </Field>
-            <div className="button-row">
-              {copiedAssignmentStatus === "copied" ? (
-                <small role="status" data-testid="image-job-copy-status">
-                  已复制到系统剪贴板。Copy
-                  仅导出交接单，不代表执行、delivery、Approval 或选择。
-                </small>
-              ) : (
-                <>
-                  <small role="status" data-testid="image-job-copy-status">
-                    浏览器未允许剪贴板访问；请选中文本后手动复制。Copy
-                    仅导出交接单。
-                  </small>
-                  <Button
-                    data-testid="select-image-job-assignment"
-                    variant="quiet"
-                    onClick={() => {
-                      copiedAssignmentRef.current?.focus();
-                      copiedAssignmentRef.current?.select();
-                    }}
-                  >
-                    选择 assignment 文本
-                  </Button>
-                </>
-              )}
-            </div>
-          </>
-        )}
         <div className="image-job-history">
           {imageJobs.map((job) => (
             <article
@@ -263,7 +218,7 @@ export function ImageJobPanel({
                   }
                   onClick={() => void onCopy(job.id)}
                 >
-                  Copy assignment
+                  发送给 specialist
                 </Button>
                 <Button
                   data-testid={`refresh-image-job-${job.id}`}
@@ -271,7 +226,7 @@ export function ImageJobPanel({
                   disabled={readOnly || busy}
                   onClick={() => void onRefresh(job.id)}
                 >
-                  检查 delivery
+                  立即检查 delivery
                 </Button>
                 <Button
                   variant="danger"

@@ -46,6 +46,7 @@ from ..video_backends.minimax_h3.adapter import H3_PROFILES_BY_ID
 from ..video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from ..video_ingestion import ObservedVideo, probe_video
 from ..video_provider import VideoAdapterPort, VideoProviderPort
+from ..codex_image_dispatch import NativeCodexImageDispatcher
 from ..validation import DomainValidationError, STORYBOARD_GATE_SET_VERSION
 from .models import (
     ApprovalClosureView,
@@ -93,6 +94,7 @@ def create_project_folder_authoring_app(
     video_probe: Callable[[bytes], ObservedVideo] | None = None,
     run_dispatcher: ProjectRunDispatcher | None = None,
     text_admission: TextAdmissionService | None = None,
+    image_dispatcher: NativeCodexImageDispatcher | None = None,
     static_dir: Path | None = None,
     lifespan: Any | None = None,
 ) -> FastAPI:
@@ -726,6 +728,7 @@ def create_project_folder_authoring_app(
         image_job_target_id=image_job_target_id,
         require_media_draft_scope=require_media_draft_scope,
         project_h3_target=_project_h3_target,
+        image_dispatcher=image_dispatcher,
     )
     register_project_folder_video_routes(
         app,
