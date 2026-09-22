@@ -45,7 +45,7 @@ export function SectionMapPanel({
   );
 
   return <article className="panel section-map" data-testid="section-map">
-    <header><span>04 · Reviewed section map</span><strong>{status === "current" ? `当前 r${accepted?.revision}` : status === "stale" ? `过期 r${accepted?.revision}` : "尚未保存"}</strong></header>
+    <header><span>分支章节映射</span><strong>{status === "current" ? `当前 r${accepted?.revision}` : status === "stale" ? `过期 r${accepted?.revision}` : "尚未保存"}</strong></header>
     <p>这里是来源大纲的可编辑章节映射，不需要 Bible，也不生成第二张路由图。当前映射可由作者显式安装到既有规范 Graph；一个明确选择必须连到两个不同、已标记的结局。</p>
     {status === "stale" && <div className="notice warning"><strong>章节映射已过期</strong><span>{staleReasons.join("；") || "来源或已接受大纲已变化。请按当前大纲复核后另存。"}</span></div>}
     {!outline ? <p className="muted">先明确接受一个 outline，再建立章节与分支。</p> : <>

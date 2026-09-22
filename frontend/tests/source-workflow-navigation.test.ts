@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { sourceWorkflowHref, sourceWorkflowTarget, sourceWorkflowTargets, viewHref, workspaceHref } from "../src/app/workspace/sourceWorkflowNavigation";
+import { sourceWorkflowHref, sourceWorkflowLabel, sourceWorkflowTarget, sourceWorkflowTargets, viewHref, workspaceHref } from "../src/app/workspace/sourceWorkflowNavigation";
 
 describe("source workflow navigation contract", () => {
   it("only permits the four embedded source owners as fragment targets", () => {
@@ -8,6 +8,14 @@ describe("source workflow navigation contract", () => {
     expect(sourceWorkflowTarget("script")).toBe("script");
     expect(sourceWorkflowTarget("storyboard")).toBeUndefined();
     expect(sourceWorkflowTarget("unknown")).toBeUndefined();
+  });
+
+  it("names only validated source fragments as the creator's active task", () => {
+    expect(sourceWorkflowLabel("source")).toBe("来源与大纲");
+    expect(sourceWorkflowLabel("art")).toBe("美术参考");
+    expect(sourceWorkflowLabel("script")).toBe("剧本");
+    expect(sourceWorkflowLabel("storyboard-review")).toBe("分镜评审");
+    expect(sourceWorkflowLabel("storyboard")).toBeUndefined();
   });
 
   it("keeps embedded source review distinct from the legacy shot and media workspace", () => {

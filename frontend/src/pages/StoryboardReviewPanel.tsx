@@ -42,14 +42,14 @@ export function StoryboardReviewPanel({ projectId, readOnly, onInitialLoadSettle
   const { candidate, acceptedReview } = state;
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : acceptedReview?.candidateJobId;
   return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">
-    <header><span>08 · F5A novel-storyboard review</span><strong>{reviewLabel(state)}</strong></header>
-    <p>原始 storyboard.json 和上游报告是与 F4 script 绑定的评审证据，不是 Plotloom 的 shots、播放内容、媒体提示词或投产许可。</p>
+    <header><span>分镜评审</span><strong>{reviewLabel(state)}</strong></header>
+    <p>原始 storyboard.json 和上游报告是与已接受剧本绑定的评审证据，不是 Plotloom 的 shots、播放内容、媒体提示词或投产许可。</p>
     <div className="notice warning">不会创建 SceneBeats/Bible 投影、选择参考、H3 调度或时长变更。</div>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {!candidate && <Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.prepareStoryboardSourceReviewCandidate(projectId), result => setAssignment(result.assignment))}>准备并复制 storyboard specialist handoff</Button>}
     {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} run={run} onAssignment={setAssignment} />}
     {candidate?.status === "ready" && <StoryboardReviewInspection title="查看待接受 storyboard" value={candidate.storyboard} />}
-    {acceptedReview && <section><small>已接受 review r{acceptedReview.revision} · F4 script r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title="查看当前已接受 storyboard" value={acceptedReview.storyboard} /></section>}
+    {acceptedReview && <section><small>已接受 review r{acceptedReview.revision} · 已接受剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title="查看当前已接受 storyboard" value={acceptedReview.storyboard} /></section>}
     {reportJobId && <details><summary>打开原始只读上游报告</summary><iframe title="original derived upstream storyboard report" className="source-outline-report" sandbox="" src={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} /></details>}
     {assignment && <label>复制给 specialist 的冻结任务<textarea readOnly value={assignment} rows={5} /></label>}
     {error && <ErrorNotice message={error} />}

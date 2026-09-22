@@ -80,8 +80,8 @@ export function ScriptPanel({ projectId, readOnly, onInitialLoadSettled }: { pro
   };
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : accepted?.candidateJobId;
   return <article id="script" className="panel cast-panel" data-testid="script-review">
-    <header><span>07 · F4 novel-script proposal</span><strong>{heading(state)}</strong></header>
-    <p>完整 pilot 的三个稳定章节各绑定一个已冻结的上游 episode。script.json 是创作权威；F5 仅消费这条已接受的 seam。</p>
+    <header><span>剧本</span><strong>{heading(state)}</strong></header>
+    <p>完整 pilot 的三个稳定章节各绑定一个已冻结的上游 episode。script.json 是创作权威；分镜评审仅消费这条已接受的 seam。</p>
     <div className="notice warning">这是非 episode pilot。hook/cliff 与跨互斥结局的 aggregate duration 不构成产品节奏或悬念批准；上游 gate 仍作结构检查，冻结的章节和完整路径时长上限仍然适用。</div>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备并复制 script specialist handoff</Button>}
