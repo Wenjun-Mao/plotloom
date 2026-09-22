@@ -34,3 +34,18 @@ npm run test:e2e
 The E2E suite typechecks its fixture, starts `uv run plotloom` and this Vite
 server on dynamically allocated loopback ports, and uses temporary SQLite and
 artifact storage. It never contacts a real provider.
+
+## Portable F3B presentation fixture
+
+The environment/prop review demo is an explicit mock-only, read-only surface
+that reuses `ArtReferenceGallery`; it is not a workbench route or API mode. It
+serves five distinct static SVG cards for each isolated scene and prop subject,
+and its controls cannot write project or provider state.
+
+```sh
+node e2e/f3b-mock-demo-api.mjs --port 8794
+PLOTLOOM_API_ORIGIN=http://127.0.0.1:8794 npm run dev -- --port 8793 --strictPort
+```
+
+Open `http://127.0.0.1:8793/v2/e2e/f3b-mock-demo.html`. Both processes are
+loopback-only and can be stopped when inspection is complete.

@@ -517,10 +517,12 @@ preexisting F3B current → restart → art-reopen/stale → cancel-release life
 same-document held A→B→A project response containment, and an explicitly
 mocked, read-only five-candidate browser response for arbitrary 2/3/4 comparison
 and cap replacement. The mock response writes no delivery manifest or tool
-attestation and is not creative evidence. Retained 1440px and 1920px captures
-live under local `output/u3-mocked-f3b/`; they are conspicuously labeled mock
-candidate UI proof, not generated art. No genuine retained five-candidate F3B
-set exists, so no persistent creative preview is claimed. Stop at this
-presentation/lifecycle reuse slice; video, selection/import/refinement,
-generation/provider work, production acceptance, and broader redesign remain
-excluded.
+attestation and is not creative evidence. The portable loopback fixture at
+`/v2/e2e/f3b-mock-demo.html` reuses the same gallery with distinct static SVG
+A–E cards for separate scene and prop subjects; its source and exact local
+startup are documented in `frontend/README.md`. It is visibly mock/read-only,
+has no production route or data write, and is the 1440px/1920px presentation
+proof. No genuine retained five-candidate F3B set exists, so no creative
+preview is claimed. Stop at this presentation/lifecycle reuse slice; video,
+selection/import/refinement, generation/provider work, production acceptance,
+and broader redesign remain excluded.
