@@ -176,6 +176,18 @@ def _is_current_schema_objects(actual: tuple[tuple[str, str, str, str | None], .
     }
 
 
+def _requires_production_bridge_transition(actual: tuple[tuple[str, str, str, str | None], ...]) -> bool:
+    """Recognize every already-supported physical layout without bridge tables."""
+    base = expected_project_schema_objects(
+        include_video_candidate_selection=True, include_production_bridge=False,
+    )
+    appended = expected_project_schema_objects(
+        include_video_candidate_selection=True, include_production_bridge=False,
+        append_character_delivery_publication_phase=True,
+    )
+    return actual in {base, appended, _metadata_rebuilt_schema(base), _metadata_rebuilt_schema(appended)}
+
+
 def _metadata_rebuilt_schema(
     schema: tuple[tuple[str, str, str, str | None], ...],
 ) -> tuple[tuple[str, str, str, str | None], ...]:
@@ -308,13 +320,7 @@ def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
         return "current"
     if _requires_art_reference_decision_transition(actual) and user_version == (0,):
         return "art_reference_decision_transition_required"
-    if (
-        actual == expected_project_schema_objects(
-            include_video_candidate_selection=True,
-            include_production_bridge=False,
-        )
-        and user_version == (0,)
-    ):
+    if _requires_production_bridge_transition(actual) and user_version == (0,):
         return "production_bridge_transition_required"
     if _requires_character_imported_appearance_transition(actual) and user_version == (0,):
         return "character_imported_appearance_transition_required"
