@@ -1,15 +1,19 @@
 # Creator workflow usability — review plan
 
 Status: **U2 is complete; the bounded U3 Characters appearance workspace is
-accepted, and the separate U3 environment/prop F3B review slice is delivered
-for technical review; broader U1–U4 redesign remains unapproved.**
-Date: 2026-09-18; current summary updated 2026-09-21. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
+accepted, and the separate U3 environment/prop F3B review and explicit
+reference-choice usability slices are delivered. Broader U1–U4 redesign
+remains unapproved.**
+Date: 2026-09-18; current summary updated 2026-09-22. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
 
 **Current summary.** U3 acceptance is limited to the Characters workspace:
 cancel-edit safety, truthful imported appearances, large-image inspection, and
 any explicit two-to-four image comparison on 1440px and 1920px desktop review.
 The separate F3B environment/prop slice reuses accepted art and existing
-reference-proposal lifecycle only; it does not accept any creative/media output.
+reference-proposal lifecycle. Its explicit current-subject reference choice was
+reported by the creator to work well and is recorded at `729cb94`; that is
+bounded presentation usability acceptance only, not creative/media output,
+production consumption, or portable-simulator persistence evidence.
 The previous authorized ImageGen proof is complete; no further provider call is
 authorized by this record. Video, F2/F7 creative or media acceptance, and
 imported-image refinement remain separate.
@@ -89,6 +93,85 @@ review actions. Do not rerun every backend suite for a text-only adjustment.
 The original narrow-viewport expectation is historical planning guidance; the
 current U3 desktop policy uses 1440px and 1920px visual acceptance, while
 retaining inexpensive responsive behavior without a narrow-viewport gate.
+
+## U0/U1 navigation and current-workflow assessment — 2026-09-22
+
+**Approved assessment boundary.** This is a source-backed documentation slice,
+not approval to redesign or remove a workflow. It records the current screens,
+their owners, and the smallest coherent next navigation change. It does not
+create a new stage, API, projection, persistence state, production storyboard,
+or media owner. The observed F3B reference-choice usability acceptance at
+`729cb94` is included only as a bounded creator-facing presentation result.
+
+### Current screen and ownership map
+
+| Creator task | Current entry and owner | Current result/status and next action | Safe navigation and missing behavior |
+| --- | --- | --- | --- |
+| Source, outline, and admitted route map | `?project=<id>&stage=source` → `SourceOutlinePage` and `SectionMapPanel` | Source, outline candidate, accepted outline, map, and graph admission each retain their own revision/currentness. The panel offers save, manual specialist handoff, refresh/accept/cancel, map save, and explicit graph install only when its owner permits it. | This is the current source-bound entry. Without a saved project, the workspace truthfully asks the creator to save it first; no empty source route is invented. |
+| Characters and identity references | `?project=<id>&stage=characters` → `CharactersPage`, `CastPanel`, and `CharacterReferenceReviewPanel` | Current cast state owns the next action; accepted cast enables browse/compare/select or a prepared manual proposal, while stale/reopened cast suspends image actions. | Link directly only with a project ID. Its existing missing state says that an accepted cast is required and does not invent subjects or example imagery. |
+| Accepted art and environment/prop references | The `ArtPanel` and shared `ArtReferenceGallery` are embedded in the source page; there is no separate Art route. | Accepted `art.json` owns the scene/prop subject list. F3B proposal state owns prepare/copy/refresh/cancel; the append-only decision owner marks one current candidate as “当前参考图” or retains stale history. `729cb94` moves counters to folded technical detail. | Keep `stage=source` as the safe entry until a future implementation adds stable in-page targets. Missing accepted art or candidates remains a truthful local state, not a redirect to Characters or the legacy Bible. |
+| Accepted screenplay | `ScriptPanel` is embedded in the source page; the read-only route reader is `?view=story-prototype&project=<id>`. | F4 owns candidate, accepted/reopened, section editing, and report state. The reader consumes only a current accepted script bound to the current graph and exposes no save/generation action. | The reader refuses a missing, stale, or mismatched script with its owner-specific explanation. It must not silently show a historical script or fall through to another route. |
+| Source-bound storyboard review | `StoryboardReviewPanel` is embedded in the source page; matching evidence is optionally readable in `view=story-prototype`. | F5A owns its raw review candidate, acceptance, binding, and report. It is review evidence only: it neither creates Plotloom shots nor makes a production or media decision. | The reader shows F5A only when the accepted review matches the exact current F4/graph binding; otherwise it leaves the current screenplay readable and labels the storyboard unavailable. |
+| Existing shot/media workbench | `?project=<id>&stage=storyboard` → `StoryboardPage` | This is the existing editable Plotloom storyboard/shot/media surface with its own scene-beat and media task inputs. It is not an F5A projection or F5A acceptance destination. | Do not route an F5A review CTA here, synthesize shots from F5A, or treat its presence as production readiness. Its own prerequisites and stale state remain authoritative. |
+| Play | `?view=play&project=<id>` → `PlayView` | Existing canonical graph, scene beats, storyboard, and selected jobs drive the view. It already reports when those payloads are missing. | Preserve the current top-bar link and return link. A future workflow nav may show it, but must not claim playability before `PlayView` can load its required current payloads. |
+| Legacy authoring and diagnostics | Workspace sidebar `brief`, `bible`, `graph`, `beats`, `trace`, and `quarantine` | These are still real existing authoring, inspection, repair, and diagnostic surfaces. They are not the source-bound review sequence and must not be relabelled as F1–F5 acceptance. | Keep direct routes working while they remain owners. Trace and quarantine belong under secondary technical navigation, not the creator’s primary progress path. |
+
+### Smallest coherent integration brief for a later U1 slice
+
+1. Present one creator-facing sequence: **来源与大纲 → 角色 → 美术参考 →
+   剧本 → 分镜评审 → 播放**. Reuse `stage=source` for its embedded F1/F3/F4/F5
+   owners and `stage=characters` for F2; do not add a new Art, Script, or F5
+   route merely to make this sequence look linear.
+2. Give every primary destination a project-scoped link and a short owner-local
+   status/next-action summary. The navigation shell must not issue parallel
+   lifecycle reads or synthesize a global “current” state: `SourceOutlinePage`,
+   `CharactersPage`, `ArtPanel`, `ScriptPanel`, `StoryboardReviewPanel`,
+   `StoryPrototypePage`, and `PlayView` remain the authorities for their own
+   readiness and errors.
+3. Add stable in-page targets to the embedded source panels only when U1 is
+   dispatched. Until then, `stage=source` is the only truthful direct entry to
+   source, art, script, and F5A review. A missing prerequisite must keep the
+   creator at the named owner with its existing explanation—never redirect to a
+   later stage or substitute retained history.
+4. Keep **分镜评审** distinct from the existing **镜头与媒体工作台**. The former
+   links to/readies `StoryboardReviewPanel` and the binding-gated reader; the
+   latter remains `stage=storyboard`. No navigation change may add an F5A →
+   production conversion, SceneBeats/Bible projection, or H3 dispatch.
+5. Make the route-focused reader a secondary read-only destination after the
+   script. It may expose its current refusal state, but it must not masquerade
+   as a canonical editor or promise that its optional F5A tab is production
+   material. Keep Play separate and equally honest about unavailable payloads.
+
+### Exact duplicate/obsolete presentation to retire only in that U1 slice
+
+- Retire `CreatorStageNavigation` in `StoryPrototypePage` as a second workflow
+  map. It currently points “分镜” to the legacy `stage=storyboard` workbench
+  even though the page reads F5A review evidence. Replace it with a compact
+  back-to-workflow affordance once the primary navigation can carry the same
+  project context.
+- Remove the sidebar’s primary-progress treatment of **项目简报、故事圣经、剧情
+  DAG、场景节拍、分镜工作台** after their supported owner links have been placed
+  deliberately in the creator flow. Do not delete the routes, editors, or their
+  tests in that navigation-only slice; move diagnostics (`运行轨迹` and `隔离修复`)
+  to secondary technical navigation instead.
+- Remove the source page’s inherited numeric/internal pipeline labels from
+  creator-facing headings when the one primary sequence supplies orientation:
+  “F1A · Project-owned review”, “01 · Accepted source”, “02 · Candidate only”,
+  “03 · Accepted outline”, “04 · Reviewed section map”, “06 · F3A”, “07 · F4”,
+  and “08 · F5A”. Preserve the descriptive headings, current-state labels, and
+  folded technical detail; the change is presentation only.
+
+**Next implementation brief and stop condition.** A future U1a dispatch may
+implement only this navigation shell, stable in-page targets, creator-facing
+labels, and owner-local missing-state links. It must reuse current routes and
+readiness checks; it may not alter source/cast/art/script/F5A data, accept
+creative/media output, add a production consumer, change `PlayView` payload
+rules, invoke providers, or retire any underlying editor. Verify direct links,
+missing/stale refusal, reader/F5A versus legacy-workbench separation, project
+switch containment, 1440px/1920px presentation, static bundle freshness, and
+an independent stable-delta review. Stop after that shell; a decision to retire
+legacy authoring routes or define production ownership remains material and
+requires separate approval.
 
 ## Historical U2 delivery proposal — representative story/branch prototype
 

@@ -9,15 +9,18 @@ earlier scope and evidence, not the current assignment queue.
 
 ## Current review pause
 
-Implementation and generation are paused for the attended creator walkthrough.
-The [usability review plan](2026-09-18-creator-workflow-usability.md) captures agreed findings
-and proposed priorities; language policy and delivery approval remain open.
-It separates presentation work from F5-to-production integration and H3 tuning.
+The attended walkthrough has delivered bounded presentation slices: the U2
+route-focused reader, the U3 Characters appearance workspace, and the F3B
+environment/prop gallery plus explicit reference choice. Their technical and
+bounded usability records live in the
+[usability review plan](2026-09-18-creator-workflow-usability.md); none is
+creative/media approval, a production consumer, or a whole-workflow redesign.
 
-The user-approved usability direction and representative story/branch prototype are
-the next proposed delivery, but implementation remains paused during this
-documentation assignment. The prototype will settle its content and language
-details through U0 rather than treating them as decided by this tracker.
+Current work is the documentation-only U0/U1 navigation and workflow
+assessment recorded there. No provider or generation work is authorized by this
+assessment. A later U1 implementation may only start from its bounded brief;
+language policy, broader stage retirement, F5-to-production integration, and
+H3 tuning remain open and are not decided by this tracker.
 
 ## Outcomes and starting point
 
