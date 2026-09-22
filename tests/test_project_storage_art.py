@@ -195,6 +195,26 @@ def test_current_f3b_folder_adds_art_reference_decision_tables_on_admitted_open(
         }
 
 
+def test_retained_project_adds_only_empty_production_bridge_tables_on_admitted_open(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id, database = store.manifest.project_id, store.database_path
+    store.close()
+    with sqlite3.connect(database) as connection:
+        for table in ("v2_production_bridge_admissions", "v2_production_bridge_revisions", "v2_production_bridge_heads"):
+            connection.execute(f"DROP TABLE {table}")
+        connection.commit()
+    assert project_schema_status(database, project_id) == "production_bridge_transition_required"
+    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
+        storage.projects.inspect(project_id)
+    opened = storage.projects.open(project_id)
+    try:
+        assert opened.production_bridge_state().status == "missing"
+    finally:
+        opened.close()
+    assert project_schema_status(database, project_id) == "current"
+
+
 def _reference_png() -> bytes:
     output = BytesIO()
     Image.new("RGB", (32, 24), (42, 72, 84)).save(output, format="PNG")

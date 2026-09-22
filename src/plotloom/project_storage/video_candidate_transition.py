@@ -490,6 +490,11 @@ def transition_project_schema(
                 elif status == "production_bridge_transition_required":
                     for table in _PRODUCTION_BRIDGE_TABLES:
                         table.create(connection)
+                    connection.exec_driver_sql(
+                        "INSERT INTO v2_production_bridge_heads "
+                        "(project_id, revision, status, updated_at) "
+                        "SELECT id, 0, 'missing', updated_at FROM v2_projects"
+                    )
                 else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
                     raise AssertionError(f"unsupported project transition: {status}")
                 if not _is_current_schema_objects(tuple(_schema_objects(connection))):
