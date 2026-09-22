@@ -52,9 +52,15 @@ test.describe("F3A production art review", () => {
     expect(refreshResponse.ok(), await refreshResponse.text()).toBeTruthy();
     await expect(scene).toContainText("current");
     await expect(scene.getByRole("img", { name: "Beacon room 当前查看图片" })).toBeVisible();
+    const decision = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-decisions`);
+    await scene.getByRole("button", { name: "用作此环境的参考图" }).click();
+    expect((await decision).status()).toBe(201);
+    await expect(scene).toContainText("当前已选参考：正在查看的候选");
     await workbench.restartBackend();
     await page.reload();
     await expect(scene).toContainText("current");
+    await expect(scene).toContainText("当前已选参考：正在查看的候选");
 
     const art = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/art`));
     await getJson(request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/art/reopen`, { data: { expectedArtRevision: art.acceptedArt.revision } }));
@@ -62,6 +68,7 @@ test.describe("F3A production art review", () => {
     await getJson(request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/art/save`, { data: { expectedArtRevision: art.acceptedArt.revision, binding: art.acceptedArt.binding, art: changed } }));
     await page.reload();
     await expect(scene).toContainText("changed / stale");
+    await expect(scene).toContainText("此前的参考决定已过期");
     const newPrepared = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals`);
     await scene.getByRole("button", { name: "准备研究" }).click();

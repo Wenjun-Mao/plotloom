@@ -511,6 +511,37 @@ export interface ArtReferenceProposalsResponse {
   proposals: ArtReferenceProposal[];
 }
 
+export interface ArtReferenceDecisionState {
+  subjectType: "scene" | "prop";
+  subjectId: string;
+  revision: number;
+  activeDecisionId: string | null;
+  current: boolean;
+}
+
+export interface ArtReferenceDecision {
+  id: string;
+  projectId: string;
+  subjectType: "scene" | "prop";
+  subjectId: string;
+  referenceRevision: number;
+  acceptedArtRevision: number;
+  acceptedArtHash: string;
+  subject: Record<string, unknown>;
+  subjectHash: string;
+  assetId: string;
+  assetHash: string;
+  proposalId: string;
+  candidateId: string;
+  current: boolean;
+  createdAt: string;
+}
+
+export interface ArtReferenceDecisionsResponse {
+  states: ArtReferenceDecisionState[];
+  decisions: ArtReferenceDecision[];
+}
+
 export interface ImageJobCandidate {
   id: string;
   assetId: string;

@@ -31,7 +31,7 @@ function Demo() {
   return <main className="page source-outline-page" data-testid="f3b-portable-demo">
     <header className="page-header"><div><span>TEST-ONLY · LOCAL LOOPBACK</span><h1>F3B environment / prop review</h1><p>Portable, read-only presentation fixture. Its static SVG cards are explicitly mocked and cannot write project or provider state.</p></div></header>
     <article className="panel cast-panel art-panel">
-      <ArtReferenceGallery projectId={projectId} art={art} acceptedRevision={1} acceptedContentHash="portable-mock" studies={[mockStudy("scene", "S-DEMO", "scene"), mockStudy("prop", "P-DEMO", "prop")]} readOnly busy={false} setAssignment={() => undefined} refresh={async () => undefined} />
+      <ArtReferenceGallery projectId={projectId} art={art} acceptedRevision={1} acceptedContentHash="portable-mock" studies={[mockStudy("scene", "S-DEMO", "scene"), mockStudy("prop", "P-DEMO", "prop")]} decisions={[]} decisionStates={[]} readOnly busy={false} setAssignment={() => undefined} refresh={async () => undefined} />
     </article>
   </main>;
 }

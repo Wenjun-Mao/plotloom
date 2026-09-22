@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
-import type { ArtCandidate, ArtReferenceProposal, ArtReviewState } from "../types";
+import type { ArtCandidate, ArtReferenceDecision, ArtReferenceDecisionState, ArtReferenceProposal, ArtReviewState } from "../types";
 import { ArtReferenceGallery } from "./ArtReferenceGallery";
 
 type EditorProps = { disabled: boolean; draft: string; setDraft: (value: string) => void };
@@ -11,6 +11,8 @@ type ProjectSession = { projectId: string; epoch: number };
 export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
   const [state, setState] = useState<ArtReviewState>();
   const [studies, setStudies] = useState<ArtReferenceProposal[]>([]);
+  const [referenceDecisions, setReferenceDecisions] = useState<ArtReferenceDecision[]>([]);
+  const [referenceStates, setReferenceStates] = useState<ArtReferenceDecisionState[]>([]);
   const [assignment, setAssignment] = useState("");
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -22,18 +24,19 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
   const ownsProject = (session: ProjectSession) => activeProject.current === session;
   const load = useCallback(async (session = activeProject.current) => {
     try {
-      const [next, referenceStudies] = await Promise.all([
+      const [next, referenceStudies, decisions] = await Promise.all([
         plotloomApi.getArt(session.projectId),
         plotloomApi.getArtReferenceProposals(session.projectId),
+        plotloomApi.getArtReferenceDecisions(session.projectId),
       ]);
-      if (ownsProject(session)) { setState(next); setStudies(referenceStudies.proposals); }
+      if (ownsProject(session)) { setState(next); setStudies(referenceStudies.proposals); setReferenceDecisions(decisions.decisions); setReferenceStates(decisions.states); }
     } catch (reason) {
       if (ownsProject(session)) setError(reason instanceof Error ? reason.message : "Unable to load art studies.");
     }
   }, [projectId]);
   useEffect(() => {
     const session = activeProject.current;
-    setState(undefined); setStudies([]); setAssignment(""); setDraft(""); setError(""); setBusy(false);
+    setState(undefined); setStudies([]); setReferenceDecisions([]); setReferenceStates([]); setAssignment(""); setDraft(""); setError(""); setBusy(false);
     void load(session);
     return () => {
       // An unmounted panel must not let an already-settled child operation
@@ -73,7 +76,7 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备并复制 art specialist handoff</Button>}
     {candidate && <CandidateReview candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} draft={draft} setDraft={setDraft} recover={recover} refresh={() => act(() => plotloomApi.refreshArtCandidate(projectId, candidate.jobId))} cancel={() => act(() => plotloomApi.cancelArtCandidate(projectId, candidate.jobId))} accept={accept} />}
-    {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；文本与报告可审阅，F3B 参考研究在下方单独显示。</small><ArtReferenceGallery projectId={projectId} art={accepted.art} acceptedRevision={accepted.revision} acceptedContentHash={accepted.contentHash} studies={studies} readOnly={readOnly} busy={busy} setAssignment={setAssignment} refresh={() => load()} />{state.status !== "reopened" && <Editor disabled draft={draft} setDraft={setDraft} />}{reportJobId && <Report projectId={projectId} jobId={reportJobId} />}<Button variant="quiet" disabled={readOnly || busy || state.status === "reopened"} onClick={() => act(() => plotloomApi.reopenArt(projectId, accepted.revision))}>重新打开美术提案</Button></>}
+    {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；文本与报告可审阅，F3B 参考研究在下方单独显示。</small><ArtReferenceGallery projectId={projectId} art={accepted.art} acceptedRevision={accepted.revision} acceptedContentHash={accepted.contentHash} studies={studies} decisions={referenceDecisions} decisionStates={referenceStates} readOnly={readOnly} busy={busy} setAssignment={setAssignment} refresh={() => load()} />{state.status !== "reopened" && <Editor disabled draft={draft} setDraft={setDraft} />}{reportJobId && <Report projectId={projectId} jobId={reportJobId} />}<Button variant="quiet" disabled={readOnly || busy || state.status === "reopened"} onClick={() => act(() => plotloomApi.reopenArt(projectId, accepted.revision))}>重新打开美术提案</Button></>}
     {accepted && state.status === "reopened" && <><Editor disabled={readOnly || busy} draft={draft} setDraft={setDraft} /><Button variant="primary" disabled={readOnly || busy} onClick={save}>保存重新打开的美术</Button></>}
     {assignment && <label>复制给 specialist 的冻结任务<textarea readOnly value={assignment} rows={5} /></label>}
     {error && <ErrorNotice message={error} />}

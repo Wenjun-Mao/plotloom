@@ -10,6 +10,8 @@ from typing import Literal
 from sqlalchemy import create_engine
 
 from ..persistence.schema import (
+    ArtReferenceDecisionRow,
+    ArtReferenceDecisionStateRow,
     ArtReferenceProposalCandidateRow,
     ArtReferenceProposalDeliveryRow,
     ArtReferenceProposalRow,
@@ -47,11 +49,16 @@ class ProjectCharacterImportedAppearanceTransitionRequiredError(ProjectSchemaTra
     """A current Characters folder needs the additive imported-appearance table."""
 
 
+class ProjectArtReferenceDecisionTransitionRequiredError(ProjectSchemaTransitionRequiredError):
+    """A current F3B folder needs explicit subject-reference decision tables."""
+
+
 SchemaStatus = Literal[
     "current", "selection_transition_required", "art_reference_transition_required",
     "character_delivery_publication_phase_transition_required",
     "character_selection_metadata_transition_required",
     "character_imported_appearance_transition_required",
+    "art_reference_decision_transition_required",
 ]
 _SELECTION_TABLE = VideoCandidateSelectionRow.__tablename__
 _CHARACTER_REFERENCE_DELIVERY_TABLE = CharacterReferenceProposalDeliveryRow.__tablename__
@@ -61,6 +68,10 @@ _ART_REFERENCE_TABLES = (
     ArtReferenceProposalRow.__table__,
     ArtReferenceProposalDeliveryRow.__table__,
     ArtReferenceProposalCandidateRow.__table__,
+)
+_ART_REFERENCE_DECISION_TABLES = (
+    ArtReferenceDecisionStateRow.__table__,
+    ArtReferenceDecisionRow.__table__,
 )
 
 
@@ -90,6 +101,7 @@ def expected_project_schema_objects(
     include_character_delivery_publication_phase: bool = True,
     append_character_delivery_publication_phase: bool = False,
     include_character_imported_appearances: bool = True,
+    include_art_reference_decisions: bool = True,
 ) -> tuple[tuple[str, str, str, str | None], ...]:
     """Return the exact current schema or one permitted immediate predecessor."""
 
@@ -100,6 +112,8 @@ def expected_project_schema_objects(
         table_names.difference_update(table.name for table in _ART_REFERENCE_TABLES)
     if not include_character_imported_appearances:
         table_names.remove(_CHARACTER_IMPORTED_APPEARANCE_TABLE)
+    if not include_art_reference_decisions:
+        table_names.difference_update(table.name for table in _ART_REFERENCE_DECISION_TABLES)
     engine = create_engine("sqlite://")
     try:
         Base.metadata.create_all(
@@ -223,6 +237,33 @@ def _requires_character_imported_appearance_transition(
     }
 
 
+def _requires_art_reference_decision_transition(
+    actual: tuple[tuple[str, str, str, str | None], ...],
+) -> bool:
+    """Recognize exactly the last admitted schema before F3B selection state."""
+
+    return actual in {
+        expected_project_schema_objects(
+            include_video_candidate_selection=True,
+            include_art_reference_decisions=False,
+        ),
+        expected_project_schema_objects(
+            include_video_candidate_selection=True,
+            append_character_delivery_publication_phase=True,
+            include_art_reference_decisions=False,
+        ),
+        _metadata_rebuilt_schema(expected_project_schema_objects(
+            include_video_candidate_selection=True,
+            include_art_reference_decisions=False,
+        )),
+        _metadata_rebuilt_schema(expected_project_schema_objects(
+            include_video_candidate_selection=True,
+            append_character_delivery_publication_phase=True,
+            include_art_reference_decisions=False,
+        )),
+    }
+
+
 def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
     """Classify only exact current and immediately preceding folder schemas."""
 
@@ -250,6 +291,8 @@ def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
         )
     if _is_current_schema_objects(actual):
         return "current"
+    if _requires_art_reference_decision_transition(actual) and user_version == (0,):
+        return "art_reference_decision_transition_required"
     if _requires_character_imported_appearance_transition(actual) and user_version == (0,):
         return "character_imported_appearance_transition_required"
     if _requires_character_selection_metadata_transition(actual) and user_version == (0,):
@@ -305,6 +348,10 @@ def transition_required_error(
     if status == "character_imported_appearance_transition_required":
         return ProjectCharacterImportedAppearanceTransitionRequiredError(
             f"character imported-appearance transition requires {reason}"
+        )
+    if status == "art_reference_decision_transition_required":
+        return ProjectArtReferenceDecisionTransitionRequiredError(
+            f"art reference decision transition requires {reason}"
         )
     raise AssertionError(f"current project schema does not need a transition: {status}")
 
@@ -410,6 +457,9 @@ def transition_project_schema(
                     )
                 elif status == "character_imported_appearance_transition_required":
                     CharacterImportedAppearanceRow.__table__.create(connection)
+                elif status == "art_reference_decision_transition_required":
+                    for table in _ART_REFERENCE_DECISION_TABLES:
+                        table.create(connection)
                 else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
                     raise AssertionError(f"unsupported project transition: {status}")
                 if not _is_current_schema_objects(tuple(_schema_objects(connection))):

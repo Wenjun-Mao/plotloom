@@ -58,6 +58,8 @@ import type {
   ArtCandidatePreparation,
   ArtReferenceProposal,
   ArtReferenceProposalsResponse,
+  ArtReferenceDecision,
+  ArtReferenceDecisionsResponse,
   ScriptReviewState,
   ScriptCandidate,
   ScriptCandidatePreparation,
@@ -320,6 +322,14 @@ export class PlotloomApiClient {
 
   getArtReferenceProposals(projectId: string, signal?: AbortSignal): Promise<ArtReferenceProposalsResponse> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/art-reference-proposals`, { signal });
+  }
+
+  getArtReferenceDecisions(projectId: string, signal?: AbortSignal): Promise<ArtReferenceDecisionsResponse> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/art-reference-decisions`, { signal });
+  }
+
+  createArtReferenceDecision(projectId: string, body: { subjectType: "scene" | "prop"; subjectId: string; assetId: string; expectedReferenceRevision: number }): Promise<ArtReferenceDecision> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/art-reference-decisions`, { method: "POST", body: JSON.stringify(body) });
   }
 
   prepareArtReferenceProposal(projectId: string, body: { subjectType: "scene" | "prop"; subjectId: string; renderDirection: string }): Promise<{ proposal: ArtReferenceProposal }> {

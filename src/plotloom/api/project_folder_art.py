@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtCandidatePreparation, ArtReopenRequest, ArtReviewState, ArtSaveRequest
 from ..image_job_contracts import (
+    ArtReferenceDecisionRequest,
     ArtReferenceProposalCancellationRequest,
     ArtReferenceProposalRequest,
     ImageJobError,
@@ -72,6 +73,18 @@ def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[s
     def get_art_reference_proposals(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
             return {"configured": True, "proposals": store.media.list_art_reference_proposals(project_id)}
+
+    @app.get("/api/v2/projects/{project_id}/art-reference-decisions")
+    def get_art_reference_decisions(project_id: str) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return store.media.list_art_reference_decisions(project_id)
+
+    @app.post("/api/v2/projects/{project_id}/art-reference-decisions", status_code=status.HTTP_201_CREATED)
+    def create_art_reference_decision(project_id: str, body: ArtReferenceDecisionRequest) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return store.media.create_art_reference_decision(
+                project_id, **body.model_dump(mode="python", by_alias=False)
+            )
 
     @app.post("/api/v2/projects/{project_id}/art-reference-proposals", status_code=status.HTTP_201_CREATED)
     def prepare_art_reference_proposal(project_id: str, body: ArtReferenceProposalRequest) -> dict[str, Any]:

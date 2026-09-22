@@ -19,6 +19,7 @@ from .project_generation import (
     StoryGraphTopologyRow, RunArtifactBlobRow, WorkUnitRepairIdempotencyRow, WorkUnitRepairScopeRow,
 )
 from .project_media import (
+    ArtReferenceDecisionRow, ArtReferenceDecisionStateRow,
     ArtReferenceProposalCandidateRow, ArtReferenceProposalDeliveryRow, ArtReferenceProposalRow,
     CharacterImportedAppearanceRow, CharacterReferenceDecisionRow, CharacterReferenceProposalCandidateRow,
     CharacterReferenceProposalDeliveryRow, CharacterReferenceProposalRow, CharacterReferenceStateRow,
@@ -44,6 +45,7 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_character_reference_proposals", "v2_character_reference_proposal_deliveries",
     "v2_character_reference_proposal_candidates", "v2_same_person_review_states", "v2_same_person_reviews",
     "v2_art_reference_proposals", "v2_art_reference_proposal_deliveries", "v2_art_reference_proposal_candidates",
+    "v2_art_reference_decision_states", "v2_art_reference_decisions",
     "v2_video_jobs", "v2_video_reviews", "v2_video_candidate_selections", "v2_project_video_dispatches",
     "v2_source_outline_heads", "v2_source_outline_source_revisions",
     "v2_source_outline_candidates", "v2_source_outline_revisions",

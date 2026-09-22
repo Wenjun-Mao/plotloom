@@ -153,6 +153,15 @@ class ArtReferenceProposalCancellationRequest(CamelModel):
     reason: str = Field(min_length=1, max_length=2_000)
 
 
+class ArtReferenceDecisionRequest(CamelModel):
+    """Choose one current F3B candidate for its accepted-art subject."""
+
+    subject_type: Literal["scene", "prop"]
+    subject_id: str = Field(min_length=1, max_length=128)
+    asset_id: str = Field(min_length=1, max_length=36)
+    expected_reference_revision: int = Field(ge=0)
+
+
 class SamePersonReviewItem(CamelModel):
     character_id: str = Field(min_length=1, max_length=128)
     judgment: Literal["pass", "fail"]

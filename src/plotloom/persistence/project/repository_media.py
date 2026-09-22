@@ -236,6 +236,18 @@ class ProjectMediaRepository:
     def list_art_reference_proposals(self, project_id: str) -> list[JsonObject]:
         return self._art_references.list_art_reference_proposals(project_id)
 
+    def create_art_reference_decision(
+        self, project_id: str, *, subject_type: str, subject_id: str, asset_id: str,
+        expected_reference_revision: int,
+    ) -> JsonObject:
+        return self._art_references.create_art_reference_decision(
+            project_id, subject_type=subject_type, subject_id=subject_id, asset_id=asset_id,
+            expected_reference_revision=expected_reference_revision,
+        )
+
+    def list_art_reference_decisions(self, project_id: str) -> JsonObject:
+        return self._art_references.list_art_reference_decisions(project_id)
+
     def record_same_person_review(
         self, project_id: str, *, binding_id: str, expected_review_revision: int,
         reviewer: str, comparisons: list[JsonObject], notes: str,

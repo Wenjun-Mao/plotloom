@@ -526,3 +526,21 @@ proof. No genuine retained five-candidate F3B set exists, so no creative
 preview is claimed. Stop at this presentation/lifecycle reuse slice; video,
 selection/import/refinement, generation/provider work, production acceptance,
 and broader redesign remain excluded.
+
+## F3B explicit subject-reference decision — 2026-09-22
+
+**Approved step and deliverable.** Add the smallest durable creator choice for
+a current accepted-art scene or prop: explicitly choose or replace one current,
+same-subject F3B candidate as its reference. The deliverable retains the Art
+Panel entry and its browse/zoom/2–4 comparison, adds an obvious chosen-reference
+state and truthful next step, and records ADR 0078 before implementation.
+
+**Scope and stop condition.** The decision freezes art/subject/currentness and
+managed-asset identity under CAS. It is not a creative/media/production
+approval, F5/F7 consumer, shot/keyframe install, import membership, refinement
+parent, generator, provider call, or general approval framework. Preserve
+historical stale decisions; stop and seek direction for any reset that would
+lose valued project discovery. Verify choice/replacement/no-auto-choice,
+currentness/CAS/restart/reopen/session containment, static assets, desktop
+1440/1920, and an independent stable-delta review. A portable explicit-mock
+demo may prove interaction only and must never claim generated evidence.

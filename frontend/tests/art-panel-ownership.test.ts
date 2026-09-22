@@ -21,6 +21,19 @@ const study: ArtReferenceProposal = {
   state: "prepared", current: true, exportedAt: null, cancelledAt: null, cancellationReason: null, createdAt: "2026-09-18T00:00:00Z", deliveries: [],
 };
 
+const deliveredStudy: ArtReferenceProposal = {
+  ...study, state: "delivered", deliveries: [{
+    id: "delivery-1", deliveryId: "delivery-1", state: "accepted", diagnosticCode: null, manifestHash: "manifest",
+    createdAt: "2026-09-18T00:00:00Z", candidates: [{
+      id: "candidate-1", assetId: "asset-1", proposalId: study.id, outputFilename: "scene.png", outputHash: "a".repeat(64), role: "art_reference",
+      createdAt: "2026-09-18T00:00:00Z", asset: {
+        id: "asset-1", projectId: "old", originalHash: "a".repeat(64), displayHash: "b".repeat(64), mimeType: "image/png",
+        byteSize: 1, width: 1, height: 1, createdAt: "2026-09-18T00:00:00Z", provenance: { origin: "test", rights: "unknown", rightsNote: null, declaredAdditions: [] },
+      },
+    }],
+  }],
+};
+
 function artState(projectId: string): ArtReviewState {
   return {
     candidate: null,
@@ -42,6 +55,7 @@ it("settles a deferred F3B copy after unmount without refresh, assignment, or er
   const copied = deferred<{ proposal: ArtReferenceProposal; assignment: string; packagePath: string; deliveryPath: string }>();
   const getArt = vi.spyOn(plotloomApi, "getArt").mockImplementation(async (projectId) => artState(projectId));
   const getStudies = vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [study] });
+  const getDecisions = vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
   vi.spyOn(plotloomApi, "copyArtReferenceProposal").mockReturnValue(copied.promise);
 
   await act(async () => { root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })); });
@@ -50,6 +64,7 @@ it("settles a deferred F3B copy after unmount without refresh, assignment, or er
   await act(async () => copy?.click());
   const artCallsBeforeUnmount = getArt.mock.calls.length;
   const studyCallsBeforeUnmount = getStudies.mock.calls.length;
+  const decisionCallsBeforeUnmount = getDecisions.mock.calls.length;
   await act(async () => root.unmount());
 
   await act(async () => {
@@ -59,6 +74,28 @@ it("settles a deferred F3B copy after unmount without refresh, assignment, or er
 
   expect(getArt).toHaveBeenCalledTimes(artCallsBeforeUnmount);
   expect(getStudies).toHaveBeenCalledTimes(studyCallsBeforeUnmount);
+  expect(getDecisions).toHaveBeenCalledTimes(decisionCallsBeforeUnmount);
   expect(host.textContent).not.toContain("stale assignment");
+  expect(host.querySelector('[role="alert"]')).toBeNull();
+});
+
+it("settles a deferred explicit F3B reference choice after unmount without a stale refresh", async () => {
+  const chosen = deferred<{ id: string }>();
+  const getArt = vi.spyOn(plotloomApi, "getArt").mockImplementation(async (projectId) => artState(projectId));
+  const getStudies = vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [deliveredStudy] });
+  const getDecisions = vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({
+    states: [{ subjectType: "scene", subjectId: "S01", revision: 0, activeDecisionId: null, current: false }], decisions: [],
+  });
+  vi.spyOn(plotloomApi, "createArtReferenceDecision").mockReturnValue(chosen.promise as Promise<any>);
+
+  await act(async () => { root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })); });
+  const choose = [...host.querySelectorAll("button")].find((button) => button.textContent === "用作此环境的参考图");
+  expect(choose).toBeDefined();
+  await act(async () => choose?.click());
+  const before = [getArt.mock.calls.length, getStudies.mock.calls.length, getDecisions.mock.calls.length];
+  await act(async () => root.unmount());
+  await act(async () => { chosen.resolve({ id: "decision-1" }); await chosen.promise; });
+
+  expect([getArt.mock.calls.length, getStudies.mock.calls.length, getDecisions.mock.calls.length]).toEqual(before);
   expect(host.querySelector('[role="alert"]')).toBeNull();
 });

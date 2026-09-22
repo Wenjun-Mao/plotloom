@@ -169,6 +169,32 @@ def test_f3a_project_schema_gets_the_empty_f3b_tables_on_admitted_open(tmp_path:
     assert project_schema_status(database, project_id) == "current"
 
 
+def test_current_f3b_folder_adds_art_reference_decision_tables_on_admitted_open(tmp_path: Path) -> None:
+    """The F3B decision schema is additive and does not rewrite prior rows."""
+
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application"
+    )
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id, database = store.manifest.project_id, store.database_path
+    store.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TABLE v2_art_reference_decision_states")
+        connection.execute("DROP TABLE v2_art_reference_decisions")
+        connection.commit()
+
+    assert project_schema_status(database, project_id) == "art_reference_decision_transition_required"
+    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
+        storage.projects.inspect(project_id)
+    opened = storage.projects.open(project_id)
+    opened.close()
+    assert project_schema_status(database, project_id) == "current"
+    with sqlite3.connect(database) as connection:
+        assert {row[1] for row in connection.execute("PRAGMA table_info(v2_art_reference_decisions)")} >= {
+            "subject_type", "subject_id", "accepted_art_hash", "asset_hash", "candidate_id",
+        }
+
+
 def _reference_png() -> bytes:
     output = BytesIO()
     Image.new("RGB", (32, 24), (42, 72, 84)).save(output, format="PNG")
@@ -247,6 +273,104 @@ def test_art_reference_study_browser_lifecycle_persists_and_stales(tmp_path: Pat
     assert late.status_code == 200, late.text
     assert late.json()["state"] == "inapplicable"
     assert late.json()["candidates"] == []
+
+
+def test_art_reference_decisions_are_explicit_cas_bound_historical_and_stale(tmp_path: Path) -> None:
+    """F3B selection is a local persistence contract, not a generation claim.
+
+    The retained test-only delivery helper supplies isolated mocked bytes. It
+    exercises the decision admission boundary without presenting fixture
+    provenance as real ImageGen evidence or invoking a provider.
+    """
+
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    try:
+        binding = _prepare_art_context(store)
+        candidate, request = store.prepare_art_candidate("ch_" + "d" * 32)
+        ready = store.admit_art_delivery(_deliver(store, request))
+        accepted = store.accept_art_candidate(ArtAcceptRequest(
+            job_id=candidate.job_id, expected_art_revision=0, binding=binding, art=ready.art,
+        ))
+        assert accepted.accepted_art and accepted.accepted_art.revision == 1
+    finally:
+        store.close()
+
+    client = TestClient(create_project_folder_authoring_app(storage))
+
+    def deliver_study(direction: str) -> dict[str, object]:
+        prepared = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals", json={
+            "subjectType": "scene", "subjectId": "S01", "renderDirection": direction,
+        })
+        assert prepared.status_code == 201, prepared.text
+        proposal = prepared.json()["proposal"]
+        copied = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{proposal['id']}/copy")
+        assert copied.status_code == 200, copied.text
+        _write_art_reference_delivery(Path(copied.json()["deliveryPath"]), proposal)
+        delivered = client.post(f"/api/v2/projects/{project_id}/art-reference-proposals/{proposal['id']}/refresh")
+        assert delivered.status_code == 200, delivered.text
+        assert delivered.json()["state"] == "accepted"
+        candidate = delivered.json()["candidates"][0]
+        return {"proposal": proposal, "assetId": candidate["assetId"], "assetHash": candidate["asset"]["originalHash"]}
+
+    first = deliver_study("Fixture study one; no people.")
+    second = deliver_study("Fixture study two; no people.")
+    assert first["assetId"] != second["assetId"]
+    initially = client.get(f"/api/v2/projects/{project_id}/art-reference-decisions")
+    assert initially.status_code == 200
+    assert initially.json() == {"states": [], "decisions": []}
+
+    chosen = client.post(f"/api/v2/projects/{project_id}/art-reference-decisions", json={
+        "subjectType": "scene", "subjectId": "S01", "assetId": first["assetId"], "expectedReferenceRevision": 0,
+    })
+    assert chosen.status_code == 201, chosen.text
+    assert chosen.json()["stateRevision"] == 1
+    assert chosen.json()["current"] is True
+    assert chosen.json()["acceptedArtRevision"] == 1
+    assert chosen.json()["assetHash"] == first["assetHash"]
+
+    stale_cas = client.post(f"/api/v2/projects/{project_id}/art-reference-decisions", json={
+        "subjectType": "scene", "subjectId": "S01", "assetId": second["assetId"], "expectedReferenceRevision": 0,
+    })
+    assert stale_cas.status_code == 409
+    wrong_subject = client.post(f"/api/v2/projects/{project_id}/art-reference-decisions", json={
+        "subjectType": "prop", "subjectId": "P01", "assetId": second["assetId"], "expectedReferenceRevision": 0,
+    })
+    assert wrong_subject.status_code == 409  # P01 is not an accepted prop subject.
+
+    replacement = client.post(f"/api/v2/projects/{project_id}/art-reference-decisions", json={
+        "subjectType": "scene", "subjectId": "S01", "assetId": second["assetId"], "expectedReferenceRevision": 1,
+    })
+    assert replacement.status_code == 201, replacement.text
+    assert replacement.json()["stateRevision"] == 2
+    visible = client.get(f"/api/v2/projects/{project_id}/art-reference-decisions").json()
+    assert visible["states"] == [{
+        "subjectType": "scene", "subjectId": "S01", "revision": 2,
+        "activeDecisionId": replacement.json()["id"], "current": True,
+    }]
+    assert [item["assetId"] for item in visible["decisions"]] == [second["assetId"], first["assetId"]]
+    assert [item["current"] for item in visible["decisions"]] == [True, False]
+
+    # A normal reopen preserves the state head and append-only history.
+    reopened = storage.projects.open(project_id)
+    reopened.close()
+    assert client.get(f"/api/v2/projects/{project_id}/art-reference-decisions").json()["states"][0]["revision"] == 2
+
+    # Reopening and editing accepted art invalidates, but never deletes or
+    # redirects, the old subject decision.
+    edited_store = storage.projects.open(project_id)
+    try:
+        edited_store.reopen_art(ArtReopenRequest(expected_art_revision=1))
+        edited = dict(edited_store.art_state().accepted_art.art)  # type: ignore[union-attr]
+        edited["scenes"] = [dict(edited["scenes"][0], summary="reference context changed")]
+        edited_store.save_reopened_art(ArtSaveRequest(expected_art_revision=1, binding=binding, art=edited))
+    finally:
+        edited_store.close()
+    stale = client.get(f"/api/v2/projects/{project_id}/art-reference-decisions").json()
+    assert stale["states"][0]["current"] is False
+    assert [item["current"] for item in stale["decisions"]] == [False, False]
+    assert len(stale["decisions"]) == 2
 
 
 def _pilot_script() -> dict[str, object]:

@@ -3,18 +3,21 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
 import { AssetZoomDialog, ManagedAssetImage, useBoundedAssetComparison } from "../features/media/references/AppearanceReviewPrimitives";
-import type { ArtReferenceProposal } from "../types";
+import type { ArtReferenceDecision, ArtReferenceDecisionState, ArtReferenceProposal } from "../types";
 
 type Subject = { subjectType: "scene" | "prop"; subjectId: string; name: string };
-type Candidate = ArtReferenceProposal["deliveries"][number]["candidates"][number] & { delivery: ArtReferenceProposal["deliveries"][number] };
+type Candidate = ArtReferenceProposal["deliveries"][number]["candidates"][number] & {
+  delivery: ArtReferenceProposal["deliveries"][number]; study: ArtReferenceProposal;
+};
 
 /**
  * F3B stays in the existing ArtPanel. This is only its image-first review
  * presentation; accepted art, F3B proposals, and managed assets retain ownership.
  */
-export function ArtReferenceGallery({ projectId, art, acceptedRevision, acceptedContentHash, studies, readOnly, busy, setAssignment, refresh }: {
+export function ArtReferenceGallery({ projectId, art, acceptedRevision, acceptedContentHash, studies, decisions, decisionStates, readOnly, busy, setAssignment, refresh }: {
   projectId: string; art: Record<string, unknown>; acceptedRevision: number; acceptedContentHash: string;
-  studies: ArtReferenceProposal[]; readOnly: boolean; busy: boolean; setAssignment: (value: string) => void;
+  studies: ArtReferenceProposal[]; decisions: ArtReferenceDecision[]; decisionStates: ArtReferenceDecisionState[];
+  readOnly: boolean; busy: boolean; setAssignment: (value: string) => void;
   refresh: () => Promise<void>;
 }) {
   const [direction, setDirection] = useState("Cinematic realism: grounded materials, natural lens behavior, no people or hands unless the accepted subject explicitly requires them.");
@@ -35,13 +38,17 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
     return () => { if (ownsSession(session)) activeSession.current = { key: session.key, epoch: session.epoch + 1 }; };
   }, [sessionKey]);
   const selected = subjects.find((subject) => subjectKey(subject) === selectedSubjectKey) || subjects[0];
-  const study = selected ? studies.find((item) => item.subjectType === selected.subjectType && item.subjectId === selected.subjectId) : undefined;
+  const subjectStudies = selected ? studies.filter((item) => item.subjectType === selected.subjectType && item.subjectId === selected.subjectId) : [];
+  const study = subjectStudies[0];
   const demonstration = study && typeof study.request.demonstration === "string" ? study.request.demonstration : "";
-  const candidates = study?.deliveries.flatMap((delivery) => delivery.candidates.map((candidate) => ({ ...candidate, delivery }))) || [];
+  const candidates = subjectStudies.flatMap((item) => item.deliveries.flatMap((delivery) => delivery.candidates.map((candidate) => ({ ...candidate, delivery, study: item }))));
   const viewableCandidates = candidates.filter((candidate) => candidate.asset);
   const [viewedAssetId, setViewedAssetId] = useState("");
   const [expanded, setExpanded] = useState(false);
   const viewed = viewableCandidates.find((candidate) => candidate.assetId === viewedAssetId) || viewableCandidates[0];
+  const decisionState = selected ? decisionStates.find((item) => item.subjectType === selected.subjectType && item.subjectId === selected.subjectId) : undefined;
+  const currentDecision = selected ? decisions.find((item) => item.current && item.subjectType === selected.subjectType && item.subjectId === selected.subjectId) : undefined;
+  const latestDecision = selected ? decisions.find((item) => item.subjectType === selected.subjectType && item.subjectId === selected.subjectId) : undefined;
   const { comparisonCandidates, comparisonAssetIds, comparisonAtCapacity, toggleComparison, clearComparison } = useBoundedAssetComparison(viewableCandidates);
   const act = async <Result,>(operation: () => Promise<Result>, onSuccess?: (result: Result) => void) => {
     const session = activeSession.current;
@@ -61,6 +68,9 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
   if (!selected) return <section className="art-reference-studies art-reference-gallery" data-testid="art-reference-studies"><strong>尚无可审阅的环境或道具</strong><p>先接受包含稳定 scene/prop ID 的 art.json；这里不会猜测或创建主体。</p></section>;
   const status = studyStatus(study);
   const actionable = !readOnly && !studyBusy;
+  const chooseLabel = selected.subjectType === "scene" ? "用作此环境的参考图" : "用作此道具的参考图";
+  const candidateIsCurrent = Boolean(viewed?.study.current && viewed.delivery.state === "accepted");
+  const candidateAlreadyChosen = currentDecision?.assetId === viewed?.assetId;
   return <section className="art-reference-studies art-reference-gallery" data-testid="art-reference-studies">
     <header><div><span>F3B · 环境 / 道具参考研究</span><strong>已接受美术 → 探索候选</strong></div><small>不会选择生产资产，也不会生成或修改 art.json。</small></header>
     <p>只比较同一稳定主体的现有候选。候选可供审阅，不能成为镜头、生产选择或新的调整父项。</p>
@@ -70,8 +80,11 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
       <div className="appearance-viewer">
         <div className="appearance-viewer-heading"><div><span className="eyebrow">当前查看</span><strong>{selected.subjectType === "scene" ? "环境" : "道具"} · {selected.name}</strong></div><span className={study?.current ? "reference-state selected" : "reference-state historical"}>{status}</span></div>
         {viewed ? <ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={viewed.asset} assetId={viewed.assetId} alt={`${selected.name} 当前查看图片`} unavailableLabel="当前查看图片不可用" /> : <div className="reference-no-image"><strong>尚无可显示的候选图片</strong><p>{study ? "交付尚未提供可浏览的候选；保留其真实状态。" : "尚未准备此主体的参考研究。"}</p></div>}
-        <div className="button-row"><Button variant="quiet" disabled={!viewed} onClick={() => setExpanded(true)}>放大查看</Button></div>
-        {viewed && <CandidateDetails candidate={viewed} study={study!} />}
+        <div className="button-row"><Button variant="quiet" disabled={!viewed} onClick={() => setExpanded(true)}>放大查看</Button>{viewed && <Button variant="primary" disabled={!actionable || !candidateIsCurrent || candidateAlreadyChosen} onClick={() => void act(() => plotloomApi.createArtReferenceDecision(projectId, { subjectType: selected.subjectType, subjectId: selected.subjectId, assetId: viewed.assetId, expectedReferenceRevision: decisionState?.revision || 0 }))}>{currentDecision ? `替换为${chooseLabel}` : chooseLabel}</Button>}</div>
+        {currentDecision && <p className="reference-decision" role="status">当前已选参考：{currentDecision.assetId === viewed?.assetId ? "正在查看的候选" : currentDecision.assetId}（r{currentDecision.referenceRevision}）。</p>}
+        {!currentDecision && latestDecision && <p className="reference-decision stale" role="status">此前的参考决定已过期；保留在历史中，尚未为当前美术主体自动选择候选。</p>}
+        <p className="reference-decision-boundary">此决定目前仅供环境/道具参考审阅；尚未被镜头或生产流程消费。</p>
+        {viewed && <CandidateDetails candidate={viewed} study={viewed.study} />}
       </div>
       <div className="appearance-thumbnails" aria-label="同一主体的已有图片">
         {viewableCandidates.map((candidate) => <button key={candidate.id} type="button" className={`appearance-thumbnail${candidate.assetId === viewed?.assetId ? " viewing" : ""}`} aria-pressed={candidate.assetId === viewed?.assetId} onClick={() => setViewedAssetId(candidate.assetId)}><ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={candidate.asset} assetId={candidate.assetId} alt={`${candidate.outputFilename} 缩略图`} unavailableLabel="候选图片不可用" /><span>{candidate.outputFilename}</span></button>)}

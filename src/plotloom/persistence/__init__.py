@@ -4,7 +4,7 @@ from .codec import stable_hash
 from .project.approvals import ApprovalClosure, ApprovalDecision
 from .project.repository import ProjectSQLiteRepository
 from .schema import (
-    ApprovalDecisionRow, ArtifactRow, ArtReferenceProposalCandidateRow, ArtReferenceProposalDeliveryRow, ArtReferenceProposalRow, AuthoringDraftRow, Base, CharacterReferenceDecisionRow,
+    ApprovalDecisionRow, ArtifactRow, ArtReferenceDecisionRow, ArtReferenceDecisionStateRow, ArtReferenceProposalCandidateRow, ArtReferenceProposalDeliveryRow, ArtReferenceProposalRow, AuthoringDraftRow, Base, CharacterReferenceDecisionRow,
     CharacterReferenceProposalCandidateRow, CharacterReferenceProposalDeliveryRow, CharacterReferenceProposalRow,
     CharacterReferenceStateRow, EntityRevisionRow, FragmentReuseBindingRow, GateResultRow, GenerationAttemptRow,
     GenerationPlanRow, GenerationRunRow, GenerationWorkUnitRow, ImageJobCandidateRow, ImageJobDeliveryRow,
@@ -17,7 +17,7 @@ from .schema import (
     VisualIntentRow, VisualSelectionStateRow, WorkUnitRepairIdempotencyRow, WorkUnitRepairScopeRow,
 )
 __all__ = [
-    "ApprovalClosure", "ApprovalDecision", "ApprovalDecisionRow", "ArtifactRow", "ArtReferenceProposalCandidateRow", "ArtReferenceProposalDeliveryRow", "ArtReferenceProposalRow", "AuthoringDraftRow", "Base",
+    "ApprovalClosure", "ApprovalDecision", "ApprovalDecisionRow", "ArtifactRow", "ArtReferenceDecisionRow", "ArtReferenceDecisionStateRow", "ArtReferenceProposalCandidateRow", "ArtReferenceProposalDeliveryRow", "ArtReferenceProposalRow", "AuthoringDraftRow", "Base",
     "CharacterReferenceDecisionRow", "CharacterReferenceProposalCandidateRow", "CharacterReferenceProposalDeliveryRow",
     "CharacterReferenceProposalRow", "CharacterReferenceStateRow", "EntityRevisionRow", "FragmentReuseBindingRow",
     "GateResultRow", "GenerationAttemptRow", "GenerationPlanRow", "GenerationRunRow", "GenerationWorkUnitRow",

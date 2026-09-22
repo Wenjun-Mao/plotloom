@@ -406,6 +406,43 @@ class ArtReferenceProposalCandidateRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
+class ArtReferenceDecisionStateRow(Base):
+    """CAS head for one explicit environment or prop reference decision."""
+
+    __tablename__ = "v2_art_reference_decision_states"
+
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), primary_key=True)
+    subject_type: Mapped[str] = mapped_column(String(16), primary_key=True)
+    subject_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    active_decision_id: Mapped[str | None] = mapped_column(ForeignKey("v2_art_reference_decisions.id", ondelete="RESTRICT"), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ArtReferenceDecisionRow(Base):
+    """Append-only F3B subject choice; it has no production-consumption meaning."""
+
+    __tablename__ = "v2_art_reference_decisions"
+    __table_args__ = (
+        Index("ix_v2_art_reference_decisions_project_subject", "project_id", "subject_type", "subject_id", "reference_revision"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    subject_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    subject_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    reference_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    accepted_art_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    accepted_art_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    subject: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    subject_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    asset_id: Mapped[str] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=False)
+    asset_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    proposal_id: Mapped[str] = mapped_column(ForeignKey("v2_art_reference_proposals.id", ondelete="RESTRICT"), nullable=False)
+    candidate_id: Mapped[str] = mapped_column(ForeignKey("v2_art_reference_proposal_candidates.id", ondelete="RESTRICT"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class SamePersonReviewStateRow(Base):
     __tablename__ = "v2_same_person_review_states"
 

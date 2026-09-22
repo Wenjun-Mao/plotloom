@@ -12,10 +12,13 @@ from sqlalchemy.orm import Session
 
 from ...domain import ProjectLifecycleStatus, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError
+from ...exceptions import RevisionConflictError
 from ...image_job_contracts import ImageJobError
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ArtReferenceProposalCandidateRow,
+    ArtReferenceDecisionRow,
+    ArtReferenceDecisionStateRow,
     ArtReferenceProposalDeliveryRow,
     ArtReferenceProposalRow,
     ArtRevisionRow,
@@ -284,3 +287,131 @@ class ArtReferenceProposalPersistence:
                     } for delivery in deliveries],
                 })
             return result
+
+    def _decision_state_in_session(
+        self, session: Session, project_id: str, subject_type: ArtSubjectType, subject_id: str, now: Any,
+    ) -> ArtReferenceDecisionStateRow:
+        state = session.get(ArtReferenceDecisionStateRow, (project_id, subject_type, subject_id))
+        if state is None:
+            state = ArtReferenceDecisionStateRow(
+                project_id=project_id, subject_type=subject_type, subject_id=subject_id,
+                revision=0, active_decision_id=None, updated_at=now,
+            )
+            session.add(state); session.flush()
+        return state
+
+    @staticmethod
+    def _decision_dict(row: ArtReferenceDecisionRow, *, current: bool) -> dict[str, Any]:
+        return {
+            "id": row.id, "projectId": row.project_id, "subjectType": row.subject_type,
+            "subjectId": row.subject_id, "referenceRevision": row.reference_revision,
+            "acceptedArtRevision": row.accepted_art_revision, "acceptedArtHash": row.accepted_art_hash,
+            "subject": row.subject, "subjectHash": row.subject_hash, "assetId": row.asset_id,
+            "assetHash": row.asset_hash, "proposalId": row.proposal_id, "candidateId": row.candidate_id,
+            "current": current, "createdAt": _stored_utc(row.created_at).isoformat(),
+        }
+
+    def _decision_is_current_in_session(
+        self, session: Session, project_id: str, decision_id: str | None,
+    ) -> bool:
+        if decision_id is None:
+            return False
+        decision = session.get(ArtReferenceDecisionRow, decision_id)
+        if decision is None or decision.project_id != project_id:
+            return False
+        try:
+            revision, subject = self._accepted_subject(
+                session, project_id, decision.subject_type, decision.subject_id  # type: ignore[arg-type]
+            )
+        except InvalidTransitionError:
+            return False
+        if (
+            decision.accepted_art_revision != revision.revision
+            or decision.accepted_art_hash != revision.content_hash
+            or decision.subject_hash != _content_hash(subject)
+        ):
+            return False
+        asset = session.get(ManagedAssetRow, decision.asset_id)
+        candidate = session.get(ArtReferenceProposalCandidateRow, decision.candidate_id)
+        proposal = session.get(ArtReferenceProposalRow, decision.proposal_id)
+        delivery = session.get(ArtReferenceProposalDeliveryRow, candidate.delivery_id) if candidate is not None else None
+        return bool(
+            asset is not None and asset.project_id == project_id and asset.original_hash == decision.asset_hash
+            and candidate is not None and candidate.asset_id == decision.asset_id and candidate.proposal_id == decision.proposal_id
+            and delivery is not None and delivery.state == "accepted"
+            and proposal is not None and proposal.project_id == project_id
+            and proposal.subject_type == decision.subject_type and proposal.subject_id == decision.subject_id
+            and self._proposal_is_current_in_session(session, proposal)
+        )
+
+    def create_art_reference_decision(
+        self, project_id: str, *, subject_type: ArtSubjectType, subject_id: str, asset_id: str,
+        expected_reference_revision: int,
+    ) -> dict[str, Any]:
+        """Explicitly select one current F3B candidate; never infer or consume it."""
+
+        with self._access.leases.lifecycle_write() as session:
+            self._access.guards.active(self._access.rows.project(session, project_id))
+            revision, subject = self._accepted_subject(session, project_id, subject_type, subject_id)
+            now = utc_now()
+            state = self._decision_state_in_session(session, project_id, subject_type, subject_id, now)
+            if state.revision != expected_reference_revision:
+                raise RevisionConflictError("art-reference", expected_reference_revision, state.revision)
+            candidate = session.scalar(select(ArtReferenceProposalCandidateRow).join(
+                ArtReferenceProposalRow, ArtReferenceProposalCandidateRow.proposal_id == ArtReferenceProposalRow.id
+            ).where(
+                ArtReferenceProposalCandidateRow.asset_id == asset_id,
+                ArtReferenceProposalRow.project_id == project_id,
+                ArtReferenceProposalRow.subject_type == subject_type,
+                ArtReferenceProposalRow.subject_id == subject_id,
+            ).order_by(ArtReferenceProposalCandidateRow.created_at.desc(), ArtReferenceProposalCandidateRow.id.desc()).limit(1))
+            if candidate is None:
+                raise NotFoundError("art reference candidate not found for this accepted subject")
+            proposal = session.get(ArtReferenceProposalRow, candidate.proposal_id)
+            asset = session.get(ManagedAssetRow, asset_id)
+            delivery = session.get(ArtReferenceProposalDeliveryRow, candidate.delivery_id)
+            if (
+                proposal is None or asset is None or asset.project_id != project_id
+                or delivery is None or delivery.state != "accepted"
+                or not self._proposal_is_current_in_session(session, proposal)
+            ):
+                raise InvalidTransitionError("art reference decision requires a current same-subject F3B candidate")
+            state.revision += 1
+            state.updated_at = now
+            decision = ArtReferenceDecisionRow(
+                id=new_id(), project_id=project_id, subject_type=subject_type, subject_id=subject_id,
+                reference_revision=state.revision, accepted_art_revision=revision.revision,
+                accepted_art_hash=revision.content_hash, subject=subject, subject_hash=_content_hash(subject),
+                asset_id=asset.id, asset_hash=asset.original_hash, proposal_id=proposal.id,
+                candidate_id=candidate.id, created_at=now,
+            )
+            session.add(decision); session.flush()
+            state.active_decision_id = decision.id
+            session.flush()
+            return self._decision_dict(decision, current=True) | {"stateRevision": state.revision}
+
+    def list_art_reference_decisions(self, project_id: str) -> dict[str, Any]:
+        with self._access.leases.read() as session:
+            self._access.rows.project(session, project_id)
+            rows = session.scalars(select(ArtReferenceDecisionRow).where(
+                ArtReferenceDecisionRow.project_id == project_id
+            ).order_by(ArtReferenceDecisionRow.created_at.desc(), ArtReferenceDecisionRow.id.desc())).all()
+            states = session.scalars(select(ArtReferenceDecisionStateRow).where(
+                ArtReferenceDecisionStateRow.project_id == project_id
+            )).all()
+            state_by_subject = {(item.subject_type, item.subject_id): item for item in states}
+            return {
+                "states": [{
+                    "subjectType": state.subject_type, "subjectId": state.subject_id,
+                    "revision": state.revision, "activeDecisionId": state.active_decision_id,
+                    "current": self._decision_is_current_in_session(session, project_id, state.active_decision_id),
+                } for state in sorted(states, key=lambda item: (item.subject_type, item.subject_id))],
+                "decisions": [self._decision_dict(
+                    row,
+                    current=(
+                        state_by_subject.get((row.subject_type, row.subject_id)) is not None
+                        and state_by_subject[(row.subject_type, row.subject_id)].active_decision_id == row.id
+                        and self._decision_is_current_in_session(session, project_id, row.id)
+                    ),
+                ) for row in rows],
+            }
