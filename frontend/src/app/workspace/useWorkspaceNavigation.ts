@@ -7,7 +7,7 @@ import type { UnsafeDraft, WorkspaceSession } from "./useWorkspaceSession";
 type NavigationSession = Pick<WorkspaceSession,
   "activePage" | "project" | "run" | "runSelectionPending" | "unsafeDraft" | "routeRef" | "setUnsafeDraft"
   | "clearForEmptyRoute" | "navigate" | "navigateToProject" | "needsCanonicalRefresh"
-  | "focusEntity" | "replaceCurrentRoute" | "acceptRun" | "beginRunSelection" | "cancelRunSelection" | "clearTrace"
+  | "focusEntity" | "updateRouteHash" | "navigateHash" | "replaceCurrentRoute" | "acceptRun" | "beginRunSelection" | "cancelRunSelection" | "clearTrace"
 >;
 
 interface WorkspaceNavigationInput {
@@ -41,7 +41,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
   }, [drafts, session]);
 
   const applyNavigation = useCallback((next: NavigationTarget) => {
-    const route = { project: next.project, stage: next.stage, entity: next.entity, run: next.run };
+    const route = { project: next.project, stage: next.stage, entity: next.entity, run: next.run, hash: next.hash };
     const historyMode = next.history === "push" ? "push" : "none";
     const previousRoute = session.routeRef.current;
     clearDraftRouteState();
@@ -76,10 +76,25 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     stage: PageId;
     entity?: string;
     run?: string;
+    hash?: string;
     history?: "push" | "pop";
     forceReload?: boolean;
   }) => {
-    const normalized: NavigationTarget = { entity: "", run: "", history: "push", forceReload: false, ...next };
+    const normalized: NavigationTarget = { entity: "", run: "", hash: "", history: "push", forceReload: false, ...next };
+    const currentRoute = session.routeRef.current;
+    if (
+      normalized.project === currentRoute.project
+      && normalized.stage === currentRoute.stage
+      && normalized.entity === currentRoute.entity
+      && normalized.run === currentRoute.run
+      && !normalized.forceReload
+    ) {
+      if (normalized.hash !== currentRoute.hash) {
+        if (normalized.history === "push") session.navigateHash(normalized.hash);
+        else session.updateRouteHash(normalized.hash);
+      }
+      return;
+    }
     if (session.project.id && isProjectClosing(session.project.id)) {
       // A history pop already changed the address; restore the admitted route
       // rather than unmounting a writer during Close.
@@ -113,7 +128,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
   const openRunTrace = useCallback((run: PipelineRun) => {
     if (isProjectClosing(run.projectId)) return;
     clearDraftRouteState();
-    session.navigateToProject({ project: run.projectId, stage: "trace", entity: "", run: run.id }, "push");
+    session.navigateToProject({ project: run.projectId, stage: "trace", entity: "", run: run.id, hash: "" }, "push");
     session.acceptRun(run);
     session.clearTrace();
     void pollRun(run.id, run.projectId);
@@ -156,6 +171,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
       const current = session.routeRef.current;
       if (route.project === current.project && route.stage === current.stage && route.run === current.run) {
         session.focusEntity(route.entity);
+        session.updateRouteHash(route.hash);
         return;
       }
       requestNavigation({ ...route, history: "pop" });
@@ -163,6 +179,16 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, [requestNavigation, session]);
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const route = routeFromLocation();
+      const current = session.routeRef.current;
+      if (route.project === current.project && route.stage === current.stage && route.entity === current.entity && route.run === current.run) session.updateRouteHash(route.hash);
+    };
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, [session]);
 
   return { applyNavigation, requestNavigation, selectRouteEntity, openRunTrace, pendingNavigation, resolvePendingNavigation, continueAfterUnsafeDraft };
 }

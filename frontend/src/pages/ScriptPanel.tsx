@@ -6,7 +6,7 @@ import type { AcceptedScriptRevision, ScriptCandidate, ScriptReviewState } from 
 type ProjectSession = { projectId: string; epoch: number };
 
 /** F4 reviews one upstream JSON authority and permits only bound episode replacement. */
-export function ScriptPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
+export function ScriptPanel({ projectId, readOnly, onInitialLoadSettled }: { projectId: string; readOnly: boolean; onInitialLoadSettled?: () => void }) {
   const [state, setState] = useState<ScriptReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState("");
@@ -29,11 +29,11 @@ export function ScriptPanel({ projectId, readOnly }: { projectId: string; readOn
   useEffect(() => {
     const session = activeProject.current;
     setState(undefined); setAssignment(""); setError(""); setBusy(false); setSectionId(""); setDraft("");
-    void load(session);
+    void load(session).finally(() => { if (owns(session)) onInitialLoadSettled?.(); });
     return () => {
       if (owns(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 };
     };
-  }, [projectId, load]);
+  }, [projectId, load, onInitialLoadSettled]);
   useEffect(() => {
     // A selection belongs to one accepted revision and one editor mode. It is
     // never safe to carry it across reopening or an async project refresh.
@@ -79,7 +79,7 @@ export function ScriptPanel({ projectId, readOnly }: { projectId: string; readOn
     }
   };
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : accepted?.candidateJobId;
-  return <article className="panel cast-panel" data-testid="script-review">
+  return <article id="script" className="panel cast-panel" data-testid="script-review">
     <header><span>07 · F4 novel-script proposal</span><strong>{heading(state)}</strong></header>
     <p>完整 pilot 的三个稳定章节各绑定一个已冻结的上游 episode。script.json 是创作权威；F5 仅消费这条已接受的 seam。</p>
     <div className="notice warning">这是非 episode pilot。hook/cliff 与跨互斥结局的 aggregate duration 不构成产品节奏或悬念批准；上游 gate 仍作结构检查，冻结的章节和完整路径时长上限仍然适用。</div>

@@ -29,6 +29,7 @@ import { useWorkspaceNavigation } from "./useWorkspaceNavigation";
 import { useWorkspaceProjectLoader } from "./useWorkspaceProjectLoader";
 import { useWorkspaceSession } from "./useWorkspaceSession";
 import { editableStages, messageFrom, navigation, stageForPage } from "./contracts";
+import { CreatorWorkflowNavigation } from "./CreatorWorkflowNavigation";
 
 /** Composes view wiring around independently owned workspace transitions. */
 export default function WorkspaceController() {
@@ -205,6 +206,7 @@ export default function WorkspaceController() {
   const { project, activePage, routeEntity, run, progress: runProgress, review: storyboardReview, issues: validationIssues, trace, executionTrace, mediaTasks, stageHeads, connection } = session;
   const staleCount = project.staleStages.length;
   const currentNav = navigation.find((item) => item.id === activePage)!;
+  const secondaryNavigation = navigation.filter((item) => item.id !== "source" && item.id !== "characters");
   const running = run?.status === "queued" || run?.status === "running" || run?.status === "cancel_requested";
   const frozenProfileId = run ? String(run.providerSnapshot.profileId || "default") : "";
   const frozenProfile = profiles.profiles.profiles.find((profile) => profile.profileId === frozenProfileId);
@@ -232,7 +234,7 @@ export default function WorkspaceController() {
   const page = useMemo(() => {
     switch (activePage) {
       case "source": return project.id
-        ? <SourceOutlinePage projectId={project.id} readOnly={projectReadOnly} />
+        ? <SourceOutlinePage projectId={project.id} readOnly={projectReadOnly} navigationTarget={session.route.hash} />
         : <section className="page"><p>请先保存项目，再添加来源和大纲候选。</p></section>;
       case "characters": return project.id
         ? <CharactersPage projectId={project.id} readOnly={projectReadOnly} />
@@ -259,7 +261,8 @@ export default function WorkspaceController() {
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark">PL</div><div><strong>Plotloom</strong><small>叙织 · PIPELINE WORKBENCH</small></div></div>
       <button className="project-switcher" disabled={projectClosing || projectSnapshotting} onClick={directory.openDirectory}><span>当前项目 · 切换</span><strong>{project.brief.title || "未命名项目"}</strong><small>{project.id ? "项目版本与标识可在技术详情中查看" : "unsaved teaching draft"}</small></button>
-      <nav aria-label="工作台阶段">{navigation.map((item) => <button key={item.id} disabled={projectClosing || projectSnapshotting} className={activePage === item.id ? "active" : ""} onClick={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: item.id, run: item.id === "trace" ? run?.id || "" : "" })}><span>{item.index}</span><div><strong>{item.label}</strong><small>{item.description}</small></div>{item.id === "quarantine" && project.quarantines.length > 0 && <i>{project.quarantines.length}</i>}</button>)}</nav>
+      <CreatorWorkflowNavigation projectId={navigationProjectId} activePage={activePage} activeHash={session.route.hash} disabled={projectClosing || projectSnapshotting || workspaceHydrating} onNavigate={({ stage, hash }) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage, hash })} />
+      <details className="workspace-tools-navigation"><summary>编辑与工具</summary><nav aria-label="编辑与工具">{secondaryNavigation.map((item) => <button key={item.id} disabled={projectClosing || projectSnapshotting || workspaceHydrating} className={activePage === item.id ? "active" : ""} onClick={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: item.id, run: item.id === "trace" ? run?.id || "" : "" })}><span>{item.index}</span><div><strong>{item.id === "storyboard" ? "镜头与媒体工作台（分镜工作台）" : item.label}</strong><small>{item.description}</small></div>{item.id === "quarantine" && project.quarantines.length > 0 && <i>{project.quarantines.length}</i>}</button>)}</nav></details>
       <div className="sidebar-footer"><Button variant="quiet" onClick={() => void profiles.openSettings()}>供应商与会话 Key</Button><small>设置不会写入项目</small></div>
     </aside>
     <div className="workspace-shell">

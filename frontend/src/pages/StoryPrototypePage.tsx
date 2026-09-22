@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { plotloomApi } from "../api";
 import { Badge, ErrorNotice, Spinner } from "../components";
+import { sourceWorkflowHref } from "../app/workspace/sourceWorkflowNavigation";
 import { derivePrototypeRoutes, episodeForSection, episodesForRoute, prototypeReadiness, storyboardEpisodesForRoute, storyboardPrototypeReadiness, type PrototypeEpisode, type PrototypeRoute, type PrototypeScript, type PrototypeStoryboard, type PrototypeStoryboardEpisode, type ScriptLine } from "../story-prototype-model";
 import type { AcceptedScriptRevision, AcceptedStoryboardReviewRevision, ArtReviewState, CastReviewState, StoryGraph } from "../types";
 
@@ -91,7 +92,7 @@ export function StoryPrototypePage() {
       <div><Badge tone="accent">只读阅读</Badge><Badge tone="ok">已确认剧本</Badge></div>
     </header>
     <main className="story-prototype" data-testid="story-prototype">
-      <CreatorStageNavigation projectId={projectId} />
+      <WorkflowReturn projectId={projectId} />
       <section className="prototype-intro">
         <div><span className="eyebrow">故事 / 剧本 / 分镜</span><h1>{data.projectTitle || "故事与分支"}</h1><p>选择一条路径，再选择要阅读的已确认剧本或对应分镜评审。界面为中文；英文源内容保持原样。</p></div>
         <div className="prototype-version"><strong>当前阅读内容</strong><span>已确认剧本{storyboardState.status === "available" ? " / 已确认分镜评审" : ""}</span><small>这里不会更改内容、生成素材或将分镜转为产品镜头。</small></div>
@@ -121,19 +122,10 @@ function StoryboardStage({ graph, script, names, route, state, onFocus, projectI
 
 function PrototypeShell({ children }: { children: ReactNode }) { return <div className="prototype-shell">{children}</div>; }
 
-function CreatorStageNavigation({ projectId }: { projectId: string }) {
-  const workspaceUrl = (stage: string) => `?${new URLSearchParams({ project: projectId, stage }).toString()}`;
-  const playUrl = `?${new URLSearchParams({ project: projectId, view: "play" }).toString()}`;
-  const galleryUrl = workspaceUrl("characters");
-  return <nav className="creator-stage-navigation" aria-label="创作阶段">
-    <a href={workspaceUrl("source")}>来源</a>
-    <span>故事</span>
-    <a href={workspaceUrl("bible")}>人物、地点、道具</a>
-    <a href={galleryUrl}>角色</a>
-    <span className="current" aria-current="step">剧本</span>
-    <a href={workspaceUrl("storyboard")}>分镜</a>
-    <span className="unavailable" title="制作环节尚未接入此阅读原型。">制作 · 尚未提供</span>
-    <a href={playUrl}>播放</a>
+function WorkflowReturn({ projectId }: { projectId: string }) {
+  return <nav className="prototype-workflow-return" aria-label="创作流程返回">
+    <a href={sourceWorkflowHref(projectId, "script")}>返回创作流程</a>
+    <span>当前：只读剧本与分镜评审</span>
   </nav>;
 }
 

@@ -5,7 +5,7 @@ import type { StoryboardReviewCandidate, StoryboardReviewState } from "../types"
 import { StoryboardReviewInspection } from "./StoryboardReviewInspection";
 
 /** F5A preserves upstream review evidence; it deliberately cannot create product shots. */
-export function StoryboardReviewPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
+export function StoryboardReviewPanel({ projectId, readOnly, onInitialLoadSettled }: { projectId: string; readOnly: boolean; onInitialLoadSettled?: () => void }) {
   const [state, setState] = useState<StoryboardReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState("");
@@ -24,9 +24,9 @@ export function StoryboardReviewPanel({ projectId, readOnly }: { projectId: stri
   useEffect(() => {
     const session = active.current;
     setState(undefined); setAssignment(""); setError(""); setBusy(false);
-    void load(session);
+    void load(session).finally(() => { if (owns(session)) onInitialLoadSettled?.(); });
     return () => { if (owns(session)) active.current = { projectId: session.projectId, epoch: session.epoch + 1 }; };
-  }, [projectId, load]);
+  }, [projectId, load, onInitialLoadSettled]);
   const run = <T,>(operation: () => Promise<T>, accepted?: (result: T) => void) => {
     const session = active.current;
     setBusy(true); setError("");
@@ -41,7 +41,7 @@ export function StoryboardReviewPanel({ projectId, readOnly }: { projectId: stri
   if (!state) return null;
   const { candidate, acceptedReview } = state;
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : acceptedReview?.candidateJobId;
-  return <article className="panel cast-panel" data-testid="storyboard-review">
+  return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">
     <header><span>08 · F5A novel-storyboard review</span><strong>{reviewLabel(state)}</strong></header>
     <p>原始 storyboard.json 和上游报告是与 F4 script 绑定的评审证据，不是 Plotloom 的 shots、播放内容、媒体提示词或投产许可。</p>
     <div className="notice warning">不会创建 SceneBeats/Bible 投影、选择参考、H3 调度或时长变更。</div>

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { SourceMaterial, SourceOutlineReviewState, StoryGraph } from "../types";
@@ -7,6 +7,14 @@ import { ArtPanel } from "./ArtPanel";
 import { ScriptPanel } from "./ScriptPanel";
 import { StoryboardReviewPanel } from "./StoryboardReviewPanel";
 import { deriveRoutes } from "../model";
+import { sourceWorkflowTarget } from "../app/workspace/sourceWorkflowNavigation";
+
+type EmbeddedSourceOwner = "art" | "script" | "storyboard-review";
+const ownersBeforeTarget: Record<EmbeddedSourceOwner, EmbeddedSourceOwner[]> = {
+  art: ["art"],
+  script: ["art", "script"],
+  "storyboard-review": ["art", "script", "storyboard-review"],
+};
 
 const blankSource: SourceMaterial = {
   kind: "synopsis",
@@ -23,21 +31,33 @@ function sourceMessage(error: unknown) {
   return error instanceof Error ? error.message : "来源与大纲操作失败。";
 }
 
-export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
+export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }: { projectId: string; readOnly: boolean; navigationTarget?: string }) {
   const [state, setState] = useState<SourceOutlineReviewState>();
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
   const [assignment, setAssignment] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [graph, setGraph] = useState<{ payload: StoryGraph; revision: number }>();
+  const [loadedProjectId, setLoadedProjectId] = useState("");
+  const [settledOwners, setSettledOwners] = useState<Set<EmbeddedSourceOwner>>(() => new Set());
   const draftDirty = useRef(false);
+  const root = useRef<HTMLElement>(null);
+  const activeProject = useRef({ projectId, epoch: 0 });
+  if (activeProject.current.projectId !== projectId) activeProject.current = { projectId, epoch: activeProject.current.epoch + 1 };
+  const ownsProject = (session: { projectId: string; epoch: number }) => activeProject.current === session;
+  const markOwnerSettled = useCallback((owner: EmbeddedSourceOwner) => setSettledOwners((current) => current.has(owner) ? current : new Set(current).add(owner)), []);
+  const onArtSettled = useCallback(() => markOwnerSettled("art"), [markOwnerSettled]);
+  const onScriptSettled = useCallback(() => markOwnerSettled("script"), [markOwnerSettled]);
+  const onStoryboardReviewSettled = useCallback(() => markOwnerSettled("storyboard-review"), [markOwnerSettled]);
 
-  const load = async (overwriteDraft = false) => {
+  const load = async (overwriteDraft = false, session = activeProject.current) => {
     setError("");
     try {
-      const next = await plotloomApi.getSourceOutline(projectId);
+      const next = await plotloomApi.getSourceOutline(session.projectId);
+      if (!ownsProject(session)) return;
       setState(next);
-      const stages = await plotloomApi.getStages(projectId);
+      const stages = await plotloomApi.getStages(session.projectId);
+      if (!ownsProject(session)) return;
       const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
       setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision } : undefined);
       // React Strict Mode can issue a second initial read after the author
@@ -46,10 +66,29 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
         setDraft(next.source?.material || blankSource);
         draftDirty.current = false;
       }
-    } catch (loadError) { setError(sourceMessage(loadError)); }
+      setLoadedProjectId(session.projectId);
+    } catch (loadError) { if (ownsProject(session)) setError(sourceMessage(loadError)); }
   };
 
-  useEffect(() => { draftDirty.current = false; void load(); }, [projectId]); // The project route owns refreshes.
+  useEffect(() => {
+    const session = activeProject.current;
+    draftDirty.current = false;
+    setState(undefined); setGraph(undefined); setLoadedProjectId(""); setSettledOwners(new Set()); setAssignment(""); setError("");
+    void load(false, session);
+    return () => { if (ownsProject(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 }; };
+  }, [projectId]); // The project route owns refreshes.
+
+  useEffect(() => {
+    const target = sourceWorkflowTarget(navigationTarget);
+    if (!target || !state || loadedProjectId !== projectId) return;
+    if (target !== "source" && !ownersBeforeTarget[target].every((owner) => settledOwners.has(owner))) return;
+    const frame = requestAnimationFrame(() => {
+      if (loadedProjectId !== projectId) return;
+      const element = target === "source" ? root.current : root.current?.querySelector<HTMLElement>(`#${target}`);
+      element?.scrollIntoView({ block: "start" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [loadedProjectId, navigationTarget, projectId, settledOwners, state]);
 
   const updateDraft = (next: SourceMaterial) => {
     draftDirty.current = true;
@@ -73,7 +112,7 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
   const accepted = state.acceptedOutline;
   const canSave = !readOnly && !busy && Boolean(draft.title.trim() && draft.text.trim() && draft.attribution.trim() && draft.rightsDeclaration.trim() && draft.adaptationIntent.trim());
 
-  return <section className="page source-outline-page">
+  return <section ref={root} id="source" className="page source-outline-page" data-project-id={loadedProjectId}>
     <header className="page-header"><div><span>F1A · Project-owned review</span><h1>来源与小说大纲</h1><p>来源、候选和已接受大纲互相独立。权利声明按作者填写保存，不构成平台的法律确认。</p></div><Button variant="quiet" disabled={busy} onClick={() => void load(true)}>刷新</Button></header>
     {error && <ErrorNotice message={error} />}
     <div className="source-outline-grid">
@@ -145,9 +184,9 @@ export function SourceOutlinePage({ projectId, readOnly }: { projectId: string; 
           }));
         }}
       />
-      <ArtPanel projectId={projectId} readOnly={readOnly} />
-      <ScriptPanel projectId={projectId} readOnly={readOnly} />
-      <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} />
+      <ArtPanel projectId={projectId} readOnly={readOnly} onInitialLoadSettled={onArtSettled} />
+      <ScriptPanel projectId={projectId} readOnly={readOnly} onInitialLoadSettled={onScriptSettled} />
+      <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} onInitialLoadSettled={onStoryboardReviewSettled} />
     </div>
   </section>;
 }

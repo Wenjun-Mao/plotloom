@@ -1,9 +1,10 @@
 # Creator workflow usability — review plan
 
 Status: **U2 is complete; the bounded U3 Characters appearance workspace is
-accepted, and the separate U3 environment/prop F3B review and explicit
-reference-choice usability slices are delivered. Broader U1–U4 redesign
-remains unapproved.**
+accepted; the separate U3 environment/prop F3B review and explicit
+reference-choice usability slices are delivered; and the bounded U1a
+creator-navigation shell is implemented pending director inspection. Broader
+U1–U4 redesign remains unapproved.**
 Date: 2026-09-18; current summary updated 2026-09-22. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
 
 **Current summary.** U3 acceptance is limited to the Characters workspace:
@@ -17,6 +18,21 @@ production consumption, or portable-simulator persistence evidence.
 The previous authorized ImageGen proof is complete; no further provider call is
 authorized by this record. Video, F2/F7 creative or media acceptance, and
 imported-image refinement remain separate.
+
+**U1a implementation record — 2026-09-22.** The dispatched navigation-only
+slice adds one creator-facing sidebar sequence, project-scoped source fragments
+(`source`, `art`, `script`, and `storyboard-review`), a folded **编辑与工具**
+home for all retained legacy editors, and a compact reader return to the script
+owner. It deliberately keeps source-bound **分镜评审** separate from the legacy
+**镜头与媒体工作台**. The hash is part of the route contract: direct fresh load,
+same-page clicks, Back/Forward, and project switches retain the requested
+owner; source panels defer scrolling until their own project and the required
+preceding embedded owners have settled. No API,
+readiness aggregation, owner state, lifecycle, provider, generation, media, or
+production behavior changed. `frontend/e2e/u1a-workflow-navigation-demo.html`
+is a permanent, explicitly local no-API walkthrough fixture, not evidence about
+any user project or persistence. Director review remains the product-acceptance
+gate; this record does not authorize retiring an editor or route.
 
 **Historical 2026-09-18 dispatch status.** At this plan's creation, only the
 representative U2 reader was dispatched and generation was paused. That
@@ -161,17 +177,14 @@ or media owner. The observed F3B reference-choice usability acceptance at
   and “08 · F5A”. Preserve the descriptive headings, current-state labels, and
   folded technical detail; the change is presentation only.
 
-**Next implementation brief and stop condition.** A future U1a dispatch may
-implement only this navigation shell, stable in-page targets, creator-facing
-labels, and owner-local missing-state links. It must reuse current routes and
-readiness checks; it may not alter source/cast/art/script/F5A data, accept
-creative/media output, add a production consumer, change `PlayView` payload
-rules, invoke providers, or retire any underlying editor. Verify direct links,
-missing/stale refusal, reader/F5A versus legacy-workbench separation, project
-switch containment, 1440px/1920px presentation, static bundle freshness, and
-an independent stable-delta review. Stop after that shell; a decision to retire
-legacy authoring routes or define production ownership remains material and
-requires separate approval.
+**U1a stop condition.** The authorized shell is now implemented: it reuses
+current routes and readiness checks and adds no data, acceptance, production,
+provider, or Play payload behavior. Focused unit/browser checks cover direct
+links, missing/stale owner-local rendering, reader/F5A versus legacy-workbench
+separation, and project containment; the static bundle and 1440px/1920px local
+fixture are reviewed before director inspection. Stop after this shell. A
+decision to retire legacy authoring routes or define production ownership
+remains material and requires separate approval.
 
 ## Historical U2 delivery proposal — representative story/branch prototype
 

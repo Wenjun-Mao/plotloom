@@ -4,7 +4,7 @@ import type { AuthoringDraft, CanonicalDraftConsumption, ServerStageName, StageE
 import type { DraftScope } from "../../draft-registry";
 
 export type PageId = "source" | "characters" | "brief" | "bible" | "graph" | "beats" | "storyboard" | "trace" | "quarantine";
-export type NavigationTarget = { project: string; stage: PageId; entity: string; run: string; history: "push" | "pop"; forceReload?: boolean };
+export type NavigationTarget = { project: string; stage: PageId; entity: string; run: string; hash: string; history: "push" | "pop"; forceReload?: boolean };
 export type WorkspaceOperation = { epoch: number; projectId: string; stage: PageId };
 export type DraftRecoverySource = "server" | "session" | "reconcile";
 export type DurableDraftStatus = "idle" | "saving" | "saved" | "failed" | "conflict";
@@ -39,6 +39,7 @@ export function validationIssuesFrom(error: unknown): ValidationIssue[] {
 export const projectIdFromLocation = () => new URLSearchParams(window.location.search).get("project") || "";
 export const pageFromStage = (stage: string | null): PageId => navigation.some((item) => item.id === stage) ? stage as PageId : "brief";
 export function stageForPage(page: PageId): DraftScope | undefined { return page === "brief" ? "brief" : page === "bible" ? "story_bible" : page === "graph" ? "story_graph" : page === "beats" ? "scene_beats" : page === "storyboard" ? "storyboard" : undefined; }
-export function routeFromLocation() { const query = new URLSearchParams(window.location.search); return { project: query.get("project") || "", stage: pageFromStage(query.get("stage")), entity: query.get("entity") || "", run: query.get("run") || "" }; }
+export function routeFromLocation() { const query = new URLSearchParams(window.location.search); return { project: query.get("project") || "", stage: pageFromStage(query.get("stage")), entity: query.get("entity") || "", run: query.get("run") || "", hash: decodeHash(location.hash) }; }
+function decodeHash(value: string) { try { return decodeURIComponent(value.replace(/^#/, "")); } catch { return ""; } }
 export const newClientDraftOwner = () => `workspace-${crypto.randomUUID()}`;
 export function blankWorkspace(clientDraftOwner = newClientDraftOwner()): WorkspaceProject { return { clientDraftOwner, revision: 0, brief: { title: "", synopsis: "", genre: null, visualStyle: null, language: "zh-CN", aspectRatio: "16:9", targetPlaythroughSeconds: 180, decisionPointsPerPath: 2, endingCount: 2, nodeBudget: 8, maxOutDegree: 3, desiredJoinCount: 1, shotsPerSceneMin: 1, shotsPerSceneMax: 4 }, ...emptyStageContent, quarantines: [], staleStages: [], stageRevisions: { story_bible: 0, story_graph: 0, scene_beats: 0, storyboard: 0 } }; }

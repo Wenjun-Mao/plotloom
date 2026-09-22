@@ -8,7 +8,7 @@ type EditorProps = { disabled: boolean; draft: string; setDraft: (value: string)
 type ProjectSession = { projectId: string; epoch: number };
 
 /** F3A owns text review; the distinct F3B study surface owns reference bytes. */
-export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
+export function ArtPanel({ projectId, readOnly, onInitialLoadSettled }: { projectId: string; readOnly: boolean; onInitialLoadSettled?: () => void }) {
   const [state, setState] = useState<ArtReviewState>();
   const [studies, setStudies] = useState<ArtReferenceProposal[]>([]);
   const [referenceDecisions, setReferenceDecisions] = useState<ArtReferenceDecision[]>([]);
@@ -37,14 +37,14 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
   useEffect(() => {
     const session = activeProject.current;
     setState(undefined); setStudies([]); setReferenceDecisions([]); setReferenceStates([]); setAssignment(""); setDraft(""); setError(""); setBusy(false);
-    void load(session);
+    void load(session).finally(() => { if (ownsProject(session)) onInitialLoadSettled?.(); });
     return () => {
       // An unmounted panel must not let an already-settled child operation
       // refresh through its captured parent callback. StrictMode immediately
       // installs a new epoch after this development cleanup.
       if (ownsProject(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 };
     };
-  }, [projectId, load]);
+  }, [projectId, load, onInitialLoadSettled]);
   useEffect(() => {
     // The accepted revision is the current project-owned record. Reopen changes
     // only whether it is editable; it must never be the sole way to inspect it.
@@ -70,7 +70,7 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
   );
   const accept = () => { const art = parsed(); if (art && candidate) act(() => plotloomApi.acceptArtCandidate(projectId, { jobId: candidate.jobId, expectedArtRevision: candidate.expectedArtRevision, binding: candidate.binding, art })); };
   const save = () => { const art = parsed(); if (art && accepted) act(() => plotloomApi.saveReopenedArt(projectId, { expectedArtRevision: accepted.revision, binding: accepted.binding, art })); };
-  return <article className="panel cast-panel art-panel" data-testid="art-review">
+  return <article id="art" className="panel cast-panel art-panel" data-testid="art-review">
     <header><span>06 · F3A novel-art proposal</span><strong>{heading}</strong></header>
     <p>F3A 的共享地点、道具与可核对锚点在此处以文本先行审阅；它本身不生成图片。下方独立的 F3B 环境/道具研究显示可复用参考字节及其当前性。继承的 cinematic realism 与上游 semi-realistic painterly 预设差异会显式保留给 F3B。</p>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}

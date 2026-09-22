@@ -22,8 +22,16 @@ describe("workspace owner contracts", () => {
   it("keeps a full URL route, including an entity and run, as one navigation fact", () => {
     window.history.replaceState(null, "", "/?project=project-a&stage=trace&entity=shot-7&run=run-3");
 
-    expect(routeFromLocation()).toEqual({ project: "project-a", stage: "trace", entity: "shot-7", run: "run-3" });
+    expect(routeFromLocation()).toEqual({ project: "project-a", stage: "trace", entity: "shot-7", run: "run-3", hash: "" });
     expect(stageForPage("trace")).toBeUndefined();
     expect(stageForPage("storyboard")).toBe("storyboard");
+  });
+
+  it("keeps a decoded source-panel target in the route without widening stages", () => {
+    window.history.replaceState(null, "", "/?project=project-a&stage=source#storyboard-review");
+
+    expect(routeFromLocation()).toEqual({ project: "project-a", stage: "source", entity: "", run: "", hash: "storyboard-review" });
+    window.history.replaceState(null, "", "/?project=project-a&stage=not-a-stage#art");
+    expect(routeFromLocation()).toMatchObject({ stage: "brief", hash: "art" });
   });
 });

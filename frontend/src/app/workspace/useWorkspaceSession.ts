@@ -68,7 +68,8 @@ function writeRoute(route: WorkspaceRoute, mode: Exclude<RouteHistoryMode, "none
   query.set("stage", route.stage);
   if (route.entity) query.set("entity", route.entity);
   if (route.run) query.set("run", route.run);
-  history[`${mode}State`](null, "", `${location.pathname}?${query.toString()}`);
+  const hash = route.hash ? `#${encodeURIComponent(route.hash)}` : "";
+  history[`${mode}State`](null, "", `${location.pathname}?${query.toString()}${hash}`);
 }
 
 /**
@@ -143,6 +144,19 @@ export function useWorkspaceSession() {
   const focusEntity = useCallback((entity: string) => {
     if (entity === routeRef.current.entity) return;
     const next = { ...routeRef.current, entity };
+    routeRef.current = next;
+    setRoute(next);
+    writeRoute(next, "push");
+  }, []);
+  const updateRouteHash = useCallback((hash: string) => {
+    if (hash === routeRef.current.hash) return;
+    const next = { ...routeRef.current, hash };
+    routeRef.current = next;
+    setRoute(next);
+  }, []);
+  const navigateHash = useCallback((hash: string) => {
+    if (hash === routeRef.current.hash) return;
+    const next = { ...routeRef.current, hash };
     routeRef.current = next;
     setRoute(next);
     writeRoute(next, "push");
@@ -350,6 +364,8 @@ export function useWorkspaceSession() {
     refreshCurrentRoute,
     navigateToProject,
     focusEntity,
+    updateRouteHash,
+    navigateHash,
     replaceCurrentRoute,
     beginProjectLoad,
     acceptProjectLoad,

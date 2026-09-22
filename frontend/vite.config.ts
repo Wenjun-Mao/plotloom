@@ -19,8 +19,12 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
       sourcemap: false,
       rollupOptions: {
+        input: {
+          main: fileURLToPath(new URL("./index.html", import.meta.url)),
+          "u1a-workflow-navigation-demo": fileURLToPath(new URL("./e2e/u1a-workflow-navigation-demo.html", import.meta.url)),
+        },
         output: {
-          entryFileNames: "workbench.js",
+          entryFileNames: (chunk) => chunk.name === "main" ? "workbench.js" : `e2e/${chunk.name}.js`,
           chunkFileNames: "assets/[name]-[hash].js",
           assetFileNames: (asset) => asset.names.some((name) => name.endsWith(".css")) ? "workbench.css" : "assets/[name]-[hash][extname]",
         },

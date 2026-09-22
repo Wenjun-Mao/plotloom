@@ -9,9 +9,11 @@ are recorded in [Creator workflow usability](2026-09-18-creator-workflow-usabili
 The F3B creator reported the reference choice works well; its latest bounded
 presentation acceptance is local commit `729cb94`, not creative/media,
 production-consumer, or persistence acceptance from the portable simulator.
-Video, F2/F7 creative or media acceptance, and the broader U1–U4 redesign
-remain out of scope. The prior authorized ImageGen proof is complete; it
-authorizes no further provider calls.
+The bounded U1a navigation shell is implemented pending director inspection;
+it preserves all editor routes and records its local no-API walkthrough fixture
+in the same usability plan. Video, F2/F7 creative or media acceptance, and the
+broader U1–U4 redesign remain out of scope. The prior authorized ImageGen proof
+is complete; it authorizes no further provider calls.
 
 ## Archive index
 

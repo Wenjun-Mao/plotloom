@@ -13,14 +13,14 @@ export function useProjectInitialization({ session, clearDraftWorkflow }: {
   const startBlankProject = useCallback(() => {
     clearDraftWorkflow();
     session.startLocalWorkspace(
-      { project: "", stage: session.activePage, entity: "", run: "" },
+      { project: "", stage: session.activePage, entity: "", run: "", hash: "" },
       { project: blankWorkspace("local-initialization"), connection: "blank", onboarding: false },
     );
   }, [clearDraftWorkflow, session]);
   const openSampleProject = useCallback(() => {
     clearDraftWorkflow();
     session.startLocalWorkspace(
-      { project: "", stage: session.activePage, entity: "", run: "" },
+      { project: "", stage: session.activePage, entity: "", run: "", hash: "" },
       {
         project: { ...demoProject, initialStageOnFirstSave: "storyboard" },
         connection: "demo",
