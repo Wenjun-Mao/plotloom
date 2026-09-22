@@ -106,12 +106,18 @@ yet (tone, audience, narrative promise, themes, rules, and questions). F2/F3
 supply the corresponding accepted entities; a missing optional source detail
 also remains empty rather than being invented.
 For each resolved script occurrence, the F1 node title/summary provides the
-scene title/objective, the exact sum of its cuts provides its duration budget,
-and empty entity-state/audioplan collections remain empty only where V2 accepts
-them. An action flow entry supplies its own beat description/visible event; a
-dialogue flow entry supplies its own dialogue-cue text and a mechanical
-description such as `source dialogue`. A source `delivery` becomes the cue's
-performance note; the bridge uses the project language and the existing
+scene title and the exact sum of its cuts provides its duration budget. The
+required scene objective and each beat purpose are instead supplied by the
+separate reviewed inferred-dramatic-intent package described in ADR 0079.
+Every package entry is explicitly labelled as inferred, binds the exact F1/F4
+coordinates and raw-content hash it was seeded from, and is author-editable as
+one package. This slice has no supported dedicated inference transport, so its
+`source_excerpt_seed.v1` suggestion is a verbatim relevant source excerpt, not
+a claim of F1--F5 semantic ownership or model inference. Empty entity-state/
+audioplan collections remain empty only where V2 accepts them. An action flow
+entry supplies its own beat description/visible event; a dialogue flow entry
+supplies its own dialogue-cue text and exact line as its description/visible
+event. A source `delivery` becomes the cue's performance note; the bridge uses the project language and the existing
 `natural` timing profile only to meet the already-versioned V2 timing contract.
 If its resulting cue estimate does not fit its exact source cut, preparation
 fails rather than altering timing or rephrasing dialogue. This is a projection
@@ -131,6 +137,9 @@ where appropriate. A ready proposal contains:
   shot, plus blocking Brief-policy conflicts; and
 - non-authoritative links to accepted F2/F3 evidence, without an asset,
   selection, approval, prompt, or job ID.
+- one inferred-dramatic-intent package whose exact entry text, seed method,
+  source coordinates, raw hashes, and input binding are included in the
+  proposal hash; it is reviewable and editable only as part of that proposal.
 
 Preparation may retain a structurally valid but stage-gate-ineligible proposal
 solely so the author can see and resolve its conflicts; it never enters an
@@ -140,7 +149,8 @@ install path. Acceptance must verify, in the same lifecycle write transaction:
 2. every frozen F1–F5 input, project brief, and graph/section binding is still current;
 3. the three target canonical stage heads are empty in the first slice; and
 4. no Brief shot-count conflict remains; and
-5. all proposed payloads and mapping invariants validate again.
+5. all proposed payloads, inferred-intent provenance, and mapping invariants
+   validate again.
 
 It then installs StoryBible, SceneBeatPlan, and Storyboard in dependency order
 using the existing canonical installation path. The retained source-map graph

@@ -20,10 +20,32 @@ class ProductionBridgeConflict(CamelModel):
     scene_index: int | None = None
 
 
+class ProductionBridgeIntentEntry(CamelModel):
+    """One author-reviewable value absent from the frozen F1--F5 contract."""
+
+    id: str
+    target_kind: Literal["scene_objective", "beat_purpose"]
+    target_id: str
+    source_coordinates: dict[str, Any]
+    source_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    method: Literal["source_excerpt_seed.v1"]
+    suggested_text: str = Field(min_length=1)
+    text: str = Field(min_length=1)
+
+
+class ProductionBridgeIntentPackage(CamelModel):
+    """A single package, never a set of independently accepted questions."""
+
+    method: Literal["source_excerpt_seed.v1"]
+    inferred: Literal[True] = True
+    entries: list[ProductionBridgeIntentEntry] = Field(min_length=1)
+
+
 class ProductionBridgeProposal(CamelModel):
     revision: int = Field(ge=1)
     content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     inputs: dict[str, Any]
+    intent_package: ProductionBridgeIntentPackage
     scenes: list[dict[str, Any]]
     cuts: list[dict[str, Any]]
     conflicts: list[ProductionBridgeConflict] = Field(default_factory=list)
@@ -41,3 +63,14 @@ class ProductionBridgeState(CamelModel):
 class ProductionBridgeAcceptRequest(CamelModel):
     expected_proposal_revision: int = Field(ge=1)
     expected_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+
+class ProductionBridgeIntentTextUpdate(CamelModel):
+    id: str
+    text: str = Field(min_length=1)
+
+
+class ProductionBridgeIntentUpdateRequest(CamelModel):
+    expected_proposal_revision: int = Field(ge=1)
+    expected_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    entries: list[ProductionBridgeIntentTextUpdate] = Field(min_length=1)

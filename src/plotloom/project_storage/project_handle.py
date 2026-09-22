@@ -37,7 +37,7 @@ from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCan
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
 from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
 from ..storyboard_review_contracts import StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
-from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeState
+from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgeState
 from ..persistence import ProjectSQLiteRepository
 from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
 from .format import (
@@ -558,6 +558,9 @@ class ProjectStore:
 
     def prepare_production_bridge(self) -> ProductionBridgeState:
         return self.repository.production_bridge.prepare(self.manifest.project_id)
+
+    def update_production_bridge_intent_package(self, request: ProductionBridgeIntentUpdateRequest) -> ProductionBridgeState:
+        return self.repository.production_bridge.update_intent_package(self.manifest.project_id, request)
 
     def accept_production_bridge(self, request: ProductionBridgeAcceptRequest) -> ProductionBridgeState:
         return self.repository.production_bridge.accept(self.manifest.project_id, request)

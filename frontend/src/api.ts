@@ -639,6 +639,7 @@ export class PlotloomApiClient {
   storyboardSourceReviewCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/report`; }
   getProductionBridge(projectId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge`); }
   prepareProductionBridge(projectId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/proposals`, { method: "POST" }); }
+  updateProductionBridgeIntent(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string; entries: Array<{ id: string; text: string }> }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/proposals/intent`, { method: "PUT", body: JSON.stringify(body) }); }
   acceptProductionBridge(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/accept`, { method: "POST", body: JSON.stringify(body) }); }
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }

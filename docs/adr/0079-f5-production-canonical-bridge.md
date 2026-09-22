@@ -40,12 +40,40 @@ no Bible input current across the bridge Bible install, while normally authored
 or transitively dependent stages continue to stale. The bridge records the
 retained graph revision/hash with its three installed canonical revisions.
 
+### Reviewed inferred-dramatic-intent supplement
+
+F1--F5 do not own the semantic `DramaticScene.objective` or `Beat.purpose`
+fields required by V2. The bridge therefore keeps those values in one distinct,
+reviewable inferred-dramatic-intent supplement within the production proposal.
+They are never represented as frozen F1--F5 facts. Each entry records its exact
+accepted source coordinates and raw-content hash, the frozen F1--F5/Brief input
+binding, its suggestion method, the suggested text, and the author-edited text.
+
+For this bounded slice, no supported dedicated inference transport exists: the
+existing SceneBeat generation transport authors a canonical stage and cannot
+author a source-bound bridge supplement. The bridge consequently makes only an
+explicitly labelled `source_excerpt_seed.v1` suggestion from the relevant F1
+summary or F4 flow text; it makes no model call and does not claim the seed is
+an inferred source fact. The author may edit all entries as one proposal
+package, then explicitly accept its exact revision and hash. A later package
+edit, or a change to any frozen upstream/Brief input, creates a new non-accepted
+binding and prevents installation under the prior review.
+
+Trusted code owns coordinate resolution, immutable provenance, proposal
+hashing/currentness, canonical validation, and atomic empty-head/CAS
+installation. The author owns the final objective/purpose wording and the
+explicit package acceptance. The model owns nothing in this slice. A future
+model-backed method requires a separate contract that identifies its supported
+transport, prompt/schema, output provenance, and review semantics.
+
 ## Consequences
 
-The implementation needs typed proposal/admission persistence, deterministic
-source-preserving projection tests, input-provenance invalidation tests, a
-usable Chinese proposal review with explicit acceptance controls, atomic
-installation, and a narrow bridge-aware duration guard at video preparation.
+The implementation needs typed proposal/admission persistence, a single
+Chinese inferred-intent package editor/review (not a per-field wizard),
+deterministic source-preserving projection tests, input-provenance invalidation
+tests, a usable Chinese proposal review with explicit acceptance controls,
+atomic installation, and a narrow bridge-aware duration guard at video
+preparation.
 It does not migrate existing canonical projects, replay or rewrite F4/F5
 history, add a compatibility layer, or change provider capabilities. Existing
 canonical review, reference, keyframe, media, and playback owners remain the

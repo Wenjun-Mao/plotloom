@@ -5,7 +5,7 @@ from typing import Any, Callable
 
 from fastapi import FastAPI
 
-from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeState
+from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgeState
 
 
 def register_project_folder_production_bridge_routes(app: FastAPI, opened_project: Callable[[str], Any]) -> None:
@@ -18,6 +18,11 @@ def register_project_folder_production_bridge_routes(app: FastAPI, opened_projec
     def prepare_production_bridge(project_id: str) -> ProductionBridgeState:
         with opened_project(project_id) as store:
             return store.prepare_production_bridge()
+
+    @app.put("/api/v2/projects/{project_id}/production-bridge/proposals/intent", response_model=ProductionBridgeState)
+    def update_production_bridge_intent(project_id: str, body: ProductionBridgeIntentUpdateRequest) -> ProductionBridgeState:
+        with opened_project(project_id) as store:
+            return store.update_production_bridge_intent_package(body)
 
     @app.post("/api/v2/projects/{project_id}/production-bridge/accept", response_model=ProductionBridgeState)
     def accept_production_bridge(project_id: str, body: ProductionBridgeAcceptRequest) -> ProductionBridgeState:
