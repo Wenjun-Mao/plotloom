@@ -23,6 +23,7 @@ ENV_EXAMPLE = REPOSITORY_ROOT / ".env.example"
 PROMPT_FILENAMES = {
     "media_image.yaml",
     "media_video.yaml",
+    "production_bridge_intent.yaml",
     "repair_json.yaml",
     "scene_beats.yaml",
     "scene_beats_fragment.yaml",
@@ -71,6 +72,7 @@ ALLOWED_REPOSITORY_ROOTS = {
 }
 ALLOWED_SERVICE_DIRECTORY = "minimax_h3_gateway"
 IGNORED_WORKTREE_ROOTS = {
+    ".gates.jsonl",
     ".env",
     ".git",
     ".local",
@@ -83,6 +85,8 @@ IGNORED_WORKTREE_ROOTS = {
     "dist",
     "htmlcov",
     "node_modules",
+    "output",
+    "test-results",
 }
 LOCAL_WORKTREE_DOTENV_PATTERN = re.compile(r"^\.env(?:\..+)?\.local$")
 APPROVED_UNTRACKED_WORKTREE_ROOTS = {".playwright-cli", "outputs"}
@@ -190,9 +194,10 @@ def _assert_services_root_is_gateway_only(root: Path, tracked_paths: list[Path])
         # Importing the gateway during its own test run writes Python bytecode
         # next to the source. It is ignored repository-wide and is runtime
         # debris, not a second service or an untracked implementation file.
-        if (path.is_file() or path.is_symlink())
-        and "__pycache__" not in path.parts
-        and path.suffix != ".pyc"
+            if (path.is_file() or path.is_symlink())
+            and "__pycache__" not in path.parts
+            and path.suffix != ".pyc"
+            and path.name != ".DS_Store"
     }
     assert actual_service_paths == tracked_service_paths, (
         "services must contain only tracked gateway files; unexpected: "
@@ -493,7 +498,7 @@ def test_distribution_wheel_is_complete_and_isolated(tmp_path: Path) -> None:
         package_root = Path(plotloom.__file__).resolve().parent
         assert package_root.is_relative_to(unpacked)
         assert set(PromptRepository().list_ids()) == {
-            "media_image", "media_video", "repair_json", "scene_beats",
+            "media_image", "media_video", "production_bridge_intent", "repair_json", "scene_beats",
             "scene_beats_fragment", "story_bible", "story_graph", "story_graph_content_fill", "storyboard",
                 "storyboard_fragment", "work_unit_correction",
         }

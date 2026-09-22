@@ -10,11 +10,11 @@ import type { ProductionBridgeState } from "../src/types";
 let root: Root;
 let host: HTMLDivElement;
 
-const state = (label: string, revision = 1, contentHash = "a".repeat(64), text = `excerpt-${label}`): ProductionBridgeState => ({
+const state = (label: string, revision = 1, contentHash = "a".repeat(64), text = "", method: "pending_inference.v1" | "author_reviewed.v1" | "model_inference.v1" = "pending_inference.v1"): ProductionBridgeState => ({
   status: "ready", staleReasons: [], installedStageRevisions: null,
   proposal: {
-    revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], installable: true, preparedAt: "2026-09-22T00:00:00Z",
-    intentPackage: { method: "source_excerpt_seed.v1", entries: [{ id: `entry-${label}`, targetKind: "scene_objective", targetId: `scene-${label}`, sourceCoordinates: { sectionId: label }, sourceContentHash: "b".repeat(64), method: "source_excerpt_seed.v1", suggestedText: text, text }] },
+    revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], installable: method !== "pending_inference.v1", preparedAt: "2026-09-22T00:00:00Z",
+    intentPackage: { method, entries: [{ id: `entry-${label}`, targetKind: "scene_objective", targetId: `scene-${label}`, sourceCoordinates: { sectionId: label }, sourceContentHash: "b".repeat(64), method, suggestedText: `excerpt-${label}`, text }] },
   },
 });
 
@@ -31,9 +31,9 @@ const deferred = <T,>() => {
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 
-it("requires the displayed source-excerpt package to be saved before accepting its exact new revision", async () => {
+it("requires the displayed dramatic-intent package to be saved before accepting its exact new revision", async () => {
   const first = state("first");
-  const saved = state("first", 2, "c".repeat(64), "author-reviewed objective");
+  const saved = state("first", 2, "c".repeat(64), "author-reviewed objective", "author_reviewed.v1");
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(first);
   const save = vi.spyOn(plotloomApi, "updateProductionBridgeIntent").mockResolvedValue(saved);
   const accept = vi.spyOn(plotloomApi, "acceptProductionBridge").mockResolvedValue({ ...saved, status: "accepted", installedStageRevisions: { story_bible: 1, scene_beats: 1, storyboard: 1 } });
@@ -44,11 +44,11 @@ it("requires the displayed source-excerpt package to be saved before accepting i
   await act(async () => { valueSetter?.call(textarea, "author-reviewed objective"); textarea.dispatchEvent(new Event("input", { bubbles: true })); });
 
   expect(button("接受并安装").disabled).toBe(true);
-  expect(host.textContent).toContain("当前编辑尚未保存");
+  expect(host.textContent).toContain("当前编辑未保存");
   await act(async () => button("接受并安装").click());
   expect(accept).not.toHaveBeenCalled();
 
-  await act(async () => button("保存来源摘录整包").click()); await settle();
+  await act(async () => button("保存戏剧意图整包").click()); await settle();
   expect(save).toHaveBeenCalledWith("first", { expectedProposalRevision: 1, expectedContentHash: "a".repeat(64), entries: [{ id: "entry-first", text: "author-reviewed objective" }] });
   expect(button("接受并安装").disabled).toBe(false);
   await act(async () => button("接受并安装").click()); await settle();
@@ -67,7 +67,33 @@ it("ignores a late successful GET from the prior project in the same mounted roo
   expect(host.textContent).not.toContain("excerpt-prior");
 });
 
-it("ignores a late rejected GET and mutation from the prior project", async () => {
+it("shows a failed initial load and dispatches a genuine retry", async () => {
+  const retry = deferred<ProductionBridgeState>();
+  const get = vi.spyOn(plotloomApi, "getProductionBridge").mockRejectedValueOnce(new Error("GET failed")).mockReturnValueOnce(retry.promise);
+  await render("first"); await settle();
+  expect(get).toHaveBeenCalledWith("first", expect.any(AbortSignal));
+  expect(host.textContent).toContain("GET failed");
+  expect(host.textContent).not.toContain("正在加载");
+  await act(async () => button("重试加载").click());
+  expect(get).toHaveBeenCalledTimes(2);
+  await act(async () => retry.resolve(state("first"))); await settle();
+  expect(host.textContent).toContain("excerpt-first");
+});
+
+it("ignores a genuinely late rejected GET from the prior project", async () => {
+  const prior = deferred<ProductionBridgeState>(); const current = deferred<ProductionBridgeState>();
+  const get = vi.spyOn(plotloomApi, "getProductionBridge").mockImplementation((projectId) => projectId === "prior" ? prior.promise : current.promise);
+  await render("prior");
+  expect(get).toHaveBeenCalledWith("prior", expect.any(AbortSignal));
+  await render("current");
+  expect(get).toHaveBeenCalledWith("current", expect.any(AbortSignal));
+  await act(async () => prior.reject(new Error("late prior GET"))); await settle();
+  await act(async () => current.resolve(state("current"))); await settle();
+  expect(host.textContent).toContain("excerpt-current");
+  expect(host.textContent).not.toContain("late prior GET");
+});
+
+it("ignores a late mutation from the prior project", async () => {
   const priorGet = deferred<ProductionBridgeState>(); const currentGet = deferred<ProductionBridgeState>(); const priorPrepare = deferred<ProductionBridgeState>();
   vi.spyOn(plotloomApi, "getProductionBridge").mockImplementation((projectId) => projectId === "prior" ? priorGet.promise : currentGet.promise);
   vi.spyOn(plotloomApi, "prepareProductionBridge").mockReturnValue(priorPrepare.promise);
@@ -76,9 +102,60 @@ it("ignores a late rejected GET and mutation from the prior project", async () =
   await act(async () => priorGet.resolve({ status: "missing", staleReasons: [], installedStageRevisions: null, proposal: null })); await settle();
   await act(async () => button("准备投产提案").click());
   await render("current");
-  await act(async () => { priorGet.reject(new Error("late prior GET")); priorPrepare.resolve(state("prior")); currentGet.resolve(state("current")); }); await settle();
+  await act(async () => { priorPrepare.resolve(state("prior")); currentGet.resolve(state("current")); }); await settle();
 
   expect(host.textContent).toContain("excerpt-current");
-  expect(host.textContent).not.toContain("late prior GET");
   expect(host.textContent).not.toContain("excerpt-prior");
+});
+
+it("invalidates a pending GET and mutation when unmounted", async () => {
+  const get = deferred<ProductionBridgeState>();
+  const getSpy = vi.spyOn(plotloomApi, "getProductionBridge").mockReturnValue(get.promise);
+  await render("prior");
+  expect(getSpy).toHaveBeenCalledWith("prior", expect.any(AbortSignal));
+  await act(async () => root.unmount());
+  await act(async () => get.reject(new Error("after unmount"))); await settle();
+  expect(host.textContent).toBe("");
+
+  root = createRoot(host);
+  getSpy.mockResolvedValue(state("prior"));
+  const save = deferred<ProductionBridgeState>();
+  vi.spyOn(plotloomApi, "updateProductionBridgeIntent").mockReturnValue(save.promise);
+  await render("prior"); await settle();
+  const textarea = host.querySelector("textarea") as HTMLTextAreaElement;
+  const valueSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+  await act(async () => { valueSetter?.call(textarea, "edited"); textarea.dispatchEvent(new Event("input", { bubbles: true })); });
+  await act(async () => button("保存戏剧意图整包").click());
+  await act(async () => root.unmount());
+  await act(async () => save.reject(new Error("mutation after unmount"))); await settle();
+  expect(host.textContent).toBe("");
+  root = createRoot(host);
+});
+
+it("preserves an unsaved draft when model completion arrives late", async () => {
+  vi.useFakeTimers();
+  try {
+    const pending = state("prior");
+    pending.intentJob = {
+      id: "job-1", status: "dispatched", proposalRevision: 1, proposalContentHash: pending.proposal!.contentHash,
+      profileId: "fake", profileVersion: 1, promptVersion: "1.0.0",
+      createdAt: "2026-09-22T00:00:00Z", updatedAt: "2026-09-22T00:00:00Z",
+      errorCode: null, errorMessage: null, resultProposalRevision: null, providerRequestId: null, responseHash: null,
+    };
+    const inferred = state("prior", 2, "c".repeat(64), "模型推断的目的", "model_inference.v1");
+    inferred.intentJob = { ...pending.intentJob, status: "ready", resultProposalRevision: 2 };
+    vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValueOnce(pending).mockResolvedValueOnce(inferred);
+    await render("prior"); await settle();
+    const textarea = host.querySelector("textarea") as HTMLTextAreaElement;
+    const valueSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
+    await act(async () => { valueSetter?.call(textarea, "我尚未保存的目的"); textarea.dispatchEvent(new Event("input", { bubbles: true })); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(1600); }); await settle();
+    expect((host.querySelector("textarea") as HTMLTextAreaElement).value).toBe("我尚未保存的目的");
+    expect(host.textContent).toContain("未保存的本地编辑仍在此保留");
+    expect(button("接受并安装").disabled).toBe(true);
+    await act(async () => button("载入新提案并放弃本地编辑").click());
+    expect((host.querySelector("textarea") as HTMLTextAreaElement).value).toBe("模型推断的目的");
+  } finally {
+    vi.useRealTimers();
+  }
 });

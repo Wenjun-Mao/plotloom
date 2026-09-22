@@ -1,5 +1,11 @@
 # F5-to-production canonical bridge design
 
+> This records the original deterministic bridge slice. Its source-excerpt
+> completion rule and text-transport inventory below are historical, not the
+> current inference contract. The separately approved dramatic-intent follow-on
+> is recorded in the roadmap and amended ADR 0079; retained evidence has not
+> been relabelled as inferred output.
+
 Date: 2026-09-22. Status: implementation-ready design only; see proposed
 [ADR 0079](../adr/0079-f5-production-canonical-bridge.md). Baseline: retained
 `main` at `55c9a7f`. This replaces the proposed standalone admissibility

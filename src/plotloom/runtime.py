@@ -254,6 +254,11 @@ def build_runtime_app(
         text_provider_resolver=provider_resolver,
         text_secret_source=run_secrets,
     )
+    from .production_bridge_intent_service import ProductionBridgeIntentService
+
+    bridge_intent_service = ProductionBridgeIntentService(
+        storage, resolver=provider_resolver, secrets=run_secrets, max_workers=1,
+    )
     # A runtime selects one trusted server-owned backend. Browser payloads
     # cannot choose an endpoint, adapter, or Atlas/Wan fallback.
     if test_video_provider is not None:
@@ -287,6 +292,7 @@ def build_runtime_app(
             _app.state.startup_recovery = dispatcher.reconcile_startup()
             yield
         finally:
+            bridge_intent_service.close()
             dispatcher.close()
             run_secrets.close()
 
@@ -305,6 +311,7 @@ def build_runtime_app(
         video_probe=test_video_probe,
         run_dispatcher=dispatcher,
         text_admission=admission,
+        bridge_intent_service=bridge_intent_service,
         image_dispatcher=image_dispatcher,
         static_dir=settings.static_dir,
         lifespan=runtime_lifespan,
@@ -313,6 +320,7 @@ def build_runtime_app(
     app.state.application_profile_repository = profile_repository
     app.state.run_runner = dispatcher
     app.state.run_secrets = run_secrets
+    app.state.bridge_intent_service = bridge_intent_service
     return app
 
 

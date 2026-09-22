@@ -13,7 +13,7 @@ from .project_cast import CastCandidateRow, CastHeadRow, CastRevisionRow
 from .project_art import ArtCandidateRow, ArtHeadRow, ArtRevisionRow
 from .project_script import ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow
 from .project_storyboard_review import StoryboardReviewCandidateRow, StoryboardReviewHeadRow, StoryboardReviewRevisionRow
-from .project_production_bridge import ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeRevisionRow
+from .project_production_bridge import ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeIntentJobRow, ProductionBridgeRevisionRow
 from .project_generation import (
     ArtifactRow, FragmentReuseBindingRow, GenerationAttemptRow, GenerationPlanRow,
     GenerationRunRow, GenerationWorkUnitRow, MediaTaskRow, SealedStageAggregateRow, StagePlanRow,
@@ -56,5 +56,5 @@ PROJECT_TEXT_PIPELINE_TABLE_NAMES = frozenset({
     "v2_art_heads", "v2_art_candidates", "v2_art_revisions",
     "v2_script_heads", "v2_script_candidates", "v2_script_revisions",
     "v2_storyboard_review_heads", "v2_storyboard_review_candidates", "v2_storyboard_review_revisions",
-    "v2_production_bridge_heads", "v2_production_bridge_revisions", "v2_production_bridge_admissions",
+    "v2_production_bridge_heads", "v2_production_bridge_revisions", "v2_production_bridge_admissions", "v2_production_bridge_intent_jobs",
 })

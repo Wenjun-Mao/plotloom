@@ -14,6 +14,7 @@ def test_repository_contains_all_versioned_stage_and_media_prompts() -> None:
     assert repository.list_ids() == (
         "media_image",
         "media_video",
+        "production_bridge_intent",
         "repair_json",
         "scene_beats",
         "scene_beats_fragment",
@@ -26,7 +27,7 @@ def test_repository_contains_all_versioned_stage_and_media_prompts() -> None:
     )
     for prompt_id in repository.list_ids():
         spec, spec_hash, source = repository.load(prompt_id)
-        expected_major = "3." if prompt_id in {
+        expected_major = "1." if prompt_id == "production_bridge_intent" else "3." if prompt_id in {
             "story_bible",
             "story_graph",
             "scene_beats",

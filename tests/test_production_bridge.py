@@ -33,8 +33,16 @@ def _prepare_installable_bridge(store: ProjectStore) -> ProductionBridgeProposal
     ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", _source_shaped_review_board(), "bridge-fixture"))
     store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
     proposal = store.prepare_production_bridge().proposal
-    assert proposal and proposal.installable
-    return proposal
+    assert proposal and not proposal.installable
+    assert proposal.intent_package.method == "pending_inference.v1"
+    assert all(not entry.text for entry in proposal.intent_package.entries)
+    authored = [{"id": entry.id, "text": f"作者明确的戏剧目的：{entry.id}"} for entry in proposal.intent_package.entries]
+    ready = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(
+        expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
+        entries=authored,
+    )).proposal
+    assert ready and ready.installable
+    return ready
 
 
 def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomically(tmp_path: Path) -> None:
@@ -52,7 +60,7 @@ def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomic
         assert accepted.installed_stage_revisions == {"story_bible": 1, "scene_beats": 1, "storyboard": 1}
         installed = store.authoring.get_stage_payload(store.manifest.project_id, StageName.SCENE_BEATS)
         assert {scene.objective for scene in installed.scenes} == {edited_text}
-        assert revised.intent_package.method == "source_excerpt_seed.v1"
+        assert revised.intent_package.method == "author_reviewed.v1"
     finally:
         store.close()
 
@@ -146,5 +154,18 @@ def test_bridge_surfaces_brief_policy_conflict_without_splitting_source_scene(tm
         assert len(proposal.scenes) == 3 and len(proposal.cuts) == 27
         assert proposal.conflicts[0].message == "不能安装：源场次有 9 个镜头，当前项目规则为 1–4 个"
         assert proposal.cuts[4]["source"] == {"segmentIndex": 2, "segmentSceneIndex": 1, "cutIndex": 1}
+        completed = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(
+            expected_proposal_revision=proposal.revision,
+            expected_content_hash=proposal.content_hash,
+            entries=[{"id": entry.id, "text": f"作者明确的戏剧目的：{entry.id}"} for entry in proposal.intent_package.entries],
+        )).proposal
+        assert completed and not completed.installable
+        assert completed.intent_package.method == "author_reviewed.v1"
+        assert any("源场次有 9 个镜头" in conflict.message for conflict in completed.conflicts)
+        with pytest.raises(InvalidTransitionError, match="not installable"):
+            store.accept_production_bridge(ProductionBridgeAcceptRequest(
+                expected_proposal_revision=completed.revision,
+                expected_content_hash=completed.content_hash,
+            ))
     finally:
         store.close()

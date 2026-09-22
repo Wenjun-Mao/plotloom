@@ -95,6 +95,7 @@ def create_project_folder_authoring_app(
     video_probe: Callable[[bytes], ObservedVideo] | None = None,
     run_dispatcher: ProjectRunDispatcher | None = None,
     text_admission: TextAdmissionService | None = None,
+    bridge_intent_service: Any | None = None,
     image_dispatcher: NativeCodexImageDispatcher | None = None,
     static_dir: Path | None = None,
     lifespan: Any | None = None,
@@ -742,7 +743,9 @@ def create_project_folder_authoring_app(
     register_project_folder_art_routes(app, opened_project)
     register_project_folder_script_routes(app, opened_project)
     register_project_folder_storyboard_review_routes(app, opened_project)
-    register_project_folder_production_bridge_routes(app, opened_project)
+    register_project_folder_production_bridge_routes(
+        app, opened_project, intent_service=bridge_intent_service, text_admission=text_admission,
+    )
     if run_dispatcher is not None and text_admission is not None:
         register_project_folder_generation_routes(
             app, run_dispatcher, admission=text_admission

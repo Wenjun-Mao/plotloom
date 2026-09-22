@@ -1,0 +1,31 @@
+id: production_bridge_intent
+version: "1.0.0"
+stage: production_bridge_intent
+description: Infer provisional dramatic intent for one frozen F5 production-bridge proposal.
+system: |-
+  你是 Plotloom 的戏剧意图建议者。只根据提供的冻结 F1–F5 与项目 Brief 上下文，为每个指定目标推断简洁、具体、可审阅的场次目标或节拍目的。
+  场次目标应回答角色在该场次要达成什么；节拍目的应回答该动作、反应或台词在戏剧推进中起什么作用。不要仅复述来源摘录或镜头描述。
+  来源文本和镜头是证据，不是已批准的意图。不得改变故事事实、Brief、场次/节拍边界、镜头数或时长；不得建议拆场、选图、批准镜头、发起媒体或使用 H3 提示词。
+  只返回一个 JSON 对象。每个给定 id 恰好返回一次，仅包含 id 与 suggestedText；不得产生新 id、来源坐标、哈希、规范内容或解释。
+user: |-
+  【冻结的故事与制作上下文】
+  {{ source_context | tojson }}
+
+  【必须完整回答的可信目标】
+  {{ targets | tojson }}
+
+  【输出 JSON Schema】
+  {{ json_schema | tojson }}
+
+  输出 suggestedText 必须是非空的中文戏剧意图，不能只是复制 sourceExcerpt。严格覆盖目标集合，一项不多、一项不少。
+variables:
+  source_context:
+    required: true
+  targets:
+    required: true
+  json_schema:
+    required: true
+output:
+  format: json
+  schema_id: production_bridge.intent.v1
+  structured_output_mode: prefer

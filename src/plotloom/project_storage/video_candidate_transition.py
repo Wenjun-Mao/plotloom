@@ -22,6 +22,7 @@ from ..persistence.schema import (
     PROJECT_TEXT_PIPELINE_TABLE_NAMES,
     ProductionBridgeAdmissionRow,
     ProductionBridgeHeadRow,
+    ProductionBridgeIntentJobRow,
     ProductionBridgeRevisionRow,
     VideoCandidateSelectionRow,
 )
@@ -60,6 +61,10 @@ class ProjectProductionBridgeTransitionRequiredError(ProjectSchemaTransitionRequ
     """A retained project needs empty F5 production-bridge tables."""
 
 
+class ProjectBridgeIntentJobTransitionRequiredError(ProjectSchemaTransitionRequiredError):
+    """A current bridge project needs its durable inference-job table."""
+
+
 SchemaStatus = Literal[
     "current", "selection_transition_required", "art_reference_transition_required",
     "character_delivery_publication_phase_transition_required",
@@ -67,6 +72,7 @@ SchemaStatus = Literal[
     "character_imported_appearance_transition_required",
     "art_reference_decision_transition_required",
     "production_bridge_transition_required",
+    "bridge_intent_job_transition_required",
 ]
 _SELECTION_TABLE = VideoCandidateSelectionRow.__tablename__
 _CHARACTER_REFERENCE_DELIVERY_TABLE = CharacterReferenceProposalDeliveryRow.__tablename__
@@ -83,7 +89,7 @@ _ART_REFERENCE_DECISION_TABLES = (
 )
 _PRODUCTION_BRIDGE_TABLES = (
     ProductionBridgeHeadRow.__table__, ProductionBridgeRevisionRow.__table__,
-    ProductionBridgeAdmissionRow.__table__,
+    ProductionBridgeAdmissionRow.__table__, ProductionBridgeIntentJobRow.__table__,
 )
 
 
@@ -115,6 +121,7 @@ def expected_project_schema_objects(
     include_character_imported_appearances: bool = True,
     include_art_reference_decisions: bool = True,
     include_production_bridge: bool = True,
+    include_bridge_intent_jobs: bool = True,
 ) -> tuple[tuple[str, str, str, str | None], ...]:
     """Return the exact current schema or one permitted immediate predecessor."""
 
@@ -129,6 +136,8 @@ def expected_project_schema_objects(
         table_names.difference_update(table.name for table in _ART_REFERENCE_DECISION_TABLES)
     if not include_production_bridge:
         table_names.difference_update(table.name for table in _PRODUCTION_BRIDGE_TABLES)
+    if not include_bridge_intent_jobs:
+        table_names.remove(ProductionBridgeIntentJobRow.__tablename__)
     engine = create_engine("sqlite://")
     try:
         Base.metadata.create_all(
@@ -183,6 +192,17 @@ def _requires_production_bridge_transition(actual: tuple[tuple[str, str, str, st
     )
     appended = expected_project_schema_objects(
         include_video_candidate_selection=True, include_production_bridge=False,
+        append_character_delivery_publication_phase=True,
+    )
+    return actual in {base, appended, _metadata_rebuilt_schema(base), _metadata_rebuilt_schema(appended)}
+
+
+def _requires_bridge_intent_job_transition(actual: tuple[tuple[str, str, str, str | None], ...]) -> bool:
+    base = expected_project_schema_objects(
+        include_video_candidate_selection=True, include_bridge_intent_jobs=False,
+    )
+    appended = expected_project_schema_objects(
+        include_video_candidate_selection=True, include_bridge_intent_jobs=False,
         append_character_delivery_publication_phase=True,
     )
     return actual in {base, appended, _metadata_rebuilt_schema(base), _metadata_rebuilt_schema(appended)}
@@ -318,6 +338,8 @@ def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
         )
     if _is_current_schema_objects(actual):
         return "current"
+    if _requires_bridge_intent_job_transition(actual) and user_version == (0,):
+        return "bridge_intent_job_transition_required"
     if _requires_art_reference_decision_transition(actual) and user_version == (0,):
         return "art_reference_decision_transition_required"
     if _requires_production_bridge_transition(actual) and user_version == (0,):
@@ -385,6 +407,10 @@ def transition_required_error(
     if status == "production_bridge_transition_required":
         return ProjectProductionBridgeTransitionRequiredError(
             f"production bridge transition requires {reason}"
+        )
+    if status == "bridge_intent_job_transition_required":
+        return ProjectBridgeIntentJobTransitionRequiredError(
+            f"bridge intent job transition requires {reason}"
         )
     raise AssertionError(f"current project schema does not need a transition: {status}")
 
@@ -501,6 +527,8 @@ def transition_project_schema(
                         "(project_id, revision, status, updated_at) "
                         "SELECT id, 0, 'missing', updated_at FROM v2_projects"
                     )
+                elif status == "bridge_intent_job_transition_required":
+                    ProductionBridgeIntentJobRow.__table__.create(connection)
                 else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
                     raise AssertionError(f"unsupported project transition: {status}")
                 if not _is_current_schema_objects(tuple(_schema_objects(connection))):

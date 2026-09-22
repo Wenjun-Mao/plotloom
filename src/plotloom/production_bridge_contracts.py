@@ -21,23 +21,24 @@ class ProductionBridgeConflict(CamelModel):
 
 
 class ProductionBridgeIntentEntry(CamelModel):
-    """One author-reviewable canonical value seeded from exact source text."""
+    """Trusted target and source evidence with separately reviewable wording."""
 
     id: str
     target_kind: Literal["scene_objective", "beat_purpose"]
     target_id: str
     source_coordinates: dict[str, Any]
     source_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
-    method: Literal["source_excerpt_seed.v1"]
+    method: Literal["pending_inference.v1", "model_inference.v1", "author_reviewed.v1", "source_excerpt_seed.v1"]
     suggested_text: str = Field(min_length=1)
-    text: str = Field(min_length=1)
+    text: str
 
 
 class ProductionBridgeIntentPackage(CamelModel):
-    """A single source-excerpt review package, never independent questions."""
+    """One whole-package review binding, never independent questions."""
 
-    method: Literal["source_excerpt_seed.v1"]
+    method: Literal["pending_inference.v1", "model_inference.v1", "author_reviewed.v1", "source_excerpt_seed.v1"]
     entries: list[ProductionBridgeIntentEntry] = Field(min_length=1)
+    provenance: dict[str, Any] | None = None
 
 
 class ProductionBridgeProposal(CamelModel):
@@ -57,6 +58,30 @@ class ProductionBridgeState(CamelModel):
     status: ProductionBridgeStatus
     stale_reasons: list[str] = Field(default_factory=list)
     installed_stage_revisions: dict[str, int] | None = None
+    intent_job: "ProductionBridgeIntentJob | None" = None
+
+
+class ProductionBridgeIntentJob(CamelModel):
+    id: str
+    status: Literal["queued", "dispatched", "ready", "stale", "failed", "cancelled", "outcome_unknown"]
+    proposal_revision: int
+    proposal_content_hash: str
+    profile_id: str
+    profile_version: int
+    prompt_version: str
+    created_at: datetime
+    updated_at: datetime
+    error_code: str | None = None
+    error_message: str | None = None
+    result_proposal_revision: int | None = None
+    provider_request_id: str | None = None
+    response_hash: str | None = None
+
+
+class ProductionBridgeIntentGenerateRequest(CamelModel):
+    expected_proposal_revision: int = Field(ge=1)
+    expected_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    provider_profile_id: str | None = None
 
 
 class ProductionBridgeAcceptRequest(CamelModel):

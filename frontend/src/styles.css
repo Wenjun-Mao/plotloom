@@ -601,6 +601,13 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .art-reference-gallery > .reference-demonstration { max-width: none; padding: 8px 10px; border: 1px solid rgba(229,121,125,.5); border-radius: 6px; color: var(--danger); background: rgba(229,121,125,.07); font: 700 10px/1.5 var(--mono); }
 .art-reference-gallery .reference-subjects { display: flex; flex-wrap: wrap; gap: 7px; }.art-reference-gallery .reference-subjects > span { align-self: center; padding: 0 4px 0 0; }.art-reference-gallery .reference-subjects button { flex: 0 1 210px; width: auto; }
 .cast-panel { display: grid; gap: 16px; padding: clamp(18px, 2.5vw, 28px); }
+.bridge-intent-controls { display: grid; justify-items: start; gap: 10px; }
+.bridge-intent-status { display: block; line-height: 1.5; }
+.bridge-intent-controls .notice { width: 100%; }
+.bridge-intent-review { min-width: 0; }
+.bridge-intent-field { display: grid; gap: 6px; margin: 16px 0; }
+.bridge-intent-field textarea { width: 100%; min-height: 78px; resize: vertical; }
+.bridge-intent-field small { color: var(--muted); overflow-wrap: anywhere; }
 .cast-panel-heading, .accepted-cast-summary-heading, .cast-next-action { display: flex; gap: 16px; align-items: center; justify-content: space-between; }
 .cast-panel-heading h2 { margin: 0; font-size: 22px; }
 .cast-panel-heading .eyebrow { margin-bottom: 4px; }

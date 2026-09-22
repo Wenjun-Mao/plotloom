@@ -24,6 +24,19 @@ provider or generation work. The next F5-to-production/F7 activity is the
 documented canonical bridge: a reviewable proposal and explicit atomic install,
 with no implied approval, reference selection, or provider dispatch.
 
+**Bounded dramatic-intent follow-on (approved 2026-09-22).** Extend the
+source-bound bridge proposal with an asynchronous, durable inference job over
+the existing text profile/adapter seam. A versioned Chinese prompt may return
+only suggested wording for the exact trusted objective/purpose target set;
+trusted code binds coordinates, hashes, currentness, and a new review revision.
+The author edits/saves/accepts the whole package before any empty-head canonical
+installation. Preserve the original U4 source/Brief, nine-cut policy conflict,
+and all existing media/selection gates. Verification uses a deterministic,
+labelled fake text transport and production-shaped browser review; no live paid
+or provider call, creative acceptance, media dispatch, new provider/credential
+system, or broad scheduler rewrite is authorized. Stop at a stable verified
+implementation and independent contract review; product acceptance is separate.
+
 ### U4 — coherent retained text-story walkthrough (approved 2026-09-22)
 
 Build one durable, isolated development project through the existing F1–F5

@@ -18,15 +18,17 @@ The retained U4 lighthouse walkthrough has a separate connected, read-only
 usability acceptance at `a869e7c`; it does not accept creative content, media,
 production installation, or playback. Its follow-on
 [F5-to-production canonical bridge design](../verification/2026-09-22-f5-to-production-canonical-bridge-design.md)
-defines a reviewable, explicitly accepted installation proposal. ADR 0079 is
-now approved only for its bounded implementation: a Chinese proposal review,
-including one explicitly source-excerpt-seeded and author-editable supplement
-for the V2 objective/purpose fields absent from F1--F5; explicit atomic
-installation into empty canonical heads; provenance/currentness guards; and the
-related exact-duration admission check. The supplement is source-coordinate
-bound, separately accepted, and uses no provider/model call in this slice. It
-does not authorize creative acceptance, provider calls, media dispatch,
-existing-project migration, or a broader workspace redesign.
+defines a reviewable, explicitly accepted installation proposal. The first
+ADR 0079 slice delivered a Chinese source-excerpt review supplement, explicit
+atomic installation into empty canonical heads, provenance/currentness guards,
+and the related exact-duration admission check. It did not infer semantic
+dramatic intent. The next approved bounded step is a source-bound, durable
+text-inference job using an existing eligible text profile, a strict bridge
+prompt/output/binder, and explicit whole-package review/edit/save/acceptance.
+Source excerpts remain evidence, not automatic V2 objective/purpose completion;
+late or uncertain jobs cannot install. This step permits deterministic fake
+transport integration but no real provider/model calls, creative acceptance,
+media dispatch, scene splitting, silent Brief edits, or broad redesign.
 The prior authorized ImageGen proof is complete; it authorizes no further
 provider calls.
 

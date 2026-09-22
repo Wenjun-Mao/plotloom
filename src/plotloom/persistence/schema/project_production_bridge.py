@@ -41,3 +41,31 @@ class ProductionBridgeAdmissionRow(Base):
     inputs: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     installed_stage_revisions: Mapped[dict[str, int]] = mapped_column(JSON, nullable=False)
     accepted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class ProductionBridgeIntentJobRow(Base):
+    """One durable, non-idempotent bridge inference attempt."""
+
+    __tablename__ = "v2_production_bridge_intent_jobs"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(24), nullable=False)
+    proposal_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    proposal_content_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    inputs: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    profile_snapshot: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    prompt_trace: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    prompt_messages: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    response_schema: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    expected_entries: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    response_evidence: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    candidate: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    usage: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    provider_request_id: Mapped[str | None] = mapped_column(String(255))
+    response_hash: Mapped[str | None] = mapped_column(String(64))
+    error_code: Mapped[str | None] = mapped_column(String(80))
+    error_message: Mapped[str | None] = mapped_column(String(500))
+    result_proposal_revision: Mapped[int | None] = mapped_column(Integer)
+    dispatched_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
