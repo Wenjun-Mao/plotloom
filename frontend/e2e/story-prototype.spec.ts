@@ -15,6 +15,10 @@ test("reads ordered multi-scene canonical screenplay without a storyboard review
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${workbench.frontendOrigin}/v2/?view=story-prototype&project=${id}`);
   const prototype = page.getByTestId("story-prototype");
+  await expect(prototype).toContainText("界面为中文；已确认原文内容按接受版本呈现。");
+  await expect(prototype).toContainText("已确认原文");
+  await expect(prototype).not.toContainText("英文原文");
+  await expect(prototype).not.toContainText("英文源内容保持原样");
   await expect(prototype.getByTestId("route-reader")).toContainText("One cable. Two places need it.");
   const scenes = prototype.locator('[data-section-id="opening"] .screenplay-scene');
   await expect(scenes).toHaveCount(2);
@@ -51,6 +55,8 @@ test("switches route-focused screenplay and matching storyboard without appendin
   await prototype.getByRole("button", { name: "分镜" }).click();
   const storyboard = prototype.getByTestId("storyboard-reader");
   await expect(storyboard).toContainText("按路径查看章节、段落与镜头");
+  await expect(storyboard).toContainText("上游画面提示（原样）");
+  await expect(storyboard).not.toContainText("画面 / 动作");
   await expect(storyboard).toContainText("The dock stays on.");
   await expect(storyboard).not.toContainText("Sailors can see the channel now.");
   await expect(prototype.getByTestId("route-reader")).toHaveCount(0);

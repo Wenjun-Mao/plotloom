@@ -36,6 +36,30 @@ F5 delivery is retained at
 It contains a validated, review-only upstream storyboard and report; it does
 not contain generated images, video, media prompts, or installed product shots.
 
+## Specialist execution provenance
+
+The Chinese source and each candidate were agent-authored development content.
+The following are nevertheless actual executions of the pinned local
+`plotloom-shuohao-specialist.v1` package-request, validator, renderer, and
+completion-receipt flow—not mock deliveries or claims of human creative work.
+Each listed `delivery/completion.json` records code revision
+`e625fc4d4d5dd5d871895ccb3d6850f6fbf84882`, specialist-skill hash
+`cfe747470c05ea2de54a1c67ae9855343bd190a35a97caf7e005a45318c6faa8`,
+and upstream revision `4322897e6d2bdaf66365534fd40194360c75a85f`. The
+upstream skill hash is stage-specific and is recorded below.
+The receipts intentionally report `model` and `reasoningEffort` as `null`:
+there is no external-model telemetry to claim.
+Every relative delivery path in the table is rooted at
+`.local/relay/u4-lighthouse-walkthrough/outputs/20260922T165155656597Z__fbb913c8-534b-4439-ba68-211e70ec743d/outputs/creative-handoff/jobs/`.
+
+| Deliverable | Specialist job / retained delivery | Upstream skill hash |
+| --- | --- | --- |
+| F1 outline and section map | `ch_5359cd306cd84354af805ec10f03c648/delivery/` | `e611c46f54513ae200eff525fc83ef16e7b0531a84ab6a456923d7c534988dde` |
+| F2 cast | `ch_c97e6e10ce0741c78b9165891ce49101/delivery/` | `4ea2fbbdfa31cde78da6f038c27e6ec4758efe4bcf322a5099b72dae3d0e4da0` |
+| F3 art references | `ch_5099cb49e6164cabbb8863caa611180a/delivery/` | `2e3ec7fa9223f85395b661822ef009822f3865b413e4fd649642488f2b78b222` |
+| F4 accepted script r2 (R3 delivery) | `ch_bfbebaace45c4c9b926a859dbebf0921/delivery/` | `5e653561304e51593a6bd0c36d134fe7076b6352883752912085d312e1e12b7c` |
+| F5 accepted storyboard review r2 | `ch_56f07c3cb22641fba27267943921c977/delivery/` | `5e7a52d78cbb1fc74826313e7c290cdcfa70e80d110c4b1250f1b365bcbf66d5` |
+
 ## Reopen and inspect
 
 Start the isolated instance from the repository root. It does not reuse or
@@ -67,12 +91,12 @@ then stop only that verified PID with `kill <pid>`. Do not stop the unrelated
 ## Verification and known correction
 
 - The pinned `novel-storyboard validate` passed: 3 episodes, 15 segments,
-  27 cuts, 162 seconds against the 180-second target, with complete beat,
+  27 cuts, 164 seconds against the 180-second target, with complete beat,
   dialogue, timing, H3, and upstream-reference checks.
 - The public F5 review admission accepted the exact F4 script binding and
   reports no stale reasons.
 - The isolated 8804 process was stopped, restarted with the command above, and
-  the project plus accepted F5 review r1 were rediscovered through the public
+  the project plus accepted F5 review r2 were rediscovered through the public
   API without restoring an ad-hoc backup.
 - An independent read-only re-review of the corrected r2 chain found no
   blockers: episode 2 retains only the beacon outcome and episode 3 retains
@@ -92,6 +116,17 @@ described the beacon outcome while the frozen map bound it to the dock outcome.
 F4 R3 (accepted script r2) makes the beacon and dock endings distinct; F5 R2
 is the fresh accepted review bound to that script. No compatibility layer or
 product code change was added.
+
+## Reader content boundary
+
+The pinned upstream `novel-storyboard` schema defines `cuts[].frame` as an
+English keyframe/image prompt. The accepted F5 file therefore supplies that
+field in English; the accepted F4 script separately retains the Chinese action
+and dialogue. There is no author-owned Chinese shot-description field in this
+review contract for the reader to have dropped. The reader now labels the
+retained field as `上游画面提示（原样）`; it neither translates nor expands the
+frozen schema. A future product requirement for author-owned Chinese shot
+descriptions would need an explicit new schema and approval contract.
 
 The remaining review is human creative acceptance of the authored story; this
 receipt deliberately does not claim it.
