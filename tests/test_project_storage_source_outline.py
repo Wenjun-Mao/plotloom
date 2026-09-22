@@ -196,6 +196,16 @@ def test_explicit_binary_section_map_is_bound_to_outline_and_stales_on_source_ch
         assert reopened.section_map_status == "current"
         assert reopened.graph_admission is not None and reopened.graph_admission.status == "current"
 
+        # The F1B source-map graph records no Story Bible input.  Installing
+        # an otherwise independent Bible later must not invalidate that graph
+        # just because the generic canonical stage order lists Bible first.
+        store.update_stage(
+            StageName.STORY_BIBLE,
+            make_story_bible().model_dump(mode="json", by_alias=True),
+            expected_revision=0,
+        )
+        assert store.authoring.get_stage_head(project_id, StageName.STORY_GRAPH).status == StageStatus.READY
+
         edited_mapping = mapping.model_copy(deep=True)
         edited_mapping.sections[0].summary = "船夫收到最后一封信，并看见风暴逼近。"
         edited_mapping.choice.prompt = "在风暴前把信交给谁？"

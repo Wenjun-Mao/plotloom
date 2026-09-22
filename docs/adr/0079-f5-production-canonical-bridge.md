@@ -1,6 +1,7 @@
 # ADR 0079: F5 production canonical bridge
 
-Status: Proposed, 2026-09-22.
+Status: Accepted for scoped implementation, 2026-09-22. Product and creative
+acceptance remain separate.
 
 ## Context
 

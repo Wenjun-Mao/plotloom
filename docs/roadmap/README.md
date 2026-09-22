@@ -18,8 +18,12 @@ The retained U4 lighthouse walkthrough has a separate connected, read-only
 usability acceptance at `a869e7c`; it does not accept creative content, media,
 production installation, or playback. Its follow-on
 [F5-to-production canonical bridge design](../verification/2026-09-22-f5-to-production-canonical-bridge-design.md)
-defines a reviewable, explicitly accepted installation proposal; it authorizes
-no implementation by itself.
+defines a reviewable, explicitly accepted installation proposal. ADR 0079 is
+now approved only for its bounded implementation: a Chinese proposal review,
+explicit atomic installation into empty canonical heads, provenance/currentness
+guards, and the related exact-duration admission check. It does not authorize
+creative acceptance, provider calls, media dispatch, existing-project migration,
+or a broader workspace redesign.
 The prior authorized ImageGen proof is complete; it authorizes no further
 provider calls.
 

@@ -61,9 +61,26 @@ class ProjectCanonicalPersistence:
     def _mark_downstream_stale(self, session: Session, project_id: str, stage: StageName, now: datetime) -> None:
         for downstream in downstream_stages(stage):
             row = self._access.rows.stage(session, project_id, downstream)
-            if row.status != StageStatus.MISSING.value:
+            if row.status == StageStatus.MISSING.value:
+                continue
+            # A stage is coupled to an upstream revision only when that
+            # revision is recorded in its immutable install provenance.  In
+            # particular, the source-map StoryGraph admission deliberately
+            # has no Story Bible input, so a later Bible installation must not
+            # invalidate it merely because it appears after Bible in the
+            # canonical stage order.  Propagation still follows readiness: a
+            # newly stale direct consumer makes its dependants stale too.
+            reasons: list[str] = []
+            for upstream in upstream_stages(downstream):
+                upstream_row = self._access.rows.stage(session, project_id, upstream)
+                recorded_revision = dict(row.input_revisions).get(upstream.value)
+                if upstream_row.status != StageStatus.READY.value:
+                    reasons.append(f"upstream stage {upstream.value} is {upstream_row.status}")
+                elif recorded_revision is not None and recorded_revision != upstream_row.revision:
+                    reasons.append(f"upstream stage {upstream.value} revision changed")
+            if reasons:
                 row.status = StageStatus.STALE.value
-                row.stale_reasons = [f"upstream stage {stage.value} revision changed"]
+                row.stale_reasons = reasons
                 row.updated_at = now
 
     def _install_stage_in_session(
