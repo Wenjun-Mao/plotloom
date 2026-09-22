@@ -22,6 +22,7 @@ type PendingGallery = {
   references: Deferred<any>;
   proposals: Deferred<any>;
   workbench: Deferred<any>;
+  imported: Deferred<any>;
 };
 
 function deferred<T>(): Deferred<T> {
@@ -41,6 +42,7 @@ function pendingGallery(): PendingGallery {
     references: deferred(),
     proposals: deferred(),
     workbench: deferred(),
+    imported: deferred(),
   };
 }
 
@@ -63,6 +65,7 @@ function installResolvedGallery(response: ReturnType<typeof galleryResponse>) {
   vi.spyOn(plotloomApi, "getCharacterReferences").mockResolvedValue(response.references as any);
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockResolvedValue(response.proposals as any);
   vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(response.workbench as any);
+  vi.spyOn(plotloomApi, "getImportedCharacterAppearances").mockResolvedValue({ appearances: [] });
 }
 
 function installDeferredGalleries() {
@@ -86,6 +89,7 @@ function installDeferredGalleries() {
   vi.spyOn(plotloomApi, "getCharacterReferences").mockImplementation((projectId, signal) => { recordSignal(projectId, signal); return pendingFor(projectId).references.promise; });
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockImplementation((projectId, signal) => { recordSignal(projectId, signal); return pendingFor(projectId).proposals.promise; });
   vi.spyOn(plotloomApi, "getVisualWorkbench").mockImplementation((projectId, signal) => { recordSignal(projectId, signal); return pendingFor(projectId).workbench.promise; });
+  vi.spyOn(plotloomApi, "getImportedCharacterAppearances").mockImplementation((projectId) => pendingFor(projectId).imported.promise);
   return { galleries, signals, pendingFor };
 }
 
@@ -106,6 +110,7 @@ async function resolveGallery(pending: PendingGallery, response: ReturnType<type
     pending.references.resolve(response.references);
     pending.proposals.resolve(response.proposals);
     pending.workbench.resolve(response.workbench);
+    pending.imported.resolve({ appearances: [] });
     await Promise.resolve();
   });
   await flushReact();
@@ -126,9 +131,15 @@ function button(label: string): HTMLButtonElement {
   return found as HTMLButtonElement;
 }
 
+function ideaInput(): HTMLTextAreaElement {
+  const input = host.querySelector('textarea[placeholder*="描述希望保留"]');
+  if (!input) throw new Error("Missing current appearance idea input");
+  return input as HTMLTextAreaElement;
+}
+
 function candidateProposal(projectId: string, characterId = "keeper") {
   const asset = { id: `${characterId}-asset`, projectId, originalHash: "original", displayHash: "display", mimeType: "image/png", byteSize: 20, width: 64, height: 48, createdAt: "2026-09-20T00:00:00Z", provenance: null };
-  return { asset, proposal: { id: `${characterId}-proposal`, projectId, characterId, current: true, parentCandidateAssetId: null, requestHash: "request", request: {}, deliveries: [{ id: `${characterId}-delivery`, state: "accepted", candidates: [{ id: `${characterId}-candidate`, assetId: asset.id, asset, outputHash: "output", role: "original" }] }] } };
+  return { asset, proposal: { id: `${characterId}-proposal`, projectId, characterId, current: true, state: "delivered", parentCandidateAssetId: null, requestHash: "request", request: {}, deliveries: [{ id: `${characterId}-delivery`, state: "accepted", candidates: [{ id: `${characterId}-candidate`, assetId: asset.id, asset, outputHash: "output", role: "original" }] }] } };
 }
 
 function castAtRevision(response: ReturnType<typeof galleryResponse>, status: "accepted" | "reopened", revision: number) {
@@ -148,9 +159,7 @@ it("does not refresh an old image mutation after reopening invalidates its cast 
   vi.spyOn(plotloomApi, "reopenCast").mockResolvedValue({ ...response.cast, status: "reopened" } as any);
 
   await renderProject("project");
-  const notes = host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement;
-  await act(async () => { changeValue(notes, "Explicit reviewer note"); });
-  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
+  await act(async () => { button("选用当前图片").click(); await Promise.resolve(); });
   expect(button("编辑角色设定").disabled).toBe(false);
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
@@ -172,6 +181,7 @@ it("does not retain an in-flight specialist send from a cast session invalidated
   vi.spyOn(plotloomApi, "sendCharacterReferenceProposal").mockImplementation(() => copied.promise);
   vi.spyOn(plotloomApi, "reopenCast").mockImplementation(() => reopening.promise);
 
+  proposal.deliveries = []; proposal.state = "prepared";
   await renderProject("project");
   await act(async () => { button("发送给 specialist").click(); await Promise.resolve(); });
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
@@ -197,6 +207,7 @@ it("replaces a held initial gallery read after reopen and save settle a newer sa
   vi.spyOn(plotloomApi, "getCharacterReferences").mockImplementation(() => ++referenceReads === 1 ? held.references.promise : Promise.resolve(current.references as any));
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockImplementation(() => ++proposalReads === 1 ? held.proposals.promise : Promise.resolve(current.proposals as any));
   vi.spyOn(plotloomApi, "getVisualWorkbench").mockImplementation(() => ++workbenchReads === 1 ? held.workbench.promise : Promise.resolve(current.workbench as any));
+  vi.spyOn(plotloomApi, "getImportedCharacterAppearances").mockResolvedValue({ appearances: [] });
   vi.spyOn(plotloomApi, "reopenCast").mockResolvedValue(castAtRevision(initial, "reopened", 1) as any);
   vi.spyOn(plotloomApi, "saveReopenedCast").mockResolvedValue(castAtRevision(current, "accepted", 2) as any);
 
@@ -221,9 +232,7 @@ it("does not surface a rejected mutation from a prior subject session", async ()
   vi.spyOn(plotloomApi, "selectCharacterReference").mockImplementation(() => selection.promise);
 
   await renderProject("project");
-  await act(async () => { changeValue(host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement, "Keeper note"); });
-  await flushReact();
-  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
+  await act(async () => { button("选用当前图片").click(); await Promise.resolve(); });
   expect(plotloomApi.selectCharacterReference).toHaveBeenCalledTimes(1);
   await act(async () => { (host.querySelectorAll(".reference-subjects button")[1] as HTMLButtonElement).click(); await Promise.resolve(); });
   const galleryReadsBeforeOldFailure = vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length;
@@ -236,7 +245,7 @@ it("does not surface a rejected mutation from a prior subject session", async ()
 
 it("rejects an old held refresh after the same subject is reopened and saved at a newer cast revision", async () => {
   const candidate = candidateProposal("project");
-  const initial = galleryResponse("project", "Live session fixture", { proposals: [candidate.proposal], assets: [candidate.asset] });
+  const initial = galleryResponse("project", "Live session fixture", { decisions: [], proposals: [candidate.proposal], assets: [candidate.asset] });
   const newer = galleryResponse("project", "Live session fixture", { proposals: [candidate.proposal], assets: [candidate.asset] });
   newer.references.decisions[0].referenceRevision = 2;
   const old = galleryResponse("project", "Live session fixture", { proposals: [candidate.proposal], assets: [candidate.asset] });
@@ -248,6 +257,7 @@ it("rejects an old held refresh after the same subject is reopened and saved at 
   vi.spyOn(plotloomApi, "getCharacterReferences").mockImplementation(() => phase === "held" ? heldReferences.promise : Promise.resolve((phase === "newer" ? newer : initial).references as any));
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockImplementation(() => phase === "held" ? heldProposals.promise : Promise.resolve((phase === "newer" ? newer : initial).proposals as any));
   vi.spyOn(plotloomApi, "getVisualWorkbench").mockImplementation(() => phase === "held" ? heldWorkbench.promise : Promise.resolve((phase === "newer" ? newer : initial).workbench as any));
+  vi.spyOn(plotloomApi, "getImportedCharacterAppearances").mockResolvedValue({ appearances: [] });
   const selection = deferred<any>();
   vi.spyOn(plotloomApi, "selectCharacterReference").mockImplementation(() => selection.promise);
   vi.spyOn(plotloomApi, "reopenCast").mockResolvedValue(castAtRevision(initial, "reopened", 1) as any);
@@ -255,10 +265,7 @@ it("rejects an old held refresh after the same subject is reopened and saved at 
 
   await renderProject("project");
   await flushReact();
-  const notes = host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement;
-  await act(async () => { changeValue(notes, "Commit the keeper note before dispatching."); });
-  await flushReact();
-  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
+  await act(async () => { button("选用当前图片").click(); await Promise.resolve(); });
   expect(plotloomApi.selectCharacterReference).toHaveBeenCalledTimes(1);
   phase = "held";
   await act(async () => { selection.resolve({}); await Promise.resolve(); });
@@ -282,7 +289,7 @@ it("rejects an old held refresh after the same subject is reopened and saved at 
 
 it("rejects an old held refresh error after the same subject reaches a newer accepted cast revision", async () => {
   const candidate = candidateProposal("project");
-  const initial = galleryResponse("project", "Live rejection fixture", { proposals: [candidate.proposal], assets: [candidate.asset] });
+  const initial = galleryResponse("project", "Live rejection fixture", { decisions: [], proposals: [candidate.proposal], assets: [candidate.asset] });
   const newer = galleryResponse("project", "Live rejection fixture", { proposals: [candidate.proposal], assets: [candidate.asset] });
   newer.references.decisions[0].referenceRevision = 2;
   const heldReferences = deferred<any>(); const heldProposals = deferred<any>(); const heldWorkbench = deferred<any>();
@@ -292,6 +299,7 @@ it("rejects an old held refresh error after the same subject reaches a newer acc
   vi.spyOn(plotloomApi, "getCharacterReferences").mockImplementation(() => phase === "held" ? heldReferences.promise : Promise.resolve((phase === "newer" ? newer : initial).references as any));
   vi.spyOn(plotloomApi, "getCharacterReferenceProposals").mockImplementation(() => phase === "held" ? heldProposals.promise : Promise.resolve((phase === "newer" ? newer : initial).proposals as any));
   vi.spyOn(plotloomApi, "getVisualWorkbench").mockImplementation(() => phase === "held" ? heldWorkbench.promise : Promise.resolve((phase === "newer" ? newer : initial).workbench as any));
+  vi.spyOn(plotloomApi, "getImportedCharacterAppearances").mockResolvedValue({ appearances: [] });
   const selection = deferred<any>();
   vi.spyOn(plotloomApi, "selectCharacterReference").mockImplementation(() => selection.promise);
   vi.spyOn(plotloomApi, "reopenCast").mockResolvedValue(castAtRevision(initial, "reopened", 1) as any);
@@ -299,10 +307,7 @@ it("rejects an old held refresh error after the same subject reaches a newer acc
 
   await renderProject("project");
   await flushReact();
-  const notes = host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement;
-  await act(async () => { changeValue(notes, "Commit the keeper note before dispatching."); });
-  await flushReact();
-  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
+  await act(async () => { button("选用当前图片").click(); await Promise.resolve(); });
   expect(plotloomApi.selectCharacterReference).toHaveBeenCalledTimes(1);
   phase = "held";
   await act(async () => { selection.resolve({}); await Promise.resolve(); });
@@ -333,10 +338,7 @@ it("rejects a late image-mutation error after the same subject is reopened and s
   vi.spyOn(plotloomApi, "saveReopenedCast").mockResolvedValue(castAtRevision(newer, "accepted", 2) as any);
 
   await renderProject("project");
-  const notes = host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement;
-  await act(async () => { changeValue(notes, "Commit the selection note before dispatching."); });
-  await flushReact();
-  await act(async () => { button("选用这张图").click(); await Promise.resolve(); });
+  await act(async () => { button("选用当前图片").click(); await Promise.resolve(); });
   expect(plotloomApi.selectCharacterReference).toHaveBeenCalledTimes(1);
 
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
@@ -349,7 +351,7 @@ it("rejects a late image-mutation error after the same subject is reopened and s
   await flushReact();
   expect(host.textContent).toContain("已接受角色 r2");
   expect(host.textContent).not.toContain("old image mutation rejected");
-  expect((host.querySelector('textarea[placeholder*="说明为何"]') as HTMLTextAreaElement).disabled).toBe(false);
+  expect(ideaInput().disabled).toBe(false);
 });
 
 it("remounts same-subject controls across a reopened-and-saved cast session", async () => {
@@ -363,42 +365,41 @@ it("remounts same-subject controls across a reopened-and-saved cast session", as
   vi.spyOn(plotloomApi, "saveReopenedCast").mockResolvedValue(castAtRevision(newer, "accepted", 2) as any);
 
   await renderProject("project");
-  const direction = host.querySelector('textarea[placeholder*="描述要保留"]') as HTMLTextAreaElement;
+  const direction = ideaInput();
   await act(async () => { changeValue(direction, "Old session direction must be discarded."); });
   await flushReact();
-  await act(async () => { button("创建调整提案").click(); await Promise.resolve(); });
+  await act(async () => { button("创建提案").click(); await Promise.resolve(); });
   expect(plotloomApi.prepareCharacterReferenceProposal).toHaveBeenCalledTimes(1);
 
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
   await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
   await flushReact();
-  const freshDirection = host.querySelector('textarea[placeholder*="描述要保留"]') as HTMLTextAreaElement;
+  const freshDirection = ideaInput();
   expect(freshDirection.disabled).toBe(false);
   expect(freshDirection.value).toBe("");
-  expect((host.querySelector("select") as HTMLSelectElement).value).toBe("");
 
   await act(async () => { changeValue(freshDirection, "Fresh session direction dispatches."); });
   await flushReact();
-  await act(async () => { button("创建调整提案").click(); await Promise.resolve(); });
+  await act(async () => { button("创建提案").click(); await Promise.resolve(); });
   expect(plotloomApi.prepareCharacterReferenceProposal).toHaveBeenCalledTimes(2);
   await act(async () => { preparation.resolve({ assignment: "old assignment must not appear" }); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).not.toContain("old assignment must not appear");
-  expect((host.querySelector('textarea[placeholder*="描述要保留"]') as HTMLTextAreaElement).disabled).toBe(false);
+  expect(ideaInput().disabled).toBe(false);
 });
 
 it("recovers a failed hero when its preserved component receives another subject identity", async () => {
   installResolvedGallery(galleryResponse("project", "Identity reset fixture", { characters: [{ id: "keeper", name: "Mira" }, { id: "watcher", name: "Nia" }] }));
 
   await renderProject("project");
-  const firstHero = host.querySelector('[data-testid="reference-selected-hero"]')!;
+  const firstHero = host.querySelector('[data-testid="appearance-viewer"]')!;
   await act(async () => firstHero.querySelector("img")?.dispatchEvent(new Event("error")));
-  expect(firstHero.textContent).toContain("当前已选择的身份参考图像不可用");
+  expect(firstHero.textContent).toContain("当前查看图片不可用");
 
   await act(async () => (host.querySelectorAll(".reference-subjects button")[1] as HTMLButtonElement).click());
   await flushReact();
-  const secondHero = host.querySelector('[data-testid="reference-selected-hero"]')!;
+  const secondHero = host.querySelector('[data-testid="appearance-viewer"]')!;
   expect(secondHero.querySelector("img")).not.toBeNull();
   expect(secondHero.textContent).not.toContain("图像不可用");
 });
@@ -410,10 +411,9 @@ it("keeps the selected-primary slot when its managed metadata is missing", async
   installResolvedGallery(galleryResponse("project", "Missing primary", { decisions: [decision], proposals: [proposal], assets: [candidateAsset] }));
 
   await renderProject("project");
-  const hero = host.querySelector('[data-testid="reference-selected-hero"]')!;
-  expect(hero.textContent).toContain("当前已选择的身份参考图像不可用");
-  expect(host.querySelector('[data-testid="reference-candidate-hero"]')).toBeNull();
-  expect(host.querySelector('[data-testid="reference-candidate-candidate-asset"]')).not.toBeNull();
+  const hero = host.querySelector('[data-testid="appearance-viewer"]')!;
+  expect(hero.textContent).toContain("当前查看图片不可用");
+  expect(host.querySelector('img[alt*="缩略图"]')).not.toBeNull();
 });
 
 it("does not let an old same-document success replace a settled new project", async () => {
