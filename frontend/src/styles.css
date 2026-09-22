@@ -490,6 +490,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .approval-history strong { color: var(--text); font: 700 10px var(--mono); }
 .approval-history small { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
 .source-outline-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.source-outline-grid > .art-panel { grid-column: 1 / -1; }
 .source-outline-grid .panel { display: grid; gap: 12px; }
 .source-outline-grid .panel > header { display: grid; gap: 3px; }
 .source-outline-grid .panel > header span { color: var(--accent); font: 700 10px var(--mono); letter-spacing: .07em; text-transform: uppercase; }
@@ -576,6 +577,11 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .character-reference-review .reference-gallery-intro { padding: 0 0 22px; }
 .character-reference-review .reference-gallery-intro h2 { max-width: 720px; margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: -.04em; line-height: 1.08; }
 .character-reference-review .reference-gallery-layout { padding-bottom: 10px; }
+.art-reference-gallery { display: grid; gap: 14px; padding: 20px 0 8px; border-top: 1px solid var(--line); }
+.art-reference-gallery > header { display: flex; align-items: end; justify-content: space-between; gap: 14px; }
+.art-reference-gallery > header > div { display: grid; gap: 4px; }.art-reference-gallery > header span { color: var(--accent); font: 700 10px var(--mono); }.art-reference-gallery > header strong { font-size: 18px; }.art-reference-gallery > header > small, .art-reference-gallery > p { margin: 0; color: var(--muted); font-size: 11px; }.art-reference-gallery > p { max-width: 720px; }
+.art-reference-gallery > .reference-demonstration { max-width: none; padding: 8px 10px; border: 1px solid rgba(229,121,125,.5); border-radius: 6px; color: var(--danger); background: rgba(229,121,125,.07); font: 700 10px/1.5 var(--mono); }
+.art-reference-gallery .reference-subjects { display: flex; flex-wrap: wrap; gap: 7px; }.art-reference-gallery .reference-subjects > span { align-self: center; padding: 0 4px 0 0; }.art-reference-gallery .reference-subjects button { flex: 0 1 210px; width: auto; }
 .cast-panel { display: grid; gap: 16px; padding: clamp(18px, 2.5vw, 28px); }
 .cast-panel-heading, .accepted-cast-summary-heading, .cast-next-action { display: flex; gap: 16px; align-items: center; justify-content: space-between; }
 .cast-panel-heading h2 { margin: 0; font-size: 22px; }

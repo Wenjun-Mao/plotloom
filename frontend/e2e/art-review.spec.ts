@@ -51,7 +51,7 @@ test.describe("F3A production art review", () => {
     const refreshResponse = await refreshed;
     expect(refreshResponse.ok(), await refreshResponse.text()).toBeTruthy();
     await expect(scene).toContainText("current");
-    await expect(scene.locator("img")).toBeVisible();
+    await expect(scene.getByRole("img", { name: "Beacon room 当前查看图片" })).toBeVisible();
     await workbench.restartBackend();
     await page.reload();
     await expect(scene).toContainText("current");
@@ -78,6 +78,45 @@ test.describe("F3A production art review", () => {
     const released = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
     expect(released.ok(), await released.text()).toBeTruthy();
     expect(activeId).toBeTruthy();
+  });
+
+  test("reviews an isolated, explicitly mocked five-candidate F3B browser demonstration", async ({ page, request, workbench }, testInfo) => {
+    const projectId = await createAcceptedArtProject(request, workbench.apiOrigin, "mocked-gallery");
+    const proposalPath = `/api/v2/projects/${projectId}/art-reference-proposals`;
+    await page.route(`**${proposalPath}`, async (route) => {
+      if (route.request().method() !== "GET") return route.continue();
+      await route.fulfill({ contentType: "application/json", body: JSON.stringify(mockedArtReferenceStudies(projectId)) });
+    });
+    await page.route(`**/api/v2/projects/${projectId}/managed-assets/mock-f3b-*/display`, async (route) => {
+      await route.fulfill({ contentType: "image/png", body: fixturePng() });
+    });
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
+    const studies = page.getByTestId("art-reference-studies");
+    const scene = page.getByTestId("art-reference-scene-S01");
+    await expect(studies.getByRole("note")).toContainText("已隔离的只读浏览器演示");
+    await expect(scene.getByRole("img", { name: "Beacon room 当前查看图片" })).toBeVisible();
+    await scene.getByRole("button", { name: "放大查看" }).click();
+    await expect(page.getByRole("dialog", { name: "放大查看环境或道具图片" })).toBeVisible();
+    await page.getByRole("button", { name: "关闭" }).click();
+
+    for (const index of [1, 3]) await studies.getByRole("button", { name: `加入 mock-candidate-${index}.png` }).click();
+    await expect(studies.getByTestId("art-reference-comparison")).toContainText("并排比较 · 2 张");
+    await studies.getByRole("button", { name: "加入 mock-candidate-0.png" }).click();
+    await expect(studies.getByTestId("art-reference-comparison")).toContainText("并排比较 · 3 张");
+    await studies.getByRole("button", { name: "加入 mock-candidate-4.png" }).click();
+    await expect(studies.getByTestId("art-reference-comparison")).toContainText("并排比较 · 4 张");
+    await expect(studies.getByRole("button", { name: "加入 mock-candidate-2.png" })).toBeDisabled();
+    await studies.getByRole("button", { name: "移出 mock-candidate-3.png" }).click();
+    await studies.getByRole("button", { name: "加入 mock-candidate-2.png" }).click();
+    await expect(studies.getByTestId("art-reference-comparison")).toContainText("并排比较 · 4 张");
+    const evidenceDirectory = process.env.PLOTLOOM_E2E_EVIDENCE_DIR;
+    if (evidenceDirectory) await mkdir(evidenceDirectory, { recursive: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await page.screenshot({ path: evidenceDirectory ? path.join(evidenceDirectory, "mocked-f3b-1440.png") : testInfo.outputPath("mocked-f3b-1440.png"), fullPage: true });
+    await studies.screenshot({ path: evidenceDirectory ? path.join(evidenceDirectory, "mocked-f3b-panel-1440.png") : testInfo.outputPath("mocked-f3b-panel-1440.png") });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await page.screenshot({ path: evidenceDirectory ? path.join(evidenceDirectory, "mocked-f3b-1920.png") : testInfo.outputPath("mocked-f3b-1920.png"), fullPage: true });
+    await studies.screenshot({ path: evidenceDirectory ? path.join(evidenceDirectory, "mocked-f3b-panel-1920.png") : testInfo.outputPath("mocked-f3b-panel-1920.png") });
   });
 
   test("re-copies a frozen handoff, rejects it, and replaces it through the browser", async ({ page, request, workbench }) => {
@@ -432,6 +471,17 @@ function sourceMaterial(label: string) { return { kind: "synopsis", title: `Beac
 function sectionMap() { return { sections: [{ sectionId: "opening", title: "Storm warning", summary: "The keeper has one cable and two destinations.", ending: false }, { sectionId: "beacon", title: "Beacon lit", summary: "The beacon guides sailors through the storm.", ending: true }, { sectionId: "dock", title: "Dock lit", summary: "The dock welcomes boats while the beacon goes dark.", ending: true }], choice: { choiceId: "power-choice", sectionId: "opening", prompt: "Where should the keeper send the cable?", outcomes: [{ outcomeId: "beacon-path", label: "Light the beacon", consequence: "The dock loses power.", endingSectionId: "beacon" }, { outcomeId: "dock-path", label: "Light the dock", consequence: "The beacon goes dark.", endingSectionId: "dock" }] } }; }
 function castFixture() { return { source: "F3A browser fixture", summary: "One beacon keeper.", characters: [{ id: "keeper", name: "Mira", persona: { motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }; }
 function artFixture() { const render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"; return { source: "F3A browser fixture", style: "realistic", scenes: [{ id: "S01", name: "Beacon room", primary: true, summary: "The keeper faces a power choice.", anchors: [{ name: "brass lamp", desc: "old brass" }, { name: "window", desc: "salted glass" }, { name: "desk", desc: "worn wood" }], lighting: [{ state: "dawn", prompt: "cold dawn through a window" }], image: { prompt: "empty beacon room", negativePrompt: "people, human figures", sheet: render, tags: [] } }], props: [], sectionUsage: [{ sectionId: "opening", sceneIds: ["S01"], propIds: [] }, { sectionId: "beacon", sceneIds: ["S01"], propIds: [] }, { sectionId: "dock", sceneIds: ["S01"], propIds: [] }] }; }
+function mockedArtReferenceStudies(projectId: string) {
+  const createdAt = "2026-09-21T00:00:00Z";
+  const candidates = Array.from({ length: 5 }, (_, index) => {
+    const assetId = `mock-f3b-${index}`;
+    return {
+      id: `mock-candidate-${index}`, assetId, proposalId: "mock-f3b-read-only", outputFilename: `mock-candidate-${index}.png`, outputHash: `mock-output-${index}`, role: "art_reference", createdAt,
+      asset: { id: assetId, projectId, originalHash: `mock-original-${index}`, displayHash: `mock-display-${index}`, mimeType: "image/png", byteSize: 68, width: 1, height: 1, createdAt, provenance: { origin: "已隔离的只读浏览器演示（明确 mock）", rights: "unknown", rightsNote: "No ImageGen or provider output; test-only response.", declaredAdditions: [] } },
+    };
+  });
+  return { configured: true, proposals: [{ id: "mock-f3b-read-only", projectId, subjectType: "scene", subjectId: "S01", request: { demonstration: "已隔离的只读浏览器演示（明确 mock）" }, requestHash: "mocked-read-only", state: "delivered", current: true, exportedAt: createdAt, cancelledAt: null, cancellationReason: null, createdAt, deliveries: [{ id: "mock-delivery", deliveryId: "mocked-read-only-browser-demo", state: "accepted", diagnosticCode: null, manifestHash: "mocked-read-only", createdAt, candidates }] }] };
+}
 function scriptFixture() { const episode = (ep: number) => ({ ep, targetSeconds: 60, hook: `Section ${ep} begins in motion`, cliff: `Section ${ep} leaves a choice open`, hookBeat: [1, 1], beatsClaimed: [], scenes: [{ sceneId: "S01", lighting: "dawn", characters: [], props: [], flow: Array.from({ length: 24 }, (_, index) => ({ action: `Mira crosses the beacon room, action ${index}.` })) }] }); return { source: "F3A browser fixture", sectionBindings: [{ sectionId: "opening", episode: 1 }, { sectionId: "beacon", episode: 2 }, { sectionId: "dock", episode: 3 }], episodes: [episode(1), episode(2), episode(3)] }; }
 function withSummary(art: Record<string, unknown>, summary: string): Record<string, unknown> { return { ...art, scenes: (art.scenes as Array<Record<string, unknown>>).map((scene, index) => index === 0 ? { ...scene, summary } : scene) }; }
 

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Field, Spinner } from "../components";
+import { AssetZoomDialog, ManagedAssetImage as AssetPresentation, useBoundedAssetComparison } from "../features/media/references/AppearanceReviewPrimitives";
 import type { AcceptedCastRevision, CastReviewState, CharacterImportedAppearance, CharacterReferenceDecision, CharacterReferenceProposal, ManagedAsset, VisualWorkbench } from "../types";
 
 type GalleryData = {
@@ -126,7 +127,6 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const [viewedAssetId, setViewedAssetId] = useState("");
   // The gallery can retain any number of alternatives. Comparison is a
   // deliberate, local review set capped at four; it never selects identity.
-  const [comparisonAssetIds, setComparisonAssetIds] = useState<string[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState("");
@@ -183,14 +183,7 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   // specialist-delivery candidates. They can be selected as identity, but
   // the proposal contract must not claim they are valid refinement parents.
   const refinementAllowed = Boolean(effectiveViewedAssetId && viewedCandidate && !viewedCandidate.imported);
-  const comparisonCandidates = comparisonAssetIds.flatMap((assetId) => {
-    const candidate = viewableCandidates.find((entry) => entry.assetId === assetId);
-    return candidate ? [candidate] : [];
-  });
-  const comparisonAtCapacity = comparisonCandidates.length >= 4;
-  const toggleComparison = (assetId: string) => setComparisonAssetIds((current) => current.includes(assetId)
-    ? current.filter((item) => item !== assetId)
-    : current.length < 4 ? [...current, assetId] : current);
+  const { comparisonCandidates, comparisonAssetIds, comparisonAtCapacity, toggleComparison, clearComparison } = useBoundedAssetComparison(viewableCandidates);
   const referenceState = data.referenceStates.find((state) => state.characterId === subject.id);
   const act = async <T,>(operation: (isCurrent: () => boolean) => Promise<T>, applyResult?: (result: T) => void) => {
     const capturedSession = sessionRef.current;
@@ -241,13 +234,13 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
         {viewableCandidates.map((candidate) => <button key={candidate.id} type="button" className={`appearance-thumbnail${candidate.assetId === effectiveViewedAssetId ? " viewing" : ""}${selectedAssetIds.has(candidate.assetId) ? " selected" : ""}`} aria-pressed={candidate.assetId === effectiveViewedAssetId} onClick={() => setViewedAssetId(candidate.assetId)}><AssetPresentation projectId={projectId} subjectId={subject.id} asset={candidate.asset ?? undefined} assetId={candidate.assetId} alt={`${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}缩略图`} unavailableLabel="候选图片不可用" /><span>{candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}</span></button>)}
         {!viewableCandidates.length && <p className="reference-empty-list">没有可浏览的候选图片。</p>}
       </div>
-      {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant={compared ? "primary" : "quiet"} disabled={busy || (!compared && comparisonAtCapacity)} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}` : `加入 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" disabled={busy} onClick={() => setComparisonAssetIds([])}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
+      {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant={compared ? "primary" : "quiet"} disabled={busy || (!compared && comparisonAtCapacity)} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}` : `加入 ${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" disabled={busy} onClick={clearComparison}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
       {comparisonCandidates.length >= 2 && <div className={`appearance-compare comparison-count-${comparisonCandidates.length}`} data-testid="appearance-comparison"><header><strong>并排比较 · {comparisonCandidates.length} 张</strong><small>当前查看：{viewedImageLabel}；对比不会选用身份参考。</small></header>{comparisonCandidates.map((candidate) => <figure key={candidate.assetId}><figcaption>{candidate.assetId === effectiveViewedAssetId ? "当前查看" : "对比图片"} · {candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))}</figcaption><AssetPresentation projectId={projectId} subjectId={subject.id} asset={candidate.asset ?? undefined} assetId={candidate.assetId} alt={`${candidateImageLabel(candidate, selectedAssetIds.has(candidate.assetId))} 比较图片`} unavailableLabel="对比图片不可用" /></figure>)}</div>}
       <section className="appearance-import"><span className="eyebrow">导入已有图片</span><p>导入会保留来源与权利声明，并只作为未选用的 {subject.name} 外观选项。</p><Field label="图片标签"><input value={importLabel} disabled={readOnly || busy} onChange={(event) => setImportLabel(event.target.value)} /></Field><Field label="来源声明"><input value={importOrigin} disabled={readOnly || busy} onChange={(event) => setImportOrigin(event.target.value)} /></Field><label>PNG 或 JPEG<input type="file" accept="image/png,image/jpeg" disabled={readOnly || busy} onChange={(event) => setImportFile(event.target.files?.[0] ?? null)} /></label><Button variant="quiet" disabled={readOnly || busy || !importFile || !importLabel.trim() || !importOrigin.trim()} onClick={importAppearance}>导入为外观选项</Button></section>
       <section className="appearance-ideas"><span className="eyebrow">新想法</span><h3>用文字探索下一张图片</h3><div className="appearance-mode" role="group" aria-label="提案模式"><Button variant={ideaMode === "refine" ? "primary" : "quiet"} disabled={readOnly || busy || !refinementAllowed} onClick={() => setIdeaMode("refine")}>基于当前图片修改</Button><Button variant={ideaMode === "fresh" ? "primary" : "quiet"} disabled={readOnly || busy} onClick={() => setIdeaMode("fresh")}>尝试全新方案</Button></div><p>{ideaMode === "refine" ? "会冻结当前查看的图片与这段文字；不会改变当前身份参考。" : viewedCandidate?.imported ? "导入图片可浏览、比较或选用，但不是 specialist 交付候选，不能作为调整父项。" : "只使用这段文字，不引用当前查看图片；不会改变当前身份参考。"}</p><Field label="想法"><textarea rows={3} value={direction} disabled={readOnly || busy} placeholder="描述希望保留、调整或探索的外观特征。" onChange={(event) => setDirection(event.target.value)} /></Field><div className="button-row"><Button variant="primary" disabled={readOnly || busy || !direction.trim() || (ideaMode === "refine" && !refinementAllowed)} onClick={prepare}>{busy ? "正在创建…" : "创建提案"}</Button><small>创建后可在下方提案状态中发送；返回图片会加入这里，但不会自动选用。</small></div></section>
       {actionError && <ErrorNotice message={actionError} />}
     </section>
-    {expanded && effectiveViewedAssetId && <div className="appearance-dialog" role="dialog" aria-modal="true" aria-label="放大查看图片"><div><Button variant="quiet" onClick={() => setExpanded(false)}>关闭</Button><AssetPresentation projectId={projectId} subjectId={subject.id} asset={viewedAsset} assetId={effectiveViewedAssetId} alt={`${subject.name} 放大图片`} unavailableLabel="当前查看图片不可用" /></div></div>}
+    {effectiveViewedAssetId && <AssetZoomDialog open={expanded} onClose={() => setExpanded(false)} label="放大查看图片"><AssetPresentation projectId={projectId} subjectId={subject.id} asset={viewedAsset} assetId={effectiveViewedAssetId} alt={`${subject.name} 放大图片`} unavailableLabel="当前查看图片不可用" /></AssetZoomDialog>}
     <section className="reference-alternatives" aria-label={`${subject.name} 的提案状态与历史`}><header><div><span className="eyebrow">提案状态与历史</span><h3>交付与保留记录</h3></div></header><div className="reference-card-grid">
       {incompleteDeliveries.map(({ proposal, delivery }) => <DeliveryEvidenceCard key={`delivery:${delivery.id}`} projectId={projectId} subjectId={subject.id} proposal={proposal} delivery={delivery} parent={proposal.parentCandidateAssetId ? candidates.find((entry) => entry.assetId === proposal.parentCandidateAssetId) : undefined} actions={{ readOnly: readOnly || busy, onSend: () => send(proposal), onRefresh: () => refreshProposal(proposal), onCancel: () => cancel(proposal) }} />)}
       {legacyPartialDeliveries.length > 0 && <LegacyPartialHistory deliveries={legacyPartialDeliveries} />}
@@ -295,20 +288,11 @@ function ImportedAppearanceDetails({ candidate }: { candidate: Candidate }) {
   return <details className="reference-technical"><summary>查看导入来源与技术详情</summary><dl><div><dt>图片标签</dt><dd>{frozenDirection(candidate.proposal)}</dd></div><div><dt>资产</dt><dd>{candidate.assetId}</dd></div><div><dt>来源</dt><dd>{candidate.asset?.provenance?.origin ?? "来源信息不可用"}</dd></div><div><dt>权利</dt><dd>{candidate.asset?.provenance?.rights ?? "权利信息不可用"}</dd></div>{candidate.asset?.provenance?.rightsNote && <div><dt>权利说明</dt><dd>{candidate.asset.provenance.rightsNote}</dd></div>}</dl></details>;
 }
 
-function AssetPresentation({ projectId, subjectId, asset, assetId, alt, unavailableLabel }: { projectId: string; subjectId: string; asset: ManagedAsset | undefined; assetId: string; alt: string; unavailableLabel: string }) {
-  const identity = `${projectId}:${subjectId}:${assetId}`;
-  const [failedIdentity, setFailedIdentity] = useState<string | null>(null);
-  const unavailable = !asset || failedIdentity === identity;
-  if (unavailable) return <MissingAsset assetId={assetId} label={unavailableLabel} />;
-  return <img src={plotloomApi.managedAssetUrl(projectId, asset.id)} alt={alt} onError={() => setFailedIdentity(identity)} />;
-}
-
 function ParentReference({ projectId, subjectId, assetId, parent }: { projectId: string; subjectId: string; assetId: string; parent: Candidate | undefined }) {
   const referenceName = parent ? `${parent.role === "refinement" ? "细化" : "候选"}图片` : "保留的图片依据";
   return <div className="reference-parent"><span>图片依据</span><strong>{referenceName}</strong><AssetPresentation projectId={projectId} subjectId={subjectId} asset={parent?.asset ?? undefined} assetId={assetId} alt={`${referenceName} 缩略图`} unavailableLabel="图片依据不可用" /></div>;
 }
 
-function MissingAsset({ assetId, label = "图像不可用" }: { assetId: string; label?: string }) { return <div className="reference-missing-asset" data-testid={`reference-image-unavailable-${assetId}`}><strong>{label}</strong><small>保留资产 {assetId.slice(0, 12)} 缺失、HTTP 读取失败或无法解码。</small></div>; }
 function EmptyState({ title, message }: { title: string; message: string }) { return <section className="reference-gallery-empty"><strong>{title}</strong><p>{message}</p></section>; }
 
 function gallerySubjects(accepted: AcceptedCastRevision | null, proposals: CharacterReferenceProposal[]): Subject[] {

@@ -1,15 +1,18 @@
 # Creator workflow usability — review plan
 
-Status: **U2 is complete and the bounded U3 Characters appearance workspace is
-accepted; broader U1–U4 redesign remains unapproved.**
+Status: **U2 is complete; the bounded U3 Characters appearance workspace is
+accepted, and the separate U3 environment/prop F3B review slice is delivered
+for technical review; broader U1–U4 redesign remains unapproved.**
 Date: 2026-09-18; current summary updated 2026-09-21. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
 
 **Current summary.** U3 acceptance is limited to the Characters workspace:
 cancel-edit safety, truthful imported appearances, large-image inspection, and
 any explicit two-to-four image comparison on 1440px and 1920px desktop review.
+The separate F3B environment/prop slice reuses accepted art and existing
+reference-proposal lifecycle only; it does not accept any creative/media output.
 The previous authorized ImageGen proof is complete; no further provider call is
-authorized by this record. Environment/prop review, video, F2/F7 creative or
-media acceptance, and imported-image refinement remain separate.
+authorized by this record. Video, F2/F7 creative or media acceptance, and
+imported-image refinement remain separate.
 
 **Historical 2026-09-18 dispatch status.** At this plan's creation, only the
 representative U2 reader was dispatched and generation was paused. That
@@ -486,3 +489,38 @@ creative rejection. This acceptance does not accept all U3 surfaces, any
 environment/prop workspace, video, F2/F7 creative or media output, or a new
 provider call. The previous authorized ImageGen proof is complete; no further
 generation is authorized by this acceptance record.
+
+## U3 environment/prop image-first F3B review — 2026-09-21
+
+**Approved step and deliverable.** Replace the old compact F3B grid in the
+existing `stage=source` ArtPanel, in place, with one image-first environment or
+prop review workspace. The existing ArtPanel remains the only entry; it spans
+the Source grid for a usable desktop canvas rather than creating a workspace,
+route, or navigation stage. A creator chooses a stable accepted-art subject,
+views and zooms an available candidate, browses an unrestricted same-subject
+gallery, and locally compares any two, three, or four candidates. The fourth
+cap blocks a fifth until one is removed. Technical provenance, IDs, rights, and
+dimensions stay folded.
+
+**Ownership and lifecycle.** Accepted `art.json` owns the stable `scene`/`prop`
+subjects and its revision/content hash. The existing F3B proposal, delivery,
+managed-asset, provenance, currentness, prepare/copy/refresh/cancel APIs, and
+project/session guards remain the sole owners of their respective state. The
+surface only presents them: it shows missing, cancelled, changed/stale,
+rejected, awaiting-delivery, and current truthfully. It does not create a new
+generator, store, selection/import membership, refinement parent, or creative
+acceptance. Copy continues to mean the existing manual handoff, not provider
+dispatch.
+
+**Evidence and stopping condition.** Focused browser coverage proves the
+preexisting F3B current → restart → art-reopen/stale → cancel-release lifecycle,
+same-document held A→B→A project response containment, and an explicitly
+mocked, read-only five-candidate browser response for arbitrary 2/3/4 comparison
+and cap replacement. The mock response writes no delivery manifest or tool
+attestation and is not creative evidence. Retained 1440px and 1920px captures
+live under local `output/u3-mocked-f3b/`; they are conspicuously labeled mock
+candidate UI proof, not generated art. No genuine retained five-candidate F3B
+set exists, so no persistent creative preview is claimed. Stop at this
+presentation/lifecycle reuse slice; video, selection/import/refinement,
+generation/provider work, production acceptance, and broader redesign remain
+excluded.

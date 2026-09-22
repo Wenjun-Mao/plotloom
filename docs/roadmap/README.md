@@ -3,9 +3,10 @@
 The current delivery authority is [Playable MVP milestones](2026-09-17-playable-mvp-milestones.md).
 It owns the approved sequence, release boundary, acceptance criteria and progress.
 The completed U2 route-focused storyboard reader and its 2026-09-20 connector
-polish, plus the accepted bounded U3 Characters appearance workspace, are
-recorded in [Creator workflow usability](2026-09-18-creator-workflow-usability.md).
-That acceptance covers Characters only; environment/prop review, video, F2/F7
+polish, the accepted bounded U3 Characters appearance workspace, and the
+separate U3 environment/prop image-first F3B review slice are recorded in
+[Creator workflow usability](2026-09-18-creator-workflow-usability.md).
+The F3B slice is presentation and existing-lifecycle reuse only; video, F2/F7
 creative or media acceptance, and the broader U1–U4 redesign remain out of
 scope. The prior authorized ImageGen proof is complete; it authorizes no
 further provider calls.
