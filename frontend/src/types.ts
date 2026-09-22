@@ -1316,6 +1316,6 @@ export interface AcceptedStoryboardReviewRevision { revision: number; candidateJ
 export interface StoryboardReviewState { candidate: StoryboardReviewCandidate | null; acceptedReview: AcceptedStoryboardReviewRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "stale"; staleReasons: string[]; }
 export interface ProductionBridgeConflict { code: string; message: string; sectionId: string | null; episode: number | null; sceneIndex: number | null; }
 export interface ProductionBridgeIntentEntry { id: string; targetKind: "scene_objective" | "beat_purpose"; targetId: string; sourceCoordinates: Record<string, unknown>; sourceContentHash: string; method: "source_excerpt_seed.v1"; suggestedText: string; text: string; }
-export interface ProductionBridgeIntentPackage { method: "source_excerpt_seed.v1"; inferred: true; entries: ProductionBridgeIntentEntry[]; }
+export interface ProductionBridgeIntentPackage { method: "source_excerpt_seed.v1"; entries: ProductionBridgeIntentEntry[]; }
 export interface ProductionBridgeProposal { revision: number; contentHash: string; inputs: Record<string, unknown>; intentPackage: ProductionBridgeIntentPackage; scenes: Array<Record<string, unknown>>; cuts: Array<Record<string, unknown>>; conflicts: ProductionBridgeConflict[]; installable: boolean; preparedAt: string; }
 export interface ProductionBridgeState { proposal: ProductionBridgeProposal | null; status: "missing" | "ready" | "accepted" | "stale"; staleReasons: string[]; installedStageRevisions: Record<string, number> | null; }

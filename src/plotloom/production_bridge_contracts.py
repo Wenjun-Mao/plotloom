@@ -21,7 +21,7 @@ class ProductionBridgeConflict(CamelModel):
 
 
 class ProductionBridgeIntentEntry(CamelModel):
-    """One author-reviewable value absent from the frozen F1--F5 contract."""
+    """One author-reviewable canonical value seeded from exact source text."""
 
     id: str
     target_kind: Literal["scene_objective", "beat_purpose"]
@@ -34,10 +34,9 @@ class ProductionBridgeIntentEntry(CamelModel):
 
 
 class ProductionBridgeIntentPackage(CamelModel):
-    """A single package, never a set of independently accepted questions."""
+    """A single source-excerpt review package, never independent questions."""
 
     method: Literal["source_excerpt_seed.v1"]
-    inferred: Literal[True] = True
     entries: list[ProductionBridgeIntentEntry] = Field(min_length=1)
 
 

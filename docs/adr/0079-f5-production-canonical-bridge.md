@@ -40,36 +40,43 @@ no Bible input current across the bridge Bible install, while normally authored
 or transitively dependent stages continue to stale. The bridge records the
 retained graph revision/hash with its three installed canonical revisions.
 
-### Reviewed inferred-dramatic-intent supplement
+### Reviewed source-excerpt supplement
 
 F1--F5 do not own the semantic `DramaticScene.objective` or `Beat.purpose`
-fields required by V2. The bridge therefore keeps those values in one distinct,
-reviewable inferred-dramatic-intent supplement within the production proposal.
-They are never represented as frozen F1--F5 facts. Each entry records its exact
-accepted source coordinates and raw-content hash, the frozen F1--F5/Brief input
-binding, its suggestion method, the suggested text, and the author-edited text.
+fields required by V2. This slice therefore exposes one distinct, reviewable
+source-excerpt supplement within the production proposal. It is not a semantic
+suggestion or inference and is never represented as a frozen F1--F5 fact. Each
+entry records its exact accepted source coordinates and raw-content hash, the
+frozen F1--F5/Brief input binding, its seed method, the source text, and the
+author-edited text.
 
-For this bounded slice, no supported dedicated inference transport exists: the
-existing SceneBeat generation transport authors a canonical stage and cannot
-author a source-bound bridge supplement. The bridge consequently makes only an
-explicitly labelled `source_excerpt_seed.v1` suggestion from the relevant F1
-summary or F4 flow text; it makes no model call and does not claim the seed is
-an inferred source fact. The author may edit all entries as one proposal
-package, then explicitly accept its exact revision and hash. A later package
-edit, or a change to any frozen upstream/Brief input, creates a new non-accepted
-binding and prevents installation under the prior review.
+The only existing model transport is the versioned Scene Beats work-unit path
+(`generation/work_units.py` → `scene_beats.fragment.v13` → aggregate canonical
+`SceneBeatPlanV2`). Its input/output schema and binder install a canonical
+stage; they have no response shape, provenance binding, or persistence target
+for a source-bound bridge supplement. This slice consequently uses only
+deterministic `source_excerpt_seed.v1` text from the relevant F1 summary or F4
+flow entry. It makes no model call. The author may edit all entries as one
+proposal package, then explicitly accept its exact saved revision and hash. A
+later package edit, or a change to any frozen upstream/Brief input, creates a
+new non-accepted binding and prevents installation under the prior review.
+The client must treat an edited package as dirty: it preserves that draft across
+same-proposal refreshes and disables acceptance until the server acknowledges a
+new proposal revision/hash for the displayed text.
 
 Trusted code owns coordinate resolution, immutable provenance, proposal
 hashing/currentness, canonical validation, and atomic empty-head/CAS
 installation. The author owns the final objective/purpose wording and the
-explicit package acceptance. The model owns nothing in this slice. A future
-model-backed method requires a separate contract that identifies its supported
-transport, prompt/schema, output provenance, and review semantics.
+explicit package acceptance. The model owns nothing in this slice. A semantic,
+model-backed suggestion needs separately authorized work: a bridge-specific
+prompt and response schema, immutable input/output provenance, an admission
+owner that creates only a bridge revision, and review semantics. Reusing the
+canonical Scene Beats transport is explicitly unsupported.
 
 ## Consequences
 
 The implementation needs typed proposal/admission persistence, a single
-Chinese inferred-intent package editor/review (not a per-field wizard),
+Chinese source-excerpt package editor/review (not a per-field wizard),
 deterministic source-preserving projection tests, input-provenance invalidation
 tests, a usable Chinese proposal review with explicit acceptance controls,
 atomic installation, and a narrow bridge-aware duration guard at video

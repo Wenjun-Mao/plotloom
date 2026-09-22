@@ -20,7 +20,7 @@ production installation, or playback. Its follow-on
 [F5-to-production canonical bridge design](../verification/2026-09-22-f5-to-production-canonical-bridge-design.md)
 defines a reviewable, explicitly accepted installation proposal. ADR 0079 is
 now approved only for its bounded implementation: a Chinese proposal review,
-including one explicitly inferred-and-author-editable dramatic-intent supplement
+including one explicitly source-excerpt-seeded and author-editable supplement
 for the V2 objective/purpose fields absent from F1--F5; explicit atomic
 installation into empty canonical heads; provenance/currentness guards; and the
 related exact-duration admission check. The supplement is source-coordinate

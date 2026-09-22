@@ -59,8 +59,10 @@ review evidence.
    view says `不能安装：源场次有 N 个镜头，当前项目规则为 min–max 个` and the
    **接受并安装** control is disabled.
 3. **Accept and install** (`接受并安装`) requires the displayed proposal revision
-   and content hash and is enabled only when no blocking conflict remains. A
-   successful result is an installed but unapproved canonical
+   and content hash and is enabled only when no blocking conflict remains. An
+   edited source-excerpt package is visibly dirty and keeps acceptance disabled
+   until **Save source-excerpt package** receives and displays its new revision
+   and hash. A successful result is an installed but unapproved canonical
    StoryBible/SceneBeatPlan/Storyboard. Existing canonical editing and
    storyboard approval remain the next explicit author actions.
 4. Existing reference, keyframe, image, video, and playback flows follow their
@@ -108,12 +110,13 @@ also remains empty rather than being invented.
 For each resolved script occurrence, the F1 node title/summary provides the
 scene title and the exact sum of its cuts provides its duration budget. The
 required scene objective and each beat purpose are instead supplied by the
-separate reviewed inferred-dramatic-intent package described in ADR 0079.
-Every package entry is explicitly labelled as inferred, binds the exact F1/F4
-coordinates and raw-content hash it was seeded from, and is author-editable as
-one package. This slice has no supported dedicated inference transport, so its
-`source_excerpt_seed.v1` suggestion is a verbatim relevant source excerpt, not
-a claim of F1--F5 semantic ownership or model inference. Empty entity-state/
+separate reviewed source-excerpt package described in ADR 0079. Every package
+entry binds the exact F1/F4 coordinates and raw-content hash it was seeded
+from, and is author-editable as one package. It is a verbatim relevant source
+excerpt, not a semantic suggestion, F1--F5 fact, or model inference. The only
+existing model seam is the versioned Scene Beats work-unit and aggregate path;
+it has no response schema or admission target for bridge package entries, so it
+cannot be reused for this purpose. Empty entity-state/
 audioplan collections remain empty only where V2 accepts them. An action flow
 entry supplies its own beat description/visible event; a dialogue flow entry
 supplies its own dialogue-cue text and exact line as its description/visible
@@ -137,7 +140,7 @@ where appropriate. A ready proposal contains:
   shot, plus blocking Brief-policy conflicts; and
 - non-authoritative links to accepted F2/F3 evidence, without an asset,
   selection, approval, prompt, or job ID.
-- one inferred-dramatic-intent package whose exact entry text, seed method,
+- one source-excerpt package whose exact entry text, seed method,
   source coordinates, raw hashes, and input binding are included in the
   proposal hash; it is reviewable and editable only as part of that proposal.
 
@@ -149,7 +152,7 @@ install path. Acceptance must verify, in the same lifecycle write transaction:
 2. every frozen F1–F5 input, project brief, and graph/section binding is still current;
 3. the three target canonical stage heads are empty in the first slice; and
 4. no Brief shot-count conflict remains; and
-5. all proposed payloads, inferred-intent provenance, and mapping invariants
+5. all proposed payloads, source-excerpt provenance, and mapping invariants
    validate again.
 
 It then installs StoryBible, SceneBeatPlan, and Storyboard in dependency order
