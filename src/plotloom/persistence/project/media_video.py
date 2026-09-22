@@ -27,6 +27,7 @@ from ..schema import (
     VideoReviewRow,
     VisualIntentRow,
 )
+from ..schema.project_production_bridge import ProductionBridgeAdmissionRow, ProductionBridgeRevisionRow
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
 from .media_admission import KeyframeAdmission
@@ -78,6 +79,38 @@ class VideoJobPersistence:
                 "direct project video has no retained Wan pilot accounting"
             )
         return self._accounting.budget()
+
+    def _bridge_cut_seconds_in_session(self, session: Session, project_id: str, shot_id: str) -> int | None:
+        """Return a current bridge-owned cut duration or reject stale lineage.
+
+        The admission is not a permissive historical exception: once a source
+        cut has been installed, stale provenance blocks a new video row rather
+        than allowing a caller to fall back to an arbitrary duration.
+        """
+        admissions = list(session.scalars(select(ProductionBridgeAdmissionRow).where(
+            ProductionBridgeAdmissionRow.project_id == project_id
+        ).order_by(ProductionBridgeAdmissionRow.accepted_at.desc())))
+        for admission in admissions:
+            revision = session.scalar(select(ProductionBridgeRevisionRow).where(
+                ProductionBridgeRevisionRow.project_id == project_id,
+                ProductionBridgeRevisionRow.revision == admission.proposal_revision,
+            ))
+            if revision is None:
+                continue
+            cut = next((item for item in revision.proposal.get("cuts", []) if item.get("shotId") == shot_id), None)
+            if not isinstance(cut, dict):
+                continue
+            current = all(
+                self._access.rows.stage(session, project_id, StageName(stage)).revision == expected
+                for stage, expected in admission.installed_stage_revisions.items()
+            )
+            if not current:
+                raise InvalidTransitionError("bridge source-cut provenance is stale; reprepare and explicitly reinstall before video admission")
+            seconds = cut.get("seconds")
+            if not isinstance(seconds, int):
+                raise InvalidTransitionError("bridge source-cut duration is unavailable")
+            return seconds
+        return None
 
     def prepare_video_job(
         self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int,
@@ -134,6 +167,9 @@ class VideoJobPersistence:
             shot = next((item for item in storyboard.shots if item.id == shot_id), None)
             if shot is None:
                 raise InvalidTransitionError("video job must target one current storyboard shot")
+            bridge_seconds = self._bridge_cut_seconds_in_session(session, project_id, shot_id)
+            if bridge_seconds is not None and requested_seconds != bridge_seconds:
+                raise InvalidTransitionError("bridge-owned F5 cut requires its exact source duration before any video job is persisted")
             binding = session.scalar(select(ReviewedShotBindingRow).where(ReviewedShotBindingRow.project_id == project_id, ReviewedShotBindingRow.shot_id == shot_id).order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1))
             if binding is None or not self._admission.reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval):
                 raise InvalidTransitionError("video job needs the current reviewed selected keyframe")
