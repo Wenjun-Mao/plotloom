@@ -35,6 +35,7 @@ class ProjectMediaPersistence:
         cast: ProjectCastPersistence,
         art: ProjectArtPersistence,
         accounting: VideoPilotAccountingPort | None,
+        bridge: object | None = None,
     ) -> None:
         admission = KeyframeAdmission(access)
         references = CharacterReferencePersistence(access, canonical, cast)
@@ -58,6 +59,7 @@ class ProjectMediaPersistence:
             same_person,
             video_currentness,
             accounting,
+            bridge,
         )
         self.direct_video: DirectVideoJobPersistence = DirectVideoJobPersistence(
             access,

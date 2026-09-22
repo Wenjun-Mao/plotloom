@@ -180,7 +180,8 @@ class ProjectSQLiteRepository:
         self.storyboard_review = ProjectStoryboardReviewPersistence(self._project_access, self.script)
         self.production_bridge = ProductionBridgePersistence(self._project_access, self._canonical, self.storyboard_review)
         self._media = ProjectMediaPersistence(
-            self._project_access, self._canonical, self._drafts, self.cast, self.art, accounting=None
+            self._project_access, self._canonical, self._drafts, self.cast, self.art, accounting=None,
+            bridge=self.production_bridge,
         )
         self._generation_access = GenerationPersistenceAccess(
             leases=GenerationLeases(

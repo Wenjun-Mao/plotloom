@@ -64,6 +64,7 @@ class VideoJobPersistence:
         same_person: SamePersonReviewPersistence,
         currentness: VideoJobCurrentness,
         accounting: VideoPilotAccountingPort | None,
+        bridge: Any | None = None,
     ) -> None:
         self._access = access
         self._canonical = canonical
@@ -73,6 +74,7 @@ class VideoJobPersistence:
         self._same_person = same_person
         self._currentness = currentness
         self._accounting = accounting
+        self._bridge = bridge
     def video_budget(self) -> dict[str, Any]:
         if self._accounting is None:
             raise InvalidTransitionError(
@@ -104,6 +106,8 @@ class VideoJobPersistence:
                 self._access.rows.stage(session, project_id, StageName(stage)).revision == expected
                 for stage, expected in admission.installed_stage_revisions.items()
             )
+            if current and self._bridge is not None:
+                current = not self._bridge._current(session, project_id, admission.inputs)
             if not current:
                 raise InvalidTransitionError("bridge source-cut provenance is stale; reprepare and explicitly reinstall before video admission")
             seconds = cut.get("seconds")

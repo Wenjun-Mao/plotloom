@@ -96,7 +96,7 @@ class ProductionBridgePersistence:
         conflicts: list[ProductionBridgeConflict] = []
         f4_episodes = {item.get("ep"): item for item in script.get("episodes", []) if isinstance(item, dict)}
         section_by_episode = {item.get("episode"): item.get("sectionId") for item in script.get("sectionBindings", []) if isinstance(item, dict)}
-        scenes: list[dict[str, Any]] = []; beats: list[dict[str, Any]] = []; shots: list[dict[str, Any]] = []; links: list[dict[str, Any]] = []
+        scenes: list[dict[str, Any]] = []; beats: list[dict[str, Any]] = []; cues: list[dict[str, Any]] = []; shots: list[dict[str, Any]] = []; links: list[dict[str, Any]] = []
         visual_scenes: list[dict[str, Any]] = []; visual_cuts: list[dict[str, Any]] = []
         for episode in storyboard.get("episodes", []):
             if not isinstance(episode, dict) or not isinstance(episode.get("ep"), int): continue
@@ -104,39 +104,51 @@ class ProductionBridgePersistence:
             f4 = f4_episodes.get(ep)
             if not section_id or not isinstance(f4, dict):
                 conflicts.append(ProductionBridgeConflict(code="f4_mapping_missing", message="不能安装：F5 集数没有当前 F4 场次映射", episode=ep)); continue
-            for segment in episode.get("segments", []):
+            grouped: dict[int, list[tuple[int, dict[str, Any]]]] = {}
+            for segment_order, segment in enumerate(episode.get("segments", []), 1):
                 if not isinstance(segment, dict) or not isinstance(segment.get("sceneIndex"), int):
                     conflicts.append(ProductionBridgeConflict(code="scene_index_missing", message="不能安装：F5 分段缺少场次索引", section_id=section_id, episode=ep)); continue
-                index = segment["sceneIndex"]
+                grouped.setdefault(segment["sceneIndex"], []).append((segment_order, segment))
+            for index, source_segments in grouped.items():
                 f4_scenes = f4.get("scenes", [])
                 if not isinstance(f4_scenes, list) or index < 1 or index > len(f4_scenes):
                     conflicts.append(ProductionBridgeConflict(code="scene_index_unknown", message="不能安装：F5 场次索引不在当前 F4 中", section_id=section_id, episode=ep, scene_index=index)); continue
-                source_scene = f4_scenes[index - 1]; cuts = segment.get("cuts", [])
+                source_scene = f4_scenes[index - 1]
+                cuts = [(segment_order, segment, cut_order, cut) for segment_order, segment in source_segments for cut_order, cut in enumerate(segment.get("cuts", []), 1)]
                 if not isinstance(source_scene, dict) or not isinstance(cuts, list) or not cuts:
                     conflicts.append(ProductionBridgeConflict(code="scene_cuts_missing", message="不能安装：F5 场次没有镜头", section_id=section_id, episode=ep, scene_index=index)); continue
                 if not brief.shots_per_scene_min <= len(cuts) <= brief.shots_per_scene_max:
                     conflicts.append(ProductionBridgeConflict(code="brief_shot_count", message=f"不能安装：源场次有 {len(cuts)} 个镜头，当前项目规则为 {brief.shots_per_scene_min}–{brief.shots_per_scene_max} 个", section_id=section_id, episode=ep, scene_index=index))
                 scene_id = f"{section_id}-s{index}"; flow = source_scene.get("flow", []) if isinstance(source_scene.get("flow"), list) else []
                 beat_ids = [f"{scene_id}-b{order}" for order in range(1, max(1, len(flow)) + 1)]
-                state = self._state(); character_ids = [value for value in source_scene.get("characters", []) if value in {item["id"] for item in characters}] if isinstance(source_scene.get("characters"), list) else []
+                state = self._state(); canonical_character_ids = {item["id"] for item in characters}
+                character_ids = [mappings.get(value, value) for value in source_scene.get("characters", []) if mappings.get(value, value) in canonical_character_ids] if isinstance(source_scene.get("characters"), list) else []
                 location_id = source_scene.get("sceneId") if source_scene.get("sceneId") in {item["id"] for item in locations} else None
-                scenes.append({"id": scene_id, "storyNodeId": section_id, "order": index, "title": source_scene.get("sceneId") or scene_id, "objective": "Preserve the accepted F4 scene occurrence.", "locationId": location_id, "characterIds": character_ids, "beatIds": beat_ids, "durationBudgetUnits": sum(int(cut.get("seconds", 0)) * 1000 for cut in cuts if isinstance(cut, dict)), "entryState": state, "exitState": state})
+                scenes.append({"id": scene_id, "storyNodeId": section_id, "order": index, "title": source_scene.get("sceneId") or scene_id, "objective": "Preserve the accepted F4 scene occurrence.", "locationId": location_id, "characterIds": character_ids, "beatIds": beat_ids, "durationBudgetUnits": sum(int(cut.get("seconds", 0)) * 1000 for _, _, _, cut in cuts if isinstance(cut, dict)), "entryState": state, "exitState": state})
                 for order, beat_id in enumerate(beat_ids, 1):
                     value = flow[order - 1] if order <= len(flow) else {}
                     description = value.get("action") if isinstance(value, dict) else None
                     beats.append({"id": beat_id, "sceneId": scene_id, "order": order, "description": description or "Accepted F4 action.", "purpose": "Advance the accepted scene.", "visibleEvent": description or "Accepted action.", "immediateResult": "Scene continues.", "dramaticChange": "Accepted progression.", "entryState": state, "exitState": state, "continuityAnchors": [], "continuityDelta": {}})
+                    if isinstance(value, dict) and isinstance(value.get("line"), str) and value["line"].strip():
+                        source_speaker = value.get("speaker")
+                        speaker_id = mappings.get(source_speaker, source_speaker) if isinstance(source_speaker, str) else None
+                        if speaker_id not in canonical_character_ids:
+                            conflicts.append(ProductionBridgeConflict(code="dialogue_speaker_unknown", message="不能安装：F4 台词说话人不在已接受角色映射中", section_id=section_id, episode=ep, scene_index=index))
+                        else:
+                            cues.append({"id": f"{beat_id}-d1", "beatId": beat_id, "order": 1, "speakerId": speaker_id, "voiceOver": None, "text": value["line"], "language": "zh-CN", "delivery": value.get("delivery") if value.get("delivery") in {"measured", "natural", "brisk"} else "natural", "performanceNotes": "Preserved from accepted F4 delivery.", "estimatedDurationUnits": max(1, len(value["line"].strip()) * 330)})
                 visual_scenes.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "sceneId": scene_id, "title": source_scene.get("sceneId") or scene_id, "cutCount": len(cuts)})
-                for order, cut in enumerate(cuts, 1):
+                for order, (segment_order, segment, source_cut_index, cut) in enumerate(cuts, 1):
                     if not isinstance(cut, dict) or not isinstance(cut.get("seconds"), int):
                         conflicts.append(ProductionBridgeConflict(code="cut_duration_invalid", message="不能安装：F5 镜头时长无效", section_id=section_id, episode=ep, scene_index=index)); continue
                     shot_id = f"{scene_id}-c{order}"; start, end = (cut.get("beats") or [1, len(beat_ids)])
                     selected = beat_ids[max(0, int(start) - 1):min(len(beat_ids), int(end))] if isinstance(start, int) and isinstance(end, int) else beat_ids
                     if not selected: selected = [beat_ids[0]]
-                    frame = cut.get("frame") if isinstance(cut.get("frame"), dict) else {}
-                    shots.append({"id": shot_id, "sceneId": scene_id, "order": order, "title": frame.get("description") or f"F5 cut {order}", "shotSize": {"extreme-wide":"extreme_wide", "wide":"wide", "medium":"medium", "close":"close_up", "extreme-close":"extreme_close_up"}.get(frame.get("size"), "medium"), "durationUnits": cut["seconds"] * 1000, "cameraAngle": frame.get("angle") or "eye level", "cameraMovement": frame.get("camera") or "static", "composition": frame.get("composition") or "accepted F5 framing", "visualIntent": frame.get("description") or "accepted F5 frame", "motionIntent": frame.get("camera") or "accepted movement", "action": frame.get("action") or "accepted F5 cut", "transition": "cut", "cueIds": [], "audioPlan": {"events": []}, "characterIds": character_ids, "locationId": location_id, "propIds": [], "requiredEntityStates": [], "entryState": state, "exitState": state})
+                    frame = cut.get("frame") if isinstance(cut.get("frame"), str) else ""
+                    cue_ids = [cue["id"] for cue in cues if cue["beatId"] in selected]
+                    shots.append({"id": shot_id, "sceneId": scene_id, "order": order, "title": frame or f"F5 cut {order}", "shotSize": {"extreme-wide":"extreme_wide", "wide":"wide", "medium":"medium", "close":"close_up", "extreme-close":"extreme_close_up"}.get(cut.get("size"), "medium"), "durationUnits": cut["seconds"] * 1000, "cameraAngle": "eye level", "cameraMovement": cut.get("camera") or "static", "composition": frame or "accepted F5 framing", "visualIntent": frame or "accepted F5 frame", "motionIntent": cut.get("camera") or "accepted movement", "action": frame or "accepted F5 cut", "transition": "cut", "cueIds": cue_ids, "audioPlan": {"events": []}, "characterIds": character_ids, "locationId": location_id, "propIds": [], "requiredEntityStates": [], "entryState": state, "exitState": state})
                     links.extend({"shotId": shot_id, "beatId": beat_id, "role": "primary", "coverageWeight": 1 / len(selected)} for beat_id in selected)
-                    visual_cuts.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "cutIndex": order, "shotId": shot_id, "seconds": cut["seconds"], "beats": cut.get("beats"), "frame": frame, "h3Prompt": cut.get("h3Prompt"), "source": {"segmentSceneIndex": index, "cutIndex": order}})
-        return {"bible": bible, "sceneBeats": {"scenes": scenes, "beats": beats, "dialogueCues": []}, "storyboard": {"shots": shots, "shotBeatLinks": links}}, conflicts, visual_scenes, visual_cuts
+                    visual_cuts.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "cutIndex": order, "shotId": shot_id, "seconds": cut["seconds"], "beats": cut.get("beats"), "frame": frame, "h3Prompt": segment.get("h3Prompt"), "source": {"segmentIndex": segment_order, "segmentSceneIndex": index, "cutIndex": source_cut_index}})
+        return {"bible": bible, "sceneBeats": {"scenes": scenes, "beats": beats, "dialogueCues": cues}, "storyboard": {"shots": shots, "shotBeatLinks": links}}, conflicts, visual_scenes, visual_cuts
 
     def _current(self, session: Any, project_id: str, inputs: dict[str, Any]) -> list[str]:
         try: current, *_ = self._context(session, project_id)

@@ -39,13 +39,18 @@ def test_bridge_surfaces_brief_policy_conflict_without_splitting_source_scene(tm
         _accepted_f4_script(store)
         monkeypatch.setattr(ProjectStoryboardReviewPersistence, "_validate", staticmethod(lambda *_args: None))
         candidate, request = store.prepare_storyboard_review_candidate("ch_" + "d" * 31 + "1")
-        cuts = [{"seconds": 3, "beats": [1, 10], "frame": {"size": "medium", "description": "frame", "camera": "static"}} for _ in range(5)]
-        board = {"params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15}, "episodes": [{"ep": episode, "segments": [{"sceneIndex": 1, "cuts": cuts}]} for episode in (1, 2, 3)]}
+        cuts = [{"seconds": 3, "beats": [1, 10], "size": "medium", "camera": "Static Shot", "frame": "real upstream frame"} for _ in range(5)]
+        board = {"params": {"minCutSeconds": 2, "maxCutSeconds": 8, "maxSegmentSeconds": 15}, "episodes": [{"ep": episode, "segments": [
+            {"id": f"E{episode:02}-01", "sceneIndex": 1, "cuts": cuts[:2], "h3Prompt": "first segment review evidence"},
+            {"id": f"E{episode:02}-02", "sceneIndex": 1, "cuts": cuts[2:], "h3Prompt": "second segment review evidence"},
+        ]} for episode in (1, 2, 3)]}
         ready = store.admit_storyboard_review_delivery(_deliver_stage(store, request, "storyboard.json", board, "bridge-conflict"))
         store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
         proposal = store.prepare_production_bridge().proposal
         assert proposal and not proposal.installable
         assert len(proposal.scenes) == 3 and len(proposal.cuts) == 15
         assert proposal.conflicts[0].message == "不能安装：源场次有 5 个镜头，当前项目规则为 1–4 个"
+        assert proposal.cuts[2]["source"] == {"segmentIndex": 2, "segmentSceneIndex": 1, "cutIndex": 1}
+        assert proposal.cuts[2]["h3Prompt"] == "second segment review evidence"
     finally:
         store.close()
