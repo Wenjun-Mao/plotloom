@@ -3,9 +3,10 @@
 Status: **U2 is complete; the bounded U3 Characters appearance workspace is
 accepted; the separate U3 environment/prop F3B review and explicit
 reference-choice usability slices are delivered; and the bounded U1a
-creator-navigation shell and its source-owner presentation correction are
-implemented pending director inspection. Broader
-U1–U4 redesign remains unapproved.**
+creator-navigation shell, source-owner presentation correction, and compact
+secondary-tool presentation are accepted at `94cf165`. U4 is limited to
+preparing one genuine coherent-story walkthrough; broader U1–U4 redesign
+remains unapproved.**
 Date: 2026-09-18; current summary updated 2026-09-22. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
 
 **Current summary.** U3 acceptance is limited to the Characters workspace:
@@ -59,6 +60,20 @@ reachable. Short task guidance stays below the heading; the source rights
 caveat stays beside its declaration field. This is presentation-only and
 preserves every owner, route, session, draft, error, lifecycle, and approval
 contract.
+
+**U1 navigation acceptance and U4 preflight — 2026-09-22.** Director accepted
+the bounded navigation and heading/sidebar presentation at `94cf165`. It
+remains a presentation acceptance only: source-bound F5A review is distinct
+from the legacy shot/media workbench, and neither is creative/media approval
+or a production consumer. The U4 read-only preflight found no retained current
+same-story project: the local no-API U1a navigation fixture contains no current
+project/source/outline/cast/art/script/F5A state; retained U3 fixtures are
+explicitly technical and lack or reopen those owners. Do not repurpose either.
+The sole next requirement is an authorized existing project or supported
+isolated copy with current accepted
+source/outline/graph/cast/art/script and exact F5A binding; then run the
+attended walkthrough under existing temporary supervision without changing its
+original root.
 
 **Historical 2026-09-18 dispatch status.** At this plan's creation, only the
 representative U2 reader was dispatched and generation was paused. That
