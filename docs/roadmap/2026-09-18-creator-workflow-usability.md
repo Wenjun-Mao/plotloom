@@ -553,3 +553,10 @@ stale history after a simulated art change at 1440px and 1920px. It makes no
 project/API or provider request and hides every study action. The retained
 read-only F3B gallery URL remains unchanged; backend regression, not this
 simulator, is the persistence/restart evidence.
+
+**2026-09-22 bounded presentation follow-up.** The creator reported that the
+reference choice works well. The shared production/simulator gallery now calls
+out the selected image as "当前参考图" and keeps the reference revision, decision
+ID, and asset ID inside collapsed technical details. This is usability
+acceptance for that narrow presentation only; it does not accept creative/media
+content, a production consumer, or the portable simulator as persistence proof.

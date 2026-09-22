@@ -636,6 +636,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .appearance-thumbnail.selected { border-color: rgba(103,205,165,.6); }
 .appearance-thumbnail > img, .appearance-thumbnail .reference-missing-asset { width: 100px; height: 78px; min-height: 78px; object-fit: cover; }
 .appearance-thumbnail span { padding: 0 2px; font-size: 10px; }
+.appearance-thumbnail .reference-current-image { padding: 2px 4px; border-radius: 3px; color: #9ce7c5; background: rgba(35, 106, 76, .28); font-size: 10px; }
 .appearance-compare-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding-top: 3px; color: var(--muted); font-size: 11px; }
 .appearance-compare-controls .button { min-height: 27px; padding: 4px 7px; font-size: 10px; }
 .appearance-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; padding: 12px; border: 1px solid rgba(126,212,247,.3); border-radius: 6px; background: rgba(126,212,247,.04); }

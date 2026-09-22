@@ -56,11 +56,13 @@ test.describe("F3A production art review", () => {
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-decisions`);
     await scene.getByRole("button", { name: "用作此环境的参考图" }).click();
     expect((await decision).status()).toBe(201);
-    await expect(scene).toContainText("当前已选参考：正在查看的候选");
+    await expect(scene.getByRole("status")).toHaveText("当前参考图：正在查看的候选。");
+    await expect(scene.locator("details.reference-decision-technical")).toContainText("参考版本r1");
     await workbench.restartBackend();
     await page.reload();
     await expect(scene).toContainText("current");
-    await expect(scene).toContainText("当前已选参考：正在查看的候选");
+    await expect(scene.getByRole("status")).toHaveText("当前参考图：正在查看的候选。");
+    await expect(scene.locator("details.reference-decision-technical")).toContainText("参考版本r1");
 
     const art = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/art`));
     await getJson(request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/art/reopen`, { data: { expectedArtRevision: art.acceptedArt.revision } }));
@@ -138,7 +140,11 @@ test.describe("F3A production art review", () => {
     await scene.getByRole("button", { name: "用作此环境的参考图" }).click();
     await scene.getByRole("button", { name: /scene-B.svg 缩略图/ }).click();
     await scene.getByRole("button", { name: "替换为用作此环境的参考图" }).click();
-    await expect(scene).toContainText("当前已选参考：正在查看的候选（r2）");
+    await expect(scene.getByRole("status")).toHaveText("当前参考图：正在查看的候选。");
+    await expect(scene.getByText("当前参考图", { exact: true })).toBeVisible();
+    const sceneDecisionDetails = scene.locator("details.reference-decision-technical");
+    await expect(sceneDecisionDetails).not.toHaveAttribute("open", "");
+    await expect(sceneDecisionDetails).toContainText("参考版本r2");
 
     await simulator.getByRole("button", { name: /道具 · Prop · brass compass/ }).click();
     const prop = page.getByTestId("art-reference-prop-P-DEMO");
