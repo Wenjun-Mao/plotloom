@@ -193,10 +193,26 @@ export function useWorkspaceSession() {
   }, [updateSnapshot]);
   const rejectProjectLoad = useCallback((staleDraft: UnsafeDraft | undefined) => {
     if (staleDraft) serverDrafts.current.clear();
-    updateSnapshot((current) => ({
-      ...emptySnapshot(localOwner.current, false, "error"),
-      unsafeDraft: staleDraft ?? current.unsafeDraft,
-    }));
+    const retainedProjectId = routeRef.current.project;
+    updateSnapshot((current) => {
+      // A failed refresh of the project already on screen is not permission to
+      // discard its last accepted snapshot or substitute a blank workspace.
+      // Keep it visibly unavailable and require a later canonical refresh;
+      // writes remain disabled by the workspace host until that refresh wins.
+      if (retainedProjectId && current.project.id === retainedProjectId) {
+        canonicalRefreshRequired.current.add(retainedProjectId);
+        return {
+          ...current,
+          connection: "error",
+          runSelectionPending: false,
+          unsafeDraft: staleDraft ?? current.unsafeDraft,
+        };
+      }
+      return {
+        ...emptySnapshot(localOwner.current, false, "error"),
+        unsafeDraft: staleDraft ?? current.unsafeDraft,
+      };
+    });
   }, [updateSnapshot]);
 
   const clearTrace = useCallback(() => {

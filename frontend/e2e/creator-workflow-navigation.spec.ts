@@ -109,6 +109,62 @@ test("waits for an earlier source owner before positioning a later embedded targ
   await expectFragmentAtViewportStart(page, "script");
 });
 
+test("returns from the secondary workbench after an awaited offline project load and retries canonically", async ({ page, request, workbench }) => {
+  const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-offline-return");
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
+  const workflow = page.getByRole("navigation", { name: "创作流程" });
+  await expect(page.getByTestId("art-review")).toBeVisible();
+
+  await page.getByText("编辑与工具", { exact: true }).click();
+  await page.getByRole("button", { name: /镜头与媒体工作台/ }).click();
+  await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
+
+  let rejectedLoads = 0;
+  await page.route(`**/api/v2/projects/${projectId}`, async (route) => {
+    if (route.request().method() === "GET") {
+      rejectedLoads += 1;
+      await route.abort("failed");
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.getByRole("button", { name: "刷新服务器版本" }).click();
+  await expect.poll(() => rejectedLoads).toBe(1);
+  await expect(page.getByRole("alert")).toContainText(`无法加载项目 ${projectId}`);
+  await expect(page.getByTestId("workspace-hydrating")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
+  await expect(page.locator(".project-switcher strong")).toHaveText("F5A workflow-offline-return");
+  await expect(page.locator(".editor-host")).toHaveAttribute("disabled", "");
+
+  let releaseRetry: (() => void) | undefined;
+  const retryRequest = new Promise<void>((resolve) => { releaseRetry = resolve; });
+  let heldRetry = false;
+  await page.unroute(`**/api/v2/projects/${projectId}`);
+  await page.route(`**/api/v2/projects/${projectId}`, async (route) => {
+    if (route.request().method() !== "GET") return route.continue();
+    heldRetry = true;
+    await retryRequest;
+    await route.continue();
+  });
+  await workflow.getByRole("link", { name: "美术参考" }).click();
+  await expect(page).toHaveURL(new RegExp(`project=${projectId}&stage=source#art$`));
+  await expect.poll(() => heldRetry).toBeTruthy();
+  await expect(page.locator(".project-switcher strong")).toHaveText("F5A workflow-offline-return");
+  await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", projectId);
+  await expect(page.getByTestId("workspace-hydrating")).toHaveCount(0);
+  await expect(page.getByTestId("art-review")).toBeVisible();
+  await expect(page.locator(".editor-host")).toHaveAttribute("disabled", "");
+
+  releaseRetry?.();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.locator(".editor-host")).not.toHaveAttribute("disabled", "");
+  await page.unroute(`**/api/v2/projects/${projectId}`);
+  await workflow.getByRole("link", { name: "剧本" }).click();
+  await expect(page).toHaveURL(new RegExp(`project=${projectId}&stage=source#script$`));
+  await expect(page.getByTestId("script-review")).toBeVisible();
+});
+
 test("returns from the read-only reader to its existing script owner", async ({ page, request, workbench }) => {
   const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-reader-return");
 

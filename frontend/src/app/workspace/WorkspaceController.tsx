@@ -281,7 +281,7 @@ export default function WorkspaceController() {
               <WorkspaceInspector currentLabel={currentNavLabel} project={project} routeEntity={routeEntity} stageOverview={stageOverview} run={run} progress={runProgress} review={storyboardReview} readOnly={projectReadOnly} frozenProfileId={frozenProfileId} frozenProfileNeedsKey={frozenProfileNeedsKey} onAuthorizeProfile={() => void profiles.openFrozen(frozenProfileId)} onOpenTrace={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "trace", run: run?.id || "" })} onResume={commands.resumeRun} onCancel={commands.cancelRun} onRepair={commands.repair} onRebuild={(stage) => { setRebuildOpen(false); void commands.rebuild(stage); }} />
             </div>
           </details>
-          {workspaceHydrating ? <div className="workspace-hydrating" data-testid="workspace-hydrating" role="status"><Spinner label="正在加载项目" /><strong>正在加载项目…</strong><small>项目内容加载完成后才能编辑，当前导航选择会被保留。</small></div> : <fieldset className="editor-host" disabled={projectReadOnly} onBlurCapture={() => { const scope = stageForPage(activePage); if (scope) void authoring.flushAuthoringDraft(scope); }}>{page}</fieldset>}
+          {workspaceHydrating ? <div className="workspace-hydrating" data-testid="workspace-hydrating" role="status"><Spinner label="正在加载项目" /><strong>正在加载项目…</strong><small>项目内容加载完成后才能编辑，当前导航选择会被保留。</small></div> : <fieldset className="editor-host" disabled={projectReadOnly || connection === "loading" || connection === "error"} onBlurCapture={() => { const scope = stageForPage(activePage); if (scope) void authoring.flushAuthoringDraft(scope); }}>{page}</fieldset>}
         </main>
       </div>
     </div>
