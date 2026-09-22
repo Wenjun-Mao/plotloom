@@ -91,7 +91,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
 
   const pipelineCount = await requestCount(request, workbench.apiOrigin, projectId);
   await page.getByRole("button", { name: "进入场景编辑" }).click();
-  await expect(page.getByRole("heading", { name: "场景、节拍与对白" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "场景节拍" })).toBeVisible();
   expect(await requestCount(request, workbench.apiOrigin, projectId)).toBe(pipelineCount);
 });
 

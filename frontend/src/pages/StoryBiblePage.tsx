@@ -350,7 +350,6 @@ export function StoryBiblePage({
   return (
     <div className="page" data-testid="story-bible-editor">
       <PageHeader
-        eyebrow="02 · Canon"
         title="故事圣经"
         description="人物、地点与道具只在这里定义；下游阶段只引用稳定 ID。"
         actions={

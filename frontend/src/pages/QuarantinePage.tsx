@@ -30,7 +30,7 @@ export function QuarantinePage({ items, repairing, onRepair, onRebuildStage }: {
     }
   }, [items, selectedId]);
   return <div className="page">
-    <PageHeader eyebrow="07 · Safe failure boundary" title="隔离区与精确修复" description="高频状态只读取轻量 work-unit 投影。Prompt、原始响应与验证证据仅在运行轨迹中按需查看。" />
+    <PageHeader title="隔离修复" description="高频状态只读取轻量 work-unit 投影。Prompt、原始响应与验证证据仅在运行轨迹中按需查看。" />
     {!items.length ? <EmptyState title="隔离区为空">所有阶段输出都已通过合同验证。</EmptyState> : <div className="quarantine-layout">
       <Panel className="quarantine-list">
         {items.map((item) => <button key={item.id} className={item.id === selected?.id ? "active" : ""} onClick={() => setSelectedId(item.id)}><Badge tone={item.status === "outcome_unknown" ? "warning" : "danger"}>{item.code}</Badge><strong>Unit {item.id} · {item.message}</strong><small>{stageLabels[item.stage]} · {item.status || "legacy"}</small></button>)}

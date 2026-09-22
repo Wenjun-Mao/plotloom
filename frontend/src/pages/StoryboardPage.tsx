@@ -353,7 +353,7 @@ export function StoryboardPage({
   const requiredGatesPass = Boolean(review?.gateEvaluation?.results.every((gate) => !gate.required || gate.status === "pass"));
 
   return <div className="page storyboard-page" data-testid="storyboard-editor">
-    <PageHeader eyebrow="05 · Grouped production board" title="分镜工作台" description="镜头、对白、声音、实体状态与节拍覆盖都在同一份可审计合同中。" actions={<>
+    <PageHeader title="分镜工作台" description="镜头、对白、声音、实体状态与节拍覆盖都在同一份可审计合同中。" actions={<>
       <Field label="路径过滤"><select value={routeId} onChange={(event) => setRouteId(event.target.value)}><option value="">全部场景</option>{routes.map((item, index) => <option key={item.id} value={item.id}>路径 {index + 1} · {item.label}</option>)}</select></Field>
       <Button variant="primary" disabled={saving} onClick={() => void onSave(storyboard)}>{saving ? "正在保存…" : "保存分镜"}</Button>
     </>} />

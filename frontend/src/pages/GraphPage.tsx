@@ -310,7 +310,6 @@ export function GraphPage({
 
   return <div className="page graph-page" data-testid="graph-editor">
     <PageHeader
-      eyebrow="03 · Directed acyclic graph"
       title="剧情 DAG"
       description="稳定 ID 的故事关系编辑器。画布位置只在本地视图保存，绝不混入剧情图合同。"
       actions={<><span className={`stage-chip ${stale ? "stale" : "ready"}`}>{stale ? "待重建" : "DAG 合同有效"}</span><Button variant="primary" disabled={saving} onClick={save}>{saving ? "正在保存…" : "保存剧情图"}</Button></>}

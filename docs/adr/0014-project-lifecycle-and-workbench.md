@@ -36,10 +36,13 @@ draft continuity, and independent owner failure semantics meet there. It does
 not add production routes, APIs, persistence state, or dependencies between
 the source aggregate and its secondary owners.
 
-The creator convention is one concise sidebar label and one matching visible
-`h1` per workspace. The top bar carries project state and actions only; it does
-not repeat a stage number or title. Brief actionable guidance belongs below the
-heading, while field-specific caveats remain beside the affected field.
+The workbench convention is one concise sidebar label and one matching visible
+`h1` per creator workspace and secondary tool. Sidebar entries do not repeat
+ordinal or descriptive subtitle chrome. The top bar carries project state and
+actions only; it does not repeat a stage number or title. Brief actionable
+guidance belongs below the heading, while field-specific caveats remain beside
+the affected field. A creator navigation panel may retain free sidebar space,
+but its heading and first link remain compactly adjacent.
 
 ### Lifecycle is separate from authored content
 

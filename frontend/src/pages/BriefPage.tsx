@@ -40,7 +40,7 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
   const choiceSources = (graph?.nodes || []).filter((node) => choiceEdges.some((edge) => edge.sourceNodeId === node.id));
   const choicesFor = (nodeId: string) => choiceEdges.filter((edge) => edge.sourceNodeId === nodeId);
   return <div className="page">
-    <PageHeader eyebrow="01 · Synopsis → proposal" title="项目简报" description="从梗概生成可审阅故事提案；不会自动生成场景、分镜或媒体。" actions={<><Button variant="quiet" disabled={saving} onClick={() => void onSave(canonicalDraft())}>{saving ? "保存中…" : "保存简报"}</Button>{onGenerateProposal && <Button variant="primary" disabled={saving || proposalRunning || !draft.synopsis.trim()} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button>}</>} />
+    <PageHeader title="项目简报" description="从梗概生成可审阅故事提案；不会自动生成场景、分镜或媒体。" actions={<><Button variant="quiet" disabled={saving} onClick={() => void onSave(canonicalDraft())}>{saving ? "保存中…" : "保存简报"}</Button>{onGenerateProposal && <Button variant="primary" disabled={saving || proposalRunning || !draft.synopsis.trim()} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button>}</>} />
     <div className="two-column wide-left">
       <Panel className="form-card">
         <div className="section-title"><span>Required input</span><strong>从一个梗概开始</strong></div>

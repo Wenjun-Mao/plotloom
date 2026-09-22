@@ -895,8 +895,7 @@ export function SceneBeatsPage({
   return (
     <div className="page" data-testid="scene-beats-page">
       <PageHeader
-        eyebrow="04 · Scene decomposition"
-        title="场景、节拍与对白"
+        title="场景节拍"
         description="场景按剧情节点排序；节拍与 DialogueCue 用稳定 ID 和结构化连续性数据驱动分镜。"
         actions={
           <>

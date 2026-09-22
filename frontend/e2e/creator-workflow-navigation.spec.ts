@@ -65,7 +65,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.locator("h1:visible")).toHaveCount(1);
   await expect(page.locator(".topbar")).not.toContainText("角色");
   await page.getByText("编辑与工具", { exact: true }).click();
-  await page.getByRole("button", { name: /镜头与媒体工作台/ }).click();
+  await page.getByRole("button", { name: "分镜工作台", exact: true }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=storyboard$`));
   await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
 
@@ -150,7 +150,7 @@ test("returns from the secondary workbench after an awaited offline project load
   await expect(page.getByTestId("art-review")).toBeVisible();
 
   await page.getByText("编辑与工具", { exact: true }).click();
-  await page.getByRole("button", { name: /镜头与媒体工作台/ }).click();
+  await page.getByRole("button", { name: "分镜工作台", exact: true }).click();
   await expect(page.getByRole("heading", { name: "分镜工作台" })).toBeVisible();
 
   let rejectedLoads = 0;

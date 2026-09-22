@@ -58,7 +58,7 @@ code, pre { font-family: var(--mono); }
 .sidebar nav button strong { font-size: 13px; }
 .sidebar nav button small { margin-top: 1px; color: var(--dim); font-size: 10px; }
 .sidebar nav button i { display: grid; width: 21px; height: 21px; place-items: center; border-radius: 50%; color: #180e0f; background: var(--danger); font: 800 10px var(--mono); }
-.creator-workflow-navigation { display: grid; gap: 8px; padding: 12px 10px; border-bottom: 1px solid var(--line); }
+.creator-workflow-navigation { display: grid; flex: 1; align-content: start; gap: 8px; padding: 12px 10px; overflow-y: auto; border-bottom: 1px solid var(--line); }
 .creator-workflow-navigation.unavailable { color: var(--dim); font-size: 11px; }
 .creator-workflow-navigation.unavailable strong, .creator-workflow-navigation.unavailable small { display: block; }
 .creator-workflow-navigation.unavailable small { margin-top: 3px; }
@@ -73,6 +73,7 @@ code, pre { font-family: var(--mono); }
 .workspace-tools-navigation { border-bottom: 1px solid var(--line); }
 .workspace-tools-navigation > summary { padding: 10px 14px; color: var(--muted); cursor: pointer; font: 700 10px var(--mono); }
 .workspace-tools-navigation > nav { max-height: min(42vh, 360px); overflow-y: auto; }
+.workspace-tools-navigation > nav button { grid-template-columns: minmax(0, 1fr) auto; min-height: 38px; }
 .sidebar-footer { display: grid; gap: 6px; padding: 14px; border-top: 1px solid var(--line); }
 .sidebar-footer small { color: var(--dim); font: 9px var(--mono); text-align: center; }
 
