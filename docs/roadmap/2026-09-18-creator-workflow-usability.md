@@ -49,6 +49,14 @@ route, API, store, generation action, or acceptance claim; direct fragment,
 Back/Forward, invalid-fragment fallback, project reset, and same-stage draft
 preservation remain required regression behavior.
 
+**Creator-heading convention — 2026-09-22.** The approved cleanup gives each
+visible creator workspace one concise sidebar label and the same single `h1`.
+The top bar now holds project status and actions rather than another stage
+number/title, and the sidebar omits repeated subtitles. Short task guidance
+stays below the heading; the source rights caveat stays beside its declaration
+field. This is presentation-only and preserves every owner, route, session,
+draft, error, lifecycle, and approval contract.
+
 **Historical 2026-09-18 dispatch status.** At this plan's creation, only the
 representative U2 reader was dispatched and generation was paused. That
 historical constraint did not authorize the later bounded U3 work recorded

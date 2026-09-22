@@ -15,9 +15,10 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProject}&stage=source#art`);
   const workflow = page.getByRole("navigation", { name: "创作流程" });
-  const topbarLabel = page.locator(".topbar > div").first().locator("strong");
   await expect(workflow.getByRole("link", { name: "美术参考" })).toHaveAttribute("href", `?project=${firstProject}&stage=source#art`);
+  await expect(workflow.getByRole("link", { name: "美术参考" }).locator("small")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "美术参考", exact: true })).toBeVisible();
+  await expect(page.locator("h1:visible")).toHaveCount(1);
   await expect(page.getByTestId("art-review")).toBeVisible();
   await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", firstProject);
   await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
@@ -25,17 +26,18 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.getByTestId("art-review").locator("header > span")).toHaveText("美术参考");
   await expect(page.getByTestId("art-review").locator(":scope > small").first()).toContainText("参考研究在下方单独显示");
   await expect(page.getByTestId("art-review").locator(":scope > small").first()).not.toContainText("F3B");
-  await expect(topbarLabel).toHaveText("美术参考");
+  await expect(page.locator(".topbar")).not.toContainText("美术参考");
   await expect(workflow.getByRole("link", { name: "美术参考" })).toHaveAttribute("aria-current", "step");
   await expect(workflow.getByRole("link", { name: "剧本" })).not.toHaveAttribute("aria-current", "step");
 
   await workflow.getByRole("link", { name: "剧本" }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#script$`));
   await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
+  await expect(page.locator("h1:visible")).toHaveCount(1);
   await expect(page.getByTestId("script-review")).toBeVisible();
   await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
   await expect(page.getByTestId("script-review").locator("header > span")).toHaveText("剧本");
-  await expect(topbarLabel).toHaveText("剧本");
+  await expect(page.locator(".topbar")).not.toContainText("剧本");
   await expect(workflow.getByRole("link", { name: "剧本" })).toHaveAttribute("aria-current", "step");
   await expect(workflow.getByRole("link", { name: "美术参考" })).not.toHaveAttribute("aria-current", "step");
 
@@ -52,10 +54,16 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await workflow.getByRole("link", { name: "分镜评审" }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#storyboard-review$`));
   await expect(page.getByRole("heading", { name: "分镜评审", exact: true })).toBeVisible();
+  await expect(page.locator("h1:visible")).toHaveCount(1);
   await expect(page.getByTestId("storyboard-review")).toBeVisible();
   await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
   await expect(page.getByTestId("storyboard-review").locator("header > span")).toHaveText("分镜评审");
-  await expect(topbarLabel).toHaveText("分镜评审");
+  await expect(page.locator(".topbar")).not.toContainText("分镜评审");
+  await workflow.getByRole("link", { name: "角色" }).click();
+  await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=characters$`));
+  await expect(page.getByRole("heading", { name: "角色", exact: true })).toBeVisible();
+  await expect(page.locator("h1:visible")).toHaveCount(1);
+  await expect(page.locator(".topbar")).not.toContainText("角色");
   await page.getByText("编辑与工具", { exact: true }).click();
   await page.getByRole("button", { name: /镜头与媒体工作台/ }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=storyboard$`));
@@ -68,7 +76,9 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
 
   await workflow.getByRole("link", { name: "来源与大纲" }).click();
   await expect(page).toHaveURL(new RegExp(`project=${secondProject}&stage=source#source$`));
-  await expect(page.getByRole("heading", { name: "来源与小说大纲", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "来源与大纲", exact: true })).toBeVisible();
+  await expect(page.locator("h1:visible")).toHaveCount(1);
+  await expect(page.getByText("由作者填写保存，不构成平台的法律确认。", { exact: true })).toBeVisible();
   const sourceText = page.getByLabel("来源正文或 treatment");
   await sourceText.fill("保留的未保存来源草稿");
   await workflow.getByRole("link", { name: "美术参考" }).click();
@@ -77,7 +87,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(sourceText).toHaveValue("保留的未保存来源草稿");
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${secondProject}&stage=source#not-a-source-owner`);
-  await expect(page.getByRole("heading", { name: "来源与小说大纲", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "来源与大纲", exact: true })).toBeVisible();
   await expect(page.getByTestId("source-outline-source")).toBeVisible();
   await expect(workflow.getByRole("link", { name: "来源与大纲" })).toHaveAttribute("aria-current", "step");
 });

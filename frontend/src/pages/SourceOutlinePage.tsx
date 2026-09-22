@@ -89,7 +89,7 @@ export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }
 
   return <section id="source" className="page source-outline-page" data-project-id={loadedProjectId || projectId}>
     <section className="source-workflow-source" hidden={focusedTarget !== "source"} aria-labelledby="source-workflow-heading">
-      <header className="page-header"><div><span>来源与大纲</span><h1 id="source-workflow-heading">来源与小说大纲</h1><p>来源、候选和已接受大纲互相独立。权利声明按作者填写保存，不构成平台的法律确认。</p></div><Button variant="quiet" disabled={busy} onClick={() => void load(true)}>刷新</Button></header>
+      <header className="page-header"><div><h1 id="source-workflow-heading">来源与大纲</h1><p>填写故事来源，审阅大纲，并确定分支路线。</p></div><Button variant="quiet" disabled={busy} onClick={() => void load(true)}>刷新</Button></header>
       {error && <ErrorNotice message={error} />}
       {!state ? <Spinner /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
@@ -98,7 +98,7 @@ export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }
         <label>标题<input disabled={readOnly || busy} value={draft.title} onChange={(event) => updateDraft({ ...draft, title: event.target.value })} /></label>
         <label>来源正文或 treatment<textarea disabled={readOnly || busy} value={draft.text} onChange={(event) => updateDraft({ ...draft, text: event.target.value })} rows={10} /></label>
         <label>归属 / 署名声明<textarea disabled={readOnly || busy} value={draft.attribution} onChange={(event) => updateDraft({ ...draft, attribution: event.target.value })} rows={3} /></label>
-        <label>使用权或许可声明<textarea disabled={readOnly || busy} value={draft.rightsDeclaration} onChange={(event) => updateDraft({ ...draft, rightsDeclaration: event.target.value })} rows={3} /></label>
+        <label>使用权或许可声明<textarea disabled={readOnly || busy} value={draft.rightsDeclaration} onChange={(event) => updateDraft({ ...draft, rightsDeclaration: event.target.value })} rows={3} /><small>由作者填写保存，不构成平台的法律确认。</small></label>
         <label>改编意图<textarea disabled={readOnly || busy} value={draft.adaptationIntent} onChange={(event) => updateDraft({ ...draft, adaptationIntent: event.target.value })} rows={3} /></label>
         <label>允许的原创补充（可选）<textarea disabled={readOnly || busy} value={draft.inventedAdditions || ""} onChange={(event) => updateDraft({ ...draft, inventedAdditions: event.target.value || null })} rows={3} /></label>
         <Button variant="primary" disabled={!canSave} onClick={() => void mutate(() => plotloomApi.saveSourceMaterial(projectId, state.source?.revision || 0, draft))}>{busy ? "正在保存…" : "保存接受的来源"}</Button>
@@ -163,15 +163,15 @@ export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }
       </div>}
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "art"} aria-labelledby="art-workflow-heading">
-      <header className="page-header"><div><span>创作流程</span><h1 id="art-workflow-heading">美术参考</h1><p>在当前来源、角色与章节约束下审阅地点、道具及其可复用参考。</p></div></header>
+      <header className="page-header"><div><h1 id="art-workflow-heading">美术参考</h1><p>审阅地点、道具及其可复用参考。</p></div></header>
       <ArtPanel projectId={projectId} readOnly={readOnly} />
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "script"} aria-labelledby="script-workflow-heading">
-      <header className="page-header"><div><span>创作流程</span><h1 id="script-workflow-heading">剧本</h1><p>审阅当前完整 pilot，或在允许时编辑其稳定章节。</p></div></header>
+      <header className="page-header"><div><h1 id="script-workflow-heading">剧本</h1><p>审阅当前完整 pilot，或编辑允许修改的稳定章节。</p></div></header>
       <ScriptPanel projectId={projectId} readOnly={readOnly} />
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "storyboard-review"} aria-labelledby="storyboard-review-workflow-heading">
-      <header className="page-header"><div><span>创作流程</span><h1 id="storyboard-review-workflow-heading">分镜评审</h1><p>审阅与已接受剧本绑定的 storyboard 证据；此处不会创建镜头或媒体。</p></div></header>
+      <header className="page-header"><div><h1 id="storyboard-review-workflow-heading">分镜评审</h1><p>审阅与已接受剧本绑定的 storyboard 证据。</p></div></header>
       <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} />
     </section>
   </section>;

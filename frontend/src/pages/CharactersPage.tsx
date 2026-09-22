@@ -49,7 +49,7 @@ export function CharactersPage({ projectId, readOnly }: { projectId: string; rea
   }, [castState, projectId]);
 
   return <section className="page characters-page" data-testid="characters-stage">
-    <header className="page-header"><div><span>角色</span><h1>角色文字与外观</h1><p>先审核角色文字，再用已有图像建立未来镜头可复用的身份参考。候选不会自动成为选择，创建手动任务也不会自动生成。</p></div></header>
+    <header className="page-header"><div><h1>角色</h1><p>完善角色文字，再审阅和选择可复用的外观参考。</p></div></header>
     <CastPanel projectId={projectId} readOnly={readOnly} state={castState} loadError={castError} onState={setCastState} onRefresh={refreshCast} onInvalidate={invalidateCastSession} onTransitionComplete={() => setCastTransitionPending(false)} />
     <CharacterReferenceReviewPanel projectId={projectId} readOnly={readOnly} castState={castState} castSession={castSession} castSessionOwner={castSessionOwner} castTransitionPending={castTransitionPending} />
   </section>;

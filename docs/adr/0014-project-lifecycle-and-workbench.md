@@ -36,6 +36,11 @@ draft continuity, and independent owner failure semantics meet there. It does
 not add production routes, APIs, persistence state, or dependencies between
 the source aggregate and its secondary owners.
 
+The creator convention is one concise sidebar label and one matching visible
+`h1` per workspace. The top bar carries project state and actions only; it does
+not repeat a stage number or title. Brief actionable guidance belongs below the
+heading, while field-specific caveats remain beside the affected field.
+
 ### Lifecycle is separate from authored content
 
 A project has an `active` or `archived` lifecycle state and an independent,

@@ -12,6 +12,7 @@ test.describe("project-folder Close", () => {
     await page.getByRole("button", { name: "打开示例项目" }).click();
     await page.getByRole("button", { name: "保存简报" }).click();
     await expect(page).toHaveURL(/[?&]project=/);
+    await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = new URL(page.url()).searchParams.get("project")!;
     await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
@@ -32,7 +33,7 @@ test.describe("project-folder Close", () => {
     expect((await closeResponse).ok()).toBeTruthy();
     await page.locator(`.directory-item[data-project-id="${projectId}"]`).getByRole("button", { name: "重新打开" }).click();
     await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
-    await expect(page.getByRole("heading", { name: "来源与小说大纲" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
     await expect(page.getByText("已取消")).toBeVisible();
   });
 
@@ -41,6 +42,7 @@ test.describe("project-folder Close", () => {
     await page.getByRole("button", { name: "打开示例项目" }).click();
     await page.getByRole("button", { name: "保存简报" }).click();
     await expect(page).toHaveURL(/[?&]project=/);
+    await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = new URL(page.url()).searchParams.get("project")!;
     const canonicalTitle = await page.getByLabel("片名").inputValue();
@@ -89,6 +91,7 @@ test.describe("project-folder Close", () => {
     await page.getByRole("button", { name: "打开示例项目" }).click();
     await page.getByRole("button", { name: "保存简报" }).click();
     await expect(page).toHaveURL(/[?&]project=/);
+    await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
     const projectId = new URL(page.url()).searchParams.get("project")!;
 
