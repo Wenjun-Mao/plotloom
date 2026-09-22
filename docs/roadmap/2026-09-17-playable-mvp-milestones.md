@@ -20,9 +20,9 @@ The U0/U1 navigation and workflow assessment is complete historical planning;
 the bounded U1a implementation is accepted at `94cf165`. The retained U4
 lighthouse walkthrough received connected, read-only usability acceptance at
 `a869e7c`, recorded in its verification receipt. Neither acceptance authorizes
-provider or generation work. The next F5-to-production/F7 activity is a
-read-only seam preflight only: its mapping, canonical-install, reference, and
-duration decisions remain open and are not decided by this tracker.
+provider or generation work. The next F5-to-production/F7 activity is the
+documented canonical bridge: a reviewable proposal and explicit atomic install,
+with no implied approval, reference selection, or provider dispatch.
 
 ### U4 — coherent retained text-story walkthrough (approved 2026-09-22)
 
@@ -50,8 +50,8 @@ and its route-focused usability only. It does not accept the authored creative
 content as a final creative decision, install a canonical production storyboard
 or media, qualify H3, prove playback, or change any F7 approval/selection
 contract. The retained [U4 receipt](../verification/2026-09-22-u4-lighthouse-walkthrough.md)
-and [F5-to-production/F7 seam preflight](../verification/2026-09-22-f5-to-production-preflight.md)
-preserve the boundary and the next material decisions.
+and [F5-to-production canonical bridge design](../verification/2026-09-22-f5-to-production-canonical-bridge-design.md)
+preserve the boundary and the next implementation scope.
 
 ## Outcomes and starting point
 

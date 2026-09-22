@@ -17,8 +17,9 @@ creative or media acceptance, and the broader redesign remain out of scope.
 The retained U4 lighthouse walkthrough has a separate connected, read-only
 usability acceptance at `a869e7c`; it does not accept creative content, media,
 production installation, or playback. Its follow-on
-[F5-to-production/F7 seam preflight](../verification/2026-09-22-f5-to-production-preflight.md)
-is assessment-only and identifies the material decisions before implementation.
+[F5-to-production canonical bridge design](../verification/2026-09-22-f5-to-production-canonical-bridge-design.md)
+defines a reviewable, explicitly accepted installation proposal; it authorizes
+no implementation by itself.
 The prior authorized ImageGen proof is complete; it authorizes no further
 provider calls.
 

@@ -1,5 +1,12 @@
 # F5-to-production/F7 seam preflight
 
+> **Superseded as the next implementation proposal.** This assessment remains
+> useful inventory evidence, but it does not define the next slice. The
+> approved successor is the source-backed
+> [F5-to-production canonical bridge design](2026-09-22-f5-to-production-canonical-bridge-design.md):
+> a reviewable proposal followed by explicit atomic installation, not a
+> standalone read-only admissibility API.
+
 Date: 2026-09-22. Baseline: retained `main` at `a869e7c`. This is a
 source-backed, read-only assessment of the next seam after the accepted U4
 walkthrough. It performs no canonical installation, accepted-data edit,

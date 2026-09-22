@@ -72,8 +72,9 @@ the authorized isolated lighthouse project. The director inspected its
 connected reader and accepted the U4 usability scope at `a869e7c`; see the
 [U4 receipt](../verification/2026-09-22-u4-lighthouse-walkthrough.md). This
 does not install production data or make a creative/media/production claim;
-the next F5-to-production/F7 work remains the separate
-[assessment](../verification/2026-09-22-f5-to-production-preflight.md).
+the next F5-to-production/F7 work is the separate
+[canonical bridge design](../verification/2026-09-22-f5-to-production-canonical-bridge-design.md),
+which remains documentation rather than production authorization.
 
 **Historical 2026-09-18 dispatch status.** At this plan's creation, only the
 representative U2 reader was dispatched and generation was paused. That

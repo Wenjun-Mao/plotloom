@@ -144,4 +144,5 @@ It is not final creative acceptance of the agent-authored story, a selected
 character/art reference decision, canonical StoryBible/SceneBeats/Shot
 installation, image/video dispatch, H3 qualification, media selection, or
 PlayView acceptance. The next F5-to-production/F7 seam is recorded separately
-as a read-only preflight.
+as an implementation-ready canonical bridge design; it does not itself install
+or approve production data.
