@@ -22,6 +22,25 @@ assessment. A later U1 implementation may only start from its bounded brief;
 language policy, broader stage retirement, F5-to-production integration, and
 H3 tuning remain open and are not decided by this tracker.
 
+### U4 — coherent retained text-story walkthrough (approved 2026-09-22)
+
+Build one durable, isolated development project through the existing F1–F5
+source, specialist-handoff, review, and reader contracts. The director supplied
+the Chinese lighthouse dilemma as the bounded premise and delegates routine
+development choices, including expansion into original Chinese source text and
+the minimal reusable cast, locations, and props, to the agent. The project must
+retain an agent-authored-source declaration and agent-reviewed technical
+acceptance; it must never be presented as human creative approval. Accept only
+current source, outline, canonical one-choice/two-ending graph, cast, art,
+script, and exact F5A binding through supported product APIs, with retained
+package/delivery provenance, reproducible startup/teardown, restart discovery,
+and an inspected production-shaped reader at 1440px and 1920px. Reuse the
+existing text specialist and review owners; do not mock deliveries or repurpose
+technical fixtures. Exclusions: providers and media generation, images/video,
+production-shot installation, broad UI redesign, new backends, and product or
+human creative acceptance. Stop when the director can inspect the retained
+walkthrough. Local commits are authorized; do not push.
+
 ## Outcomes and starting point
 
 **M1 is achieved:** the user tried one small playable branching film successfully.
