@@ -20,6 +20,9 @@ from ..persistence.schema import (
     CharacterReferenceDecisionRow,
     CharacterReferenceProposalDeliveryRow,
     PROJECT_TEXT_PIPELINE_TABLE_NAMES,
+    ProductionBridgeAdmissionRow,
+    ProductionBridgeHeadRow,
+    ProductionBridgeRevisionRow,
     VideoCandidateSelectionRow,
 )
 from .format import ProjectStorageCorruptionError
@@ -53,12 +56,17 @@ class ProjectArtReferenceDecisionTransitionRequiredError(ProjectSchemaTransition
     """A current F3B folder needs explicit subject-reference decision tables."""
 
 
+class ProjectProductionBridgeTransitionRequiredError(ProjectSchemaTransitionRequiredError):
+    """A retained project needs empty F5 production-bridge tables."""
+
+
 SchemaStatus = Literal[
     "current", "selection_transition_required", "art_reference_transition_required",
     "character_delivery_publication_phase_transition_required",
     "character_selection_metadata_transition_required",
     "character_imported_appearance_transition_required",
     "art_reference_decision_transition_required",
+    "production_bridge_transition_required",
 ]
 _SELECTION_TABLE = VideoCandidateSelectionRow.__tablename__
 _CHARACTER_REFERENCE_DELIVERY_TABLE = CharacterReferenceProposalDeliveryRow.__tablename__
@@ -72,6 +80,10 @@ _ART_REFERENCE_TABLES = (
 _ART_REFERENCE_DECISION_TABLES = (
     ArtReferenceDecisionStateRow.__table__,
     ArtReferenceDecisionRow.__table__,
+)
+_PRODUCTION_BRIDGE_TABLES = (
+    ProductionBridgeHeadRow.__table__, ProductionBridgeRevisionRow.__table__,
+    ProductionBridgeAdmissionRow.__table__,
 )
 
 
@@ -102,6 +114,7 @@ def expected_project_schema_objects(
     append_character_delivery_publication_phase: bool = False,
     include_character_imported_appearances: bool = True,
     include_art_reference_decisions: bool = True,
+    include_production_bridge: bool = True,
 ) -> tuple[tuple[str, str, str, str | None], ...]:
     """Return the exact current schema or one permitted immediate predecessor."""
 
@@ -114,6 +127,8 @@ def expected_project_schema_objects(
         table_names.remove(_CHARACTER_IMPORTED_APPEARANCE_TABLE)
     if not include_art_reference_decisions:
         table_names.difference_update(table.name for table in _ART_REFERENCE_DECISION_TABLES)
+    if not include_production_bridge:
+        table_names.difference_update(table.name for table in _PRODUCTION_BRIDGE_TABLES)
     engine = create_engine("sqlite://")
     try:
         Base.metadata.create_all(
@@ -293,6 +308,14 @@ def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
         return "current"
     if _requires_art_reference_decision_transition(actual) and user_version == (0,):
         return "art_reference_decision_transition_required"
+    if (
+        actual == expected_project_schema_objects(
+            include_video_candidate_selection=True,
+            include_production_bridge=False,
+        )
+        and user_version == (0,)
+    ):
+        return "production_bridge_transition_required"
     if _requires_character_imported_appearance_transition(actual) and user_version == (0,):
         return "character_imported_appearance_transition_required"
     if _requires_character_selection_metadata_transition(actual) and user_version == (0,):
@@ -352,6 +375,10 @@ def transition_required_error(
     if status == "art_reference_decision_transition_required":
         return ProjectArtReferenceDecisionTransitionRequiredError(
             f"art reference decision transition requires {reason}"
+        )
+    if status == "production_bridge_transition_required":
+        return ProjectProductionBridgeTransitionRequiredError(
+            f"production bridge transition requires {reason}"
         )
     raise AssertionError(f"current project schema does not need a transition: {status}")
 
@@ -459,6 +486,9 @@ def transition_project_schema(
                     CharacterImportedAppearanceRow.__table__.create(connection)
                 elif status == "art_reference_decision_transition_required":
                     for table in _ART_REFERENCE_DECISION_TABLES:
+                        table.create(connection)
+                elif status == "production_bridge_transition_required":
+                    for table in _PRODUCTION_BRIDGE_TABLES:
                         table.create(connection)
                 else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
                     raise AssertionError(f"unsupported project transition: {status}")
