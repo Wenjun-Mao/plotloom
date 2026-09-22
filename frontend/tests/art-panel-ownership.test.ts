@@ -86,12 +86,15 @@ it("settles a deferred explicit F3B reference choice after unmount without a sta
   const getDecisions = vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({
     states: [{ subjectType: "scene", subjectId: "S01", revision: 0, activeDecisionId: null, current: false }], decisions: [],
   });
-  vi.spyOn(plotloomApi, "createArtReferenceDecision").mockReturnValue(chosen.promise as Promise<any>);
+  const createDecision = vi.spyOn(plotloomApi, "createArtReferenceDecision").mockReturnValue(chosen.promise as Promise<any>);
 
   await act(async () => { root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })); });
   const choose = [...host.querySelectorAll("button")].find((button) => button.textContent === "用作此环境的参考图");
   expect(choose).toBeDefined();
   await act(async () => choose?.click());
+  expect(createDecision).toHaveBeenCalledWith("old", {
+    subjectType: "scene", subjectId: "S01", assetId: "asset-1", expectedReferenceRevision: 0,
+  });
   const before = [getArt.mock.calls.length, getStudies.mock.calls.length, getDecisions.mock.calls.length];
   await act(async () => root.unmount());
   await act(async () => { chosen.resolve({ id: "decision-1" }); await chosen.promise; });

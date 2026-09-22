@@ -544,3 +544,12 @@ lose valued project discovery. Verify choice/replacement/no-auto-choice,
 currentness/CAS/restart/reopen/session containment, static assets, desktop
 1440/1920, and an independent stable-delta review. A portable explicit-mock
 demo may prove interaction only and must never claim generated evidence.
+
+**Preview evidence.** The separate
+`/v2/e2e/f3b-reference-decision-demo.html` loopback route reuses the gallery
+with inline static SVG data URLs and tab-local React state. It visibly proves
+scene/prop choose, replacement, viewed-versus-current labeling, and permanent
+stale history after a simulated art change at 1440px and 1920px. It makes no
+project/API or provider request and hides every study action. The retained
+read-only F3B gallery URL remains unchanged; backend regression, not this
+simulator, is the persistence/restart evidence.

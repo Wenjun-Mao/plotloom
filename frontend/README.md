@@ -49,3 +49,16 @@ PLOTLOOM_API_ORIGIN=http://127.0.0.1:8794 npm run dev -- --port 8793 --strictPor
 
 Open `http://127.0.0.1:8793/v2/e2e/f3b-mock-demo.html`. Both processes are
 loopback-only and can be stopped when inspection is complete.
+
+## Portable F3B reference-decision simulator
+
+`f3b-reference-decision-demo.html` is a separate, local-state-only walkthrough
+of explicit environment/prop choice and replacement. It reuses the production
+gallery but its buttons only update React state in that tab. Its cards are
+inline static SVG data URLs, so it makes no project/API request, provider,
+project-storage, or creative-approval claim. The existing read-only fixture
+remains unchanged.
+
+With a Vite server running, open:
+
+`http://127.0.0.1:8793/v2/e2e/f3b-reference-decision-demo.html`

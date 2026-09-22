@@ -126,6 +126,37 @@ test.describe("F3A production art review", () => {
     await studies.screenshot({ path: evidenceDirectory ? path.join(evidenceDirectory, "mocked-f3b-panel-1920.png") : testInfo.outputPath("mocked-f3b-panel-1920.png") });
   });
 
+  test("walks the local-only scene and prop reference-decision simulator without API traffic", async ({ page, workbench }, testInfo) => {
+    const apiRequests: string[] = [];
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname.startsWith("/api/")) apiRequests.push(request.url());
+    });
+    await page.goto(`${workbench.frontendOrigin}/v2/e2e/f3b-reference-decision-demo.html`);
+    const simulator = page.getByTestId("f3b-local-decision-simulator");
+    await expect(simulator).toContainText("只更新此页面的 React state");
+    const scene = page.getByTestId("art-reference-scene-S-DEMO");
+    await scene.getByRole("button", { name: "用作此环境的参考图" }).click();
+    await scene.getByRole("button", { name: /scene-B.svg 缩略图/ }).click();
+    await scene.getByRole("button", { name: "替换为用作此环境的参考图" }).click();
+    await expect(scene).toContainText("当前已选参考：正在查看的候选（r2）");
+
+    await simulator.getByRole("button", { name: /道具 · Prop · brass compass/ }).click();
+    const prop = page.getByTestId("art-reference-prop-P-DEMO");
+    await prop.getByRole("button", { name: "用作此道具的参考图" }).click();
+    await prop.getByRole("button", { name: /prop-B.svg 缩略图/ }).click();
+    await prop.getByRole("button", { name: "替换为用作此道具的参考图" }).click();
+    await simulator.getByRole("button", { name: "模拟道具美术变更 → 标记陈旧" }).click();
+    await expect(prop).toContainText("此前的参考决定已过期");
+    expect(apiRequests).toEqual([]);
+
+    const evidenceDirectory = process.env.PLOTLOOM_E2E_EVIDENCE_DIR;
+    if (evidenceDirectory) await mkdir(evidenceDirectory, { recursive: true });
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await simulator.screenshot({ path: evidenceDirectory ? path.join(evidenceDirectory, "simulated-f3b-decision-1440.png") : testInfo.outputPath("simulated-f3b-decision-1440.png") });
+    await page.setViewportSize({ width: 1920, height: 1080 });
+    await simulator.screenshot({ path: evidenceDirectory ? path.join(evidenceDirectory, "simulated-f3b-decision-1920.png") : testInfo.outputPath("simulated-f3b-decision-1920.png") });
+  });
+
   test("re-copies a frozen handoff, rejects it, and replaces it through the browser", async ({ page, request, workbench }) => {
     const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "replace");
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);

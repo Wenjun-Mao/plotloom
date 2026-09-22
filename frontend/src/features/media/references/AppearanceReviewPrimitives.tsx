@@ -5,16 +5,16 @@ import { Button } from "../../../components";
 import type { ManagedAsset } from "../../../types";
 
 /** Shared display-only primitives. Domain owners keep their own actions and labels. */
-export function ManagedAssetImage({ projectId, subjectId, asset, assetId, alt, unavailableLabel }: {
+export function ManagedAssetImage({ projectId, subjectId, asset, assetId, alt, unavailableLabel, imageUrl }: {
   projectId: string; subjectId: string; asset: ManagedAsset | undefined | null; assetId: string;
-  alt: string; unavailableLabel: string;
+  alt: string; unavailableLabel: string; imageUrl?: string;
 }) {
   const identity = `${projectId}:${subjectId}:${assetId}`;
   const [failedIdentity, setFailedIdentity] = useState<string | null>(null);
   if (!asset || failedIdentity === identity) {
     return <div className="reference-missing-asset" data-testid={`reference-image-unavailable-${assetId}`}><strong>{unavailableLabel}</strong><small>保留资产 {assetId.slice(0, 12)} 缺失、HTTP 读取失败或无法解码。</small></div>;
   }
-  return <img src={plotloomApi.managedAssetUrl(projectId, asset.id)} alt={alt} onError={() => setFailedIdentity(identity)} />;
+  return <img src={imageUrl || plotloomApi.managedAssetUrl(projectId, asset.id)} alt={alt} onError={() => setFailedIdentity(identity)} />;
 }
 
 export function AssetZoomDialog({ open, onClose, label, children }: { open: boolean; onClose: () => void; label: string; children: ReactNode }) {
