@@ -2,7 +2,7 @@
 
 Date: 2026-09-22. Status: implementation-ready design only; see proposed
 [ADR 0079](../adr/0079-f5-production-canonical-bridge.md). Baseline: retained
-`main` at `eaa202c`. This replaces the proposed standalone admissibility
+`main` at `55c9a7f`. This replaces the proposed standalone admissibility
 preflight with the smallest real authoring seam: immutable accepted F1–F5
 inputs produce a reviewable canonical production proposal, and an author may
 explicitly accept one atomic installation. It changes no code, schema, accepted
@@ -47,14 +47,20 @@ review evidence.
 ## User-visible flow
 
 1. From a current accepted F5 review, the author chooses **Prepare production
-   proposal**. The page shows only the frozen F1–F5 revisions/hashes, proposed
-   canonical scenes, beats, shots, source links, validation failures, and the
-   H3 duration status of every shot.
+   proposal** (`准备投产提案`). Its primary Chinese view lists readable source
+   scenes/cuts, their canonical counterparts, every policy conflict, and the
+   H3 duration status of every cut-shot. A collapsed **技术详情** panel carries
+   F1–F5 hashes, source coordinates, and validator evidence; hashes are not
+   the primary review surface.
 2. The author inspects that proposal, including the shared opening once and
    each ending on its own graph node. Nothing is approved, selected, generated,
-   or dispatched here.
-3. **Accept and install** requires the displayed proposal revision and content
-   hash. A successful result is an installed but unapproved canonical
+   or dispatched here. If an authored F4 scene occurrence contains more or
+   fewer F5 cuts than the current Brief allows per canonical scene, the primary
+   view says `不能安装：源场次有 N 个镜头，当前项目规则为 min–max 个` and the
+   **接受并安装** control is disabled.
+3. **Accept and install** (`接受并安装`) requires the displayed proposal revision
+   and content hash and is enabled only when no blocking conflict remains. A
+   successful result is an installed but unapproved canonical
    StoryBible/SceneBeatPlan/Storyboard. Existing canonical editing and
    storyboard approval remain the next explicit author actions.
 4. Existing reference, keyframe, image, video, and playback flows follow their
@@ -74,10 +80,10 @@ stable IDs.
 
 | Frozen source | Proposed canonical target | Exact rule and ownership |
 | --- | --- | --- |
-| F1 graph node ID / F4 section ID | `DramaticScene.story_node_id` | Preserve the graph node ID unchanged. Create one or more scenes under that one node; the F1 start/opening node is represented once, never copied into each route. Ending scenes retain their distinct ending node IDs. This matches `branchingPreviewManifest`, which groups canonical scenes by `storyNodeId` before sequencing shots. |
-| F4 episode, `sceneIndex`, and `sceneId` | one or more `DramaticScene` records | Resolve `sceneIndex` against that exact frozen episode's script-scene occurrence. Retain `sceneId` as the location/art reference, not as the scene identity. Partition that one source occurrence into contiguous canonical-scene chunks at cut boundaries: for `N` cuts use `ceil(N / maxShotsPerScene)` chunks, distribute cuts as evenly as possible in source order, and reject if no chunk can satisfy the brief's `minShotsPerScene..maxShotsPerScene` range. A bridge-owned ID derives from `(sectionId, episode, sceneIndex, chunkOrdinal)`. Thus repeated values such as `S01` neither collapse distinct occurrences nor bypass the 2–4-shot contract. |
-| F4 resolved `flow` position | `Beat` and `DialogueCue` | Create a bridge-owned beat ID from `(canonicalSceneId, flowIndex)` and preserve the frozen flow-entry hash, action/dialogue shape, and source coordinates in proposal provenance. A cut range may belong only to the canonical-scene chunk holding that cut. For a `line`, create the one canonical dialogue cue with the mapped speaker and exact text; for an `action`, use the exact action as the beat's visible event. The adapter may not infer a beat from free text. It must reject a cut range that does not resolve to a contiguous, unique set of frozen flow positions. |
-| F5 `(episode, segment.id, cut ordinal)` plus review hash and raw cut hash | `Shot` and `ShotBeatLink` | This tuple is the source-cut identity; upstream cuts have no independent stable ID. Create a bridge-owned canonical shot ID from that tuple and attach it to the deterministic source-scene chunk containing the cut. Map one source cut to one canonical shot because `Shot` is the smallest existing unit targeted by reviewed keyframes, video preparation, and playback sequencing. Expand the cut's declared inclusive beat range into `PRIMARY` links for every resolved beat: the V2 gate requires exactly one primary shot per beat. Preserve the original range and chunk identity in bridge provenance. This is not a claim that a cut is one provider job. |
+| F1 graph node ID / F4 section ID | `DramaticScene.story_node_id` | Preserve the graph node ID unchanged. Each distinct F4 source-scene occurrence yields one canonical scene; a node may therefore contain several scenes only when F4 contains several distinct occurrences. The F1 start/opening node is represented once, never copied into each route. Ending scenes retain their distinct ending node IDs. This matches `branchingPreviewManifest`, which groups canonical scenes by `storyNodeId` before sequencing shots. |
+| F4 episode, `sceneIndex`, and `sceneId` | one `DramaticScene` | Resolve `sceneIndex` against that exact frozen episode's script-scene occurrence. Preserve exactly one canonical scene for that occurrence, with a bridge-owned ID derived from `(sectionId, episode, sceneIndex)`. Retain `sceneId` as the location/art reference, not as the scene identity. Repeated values such as `S01` therefore do not collapse distinct occurrences, and the bridge never invents a dramatic split merely to fit a planning preference. |
+| F4 resolved `flow` position | `Beat` and `DialogueCue` | Create a bridge-owned beat ID from `(canonicalSceneId, flowIndex)` and preserve the frozen flow-entry hash, action/dialogue shape, and source coordinates in proposal provenance. For a `line`, create the one canonical dialogue cue with the mapped speaker and exact text; for an `action`, use the exact action as the beat's visible event. The adapter may not infer a beat from free text. It must reject a cut range that does not resolve to a contiguous, unique set of frozen flow positions. |
+| F5 `(episode, segment.id, cut ordinal)` plus review hash and raw cut hash | `Shot` and `ShotBeatLink` | This tuple is the source-cut identity; upstream cuts have no independent stable ID. Create a bridge-owned canonical shot ID from that tuple and attach it to its one resolved source scene. Map one source cut to one canonical shot because `Shot` is the smallest existing unit targeted by reviewed keyframes, video preparation, and playback sequencing. Expand the cut's declared inclusive beat range into `PRIMARY` links for every resolved beat: the V2 gate requires exactly one primary shot per beat. Preserve the original range and source-scene identity in bridge provenance. This is not a claim that a cut is one provider job. |
 | F5 cut `seconds`, `size`, `camera`, `frame`, characters, and props | Canonical shot fields | Copy `seconds` exactly to `durationUnits` (integer milliseconds) and record the original number. Preparation rejects a source duration that cannot be represented as an integral number of milliseconds; it never rounds, trims, pads, splits, or stitches. Map `extreme-wide → extreme_wide`, `wide → wide`, `medium → medium`, `close → close_up`, and `extreme-close → extreme_close_up`; reject any other accepted source value. Copy camera to `cameraMovement` and `frame` verbatim to `composition`. Populate action from the resolved F4 flow and schedule its mapped dialogue cues, never by parsing H3. Carry visible characters, location, and props only after their source IDs resolve to the proposed StoryBible. Leave `visualIntent`, `motionIntent`, audio plan, state transitions, and continuity requirements empty/default only where the canonical schema permits it; do not invent a creative transformation. |
 | F5 segment `h3Prompt` | Bridge evidence only | Preserve it with source hash for review and traceability. It is neither a canonical shot field nor a dispatch payload. Existing `MediaPromptCompiler` remains the only path that derives provider prompts from approved canonical data. A segment remains review grouping/evidence metadata; it never becomes a Shot or an H3 request. |
 | F2 cast `consumerMappings` | Canonical StoryBible character IDs | Require the proposal to prove every visible F5/F4 cast ID resolves through its accepted one-to-one consumer mapping and that the mapped consumer ID satisfies V2 `StableId`. The mapped consumer ID is the canonical `CharacterV2.id`; the proposal copies no reference decision. Existing character-reference owners can therefore later resolve the same canonical IDs. |
@@ -118,19 +124,23 @@ prepared → ready → accepted`, with `stale` and `cancelled` terminal outcomes
 where appropriate. A ready proposal contains:
 
 - immutable `BridgeInputBinding`, candidate revision, and proposal content hash;
-- validated V2 StoryBible, SceneBeatPlan, and Storyboard payloads;
+- structurally valid V2 StoryBible, SceneBeatPlan, and Storyboard payloads,
+  plus their stage-gate result;
 - a source-to-canonical mapping table and per-row raw-content hashes;
 - source timing and an explicit H3 profile compatibility result per canonical
-  shot; and
+  shot, plus blocking Brief-policy conflicts; and
 - non-authoritative links to accepted F2/F3 evidence, without an asset,
   selection, approval, prompt, or job ID.
 
-Acceptance must verify, in the same lifecycle write transaction:
+Preparation may retain a structurally valid but stage-gate-ineligible proposal
+solely so the author can see and resolve its conflicts; it never enters an
+install path. Acceptance must verify, in the same lifecycle write transaction:
 
 1. the proposal is current and the author supplied its exact revision/hash;
 2. every frozen F1–F5 input, project brief, and graph/section binding is still current;
 3. the three target canonical stage heads are empty in the first slice; and
-4. all proposed payloads and mapping invariants validate again.
+4. no Brief shot-count conflict remains; and
+5. all proposed payloads and mapping invariants validate again.
 
 It then installs StoryBible, SceneBeatPlan, and Storyboard in dependency order
 using the existing canonical installation path. The retained source-map graph
@@ -176,20 +186,23 @@ One implementation slice may include only:
   a source-map graph remains ready across a Bible install while ordinary and
   transitive dependent heads still stale;
 - deterministic F1–F5-to-V2 proposal construction with the mapping and
-  validation rules above;
-- proposal review/read API and an author-confirmed atomic install into empty
-  canonical targets;
+  validation rules above, preserving one F4 scene occurrence as one canonical
+  dramatic scene;
+- a usable Chinese proposal page with readable scene/cut/conflict-first review,
+  collapsed technical provenance, and explicit disabled/enabled
+  `接受并安装` controls;
+- an author-confirmed atomic install into empty canonical targets;
 - bridge-admission provenance/currentness; and
 - the exact-duration guard in existing video preparation, with no provider
   submission changes.
 
 Focused tests must cover shared-opening-once/endings-distinct playback mapping;
-`sceneIndex` versus `sceneId`; a nine-cut source occurrence partitioned into
-three 3-shot canonical scenes under a 2–4 budget; no duplicate or uncovered
-source flow; source-cut identity across reordering; F2 consumer mapping and F3
-ID incompatibility; atomic rollback and compare-and-swap acceptance; no
-approval/media side effect; and rejection of unsupported 2–8-second H3 dispatch
-before job persistence.
+`sceneIndex` versus `sceneId`; preservation of one source scene occurrence;
+a nine-cut source occurrence shown as a blocking 2–4 Brief-policy conflict with
+installation disabled; no duplicate or uncovered source flow; source-cut
+identity across reordering; F2 consumer mapping and F3 ID incompatibility;
+atomic rollback and compare-and-swap acceptance; no approval/media side effect;
+and rejection of unsupported 2–8-second H3 dispatch before job persistence.
 
 Excluded: generated creative content, a new specialist handoff, an F5 shot
 store, automatic reference import/selection, approval, prompt passthrough,
@@ -212,14 +225,25 @@ After a fresh-project bridge is product-accepted, a separate decision may make
 it the default route for new F1–F5 projects; existing canonical projects remain
 where they are unless an explicit, project-scoped migration is authorized.
 
-## Product-affecting decision already recommended
+## Product-affecting policy conflict
 
-No additional product choice is needed to start the minimal slice: this design
-chooses empty-target installation, one-cut-to-one-canonical-shot provenance,
-shared-opening-once graph routing, F2 consumer IDs as canonical character IDs,
-and strict exact-duration dispatch refusal. The only later product decision is
-whether to qualify additional exact provider durations after evidence exists;
-the bridge deliberately does not presume that outcome.
+`ProjectBrief.shotsPerSceneMin/Max` is an editable authoring/planning policy,
+not an intrinsic storage maximum or a source-scene boundary: the Brief page
+exposes it as a plan target, while canonical validation enforces it when a
+canonical storyboard is installed. Therefore the bridge preserves one F4 scene
+occurrence and reports a count outside the frozen Brief range as a blocking
+conflict. It does not segment the scene or silently widen the Brief.
+
+The only material decision for an over-budget project is whether the author
+wants to explicitly revise the Brief's shot-count policy for this source. The
+recommended resolution is: revise that policy through the existing Brief owner,
+allow its normal currentness effects, then regenerate/reaccept the affected
+upstream stages before preparing a new bridge proposal. For the retained U4
+project, nine F5 cuts in each sole source scene conflict with its 2–4 plan and
+cannot be installed until such an explicit author decision exists. This is not
+a routine bridge implementation question. Separately, a later product decision
+may qualify additional exact provider durations after evidence exists; the
+bridge does not presume that outcome.
 
 ## Source basis
 
