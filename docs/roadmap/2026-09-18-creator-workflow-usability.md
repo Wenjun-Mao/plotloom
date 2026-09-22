@@ -1,9 +1,20 @@
 # Creator workflow usability — review plan
 
-Status: **Bounded representative story/branch prototype approved; broader U1–U4 redesign remains unapproved.**
-Date: 2026-09-18. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
-Only the representative U2 reader below is dispatched. Generation remains
-paused; this approval does not dispatch the broader redesign.
+Status: **U2 is complete and the bounded U3 Characters appearance workspace is
+accepted; broader U1–U4 redesign remains unapproved.**
+Date: 2026-09-18; current summary updated 2026-09-21. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
+
+**Current summary.** U3 acceptance is limited to the Characters workspace:
+cancel-edit safety, truthful imported appearances, large-image inspection, and
+any explicit two-to-four image comparison on 1440px and 1920px desktop review.
+The previous authorized ImageGen proof is complete; no further provider call is
+authorized by this record. Environment/prop review, video, F2/F7 creative or
+media acceptance, and imported-image refinement remain separate.
+
+**Historical 2026-09-18 dispatch status.** At this plan's creation, only the
+representative U2 reader was dispatched and generation was paused. That
+historical constraint did not authorize the later bounded U3 work recorded
+below, and it does not erase its stated exclusions.
 
 ## Outcome and evidence
 
@@ -72,12 +83,14 @@ Use proportional frontend/production-browser checks, fresh static assets, and an
 independent stable-delta review per implementation slice. Cover navigation,
 project switches, async ownership, report isolation, revision display and retained
 review actions. Do not rerun every backend suite for a text-only adjustment.
-Include a realistic narrow viewport; compare layout and usability, not only test counts.
+The original narrow-viewport expectation is historical planning guidance; the
+current U3 desktop policy uses 1440px and 1920px visual acceptance, while
+retaining inexpensive responsive behavior without a narrow-viewport gate.
 
-## Next proposed delivery — representative story/branch prototype
+## Historical U2 delivery proposal — representative story/branch prototype
 
-The user has approved this usability direction and a representative story/branch
-prototype as the next proposed delivery. When separately dispatched, it should use
+The user approved this usability direction and a representative story/branch
+prototype as the then-next proposed delivery. When separately dispatched, it should use
 one genuine small story to make the opening → decision → two-consequence
 relationship readable across the stage workspace, screenplay and storyboard views.
 It must reuse the canonical graph and accepted/current content owners; it must not
@@ -447,3 +460,29 @@ delivery. Verify import provenance/currentness, no automatic selection, session
 isolation, 2–4 comparison, cancellation, and one retained production-backed
 fixture with existing lawful files. No provider or generated-delivery evidence
 is authorized.
+
+## U3 Characters usability acceptance — 2026-09-21
+
+**Accepted scope.** The attended creator review accepted the bounded
+`stage=characters` workspace for cancel-edit safety, truthful imports, large
+image/zoom inspection, and arbitrary explicit two-, three-, or four-image
+comparison at desktop 1440px and 1920px. The clean retained inspection fixture
+is project `24519b81-47b1-4237-b27f-6ec568bd5407`; it contains five labelled,
+distinct imported assets with declared `unknown` rights. The earlier
+nine-membership project remains historical evidence, not a handoff fixture.
+
+**Evidence.** Commit
+`a54251dd139f672622918e196b0df642633c4d67` binds the post-upload membership
+step to the live project/cast session. Its focused browser coverage proves five
+browser imports, zoom, two-to-four comparison with a disabled fifth, explicit
+selection, reload/restart, cancel-reopen safety, and no stale membership attach
+after a held project or cast-session change. The committed static bundle is
+fresh for that source change.
+
+**Boundaries.** An imported image can be browsed, compared, enlarged, or
+explicitly selected, but is not a specialist-delivery candidate and cannot be
+an adjustment parent. This is an explicit unsupported product boundary, not a
+creative rejection. This acceptance does not accept all U3 surfaces, any
+environment/prop workspace, video, F2/F7 creative or media output, or a new
+provider call. The previous authorized ImageGen proof is complete; no further
+generation is authorized by this acceptance record.
