@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
-import { Button, ErrorNotice } from "../components";
+import { Button, ErrorNotice, Spinner } from "../components";
 import type { StoryboardReviewCandidate, StoryboardReviewState } from "../types";
 import { StoryboardReviewInspection } from "./StoryboardReviewInspection";
 
 /** F5A preserves upstream review evidence; it deliberately cannot create product shots. */
-export function StoryboardReviewPanel({ projectId, readOnly, onInitialLoadSettled }: { projectId: string; readOnly: boolean; onInitialLoadSettled?: () => void }) {
+export function StoryboardReviewPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
   const [state, setState] = useState<StoryboardReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState("");
@@ -14,6 +14,7 @@ export function StoryboardReviewPanel({ projectId, readOnly, onInitialLoadSettle
   if (active.current.projectId !== projectId) active.current = { projectId, epoch: active.current.epoch + 1 };
   const owns = (session: { projectId: string; epoch: number }) => active.current === session;
   const load = useCallback(async (session = active.current) => {
+    if (owns(session)) setError("");
     try {
       const next = await plotloomApi.getStoryboardSourceReview(session.projectId);
       if (owns(session)) setState(next);
@@ -24,9 +25,9 @@ export function StoryboardReviewPanel({ projectId, readOnly, onInitialLoadSettle
   useEffect(() => {
     const session = active.current;
     setState(undefined); setAssignment(""); setError(""); setBusy(false);
-    void load(session).finally(() => { if (owns(session)) onInitialLoadSettled?.(); });
+    void load(session);
     return () => { if (owns(session)) active.current = { projectId: session.projectId, epoch: session.epoch + 1 }; };
-  }, [projectId, load, onInitialLoadSettled]);
+  }, [projectId, load]);
   const run = <T,>(operation: () => Promise<T>, accepted?: (result: T) => void) => {
     const session = active.current;
     setBusy(true); setError("");
@@ -38,7 +39,10 @@ export function StoryboardReviewPanel({ projectId, readOnly, onInitialLoadSettle
       if (owns(session)) setError(reason instanceof Error ? reason.message : "Storyboard review operation failed.");
     }).finally(() => { if (owns(session)) setBusy(false); });
   };
-  if (!state) return null;
+  if (!state) return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">
+    <header><span>分镜评审</span><strong>{error ? "无法加载" : "正在加载"}</strong></header>
+    {error ? <><ErrorNotice message={error} /><Button variant="quiet" onClick={() => void load()}>重试加载分镜评审</Button></> : <Spinner />}
+  </article>;
   const { candidate, acceptedReview } = state;
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : acceptedReview?.candidateJobId;
   return <article id="storyboard-review" className="panel cast-panel" data-testid="storyboard-review">

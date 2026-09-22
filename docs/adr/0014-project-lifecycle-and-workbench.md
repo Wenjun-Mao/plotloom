@@ -19,6 +19,23 @@ individual stage editors or as a V1-compatible UI patch.
 
 ## Decision
 
+### Source workflow fragments select an accessible owner presentation
+
+The creator sidebar's `stage=source` fragments are a presentation-selection
+contract, not a request to scroll an aggregate page. `source`, `art`, `script`,
+and `storyboard-review` each expose the matching main heading and only that
+owner's working content. The existing source, Art, Script, and F5A components
+remain mounted behind native `hidden` boundaries so a same-project fragment
+change preserves local owner drafts without leaving inactive controls in the
+focus or accessibility tree. Every owner keeps its own read/error/currentness
+state; a failed source aggregate read must not hide an independently available
+owner or replace its truthful state. Invalid fragments select source.
+
+This belongs in the workbench presentation contract because routing, focus,
+draft continuity, and independent owner failure semantics meet there. It does
+not add production routes, APIs, persistence state, or dependencies between
+the source aggregate and its secondary owners.
+
 ### Lifecycle is separate from authored content
 
 A project has an `active` or `archived` lifecycle state and an independent,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
-import { Button, ErrorNotice } from "../components";
+import { Button, ErrorNotice, Spinner } from "../components";
 import type { ArtCandidate, ArtReferenceDecision, ArtReferenceDecisionState, ArtReferenceProposal, ArtReviewState } from "../types";
 import { ArtReferenceGallery } from "./ArtReferenceGallery";
 
@@ -8,7 +8,7 @@ type EditorProps = { disabled: boolean; draft: string; setDraft: (value: string)
 type ProjectSession = { projectId: string; epoch: number };
 
 /** F3A owns text review; the distinct F3B study surface owns reference bytes. */
-export function ArtPanel({ projectId, readOnly, onInitialLoadSettled }: { projectId: string; readOnly: boolean; onInitialLoadSettled?: () => void }) {
+export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
   const [state, setState] = useState<ArtReviewState>();
   const [studies, setStudies] = useState<ArtReferenceProposal[]>([]);
   const [referenceDecisions, setReferenceDecisions] = useState<ArtReferenceDecision[]>([]);
@@ -23,6 +23,7 @@ export function ArtPanel({ projectId, readOnly, onInitialLoadSettled }: { projec
   }
   const ownsProject = (session: ProjectSession) => activeProject.current === session;
   const load = useCallback(async (session = activeProject.current) => {
+    if (ownsProject(session)) setError("");
     try {
       const [next, referenceStudies, decisions] = await Promise.all([
         plotloomApi.getArt(session.projectId),
@@ -37,14 +38,14 @@ export function ArtPanel({ projectId, readOnly, onInitialLoadSettled }: { projec
   useEffect(() => {
     const session = activeProject.current;
     setState(undefined); setStudies([]); setReferenceDecisions([]); setReferenceStates([]); setAssignment(""); setDraft(""); setError(""); setBusy(false);
-    void load(session).finally(() => { if (ownsProject(session)) onInitialLoadSettled?.(); });
+    void load(session);
     return () => {
       // An unmounted panel must not let an already-settled child operation
       // refresh through its captured parent callback. StrictMode immediately
       // installs a new epoch after this development cleanup.
       if (ownsProject(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 };
     };
-  }, [projectId, load, onInitialLoadSettled]);
+  }, [projectId, load]);
   useEffect(() => {
     // The accepted revision is the current project-owned record. Reopen changes
     // only whether it is editable; it must never be the sole way to inspect it.
@@ -59,7 +60,10 @@ export function ArtPanel({ projectId, readOnly, onInitialLoadSettled }: { projec
     }).finally(() => { if (ownsProject(session)) setBusy(false); });
   };
   const parsed = () => { try { return JSON.parse(draft) as Record<string, unknown>; } catch { setError("art.json 必须是有效 JSON。"); return undefined; } };
-  if (!state) return null;
+  if (!state) return <article id="art" className="panel cast-panel art-panel" data-testid="art-review">
+    <header><span>美术参考</span><strong>{error ? "无法加载" : "正在加载"}</strong></header>
+    {error ? <><ErrorNotice message={error} /><Button variant="quiet" onClick={() => void load()}>重试加载美术参考</Button></> : <Spinner />}
+  </article>;
   const { candidate, acceptedArt: accepted } = state;
   const heading = state.status === "stale" ? "上下文已过期" : accepted ? `已接受 r${accepted.revision}` : candidate?.status === "ready" ? "可审核" : candidate?.status === "prepared" ? "等待 specialist" : "尚无美术候选";
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : accepted?.candidateJobId;

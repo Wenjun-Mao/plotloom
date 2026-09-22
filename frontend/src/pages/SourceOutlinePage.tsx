@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError, plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { SourceMaterial, SourceOutlineReviewState, StoryGraph } from "../types";
@@ -8,13 +8,6 @@ import { ScriptPanel } from "./ScriptPanel";
 import { StoryboardReviewPanel } from "./StoryboardReviewPanel";
 import { deriveRoutes } from "../model";
 import { sourceWorkflowTarget } from "../app/workspace/sourceWorkflowNavigation";
-
-type EmbeddedSourceOwner = "art" | "script" | "storyboard-review";
-const ownersBeforeTarget: Record<EmbeddedSourceOwner, EmbeddedSourceOwner[]> = {
-  art: ["art"],
-  script: ["art", "script"],
-  "storyboard-review": ["art", "script", "storyboard-review"],
-};
 
 const blankSource: SourceMaterial = {
   kind: "synopsis",
@@ -39,16 +32,11 @@ export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }
   const [error, setError] = useState("");
   const [graph, setGraph] = useState<{ payload: StoryGraph; revision: number }>();
   const [loadedProjectId, setLoadedProjectId] = useState("");
-  const [settledOwners, setSettledOwners] = useState<Set<EmbeddedSourceOwner>>(() => new Set());
   const draftDirty = useRef(false);
-  const root = useRef<HTMLElement>(null);
   const activeProject = useRef({ projectId, epoch: 0 });
   if (activeProject.current.projectId !== projectId) activeProject.current = { projectId, epoch: activeProject.current.epoch + 1 };
   const ownsProject = (session: { projectId: string; epoch: number }) => activeProject.current === session;
-  const markOwnerSettled = useCallback((owner: EmbeddedSourceOwner) => setSettledOwners((current) => current.has(owner) ? current : new Set(current).add(owner)), []);
-  const onArtSettled = useCallback(() => markOwnerSettled("art"), [markOwnerSettled]);
-  const onScriptSettled = useCallback(() => markOwnerSettled("script"), [markOwnerSettled]);
-  const onStoryboardReviewSettled = useCallback(() => markOwnerSettled("storyboard-review"), [markOwnerSettled]);
+  const focusedTarget = sourceWorkflowTarget(navigationTarget) || "source";
 
   const load = async (overwriteDraft = false, session = activeProject.current) => {
     setError("");
@@ -73,22 +61,10 @@ export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }
   useEffect(() => {
     const session = activeProject.current;
     draftDirty.current = false;
-    setState(undefined); setGraph(undefined); setLoadedProjectId(""); setSettledOwners(new Set()); setAssignment(""); setError("");
+    setState(undefined); setGraph(undefined); setLoadedProjectId(""); setAssignment(""); setError("");
     void load(false, session);
     return () => { if (ownsProject(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 }; };
   }, [projectId]); // The project route owns refreshes.
-
-  useEffect(() => {
-    const target = sourceWorkflowTarget(navigationTarget);
-    if (!target || !state || loadedProjectId !== projectId) return;
-    if (target !== "source" && !ownersBeforeTarget[target].every((owner) => settledOwners.has(owner))) return;
-    const frame = requestAnimationFrame(() => {
-      if (loadedProjectId !== projectId) return;
-      const element = target === "source" ? root.current : root.current?.querySelector<HTMLElement>(`#${target}`);
-      element?.scrollIntoView({ block: "start" });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [loadedProjectId, navigationTarget, projectId, settledOwners, state]);
 
   const updateDraft = (next: SourceMaterial) => {
     draftDirty.current = true;
@@ -107,15 +83,15 @@ export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }
     finally { setBusy(false); }
   };
 
-  if (!state) return <section className="page"><Spinner />{error && <ErrorNotice message={error} />}</section>;
-  const candidate = state.candidate;
-  const accepted = state.acceptedOutline;
+  const candidate = state?.candidate;
+  const accepted = state?.acceptedOutline;
   const canSave = !readOnly && !busy && Boolean(draft.title.trim() && draft.text.trim() && draft.attribution.trim() && draft.rightsDeclaration.trim() && draft.adaptationIntent.trim());
 
-  return <section ref={root} id="source" className="page source-outline-page" data-project-id={loadedProjectId}>
-    <header className="page-header"><div><span>来源与大纲</span><h1>来源与小说大纲</h1><p>来源、候选和已接受大纲互相独立。权利声明按作者填写保存，不构成平台的法律确认。</p></div><Button variant="quiet" disabled={busy} onClick={() => void load(true)}>刷新</Button></header>
-    {error && <ErrorNotice message={error} />}
-    <div className="source-outline-grid">
+  return <section id="source" className="page source-outline-page" data-project-id={loadedProjectId || projectId}>
+    <section className="source-workflow-source" hidden={focusedTarget !== "source"} aria-labelledby="source-workflow-heading">
+      <header className="page-header"><div><span>来源与大纲</span><h1 id="source-workflow-heading">来源与小说大纲</h1><p>来源、候选和已接受大纲互相独立。权利声明按作者填写保存，不构成平台的法律确认。</p></div><Button variant="quiet" disabled={busy} onClick={() => void load(true)}>刷新</Button></header>
+      {error && <ErrorNotice message={error} />}
+      {!state ? <Spinner /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
         <header><span>已接受的来源</span><strong>{state.source ? `来源 r${state.source.revision}` : "尚未保存来源"}</strong></header>
         <label>来源类型<select disabled={readOnly || busy} value={draft.kind} onChange={(event) => updateDraft({ ...draft, kind: event.target.value as SourceMaterial["kind"] })}><option value="synopsis">梗概（发展为来源故事）</option><option value="imported_text">导入文字 / treatment</option><option value="existing_work">既有作品改编</option></select></label>
@@ -157,7 +133,7 @@ export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }
       </article>
 
       <SectionMapPanel
-        outline={accepted} accepted={state.acceptedSectionMap} status={state.sectionMapStatus}
+        outline={accepted || null} accepted={state.acceptedSectionMap} status={state.sectionMapStatus}
         staleReasons={state.sectionMapStaleReasons} readOnly={readOnly} busy={busy}
         graphAdmission={state.graphAdmission}
         routes={state.graphAdmission?.status === "current" && graph?.revision === state.graphAdmission.graphRevision ? deriveRoutes(graph.payload) : []}
@@ -184,9 +160,19 @@ export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }
           }));
         }}
       />
-      <ArtPanel projectId={projectId} readOnly={readOnly} onInitialLoadSettled={onArtSettled} />
-      <ScriptPanel projectId={projectId} readOnly={readOnly} onInitialLoadSettled={onScriptSettled} />
-      <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} onInitialLoadSettled={onStoryboardReviewSettled} />
-    </div>
+      </div>}
+    </section>
+    <section className="source-workflow-focus" hidden={focusedTarget !== "art"} aria-labelledby="art-workflow-heading">
+      <header className="page-header"><div><span>创作流程</span><h1 id="art-workflow-heading">美术参考</h1><p>在当前来源、角色与章节约束下审阅地点、道具及其可复用参考。</p></div></header>
+      <ArtPanel projectId={projectId} readOnly={readOnly} />
+    </section>
+    <section className="source-workflow-focus" hidden={focusedTarget !== "script"} aria-labelledby="script-workflow-heading">
+      <header className="page-header"><div><span>创作流程</span><h1 id="script-workflow-heading">剧本</h1><p>审阅当前完整 pilot，或在允许时编辑其稳定章节。</p></div></header>
+      <ScriptPanel projectId={projectId} readOnly={readOnly} />
+    </section>
+    <section className="source-workflow-focus" hidden={focusedTarget !== "storyboard-review"} aria-labelledby="storyboard-review-workflow-heading">
+      <header className="page-header"><div><span>创作流程</span><h1 id="storyboard-review-workflow-heading">分镜评审</h1><p>审阅与已接受剧本绑定的 storyboard 证据；此处不会创建镜头或媒体。</p></div></header>
+      <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} />
+    </section>
   </section>;
 }

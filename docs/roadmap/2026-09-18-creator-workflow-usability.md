@@ -3,7 +3,8 @@
 Status: **U2 is complete; the bounded U3 Characters appearance workspace is
 accepted; the separate U3 environment/prop F3B review and explicit
 reference-choice usability slices are delivered; and the bounded U1a
-creator-navigation shell is implemented pending director inspection. Broader
+creator-navigation shell and its source-owner presentation correction are
+implemented pending director inspection. Broader
 U1–U4 redesign remains unapproved.**
 Date: 2026-09-18; current summary updated 2026-09-22. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
 
@@ -33,6 +34,20 @@ production behavior changed. `frontend/e2e/u1a-workflow-navigation-demo.html`
 is a permanent, explicitly local no-API walkthrough fixture, not evidence about
 any user project or persistence. Director review remains the product-acceptance
 gate; this record does not authorize retiring an editor or route.
+
+**U1a presentation correction — 2026-09-22.** The initial fragment contract
+only scrolled the aggregate source page, so 美术参考, 剧本, and 分镜评审 retained
+the unrelated 来源与小说大纲 heading and source form. The corrected contract keeps
+the existing source, Art, Script, and F5A owners mounted for local-draft
+continuity, but exposes exactly one full-width, native-`hidden` subview at a
+time. Each accepted fragment now supplies its own matching `h1`; hidden owner
+content is neither visible nor focusable/announced. Owner reads stay
+independent: a failed aggregate source read cannot suppress an Art, Script, or
+F5A loading, missing, stale, archived, or error state. The obsolete
+owner-settlement/anchor-scroll sequencing was removed. This does not add a
+route, API, store, generation action, or acceptance claim; direct fragment,
+Back/Forward, invalid-fragment fallback, project reset, and same-stage draft
+preservation remain required regression behavior.
 
 **Historical 2026-09-18 dispatch status.** At this plan's creation, only the
 representative U2 reader was dispatched and generation was paused. That

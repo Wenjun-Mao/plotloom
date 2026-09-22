@@ -508,8 +508,10 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .approval-history:last-child { border-bottom: 0; }
 .approval-history strong { color: var(--text); font: 700 10px var(--mono); }
 .approval-history small { color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+.source-workflow-source, .source-workflow-focus { display: grid; gap: 16px; min-width: 0; }
+.source-workflow-source[hidden], .source-workflow-focus[hidden] { display: none; }
+.source-workflow-focus > .panel { width: 100%; }
 .source-outline-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
-.source-outline-grid > .art-panel { grid-column: 1 / -1; }
 .source-outline-grid .panel { display: grid; gap: 12px; }
 .source-outline-grid .panel > header { display: grid; gap: 3px; }
 .source-outline-grid .panel > header span { color: var(--accent); font: 700 10px var(--mono); letter-spacing: .07em; text-transform: uppercase; }

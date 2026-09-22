@@ -1,12 +1,6 @@
 import { expect, test } from "./fixture";
 import { changeScript, createScriptProject, endpoint, json, writeDelivery } from "./f5a-fixture";
 
-async function expectFragmentAtViewportStart(page: import("@playwright/test").Page, id: string) {
-  // The persistent workbench header reserves the first 76px; the target must
-  // otherwise be positioned at the viewport start rather than merely exist.
-  await expect.poll(async () => page.locator(`#${id}`).evaluate((element) => Math.abs(element.getBoundingClientRect().top))).toBeLessThan(100);
-}
-
 async function acceptStoryboardReview(request: import("@playwright/test").APIRequestContext, origin: string, projectId: string) {
   const prepared = await json(request.post(`${endpoint(origin, projectId)}/candidates`));
   await writeDelivery(prepared);
@@ -23,24 +17,23 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   const workflow = page.getByRole("navigation", { name: "创作流程" });
   const topbarLabel = page.locator(".topbar > div").first().locator("strong");
   await expect(workflow.getByRole("link", { name: "美术参考" })).toHaveAttribute("href", `?project=${firstProject}&stage=source#art`);
+  await expect(page.getByRole("heading", { name: "美术参考", exact: true })).toBeVisible();
   await expect(page.getByTestId("art-review")).toBeVisible();
   await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", firstProject);
-  await expect(page.locator(".source-outline-page > .page-header span")).toHaveText("来源与大纲");
-  await expect(page.locator(".source-outline-source header > span")).toHaveText("已接受的来源");
-  await expect(page.locator(".source-outline-candidate header > span")).toHaveText("大纲候选");
-  await expect(page.locator(".source-outline-accepted header > span")).toHaveText("已接受的大纲");
-  await expect(page.getByTestId("section-map").locator("header > span")).toHaveText("分支章节映射");
+  await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
+  await expect(page.getByLabel("来源正文或 treatment")).not.toBeVisible();
   await expect(page.getByTestId("art-review").locator("header > span")).toHaveText("美术参考");
   await expect(page.getByTestId("art-review").locator(":scope > small").first()).toContainText("参考研究在下方单独显示");
   await expect(page.getByTestId("art-review").locator(":scope > small").first()).not.toContainText("F3B");
   await expect(topbarLabel).toHaveText("美术参考");
   await expect(workflow.getByRole("link", { name: "美术参考" })).toHaveAttribute("aria-current", "step");
   await expect(workflow.getByRole("link", { name: "剧本" })).not.toHaveAttribute("aria-current", "step");
-  await expectFragmentAtViewportStart(page, "art");
 
   await workflow.getByRole("link", { name: "剧本" }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#script$`));
+  await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
   await expect(page.getByTestId("script-review")).toBeVisible();
+  await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
   await expect(page.getByTestId("script-review").locator("header > span")).toHaveText("剧本");
   await expect(topbarLabel).toHaveText("剧本");
   await expect(workflow.getByRole("link", { name: "剧本" })).toHaveAttribute("aria-current", "step");
@@ -48,16 +41,19 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
 
   await page.goBack();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#art$`));
+  await expect(page.getByRole("heading", { name: "美术参考", exact: true })).toBeVisible();
   await expect(page.getByTestId("art-review")).toBeVisible();
   await expect(workflow.getByRole("link", { name: "美术参考" })).toHaveAttribute("aria-current", "step");
-  await expectFragmentAtViewportStart(page, "art");
   await page.goForward();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#script$`));
+  await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
   await expect(page.getByTestId("script-review")).toBeVisible();
 
   await workflow.getByRole("link", { name: "分镜评审" }).click();
   await expect(page).toHaveURL(new RegExp(`project=${firstProject}&stage=source#storyboard-review$`));
+  await expect(page.getByRole("heading", { name: "分镜评审", exact: true })).toBeVisible();
   await expect(page.getByTestId("storyboard-review")).toBeVisible();
+  await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
   await expect(page.getByTestId("storyboard-review").locator("header > span")).toHaveText("分镜评审");
   await expect(topbarLabel).toHaveText("分镜评审");
   await page.getByText("编辑与工具", { exact: true }).click();
@@ -69,6 +65,21 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", secondProject);
   await expect(page.locator(".source-outline-page")).not.toContainText("F5A workflow-navigation-a");
   await expect(page.getByTestId("art-review")).toBeVisible();
+
+  await workflow.getByRole("link", { name: "来源与大纲" }).click();
+  await expect(page).toHaveURL(new RegExp(`project=${secondProject}&stage=source#source$`));
+  await expect(page.getByRole("heading", { name: "来源与小说大纲", exact: true })).toBeVisible();
+  const sourceText = page.getByLabel("来源正文或 treatment");
+  await sourceText.fill("保留的未保存来源草稿");
+  await workflow.getByRole("link", { name: "美术参考" }).click();
+  await expect(sourceText).not.toBeVisible();
+  await workflow.getByRole("link", { name: "来源与大纲" }).click();
+  await expect(sourceText).toHaveValue("保留的未保存来源草稿");
+
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${secondProject}&stage=source#not-a-source-owner`);
+  await expect(page.getByRole("heading", { name: "来源与小说大纲", exact: true })).toBeVisible();
+  await expect(page.getByTestId("source-outline-source")).toBeVisible();
+  await expect(workflow.getByRole("link", { name: "来源与大纲" })).toHaveAttribute("aria-current", "step");
 });
 
 test("keeps missing and stale F5A review explanations at their source-bound owner", async ({ page, request, workbench }) => {
@@ -78,7 +89,7 @@ test("keeps missing and stale F5A review explanations at their source-bound owne
   const review = page.getByTestId("storyboard-review");
   await expect(review).toContainText("尚无 review");
   await expect(review).toContainText("准备并复制 storyboard specialist handoff");
-  await expectFragmentAtViewportStart(page, "storyboard-review");
+  await expect(page.getByRole("heading", { name: "分镜评审", exact: true })).toBeVisible();
 
   await acceptStoryboardReview(request, workbench.apiOrigin, projectId);
   await changeScript(request, workbench.apiOrigin, projectId);
@@ -89,24 +100,37 @@ test("keeps missing and stale F5A review explanations at their source-bound owne
   await expect(review).toContainText("不是 Plotloom 的 shots、播放内容、媒体提示词或投产许可");
 });
 
-test("waits for an earlier source owner before positioning a later embedded target", async ({ page, request, workbench }) => {
-  const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-out-of-order");
-  let releaseArt: (() => void) | undefined;
-  const artResponse = new Promise<void>((resolve) => { releaseArt = resolve; });
-  let heldArtRead = false;
-  await page.route(`**/api/v2/projects/${projectId}/art`, async (route) => {
-    if (route.request().method() !== "GET" || heldArtRead) return route.continue();
-    heldArtRead = true;
-    await artResponse;
+test("keeps an independent owner usable when the aggregate source read fails", async ({ page, request, workbench }) => {
+  const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-independent-owner");
+  await page.route(`**/api/v2/projects/${projectId}/source-outline`, async (route) => {
+    if (route.request().method() === "GET") return route.abort("failed");
     await route.continue();
   });
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#script`);
+  await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
   await expect(page.getByTestId("script-review")).toBeVisible();
-  await expect.poll(() => heldArtRead).toBeTruthy();
-  releaseArt?.();
-  await expect(page.getByTestId("art-review")).toBeVisible();
-  await expectFragmentAtViewportStart(page, "script");
+  await expect(page.getByTestId("script-review")).toContainText("已接受 r1");
+  await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
+});
+
+test("clears an owner-local load error after its retry succeeds", async ({ page, request, workbench }) => {
+  const projectId = await createScriptProject(request, workbench.apiOrigin, "workflow-owner-retry");
+  let failScriptReads = true;
+  await page.route(`**/api/v2/projects/${projectId}/script`, async (route) => {
+    if (route.request().method() === "GET" && failScriptReads) {
+      return route.abort("failed");
+    }
+    await route.continue();
+  });
+
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#script`);
+  const script = page.getByTestId("script-review");
+  await expect(script.getByRole("alert")).toBeVisible();
+  failScriptReads = false;
+  await script.getByRole("button", { name: "重试加载剧本" }).click();
+  await expect(script).toContainText("已接受 r1");
+  await expect(script.getByRole("alert")).toHaveCount(0);
 });
 
 test("returns from the secondary workbench after an awaited offline project load and retries canonically", async ({ page, request, workbench }) => {

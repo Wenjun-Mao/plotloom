@@ -1,7 +1,7 @@
 import type { MouseEvent } from "react";
 
 import type { PageId } from "./contracts";
-import { sourceWorkflowHref, type SourceWorkflowTarget, viewHref, workspaceHref } from "./sourceWorkflowNavigation";
+import { sourceWorkflowHref, sourceWorkflowTarget, type SourceWorkflowTarget, viewHref, workspaceHref } from "./sourceWorkflowNavigation";
 
 type WorkspaceDestination = { stage: PageId; hash?: string };
 
@@ -25,7 +25,7 @@ export function CreatorWorkflowNavigation({ projectId, activePage, activeHash, d
   disabled: boolean;
   onNavigate: (destination: WorkspaceDestination) => void;
 }) {
-  const selectedSourceTarget = activePage === "source" ? activeHash || "source" : "";
+  const selectedSourceTarget = activePage === "source" ? sourceWorkflowTarget(activeHash) || "source" : "";
   if (!projectId) return <section className="creator-workflow-navigation unavailable" aria-label="创作流程"><strong>创作流程</strong><small>保存项目后，可在这里返回来源、角色和各项已接受的审阅工作。</small></section>;
   return <nav className="creator-workflow-navigation" aria-label="创作流程">
     <div className="creator-workflow-heading"><strong>创作流程</strong><small>每项状态和下一步都由对应工作区说明。</small></div>

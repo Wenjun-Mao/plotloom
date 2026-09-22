@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
-import { Button, ErrorNotice } from "../components";
+import { Button, ErrorNotice, Spinner } from "../components";
 import type { AcceptedScriptRevision, ScriptCandidate, ScriptReviewState } from "../types";
 
 type ProjectSession = { projectId: string; epoch: number };
 
 /** F4 reviews one upstream JSON authority and permits only bound episode replacement. */
-export function ScriptPanel({ projectId, readOnly, onInitialLoadSettled }: { projectId: string; readOnly: boolean; onInitialLoadSettled?: () => void }) {
+export function ScriptPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
   const [state, setState] = useState<ScriptReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState("");
@@ -19,6 +19,7 @@ export function ScriptPanel({ projectId, readOnly, onInitialLoadSettled }: { pro
   }
   const owns = (session: ProjectSession) => activeProject.current === session;
   const load = useCallback(async (session = activeProject.current) => {
+    if (owns(session)) setError("");
     try {
       const next = await plotloomApi.getScript(session.projectId);
       if (owns(session)) setState(next);
@@ -29,11 +30,11 @@ export function ScriptPanel({ projectId, readOnly, onInitialLoadSettled }: { pro
   useEffect(() => {
     const session = activeProject.current;
     setState(undefined); setAssignment(""); setError(""); setBusy(false); setSectionId(""); setDraft("");
-    void load(session).finally(() => { if (owns(session)) onInitialLoadSettled?.(); });
+    void load(session);
     return () => {
       if (owns(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 };
     };
-  }, [projectId, load, onInitialLoadSettled]);
+  }, [projectId, load]);
   useEffect(() => {
     // A selection belongs to one accepted revision and one editor mode. It is
     // never safe to carry it across reopening or an async project refresh.
@@ -56,7 +57,10 @@ export function ScriptPanel({ projectId, readOnly, onInitialLoadSettled }: { pro
     });
   };
   const prepare = () => run(() => plotloomApi.prepareScriptCandidate(projectId), result => setAssignment(result.assignment));
-  if (!state) return null;
+  if (!state) return <article id="script" className="panel cast-panel" data-testid="script-review">
+    <header><span>剧本</span><strong>{error ? "无法加载" : "正在加载"}</strong></header>
+    {error ? <><ErrorNotice message={error} /><Button variant="quiet" onClick={() => void load()}>重试加载剧本</Button></> : <Spinner />}
+  </article>;
 
   const { candidate, acceptedScript: accepted } = state;
   const script = activeScript(candidate, accepted);
