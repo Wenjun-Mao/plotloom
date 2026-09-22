@@ -130,3 +130,18 @@ descriptions would need an explicit new schema and approval contract.
 
 The remaining review is human creative acceptance of the authored story; this
 receipt deliberately does not claim it.
+
+## Connected walkthrough usability acceptance
+
+At local commit `a869e7c`, the director inspected the retained project through
+the isolated connected reader, including the two distinct route endings and the
+read-only screenplay/storyboard presentation, and reported: “All look good to
+me.” This is attended acceptance of the bounded U4 usability outcome: the
+director can inspect one coherent F1–F5 project and understand the two paths
+without the reader altering canon or initiating production work.
+
+It is not final creative acceptance of the agent-authored story, a selected
+character/art reference decision, canonical StoryBible/SceneBeats/Shot
+installation, image/video dispatch, H3 qualification, media selection, or
+PlayView acceptance. The next F5-to-production/F7 seam is recorded separately
+as a read-only preflight.

@@ -13,9 +13,14 @@ The bounded U1a navigation shell and compact tool presentation are accepted at
 `94cf165`; they preserve all editor routes and record a local no-API walkthrough
 fixture in the same usability plan. This is presentation-only, not
 creative/media, production-consumer, or persistence acceptance. Video, F2/F7
-creative or media acceptance, and the broader U1–U4 redesign remain out of
-scope. The prior authorized ImageGen proof is complete; it authorizes no
-further provider calls.
+creative or media acceptance, and the broader redesign remain out of scope.
+The retained U4 lighthouse walkthrough has a separate connected, read-only
+usability acceptance at `a869e7c`; it does not accept creative content, media,
+production installation, or playback. Its follow-on
+[F5-to-production/F7 seam preflight](../verification/2026-09-22-f5-to-production-preflight.md)
+is assessment-only and identifies the material decisions before implementation.
+The prior authorized ImageGen proof is complete; it authorizes no further
+provider calls.
 
 ## Archive index
 

@@ -16,11 +16,13 @@ bounded usability records live in the
 [usability review plan](2026-09-18-creator-workflow-usability.md); none is
 creative/media approval, a production consumer, or a whole-workflow redesign.
 
-Current work is the documentation-only U0/U1 navigation and workflow
-assessment recorded there. No provider or generation work is authorized by this
-assessment. A later U1 implementation may only start from its bounded brief;
-language policy, broader stage retirement, F5-to-production integration, and
-H3 tuning remain open and are not decided by this tracker.
+The U0/U1 navigation and workflow assessment is complete historical planning;
+the bounded U1a implementation is accepted at `94cf165`. The retained U4
+lighthouse walkthrough received connected, read-only usability acceptance at
+`a869e7c`, recorded in its verification receipt. Neither acceptance authorizes
+provider or generation work. The next F5-to-production/F7 activity is a
+read-only seam preflight only: its mapping, canonical-install, reference, and
+duration decisions remain open and are not decided by this tracker.
 
 ### U4 — coherent retained text-story walkthrough (approved 2026-09-22)
 
@@ -40,6 +42,16 @@ technical fixtures. Exclusions: providers and media generation, images/video,
 production-shot installation, broad UI redesign, new backends, and product or
 human creative acceptance. Stop when the director can inspect the retained
 walkthrough. Local commits are authorized; do not push.
+
+**Connected walkthrough acceptance (2026-09-22).** The director inspected the
+retained project through the isolated reader and reported that it looked good.
+This accepts the U4 scope of a coherent, connected, read-only F1–F5 walkthrough
+and its route-focused usability only. It does not accept the authored creative
+content as a final creative decision, install a canonical production storyboard
+or media, qualify H3, prove playback, or change any F7 approval/selection
+contract. The retained [U4 receipt](../verification/2026-09-22-u4-lighthouse-walkthrough.md)
+and [F5-to-production/F7 seam preflight](../verification/2026-09-22-f5-to-production-preflight.md)
+preserve the boundary and the next material decisions.
 
 ## Outcomes and starting point
 

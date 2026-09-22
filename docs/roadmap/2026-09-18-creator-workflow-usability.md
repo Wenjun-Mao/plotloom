@@ -5,8 +5,8 @@ accepted; the separate U3 environment/prop F3B review and explicit
 reference-choice usability slices are delivered; and the bounded U1a
 creator-navigation shell, source-owner presentation correction, and compact
 secondary-tool presentation are accepted at `94cf165`. U4 is limited to
-preparing one genuine coherent-story walkthrough; broader U1–U4 redesign
-remains unapproved.**
+one genuine coherent-story walkthrough and received connected read-only
+usability acceptance at `a869e7c`; broader redesign remains unapproved.**
 Date: 2026-09-18; current summary updated 2026-09-22. Parent: [playable MVP tracker](2026-09-17-playable-mvp-milestones.md).
 
 **Current summary.** U3 acceptance is limited to the Characters workspace:
@@ -65,15 +65,15 @@ contract.
 the bounded navigation and heading/sidebar presentation at `94cf165`. It
 remains a presentation acceptance only: source-bound F5A review is distinct
 from the legacy shot/media workbench, and neither is creative/media approval
-or a production consumer. The U4 read-only preflight found no retained current
-same-story project: the local no-API U1a navigation fixture contains no current
-project/source/outline/cast/art/script/F5A state; retained U3 fixtures are
-explicitly technical and lack or reopen those owners. Do not repurpose either.
-The sole next requirement is an authorized existing project or supported
-isolated copy with current accepted
-source/outline/graph/cast/art/script and exact F5A binding; then run the
-attended walkthrough under existing temporary supervision without changing its
-original root.
+or a production consumer. The original U4 preflight found no retained current
+same-story project in the local no-API U1a fixture or retained U3 technical
+fixtures; neither was repurposed. That prerequisite was subsequently met by
+the authorized isolated lighthouse project. The director inspected its
+connected reader and accepted the U4 usability scope at `a869e7c`; see the
+[U4 receipt](../verification/2026-09-22-u4-lighthouse-walkthrough.md). This
+does not install production data or make a creative/media/production claim;
+the next F5-to-production/F7 work remains the separate
+[assessment](../verification/2026-09-22-f5-to-production-preflight.md).
 
 **Historical 2026-09-18 dispatch status.** At this plan's creation, only the
 representative U2 reader was dispatched and generation was paused. That
@@ -151,14 +151,15 @@ The original narrow-viewport expectation is historical planning guidance; the
 current U3 desktop policy uses 1440px and 1920px visual acceptance, while
 retaining inexpensive responsive behavior without a narrow-viewport gate.
 
-## U0/U1 navigation and current-workflow assessment — 2026-09-22
+## Completed U0/U1 navigation and workflow assessment — 2026-09-22
 
-**Approved assessment boundary.** This is a source-backed documentation slice,
-not approval to redesign or remove a workflow. It records the current screens,
-their owners, and the smallest coherent next navigation change. It does not
-create a new stage, API, projection, persistence state, production storyboard,
-or media owner. The observed F3B reference-choice usability acceptance at
-`729cb94` is included only as a bounded creator-facing presentation result.
+**Historical assessment boundary.** This source-backed documentation slice
+defined the later accepted U1a navigation change; it was never approval to
+redesign or remove a workflow. It records the screens and owners that informed
+that bounded implementation. It did not create a new stage, API, projection,
+persistence state, production storyboard, or media owner. The observed F3B
+reference-choice usability acceptance at `729cb94` is included only as a
+bounded creator-facing presentation result.
 
 ### Current screen and ownership map
 
