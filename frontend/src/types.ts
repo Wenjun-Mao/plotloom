@@ -1314,3 +1314,6 @@ export interface StoryboardReviewCandidate { jobId: string; expectedReviewRevisi
 export interface StoryboardReviewCandidatePreparation extends StoryboardReviewCandidate { packagePath: string; deliveryPath: string; assignment: string; }
 export interface AcceptedStoryboardReviewRevision { revision: number; candidateJobId: string; contentHash: string; binding: StoryboardReviewBinding; storyboard: Record<string, unknown>; acceptedAt: string; }
 export interface StoryboardReviewState { candidate: StoryboardReviewCandidate | null; acceptedReview: AcceptedStoryboardReviewRevision | null; status: "missing" | "prepared" | "candidate_ready" | "accepted" | "stale"; staleReasons: string[]; }
+export interface ProductionBridgeConflict { code: string; message: string; sectionId: string | null; episode: number | null; sceneIndex: number | null; }
+export interface ProductionBridgeProposal { revision: number; contentHash: string; inputs: Record<string, unknown>; scenes: Array<Record<string, unknown>>; cuts: Array<Record<string, unknown>>; conflicts: ProductionBridgeConflict[]; installable: boolean; preparedAt: string; }
+export interface ProductionBridgeState { proposal: ProductionBridgeProposal | null; status: "missing" | "ready" | "accepted" | "stale"; staleReasons: string[]; installedStageRevisions: Record<string, number> | null; }

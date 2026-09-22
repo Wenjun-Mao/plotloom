@@ -66,6 +66,7 @@ import type {
   StoryboardReviewState,
   StoryboardReviewCandidate,
   StoryboardReviewCandidatePreparation,
+  ProductionBridgeState,
 } from "./types";
 import { providerSessionKeys } from "./session-key";
 import { projectCreationBody } from "./project-creation";
@@ -636,6 +637,9 @@ export class PlotloomApiClient {
   cancelStoryboardSourceReviewCandidate(projectId: string, jobId: string): Promise<StoryboardReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }
   acceptStoryboardSourceReviewCandidate(projectId: string, body: { jobId: string; expectedReviewRevision: number; binding: unknown }): Promise<StoryboardReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/storyboard-source-review/accept`, { method: "POST", body: JSON.stringify(body) }); }
   storyboardSourceReviewCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/storyboard-source-review/candidates/${encodeURIComponent(jobId)}/report`; }
+  getProductionBridge(projectId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge`); }
+  prepareProductionBridge(projectId: string): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/proposals`, { method: "POST" }); }
+  acceptProductionBridge(projectId: string, body: { expectedProposalRevision: number; expectedContentHash: string }): Promise<ProductionBridgeState> { return this.request(`/projects/${encodeURIComponent(projectId)}/production-bridge/accept`, { method: "POST", body: JSON.stringify(body) }); }
 
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
   getVideoBackend(): Promise<VideoBackend> { return this.request("/video-backend"); }

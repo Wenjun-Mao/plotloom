@@ -32,6 +32,7 @@ from ..schema import (
     CastCandidateRow, CastHeadRow, CastRevisionRow, ArtCandidateRow, ArtHeadRow, ArtRevisionRow,
     ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow,
     StoryboardReviewCandidateRow, StoryboardReviewHeadRow, StoryboardReviewRevisionRow,
+    ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeRevisionRow,
 )
 from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
 from .access import ProjectCodecs, ProjectGuards, ProjectLeases, ProjectPersistenceAccess, ProjectRows
@@ -64,6 +65,7 @@ from .cast import ProjectCastPersistence
 from .art import ProjectArtPersistence
 from .script import ProjectScriptPersistence
 from .storyboard_review import ProjectStoryboardReviewPersistence
+from .production_bridge import ProductionBridgePersistence
 from .repository_codecs import (
     approval_decision_from_row, artifact_from_row, assert_active_project,
     assert_lifecycle_revision, attempt_from_row, decode_current_stage_payload,
@@ -137,6 +139,7 @@ class ProjectSQLiteRepository:
                     ArtHeadRow.__table__, ArtCandidateRow.__table__, ArtRevisionRow.__table__,
                     ScriptHeadRow.__table__, ScriptCandidateRow.__table__, ScriptRevisionRow.__table__,
                     StoryboardReviewHeadRow.__table__, StoryboardReviewCandidateRow.__table__, StoryboardReviewRevisionRow.__table__,
+                    ProductionBridgeHeadRow.__table__, ProductionBridgeRevisionRow.__table__, ProductionBridgeAdmissionRow.__table__,
                 ],
             )
         self._generation_admission = ProjectGenerationAdmission()
@@ -175,6 +178,7 @@ class ProjectSQLiteRepository:
         self.art = ProjectArtPersistence(self._project_access, self.cast)
         self.script = ProjectScriptPersistence(self._project_access, self.art)
         self.storyboard_review = ProjectStoryboardReviewPersistence(self._project_access, self.script)
+        self.production_bridge = ProductionBridgePersistence(self._project_access, self._canonical, self.storyboard_review)
         self._media = ProjectMediaPersistence(
             self._project_access, self._canonical, self._drafts, self.cast, self.art, accounting=None
         )
@@ -327,6 +331,7 @@ class ProjectSQLiteRepository:
             self.art.initialize(session, project.id, created_at=project.created_at)
             self.script.initialize(session, project.id, created_at=project.created_at)
             self.storyboard_review.initialize(session, project.id, created_at=project.created_at)
+            self.production_bridge.initialize(session, project.id, created_at=project.created_at)
             session.flush()
             for initial_stage in normalized_stages:
                 payload = stage_payload_model(

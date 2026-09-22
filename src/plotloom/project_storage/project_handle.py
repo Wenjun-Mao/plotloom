@@ -37,6 +37,7 @@ from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCan
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
 from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
 from ..storyboard_review_contracts import StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
+from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeState
 from ..persistence import ProjectSQLiteRepository
 from .artifacts import _OwnedArtifactStore, ProjectArtifactStore, ProjectRunArtifactStore
 from .format import (
@@ -551,6 +552,15 @@ class ProjectStore:
 
     def storyboard_review_candidate_request(self, job_id: str) -> CreativeHandoffRequest:
         return self.repository.storyboard_review.candidate_request(self.manifest.project_id, job_id)
+
+    def production_bridge_state(self) -> ProductionBridgeState:
+        return self.repository.production_bridge.get_state(self.manifest.project_id)
+
+    def prepare_production_bridge(self) -> ProductionBridgeState:
+        return self.repository.production_bridge.prepare(self.manifest.project_id)
+
+    def accept_production_bridge(self, request: ProductionBridgeAcceptRequest) -> ProductionBridgeState:
+        return self.repository.production_bridge.accept(self.manifest.project_id, request)
 
     def save_authoring_draft(
         self,

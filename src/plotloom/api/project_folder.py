@@ -75,6 +75,7 @@ from .project_folder_cast import register_project_folder_cast_routes
 from .project_folder_art import register_project_folder_art_routes
 from .project_folder_script import register_project_folder_script_routes
 from .project_folder_storyboard_review import register_project_folder_storyboard_review_routes
+from .project_folder_production_bridge import register_project_folder_production_bridge_routes
 from .project_folder_media import register_project_folder_media_routes
 from .project_folder_image_jobs import register_project_folder_image_job_routes
 from .project_folder_video import register_project_folder_video_routes
@@ -741,6 +742,7 @@ def create_project_folder_authoring_app(
     register_project_folder_art_routes(app, opened_project)
     register_project_folder_script_routes(app, opened_project)
     register_project_folder_storyboard_review_routes(app, opened_project)
+    register_project_folder_production_bridge_routes(app, opened_project)
     if run_dispatcher is not None and text_admission is not None:
         register_project_folder_generation_routes(
             app, run_dispatcher, admission=text_admission
