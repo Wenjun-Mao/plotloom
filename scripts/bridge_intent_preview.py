@@ -50,7 +50,10 @@ def main() -> None:
         text_model="bridge_fixture", text_auth_mode="none", text_supports_json_schema=True,
         host="127.0.0.1", port=args.port,
     )
-    app = build_runtime_app(settings, text_provider_resolver=FakeResolver(PreviewFakeAdapter()))
+    app = build_runtime_app(
+        settings, text_provider_resolver=FakeResolver(PreviewFakeAdapter()),
+        bridge_simulation_label="模拟数据 · 假模型演示。这里的建议不是实际模型结果，也不代表作品内容已获认可。",
+    )
     print(f"DETERMINISTIC FAKE TEXT TRANSPORT — no provider calls. Project: {project_id}", flush=True)
     print(f"Preview: http://127.0.0.1:{args.port}/v2/?project={project_id}&stage=source#storyboard-review", flush=True)
     uvicorn.run(app, host="127.0.0.1", port=args.port)

@@ -56,7 +56,7 @@ class ProductionBridgeIntentPersistence:
             graph = self._bridge._canonical._load_stage_payload(session, project_id, StageName.STORY_GRAPH)
             nodes = {node.id: node for node in getattr(graph, "nodes", [])}
             episodes = {item.get("ep"): item for item in script.get("episodes", []) if isinstance(item, dict)}
-            targets = list(row.proposal["intentPackage"]["entries"])
+            package = self._bridge._intent_package(session, row)
             source_scenes: list[dict[str, Any]] = []
             for scene in row.proposal["scenes"]:
                 section_id, episode, index = scene["sectionId"], scene["episode"], scene["sceneIndex"]
@@ -77,9 +77,9 @@ class ProductionBridgeIntentPersistence:
                 })
             context = {"brief": project.brief, "scenes": source_scenes}
             prompt_targets = [{
-                "id": item["id"], "targetKind": item["targetKind"],
-                "sourceExcerpt": item["suggestedText"],
-            } for item in targets]
+                "id": item.id, "targetKind": item.target_kind,
+                "sourceExcerpt": item.source_excerpt,
+            } for item in package.entries]
             return context, prompt_targets
 
     def enqueue(
@@ -95,6 +95,7 @@ class ProductionBridgeIntentPersistence:
             row = self._revision(session, project_id, expected_revision)
             if row.content_hash != expected_hash or self._bridge._current(session, project_id, row.inputs):
                 raise InvalidTransitionError("bridge source or proposal changed before inference enqueue")
+            package = self._bridge._intent_package(session, row)
             active = session.scalar(select(ProductionBridgeIntentJobRow).where(
                 ProductionBridgeIntentJobRow.project_id == project_id,
                 ProductionBridgeIntentJobRow.status.in_(("queued", "dispatched")),
@@ -108,7 +109,7 @@ class ProductionBridgeIntentPersistence:
                 inputs=row.inputs, profile_snapshot=profile_snapshot,
                 prompt_trace=prompt_trace, prompt_messages=prompt_messages,
                 response_schema=response_schema,
-                expected_entries=list(row.proposal["intentPackage"]["entries"]),
+                expected_entries=[entry.model_dump(mode="json", by_alias=True) for entry in package.entries],
                 created_at=now, updated_at=now,
             ))
             return job_id
@@ -170,7 +171,7 @@ class ProductionBridgeIntentPersistence:
             if row.content_hash != job.proposal_content_hash or self._bridge._current(session, project_id, job.inputs):
                 job.status = "stale"
                 return
-            package = ProductionBridgeIntentPackage.model_validate(row.proposal["intentPackage"])
+            package = self._bridge._intent_package(session, row)
             if set(suggestions) != {entry.id for entry in package.entries}:
                 job.status, job.error_code = "failed", "intent.target_mismatch"
                 return
@@ -182,9 +183,9 @@ class ProductionBridgeIntentPersistence:
                 "providerRequestId": provider_request_id, "usage": usage,
             }
             updated = ProductionBridgeIntentPackage(
-                method="model_inference.v1", provenance=provenance,
+                suggestion_origin="model_inference.v1", review_state="model_suggested", provenance=provenance,
                 entries=[entry.model_copy(update={
-                    "method": "model_inference.v1", "suggested_text": suggestions[entry.id],
+                    "suggested_text": suggestions[entry.id],
                     "text": suggestions[entry.id],
                 }) for entry in package.entries],
             )

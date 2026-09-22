@@ -87,6 +87,20 @@ provider response or source excerpt becomes an accepted dramatic intent merely
 by existing. Reusing the canonical Scene Beats work-unit binder remains
 unsupported.
 
+The persisted supplement keeps three distinct texts: immutable accepted-source
+`sourceExcerpt` (bound to `sourceCoordinates` and `sourceContentHash`), optional
+model `suggestedText`, and reviewable/final `text`. Package `suggestionOrigin`
+identifies whether a model supplied a suggestion; `reviewState` independently
+records pending, model-suggested, or author-saved wording. Saving an author edit
+must not change model origin, its original suggestion, or its provenance. A new
+inference must use `sourceExcerpt`, never a previous `suggestedText`, as source
+evidence. The one retained pre-correction accepted local fixture is projected
+read-only from its original proposal revision and model job provenance; its
+historical rows and accepted binding are not rewritten to claim the new shape.
+Development-only fake previews carry a server-owned simulation notice in the
+bridge response. The UI must not infer that notice from a removable URL flag,
+and normal project responses carry no such notice.
+
 ## Consequences
 
 The implementation needs a versioned bridge prompt and strict whole-package

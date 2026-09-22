@@ -130,7 +130,7 @@ class ProductionBridgeIntentService:
                 )
                 extracted = extract_json_response(response.model_copy(update={"raw": redacted}), policy=extraction_policy)
                 suggestions = bind_intent_suggestions(extracted.value, data["expectedIds"])
-                excerpts = {entry["id"]: entry["suggestedText"].strip() for entry in owner.expected_entries(project_id, job_id)}
+                excerpts = {entry["id"]: entry["sourceExcerpt"].strip() for entry in owner.expected_entries(project_id, job_id)}
                 if any(text.strip() == excerpts[target] for target, text in suggestions.items()):
                     raise ValueError("inferred intent merely repeated a source excerpt")
                 owner.finish_success(

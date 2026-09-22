@@ -110,6 +110,7 @@ def build_runtime_app(
     test_video_probe: Callable[[bytes], ObservedVideo] | None = None,
     test_image_dispatcher: NativeCodexImageDispatcher | None = None,
     text_provider_resolver: Any | None = None,
+    bridge_simulation_label: str | None = None,
 ) -> object:
     """Build the production project-folder runtime.
 
@@ -312,6 +313,7 @@ def build_runtime_app(
         run_dispatcher=dispatcher,
         text_admission=admission,
         bridge_intent_service=bridge_intent_service,
+        bridge_simulation_label=bridge_simulation_label,
         image_dispatcher=image_dispatcher,
         static_dir=settings.static_dir,
         lifespan=runtime_lifespan,

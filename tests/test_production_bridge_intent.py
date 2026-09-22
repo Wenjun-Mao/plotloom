@@ -113,11 +113,13 @@ def test_model_result_creates_only_reviewable_bridge_revision_then_explicit_inst
             state = store.production_bridge_state()
             assert state.intent_job and state.intent_job.status == "ready"
             assert state.proposal and state.proposal.revision == revision + 1
-            assert state.proposal.intent_package.method == "model_inference.v1"
+            assert state.proposal.intent_package.suggestion_origin == "model_inference.v1"
+            assert state.proposal.intent_package.review_state == "model_suggested"
             assert state.proposal.intent_package.provenance["jobId"] == job_id
             assert state.proposal.installable
             for entry in state.proposal.intent_package.entries:
                 assert entry.text == entry.suggested_text and entry.text != ""
+                assert entry.source_excerpt != entry.suggested_text
                 assert entry.source_content_hash
             for stage in (StageName.STORY_BIBLE, StageName.SCENE_BEATS, StageName.STORYBOARD):
                 assert store.authoring.get_stage_head(project_id, stage).status == StageStatus.MISSING
@@ -126,6 +128,58 @@ def test_model_result_creates_only_reviewable_bridge_revision_then_explicit_inst
                 expected_content_hash=state.proposal.content_hash,
             ))
             assert accepted.status == "accepted"
+    finally:
+        service.close()
+
+
+def test_model_edit_save_reload_and_reinfer_keep_source_suggestion_and_author_text_distinct(tmp_path: Path) -> None:
+    storage, project_id, revision, digest = _pending_project(tmp_path)
+    first_adapter = FakeAdapter(held=True)
+    service = ProductionBridgeIntentService(storage, resolver=FakeResolver(first_adapter), secrets=RunSecretBroker())
+    try:
+        with closing(storage.projects.open(project_id)) as store:
+            initial = store.production_bridge_state().proposal
+            assert initial
+            excerpts = {entry.id: entry.source_excerpt for entry in initial.intent_package.entries}
+        first_job = service.create(project_id, expected_revision=revision, expected_hash=digest, profile_snapshot=_profile())
+        _wait_for_job(service, first_adapter, first_job)
+        with closing(storage.projects.open(project_id)) as store:
+            inferred = store.production_bridge_state().proposal
+            assert inferred
+            originals = {entry.id: entry.suggested_text for entry in inferred.intent_package.entries}
+            assert all(entry.source_excerpt == excerpts[entry.id] for entry in inferred.intent_package.entries)
+            saved = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(
+                expected_proposal_revision=inferred.revision,
+                expected_content_hash=inferred.content_hash,
+                entries=[{"id": entry.id, "text": f"作者修订：{entry.id}"} for entry in inferred.intent_package.entries],
+            )).proposal
+            assert saved
+        with closing(storage.projects.open(project_id)) as store:
+            reloaded = store.production_bridge_state().proposal
+            assert reloaded
+            assert reloaded.intent_package.review_state == "author_saved"
+            assert reloaded.intent_package.suggestion_origin == "model_inference.v1"
+            assert reloaded.intent_package.provenance["jobId"] == first_job
+            for entry in reloaded.intent_package.entries:
+                assert entry.source_excerpt == excerpts[entry.id]
+                assert entry.suggested_text == originals[entry.id]
+                assert entry.text == f"作者修订：{entry.id}"
+            _context, targets = store.repository.production_bridge_intent.source_context(
+                project_id, expected_revision=reloaded.revision, expected_hash=reloaded.content_hash,
+            )
+            assert {target["id"]: target["sourceExcerpt"] for target in targets} == excerpts
+        second_adapter = FakeAdapter(held=True)
+        service.resolver = FakeResolver(second_adapter)
+        second_job = service.create(project_id, expected_revision=reloaded.revision,
+                                    expected_hash=reloaded.content_hash, profile_snapshot=_profile())
+        with closing(storage.projects.open(project_id)) as store:
+            entries = store.repository.production_bridge_intent.expected_entries(project_id, second_job)
+            assert {entry["id"]: entry["sourceExcerpt"] for entry in entries} == excerpts
+        _wait_for_job(service, second_adapter, second_job)
+        with closing(storage.projects.open(project_id)) as store:
+            reinferred = store.production_bridge_state().proposal
+            assert reinferred and reinferred.intent_package.provenance["jobId"] == second_job
+            assert all(entry.source_excerpt == excerpts[entry.id] for entry in reinferred.intent_package.entries)
     finally:
         service.close()
 
@@ -169,7 +223,8 @@ def test_late_model_result_cannot_replace_author_edit_or_cancellation(tmp_path: 
             state = store.production_bridge_state()
             assert state.intent_job and state.intent_job.status == "stale"
             assert state.proposal and state.proposal.content_hash == author.content_hash
-            assert state.proposal.intent_package.method == "author_reviewed.v1"
+            assert state.proposal.intent_package.review_state == "author_saved"
+            assert state.proposal.intent_package.suggestion_origin == "none"
 
         second = FakeAdapter(held=True)
         service.resolver = FakeResolver(second)
@@ -277,7 +332,10 @@ def test_runtime_http_fake_inference_review_edit_save_then_explicit_install(tmp_
         application_data_dir=tmp_path / "application", static_dir=static,
         text_auth_mode="none",
     )
-    app = build_runtime_app(settings, text_provider_resolver=FakeResolver(adapter))
+    app = build_runtime_app(
+        settings, text_provider_resolver=FakeResolver(adapter),
+        bridge_simulation_label="模拟数据 · 假模型演示",
+    )
     with TestClient(app) as client:
         storage = app.state.project_folder_storage
         with closing(storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))) as store:
@@ -289,6 +347,7 @@ def test_runtime_http_fake_inference_review_edit_save_then_explicit_install(tmp_
         base = f"/api/v2/projects/{project_id}/production-bridge"
         prepared = client.post(f"{base}/proposals")
         assert prepared.status_code == 200, prepared.text
+        assert prepared.json()["simulationLabel"] == "模拟数据 · 假模型演示"
         first = prepared.json()["proposal"]
         assert first["installable"] is False
         refused = client.post(f"{base}/accept", json={
@@ -303,12 +362,13 @@ def test_runtime_http_fake_inference_review_edit_save_then_explicit_install(tmp_
         assert adapter.started.wait(8)
         running = client.get(base)
         assert running.status_code == 200 and running.json()["intentJob"]["status"] == "dispatched"
+        assert running.json()["simulationLabel"] == "模拟数据 · 假模型演示"
         _wait_for_job(app.state.bridge_intent_service, adapter, job_id)
         inferred = client.get(base)
         assert inferred.status_code == 200, inferred.text
         proposal = inferred.json()["proposal"]
         assert inferred.json()["intentJob"]["status"] == "ready"
-        assert proposal["intentPackage"]["method"] == "model_inference.v1"
+        assert proposal["intentPackage"]["suggestionOrigin"] == "model_inference.v1"
         updates = [{"id": entry["id"], "text": "作者确认并修改：" + entry["text"]} for entry in proposal["intentPackage"]["entries"]]
         saved = client.put(f"{base}/proposals/intent", json={
             "expectedProposalRevision": proposal["revision"], "expectedContentHash": proposal["contentHash"],
@@ -316,7 +376,15 @@ def test_runtime_http_fake_inference_review_edit_save_then_explicit_install(tmp_
         })
         assert saved.status_code == 200, saved.text
         revised = saved.json()["proposal"]
-        assert revised["intentPackage"]["method"] == "author_reviewed.v1"
+        assert revised["intentPackage"]["reviewState"] == "author_saved"
+        assert revised["intentPackage"]["suggestionOrigin"] == "model_inference.v1"
+        assert revised["intentPackage"]["provenance"]["jobId"] == job_id
+        for prior, current in zip(proposal["intentPackage"]["entries"], revised["intentPackage"]["entries"]):
+            assert current["sourceExcerpt"] == prior["sourceExcerpt"]
+            assert current["suggestedText"] == prior["suggestedText"]
+            assert current["text"] != current["suggestedText"]
+        reloaded = client.get(base).json()["proposal"]
+        assert reloaded["intentPackage"] == revised["intentPackage"]
         stale_accept = client.post(f"{base}/accept", json={
             "expectedProposalRevision": proposal["revision"], "expectedContentHash": proposal["contentHash"],
         })
@@ -326,3 +394,4 @@ def test_runtime_http_fake_inference_review_edit_save_then_explicit_install(tmp_
         })
         assert accepted.status_code == 200, accepted.text
         assert accepted.json()["status"] == "accepted"
+        assert accepted.json()["simulationLabel"] == "模拟数据 · 假模型演示"

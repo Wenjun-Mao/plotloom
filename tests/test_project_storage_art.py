@@ -664,7 +664,7 @@ def test_f5a_uses_a_distinct_source_review_api_not_the_canonical_storyboard_revi
     assert prepared.json()["assignment"].startswith("Plotloom F5A storyboard review assignment")
     bridge = client.get(f"/api/v2/projects/{project_id}/production-bridge")
     assert bridge.status_code == 200, bridge.text
-    assert bridge.json() == {"proposal": None, "status": "missing", "staleReasons": [], "installedStageRevisions": None, "intentJob": None}
+    assert bridge.json() == {"proposal": None, "status": "missing", "staleReasons": [], "installedStageRevisions": None, "intentJob": None, "simulationLabel": None}
 
 
 def test_f5a_accepted_review_stales_when_accepted_f4_script_changes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

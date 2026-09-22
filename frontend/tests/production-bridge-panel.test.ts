@@ -10,11 +10,11 @@ import type { ProductionBridgeState } from "../src/types";
 let root: Root;
 let host: HTMLDivElement;
 
-const state = (label: string, revision = 1, contentHash = "a".repeat(64), text = "", method: "pending_inference.v1" | "author_reviewed.v1" | "model_inference.v1" = "pending_inference.v1"): ProductionBridgeState => ({
+const state = (label: string, revision = 1, contentHash = "a".repeat(64), text = "", reviewState: "pending" | "author_saved" | "model_suggested" = "pending", modelSuggestion?: string): ProductionBridgeState => ({
   status: "ready", staleReasons: [], installedStageRevisions: null,
   proposal: {
-    revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], installable: method !== "pending_inference.v1", preparedAt: "2026-09-22T00:00:00Z",
-    intentPackage: { method, entries: [{ id: `entry-${label}`, targetKind: "scene_objective", targetId: `scene-${label}`, sourceCoordinates: { sectionId: label }, sourceContentHash: "b".repeat(64), method, suggestedText: `excerpt-${label}`, text }] },
+    revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], installable: reviewState !== "pending", preparedAt: "2026-09-22T00:00:00Z",
+    intentPackage: { suggestionOrigin: reviewState === "model_suggested" || modelSuggestion ? "model_inference.v1" : "none", reviewState, provenance: reviewState === "model_suggested" || modelSuggestion ? { jobId: "fake-job" } : null, entries: [{ id: `entry-${label}`, targetKind: "scene_objective", targetId: `scene-${label}`, sourceCoordinates: { sectionId: label, episode: 1, sceneIndex: 1 }, sourceContentHash: "b".repeat(64), sourceExcerpt: `excerpt-${label}`, suggestedText: reviewState === "model_suggested" ? text : modelSuggestion ?? null, text }] },
   },
 });
 
@@ -33,7 +33,7 @@ afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount
 
 it("requires the displayed dramatic-intent package to be saved before accepting its exact new revision", async () => {
   const first = state("first");
-  const saved = state("first", 2, "c".repeat(64), "author-reviewed objective", "author_reviewed.v1");
+  const saved = state("first", 2, "c".repeat(64), "author-reviewed objective", "author_saved");
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(first);
   const save = vi.spyOn(plotloomApi, "updateProductionBridgeIntent").mockResolvedValue(saved);
   const accept = vi.spyOn(plotloomApi, "acceptProductionBridge").mockResolvedValue({ ...saved, status: "accepted", installedStageRevisions: { story_bible: 1, scene_beats: 1, storyboard: 1 } });
@@ -142,7 +142,7 @@ it("preserves an unsaved draft when model completion arrives late", async () => 
       createdAt: "2026-09-22T00:00:00Z", updatedAt: "2026-09-22T00:00:00Z",
       errorCode: null, errorMessage: null, resultProposalRevision: null, providerRequestId: null, responseHash: null,
     };
-    const inferred = state("prior", 2, "c".repeat(64), "模型推断的目的", "model_inference.v1");
+    const inferred = state("prior", 2, "c".repeat(64), "模型推断的目的", "model_suggested");
     inferred.intentJob = { ...pending.intentJob, status: "ready", resultProposalRevision: 2 };
     vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValueOnce(pending).mockResolvedValueOnce(inferred);
     await render("prior"); await settle();
@@ -158,4 +158,23 @@ it("preserves an unsaved draft when model completion arrives late", async () => 
   } finally {
     vi.useRealTimers();
   }
+});
+
+it("keeps accepted model origin distinct from source evidence after author review", async () => {
+  const accepted = state("first", 5, "d".repeat(64), "作者修订的目的", "author_saved", "模型原始目的");
+  accepted.status = "accepted";
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(accepted);
+  await render("first"); await settle();
+  expect(host.textContent).toContain("来源摘录：excerpt-first");
+  expect(host.textContent).toContain("模型原始建议：模型原始目的");
+  expect(host.textContent).toContain("作者修订的目的");
+  expect(host.textContent).not.toContain("来源摘录：模型原始目的");
+});
+
+it("shows the server-owned simulation warning without a URL flag", async () => {
+  const preview = state("first");
+  preview.simulationLabel = "模拟数据 · 假模型演示";
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(preview);
+  await render("first"); await settle();
+  expect(host.querySelector('[data-testid="bridge-fake-banner"]')?.textContent).toBe(preview.simulationLabel);
 });

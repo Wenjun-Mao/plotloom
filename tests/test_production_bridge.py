@@ -34,8 +34,10 @@ def _prepare_installable_bridge(store: ProjectStore) -> ProductionBridgeProposal
     store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=candidate.job_id, expected_review_revision=0, binding=ready.binding))
     proposal = store.prepare_production_bridge().proposal
     assert proposal and not proposal.installable
-    assert proposal.intent_package.method == "pending_inference.v1"
+    assert proposal.intent_package.review_state == "pending"
+    assert proposal.intent_package.suggestion_origin == "none"
     assert all(not entry.text for entry in proposal.intent_package.entries)
+    assert all(entry.source_excerpt and entry.suggested_text is None for entry in proposal.intent_package.entries)
     authored = [{"id": entry.id, "text": f"作者明确的戏剧目的：{entry.id}"} for entry in proposal.intent_package.entries]
     ready = store.update_production_bridge_intent_package(ProductionBridgeIntentUpdateRequest(
         expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
@@ -60,7 +62,8 @@ def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomic
         assert accepted.installed_stage_revisions == {"story_bible": 1, "scene_beats": 1, "storyboard": 1}
         installed = store.authoring.get_stage_payload(store.manifest.project_id, StageName.SCENE_BEATS)
         assert {scene.objective for scene in installed.scenes} == {edited_text}
-        assert revised.intent_package.method == "author_reviewed.v1"
+        assert revised.intent_package.review_state == "author_saved"
+        assert revised.intent_package.suggestion_origin == "none"
     finally:
         store.close()
 
@@ -160,7 +163,7 @@ def test_bridge_surfaces_brief_policy_conflict_without_splitting_source_scene(tm
             entries=[{"id": entry.id, "text": f"作者明确的戏剧目的：{entry.id}"} for entry in proposal.intent_package.entries],
         )).proposal
         assert completed and not completed.installable
-        assert completed.intent_package.method == "author_reviewed.v1"
+        assert completed.intent_package.review_state == "author_saved"
         assert any("源场次有 9 个镜头" in conflict.message for conflict in completed.conflicts)
         with pytest.raises(InvalidTransitionError, match="not installable"):
             store.accept_production_bridge(ProductionBridgeAcceptRequest(
