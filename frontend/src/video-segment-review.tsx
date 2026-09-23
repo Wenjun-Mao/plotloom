@@ -33,6 +33,12 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     setInFrame(0); setProposalId(""); setReviewer(""); setNote(""); setBusy(false); setError("");
     return () => { activeRef.current = false; requestRef.current += 1; };
   }, [projectId, job.id]);
+  useEffect(() => {
+    const targetId = `video-segment-review-${job.id}`;
+    if (window.location.hash === `#${targetId}`) {
+      document.getElementById(targetId)?.scrollIntoView({ block: "start" });
+    }
+  }, [job.id]);
   const available = (job.segments ?? []).filter((segment) => segment.current);
   const rejected = job.reviews.at(-1)?.decision === "reject";
   const chosen: VideoSegment | undefined = available.find((segment) => segment.id === proposalId)
@@ -88,7 +94,7 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
       if (activeRef.current && request === requestRef.current) setBusy(false);
     }
   };
-  return <section className="video-segment-review" data-testid={`video-segment-review-${job.id}`}>
+  return <section id={`video-segment-review-${job.id}`} className="video-segment-review" data-testid={`video-segment-review-${job.id}`}>
     <strong>镜头播放时长与人工选择</strong>
     <small>原稿镜头时长：{sourceUnits == null ? "来源不可用" : `${(sourceUnits / 1000).toFixed(3)} 秒`}；后端请求时长：{job.requestedSeconds} 秒；实测原片：{job.observed ? `${job.observed.durationSeconds.toFixed(3)} 秒 / ${availableFrames} 帧` : "尚无输出"}。</small>
     <small>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；片段准备后须听看最终片段，再明确选择。此操作不自动确认创作质量。</small>

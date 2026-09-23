@@ -151,3 +151,56 @@ Focused independent re-review found one fixture portability issue: a
 macOS-only font path. The marker generator now uses Pillow's bundled default
 font; the marked H3 browser journey passed again after that correction. No
 other scoped correctness finding remained.
+
+## Interactive isolated walkthrough (2026-09-23)
+
+A separate writable technical walkthrough runs through the normal project-folder
+API and shipped static UI, but only against the fixture root
+`.local/relay/reviewed-playback-interactive/plotloom-e2e-tKXLLu/`. Its
+LaunchAgent `com.plotloom.reviewed-playback-segment-interactive` listens only
+on `127.0.0.1:8831`, clears text/image/video provider credentials, and has no
+provider or generation dispatcher. It does not use or mutate the earlier
+read-only 8824 preview, protected U4/F6 evidence, or production projects.
+
+The untouched ready project is `bf515ad1-fbdc-4c8e-beec-066a99fa62a9`;
+its opening H3 original remains current but unselected and has no segment, while
+the ending segment remains selected. The directly linked opening controls are:
+
+`http://127.0.0.1:8831/v2/?project=bf515ad1-fbdc-4c8e-beec-066a99fa62a9&stage=storyboard&entity=shot%3Ashot_01#video-segment-review-vj_626ad6e39cb544d6ba7908a5a298e28a`
+
+The separate repeatable exercise project is
+`a82afa85-3bbd-4bc9-b9af-e3a1cd9c36f4`. In its opening shot, the browser UI
+created a new `[48,192)` proposal (144 frames), played the complete six-second
+preview with synchronized audio, and explicitly selected it with a technical-
+only synthetic note. The segment POST and selection POST both returned 201;
+preview/media range requests returned 206. After a LaunchAgent restart, the
+selected segment ID, revision, and hashes persisted. The original remained
+eight seconds/192 frames with SHA-256
+`6523f9a21db4a4ab7756bb179355fe26821189b20f610de455e32b472d994655`; the
+selected six-second derivative SHA-256 was
+`3c1b8f222ba298310b81dab6c32ab447de6d156baa13bb33ebe7c887bd64957f`. Full
+`/media` and `/playback` response hashes matched the original and selected
+derivative respectively. The route player completed on the exercise project.
+The public backend remained `enabled: false`; attempting the existing-job
+submit endpoint returned 503 `h3_video_not_configured`.
+
+The first manual prepare returned 422 because launchd's PATH omitted the
+installed `/opt/homebrew/bin/ffmpeg`; the typed segment contract correctly
+refused derivation. The LaunchAgent now explicitly includes `/opt/homebrew/bin`
+in PATH so launchd has the same media tooling as the interactive shell. No
+validation was weakened. After reloading the plist, the same UI action returned
+201, and a second restart preserved the selection. Setup, exact links, and
+start/status/restart/stop commands are in
+`.local/relay/reviewed-playback-interactive/README.md`.
+
+The static frontend adds a fragment target for the segment controls.
+The focused E2E walkthrough passed (1 test), including the ready project's
+unselected opening state and direct-link placement. The persistent ready link
+was visually checked at 1440×900 and 1920×1080 with the safety banner pinned
+above the controls; captures are
+`output/playwright/interactive-segment-review-anchored-1440.png` and
+`output/playwright/interactive-segment-review-anchored-1920.png`. This is a
+synthetic technical exercise only, not real H3 output or creative/media
+acceptance. The persistent service has provider dispatch disabled; the focused
+E2E uses its offline fake gateway, and no external or paid provider was called.
+No protected data was changed, and nothing was pushed.
