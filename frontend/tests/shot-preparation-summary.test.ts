@@ -20,9 +20,9 @@ function bridge(seconds: number): ProductionBridgeState {
   } };
 }
 
-async function render(seconds: number, projectId = "one") {
+async function render(seconds: number, projectId = "one", mediaReadPhase: "loading" | "ready" | "error" = "ready", onRetryMedia?: () => void) {
   const shot = { ...demoProject.storyboard.shots[0], id: "opening-s1-c1", durationUnits: seconds * 1000 };
-  await act(async () => root.render(createElement(ShotPreparationSummary, { projectId, shot, storyboardRevision: 1, draftChanged: false, review: null, workbench: emptyWorkbench, mediaLoaded: true })));
+  await act(async () => root.render(createElement(ShotPreparationSummary, { projectId, shot, storyboardRevision: 1, draftChanged: false, review: null, workbench: emptyWorkbench, mediaReadPhase, onRetryMedia })));
   await act(async () => { await Promise.resolve(); });
 }
 
@@ -59,4 +59,33 @@ it("does not repaint a newly selected project with old bridge results", async ()
   await act(async () => resolveOld(bridge(8)));
   expect(host.textContent).toContain("精确来源时长 6 秒");
   expect(host.textContent).not.toContain("精确来源时长 8 秒");
+});
+
+it("recovers bridge and backend read failures through a same-mounted-root retry", async () => {
+  vi.spyOn(plotloomApi, "getProductionBridge")
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValueOnce(bridge(6));
+  vi.spyOn(plotloomApi, "getVideoBackend")
+    .mockRejectedValueOnce(new Error("offline"))
+    .mockResolvedValueOnce({ enabled: false, qualifiedDurationSeconds: [5, 8] });
+  await render(6);
+  expect(host.textContent).toContain("投产来源暂不可读取");
+  expect(host.textContent).toContain("时长兼容性未知");
+  await act(async () => Array.from(host.querySelectorAll("button")).find((button) => button.textContent?.includes("重试来源与视频能力读取"))!.click());
+  await act(async () => { await Promise.resolve(); });
+  expect(host.textContent).toContain("精确来源时长 6 秒");
+  expect(host.textContent).toContain("6 秒不在当前请求目录");
+  expect(host.textContent).not.toContain("投产来源暂不可读取");
+});
+
+it("does not claim retained media evidence is current after a read error", async () => {
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridge(6));
+  vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, qualifiedDurationSeconds: [5, 8] });
+  const retry = vi.fn();
+  await render(6, "one", "error", retry);
+  expect(host.textContent).toContain("当前角色参考与关键帧状态未知");
+  expect(host.textContent).toContain("角色身份参考：未知（读取失败）");
+  expect(host.textContent).toContain("审核关键帧：未知（读取失败）");
+  await act(async () => Array.from(host.querySelectorAll("button")).find((button) => button.textContent?.includes("重试媒体读取"))!.click());
+  expect(retry).toHaveBeenCalledOnce();
 });

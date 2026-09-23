@@ -121,14 +121,21 @@ head; both the link and the shot summary fail closed on a mismatch.
 The shot workbench may display a read-only preparation summary from the
 existing bridge, Storyboard approval, visual-workbench decisions, and video
 backend owners. It creates no new approval, selection, job, or readiness
-verdict. The disabled video-backend response still exposes the qualified
-request-duration catalog so the UI can distinguish an unconfigured backend
-from an exact source duration outside that catalog. Catalog compatibility is
-not physical output-duration equality: the measured H3 nominal 5, 6, and 8
-second requests yielded 124, 158, and 192 frames at 24 fps respectively.
+verdict. A media-owner read is current only after all its owners succeed for
+the same project and approval context; loading or failure suspends media
+mutations, exported-job polling, and durable media-draft writers while
+retaining session drafts for retry. The disabled video-backend response still
+exposes the qualified request-duration catalog so the UI can distinguish an
+unconfigured backend from an exact source duration outside that catalog.
+Catalog compatibility is not physical output-duration equality. The deployed
+gateway's frame-grid function computes 124, 158, and 192 requested frames at
+24 fps for nominal 5, 6, and 8 seconds respectively. Retained real 5/8-second
+canaries confirm those actual outputs, but no 6-second clip has been generated
+or measured.
 Therefore adding a nominal 6-second request to the catalog alone cannot
-satisfy the exact 6-second F5 source contract. Duration reconciliation needs
-a separate policy and evidence before media preparation changes.
+prove satisfaction of the exact 6-second F5 source contract. Duration
+reconciliation needs a separate policy and physical evidence before media
+preparation changes.
 
 ## Consequences
 

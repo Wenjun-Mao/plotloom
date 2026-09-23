@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import type {
   ApprovalDecision,
-  CharacterReferenceProposal,
-  ImageJob,
   SamePersonComparison,
   SceneBeatPlan,
   Shot,
@@ -10,7 +8,6 @@ import type {
   StoryGraph,
   Storyboard,
   StoryboardReview,
-  VisualWorkbench,
 } from "../../types";
 import { plotloomApi } from "../../api";
 import { Button, Field, Panel } from "../../components";
@@ -27,20 +24,8 @@ import { useImageJobActions } from "./image-jobs/useImageJobActions";
 import { useCharacterReferenceActions } from "./references/useCharacterReferenceActions";
 import { useMediaSelectionContext } from "./keyframes/useMediaSelectionContext";
 import { ShotPreparationSummary } from "./ShotPreparationSummary";
+import { useMediaWorkbenchData } from "./useMediaWorkbenchData";
 import type { ProjectDraftQuiescence } from "../authoring/projectDraftQuiescence";
-
-function previewKey(projectId: string): string {
-  return `plotloom:still-preview:${projectId}`;
-}
-const emptyWorkbench: VisualWorkbench = {
-  assets: [],
-  selectionRevision: 0,
-  visualIntents: [],
-  reviewedKeyframes: [],
-  characterReferences: { states: [], decisions: [] },
-  samePersonReviews: { revision: 0, reviews: [] },
-  previews: [],
-};
 
 export function ManagedMediaWorkbench({
   projectId,
@@ -79,13 +64,19 @@ export function ManagedMediaWorkbench({
   onReturnToBridge?: () => void;
   draftChanged?: boolean;
 }) {
-  const [workbench, setWorkbench] = useState<VisualWorkbench>(emptyWorkbench);
-  const [mediaSnapshot, setMediaSnapshot] = useState<{ projectId: string; approvalId?: string; storyboardRevision?: number }>();
-  const [imageJobs, setImageJobs] = useState<ImageJob[]>([]);
-  const [characterProposals, setCharacterProposals] = useState<
-    CharacterReferenceProposal[]
-  >([]);
-  const [imageExchangeConfigured, setImageExchangeConfigured] = useState(false);
+  const currentApproval: ApprovalDecision | undefined = review?.activeApproval ?? undefined;
+  const {
+    workbench, setWorkbench, imageJobs, characterProposals, imageExchangeConfigured,
+    previewId, setPreviewId, refresh, mediaReadPhase,
+  } = useMediaWorkbenchData({
+    projectId, approvalId: currentApproval?.id,
+    approvalRevision: currentApproval?.subjectRevision, storyboardRevision,
+    shotId: selectedShot?.id,
+  });
+  const mediaOwnerReadOnly = readOnly || mediaReadPhase !== "ready";
+  // Durable media drafts share this read's project/approval context. A failed
+  // refresh must suspend their autosave and quiescence writers too.
+  const mediaDraftsReady = mediaDraftsEnabled && mediaReadPhase === "ready";
   const [imageJobTarget, setImageJobTarget] = useState<ImageJobDraftTarget>({
     kind: "original",
   });
@@ -115,54 +106,8 @@ export function ManagedMediaWorkbench({
   const [previewLength, setPreviewLength] = useState(3);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [previewId, setPreviewId] = useState("");
   const [playing, setPlaying] = useState(false);
   const [frameIndex, setFrameIndex] = useState(0);
-  const requestSequence = useRef(0);
-  const currentApproval: ApprovalDecision | undefined =
-    review?.activeApproval ?? undefined;
-
-  const refresh = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!projectId) return;
-      const sequence = ++requestSequence.current;
-      const [next, jobs, proposals] = await Promise.all([
-        plotloomApi.getVisualWorkbench(projectId, signal),
-        plotloomApi.getImageJobs(projectId, signal),
-        plotloomApi.getCharacterReferenceProposals(projectId, signal),
-      ]);
-      if (signal?.aborted || sequence !== requestSequence.current) return;
-      setWorkbench(next);
-      setMediaSnapshot({ projectId, approvalId: currentApproval?.id, storyboardRevision });
-      setImageJobs(jobs.jobs);
-      setCharacterProposals(proposals.proposals);
-      setImageExchangeConfigured(jobs.configured);
-      const saved = window.localStorage.getItem(previewKey(projectId));
-      const preferred =
-        next.previews.find((item) => item.id === saved) ?? next.previews[0];
-      setPreviewId(preferred?.id ?? "");
-    },
-    [projectId, currentApproval?.id, storyboardRevision],
-  );
-
-  // Approval and authored-board changes determine preview applicability.  An
-  // aborted or superseded request may never repaint a newer approval context.
-  useEffect(() => {
-    const controller = new AbortController();
-    void refresh(controller.signal).catch((loadError) => {
-      if (!controller.signal.aborted)
-        setError(
-          loadError instanceof Error ? loadError.message : "无法读取导入媒体",
-        );
-    });
-    return () => controller.abort();
-  }, [
-    refresh,
-    currentApproval?.id,
-    currentApproval?.subjectRevision,
-    storyboardRevision,
-    selectedShot?.id,
-  ]);
 
   const {
     maxPreviewLength,
@@ -191,7 +136,7 @@ export function ManagedMediaWorkbench({
     bible,
     selectedShot,
     storyboardRevision,
-    mediaDraftsEnabled,
+    mediaDraftsEnabled: mediaDraftsReady,
     draftQuiescence,
     currentApproval,
     workbench,
@@ -232,7 +177,7 @@ export function ManagedMediaWorkbench({
     setPreviewId,
     setFrameIndex,
     setPlaying,
-    mediaDraftsEnabled,
+    mediaDraftsEnabled: mediaDraftsReady,
     selectedShot,
     intentEditor,
     intentDraft,
@@ -260,7 +205,7 @@ export function ManagedMediaWorkbench({
     targetCandidate,
     selectedBinding,
     imageJobDirection,
-    mediaDraftsEnabled,
+    mediaDraftsEnabled: mediaDraftsReady,
     imageJobContextId,
     setBusy,
     setError,
@@ -273,7 +218,7 @@ export function ManagedMediaWorkbench({
   // Existing refresh validates immutable package/currentness before it may
   // publish a candidate. Observe only current exported jobs automatically.
   useEffect(() => {
-    if (!projectId) return;
+    if (!projectId || mediaReadPhase !== "ready") return;
     const timer = window.setInterval(() => {
       const outstanding = imageJobs.filter(
         (job) => job.current && job.state === "exported" && !job.deliveries.some(
@@ -288,7 +233,7 @@ export function ManagedMediaWorkbench({
         .catch(() => refresh().catch(() => undefined));
     }, 3_000);
     return () => window.clearInterval(timer);
-  }, [imageJobs, projectId, refresh]);
+  }, [imageJobs, projectId, refresh, mediaReadPhase]);
   const {
     selectCharacterReference,
     revokeCharacterReference,
@@ -360,7 +305,7 @@ export function ManagedMediaWorkbench({
           当前镜头：{selectedShot.action} · {selectedShot.durationUnits}ms
         </small>
       )}
-      {selectedShot && <ShotPreparationSummary projectId={projectId} shot={selectedShot} storyboardRevision={storyboardRevision} draftChanged={draftChanged} review={review} workbench={workbench} mediaLoaded={Boolean(mediaSnapshot && mediaSnapshot.projectId === projectId && mediaSnapshot.approvalId === currentApproval?.id && mediaSnapshot.storyboardRevision === storyboardRevision)} onReview={onReview} onReturnToBridge={onReturnToBridge} />}
+      {selectedShot && <ShotPreparationSummary projectId={projectId} shot={selectedShot} storyboardRevision={storyboardRevision} draftChanged={draftChanged} review={review} workbench={workbench} mediaReadPhase={mediaReadPhase} onRetryMedia={() => void refresh().catch(() => undefined)} onReview={onReview} onReturnToBridge={onReturnToBridge} />}
       {error && (
         <div className="notice warning" role="alert">
           {error}
@@ -393,7 +338,7 @@ export function ManagedMediaWorkbench({
           setProposalDirection,
           setProposalParentCandidateAssetId,
         }}
-        readOnly={readOnly}
+        readOnly={mediaOwnerReadOnly}
         busy={busy}
         onSelectReference={() => void selectCharacterReference()}
         onRevokeReference={(characterId) => void revokeCharacterReference(characterId)}
@@ -410,8 +355,8 @@ export function ManagedMediaWorkbench({
         setTarget={setImageJobTarget}
         eligibleRefinementCandidates={eligibleRefinementCandidates}
         direction={imageJobDirection}
-        mediaDraftsEnabled={mediaDraftsEnabled}
-        readOnly={readOnly}
+        mediaDraftsEnabled={mediaDraftsReady}
+        readOnly={mediaOwnerReadOnly}
         busy={busy}
         imageJobs={imageJobs}
         imageJobRefreshNotice={imageJobRefreshNotice}
@@ -428,7 +373,7 @@ export function ManagedMediaWorkbench({
         declaredAdditions={declaredAdditions}
         candidates={candidates}
         keptAssetId={keptAssetId}
-        readOnly={readOnly}
+        readOnly={mediaOwnerReadOnly}
         busy={busy}
         onOrigin={setOrigin}
         onDeclaredAdditions={setDeclaredAdditions}
@@ -459,7 +404,7 @@ export function ManagedMediaWorkbench({
         setReviewer={setSamePersonReviewer}
         setNotes={setSamePersonNotes}
         setComparisons={setSamePersonComparisons}
-        readOnly={readOnly}
+        readOnly={mediaOwnerReadOnly}
         busy={busy}
         onRecord={() => void recordSamePersonReview()}
       />
@@ -475,9 +420,9 @@ export function ManagedMediaWorkbench({
         activeIntent={activeIntent}
         compatibility={compatibility}
         setCompatibility={setCompatibility}
-        readOnly={readOnly}
+        readOnly={mediaOwnerReadOnly}
         busy={busy}
-        mediaDraftsEnabled={mediaDraftsEnabled}
+        mediaDraftsEnabled={mediaDraftsReady}
         review={review}
         storyboardRevision={storyboardRevision}
         storyboard={storyboard}
