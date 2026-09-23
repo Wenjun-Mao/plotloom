@@ -142,9 +142,9 @@ input:focus, textarea:focus, select:focus { border-color: #856f49; box-shadow: 0
 input[readonly] { color: var(--dim); }
 .range-summary { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; margin-bottom: 10px; border: 1px solid rgba(103,205,165,.22); color: var(--muted); background: rgba(103,205,165,.05); }
 .range-summary strong { color: var(--success); font: 800 20px var(--mono); }
-.video-sequence { display: grid; gap: 8px; padding: 12px; margin: 12px 0; border: 1px solid rgba(103,205,165,.35); border-radius: 6px; background: rgba(103,205,165,.05); }
+.video-sequence { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; min-width: 0; padding: 12px; margin: 12px 0; border: 1px solid rgba(103,205,165,.35); border-radius: 6px; background: rgba(103,205,165,.05); }
 .video-sequence video { width: min(100%, 720px); max-height: 460px; background: #000; }
-.video-segment-review { display: grid; gap: 10px; align-content: start; padding: 16px; margin: 14px 0; border: 1px solid rgba(233,180,91,.35); border-radius: 6px; background: rgba(233,180,91,.045); }
+.video-segment-review { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; align-content: start; min-width: 0; padding: 16px; margin: 14px 0; border: 1px solid rgba(233,180,91,.35); border-radius: 6px; background: rgba(233,180,91,.045); }
 .video-segment-review > strong { font-size: 14px; }
 .video-segment-review > small, .video-segment-review label small { display: block; color: var(--muted); line-height: 1.5; }
 .video-segment-review > label { display: grid; gap: 5px; max-width: 640px; }
@@ -330,7 +330,37 @@ input[readonly] { color: var(--dim); }
 .shot-copy p { min-height: 43px; margin: 8px 0 0; color: var(--muted); font-size: 11px; }
 .media-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
 .media-controls .button { min-width: 0; padding-inline: 5px; font-size: 10px; }
-.managed-media-workbench { display: grid; gap: 11px; margin-top: 14px; }
+.managed-media-workbench { display: grid; grid-template-columns: minmax(0, 1fr); gap: 11px; min-width: 0; margin-top: 14px; }
+#shot-workbench, #shot-original, #shot-segment, #shot-story-preview, #shot-character-references, #shot-keyframe-review { scroll-margin-top: 88px; }
+.managed-media-workbench > *, .video-pilot-workflow > *, .video-job-card > * { min-width: 0; }
+.shot-workbench-focus { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+.shot-workbench-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-3); }
+.shot-workbench-heading > div { min-width: 0; flex: 1 1 320px; }
+.shot-workbench-heading small, .shot-workbench-heading strong { display: block; }
+.shot-workbench-heading strong { margin-top: 4px; font-size: 20px; }
+.shot-workbench-heading p { margin: 5px 0 0; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; }
+.shot-workbench-heading nav { display: flex; flex-wrap: wrap; gap: 7px; }
+.shot-workbench-heading nav a { padding: 7px 10px; border: 1px solid var(--line); border-radius: 5px; color: var(--text); text-decoration: none; }
+.workbench-support, .video-production, .video-technical-history, .review-annotations { min-width: 0; padding: 11px 13px; border: 1px solid var(--line); border-radius: 7px; }
+.workbench-support > summary, .video-production > summary, .video-technical-history > summary, .review-annotations > summary { cursor: pointer; color: var(--text); font-weight: 650; }
+.workbench-support[open] > summary, .video-production[open] > summary, .video-technical-history[open] > summary, .review-annotations[open] > summary { margin-bottom: 14px; }
+.video-pilot-workflow { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; min-width: 0; padding: 16px; font-size: 13px; }
+.video-pilot-workflow small, .shot-workbench-heading small { font-size: 12px; line-height: 1.5; }
+.video-pilot-workflow label { color: var(--muted); font-size: 13px; }
+.video-pilot-workflow input, .video-pilot-workflow textarea, .video-pilot-workflow select { font-size: 14px; }
+.video-workflow-header { display: grid; gap: 5px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.video-workflow-header strong, .story-playback-section > strong { font-size: 17px; }
+.video-workflow-header small, .story-playback-section > small { color: var(--muted); line-height: 1.5; }
+.video-workflow-header .video-next-action { color: var(--accent); font-weight: 650; }
+.video-job-card, .story-playback-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-3); }
+.video-job-card > header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+.video-job-card > header span { color: var(--accent); }
+.video-job-card small, .video-workflow-header small, .story-playback-section small { overflow-wrap: anywhere; }
+.video-job-card video { width: min(100%, 720px); max-height: 480px; background: #000; }
+.video-technical-history { display: grid; gap: 8px; }
+.video-technical-history pre { max-width: 100%; overflow: auto; padding: 9px; border: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; }
+.review-annotations { display: grid; gap: 9px; }
+.review-annotations label { display: grid; gap: 5px; max-width: 640px; }
 .managed-media-workbench > .muted { margin: 0; color: var(--muted); font-size: 11px; }
 .shot-preparation-summary { display: grid; justify-items: start; gap: 8px; min-width: 0; }
 .shot-preparation-summary > p, .shot-preparation-summary > small { margin: 0; overflow-wrap: anywhere; }

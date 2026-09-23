@@ -242,6 +242,14 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     catch (reason) { setError(reason instanceof Error ? reason.message : fallback); }
   };
   const visibleJobs = shot ? jobs.filter((job) => frozenShot(job).id === shot.id) : [];
+  const segmentAnchorJobId = visibleJobs.find((job) => isH3Job(job) && job.state === "ingested")?.id;
+  const nextAction = visibleJobs.some((job) => job.selected)
+    ? "当前镜头已有用于故事的片段；可在下方检查路径预览。"
+    : visibleJobs.some((job) => job.state === "ingested" && job.segments?.some((segment) => segment.current))
+      ? "下一步：听看待审片段，再明确确认用于故事。"
+      : visibleJobs.some((job) => job.state === "ingested")
+        ? "下一步：从原片选择连续帧，生成待审片段。"
+        : "下一步：展开准备区，检查关键帧与视频请求。";
   // State refreshes are asynchronous. Never use an old project's retained
   // jobs to construct URLs under the newly selected project identity.
   const selectedSequence = selectedRouteVideos(jobs.filter((job) => job.projectId === projectId), storyboard, sceneBeats, graph, routeId);
@@ -256,7 +264,11 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   );
   const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
   const h3TimingMismatch = Boolean(h3 && shot && [6_000, 8_000].includes(shot.durationUnits) && h3DurationSeconds !== 8);
-  return <Panel data-testid="video-pilot-panel"><strong>{h3 || h3Unavailable ? "MiniMax H3 本地视频候选" : "P2 Wan 视频试点"}</strong>
+  return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
+    <header className="video-workflow-header"><strong>原片 → 调整片段 → 预览 → 用于故事</strong>
+      <small>{visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 个原片候选；仅明确选择的片段会进入故事。` : "当前镜头还没有原片候选。"}</small>
+      <small className="video-next-action">{nextAction}</small></header>
+    <details className="video-production"><summary>{h3 || h3Unavailable ? "准备或生成新的 MiniMax H3 原片" : "准备或生成新的视频原片"}</summary>
     {h3 && backend
       ? <MiniMaxH3Summary backend={backend} profile={selectedProfile} />
       : h3Unavailable ? <p>H3 后端尚未配置；下方当前镜头时长目录仅供只读检查，不代表可提交。</p>
@@ -285,32 +297,39 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {backend?.tracksPaidWanPilot !== false && <small>额度：{budget ? `${budget.reservedSeconds}/${budget.limitSeconds} 秒已保留，余 ${budget.remainingSeconds} 秒` : "读取中"}</small>}
     {h3 && <MiniMaxH3ReviewNotice />}
     <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>
-    {shot && <small>仅显示当前镜头：{shot.title}（{shot.id}）</small>}
+    </details>
     {error && <small className="notice warning">{error}</small>}
-    {projectId && selectedSequence && <section className="video-sequence-status" data-testid="video-route-sequence-status">
-      <strong>已选择路径片段</strong>
-      <small>{selectedSequence.jobs.length} 个已选择视频 / {selectedSequence.jobs.length + selectedSequence.missingShotTitles.length} 个路径镜头</small>
-      {selectedSequence.missingShotTitles.length > 0 && <small className="notice warning">路径尚不完整：缺少 {selectedSequence.missingShotTitles.join("、")} 的已选择视频。</small>}
-    </section>}
-    {projectId && selectedSequence && selectedSequence.jobs.length > 0 && selectedSequence.missingShotTitles.length === 0 && <OrderedVideoPlayback projectId={projectId} jobs={selectedSequence.jobs} sourceIdentity={selectedSequence.sourceIdentity} />}
-    {projectId && <BranchingVideoPreview projectId={projectId} jobs={jobs} storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} />}
-    {visibleJobs.map((job) => <article key={job.id} data-testid={`video-job-${job.id}`}><strong>{frozenShot(job).title || frozenShot(job).id}</strong> · <strong>{job.state}</strong> · {job.requestedSeconds}s {job.observed ? `· ${job.observed.durationSeconds.toFixed(2)}s 实测` : ""}
+    {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {frozenShot(job).title || "当前镜头"}</strong><span>{job.selected ? "已选择片段" : job.state === "ingested" ? "待审原片" : job.state}</span></header>
+      <small>请求 {job.requestedSeconds} 秒 {job.observed ? `· 实测 ${job.observed.durationSeconds.toFixed(2)} 秒` : ""}</small>
       <small> · {jobStatus(job)}</small>
-      <small> · 选择版本 {job.selectionRevision} · 冻结设置 {JSON.stringify(job.snapshot.request || {})}</small>
-      {job.reviews.map((review) => <small key={review.id}> · 审阅：{review.reviewer} / {review.decision} / {review.note}</small>)}
+      <details className="video-technical-history"><summary>审核历史与技术详情</summary>
+        <small>选择版本 {job.selectionRevision} · 原片编号 {job.id}</small>
+        <pre>{JSON.stringify(job.snapshot.request || {}, null, 2)}</pre>
+        {job.reviews.map((review) => <small key={review.id}>审阅：{review.decision === "select" ? "选择" : "拒绝"}{review.reviewer ? ` · ${review.reviewer}` : ""}{review.note ? ` · ${review.note}` : ""}</small>)}
+      </details>
       {job.state === "ingested" && projectId && <video controls preload="metadata" src={plotloomApi.videoJobMediaUrl(projectId, job.id)} data-testid={`video-job-player-${job.id}`} onPlay={(event) => document.querySelectorAll<HTMLVideoElement>("[data-testid^='video-job-player-']").forEach((video) => { if (video !== event.currentTarget) video.pause(); })} />}
       <div className="button-row">
         {job.state === "prepared" && <Button disabled={readOnly} onClick={() => void act(() => plotloomApi.submitVideoJob(projectId!, job.id), "提交未完成")}>提交一次</Button>}
         {(job.state === "submitted" || job.state === "retrieve_needed") && <Button disabled={readOnly} onClick={() => void act(() => plotloomApi.reconcileVideoJob(projectId!, job.id), "获取结果未完成")}>获取结果</Button>}
         {["prepared", "dispatching", "submitted", "retrieve_needed", "outcome_unknown"].includes(job.state) && !job.cancelRequestedAt && <Button variant="danger" disabled={readOnly} onClick={() => void act(() => plotloomApi.cancelVideoJob(projectId!, job.id), "取消意图未记录")}>记录取消意图</Button>}
-        {job.state === "ingested" && !isH3Job(job) && <Button disabled={readOnly || !job.current} onClick={() => void act(() => plotloomApi.reviewVideoJob(projectId!, job.id, "select", "local reviewer", "Explicit candidate selection after audiovisual review.", job.selectionRevision), "选择未完成")}>选择此候选</Button>}
+        {job.state === "ingested" && !isH3Job(job) && <Button disabled={readOnly || !job.current} onClick={() => void act(() => plotloomApi.reviewVideoJob(projectId!, job.id, "select", "", "", job.selectionRevision), "选择未完成")}>选择此候选</Button>}
         {job.state === "ingested" && !job.selected && <Button variant="danger" disabled={readOnly} onClick={() => {
           if (window.confirm("永久删除此未选择视频候选？此操作不可撤销。")) void act(() => plotloomApi.discardVideoJob(projectId!, job.id, job.selectionRevision), "删除未完成");
         }}>永久删除</Button>}
         {job.state === "discard_pending" && <Button variant="danger" disabled={readOnly} onClick={() => void act(() => plotloomApi.discardVideoJob(projectId!, job.id, job.selectionRevision), "重试删除未完成")}>重试永久删除</Button>}
       </div>
-      {isH3Job(job) && projectId && job.state === "ingested" && <VideoSegmentReview key={`${projectId}:${job.id}`} projectId={projectId} job={job} readOnly={readOnly} onRefresh={refresh} />}
+      {isH3Job(job) && projectId && job.state === "ingested" && <div id={job.id === segmentAnchorJobId ? "shot-segment" : undefined}><VideoSegmentReview key={`${projectId}:${job.id}`} projectId={projectId} job={job} readOnly={readOnly} onRefresh={refresh} /></div>}
       {job.error && <small>{job.error}</small>}</article>)}
+    <section id="shot-story-preview" className="story-playback-section"><strong>预览 · 用于故事</strong>
+      <small>只有当前、已明确选择且可核验的播放片段会进入故事；待审原片不会自动播放。</small>
+      {projectId && selectedSequence && <section className="video-sequence-status" data-testid="video-route-sequence-status">
+        <strong>已选择路径片段</strong>
+        <small>{selectedSequence.jobs.length} 个已选择视频 / {selectedSequence.jobs.length + selectedSequence.missingShotTitles.length} 个路径镜头</small>
+        {selectedSequence.missingShotTitles.length > 0 && <small className="notice warning">路径尚不完整：缺少 {selectedSequence.missingShotTitles.join("、")} 的已选择视频。请回到对应镜头，审核片段后确认用于故事。</small>}
+      </section>}
+      {projectId && selectedSequence && selectedSequence.jobs.length > 0 && selectedSequence.missingShotTitles.length === 0 && <OrderedVideoPlayback projectId={projectId} jobs={selectedSequence.jobs} sourceIdentity={selectedSequence.sourceIdentity} />}
+      {projectId && <BranchingVideoPreview projectId={projectId} jobs={jobs} storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} />}
+    </section>
     {shot && visibleJobs.length === 0 && <small>当前镜头尚无冻结的视频请求。</small>}
     {shot && visibleJobs.some((job) => job.state === "ingested" && !job.selected) && <Button variant="danger" disabled={readOnly} onClick={() => {
       const revision = visibleJobs[0]?.selectionRevision ?? 0;

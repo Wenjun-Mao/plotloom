@@ -3,18 +3,14 @@ import type {
   ImageJob,
   ManagedAsset,
   ReviewedKeyframe,
-  SceneBeatPlan,
   Shot,
   StillPreview,
-  StoryGraph,
-  Storyboard,
   StoryboardReview,
   VisualIntent,
   VisualWorkbench,
 } from "../../../types";
 import { plotloomApi } from "../../../api";
 import { Badge, Button, Field } from "../../../components";
-import { VideoPilotPanel } from "../../../video-pilot";
 import { useVisualIntentDraft } from "../../../visual-intent-drafts";
 
 type IntentEditor = ReturnType<typeof useVisualIntentDraft>;
@@ -54,11 +50,6 @@ export function KeyframeAndPreviewPanel({
   busy,
   mediaDraftsEnabled,
   review,
-  storyboardRevision,
-  storyboard,
-  sceneBeats,
-  graph,
-  routeId,
   maxPreviewLength,
   previewLength,
   setPreviewLength,
@@ -91,11 +82,6 @@ export function KeyframeAndPreviewPanel({
   busy: boolean;
   mediaDraftsEnabled: boolean;
   review: StoryboardReview | null | undefined;
-  storyboardRevision?: number;
-  storyboard: Storyboard;
-  sceneBeats: SceneBeatPlan;
-  graph: StoryGraph;
-  routeId?: string;
   maxPreviewLength: number;
   previewLength: number;
   setPreviewLength: Dispatch<SetStateAction<number>>;
@@ -387,19 +373,6 @@ export function KeyframeAndPreviewPanel({
           onPlay={() => setPlaying((current) => !current)}
         />
       )}
-      <VideoPilotPanel
-        projectId={projectId}
-        shot={selectedShot}
-        approvalId={review?.activeApproval?.id}
-        storyboardRevision={storyboardRevision}
-        selectionRevision={workbench.selectionRevision}
-        keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
-        storyboard={storyboard}
-        sceneBeats={sceneBeats}
-        graph={graph}
-        routeId={routeId}
-        readOnly={readOnly}
-      />
     </>
   );
 }

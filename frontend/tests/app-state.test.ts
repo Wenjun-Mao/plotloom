@@ -895,9 +895,8 @@ describe("App project/editor rehydration", () => {
     await act(async () => root.render(createElement(App)));
     await flush();
     await act(async () => button("分镜工作台").click());
-    expect(document.body.textContent).toContain("媒体能力");
-    expect(document.body.textContent).toContain("P1 可在下方通过同机手动 Codex image handoff");
-    expect(document.body.textContent).toContain("视频生产尚未实现");
+    expect(document.body.textContent).toContain("媒体工作流");
+    expect(document.body.textContent).toContain("未配置视频后端时仍可查看已有候选");
     expect(startMedia).not.toHaveBeenCalled();
   });
 
@@ -916,8 +915,8 @@ describe("App project/editor rehydration", () => {
     await act(async () => root.render(createElement(App)));
     await flush();
     await act(async () => button("分镜工作台").click());
-    expect(document.body.textContent).toContain("P1 图片：在下方完成 Gate receipt、Approval 和手动交接");
-    expect(document.body.textContent).toContain("视频：尚未实现");
+    expect(document.body.textContent).toContain("图片：查看关键帧与参考素材");
+    expect(document.body.textContent).toContain("视频：在上方工作台审核片段");
     expect(startMedia).not.toHaveBeenCalled();
     expect(document.body.textContent).toContain("Approval");
     expect(document.body.textContent).toContain("ProductionSnapshot");

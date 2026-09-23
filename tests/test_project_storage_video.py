@@ -37,10 +37,21 @@ from plotloom.project_storage.video_candidate_transition import (
     ProjectVideoSegmentTransitionRequiredError,
 )
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
+from plotloom.video_contracts import VideoReviewRequest
 from plotloom.video_ingestion import ObservedVideo, probe_video
 from plotloom.video_provider import VideoBackendInstanceIdentity
 from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
 from tests.project_storage_fixtures import fixture_profile as _fixture_profile
+
+
+def test_whole_job_review_annotations_are_optional_and_trimmed() -> None:
+    omitted = VideoReviewRequest.model_validate({"decision": "reject", "expectedSelectionRevision": 0})
+    assert omitted.reviewer == "" and omitted.note == ""
+    whitespace = VideoReviewRequest.model_validate({
+        "decision": "reject", "expectedSelectionRevision": 0,
+        "reviewer": "  ", "note": "  短  ",
+    })
+    assert whitespace.reviewer == "" and whitespace.note == "短"
 
 
 class FakeH3:
@@ -390,11 +401,13 @@ def test_synthetic_reviewed_segment_survives_reopen_and_blocks_old_revision(
     proposal_snapshot = storage.recovery.create_snapshot(project_id)
     assert any(item.relative_path.endswith(segment["derivativeHash"]) for item in proposal_snapshot.manifest.files)
     selected = client.post(f"{base}/video-segments/{segment['id']}/select", json={
-        "reviewer": "synthetic test operator", "note": "Explicit fixture segment choice, not a human creative approval.",
         "expectedSelectionRevision": 0,
     })
     assert selected.status_code == 201, selected.text
     assert selected.json()["selected"] is True
+    selected_job = client.get(f"{base}/video-jobs").json()["jobs"][0]
+    assert selected_job["reviews"][-1]["reviewer"] == ""
+    assert selected_job["reviews"][-1]["note"] == ""
     assert client.post(f"{base}/video-segments/{segment['id']}/select", json={
         "reviewer": "synthetic test operator", "note": "Stale concurrent selection.",
         "expectedSelectionRevision": 0,
@@ -413,11 +426,11 @@ def test_synthetic_reviewed_segment_survives_reopen_and_blocks_old_revision(
     assert restored_client.get(f"{base}/video-jobs/{job_id}/playback").content == playback.content
     assert restored_client.get(f"{base}/video-segments/{segment['id']}/preview").content == playback.content
     rejected = restored_client.post(f"{base}/video-jobs/{job_id}/review", json={
-        "reviewer": "synthetic test operator", "decision": "reject",
-        "note": "Retract this fixture segment without deleting review evidence.",
+        "decision": "reject", "note": "短",
         "expectedSelectionRevision": 1,
     })
     assert rejected.status_code == 201 and rejected.json()["selectionRevision"] == 2
+    assert rejected.json()["reviewer"] == "" and rejected.json()["note"] == "短"
     assert restored_client.get(f"{base}/video-jobs/{job_id}/playback").status_code == 404
     assert restored_client.get(f"{base}/video-jobs/{job_id}/media").status_code == 200
     reopened = storage.projects.open(project_id)
@@ -527,7 +540,7 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
     assert provider.downloads == 1
     selected = client.post(
         f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/review",
-        json={"reviewer": "project-video fixture", "decision": "select", "note": "Store this local candidate.", "expectedSelectionRevision": 0},
+        json={"decision": "select", "expectedSelectionRevision": 0},
     )
     assert selected.status_code == 409, selected.text
     media = client.get(

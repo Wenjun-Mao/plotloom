@@ -234,3 +234,39 @@ no Plotloom media, validation, or playback code was changed to mask it.
 The exercise selection carries a synthetic technical note documenting this
 limitation. It is not creative or media-quality acceptance. No external provider
 was called and no protected project or the 8824 service was changed.
+
+## Review-workbench usability follow-up (2026-09-23)
+
+The ready project's failed confirmation was traced to a UI/API contract split:
+the form allowed a nonempty one-character note, while the request schema
+required at least two characters plus a reviewer. The revised contract treats
+both as optional annotations, stores an absent value as an empty string in the
+existing review row, and leaves explicit selection, CAS/currentness, derivative
+verification, and rejection behavior unchanged. A synthetic API test covers
+omitted selection annotations and a one-character Chinese rejection note;
+the independent review additionally requested and received a whole-job
+omission/whitespace contract test. No historical annotation was rewritten.
+
+The selected shot now presents original take, segment adjustment, preview, and
+story use together. Supporting preparation/reference/keyframe work and
+technical job history are folded but remain mounted for draft retention and
+deep links. The story player's missing-opening warning links to the exact shot;
+a selected derivative's runtime load failure now has the same recovery route.
+The ready project remained read-only throughout: its opening job
+`vj_626ad6e39cb544d6ba7908a5a298e28a` stayed at selection revision 0,
+with both unselected `[24,168)` proposals unchanged; the ending job stayed
+selected at revision 1. This was checked before and after restarting only the
+isolated 8831 preview service to load the new API code. The separate 8824
+service was untouched.
+
+Executed gates: frontend typecheck and E2E typecheck, all 212 frontend unit
+tests, 35 focused Python video/segment tests, Ruff on changed Python files,
+and the isolated synthetic end-to-end walkthrough. The walkthrough selected
+and played exact derivatives with blank metadata and a one-character Chinese
+note, reloaded/restored the project, and verified direct review links, folded
+draft retention, and zero horizontal document overflow at 1440 and 1920 pixels
+with support disclosures open. A headed Chromium inspection of the persistent
+ready project showed the same no-overflow layout and the exact story-to-shot
+return link. Safari/WebKit was not exercised because the local Playwright
+installation has Chromium only. None of this constitutes creative acceptance
+or real-provider media review; no provider call or push was made.

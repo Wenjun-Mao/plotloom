@@ -48,18 +48,15 @@ class VideoJobRequest(CamelModel):
 
 
 class VideoReviewRequest(CamelModel):
-    reviewer: str = Field(min_length=1, max_length=160)
+    reviewer: str = Field(default="", max_length=160)
     decision: Literal["select", "reject"]
-    note: str = Field(min_length=2, max_length=2_000)
+    note: str = Field(default="", max_length=2_000)
     expected_selection_revision: int = Field(ge=0)
 
     @field_validator("reviewer", "note")
     @classmethod
-    def trim_required_text(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("review text must not be blank")
-        return value
+    def trim_review_annotation(cls, value: str) -> str:
+        return value.strip()
 
 
 class VideoDiscardRequest(CamelModel):
@@ -78,6 +75,11 @@ class VideoSegmentPrepareRequest(CamelModel):
 
 
 class VideoSegmentSelectRequest(CamelModel):
-    reviewer: str = Field(min_length=1, max_length=160)
-    note: str = Field(min_length=2, max_length=2_000)
+    reviewer: str = Field(default="", max_length=160)
+    note: str = Field(default="", max_length=2_000)
     expected_selection_revision: int = Field(ge=0)
+
+    @field_validator("reviewer", "note")
+    @classmethod
+    def trim_review_annotation(cls, value: str) -> str:
+        return value.strip()

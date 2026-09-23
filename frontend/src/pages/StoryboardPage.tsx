@@ -365,7 +365,7 @@ export function StoryboardPage({
       <Button variant="primary" disabled={saving} onClick={() => void onSave(storyboard)}>{saving ? "正在保存…" : "保存分镜"}</Button>
     </>} />
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
-    <div className="notice"><strong>媒体能力</strong><span>P0 可导入并审核 stills，P1 可在下方通过同机手动 Codex image handoff 准备已批准镜头；两者都要求显式选择。配置经审核的 MiniMax H3 后，可冻结、提交、复核并显式选择本地视频候选；未配置时视频生产尚未实现，且不会回退到 Atlas。</span></div>
+    <div className="notice"><strong>媒体工作流</strong><span>选择镜头后，在下方查看原片、调整并预览片段，再明确决定是否用于故事。关键帧、参考素材与准备步骤可展开；未配置视频后端时仍可查看已有候选。</span></div>
     {unresolvedEntity && <div className="notice warning" role="alert" data-testid="unknown-storyboard-entity">请求的镜头不属于当前分镜；未打开其他镜头。请从镜头列表重新选择。</div>}
     <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={saving} onSelectShot={selectShot} onReturnToBridge={onReturnToBridge} onReview={() => {
       const panel = document.getElementById("storyboard-review");
@@ -390,7 +390,7 @@ export function StoryboardPage({
                   <div className="shot-frame">{imageTask?.outputUri ? <img src={imageTask.outputUri} alt={`${shot.title} 历史关键帧`} /> : <span>{String(shot.order).padStart(2, "0")}</span>}{stale && <Badge tone="warning">STALE</Badge>}</div>
                   <div className="shot-copy"><strong>{shot.title}</strong><small>{shot.shotSize} · {shot.durationUnits}ms · {shotLinks.length} links</small><p>{shot.action}</p></div>
                 </button>
-                <div className="media-controls"><small>P1 图片：在下方完成 Gate receipt、Approval 和手动交接。</small><small>视频：尚未实现。</small></div>
+                <div className="media-controls"><small>图片：查看关键帧与参考素材</small><small>视频：在上方工作台审核片段</small></div>
               </article>;
             })}
           </div>

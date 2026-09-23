@@ -112,14 +112,12 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   const job = await reconciledResponse.json() as { id: string };
   const review = panel.getByTestId(`video-segment-review-${job.id}`);
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
-  await review.getByRole("button", { name: "准备此连续片段（不选择）" }).click();
+  await review.getByRole("button", { name: "生成待审片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
-  await review.getByLabel("选择人").fill("Step 5 browser reviewer");
-  await review.getByLabel("片段审核说明").fill("Synthetic fixture: reviewed exact derivative and sound.");
-  await review.getByRole("button", { name: "确认选择此播放片段" }).click();
-  await expect(review.getByText("当前已明确选择", { exact: false })).toBeVisible();
+  await review.getByRole("button", { name: "确认用于故事" }).click();
+  await expect(review.getByText("已选择片段 · 正用于故事", { exact: false })).toBeVisible();
   return job.id;
 }
 
@@ -137,6 +135,8 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   expect(created.ok(), await created.text()).toBeTruthy();
   const projectId = (await created.json() as { id: string }).id;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
+  await page.locator("details.workbench-support").first().locator("summary").click();
+  await page.locator("details.workbench-support").last().locator("summary").click();
   await page.getByLabel("审核人标签").fill("Step 5 browser reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("Step 5 local fixture");
@@ -146,6 +146,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   await page.getByTestId("save-visual-intent").click();
 
   const panel = page.getByTestId("video-pilot-panel");
+  await panel.locator("details.video-production > summary").click();
   const shotNames = ["门开", "双键升起", "城市醒来", "舱门开启"];
   const jobIds: string[] = [];
   for (const [index, shotName] of shotNames.entries()) {

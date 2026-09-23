@@ -55,6 +55,7 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
   await page.getByLabel("审核人标签").fill("Synthetic fixture setup");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await expect(page.getByTestId("video-pilot-panel")).toBeVisible();
+  await page.locator("details.workbench-support").first().locator("summary").click();
 
   await page.getByLabel("来源声明").fill("Synthetic offline browser fixture; not creator-approved source media.");
   await page.getByTestId("managed-image-upload").setInputFiles(still);
@@ -85,6 +86,7 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
 
 async function selectEndingKeyframe(page: Page, request: APIRequestContext, workbench: Workbench, projectId: string) {
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard&entity=shot%3Ashot_09#shot-keyframe-review`);
+  await page.locator("details.workbench-support").first().locator("summary").click();
   await page.getByLabel("来源声明").fill("Synthetic offline ending still; isolated fixture data only.");
   const importResponse = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/managed-assets`);
@@ -120,6 +122,7 @@ async function openShotForReview(page: Page, workbench: Workbench, projectId: st
 
 async function ingestEightSecondOriginal(page: Page, request: APIRequestContext, workbench: Workbench, projectId: string): Promise<string> {
   const panel = page.getByTestId("video-pilot-panel");
+  await panel.locator("details.video-production > summary").click();
   const letterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
   if (!await letterbox.isChecked()) await letterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
@@ -138,10 +141,10 @@ async function ingestEightSecondOriginal(page: Page, request: APIRequestContext,
   return job.id;
 }
 
-async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expectedOutFrame: number) {
+async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expectedOutFrame: number, annotation = "") {
   const review = page.getByTestId(`video-segment-review-${jobId}`);
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
-  await review.getByRole("button", { name: "准备此连续片段（不选择）" }).click();
+  await review.getByRole("button", { name: "生成待审片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBe((expectedOutFrame - inFrame) / 24);
@@ -150,16 +153,17 @@ async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expe
   await preview.evaluate((video) => (video as HTMLVideoElement).play());
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(1);
   await preview.evaluate((video) => (video as HTMLVideoElement).pause());
-  await review.getByLabel("选择人").fill("Synthetic technical reviewer");
-  const frameCount = expectedOutFrame - inFrame;
-  await review.getByLabel("片段审核说明").fill(`Test-only validation of the ${frameCount}-frame derivative and its audio.`);
+  if (annotation) {
+    await review.locator("details.review-annotations > summary").click();
+    await review.getByLabel("说明（可选）").fill(annotation);
+  }
   const selection = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname.includes(`/video-segments/`)
     && new URL(response.url()).pathname.endsWith("/select"));
-  await review.getByRole("button", { name: "确认选择此播放片段" }).click();
+  await review.getByRole("button", { name: "确认用于故事" }).click();
   const response = await selection;
   expect(response.ok(), await response.text()).toBeTruthy();
-  await expect(review).toContainText("当前已明确选择");
+  await expect(review).toContainText("已选择片段 · 正用于故事");
 }
 
 test("retains separate exercise and ready-to-use synthetic segment walkthrough projects", async ({ page, request, workbench }) => {
@@ -173,7 +177,7 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   await openShotForReview(page, workbench, exerciseProject, "shot_01");
   await prepareAndChoose(page, exerciseJob, 24, 168);
   await openShotForReview(page, workbench, exerciseProject, "shot_09");
-  await prepareAndChoose(page, exerciseEndingJob, 0, 192);
+  await prepareAndChoose(page, exerciseEndingJob, 0, 192, "短");
 
   const exerciseState = await request.get(`${workbench.apiOrigin}/api/v2/projects/${exerciseProject}/video-jobs`);
   expect(exerciseState.ok()).toBeTruthy();
@@ -226,6 +230,18 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   const directReview = page.getByTestId(`video-segment-review-${readyJob}`);
   await expect(directReview).toBeVisible();
   await expect.poll(() => directReview.evaluate((element) => Math.abs(element.getBoundingClientRect().top))).toBeLessThan(8);
+  await directReview.locator("details.review-annotations > summary").click();
+  await directReview.getByLabel("说明（可选）").fill("短");
+  await directReview.locator("details.review-annotations > summary").click();
+  await directReview.locator("details.review-annotations > summary").click();
+  await expect(directReview.getByLabel("说明（可选）")).toHaveValue("短");
+  for (const width of [1440, 1920]) {
+    await page.setViewportSize({ width, height: 900 });
+    for (const disclosure of await page.locator("details.workbench-support").all()) {
+      if (!await disclosure.evaluate((element) => (element as HTMLDetailsElement).open)) await disclosure.locator("summary").click();
+    }
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+  }
   console.log(`INTERACTIVE_EXERCISE_PROJECT=${exerciseProject}`);
   console.log(`INTERACTIVE_READY_PROJECT=${readyProject}`);
 });

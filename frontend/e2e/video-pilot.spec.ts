@@ -34,14 +34,12 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   });
   const review = panel.getByTestId(`video-segment-review-${reconciled.id}`);
   await review.getByLabel("片段入点（帧）").fill(String(inFrame));
-  await review.getByRole("button", { name: "准备此连续片段（不选择）" }).click();
+  await review.getByRole("button", { name: "生成待审片段" }).click();
   const preview = review.locator('video[data-testid^="video-segment-preview-"]');
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
-  await review.getByLabel("选择人").fill("P2 H3 browser reviewer");
-  await review.getByLabel("片段审核说明").fill("Synthetic fixture: explicit derivative preview and selection.");
-  await review.getByRole("button", { name: "确认选择此播放片段" }).click();
-  await expect(review.getByText("当前已明确选择", { exact: false })).toBeVisible();
+  await review.getByRole("button", { name: "确认用于故事" }).click();
+  await expect(review.getByText("已选择片段 · 正用于故事", { exact: false })).toBeVisible();
   return reconciled.id;
 }
 
@@ -65,6 +63,8 @@ async function prepareSelectedPair(
   expect(created.ok()).toBeTruthy();
   const projectId = (await created.json()).id as string;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
+  await page.locator("details.workbench-support").first().locator("summary").click();
+  await page.locator("details.workbench-support").last().locator("summary").click();
   await page.getByLabel("审核人标签").fill("P2 H3 browser reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("P2 local fake fixture");
@@ -95,13 +95,14 @@ async function prepareSelectedPair(
   } });
   expect(reference.ok()).toBeTruthy();
   const panel = page.getByTestId("video-pilot-panel");
+  await panel.locator("details.video-production > summary").click();
   const firstJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 24);
 
   // The adjoining fixture follows the same authored review/selection path.
   // It reuses the explicitly retained local still; the distinct candidate is
   // the separately ingested, reviewed video job for the adjoining shot.
   await page.getByLabel("编辑镜头 双键升起").click();
-  await expect(panel.getByText("仅显示当前镜头：双键升起（shot_03）")).toBeVisible();
+  await expect(page.locator(".shot-workbench-heading")).toContainText("双键升起");
   await page.getByLabel("审核兼容性说明").fill("Current approved adjoining shot keyframe.");
   await page.getByTestId("select-reviewed-keyframe").click();
   const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 0);

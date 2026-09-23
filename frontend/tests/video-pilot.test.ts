@@ -96,7 +96,7 @@ it("does not describe an unconfigured H3 backend as the legacy Wan five-second p
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, reason: "h3_video_not_configured", qualifiedDurationSeconds: [5, 8] });
   vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });
   await render("project", "shot-1");
-  expect(host.textContent).toContain("MiniMax H3 本地视频候选");
+  expect(host.textContent).toContain("准备或生成新的 MiniMax H3 原片");
   expect(host.textContent).toContain("H3 后端尚未配置");
   expect(host.textContent).not.toContain("P2 Wan 视频试点");
   expect(host.textContent).not.toContain("仅 5 秒 / 720p");
@@ -183,7 +183,7 @@ it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async
   })));
   await act(async () => { await Promise.resolve(); });
 
-  expect(host.textContent).toContain("MiniMax H3 本地视频候选");
+  expect(host.textContent).toContain("准备或生成新的 MiniMax H3 原片");
   const freeze = [...host.querySelectorAll("button")].find((item) => item.textContent === "生成另一候选（冻结当前审核关键帧）");
   expect(freeze?.disabled).toBe(true);
   expect(host.querySelector('[data-testid="h3-aspect-preparation"]')?.textContent).toContain("默认拒绝比例不符");
@@ -319,7 +319,7 @@ it("prepares a synthetic review window without auto-selecting and ignores late u
   const select = vi.spyOn(plotloomApi, "selectVideoSegment").mockResolvedValue({} as never);
   const refresh = vi.fn().mockResolvedValue(undefined);
   await act(async () => root.render(createElement(VideoSegmentReview, { projectId: "old", job: candidate, readOnly: false, onRefresh: refresh })));
-  await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent?.includes("准备此连续片段"))?.click(); });
+  await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent?.includes("生成待审片段"))?.click(); });
   expect(prepare).toHaveBeenCalledWith("old", candidate.id, 0, 144, 0);
   expect(select).not.toHaveBeenCalled();
   await act(async () => root.render(createElement(VideoSegmentReview, { projectId: "new", job: candidate, readOnly: false, onRefresh: refresh })));
@@ -342,8 +342,8 @@ it("does not offer a rejected H3 take for another segment decision", async () =>
     projectId: "project", job: candidate, readOnly: false, onRefresh: async () => undefined,
   })));
   expect(host.textContent).toContain("此原片已拒绝");
-  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("准备此连续片段"))?.disabled).toBe(true);
-  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("确认选择此播放片段"))?.disabled).toBe(true);
+  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("生成待审片段"))?.disabled).toBe(true);
+  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("确认用于故事"))?.disabled).toBe(true);
 });
 
 it("allows a current ingested take with no prepared segment to be rejected", async () => {
@@ -469,6 +469,8 @@ it("turns a corrupt selected-media load error into a blocking gap without advanc
   const player = host.querySelector('[data-testid="branching-video-job-scene-job"]') as HTMLVideoElement;
   await act(async () => { player.dispatchEvent(new Event("error", { bubbles: true })); await Promise.resolve(); });
   expect(host.querySelector('[data-testid="branching-missing-media"]')?.textContent).toContain("scene");
+  expect(host.querySelector('[data-testid="branching-missing-media"] a')?.getAttribute("href"))
+    .toBe("?project=project&stage=storyboard&entity=shot%3Ascene-shot#shot-workbench");
   expect(host.querySelector('[data-testid="branching-video-job-scene-job"]')).toBeNull();
   expect(host.querySelector('[data-testid="branching-choices"]')).toBeNull();
 });
