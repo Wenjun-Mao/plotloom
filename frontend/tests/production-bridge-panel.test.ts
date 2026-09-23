@@ -43,16 +43,32 @@ it("requires the displayed dramatic-intent package to be saved before accepting 
   const valueSetter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
   await act(async () => { valueSetter?.call(textarea, "author-reviewed objective"); textarea.dispatchEvent(new Event("input", { bubbles: true })); });
 
-  expect(button("接受并安装").disabled).toBe(true);
+  expect(button("确认投产提案").disabled).toBe(true);
   expect(host.textContent).toContain("当前编辑未保存");
-  await act(async () => button("接受并安装").click());
+  await act(async () => button("确认投产提案").click());
   expect(accept).not.toHaveBeenCalled();
 
   await act(async () => button("保存戏剧意图整包").click()); await settle();
   expect(save).toHaveBeenCalledWith("first", { expectedProposalRevision: 1, expectedContentHash: "a".repeat(64), entries: [{ id: "entry-first", text: "author-reviewed objective" }] });
-  expect(button("接受并安装").disabled).toBe(false);
-  await act(async () => button("接受并安装").click()); await settle();
+  expect(button("确认投产提案").disabled).toBe(false);
+  await act(async () => button("确认投产提案").click()); await settle();
   expect(accept).toHaveBeenCalledWith("first", { expectedProposalRevision: 2, expectedContentHash: "c".repeat(64) });
+  expect(host.textContent).toContain("投产提案已确认");
+  expect(host.textContent).toContain("确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。");
+  expect(host.textContent).not.toContain("安装");
+});
+
+it("uses confirmation wording for proposal conflicts without changing their installability", async () => {
+  const blocked = state("blocked");
+  blocked.proposal!.installable = false;
+  blocked.proposal!.conflicts = [{ code: "dramatic_intent_required", message: "不能安装：请先审阅戏剧意图", sectionId: null, episode: null, sceneIndex: null }];
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(blocked);
+
+  await render("blocked"); await settle();
+
+  expect(host.textContent).toContain("暂不能确认投产提案：请先审阅戏剧意图");
+  expect(host.textContent).not.toContain("不能安装");
+  expect(button("确认投产提案").disabled).toBe(true);
 });
 
 it("ignores a late successful GET from the prior project in the same mounted root", async () => {
@@ -152,7 +168,7 @@ it("preserves an unsaved draft when model completion arrives late", async () => 
     await act(async () => { await vi.advanceTimersByTimeAsync(1600); }); await settle();
     expect((host.querySelector("textarea") as HTMLTextAreaElement).value).toBe("我尚未保存的目的");
     expect(host.textContent).toContain("未保存的本地编辑仍在此保留");
-    expect(button("接受并安装").disabled).toBe(true);
+    expect(button("确认投产提案").disabled).toBe(true);
     await act(async () => button("载入新提案并放弃本地编辑").click());
     expect((host.querySelector("textarea") as HTMLTextAreaElement).value).toBe("模型推断的目的");
   } finally {

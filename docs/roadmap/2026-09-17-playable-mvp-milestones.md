@@ -24,6 +24,14 @@ provider or generation work. The next F5-to-production/F7 activity is the
 documented canonical bridge: a reviewable proposal and explicit atomic install,
 with no implied approval, reference selection, or provider dispatch.
 
+**Simulated bridge wording follow-up (2026-09-22).** The director found the
+simulated flow fairly clear and requested “确认投产提案” for the action,
+“投产提案已确认” for the accepted status, and an explicit note that
+confirmation creates scene/shot data without generating images or video.
+This copy-only refinement also aligns conflict, unsaved-edit, and completion
+messages. It records usability feedback only—not live-provider quality,
+creative acceptance, or image/video acceptance.
+
 **Bounded dramatic-intent follow-on (approved 2026-09-22).** Extend the
 source-bound bridge proposal with an asynchronous, durable inference job over
 the existing text profile/adapter seam. A versioned Chinese prompt may return
