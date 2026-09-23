@@ -95,6 +95,21 @@ def _ceil(value: Fraction) -> int:
     return -(-value.numerator // value.denominator)
 
 
+def _audio_timestamps_follow_samples(
+    times: list[Fraction], counts: list[int], sample_rate: int,
+) -> bool:
+    """Allow one sample of AAC timestamp rounding, never accumulating drift."""
+
+    origin = times[0]
+    samples = 0
+    for time, count in zip(times, counts):
+        expected = origin + Fraction(samples, sample_rate)
+        if abs(time - expected) > Fraction(1, sample_rate):
+            return False
+        samples += count
+    return True
+
+
 def _probe(path: Path, *, strict_container: bool = False) -> SegmentProbe:
     ffprobe = shutil.which("ffprobe")
     if ffprobe is None:
@@ -132,7 +147,7 @@ def _probe(path: Path, *, strict_container: bool = False) -> SegmentProbe:
         raise VideoSegmentError("source audio lacks decoded sample counts") from error
     if any(count <= 0 for count in audio_counts):
         raise VideoSegmentError("source audio has an empty decoded frame")
-    if any(right != left + Fraction(count, sample_rate) for left, right, count in zip(audio_times, audio_times[1:], audio_counts)):
+    if not _audio_timestamps_follow_samples(audio_times, audio_counts, sample_rate):
         raise VideoSegmentError("source audio has a presentation gap or overlap")
     frame_count = len(video_frames)
     if video.get("nb_frames") not in (None, "N/A", str(frame_count)):

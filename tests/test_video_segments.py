@@ -4,12 +4,42 @@ import shutil
 import subprocess
 import sys
 from array import array
+from fractions import Fraction
 from itertools import pairwise
 from pathlib import Path
 
 import pytest
 
-from plotloom.video_segments import VideoSegmentError, derive_playback_segment
+from plotloom.video_segments import (
+    VideoSegmentError,
+    _audio_timestamps_follow_samples,
+    derive_playback_segment,
+)
+
+
+def test_aac_timestamp_rounding_is_bounded_to_one_sample() -> None:
+    counts = [1024, 1024, 1024]
+    exact = [Fraction(0), Fraction(1024, 32000), Fraction(2048, 32000)]
+    rounded = [exact[0], exact[1] - Fraction(1, 32000), exact[2]]
+    gap = [exact[0], exact[1] + Fraction(2, 32000), exact[2]]
+    assert _audio_timestamps_follow_samples(rounded, counts, 32000)
+    assert not _audio_timestamps_follow_samples(gap, counts, 32000)
+
+
+def test_synthetic_32khz_aac_derivative_keeps_exact_six_seconds(tmp_path: Path) -> None:
+    if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
+        pytest.skip("FFmpeg tools are required for synthetic segment verification")
+    source = tmp_path / "source-32khz.mp4"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:size=128x128:rate=24:duration=8",
+         "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=32000:duration=8",
+         "-frames:v", "192", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-c:a", "aac", "-ar", "32000", "-movflags", "+faststart", "-y", str(source)],
+        check=True, timeout=90,
+    )
+    segment = derive_playback_segment(source.read_bytes(), in_frame=0, out_frame=144, authored_duration_units=6_000)
+    assert segment.output_probe["frameCount"] == 144
+    assert segment.output_probe["audioSamples"] == 192_000
 
 
 @pytest.fixture(scope="module")

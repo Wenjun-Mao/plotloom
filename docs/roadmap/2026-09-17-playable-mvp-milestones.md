@@ -79,6 +79,17 @@ The retained [technical receipt](../verification/2026-09-23-reviewed-playback-se
 records the synthetic proof, browser walkthrough, independent review, and
 remaining product-acceptance boundary. No live-media acceptance is implied.
 
+**Director synthetic-usability follow-up (2026-09-23).** At local commit
+`303b616`, the director reported that the reviewed-segment controls were
+improved and personally confirmed a segment and played the synthetic exercise
+on 8831. This accepts that bounded interaction, not synthetic content as real
+media or a U4 creative decision. A subsequent separately authorized
+[one-shot real U4 trial](../verification/2026-09-23-u4-real-shot-trial.md)
+prepared one ImageGen first frame, made one H3 submission, and retained an
+exact six-second derivative preview in an isolated copy. Its audiovisual
+selection remains open for attended director audition; other route cuts have
+no playable media.
+
 **Simulated bridge wording follow-up (2026-09-22).** The director found the
 simulated flow fairly clear and requested “确认投产提案” for the action,
 “投产提案已确认” for the accepted status, and an explicit note that

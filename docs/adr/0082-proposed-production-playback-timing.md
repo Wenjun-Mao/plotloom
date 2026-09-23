@@ -29,6 +29,16 @@ Existing whole-job selections without a segment decision remain review evidence,
 
 For this first slice, require source video to probe as presentation-order constant-frame-rate 24/1 with consecutive frame timestamps; reject variable/uncertain cadence rather than infer from `avg_frame_rate`. Let `t0` be the first presented video-frame PTS on the common media timeline. Decode/re-encode arbitrary windows (no keyframe-dependent stream copy) and normalize derivative video PTS to `0, 1/24, …, (N−1)/24`, with exactly `N` frames and an `N/24` presentation interval. Select audio by presentation time `[t0 + inFrame/24, t0 + outFrame/24)`; map each boundary to the decoded PCM sample grid relative to the audio stream's own PTS origin using ceiling, require source audio coverage of the full interval, and normalize audible output to zero without stretch, filler, or a sample outside that interval. AAC priming/padding may affect encoded packets or container duration but must be accounted for by edit metadata or verified decoding: decoded presented audio may differ from the rational boundary by at most one sample, with no audible pre-roll/tail. A missing/extra presented video frame, coverage gap, unaccounted timestamp offset, or larger audio difference blocks. Compare counted frames, video/audio PTS, stream and `format.duration`; disagreements outside these exact rules make timing uncertain, not “close enough.” Do not treat H3's one-frame *ingestion* tolerance as a one-frame *playback* allowance.
 
+The first real 32 kHz AAC take exposed one-sample decoded-frame PTS rounding
+after a local six-second re-encode. The original and synthetic 32 kHz sources
+decoded without gaps, while their derived AAC packets occasionally reported a
+timestamp one sample early and returned to the exact cumulative sample grid
+on the next packet. The probe now compares each decoded audio timestamp with
+the first timestamp plus its cumulative decoded sample count, allowing at most
+one sample of local timestamp quantization. This does not accumulate tolerance:
+a two-sample gap or drift beyond one sample still blocks, as do the exact
+window coverage and end-time checks above.
+
 ## First slice, alternatives and decision boundary
 
 Approved first implementation: build the probe/segment/selection contract and minimal Chinese review UI for current 24-fps H3 6/8-second authored shots; use qualified 8-second requests as possible source takes for six-second windows, while preserving exact source timing and all existing Approval/reference/keyframe, dispatch and quality gates. The creator may choose **any contiguous exact-duration in/out window** with its sound, inspect the final derivative, and explicitly confirm the selected take/window; the system must not claim that a human watched it merely because a control was clicked. Show separately “原稿镜头时长”, “后端请求时长”, “实测原片”, and “已审核播放片段”; label an 8-second request as *candidate material for a six-second segment*, not as an exact match. Block with a clear reason for no Approval, stale source/selection, no qualified request, missing frames/audio, non-frame-aligned shot, unreviewed window, mismatched probe, or clipped creative content. A six-second catalog entry must not be introduced on the assumption that `158/24` equals six.

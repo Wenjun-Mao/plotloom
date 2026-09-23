@@ -5,6 +5,7 @@ from hashlib import sha256
 from typing import TYPE_CHECKING, Any, Callable
 
 from .artifacts import ArtifactStore
+from .video_backends.minimax_h3.prompt import compile_i2va_prompt_v1
 from .video_ingestion import ObservedVideo, probe_video
 from .video_provider import (
     AtlasWanAdapter,
@@ -112,6 +113,16 @@ class VideoJobService:
 
     @staticmethod
     def _prompt(snapshot: dict[str, Any]) -> str:
+        if snapshot.get("compilerVersion") == "plotloom.h3-i2va.v2":
+            prompt = snapshot.get("compiledPrompt")
+            if not isinstance(prompt, str) or not prompt:
+                raise ValueError("frozen H3 prompt is missing")
+            return prompt
+        if snapshot.get("compilerVersion") == "plotloom.h3-i2va.v1":
+            return compile_i2va_prompt_v1(snapshot)
+        # Existing prepared jobs keep the compiler named by their frozen
+        # snapshot. Changing their prompt at submission would change a durable
+        # dispatch contract without a new preparation/review step.
         shot = snapshot["shot"]
         cues = snapshot["resolvedContext"].get("dialogueCues", [])
         cue_text = "\n".join(
@@ -119,12 +130,11 @@ class VideoJobService:
             f"delivery={cue.get('delivery')}; performance={cue.get('performanceNotes')}): {cue.get('text')}"
             for cue in cues
         )
-        audio = snapshot["shot"].get("audioPlan", {}).get("events", [])
+        audio = shot.get("audioPlan", {}).get("events", [])
         audio_text = "\n".join(
             f"Sound ({event.get('kind')}, {event.get('startOffsetUnits')}ms for {event.get('durationUnits')}ms): {event.get('description')}"
             for event in audio
         )
-        # This is an exact frozen compiler projection, not a browser prompt.
         return "\n".join(filter(None, [str(shot.get("visualIntent", "")), f"Action: {shot.get('action', '')}", f"Motion: {shot.get('motionIntent', '')}", cue_text, audio_text]))
 
     @staticmethod

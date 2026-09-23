@@ -113,7 +113,7 @@ class VideoJobPersistence:
             resolution = production_contract.resolution
             audio = production_contract.audio
             compiler_version = (
-                "p2-video-adapters-v2" if production_contract.profile_id is not None
+                "plotloom.h3-i2va.v2" if production_contract.profile_id is not None
                 else "p2-video-adapters-v1"
             )
             provider_snapshot = production_contract.provider_snapshot()
@@ -252,6 +252,12 @@ class VideoJobPersistence:
                 "provider": provider_snapshot,
                 "request": request_snapshot,
             }
+            if production_contract is not None and production_contract.profile_id is not None:
+                # Refuse ambiguous dialogue before a row, budget reservation,
+                # or durable dispatch claim exists.
+                from ...video_backends.minimax_h3.prompt import compile_i2va_prompt
+
+                snapshot["compiledPrompt"] = compile_i2va_prompt(snapshot)
             fingerprint = stable_hash({"snapshot": snapshot, "idempotencyKey": idempotency_key})
             existing = session.scalar(select(VideoJobRow).where(VideoJobRow.project_id == project_id, VideoJobRow.idempotency_key == idempotency_key))
             if existing is not None:
