@@ -80,6 +80,7 @@ class ProductionBridgeState(CamelModel):
     status: ProductionBridgeStatus
     stale_reasons: list[str] = Field(default_factory=list)
     installed_stage_revisions: dict[str, int] | None = None
+    installed_storyboard_current: bool = False
     intent_job: "ProductionBridgeIntentJob | None" = None
     simulation_label: str | None = None
 

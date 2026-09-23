@@ -13,6 +13,7 @@ from ..project_storage.project_handle import ProjectStore
 from ..project_storage.project_video import ProjectVideoRepository
 from ..project_storage.video_service import ProjectVideoService
 from ..video_contracts import VideoDiscardRequest, VideoDiscardUnselectedRequest, VideoJobRequest, VideoReviewRequest
+from ..video_backends.minimax_h3.adapter import H3_QUALIFIED_DURATION_FRAMES
 
 
 def register_project_folder_video_routes(
@@ -57,6 +58,8 @@ def register_project_folder_video_routes(
                 "enabled": False,
                 "tracksPaidWanPilot": False,
                 "reason": "h3_video_not_configured",
+                # Read-only catalog projection: availability remains false.
+                "qualifiedDurationSeconds": sorted(H3_QUALIFIED_DURATION_FRAMES),
             }
         return service.public_capability()
 

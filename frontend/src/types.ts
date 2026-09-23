@@ -319,6 +319,7 @@ export interface VideoPilotBudget {
 
 export interface VideoBackend {
   enabled: boolean;
+  reason?: string;
   adapterId?: string;
   adapterVersion?: string;
   provider?: string;
@@ -1320,4 +1321,4 @@ export interface ProductionBridgeIntentEntry { id: string; targetKind: "scene_ob
 export interface ProductionBridgeIntentPackage { suggestionOrigin: "none" | "model_inference.v1"; reviewState: "pending" | "model_suggested" | "author_saved"; entries: ProductionBridgeIntentEntry[]; provenance?: Record<string, unknown> | null; }
 export interface ProductionBridgeProposal { revision: number; contentHash: string; inputs: Record<string, unknown>; intentPackage: ProductionBridgeIntentPackage; scenes: Array<Record<string, unknown>>; cuts: Array<Record<string, unknown>>; conflicts: ProductionBridgeConflict[]; advisories: ProductionBridgeConflict[]; installable: boolean; preparedAt: string; }
 export interface ProductionBridgeIntentJob { id: string; status: "queued" | "dispatched" | "ready" | "stale" | "failed" | "cancelled" | "outcome_unknown"; proposalRevision: number; proposalContentHash: string; profileId: string; profileVersion: number; promptVersion: string; createdAt: string; updatedAt: string; errorCode: string | null; errorMessage: string | null; resultProposalRevision: number | null; providerRequestId: string | null; responseHash: string | null; }
-export interface ProductionBridgeState { proposal: ProductionBridgeProposal | null; status: "missing" | "ready" | "accepted" | "stale"; staleReasons: string[]; installedStageRevisions: Record<string, number> | null; intentJob?: ProductionBridgeIntentJob | null; simulationLabel?: string | null; }
+export interface ProductionBridgeState { proposal: ProductionBridgeProposal | null; status: "missing" | "ready" | "accepted" | "stale"; staleReasons: string[]; installedStageRevisions: Record<string, number> | null; installedStoryboardCurrent: boolean; intentJob?: ProductionBridgeIntentJob | null; simulationLabel?: string | null; }

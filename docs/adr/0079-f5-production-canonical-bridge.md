@@ -106,6 +106,30 @@ Development-only fake previews carry a server-owned simulation notice in the
 bridge response. The UI must not infer that notice from a removable URL flag,
 and normal project responses carry no such notice.
 
+### Canonical shot handoff and preparation visibility
+
+An accepted bridge may link each installed proposal cut to its exact canonical
+Storyboard shot through the existing shot route. The link is available only
+while the bridge and installed Storyboard revision are current. An unknown or
+no-longer-owned shot ID must fail visibly rather than fall back to another
+shot; unsaved source work must retain the existing navigation guard.
+The bridge's accepted-source status does not become stale merely because a
+downstream Storyboard was edited. Its read-only `installedStoryboardCurrent`
+projection compares the installed revision with the current ready Storyboard
+head; both the link and the shot summary fail closed on a mismatch.
+
+The shot workbench may display a read-only preparation summary from the
+existing bridge, Storyboard approval, visual-workbench decisions, and video
+backend owners. It creates no new approval, selection, job, or readiness
+verdict. The disabled video-backend response still exposes the qualified
+request-duration catalog so the UI can distinguish an unconfigured backend
+from an exact source duration outside that catalog. Catalog compatibility is
+not physical output-duration equality: the measured H3 nominal 5, 6, and 8
+second requests yielded 124, 158, and 192 frames at 24 fps respectively.
+Therefore adding a nominal 6-second request to the catalog alone cannot
+satisfy the exact 6-second F5 source contract. Duration reconciliation needs
+a separate policy and evidence before media preparation changes.
+
 ## Consequences
 
 The implementation needs a versioned bridge prompt and strict whole-package

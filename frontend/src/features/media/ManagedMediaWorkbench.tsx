@@ -26,6 +26,7 @@ import { useAssetKeyframeActions } from "./assets/useAssetKeyframeActions";
 import { useImageJobActions } from "./image-jobs/useImageJobActions";
 import { useCharacterReferenceActions } from "./references/useCharacterReferenceActions";
 import { useMediaSelectionContext } from "./keyframes/useMediaSelectionContext";
+import { ShotPreparationSummary } from "./ShotPreparationSummary";
 import type { ProjectDraftQuiescence } from "../authoring/projectDraftQuiescence";
 
 function previewKey(projectId: string): string {
@@ -57,6 +58,8 @@ export function ManagedMediaWorkbench({
   readOnly,
   onSelectShot,
   onReview,
+  onReturnToBridge,
+  draftChanged = false,
 }: {
   projectId?: string;
   storyboard: Storyboard;
@@ -73,8 +76,11 @@ export function ManagedMediaWorkbench({
   readOnly: boolean;
   onSelectShot?: (id: string) => void;
   onReview?: () => void;
+  onReturnToBridge?: () => void;
+  draftChanged?: boolean;
 }) {
   const [workbench, setWorkbench] = useState<VisualWorkbench>(emptyWorkbench);
+  const [mediaSnapshot, setMediaSnapshot] = useState<{ projectId: string; approvalId?: string; storyboardRevision?: number }>();
   const [imageJobs, setImageJobs] = useState<ImageJob[]>([]);
   const [characterProposals, setCharacterProposals] = useState<
     CharacterReferenceProposal[]
@@ -127,6 +133,7 @@ export function ManagedMediaWorkbench({
       ]);
       if (signal?.aborted || sequence !== requestSequence.current) return;
       setWorkbench(next);
+      setMediaSnapshot({ projectId, approvalId: currentApproval?.id, storyboardRevision });
       setImageJobs(jobs.jobs);
       setCharacterProposals(proposals.proposals);
       setImageExchangeConfigured(jobs.configured);
@@ -135,7 +142,7 @@ export function ManagedMediaWorkbench({
         next.previews.find((item) => item.id === saved) ?? next.previews[0];
       setPreviewId(preferred?.id ?? "");
     },
-    [projectId],
+    [projectId, currentApproval?.id, storyboardRevision],
   );
 
   // Approval and authored-board changes determine preview applicability.  An
@@ -336,7 +343,7 @@ export function ManagedMediaWorkbench({
             onChange={(event) => onSelectShot?.(event.target.value)}
             disabled={!storyboard.shots.length}
           >
-            {!storyboard.shots.length && <option value="">尚无镜头</option>}
+            {!selectedShot && <option value="">{storyboard.shots.length ? "未打开镜头 · 请明确选择" : "尚无镜头"}</option>}
             {storyboard.shots.map((shot) => (
               <option key={shot.id} value={shot.id}>
                 {shot.title} · {shot.id}
@@ -353,12 +360,13 @@ export function ManagedMediaWorkbench({
           当前镜头：{selectedShot.action} · {selectedShot.durationUnits}ms
         </small>
       )}
+      {selectedShot && <ShotPreparationSummary projectId={projectId} shot={selectedShot} storyboardRevision={storyboardRevision} draftChanged={draftChanged} review={review} workbench={workbench} mediaLoaded={Boolean(mediaSnapshot && mediaSnapshot.projectId === projectId && mediaSnapshot.approvalId === currentApproval?.id && mediaSnapshot.storyboardRevision === storyboardRevision)} onReview={onReview} onReturnToBridge={onReturnToBridge} />}
       {error && (
         <div className="notice warning" role="alert">
           {error}
         </div>
       )}
-      <CharacterReferencesPanel
+      <div id="shot-character-references"><CharacterReferencesPanel
         projectId={projectId}
         bible={bible}
         storyBibleRevision={storyBibleRevision}
@@ -394,7 +402,7 @@ export function ManagedMediaWorkbench({
         onRefreshProposal={(proposalId) =>
           void refreshCharacterReferenceProposal(proposalId)
         }
-      />
+      /></div>
       <ImageJobPanel
         imageExchangeConfigured={imageExchangeConfigured}
         prerequisite={imageJobPrerequisite}
@@ -455,7 +463,7 @@ export function ManagedMediaWorkbench({
         busy={busy}
         onRecord={() => void recordSamePersonReview()}
       />
-      <KeyframeAndPreviewPanel
+      <div id="shot-keyframe-review"><KeyframeAndPreviewPanel
         projectId={projectId}
         workbench={workbench}
         selectedShot={selectedShot}
@@ -492,7 +500,7 @@ export function ManagedMediaWorkbench({
         onSelectKeyframe={() => void selectKeyframe()}
         onCreatePreview={() => void createPreview()}
         onSelectPreview={selectPreview}
-      />
+      /></div>
     </Panel>
   );
 }

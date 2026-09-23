@@ -83,6 +83,16 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
 
+it("does not describe an unconfigured H3 backend as the legacy Wan five-second pilot", async () => {
+  vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, reason: "h3_video_not_configured", qualifiedDurationSeconds: [5, 8] });
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });
+  await render("project", "shot-1");
+  expect(host.textContent).toContain("MiniMax H3 本地视频候选");
+  expect(host.textContent).toContain("H3 后端尚未配置");
+  expect(host.textContent).not.toContain("P2 Wan 视频试点");
+  expect(host.textContent).not.toContain("仅 5 秒 / 720p");
+});
+
 it("does not let a deferred old-project submit refresh overwrite the new project", async () => {
   const oldSubmit = deferred<VideoJob>();
   const jobs = vi.spyOn(plotloomApi, "getVideoJobs").mockImplementation(async (projectId) => ({ jobs: [job(projectId, projectId === "old" ? "shot-old" : "shot-new")] }));

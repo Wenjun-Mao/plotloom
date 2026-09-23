@@ -60,10 +60,35 @@ def test_bridge_projects_one_f4_scene_to_one_canonical_scene_and_installs_atomic
         accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(expected_proposal_revision=revised.revision, expected_content_hash=revised.content_hash))
         assert accepted.status == "accepted"
         assert accepted.installed_stage_revisions == {"story_bible": 1, "scene_beats": 1, "storyboard": 1}
+        assert accepted.installed_storyboard_current
         installed = store.authoring.get_stage_payload(store.manifest.project_id, StageName.SCENE_BEATS)
         assert {scene.objective for scene in installed.scenes} == {edited_text}
         assert revised.intent_package.review_state == "author_saved"
         assert revised.intent_package.suggestion_origin == "none"
+    finally:
+        store.close()
+
+
+def test_bridge_handoff_stops_when_installed_storyboard_revision_drifts(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
+    try:
+        proposal = _prepare_installable_bridge(store)
+        accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
+            expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
+        ))
+        assert accepted.installed_storyboard_current
+        project_id = store.manifest.project_id
+        board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
+        edited = board.model_copy(update={"shots": [
+            shot.model_copy(update={"title": shot.title + " · revised"}) if index == 0 else shot
+            for index, shot in enumerate(board.shots)
+        ]})
+        store.update_stage(StageName.STORYBOARD, edited, expected_revision=1)
+        state = store.production_bridge_state()
+        assert state.status == "accepted"  # Source acceptance is not undone by downstream editing.
+        assert state.installed_stage_revisions == accepted.installed_stage_revisions
+        assert not state.installed_storyboard_current
     finally:
         store.close()
 

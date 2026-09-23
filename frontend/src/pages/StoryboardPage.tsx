@@ -117,6 +117,7 @@ export function StoryboardPage({
   issues = [],
   onEntitySelect,
   onNavigateIssue,
+  onReturnToBridge,
   review = null,
   onReviewChange,
   onSave,
@@ -139,6 +140,7 @@ export function StoryboardPage({
   issues?: ValidationIssue[];
   onEntitySelect?: (entityId: string) => void;
   onNavigateIssue?: (stage: "beats" | "storyboard", entityId: string) => void;
+  onReturnToBridge?: () => void;
   // The workspace owns the review projection because the Inspector and this
   // editor must make decisions from the same revision and gate receipt.
   review?: StoryboardReview | null;
@@ -194,6 +196,8 @@ export function StoryboardPage({
       setSelectedShotId(shotId);
     } else if (!entityId && storyboard.shots[0]) {
       setSelectedShotId(storyboard.shots[0].id);
+    } else {
+      setSelectedShotId("");
     }
   }, [entityId, storyboard.shots]);
 
@@ -221,7 +225,10 @@ export function StoryboardPage({
 
   const route = routes.find((candidate) => candidate.id === routeId);
   const visible = groupStoryboard(storyboard, sceneBeats, route);
-  const selectedShot = storyboard.shots.find((shot) => shot.id === selectedShotId);
+  const requestedShotId = entityId ? parseStoryboardEntity(entityId)?.shotId : undefined;
+  const unresolvedEntity = Boolean(entityId && (!requestedShotId || !storyboard.shots.some((shot) => shot.id === requestedShotId)));
+  const selectedShot = unresolvedEntity || (requestedShotId && selectedShotId !== requestedShotId)
+    ? undefined : storyboard.shots.find((shot) => shot.id === selectedShotId);
   const selectedImageTask = selectedShot ? mediaTasks[`${selectedShot.id}:image`] : undefined;
   const selectedVideoTask = selectedShot ? mediaTasks[`${selectedShot.id}:video`] : undefined;
   const allEntityOptions = useMemo(() => referenceOptions(bible), [bible]);
@@ -359,7 +366,8 @@ export function StoryboardPage({
     </>} />
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
     <div className="notice"><strong>媒体能力</strong><span>P0 可导入并审核 stills，P1 可在下方通过同机手动 Codex image handoff 准备已批准镜头；两者都要求显式选择。配置经审核的 MiniMax H3 后，可冻结、提交、复核并显式选择本地视频候选；未配置时视频生产尚未实现，且不会回退到 Atlas。</span></div>
-    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} readOnly={saving} onSelectShot={selectShot} onReview={() => {
+    {unresolvedEntity && <div className="notice warning" role="alert" data-testid="unknown-storyboard-entity">请求的镜头不属于当前分镜；未打开其他镜头。请从镜头列表重新选择。</div>}
+    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={saving} onSelectShot={selectShot} onReturnToBridge={onReturnToBridge} onReview={() => {
       const panel = document.getElementById("storyboard-review");
       panel?.scrollIntoView({ block: "start" });
       panel?.focus({ preventScroll: true });

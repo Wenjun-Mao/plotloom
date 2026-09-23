@@ -11,14 +11,14 @@ let root: Root;
 let host: HTMLDivElement;
 
 const state = (label: string, revision = 1, contentHash = "a".repeat(64), text = "", reviewState: "pending" | "author_saved" | "model_suggested" = "pending", modelSuggestion?: string): ProductionBridgeState => ({
-  status: "ready", staleReasons: [], installedStageRevisions: null,
+  status: "ready", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false,
   proposal: {
     revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], advisories: [], installable: reviewState !== "pending", preparedAt: "2026-09-22T00:00:00Z",
     intentPackage: { suggestionOrigin: reviewState === "model_suggested" || modelSuggestion ? "model_inference.v1" : "none", reviewState, provenance: reviewState === "model_suggested" || modelSuggestion ? { jobId: "fake-job" } : null, entries: [{ id: `entry-${label}`, targetKind: "scene_objective", targetId: `scene-${label}`, sourceCoordinates: { sectionId: label, episode: 1, sceneIndex: 1 }, sourceContentHash: "b".repeat(64), sourceExcerpt: `excerpt-${label}`, suggestedText: reviewState === "model_suggested" ? text : modelSuggestion ?? null, text }] },
   },
 });
 
-const render = async (projectId: string) => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId, readOnly: false }))); };
+const render = async (projectId: string, onOpenShot?: (shotId: string) => void) => { await act(async () => root.render(createElement(ProductionBridgePanel, { projectId, readOnly: false, onOpenShot }))); };
 const settle = async () => { await act(async () => { await Promise.resolve(); }); };
 const button = (text: string) => Array.from(host.querySelectorAll("button")).find((item) => item.textContent === text) as HTMLButtonElement;
 const deferred = <T,>() => {
@@ -45,7 +45,7 @@ it("requires the displayed dramatic-intent package to be saved before accepting 
   const saved = state("first", 2, "c".repeat(64), "author-reviewed objective", "author_saved");
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(first);
   const save = vi.spyOn(plotloomApi, "updateProductionBridgeIntent").mockResolvedValue(saved);
-  const accept = vi.spyOn(plotloomApi, "acceptProductionBridge").mockResolvedValue({ ...saved, status: "accepted", installedStageRevisions: { story_bible: 1, scene_beats: 1, storyboard: 1 } });
+  const accept = vi.spyOn(plotloomApi, "acceptProductionBridge").mockResolvedValue({ ...saved, status: "accepted", installedStageRevisions: { story_bible: 1, scene_beats: 1, storyboard: 1 }, installedStoryboardCurrent: true });
 
   await render("first"); await settle();
   const textarea = host.querySelector("textarea") as HTMLTextAreaElement;
@@ -124,7 +124,7 @@ it("ignores a late mutation from the prior project", async () => {
   vi.spyOn(plotloomApi, "prepareProductionBridge").mockReturnValue(priorPrepare.promise);
 
   await render("prior");
-  await act(async () => priorGet.resolve({ status: "missing", staleReasons: [], installedStageRevisions: null, proposal: null })); await settle();
+  await act(async () => priorGet.resolve({ status: "missing", staleReasons: [], installedStageRevisions: null, installedStoryboardCurrent: false, proposal: null })); await settle();
   await act(async () => button("准备投产提案").click());
   await render("current");
   await act(async () => { priorPrepare.resolve(state("prior")); currentGet.resolve(state("current")); }); await settle();
@@ -202,4 +202,29 @@ it("shows the server-owned simulation warning without a URL flag", async () => {
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(preview);
   await render("first"); await settle();
   expect(host.querySelector('[data-testid="bridge-fake-banner"]')?.textContent).toBe(preview.simulationLabel);
+});
+
+it("opens only a current installed bridge cut without writing project state", async () => {
+  const accepted = state("opening", 2, "c".repeat(64), "reviewed", "author_saved");
+  accepted.status = "accepted";
+  accepted.installedStageRevisions = { story_bible: 1, scene_beats: 1, storyboard: 1 };
+  accepted.installedStoryboardCurrent = true;
+  accepted.proposal!.cuts = [{ shotId: "opening-s1-c1", sectionId: "opening", episode: 1, sceneIndex: 1, seconds: 6, source: { segmentIndex: 1, segmentSceneIndex: 1, cutIndex: 1 } }];
+  const get = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(accepted);
+  const accept = vi.spyOn(plotloomApi, "acceptProductionBridge");
+  const onOpenShot = vi.fn();
+  await render("opening", onOpenShot); await settle();
+  await act(async () => button("在分镜工作台打开 opening-s1-c1").click());
+  expect(onOpenShot).toHaveBeenCalledExactlyOnceWith("opening-s1-c1");
+  expect(get).toHaveBeenCalledTimes(1);
+  expect(accept).not.toHaveBeenCalled();
+
+  get.mockResolvedValue({ ...accepted, installedStoryboardCurrent: false });
+  await render("drifted", onOpenShot); await settle();
+  expect(button("在分镜工作台打开 opening-s1-c1")).toBeUndefined();
+  expect(host.textContent).toContain("来源镜头直达已暂停");
+
+  get.mockResolvedValue({ ...accepted, status: "stale", staleReasons: ["source changed"] });
+  await render("other", onOpenShot); await settle();
+  expect(button("在分镜工作台打开 opening-s1-c1")).toBeUndefined();
 });

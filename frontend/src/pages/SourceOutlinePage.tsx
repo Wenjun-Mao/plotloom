@@ -24,7 +24,7 @@ function sourceMessage(error: unknown) {
   return error instanceof Error ? error.message : "来源与大纲操作失败。";
 }
 
-export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }: { projectId: string; readOnly: boolean; navigationTarget?: string }) {
+export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "", onOpenShot }: { projectId: string; readOnly: boolean; navigationTarget?: string; onOpenShot?: (shotId: string) => void }) {
   const [state, setState] = useState<SourceOutlineReviewState>();
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
   const [assignment, setAssignment] = useState("");
@@ -172,7 +172,11 @@ export function SourceOutlinePage({ projectId, readOnly, navigationTarget = "" }
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "storyboard-review"} aria-labelledby="storyboard-review-workflow-heading">
       <header className="page-header"><div><h1 id="storyboard-review-workflow-heading">分镜评审</h1><p>审阅与已接受剧本绑定的 storyboard 证据。</p></div></header>
-      <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} />
+      <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} onOpenShot={(shotId) => {
+        if (draftDirty.current) return false;
+        onOpenShot?.(shotId);
+        return true;
+      }} />
     </section>
   </section>;
 }

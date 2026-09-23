@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { ProductionBridgeIntentEntry, ProductionBridgeState } from "../types";
+import { bridgeCut } from "../production-bridge-handoff";
 
 const proposalKey = (projectId: string, state: ProductionBridgeState) => {
   const proposal = state.proposal;
@@ -13,7 +14,7 @@ function userFacingBridgeMessage(message: string): string {
 }
 
 /** F5 projection and dramatic-intent review; this panel never dispatches media. */
-export function ProductionBridgePanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
+export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void }) {
   const [state, setState] = useState<ProductionBridgeState>();
   const [intentEntries, setIntentEntries] = useState<ProductionBridgeIntentEntry[]>([]);
   const [busy, setBusy] = useState(false);
@@ -121,7 +122,10 @@ export function ProductionBridgePanel({ projectId, readOnly }: { projectId: stri
       <p><small>提案 r{proposal.revision} · {proposal.scenes.length} 个场次 · {proposal.cuts.length} 个镜头</small></p>
       {proposal.conflicts.map((conflict, index) => <div className="notice warning" key={`${conflict.code}-${index}`}>{userFacingBridgeMessage(conflict.message)}</div>)}
       {proposal.advisories?.map((advisory, index) => <div className="notice" key={`${advisory.code}-${index}`}>{advisory.message}</div>)}
-      <details><summary>查看场次与镜头</summary><ul>{proposal.scenes.map((scene, index) => <li key={String(scene.sceneId ?? index)}>{String(scene.sectionId)} / 第 {String(scene.episode)} 集 / 场次 {String(scene.sceneIndex)}：{String(scene.cutCount)} 个镜头</li>)}</ul><ul>{proposal.cuts.map((cut, index) => <li key={String(cut.shotId ?? index)}>{String(cut.shotId)} · {String(cut.seconds)} 秒</li>)}</ul></details>
+      <details><summary>查看场次与镜头</summary><ul>{proposal.scenes.map((scene, index) => <li key={String(scene.sceneId ?? index)}>{String(scene.sectionId)} / 第 {String(scene.episode)} 集 / 场次 {String(scene.sceneIndex)}：{String(scene.cutCount)} 个镜头</li>)}</ul><ul>{proposal.cuts.map((raw, index) => {
+        const cut = bridgeCut(raw);
+        return <li key={String(raw.shotId ?? index)}>{String(raw.shotId)} · {String(raw.seconds)} 秒{cut && state.status === "accepted" && state.staleReasons.length === 0 && state.installedStoryboardCurrent === true && onOpenShot && <Button variant="quiet" onClick={() => { if (onOpenShot(cut.shotId) === false) setError("来源文字仍有未保存的编辑；请先保存或明确放弃，再打开投产镜头。"); }}>在分镜工作台打开 {cut.shotId}</Button>}</li>;
+      })}</ul></details>
       {state.status !== "accepted" && <div className="bridge-intent-controls">
         <Button variant="primary" disabled={readOnly || busy || activeJob || state.status === "stale"} onClick={() => run(() => plotloomApi.generateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>生成戏剧意图建议</Button>
         {job && <small className="bridge-intent-status">{job.status === "queued" ? "等待执行" : job.status === "dispatched" ? "模型处理中" : job.status === "ready" ? "建议已进入新提案" : job.status === "outcome_unknown" ? "结果不确定，不会自动重试" : job.status === "stale" ? "来源或提案已变化，结果未采用" : job.status === "cancelled" ? "已取消" : "推断失败"}</small>}
@@ -141,7 +145,9 @@ export function ProductionBridgePanel({ projectId, readOnly }: { projectId: stri
       <p>确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。</p>
       {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>确认投产提案</Button>}
       {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
-      {state.status === "accepted" && <p>投产提案已确认。下一步仍需在既有工作流中完成分镜审核、参考选择、关键帧与媒体准备。</p>}
+      {state.status === "accepted" && <p>{state.installedStoryboardCurrent
+        ? "投产提案已确认。可在上方选择镜头进入既有分镜工作台；分镜审核、参考选择、关键帧与媒体准备仍须分别完成。"
+        : "投产提案已确认，但确认时的分镜版本不再是当前版本；请在既有分镜工作台核对当前镜头，来源镜头直达已暂停。"}</p>}
     </>}
     {error && <ErrorNotice message={userFacingBridgeMessage(error)} />}
   </section>;

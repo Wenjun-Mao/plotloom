@@ -241,15 +241,17 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const availableH3Profiles = h3Profiles(backend);
   const availableH3Durations = h3QualifiedDurations(backend);
   const selectedProfile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
+  const h3Unavailable = backend?.enabled === false && backend.reason === "h3_video_not_configured";
   const h3AspectMismatch = Boolean(
     selectedProfile && keyframe
       && keyframe.width * selectedProfile.height !== keyframe.height * selectedProfile.width,
   );
   const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
-  return <Panel data-testid="video-pilot-panel"><strong>{h3 ? "MiniMax H3 本地视频候选" : "P2 Wan 视频试点"}</strong>
+  return <Panel data-testid="video-pilot-panel"><strong>{h3 || h3Unavailable ? "MiniMax H3 本地视频候选" : "P2 Wan 视频试点"}</strong>
     {h3 && backend
       ? <MiniMaxH3Summary backend={backend} profile={selectedProfile} />
-      : <p>仅 5 秒 / 720p / 原生音频。提交后本地保守计入共享 100 秒额度；不会自动重试或回退。</p>}
+      : h3Unavailable ? <p>H3 后端尚未配置；下方当前镜头时长目录仅供只读检查，不代表可提交。</p>
+        : <p>仅 5 秒 / 720p / 原生音频。提交后本地保守计入共享 100 秒额度；不会自动重试或回退。</p>}
     {backend?.enabled === false && <small className="notice warning">当前运行时未启用经审核的视频后端；不能冻结或提交新候选。</small>}
     {h3 && <MiniMaxH3ProfileField profiles={availableH3Profiles} value={h3ProfileId} onChange={setH3ProfileId} disabled={readOnly} />}
     {h3 && <MiniMaxH3DurationField values={availableH3Durations} value={h3DurationSeconds} onChange={setH3DurationSeconds} disabled={readOnly} />}

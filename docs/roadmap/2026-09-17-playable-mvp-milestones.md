@@ -36,6 +36,15 @@ authorized. A bounded candidate next slice is a read-only, shot-specific
 handoff and preparation-status display in the existing owners. Production
 duration policy and F6/F7 quality/selection need separate decisions and proof.
 
+**Bounded U4 shot handoff (technical implementation, 2026-09-23).** The
+accepted/current bridge now links an installed cut to its exact canonical
+Storyboard shot, whose existing media owner shows a read-only, source-bound
+preparation summary. The [verification receipt](../verification/2026-09-23-u4-shot-handoff-readiness.md)
+separates technical checks from product acceptance. This closes the missing
+navigation/status-display slice only. It does not approve Storyboard or media,
+select references/keyframes, generate assets, resolve exact-duration policy,
+or establish F6/F7 readiness.
+
 **Simulated bridge wording follow-up (2026-09-22).** The director found the
 simulated flow fairly clear and requested “确认投产提案” for the action,
 “投产提案已确认” for the accepted status, and an explicit note that

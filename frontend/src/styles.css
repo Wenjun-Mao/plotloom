@@ -326,6 +326,11 @@ input[readonly] { color: var(--dim); }
 .media-controls .button { min-width: 0; padding-inline: 5px; font-size: 10px; }
 .managed-media-workbench { display: grid; gap: 11px; margin-top: 14px; }
 .managed-media-workbench > .muted { margin: 0; color: var(--muted); font-size: 11px; }
+.shot-preparation-summary { display: grid; justify-items: start; gap: 8px; min-width: 0; }
+.shot-preparation-summary > p, .shot-preparation-summary > small { margin: 0; overflow-wrap: anywhere; }
+.shot-preparation-summary > ul { display: grid; gap: 7px; min-width: 0; margin: 0; }
+.shot-preparation-summary li { padding-left: 2px; overflow-wrap: anywhere; }
+.shot-preparation-summary li .button { margin-left: 7px; padding: 4px 8px; white-space: normal; }
 .media-candidate-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .media-candidate { display: grid; gap: 6px; min-width: 0; padding: 7px; color: var(--muted); text-align: left; border: 1px solid var(--line); background: var(--panel-3); }
 .media-candidate.selected { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }

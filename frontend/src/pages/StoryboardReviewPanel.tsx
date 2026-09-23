@@ -6,7 +6,7 @@ import { StoryboardReviewInspection } from "./StoryboardReviewInspection";
 import { ProductionBridgePanel } from "./ProductionBridgePanel";
 
 /** F5A preserves upstream review evidence; it deliberately cannot create product shots. */
-export function StoryboardReviewPanel({ projectId, readOnly }: { projectId: string; readOnly: boolean }) {
+export function StoryboardReviewPanel({ projectId, readOnly, onOpenShot }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void }) {
   const [state, setState] = useState<StoryboardReviewState>();
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState("");
@@ -58,7 +58,7 @@ export function StoryboardReviewPanel({ projectId, readOnly }: { projectId: stri
     {reportJobId && <details><summary>打开原始只读上游报告</summary><iframe title="original derived upstream storyboard report" className="source-outline-report" sandbox="" src={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} /></details>}
     {assignment && <label>复制给 specialist 的冻结任务<textarea readOnly value={assignment} rows={5} /></label>}
     {error && <ErrorNotice message={error} />}
-    {acceptedReview && <ProductionBridgePanel projectId={projectId} readOnly={readOnly} />}
+    {acceptedReview && <ProductionBridgePanel projectId={projectId} readOnly={readOnly} onOpenShot={onOpenShot} />}
   </article>;
 }
 
