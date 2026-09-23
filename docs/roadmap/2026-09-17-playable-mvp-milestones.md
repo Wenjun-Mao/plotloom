@@ -45,6 +45,17 @@ or provider call, creative acceptance, media dispatch, new provider/credential
 system, or broad scheduler rewrite is authorized. Stop at a stable verified
 implementation and independent contract review; product acceptance is separate.
 
+**Isolated live-intent trial (separately authorized 2026-09-22).** The
+[retained-copy trial](../verification/2026-09-23-production-bridge-live-intent-trial.md)
+used one real text completion, generated all 57 source-bound suggestions, and
+saved 15 development-review edits while retaining model-original wording and
+provenance. It did not change the original U4 project or accept creative work.
+Canonical installation remains **unmet**: three nine-cut scenes conflict with
+the original 2–4-shot Brief, and confirmation was not called. A changed-Brief
+copy showed that current whole-chain invalidation stales F4/F5, so resolving
+the policy/source-shape dependency needs a separate scoped decision; it was
+not patched into this trial. No further provider or media dispatch is implied.
+
 ### U4 — coherent retained text-story walkthrough (approved 2026-09-22)
 
 Build one durable, isolated development project through the existing F1–F5
