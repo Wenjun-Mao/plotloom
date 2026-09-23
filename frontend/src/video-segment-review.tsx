@@ -110,10 +110,10 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
         data-testid={`video-segment-preview-${chosen.id}`}
         onPlay={(event) => document.querySelectorAll<HTMLVideoElement>("[data-testid^='video-job-player-'], [data-testid^='video-segment-preview-']").forEach((video) => { if (video !== event.currentTarget) video.pause(); })} />
       <small>已审核播放片段：{chosen.selected ? "当前已明确选择" : "尚未选择"}；{chosen.inFrame}–{chosen.outFrame} 帧。请检查对白、动作、字幕和首尾声音是否完整。</small>
-      <label>选择人<input value={reviewer} disabled={readOnly || busy} onChange={(event) => setReviewer(event.target.value)} /></label>
-      <label>片段审核说明<textarea value={note} disabled={readOnly || busy} onChange={(event) => setNote(event.target.value)} /></label>
-      <Button disabled={readOnly || busy || rejected || !chosen.current || !reviewer.trim() || !note.trim()} onClick={() => void select()}>确认选择此播放片段</Button>
     </>}
+    <label>选择人<input value={reviewer} disabled={readOnly || busy || rejected} onChange={(event) => setReviewer(event.target.value)} /></label>
+    <label>片段审核说明<textarea value={note} disabled={readOnly || busy || rejected} onChange={(event) => setNote(event.target.value)} /></label>
+    {chosen && <Button disabled={readOnly || busy || rejected || !chosen.current || !reviewer.trim() || !note.trim()} onClick={() => void select()}>确认选择此播放片段</Button>}
     <Button variant="danger" disabled={readOnly || busy || rejected || !job.current || !reviewer.trim() || !note.trim()} onClick={() => void reject()}>拒绝此原片并撤销选择</Button>
     {error && <small className="notice warning" role="status">{error}</small>}
   </section>;

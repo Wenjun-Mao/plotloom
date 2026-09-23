@@ -5,6 +5,8 @@ import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+from PIL import Image, ImageDraw, ImageFont
+
 from plotloom.video_backends.minimax_h3 import H3_PROFILES
 from plotloom.video_provider import VideoBackendInstanceIdentity
 
@@ -60,9 +62,24 @@ class OfflineH3GatewayFake:
             raise RuntimeError("offline H3 fixture has no frozen resolution")
         with TemporaryDirectory(prefix="plotloom-offline-h3-") as directory:
             output = Path(directory) / "clip.mp4"
+            frames = Path(directory) / "frames"
+            frames.mkdir()
+            font = ImageFont.load_default(size=30)
+            frame_count = 124 if self.duration == 5 else 192
+            for frame in range(frame_count):
+                second = frame // 24
+                image = Image.new("RGB", (profile.width, profile.height), (24 + second * 20, 50, 100 + second * 12))
+                draw = ImageDraw.Draw(image)
+                draw.rectangle((28, 28, profile.width - 28, 178), fill=(10, 17, 30))
+                draw.text((42, 43), "SYNTHETIC OFFLINE H3", font=font, fill="white")
+                draw.text((42, 86), f"TIME {frame / 24:06.3f} s", font=font, fill="yellow")
+                draw.text((42, 129), f"FRAME {frame:03d} / {frame_count:03d}", font=font, fill="white")
+                draw.rectangle((28, profile.height - 100, profile.width - 28, profile.height - 68), fill=(10, 17, 30))
+                draw.rectangle((28, profile.height - 100, 28 + int((profile.width - 56) * (frame + 1) / frame_count), profile.height - 68), fill="yellow")
+                image.save(frames / f"{frame:04d}.png")
             completed = subprocess.run([
-                "ffmpeg", "-y", "-f", "lavfi", "-i", f"color=c=black:s={profile.width}x{profile.height}:r=24:d={self._delivery_seconds()}",
-                "-f", "lavfi", "-i", f"sine=frequency=440:sample_rate=48000:duration={self._delivery_seconds()}", "-shortest",
+                "ffmpeg", "-y", "-framerate", "24", "-i", str(frames / "%04d.png"),
+                "-f", "lavfi", "-i", f"aevalsrc=sin(2*PI*(220+110*floor(t))*t):s=48000:d={self._delivery_seconds()}", "-shortest",
                 "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", str(output),
             ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30, check=False)
             if completed.returncode:

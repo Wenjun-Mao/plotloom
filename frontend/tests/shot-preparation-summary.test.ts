@@ -29,15 +29,17 @@ async function render(seconds: number, projectId = "one", mediaReadPhase: "loadi
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
 
-it("shows disabled backend and incompatible six-second source as distinct blockers", async () => {
+it("shows the conditional eight-to-six path while keeping disabled dispatch distinct", async () => {
   vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(bridge(6));
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, qualifiedDurationSeconds: [5, 8] });
   await render(6);
   expect(host.textContent).toContain("精确来源时长 6 秒");
   expect(host.textContent).toContain("缺少当前批准");
   expect(host.textContent).toContain("未配置；不能准备或提交视频");
-  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("6 秒不在当前请求目录");
-  expect(host.textContent).not.toContain("已配置");
+  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("可请求 8 秒原片后");
+  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("连续 144 帧候选播放片段");
+  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("当前后端未配置，暂不能提交请求");
+  expect(host.textContent).not.toContain("已明确选择");
 });
 
 it("does not call a catalog-matching eight-second shot ready when prerequisites are missing", async () => {
@@ -74,7 +76,7 @@ it("recovers bridge and backend read failures through a same-mounted-root retry"
   await act(async () => Array.from(host.querySelectorAll("button")).find((button) => button.textContent?.includes("重试来源与视频能力读取"))!.click());
   await act(async () => { await Promise.resolve(); });
   expect(host.textContent).toContain("精确来源时长 6 秒");
-  expect(host.textContent).toContain("6 秒不在当前请求目录");
+  expect(host.textContent).toContain("可请求 8 秒原片后");
   expect(host.textContent).not.toContain("投产来源暂不可读取");
 });
 

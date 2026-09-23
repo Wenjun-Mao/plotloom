@@ -104,3 +104,50 @@ rejected/unselected F6 clips. Real H3 output, actual dialogue/lipsync,
 editorial window choice and any live canary still require separately scoped
 review. No original U4 data or F6 selection was changed; no asset was
 deleted, no provider was called, and no Batch C or push was performed.
+
+## Acceptance correction (same day, after initial receipt)
+
+The first receipt above records the original run and its then-excluded stale
+bridge assertion; it is not a claim that the exclusion remains necessary.
+On the actual parent revision `ca49a09a`, with the same locked environment and
+submodule revision, that assertion failed because the bridge already returned
+`installedStoryboardCurrent: false`. The test expectation now names that
+existing response field, and the complete backend suite passes without
+deselection: **728 passed**, one Starlette/httpx deprecation warning. A first
+full rerun also found temporary parent-baseline copies inside the repository
+via the prompt-template uniqueness check; those diagnostic copies were moved
+outside the repository, preserving the evidence, before the clean rerun.
+
+The shot-readiness summary now distinguishes an authored six-second shot from
+the qualified eight-second H3 original request. It states the conditional
+144-frame derivative path, source/approval/keyframe prerequisites, original
+ingest, explicit human segment choice, and disabled dispatch separately. The
+segment-review inputs now exist without a prepared proposal, so an ingested
+take can be rejected before derivation; the zero-proposal dispatch regression
+passes. Full frontend verification: **212 tests passed**, TypeScript passed,
+and the deterministic static build was refreshed (existing large-chunk
+warning). The marked offline H3 browser journey and the complete native-ended
+branching journey each passed against the production FastAPI composition.
+
+For inspection, the task-owned `127.0.0.1:8824` read-only preview now points
+to a **new** isolated synthetic fixture at
+`.local/relay/reviewed-playback-segment-marked/plotloom-e2e-M2b3Ba/`, project
+`b90164f8-ac99-4c81-a20b-8f042bb4327e`:
+
+`http://127.0.0.1:8824/v2/?project=b90164f8-ac99-4c81-a20b-8f042bb4327e&view=play`
+
+The preview injects an unmistakable synthetic/read-only banner, disables
+common write controls, refuses all non-GET/HEAD/OPTIONS requests (POST probe
+405), and keeps provider dispatch disabled. Its media carries visible frame
+number and time labels plus second-varying tones; it is **not** real H3 or
+creative acceptance. The previous black-frame fixture and partial marked
+fixture remain untouched. The play view was inspected at 1440×900 and
+1920×1080; captures are under
+`output/playwright/reviewed-segment-marked-{play,controls}-{1440,1920}.png`.
+The read-only copy cannot exercise write actions; those were exercised in the
+isolated browser test fixture. No live provider was called and no protected
+project data was mutated.
+Focused independent re-review found one fixture portability issue: a
+macOS-only font path. The marker generator now uses Pillow's bundled default
+font; the marked H3 browser journey passed again after that correction. No
+other scoped correctness finding remained.

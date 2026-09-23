@@ -77,6 +77,13 @@ export function ShotPreparationSummary({
   });
   const qualified = current?.backend?.qualifiedDurationSeconds;
   const exactSeconds = cut?.seconds ?? shot.durationUnits / 1000;
+  const segmentEligible = exactSeconds === 6 && qualified?.includes(8);
+  const durationStatus = !qualified ? "未知"
+    : segmentEligible
+      ? `6 秒不在原片请求目录（${qualified.join(" / ")} 秒）；若来源绑定、批准及关键帧均为当前，可请求 8 秒原片后准备连续 144 帧候选播放片段。原片输出须核验，片段须经人工听看并明确选择；${current?.backend?.enabled ? "当前后端已配置" : "当前后端未配置，暂不能提交请求"}`
+      : qualified.includes(exactSeconds)
+        ? `${exactSeconds} 秒在当前请求目录内；不代表生成输出物理时长或媒体可用`
+        : `${exactSeconds} 秒不在当前请求目录（${qualified.join(" / ")} 秒）；不能通过选择其他时长绕过精确来源约束`;
 
   return <section className="notice shot-preparation-summary" data-testid="shot-preparation-summary" aria-label="当前镜头准备状态">
     <strong>当前镜头准备状态 · {shot.id}</strong>
@@ -97,7 +104,7 @@ export function ShotPreparationSummary({
       <li>美术参考：F3 场景/道具选择由美术参考工作区持有；当前镜头媒体准备未消费这些决定，不计为已选关键帧。</li>
       <li>审核关键帧：{mediaReadPhase === "loading" ? "正在读取" : mediaReadPhase === "error" ? "未知（读取失败）" : selectedKeyframe ? `当前选择 ${selectedKeyframe.assetId.slice(0, 8)}` : approvalCurrent ? "缺少当前审核关键帧" : "无当前批准，关键帧不可用"}。<Button variant="quiet" onClick={() => ownerAction("shot-keyframe-review")}>查看关键帧</Button></li>
       <li>视频后端：{!current?.backend ? "未知" : current.backend.enabled ? "已配置" : "未配置；不能准备或提交视频"}。</li>
-      <li data-testid="shot-duration-compatibility">时长目录：{!qualified ? "未知" : qualified.includes(exactSeconds) ? `${exactSeconds} 秒在当前请求目录内；不代表生成输出物理时长或媒体可用` : `${exactSeconds} 秒不在当前请求目录（${qualified.join(" / ")} 秒）；不能通过选择其他时长绕过精确来源约束`}。</li>
+      <li data-testid="shot-duration-compatibility">时长目录：{durationStatus}。</li>
     </ul>
     {onReturnToBridge && <Button variant="quiet" onClick={onReturnToBridge}>返回分镜评审</Button>}
     <small>此摘要只解释现有合同和当前证据；不是投产许可、媒体质量审核或可播放证明。</small>

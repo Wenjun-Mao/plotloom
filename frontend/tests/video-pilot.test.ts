@@ -346,6 +346,33 @@ it("does not offer a rejected H3 take for another segment decision", async () =>
   expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("确认选择此播放片段"))?.disabled).toBe(true);
 });
 
+it("allows a current ingested take with no prepared segment to be rejected", async () => {
+  const candidate = selectedJob("zero-proposals", 1, {
+    selected: false, playbackSegment: null, segments: [], requestedSeconds: 8,
+    snapshot: { shot: { id: "shot-1", durationUnits: 6_000 }, sourceTiming: { kind: "canonical", durationUnits: 6_000 } },
+    observed: { durationSeconds: 8, width: 576, height: 1024, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 192 },
+  });
+  const review = vi.spyOn(plotloomApi, "reviewVideoJob").mockResolvedValue({} as never);
+  const refresh = vi.fn().mockResolvedValue(undefined);
+  vi.spyOn(window, "confirm").mockReturnValue(true);
+  await act(async () => root.render(createElement(VideoSegmentReview, {
+    projectId: "project", job: candidate, readOnly: false, onRefresh: refresh,
+  })));
+  expect(host.querySelector('[data-testid^="video-segment-preview-"]')).toBeNull();
+  const [reviewer, note] = [host.querySelector("input:not([type=number])")!, host.querySelector("textarea")!];
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(reviewer, "creator");
+    reviewer.dispatchEvent(new Event("input", { bubbles: true }));
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(note, "Reject before segment derivation");
+    note.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  const reject = [...host.querySelectorAll("button")].find((item) => item.textContent?.includes("拒绝此原片"))!;
+  expect(reject.disabled).toBe(false);
+  await act(async () => { reject.click(); await Promise.resolve(); });
+  expect(review).toHaveBeenCalledWith("project", candidate.id, "reject", "creator", "Reject before segment derivation", 0);
+  expect(refresh).toHaveBeenCalledOnce();
+});
+
 it("waits at a decision, follows only the clicked edge, holds an ending, and ignores duplicate ended events", async () => {
   const fixture = branchingFixture();
   const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
