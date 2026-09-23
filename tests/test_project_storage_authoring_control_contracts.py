@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from plotloom.api import create_project_folder_authoring_app
@@ -41,6 +42,38 @@ def _complete_project(client: TestClient) -> dict:
     )
     assert response.status_code == 201, response.text
     return response.json()
+
+
+@pytest.mark.parametrize("save_with_draft", [False, True])
+@pytest.mark.parametrize(
+    ("change", "expected_statuses"),
+    [
+        ({"shotCountPolicy": "advisory"}, ["ready", "ready", "ready", "stale"]),
+        ({"targetPlaythroughSeconds": 181}, ["ready", "ready", "stale", "stale"]),
+        ({"nodeBudget": 10}, ["ready", "stale", "stale", "stale"]),
+    ],
+)
+def test_brief_saves_invalidate_only_evidenced_stage_dependencies(
+    tmp_path: Path, save_with_draft: bool, change: dict, expected_statuses: list[str],
+) -> None:
+    client = _client(tmp_path)
+    project = _complete_project(client)
+    project_id = project["id"]
+    brief = {**project["brief"], **change}
+    if save_with_draft:
+        draft = client.put(
+            f"/api/v2/projects/{project_id}/authoring-drafts",
+            json={"editorScope": "brief", "entityId": "root", "baseCanonicalRevision": 1,
+                  "expectedDraftRevision": 0, "payload": brief},
+        )
+        assert draft.status_code == 200, draft.text
+    payload = {"expectedRevision": 1, "brief": brief}
+    if save_with_draft:
+        payload["consumedDraft"] = {"editorScope": "brief", "entityId": "root", "draftRevision": 1}
+    saved = client.patch(f"/api/v2/projects/{project_id}", json=payload)
+    assert saved.status_code == 200, saved.text
+    stages = client.get(f"/api/v2/projects/{project_id}/stages").json()["stages"]
+    assert [stage["head"]["status"] for stage in stages] == expected_statuses
 
 
 def test_canonical_conflicts_stale_downstream_and_consume_only_the_exact_draft(

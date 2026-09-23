@@ -31,8 +31,16 @@ against the retained 2–4-shot Brief. Source excerpts remain evidence, not
 automatic V2 objective/purpose completion; late or uncertain jobs cannot
 install. The trial does not authorize creative acceptance, media dispatch,
 scene splitting, silent Brief edits, or broad redesign.
+The bounded [advisory shot-policy installation receipt](../verification/2026-09-23-advisory-shot-policy-u4.md)
+records a separate isolated U4 copy that confirmed the 27-cut bridge after an
+explicit policy edit and whole-package review; it does not promote creative or
+media acceptance.
 The prior authorized ImageGen proof is complete; it authorizes no further
 provider calls.
+
+A separate [repository simplification tracker](2026-09-23-repo-simplification.md)
+lists audit leads and bounded verification obligations; it does not authorize
+cleanup inside active product slices.
 
 ## Archive index
 

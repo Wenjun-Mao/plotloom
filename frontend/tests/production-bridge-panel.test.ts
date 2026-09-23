@@ -13,7 +13,7 @@ let host: HTMLDivElement;
 const state = (label: string, revision = 1, contentHash = "a".repeat(64), text = "", reviewState: "pending" | "author_saved" | "model_suggested" = "pending", modelSuggestion?: string): ProductionBridgeState => ({
   status: "ready", staleReasons: [], installedStageRevisions: null,
   proposal: {
-    revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], installable: reviewState !== "pending", preparedAt: "2026-09-22T00:00:00Z",
+    revision, contentHash, inputs: {}, scenes: [{ sceneId: `scene-${label}`, sectionId: label, episode: 1, sceneIndex: 1, cutCount: 1 }], cuts: [], conflicts: [], advisories: [], installable: reviewState !== "pending", preparedAt: "2026-09-22T00:00:00Z",
     intentPackage: { suggestionOrigin: reviewState === "model_suggested" || modelSuggestion ? "model_inference.v1" : "none", reviewState, provenance: reviewState === "model_suggested" || modelSuggestion ? { jobId: "fake-job" } : null, entries: [{ id: `entry-${label}`, targetKind: "scene_objective", targetId: `scene-${label}`, sourceCoordinates: { sectionId: label, episode: 1, sceneIndex: 1 }, sourceContentHash: "b".repeat(64), sourceExcerpt: `excerpt-${label}`, suggestedText: reviewState === "model_suggested" ? text : modelSuggestion ?? null, text }] },
   },
 });
@@ -30,6 +30,15 @@ const deferred = <T,>() => {
 
 beforeEach(() => { host = document.createElement("div"); document.body.append(host); root = createRoot(host); });
 afterEach(async () => { vi.restoreAllMocks(); await act(async () => root.unmount()); host.remove(); });
+
+it("shows an advisory shot-count notice without a blocking conflict", async () => {
+  const current = state("advisory", 2, "b".repeat(64), "reviewed intent", "author_saved");
+  current.proposal!.advisories = [{ code: "shot_count_preference", message: "创作提示：9 个镜头超出偏好 2–4 个；此项不阻止确认", sectionId: "advisory", episode: 1, sceneIndex: 1 }];
+  vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue(current);
+  await render("advisory"); await settle();
+  expect(host.textContent).toContain("此项不阻止确认");
+  expect(button("确认投产提案").disabled).toBe(false);
+});
 
 it("requires the displayed dramatic-intent package to be saved before accepting its exact new revision", async () => {
   const first = state("first");

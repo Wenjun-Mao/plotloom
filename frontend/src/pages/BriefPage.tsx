@@ -60,7 +60,7 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
         <Panel className="form-card">
           <details>
             <summary>高级生产范围设置</summary>
-            <p className="event-detail">仅在需要时调整结构与镜头预算；这些是可编辑的生产默认值。</p>
+            <p className="event-detail">仅在需要时调整结构与镜头偏好；旧项目保留原有严格规则，新项目默认仅提示偏离。</p>
           <div className="field-grid two">
             <Field label="每路径决定数"><input type="number" min={1} value={draft.decisionPointsPerPath} onChange={(event) => numeric("decisionPointsPerPath", event.target.value)} /></Field>
             <Field label="结局数"><input type="number" min={1} value={draft.endingCount} onChange={(event) => numeric("endingCount", event.target.value)} /></Field>
@@ -73,6 +73,7 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
             <Field label="最少"><input type="number" min={1} value={draft.shotsPerSceneMin} onChange={(event) => numeric("shotsPerSceneMin", event.target.value)} /></Field>
             <Field label="最多"><input type="number" min={draft.shotsPerSceneMin} value={draft.shotsPerSceneMax} onChange={(event) => numeric("shotsPerSceneMax", event.target.value)} /></Field>
           </div>
+          <Field label="镜头数量规则"><select value={draft.shotCountPolicy} onChange={(event) => set("shotCountPolicy", event.target.value as ProjectBrief["shotCountPolicy"])}><option value="advisory">创作建议（超出时提示）</option><option value="strict">严格限制（超出时阻止确认）</option></select><small>这只控制每场镜头数量；镜头时长、资源与供应商能力限制仍须满足。</small></Field>
           </details>
         </Panel>
       </div>
@@ -94,7 +95,7 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
       <Panel>
         <div className="section-title"><span>Production scope</span><strong>Story Bible 与剧情 DAG 已审阅</strong></div>
         <p>已推导：{graph.nodes.length} 个叙事节点、{graph.edges.filter((edge) => edge.kind === "choice").length} 个选择、{endings.length} 个结局。场景与分镜仅在下方明确请求后生成；媒体不在本步骤内。</p>
-        <p>计划目标：每条路径约 {draft.targetPlaythroughSeconds} 秒、每场 {draft.shotsPerSceneMin}–{draft.shotsPerSceneMax} 个镜头；这些不是成本或实际时长估算。</p>
+        <p>计划目标：每条路径约 {draft.targetPlaythroughSeconds} 秒、每场偏好 {draft.shotsPerSceneMin}–{draft.shotsPerSceneMax} 个镜头（{draft.shotCountPolicy === "strict" ? "严格限制" : "超出时提示"}）；这些不是成本或实际时长估算。</p>
         {!proposalReady && <p className="event-detail">提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。</p>}
         <div className="button-row"><Button variant="quiet" onClick={() => onReviewStage?.("bible")}>细化人物与设定</Button><Button variant="quiet" onClick={() => onReviewStage?.("graph")}>细化分支与结局</Button>{onContinueToPlanning && <Button variant="quiet" disabled={!proposalReady} onClick={onContinueToPlanning}>进入场景编辑</Button>}{onGenerateStoryboard && <Button variant="primary" disabled={!proposalReady || saving || storyboardRunning} onClick={() => void onGenerateStoryboard()}>{storyboardRunning ? "正在生成场景与分镜…" : "生成可编辑场景与分镜"}</Button>}</div>
       </Panel>

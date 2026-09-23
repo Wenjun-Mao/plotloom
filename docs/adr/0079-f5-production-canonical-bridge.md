@@ -32,6 +32,11 @@ conversion. A count outside the frozen Brief's editable shot-range policy is a
 visible blocking proposal conflict, not authorization to invent dramatic
 segmentation or silently alter the Brief.
 
+ADR 0080 supersedes only the *strictness* of that conflict: legacy Briefs
+remain strict, while an explicitly advisory Brief presents the exceedance as
+nonblocking review evidence. Source mapping and explicit acceptance are
+unchanged.
+
 F2 consumer mappings provide canonical character IDs only after V2 ID
 validation; F3 is evidence and explicit entity mapping, never image selection.
 The first install targets empty Bible/SceneBeatPlan/Storyboard heads only.

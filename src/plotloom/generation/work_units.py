@@ -2029,8 +2029,10 @@ def _storyboard_timing_guidance(
         return build_storyboard_timing_guidance(
             scene_id=scene_id,
             scene_duration_budget_units=scene_budget,
-            min_shots=brief.shots_per_scene_min,
-            configured_max_shots=brief.shots_per_scene_max,
+            min_shots=brief.shots_per_scene_min if brief.shot_count_is_strict else 1,
+            # In advisory mode only executable timing limits, not the creative
+            # preference, constrain the response schema's shot count.
+            configured_max_shots=brief.shots_per_scene_max if brief.shot_count_is_strict else scene_budget,
             beats=beats,
             cues=cues,
         )
@@ -4576,7 +4578,7 @@ def _storyboard_semantic_issues(
     ordered = sorted(output.shots, key=lambda shot: shot.order)
     if [shot.order for shot in ordered] != list(range(1, len(ordered) + 1)):
         issues.append(_issue("semantic.shot_order", "shots", "shot order must be contiguous from 1"))
-    if not brief.shots_per_scene_min <= len(output.shots) <= brief.shots_per_scene_max:
+    if brief.shot_count_is_strict and not brief.shots_per_scene_min <= len(output.shots) <= brief.shots_per_scene_max:
         issues.append(_issue("semantic.shot_count", "shots", "shot count falls outside the project scene budget"))
     total_duration = sum(shot.duration_units for shot in output.shots)
     if total_duration > scene_duration_budget:

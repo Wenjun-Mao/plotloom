@@ -1777,6 +1777,7 @@ class DurableWorkUnitRunner:
             "visualStyle": brief.visual_style,
             "shotsPerSceneMin": brief.shots_per_scene_min,
             "shotsPerSceneMax": brief.shots_per_scene_max,
+            "shotCountPolicy": brief.shot_count_policy,
             **extra,
         }
 

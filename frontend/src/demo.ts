@@ -49,7 +49,7 @@ const dialogueCues: DialogueCue[] = [
 
 export const demoProject: WorkspaceProject = {
   revision: 1, stageRevisions: { story_bible: 1, story_graph: 1, scene_beats: 1, storyboard: 1 },
-  brief: { title: "月城余晖", synopsis: "月城记忆控制室即将断电，维修学徒阮星必须在恢复全城记忆与释放被困弟弟之间选择。", genre: "科幻悬疑", visualStyle: "克制、紧迫的旧工业金属质感，琥珀记忆光与青色生命维持光形成稳定对照。", language: "zh-CN", aspectRatio: "16:9", targetPlaythroughSeconds: 180, decisionPointsPerPath: 2, endingCount: 3, nodeBudget: 10, maxOutDegree: 3, desiredJoinCount: 1, shotsPerSceneMin: 1, shotsPerSceneMax: 4 },
+  brief: { title: "月城余晖", synopsis: "月城记忆控制室即将断电，维修学徒阮星必须在恢复全城记忆与释放被困弟弟之间选择。", genre: "科幻悬疑", visualStyle: "克制、紧迫的旧工业金属质感，琥珀记忆光与青色生命维持光形成稳定对照。", language: "zh-CN", aspectRatio: "16:9", targetPlaythroughSeconds: 180, decisionPointsPerPath: 2, endingCount: 3, nodeBudget: 10, maxOutDegree: 3, desiredJoinCount: 1, shotsPerSceneMin: 1, shotsPerSceneMax: 4, shotCountPolicy: "advisory" },
   storyBible: {
     logline: "倒计时归零前，一名维修学徒必须决定一座城市应该记住谁。", premise: "月城的记忆与救生系统共用一条即将断电的能源总线。", genre: "科幻悬疑", tone: "克制、紧迫", audience: "16+ 流媒体互动观众", narrativePromise: "每次选择都改变谁保有记忆与决定权。", themes: ["记忆与身份", "个人救援与集体责任", "被封死的第三条路"], worldRules: ["记忆恢复与救生舱共享同一能源总线", "应急杆已熔断且不可逆", "控制室只能接受一条最终指令"], visualLanguage: "旧工业金属、琥珀记忆光、青色生命维持光；镜头越接近选择越收紧。", knownFacts: ["安迪仍然活着", "能源只能支持一条主回路"], openQuestions: ["谁烧毁了应急杆"], sourceNotes: ["Plotloom 教学草案"],
     characters: [

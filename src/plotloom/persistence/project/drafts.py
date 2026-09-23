@@ -41,24 +41,53 @@ class ProjectDraftPersistence:
         self._access = access
         self._canonical = canonical
 
+    @staticmethod
+    def _brief_dependent_stages(before: ProjectBrief, after: ProjectBrief) -> tuple[StageName, ...]:
+        changed = {
+            name for name in ProjectBrief.model_fields
+            if getattr(before, name) != getattr(after, name)
+        }
+        shot_policy = {"shots_per_scene_min", "shots_per_scene_max", "shot_count_policy"}
+        timing = {"target_playthrough_seconds"}
+        topology = {
+            "decision_points_per_path", "ending_count", "node_budget",
+            "max_out_degree", "desired_join_count",
+        }
+        if changed <= shot_policy:
+            return (StageName.STORYBOARD,)
+        if changed <= shot_policy | timing:
+            return (StageName.SCENE_BEATS, StageName.STORYBOARD)
+        if changed <= shot_policy | timing | topology:
+            return (StageName.STORY_GRAPH, StageName.SCENE_BEATS, StageName.STORYBOARD)
+        # Other Brief content may feed Bible, prompts, or presentation. Keep
+        # the prior conservative rule until each owner has a named dependency.
+        return tuple(STAGE_ORDER)
+
+    def _mark_brief_dependents_stale(
+        self, session: Session, project_id: str, before: ProjectBrief,
+        after: ProjectBrief, now: datetime,
+    ) -> None:
+        for stage in self._brief_dependent_stages(before, after):
+            head = self._access.rows.stage(session, project_id, stage)
+            if head.status != StageStatus.MISSING.value:
+                head.status = StageStatus.STALE.value
+                head.stale_reasons = ["project brief dependency changed"]
+                head.updated_at = now
+
     def update_project(self, project_id: str, expected_revision: int, brief: ProjectBrief) -> Project:
         with self._access.leases.lifecycle_write() as session:
             row = self._access.rows.project(session, project_id)
             self._access.guards.active(row)
             if row.revision != expected_revision:
                 raise RevisionConflictError("project", expected_revision, row.revision)
-            brief_data = brief.model_dump(mode="json", by_alias=False)
-            if row.brief == brief_data:
+            previous = ProjectBrief.model_validate(row.brief)
+            if previous == brief:
                 return self._access.codecs.project(row)
+            brief_data = brief.model_dump(mode="json", by_alias=False)
             row.brief = brief_data
             row.revision += 1
             row.updated_at = utc_now()
-            for stage in STAGE_ORDER:
-                head = self._access.rows.stage(session, project_id, stage)
-                if head.status != StageStatus.MISSING.value:
-                    head.status = StageStatus.STALE.value
-                    head.stale_reasons = ["project brief revision changed"]
-                    head.updated_at = row.updated_at
+            self._mark_brief_dependents_stale(session, project_id, previous, brief, row.updated_at)
             return self._access.codecs.project(row)
 
     def _consume_exact_authoring_draft_in_session(
@@ -133,17 +162,13 @@ class ProjectDraftPersistence:
                 canonical_base_revision=row.revision,
                 canonical_payload=canonical_payload,
             )
-            brief_data = brief.model_dump(mode="json", by_alias=False)
-            if row.brief != brief_data:
+            previous = ProjectBrief.model_validate(row.brief)
+            if previous != brief:
+                brief_data = brief.model_dump(mode="json", by_alias=False)
                 row.brief = brief_data
                 row.revision += 1
                 row.updated_at = utc_now()
-                for stage in STAGE_ORDER:
-                    head = self._access.rows.stage(session, project_id, stage)
-                    if head.status != StageStatus.MISSING.value:
-                        head.status = StageStatus.STALE.value
-                        head.stale_reasons = ["project brief revision changed"]
-                        head.updated_at = row.updated_at
+                self._mark_brief_dependents_stale(session, project_id, previous, brief, row.updated_at)
             return self._access.codecs.project(row)
 
     @staticmethod

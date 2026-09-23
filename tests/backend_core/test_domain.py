@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from plotloom.domain import CoverageRole, ProjectBrief, StoryEdge
+from plotloom.domain import CoverageRole, ProjectBrief, StoryBible, DramaticScene, Beat, SceneBeatPlan, Shot, ShotBeatLink, ShotSize, Storyboard, StoryEdge
 from plotloom.validation import (
     DomainValidationError,
     validate_scene_beat_coverage,
@@ -54,6 +54,24 @@ def test_valid_default_graph_and_coverage(brief: ProjectBrief) -> None:
     first_shot = storyboard.shots[0].model_dump(by_alias=True)
     assert {"audioPlan", "cueIds", "requiredEntityStates", "transition", "visualIntent", "motionIntent"} <= set(first_shot)
     assert "audio" not in first_shot
+
+
+def test_v1_shot_count_policy_preserves_strict_validation_without_new_review_channel() -> None:
+    bible = StoryBible(logline="One choice", premise="A scene")
+    plan = SceneBeatPlan(
+        scenes=[DramaticScene(id="scene", story_node_id="node", title="Scene", objective="Choose", beat_ids=["beat"])],
+        beats=[Beat(id="beat", scene_id="scene", order=1, description="Choose", purpose="Reveal")],
+    )
+    board = Storyboard(
+        shots=[Shot(id=f"shot-{index}", scene_id="scene", order=index, title="View", shot_size=ShotSize.MEDIUM, duration_seconds=3) for index in range(1, 11)],
+        shot_beat_links=[ShotBeatLink(shot_id="shot-1", beat_id="beat")]
+        + [ShotBeatLink(shot_id=f"shot-{index}", beat_id="beat", role=CoverageRole.SUPPORTING) for index in range(2, 11)],
+    )
+    strict = ProjectBrief(title="x", synopsis="y", shots_per_scene_min=2, shots_per_scene_max=4)
+    with pytest.raises(DomainValidationError) as captured:
+        validate_storyboard_coverage(board, plan, bible, strict)
+    assert {issue["code"] for issue in captured.value.issues} == {"shots_per_scene_out_of_range"}
+    assert validate_storyboard_coverage(board, plan, bible, strict.model_copy(update={"shot_count_policy": "advisory"})) is None
 
 
 def test_graph_cycle_is_rejected(brief: ProjectBrief) -> None:

@@ -555,10 +555,15 @@ class ProjectSourceOutlinePersistence:
             return None
         admission = self._graph_admission(row)
         graph = self._access.rows.stage(session, project_id, StageName.STORY_GRAPH)
-        if graph.revision != row.graph_revision:
+        if graph.revision != row.graph_revision or graph.content_hash != row.graph_content_hash:
             return admission.model_copy(update={
                 "status": "stale",
-                "stale_reasons": ["canonical graph revision was replaced outside this source-map admission"],
+                "stale_reasons": ["canonical graph identity changed outside this source-map admission"],
+            })
+        if graph.status != StageStatus.READY.value:
+            return admission.model_copy(update={
+                "status": "stale",
+                "stale_reasons": [f"canonical graph is {graph.status}"],
             })
         return admission
 

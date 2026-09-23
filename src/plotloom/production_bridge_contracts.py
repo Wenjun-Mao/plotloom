@@ -70,6 +70,7 @@ class ProductionBridgeProposal(CamelModel):
     scenes: list[dict[str, Any]]
     cuts: list[dict[str, Any]]
     conflicts: list[ProductionBridgeConflict] = Field(default_factory=list)
+    advisories: list[ProductionBridgeConflict] = Field(default_factory=list)
     installable: bool
     prepared_at: datetime
 

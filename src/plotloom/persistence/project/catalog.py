@@ -14,7 +14,7 @@ from ...domain import (
     LatestRunSummary, Project, ProjectBrief, ProjectCreation, ProjectDuplicateResult,
     ProjectLifecycleStatus, ProjectSummary, StageEnvelope, StageHead, StageName,
     StagePayload, StageStatus, downstream_stages, new_id, stage_payload_model,
-    utc_now, upstream_stages, validate_initial_stage_prefix,
+    utc_now, upstream_stages, brief_for_new_project, validate_initial_stage_prefix,
 )
 from ...exceptions import (
     IdempotencyConflictError, InvalidTransitionError, NotFoundError, ProjectBusyError,
@@ -127,6 +127,7 @@ class ProjectCatalogPersistence:
         initial_stages: Sequence[InitialStage | dict[str, Any]] = (),
         idempotency_key: str | None = None,
     ) -> ProjectCreation:
+        brief = brief_for_new_project(brief)
         normalized_stages = [InitialStage.model_validate(stage) for stage in initial_stages]
         validate_initial_stage_prefix(normalized_stages)
         fingerprint = self._creation_fingerprint(brief, normalized_stages)

@@ -148,7 +148,7 @@ def test_structured_generation_prompts_require_explicit_field_presence() -> None
     storyboard_fragment_spec, _spec_hash, _source = repository.load(
         "storyboard_fragment"
     )
-    assert storyboard_fragment_spec.version == "3.5.0"
+    assert storyboard_fragment_spec.version == "3.6.0"
     for spec in (scene_spec, storyboard_fragment_spec):
         assert "状态变化只发生在同一个" in spec.user
         assert "两端共同声明的键" in spec.user

@@ -96,6 +96,24 @@ def test_bridge_rejects_stale_brief_and_stale_f4_inputs(tmp_path: Path) -> None:
         store.close()
 
 
+def test_shot_policy_edit_preserves_source_chain_but_stales_old_bridge_proposal(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9, "shot_count_policy": "strict"}))
+    try:
+        old = _prepare_installable_bridge(store)
+        current = store.project()
+        store.update_brief(current.brief.model_copy(update={"shot_count_policy": "advisory"}), expected_revision=current.revision)
+        assert store.authoring.get_stage_head(store.manifest.project_id, StageName.STORY_GRAPH).status == StageStatus.READY
+        assert store.script_state().status == "accepted"
+        assert store.storyboard_review_state().status == "accepted"
+        with pytest.raises(InvalidTransitionError, match="stale"):
+            store.accept_production_bridge(ProductionBridgeAcceptRequest(
+                expected_proposal_revision=old.revision, expected_content_hash=old.content_hash,
+            ))
+    finally:
+        store.close()
+
+
 def test_bridge_rejects_stale_cas_and_non_exact_source_excerpt_edits(tmp_path: Path) -> None:
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
     store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shots_per_scene_min": 9, "shots_per_scene_max": 9}))
@@ -145,7 +163,7 @@ def test_bridge_install_rolls_back_all_heads_when_a_later_stage_fails(tmp_path: 
 
 def test_bridge_surfaces_brief_policy_conflict_without_splitting_source_scene(tmp_path: Path) -> None:
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
-    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shot_count_policy": "strict"}))
     try:
         _accepted_f4_script(store)
         candidate, request = store.prepare_storyboard_review_candidate("ch_" + "d" * 31 + "1")
@@ -170,5 +188,25 @@ def test_bridge_surfaces_brief_policy_conflict_without_splitting_source_scene(tm
                 expected_proposal_revision=completed.revision,
                 expected_content_hash=completed.content_hash,
             ))
+    finally:
+        store.close()
+
+
+def test_advisory_bridge_keeps_all_source_cuts_and_exposes_nonblocking_notice(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shot_count_policy": "advisory"}))
+    try:
+        proposal = _prepare_installable_bridge(store)
+        assert proposal.installable
+        assert len(proposal.scenes) == 3 and len(proposal.cuts) == 27
+        assert len(proposal.advisories) == 3
+        assert all(item.code == "shot_count_preference" for item in proposal.advisories)
+        assert all(item.code != "brief_shot_count" for item in proposal.conflicts)
+        accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
+            expected_proposal_revision=proposal.revision, expected_content_hash=proposal.content_hash,
+        ))
+        assert accepted.status == "accepted"
+        installed = store.authoring.get_stage_payload(store.manifest.project_id, StageName.STORYBOARD)
+        assert len(installed.shots) == 27
     finally:
         store.close()

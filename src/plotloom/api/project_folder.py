@@ -18,6 +18,7 @@ from ..domain import (
     ProjectDuplicateResult,
     ProjectLifecycleStatus,
     ProjectSummary,
+    brief_for_new_project,
     StageHead,
     StageName,
 )
@@ -368,17 +369,18 @@ def create_project_folder_authoring_app(
         body: ProjectCreateRequest,
         idempotency_key: Annotated[str | None, Header(alias="Idempotency-Key")] = None,
     ) -> ProjectCreation:
+        brief = brief_for_new_project(body.brief)
         key = _normalize_idempotency_key(idempotency_key)
         if key is None:
             store = storage.projects.create(
-                body.brief, initial_stages=tuple(body.initial_stages)
+                brief, initial_stages=tuple(body.initial_stages)
             )
             project_id = store.manifest.project_id
             store.close()
             return creation_response(project_id)
         fingerprint = stable_hash(
             {
-                "brief": body.brief.model_dump(mode="json", by_alias=False),
+                "brief": brief.model_dump(mode="json", by_alias=False),
                 "initialStages": [
                     stage.model_dump(mode="json", by_alias=False)
                     for stage in body.initial_stages
@@ -394,7 +396,7 @@ def create_project_folder_authoring_app(
                 raise BootstrapContentionError(retry_after_seconds=1)
             try:
                 store = storage.projects.create(
-                    body.brief,
+                    brief,
                     project_id=project_id,
                     created_at=reservation.target_created_at,
                     initial_stages=tuple(body.initial_stages),
@@ -404,7 +406,7 @@ def create_project_folder_authoring_app(
                 # Resume its exact reserved home; never open a partial folder,
                 # allocate another ID, or substitute request inputs.
                 store = storage.projects.resume_creation(
-                    body.brief,
+                    brief,
                     project_id=project_id,
                     created_at=reservation.target_created_at,
                     initial_stages=tuple(body.initial_stages),

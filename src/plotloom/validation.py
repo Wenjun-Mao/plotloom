@@ -618,7 +618,7 @@ def validate_storyboard_coverage(
     for scene_id in scenes_by_id:
         scene_shots = sorted(shots_by_scene[scene_id], key=lambda shot: shot.order)
         count = len(scene_shots)
-        if not brief.shots_per_scene_min <= count <= brief.shots_per_scene_max:
+        if brief.shot_count_is_strict and not brief.shots_per_scene_min <= count <= brief.shots_per_scene_max:
             issues.append(
                 _issue(
                     "shots_per_scene_out_of_range",
@@ -1191,9 +1191,28 @@ class StoryboardGateEvaluator:
             else:
                 count_is_valid = brief.shots_per_scene_min <= len(scene_shots) <= brief.shots_per_scene_max
                 count_reason = "shot count must be inside ProjectBrief bounds"
-            record(
-                f"shot.count.{scene.id}", count_is_valid, path=("scenes", scene.id), reason=count_reason
-            )
+            if brief is not None and not brief.shot_count_is_strict:
+                results.append(GateResult(
+                    id=f"{self.gate_set_version}:shot.count.{scene.id}",
+                    gate_set_version=self.gate_set_version,
+                    gate_id=f"shot.count.{scene.id}",
+                    evaluated_input_hash=evaluated_input_hash,
+                    required=False,
+                    status=GateStatus.PASS if count_is_valid else GateStatus.NOT_APPLICABLE,
+                    severity=GateSeverity.INFO if count_is_valid else GateSeverity.WARNING,
+                    entity_path=("scenes", scene.id),
+                    evidence=(
+                        GateEvidence(key="actual", value=str(len(scene_shots))),
+                        GateEvidence(key="preferredMin", value=str(brief.shots_per_scene_min)),
+                        GateEvidence(key="preferredMax", value=str(brief.shots_per_scene_max)),
+                    ),
+                    reason="shot-count preference is advisory",
+                ))
+            else:
+                record(
+                    f"shot.count.{scene.id}", count_is_valid,
+                    path=("scenes", scene.id), reason=count_reason,
+                )
             record(
                 f"shot.order.{scene.id}",
                 [shot.order for shot in scene_shots] == list(range(1, len(scene_shots) + 1)),
@@ -1535,7 +1554,10 @@ def _v2_gate_input_hash(
         "storyboard": storyboard.model_dump(mode="json", by_alias=True),
         "sceneBeats": plan.model_dump(mode="json", by_alias=True),
         "storyBible": bible.model_dump(mode="json", by_alias=True),
-        "brief": None if brief is None else brief.model_dump(mode="json", by_alias=True),
+        "brief": None if brief is None else brief.model_dump(
+            mode="json", by_alias=True,
+            exclude={"shot_count_policy"} if "shot_count_policy" not in brief.model_fields_set else None,
+        ),
         "timingProfile": None if timing_profile is None else timing_profile.model_dump(mode="json", by_alias=True),
     }
     return hashlib.sha256(

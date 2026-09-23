@@ -18,6 +18,7 @@ from ..domain import (
     STAGE_ORDER,
     StageName,
     StageStatus,
+    brief_for_new_project,
     validate_initial_stage_prefix,
 )
 from ..exceptions import (
@@ -89,6 +90,7 @@ class ProjectDirectoryRegistry:
         # This keeps an idempotent retry reservation recoverable only after a
         # complete project initialization can actually begin.
         validate_initial_stage_prefix(initial_stages)
+        brief = brief_for_new_project(brief)
         values: dict[str, object] = {"brief": brief}
         if project_id is not None:
             values["id"] = project_id
@@ -134,6 +136,7 @@ class ProjectDirectoryRegistry:
         """
 
         validate_initial_stage_prefix(initial_stages)
+        brief = brief_for_new_project(brief)
         project = Project(
             id=project_id,
             brief=brief,

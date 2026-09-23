@@ -72,7 +72,7 @@ class ProductionBridgePersistence:
     def _state() -> dict[str, Any]:
         return {"facts": {}, "entityStates": [], "screenDirection": None, "lighting": None, "sound": None, "notes": []}
 
-    def _build(self, session: Any, project_id: str, *, inputs: dict[str, Any], storyboard: dict[str, Any], script: dict[str, Any], cast_and_art: dict[str, Any]) -> tuple[dict[str, Any], ProductionBridgeIntentPackage, list[ProductionBridgeConflict], list[dict[str, Any]], list[dict[str, Any]]]:
+    def _build(self, session: Any, project_id: str, *, inputs: dict[str, Any], storyboard: dict[str, Any], script: dict[str, Any], cast_and_art: dict[str, Any]) -> tuple[dict[str, Any], ProductionBridgeIntentPackage, list[ProductionBridgeConflict], list[ProductionBridgeConflict], list[dict[str, Any]], list[dict[str, Any]]]:
         project = self._access.rows.project(session, project_id)
         brief = ProjectBrief.model_validate(project.brief)
         graph = self._canonical._load_stage_payload(session, project_id, StageName.STORY_GRAPH)
@@ -109,6 +109,7 @@ class ProductionBridgePersistence:
         props = [art_entity(item) for item in art.get("props", []) if isinstance(item, dict) and isinstance(item.get("id"), str)]
         bible = {"logline": brief.synopsis, "premise": brief.synopsis, "genre": brief.genre or "", "tone": "", "audience": "", "narrativePromise": "", "visualLanguage": brief.visual_style or "", "themes": [], "worldRules": [], "knownFacts": [], "openQuestions": [], "sourceNotes": ["F5 H3 prompt text is review evidence, not provider input."], "characters": characters, "locations": locations, "props": props}
         conflicts: list[ProductionBridgeConflict] = []
+        advisories: list[ProductionBridgeConflict] = []
         f4_episodes = {item.get("ep"): item for item in script.get("episodes", []) if isinstance(item, dict)}
         section_by_episode = {item.get("episode"): item.get("sectionId") for item in script.get("sectionBindings", []) if isinstance(item, dict)}
         scenes: list[dict[str, Any]] = []; beats: list[dict[str, Any]] = []; cues: list[dict[str, Any]] = []; shots: list[dict[str, Any]] = []; links: list[dict[str, Any]] = []
@@ -133,7 +134,16 @@ class ProductionBridgePersistence:
                 if not isinstance(source_scene, dict) or not isinstance(cuts, list) or not cuts:
                     conflicts.append(ProductionBridgeConflict(code="scene_cuts_missing", message="不能安装：F5 场次没有镜头", section_id=section_id, episode=ep, scene_index=index)); continue
                 if not brief.shots_per_scene_min <= len(cuts) <= brief.shots_per_scene_max:
-                    conflicts.append(ProductionBridgeConflict(code="brief_shot_count", message=f"不能安装：源场次有 {len(cuts)} 个镜头，当前项目规则为 {brief.shots_per_scene_min}–{brief.shots_per_scene_max} 个", section_id=section_id, episode=ep, scene_index=index))
+                    issue = ProductionBridgeConflict(
+                        code="brief_shot_count" if brief.shot_count_is_strict else "shot_count_preference",
+                        message=(
+                            f"不能安装：源场次有 {len(cuts)} 个镜头，当前项目规则为 {brief.shots_per_scene_min}–{brief.shots_per_scene_max} 个"
+                            if brief.shot_count_is_strict else
+                            f"创作提示：源场次有 {len(cuts)} 个镜头，偏好范围为 {brief.shots_per_scene_min}–{brief.shots_per_scene_max} 个；此项不阻止确认"
+                        ),
+                        section_id=section_id, episode=ep, scene_index=index,
+                    )
+                    (conflicts if brief.shot_count_is_strict else advisories).append(issue)
                 scene_id = f"{section_id}-s{index}"; flow = source_scene.get("flow", []) if isinstance(source_scene.get("flow"), list) else []
                 beat_ids = [f"{scene_id}-b{order}" for order in range(1, max(1, len(flow)) + 1)]
                 state = self._state(); canonical_character_ids = {item["id"] for item in characters}
@@ -218,7 +228,7 @@ class ProductionBridgePersistence:
                     links.extend({"shotId": shot_id, "beatId": beat_id, "role": "primary", "coverageWeight": 1 / len(selected)} for beat_id in selected)
                     visual_cuts.append({"sectionId": section_id, "episode": ep, "sceneIndex": index, "cutIndex": order, "shotId": shot_id, "seconds": cut["seconds"], "beats": cut.get("beats"), "frame": frame, "h3Prompt": segment.get("h3Prompt"), "source": {"segmentIndex": segment_order, "segmentSceneIndex": index, "cutIndex": source_cut_index}})
         package = ProductionBridgeIntentPackage(suggestion_origin="none", review_state="pending", entries=intent_entries)
-        return {"bible": bible, "sceneBeats": {"scenes": scenes, "beats": beats, "dialogueCues": cues}, "storyboard": {"shots": shots, "shotBeatLinks": links}}, package, conflicts, visual_scenes, visual_cuts
+        return {"bible": bible, "sceneBeats": {"scenes": scenes, "beats": beats, "dialogueCues": cues}, "storyboard": {"shots": shots, "shotBeatLinks": links}}, package, conflicts, advisories, visual_scenes, visual_cuts
 
     def _validate_payload(self, session: Any, project_id: str, payload: dict[str, Any]) -> list[ProductionBridgeConflict]:
         """Run the same V2 models and gates used by canonical installation early."""
@@ -299,7 +309,7 @@ class ProductionBridgePersistence:
             self._access.rows.project(session, project_id); head = self._head(session, project_id)
             row = session.scalar(select(ProductionBridgeRevisionRow).where(ProductionBridgeRevisionRow.project_id == project_id, ProductionBridgeRevisionRow.revision == head.revision)) if head.revision else None
             stale = self._current(session, project_id, row.inputs) if row else []
-            proposal = ProductionBridgeProposal(revision=row.revision, content_hash=row.content_hash, inputs=row.inputs, intent_package=self._intent_package(session, row), scenes=row.proposal["scenes"], cuts=row.proposal["cuts"], conflicts=[ProductionBridgeConflict.model_validate(item) for item in row.conflicts], installable=row.installable, prepared_at=row.prepared_at) if row else None
+            proposal = ProductionBridgeProposal(revision=row.revision, content_hash=row.content_hash, inputs=row.inputs, intent_package=self._intent_package(session, row), scenes=row.proposal["scenes"], cuts=row.proposal["cuts"], conflicts=[ProductionBridgeConflict.model_validate(item) for item in row.conflicts], advisories=[ProductionBridgeConflict.model_validate(item) for item in row.proposal.get("advisories", [])], installable=row.installable, prepared_at=row.prepared_at) if row else None
             admission = session.scalar(select(ProductionBridgeAdmissionRow).where(ProductionBridgeAdmissionRow.project_id == project_id).order_by(ProductionBridgeAdmissionRow.accepted_at.desc()).limit(1))
             job = session.scalar(select(ProductionBridgeIntentJobRow).where(ProductionBridgeIntentJobRow.project_id == project_id).order_by(ProductionBridgeIntentJobRow.created_at.desc(), ProductionBridgeIntentJobRow.id.desc()).limit(1))
             job_view = ProductionBridgeIntentJob(id=job.id, status=job.status, proposal_revision=job.proposal_revision, proposal_content_hash=job.proposal_content_hash, profile_id=job.profile_snapshot["profileId"], profile_version=job.profile_snapshot["profileVersion"], prompt_version=job.prompt_trace["prompt_version"], created_at=job.created_at, updated_at=job.updated_at, error_code=job.error_code, error_message=job.error_message, result_proposal_revision=job.result_proposal_revision, provider_request_id=job.provider_request_id, response_hash=job.response_hash) if job else None
@@ -309,12 +319,12 @@ class ProductionBridgePersistence:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id)); head = self._head(session, project_id)
             inputs, storyboard, script, cast_art = self._context(session, project_id)
-            payload, intent_package, conflicts, scenes, cuts = self._build(session, project_id, inputs=inputs, storyboard=storyboard, script=script, cast_and_art=cast_art)
+            payload, intent_package, conflicts, advisories, scenes, cuts = self._build(session, project_id, inputs=inputs, storyboard=storyboard, script=script, cast_and_art=cast_art)
             conflicts.append(ProductionBridgeConflict(code="dramatic_intent_required", message="不能安装：请先生成并审阅戏剧意图，或逐项填写并保存作者意图"))
             # The prepared payload intentionally has blank semantic fields.
             # Validate the complete canonical contract only after one whole
             # inferred or author-written package has been bound.
-            proposal = {"payload": payload, "intentPackage": intent_package.model_dump(mode="json", by_alias=True), "scenes": scenes, "cuts": cuts}; digest = self._proposal_digest(inputs, proposal, conflicts); now = utc_now()
+            proposal = {"payload": payload, "intentPackage": intent_package.model_dump(mode="json", by_alias=True), "scenes": scenes, "cuts": cuts, "advisories": [item.model_dump(mode="json") for item in advisories]}; digest = self._proposal_digest(inputs, proposal, conflicts); now = utc_now()
             head.revision += 1; head.status, head.updated_at = "ready", now
             session.add(ProductionBridgeRevisionRow(id=new_id(), project_id=project_id, revision=head.revision, content_hash=digest, inputs=inputs, proposal=proposal, conflicts=[item.model_dump(mode="json") for item in conflicts], installable=not conflicts, prepared_at=now))
         return self.get_state(project_id)
@@ -348,7 +358,7 @@ class ProductionBridgePersistence:
             payload = self._apply_intent_package(row.proposal["payload"], updated)
             conflicts = [ProductionBridgeConflict.model_validate(item) for item in row.conflicts if item.get("code") not in {"canonical_validation", "dramatic_intent_required"}]
             conflicts.extend(self._validate_payload(session, project_id, payload))
-            proposal = {"payload": payload, "intentPackage": updated.model_dump(mode="json", by_alias=True), "scenes": row.proposal["scenes"], "cuts": row.proposal["cuts"]}
+            proposal = {**row.proposal, "payload": payload, "intentPackage": updated.model_dump(mode="json", by_alias=True)}
             digest, now = self._proposal_digest(row.inputs, proposal, conflicts), utc_now()
             head.revision += 1; head.status, head.updated_at = "ready", now
             session.add(ProductionBridgeRevisionRow(id=new_id(), project_id=project_id, revision=head.revision, content_hash=digest, inputs=row.inputs, proposal=proposal, conflicts=[item.model_dump(mode="json") for item in conflicts], installable=not conflicts, prepared_at=now))
