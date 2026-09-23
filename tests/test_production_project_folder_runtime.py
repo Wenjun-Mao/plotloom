@@ -2,24 +2,23 @@
 
 from __future__ import annotations
 
-import time
 import sqlite3
+import time
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
-import pytest
 
 from plotloom.config import PlotloomSettings
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
-from plotloom.runtime import build_runtime_app
 from plotloom.project_storage import ProjectStore
+from plotloom.runtime import build_runtime_app
 from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_provider import VideoBackendInstanceIdentity
-
 from tests.backend_core.conftest import all_stage_payloads
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
 
@@ -586,5 +585,5 @@ def test_production_runtime_composes_the_typed_h3_video_path(tmp_path: Path) -> 
                 "expectedSelectionRevision": 0,
             },
         )
-        assert reviewed.status_code == 201
+        assert reviewed.status_code == 409
         assert provider.submits and provider.downloads == 1

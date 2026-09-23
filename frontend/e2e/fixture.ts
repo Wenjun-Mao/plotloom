@@ -44,7 +44,11 @@ export const checkedStaticTest = createWorkbenchTest("checked-static");
 function createWorkbenchTest(frontendMode: FrontendMode) {
   return base.extend<{}, WorkbenchWorkerFixtures>({
   workbench: [async ({}, use) => {
-    const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "plotloom-e2e-"));
+    // A deliberately requested retained fixture keeps its isolated project
+    // bytes for attended inspection; ordinary test runs still clean up.
+    const retainedParent = process.env.PLOTLOOM_E2E_RETAIN_PARENT;
+    if (retainedParent) await mkdir(retainedParent, { recursive: true });
+    const temporaryRoot = await mkdtemp(path.join(retainedParent ?? os.tmpdir(), "plotloom-e2e-"));
     const outputsRoot = path.join(temporaryRoot, "outputs");
     const applicationDataRoot = path.join(temporaryRoot, "application");
     const backendPort = await reserveLoopbackPort();
@@ -127,7 +131,7 @@ function createWorkbenchTest(frontendMode: FrontendMode) {
           try {
             await stopProcess(provider);
           } finally {
-            await rm(temporaryRoot, { recursive: true, force: true });
+            if (!retainedParent) await rm(temporaryRoot, { recursive: true, force: true });
           }
         }
       }

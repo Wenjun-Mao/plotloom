@@ -45,20 +45,39 @@ navigation/status-display slice only. It does not approve Storyboard or media,
 select references/keyframes, generate assets, resolve exact-duration policy,
 or establish F6/F7 readiness.
 
-**Production timing policy — design-only step (2026-09-23).** The
-[proposed ADR 0082](../adr/0082-proposed-production-playback-timing.md) separates
+**Production timing policy — completed design step (2026-09-23).**
+[ADR 0082](../adr/0082-proposed-production-playback-timing.md) separates
 authored shot time, qualified backend request, measured take and an explicitly
 reviewed playback segment. Its recommended first implementation would preserve
 the 26 six-second and one eight-second U4 cuts, and permit an eight-second H3
 take to be considered for a six-second frame-exact window only after author
-review of the final picture and sound. This is a proposal, **not** approval to
-change admission, trim/derive media, select a take, generate an asset, or call a
-provider. Next decision: director/product accepts or revises the timing and
-editorial owner, then separately scopes the probe, segment/selection, both
-playback consumers and Chinese review UI with deterministic-media proof.
-Stop before live canary or U4 production until that implementation passes and
-its own product review authorizes a bounded experiment. Exact source duration
-and present F6 audiovisual non-qualification remain unchanged.
+review of the final picture and sound. At this design checkpoint there was no
+approval to change admission, trim/derive media, select a take, generate an
+asset, or call a provider. The following bounded implementation approval now
+settles the editorial choice; it still stops before live canary or U4
+production. Exact source duration and present F6 audiovisual
+non-qualification remain unchanged.
+
+**Approved bounded reviewed-segment slice (2026-09-23; technically implemented;
+director inspection pending).** The
+director approved ADR 0082's recommended policy: preserve authored timing and
+the original take; permit the creator to choose any contiguous exact-duration
+frame window with its sound, preview the final local derivative, then explicitly
+confirm its selection. Deliver trusted probe/derivation, durable lineage- and
+hash-bound review/selection, a minimal Chinese creator UI, and one verified
+selection projection for both ordered and branching playback. Evidence must
+include deterministic labelled synthetic audiovisual fixtures, six/eight-second
+and arbitrary in-point/audio-boundary cases, refusal/currentness/CAS/restart
+tests, fresh frontend assets and browser inspection at 1440/1920. Retain a
+usable isolated synthetic walkthrough with ownership/teardown recorded and
+obtain independent stable-delta review. Stop at verified technical delivery
+and director inspection: no real provider calls or U4 edit, no nominal-six
+qualification, no promotion of rejected F6 clips, no source retiming, no
+automatic selection, no asset deletion, no Batch C, and no push. Separate
+creative/audiovisual product acceptance and any later live canary remain open.
+The retained [technical receipt](../verification/2026-09-23-reviewed-playback-segment.md)
+records the synthetic proof, browser walkthrough, independent review, and
+remaining product-acceptance boundary. No live-media acceptance is implied.
 
 **Simulated bridge wording follow-up (2026-09-22).** The director found the
 simulated flow fairly clear and requested “确认投产提案” for the action,

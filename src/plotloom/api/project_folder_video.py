@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from hashlib import sha256
-from typing import Any, Callable
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.responses import Response
@@ -12,8 +13,15 @@ from ..project_storage.application_store import ApplicationStore
 from ..project_storage.project_handle import ProjectStore
 from ..project_storage.project_video import ProjectVideoRepository
 from ..project_storage.video_service import ProjectVideoService
-from ..video_contracts import VideoDiscardRequest, VideoDiscardUnselectedRequest, VideoJobRequest, VideoReviewRequest
 from ..video_backends.minimax_h3.adapter import H3_QUALIFIED_DURATION_FRAMES
+from ..video_contracts import (
+    VideoDiscardRequest,
+    VideoDiscardUnselectedRequest,
+    VideoJobRequest,
+    VideoReviewRequest,
+    VideoSegmentPrepareRequest,
+    VideoSegmentSelectRequest,
+)
 
 
 def register_project_folder_video_routes(
@@ -88,6 +96,7 @@ def register_project_folder_video_routes(
                 allow_center_crop=body.allow_center_crop,
                 seed=body.seed,
                 profile_id=body.profile_id,
+                playback_intent=body.playback_intent,
             )
 
     @app.post("/api/v2/projects/{project_id}/video-jobs/{video_job_id}/submit")
@@ -121,6 +130,55 @@ def register_project_folder_video_routes(
                 note=body.note,
                 expected_selection_revision=body.expected_selection_revision,
             )
+
+    @app.post(
+        "/api/v2/projects/{project_id}/video-jobs/{video_job_id}/segments",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def prepare_video_segment(
+        project_id: str, video_job_id: str, body: VideoSegmentPrepareRequest,
+    ) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return _local_repository(store).prepare_video_segment(
+                project_id, video_job_id, in_frame=body.in_frame,
+                out_frame=body.out_frame,
+                expected_selection_revision=body.expected_selection_revision,
+            )
+
+    @app.post(
+        "/api/v2/projects/{project_id}/video-segments/{segment_id}/select",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def select_video_segment(
+        project_id: str, segment_id: str, body: VideoSegmentSelectRequest,
+    ) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return _local_repository(store).select_video_segment(
+                project_id, segment_id, reviewer=body.reviewer, note=body.note,
+                expected_selection_revision=body.expected_selection_revision,
+            )
+
+    @app.get("/api/v2/projects/{project_id}/video-segments/{segment_id}/preview")
+    def serve_video_segment_preview(
+        project_id: str, segment_id: str, request: Request,
+    ) -> Response:
+        with opened_project(project_id) as store:
+            storage = _local_repository(store).get_video_segment_preview_storage(project_id, segment_id)
+            content = store.artifacts.get(storage["uri"])
+        if sha256(content).hexdigest() != storage["hash"]:
+            raise HTTPException(status_code=409, detail={"code": "video_segment_artifact_corrupt"})
+        return _range_response(content, storage["mimeType"], request.headers.get("range"))
+
+    @app.get("/api/v2/projects/{project_id}/video-jobs/{video_job_id}/playback")
+    def serve_selected_video_playback(
+        project_id: str, video_job_id: str, request: Request,
+    ) -> Response:
+        with opened_project(project_id) as store:
+            storage = _local_repository(store).get_selected_playback_storage(project_id, video_job_id)
+            content = store.artifacts.get(storage["uri"])
+        if sha256(content).hexdigest() != storage["hash"]:
+            raise HTTPException(status_code=409, detail={"code": "video_segment_artifact_corrupt"})
+        return _range_response(content, storage["mimeType"], request.headers.get("range"))
 
     @app.post("/api/v2/projects/{project_id}/video-jobs/{video_job_id}/discard", status_code=status.HTTP_204_NO_CONTENT)
     def discard_video_job(project_id: str, video_job_id: str, body: VideoDiscardRequest) -> Response:
@@ -168,7 +226,7 @@ def register_project_folder_video_routes(
 
 
 def _range_response(content: bytes, mime_type: str, raw_range: str | None) -> Response:
-    headers = {"Accept-Ranges": "bytes", "Content-Type": mime_type}
+    headers = {"Accept-Ranges": "bytes", "Content-Type": mime_type, "Cache-Control": "no-store"}
     if not raw_range:
         headers["Content-Length"] = str(len(content))
         return Response(content=content, media_type=mime_type, headers=headers)

@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
+import sqlite3
 from functools import lru_cache
 from pathlib import Path
-import sqlite3
 from typing import Literal
 
 from sqlalchemy import create_engine
 
 from ..persistence.schema import (
+    PROJECT_TEXT_PIPELINE_TABLE_NAMES,
     ArtReferenceDecisionRow,
     ArtReferenceDecisionStateRow,
     ArtReferenceProposalCandidateRow,
@@ -19,12 +20,12 @@ from ..persistence.schema import (
     CharacterImportedAppearanceRow,
     CharacterReferenceDecisionRow,
     CharacterReferenceProposalDeliveryRow,
-    PROJECT_TEXT_PIPELINE_TABLE_NAMES,
     ProductionBridgeAdmissionRow,
     ProductionBridgeHeadRow,
     ProductionBridgeIntentJobRow,
     ProductionBridgeRevisionRow,
     VideoCandidateSelectionRow,
+    VideoSegmentRow,
 )
 from .format import ProjectStorageCorruptionError
 
@@ -65,6 +66,10 @@ class ProjectBridgeIntentJobTransitionRequiredError(ProjectSchemaTransitionRequi
     """A current bridge project needs its durable inference-job table."""
 
 
+class ProjectVideoSegmentTransitionRequiredError(ProjectSchemaTransitionRequiredError):
+    """A current video project needs its reviewed-playback-segment table."""
+
+
 SchemaStatus = Literal[
     "current", "selection_transition_required", "art_reference_transition_required",
     "character_delivery_publication_phase_transition_required",
@@ -72,7 +77,7 @@ SchemaStatus = Literal[
     "character_imported_appearance_transition_required",
     "art_reference_decision_transition_required",
     "production_bridge_transition_required",
-    "bridge_intent_job_transition_required",
+    "bridge_intent_job_transition_required", "video_segment_transition_required",
 ]
 _SELECTION_TABLE = VideoCandidateSelectionRow.__tablename__
 _CHARACTER_REFERENCE_DELIVERY_TABLE = CharacterReferenceProposalDeliveryRow.__tablename__
@@ -122,6 +127,7 @@ def expected_project_schema_objects(
     include_art_reference_decisions: bool = True,
     include_production_bridge: bool = True,
     include_bridge_intent_jobs: bool = True,
+    include_video_segments: bool = True,
 ) -> tuple[tuple[str, str, str, str | None], ...]:
     """Return the exact current schema or one permitted immediate predecessor."""
 
@@ -138,6 +144,8 @@ def expected_project_schema_objects(
         table_names.difference_update(table.name for table in _PRODUCTION_BRIDGE_TABLES)
     if not include_bridge_intent_jobs:
         table_names.remove(ProductionBridgeIntentJobRow.__tablename__)
+    if not include_video_segments:
+        table_names.remove(VideoSegmentRow.__tablename__)
     engine = create_engine("sqlite://")
     try:
         Base.metadata.create_all(
@@ -203,6 +211,17 @@ def _requires_bridge_intent_job_transition(actual: tuple[tuple[str, str, str, st
     )
     appended = expected_project_schema_objects(
         include_video_candidate_selection=True, include_bridge_intent_jobs=False,
+        append_character_delivery_publication_phase=True,
+    )
+    return actual in {base, appended, _metadata_rebuilt_schema(base), _metadata_rebuilt_schema(appended)}
+
+
+def _requires_video_segment_transition(actual: tuple[tuple[str, str, str, str | None], ...]) -> bool:
+    base = expected_project_schema_objects(
+        include_video_candidate_selection=True, include_video_segments=False,
+    )
+    appended = expected_project_schema_objects(
+        include_video_candidate_selection=True, include_video_segments=False,
         append_character_delivery_publication_phase=True,
     )
     return actual in {base, appended, _metadata_rebuilt_schema(base), _metadata_rebuilt_schema(appended)}
@@ -338,6 +357,8 @@ def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
         )
     if _is_current_schema_objects(actual):
         return "current"
+    if _requires_video_segment_transition(actual) and user_version == (0,):
+        return "video_segment_transition_required"
     if _requires_bridge_intent_job_transition(actual) and user_version == (0,):
         return "bridge_intent_job_transition_required"
     if _requires_art_reference_decision_transition(actual) and user_version == (0,):
@@ -411,6 +432,10 @@ def transition_required_error(
     if status == "bridge_intent_job_transition_required":
         return ProjectBridgeIntentJobTransitionRequiredError(
             f"bridge intent job transition requires {reason}"
+        )
+    if status == "video_segment_transition_required":
+        return ProjectVideoSegmentTransitionRequiredError(
+            f"video segment transition requires {reason}"
         )
     raise AssertionError(f"current project schema does not need a transition: {status}")
 
@@ -529,6 +554,8 @@ def transition_project_schema(
                     )
                 elif status == "bridge_intent_job_transition_required":
                     ProductionBridgeIntentJobRow.__table__.create(connection)
+                elif status == "video_segment_transition_required":
+                    VideoSegmentRow.__table__.create(connection)
                 else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
                     raise AssertionError(f"unsupported project transition: {status}")
                 if not _is_current_schema_objects(tuple(_schema_objects(connection))):

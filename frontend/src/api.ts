@@ -43,6 +43,7 @@ import type {
   VisualWorkbench,
   VisualIntent,
   VideoJob,
+  VideoSegment,
   VideoBackend,
   VideoPilotBudget,
   SourceMaterial,
@@ -651,6 +652,7 @@ export class PlotloomApiClient {
   prepareVideoJob(projectId: string, body: {
     approvalId: string; shotId: string; storyboardRevision: number; expectedSelectionRevision: number; idempotencyKey: string;
     requestedDurationSeconds?: number; resolution?: string; audio?: true;
+    playbackIntent?: "source_exact" | "segment_required";
     aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch";
     allowLetterbox?: boolean; allowCenterCrop?: boolean; seed?: number; profileId?: string;
   }): Promise<VideoJob> {
@@ -660,6 +662,10 @@ export class PlotloomApiClient {
   reconcileVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/reconcile`, { method: "POST" }); }
   cancelVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }); }
   reviewVideoJob(projectId: string, id: string, decision: "select" | "reject", reviewer: string, note: string, expectedSelectionRevision: number): Promise<unknown> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/review`, { method: "POST", body: JSON.stringify({ decision, reviewer, note, expectedSelectionRevision }) }); }
+  prepareVideoSegment(projectId: string, jobId: string, inFrame: number, outFrame: number, expectedSelectionRevision: number): Promise<VideoSegment> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(jobId)}/segments`, { method: "POST", body: JSON.stringify({ inFrame, outFrame, expectedSelectionRevision }) }); }
+  selectVideoSegment(projectId: string, segmentId: string, reviewer: string, note: string, expectedSelectionRevision: number): Promise<VideoSegment> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-segments/${encodeURIComponent(segmentId)}/select`, { method: "POST", body: JSON.stringify({ reviewer, note, expectedSelectionRevision }) }); }
+  videoSegmentPreviewUrl(projectId: string, segmentId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/video-segments/${encodeURIComponent(segmentId)}/preview`; }
+  selectedVideoPlaybackUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(jobId)}/playback`; }
   discardVideoJob(projectId: string, id: string, expectedSelectionRevision: number): Promise<void> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/discard`, { method: "POST", body: JSON.stringify({ expectedSelectionRevision }) }); }
   discardUnselectedVideoJobs(projectId: string, shotId: string, videoJobIds: string[], expectedSelectionRevision: number): Promise<void> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/discard-unselected`, { method: "POST", body: JSON.stringify({ shotId, videoJobIds, expectedSelectionRevision }) }); }
   videoJobMediaUrl(projectId: string, id: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/media`; }

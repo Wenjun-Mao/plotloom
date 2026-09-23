@@ -16,6 +16,7 @@ from .media_reference_proposals import CharacterReferenceProposalPersistence
 from .media_art_reference_proposals import ArtReferenceProposalPersistence
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_video_currentness import VideoJobCurrentness
+from .media_video_segments import VideoSegmentPersistence
 from .media_visual_intents import VisualIntentPersistence
 
 
@@ -40,6 +41,7 @@ class ProjectMediaRepository:
         image_delivery: ImageJobDeliveryPersistence,
         direct_video: DirectVideoJobPersistence,
         video_currentness: VideoJobCurrentness,
+        video_segments: VideoSegmentPersistence,
     ) -> None:
         self._assets = assets
         self._intents = intents
@@ -55,6 +57,7 @@ class ProjectMediaRepository:
         # media composition object or repository internals.
         self.direct_video = direct_video
         self.video_currentness = video_currentness
+        self.video_segments = video_segments
 
     def record_managed_import(
         self, project_id: str, *, original_hash: str, display_hash: str,

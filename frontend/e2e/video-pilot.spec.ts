@@ -7,11 +7,12 @@ import type { APIRequestContext, Locator, Page } from "@playwright/test";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const still = path.join(root, "docs/verification/supporting/p0-generated/01-arrival.png");
 
-async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string): Promise<string> {
+async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string, inFrame: number): Promise<string> {
   // The production H3 catalog rejects the 16:9 reviewed still until the
   // author explicitly chooses its documented contain-pad preparation.
   const allowLetterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
+  await panel.getByLabel("H3 时长（已审核）").selectOption("8");
   await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconcilePost = page.waitForResponse((response) => {
@@ -31,7 +32,16 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
     state: "ingested", error: null,
     observed: { videoCodec: "h264", audioCodec: "aac" },
   });
-  await panel.getByRole("button", { name: "选择此候选" }).click();
+  const review = panel.getByTestId(`video-segment-review-${reconciled.id}`);
+  await review.getByLabel("片段入点（帧）").fill(String(inFrame));
+  await review.getByRole("button", { name: "准备此连续片段（不选择）" }).click();
+  const preview = review.locator('video[data-testid^="video-segment-preview-"]');
+  await expect(preview).toBeVisible();
+  await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
+  await review.getByLabel("选择人").fill("P2 H3 browser reviewer");
+  await review.getByLabel("片段审核说明").fill("Synthetic fixture: explicit derivative preview and selection.");
+  await review.getByRole("button", { name: "确认选择此播放片段" }).click();
+  await expect(review.getByText("当前已明确选择", { exact: false })).toBeVisible();
   return reconciled.id;
 }
 
@@ -85,7 +95,7 @@ async function prepareSelectedPair(
   } });
   expect(reference.ok()).toBeTruthy();
   const panel = page.getByTestId("video-pilot-panel");
-  const firstJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId);
+  const firstJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 24);
 
   // The adjoining fixture follows the same authored review/selection path.
   // It reuses the explicitly retained local still; the distinct candidate is
@@ -94,73 +104,34 @@ async function prepareSelectedPair(
   await expect(panel.getByText("仅显示当前镜头：双键升起（shot_03）")).toBeVisible();
   await page.getByLabel("审核兼容性说明").fill("Current approved adjoining shot keyframe.");
   await page.getByTestId("select-reviewed-keyframe").click();
-  const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId);
+  const secondJobId = await ingestAndSelectOfflineCandidate(page, panel, projectId, 0);
 
   // An explicit route is required before the selected-path player appears;
   // its missing-clip status must remain visible rather than implying a full
   // stitched playthrough.
   await page.getByLabel("路径过滤").selectOption({ index: 1 });
-  const firstSource = await page.getByTestId(`video-sequence-job-${firstJobId}`).getAttribute("src");
-  expect(firstSource).toContain(`/video-jobs/${firstJobId}/media`);
+  await expect(page.getByTestId("video-route-sequence-status")).toContainText("路径尚不完整");
+  await expect(page.getByTestId("video-sequence-player")).toHaveCount(0);
+  const firstSource = `/api/v2/projects/${projectId}/video-jobs/${firstJobId}/playback`;
   return {
     projectId,
     firstJobId,
     secondJobId,
     firstSource: firstSource!,
-    secondSource: `${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${secondJobId}/media`,
+    secondSource: `${workbench.apiOrigin}/api/v2/projects/${projectId}/video-jobs/${secondJobId}/playback`,
   };
 }
 
-test("P2 H3 selected pair plays in order with a native final hold", async ({ page, request, workbench }) => {
+test("P2 H3 selected segments are exact and partial routes do not play", async ({ page, request, workbench }) => {
   const selected = await prepareSelectedPair(page, request, workbench);
-
-  const sequence = page.getByTestId("video-sequence-player");
-  // Step 5 shares this production FastAPI page and must surface its separate
-  // structural session without pretending the retained two-clip route is a
-  // complete branching story.
   await expect(page.getByTestId("branching-video-preview")).toBeVisible();
   await expect(page.getByTestId("branching-missing-media")).toBeVisible();
-  const firstSequencePlayer = page.getByTestId(`video-sequence-job-${selected.firstJobId}`);
-  const secondSequencePlayer = page.getByTestId(`video-sequence-job-${selected.secondJobId}`);
-  await expect(firstSequencePlayer).toBeVisible();
-  await expect(page.getByTestId("video-route-sequence-status")).toContainText("路径尚不完整");
-
-  // This is an actual native playback/ended transition of the downloaded MP4,
-  // rather than a synthetic event. The second source must then begin playing.
-  await sequence.getByRole("button", { name: "播放当前" }).click();
-  await expect.poll(() => firstSequencePlayer.evaluate((video) => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
-  await expect(secondSequencePlayer).toBeVisible({ timeout: 9_000 });
-  expect(await secondSequencePlayer.getAttribute("src")).toBe(`/api/v2/projects/${selected.projectId}/video-jobs/${selected.secondJobId}/media`);
-  await expect.poll(() => secondSequencePlayer.evaluate((video) => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0);
-
-  await sequence.getByRole("button", { name: "上一镜头" }).click();
-  await expect(firstSequencePlayer).toBeVisible();
-  await sequence.getByRole("button", { name: "下一镜头" }).click();
-  await expect(secondSequencePlayer).toBeVisible();
-  await secondSequencePlayer.evaluate((video) => { (video as HTMLVideoElement).currentTime = 0.25; });
-  await expect.poll(() => secondSequencePlayer.evaluate((video) => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(0.2);
-  const restartReset = secondSequencePlayer.evaluate((video) => new Promise<boolean>((resolve) => {
-    const native = video as HTMLVideoElement;
-    const beforeRestart = native.currentTime;
-    const onSeeking = () => {
-      if (native.currentTime < beforeRestart) {
-        native.removeEventListener("seeking", onSeeking);
-        resolve(true);
-      }
-    };
-    native.addEventListener("seeking", onSeeking);
-    window.setTimeout(() => { native.removeEventListener("seeking", onSeeking); resolve(false); }, 1_000);
-  }));
-  await sequence.getByRole("button", { name: "重启当前" }).click();
-  expect(await restartReset).toBeTruthy();
-  await expect.poll(() => secondSequencePlayer.evaluate((video) => !(video as HTMLVideoElement).paused)).toBeTruthy();
-  // The final hold is also native: wait for the actual downloaded H3 clip to
-  // end instead of manufacturing an `ended` event in the browser.
-  await expect.poll(
-    () => secondSequencePlayer.evaluate((video) => (video as HTMLVideoElement).ended),
-    { timeout: 9_000 },
-  ).toBeTruthy();
-  await expect(secondSequencePlayer).toBeVisible();
+  await expect(page.getByTestId("video-sequence-player")).toHaveCount(0);
+  const jobsResponse = await request.get(`${workbench.apiOrigin}/api/v2/projects/${selected.projectId}/video-jobs`);
+  const jobs = (await jobsResponse.json() as { jobs: Array<{ id: string; playbackSegment?: { inFrame: number; outFrame: number; selected: boolean } }> }).jobs;
+  expect(jobs.find((job) => job.id === selected.firstJobId)?.playbackSegment).toMatchObject({ inFrame: 24, outFrame: 168, selected: true });
+  expect(jobs.find((job) => job.id === selected.secondJobId)?.playbackSegment).toMatchObject({ inFrame: 0, outFrame: 192, selected: true });
+  expect((await request.get(`${workbench.apiOrigin}${selected.firstSource}`, { headers: { Range: "bytes=0-15" } })).status()).toBe(206);
 });
 
 test("P2 H3 selected pair persists selected IDs and bytes through file-SQLite restart", async ({ page, request, workbench }) => {
@@ -174,11 +145,11 @@ test("P2 H3 selected pair persists selected IDs and bytes through file-SQLite re
   await workbench.restartBackend();
   await page.reload();
   await page.getByLabel("路径过滤").selectOption({ index: 1 });
-  await expect(page.getByTestId(`video-sequence-job-${selected.firstJobId}`)).toBeVisible();
+  await expect(page.getByTestId("video-sequence-player")).toHaveCount(0);
   const persisted = await request.get(`${workbench.apiOrigin}/api/v2/projects/${selected.projectId}/video-jobs`);
   expect(persisted.ok()).toBeTruthy();
-  const selectedJobs = ((await persisted.json()) as { jobs: Array<{ id: string; selected: boolean }> }).jobs
-    .filter((job) => job.selected).map((job) => job.id).sort();
+  const selectedJobs = ((await persisted.json()) as { jobs: Array<{ id: string; playbackSegment?: { selected: boolean } }> }).jobs
+    .filter((job) => job.playbackSegment?.selected).map((job) => job.id).sort();
   expect(selectedJobs).toEqual([selected.firstJobId, selected.secondJobId].sort());
   const afterFirstBytes = await request.get(`${workbench.apiOrigin}${selected.firstSource}`, { headers: { Range: "bytes=0-15" } });
   const afterSecondBytes = await request.get(selected.secondSource, { headers: { Range: "bytes=0-15" } });

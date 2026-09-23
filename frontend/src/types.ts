@@ -372,8 +372,26 @@ export interface VideoJob {
     durationSeconds: number; width: number; height: number; videoCodec: string; audioCodec: string | null;
     frameRate?: number | null; frameCount?: number | null;
   } | null;
+  segments?: VideoSegment[];
+  playbackSegment?: VideoSegment | null;
   error: string | null;
   snapshot: Record<string, unknown>;
+}
+
+export interface VideoSegment {
+  id: string;
+  videoJobId: string;
+  shotId: string;
+  inFrame: number;
+  outFrame: number;
+  authoredDurationUnits: number;
+  sourceProbe: { frameCount: number; fps: string; [key: string]: unknown };
+  derivativeProbe: { frameCount: number; fps: string; [key: string]: unknown };
+  derivativeHash: string;
+  current: boolean;
+  selected: boolean;
+  selectedRevision: number | null;
+  createdAt: string;
 }
 
 export interface CharacterReferenceState {

@@ -23,6 +23,7 @@ class VideoJobRequest(CamelModel):
     # input-frame choice; the broader literals remain readable for historical
     # snapshots and direct gateway recovery only.
     requested_duration_seconds: Literal[5, 8] | None = None
+    playback_intent: Literal["source_exact", "segment_required"] = "source_exact"
     resolution: str | None = Field(default=None, min_length=3, max_length=32)
     audio: Literal[True] | None = None
     aspect_policy: Literal["cover_center_crop", "contain_pad", "reject_mismatch"] | None = None
@@ -68,3 +69,15 @@ class VideoDiscardRequest(CamelModel):
 class VideoDiscardUnselectedRequest(VideoDiscardRequest):
     shot_id: str = Field(min_length=1, max_length=100)
     video_job_ids: list[str] = Field(min_length=1, max_length=100)
+
+
+class VideoSegmentPrepareRequest(CamelModel):
+    in_frame: int = Field(ge=0)
+    out_frame: int = Field(ge=1)
+    expected_selection_revision: int = Field(ge=0)
+
+
+class VideoSegmentSelectRequest(CamelModel):
+    reviewer: str = Field(min_length=1, max_length=160)
+    note: str = Field(min_length=2, max_length=2_000)
+    expected_selection_revision: int = Field(ge=0)

@@ -2,35 +2,43 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
+import json
+import shutil
+import sqlite3
+import subprocess
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
 from hashlib import sha256
 from io import BytesIO
-import json
 from pathlib import Path
-import shutil
-import sqlite3
 
+import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
-import pytest
 
 from plotloom.api import create_project_folder_authoring_app
 from plotloom.canonical_schema import CharacterV2
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
+from plotloom.persistence.codec import stable_hash
 from plotloom.project_generation_storage import ProjectPipelineExecutor
-from plotloom.project_storage import ProjectArtifactStore, ProjectFolderStorage, ProjectStore
-from plotloom.project_storage import ProjectStorageConflictError, ProjectStorageError
+from plotloom.project_storage import (
+    ProjectArtifactStore,
+    ProjectFolderStorage,
+    ProjectStorageConflictError,
+    ProjectStorageError,
+    ProjectStore,
+)
 from plotloom.project_storage.operational_state import ProjectAccessLease
 from plotloom.project_storage.recovery_validation import assert_database_contract
-from plotloom.project_storage.video_candidate_transition import ProjectSelectionTransitionRequiredError
-from plotloom.persistence.codec import stable_hash
+from plotloom.project_storage.video_candidate_transition import (
+    ProjectSelectionTransitionRequiredError,
+    ProjectVideoSegmentTransitionRequiredError,
+)
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
-from plotloom.video_ingestion import ObservedVideo
+from plotloom.video_ingestion import ObservedVideo, probe_video
 from plotloom.video_provider import VideoBackendInstanceIdentity
-
 from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
 from tests.project_storage_fixtures import fixture_profile as _fixture_profile
 
@@ -61,7 +69,6 @@ class FakeH3:
         self.preflight_calls += 1
         if self.before_preflight is not None:
             self.before_preflight()
-        return None
 
     def submit_image(self, image: bytes, *, mime_type: str, payload: dict) -> dict:
         assert image and mime_type == "image/png" and payload["durationSeconds"] in {5, 8}
@@ -310,6 +317,161 @@ def _sqlite_rows(path: Path, statement: str, parameters: tuple[object, ...] = ()
 
 
 @pytest.mark.parametrize(
+    "authored_units,in_frame,out_frame,playback_intent",
+    [(6_000, 24, 168, "segment_required"), (8_000, 0, 192, "source_exact")],
+)
+def test_synthetic_reviewed_segment_survives_reopen_and_blocks_old_revision(
+    tmp_path: Path, authored_units: int, in_frame: int, out_frame: int, playback_intent: str,
+) -> None:
+    """An offline 8-second H3-shaped take is never playable before window review."""
+
+    if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
+        pytest.skip("FFmpeg tools are required for synthetic audiovisual proof")
+    source = tmp_path / "explicitly-synthetic-eight-second-take.mp4"
+    subprocess.run(
+        ["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "color=c=blue:size=576x1024:rate=24:duration=8",
+         "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=8",
+         "-frames:v", "192", "-c:v", "libx264", "-pix_fmt", "yuv420p",
+         "-c:a", "aac", "-ar", "48000", "-movflags", "+faststart", "-y", str(source)],
+        check=True, timeout=90,
+    )
+    provider = FakeH3(outputs=[source.read_bytes()])
+    storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "project" / "outputs",
+        application_data_root=tmp_path / "project" / "application",
+    )
+    client = TestClient(create_project_folder_authoring_app(
+        storage, video_provider=provider, video_adapter=MiniMaxH3GatewayAdapter(),
+        video_probe=probe_video,
+    ))
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
+    changed = board.model_copy(update={
+        "shots": [board.shots[0].model_copy(update={"duration_units": authored_units}), *board.shots[1:]],
+    })
+    store.update_stage(
+        StageName.STORYBOARD, changed,
+        expected_revision=store.authoring.get_stage_head(project_id, StageName.STORYBOARD).revision,
+    )
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+    base = f"/api/v2/projects/{project_id}"
+    prepared = client.post(f"{base}/video-jobs", json={
+        "approvalId": approval["id"], "shotId": context["shot"].id,
+        "storyboardRevision": context["revision"],
+        "expectedSelectionRevision": context["selection"]["selectionRevision"],
+        "idempotencyKey": "synthetic-reviewed-segment-8-to-6",
+        "requestedDurationSeconds": 8, "playbackIntent": playback_intent,
+        "aspectPolicy": "reject_mismatch", "seed": 31,
+    })
+    assert prepared.status_code == 201, prepared.text
+    job_id = prepared.json()["id"]
+    assert prepared.json()["snapshot"]["sourceTiming"]["durationUnits"] == authored_units
+    assert client.post(f"{base}/video-jobs/{job_id}/submit").status_code == 200
+    ingested = client.post(f"{base}/video-jobs/{job_id}/reconcile")
+    assert ingested.status_code == 200 and ingested.json()["state"] == "ingested", ingested.text
+    assert client.get(f"{base}/video-jobs/{job_id}/playback").status_code == 404
+    whole_take_selection = client.post(f"{base}/video-jobs/{job_id}/review", json={
+        "reviewer": "synthetic test operator", "decision": "select",
+        "note": "A whole H3 take must not bypass segment review.", "expectedSelectionRevision": 0,
+    })
+    assert whole_take_selection.status_code == 409
+    proposed = client.post(f"{base}/video-jobs/{job_id}/segments", json={
+        "inFrame": in_frame, "outFrame": out_frame, "expectedSelectionRevision": 0,
+    })
+    assert proposed.status_code == 201, proposed.text
+    segment = proposed.json()
+    assert segment["derivativeProbe"]["frameCount"] == authored_units * 24 // 1_000
+    assert client.get(f"{base}/video-segments/{segment['id']}/preview").status_code == 200
+    assert client.get(f"{base}/video-jobs/{job_id}/playback").status_code == 404
+    assert client.post(f"{base}/video-jobs/{job_id}/discard", json={"expectedSelectionRevision": 0}).status_code == 409
+    proposal_snapshot = storage.recovery.create_snapshot(project_id)
+    assert any(item.relative_path.endswith(segment["derivativeHash"]) for item in proposal_snapshot.manifest.files)
+    selected = client.post(f"{base}/video-segments/{segment['id']}/select", json={
+        "reviewer": "synthetic test operator", "note": "Explicit fixture segment choice, not a human creative approval.",
+        "expectedSelectionRevision": 0,
+    })
+    assert selected.status_code == 201, selected.text
+    assert selected.json()["selected"] is True
+    assert client.post(f"{base}/video-segments/{segment['id']}/select", json={
+        "reviewer": "synthetic test operator", "note": "Stale concurrent selection.",
+        "expectedSelectionRevision": 0,
+    }).status_code == 409
+    playback = client.get(f"{base}/video-jobs/{job_id}/playback")
+    assert playback.status_code == 200 and sha256(playback.content).hexdigest() == segment["derivativeHash"]
+    assert client.post(f"{base}/video-jobs/{job_id}/discard", json={"expectedSelectionRevision": 1}).status_code == 409
+    snapshot = storage.recovery.create_snapshot(project_id)
+    assert any(item.relative_path.endswith(segment["derivativeHash"]) for item in snapshot.manifest.files)
+    restored_storage = ProjectFolderStorage(
+        outputs_root=tmp_path / "restored" / "outputs",
+        application_data_root=tmp_path / "restored" / "application",
+    )
+    restored_storage.recovery.restore(Path(snapshot.location))
+    restored_client = TestClient(create_project_folder_authoring_app(restored_storage))
+    assert restored_client.get(f"{base}/video-jobs/{job_id}/playback").content == playback.content
+    assert restored_client.get(f"{base}/video-segments/{segment['id']}/preview").content == playback.content
+    rejected = restored_client.post(f"{base}/video-jobs/{job_id}/review", json={
+        "reviewer": "synthetic test operator", "decision": "reject",
+        "note": "Retract this fixture segment without deleting review evidence.",
+        "expectedSelectionRevision": 1,
+    })
+    assert rejected.status_code == 201 and rejected.json()["selectionRevision"] == 2
+    assert restored_client.get(f"{base}/video-jobs/{job_id}/playback").status_code == 404
+    assert restored_client.get(f"{base}/video-jobs/{job_id}/media").status_code == 200
+    reopened = storage.projects.open(project_id)
+    reopened.close()
+    assert client.get(f"{base}/video-jobs/{job_id}/playback").status_code == 200
+    with sqlite3.connect(reopened.database_path) as connection:
+        connection.execute("UPDATE v2_video_jobs SET output_hash = ? WHERE id = ?", ("0" * 64, job_id))
+        connection.commit()
+    assert client.get(f"{base}/video-jobs/{job_id}/playback").status_code == 404
+    with sqlite3.connect(reopened.database_path) as connection:
+        connection.execute("UPDATE v2_video_jobs SET output_hash = ? WHERE id = ?", (ingested.json()["outputHash"], job_id))
+        connection.commit()
+    assert client.get(f"{base}/video-jobs/{job_id}/playback").status_code == 200
+    edited = storage.projects.open(project_id)
+    board = edited.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
+    changed = board.model_copy(update={
+        "shots": [board.shots[0].model_copy(update={"action": "Synthetic fixture action changed."}), *board.shots[1:]],
+    })
+    edited.update_stage(
+        StageName.STORYBOARD, changed,
+        expected_revision=edited.authoring.get_stage_head(project_id, StageName.STORYBOARD).revision,
+    )
+    edited.close()
+    assert client.get(f"{base}/video-jobs/{job_id}/playback").status_code == 404
+    assert client.get(f"{base}/video-jobs/{job_id}/media").status_code == 200
+
+
+def test_existing_project_adds_only_empty_segment_table_on_writable_open(tmp_path: Path) -> None:
+    storage, _client = _fixture_app(tmp_path, FakeH3())
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id, database = store.manifest.project_id, store.database_path
+    store.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TABLE v2_video_segments")
+        connection.commit()
+    prior = database.read_bytes()
+    shared_lease = ProjectAccessLease.acquire(database.parent, mode="shared")
+    try:
+        with pytest.raises(ProjectVideoSegmentTransitionRequiredError, match="exclusive project lease"):
+            ProjectStore.open(database.parent, access_lease=shared_lease)
+    finally:
+        shared_lease.close()
+    assert database.read_bytes() == prior
+    with pytest.raises(ProjectStorageError, match="video segment transition"):
+        storage.projects.inspect(project_id)
+    assert database.read_bytes() == prior
+    opened = storage.projects.open(project_id)
+    opened.close()
+    assert _sqlite_rows(database, "SELECT name FROM sqlite_master WHERE name = 'v2_video_segments'") == [("v2_video_segments",)]
+    reopened = storage.projects.open(project_id)
+    reopened.close()
+
+
+@pytest.mark.parametrize(
     "endpoint",
     [
         "http://user:password@127.0.0.1:9010",
@@ -367,7 +529,7 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
         f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/review",
         json={"reviewer": "project-video fixture", "decision": "select", "note": "Store this local candidate.", "expectedSelectionRevision": 0},
     )
-    assert selected.status_code == 201, selected.text
+    assert selected.status_code == 409, selected.text
     media = client.get(
         f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/media",
         headers={"Range": "bytes=0-6"},
@@ -396,7 +558,7 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
         f"/api/v2/projects/{project_id}/video-jobs"
     )
     assert restored_jobs.status_code == 200
-    assert restored_jobs.json()["jobs"][0]["selected"] is True
+    assert restored_jobs.json()["jobs"][0]["selected"] is False
     local_review = restored_client.post(
         f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/review",
         json={
@@ -406,14 +568,14 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
             "expectedSelectionRevision": 1,
         },
     )
-    assert local_review.status_code == 201, local_review.text
+    assert local_review.status_code == 409, local_review.text
     restored_media = restored_client.get(
         f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/media"
     )
     assert restored_media.content == b"offline-h3-project-video"
 
 
-def test_video_candidates_keep_selection_and_dispose_only_unselected_shared_bytes(
+def test_video_candidates_dispose_only_named_unselected_shared_bytes(
     tmp_path: Path,
 ) -> None:
     provider = FakeH3()
@@ -431,44 +593,19 @@ def test_video_candidates_keep_selection_and_dispose_only_unselected_shared_byte
         assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit").status_code == 200
         assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
 
-    selected_first = client.post(
-        f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/review",
-        json={"reviewer": "fixture", "decision": "select", "note": "First reviewed candidate.", "expectedSelectionRevision": 0},
-    )
-    assert selected_first.status_code == 201, selected_first.text
-    jobs = {item["id"]: item for item in client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]}
-    assert jobs[first["id"]]["selected"] is True and jobs[second["id"]]["selected"] is False
-
-    selected_second = client.post(
-        f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/review",
-        json={"reviewer": "fixture", "decision": "select", "note": "Second reviewed candidate.", "expectedSelectionRevision": 1},
-    )
-    assert selected_second.status_code == 201, selected_second.text
-    stale = client.post(
-        f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/review",
-        json={"reviewer": "fixture", "decision": "select", "note": "This stale intent must lose.", "expectedSelectionRevision": 1},
-    )
-    assert stale.status_code == 409
-
     discarded = client.post(
         f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/discard",
-        json={"expectedSelectionRevision": 2},
+        json={"expectedSelectionRevision": 0},
     )
     assert discarded.status_code == 204, discarded.text
     jobs = {item["id"]: item for item in client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]}
     assert jobs[first["id"]]["state"] == "discarded"
-    assert jobs[second["id"]]["selected"] is True
+    assert jobs[second["id"]]["state"] == "ingested"
     assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/media").status_code == 404
     # The fixture provider intentionally returns identical bytes; disposal of
-    # the first candidate must not erase the selected candidate's shared blob.
+    # the first candidate must not erase the other candidate's shared blob.
     assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/media").status_code == 200
-    selected_discard = client.post(
-        f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/discard",
-        json={"expectedSelectionRevision": 2},
-    )
-    assert selected_discard.status_code == 409
-    # Discarded rows retain no half-addressed output metadata, so reopening
-    # the file-SQLite project validates the remaining selected candidate.
+    # Discarded rows retain no half-addressed output metadata.
     reopened = storage.projects.open(project_id)
     reopened.close()
     assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/media").status_code == 200
@@ -489,10 +626,6 @@ def test_prechange_project_folder_transitions_selection_on_writable_production_o
     candidate = _prepare_video(client, project_id, approval, context, key="prechange-selection")
     assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit").status_code == 200
     assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
-    assert client.post(
-        f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/review",
-        json={"reviewer": "fixture", "decision": "select", "note": "Retained before transition.", "expectedSelectionRevision": 0},
-    ).status_code == 201
 
     current = storage.projects.open(project_id)
     try:
@@ -526,7 +659,7 @@ def test_prechange_project_folder_transitions_selection_on_writable_production_o
     assert database.read_bytes() == before_inspection
 
     # Registry.open is the production writable path. It performs one bounded
-    # transition and the retained selection remains its original job/review.
+    # transition and leaves no invented selection for an unreviewed H3 take.
     transitioned = storage.projects.open(project_id)
     try:
         selected = [
@@ -534,9 +667,7 @@ def test_prechange_project_folder_transitions_selection_on_writable_production_o
             for item in transitioned.media.direct_video.list_video_jobs(project_id)
             if item["selected"]
         ]
-        assert [(item["id"], item["selectionRevision"]) for item in selected] == [
-            (candidate["id"], 1)
-        ]
+        assert selected == []
     finally:
         transitioned.close()
     reopened = storage.projects.open(project_id)
@@ -546,14 +677,12 @@ def test_prechange_project_folder_transitions_selection_on_writable_production_o
             for item in reopened.media.direct_video.list_video_jobs(project_id)
             if item["selected"]
         ]
-        assert [(item["id"], item["selectionRevision"]) for item in selected] == [
-            (candidate["id"], 1)
-        ]
+        assert selected == []
     finally:
         reopened.close()
 
 
-def test_bulk_video_discard_keeps_new_candidates_and_rejects_stale_selection(
+def test_bulk_video_discard_keeps_candidates_arriving_after_confirmation(
     tmp_path: Path,
 ) -> None:
     provider = FakeH3(outputs=[b"first", b"second", b"third"])
@@ -571,10 +700,6 @@ def test_bulk_video_discard_keeps_new_candidates_and_rejects_stale_selection(
         return candidate
 
     first, second = ingest("bulk-first"), ingest("bulk-second")
-    assert client.post(
-        f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/review",
-        json={"reviewer": "fixture", "decision": "select", "note": "Keep first.", "expectedSelectionRevision": 0},
-    ).status_code == 201
     confirmed_ids = [second["id"]]
 
     # This candidate arrives after the reviewer has confirmed the exact bulk
@@ -582,17 +707,13 @@ def test_bulk_video_discard_keeps_new_candidates_and_rejects_stale_selection(
     third = ingest("bulk-arrived-after-confirmation")
     discarded = client.post(
         f"/api/v2/projects/{project_id}/video-jobs/discard-unselected",
-        json={"shotId": context["shot"].id, "videoJobIds": confirmed_ids, "expectedSelectionRevision": 1},
+        json={"shotId": context["shot"].id, "videoJobIds": confirmed_ids, "expectedSelectionRevision": 0},
     )
     assert discarded.status_code == 204, discarded.text
     states = {item["id"]: item["state"] for item in client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]}
     assert states[second["id"]] == "discarded"
     assert states[third["id"]] == "ingested"
 
-    assert client.post(
-        f"/api/v2/projects/{project_id}/video-jobs/{third['id']}/review",
-        json={"reviewer": "fixture", "decision": "select", "note": "Replace selection.", "expectedSelectionRevision": 1},
-    ).status_code == 201
     stale = client.post(
         f"/api/v2/projects/{project_id}/video-jobs/discard-unselected",
         json={"shotId": context["shot"].id, "videoJobIds": [first["id"]], "expectedSelectionRevision": 1},
@@ -619,11 +740,7 @@ def test_interrupted_video_disposal_reopens_and_retries_without_retained_blob_da
         assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
         return candidate
 
-    interrupted, selected, shared = ingest("interrupt-delete"), ingest("keep-selected"), ingest("keep-shared")
-    assert client.post(
-        f"/api/v2/projects/{project_id}/video-jobs/{selected['id']}/review",
-        json={"reviewer": "fixture", "decision": "select", "note": "Keep selected bytes.", "expectedSelectionRevision": 0},
-    ).status_code == 201
+    interrupted, retained, shared = ingest("interrupt-delete"), ingest("keep-retained"), ingest("keep-shared")
     opened = storage.projects.open(project_id)
     try:
         interrupted_uri = opened.media.direct_video.get_video_output_storage(project_id, interrupted["id"])["uri"]
@@ -640,7 +757,7 @@ def test_interrupted_video_disposal_reopens_and_retries_without_retained_blob_da
     with pytest.raises(RuntimeError, match="after bytes removal"):
         client.post(
             f"/api/v2/projects/{project_id}/video-jobs/{interrupted['id']}/discard",
-            json={"expectedSelectionRevision": 1},
+            json={"expectedSelectionRevision": 0},
         )
     monkeypatch.setattr(ProjectArtifactStore, "delete", original_delete)
 
@@ -652,12 +769,12 @@ def test_interrupted_video_disposal_reopens_and_retries_without_retained_blob_da
         reopened.close()
     retried = client.post(
         f"/api/v2/projects/{project_id}/video-jobs/{interrupted['id']}/discard",
-        json={"expectedSelectionRevision": 1},
+        json={"expectedSelectionRevision": 0},
     )
     assert retried.status_code == 204, retried.text
     states = {item["id"]: item["state"] for item in client.get(f"/api/v2/projects/{project_id}/video-jobs").json()["jobs"]}
     assert states[interrupted["id"]] == "discarded"
-    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{selected['id']}/media").content == b"retained-shared"
+    assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{retained['id']}/media").content == b"retained-shared"
     assert client.get(f"/api/v2/projects/{project_id}/video-jobs/{shared['id']}/media").content == b"retained-shared"
 
 
@@ -676,10 +793,6 @@ def test_video_disposal_keeps_a_cross_kind_managed_asset_blob(
     for candidate in (first, second):
         assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/submit").status_code == 200
         assert client.post(f"/api/v2/projects/{project_id}/video-jobs/{candidate['id']}/reconcile").status_code == 200
-    assert client.post(
-        f"/api/v2/projects/{project_id}/video-jobs/{second['id']}/review",
-        json={"reviewer": "fixture", "decision": "select", "note": "Keep the second candidate.", "expectedSelectionRevision": 0},
-    ).status_code == 201
     opened = storage.projects.open(project_id)
     retained = opened.media.direct_video.get_video_output_storage(project_id, first["id"])
     retained_bytes = opened.artifacts.get(retained["uri"])
@@ -692,7 +805,7 @@ def test_video_disposal_keeps_a_cross_kind_managed_asset_blob(
     opened.close()
     assert client.post(
         f"/api/v2/projects/{project_id}/video-jobs/{first['id']}/discard",
-        json={"expectedSelectionRevision": 1},
+        json={"expectedSelectionRevision": 0},
     ).status_code == 204
     reopened = storage.projects.open(project_id)
     assert reopened.artifacts.get(retained["uri"]) == retained_bytes
@@ -1313,7 +1426,7 @@ def test_direct_prepare_rejects_missing_or_spoofed_backend_contract_before_reser
     assert paid_provider.preflight_calls == paid_provider.upload_calls == 0
 
 
-def test_reviewed_video_selection_stales_when_its_identity_reference_is_replaced(
+def test_video_candidate_stales_when_its_identity_reference_is_replaced(
     tmp_path: Path,
 ) -> None:
     provider = FakeH3()
@@ -1348,11 +1461,11 @@ def test_reviewed_video_selection_stales_when_its_identity_reference_is_replaced
             "expectedSelectionRevision": 0,
         },
     )
-    assert selected.status_code == 201, selected.text
+    assert selected.status_code == 409, selected.text
     before_replacement = client.get(
         f"/api/v2/projects/{project_id}/video-jobs"
     ).json()["jobs"]
-    assert before_replacement[0]["selected"] is True
+    assert before_replacement[0]["selected"] is False
     assert before_replacement[0]["current"] is True
 
     replacement = _select_character_reference(

@@ -284,6 +284,7 @@ class ProjectSQLiteRepository:
             image_delivery=self._media.image_delivery,
             direct_video=self._media.direct_video,
             video_currentness=self._media.video_currentness,
+            video_segments=self._media.video_segments,
         )
         self.video_dispatch = ProjectVideoDispatchAccess(self._read, self._lifecycle_write)
 

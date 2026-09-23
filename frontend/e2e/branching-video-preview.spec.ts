@@ -94,9 +94,10 @@ function branchingFixture() {
   return project;
 }
 
-async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string): Promise<string> {
+async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, projectId: string, inFrame: number): Promise<string> {
   const allowLetterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
+  await panel.getByLabel("H3 时长（已审核）").selectOption("8");
   await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconciled = page.waitForResponse((response) => {
@@ -109,14 +110,16 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   const reconciledResponse = await reconciled;
   expect(reconciledResponse.ok()).toBeTruthy();
   const job = await reconciledResponse.json() as { id: string };
-  const selected = page.waitForResponse((response) => (
-    response.request().method() === "POST"
-    && new URL(response.url()).pathname.startsWith(`/api/v2/projects/${projectId}/video-jobs/`)
-    && new URL(response.url()).pathname.endsWith("/review")
-  ));
-  await panel.getByRole("button", { name: "选择此候选" }).click();
-  const response = await selected;
-  expect(response.ok()).toBeTruthy();
+  const review = panel.getByTestId(`video-segment-review-${job.id}`);
+  await review.getByLabel("片段入点（帧）").fill(String(inFrame));
+  await review.getByRole("button", { name: "准备此连续片段（不选择）" }).click();
+  const preview = review.locator('video[data-testid^="video-segment-preview-"]');
+  await expect(preview).toBeVisible();
+  await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBeGreaterThan(0);
+  await review.getByLabel("选择人").fill("Step 5 browser reviewer");
+  await review.getByLabel("片段审核说明").fill("Synthetic fixture: reviewed exact derivative and sound.");
+  await review.getByRole("button", { name: "确认选择此播放片段" }).click();
+  await expect(review.getByText("当前已明确选择", { exact: false })).toBeVisible();
   return job.id;
 }
 
@@ -167,7 +170,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
         expect(reference.ok()).toBeTruthy();
       }
     }
-    jobIds.push(await ingestAndSelectOfflineCandidate(page, panel, projectId));
+    jobIds.push(await ingestAndSelectOfflineCandidate(page, panel, projectId, index === 0 ? 24 : 0));
   }
 
   // Play must work from the shipped FastAPI static mount, not only Vite's
@@ -182,7 +185,7 @@ test("production FastAPI fixture plays both native-ended branches and resets an 
   // the completed canonical four-node session exercised below.
   await page.evaluate(() => (window as typeof window & { clearBranchingMediaTrace: () => void }).clearBranchingMediaTrace());
   const startSource = await start.getAttribute("src");
-  expect(startSource).toContain(`/video-jobs/${jobIds[0]}/media`);
+  expect(startSource).toContain(`/video-jobs/${jobIds[0]}/playback`);
   expect((await request.get(`${workbench.apiOrigin}${startSource}`, { headers: { Range: "bytes=0-15" } })).status()).toBe(206);
   const initialStart = await start.elementHandle();
   if (!initialStart) throw new Error("initial branching video did not mount");

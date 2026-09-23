@@ -21,13 +21,11 @@ from ..codec import _stored_utc, stable_hash
 from ..schema import (
     ManagedAssetRow,
     ReviewedShotBindingRow,
-    RunArtifactBlobRow,
     VideoCandidateSelectionRow,
     VideoJobRow,
     VideoReviewRow,
     VisualIntentRow,
 )
-from ..schema.project_production_bridge import ProductionBridgeAdmissionRow, ProductionBridgeRevisionRow
 from .access import ProjectPersistenceAccess
 from .canonical import ProjectCanonicalPersistence
 from .media_admission import KeyframeAdmission
@@ -35,6 +33,9 @@ from .media_character_references import CharacterReferencePersistence
 from .media_image_currentness import ImageJobCurrentness
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_video_currentness import VideoJobCurrentness
+from .media_video_disposal import VideoCandidateDisposal
+from .media_video_segments import VideoSegmentPersistence
+from .media_video_source import VideoSourceTiming
 
 
 class VideoPilotAccountingPort(Protocol):
@@ -64,7 +65,8 @@ class VideoJobPersistence:
         same_person: SamePersonReviewPersistence,
         currentness: VideoJobCurrentness,
         accounting: VideoPilotAccountingPort | None,
-        bridge: Any | None = None,
+        source_timing: VideoSourceTiming,
+        segments: VideoSegmentPersistence,
     ) -> None:
         self._access = access
         self._canonical = canonical
@@ -74,7 +76,10 @@ class VideoJobPersistence:
         self._same_person = same_person
         self._currentness = currentness
         self._accounting = accounting
-        self._bridge = bridge
+        self._source_timing = source_timing
+        self._segments = segments
+        self._disposal = VideoCandidateDisposal(access)
+
     def video_budget(self) -> dict[str, Any]:
         if self._accounting is None:
             raise InvalidTransitionError(
@@ -82,44 +87,11 @@ class VideoJobPersistence:
             )
         return self._accounting.budget()
 
-    def _bridge_cut_seconds_in_session(self, session: Session, project_id: str, shot_id: str) -> int | None:
-        """Return a current bridge-owned cut duration or reject stale lineage.
-
-        The admission is not a permissive historical exception: once a source
-        cut has been installed, stale provenance blocks a new video row rather
-        than allowing a caller to fall back to an arbitrary duration.
-        """
-        admissions = list(session.scalars(select(ProductionBridgeAdmissionRow).where(
-            ProductionBridgeAdmissionRow.project_id == project_id
-        ).order_by(ProductionBridgeAdmissionRow.accepted_at.desc())))
-        for admission in admissions:
-            revision = session.scalar(select(ProductionBridgeRevisionRow).where(
-                ProductionBridgeRevisionRow.project_id == project_id,
-                ProductionBridgeRevisionRow.revision == admission.proposal_revision,
-            ))
-            if revision is None:
-                continue
-            cut = next((item for item in revision.proposal.get("cuts", []) if item.get("shotId") == shot_id), None)
-            if not isinstance(cut, dict):
-                continue
-            current = all(
-                self._access.rows.stage(session, project_id, StageName(stage)).revision == expected
-                for stage, expected in admission.installed_stage_revisions.items()
-            )
-            if current and self._bridge is not None:
-                current = not self._bridge._current(session, project_id, admission.inputs)
-            if not current:
-                raise InvalidTransitionError("bridge source-cut provenance is stale; reprepare and explicitly reinstall before video admission")
-            seconds = cut.get("seconds")
-            if not isinstance(seconds, int):
-                raise InvalidTransitionError("bridge source-cut duration is unavailable")
-            return seconds
-        return None
-
     def prepare_video_job(
         self, project_id: str, *, approval_id: str, shot_id: str, storyboard_revision: int,
         expected_selection_revision: int, idempotency_key: str, requested_seconds: int = 5,
         resolution: str = "720p", audio: bool = True,
+        playback_intent: str = "source_exact",
         production_contract: VideoProductionContract | None = None,
         backend_binding: VideoBackendBinding | None = None,
     ) -> dict[str, Any]:
@@ -171,9 +143,23 @@ class VideoJobPersistence:
             shot = next((item for item in storyboard.shots if item.id == shot_id), None)
             if shot is None:
                 raise InvalidTransitionError("video job must target one current storyboard shot")
-            bridge_seconds = self._bridge_cut_seconds_in_session(session, project_id, shot_id)
-            if bridge_seconds is not None and requested_seconds != bridge_seconds:
-                raise InvalidTransitionError("bridge-owned F5 cut requires its exact source duration before any video job is persisted")
+            source_timing = self._source_timing.binding_in_session(
+                session, project_id, shot_id, shot.duration_units
+            )
+            source_seconds = source_timing["durationUnits"] // 1_000
+            if source_timing["durationUnits"] in {6_000, 8_000} or source_timing["kind"] == "f5_bridge":
+                if requested_seconds == source_seconds and playback_intent == "source_exact":
+                    pass
+                elif not (
+                    playback_intent == "segment_required" and source_seconds == 6
+                    and requested_seconds == 8 and production_contract is not None
+                    and production_contract.adapter_id == "minimax_h3_gateway"
+                ):
+                    raise InvalidTransitionError(
+                        "authored shot needs exact request duration or an explicit 8-to-6 segment intent"
+                    )
+            elif playback_intent != "source_exact":
+                raise InvalidTransitionError("segment-required intent needs a six-second authored shot")
             binding = session.scalar(select(ReviewedShotBindingRow).where(ReviewedShotBindingRow.project_id == project_id, ReviewedShotBindingRow.shot_id == shot_id).order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1))
             if binding is None or not self._admission.reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval):
                 raise InvalidTransitionError("video job needs the current reviewed selected keyframe")
@@ -262,6 +248,7 @@ class VideoJobPersistence:
                     "visualIntentRevision": intent.revision, "intent": intent.intent},
                 "identityLineage": identity_lineage,
                 "samePersonReviewId": same_person_review.id if same_person_review is not None else None,
+                "sourceTiming": source_timing, "playbackIntent": playback_intent,
                 "provider": provider_snapshot,
                 "request": request_snapshot,
             }
@@ -413,7 +400,19 @@ class VideoJobPersistence:
                     )
                 )
             }
-            return [self._video_job_projection(session, row, selections) | {"reviews": reviews_by_job.get(row.id, [])} for row in rows]
+            segments = self._segments.segments_for_jobs(session, rows)
+            result = []
+            for row in rows:
+                job = self._video_job_projection(session, row, selections)
+                selection = selections.get(self._shot_id(row))
+                proposals = self._segments.project_segments(
+                    session, row, segments.get(row.id, []), selection,
+                    job_current=job["current"],
+                )
+                job["segments"] = proposals
+                job["playbackSegment"] = next((item for item in proposals if item["selected"]), None)
+                result.append(job | {"reviews": reviews_by_job.get(row.id, [])})
+            return result
 
     def get_video_output_storage(self, project_id: str, video_job_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:
@@ -436,6 +435,8 @@ class VideoJobPersistence:
             actual_revision = selection.revision if selection is not None else 0
             if actual_revision != expected_selection_revision:
                 raise RevisionConflictError("video-candidate-selection", expected_selection_revision, actual_revision)
+            if decision == "select" and job.snapshot.get("provider", {}).get("adapterId") == "minimax_h3_gateway":
+                raise InvalidTransitionError("H3 selection requires a reviewed playback segment")
             review = VideoReviewRow(id=new_id(), video_job_id=job.id, reviewer=reviewer, decision=decision, note=note, created_at=utc_now())
             session.add(review)
             if decision == "select":
@@ -450,60 +451,25 @@ class VideoJobPersistence:
                     selection.selected_video_job_id = job.id
                     selection.revision += 1
                     selection.updated_at = now
+            elif decision == "reject" and selection is not None and selection.selected_video_job_id == job.id:
+                selection.selected_video_job_id = None
+                selection.revision += 1
+                selection.updated_at = utc_now()
             return {"id": review.id, "videoJobId": job.id, "reviewer": reviewer, "decision": decision, "note": note, "createdAt": _stored_utc(review.created_at).isoformat(), "selectionRevision": selection.revision if selection is not None else actual_revision}
 
     def discard_video_candidates(
         self, project_id: str, *, shot_id: str, video_job_ids: list[str], expected_selection_revision: int,
     ) -> list[dict[str, str | None]]:
-        """Mark exactly named, unselected ingested candidates for recoverable cleanup."""
-        if not video_job_ids or len(set(video_job_ids)) != len(video_job_ids):
-            raise InvalidTransitionError("discard must name each candidate exactly once")
-        with self._access.leases.lifecycle_write() as session:
-            self._access.guards.active(self._access.rows.project(session, project_id))
-            selection = session.get(VideoCandidateSelectionRow, {"project_id": project_id, "shot_id": shot_id})
-            actual_revision = selection.revision if selection is not None else 0
-            if actual_revision != expected_selection_revision:
-                raise RevisionConflictError("video-candidate-selection", expected_selection_revision, actual_revision)
-            rows = list(session.scalars(select(VideoJobRow).where(VideoJobRow.id.in_(video_job_ids))).all())
-            if len(rows) != len(video_job_ids) or any(row.project_id != project_id or self._shot_id(row) != shot_id for row in rows):
-                raise NotFoundError("video discard candidate not found for this project shot")
-            selected_id = selection.selected_video_job_id if selection is not None else None
-            for row in rows:
-                if row.id == selected_id:
-                    raise InvalidTransitionError("the selected video candidate cannot be discarded")
-                if row.state not in {"ingested", "discard_pending"}:
-                    raise InvalidTransitionError("only an ingested candidate with a known local output can be discarded")
-            for row in rows:
-                if row.state == "ingested":
-                    row.state, row.updated_at = "discard_pending", utc_now()
-            return [{"id": row.id, "uri": row.output_uri} for row in rows]
+        return self._disposal.discard(
+            project_id, shot_id=shot_id, video_job_ids=video_job_ids,
+            expected_selection_revision=expected_selection_revision,
+        )
 
     def finalize_video_candidate_disposal(self, project_id: str, video_job_ids: list[str]) -> None:
-        with self._access.leases.lifecycle_write() as session:
-            rows = list(session.scalars(select(VideoJobRow).where(VideoJobRow.id.in_(video_job_ids))).all())
-            if len(rows) != len(video_job_ids) or any(row.project_id != project_id or row.state != "discard_pending" for row in rows):
-                raise InvalidTransitionError("video candidate disposal is no longer pending")
-            for row in rows:
-                row.state, row.output_uri, row.output_hash, row.updated_at = "discarded", None, None, utc_now()
+        self._disposal.finalize(project_id, video_job_ids)
 
     def video_output_has_retained_reference(self, project_id: str, uri: str) -> bool:
-        with self._access.leases.read() as session:
-            if session.scalar(select(VideoJobRow.id).where(
-                VideoJobRow.project_id == project_id,
-                VideoJobRow.output_uri == uri,
-                VideoJobRow.state.not_in(("discard_pending", "discarded")),
-            ).limit(1)) is not None:
-                return True
-            if session.scalar(select(ManagedAssetRow.id).where(
-                ManagedAssetRow.project_id == project_id,
-                (ManagedAssetRow.original_uri == uri) | (ManagedAssetRow.display_uri == uri),
-            ).limit(1)) is not None:
-                return True
-            # One project database owns all of its run-artifact inventories,
-            # so a matching path in this table is necessarily project-local.
-            return session.scalar(select(RunArtifactBlobRow.run_id).where(
-                RunArtifactBlobRow.relative_path == uri
-            ).limit(1)) is not None
+        return self._disposal.has_retained_reference(project_id, uri)
 
     @staticmethod
     def _shot_id(row: VideoJobRow) -> str:

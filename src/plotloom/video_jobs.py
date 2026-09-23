@@ -61,6 +61,7 @@ class VideoJobService:
         allow_center_crop: bool,
         seed: int | None,
         profile_id: str | None,
+        playback_intent: str = "source_exact",
     ) -> dict[str, Any]:
         """Freeze the adapter-owned request before any durable dispatch claim."""
 
@@ -82,6 +83,7 @@ class VideoJobService:
                 storyboard_revision=storyboard_revision,
                 expected_selection_revision=expected_selection_revision,
                 idempotency_key=idempotency_key,
+                playback_intent=playback_intent,
                 production_contract=contract,
                 backend_binding=self.backend_binding,
             )
@@ -96,6 +98,7 @@ class VideoJobService:
             storyboard_revision=storyboard_revision,
             expected_selection_revision=expected_selection_revision,
             idempotency_key=idempotency_key,
+            playback_intent=playback_intent,
             requested_seconds=5 if requested_seconds is None else requested_seconds,
             resolution="720p" if resolution is None else resolution,
             audio=True if audio is None else audio,

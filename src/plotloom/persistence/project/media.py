@@ -21,6 +21,8 @@ from .media_tasks import GenericMediaTaskPersistence
 from .media_direct_video import DirectVideoJobPersistence
 from .media_video import VideoJobPersistence, VideoPilotAccountingPort
 from .media_video_currentness import VideoJobCurrentness
+from .media_video_source import VideoSourceTiming
+from .media_video_segments import VideoSegmentPersistence
 from .media_visual_intents import VisualIntentPersistence
 
 
@@ -41,9 +43,11 @@ class ProjectMediaPersistence:
         references = CharacterReferencePersistence(access, canonical, cast)
         image_currentness = ImageJobCurrentness(access, canonical, admission, references)
         same_person = SamePersonReviewPersistence(access, canonical, admission, references)
+        source_timing = VideoSourceTiming(access, bridge)
         video_currentness = VideoJobCurrentness(
-            access, canonical, admission, references, same_person
+            access, canonical, admission, references, same_person, source_timing
         )
+        video_segments = VideoSegmentPersistence(access, video_currentness)
         self.assets: ManagedAssetPersistence = ManagedAssetPersistence(access, admission)
         self.intents: VisualIntentPersistence = VisualIntentPersistence(access, drafts)
         self.admission: KeyframeAdmission = admission
@@ -59,7 +63,8 @@ class ProjectMediaPersistence:
             same_person,
             video_currentness,
             accounting,
-            bridge,
+            source_timing,
+            video_segments,
         )
         self.direct_video: DirectVideoJobPersistence = DirectVideoJobPersistence(
             access,
@@ -69,6 +74,8 @@ class ProjectMediaPersistence:
             image_currentness,
             same_person,
             video_currentness,
+            source_timing,
+            video_segments,
         )
         self.references: CharacterReferencePersistence = references
         self.proposals: CharacterReferenceProposalPersistence = (
@@ -77,6 +84,7 @@ class ProjectMediaPersistence:
         self.art_references: ArtReferenceProposalPersistence = ArtReferenceProposalPersistence(access, art)
         self.same_person: SamePersonReviewPersistence = same_person
         self.video_currentness: VideoJobCurrentness = video_currentness
+        self.video_segments: VideoSegmentPersistence = video_segments
         self.image_currentness: ImageJobCurrentness = image_currentness
         self.image_preparation: ImageJobPreparationPersistence = (
             ImageJobPreparationPersistence(

@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path, PurePosixPath
 import sqlite3
-from typing import Any, Iterable
+from collections.abc import Iterable
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 from sqlalchemy import create_engine
 
 from ..domain import contains_secret_value, is_secret_setting_name
-from ..persistence.schema import Base, PROJECT_TEXT_PIPELINE_TABLE_NAMES
+from ..persistence.schema import PROJECT_TEXT_PIPELINE_TABLE_NAMES, Base
 from .format import (
     PROJECT_DATABASE_RELATIVE_PATH,
     PROJECT_MANIFEST_FILENAME,
@@ -20,15 +21,14 @@ from .format import (
     parse_project_manifest,
 )
 from .recovery_control import RECOVERY_CONTROL_FILENAME, validate_recovery_control
+from .snapshot_contract import ProjectSnapshotManifest, _Payload
 from .snapshot_files import (
     _published_files,
     _safe_regular,
     _sha256_path,
     _source_file,
 )
-from .snapshot_contract import ProjectSnapshotManifest, SnapshotFile, _Payload
 from .video_candidate_transition import expected_project_schema_objects
-
 
 _ASSET_PREFIX = PurePosixPath("assets")
 
@@ -96,6 +96,10 @@ _PRE_ART_REFERENCE_SCHEMA_OBJECTS = expected_project_schema_objects(
     include_video_candidate_selection=True,
     include_art_reference_proposals=False,
 )
+_PRE_VIDEO_SEGMENT_SCHEMA_OBJECTS = expected_project_schema_objects(
+    include_video_candidate_selection=True,
+    include_video_segments=False,
+)
 
 
 def _assert_schema_contract(connection: sqlite3.Connection) -> None:
@@ -109,6 +113,10 @@ def _assert_schema_contract(connection: sqlite3.Connection) -> None:
     if actual == list(_PRE_ART_REFERENCE_SCHEMA_OBJECTS):
         raise ProjectStorageCorruptionError(
             "project snapshot requires a writable art reference transition before restore"
+        )
+    if actual == list(_PRE_VIDEO_SEGMENT_SCHEMA_OBJECTS):
+        raise ProjectStorageCorruptionError(
+            "project snapshot requires a writable reviewed video segment transition before restore"
         )
     prohibited = {kind for kind, _name, _table, _sql in actual} - {"table", "index"}
     if prohibited or actual != _EXPECTED_SCHEMA_OBJECTS:
@@ -241,6 +249,22 @@ def referenced_asset_paths(database: Path) -> set[PurePosixPath]:
         if path.name != output_hash:
             raise ProjectStorageCorruptionError(
                 "video output storage URI does not match its declared hash"
+            )
+        paths.add(path)
+    connection = database_connection(database)
+    try:
+        segment_rows = list(
+            connection.execute(
+                "SELECT derivative_uri, derivative_hash FROM v2_video_segments ORDER BY id"
+            )
+        )
+    finally:
+        connection.close()
+    for derivative_uri, derivative_hash in segment_rows:
+        path = _asset_path(derivative_uri)
+        if path.name != derivative_hash:
+            raise ProjectStorageCorruptionError(
+                "video segment storage URI does not match its declared hash"
             )
         paths.add(path)
     connection = database_connection(database)

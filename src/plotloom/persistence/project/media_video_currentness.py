@@ -22,6 +22,7 @@ from .media_admission import KeyframeAdmission
 from .media_character_references import CharacterReferencePersistence
 from .media_identifiers import new_video_job_id
 from .media_same_person_reviews import SamePersonReviewPersistence
+from .media_video_source import VideoSourceTiming
 
 
 class VideoJobCurrentness:
@@ -34,12 +35,14 @@ class VideoJobCurrentness:
         admission: KeyframeAdmission,
         references: CharacterReferencePersistence,
         same_person: SamePersonReviewPersistence,
+        source_timing: VideoSourceTiming,
     ) -> None:
         self._access = access
         self._canonical = canonical
         self._admission = admission
         self._references = references
         self._same_person = same_person
+        self._source_timing = source_timing
 
     @staticmethod
     def video_job_id() -> str:
@@ -99,6 +102,18 @@ class VideoJobCurrentness:
             return False
         request = snapshot.get("request") if isinstance(snapshot, dict) else None
         if not isinstance(request, dict) or request.get("durationSeconds") != row.requested_seconds:
+            return False
+        frozen_shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
+        source_timing = snapshot.get("sourceTiming") if isinstance(snapshot, dict) else None
+        if source_timing is not None and (
+            not isinstance(frozen_shot, dict)
+            or not isinstance(frozen_shot.get("id"), str)
+            or not isinstance(frozen_shot.get("durationUnits"), int)
+            or not self._source_timing.binding_is_current(
+                session, row.project_id, frozen_shot["id"],
+                frozen_shot["durationUnits"], source_timing,
+            )
+        ):
             return False
         try:
             approval = self._admission.approval_is_active_in_session(session, str(snapshot["approvalId"]))

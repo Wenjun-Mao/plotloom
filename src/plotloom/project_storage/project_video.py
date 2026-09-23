@@ -9,6 +9,7 @@ from ..domain import utc_now
 from ..exceptions import InvalidTransitionError, NotFoundError
 from ..persistence.schema import ProjectVideoDispatchRow, VideoJobRow
 from ..video_provider import VideoBackendBinding, VideoProductionContract
+from ..video_segments import derive_playback_segment
 from .application_store import ApplicationStore
 from .project_handle import ProjectStore
 
@@ -55,6 +56,7 @@ class ProjectVideoRepository:
         requested_seconds: int = 5,
         resolution: str = "720p",
         audio: bool = True,
+        playback_intent: str = "source_exact",
         production_contract: VideoProductionContract | None = None,
         backend_binding: VideoBackendBinding | None = None,
     ) -> dict[str, Any]:
@@ -75,6 +77,7 @@ class ProjectVideoRepository:
             requested_seconds=requested_seconds,
             resolution=resolution,
             audio=audio,
+            playback_intent=playback_intent,
             production_contract=production_contract,
             backend_binding=backend_binding,
         )
@@ -196,6 +199,54 @@ class ProjectVideoRepository:
     ) -> dict[str, Any]:
         self._assert_project(project_id)
         return self._video.get_video_output_storage(project_id, video_job_id)
+
+    def prepare_video_segment(
+        self, project_id: str, video_job_id: str, *, in_frame: int,
+        out_frame: int, expected_selection_revision: int,
+    ) -> dict[str, Any]:
+        self._assert_project(project_id)
+        self.store.require_recovery_acknowledged()
+        candidate = self.store.media.video_segments.candidate_storage(
+            project_id, video_job_id,
+            expected_selection_revision=expected_selection_revision,
+        )
+        original = self.store.artifacts.get(candidate["uri"])
+        if sha256(original).hexdigest() != candidate["hash"]:
+            raise InvalidTransitionError("original video take hash changed")
+        derived = derive_playback_segment(
+            original, in_frame=in_frame, out_frame=out_frame,
+            authored_duration_units=candidate["durationUnits"],
+        )
+        uri = self.store.artifacts.put(derived.content, expected_hash=derived.digest)
+        return self.store.media.video_segments.save_proposal(
+            project_id, video_job_id,
+            expected_selection_revision=expected_selection_revision,
+            original_hash=candidate["hash"], derivative_uri=uri, derived=derived,
+        )
+
+    def select_video_segment(
+        self, project_id: str, segment_id: str, *, reviewer: str,
+        note: str, expected_selection_revision: int,
+    ) -> dict[str, Any]:
+        self._assert_project(project_id)
+        self.store.require_recovery_acknowledged()
+        storage = self.store.media.video_segments.proposal_storage(project_id, segment_id)
+        content = self.store.artifacts.get(storage["uri"])
+        if sha256(content).hexdigest() != storage["hash"]:
+            raise InvalidTransitionError("reviewed segment bytes changed")
+        return self.store.media.video_segments.select(
+            project_id, segment_id, reviewer=reviewer, note=note,
+            expected_selection_revision=expected_selection_revision,
+            expected_derivative_hash=storage["hash"],
+        )
+
+    def get_video_segment_preview_storage(self, project_id: str, segment_id: str) -> dict[str, Any]:
+        self._assert_project(project_id)
+        return self.store.media.video_segments.proposal_storage(project_id, segment_id)
+
+    def get_selected_playback_storage(self, project_id: str, video_job_id: str) -> dict[str, Any]:
+        self._assert_project(project_id)
+        return self.store.media.video_segments.selected_storage(project_id, video_job_id)
 
     def review_video_job(
         self, project_id: str, video_job_id: str, *, reviewer: str, decision: str, note: str,

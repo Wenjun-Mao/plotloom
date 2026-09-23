@@ -10,6 +10,8 @@ from .media_image_currentness import ImageJobCurrentness
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_video import VideoJobPersistence
 from .media_video_currentness import VideoJobCurrentness
+from .media_video_source import VideoSourceTiming
+from .media_video_segments import VideoSegmentPersistence
 
 
 class DirectVideoJobPersistence(VideoJobPersistence):
@@ -30,6 +32,8 @@ class DirectVideoJobPersistence(VideoJobPersistence):
         image_currentness: ImageJobCurrentness,
         same_person: SamePersonReviewPersistence,
         currentness: VideoJobCurrentness,
+        source_timing: VideoSourceTiming,
+        segments: VideoSegmentPersistence,
     ) -> None:
         super().__init__(
             access,
@@ -40,4 +44,6 @@ class DirectVideoJobPersistence(VideoJobPersistence):
             same_person,
             currentness,
             accounting=None,
+            source_timing=source_timing,
+            segments=segments,
         )

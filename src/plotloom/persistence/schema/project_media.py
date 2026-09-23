@@ -3,10 +3,21 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Boolean, JSON, DateTime, ForeignKey, Index, Integer, String, Text, UniqueConstraint, text
+from sqlalchemy import (
+    JSON,
+    DateTime,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base
+
 
 class ManagedAssetRow(Base):
     """One project-scoped declaration over immutable imported bytes."""
@@ -165,6 +176,34 @@ class VideoCandidateSelectionRow(Base):
     selected_video_job_id: Mapped[str | None] = mapped_column(ForeignKey("v2_video_jobs.id", ondelete="RESTRICT"), nullable=True)
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class VideoSegmentRow(Base):
+    """Immutable reviewed playback proposal; selection is CAS-bound to its shot revision."""
+
+    __tablename__ = "v2_video_segments"
+    __table_args__ = (
+        UniqueConstraint("project_id", "shot_id", "selected_revision", name="uq_v2_video_segment_selected_revision"),
+        Index("ix_v2_video_segments_job_created", "video_job_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    shot_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    video_job_id: Mapped[str] = mapped_column(ForeignKey("v2_video_jobs.id", ondelete="RESTRICT"), nullable=False)
+    source_binding: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    source_binding_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    original_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    in_frame: Mapped[int] = mapped_column(Integer, nullable=False)
+    out_frame: Mapped[int] = mapped_column(Integer, nullable=False)
+    authored_duration_units: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_probe: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    derivative_probe: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    derivative_uri: Mapped[str] = mapped_column(Text, nullable=False)
+    derivative_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    proposal_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    selected_revision: Mapped[int | None] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
 
 
 class ProjectVideoDispatchRow(Base):

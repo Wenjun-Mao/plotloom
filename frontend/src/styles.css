@@ -144,6 +144,12 @@ input[readonly] { color: var(--dim); }
 .range-summary strong { color: var(--success); font: 800 20px var(--mono); }
 .video-sequence { display: grid; gap: 8px; padding: 12px; margin: 12px 0; border: 1px solid rgba(103,205,165,.35); border-radius: 6px; background: rgba(103,205,165,.05); }
 .video-sequence video { width: min(100%, 720px); max-height: 460px; background: #000; }
+.video-segment-review { display: grid; gap: 10px; align-content: start; padding: 16px; margin: 14px 0; border: 1px solid rgba(233,180,91,.35); border-radius: 6px; background: rgba(233,180,91,.045); }
+.video-segment-review > strong { font-size: 14px; }
+.video-segment-review > small, .video-segment-review label small { display: block; color: var(--muted); line-height: 1.5; }
+.video-segment-review > label { display: grid; gap: 5px; max-width: 640px; }
+.video-segment-review video { display: block; width: min(100%, 640px); max-height: 480px; object-fit: contain; background: #000; }
+.video-segment-review > button { justify-self: start; }
 .play-shell { min-height: 100vh; background: radial-gradient(circle at 50% 0, rgba(233,180,91,.11), transparent 38%), var(--bg); }
 .play-header { display: flex; min-height: 76px; align-items: center; justify-content: space-between; padding: 0 clamp(20px, 5vw, 72px); border-bottom: 1px solid var(--line); }
 .play-header .brand { min-height: auto; padding: 0; border: 0; color: inherit; text-decoration: none; background: transparent; }

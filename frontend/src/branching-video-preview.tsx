@@ -36,7 +36,7 @@ export function branchingPreviewManifest(
   const selectedByShot = new Map<string, VideoJob[]>();
   jobs.forEach((job) => {
     const shot = frozenShot(job);
-    if (job.projectId !== projectId || job.state !== "ingested" || !job.current || !job.selected || !shot.id || !shot.sceneId) return;
+    if (job.projectId !== projectId || job.state !== "ingested" || !job.current || !job.selected || !job.playbackSegment?.current || !job.playbackSegment.selected || !shot.id || !shot.sceneId) return;
     selectedByShot.set(shot.id, [...(selectedByShot.get(shot.id) || []), job]);
   });
   const nodes = new Map<string, BranchingPreviewNode>();
@@ -48,10 +48,10 @@ export function branchingPreviewManifest(
         .filter((shot) => shot.sceneId === scene.id)
         .sort((left, right) => left.order - right.order));
     const jobsForNode = shots.flatMap((shot) => (selectedByShot.get(shot.id) || [])
-      .filter((job) => frozenShot(job).sceneId === shot.sceneId)
+      .filter((job) => frozenShot(job).sceneId === shot.sceneId && job.playbackSegment?.authoredDurationUnits === shot.durationUnits)
       .sort((left, right) => left.id.localeCompare(right.id)));
     const missingShotTitles = shots
-      .filter((shot) => !(selectedByShot.get(shot.id) || []).some((job) => frozenShot(job).sceneId === shot.sceneId))
+      .filter((shot) => !(selectedByShot.get(shot.id) || []).some((job) => frozenShot(job).sceneId === shot.sceneId && job.playbackSegment?.authoredDurationUnits === shot.durationUnits))
       .map((shot) => shot.title || shot.id);
     nodes.set(node.id, {
       node,
@@ -67,7 +67,7 @@ export function branchingPreviewManifest(
     edges: graph.edges.map(({ id, sourceNodeId, targetNodeId, kind, choiceText }) => [id, sourceNodeId, targetNodeId, kind, choiceText]),
     scenes: sceneBeats.scenes.map(({ id, storyNodeId, order }) => [id, storyNodeId, order]),
     shots: storyboard.shots.map(({ id, sceneId, order }) => [id, sceneId, order]),
-    media: jobs.map((job) => [job.id, job.projectId, job.state, job.current, job.selected, frozenShot(job).id, frozenShot(job).sceneId]),
+    media: jobs.map((job) => [job.id, job.projectId, job.state, job.current, job.selected, frozenShot(job).id, frozenShot(job).sceneId, job.playbackSegment?.id, job.playbackSegment?.derivativeHash]),
   });
   return { identity, nodes };
 }
@@ -101,6 +101,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   const [history, setHistory] = useState<string[]>([]);
   const [playbackError, setPlaybackError] = useState("");
   const node = manifest.nodes.get(nodeId);
+  const incompleteShots = [...manifest.nodes.values()].flatMap((item) => item.missingShotTitles);
   const current = node?.jobs[clipIndex];
   const nodeIdentity = `${manifest.identity}:${episode}:${visit}:${nodeId}`;
   const mediaIdentity = current ? `${nodeIdentity}:${current.id}` : "";
@@ -144,7 +145,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     setPlaybackError("");
   };
   const finishNode = (autoplaySuccessor: boolean) => {
-    if (!node || node.missingShotTitles.length || mediaFailureRef.current || transitionRef.current === nodeIdentity) return;
+    if (!node || incompleteShots.length || mediaFailureRef.current || transitionRef.current === nodeIdentity) return;
     if (node.node.kind === "decision" || node.node.kind === "ending" || node.outgoing.length !== 1) {
       setShouldAutoplay(false);
       setNodeComplete(true);
@@ -154,7 +155,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   };
 
   useEffect(() => {
-    if (!node || node.jobs.length || node.missingShotTitles.length) return;
+    if (!node || node.jobs.length || incompleteShots.length) return;
     // An empty structural chain may select the first playable node, but it
     // never manufactures the initial user gesture required to start media.
     finishNode(false);
@@ -181,7 +182,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   }
   const isDecision = node.node.kind === "decision" || node.outgoing.length > 1;
   const isEnding = node.node.kind === "ending" || node.outgoing.length === 0;
-  const missingMedia = [...node.missingShotTitles, ...(mediaFailure ? [mediaFailure] : [])];
+  const missingMedia = [...new Set([...incompleteShots, ...(mediaFailure ? [mediaFailure] : [])])];
   const play = () => {
     const active = player.current;
     if (!active || !mediaIdentity) {
@@ -231,7 +232,7 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
         controls
         preload="metadata"
         ref={player}
-        src={plotloomApi.videoJobMediaUrl(projectId, current.id)}
+        src={plotloomApi.selectedVideoPlaybackUrl(projectId, current.id)}
         data-testid={`branching-video-job-${current.id}`}
         data-playback-identity={mediaIdentity}
         onEnded={(event) => advanceClip(event.currentTarget.dataset.playbackIdentity)}

@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { VideoPilotPanel, selectedRouteVideos } from "../src/video-pilot";
 import { BranchingVideoPreview, branchingPreviewManifest } from "../src/branching-video-preview";
+import { VideoSegmentReview } from "../src/video-segment-review";
 import { plotloomApi } from "../src/api";
 import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob } from "../src/types";
 
@@ -29,6 +30,14 @@ function job(projectId: string, shotId: string): VideoJob {
 function selectedJob(id: string, order: number, overrides: Partial<VideoJob> = {}): VideoJob {
   return {
     ...job("project", `shot-${order}`), id, state: "ingested", selected: true,
+    playbackSegment: {
+      id: `segment-${id}`, videoJobId: id, shotId: `shot-${order}`,
+      inFrame: 0, outFrame: 144, authoredDurationUnits: 6_000,
+      sourceProbe: { frameCount: 192, fps: "24/1" },
+      derivativeProbe: { frameCount: 144, fps: "24/1" },
+      derivativeHash: `digest-${id}`, current: true, selected: true,
+      selectedRevision: 1, createdAt: "2026-09-23T00:00:00Z",
+    },
     snapshot: { shot: { id: `shot-${order}`, title: `Shot ${order}`, sceneId: "scene", order } },
     ...overrides,
   };
@@ -50,13 +59,13 @@ function routeContext(shotIds: string[], sceneId = "scene"): { storyboard: Story
       joinContracts: [],
     },
     sceneBeats: { scenes: [{ id: sceneId, storyNodeId: "story-node", title: "Route scene", order: 1 } as SceneBeatPlan["scenes"][number]], beats: [], dialogueCues: [] },
-    storyboard: { shots: shotIds.map((id, index) => ({ id, sceneId, title: id, order: index + 1 } as Shot)), shotBeatLinks: [] },
+    storyboard: { shots: shotIds.map((id, index) => ({ id, sceneId, title: id, order: index + 1, durationUnits: 6_000 } as Shot)), shotBeatLinks: [] },
     routeId: "start/story-node/end",
   };
 }
 
 function props(projectId: string, shotId: string, sceneId?: string) {
-  const route = routeContext([...new Set(["shot-1", "shot-2", "shot-3", shotId])]);
+  const route = routeContext([...new Set(shotId === "shot-3" ? ["shot-1", "shot-2", "shot-3"] : shotId === "new-shot" ? ["new-shot"] : ["shot-1", "shot-2"])]);
   return {
     projectId, shot: { id: shotId, title: `Shot ${shotId}`, sceneId } as Shot,
     approvalId: "approval", storyboardRevision: 1, selectionRevision: 1, readOnly: false,
@@ -91,6 +100,23 @@ it("does not describe an unconfigured H3 backend as the legacy Wan five-second p
   expect(host.textContent).toContain("H3 后端尚未配置");
   expect(host.textContent).not.toContain("P2 Wan 视频试点");
   expect(host.textContent).not.toContain("仅 5 秒 / 720p");
+});
+
+it("keeps retained H3 segment review visible when dispatch is unavailable", async () => {
+  vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, reason: "h3_video_not_configured", qualifiedDurationSeconds: [5, 8] });
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [{
+    ...selectedJob("retained-h3", 1, {
+      projectId: "project", snapshot: {
+        provider: { adapterId: "minimax_h3_gateway" },
+        shot: { id: "shot-1", title: "Retained H3", sceneId: "scene", order: 1, durationUnits: 6_000 },
+        sourceTiming: { kind: "canonical", durationUnits: 6_000 },
+      },
+    }), requestedSeconds: 8, observed: { frameCount: 192, durationSeconds: 8 } as VideoJob["observed"],
+  }] });
+  await render("project", "shot-1", "scene");
+  expect(host.querySelector('[data-testid="video-segment-review-retained-h3"]')).not.toBeNull();
+  expect(host.textContent).toContain("原稿镜头时长：6.000 秒");
+  expect([...host.querySelectorAll("button")].some((button) => button.textContent === "选择此候选")).toBe(false);
 });
 
 it("does not let a deferred old-project submit refresh overwrite the new project", async () => {
@@ -198,6 +224,10 @@ it("orders only current explicitly selected ingested candidates on one explicit 
   const route = routeContext(["shot-1", "shot-2", "shot-3"]);
   expect(selectedRouteVideos([second, stale, otherScene, pending, unselected, first], route.storyboard, route.sceneBeats, route.graph, route.routeId)?.jobs.map((item) => item.id)).toEqual(["first", "second"]);
   expect(selectedRouteVideos([second], route.storyboard, route.sceneBeats, route.graph, "missing")).toBeNull();
+  const legacyWholeJob = selectedJob("legacy", 1, { playbackSegment: null });
+  expect(selectedRouteVideos([legacyWholeJob], route.storyboard, route.sceneBeats, route.graph, route.routeId)?.jobs).toEqual([]);
+  const wrongTiming = selectedJob("wrong-timing", 1, { playbackSegment: { ...first.playbackSegment!, authoredDurationUnits: 8_000 } });
+  expect(selectedRouteVideos([wrongTiming], route.storyboard, route.sceneBeats, route.graph, route.routeId)?.jobs).toEqual([]);
 });
 
 it("orders consecutive route scenes and excludes a selected sibling branch", () => {
@@ -216,9 +246,9 @@ it("orders consecutive route scenes and excludes a selected sibling branch", () 
     joinContracts: [],
   };
   const storyboard = { shots: [
-    { id: "common-shot", sceneId: "common-scene", title: "Common", order: 1 },
-    { id: "left-shot", sceneId: "left-scene", title: "Left", order: 1 },
-    { id: "right-shot", sceneId: "right-scene", title: "Right", order: 1 },
+    { id: "common-shot", sceneId: "common-scene", title: "Common", order: 1, durationUnits: 6_000 },
+    { id: "left-shot", sceneId: "left-scene", title: "Left", order: 1, durationUnits: 6_000 },
+    { id: "right-shot", sceneId: "right-scene", title: "Right", order: 1, durationUnits: 6_000 },
   ] as Shot[], shotBeatLinks: [] } satisfies Storyboard;
   const sceneBeats = { scenes: [
     { id: "common-scene", storyNodeId: "common", title: "Common", order: 1 },
@@ -250,7 +280,7 @@ function branchingFixture() {
     id: `${storyNodeId}-scene`, storyNodeId, title: storyNodeId, order: index + 1,
   })) as SceneBeatPlan["scenes"], beats: [], dialogueCues: [] };
   const storyboard = { shots: ["scene", "decision", "left", "right"].map((id) => ({
-    id: `${id}-shot`, sceneId: `${id}-scene`, title: id, order: 1,
+    id: `${id}-shot`, sceneId: `${id}-scene`, title: id, order: 1, durationUnits: 6_000,
   })) as Shot[], shotBeatLinks: [] } satisfies Storyboard;
   const selected = ["scene", "decision", "left", "right"].map((id) => selectedJob(`${id}-job`, 1, {
     snapshot: { shot: { id: `${id}-shot`, title: id, sceneId: `${id}-scene`, order: 1 } },
@@ -265,6 +295,55 @@ it("pins selected media by canonical node order and surfaces missing branching m
   expect(manifest.nodes.get("right")?.missingShotTitles).toEqual([]);
   const missing = branchingPreviewManifest("project", fixture.selected.filter((job) => job.id !== "right-job"), fixture.storyboard, fixture.sceneBeats, fixture.graph);
   expect(missing.nodes.get("right")?.missingShotTitles).toEqual(["right"]);
+});
+
+it("does not mount branching playback while any route shot lacks a reviewed segment", async () => {
+  const fixture = branchingFixture();
+  await act(async () => root.render(createElement(BranchingVideoPreview, {
+    projectId: "project", jobs: fixture.selected.filter((item) => item.id !== "right-job"),
+    storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph,
+  })));
+  expect(host.querySelector("[data-testid^='branching-video-job-']")).toBeNull();
+  expect(host.querySelector('[data-testid="branching-missing-media"]')?.textContent).toContain("right");
+});
+
+it("prepares a synthetic review window without auto-selecting and ignores late unmounted work", async () => {
+  const candidate = selectedJob("segment-candidate", 1, {
+    selected: false, playbackSegment: null,
+    observed: { durationSeconds: 8, width: 576, height: 1024, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 192 },
+    requestedSeconds: 8,
+    snapshot: { shot: { id: "shot-1", sceneId: "scene", durationUnits: 6_000 }, sourceTiming: { kind: "canonical", durationUnits: 6_000 } },
+  });
+  const delayed = deferred<NonNullable<VideoJob["playbackSegment"]>>();
+  const prepare = vi.spyOn(plotloomApi, "prepareVideoSegment").mockReturnValue(delayed.promise);
+  const select = vi.spyOn(plotloomApi, "selectVideoSegment").mockResolvedValue({} as never);
+  const refresh = vi.fn().mockResolvedValue(undefined);
+  await act(async () => root.render(createElement(VideoSegmentReview, { projectId: "old", job: candidate, readOnly: false, onRefresh: refresh })));
+  await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent?.includes("准备此连续片段"))?.click(); });
+  expect(prepare).toHaveBeenCalledWith("old", candidate.id, 0, 144, 0);
+  expect(select).not.toHaveBeenCalled();
+  await act(async () => root.render(createElement(VideoSegmentReview, { projectId: "new", job: candidate, readOnly: false, onRefresh: refresh })));
+  delayed.resolve({ ...selectedJob("segment-candidate", 1).playbackSegment!, id: "old-proposal", selected: false });
+  await act(async () => { await delayed.promise; await Promise.resolve(); });
+  expect(refresh).not.toHaveBeenCalled();
+  expect(select).not.toHaveBeenCalled();
+});
+
+it("does not offer a rejected H3 take for another segment decision", async () => {
+  const segment = selectedJob("rejected-h3", 1).playbackSegment!;
+  const candidate = selectedJob("rejected-h3", 1, {
+    segments: [{ ...segment, selected: false }], playbackSegment: null, selected: false,
+    requestedSeconds: 8,
+    snapshot: { shot: { id: "shot-1", durationUnits: 6_000 }, sourceTiming: { kind: "canonical", durationUnits: 6_000 } },
+    observed: { durationSeconds: 8, width: 576, height: 1024, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 192 },
+    reviews: [{ id: "reject-review", reviewer: "creator", decision: "reject", note: "Unsafe cut", createdAt: "2026-09-23T00:00:00Z" }],
+  });
+  await act(async () => root.render(createElement(VideoSegmentReview, {
+    projectId: "project", job: candidate, readOnly: false, onRefresh: async () => undefined,
+  })));
+  expect(host.textContent).toContain("此原片已拒绝");
+  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("准备此连续片段"))?.disabled).toBe(true);
+  expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("确认选择此播放片段"))?.disabled).toBe(true);
 });
 
 it("waits at a decision, follows only the clicked edge, holds an ending, and ignores duplicate ended events", async () => {
