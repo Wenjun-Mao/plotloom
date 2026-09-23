@@ -8,8 +8,8 @@ test.describe("first-save project bootstrap", () => {
   test("creates the Story Bible prefix in one request, hydrates it, and restores it after reload", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await openSampleProject(page);
-    await expect(page.getByText("Plotloom 服务：未连接", { exact: true })).toBeVisible();
-    await navigateToStage(page, "02 故事圣经");
+    await expectServiceStatus(page, "Plotloom 服务：未连接");
+    await navigateToSecondaryTool(page, "故事圣经");
 
     const logline = "E2E：未保存工作台从故事圣经开始建立规范项目。";
     const premise = "E2E：一份作者填写的故事前提必须随首次保存成为规范数据。";
@@ -29,8 +29,8 @@ test.describe("first-save project bootstrap", () => {
     await expectCanonicalStage(request, workbench.apiOrigin, projectId, "story_bible", submittedBible!.payload);
 
     await page.reload();
-    await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();
-    await navigateToStage(page, "02 故事圣经");
+    await expectServiceStatus(page, "Plotloom 服务：已连接");
+    await navigateToSecondaryTool(page, "故事圣经");
     await expect(page.getByLabel("Logline")).toHaveValue(logline);
     await expect(page.getByLabel("故事前提")).toHaveValue(premise);
   });
@@ -59,7 +59,7 @@ test.describe("first-save project bootstrap", () => {
       );
     }
 
-    await navigateToStage(page, "02 故事圣经");
+    await navigateToSecondaryTool(page, "故事圣经");
     const logline = "E2E：先保存简报，再保存故事圣经。";
     await page.getByLabel("Logline").fill(logline);
     await page.getByLabel("故事前提").fill("先建立项目，再为它写入第一条可追溯的故事规范。");
@@ -75,15 +75,15 @@ test.describe("first-save project bootstrap", () => {
     await expectCanonicalStage(request, workbench.apiOrigin, projectId, "story_bible", submittedPayload, 2);
 
     await page.reload();
-    await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();
-    await navigateToStage(page, "02 故事圣经");
+    await expectServiceStatus(page, "Plotloom 服务：已连接");
+    await navigateToSecondaryTool(page, "故事圣经");
     await expect(page.getByLabel("Logline")).toHaveValue(logline);
   });
 
   test("persists a complete storyboard prefix and renders it after a browser refresh", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await openSampleProject(page);
-    await navigateToStage(page, "05 分镜工作台");
+    await navigateToSecondaryTool(page, "分镜工作台");
     const action = "E2E：刷新后仍能看到这条已持久化的分镜动作。";
     await page.getByLabel("动作").fill(action);
     const created = captureProjectCreate(page);
@@ -113,15 +113,15 @@ test.describe("first-save project bootstrap", () => {
     await expect(page.getByText(/质量门详情/)).toBeVisible();
 
     await page.reload();
-    await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();
-    await navigateToStage(page, "05 分镜工作台");
+    await expectServiceStatus(page, "Plotloom 服务：已连接");
+    await navigateToSecondaryTool(page, "分镜工作台");
     await expect(page.getByLabel("动作")).toHaveValue(action);
   });
 
   test("retains an unsaved Story Bible draft and reuses its idempotency key after a transient create failure", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await openSampleProject(page);
-    await navigateToStage(page, "02 故事圣经");
+    await navigateToSecondaryTool(page, "故事圣经");
     const logline = "E2E：失败后仍可安全重试同一份首次保存。";
     await page.getByLabel("Logline").fill(logline);
 
@@ -165,13 +165,20 @@ async function openSampleProject(page: Page): Promise<void> {
   await page.getByRole("button", { name: "打开示例项目" }).click();
 }
 
-async function navigateToStage(page: Page, name: string): Promise<void> {
-  const label = name.replace(/^\d+\s+/, "");
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: new RegExp(escapeRegex(label)) }).click();
+async function navigateToSecondaryTool(page: Page, label: string): Promise<void> {
+  const toolsNavigation = page.getByRole("navigation", { name: "编辑与工具" });
+  if (!(await toolsNavigation.isVisible())) {
+    await page.getByText("编辑与工具", { exact: true }).click();
+  }
+  await toolsNavigation.getByRole("button", { name: label, exact: true }).click();
 }
 
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+async function expectServiceStatus(page: Page, label: string): Promise<void> {
+  const serviceStatus = page.locator("details.topbar-technical-status");
+  if ((await serviceStatus.getAttribute("open")) === null) {
+    await serviceStatus.locator("summary").click();
+  }
+  await expect(page.getByText(label, { exact: true })).toBeVisible();
 }
 
 function captureStagePatchResponse(page: Page, projectId: string, stage: string): Promise<PlaywrightResponse> {

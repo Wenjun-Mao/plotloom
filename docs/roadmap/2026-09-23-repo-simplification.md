@@ -14,6 +14,7 @@ The four untouched source files are in `/Users/wjmao/Downloads/plotloom simplifi
 | `2026-09-19-plotloom-simplification-adr-insertions.md` | `72edb23c3a823eb0623bf71dc2d16fb515654f37` | Copy-ready wording for the same SIM/ADR-SIM additions; **not another independent set of findings** |
 
 - [x] Reconcile and implement the approved Batch B slice against its then-current `main` baseline (`f4e4e47`): the static mount, shared E2E fixture, two API F401 findings, their module-local callers, and the current wheel prompt inventory were checked before changing their narrow verification contracts. Focused browser, API, lint, build and installed-wheel checks are recorded below.
+- [x] Follow up on the two legacy Vite navigation probes at `878ad65`: correct only their stale UI locators/disclosure handling, retain their save/entity/history assertions, and verify them alongside all `first-save.spec.ts` cases, the checked-static smoke, and one unchanged Vite journey. Baseline failures, diagnosis, exact commands, and remaining limits are recorded in the [Batch B assessment follow-up](2026-09-23-simplification-b-assessment.md).
 - [ ] Before any Batch C removal, repeat the same current-source consumer, contract-owner, behavior, regression and shipped-artifact checks for each individual symbol. The original `f867eb0` spot checks remain preliminary for C.
 
 The [finding/disposition register](2026-09-23-simplification-dispositions.md)

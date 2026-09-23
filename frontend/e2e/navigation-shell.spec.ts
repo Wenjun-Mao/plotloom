@@ -12,7 +12,11 @@ test.describe("M1-B0 query navigation shell", () => {
     await expect(page).toHaveURL(/stage=bible.*entity=bible%3Acharacter%3Achar_ruanxing/);
     await expect(page.getByText("char_ruanxing", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "项目简报" }).first().click();
+    const toolsNavigation = page.getByRole("navigation", { name: "编辑与工具" });
+    if (!(await toolsNavigation.isVisible())) {
+      await page.getByText("编辑与工具", { exact: true }).click();
+    }
+    await toolsNavigation.getByRole("button", { name: "项目简报", exact: true }).click();
     await expect(page).toHaveURL(/stage=brief/);
     await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
 

@@ -71,3 +71,79 @@ the built bundle changes unexpectedly, the static request is not served from
 the backend, or the test is flaky; after two unsuccessful attempts, preserve
 evidence and reassess rather than widen the fixture. Automatic `push`/PR CI
 triggers require a separate director decision and are unchanged here.
+
+## Post-implementation navigation-regression follow-up — 2026-09-22
+
+This follow-up reproduces two focused Vite E2E failures on local `main`
+`878ad65`; it does not revise the original assessment baseline or expand the
+Batch B runtime/fixture scope. The specs were last changed at `69edc50`
+(2026-09-17), before accepted U1a navigation commit `94cf165` (2026-09-22).
+U1a keeps the creator sequence in `navigation[创作流程]` and deliberately folds
+the still-supported Brief, Story Bible, graph, beats, and storyboard editors
+under `编辑与工具`; see the [accepted navigation record](2026-09-18-creator-workflow-usability.md).
+
+Before edits, each selected journey reached its expected application state and
+then timed out only at its obsolete locator:
+
+- `first-save.spec.ts` — “persists the complete teaching prefix when saving
+  its Brief, then persists a later Story Bible edit” saved the Brief, asserted
+  the complete four-stage prefix through canonical API reads, then timed out
+  waiting for `navigation[工作台阶段] → button /故事圣经/` in `navigateToStage`.
+- `navigation-shell.spec.ts` — “uses stage/entity query parameters and restores
+  stage on browser back” reached Story Bible, asserted the character entity
+  URL and visible ID, then timed out waiting for the global button `项目简报`.
+
+The Playwright snapshots show the current folded `编辑与工具` control and no
+`工作台阶段` navigation. The current Vite fixture, route handling, entity URL,
+and Brief save were functioning before the stale locator was reached. The
+tests now open the current secondary-tools disclosure when needed and click
+the exact named editor button. Existing save, canonical-persistence, URL, and
+Back assertions are unchanged.
+
+The first repaired run advanced farther and exposed a second stale visibility
+assumption in the Brief-first journey: after reload,
+`Plotloom 服务：已连接` existed in the DOM but was hidden. `WorkspaceController`
+places this badge inside the intentionally collapsed top-bar `<details>` named
+`服务状态`; reload closes it. The test now opens that exact disclosure before
+checking the same expected disconnected/connected text, so connectivity is
+still asserted rather than skipped or weakened.
+
+Exact commands and results (test output stayed in the unique temporary
+directory `/tmp/plotloom-e2e-followup.ZPsujb`):
+
+```sh
+npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-e2e-followup.ZPsujb/baseline-first-save --grep "persists the complete teaching prefix" e2e/first-save.spec.ts
+# 1 failed after 45.7s at navigation[工作台阶段] → button /故事圣经/
+
+npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-e2e-followup.ZPsujb/baseline-navigation-shell --grep "uses stage/entity query parameters" e2e/navigation-shell.spec.ts
+# 1 failed after 45.8s at global button 项目简报
+
+npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-e2e-followup.ZPsujb/repaired-targets --grep "persists the complete teaching prefix|uses stage/entity query parameters" e2e/first-save.spec.ts e2e/navigation-shell.spec.ts
+# 1 passed, 1 failed: first-save then found the collapsed service-status disclosure
+
+npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-e2e-followup.ZPsujb/repaired-targets-final --grep "persists the complete teaching prefix|uses stage/entity query parameters" e2e/first-save.spec.ts e2e/navigation-shell.spec.ts
+# 2 passed (4.4s)
+
+npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-e2e-followup.ZPsujb/first-save-sibling --grep-invert "persists the complete teaching prefix" e2e/first-save.spec.ts
+# 3 passed (5.9s); together with the target this covers all four first-save tests
+
+npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-e2e-followup.ZPsujb/first-save-final e2e/first-save.spec.ts
+# Final-source rerun: all 4 first-save tests passed (8.8s)
+
+npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-e2e-followup.ZPsujb/navigation-shell-final --grep "uses stage/entity query parameters" e2e/navigation-shell.spec.ts
+# Final-source rerun: selected entity/history journey passed (2.5s)
+
+npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-e2e-followup.ZPsujb/shipped-static-final e2e/shipped-static.spec.ts
+# 2 passed (2.6s)
+
+npm --prefix frontend run test:e2e -- --workers=1 --output=/tmp/plotloom-e2e-followup.ZPsujb/vite-bridge-final e2e/production-bridge-shot-handoff.spec.ts
+# 1 passed (18.8s); emitted the existing Starlette/httpx TestClient deprecation warning
+```
+
+Every command runs the E2E TypeScript project check first. The rest of
+`navigation-shell.spec.ts` was not run or updated in this bounded follow-up;
+its separate `persistSampleProject` helper still contains older stage-nav
+locators. This is not a repo-wide E2E migration. No runtime, shared fixture,
+data root, preview, provider, or product-acceptance surface was changed. The
+source-static smoke remains distinct from installed-wheel browser execution,
+and neither is creative/product acceptance.

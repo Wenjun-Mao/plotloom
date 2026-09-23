@@ -321,6 +321,19 @@ npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/static" 
 npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/vite" e2e/production-bridge-shot-handoff.spec.ts
 ```
 
+The default Vite fixture also covers two legacy-editor journeys. Their
+navigation targets live under the folded `编辑与工具` menu; the first keeps the
+Brief-prefix and later Story Bible persistence assertions, and opens the folded
+`服务状态` disclosure before checking its connection badge. The second keeps
+stage/entity URL and browser-history assertions. Run them with separate
+Playwright output under `/tmp`:
+
+```sh
+e2e_output="$(mktemp -d /tmp/plotloom-vite-navigation-e2e.XXXXXX)"
+npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/first-save" --grep "persists the complete teaching prefix" e2e/first-save.spec.ts
+npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/navigation-shell" --grep "uses stage/entity query parameters" e2e/navigation-shell.spec.ts
+```
+
 This browser smoke checks the source checkout's checked bundle. The installed-
 wheel smoke separately checks package contents and startup outside the source
 tree; it does not execute the installed JavaScript or CSS in a browser. The
