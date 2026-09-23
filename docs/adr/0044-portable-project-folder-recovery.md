@@ -3,8 +3,9 @@
 ## Status
 
 Accepted, 2026-09-14. This advances the direct, format-6 project-folder
-composition from ADR 0040; it does not cut over the retained runtime, import
-legacy folders, or change provider/accounting ownership.
+composition from [ADR 0040, project-folder storage boundary](0040-project-folder-storage-boundary.md).
+It does not cut over the retained runtime, import legacy folders, or change
+provider/accounting ownership.
 
 ## Context
 

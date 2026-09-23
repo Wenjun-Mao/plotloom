@@ -1,5 +1,11 @@
 # ADR 0038: H3 gateway durable FIFO dispatch
 
+> **Creation-route scope (2026-09-23):** The six-operation list and
+> `idempotencyKey` paragraph below record the original gateway. [ADR 0050](0050-unified-h3-generation-contract.md)
+> removed public `/v1/assets`, `/v1/video-jobs`, and request-bound
+> `idempotencyKey`; current creation is by direct `from-image`/`from-text`
+> routes. FIFO, durable state, and output ownership remain separate decisions.
+
 ## Context
 
 MiniMax-H3 has one usable generation lane on Spark. The original gateway
@@ -22,7 +28,7 @@ unauthenticated health route:
    valid work queued rather than rejecting it.
 3. `POST /v1/video-jobs/from-image` is a stateless convenience admission that
    stores one supplied image and queues one ordinary job. Its input and retry
-   boundary are recorded in ADR 0040.
+   boundary was recorded in [ADR 0040, private H3 image ingestion](0040-private-h3-image-ingestion.md).
 4. `GET /v1/video-jobs/{id}` returns the known state.
 5. `GET /v1/video-jobs/{id}/output` serves only the completed known MP4 owned
    by the gateway.

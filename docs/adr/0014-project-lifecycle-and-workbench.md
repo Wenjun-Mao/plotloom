@@ -84,6 +84,14 @@ execution or approval evidence applies to it.
 
 ### Save is explicit; browser recovery is provisional
 
+> **Scoped current contract (2026-09-23):** This subsection's browser-only
+> recovery description is historical. The project-folder workbench now writes
+> acknowledged, CAS-bound authoring drafts to project SQLite as described in
+> [ADR 0040, project-folder storage boundary](0040-project-folder-storage-boundary.md)
+> and [ADR 0043](0043-project-folder-close-quiescence.md). `sessionStorage`
+> remains a provisional unsent buffer; a durable draft receipt is neither a
+> canonical Save nor approval. Canonical changes still require explicit Save.
+
 Canonical changes reach the server only through explicit Save, with the
 appropriate expected content revision. `sessionStorage` may retain an unsaved
 draft keyed by project ID, stage, and the authoritative revision from which it

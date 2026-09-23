@@ -187,8 +187,10 @@ The operator and maintainer entry point is the
   The browser never sees or stores that key.
 - H3 uses the reviewed catalog in [ADR 0036](adr/0036-minimax-h3-profile-catalog.md):
   832x480, 960x544 and 1280x704 landscape; 576x1024 (the default), 608x1088
-  and 704x1280 portrait. Every profile is 124 frames / 24 fps (about 5.17
-  seconds) with native audio. A new job defaults to an aspect-matched reviewed
+  and 704x1280 portrait. Plotloom currently qualifies five seconds/124 frames
+  or eight seconds/192 frames at 24 fps, with native audio; five seconds is the
+  default. The frozen job duration, not profile geometry alone, determines the
+  expected frame count. A new job defaults to an aspect-matched reviewed
   keyframe and rejects a mismatch before reservation or provider contact.
   The author can prepare a matching crop/adapted still, or explicitly choose
   **allow letterbox** for a deliberately padded input canvas. That narrow

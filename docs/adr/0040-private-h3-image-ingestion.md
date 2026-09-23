@@ -1,5 +1,11 @@
 # ADR 0040: Private H3 image ingestion and stateless one-step admission
 
+> **Historical creation boundary (2026-09-23):** This is the H3-ingestion
+> `0040`, not the [project-folder storage `0040`](0040-project-folder-storage-boundary.md).
+> [ADR 0050](0050-unified-h3-generation-contract.md) removed the standalone
+> `/v1/assets` step and public asset ID. The current `from-image` route still
+> accepts a private `sourceUrl` form; do not infer that URL ingestion vanished.
+
 ## Context
 
 The gateway previously accepted only multipart uploads followed by a separate

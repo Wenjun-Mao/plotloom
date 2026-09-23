@@ -6,8 +6,9 @@ Accepted, 2026-09-14.
 
 ## Context
 
-ADR 0040 deliberately introduced project-folder storage without wiring it into
-the shipped runtime. `build_runtime_app` consequently continued to construct
+[ADR 0040, project-folder storage boundary](0040-project-folder-storage-boundary.md)
+deliberately introduced project-folder storage without wiring it into the
+shipped runtime. `build_runtime_app` consequently continued to construct
 the retained `SQLiteRepository`, shared artifact root, and shared image
 exchange root. The direct factory proved individual project capabilities but
 did not own application profile admission, run dispatch, or run-to-project

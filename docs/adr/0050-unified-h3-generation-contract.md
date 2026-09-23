@@ -2,6 +2,14 @@
 
 **Status:** Accepted
 
+> **Current-duration and catalog scope (2026-09-23):** The V4 marker and
+> five-second-only Plotloom sentence below describe this decision at adoption,
+> not current admission. [ADR 0066](0066-h3-qualified-job-duration-contract.md)
+> qualified both five and eight seconds; subsequent reviewed catalog changes
+> are owned by `H3_CATALOG_ID` and `H3_QUALIFIED_DURATION_FRAMES` in
+> `src/plotloom/video_backends/minimax_h3/adapter.py`. The direct multipart I2V
+> boundary and no Plotloom T2V authoring route remain in force.
+
 ## Context
 
 The first H3 gateway exposed a public asset upload route followed by a job

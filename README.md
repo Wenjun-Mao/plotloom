@@ -53,12 +53,13 @@ Spark 上的 H3 使用一个带 bearer key 的私有网关，ComfyUI 本身只�
 ```dotenv
 PLOTLOOM_ENABLE_H3_GATEWAY=true
 VIDEO_PROVIDER=minimax_h3_gateway
-VIDEO_MODEL=minimax_h3_gateway_catalog_v3
+VIDEO_MODEL=minimax_h3_gateway_catalog_v6
 ```
 
 H3 提供受审核的横竖屏档位；默认是 576×1024，另有 832×480、960×544、
-1280×704、608×1088 与 704×1280。每档固定 124 帧 / 24 fps、约 5.17 秒、带原生
-音频。工作台默认要求关键帧与目标档位同宽高比，绝不会无提示拉伸或加黑边；如作者
+1280×704、608×1088 与 704×1280。Plotloom 当前只允许审核过的 5 秒
+（124 帧）或 8 秒（192 帧）请求，均为 24 fps 并带原生音频；具体准入以
+`H3_QUALIFIED_DURATION_FRAMES` 为准。工作台默认要求关键帧与目标档位同宽高比，绝不会无提示拉伸或加黑边；如作者
 有意保留横幅构图，可显式选择“允许黑边画布”。该选择只会冻结 `contain_pad` 输入
 模式，仍须通过关键帧、溯源、profile、输出尺寸、角色与人工审核检查。实际下载的
 文件也必须匹配冻结 profile，不能因“能播放”就被采用。H3 使用本地网关的队列容量，
@@ -100,7 +101,7 @@ uv run python scripts/smoke_installed_wheel.py dist
 在 `--qualify-m15` 严格模式下各完成 3 次原子安装、各至少 10/12
 阶段首轮通过后才可标记完成；较小批次只算诊断 probe。
 
-更完整的开发说明见 [docs/development.md](docs/development.md)，能力进度见 [docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md](docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md)，架构与研究资料索引见 [docs/README.md](docs/README.md)，而 Spark 的 H3/Qwen 文档入口见 [generation operations index](docs/operations/README.md)。
+更完整的开发说明见 [docs/development.md](docs/development.md)，当前交付进度见 [roadmap entrypoint](docs/roadmap/README.md)，旧[能力矩阵](docs/roadmap/archive/superseded/2026-09-02-capability-matrix.md)仅作历史证据；架构与研究资料索引见 [docs/README.md](docs/README.md)，而 Spark 的 H3/Qwen 文档入口见 [generation operations index](docs/operations/README.md)。
 
 ## 版本边界
 

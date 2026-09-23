@@ -2,6 +2,14 @@
 
 **Status:** accepted
 
+> **Scoped current authority (2026-09-23):** The `legacy_repository.py` facade
+> and `SQLiteRepository` references below describe the former shared-runtime
+> generation. [ADR 0048](0048-retire-shared-repository-runtime.md) retired that
+> facade and its import alias; no current caller may use it. The named,
+> project-owned capability composition and explicit lease/transaction ownership
+> remain the relevant design. The original correction and migration sequence is
+> preserved below as historical evidence, not a compatibility exception today.
+
 ## Context
 
 The package move left `SQLiteRepository` as both the retained runtime surface

@@ -1,6 +1,6 @@
 # Repository simplification: bounded tracking plan
 
-Status: approved to track and reconcile, **not** blanket approval to delete code or redesign contracts. Current stable comparison point: local `main` at `f867eb0` (2026-09-23). The roadmap [entrypoint](README.md) remains the delivery authority; this page does not change product priorities.
+Status: approved to track and reconcile, **not** blanket approval to delete code or redesign contracts. Initial spot-check baseline: local `main` at `f867eb0` (2026-09-23); documentation Batch A was reconciled against `b552039`. The roadmap [entrypoint](README.md) remains the delivery authority; this page does not change product priorities.
 
 ## Source manifest and first gate
 
@@ -13,7 +13,12 @@ The four untouched source files are in `/Users/wjmao/Downloads/plotloom simplifi
 | `2026-09-19-plotloom-simplification-adr-independent-audit.md` | `72edb23c3a823eb0623bf71dc2d16fb515654f37` | SIM-01–04 and ADR-SIM-01/02, independently checked at that revision |
 | `2026-09-19-plotloom-simplification-adr-insertions.md` | `72edb23c3a823eb0623bf71dc2d16fb515654f37` | Copy-ready wording for the same SIM/ADR-SIM additions; **not another independent set of findings** |
 
-- [ ] Reconcile every proposed slice against `f867eb0` before implementation: exact surviving symbol/caller, current contract owner, behavior to preserve, tests and shipped-artifact check, and whether the finding was corrected or withdrawn by audit amendments. Keep unresolved items as investigate/defer. Recheck after any intervening main change. The spot checks below are preliminary, not that completed reconciliation.
+- [ ] Reconcile every proposed B/C slice against then-current `main` before implementation: exact surviving symbol/caller, current contract owner, behavior to preserve, tests and shipped-artifact check, and whether the finding was corrected or withdrawn by audit amendments. Keep unresolved items as investigate/defer. Recheck after any intervening main change. The original `f867eb0` spot checks are preliminary, not that completed per-symbol reconciliation.
+
+The [finding/disposition register](2026-09-23-simplification-dispositions.md)
+records the current-main documentation reconciliation and preserves amended or
+withdrawn findings. It does **not** complete the per-symbol B/C implementation
+gate above; those tracks still require their own current-source checks.
 
 ## Approved small tracks
 

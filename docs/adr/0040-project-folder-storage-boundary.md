@@ -1,5 +1,12 @@
 # ADR 0040: Project-folder storage boundary
 
+> **Identifier note (2026-09-23):** This is the project-folder `0040`, not the
+> [private H3 image-ingestion `0040`](0040-private-h3-image-ingestion.md).
+> Checkpoint-specific references to a test-only factory below are historical:
+> [ADR 0046](0046-production-project-folder-runtime.md) made the project-folder
+> composition the production runtime, and [ADR 0048](0048-retire-shared-repository-runtime.md)
+> removed the shared runtime.
+
 ## Status
 
 Accepted, 2026-09-13. Checkpoint 2A replaces the rejected `460ff56`

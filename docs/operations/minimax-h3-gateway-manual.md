@@ -294,8 +294,10 @@ The production sequence is intentional and one-way:
    a provider-controlled output URL or a ComfyUI endpoint.
 
 5. It probes the downloaded bytes. The candidate is eligible only if it is
-   H.264/AAC, the exact frozen width/height, 24 fps, 124 frames, and within
-   one frame of the frozen duration. A merely playable mismatch becomes `retrieve_needed` with
+   H.264/AAC, the exact frozen width/height, 24 fps, and the frame count bound
+   to that job's qualified duration (124 for five seconds, 192 for eight).
+   Observed duration must also be within one frame of the frozen frame-count
+   duration. A merely playable mismatch becomes `retrieve_needed` with
    `h3_output_profile_mismatch` and cannot be selected.
 6. The resulting candidate is unselected. A human reviews visual continuity,
    dialogue/audio quality, and creative suitability before an explicit

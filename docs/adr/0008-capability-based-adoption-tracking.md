@@ -1,5 +1,11 @@
 # ADR 0008: Capability-based source adoption tracking
 
+> **Authority update (2026-09-23):** The capability matrix named below was the
+> living tracker for this decision's original period. It is now a
+> [superseded historical plan](../roadmap/archive/superseded/2026-09-02-capability-matrix.md),
+> not current delivery authority. Use the [roadmap entrypoint](../roadmap/README.md)
+> for the active plan; keep the capability-based tracking principle as history.
+
 ## Context
 
 Plotloom preserves the strongest product ideas from Narrative Forge and

@@ -1,5 +1,12 @@
 # ADR 0004: Canonical stages, revisions, and stale propagation
 
+> **Current identity scope (2026-09-23):** The UUID sentence below records the
+> original canonical-stage decision, but is not a UUID-only rule for authored
+> entity IDs. Current `StableId` accepts concise delimiter-free alphanumeric,
+> underscore, and hyphen IDs; trusted generation may bind its own immutable IDs.
+> Record/project identity and revision-bound snapshot identity are separate
+> contracts. See `src/plotloom/canonical_schema.py` and the generation binders.
+
 ## Context
 
 The legacy text prompt asks for a complete story tree and storyboard in one

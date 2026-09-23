@@ -2,8 +2,9 @@
 
 ## Status
 
-Accepted, 2026-09-14. This is a bounded continuation of ADR 0040's unwired
-project-folder composition; it is not retained-runtime cutover, snapshot, or
+Accepted, 2026-09-14. This continues the unwired project-folder composition
+recorded in [ADR 0040, project-folder storage boundary](0040-project-folder-storage-boundary.md);
+it is not retained-runtime cutover, snapshot, or
 restore delivery.
 
 ## Context
