@@ -55,7 +55,8 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
   await page.getByLabel("审核人标签").fill("Synthetic fixture setup");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await expect(page.getByTestId("video-pilot-panel")).toBeVisible();
-  await page.locator("details.workbench-support").first().locator("summary").click();
+  const preparation = page.locator("details.workbench-support").first();
+  if (!await preparation.evaluate((element) => (element as HTMLDetailsElement).open)) await preparation.locator("summary").click();
 
   await page.getByLabel("来源声明").fill("Synthetic offline browser fixture; not creator-approved source media.");
   await page.getByTestId("managed-image-upload").setInputFiles(still);
@@ -86,7 +87,8 @@ async function createAndApprove(page: Page, request: APIRequestContext, workbenc
 
 async function selectEndingKeyframe(page: Page, request: APIRequestContext, workbench: Workbench, projectId: string) {
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard&entity=shot%3Ashot_09#shot-keyframe-review`);
-  await page.locator("details.workbench-support").first().locator("summary").click();
+  const preparation = page.locator("details.workbench-support").first();
+  if (!await preparation.evaluate((element) => (element as HTMLDetailsElement).open)) await preparation.locator("summary").click();
   await page.getByLabel("来源声明").fill("Synthetic offline ending still; isolated fixture data only.");
   const importResponse = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/managed-assets`);
@@ -149,6 +151,13 @@ async function prepareAndChoose(page: Page, jobId: string, inFrame: number, expe
   await expect(preview).toBeVisible();
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).duration)).toBe((expectedOutFrame - inFrame) / 24);
   await expect(review).toContainText(`${inFrame}–${expectedOutFrame} 帧`);
+  const workflow = page.getByRole("navigation", { name: "镜头视频工作流" });
+  await expect(workflow.getByRole("link", { name: "预览片段" })).toHaveAttribute("href", `#video-segment-preview-${jobId}`);
+  await expect(workflow.getByRole("link", { name: "用于故事 · 确认" })).toHaveAttribute("href", `#video-segment-confirm-${jobId}`);
+  await workflow.getByRole("link", { name: "预览片段" }).click();
+  await expect.poll(() => preview.evaluate((video) => Math.round(video.getBoundingClientRect().top))).toBeLessThan(160);
+  await workflow.getByRole("link", { name: "用于故事 · 确认" }).click();
+  await expect(page).toHaveURL(new RegExp(`#video-segment-confirm-${jobId}$`));
   await preview.evaluate((video) => { (video as HTMLVideoElement).currentTime = 1; });
   await preview.evaluate((video) => (video as HTMLVideoElement).play());
   await expect.poll(() => preview.evaluate((video) => (video as HTMLVideoElement).currentTime)).toBeGreaterThan(1);
@@ -230,6 +239,20 @@ test("retains separate exercise and ready-to-use synthetic segment walkthrough p
   const directReview = page.getByTestId(`video-segment-review-${readyJob}`);
   await expect(directReview).toBeVisible();
   await expect.poll(() => directReview.evaluate((element) => Math.abs(element.getBoundingClientRect().top))).toBeLessThan(8);
+  const storyboardDisclosure = page.locator("details.storyboard-editor-disclosure");
+  await expect(storyboardDisclosure).not.toHaveAttribute("open", "");
+  await page.getByRole("button", { name: "查看分镜批准" }).click();
+  await expect(storyboardDisclosure).toHaveAttribute("open", "");
+  await expect(page.locator("details.approval-actions")).toHaveAttribute("open", "");
+  await expect(page.getByLabel("审核人标签")).toBeVisible();
+  await storyboardDisclosure.locator(":scope > summary").click();
+  await page.getByRole("button", { name: "编辑镜头细节" }).click();
+  await expect(storyboardDisclosure).toHaveAttribute("open", "");
+  const titleDraft = page.locator(".shot-inspector").first().getByLabel("标题");
+  await titleDraft.fill("门开 · 本地草稿");
+  await storyboardDisclosure.locator(":scope > summary").click();
+  await storyboardDisclosure.locator(":scope > summary").click();
+  await expect(titleDraft).toHaveValue("门开 · 本地草稿");
   await directReview.locator("details.review-annotations > summary").click();
   await directReview.getByLabel("说明（可选）").fill("短");
   await directReview.locator("details.review-annotations > summary").click();

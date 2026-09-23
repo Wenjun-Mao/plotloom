@@ -242,7 +242,15 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     catch (reason) { setError(reason instanceof Error ? reason.message : fallback); }
   };
   const visibleJobs = shot ? jobs.filter((job) => frozenShot(job).id === shot.id) : [];
-  const segmentAnchorJobId = visibleJobs.find((job) => isH3Job(job) && job.state === "ingested")?.id;
+  const navigableSegmentJob = visibleJobs.find((job) => isH3Job(job) && job.state === "ingested"
+    && job.current && job.reviews.at(-1)?.decision !== "reject"
+    && job.segments?.some((segment) => segment.current));
+  const navigationJob = navigableSegmentJob
+    ?? visibleJobs.find((job) => isH3Job(job) && job.state === "ingested" && job.current && job.reviews.at(-1)?.decision !== "reject")
+    ?? visibleJobs.find((job) => isH3Job(job) && job.state === "ingested");
+  const segmentAnchorJobId = navigationJob?.id;
+  const hasReviewableSegment = Boolean(navigationJob?.segments?.some((segment) => segment.current)
+    && navigationJob?.current && navigationJob?.reviews.at(-1)?.decision !== "reject");
   const nextAction = visibleJobs.some((job) => job.selected)
     ? "当前镜头已有用于故事的片段；可在下方检查路径预览。"
     : visibleJobs.some((job) => job.state === "ingested" && job.segments?.some((segment) => segment.current))
@@ -267,8 +275,15 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
     <header className="video-workflow-header"><strong>原片 → 调整片段 → 预览 → 用于故事</strong>
       <small>{visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 个原片候选；仅明确选择的片段会进入故事。` : "当前镜头还没有原片候选。"}</small>
-      <small className="video-next-action">{nextAction}</small></header>
-    <details className="video-production"><summary>{h3 || h3Unavailable ? "准备或生成新的 MiniMax H3 原片" : "准备或生成新的视频原片"}</summary>
+      <small className="video-next-action">{nextAction}</small>
+      <nav className="video-workflow-nav" aria-label="镜头视频工作流">
+        {visibleJobs.length ? <a href="#shot-original">原片</a> : <a href="#video-production">准备原片</a>}
+        {navigationJob ? <a href={`#video-segment-review-${navigationJob.id}`}>调整片段</a> : <span aria-disabled="true">调整片段 · 待原片</span>}
+        {hasReviewableSegment && navigationJob ? <a href={`#video-segment-preview-${navigationJob.id}`}>预览片段</a> : <span aria-disabled="true">预览片段 · 待准备</span>}
+        {hasReviewableSegment && navigationJob ? <a href={`#video-segment-confirm-${navigationJob.id}`}>用于故事 · 确认</a> : <span aria-disabled="true">用于故事 · 待审核</span>}
+        {visibleJobs.some((job) => job.selected) && <a href="#shot-story-preview">故事播放</a>}
+      </nav></header>
+    <details id="video-production" className="video-production"><summary>{h3 || h3Unavailable ? "准备或生成新的 MiniMax H3 原片" : "准备或生成新的视频原片"}</summary>
     {h3 && backend
       ? <MiniMaxH3Summary backend={backend} profile={selectedProfile} />
       : h3Unavailable ? <p>H3 后端尚未配置；下方当前镜头时长目录仅供只读检查，不代表可提交。</p>

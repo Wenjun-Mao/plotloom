@@ -119,6 +119,34 @@ it("keeps retained H3 segment review visible when dispatch is unavailable", asyn
   expect([...host.querySelectorAll("button")].some((button) => button.textContent === "选择此候选")).toBe(false);
 });
 
+it("targets one reviewable H3 job when another same-shot candidate was rejected", async () => {
+  const snapshot = {
+    provider: { adapterId: "minimax_h3_gateway" },
+    shot: { id: "shot-1", title: "Shot 1", sceneId: "scene", order: 1, durationUnits: 6_000 },
+    sourceTiming: { kind: "canonical", durationUnits: 6_000 },
+  };
+  const rejected = selectedJob("rejected", 1, {
+    snapshot, selected: false, playbackSegment: null,
+    segments: [{ ...selectedJob("rejected", 1).playbackSegment!, selected: false }],
+    reviews: [{ id: "rejected-review", reviewer: "", note: "", decision: "reject", createdAt: "2026-09-23T00:00:00Z" }],
+  });
+  const reviewable = selectedJob("reviewable", 1, {
+    snapshot, selected: false, playbackSegment: null,
+    segments: [{ ...selectedJob("reviewable", 1).playbackSegment!, selected: false }],
+    reviews: [],
+  });
+  vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [rejected, reviewable] });
+  await render("project", "shot-1", "scene");
+  const nav = host.querySelector(".video-workflow-nav")!;
+  const links = [...nav.querySelectorAll("a")];
+  expect(links.find((link) => link.textContent === "预览片段")?.getAttribute("href"))
+    .toBe("#video-segment-preview-reviewable");
+  expect(links.find((link) => link.textContent === "用于故事 · 确认")?.getAttribute("href"))
+    .toBe("#video-segment-confirm-reviewable");
+  expect(host.querySelector("#shot-segment")?.querySelector("#video-segment-preview-reviewable")).not.toBeNull();
+  expect(host.querySelectorAll('[id^="video-segment-preview-"]')).toHaveLength(2);
+});
+
 it("does not let a deferred old-project submit refresh overwrite the new project", async () => {
   const oldSubmit = deferred<VideoJob>();
   const jobs = vi.spyOn(plotloomApi, "getVideoJobs").mockImplementation(async (projectId) => ({ jobs: [job(projectId, projectId === "old" ? "shot-old" : "shot-new")] }));

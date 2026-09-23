@@ -237,9 +237,11 @@ was called and no protected project or the 8824 service was changed.
 
 ## Review-workbench usability follow-up (2026-09-23)
 
-The ready project's failed confirmation was traced to a UI/API contract split:
-the form allowed a nonempty one-character note, while the request schema
-required at least two characters plus a reviewer. The revised contract treats
+A reproducible confirmation failure mode was a UI/API contract split: the form
+allowed a nonempty one-character note, while the request schema required at
+least two characters plus a reviewer. The exact request behind the creator's
+earlier failed confirmation was not retained, so this does not establish that
+specific failure's payload. The revised contract treats
 both as optional annotations, stores an absent value as an empty string in the
 existing review row, and leaves explicit selection, CAS/currentness, derivative
 verification, and rejection behavior unchanged. A synthetic API test covers
@@ -270,3 +272,24 @@ ready project showed the same no-overflow layout and the exact story-to-shot
 return link. Safari/WebKit was not exercised because the local Playwright
 installation has Chromium only. None of this constitutes creative acceptance
 or real-provider media review; no provider call or push was made.
+
+### Navigation and disclosure correction
+
+The first workbench pass gave “预览” and “用于故事” the same destination.
+Navigation now targets distinct, job-specific preview and explicit confirmation
+sections. With several H3 jobs for one shot, it prefers a current, non-rejected
+job with a current segment; a rejected newer job no longer hides an older
+reviewable proposal. The legacy segment fragment points to that same job.
+The storyboard editor and the separate storyboard approval action form are
+folded on an already-approved board, while review/edit actions reveal the
+needed controls and preserve unsaved drafts. Storyboard approval still requires
+a reviewer label because it is an exact-revision, append-only approval gate,
+distinct from optional video review annotations (ADR 0082).
+
+The frontend finished with typecheck, E2E typecheck, 213 unit tests, build,
+and `git diff --check` passing. Focused browser tests covered the synthetic
+review flow, distinct direct-link destinations, draft retention, and no
+horizontal overflow at 1440 and 1920 pixels; the persistent ready project
+was inspected read-only with its approved editor and approval form folded.
+Three additional video/branching E2E tests passed. An independent review of
+the final navigation correction reported no remaining concrete finding.

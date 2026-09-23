@@ -41,16 +41,16 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     setInFrame(0); setProposalId(""); setReviewer(""); setNote(""); setBusy(false); setError("");
     return () => { activeRef.current = false; requestRef.current += 1; };
   }, [projectId, job.id]);
-  useEffect(() => {
-    const targetId = `video-segment-review-${job.id}`;
-    if (window.location.hash === `#${targetId}`) {
-      document.getElementById(targetId)?.scrollIntoView({ block: "start" });
-    }
-  }, [job.id]);
   const available = (job.segments ?? []).filter((segment) => segment.current);
   const rejected = job.reviews.at(-1)?.decision === "reject";
   const chosen: VideoSegment | undefined = available.find((segment) => segment.id === proposalId)
     ?? available[available.length - 1];
+  useEffect(() => {
+    const targetId = window.location.hash.slice(1);
+    if (!["video-segment-review", "video-segment-preview", "video-segment-confirm"].some((part) => targetId === `${part}-${job.id}`)) return;
+    const frame = requestAnimationFrame(() => document.getElementById(targetId)?.scrollIntoView({ block: "start" }));
+    return () => cancelAnimationFrame(frame);
+  }, [job.id, chosen?.id]);
   const timingReady = job.state === "ingested" && job.current && !rejected && sourceUnits != null
     && [6_000, 8_000].includes(sourceUnits) && Number.isInteger(requiredFrames)
     && job.requestedSeconds === 8 && availableFrames >= requiredFrames;
@@ -120,17 +120,20 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
         {available.map((item) => <option key={item.id} value={item.id}>{item.inFrame}–{item.outFrame} 帧{item.selected ? " · 已选择" : " · 待审"}</option>)}
       </select>
     </label>}
-    {chosen && <>
+    {chosen && <div className="segment-preview-step" id={`video-segment-preview-${job.id}`}>
       <video key={chosen.id} controls preload="metadata" src={plotloomApi.videoSegmentPreviewUrl(projectId, chosen.id)}
         data-testid={`video-segment-preview-${chosen.id}`}
         onPlay={(event) => document.querySelectorAll<HTMLVideoElement>("[data-testid^='video-job-player-'], [data-testid^='video-segment-preview-']").forEach((video) => { if (video !== event.currentTarget) video.pause(); })} />
       <small>{chosen.selected ? "已选择片段 · 正用于故事" : "待审片段 · 尚未用于故事"}；{chosen.inFrame}–{chosen.outFrame} 帧。请检查对白、动作、字幕和首尾声音是否完整。</small>
-    </>}
+    </div>}
     <details className="review-annotations"><summary>审核记录（可选）</summary>
       <label>审核人（可选）<input value={reviewer} disabled={readOnly || busy || rejected} onChange={(event) => setReviewer(event.target.value)} /></label>
       <label>说明（可选）<textarea value={note} disabled={readOnly || busy || rejected} onChange={(event) => setNote(event.target.value)} /></label>
     </details>
-    {chosen && <Button disabled={readOnly || busy || rejected || !chosen.current} onClick={() => void select()}>确认用于故事</Button>}
+    {chosen && <div className="segment-confirm-step" id={`video-segment-confirm-${job.id}`}>
+      <small>确认只影响当前镜头的已核验片段；不会改动原片。</small>
+      <Button disabled={readOnly || busy || rejected || !chosen.current} onClick={() => void select()}>确认用于故事</Button>
+    </div>}
     <Button variant="danger" disabled={readOnly || busy || rejected || !job.current} onClick={() => void reject()}>拒绝此原片并撤销选择</Button>
     {error && <small className="notice warning" role="status">{error}</small>}
   </section>;

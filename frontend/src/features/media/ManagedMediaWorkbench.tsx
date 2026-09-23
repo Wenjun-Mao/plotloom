@@ -44,6 +44,7 @@ export function ManagedMediaWorkbench({
   readOnly,
   onSelectShot,
   onReview,
+  onEditShot,
   onReturnToBridge,
   draftChanged = false,
 }: {
@@ -62,6 +63,7 @@ export function ManagedMediaWorkbench({
   readOnly: boolean;
   onSelectShot?: (id: string) => void;
   onReview?: () => void;
+  onEditShot?: () => void;
   onReturnToBridge?: () => void;
   draftChanged?: boolean;
 }) {
@@ -312,6 +314,7 @@ export function ManagedMediaWorkbench({
         <Button variant="quiet" onClick={onReview}>
           {currentApproval ? "查看分镜批准" : "前往分镜审核"}
         </Button>
+        <Button variant="quiet" disabled={!selectedShot} onClick={onEditShot}>编辑镜头细节</Button>
       </div>
       {selectedShot && (
         <small>
@@ -324,8 +327,7 @@ export function ManagedMediaWorkbench({
         </div>
       )}
       <div className="shot-workbench-focus">
-        <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择媒体镜头"}</small><strong>{selectedShot?.title || "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div>
-          <nav aria-label="镜头工作流"><a href="#shot-original">原片</a><a href="#shot-segment">调整片段</a><a href="#shot-story-preview">预览</a><a href="#shot-story-preview">用于故事</a></nav></div>
+        <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择媒体镜头"}</small><strong>{selectedShot?.title || "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
         <VideoPilotPanel projectId={projectId} shot={selectedShot} approvalId={review?.activeApproval?.id}
           storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision}
           keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}

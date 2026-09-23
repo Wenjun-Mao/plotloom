@@ -168,7 +168,29 @@ export function StoryboardPage({
   const [pendingShotDeletion, setPendingShotDeletion] = useState<ShotRemovalImpact | null>(null);
   const [issueFocus, setIssueFocus] = useState<StoryboardIssueTarget | null>(null);
   const lastIssueSignature = useRef<string | undefined>(undefined);
+  const storyboardDetails = useRef<HTMLDetailsElement>(null);
+  const approvalActions = useRef<HTMLDetailsElement>(null);
+  const enteredUnapprovedEditing = useRef(false);
+  const reviewProjectId = useRef(projectId);
   const issueSignature = JSON.stringify(issues);
+
+  useEffect(() => {
+    if (reviewProjectId.current !== projectId) {
+      reviewProjectId.current = projectId;
+      enteredUnapprovedEditing.current = false;
+    }
+    if (!review) return;
+    if (!review.activeApproval) {
+      enteredUnapprovedEditing.current = true;
+      if (storyboardDetails.current) storyboardDetails.current.open = true;
+      if (approvalActions.current) approvalActions.current.open = true;
+    } else if (!enteredUnapprovedEditing.current) {
+      // Reopening an already-approved board starts at media review. A creator
+      // who just approved an open edit session does not lose their draft view.
+      if (storyboardDetails.current) storyboardDetails.current.open = false;
+      if (approvalActions.current) approvalActions.current.open = false;
+    }
+  }, [projectId, Boolean(review), review?.activeApproval?.id, review?.gateEvaluation?.gateSetVersion]);
 
   const update = (next: Storyboard | ((current: Storyboard) => Storyboard)) => {
     setStoryboard((current) => {
@@ -181,9 +203,18 @@ export function StoryboardPage({
     setSelectedShotId(shotId);
     onEntitySelect?.(encodeStoryboardEntity({ kind: "shot", shotId }));
   };
+  const revealStoryboardEditor = () => {
+    if (storyboardDetails.current) storyboardDetails.current.open = true;
+    requestAnimationFrame(() => document.getElementById("storyboard-structure")?.scrollIntoView({ block: "start" }));
+  };
+  const editShot = (shotId: string) => {
+    selectShot(shotId);
+    revealStoryboardEditor();
+  };
   const focusIssue = (issue: ValidationIssue) => {
     const target = storyboardIssueTarget(storyboard, issue);
     if (!target) return;
+    if (storyboardDetails.current) storyboardDetails.current.open = true;
     setSelectedShotId(target.entity.shotId);
     onEntitySelect?.(encodeStoryboardEntity(target.entity));
     setIssueFocus(target);
@@ -211,6 +242,7 @@ export function StoryboardPage({
 
   useEffect(() => {
     if (!issueFocus || selectedShotId !== issueFocus.entity.shotId) return;
+    if (storyboardDetails.current) storyboardDetails.current.open = true;
     const key = storyboardFocusKey(issueFocus);
     const target = [...document.querySelectorAll<HTMLElement>("[data-focus-key]")]
       .find((element) => element.dataset.focusKey === key)
@@ -218,8 +250,8 @@ export function StoryboardPage({
         .find((element) => issueFocus.field.includes(".") && element.dataset.focusKey === storyboardFocusKey({ ...issueFocus, field: issueFocus.field.split(".")[0] }))
       ?? [...document.querySelectorAll<HTMLElement>("[data-entity-key]")]
         .find((element) => element.dataset.entityKey === encodeStoryboardEntity(issueFocus.entity));
-    const disclosure = target?.closest("details");
-    if (disclosure) disclosure.open = true;
+    let disclosure = target?.closest("details");
+    while (disclosure) { disclosure.open = true; disclosure = disclosure.parentElement?.closest("details") ?? null; }
     target?.focus();
   }, [issueFocus, selectedShotId]);
 
@@ -345,10 +377,10 @@ export function StoryboardPage({
     const [root, identity] = path;
     if (root === "shots" && identity !== undefined) {
       const target = storyboardIssueEntity(storyboard, { code: "gate", path: `shots.${identity}`, message: "" });
-      if (target) selectShot(target.shotId);
+      if (target) editShot(target.shotId);
     } else if (root === "shotBeatLinks" && identity !== undefined) {
       const target = storyboardIssueEntity(storyboard, { code: "gate", path: `shotBeatLinks.${identity}`, message: "" });
-      if (target) selectShot(target.shotId);
+      if (target) editShot(target.shotId);
     } else if (root === "scenes" && identity !== undefined) {
       onNavigateIssue?.("beats", `scene:${identity}`);
     } else if (root === "beats" && identity !== undefined) {
@@ -367,15 +399,21 @@ export function StoryboardPage({
     {stale && <div className="notice warning"><strong>分镜已过期</strong><span>上游合同发生变化。现有手工镜头仍保留；请审阅差异后从合适阶段重建。</span></div>}
     <div className="notice"><strong>媒体工作流</strong><span>选择镜头后，在下方查看原片、调整并预览片段，再明确决定是否用于故事。关键帧、参考素材与准备步骤可展开；未配置视频后端时仍可查看已有候选。</span></div>
     {unresolvedEntity && <div className="notice warning" role="alert" data-testid="unknown-storyboard-entity">请求的镜头不属于当前分镜；未打开其他镜头。请从镜头列表重新选择。</div>}
-    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={saving} onSelectShot={selectShot} onReturnToBridge={onReturnToBridge} onReview={() => {
-      const panel = document.getElementById("storyboard-review");
-      panel?.scrollIntoView({ block: "start" });
-      panel?.focus({ preventScroll: true });
+    <ManagedMediaWorkbench projectId={projectId} storyboard={storyboard} bible={bible} graph={graph} sceneBeats={sceneBeats} routeId={route?.id} storyboardRevision={revision} storyBibleRevision={storyBibleRevision} mediaDraftsEnabled={mediaDraftsEnabled} draftQuiescence={mediaDraftQuiescence} selectedShot={selectedShot} review={review} draftChanged={JSON.stringify(storyboard) !== JSON.stringify(value)} readOnly={saving} onSelectShot={selectShot} onEditShot={revealStoryboardEditor} onReturnToBridge={onReturnToBridge} onReview={() => {
+      if (storyboardDetails.current) storyboardDetails.current.open = true;
+      if (approvalActions.current) approvalActions.current.open = true;
+      requestAnimationFrame(() => {
+        const panel = document.getElementById("storyboard-review");
+        panel?.scrollIntoView({ block: "start" });
+        panel?.focus({ preventScroll: true });
+      });
     }} />
     {(issues.length > 0 || localError) && <Panel className="issue-summary"><strong>需要修正</strong>{localError && <p role="alert">{localError}</p>}{issues.map((issue) => <button key={`${issue.code}:${issue.path}`} onClick={() => focusIssue(issue)}>{issue.code} · {issue.path}<small>{issue.message}</small></button>)}</Panel>}
 
     {pendingSceneMigration && <ShotMigrationConfirmation impact={pendingSceneMigration} onCancel={() => setPendingSceneMigration(null)} onConfirm={() => { const migration = pendingSceneMigration; update((current) => migrateShotToScene(current, migration.shotId, migration.toSceneId)); setPendingSceneMigration(null); }} />}
     {pendingShotDeletion && <ShotDeletionConfirmation impact={pendingShotDeletion} title={storyboard.shots.find((shot) => shot.id === pendingShotDeletion.shotId)?.title ?? pendingShotDeletion.shotId} onCancel={() => setPendingShotDeletion(null)} onConfirm={confirmShotDeletion} />}
+    <details className="storyboard-editor-disclosure" id="storyboard-structure" ref={storyboardDetails}>
+      <summary>分镜结构与详细编辑 · {storyboard.shots.length} 个镜头</summary>
     <div className="storyboard-layout">
       <div className="shot-groups">
         {!visible.length && <EmptyState title="这条路径没有分镜">切换到“全部场景”或先生成 storyboard 阶段。</EmptyState>}
@@ -385,8 +423,8 @@ export function StoryboardPage({
             {group.shots.map((shot) => {
               const imageTask = mediaTasks[`${shot.id}:image`];
               const shotLinks = storyboard.shotBeatLinks.filter((link) => link.shotId === shot.id);
-              return <article key={shot.id} data-entity-key={encodeStoryboardEntity({ kind: "shot", shotId: shot.id })} className={`shot-card ${shot.id === selectedShotId ? "selected" : ""}`} onClick={() => selectShot(shot.id)}>
-                <button className="shot-select" aria-label={`编辑镜头 ${shot.title}`} onClick={(event) => { event.stopPropagation(); selectShot(shot.id); }}>
+              return <article key={shot.id} data-entity-key={encodeStoryboardEntity({ kind: "shot", shotId: shot.id })} className={`shot-card ${shot.id === selectedShotId ? "selected" : ""}`} onClick={() => editShot(shot.id)}>
+                <button className="shot-select" aria-label={`编辑镜头 ${shot.title}`} onClick={(event) => { event.stopPropagation(); editShot(shot.id); }}>
                   <div className="shot-frame">{imageTask?.outputUri ? <img src={imageTask.outputUri} alt={`${shot.title} 历史关键帧`} /> : <span>{String(shot.order).padStart(2, "0")}</span>}{stale && <Badge tone="warning">STALE</Badge>}</div>
                   <div className="shot-copy"><strong>{shot.title}</strong><small>{shot.shotSize} · {shot.durationUnits}ms · {shotLinks.length} links</small><p>{shot.action}</p></div>
                 </button>
@@ -440,12 +478,16 @@ export function StoryboardPage({
         {!review?.gateEvaluation && <div className="notice"><strong>尚无 Gate receipt</strong><span>保存有效的 V2 分镜后，服务端会原子生成评审门。</span></div>}
         {review?.activeApproval && <div className="notice"><strong>当前批准：{review.activeApproval.reviewer}</strong><span>revision {review.activeApproval.subjectRevision} · {review.activeApproval.createdAt}</span></div>}
         {review?.decisions.length ? <details><summary>Approval 历史 · {review.decisions.length}</summary>{review.decisions.map((closure) => <div className="approval-history" key={closure.decision.id}><strong>{closure.decision.decision.toUpperCase()} · {closure.decision.reviewer}</strong><small>{closure.active ? "ACTIVE" : closure.staleReasons.join("；")}</small></div>)}</details> : null}
-        <Field label="审核人标签" hint="这是本地/私有工作台中的用户标签，不是已认证身份。"><input value={reviewer} onChange={(event) => setReviewer(event.target.value)} /></Field>
-        <Field label="评审备注（可选）"><textarea rows={3} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} /></Field>
-        <div className="button-row"><Button variant="primary" disabled={!reviewer.trim() || stale || !requiredGatesPass || Boolean(review?.activeApproval)} onClick={() => void decide("approve")}>批准当前分镜</Button><Button variant="quiet" disabled={!reviewer.trim() || !review?.activeApproval} onClick={() => void decide("revoke")}>撤销批准</Button></div>
+        <details className="approval-actions" ref={approvalActions}><summary>批准或撤销分镜 · 需填写本地审核人标签</summary>
+          <small>这是对当前分镜版本的独立批准决定，不是播放片段的可选审核记录。</small>
+          <Field label="审核人标签" hint="此标签用于批准记录，必须填写；它不是已认证身份。"><input value={reviewer} onChange={(event) => setReviewer(event.target.value)} /></Field>
+          <Field label="评审备注（可选）"><textarea rows={3} value={reviewNote} onChange={(event) => setReviewNote(event.target.value)} /></Field>
+          <div className="button-row"><Button variant="primary" disabled={!reviewer.trim() || stale || !requiredGatesPass || Boolean(review?.activeApproval)} onClick={() => void decide("approve")}>批准当前分镜</Button><Button variant="quiet" disabled={!reviewer.trim() || !review?.activeApproval} onClick={() => void decide("revoke")}>撤销批准</Button></div>
+        </details>
         <details open={coverage.some((item) => item.primaryShotIds.length !== 1)}><summary>节拍覆盖详情 · {coverage.length} 项</summary><div className="coverage-summary">{coverage.map((item) => <div key={item.beatId}><span>{item.beatId}</span><Badge tone={item.primaryShotIds.length === 1 ? "ok" : "danger"}>PRIMARY {item.primaryShotIds.length}</Badge><small>SUPPORTING {item.supportingShotIds.length}</small></div>)}</div></details>
         {review?.gateEvaluation && <details open={!requiredGatesPass}><summary>质量门详情 · {review.gateEvaluation.results.length} 项 · {requiredGatesPass ? "必需门已通过" : "必需门未通过"}</summary><div className="gate-list">{review.gateEvaluation.results.map((gate) => <button key={gate.id} className={`gate-row ${gate.status}`} onClick={() => navigateGate(gate.entityPath)}><GateStatusBadge status={gate.status} /><span><strong>{gate.gateId}</strong><small>{gate.reason}{gate.entityPath.length ? ` · ${gate.entityPath.join(" › ")}` : ""}</small></span></button>)}</div></details>}
       </Panel>
     </div>
+    </details>
   </div>;
 }

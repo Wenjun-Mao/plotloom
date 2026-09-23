@@ -310,6 +310,14 @@ input[readonly] { color: var(--dim); }
 }
 
 .storyboard-layout { display: grid; grid-template-columns: minmax(0, 1fr) 355px; gap: 14px; margin-top: 14px; align-items: start; }
+.storyboard-editor-disclosure { min-width: 0; margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: rgba(17,21,27,.7); scroll-margin-top: 88px; }
+.storyboard-editor-disclosure > summary { cursor: pointer; color: var(--text); font-size: 14px; font-weight: 700; }
+.storyboard-editor-disclosure:not([open]) > summary { margin: 0; }
+.approval-actions { min-width: 0; padding: 11px 12px; border: 1px solid var(--line); border-radius: 6px; }
+.approval-actions[open] { display: grid; gap: 10px; }
+.approval-actions > summary { cursor: pointer; font-weight: 650; }
+.approval-actions > small { color: var(--muted); line-height: 1.5; }
+#storyboard-review { scroll-margin-top: 88px; }
 .shot-groups { min-width: 0; }
 .shot-group { margin-bottom: 14px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--panel); }
 .shot-group > header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border-bottom: 1px solid var(--line); background: linear-gradient(90deg, rgba(233,180,91,.1), transparent); }
@@ -331,7 +339,7 @@ input[readonly] { color: var(--dim); }
 .media-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; border-top: 1px solid var(--line); }
 .media-controls .button { min-width: 0; padding-inline: 5px; font-size: 10px; }
 .managed-media-workbench { display: grid; grid-template-columns: minmax(0, 1fr); gap: 11px; min-width: 0; margin-top: 14px; }
-#shot-workbench, #shot-original, #shot-segment, #shot-story-preview, #shot-character-references, #shot-keyframe-review { scroll-margin-top: 88px; }
+#shot-workbench, #shot-original, #shot-segment, #shot-story-preview, #shot-character-references, #shot-keyframe-review, #video-production { scroll-margin-top: 88px; }
 .managed-media-workbench > *, .video-pilot-workflow > *, .video-job-card > * { min-width: 0; }
 .shot-workbench-focus { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
 .shot-workbench-heading { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-3); }
@@ -339,8 +347,6 @@ input[readonly] { color: var(--dim); }
 .shot-workbench-heading small, .shot-workbench-heading strong { display: block; }
 .shot-workbench-heading strong { margin-top: 4px; font-size: 20px; }
 .shot-workbench-heading p { margin: 5px 0 0; color: var(--muted); line-height: 1.45; overflow-wrap: anywhere; }
-.shot-workbench-heading nav { display: flex; flex-wrap: wrap; gap: 7px; }
-.shot-workbench-heading nav a { padding: 7px 10px; border: 1px solid var(--line); border-radius: 5px; color: var(--text); text-decoration: none; }
 .workbench-support, .video-production, .video-technical-history, .review-annotations { min-width: 0; padding: 11px 13px; border: 1px solid var(--line); border-radius: 7px; }
 .workbench-support > summary, .video-production > summary, .video-technical-history > summary, .review-annotations > summary { cursor: pointer; color: var(--text); font-weight: 650; }
 .workbench-support[open] > summary, .video-production[open] > summary, .video-technical-history[open] > summary, .review-annotations[open] > summary { margin-bottom: 14px; }
@@ -352,6 +358,12 @@ input[readonly] { color: var(--dim); }
 .video-workflow-header strong, .story-playback-section > strong { font-size: 17px; }
 .video-workflow-header small, .story-playback-section > small { color: var(--muted); line-height: 1.5; }
 .video-workflow-header .video-next-action { color: var(--accent); font-weight: 650; }
+.video-workflow-nav { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 7px; }
+.video-workflow-nav a, .video-workflow-nav span { padding: 7px 10px; border: 1px solid var(--line); border-radius: 5px; color: var(--text); text-decoration: none; }
+.video-workflow-nav span[aria-disabled="true"] { color: var(--dim); border-style: dashed; }
+.segment-preview-step, .segment-confirm-step { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; gap: 8px; min-width: 0; }
+.segment-preview-step small, .segment-confirm-step small { display: block; color: var(--muted); line-height: 1.5; }
+.segment-preview-step, .segment-confirm-step { scroll-margin-top: 88px; }
 .video-job-card, .story-playback-section { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; min-width: 0; padding: 15px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-3); }
 .video-job-card > header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
 .video-job-card > header span { color: var(--accent); }
