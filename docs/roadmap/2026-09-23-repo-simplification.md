@@ -1,22 +1,36 @@
-# Repository simplification tracker
+# Repository simplification: bounded tracking plan
 
-Status: candidate backlog, 2026-09-23. This is not approval to delete code, change product contracts, or bundle cleanup into the shot-count policy slice.
+Status: approved to track and reconcile, **not** blanket approval to delete code or redesign contracts. Current stable comparison point: local `main` at `f867eb0` (2026-09-23). The roadmap [entrypoint](README.md) remains the delivery authority; this page does not change product priorities.
 
-## Evidence and decision rule
+## Source manifest and first gate
 
-The outside audits in `/Users/wjmao/Downloads/plotloom simplifications/` examined an earlier revision. Their findings are leads, not current-main facts. Before each change, recheck reachability and ownership on current `main`, name the behavior that must remain, choose a bounded slice, and record any contract decision in an ADR. A reduction in supported paths and independent rule owners matters more than line count. Preserve current user-valued assets, recovery, dispatch safety, credentials, and all still-supported generation/repair flows.
+The four untouched source files are in `/Users/wjmao/Downloads/plotloom simplifications/`:
 
-## Candidate sequence
+| Source filename | Evidence baseline | Use |
+| --- | --- | --- |
+| `2026-09-18-codebase-simplification-audit.md` | `4676a9d` | F1–F27 and amended dispositions, not current-main facts |
+| `2026-09-18-adr-review.md` | companion to `4676a9d` | A1–A16 and amended authority findings |
+| `2026-09-19-plotloom-simplification-adr-independent-audit.md` | `72edb23c3a823eb0623bf71dc2d16fb515654f37` | SIM-01–04 and ADR-SIM-01/02, independently checked at that revision |
+| `2026-09-19-plotloom-simplification-adr-insertions.md` | `72edb23c3a823eb0623bf71dc2d16fb515654f37` | Copy-ready wording for the same SIM/ADR-SIM additions; **not another independent set of findings** |
 
-- [ ] Run existing CI and installed-wheel/browser gates against the shipped artifact; resolve current-main failures first (audit F1, F21, S1).
-- [ ] Make the two scoped ADR clarifications: authored stable IDs versus record UUIDs (ADR 0004), and server-owned durable draft receipts versus browser buffers (ADR 0014). Preserve historical context rather than rewriting it (independent ADR-SIM-01/02).
-- [ ] Characterize and retire the unused provider container/interface family and startup auto-dispatch helper in separate changes. Keep active startup recovery and relevant regression tests (independent SIM-01/02).
-- [ ] Review residual modules, unreachable tables, imports, compatibility shims, and duplicated build entrypoints symbol by symbol. Remove only proven dead paths with focused tests; do not treat an old audit inventory as deletion authority (audit F5–F7, F20–F24, S2–S3).
-- [ ] Replace frontend old/new-storage capability branching with one explicit current-runtime initialization contract. Test delayed, failed, malformed and retrying capability responses, draft persistence failure, new-project state, project switching, server-draft restoration, two-tab CAS, close draining, and snapshots (independent SIM-03).
-- [ ] Characterize identity-critical duplication before extraction: fresh V3 profile assembly, canonical JSON/hash ownership, schema presence, and generated type ownership. Share only pure rules; retain distinct read/write and frozen-profile boundaries (audit F13–F15, S5, S11; independent SIM-04).
-- [ ] Triage broader review-route, correction, and frontend render duplication as separate design work, not a blanket generic-framework pass (audit F16–F19, F22, S7, S10, S12).
-- [ ] Build an ADR index and reconcile specific live claims and supersession links in bounded documentation changes. Treat conflicting ADR claims as decisions to resolve, not wording-only cleanup (ADR audit A1–A16, S1–S10).
+- [ ] Reconcile every proposed slice against `f867eb0` before implementation: exact surviving symbol/caller, current contract owner, behavior to preserve, tests and shipped-artifact check, and whether the finding was corrected or withdrawn by audit amendments. Keep unresolved items as investigate/defer. Recheck after any intervening main change. The spot checks below are preliminary, not that completed reconciliation.
 
-## Explicit deferrals
+## Approved small tracks
 
-Do not retire the current generation pipeline until replacement ownership is proven. Do not conflate read-only profile loading with writable repositories, delete all false capability branches blindly, rekey authored IDs, or fold H3 gateway extraction, security findings, acceptance-tool relocation, and platform bugs into these slices. The outside reports retain their detailed evidence and rejected alternatives; this page is only the local navigation and stopping checklist.
+| Track | Preliminary finding disposition | Primary dependency and owner | Next bounded action / stop |
+| --- | --- | --- | --- |
+| **A — documentation authority** | ADR-SIM-01/02 are scoped candidates; A1/A2/A4/A8 require current-authority triage, not wholesale ADR rewriting. `docs/adr/README.md` is still absent; ADR 0004 still says UUID-only, while ADR 0014 still has browser-provisional draft prose. | Reconciliation first; documentation owner with director deciding any contested live contract. | Annotate only live authority and scoped supersession: record IDs vs authored stable IDs; durable draft receipt vs provisional browser buffer; preserve explicit canonical Save and historical text. Stop before changing schema, IDs, or persistence. |
+| **B — narrow verification tooling** | F1 remains true in one respect: CI is `workflow_dispatch` only. Existing CI already builds the bundle, runs Python/frontend/E2E, and smokes a wheel, so do not describe those gates as absent. F20/F21 are instrumentation/build-entrypoint leads, not cleanup authorization. Ruff/ESLint are still absent from checked manifests. | Reconciliation and a stable shipped-artifact browser baseline; engineering owns tooling, director owns any change to automatic CI triggers. | Propose a small lint gate and a recurring browser check of the actual shipped artifact, with bounded failure triage. Keep automatic push/PR CI triggers as a **separate explicit decision**. Stop before mass autofix, broad import deletion, or build-system replacement. |
+| **C — proven retirements** | SIM-01/02 remain plausible: `RunContext.providers` and empty `ProviderPorts()` callers still exist; `recover_runtime_jobs` still has only its two old helper tests as observed callers. Neither is yet proven safe to remove on current main. | Per-symbol consumer/export/packaging check; engineering owns each separate patch and its focused regressions. | First characterize the provider bag, then separately the startup helper; preserve real provider resolution, `GenerationEngine`, artifact context, active startup reconciliation, recovery/acknowledgment, and the third lifespan test. Stop if an active consumer or contract appears. |
+
+## Investigate or defer; no implementation approval here
+
+| Finding group | Preliminary disposition and next authority |
+| --- | --- |
+| SIM-03 / old-new storage capability switches | **Defer contract redesign.** False states still encode loading, failure, retry, and unsaved-project behavior; director must approve an initialization contract and test matrix before any branch removal. |
+| SIM-04, F13–F15 / V3 profile, hashes, schema presence | **Investigate identity rules.** Only pure construction that preserves frozen profile versions, read-only loaders, credential admission, and distinct validation policies may be proposed later. |
+| F3–F4, F17 / migration and historical readers | **Defer deletion.** Prove present write/read populations and restore obligations first; do not infer dead code from a static search or reset user-valued data. |
+| F5–F7, F9–F12, F16–F19, F22–F27 / broad residuals and clones | **Inventory only.** Each symbol needs its own current consumer, safety, and product-boundary decision; no umbrella cleanup assignment. The optional F24 `projectIdFromLocation` candidate and duplicate draft-key helper remain small checks, not a new framework. |
+| H3, security, platform, acceptance-tool relocation, old pipeline retirement | **Out of this track.** Keep their existing owners and gates; the source reports explicitly do not authorize bundling them here. |
+
+Completion of this tracker means decisions are navigable and each approved small slice has its own evidence and checks. It does not mean the audit's suggested sequence has been implemented or that a shorter codebase is itself a product outcome.

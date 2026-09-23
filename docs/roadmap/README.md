@@ -39,8 +39,9 @@ The prior authorized ImageGen proof is complete; it authorizes no further
 provider calls.
 
 A separate [repository simplification tracker](2026-09-23-repo-simplification.md)
-lists audit leads and bounded verification obligations; it does not authorize
-cleanup inside active product slices.
+first reconciles older audit leads against current main, then bounds any work
+to documentation authority, narrow verification tooling, and individually
+proven retirements. It does not authorize broad cleanup or contract redesign.
 
 ## Archive index
 

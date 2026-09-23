@@ -4,6 +4,14 @@
 
 This is implementation verification, not creative/media acceptance. The retained `暴风灯塔` U4 original and the prior live-intent source trial were not edited. A third isolated installation, `.local/relay/shot-policy-u4-trial/`, was restored from the original public snapshot `b267032e-1290-4819-859e-bb8e94dfc0ab` with the U4-era supported restore tool, then opened by current code. The original project retained Brief r1, accepted source-map graph r1, cast r1, art r1, script r2, and source storyboard review r2. The current runtime served the isolated copy at `127.0.0.1:8822`; no provider or media dispatch was made.
 
+### Preview service lifetime (2026-09-23 follow-up)
+
+The first `8822` preview was a turn-owned terminal process. Stopping that terminal session stopped its Uvicorn listener, so a later direct browser open returned `ERR_CONNECTION_REFUSED`; this was a service-lifetime problem, not lost project data or a failed bridge. The isolated copy is now served by the user's macOS LaunchAgent `com.plotloom.shot-policy-u4-preview` (`RunAtLoad` and `KeepAlive`), with no provider dispatch configuration. Its plist is `/Users/wjmao/Library/LaunchAgents/com.plotloom.shot-policy-u4-preview.plist`; its entrypoint and logs live only under `.local/relay/shot-policy-u4-trial/`. At verification, `launchctl print gui/501/com.plotloom.shot-policy-u4-preview` showed `state = running`, PID `32246`, and `lsof` showed that PID listening on `127.0.0.1:8822`. The exact browser URL opened successfully with the confirmed r2/27-cut proposal:
+
+`http://127.0.0.1:8822/v2/?project=fbb913c8-534b-4439-ba68-211e70ec743d&stage=source#storyboard-review`
+
+On this host, start an unloaded preview with `launchctl bootstrap gui/501 /Users/wjmao/Library/LaunchAgents/com.plotloom.shot-policy-u4-preview.plist`; inspect it with `launchctl print gui/501/com.plotloom.shot-policy-u4-preview`; stop only this preview with `launchctl bootout gui/501 /Users/wjmao/Library/LaunchAgents/com.plotloom.shot-policy-u4-preview.plist`. Stopping it does not delete or reset the isolated project. The LaunchAgent remains loaded for handoff. The isolated database still contains **zero** bridge intent jobs and **zero** media tasks; the accepted proposal remains r2 with hash `e22ef5e5ee815781c3836d04e8b56715fe034aca80c38011e4575f301da6d7b1`.
+
 The public Brief API changed only `shotCountPolicy` from legacy strict to explicit advisory, retaining the 2–4 preference and every other Brief field. The Brief became r2. Source-map graph admission remained `current`; cast, art, script, and F5 source review remained `accepted` with no stale reasons. The canonical graph stayed ready. This is a policy edit, not a rewrite of F1–F5 source evidence.
 
 ## Exact bridge transaction
