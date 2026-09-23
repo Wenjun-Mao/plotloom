@@ -20,9 +20,21 @@ The U0/U1 navigation and workflow assessment is complete historical planning;
 the bounded U1a implementation is accepted at `94cf165`. The retained U4
 lighthouse walkthrough received connected, read-only usability acceptance at
 `a869e7c`, recorded in its verification receipt. Neither acceptance authorizes
-provider or generation work. The next F5-to-production/F7 activity is the
-documented canonical bridge: a reviewable proposal and explicit atomic install,
-with no implied approval, reference selection, or provider dispatch.
+provider or generation work. At that checkpoint, the next F5-to-production/F7
+activity was the documented canonical bridge: a reviewable proposal and explicit
+atomic install, with no implied approval, reference selection, or provider
+dispatch. The isolated-copy result is recorded below.
+
+**Isolated U4 production-readiness diagnosis (2026-09-23).** The
+[read-only walkthrough](../verification/2026-09-23-u4-production-readiness-walkthrough.md)
+confirms a current, installed 27-shot bridge in the isolated copy, but no
+storyboard Approval, selected references/keyframes, media jobs or playable
+routes. The accepted bridge gives no shot-specific handoff into the canonical
+workbench. Twenty-six exact 6-second F5 cuts conflict with H3's presently
+qualified 5/8-second contract; no silent retiming or provider dispatch is
+authorized. A bounded candidate next slice is a read-only, shot-specific
+handoff and preparation-status display in the existing owners. Production
+duration policy and F6/F7 quality/selection need separate decisions and proof.
 
 **Simulated bridge wording follow-up (2026-09-22).** The director found the
 simulated flow fairly clear and requested “确认投产提案” for the action,
