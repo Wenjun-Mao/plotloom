@@ -8,7 +8,7 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
 
-from ..creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
+from ..creative_handoff_contracts import CreativeHandoffRequest
 from ..source_outline_contracts import (
     OutlineAcceptRequest,
     OutlineCandidate,

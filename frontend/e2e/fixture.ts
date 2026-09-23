@@ -23,6 +23,8 @@ export type Workbench = {
   restartBackend: (overrides?: NodeJS.ProcessEnv) => Promise<void>;
 };
 
+type FrontendMode = "vite" | "checked-static";
+
 type WorkbenchWorkerFixtures = {
   workbench: Workbench;
 };
@@ -36,19 +38,22 @@ type ManagedProcess = {
 // Every browser journey starts the shipped project-folder composition. The
 // typed offline H3 transport is the only provider seam; it cannot choose an
 // alternate persistence model or route surface.
-export const test = createWorkbenchTest();
+export const test = createWorkbenchTest("vite");
+export const checkedStaticTest = createWorkbenchTest("checked-static");
 
-function createWorkbenchTest() {
+function createWorkbenchTest(frontendMode: FrontendMode) {
   return base.extend<{}, WorkbenchWorkerFixtures>({
   workbench: [async ({}, use) => {
     const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "plotloom-e2e-"));
     const outputsRoot = path.join(temporaryRoot, "outputs");
     const applicationDataRoot = path.join(temporaryRoot, "application");
     const backendPort = await reserveLoopbackPort();
-    const frontendPort = await reserveLoopbackPort();
+    const frontendPort = frontendMode === "vite" ? await reserveLoopbackPort() : undefined;
     const providerPort = await reserveLoopbackPort();
     const apiOrigin = `http://${loopbackHost}:${backendPort}`;
-    const frontendOrigin = `http://${loopbackHost}:${frontendPort}`;
+    const frontendOrigin = frontendPort
+      ? `http://${loopbackHost}:${frontendPort}`
+      : apiOrigin;
     const providerOrigin = `http://${loopbackHost}:${providerPort}`;
     const provider = startProcess(
       "external OpenAI-compatible fake",
@@ -78,21 +83,27 @@ function createWorkbenchTest() {
       await mkdir(applicationDataRoot, { recursive: true });
       await waitForHttp(`${providerOrigin}/control/status`, provider);
       await waitForHttp(`${apiOrigin}/openapi.json`, backend);
-      frontend = startProcess(
-        "Vite",
-        "npm",
-        [
-          "run",
-          "dev",
-          "--",
-          "--port",
-          String(frontendPort),
-          "--strictPort",
-        ],
-        { PLOTLOOM_API_ORIGIN: apiOrigin },
-        frontendRoot,
-      );
-      await waitForHttp(`${frontendOrigin}/v2/`, frontend);
+      if (frontendPort) {
+        frontend = startProcess(
+          "Vite",
+          "npm",
+          [
+            "run",
+            "dev",
+            "--",
+            "--port",
+            String(frontendPort),
+            "--strictPort",
+          ],
+          { PLOTLOOM_API_ORIGIN: apiOrigin },
+          frontendRoot,
+        );
+        await waitForHttp(`${frontendOrigin}/v2/`, frontend);
+      } else {
+        // Exercise the same static mount used by the source-checkout runtime,
+        // with no dev-server fallback in this fixture mode.
+        await waitForHttp(`${frontendOrigin}/v2/`, backend);
+      }
       await use({
         apiOrigin,
         frontendOrigin,

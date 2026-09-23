@@ -136,8 +136,9 @@ def main() -> None:
             }
             assert scripts["plotloom"] == "plotloom.runtime:main"
             assert set(PromptRepository().list_ids()) == {
-                "media_image", "media_video", "repair_json", "scene_beats",
-                "scene_beats_fragment", "story_bible", "story_graph",
+                "media_image", "media_video", "production_bridge_intent",
+                "repair_json", "scene_beats", "scene_beats_fragment",
+                "story_bible", "story_graph",
                 "story_graph_content_fill", "storyboard", "storyboard_fragment",
                 "work_unit_correction",
             }

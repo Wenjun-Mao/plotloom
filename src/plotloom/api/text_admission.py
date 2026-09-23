@@ -18,7 +18,6 @@ from ..provider_profiles import (
     DEFAULT_PROVIDER_PROFILE_ID,
     PresetId,
     TextProviderProfile,
-    TextProviderProfileSnapshot,
     TextProviderProfileSnapshotV3,
     preset_values,
 )

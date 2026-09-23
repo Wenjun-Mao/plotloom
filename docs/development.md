@@ -280,22 +280,57 @@ The operator and maintainer entry point is the
 ## Verification order
 
 ```sh
+uv lock --check
+uv run ruff check src/plotloom/api --select F401
 uv run pytest -q
 npm --prefix frontend test
 npm --prefix frontend run typecheck
-npm --prefix frontend run build
+npm --prefix frontend run build:deterministic
 git diff --exit-code -- src/plotloom/static
 npm --prefix frontend run test:e2e
-uv build --wheel
-uv run python scripts/smoke_installed_wheel.py dist
+wheel_dir="$(mktemp -d /tmp/plotloom-wheel.XXXXXX)"
+uv build --wheel --out-dir "$wheel_dir"
+uv run python scripts/smoke_installed_wheel.py "$wheel_dir"
 ```
 
 The E2E fixture uses temporary SQLite and artifact storage, empties provider keys, and never contacts a live provider. Install Chromium once with `cd frontend && npx playwright install chromium`.
 
 The distribution contract builds and probes a wheel in isolation. It verifies
-that all eleven prompt templates, the production UI, the current migration
+that all twelve prompt templates, the production UI, the current migration
 head, LICENSE, and NOTICE are packaged, and that an installed release ignores
 an unrelated working-directory `.env`.
+
+### Checked static bundle browser smoke
+
+The `checked-static` E2E fixture serves `src/plotloom/static/` through the
+source checkout's FastAPI `/v2/` mount and does not start Vite. The shipped
+static smoke observes same-origin JavaScript and CSS responses, browser
+request failures and page errors, then saves a Brief from the sample project
+and verifies it after reload. Its counterfactual coverage injects missing
+JavaScript and CSS responses in the test page without editing the built files.
+All test projects, databases and provider fakes remain in the fixture's
+disposable roots.
+
+Run the focused source-static check with:
+
+```sh
+npm --prefix frontend run build:deterministic
+git diff --exit-code -- src/plotloom/static
+e2e_output="$(mktemp -d /tmp/plotloom-static-e2e.XXXXXX)"
+npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/static" e2e/shipped-static.spec.ts
+npm --prefix frontend run test:e2e -- --workers=1 --output="$e2e_output/vite" e2e/production-bridge-shot-handoff.spec.ts
+```
+
+This browser smoke checks the source checkout's checked bundle. The installed-
+wheel smoke separately checks package contents and startup outside the source
+tree; it does not execute the installed JavaScript or CSS in a browser. The
+two checks cover different distribution boundaries. Existing Playwright specs
+continue to use Vite unless a spec opts into `checked-static`.
+
+Ruff is pinned in the dev dependency group. CI runs only
+`uv run ruff check src/plotloom/api --select F401`; do not broaden this gate,
+apply Ruff autofixes, or add automatic workflow triggers as part of this
+verification slice. See [ADR 0081](adr/0081-narrow-source-static-and-api-lint-checks.md).
 
 ## Live profile conformance
 
