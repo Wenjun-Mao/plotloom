@@ -204,3 +204,33 @@ synthetic technical exercise only, not real H3 output or creative/media
 acceptance. The persistent service has provider dispatch disabled; the focused
 E2E uses its offline fake gateway, and no external or paid provider was called.
 No protected data was changed, and nothing was pushed.
+
+## In-app browser playback follow-up (2026-09-23)
+
+The exercise project's opening job retained its earlier proposals and prepared
+an additional `[12,156)` segment, `0800b0b1-e601-44f3-8f20-21891b1c509d`
+(144 frames, six seconds). After technical playback review in headed Chromium,
+the UI explicitly selected this segment as revision 3. Its derivative SHA-256
+is `6418ccb5164dfe5ce2b0ae4484e32021a9910257bc7b87cfdddb98db9051da99`;
+the `/playback` response matched it, while the original remained at the
+eight-second hash recorded above. The prior `[48,192)` proposal remains in
+history and is no longer selected. The ready project's opening remains current,
+unselected, and without a segment; its ending selection remains intact.
+
+The Codex in-app browser tab crashed when its accessibility action clicked the
+native HTML video Play control. This reproduced with both the new and earlier
+derivatives in the full workbench and with a single video on the story player.
+It did not depend on the new derivative: both MP4s decoded fully with `ffmpeg`,
+had the same H.264 High/yuv420p and AAC-LC stream profile, and the new media URL
+reached `ended` at six seconds in the standalone in-app player. The service
+recorded no exception or restart. A pointer click on the same native control
+played the workbench preview to `ended` at six seconds, unmuted, in the in-app
+browser. Pointer and page-level Play controls also completed the story route
+there; headed Chromium completed the preview and route as well. This isolates
+the reproducible trigger to the in-app browser's accessibility action on a
+native video control. The host's internal renderer failure remains unexplained;
+no Plotloom media, validation, or playback code was changed to mask it.
+
+The exercise selection carries a synthetic technical note documenting this
+limitation. It is not creative or media-quality acceptance. No external provider
+was called and no protected project or the 8824 service was changed.
