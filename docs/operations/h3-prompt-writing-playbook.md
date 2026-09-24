@@ -66,9 +66,9 @@ The [complete offline compiled prompt and source mapping](../verification/2026-0
 | Observed | In B the director identified the extra spoken sentence as the canonical Chinese action. The stronger “only vocal utterance” soundscape condition did not resolve it. | [A/B receipt](../verification/2026-09-24-u4-h3-vocal-control-comparison.md); both originals and six-second proposals remain unselected. |
 | Contract mismatch | Both trial prompts put Chinese action and voice directions outside `<d>`, contrary to the official English rewrite rule. | Exact frozen prompts in the two retained jobs; [ADR 0083](../adr/0083-h3-single-image-prompt-contract.md). |
 | Hypothesis | The model treated a Chinese direction as something to speak. | The observed utterance matches source action, but this is not proof of model mechanism. |
-| Unverified | Reviewed English directions may reduce the extra speech while preserving the intended line and image action. | One bounded C clip exists; human listening and visual story review are still required. |
+| Partly observed | In C's full original, the director heard no extra spoken action and a clear, complete intended line. Its visual story fidelity and the effect of this prompt across seeds or shots remain unverified. | [C trial and later director report](../verification/2026-09-24-u4-h3-reviewed-english-trial.md); one seed cannot establish a general model mechanism. |
 | Observed | One reviewed-English v3 trial ingested an eight-second H.264/AAC original and an exact six-second proposed segment using the same keyframe and request controls. Both remain unselected. | [C trial receipt](../verification/2026-09-24-u4-h3-reviewed-english-trial.md); technical delivery and browser media readiness only. |
-| Pending director review | Whether C omits the extra spoken action sentence, preserves intelligible intended dialogue, and visually communicates the undecided fuse placement. | Listen to C's full original and six-second proposal, including boundaries; the agent could not assess Mandarin audio. |
+| Observed; selection pending | The C original has the intended complete line; the 0–6-second proposal cuts it after “一枚，”. The director confirmed the later 2–8-second proposal keeps the complete speech. | The later proposal remains unselected. Opening action, sound boundaries, visual fidelity and whole-shot acceptance are open. The agent did not independently hear or transcribe Mandarin audio. |
 
 The vocal-control comparison instruction is retired for new trials. Historical
 job B retains its exact frozen text for audit. Revisit prompt advice only after
@@ -84,8 +84,9 @@ dialogue observation, not general model qualification or full visual acceptance.
 The director also reported that the `[0,144)` preview stopped after “一枚，”.
 Duration/decoder validation therefore did not establish a usable dialogue edit.
 A later `[48,192)` (2–8 seconds) proposal preserves the original ending but
-removes its first two seconds; dialogue onset, opening action and sound boundaries
-still need listening/visual review. Neither proposal is selected.
+removes its first two seconds. The director confirmed complete speech in that
+later proposal; opening action, sound boundaries and visual fidelity still need
+review. Neither proposal is selected.
 
 A/B/C all froze seed `20260923`, not `42`, to hold that variable constant.
 Recommended experiment discipline: keep the seed fixed when comparing prompt

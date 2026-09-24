@@ -270,10 +270,13 @@ production shots/media. U1–U4 must not conceal that missing connection. A late
 bounded F7 design selects reuse/replacement of current media consumers without
 reconstructing obsolete Bible/SceneBeats merely to satisfy old shapes.
 
-**H3 optimization:** retain the user's failed dialogue review and exhausted
-two-submit budget. Before another experiment, inspect official H3 guidance and
-pinned Shuohao prompt alignment. Extra speech, subtitles and voice consistency
-remain separate from UI work. No speculative TTS/lip-sync system.
+**H3 optimization (historical U-plan boundary, 2026-09-18):** the two-submit
+F6 budget and failed dialogue review were the state at this plan's approval.
+Later source-bound H3 guidance, the U4 C trial, director listening and the
+current bounded production experiment are tracked by the
+[playable MVP milestones](2026-09-17-playable-mvp-milestones.md). This U-plan
+does not authorize media work. Extra speech, subtitles and voice consistency
+remain separate from UI work; no speculative TTS/lip-sync system.
 
 ## Authority and stop conditions
 

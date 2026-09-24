@@ -7,7 +7,25 @@ single current tracker; bounded implementation assignments remain director-owned
 decision. [Revision 3 history](archive/superseded/2026-09-17-playable-mvp-milestones-r3-history.md) preserves
 earlier scope and evidence, not the current assignment queue.
 
-## Current review pause
+## Now / Next / Later · 2026-09-24
+
+- **Now:** Reconcile the C listening evidence and run at most one H3 opening-shot
+  variation with a distinct explicit seed, all other reviewed C inputs held
+  constant in a fresh isolated copy. Review its original and any proposed
+  segment with the director before another H3 submission.
+- **Next:** If that review supports a sequence, prepare the canonical adjacent
+  `opening-s1-c2` shot with its own reviewed keyframe and guide-compliant prompt.
+  It has the same speaker C01 and line “主灯，或者码头。”; at most one adjacent H3
+  submission is in scope, after separate prompt and first-frame review.
+- **Later:** Decide audiovisual selection and whether the short real sequence
+  meets creative and voice-continuity goals. The other route cuts and wider F6/F7
+  qualification remain open.
+
+The dated checkpoint ledger below preserves earlier phase-specific exclusions,
+model choices and push instructions as history. This current assignment and its
+explicit stop points govern the bounded experiment.
+
+## Dated checkpoint ledger
 
 The attended walkthrough has delivered bounded presentation slices: the U2
 route-focused reader, the U3 Characters appearance workspace, and the F3B
@@ -91,7 +109,7 @@ selection remains open for attended director audition; other route cuts have
 no playable media.
 
 **U4 H3 prompt correction (bounded implementation and one live C trial,
-2026-09-24; director listening pending).** The director identified B's extra sentence as the canonical
+2026-09-24; partial director listening complete).** The director identified B's extra sentence as the canonical
 Chinese action, so the stronger “only vocal utterance” comparison condition
 is retired for new trials. The official [H3 single-image guide](https://github.com/MiniMax-AI/MiniMax-H3/blob/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/SKILL.md)
 requires English rewritten directions while keeping dialogue and visible text
@@ -101,10 +119,26 @@ immutable. The [living playbook](../operations/h3-prompt-writing-playbook.md)
 and [offline complete-prompt evidence](../verification/2026-09-24-h3-reviewed-directions-offline.md)
 record current guidance and its proposed rendering. The separately authorized
 [C trial](../verification/2026-09-24-u4-h3-reviewed-english-trial.md) matched
-that prompt and ingested one original plus an unselected exact six-second
-proposal in a fresh isolated copy. Next: the director listens to both C media
-versions before any selection. No claim that the speech defect or F6
-qualification is resolved.
+that prompt and ingested one original plus two unselected exact six-second
+proposals in a fresh isolated copy. The director heard no extra spoken action
+sentence and a clear, complete “一枚，只够一边。” in the original; the original
+0–6-second proposal cuts the line after “一枚，”. The later 2–8-second proposal
+preserves the complete speech, per the director's subsequent listening. Its
+opening-action and sound boundaries, visual story fidelity, and whole-shot
+acceptance remain open. No segment is selected and F6 cross-clip voice
+consistency remains unqualified.
+
+**Current bounded production experiment — 2026-09-24.** With the same reviewed
+C prompt, first-frame PNG, profile, crop, eight-second/192-frame/24-fps
+960×544 request and native audio, prepare one new, explicitly recorded seed
+variation in a fresh isolated supported copy. Inspect its original and any
+proposed segment with sound before considering one adjacent shot containing
+the same speaker. That shot needs its own accepted source, reviewed first
+frame, dialogue and prompt; preserve the source order and cut ownership.
+At most one C variation and one adjacent H3 submission are in this slice,
+without blind retries, automatic selection or creative acceptance. Stop for
+director listening and review at each media boundary. The intended outcome is
+a short real sequence, not production of all 27 route cuts.
 
 **Simulated bridge wording follow-up (2026-09-22).** The director found the
 simulated flow fairly clear and requested “确认投产提案” for the action,
@@ -269,7 +303,7 @@ dependencies, not a rigid waterfall. Each delivery updates this table.
 
 - **Evidence:** retain both F6 clips unselected. The user's review rejects the corrected clip for extra speech and unwanted repeated subtitles; do not reinterpret it as a transport failure or accepted native dialogue.
 - **Prompt alignment:** MiniMax's pinned [H3 skill](https://github.com/MiniMax-AI/MiniMax-H3/blob/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/SKILL.md) and [base guide](https://github.com/MiniMax-AI/MiniMax-H3/blob/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/references/base-en.txt) now govern the single-image prompt contract; see the [living playbook](../operations/h3-prompt-writing-playbook.md). Do not reuse unreviewed Chinese non-dialogue directions or the failed vocal-control condition.
-- **Experiment:** the separately authorized bounded U4 C trial used a guide-compliant reviewed English-direction prompt with verbatim Chinese dialogue. Its technical [receipt](../verification/2026-09-24-u4-h3-reviewed-english-trial.md) is complete; dialogue quality and mechanism remain unproven pending director listening. This roadmap entry authorizes no further generation.
+- **Experiment:** the separately authorized U4 C trial used a guide-compliant reviewed English-direction prompt with verbatim Chinese dialogue. Its technical [receipt](../verification/2026-09-24-u4-h3-reviewed-english-trial.md) and subsequent director listening establish the narrow original-line observation above, not a general mechanism or audiovisual qualification. The current bounded seed/adjacent-shot assignment is recorded in the current review pause; this historical F6 separation does not enlarge it.
 - **Product review:** keep regenerate/compare/select/discard in F7's existing candidate workflow; prompt improvement does not remove human acceptance.
 - **Fallback decision:** if bounded evidence shows native speech remains unsuitable, separately assess controlled audio. Do not build a speculative TTS/lip-sync stack or redesign the text pipeline now. Cross-clip voice consistency remains an independent unmet gate.
 
