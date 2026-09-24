@@ -76,7 +76,28 @@ the guide-compliant C audiovisual review; if that result
 still fails, a focused external consultation can evaluate prompt and media
 evidence without inventing a mechanism.
 
-## Promotion into a repo skill
+## C listening follow-up and seed experiments · 2026-09-24
+
+The director heard no extra spoken action sentence in C's full original and
+confirmed that “一枚，只够一边。” was clear and complete. This is one successful
+dialogue observation, not general model qualification or full visual acceptance.
+The director also reported that the `[0,144)` preview stopped after “一枚，”.
+Duration/decoder validation therefore did not establish a usable dialogue edit.
+A later `[48,192)` (2–8 seconds) proposal preserves the original ending but
+removes its first two seconds; dialogue onset, opening action and sound boundaries
+still need listening/visual review. Neither proposal is selected.
+
+A/B/C all froze seed `20260923`, not `42`, to hold that variable constant.
+Recommended experiment discipline: keep the seed fixed when comparing prompt
+changes; for a distinct variation, explicitly freeze and record a new seed while
+holding prompt, keyframe and other settings constant. Do not infer a universally
+good/bad seed from one shot, or silently change it when retrying an uncertain job.
+The current review UI initializes a random seed and holds it throughout a
+source-review session; it does not promise a fresh seed on every repeated freeze.
+An explicit “new variation / same seed” control is a possible follow-up, not
+implemented by this note. No additional generation accompanied this update.
+
+## Promotion into a repo skill (criteria)
 
 Keep this playbook as the single knowledge source. A future thin repo skill may
 point to it once agents can repeat the review and one or more representative

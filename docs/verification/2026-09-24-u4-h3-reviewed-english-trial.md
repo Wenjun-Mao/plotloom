@@ -29,4 +29,26 @@ No agent or manager listened to and transcribed the Mandarin track. The director
 
 ## Verification and provenance
 
+### Subsequent director listening and later segment · 2026-09-24
+
+The director confirmed that C's full original has no extra spoken action sentence
+and the intended line is clear and complete. The earlier `[0,144)` preview,
+however, cuts the line after “一枚，”. The pending-review statements above describe
+the initial handoff; this later report supersedes them only for those observations.
+
+At the director's request, the supported segment endpoint created an additional
+unselected `[48,192)` candidate (2–8 seconds), ID
+`91f937bb-34b7-40c8-a113-767c54cc4ac7`, SHA-256
+`14353aa9ec3e06fbb3ef02603f229872365e5ddbbcbfe7d065a46693e928f69d`.
+The derivative probe reports 144 frames at 24 fps and 192,000 audio samples at
+32 kHz. Browser media readiness reports six seconds and no media error.
+It retains the original ending at the cost of the first two seconds; complete
+dialogue onset, action and sound boundaries remain unverified by agent listening.
+The earlier candidate and original remain preserved, selection revision stays 0,
+and no H3 or ImageGen call occurred.
+
+[Listen to the later six-second candidate](http://127.0.0.1:8835/api/v2/projects/fbb913c8-534b-4439-ba68-211e70ec743d/video-segments/91f937bb-34b7-40c8-a113-767c54cc4ac7/preview).
+
+### Initial implementation verification
+
 The implementation baseline was pushed at `8835cb4` after a full backend run of 747 passing tests, scoped API Ruff checks, and lockfile verification. This trial changed no tracked runtime code. Read-only checks after generation confirmed 8832 still has only A, 8833 still has A/B, and the new isolated 8835 root has A/B/C; all reported unselected. The pre-dispatch record, exact reviewed request, service entrypoint, and no-credential service setup are retained in `.local/relay/real-shot-reviewed-en/`. Browser screenshots and sampled frames are local untracked evidence.
