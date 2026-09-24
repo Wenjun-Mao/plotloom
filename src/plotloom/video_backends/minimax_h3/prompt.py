@@ -2,12 +2,32 @@
 
 from __future__ import annotations
 
+from hashlib import sha256
 from typing import Any
 
 _FIRST_FRAME = (
     "For the target video, at 0.00 seconds into the target video, "
     "<Picture 1> (from [Shot 1]) is fully referenced."
 )
+COMPARISON_COMPILER_VERSION = "plotloom.h3-i2va.v1-vocal-control.v1"
+_V1_SOUNDSCAPE = "Only environmental and physical sounds of the depicted scene; no additional voices."
+_CONTROL_SOUNDSCAPE = (
+    "Only environmental and physical sounds of the depicted scene; "
+    "S1's single quoted line is the only vocal utterance in the entire clip, "
+    "with no speech, murmurs, or other vocal sounds before or after it."
+)
+
+
+def compile_v1_vocal_control(snapshot: dict[str, Any]) -> tuple[str, str, str]:
+    """Change only the empty-soundscape sentence of the frozen v1 prompt."""
+
+    baseline = compile_i2va_prompt_v1(snapshot)
+    if snapshot["shot"].get("audioPlan", {}).get("events") or baseline.count(_V1_SOUNDSCAPE) != 1:
+        raise ValueError("v1 vocal comparison requires the exact empty soundscape")
+    if baseline.count("<d>") != 1 or "(S1)" not in baseline:
+        raise ValueError("v1 vocal comparison requires exactly one S1 dialogue cue")
+    treatment = baseline.replace(_V1_SOUNDSCAPE, _CONTROL_SOUNDSCAPE, 1)
+    return baseline, treatment, sha256(baseline.encode("utf-8")).hexdigest()
 
 
 def compile_i2va_prompt(snapshot: dict[str, Any]) -> str:

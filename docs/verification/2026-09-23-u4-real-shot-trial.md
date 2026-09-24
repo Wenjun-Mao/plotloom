@@ -92,6 +92,40 @@ selection/rejection are the remaining step for this one shot.
 
 ## Verification
 
+### Subsequent director listening feedback and diagnostic follow-up
+
+The director reported hearing `一枚，只够一边。` and additional unclear
+speech before it. This is failed dialogue-quality qualification, not failed
+delivery. No exact timestamp or transcription of the additional utterance is
+established. A subsequent read-only API check confirmed the job and `[0,144)`
+segment remain unselected; no review mutation accompanied this note.
+
+The retained v1 snapshot reconstructs the submitted prompt hash
+`ba9efd21d166279254d9b6304a99ca5abf6c0e790ee7c4fb8b09a97b6fb87c89`.
+It contains exactly one dialogue block, `S1 says once`, an environmental
+soundscape ending `no additional voices`, and music `N/A`. The frozen shot
+has one dialogue cue and no audio-plan events. The upstream two-cut H3 prompt
+contains another line, but that provenance field was not dispatched. Thus
+duplicate dialogue in this submitted prompt is not supported as the cause.
+Model-added speech remains a hypothesis, not a diagnosed mechanism.
+
+The next experiment is design-only: retain the exact v1 baseline, keyframe,
+seed, model/profile, crop, duration, and audio settings; change only the
+soundscape instruction to explicitly disallow vocal utterances before or after
+the single quoted line. Listen to both full eight-second takes and six-second
+windows for extra utterances, intelligibility, and clipped speech. Retain
+failures rather than trimming them away to claim success. One matched-seed
+comparison is screening evidence, not proof of a reliable fix. Execution needs
+an explicit versioned experiment path preserving the frozen baseline, not an
+unrecorded raw-prompt override or a confounded switch to the current v2
+compiler. No new generation, provider change, or project mutation was made
+during this diagnostic follow-up. The available tools did not provide an
+auditory transcript, so precise utterance localization remains open.
+
+The user subsequently authorized the controlled execution. Its separate
+[comparison receipt](2026-09-24-u4-h3-vocal-control-comparison.md) records the
+one treatment request and retains both candidates for director A/B listening.
+
 Focused prompt, H3 transport, project-video, and segment suites passed; the
 complete backend suite passed with 737 tests and one third-party Starlette
 deprecation warning. An independent

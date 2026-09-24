@@ -59,6 +59,7 @@ class ProjectVideoRepository:
         playback_intent: str = "source_exact",
         production_contract: VideoProductionContract | None = None,
         backend_binding: VideoBackendBinding | None = None,
+        comparison_baseline_job_id: str | None = None,
     ) -> dict[str, Any]:
         self._assert_project(project_id)
         self.store.require_recovery_acknowledged()
@@ -80,6 +81,7 @@ class ProjectVideoRepository:
             playback_intent=playback_intent,
             production_contract=production_contract,
             backend_binding=backend_binding,
+            comparison_baseline_job_id=comparison_baseline_job_id,
         )
 
     def claim_video_dispatch(self, project_id: str, video_job_id: str) -> dict[str, Any]:

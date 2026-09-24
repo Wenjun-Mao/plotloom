@@ -97,6 +97,7 @@ def register_project_folder_video_routes(
                 seed=body.seed,
                 profile_id=body.profile_id,
                 playback_intent=body.playback_intent,
+                comparison_baseline_job_id=body.comparison_baseline_job_id,
             )
 
     @app.post("/api/v2/projects/{project_id}/video-jobs/{video_job_id}/submit")

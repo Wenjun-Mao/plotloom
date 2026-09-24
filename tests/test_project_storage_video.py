@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from plotloom.api import create_project_folder_authoring_app
-from plotloom.canonical_schema import CharacterV2
+from plotloom.canonical_schema import CharacterV2, DialogueCue
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.domain import StageName
 from plotloom.persistence.codec import stable_hash
@@ -39,6 +39,7 @@ from plotloom.project_storage.video_candidate_transition import (
 from plotloom.video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from plotloom.video_contracts import VideoReviewRequest
 from plotloom.video_ingestion import ObservedVideo, probe_video
+from plotloom.video_jobs import VideoJobService
 from plotloom.video_provider import VideoBackendInstanceIdentity
 from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
 from tests.project_storage_fixtures import fixture_profile as _fixture_profile
@@ -865,6 +866,88 @@ def test_eight_second_h3_job_freezes_output_contract_and_survives_restart(
         },
     )
     assert rejected.status_code == 422
+
+
+def test_v1_vocal_comparison_freezes_only_soundscape_and_dispatches_after_restart(
+    tmp_path: Path,
+) -> None:
+    provider = FakeH3()
+    storage, client = _fixture_app(tmp_path, provider)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    ProjectPipelineExecutor(_FixtureResolver()).execute(store, profile=_fixture_profile())
+    _install_visible_fixture_character(store)
+    beats = store.authoring.get_stage_payload(project_id, StageName.SCENE_BEATS)
+    cue = DialogueCue(
+        id="fixture-line", beat_id=beats.beats[0].id, order=1,
+        speaker_id="fixture-hero", voice_over=None, text="嗯",
+        language="zh-CN", delivery="natural", performance_notes="",
+        estimated_duration_units=500,
+    )
+    store.update_stage(
+        StageName.SCENE_BEATS,
+        beats.model_copy(update={"dialogue_cues": [cue]}),
+        expected_revision=store.authoring.get_stage_head(project_id, StageName.SCENE_BEATS).revision,
+    )
+    board = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
+    store.update_stage(
+        StageName.STORYBOARD,
+        board.model_copy(update={"shots": [
+            board.shots[0].model_copy(update={"cue_ids": [cue.id], "duration_units": 1_000}), *board.shots[1:]
+        ]}),
+        expected_revision=store.authoring.get_stage_head(project_id, StageName.STORYBOARD).revision,
+    )
+    store.close()
+    approval, context = _approved_keyframe(client, storage, project_id)
+    _select_character_reference(
+        client, project_id, context,
+        asset_id=context["selection"]["assetId"], expected_revision=0,
+        note="Use the reviewed fixture still for the visible speaker.",
+    )
+    baseline = _prepare_video(client, project_id, approval, context, key="v1-baseline")
+    baseline_snapshot = dict(baseline["snapshot"])
+    baseline_snapshot.pop("compiledPrompt")
+    baseline_snapshot["compilerVersion"] = "plotloom.h3-i2va.v1"
+    store = storage.projects.open(project_id)
+    database = store.database_path
+    store.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute(
+            "UPDATE v2_video_jobs SET snapshot=?, snapshot_hash=?, request_hash=?, state='ingested' WHERE id=?",
+            (json.dumps(baseline_snapshot), stable_hash(baseline_snapshot),
+             stable_hash({"snapshot": baseline_snapshot, "idempotencyKey": "v1-baseline"}), baseline["id"]),
+        )
+    body = {
+        "approvalId": approval["id"], "shotId": context["shot"].id,
+        "storyboardRevision": context["revision"],
+        "expectedSelectionRevision": context["selection"]["selectionRevision"],
+        "idempotencyKey": "v1-vocal-control", "aspectPolicy": "reject_mismatch",
+        "seed": 31, "comparisonBaselineJobId": baseline["id"],
+    }
+    refused = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs", json={**body, "seed": 32},
+    )
+    assert refused.status_code == 409 and provider.submits == []
+    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body)
+    assert prepared.status_code == 201, prepared.text
+    treatment = prepared.json()
+    baseline_prompt = VideoJobService._prompt(baseline_snapshot)
+    treatment_prompt = treatment["snapshot"]["compiledPrompt"]
+    assert treatment_prompt.replace(
+        "S1's single quoted line is the only vocal utterance in the entire clip, "
+        "with no speech, murmurs, or other vocal sounds before or after it.",
+        "no additional voices.",
+    ) == baseline_prompt
+    assert client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body).json()["id"] == treatment["id"]
+    restarted = TestClient(create_project_folder_authoring_app(
+        storage, video_provider=provider, video_adapter=MiniMaxH3GatewayAdapter(),
+    ))
+    submitted = restarted.post(f"/api/v2/projects/{project_id}/video-jobs/{treatment['id']}/submit")
+    assert submitted.status_code == 200, submitted.text
+    assert provider.submits == [{
+        "prompt": treatment_prompt, "quality": 1, "resolution": "576x1024",
+        "aspectPolicy": "reject_mismatch", "seed": 31, "durationSeconds": 5,
+    }]
 
 
 def test_row_duration_tamper_cannot_change_a_frozen_h3_submission(tmp_path: Path) -> None:

@@ -37,6 +37,7 @@ class VideoJobRequest(CamelModel):
     allow_center_crop: bool = False
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
     profile_id: str | None = Field(default=None, min_length=3, max_length=63, pattern=r"^[a-z][a-z0-9_]{0,62}$")
+    comparison_baseline_job_id: str | None = Field(default=None, min_length=1, max_length=67)
 
     @field_validator("idempotency_key")
     @classmethod

@@ -32,6 +32,7 @@ from .media_admission import KeyframeAdmission
 from .media_character_references import CharacterReferencePersistence
 from .media_image_currentness import ImageJobCurrentness
 from .media_same_person_reviews import SamePersonReviewPersistence
+from .media_video_comparison import freeze_v1_vocal_control_comparison
 from .media_video_currentness import VideoJobCurrentness
 from .media_video_disposal import VideoCandidateDisposal
 from .media_video_segments import VideoSegmentPersistence
@@ -94,6 +95,7 @@ class VideoJobPersistence:
         playback_intent: str = "source_exact",
         production_contract: VideoProductionContract | None = None,
         backend_binding: VideoBackendBinding | None = None,
+        comparison_baseline_job_id: str | None = None,
     ) -> dict[str, Any]:
         """Freeze current audiovisual lineage and atomically reserve the shared cap."""
         if production_contract is None:
@@ -252,7 +254,14 @@ class VideoJobPersistence:
                 "provider": provider_snapshot,
                 "request": request_snapshot,
             }
-            if production_contract is not None and production_contract.profile_id is not None:
+            if comparison_baseline_job_id is not None:
+                freeze_v1_vocal_control_comparison(
+                    session, project_id=project_id,
+                    baseline_job_id=comparison_baseline_job_id,
+                    snapshot=snapshot, production_contract=production_contract,
+                    currentness=self._currentness,
+                )
+            elif production_contract is not None and production_contract.profile_id is not None:
                 # Refuse ambiguous dialogue before a row, budget reservation,
                 # or durable dispatch claim exists.
                 from ...video_backends.minimax_h3.prompt import compile_i2va_prompt

@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+from hashlib import sha256
+
 import pytest
 
-from plotloom.video_backends.minimax_h3.prompt import compile_i2va_prompt
+from plotloom.video_backends.minimax_h3.prompt import (
+    COMPARISON_COMPILER_VERSION,
+    compile_i2va_prompt,
+    compile_v1_vocal_control,
+)
 from plotloom.video_jobs import VideoJobService
 
 
@@ -89,3 +95,27 @@ def test_existing_prepared_job_keeps_its_named_flat_compiler() -> None:
     snapshot["compilerVersion"] = "plotloom.h3-i2va.v2"
     snapshot["compiledPrompt"] = "exact frozen provider payload"
     assert VideoJobService._prompt(snapshot) == "exact frozen provider payload"
+
+
+def test_v1_vocal_control_changes_only_empty_soundscape_and_freezes_dispatch() -> None:
+    snapshot = _snapshot()
+    snapshot["shot"]["audioPlan"]["events"] = []
+    baseline, treatment, baseline_hash = compile_v1_vocal_control(snapshot)
+    old_line = "Only environmental and physical sounds of the depicted scene; no additional voices."
+    new_line = (
+        "Only environmental and physical sounds of the depicted scene; "
+        "S1's single quoted line is the only vocal utterance in the entire clip, "
+        "with no speech, murmurs, or other vocal sounds before or after it."
+    )
+    assert treatment == baseline.replace(old_line, new_line, 1)
+    assert baseline_hash == sha256(baseline.encode()).hexdigest()
+    assert treatment.count("一枚，只够一边。") == 1
+    snapshot["compilerVersion"] = COMPARISON_COMPILER_VERSION
+    snapshot["compiledPrompt"] = treatment
+    assert VideoJobService._prompt(snapshot) == treatment
+
+
+def test_v1_vocal_control_refuses_nonempty_audio_plan() -> None:
+    snapshot = _snapshot()
+    with pytest.raises(ValueError, match="exact empty soundscape"):
+        compile_v1_vocal_control(snapshot)
