@@ -44,7 +44,7 @@ their official guide and recording a new contract.
    from hypotheses. A technically admitted clip is still unselected until an
    explicit audiovisual decision.
 
-### Annotated opening-shot example (proposed, not yet generated)
+### Annotated opening-shot example (generated, audiovisual review pending)
 
 Canonical action: `沈岚把铜质熔断器放在两条并列插槽之间。`
 
@@ -56,7 +56,7 @@ Canonical dialogue remains `<d>[Chinese] 一枚，只够一边。</d>`. The spea
 Chinese voice anchor and performance note receive separate reviewed English
 directions outside `<d>`. The soundscape supplement, if used, must describe
 only a physical sound the reviewer deliberately wants from that visible move.
-The [complete offline compiled prompt and source mapping](../verification/2026-09-24-h3-reviewed-directions-offline.md), not this excerpt, is the review artifact for the proposed next wording. It has not been generated.
+The [complete offline compiled prompt and source mapping](../verification/2026-09-24-h3-reviewed-directions-offline.md), not this excerpt, is the wording review artifact. The separate [C trial receipt](../verification/2026-09-24-u4-h3-reviewed-english-trial.md) records one matching live dispatch and retained media; listening remains open.
 
 ## Evidence ledger and open questions
 
@@ -66,11 +66,13 @@ The [complete offline compiled prompt and source mapping](../verification/2026-0
 | Observed | In B the director identified the extra spoken sentence as the canonical Chinese action. The stronger “only vocal utterance” soundscape condition did not resolve it. | [A/B receipt](../verification/2026-09-24-u4-h3-vocal-control-comparison.md); both originals and six-second proposals remain unselected. |
 | Contract mismatch | Both trial prompts put Chinese action and voice directions outside `<d>`, contrary to the official English rewrite rule. | Exact frozen prompts in the two retained jobs; [ADR 0083](../adr/0083-h3-single-image-prompt-contract.md). |
 | Hypothesis | The model treated a Chinese direction as something to speak. | The observed utterance matches source action, but this is not proof of model mechanism. |
-| Unverified | Reviewed English directions may reduce the extra speech while preserving the intended line and image action. | Requires a new bounded clip and human listening; no such result is claimed here. |
+| Unverified | Reviewed English directions may reduce the extra speech while preserving the intended line and image action. | One bounded C clip exists; human listening and visual story review are still required. |
+| Observed | One reviewed-English v3 trial ingested an eight-second H.264/AAC original and an exact six-second proposed segment using the same keyframe and request controls. Both remain unselected. | [C trial receipt](../verification/2026-09-24-u4-h3-reviewed-english-trial.md); technical delivery and browser media readiness only. |
+| Pending director review | Whether C omits the extra spoken action sentence, preserves intelligible intended dialogue, and visually communicates the undecided fuse placement. | Listen to C's full original and six-second proposal, including boundaries; the agent could not assess Mandarin audio. |
 
 The vocal-control comparison instruction is retired for new trials. Historical
 job B retains its exact frozen text for audit. Revisit prompt advice only after
-at least one guide-compliant audiovisual review; if the guide-compliant result
+the guide-compliant C audiovisual review; if that result
 still fails, a focused external consultation can evaluate prompt and media
 evidence without inventing a mechanism.
 
