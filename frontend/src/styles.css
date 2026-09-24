@@ -371,6 +371,14 @@ input[readonly] { color: var(--dim); }
 .video-job-card video { width: min(100%, 720px); max-height: 480px; background: #000; }
 .video-technical-history { display: grid; gap: 8px; }
 .video-technical-history pre { max-width: 100%; overflow: auto; padding: 9px; border: 1px solid var(--line); white-space: pre-wrap; overflow-wrap: anywhere; }
+.h3-directions-review > p, .h3-directions-review > small { margin: 0; line-height: 1.5; }
+.h3-direction-field { display: grid; gap: 5px; max-width: 840px; min-width: 0; }
+.h3-direction-field strong { color: var(--text); font-size: 13px; }
+.h3-direction-source { display: block; color: var(--muted); overflow-wrap: anywhere; }
+.h3-direction-field textarea { min-height: 68px; }
+.h3-direction-check { display: flex; align-items: center; gap: 8px; max-width: 840px; line-height: 1.5; }
+.h3-direction-check input { width: 16px; min-width: 16px; height: 16px; min-height: 16px; padding: 0; margin: 0; accent-color: var(--accent); }
+.h3-direction-actions { display: flex; justify-content: flex-start; }
 .review-annotations { display: grid; gap: 9px; }
 .review-annotations label { display: grid; gap: 5px; max-width: 640px; }
 .managed-media-workbench > .muted { margin: 0; color: var(--muted); font-size: 11px; }

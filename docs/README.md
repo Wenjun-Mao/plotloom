@@ -4,7 +4,7 @@
 
 - [Development and operations](development.md)
 - [Spark generation operations index](operations/README.md)
-- **MiniMax-H3 video:** [operator and maintainer manual](operations/minimax-h3-gateway-manual.md), [Chinese client guide](operations/minimax-h3-gateway-client-guide.md), [reproducible setup](../services/minimax_h3_gateway/docs/h3-reproducible-setup.md), and [sampling rationale](../services/minimax_h3_gateway/docs/h3-rationale-and-operations.md)
+- **MiniMax-H3 video:** [operator and maintainer manual](operations/minimax-h3-gateway-manual.md), [Chinese client guide](operations/minimax-h3-gateway-client-guide.md), [living prompt-writing playbook](operations/h3-prompt-writing-playbook.md), [reproducible setup](../services/minimax_h3_gateway/docs/h3-reproducible-setup.md), and [sampling rationale](../services/minimax_h3_gateway/docs/h3-rationale-and-operations.md)
 - **Qwen-Image-2.1 image:** [operator and maintainer manual](operations/qwen-image-gateway-manual.md), [Chinese client guide](operations/qwen-image-gateway-client-guide.md), and [reproducible Spark setup](../services/minimax_h3_gateway/docs/qwen-image-spark-setup.md)
 - [Shared H3/Qwen generation lane](adr/0072-shared-qwen-image-and-h3-generation-lane.md) and [reviewed Qwen canvas contract](adr/0073-qwen-image-reviewed-canvas-contract.md)
 - [Backend-owned video module decision](adr/0035-backend-owned-video-modules.md)

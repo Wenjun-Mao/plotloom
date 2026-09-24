@@ -12,6 +12,7 @@ gateway FIFO is the only intentionally shared runtime boundary.
 | Deploy, operate, or troubleshoot | [H3 operator manual](minimax-h3-gateway-manual.md) | [Qwen operator manual](qwen-image-gateway-manual.md) |
 | Reproduce the engine installation | [H3 reproducible setup](../../services/minimax_h3_gateway/docs/h3-reproducible-setup.md) | [Qwen reproducible setup](../../services/minimax_h3_gateway/docs/qwen-image-spark-setup.md) |
 | Understand sampling or evaluation choices | [H3 rationale and operations](../../services/minimax_h3_gateway/docs/h3-rationale-and-operations.md) | [ADR 0072](../adr/0072-shared-qwen-image-and-h3-generation-lane.md) and [ADR 0073](../adr/0073-qwen-image-reviewed-canvas-contract.md) |
+| Draft and review single-image provider prompts | [Living H3 prompt-writing playbook](h3-prompt-writing-playbook.md) and [offline complete-prompt example](../verification/2026-09-24-h3-reviewed-directions-offline.md) | Not applicable |
 
 ## Shared boundary
 

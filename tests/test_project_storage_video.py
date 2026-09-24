@@ -43,6 +43,7 @@ from plotloom.video_jobs import VideoJobService
 from plotloom.video_provider import VideoBackendInstanceIdentity
 from tests.project_storage_fixtures import FixtureResolver as _FixtureResolver
 from tests.project_storage_fixtures import fixture_profile as _fixture_profile
+from tests.video_prompt_fixtures import reviewed_h3_body as _reviewed_video_body
 
 
 def test_whole_job_review_annotations_are_optional_and_trimmed() -> None:
@@ -281,9 +282,7 @@ def _prepare_video(
     client: TestClient, project_id: str, approval: dict, context: dict, *, key: str,
     requested_duration_seconds: int | None = None,
 ) -> dict:
-    prepared = client.post(
-        f"/api/v2/projects/{project_id}/video-jobs",
-        json={
+    body = {
             "approvalId": approval["id"],
             "shotId": context["shot"].id,
             "storyboardRevision": context["revision"],
@@ -292,8 +291,8 @@ def _prepare_video(
             "aspectPolicy": "reject_mismatch",
             "seed": 31,
             **({"requestedDurationSeconds": requested_duration_seconds} if requested_duration_seconds is not None else {}),
-        },
-    )
+    }
+    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=_reviewed_video_body(client, project_id, body))
     assert prepared.status_code == 201, prepared.text
     return prepared.json()
 
@@ -370,14 +369,14 @@ def test_synthetic_reviewed_segment_survives_reopen_and_blocks_old_revision(
     store.close()
     approval, context = _approved_keyframe(client, storage, project_id)
     base = f"/api/v2/projects/{project_id}"
-    prepared = client.post(f"{base}/video-jobs", json={
+    prepared = client.post(f"{base}/video-jobs", json=_reviewed_video_body(client, project_id, {
         "approvalId": approval["id"], "shotId": context["shot"].id,
         "storyboardRevision": context["revision"],
         "expectedSelectionRevision": context["selection"]["selectionRevision"],
         "idempotencyKey": "synthetic-reviewed-segment-8-to-6",
         "requestedDurationSeconds": 8, "playbackIntent": playback_intent,
         "aspectPolicy": "reject_mismatch", "seed": 31,
-    })
+    }))
     assert prepared.status_code == 201, prepared.text
     job_id = prepared.json()["id"]
     assert prepared.json()["snapshot"]["sourceTiming"]["durationUnits"] == authored_units
@@ -521,6 +520,13 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
         "aspectPolicy": "reject_mismatch",
         "seed": 13,
     }
+    missing_seed = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/prompt-preview",
+        json={key: value for key, value in body.items() if key != "seed"},
+    )
+    assert missing_seed.status_code == 422
+    assert "explicit stable seed" in missing_seed.text
+    body = _reviewed_video_body(client, project_id, body)
     prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body)
     assert prepared.status_code == 201, prepared.text
     job = prepared.json()
@@ -868,7 +874,7 @@ def test_eight_second_h3_job_freezes_output_contract_and_survives_restart(
     assert rejected.status_code == 422
 
 
-def test_v1_vocal_comparison_freezes_only_soundscape_and_dispatches_after_restart(
+def test_h3_reviewed_directions_preview_bind_and_dispatch_after_restart(
     tmp_path: Path,
 ) -> None:
     provider = FakeH3()
@@ -893,7 +899,10 @@ def test_v1_vocal_comparison_freezes_only_soundscape_and_dispatches_after_restar
     store.update_stage(
         StageName.STORYBOARD,
         board.model_copy(update={"shots": [
-            board.shots[0].model_copy(update={"cue_ids": [cue.id], "duration_units": 1_000}), *board.shots[1:]
+            board.shots[0].model_copy(update={
+                "cue_ids": [cue.id], "duration_units": 1_000,
+                "action": "沈岚把铜质熔断器放在两条并列插槽之间。",
+            }), *board.shots[1:]
         ]}),
         expected_revision=store.authoring.get_stage_head(project_id, StageName.STORYBOARD).revision,
     )
@@ -904,48 +913,59 @@ def test_v1_vocal_comparison_freezes_only_soundscape_and_dispatches_after_restar
         asset_id=context["selection"]["assetId"], expected_revision=0,
         note="Use the reviewed fixture still for the visible speaker.",
     )
-    baseline = _prepare_video(client, project_id, approval, context, key="v1-baseline")
-    baseline_snapshot = dict(baseline["snapshot"])
-    baseline_snapshot.pop("compiledPrompt")
-    baseline_snapshot["compilerVersion"] = "plotloom.h3-i2va.v1"
-    store = storage.projects.open(project_id)
-    database = store.database_path
-    store.close()
-    with sqlite3.connect(database) as connection:
-        connection.execute(
-            "UPDATE v2_video_jobs SET snapshot=?, snapshot_hash=?, request_hash=?, state='ingested' WHERE id=?",
-            (json.dumps(baseline_snapshot), stable_hash(baseline_snapshot),
-             stable_hash({"snapshot": baseline_snapshot, "idempotencyKey": "v1-baseline"}), baseline["id"]),
-        )
     body = {
         "approvalId": approval["id"], "shotId": context["shot"].id,
         "storyboardRevision": context["revision"],
         "expectedSelectionRevision": context["selection"]["selectionRevision"],
-        "idempotencyKey": "v1-vocal-control", "aspectPolicy": "reject_mismatch",
-        "seed": 31, "comparisonBaselineJobId": baseline["id"],
+        "idempotencyKey": "reviewed-english-directions", "aspectPolicy": "reject_mismatch", "seed": 31,
     }
-    refused = client.post(
-        f"/api/v2/projects/{project_id}/video-jobs", json={**body, "seed": 32},
-    )
+    refused = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body)
     assert refused.status_code == 409 and provider.submits == []
-    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body)
+    sources_response = client.post(f"/api/v2/projects/{project_id}/video-jobs/prompt-preview", json=body)
+    assert sources_response.status_code == 200, sources_response.text
+    sources = sources_response.json()
+    assert sources["compiledPrompt"] is None
+    assert any(source["path"] == "shot.action" and source["text"] == "沈岚把铜质熔断器放在两条并列插槽之间。" for source in sources["sources"])
+    reviewed = {
+        "sourceHash": sources["sourceHash"], "reviewedEnglish": True,
+        "fields": [{"path": source["path"], "english": (
+            "The keeper places the brass fuse between the two parallel sockets."
+            if source["path"] == "shot.action" else
+            "A small metallic contact sound accompanies the visible movement."
+            if source["path"] == "reviewedSoundscape" else source["text"]
+        )} for source in sources["sources"]],
+    }
+    full_preview = client.post(
+        f"/api/v2/projects/{project_id}/video-jobs/prompt-preview",
+        json={**body, "reviewedDirections": reviewed},
+    )
+    assert full_preview.status_code == 200, full_preview.text
+    prompt = full_preview.json()["compiledPrompt"]
+    assert "沈岚把铜质熔断器放在两条并列插槽之间。" not in prompt
+    assert "The keeper places the brass fuse between the two parallel sockets." in prompt
+    assert "<d>[Chinese] 嗯</d>" in prompt
+    assert "only vocal utterance" not in prompt
+    assert client.post(f"/api/v2/projects/{project_id}/video-jobs", json={
+        **body, "reviewedDirections": {**reviewed, "sourceHash": "0" * 64},
+    }).status_code == 409
+    assert client.post(f"/api/v2/projects/{project_id}/video-jobs", json={
+        **body, "reviewedDirections": reviewed,
+    }).status_code == 409
+    reviewed["promptSha256"] = full_preview.json()["compiledPromptSha256"]
+    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json={**body, "reviewedDirections": reviewed})
     assert prepared.status_code == 201, prepared.text
-    treatment = prepared.json()
-    baseline_prompt = VideoJobService._prompt(baseline_snapshot)
-    treatment_prompt = treatment["snapshot"]["compiledPrompt"]
-    assert treatment_prompt.replace(
-        "S1's single quoted line is the only vocal utterance in the entire clip, "
-        "with no speech, murmurs, or other vocal sounds before or after it.",
-        "no additional voices.",
-    ) == baseline_prompt
-    assert client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body).json()["id"] == treatment["id"]
+    job = prepared.json()
+    assert job["snapshot"]["compilerVersion"] == "plotloom.h3-i2va.v3-reviewed-en"
+    assert job["snapshot"]["shot"]["action"] == "沈岚把铜质熔断器放在两条并列插槽之间。"
+    assert job["snapshot"]["compiledPrompt"] == prompt
+    assert job["snapshot"]["reviewedDirections"] == reviewed
     restarted = TestClient(create_project_folder_authoring_app(
         storage, video_provider=provider, video_adapter=MiniMaxH3GatewayAdapter(),
     ))
-    submitted = restarted.post(f"/api/v2/projects/{project_id}/video-jobs/{treatment['id']}/submit")
+    submitted = restarted.post(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit")
     assert submitted.status_code == 200, submitted.text
     assert provider.submits == [{
-        "prompt": treatment_prompt, "quality": 1, "resolution": "576x1024",
+        "prompt": prompt, "quality": 1, "resolution": "576x1024",
         "aspectPolicy": "reject_mismatch", "seed": 31, "durationSeconds": 5,
     }]
 
@@ -991,7 +1011,7 @@ def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamp
         "idempotencyKey": "explicit-gateway-crop", "aspectPolicy": "cover_center_crop",
         "allowCenterCrop": True, "allowLetterbox": False, "seed": 41,
     }
-    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body)
+    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=_reviewed_video_body(client, project_id, body))
     assert prepared.status_code == 201, prepared.text
     job = prepared.json()
     frozen_keyframe = job["snapshot"]["keyframe"]
@@ -1022,7 +1042,9 @@ def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamp
 
     tampered = client.post(
         f"/api/v2/projects/{project_id}/video-jobs",
-        json={**body, "idempotencyKey": "tampered-gateway-crop", "seed": 42},
+        json=_reviewed_video_body(client, project_id, {
+            **body, "idempotencyKey": "tampered-gateway-crop", "seed": 42,
+        }),
     )
     assert tampered.status_code == 201, tampered.text
     tampered_job = tampered.json()
@@ -1063,7 +1085,7 @@ def test_historical_h3_letterbox_snapshot_remains_restart_dispatchable(
         "idempotencyKey": "historical-letterbox", "aspectPolicy": "contain_pad",
         "allowLetterbox": True, "seed": 43,
     }
-    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=body)
+    prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json=_reviewed_video_body(client, project_id, body))
     assert prepared.status_code == 201, prepared.text
     job = prepared.json()
     historical = job["snapshot"]
@@ -1147,7 +1169,7 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
     approval, context = _approved_keyframe(client, storage, project_id)
     prepared = client.post(
         f"/api/v2/projects/{project_id}/video-jobs",
-        json={
+        json=_reviewed_video_body(client, project_id, {
             "approvalId": approval["id"],
             "shotId": context["shot"].id,
             "storyboardRevision": context["revision"],
@@ -1155,7 +1177,7 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
             "idempotencyKey": "restored-known-h3-video",
             "aspectPolicy": "reject_mismatch",
             "seed": 14,
-        },
+        }),
     ).json()
     assert client.post(
         f"/api/v2/projects/{project_id}/video-jobs/{prepared['id']}/submit"
@@ -1206,7 +1228,7 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
     )
     unknown_job = unknown_client.post(
         f"/api/v2/projects/{unknown_project_id}/video-jobs",
-        json={
+        json=_reviewed_video_body(unknown_client, unknown_project_id, {
             "approvalId": unknown_approval["id"],
             "shotId": unknown_context["shot"].id,
             "storyboardRevision": unknown_context["revision"],
@@ -1214,7 +1236,7 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
             "idempotencyKey": "restored-unknown-h3-video",
             "aspectPolicy": "reject_mismatch",
             "seed": 15,
-        },
+        }),
     ).json()
     unknown_provider.submit_image = lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("fixture lost response"))  # type: ignore[method-assign]
     assert unknown_client.post(

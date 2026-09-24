@@ -85,6 +85,29 @@ export class ApiError extends Error {
   }
 }
 
+export type H3ReviewedDirections = {
+  sourceHash: string;
+  fields: Array<{ path: string; english: string }>;
+  reviewedEnglish: true;
+  promptSha256?: string;
+};
+
+export type H3PromptPreview = {
+  sourceHash: string;
+  sources: Array<{ path: string; text: string; label: string }>;
+  compiledPrompt: string | null;
+  compiledPromptSha256?: string;
+};
+
+export type VideoJobPrepareBody = {
+  approvalId: string; shotId: string; storyboardRevision: number; expectedSelectionRevision: number; idempotencyKey: string;
+  requestedDurationSeconds?: number; resolution?: string; audio?: true;
+  playbackIntent?: "source_exact" | "segment_required";
+  aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch";
+  allowLetterbox?: boolean; allowCenterCrop?: boolean; seed?: number; profileId?: string;
+  reviewedDirections?: H3ReviewedDirections;
+};
+
 export class PlotloomApiClient {
   private readonly fetcher: FetchLike;
   private readonly base: string;
@@ -649,14 +672,11 @@ export class PlotloomApiClient {
   getVideoPilotBudget(): Promise<VideoPilotBudget> { return this.request("/video-pilot-budget"); }
   getVideoBackend(signal?: AbortSignal): Promise<VideoBackend> { return this.request("/video-backend", { signal }); }
   getVideoJobs(projectId: string): Promise<{ jobs: VideoJob[] }> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`); }
-  prepareVideoJob(projectId: string, body: {
-    approvalId: string; shotId: string; storyboardRevision: number; expectedSelectionRevision: number; idempotencyKey: string;
-    requestedDurationSeconds?: number; resolution?: string; audio?: true;
-    playbackIntent?: "source_exact" | "segment_required";
-    aspectPolicy?: "cover_center_crop" | "contain_pad" | "reject_mismatch";
-    allowLetterbox?: boolean; allowCenterCrop?: boolean; seed?: number; profileId?: string;
-  }): Promise<VideoJob> {
+  prepareVideoJob(projectId: string, body: VideoJobPrepareBody): Promise<VideoJob> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs`, { method: "POST", body: JSON.stringify(body) });
+  }
+  previewH3Prompt(projectId: string, body: VideoJobPrepareBody): Promise<H3PromptPreview> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/prompt-preview`, { method: "POST", body: JSON.stringify(body) });
   }
   submitVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/submit`, { method: "POST" }); }
   reconcileVideoJob(projectId: string, id: string): Promise<VideoJob> { return this.request(`/projects/${encodeURIComponent(projectId)}/video-jobs/${encodeURIComponent(id)}/reconcile`, { method: "POST" }); }

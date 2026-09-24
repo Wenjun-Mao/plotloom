@@ -187,7 +187,7 @@ it("pauses every native candidate peer before allowing a new candidate to play",
   expect(paused).toEqual([secondPlayer]);
 });
 
-it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async () => {
+it("binds H3 prompt review to an explicit gateway crop choice for a mismatched keyframe", async () => {
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
     enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "5", provider: "minimax_h3_gateway",
     model: "minimax_h3_gateway_catalog_v6", durationSeconds: 5, resolution: "576x1024",
@@ -201,7 +201,7 @@ it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async
     }],
   });
   vi.spyOn(plotloomApi, "getVideoJobs").mockResolvedValue({ jobs: [] });
-  const prepare = vi.spyOn(plotloomApi, "prepareVideoJob").mockResolvedValue(job("project", "shot"));
+  const preview = vi.spyOn(plotloomApi, "previewH3Prompt").mockResolvedValue({ sourceHash: "a".repeat(64), sources: [], compiledPrompt: null });
   const wideKeyframe: ManagedAsset = {
     id: "wide", projectId: "project", originalHash: "a".repeat(64), displayHash: "b".repeat(64),
     mimeType: "image/png", byteSize: 1, width: 640, height: 360, createdAt: "2026-01-01T00:00:00Z", provenance: null,
@@ -212,8 +212,8 @@ it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async
   await act(async () => { await Promise.resolve(); });
 
   expect(host.textContent).toContain("准备或生成新的 MiniMax H3 原片");
-  const freeze = [...host.querySelectorAll("button")].find((item) => item.textContent === "生成另一候选（冻结当前审核关键帧）");
-  expect(freeze?.disabled).toBe(true);
+  const load = [...host.querySelectorAll("button")].find((item) => item.textContent === "读取当前来源");
+  expect(load?.disabled).toBe(true);
   expect(host.querySelector('[data-testid="h3-aspect-preparation"]')?.textContent).toContain("默认拒绝比例不符");
   const crop = host.querySelectorAll('input[type="radio"]')[1] as HTMLInputElement;
   expect(crop.checked).toBe(false);
@@ -221,10 +221,10 @@ it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async
     crop.click();
     await Promise.resolve();
   });
-  expect(freeze?.disabled).toBe(false);
+  expect(load?.disabled).toBe(false);
   expect(host.querySelector('[data-testid="h3-center-crop-allowed"]')?.textContent).toContain("cover_center_crop");
-  await act(async () => { freeze?.click(); await Promise.resolve(); });
-  expect(prepare).toHaveBeenCalledWith("project", expect.objectContaining({
+  await act(async () => { load?.click(); await Promise.resolve(); });
+  expect(preview).toHaveBeenCalledWith("project", expect.objectContaining({
     resolution: "576x1024", requestedDurationSeconds: 5, audio: true, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false,
     profileId: "minimax_h3_quality1_portrait_576x1024_v1",
   }));
@@ -234,8 +234,8 @@ it("freezes an explicit H3 gateway crop choice for a mismatched keyframe", async
     await Promise.resolve();
   });
   expect(host.querySelector('[data-testid="h3-letterbox-allowed"]')?.textContent).toContain("contain_pad");
-  await act(async () => { freeze?.click(); await Promise.resolve(); });
-  expect(prepare).toHaveBeenLastCalledWith("project", expect.objectContaining({
+  await act(async () => { load?.click(); await Promise.resolve(); });
+  expect(preview).toHaveBeenLastCalledWith("project", expect.objectContaining({
     aspectPolicy: "contain_pad", allowLetterbox: true, allowCenterCrop: false,
     profileId: "minimax_h3_quality1_portrait_576x1024_v1",
   }));

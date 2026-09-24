@@ -64,7 +64,8 @@ class VideoJobService:
         seed: int | None,
         profile_id: str | None,
         playback_intent: str = "source_exact",
-        comparison_baseline_job_id: str | None = None,
+        reviewed_directions: dict[str, Any] | None = None,
+        preview_only: bool = False,
     ) -> dict[str, Any]:
         """Freeze the adapter-owned request before any durable dispatch claim."""
 
@@ -87,7 +88,8 @@ class VideoJobService:
                 expected_selection_revision=expected_selection_revision,
                 idempotency_key=idempotency_key,
                 playback_intent=playback_intent,
-                comparison_baseline_job_id=comparison_baseline_job_id,
+                reviewed_directions=reviewed_directions,
+                preview_only=preview_only,
                 production_contract=contract,
                 backend_binding=self.backend_binding,
             )
@@ -95,8 +97,8 @@ class VideoJobService:
         # Adapters that return no production contract retain their historical
         # snapshot projection. Atlas's adapter has already rejected fields it
         # does not support before this compatibility path is reached.
-        if comparison_baseline_job_id is not None:
-            raise InvalidTransitionError("v1 vocal comparison requires the H3 production contract")
+        if reviewed_directions is not None or preview_only:
+            raise InvalidTransitionError("reviewed prompt directions require the H3 production contract")
         return self.repository.prepare_video_job(
             project_id,
             approval_id=approval_id,
@@ -119,7 +121,7 @@ class VideoJobService:
     @staticmethod
     def _prompt(snapshot: dict[str, Any]) -> str:
         if snapshot.get("compilerVersion") in {
-            "plotloom.h3-i2va.v2", "plotloom.h3-i2va.v1-vocal-control.v1"
+            "plotloom.h3-i2va.v3-reviewed-en", "plotloom.h3-i2va.v2", "plotloom.h3-i2va.v1-vocal-control.v1"
         }:
             prompt = snapshot.get("compiledPrompt")
             if not isinstance(prompt, str) or not prompt:

@@ -21,6 +21,7 @@ from plotloom.video_ingestion import ObservedVideo
 from plotloom.video_provider import VideoBackendInstanceIdentity
 from tests.backend_core.conftest import all_stage_payloads
 from tests.project_storage_fixtures import FixtureResolver, fixture_profile
+from tests.video_prompt_fixtures import reviewed_h3_body
 
 
 class _RuntimeFakeH3:
@@ -558,7 +559,7 @@ def test_production_runtime_composes_the_typed_h3_video_path(tmp_path: Path) -> 
         assert selected.status_code == 201
         job = client.post(
             f"/api/v2/projects/{project_id}/video-jobs",
-            json={
+            json=reviewed_h3_body(client, project_id, {
                 "approvalId": approval.json()["decision"]["id"],
                 "shotId": shot.id,
                 "storyboardRevision": board.revision,
@@ -566,7 +567,7 @@ def test_production_runtime_composes_the_typed_h3_video_path(tmp_path: Path) -> 
                 "idempotencyKey": "production-runtime-h3-fixture",
                 "aspectPolicy": "reject_mismatch",
                 "seed": 31,
-            },
+            }),
         )
         assert job.status_code == 201
         binding = job.json()["snapshot"]["provider"]["backendBinding"]

@@ -12,6 +12,18 @@ from pydantic import Field, field_validator
 from .domain import CamelModel
 
 
+class H3DirectionField(CamelModel):
+    path: str = Field(min_length=1, max_length=160)
+    english: str = Field(min_length=1, max_length=2_000)
+
+
+class H3ReviewedDirections(CamelModel):
+    source_hash: str = Field(pattern=r"^[0-9a-f]{64}$")
+    fields: list[H3DirectionField] = Field(max_length=100)
+    reviewed_english: Literal[True]
+    prompt_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+
+
 class VideoJobRequest(CamelModel):
     approval_id: str = Field(min_length=1, max_length=36)
     shot_id: str = Field(min_length=1, max_length=100)
@@ -37,7 +49,7 @@ class VideoJobRequest(CamelModel):
     allow_center_crop: bool = False
     seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
     profile_id: str | None = Field(default=None, min_length=3, max_length=63, pattern=r"^[a-z][a-z0-9_]{0,62}$")
-    comparison_baseline_job_id: str | None = Field(default=None, min_length=1, max_length=67)
+    reviewed_directions: H3ReviewedDirections | None = None
 
     @field_validator("idempotency_key")
     @classmethod

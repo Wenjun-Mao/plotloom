@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
+import type { H3ReviewedDirections, VideoJobPrepareBody } from "./api";
 import { Button, Panel } from "./components";
 import { deriveRoutes, groupStoryboard } from "./model";
 import { BranchingVideoPreview } from "./branching-video-preview";
 import { VideoSegmentReview } from "./video-segment-review";
 import { MiniMaxH3DurationField, MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, h3QualifiedDurations, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
+import { H3DirectionsReview } from "./h3-directions-review";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
 
@@ -206,15 +208,15 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       ? backend.defaultProfileId
       : profiles[0]?.id ?? "");
   }, [backend, h3ProfileId]);
-  const prepare = async () => {
-    if (!projectId || !shot || !approvalId || !storyboardRevision) return;
+  const buildPrepareRequest = (seed?: number, idempotencyKey?: string): VideoJobPrepareBody => {
+    if (!shot || !approvalId || !storyboardRevision) throw new Error("请先选择并批准当前分镜");
     const h3 = isMiniMaxH3Backend(backend);
     const profile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
-    if (h3 && !profile) return;
-    setError("");
-    const request = {
+    if (h3 && !profile) throw new Error("请先选择 H3 视频规格");
+    const aspectMismatch = Boolean(profile && keyframe && keyframe.width * profile.height !== keyframe.height * profile.width);
+    return {
       approvalId, shotId: shot.id, storyboardRevision, expectedSelectionRevision: selectionRevision,
-      idempotencyKey: crypto.randomUUID(),
+      idempotencyKey: idempotencyKey ?? crypto.randomUUID(),
       playbackIntent: h3 && shot.durationUnits === 6_000 && h3DurationSeconds === 8 ? "segment_required" as const : "source_exact" as const,
       ...(backend?.enabled ? {
         requestedDurationSeconds: h3 ? h3DurationSeconds : profile?.durationSeconds ?? backend.durationSeconds,
@@ -222,13 +224,22 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
         audio: backend.nativeAudio ? true as const : undefined,
       } : {}),
       ...(profile ? { profileId: profile.id } : {}),
+      ...(h3 && seed !== undefined ? { seed } : {}),
       ...(h3 ? {
-        aspectPolicy: h3AspectMismatch ? h3InputFrameMode : "reject_mismatch" as const,
-        allowLetterbox: h3AspectMismatch && h3InputFrameMode === "contain_pad",
-        allowCenterCrop: h3AspectMismatch && h3InputFrameMode === "cover_center_crop",
+        aspectPolicy: aspectMismatch ? h3InputFrameMode : "reject_mismatch" as const,
+        allowLetterbox: aspectMismatch && h3InputFrameMode === "contain_pad",
+        allowCenterCrop: aspectMismatch && h3InputFrameMode === "cover_center_crop",
       } : {}),
     };
-    try { await plotloomApi.prepareVideoJob(projectId, request); await refresh(); }
+  };
+  const prepare = async (reviewedDirections?: H3ReviewedDirections, seed?: number, idempotencyKey?: string) => {
+    if (!projectId) return;
+    setError("");
+    try {
+      const request = { ...buildPrepareRequest(seed, idempotencyKey), ...(reviewedDirections ? { reviewedDirections } : {}) };
+      await plotloomApi.prepareVideoJob(projectId, request);
+      await refresh();
+    }
     catch (reason) { setError(reason instanceof Error ? reason.message : "无法冻结视频请求"); }
   };
   const act = async (operation: () => Promise<unknown>, fallback: string) => {
@@ -311,7 +322,12 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {h3 && selectedProfile && !keyframe && <small className="notice warning">先为当前镜头审核选择一张关键帧，才能验证其与 H3 profile 的比例。</small>}
     {backend?.tracksPaidWanPilot !== false && <small>额度：{budget ? `${budget.reservedSeconds}/${budget.limitSeconds} 秒已保留，余 ${budget.remainingSeconds} 秒` : "读取中"}</small>}
     {h3 && <MiniMaxH3ReviewNotice />}
-    <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>
+    {h3 && projectId && shot
+      ? <H3DirectionsReview projectId={projectId}
+          sourceIdentity={`${shot.id}:${storyboardRevision}:${selectionRevision}:${keyframe?.id ?? ""}:${h3ProfileId}:${h3DurationSeconds}:${h3InputFrameMode}:${visibleJobs.length}`}
+          disabled={Boolean(cannotPrepare || h3TimingMismatch)} buildRequest={buildPrepareRequest}
+          onFreeze={(packageValue, seed, key) => prepare(packageValue, seed, key)} />
+      : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>}
     </details>
     {error && <small className="notice warning">{error}</small>}
     {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {frozenShot(job).title || "当前镜头"}</strong><span>{job.selected ? "已选择片段" : job.state === "ingested" ? "待审原片" : job.state}</span></header>

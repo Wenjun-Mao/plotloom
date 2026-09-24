@@ -97,7 +97,34 @@ def register_project_folder_video_routes(
                 seed=body.seed,
                 profile_id=body.profile_id,
                 playback_intent=body.playback_intent,
-                comparison_baseline_job_id=body.comparison_baseline_job_id,
+                reviewed_directions=body.reviewed_directions.model_dump(mode="json", by_alias=True) if body.reviewed_directions else None,
+            )
+
+    @app.post("/api/v2/projects/{project_id}/video-jobs/prompt-preview")
+    def preview_h3_prompt(project_id: str, body: VideoJobRequest) -> dict[str, Any]:
+        # Preview and later freeze must resolve the same frozen request. The
+        # adapter would otherwise generate a different random seed per call.
+        if body.seed is None:
+            raise HTTPException(status_code=422, detail="prompt preview requires an explicit stable seed")
+        with opened_project(project_id) as store:
+            return require_service().prepare(
+                store,
+                approval_id=body.approval_id,
+                shot_id=body.shot_id,
+                storyboard_revision=body.storyboard_revision,
+                expected_selection_revision=body.expected_selection_revision,
+                idempotency_key=body.idempotency_key,
+                requested_seconds=body.requested_duration_seconds,
+                resolution=body.resolution,
+                audio=body.audio,
+                aspect_policy=body.aspect_policy,
+                allow_letterbox=body.allow_letterbox,
+                allow_center_crop=body.allow_center_crop,
+                seed=body.seed,
+                profile_id=body.profile_id,
+                playback_intent=body.playback_intent,
+                reviewed_directions=body.reviewed_directions.model_dump(mode="json", by_alias=True) if body.reviewed_directions else None,
+                preview_only=True,
             )
 
     @app.post("/api/v2/projects/{project_id}/video-jobs/{video_job_id}/submit")

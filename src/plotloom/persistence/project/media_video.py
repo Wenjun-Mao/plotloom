@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from hashlib import sha256
 from typing import Any, Protocol
 
 from sqlalchemy import select
@@ -32,7 +33,6 @@ from .media_admission import KeyframeAdmission
 from .media_character_references import CharacterReferencePersistence
 from .media_image_currentness import ImageJobCurrentness
 from .media_same_person_reviews import SamePersonReviewPersistence
-from .media_video_comparison import freeze_v1_vocal_control_comparison
 from .media_video_currentness import VideoJobCurrentness
 from .media_video_disposal import VideoCandidateDisposal
 from .media_video_segments import VideoSegmentPersistence
@@ -95,7 +95,8 @@ class VideoJobPersistence:
         playback_intent: str = "source_exact",
         production_contract: VideoProductionContract | None = None,
         backend_binding: VideoBackendBinding | None = None,
-        comparison_baseline_job_id: str | None = None,
+        reviewed_directions: dict[str, Any] | None = None,
+        preview_only: bool = False,
     ) -> dict[str, Any]:
         """Freeze current audiovisual lineage and atomically reserve the shared cap."""
         if production_contract is None:
@@ -115,7 +116,7 @@ class VideoJobPersistence:
             resolution = production_contract.resolution
             audio = production_contract.audio
             compiler_version = (
-                "plotloom.h3-i2va.v2" if production_contract.profile_id is not None
+                "plotloom.h3-i2va.v3-reviewed-en" if production_contract.profile_id is not None
                 else "p2-video-adapters-v1"
             )
             provider_snapshot = production_contract.provider_snapshot()
@@ -254,19 +255,27 @@ class VideoJobPersistence:
                 "provider": provider_snapshot,
                 "request": request_snapshot,
             }
-            if comparison_baseline_job_id is not None:
-                freeze_v1_vocal_control_comparison(
-                    session, project_id=project_id,
-                    baseline_job_id=comparison_baseline_job_id,
-                    snapshot=snapshot, production_contract=production_contract,
-                    currentness=self._currentness,
-                )
-            elif production_contract is not None and production_contract.profile_id is not None:
-                # Refuse ambiguous dialogue before a row, budget reservation,
-                # or durable dispatch claim exists.
+            if production_contract is not None and production_contract.profile_id is not None:
                 from ...video_backends.minimax_h3.prompt import compile_i2va_prompt
+                from ...video_backends.minimax_h3.directions import direction_sources
 
-                snapshot["compiledPrompt"] = compile_i2va_prompt(snapshot)
+                sources = direction_sources(snapshot)
+                if preview_only and reviewed_directions is None:
+                    return sources | {"compiledPrompt": None}
+                try:
+                    snapshot["compiledPrompt"] = compile_i2va_prompt(snapshot, reviewed_directions)
+                except ValueError as exc:
+                    raise InvalidTransitionError(str(exc)) from exc
+                snapshot["reviewedDirections"] = reviewed_directions
+                if preview_only:
+                    return sources | {
+                        "compiledPrompt": snapshot["compiledPrompt"],
+                        "compiledPromptSha256": sha256(snapshot["compiledPrompt"].encode("utf-8")).hexdigest(),
+                    }
+                if reviewed_directions is None or reviewed_directions.get("promptSha256") != sha256(snapshot["compiledPrompt"].encode("utf-8")).hexdigest():
+                    raise InvalidTransitionError("H3 final prompt changed or was not previewed; review it before preparation")
+            elif preview_only or reviewed_directions is not None:
+                raise InvalidTransitionError("reviewed prompt directions require a current H3 profile")
             fingerprint = stable_hash({"snapshot": snapshot, "idempotencyKey": idempotency_key})
             existing = session.scalar(select(VideoJobRow).where(VideoJobRow.project_id == project_id, VideoJobRow.idempotency_key == idempotency_key))
             if existing is not None:

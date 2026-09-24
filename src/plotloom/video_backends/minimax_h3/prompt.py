@@ -2,44 +2,20 @@
 
 from __future__ import annotations
 
-from hashlib import sha256
 from typing import Any
+
+from .directions import bind_reviewed_directions
 
 _FIRST_FRAME = (
     "For the target video, at 0.00 seconds into the target video, "
     "<Picture 1> (from [Shot 1]) is fully referenced."
 )
-COMPARISON_COMPILER_VERSION = "plotloom.h3-i2va.v1-vocal-control.v1"
-_V1_SOUNDSCAPE = "Only environmental and physical sounds of the depicted scene; no additional voices."
-_CONTROL_SOUNDSCAPE = (
-    "Only environmental and physical sounds of the depicted scene; "
-    "S1's single quoted line is the only vocal utterance in the entire clip, "
-    "with no speech, murmurs, or other vocal sounds before or after it."
-)
-
-
-def compile_v1_vocal_control(snapshot: dict[str, Any]) -> tuple[str, str, str]:
-    """Change only the empty-soundscape sentence of the frozen v1 prompt."""
-
-    baseline = compile_i2va_prompt_v1(snapshot)
-    if snapshot["shot"].get("audioPlan", {}).get("events") or baseline.count(_V1_SOUNDSCAPE) != 1:
-        raise ValueError("v1 vocal comparison requires the exact empty soundscape")
-    if baseline.count("<d>") != 1 or "(S1)" not in baseline:
-        raise ValueError("v1 vocal comparison requires exactly one S1 dialogue cue")
-    treatment = baseline.replace(_V1_SOUNDSCAPE, _CONTROL_SOUNDSCAPE, 1)
-    return baseline, treatment, sha256(baseline.encode("utf-8")).hexdigest()
-
-
-def compile_i2va_prompt(snapshot: dict[str, Any]) -> str:
-    """Keep authored facts verbatim while assigning each sound one H3 role.
-
-    The canonical shot and resolved context own content. This formatter owns
-    only the I2VA alignment, speaker IDs, and field placement; it does not
-    translate or invent actions, dialogue, ambience, or music.
-    """
+def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str, Any]) -> str:
+    """Place reviewed source-bound English directions into H3's I2VA roles."""
 
     shot = snapshot["shot"]
     context = snapshot["resolvedContext"]
+    rendered = bind_reviewed_directions(snapshot, reviewed_directions)
     cues = context.get("dialogueCues", [])
     description = [
         (
@@ -51,10 +27,10 @@ def compile_i2va_prompt(snapshot: dict[str, Any]) -> str:
     for field in ("composition", "visualIntent", "action", "motionIntent"):
         value = str(shot.get(field) or "").strip()
         if value:
-            description.append(value)
+            description.append(rendered[f"shot.{field}"])
     camera = str(shot.get("cameraMovement") or "").strip()
     if camera:
-        description.append(f"Camera movement: {camera}.")
+        description.append(rendered["shot.cameraMovement"])
 
     speaker_ids: dict[str, str] = {}
     characters = {
@@ -62,10 +38,10 @@ def compile_i2va_prompt(snapshot: dict[str, Any]) -> str:
         if isinstance(item, dict) and isinstance(item.get("id"), str)
     }
     events = shot.get("audioPlan", {}).get("events", [])
-    for event in events:
+    for event_index, event in enumerate(events):
         if event.get("kind") in {"diegetic_sound", "diegetic_music"} and event.get("description"):
-            description.append(str(event["description"]).strip())
-    for cue in cues:
+            description.append(rendered[f"shot.audioPlan.events.{event_index}.description"])
+    for cue_index, cue in enumerate(cues):
         text = str(cue.get("text") or "")
         if not text:
             continue
@@ -78,41 +54,48 @@ def compile_i2va_prompt(snapshot: dict[str, Any]) -> str:
             raise ValueError("dialogue cue has no stable speaker identity")
         speaker_id = speaker_ids.setdefault(identity, f"S{len(speaker_ids) + 1}")
         character = characters.get(identity, {})
-        voice = "; ".join(str(item) for item in character.get("voiceAnchors", []) if item)
+        voice = "; ".join(
+            rendered[f"resolvedContext.characters.{identity}.voiceAnchors.{index}"]
+            for index, item in enumerate(character.get("voiceAnchors", [])) if item
+        )
         speaker = (
             f"The visible speaker established by <Picture 1> ({speaker_id})"
             if not cue.get("voiceOver") and identity in shot.get("characterIds", [])
             else f"The off-screen speaker ({speaker_id})"
         )
         if voice:
-            speaker += f", voice character: {voice}"
+            description.append(f"{speaker} speaks with {_lower_initial(voice.rstrip('.'))}.")
         delivery = str(cue.get("delivery") or "").strip()
         performance = str(cue.get("performanceNotes") or "").strip()
-        if delivery:
-            speaker += f", delivery: {delivery}"
         if performance:
-            speaker += f", performance: {performance}"
+            description.append(rendered[f"resolvedContext.dialogueCues.{cue_index}.performanceNotes"])
+        delivery_phrase = (
+            f" with {_lower_initial(rendered[f'resolvedContext.dialogueCues.{cue_index}.delivery'].rstrip('.'))} delivery"
+            if delivery else ""
+        )
         if cue.get("voiceOver"):
             description.append(
-                f"{speaker} says in an off-screen voiceover: "
+                f"{speaker}{',' + delivery_phrase + ',' if delivery_phrase else ''} says in an off-screen voiceover: "
                 f"<d>[{_language(cue.get('language'))}] {text}</d>"
+                + (" while their lips remain completely closed."
+                   if identity in shot.get("characterIds", []) else "")
             )
         else:
             description.append(
-                f"{speaker} says once: <d>[{_language(cue.get('language'))}] {text}</d>"
+                f"{speaker} says once{delivery_phrase}: <d>[{_language(cue.get('language'))}] {text}</d>"
             )
-    description.append("No captions, subtitles, or newly visible words.")
+    description.append("Do not add text overlays or words absent from the reviewed first frame and authored shot.")
 
     soundscape = " ".join(
-        str(event.get("description") or "").strip()
-        for event in events
+        rendered[f"shot.audioPlan.events.{index}.description"]
+        for index, event in enumerate(events)
         if event.get("kind") in {"ambience", "sound_effect"} and event.get("description")
     )
     if not soundscape:
-        soundscape = "Only environmental and physical sounds of the depicted scene; no additional voices."
+        soundscape = rendered["reviewedSoundscape"]
     music = " ".join(
-        str(event.get("description") or "").strip()
-        for event in events
+        rendered[f"shot.audioPlan.events.{index}.description"]
+        for index, event in enumerate(events)
         if event.get("kind") == "score" and event.get("description")
     ) or "N/A"
     return (
@@ -125,6 +108,10 @@ def compile_i2va_prompt(snapshot: dict[str, Any]) -> str:
 
 def _language(value: object) -> str:
     return {"zh-CN": "Chinese", "en-US": "English"}.get(str(value), str(value))
+
+
+def _lower_initial(value: str) -> str:
+    return value[:1].lower() + value[1:]
 
 
 def compile_i2va_prompt_v1(snapshot: dict[str, Any]) -> str:

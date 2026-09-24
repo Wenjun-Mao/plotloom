@@ -90,6 +90,20 @@ exact six-second derivative preview in an isolated copy. Its audiovisual
 selection remains open for attended director audition; other route cuts have
 no playable media.
 
+**U4 H3 prompt correction (bounded implementation, 2026-09-24; live result
+pending).** The director identified B's extra sentence as the canonical
+Chinese action, so the stronger “only vocal utterance” comparison condition
+is retired for new trials. The official [H3 single-image guide](https://github.com/MiniMax-AI/MiniMax-H3/blob/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/SKILL.md)
+requires English rewritten directions while keeping dialogue and visible text
+in their original language. A reviewed, source-bound direction package and
+full-prompt preview now precede preparation; old A/B jobs and recordings stay
+immutable. The [living playbook](../operations/h3-prompt-writing-playbook.md)
+and [offline complete-prompt evidence](../verification/2026-09-24-h3-reviewed-directions-offline.md)
+record current guidance and a proposed rendering, not a provider result. Next:
+on a fresh isolated U4 copy, review a fresh server-owned prompt and run at most
+one separately authorized H3 trial, then listen to original and segment before
+any selection. No claim that the speech defect or F6 qualification is resolved.
+
 **Simulated bridge wording follow-up (2026-09-22).** The director found the
 simulated flow fairly clear and requested “确认投产提案” for the action,
 “投产提案已确认” for the accepted status, and an explicit note that
@@ -252,8 +266,8 @@ dependencies, not a rigid waterfall. Each delivery updates this table.
 ### Deferred F6 prompt optimization — agreed separation
 
 - **Evidence:** retain both F6 clips unselected. The user's review rejects the corrected clip for extra speech and unwanted repeated subtitles; do not reinterpret it as a transport failure or accepted native dialogue.
-- **Prompt alignment:** before another bounded experiment, inspect and pin MiniMax's [H3 prompt skill](https://github.com/MiniMax-AI/MiniMax-H3/tree/main/.agents/skills/h3-prompt-writing), especially its [base guide](https://github.com/MiniMax-AI/MiniMax-H3/blob/main/.agents/skills/h3-prompt-writing/references/base-en.txt), against the deployed model/input mode and pinned Shuohao `skills/novel-storyboard/references/h3-prompt.md`. The source leads come from the user's “H3提示词官方指导” conversation; its summary is not verified primary-source guidance. Shuohao's local skill explicitly documents H3 alignment, dialogue blocks, soundscape and music fields. Prefer reuse over a second prompt framework; do not assume its multi-picture structure maps directly to current single-image dispatch.
-- **Experiment:** design a small controlled comparison only after that source review. Candidate questions include a single speech instruction, exactly-once delivery, and suppression of additional speech/subtitles/on-screen text. Our action and dialogue fields both repeat the line; causal significance is a hypothesis, not a finding. No new generations are authorized by this roadmap edit; the original two-submit experiment is exhausted.
+- **Prompt alignment:** MiniMax's pinned [H3 skill](https://github.com/MiniMax-AI/MiniMax-H3/blob/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/SKILL.md) and [base guide](https://github.com/MiniMax-AI/MiniMax-H3/blob/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/references/base-en.txt) now govern the single-image prompt contract; see the [living playbook](../operations/h3-prompt-writing-playbook.md). Do not reuse unreviewed Chinese non-dialogue directions or the failed vocal-control condition.
+- **Experiment:** the next bounded U4 trial, if separately authorized, is a guide-compliant reviewed English-direction prompt with verbatim Chinese dialogue. Its quality and mechanism remain unproven. No new generations are authorized by this roadmap entry.
 - **Product review:** keep regenerate/compare/select/discard in F7's existing candidate workflow; prompt improvement does not remove human acceptance.
 - **Fallback decision:** if bounded evidence shows native speech remains unsuitable, separately assess controlled audio. Do not build a speculative TTS/lip-sync stack or redesign the text pipeline now. Cross-clip voice consistency remains an independent unmet gate.
 

@@ -78,3 +78,20 @@ and no predispatch blocker. Their API-level regression and typed-error
 recommendations were implemented. Focused prompt/project-video tests passed
 35 tests; the complete backend suite passed 740 tests with one third-party
 Starlette deprecation warning. No frontend source changed.
+
+## Subsequent director listening and disposition
+
+The director listened to B and identified the preceding utterance as the
+canonical action sentence `沈岚把铜质熔断器放在两条并列插槽之间。`, followed by the
+intended `一枚，只够一边。`. The stronger “only vocal utterance” instruction failed
+this listening criterion. This is an observation about the generated audio,
+not proof of H3's internal mechanism. The earlier A feedback established
+extra unclear speech, not this exact transcription.
+
+The treatment remains an immutable failed comparison, and its original and
+derivative remain unselected. New preparation no longer offers this condition.
+The official H3 writing skill requires English rewritten directions while
+preserving original-language dialogue. Both frozen prompts had Chinese action
+and voice directions outside `<d>`; see the [current rendering decision](../adr/0083-h3-single-image-prompt-contract.md)
+and [working playbook](../operations/h3-prompt-writing-playbook.md). A new
+guide-compliant take has not been generated or evaluated.
