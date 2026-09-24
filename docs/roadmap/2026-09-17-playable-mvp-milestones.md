@@ -9,18 +9,19 @@ earlier scope and evidence, not the current assignment queue.
 
 ## Now / Next / Later · 2026-09-24
 
-- **Now:** Reconcile the C listening evidence and run at most one H3 opening-shot
-  variation with a distinct explicit seed, all other reviewed C inputs held
-  constant in a fresh isolated copy. The [variation receipt](../verification/2026-09-24-u4-h3-seed-variation.md)
-  records its ingested, unselected original. Review that original with the
-  director before another H3 submission.
-- **Next:** If that review supports a sequence, prepare the canonical adjacent
-  `opening-s1-c2` shot with its own reviewed keyframe and guide-compliant prompt.
-  It has the same speaker C01 and line “主灯，或者码头。”; at most one adjacent H3
-  submission is in scope, after separate prompt and first-frame review.
-- **Later:** Decide audiovisual selection and whether the short real sequence
-  meets creative and voice-continuity goals. The other route cuts and wider F6/F7
-  qualification remain open.
+- **Now:** Director listening and visual review of the unselected C, D and
+  adjacent `opening-s1-c2` originals. The [seed variation](../verification/2026-09-24-u4-h3-seed-variation.md)
+  and [adjacent-shot receipt](../verification/2026-09-24-u4-h3-adjacent-shot.md)
+  preserve exact media, prompts, controls and review limits. C's full original
+  has director-confirmed complete speech; D audio and the adjacent original
+  still need director listening. The adjacent cut has the same C01 voice anchor
+  and exact line “主灯，或者码头。”
+- **Next:** If the director finds a usable audiovisual window, review its
+  boundaries with sound and decide explicitly whether to select it. Compare
+  the two-shot sequence for C01 voice continuity and unresolved visual action.
+- **Later:** Decide whether this short real sequence meets the creative goal.
+  The other route cuts and wider F6/F7 qualification remain open. No further
+  generation is implied by these receipts.
 
 The dated checkpoint ledger below preserves earlier phase-specific exclusions,
 model choices and push instructions as history. This current assignment and its

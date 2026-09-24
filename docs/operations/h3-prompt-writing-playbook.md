@@ -98,6 +98,29 @@ source-review session; it does not promise a fresh seed on every repeated freeze
 An explicit “new variation / same seed” control is a possible follow-up, not
 implemented by this note. No additional generation accompanied this update.
 
+## Prompt/input responsibility versus H3 output review
+
+Plotloom owns the accepted shot, source-bound first frame, rewritten English
+directions, exact Chinese dialogue, soundscape supplement, frozen controls,
+and duration/segment review. A/B demonstrably put Chinese action outside
+`<d>`, contrary to the pinned H3 guide; that was a Plotloom prompt-contract
+mismatch. The director heard that action spoken in B, but the match alone does
+not prove the model's internal cause. C used the guide-compliant reviewed
+package: the director heard the complete intended line with no extra action
+sentence in its full original. Its 0–6-second derivative cuts speech after
+“一枚，”; the director confirmed the 2–8-second proposal keeps the complete
+line. These are editorial-window observations, not a selected take.
+
+The distinct-seed D original has an apparent visual fidelity issue: sampled
+and final frames show the fuse in the upper socket, while the source places it
+between the sockets without choosing a route. D audio remains unreviewed.
+Whether the visual error arose from the first frame, wording, or H3 generation
+needs a controlled output review; a correct prompt does not assign every
+remaining defect to the model. Bring exact prompt, image, controls, original
+media and director observations to an H3 specialist as separate evidence,
+without claiming general H3 limits from these individual trials. C and D,
+including both C segment proposals, remain unselected.
+
 ## Promotion into a repo skill (criteria)
 
 Keep this playbook as the single knowledge source. A future thin repo skill may
