@@ -11,8 +11,9 @@ earlier scope and evidence, not the current assignment queue.
 
 - **Now:** Reconcile the C listening evidence and run at most one H3 opening-shot
   variation with a distinct explicit seed, all other reviewed C inputs held
-  constant in a fresh isolated copy. Review its original and any proposed
-  segment with the director before another H3 submission.
+  constant in a fresh isolated copy. The [variation receipt](../verification/2026-09-24-u4-h3-seed-variation.md)
+  records its ingested, unselected original. Review that original with the
+  director before another H3 submission.
 - **Next:** If that review supports a sequence, prepare the canonical adjacent
   `opening-s1-c2` shot with its own reviewed keyframe and guide-compliant prompt.
   It has the same speaker C01 and line “主灯，或者码头。”; at most one adjacent H3
