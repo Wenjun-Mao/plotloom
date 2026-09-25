@@ -121,13 +121,38 @@ media and director observations to an H3 specialist as separate evidence,
 without claiming general H3 limits from these individual trials. C and D,
 including both C segment proposals, remain unselected.
 
+## Quality choice: development versus production review
+
+On 2026-09-25 the director clarified that earlier visual defects were mainly
+shaking: intermittent in their quality 1/2/3 tests and largely resolved with
+quality 8. This is director-reported experience, not a controlled Plotloom
+comparison and not proof that every earlier defect has the same cause.
+Use quality 1 for fast development evaluation; prefer quality 8 for production
+review once integrated and qualified. Neither setting confers creative acceptance.
+The gateway guide identifies quality 8 as Base-20 without Turbo LoRA; quality
+and resolution are separate controls. Plotloom currently sends and validates
+quality 1 only, so recording this recommendation does not change runtime defaults.
+Keep quality/seed/prompt/images/duration in every receipt. A different quality,
+longer take and new boundary design together test the new workflow, not an
+isolated quality-effect hypothesis. Do not add anti-shaking prompt instructions
+as a substitute for examining sampling quality and the intended camera motion.
+
 ## Promotion into a repo skill (criteria)
 
 Adjacent-shot follow-up: the director reported clear intended dialogue, absence
 of the earlier observed visual defects, and a voice very close to C. This is
 positive two-clip feedback, not broad voice qualification. Keep H3/audio model
 research with the director's specialist; Plotloom's immediate checkpoint is
-reviewing exact editorial windows and the cut with sound, not implementing TTS.
+planning pacing and cut boundaries, not implementing TTS. Subsequent assembly
+review confirmed complete dialogue and coherent voice/pose, but rejected the
+six-second transition. Exact-length windows do not establish editorial continuity.
+Choose take boundaries for the action and dialogue; consider a longer take,
+compatible end/start frames, or a deliberate angle/subject change. Do not turn
+agent-authored test timing into a presumed user requirement. Gateway support for
+5–15-second requests and optional end images is documented in the
+[client guide](minimax-h3-gateway-client-guide.md); this is distinct from the
+narrower qualified Plotloom path. End-frame conditioning does not guarantee an
+exact boundary, and a nominal request duration is not measured playback time.
 
 Keep this playbook as the single knowledge source. A future thin repo skill may
 point to it once agents can repeat the review and one or more representative

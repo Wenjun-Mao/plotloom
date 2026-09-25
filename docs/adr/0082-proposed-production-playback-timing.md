@@ -2,6 +2,31 @@
 
 **Status:** Accepted for the bounded reviewed-playback-segment implementation, 2026-09-23. This authorizes synthetic-media contract work and an explicit creator-reviewed local derivative, not provider generation, source retiming, or creative/media acceptance. The original proposal text below remains the decision basis; its former open product choices are settled by the approval noted under “First slice.”
 
+## Proposed follow-on: pacing-first timing and broader H3 inputs (2026-09-25)
+
+This is a design amendment for review, not an implemented replacement of the
+accepted contract below. The director rejected the two-shot trial's transition
+despite complete dialogue and coherent voice/pose. Its six-second durations were
+agent-authored test values, not a director requirement. Preserve source fidelity
+by explicitly revising creative timing when needed, rather than forcing every
+generated take into those test values or silently changing canon at selection.
+
+The proposed first slice keeps one generated take bound to one canonical shot,
+supports reviewed gateway quality/duration and optional end-frame inputs, and
+generalizes exact reviewed windows beyond the special six/eight-second path.
+For the continuous opening exchange, propose a fresh reviewed F5 one-shot version
+in an isolated project, not an automatic merge of installed shots. Multiple-shot
+generation mappings and arbitrary frame-rational timeline representation are
+deferred. Retain immutable originals, source currentness, explicit approval and
+selection, and exact measured output/audio checks. End-frame guidance is not an
+exact-match guarantee; a deliberate angle change need not match frames.
+
+Rejected alternatives: retaining six seconds merely because the test used it;
+silently making measured output the new authored duration; bypassing the frozen
+source binding; or admitting every gateway mode without a reviewed contract.
+The [active implementation brief](../roadmap/2026-09-17-playable-mvp-milestones.md#implementation-brief-for-review-pacing-first-h3-integration)
+owns ordering, verification, unresolved gateway details and the stopping boundary.
+
 ## Problem and evidence
 
 The [U4 handoff receipt](../verification/2026-09-23-u4-shot-handoff-readiness.md) retains 26 six-second F5 cuts and one eight-second cut. The [bridge](0079-f5-production-canonical-bridge.md) installs their exact source coordinates and milliseconds into canonical shots; [trusted timing](0018-trusted-story-timing-allocation.md) makes authored time the story authority. No U4 shot has an approved/selectable production take. Plotloom admits H3 requests of 5 or 8 seconds, not 6 ([ADR 0066](0066-h3-qualified-job-duration-contract.md)); bridge video preparation currently insists that the request equal its source cut. The gateway's 24-fps `17k + 5` grid implies 124, 158, and 192 *requested* frames for nominal 5, 6, and 8 seconds. Only 5/8 outputs were physically measured; there is no measured six-second output. A nominal six-second request would imply 158 frames (about 6.583 seconds), not six seconds.

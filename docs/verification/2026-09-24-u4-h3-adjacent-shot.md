@@ -143,3 +143,13 @@ decode completed without errors. The adjacent segment loaded via its HTTP
 preview with browser duration 6 and readyState 4. Direct local-file browser
 navigation was blocked by the browser tool; the assembly has not been browser
 or agent-listening accepted. All original and segment selections remain unchanged.
+
+### Subsequent director review: transition rejected
+
+The director confirmed both spoken lines remain complete and the character's
+voice and pose remain coherent in the assembly, but said the cut at six seconds
+does not feel natural in picture and sound. This is an unsuccessful transition
+experiment, not an accepted sequence. Six seconds originated in agent-authored
+test storyboard timing, not a director request. The director agreed to plan
+pacing and generation boundaries first, considering a longer take or deliberately
+staged cuts/end-start frames. No new generation or selection followed this review.

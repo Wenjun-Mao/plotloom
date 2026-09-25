@@ -7,25 +7,131 @@ single current tracker; bounded implementation assignments remain director-owned
 decision. [Revision 3 history](archive/superseded/2026-09-17-playable-mvp-milestones-r3-history.md) preserves
 earlier scope and evidence, not the current assignment queue.
 
-## Now / Next / Later · 2026-09-24
+## Now / Next / Later · 2026-09-25
 
-- **Now:** Director listening and visual review of the unselected C, D and
-  adjacent `opening-s1-c2` originals. The [seed variation](../verification/2026-09-24-u4-h3-seed-variation.md)
-  and [adjacent-shot receipt](../verification/2026-09-24-u4-h3-adjacent-shot.md)
-  preserve exact media, prompts, controls and review limits. C's full original
-  has director-confirmed complete speech; D audio and the adjacent original
-  still need director listening. The adjacent cut has the same C01 voice anchor
-  and exact line “主灯，或者码头。”
-- **Next:** If the director finds a usable audiovisual window, review its
-  boundaries with sound and decide explicitly whether to select it. Compare
-  the two-shot sequence for C01 voice continuity and unresolved visual action.
-- **Later:** Decide whether this short real sequence meets the creative goal.
-  The other route cuts and wider F6/F7 qualification remain open. No further
-  generation is implied by these receipts.
+- **Now:** Timing/continuity planning correction, approved for planning only.
+  The director confirmed both lines and coherent voice/pose in the two-shot
+  assembly, but rejected the naturalness of the six-second cut. The six-second
+  values came from agent-authored test storyboard cuts, not a user requirement.
+  All takes and segments remain unselected. Preserve the
+  [adjacent-shot evidence](../verification/2026-09-24-u4-h3-adjacent-shot.md).
+- **Next:** Design pacing and generation boundaries before another trial.
+  Prefer assessing one longer take for this continuous decision beat; compare
+  against two deliberately staged shots with either compatible end/start
+  frames or an intentional angle change. Do not merge canonical shots or
+  silently retime the accepted storyboard to fit this recommendation.
+- **Later:** Implement the reviewed integration slice, then run a bounded
+  audiovisual trial and explicit selection review. H3/audio research stays
+  with the director's specialist; other route cuts and F6/F7 remain open.
+
+### Timing/continuity integration checkpoint
+
+Deliver a source-backed design, not another generation or a trimming workaround:
+
+1. Bind the current [gateway guide](../operations/minimax-h3-gateway-client-guide.md)
+   to Plotloom's adapter: the gateway documents 5–15 integer seconds and optional
+   ending-image input, while `H3_QUALIFIED_DURATION_FRAMES` admits only 5/8 and
+   `transport.py` currently sends only `image`. Requested seconds are not exact
+   measured playback duration. Resolve frame-grid details with the specialist
+   if needed; do not invent a frame-count catalogue.
+2. Specify the editable timing authority and invalidation path before code:
+   `production_bridge.py` maps source cut seconds to canonical milliseconds;
+   `media_video_segments.py` currently restricts its reviewed path to 6/8-second
+   source shots and an 8-second request. Decide how an explicitly reviewed
+   timing or shot-structure revision reaches those owners without weakening
+   source provenance, approval, selection, or currentness checks. A generation
+   covering multiple shots needs an explicit mapping, not duplicate whole-take
+   selections for each shot.
+3. Amend ADR 0082 for the proposed timing workflow and specify duration and
+   optional end-frame integration, including immutable image provenance,
+   full-prompt review, dispatch safety and measured output validation. Trimming
+   remains optional editorial work, not the default goal. End-frame conditioning
+   is guidance, not a guarantee of exact continuity.
+4. Define tests for supported/unsupported durations, endpoint-image changes,
+   stale source/approval, measured timing and audio preservation; then define a
+   1440/1920 creator walkthrough that makes pacing and boundaries understandable.
+
+Stop at a reviewed implementation brief with unresolved ownership choices made
+explicit. No code, source-project mutation, provider call, media selection or
+TTS work is authorized by this planning checkpoint. Success means the next
+trial is chosen for narrative pacing and continuity, not an arbitrary six-second
+test value. Existing exact-timing safety remains in force until explicitly revised.
 
 The dated checkpoint ledger below preserves earlier phase-specific exclusions,
 model choices and push instructions as history. This current assignment and its
 explicit stop points govern the bounded experiment.
+
+### Implementation brief for review: pacing-first H3 integration
+
+**Status:** Design only; implementation and a new live trial have not started.
+The director reports random shaking in qualities 1/2/3 and substantially more
+stable output in quality 8. This is useful director evidence, not a controlled
+benchmark or a guarantee. Quality 1 remains useful for development; propose
+quality 8 as the initial production-review choice, always visibly frozen.
+
+**Recommended delivery order:**
+
+1. **Gateway capability integration.** Update `video_backends/minimax_h3/adapter.py`
+   and `transport.py`, their public profile descriptors, frozen-job contract and
+   workbench controls. Replace hard-coded quality 1 with explicit reviewed quality
+   profiles (first slice: 1 and 8; do not add 2/3 just because the gateway accepts
+   them). Keep resolution separate from quality. Version new profile/catalog
+   semantics; never relabel existing quality-1 jobs. Expose development/production
+   intent as a visible initial choice, not an automatic quality fallback. Bind
+   quality, duration, seed and both image hashes into prompt review and the job.
+   Obtain the exact gateway duration-to-frame rule and quality-8 descriptor before
+   implementation; the guide's `17k + 5` condition alone does not determine the
+   rounding rule. Validate actual output against the frozen request, not a loose
+   5–15-second range. Keep uncertain dispatch non-retryable without reconciliation.
+2. **Optional reviewed end frame.** Add a shot-owned managed-asset decision for
+   the ending image, independent of the starting keyframe. Carry its bytes/hash,
+   provenance, reviewed aspect treatment and source revision through preparation,
+   prompt rendering, transport and currentness. A changed end image invalidates
+   prepared review; a changed live decision makes old jobs stale rather than
+   changing their frozen bytes. Use the official first/last-frame prompt mode,
+   not a second image appended to the current single-image compiler. Verify that
+   mode with the specialist/official guide before coding it. No automatic linking
+   of one clip's last frame to another clip or assertion that the output matches
+   the end image exactly.
+3. **Explicit editorial revision, not forced trimming.** Keep gateway request,
+   measured take and approved story timing distinct. For this first story trial,
+   recommend revising the F5 opening segment into one longer shot covering both
+   existing lines and actions, then using the existing reviewed bridge path on
+   an isolated copy with empty canonical heads. Preserve the original project
+   and trial assets. Do not retrofit the installed bridge or introduce a second
+   timing override. Review the revised shot's pacing, coverage and source binding
+   before confirming canon and obtaining fresh approval/keyframe prerequisites.
+   This is a proposed creative structure, not an already accepted source edit.
+   If two angles are preferred, retain two shots and plan their boundary explicitly;
+   a single generated take mapped across multiple canonical shots is deferred.
+4. **Generalize reviewed playback only after ownership is settled.** Replace the
+   6/8-source-and-8-request special case in `media_video.py` and
+   `media_video_segments.py` with frame-representable, explicitly authored timing
+   covered by the measured take. Keep exact-window/audio verification, optional
+   annotations, CAS and explicit selection. Do not automatically shorten a useful
+   take to an old test value. If no good window matches the approved timing,
+   return to an explicit editorial revision or reject the take; never silently
+   change the timeline. Arbitrary frame-rational story durations and accepting a
+   measured whole take as new timing require a separate design if the current
+   integer-millisecond representation cannot express them exactly.
+
+**Acceptance:** Adapter/transport tests cover quality 1/8, wrong returned quality,
+unsupported duration and exact frame mapping, absent/present end image and changed
+image hashes. Storage tests cover stale F5/Brief/approval/reference, rollback and
+selection revision races. Segment tests cover longer frame-representable windows,
+insufficient output, clipped/invalid audio and unchanged original bytes. Browser
+tests at 1440/1920 must distinguish draft versus production quality, request versus
+measured/story duration, optional end frame, and unselected versus playable media.
+No test passing substitutes for director audiovisual review.
+
+**Trial checkpoint after implementation:** Review the full prompt, images, quality
+8 setting and proposed shot structure before one bounded longer-take trial. Choose
+the nominal duration for the performed exchange, within the supported envelope;
+do not prescribe six seconds or the maximum fifteen without a pacing reason.
+Assess both complete lines, shaking, action fidelity, voice/pose and start/end
+sound. A quality-8 longer take changes multiple variables and is not evidence that
+quality alone caused improvement. Stop and reassess a failed or uncertain call;
+do not auto-select, auto-retry, generate other route cuts or add TTS.
 
 ## Dated checkpoint ledger
 
