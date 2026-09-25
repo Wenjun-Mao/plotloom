@@ -34,7 +34,7 @@ class VideoJobRequest(CamelModel):
     # `reject_mismatch` unless the author records one explicit gateway-owned
     # input-frame choice; the broader literals remain readable for historical
     # snapshots and direct gateway recovery only.
-    requested_duration_seconds: Literal[5, 8] | None = None
+    requested_duration_seconds: int | None = Field(default=None, strict=True, ge=5, le=15)
     playback_intent: Literal["source_exact", "segment_required"] = "source_exact"
     resolution: str | None = Field(default=None, min_length=3, max_length=32)
     audio: Literal[True] | None = None

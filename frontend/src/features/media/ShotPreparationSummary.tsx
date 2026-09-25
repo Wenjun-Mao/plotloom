@@ -80,9 +80,9 @@ export function ShotPreparationSummary({
   const segmentEligible = exactSeconds === 6 && qualified?.includes(8);
   const durationStatus = !qualified ? "未知"
     : segmentEligible
-      ? `6 秒不在原片请求目录（${qualified.join(" / ")} 秒）；若来源绑定、批准及关键帧均为当前，可请求 8 秒原片后准备连续 144 帧候选播放片段。原片输出须核验，片段须经人工听看并明确选择；${current?.backend?.enabled ? "当前后端已配置" : "当前后端未配置，暂不能提交请求"}`
+      ? `6 秒虽在网关请求目录内，当前播放片段合同仅接受 8 秒原片提供连续 144 帧候选。原片输出须核验，片段须经人工听看并明确选择；${current?.backend?.enabled ? "当前后端已配置" : "当前后端未配置，暂不能提交请求"}`
       : qualified.includes(exactSeconds)
-        ? `${exactSeconds} 秒在当前请求目录内；不代表生成输出物理时长或媒体可用`
+        ? `${exactSeconds} 秒在当前请求目录内；不代表生成输出物理时长、可选片段或故事播放资格`
         : `${exactSeconds} 秒不在当前请求目录（${qualified.join(" / ")} 秒）；不能通过选择其他时长绕过精确来源约束`;
 
   return <section className="notice shot-preparation-summary" data-testid="shot-preparation-summary" aria-label="当前镜头准备状态">

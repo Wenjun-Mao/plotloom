@@ -532,7 +532,7 @@ def test_project_video_is_local_reviewable_and_restores_without_gateway(
     job = prepared.json()
     binding = job["snapshot"]["provider"]["backendBinding"]
     assert binding["adapterId"] == "minimax_h3_gateway"
-    assert binding["adapterVersion"] == "5"
+    assert binding["adapterVersion"] == "6"
     assert binding["instance"]["kind"] == "fixture_h3_endpoint_v1"
     assert len(binding["instance"]["fingerprint"]) == 64
     assert "endpoint" not in job["snapshot"]["provider"]
@@ -868,10 +868,11 @@ def test_eight_second_h3_job_freezes_output_contract_and_survives_restart(
             "approvalId": approval["id"], "shotId": context["shot"].id,
             "storyboardRevision": context["revision"],
             "expectedSelectionRevision": context["selection"]["selectionRevision"],
-            "idempotencyKey": "unqualified-seven-seconds", "requestedDurationSeconds": 7,
+            "idempotencyKey": "source-mismatched-seven-seconds", "requestedDurationSeconds": 7,
+            "aspectPolicy": "reject_mismatch",
         },
     )
-    assert rejected.status_code == 422
+    assert rejected.status_code == 409
 
 
 def test_h3_reviewed_directions_preview_bind_and_dispatch_after_restart(
@@ -965,7 +966,7 @@ def test_h3_reviewed_directions_preview_bind_and_dispatch_after_restart(
     submitted = restarted.post(f"/api/v2/projects/{project_id}/video-jobs/{job['id']}/submit")
     assert submitted.status_code == 200, submitted.text
     assert provider.submits == [{
-        "prompt": prompt, "quality": 1, "resolution": "576x1024",
+        "prompt": prompt, "quality": 8, "resolution": "576x1024",
         "aspectPolicy": "reject_mismatch", "seed": 31, "durationSeconds": 5,
     }]
 
@@ -1021,10 +1022,10 @@ def test_explicit_h3_gateway_crop_freezes_original_bytes_across_restart_and_tamp
     assert job["snapshot"]["request"] == {
         "durationSeconds": 5, "resolution": "576x1024", "audio": True,
         "aspectPolicy": "cover_center_crop", "seed": 41,
-            "profileId": "minimax_h3_quality1_portrait_576x1024_v1",
-            "profileVersion": 1, "width": 576, "height": 1024,
+            "profileId": "minimax_h3_quality8_portrait_576x1024_v2",
+            "profileVersion": 2, "width": 576, "height": 1024,
         "fps": 24, "frameCount": 124,
-        "allowLetterbox": False, "allowCenterCrop": True,
+            "allowLetterbox": False, "allowCenterCrop": True, "quality": 8,
     }
 
     # Restart only the application composition; the frozen project database
@@ -1200,6 +1201,7 @@ def test_restored_known_h3_job_reconciles_but_unknown_job_never_replays(
     # A known gateway job retains its frozen seed even though the fresh local
     # fixture instance did not submit it.
     restored_provider.seed = 14
+    restored_provider.quality = 8
     restored_client = TestClient(
         create_project_folder_authoring_app(
             restored,

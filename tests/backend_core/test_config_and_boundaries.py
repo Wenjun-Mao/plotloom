@@ -314,7 +314,7 @@ def test_runtime_keeps_h3_disabled_without_constructing_a_transport(
             "enabled": False,
             "tracksPaidWanPilot": False,
             "reason": "h3_video_not_configured",
-            "qualifiedDurationSeconds": [5, 8],
+            "qualifiedDurationSeconds": list(range(5, 16)),
         }
 
 

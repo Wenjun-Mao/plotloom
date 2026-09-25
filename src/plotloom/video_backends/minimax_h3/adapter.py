@@ -27,6 +27,7 @@ class H3Profile:
     tier: str
     width: int
     height: int
+    quality: int = 1
     duration_seconds: int = 5
     fps: int = 24
     frame_count: int = 124
@@ -50,6 +51,7 @@ class H3Profile:
             "tier": self.tier,
             "width": self.width,
             "height": self.height,
+            "quality": self.quality,
             "durationSeconds": self.duration_seconds,
             "minDurationSeconds": self.min_duration_seconds,
             "maxDurationSeconds": self.max_duration_seconds,
@@ -76,11 +78,12 @@ class H3SamplingRecipe:
 
     recipe_id: str
     recipe_version: int
-    lora_file: str
-    lora_strength: float
+    topology: str
+    lora_file: str | None
+    lora_strength: float | None
     inference_steps: int
-    video_sigma_shift: float
-    audio_sigma_shift: float
+    video_sigma_shift: float | None
+    audio_sigma_shift: float | None
     sampler: str
     scheduler: str
     denoise: float
@@ -89,6 +92,7 @@ class H3SamplingRecipe:
         return {
             "id": self.recipe_id,
             "version": self.recipe_version,
+            "topology": self.topology,
             "loraFile": self.lora_file,
             "loraStrength": self.lora_strength,
             "inferenceSteps": self.inference_steps,
@@ -100,11 +104,12 @@ class H3SamplingRecipe:
         }
 
 
-# Plotloom stays deliberately narrow: it creates image-to-video work using
-# gateway quality 1 only. The gateway itself owns the broader colleague API.
-_DEFAULT_QUALITY_RECIPE = H3SamplingRecipe(
+# The two Plotloom choices are independently reviewed; the gateway owns its
+# broader colleague API. Base-20 has no Turbo LoRA or explicit sigma nodes.
+_QUALITY_1_RECIPE = H3SamplingRecipe(
     "lightx2v_fl2va_turbo4_v1_2",
     1,
+    "turbo",
     "minimax_h3_fl2v_turbo_4step_v1.2_768p_comfyui_bf16.safetensors",
     1.0,
     4,
@@ -114,11 +119,16 @@ _DEFAULT_QUALITY_RECIPE = H3SamplingRecipe(
     "simple",
     1.0,
 )
+_QUALITY_8_RECIPE = H3SamplingRecipe(
+    "minimax_h3_base20", 1, "base", None, None, 20, None, None,
+    "res_multistep", "simple", 1.0,
+)
 
 
 def _profiles(
     *,
     version: int,
+    quality: int,
     recipe: H3SamplingRecipe,
 ) -> tuple[H3Profile, ...]:
     suffix = f"v{version}"
@@ -146,39 +156,47 @@ def _profiles(
     )
     return tuple(
         H3Profile(
-            profile_id=f"minimax_h3_quality1_{orientation}_{resolution}_{suffix}",
+            profile_id=f"minimax_h3_quality{quality}_{orientation}_{resolution}_{suffix}",
             profile_version=version,
-            label=f"{label} · {width} × {height} · Quality 1",
+            label=f"{label} · {width} × {height} · Quality {quality}",
             orientation=orientation,
             tier=tier,
             width=width,
             height=height,
+            quality=quality,
             sampling_recipe=recipe,
         )
         for orientation, tier, resolution, label, width, height in geometries
     )
 
 
-H3_PROFILES = _profiles(version=1, recipe=_DEFAULT_QUALITY_RECIPE)
+_LEGACY_QUALITY_1_PROFILES = _profiles(version=1, quality=1, recipe=_QUALITY_1_RECIPE)
+H3_PROFILES = (
+    *_profiles(version=2, quality=8, recipe=_QUALITY_8_RECIPE),
+    *_profiles(version=2, quality=1, recipe=_QUALITY_1_RECIPE),
+)
 H3_PROFILES_BY_ID = {profile.profile_id: profile for profile in H3_PROFILES}
-H3_ALL_PROFILES_BY_ID = H3_PROFILES_BY_ID
+H3_ALL_PROFILES_BY_ID = {
+    **{profile.profile_id: profile for profile in _LEGACY_QUALITY_1_PROFILES},
+    **H3_PROFILES_BY_ID,
+}
 DEFAULT_H3_PROFILE_ID = H3_PROFILES[0].profile_id
 H3_PROFILE_CONTRACT_VERSION = 6
 # This identifier is the client-side admission anchor for the reviewed gateway
 # catalog.  It is distinct from individual frozen profile IDs, which remain
 # valid explicit runtime selections.
-H3_CATALOG_ID = "minimax_h3_gateway_catalog_v6"
-# The gateway can parse 5--15 seconds, but only this product-qualified subset
-# is admitted into new Plotloom jobs.  Do not turn gateway capability into a
-# browser-selectable range without another qualification decision.
-H3_QUALIFIED_DURATION_FRAMES = {5: 124, 8: 192}
+H3_CATALOG_ID = "minimax_h3_gateway_catalog_v7"
+H3_QUALIFIED_DURATION_FRAMES = {
+    seconds: seconds * 24 + (5 - seconds * 24 % 17) % 17
+    for seconds in range(5, 16)
+}
 
 
 class MiniMaxH3GatewayAdapter:
     """Compile and validate only profiles in the private H3 catalog."""
 
     adapter_id = "minimax_h3_gateway"
-    adapter_version = "5"
+    adapter_version = "6"
     _JOB_ID = re.compile(r"^h3_[0-9a-f]{32}$")
     # New Plotloom work must receive a fully composed reviewed keyframe.
     _ASPECT_POLICIES = frozenset({"cover_center_crop", "contain_pad", "reject_mismatch"})
@@ -198,6 +216,7 @@ class MiniMaxH3GatewayAdapter:
     def _frozen_profile(
         self, profile_id: str | None, *, profile_version: int | None = None,
         width: int | None = None, height: int | None = None, fps: int | None = None,
+        quality: int | None = None,
     ) -> H3Profile:
         """Refuse catalog drift when a prepared job resumes after restart."""
 
@@ -210,7 +229,7 @@ class MiniMaxH3GatewayAdapter:
             actual is not None and actual != expected
             for actual, expected in (
                 (profile_version, profile.profile_version), (width, profile.width),
-                (height, profile.height), (fps, profile.fps),
+                (height, profile.height), (fps, profile.fps), (quality, profile.quality),
             )
         ):
             raise VideoProviderError("H3 frozen profile contract no longer matches the trusted catalog")
@@ -230,7 +249,7 @@ class MiniMaxH3GatewayAdapter:
     ) -> VideoProductionContract:
         profile = self._profile(profile_id, default_if_missing=True)
         duration = profile.duration_seconds if requested_seconds is None else requested_seconds
-        frame_count = H3_QUALIFIED_DURATION_FRAMES.get(duration)
+        frame_count = H3_QUALIFIED_DURATION_FRAMES.get(duration) if type(duration) is int else None
         if frame_count is None:
             raise VideoProviderError("H3 duration capability mismatch")
         if resolution not in {None, profile.resolution}:
@@ -270,6 +289,7 @@ class MiniMaxH3GatewayAdapter:
             height=profile.height,
             fps=profile.fps,
             frame_count=frame_count,
+            quality=profile.quality,
         )
 
     def public_capability(self) -> dict[str, Any]:
@@ -295,13 +315,14 @@ class MiniMaxH3GatewayAdapter:
             "allowsCenterCrop": True,
             "tracksPaidWanPilot": False,
             "profileContractVersion": H3_PROFILE_CONTRACT_VERSION,
-            "defaultQuality": 1,
+            "defaultQuality": default.quality,
             # Plotloom's generic video-review UI still needs one internal
             # geometry selection. It never crosses the gateway boundary: the
-            # transport serializes its resolution with public quality=1.
+            # transport serializes its frozen quality and resolution.
             "defaultProfileId": default.profile_id,
             "qualifiedDurationSeconds": sorted(H3_QUALIFIED_DURATION_FRAMES),
-            "resolutions": [profile.resolution for profile in H3_PROFILES],
+            "qualities": [1, 8],
+            "resolutions": list(dict.fromkeys(profile.resolution for profile in H3_PROFILES)),
             "profiles": [profile.product_descriptor() for profile in H3_PROFILES],
         }
 
@@ -320,12 +341,17 @@ class MiniMaxH3GatewayAdapter:
         height: int | None = None,
         fps: int | None = None,
         frame_count: int | None = None,
+        quality: int | None = None,
     ) -> dict[str, Any]:
         profile = self._frozen_profile(
             profile_id, profile_version=profile_version, width=width, height=height, fps=fps,
+            quality=quality,
         )
+        if profile.profile_version >= 2 and quality is None:
+            raise VideoProviderError("H3 frozen request has no quality")
         if (
-            duration not in H3_QUALIFIED_DURATION_FRAMES
+            type(duration) is not int
+            or duration not in H3_QUALIFIED_DURATION_FRAMES
             or resolution != profile.resolution
             or audio is not True
             or frame_count is not None and frame_count != H3_QUALIFIED_DURATION_FRAMES[duration]
@@ -335,7 +361,7 @@ class MiniMaxH3GatewayAdapter:
             raise VideoProviderError("H3 frozen request is incomplete")
         return {
             "prompt": prompt,
-            "quality": 1,
+            "quality": profile.quality,
             "resolution": profile.resolution,
             "aspectPolicy": aspect_policy,
             "seed": seed,
@@ -366,7 +392,7 @@ class MiniMaxH3GatewayAdapter:
             expected_profile_id, profile_version=expected_profile_version,
             width=expected_width, height=expected_height, fps=expected_fps,
         )
-        if payload.get("quality") != 1 or payload.get("resolution") != profile.resolution:
+        if payload.get("quality") != profile.quality or payload.get("resolution") != profile.resolution:
             raise VideoProviderError("H3 response quality or resolution does not match frozen job")
         if expected_aspect_policy is not None and payload.get("aspectPolicy") != expected_aspect_policy:
             raise VideoProviderError("H3 response aspect policy does not match frozen job")
@@ -448,7 +474,7 @@ class MiniMaxH3GatewayAdapter:
             profile_id, profile_version=expected_profile_version, width=expected_width,
             height=expected_height, fps=expected_fps,
         )
-        if requested_seconds not in H3_QUALIFIED_DURATION_FRAMES:
+        if type(requested_seconds) is not int or requested_seconds not in H3_QUALIFIED_DURATION_FRAMES:
             raise VideoOutputContractError("h3_output_profile_mismatch")
         frame_count = H3_QUALIFIED_DURATION_FRAMES[requested_seconds]
         if expected_frame_count != frame_count or expected_fps != profile.fps:

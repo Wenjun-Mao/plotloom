@@ -8,12 +8,16 @@ function newSeed(): number {
   return (values[0] & 0x1fffff) * 2 ** 32 + values[1];
 }
 
-export function H3DirectionsReview({ projectId, sourceIdentity, disabled, buildRequest, onFreeze }: {
+export function H3DirectionsReview({ projectId, sourceIdentity, disabled, buildRequest, onFreeze, keyframeHash, quality, requestedSeconds, frameCount }: {
   projectId: string;
   sourceIdentity: string;
   disabled: boolean;
   buildRequest: (seed: number, idempotencyKey: string) => VideoJobPrepareBody;
   onFreeze: (packageValue: H3ReviewedDirections, seed: number, idempotencyKey: string) => Promise<void>;
+  keyframeHash: string;
+  quality: number;
+  requestedSeconds: number;
+  frameCount: number;
 }) {
   const [sources, setSources] = useState<H3PromptPreview | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -108,6 +112,7 @@ export function H3DirectionsReview({ projectId, sourceIdentity, disabled, buildR
       <div className="h3-direction-actions"><Button disabled={disabled || busy || !reviewed || sources.sources.some((source) => !drafts[source.path]?.trim())}
         onClick={() => void preview()}>预览完整 H3 提示词</Button></div>
       {compiled && <><pre className="video-prompt-preview">{compiled}</pre>
+        <small data-testid="h3-frozen-review-inputs">本次冻结输入：质量 {quality}；请求 {requestedSeconds} 秒 / {frameCount} 帧；种子 {frozenSeed.current}；起始关键帧 SHA-256 {keyframeHash}。提示词 SHA-256 {compiledHash}。请求秒数不是最终播放时长。</small>
         <div className="h3-direction-actions"><Button disabled={disabled || busy} onClick={() => void freeze()}>冻结此说明并准备原片</Button></div></>}
     </>}
     {error && <small className="notice warning" role="alert">{error}</small>}

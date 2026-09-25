@@ -346,6 +346,7 @@ export interface VideoBackendProfile {
   id: string;
   version: number;
   label: string;
+  quality?: number;
   orientation: "landscape" | "portrait";
   tier: "fast" | "standard" | "high_resolution";
   width: number;

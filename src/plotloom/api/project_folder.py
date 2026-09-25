@@ -43,7 +43,7 @@ from ..project_storage import (
 from ..managed_media import (
     ManagedMediaError,
 )
-from ..video_backends.minimax_h3.adapter import H3_PROFILES_BY_ID
+from ..video_backends.minimax_h3.adapter import H3_ALL_PROFILES_BY_ID
 from ..video_backends.minimax_h3 import MiniMaxH3GatewayAdapter
 from ..video_ingestion import ObservedVideo, probe_video
 from ..video_provider import VideoAdapterPort, VideoProviderPort
@@ -131,7 +131,9 @@ def create_project_folder_authoring_app(
     def _project_h3_target(profile_id: str) -> dict[str, Any]:
         """Resolve a trusted adaptation target without project configuration."""
 
-        profile = H3_PROFILES_BY_ID.get(profile_id)
+        # Existing quality-1 preparation targets remain meaningful after the
+        # new video-job catalog begins offering quality 8.
+        profile = H3_ALL_PROFILES_BY_ID.get(profile_id)
         if profile is None:
             raise ManagedMediaError(
                 "keyframe_target_profile_invalid",

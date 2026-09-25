@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import pytest
+from pydantic import ValidationError
 
 from plotloom.video_backends.minimax_h3 import H3_PROFILES, MiniMaxH3GatewayAdapter, MiniMaxH3GatewayTransport
-from plotloom.video_backends.minimax_h3.adapter import H3_PROFILE_CONTRACT_VERSION
+from plotloom.video_backends.minimax_h3.adapter import H3_PROFILE_CONTRACT_VERSION, H3_QUALIFIED_DURATION_FRAMES
 from plotloom.video_ingestion import ObservedVideo
+from plotloom.video_contracts import VideoJobRequest
 from plotloom.video_provider import VideoOutputContractError, VideoProviderError, WanDispatchError
 
 
 _JOB_ID = "h3_0123456789abcdef0123456789abcdef"
-_PROFILE = H3_PROFILES[0].profile_id
+_PROFILE = next(profile.profile_id for profile in H3_PROFILES if profile.quality == 1)
+_QUALITY_8_PROFILE = next(profile.profile_id for profile in H3_PROFILES if profile.quality == 8)
 
 
 class _Response:
@@ -92,9 +95,10 @@ def test_h3_adapter_requires_explicit_and_exclusive_center_crop_consent() -> Non
     assert contract.request_snapshot() == {
         "durationSeconds": 5, "resolution": "576x1024", "audio": True,
         "aspectPolicy": "cover_center_crop", "seed": 7, "profileId": _PROFILE,
-        "profileVersion": 1, "width": 576, "height": 1024,
+        "profileVersion": 2, "width": 576, "height": 1024,
         "fps": 24, "frameCount": 124,
         "allowLetterbox": False, "allowCenterCrop": True,
+        "quality": 1,
     }
     with pytest.raises(VideoProviderError, match="mutually exclusive"):
         adapter.production_contract(
@@ -148,7 +152,7 @@ def test_h3_eight_second_contract_freezes_grid_and_rejects_mismatched_envelopes(
     assert contract.request_snapshot()["frameCount"] == 192
     assert adapter.compile_image(
         prompt="one line", duration=8, resolution="576x1024", audio=True,
-        aspect_policy="reject_mismatch", seed=8, profile_id=_PROFILE,
+        aspect_policy="reject_mismatch", seed=8, profile_id=_PROFILE, quality=1,
     )["durationSeconds"] == 8
     with pytest.raises(VideoProviderError, match="duration"):
         adapter.prediction_id(
@@ -169,9 +173,12 @@ def test_h3_eight_second_contract_freezes_grid_and_rejects_mismatched_envelopes(
         )
 
 
-def test_h3_public_profiles_do_not_advertise_the_gateway_duration_range() -> None:
+def test_h3_public_profiles_advertise_reviewed_quality_and_duration_choices() -> None:
     capability = MiniMaxH3GatewayAdapter().public_capability()
-    assert capability["qualifiedDurationSeconds"] == [5, 8]
+    assert capability["qualifiedDurationSeconds"] == list(range(5, 16))
+    assert capability["qualities"] == [1, 8]
+    assert capability["defaultQuality"] == 8
+    assert capability["defaultProfileId"] == _QUALITY_8_PROFILE
     assert all(
         "minDurationSeconds" not in profile and "maxDurationSeconds" not in profile
         for profile in capability["profiles"]
@@ -207,3 +214,98 @@ def test_h3_transport_rejects_unrecognised_direct_response_shape() -> None:
     transport = MiniMaxH3GatewayTransport("test-key", base_url="http://100.64.1.2:8090", session=_Malformed())
     with pytest.raises(WanDispatchError):
         transport.submit_image(b"png", mime_type="image/png", payload={"prompt": "x", "quality": 1, "resolution": "576x1024", "aspectPolicy": "reject_mismatch", "seed": 1, "durationSeconds": 5})
+
+
+def test_h3_quality_eight_freezes_base_recipe_and_exact_grid() -> None:
+    adapter = MiniMaxH3GatewayAdapter()
+    # Gateway profile_catalog.py is separately packaged; bind all eleven
+    # gateway results here without making the product import that service.
+    assert H3_QUALIFIED_DURATION_FRAMES == {
+        5: 124, 6: 158, 7: 175, 8: 192, 9: 226, 10: 243,
+        11: 277, 12: 294, 13: 328, 14: 345, 15: 362,
+    }
+    assert [H3_QUALIFIED_DURATION_FRAMES[seconds] for seconds in (5, 8, 15)] == [124, 192, 362]
+    profile = next(profile for profile in H3_PROFILES if profile.profile_id == _QUALITY_8_PROFILE)
+    assert profile.sampling_recipe is not None
+    assert profile.sampling_recipe.public_descriptor() == {
+        "id": "minimax_h3_base20", "version": 1, "topology": "base", "loraFile": None,
+        "loraStrength": None, "inferenceSteps": 20, "videoSigmaShift": None,
+        "audioSigmaShift": None, "sampler": "res_multistep", "scheduler": "simple", "denoise": 1.0,
+    }
+    contract = adapter.production_contract(
+        requested_seconds=15, resolution="576x1024", audio=True,
+        aspect_policy="reject_mismatch", allow_letterbox=False,
+        allow_center_crop=False, seed=15, profile_id=_QUALITY_8_PROFILE,
+    )
+    assert contract.request_snapshot()["quality"] == 8
+    assert contract.request_snapshot()["frameCount"] == 362
+    assert adapter.compile_image(
+        prompt="reviewed", duration=15, resolution="576x1024", audio=True,
+        aspect_policy="reject_mismatch", seed=15, profile_id=_QUALITY_8_PROFILE,
+        profile_version=2, width=576, height=1024, fps=24, frame_count=362, quality=8,
+    )["quality"] == 8
+    with pytest.raises(VideoProviderError, match="quality"):
+        adapter.prediction_id(_job("queued", False, duration=15, frame_count=362), expected_profile_id=_QUALITY_8_PROFILE)
+    with pytest.raises(VideoProviderError, match="duration"):
+        adapter.production_contract(
+            requested_seconds=16, resolution="576x1024", audio=True,
+            aspect_policy="reject_mismatch", allow_letterbox=False,
+            allow_center_crop=False, seed=15, profile_id=_QUALITY_8_PROFILE,
+        )
+
+
+def test_h3_api_duration_is_an_integer_within_gateway_range() -> None:
+    body = {
+        "approvalId": "approval", "shotId": "shot", "storyboardRevision": 1,
+        "expectedSelectionRevision": 1, "idempotencyKey": "duration-validation",
+    }
+    for seconds in range(5, 16):
+        assert VideoJobRequest.model_validate({**body, "requestedDurationSeconds": seconds}).requested_duration_seconds == seconds
+    for invalid in (4, 16, True, 5.0, "8"):
+        with pytest.raises(ValidationError):
+            VideoJobRequest.model_validate({**body, "requestedDurationSeconds": invalid})
+
+
+def test_h3_transport_rejects_non_integer_or_wrong_grid_response() -> None:
+    for frame_count in (192.0, 175, True):
+        with pytest.raises(WanDispatchError):
+            MiniMaxH3GatewayTransport._validate_job_envelope(
+                _job("queued", False, duration=8, frame_count=frame_count), phase="submit_response_parse",
+                expected_quality=1, expected_duration_seconds=8, expected_frame_count=192,
+            )
+
+
+def test_h3_transport_sends_quality_eight_and_fifteen_seconds() -> None:
+    class _QualityEightSession(_GatewaySession):
+        def request(self, method: str, url: str, **kwargs: object) -> _Response:
+            if url.endswith("/v1/video-jobs/from-image"):
+                self.calls.append((method, url, dict(kwargs)))
+                return _Response(202, {**_job("queued", False, duration=15, frame_count=362), "quality": 8, "seed": 15})
+            return super().request(method, url, **kwargs)
+
+    session = _QualityEightSession()
+    transport = MiniMaxH3GatewayTransport("test-key", base_url="http://100.64.1.2:8090", session=session)
+    result = transport.submit_image(b"png", mime_type="image/png", payload={
+        "prompt": "reviewed", "quality": 8, "resolution": "576x1024",
+        "aspectPolicy": "reject_mismatch", "seed": 15, "durationSeconds": 15,
+    })
+    assert result["quality"] == 8 and result["frameCount"] == 362
+    assert session.calls[0][2]["data"]["quality"] == "8"
+    assert session.calls[0][2]["data"]["durationSeconds"] == "15"
+
+
+def test_legacy_quality_one_profile_keeps_its_frozen_meaning() -> None:
+    legacy_id = "minimax_h3_quality1_portrait_576x1024_v1"
+    adapter = MiniMaxH3GatewayAdapter()
+    assert adapter.compile_image(
+        prompt="legacy reviewed", duration=5, resolution="576x1024", audio=True,
+        aspect_policy="reject_mismatch", seed=1, profile_id=legacy_id,
+        profile_version=1, width=576, height=1024, fps=24, frame_count=124,
+    )["quality"] == 1
+    assert adapter.prediction_id(_job("queued", False), expected_profile_id=legacy_id) == _JOB_ID
+    with pytest.raises(VideoProviderError, match="allowlisted"):
+        adapter.production_contract(
+            requested_seconds=5, resolution="576x1024", audio=True,
+            aspect_policy="reject_mismatch", allow_letterbox=False,
+            allow_center_crop=False, seed=1, profile_id=legacy_id,
+        )

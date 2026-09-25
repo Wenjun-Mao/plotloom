@@ -6,7 +6,7 @@ import { Button, Panel } from "./components";
 import { deriveRoutes, groupStoryboard } from "./model";
 import { BranchingVideoPreview } from "./branching-video-preview";
 import { VideoSegmentReview } from "./video-segment-review";
-import { MiniMaxH3DurationField, MiniMaxH3ProfileField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, h3QualifiedDurations, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
+import { MiniMaxH3DurationField, MiniMaxH3ProfileField, MiniMaxH3QualityField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, h3QualifiedDurations, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 import { H3DirectionsReview } from "./h3-directions-review";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
@@ -78,6 +78,16 @@ function isH3Job(job: VideoJob): boolean {
   const provider = job.snapshot.provider;
   return typeof provider === "object" && provider !== null
     && (provider as Record<string, unknown>).adapterId === "minimax_h3_gateway";
+}
+
+function frozenH3Quality(job: VideoJob): string {
+  const request = job.snapshot.request;
+  if (!request || typeof request !== "object") return "未知";
+  const frozen = request as Record<string, unknown>;
+  if (frozen.quality === 1 || frozen.quality === 8) return String(frozen.quality);
+  // Quality-1 V1 jobs predate an explicit quality field. Their profile ID
+  // preserves its meaning; it is never inferred from today's UI selection.
+  return typeof frozen.profileId === "string" && frozen.profileId.includes("_quality1_") ? "1" : "未知";
 }
 
 function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: string; jobs: VideoJob[]; sourceIdentity: string }) {
@@ -282,7 +292,12 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       && keyframe.width * selectedProfile.height !== keyframe.height * selectedProfile.width,
   );
   const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
-  const h3TimingMismatch = Boolean(h3 && shot && [6_000, 8_000].includes(shot.durationUnits) && h3DurationSeconds !== 8);
+  const h3TimingMismatch = Boolean(h3 && shot && (
+    shot.durationUnits === 6_000 ? h3DurationSeconds !== 8
+      : shot.durationUnits === 8_000 ? h3DurationSeconds !== 8
+      : h3DurationSeconds * 1_000 !== shot.durationUnits
+  ));
+  const h3RequestedFrames = h3DurationSeconds * 24 + (5 - h3DurationSeconds * 24 % 17) % 17;
   return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
     <header className="video-workflow-header"><strong>原片 → 调整片段 → 预览 → 用于故事</strong>
       <small>{visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 个原片候选；仅明确选择的片段会进入故事。` : "当前镜头还没有原片候选。"}</small>
@@ -300,11 +315,12 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       : h3Unavailable ? <p>H3 后端尚未配置；下方当前镜头时长目录仅供只读检查，不代表可提交。</p>
         : <p>仅 5 秒 / 720p / 原生音频。提交后本地保守计入共享 100 秒额度；不会自动重试或回退。</p>}
     {backend?.enabled === false && <small className="notice warning">当前运行时未启用经审核的视频后端；不能冻结或提交新候选。</small>}
+    {h3 && <MiniMaxH3QualityField profiles={availableH3Profiles} value={h3ProfileId} onChange={setH3ProfileId} disabled={readOnly} />}
     {h3 && <MiniMaxH3ProfileField profiles={availableH3Profiles} value={h3ProfileId} onChange={setH3ProfileId} disabled={readOnly} />}
     {h3 && <MiniMaxH3DurationField values={availableH3Durations} value={h3DurationSeconds} onChange={setH3DurationSeconds} disabled={readOnly} />}
     {h3 && shot && <small className={h3TimingMismatch ? "notice warning" : "notice"} data-testid="h3-authored-timing">
-      原稿镜头时长 {(shot.durationUnits / 1000).toFixed(3)} 秒；后端请求 {h3DurationSeconds} 秒。
-      {shot.durationUnits === 6_000 ? "六秒原稿仅可明确请求合格的八秒原片，再审阅连续144帧片段；不会自动裁切或选择。" : "请求时长不是实测播放时长；最终片段仍需明确审阅。"}
+      原稿镜头时长 {(shot.durationUnits / 1000).toFixed(3)} 秒；后端请求 {h3DurationSeconds} 秒 / {h3RequestedFrames} 帧（约 {(h3RequestedFrames / 24).toFixed(2)} 秒）。
+      {shot.durationUnits === 6_000 ? "当前六秒原稿仅可请求八秒原片，再审阅连续 144 帧片段；不会自动裁切或选择。" : "请求时长不是实测播放时长；当前播放路径仍只支持已审核的六/八秒源镜头，其他时长的原片不能据此进入故事。"}
     </small>}
     {h3 && selectedProfile && keyframe && !h3AspectMismatch && <small className="notice" data-testid="h3-aspect-ready">当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例匹配；将以 reject_mismatch 冻结。</small>}
     {h3 && selectedProfile && keyframe && h3AspectMismatch && <div className="notice warning" data-testid="h3-aspect-preparation">
@@ -326,12 +342,14 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       ? <H3DirectionsReview projectId={projectId}
           sourceIdentity={`${shot.id}:${storyboardRevision}:${selectionRevision}:${keyframe?.id ?? ""}:${h3ProfileId}:${h3DurationSeconds}:${h3InputFrameMode}:${visibleJobs.length}`}
           disabled={Boolean(cannotPrepare || h3TimingMismatch)} buildRequest={buildPrepareRequest}
+          keyframeHash={keyframe?.originalHash ?? ""} quality={selectedProfile?.quality ?? 0}
+          requestedSeconds={h3DurationSeconds} frameCount={h3RequestedFrames}
           onFreeze={(packageValue, seed, key) => prepare(packageValue, seed, key)} />
       : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>}
     </details>
     {error && <small className="notice warning">{error}</small>}
     {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {frozenShot(job).title || "当前镜头"}</strong><span>{job.selected ? "已选择片段" : job.state === "ingested" ? "待审原片" : job.state}</span></header>
-      <small>请求 {job.requestedSeconds} 秒 {job.observed ? `· 实测 ${job.observed.durationSeconds.toFixed(2)} 秒` : ""}</small>
+      <small>{isH3Job(job) ? `质量 ${frozenH3Quality(job)} · ` : ""}请求 {job.requestedSeconds} 秒 {job.observed ? `· 实测 ${job.observed.durationSeconds.toFixed(2)} 秒` : ""}</small>
       <small> · {jobStatus(job)}</small>
       <details className="video-technical-history"><summary>审核历史与技术详情</summary>
         <small>选择版本 {job.selectionRevision} · 原片编号 {job.id}</small>

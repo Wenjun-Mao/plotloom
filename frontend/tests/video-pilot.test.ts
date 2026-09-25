@@ -189,13 +189,18 @@ it("pauses every native candidate peer before allowing a new candidate to play",
 
 it("binds H3 prompt review to an explicit gateway crop choice for a mismatched keyframe", async () => {
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
-    enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "5", provider: "minimax_h3_gateway",
-    model: "minimax_h3_gateway_catalog_v6", durationSeconds: 5, resolution: "576x1024",
+    enabled: true, adapterId: "minimax_h3_gateway", adapterVersion: "6", provider: "minimax_h3_gateway",
+    model: "minimax_h3_gateway_catalog_v7", durationSeconds: 5, resolution: "576x1024",
     width: 576, height: 1024, fps: 24, frameCount: 124, nativeAudio: true,
     requiresAspectPolicy: false, inputAspectPolicy: "reject_mismatch", allowsCenterCrop: true, tracksPaidWanPilot: false,
-    defaultProfileId: "minimax_h3_quality1_portrait_576x1024_v1",
+    defaultProfileId: "minimax_h3_quality8_portrait_576x1024_v2",
+    qualifiedDurationSeconds: Array.from({ length: 11 }, (_, index) => index + 5),
     profiles: [{
-      id: "minimax_h3_quality1_portrait_576x1024_v1", version: 1, label: "Portrait · Fast · 576 × 1024 · Quality 1",
+      id: "minimax_h3_quality8_portrait_576x1024_v2", version: 2, label: "Portrait · Fast · 576 × 1024 · Quality 8", quality: 8,
+      orientation: "portrait", tier: "fast", width: 576, height: 1024, durationSeconds: 5,
+      fps: 24, frameCount: 124, nativeAudio: true,
+    }, {
+      id: "minimax_h3_quality1_portrait_576x1024_v2", version: 2, label: "Portrait · Fast · 576 × 1024 · Quality 1", quality: 1,
       orientation: "portrait", tier: "fast", width: 576, height: 1024, durationSeconds: 5,
       fps: 24, frameCount: 124, nativeAudio: true,
     }],
@@ -207,7 +212,7 @@ it("binds H3 prompt review to an explicit gateway crop choice for a mismatched k
     mimeType: "image/png", byteSize: 1, width: 640, height: 360, createdAt: "2026-01-01T00:00:00Z", provenance: null,
   };
   await act(async () => root.render(createElement(VideoPilotPanel, {
-    ...props("project", "shot", "scene"), keyframe: wideKeyframe,
+    ...props("project", "shot", "scene"), shot: { ...props("project", "shot", "scene").shot, durationUnits: 5_000 }, keyframe: wideKeyframe,
   })));
   await act(async () => { await Promise.resolve(); });
 
@@ -226,7 +231,7 @@ it("binds H3 prompt review to an explicit gateway crop choice for a mismatched k
   await act(async () => { load?.click(); await Promise.resolve(); });
   expect(preview).toHaveBeenCalledWith("project", expect.objectContaining({
     resolution: "576x1024", requestedDurationSeconds: 5, audio: true, aspectPolicy: "cover_center_crop", allowCenterCrop: true, allowLetterbox: false,
-    profileId: "minimax_h3_quality1_portrait_576x1024_v1",
+    profileId: "minimax_h3_quality8_portrait_576x1024_v2",
   }));
   const letterbox = host.querySelectorAll('input[type="radio"]')[2] as HTMLInputElement;
   await act(async () => {
@@ -237,8 +242,21 @@ it("binds H3 prompt review to an explicit gateway crop choice for a mismatched k
   await act(async () => { load?.click(); await Promise.resolve(); });
   expect(preview).toHaveBeenLastCalledWith("project", expect.objectContaining({
     aspectPolicy: "contain_pad", allowLetterbox: true, allowCenterCrop: false,
-    profileId: "minimax_h3_quality1_portrait_576x1024_v1",
+    profileId: "minimax_h3_quality8_portrait_576x1024_v2",
   }));
+  expect(host.textContent).toContain("来源绑定");
+  const quality = host.querySelector('[aria-label="H3 质量用途（必选）"]') as HTMLSelectElement;
+  await act(async () => { quality.value = "1"; quality.dispatchEvent(new Event("change", { bubbles: true })); });
+  expect(host.textContent).not.toContain("来源绑定");
+  await act(async () => { load?.click(); await Promise.resolve(); });
+  expect(preview).toHaveBeenLastCalledWith("project", expect.objectContaining({
+    profileId: "minimax_h3_quality1_portrait_576x1024_v2",
+  }));
+  expect(host.textContent).toContain("来源绑定");
+  const duration = host.querySelector('[aria-label="H3 时长（已审核）"]') as HTMLSelectElement;
+  await act(async () => { duration.value = "8"; duration.dispatchEvent(new Event("change", { bubbles: true })); });
+  expect(host.textContent).not.toContain("来源绑定");
+  expect(load?.disabled).toBe(true);
   expect(host.textContent).not.toContain("100 秒额度");
 });
 

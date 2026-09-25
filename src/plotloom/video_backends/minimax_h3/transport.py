@@ -118,7 +118,11 @@ class MiniMaxH3GatewayTransport:
             raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed"))
         duration = payload["durationSeconds"]
         expected_frame_count = H3_QUALIFIED_DURATION_FRAMES.get(duration) if type(duration) is int else None
-        if expected_frame_count is None:
+        if (
+            expected_frame_count is None
+            or type(payload["quality"]) is not int or payload["quality"] not in {1, 8}
+            or type(payload["seed"]) is not int or payload["seed"] < 0
+        ):
             raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed"))
         result = self._request_json(
             "submit", "POST", "v1/video-jobs/from-image",
@@ -131,6 +135,8 @@ class MiniMaxH3GatewayTransport:
             expected_duration_seconds=payload["durationSeconds"],
             expected_frame_count=expected_frame_count,
             expected_seed=payload["seed"],
+            expected_quality=payload["quality"],
+            expected_resolution=payload["resolution"],
         )
         if result.get("inputMode") != "image":
             raise WanDispatchError(WanDispatchDiagnostic("submit_response_parse", "invalid_envelope"))
@@ -226,6 +232,8 @@ class MiniMaxH3GatewayTransport:
         expected_duration_seconds: int | None = None,
         expected_frame_count: int | None = None,
         expected_seed: int | None = None,
+        expected_quality: int | None = None,
+        expected_resolution: str | None = None,
     ) -> None:
         expected = {
             "id", "status", "inputMode", "quality", "resolution", "aspectPolicy", "seed",
@@ -238,11 +246,15 @@ class MiniMaxH3GatewayTransport:
         identifier = value.get("id")
         if not isinstance(identifier, str) or not cls._JOB_ID.fullmatch(identifier) or (expected_id is not None and identifier != expected_id):
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
-        if value.get("quality") not in {1, 2, 3, 8}:
+        if type(value.get("quality")) is not int or value.get("quality") not in {1, 2, 3, 8}:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        if expected_quality is not None and value.get("quality") != expected_quality:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("resolution") not in {
             "832x480", "960x544", "1280x704", "576x1024", "608x1088", "704x1280",
         }:
+            raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
+        if expected_resolution is not None and value.get("resolution") != expected_resolution:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("status") not in {
             "reserved", "queued", "submitting", "submitted", "running",
@@ -260,7 +272,7 @@ class MiniMaxH3GatewayTransport:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         duration = value.get("requestedDurationSeconds")
         frame_count = value.get("frameCount")
-        if type(duration) is not int or not 5 <= duration <= 15 or type(frame_count) is not int or frame_count % 17 != 5:
+        if type(duration) is not int or type(frame_count) is not int or H3_QUALIFIED_DURATION_FRAMES.get(duration) != frame_count:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if (
             expected_duration_seconds is not None and duration != expected_duration_seconds

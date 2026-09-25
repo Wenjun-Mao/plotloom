@@ -10,7 +10,9 @@ earlier scope and evidence, not the current assignment queue.
 ## Now / Next / Later · 2026-09-25
 
 - **Now:** The director approved the pacing-first integration recommendation
-  below and one bounded longer-shot trial; implementation has not started.
+  below and one bounded longer-shot trial. The first gateway quality/duration
+  integration slice is implemented for review; the longer-shot trial has not
+  started.
   The director confirmed both lines and coherent voice/pose in the two-shot
   assembly, but rejected the naturalness of the six-second cut. The six-second
   values came from agent-authored test storyboard cuts, not a user requirement.
@@ -64,14 +66,36 @@ explicit stop points govern the bounded experiment.
 
 ### Implementation brief for review: pacing-first H3 integration
 
-**Status:** Director-approved direction, 2026-09-25; implementation and a new live
-trial have not started. Retain the heading anchor for existing design links.
+**Status:** Director-approved direction, 2026-09-25. The first gateway
+quality/duration slice is implemented for review; later integration and the
+new live trial have not started. Retain the heading anchor for existing design links.
 The director reports random shaking in qualities 1/2/3 and substantially more
 stable output in quality 8. This is useful director evidence, not a controlled
 benchmark or a guarantee. Quality 1 remains useful for development; propose
 quality 8 as the initial production-review choice, always visibly frozen.
 
 **Recommended delivery order:**
+
+**First-slice checkpoint (2026-09-25):** Plotloom now exposes explicit quality
+1 development and quality 8 production-review choices, independent of six
+resolutions, with a versioned new-job catalog. Existing frozen quality-1 IDs
+retain their old meaning. The strict 5–15 integer-second request maps to the
+gateway's exact 24 fps `17k+5` frame grid and is frozen and checked through
+adapter, transport, job response and output validation. The prompt-review
+surface shows chosen quality, request, expected frames, seed and start-image
+hash; changed controls invalidate a prepared review. Request capacity is not
+playback eligibility: the current reviewed segment/source-timing restrictions
+remain. No end-image input, source retiming, general playback-duration support,
+provider call or creative acceptance is part of this checkpoint.
+
+Verification at this checkpoint: 752 backend tests, 217 frontend unit tests,
+frontend typecheck and deterministic static build passed. A focused offline
+browser check passed at 1440 and 1920 widths for default quality 8, switching
+to quality 1, 15-second/362-frame display and blocked six-second-source
+preparation. The retained browser source-to-selection/restart spec still uses
+an older folded-control and profile contract and is not claimed as a passing
+journey; refreshing and rehearsing that journey belongs to the later creator
+E2E milestone. This is technical verification, not director audiovisual review.
 
 1. **Gateway capability integration.** Update `video_backends/minimax_h3/adapter.py`
    and `transport.py`, their public profile descriptors, frozen-job contract and

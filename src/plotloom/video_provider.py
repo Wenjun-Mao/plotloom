@@ -214,6 +214,7 @@ class VideoProductionContract:
     height: int | None = None
     fps: int | None = None
     frame_count: int | None = None
+    quality: int | None = None
 
     def __post_init__(self) -> None:
         if not re.fullmatch(r"[a-z][a-z0-9_]{0,62}", self.adapter_id):
@@ -230,7 +231,7 @@ class VideoProductionContract:
             raise ValueError("video resolution is required")
         if self.seed is not None and not 0 <= self.seed <= 2**63 - 1:
             raise ValueError("video seed is invalid")
-        profile_parts = (self.profile_id, self.profile_version, self.width, self.height, self.fps, self.frame_count)
+        profile_parts = (self.profile_id, self.profile_version, self.width, self.height, self.fps, self.frame_count, self.quality)
         if any(part is not None for part in profile_parts):
             if (
                 not isinstance(self.profile_id, str)
@@ -247,6 +248,7 @@ class VideoProductionContract:
                 or self.fps < 1
                 or not isinstance(self.frame_count, int)
                 or self.frame_count < 1
+                or self.quality is not None and self.quality not in {1, 8}
             ):
                 raise ValueError("video profile contract is invalid")
             if self.allow_letterbox and self.allow_center_crop:
@@ -298,6 +300,8 @@ class VideoProductionContract:
                 "allowLetterbox": self.allow_letterbox,
                 "allowCenterCrop": self.allow_center_crop,
             }
+            if self.quality is not None:
+                request["quality"] = self.quality
         return request
 
 

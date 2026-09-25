@@ -36,8 +36,8 @@ it("shows the conditional eight-to-six path while keeping disabled dispatch dist
   expect(host.textContent).toContain("精确来源时长 6 秒");
   expect(host.textContent).toContain("缺少当前批准");
   expect(host.textContent).toContain("未配置；不能准备或提交视频");
-  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("可请求 8 秒原片后");
-  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("连续 144 帧候选播放片段");
+  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("当前播放片段合同仅接受 8 秒原片");
+  expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("连续 144 帧候选");
   expect(host.querySelector('[data-testid="shot-duration-compatibility"]')?.textContent).toContain("当前后端未配置，暂不能提交请求");
   expect(host.textContent).not.toContain("已明确选择");
 });
@@ -76,7 +76,7 @@ it("recovers bridge and backend read failures through a same-mounted-root retry"
   await act(async () => Array.from(host.querySelectorAll("button")).find((button) => button.textContent?.includes("重试来源与视频能力读取"))!.click());
   await act(async () => { await Promise.resolve(); });
   expect(host.textContent).toContain("精确来源时长 6 秒");
-  expect(host.textContent).toContain("可请求 8 秒原片后");
+  expect(host.textContent).toContain("当前播放片段合同仅接受 8 秒原片");
   expect(host.textContent).not.toContain("投产来源暂不可读取");
 });
 

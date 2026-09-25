@@ -233,6 +233,7 @@ class VideoJobService:
                         profile_id=self._profile_id(job["snapshot"]),
                         profile_version=profile_version, width=width, height=height,
                         fps=_fps, frame_count=_frame_count,
+                        quality=job["snapshot"]["request"].get("quality"),
                     )
                 except VideoProviderError as error:
                     raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error

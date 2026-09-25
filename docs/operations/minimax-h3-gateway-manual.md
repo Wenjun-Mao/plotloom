@@ -46,7 +46,10 @@ resolutions, not arbitrary dimensions or ComfyUI graphs:
 | 3 | V1.0 Turbo-8 / Euler / explicit 6:3 shifts |
 | 8 | Base-20 / res_multistep / native 12:3, no Turbo LoRA |
 
-Quality 1 is the public default and the only quality selected by Plotloom.
+Quality 1 remains the gateway's omitted-field default. Plotloom explicitly
+offers quality 1 for development and quality 8 for production-review
+candidates; its new-work initial choice is quality 8. Neither is a creative
+acceptance guarantee.
 The gateway can render zero, one, or two H3 frame sockets: text exploration,
 start-frame I2V, or start/end-frame I2V. It accepts requested
 whole-second durations 5–15 and snaps them to the node's 24 fps `17k + 5`
@@ -242,15 +245,16 @@ PLOTLOOM_ENABLE_WAN_P2=false
 PLOTLOOM_ENABLE_H3_GATEWAY=true
 VIDEO_PROVIDER=minimax_h3_gateway
 VIDEO_BASE_URL=http://100.x.y.z:8090
-VIDEO_MODEL=minimax_h3_gateway_catalog_v6
+VIDEO_MODEL=minimax_h3_gateway_catalog_v7
 VIDEO_AUTH_MODE=bearer
 VIDEO_MODEL_API_KEY=the-same-value-as-H3_API_KEY
 ```
 
-`VIDEO_MODEL=minimax_h3_gateway_catalog_v6` is Plotloom's default admission
-marker. Plotloom sends its reviewed image bytes using gateway quality `1` and
-the selected exact resolution. It does not expose T2V or the other quality
-paths as an authoring choice.
+`VIDEO_MODEL=minimax_h3_gateway_catalog_v7` is Plotloom's default admission
+marker. Plotloom sends its reviewed image bytes with the explicitly frozen
+quality `1` or `8`, selected exact resolution, and 5–15 integer-second request.
+It does not expose T2V or gateway qualities 2/3 as authoring choices. The
+playback segment path still has its narrower reviewed source-timing contract.
 
 Restart Plotloom after changing `.env`. A host environment variable takes
 precedence over `.env`, so investigate both if the running service reports an
@@ -295,7 +299,8 @@ The production sequence is intentional and one-way:
 
 5. It probes the downloaded bytes. The candidate is eligible only if it is
    H.264/AAC, the exact frozen width/height, 24 fps, and the frame count bound
-   to that job's qualified duration (124 for five seconds, 192 for eight).
+   to that job's frozen request on the `17k+5` grid (for example 124 for five,
+   192 for eight, and 362 for fifteen seconds).
    Observed duration must also be within one frame of the frozen frame-count
    duration. A merely playable mismatch becomes `retrieve_needed` with
    `h3_output_profile_mismatch` and cannot be selected.

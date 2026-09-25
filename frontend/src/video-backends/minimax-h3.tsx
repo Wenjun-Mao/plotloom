@@ -16,20 +16,35 @@ export function selectedH3Profile(backend: VideoBackend | null, profileId: strin
 
 export function h3QualifiedDurations(backend: VideoBackend | null): number[] {
   const values = backend?.qualifiedDurationSeconds;
-  return values?.filter((value) => value === 5 || value === 8) ?? [5];
+  return values?.filter((value) => Number.isInteger(value) && value >= 5 && value <= 15) ?? [5];
 }
 
 export function MiniMaxH3Summary({ backend, profile }: { backend: VideoBackend; profile?: VideoBackendProfile }) {
   const current = profile ?? selectedH3Profile(backend, backend.defaultProfileId ?? "");
-  return <p>MiniMax H3 本地候选：{current ? `${current.label} / 约 ${(current.frameCount / current.fps).toFixed(2)} 秒 / 原生音频` : "正在读取已审核 profile"}。由私有网关容量控制；不会计入 Wan 付费秒数，也不会自动重试或降级。</p>;
+  return <p>MiniMax H3 本地候选：{current ? `质量 ${current.quality} / ${current.width} × ${current.height} / 原生音频` : "正在读取已审核规格"}。质量 1 用于开发迭代；质量 8 用于制作审核候选，仍需人工检查。由私有网关容量控制；不会计入 Wan 付费秒数，也不会自动重试或降级。</p>;
+}
+
+export function MiniMaxH3QualityField({ profiles, value, onChange, disabled }: {
+  profiles: VideoBackendProfile[]; value: string; onChange: (value: string) => void; disabled: boolean;
+}) {
+  const current = profiles.find((profile) => profile.id === value);
+  return <label><span>H3 质量用途（必选）</span><select aria-label="H3 质量用途（必选）" value={current?.quality ?? ""} onChange={(event) => {
+    const next = profiles.find((profile) => profile.quality === Number(event.target.value) && profile.width === current?.width && profile.height === current?.height);
+    if (next) onChange(next.id);
+  }} disabled={disabled}>
+    <option value={8}>质量 8 · 制作审核候选（推荐）</option>
+    <option value={1}>质量 1 · 开发迭代</option>
+  </select><small>导演反馈质量 8 的随机抖动较少；每条原片仍需实际审看，切换质量不会回退或改写已有任务。</small></label>;
 }
 
 export function MiniMaxH3ProfileField({ profiles, value, onChange, disabled }: {
   profiles: VideoBackendProfile[]; value: string; onChange: (value: string) => void; disabled: boolean;
 }) {
-  return <label><span>H3 输出 Profile（必选）</span><select aria-label="H3 输出 Profile（必选）" value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
-    {profiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.label}</option>)}
-  </select><small>尺寸为固定、审核过的 multiples-of-32 profile；高分辨率不自动表示创作质量已验收。</small></label>;
+  const current = profiles.find((profile) => profile.id === value);
+  const currentQualityProfiles = profiles.filter((profile) => profile.quality === current?.quality);
+  return <label><span>H3 输出尺寸（必选）</span><select aria-label="H3 输出尺寸（必选）" value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled}>
+    {currentQualityProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.width} × {profile.height} · {profile.orientation === "portrait" ? "竖版" : "横版"} / {profile.tier === "fast" ? "快速尺寸" : profile.tier === "standard" ? "标准尺寸" : "高分辨率"}</option>)}
+  </select><small>高分辨率描述像素数量，不代表创作质量已验收。</small></label>;
 }
 
 export function MiniMaxH3DurationField({ values, value, onChange, disabled }: {
@@ -37,7 +52,7 @@ export function MiniMaxH3DurationField({ values, value, onChange, disabled }: {
 }) {
   return <label><span>H3 时长（已审核）</span><select aria-label="H3 时长（已审核）" value={value} onChange={(event) => onChange(Number(event.target.value))} disabled={disabled}>
     {values.map((seconds) => <option key={seconds} value={seconds}>{seconds} 秒</option>)}
-  </select><small>仅 5 秒（默认）与本次 F6 资格的 8 秒可选；网关的其他时长不会暴露为产品能力。</small></label>;
+  </select><small>请求为 5–15 整数秒，网关向上吸附至 24 fps 的 17k+5 帧格。请求秒数不等于实测原片或已审核播放片段时长；当前镜头的源时长/播放准入仍单独限制。</small></label>;
 }
 
 export function MiniMaxH3ReviewNotice() {
