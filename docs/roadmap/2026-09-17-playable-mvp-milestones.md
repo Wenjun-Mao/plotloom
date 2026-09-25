@@ -9,22 +9,22 @@ earlier scope and evidence, not the current assignment queue.
 
 ## Now / Next / Later · 2026-09-25
 
-- **Now:** Timing/continuity planning correction, approved for planning only.
+- **Now:** The director approved the pacing-first integration recommendation
+  below and one bounded longer-shot trial; implementation has not started.
   The director confirmed both lines and coherent voice/pose in the two-shot
   assembly, but rejected the naturalness of the six-second cut. The six-second
   values came from agent-authored test storyboard cuts, not a user requirement.
   All takes and segments remain unselected. Preserve the
   [adjacent-shot evidence](../verification/2026-09-24-u4-h3-adjacent-shot.md).
-- **Next:** Design pacing and generation boundaries before another trial.
-  Prefer assessing one longer take for this continuous decision beat; compare
-  against two deliberately staged shots with either compatible end/start
-  frames or an intentional angle change. Do not merge canonical shots or
-  silently retime the accepted storyboard to fit this recommendation.
-- **Later:** Implement the reviewed integration slice, then run a bounded
-  audiovisual trial and explicit selection review. H3/audio research stays
-  with the director's specialist; other route cuts and F6/F7 remain open.
+- **Next:** After that trial, prioritize a director-operated end-to-end creator
+  walkthrough, not an extended series of isolated media experiments. Use a small
+  persistent story and the real UI from source through media review to playback.
+  Do not require all 27 lighthouse cuts to be produced first.
+- **Later:** Let observed walkthrough friction determine the next product
+  priorities. H3/audio research stays with the director's specialist; broad media
+  qualification, other lighthouse route cuts and optional polish remain deferred.
 
-### Timing/continuity integration checkpoint
+### Timing/continuity integration checkpoint (completed planning basis)
 
 Deliver a source-backed design, not another generation or a trimming workaround:
 
@@ -51,11 +51,12 @@ Deliver a source-backed design, not another generation or a trimming workaround:
    stale source/approval, measured timing and audio preservation; then define a
    1440/1920 creator walkthrough that makes pacing and boundaries understandable.
 
-Stop at a reviewed implementation brief with unresolved ownership choices made
-explicit. No code, source-project mutation, provider call, media selection or
-TTS work is authorized by this planning checkpoint. Success means the next
-trial is chosen for narrative pacing and continuity, not an arbitrary six-second
-test value. Existing exact-timing safety remains in force until explicitly revised.
+The original planning checkpoint stopped at an implementation brief; the director
+has now approved the recommendation below. Its implementation must resolve the
+named gateway facts before depending on them. Success means the next trial is
+chosen for narrative pacing and continuity, not an arbitrary six-second test
+value. Existing exact-timing safety remains in force until explicitly revised;
+approval to implement/generate does not select or creatively accept media.
 
 The dated checkpoint ledger below preserves earlier phase-specific exclusions,
 model choices and push instructions as history. This current assignment and its
@@ -63,7 +64,8 @@ explicit stop points govern the bounded experiment.
 
 ### Implementation brief for review: pacing-first H3 integration
 
-**Status:** Design only; implementation and a new live trial have not started.
+**Status:** Director-approved direction, 2026-09-25; implementation and a new live
+trial have not started. Retain the heading anchor for existing design links.
 The director reports random shaking in qualities 1/2/3 and substantially more
 stable output in quality 8. This is useful director evidence, not a controlled
 benchmark or a guarantee. Quality 1 remains useful for development; propose
@@ -79,9 +81,10 @@ quality 8 as the initial production-review choice, always visibly frozen.
    semantics; never relabel existing quality-1 jobs. Expose development/production
    intent as a visible initial choice, not an automatic quality fallback. Bind
    quality, duration, seed and both image hashes into prompt review and the job.
-   Obtain the exact gateway duration-to-frame rule and quality-8 descriptor before
-   implementation; the guide's `17k + 5` condition alone does not determine the
-   rounding rule. Validate actual output against the frozen request, not a loose
+   The specialist's [time-estimate reference](../operations/minimax-h3-generation-time-estimates.md)
+   now states upward snapping to the `17k + 5` frame grid (5→124, 8→192,
+   15→362). Verify this against gateway contract evidence and obtain the quality-8
+   descriptor before implementation. Validate output against the frozen request, not a loose
    5–15-second range. Keep uncertain dispatch non-retryable without reconciliation.
 2. **Optional reviewed end frame.** Add a shot-owned managed-asset decision for
    the ending image, independent of the starting keyframe. Carry its bytes/hash,
@@ -101,7 +104,8 @@ quality 8 as the initial production-review choice, always visibly frozen.
    and trial assets. Do not retrofit the installed bridge or introduce a second
    timing override. Review the revised shot's pacing, coverage and source binding
    before confirming canon and obtaining fresh approval/keyframe prerequisites.
-   This is a proposed creative structure, not an already accepted source edit.
+   The director approved trying this structure; the new source revision still
+   requires the normal review and acceptance flow, not an implicit installed edit.
    If two angles are preferred, retain two shots and plan their boundary explicitly;
    a single generated take mapped across multiple canonical shots is deferred.
 4. **Generalize reviewed playback only after ownership is settled.** Replace the
@@ -132,6 +136,44 @@ Assess both complete lines, shaking, action fidelity, voice/pose and start/end
 sound. A quality-8 longer take changes multiple variables and is not evidence that
 quality alone caused improvement. Stop and reassess a failed or uncertain call;
 do not auto-select, auto-retry, generate other route cuts or add TTS.
+
+### Generation scheduling and next director walkthrough
+
+Use the specialist-maintained [generation-time estimates](../operations/minimax-h3-generation-time-estimates.md)
+as the single scheduling reference; do not duplicate its full table or turn it
+into a live countdown. Quality 8 at 960×544 is estimated at 16.5 minutes for a
+12-second request and 22.5 minutes for 15 seconds. Reserve at least 1.5× those
+times, plus queue, transfer and review. These horizontal/long-duration cells are
+estimates, not same-combination measurements. End-frame conditioning has no
+independent timing matrix. H3 and Qwen share the serial channel. Keep progress
+honest and recoverable across page reload; unknown dispatch must not trigger
+another request simply because an estimate elapsed.
+
+**Next milestone: hands-on creator E2E.** The director explicitly wants personal
+use and feedback to guide priorities after the longer-shot trial. Provide one
+small, retained, editable project with a complete short route, sized for practical
+generation/review rather than reusing the entire 27-cut test as a prerequisite.
+The director should be able to create or edit the source, review the outline and
+characters/art, accept the script/storyboard, prepare references and keyframes,
+request video, inspect/select media, and play the resulting route through the
+normal UI. A playback-only or read-only fixture is not this deliverable.
+
+Before inviting the director, rehearse the same journey at 1440/1920 and record
+any agent-only operations or missing handoffs as actual blockers. Do not hide
+manual database setup or terminal-only mutations behind an E2E claim. Provide
+one stable entry URL, retained state, clear next actions and understandable wait,
+failure and retry behavior. Preserve existing user-valued projects and media;
+do not install login-startup services. Reuse valid reviewed assets where useful,
+but disclose prepopulated steps rather than claiming the user performed them.
+
+Track only: integration ready → longer-shot review → UI journey rehearsed →
+director walkthrough → feedback-ranked fixes. After the trial, scope generation
+count and minimal story for this walkthrough before further media dispatch; this
+milestone is not permission for an unbounded production batch. Separate blocking
+usability gaps from optional polish and H3 model research. Success is the director
+completing the workflow and giving actionable feedback, not another test-count
+or isolated-clip receipt. No additional prototype subsystem or broad refactor is
+required merely to prepare the walkthrough.
 
 ## Dated checkpoint ledger
 
