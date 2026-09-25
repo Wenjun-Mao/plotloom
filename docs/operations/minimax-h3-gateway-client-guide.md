@@ -68,6 +68,10 @@ http:
 `17k + 5` 帧格，5 秒请求为 124 帧，实际约 5.17 秒。`seed` 也可省略；服务器会
 生成随机值，并在创建和状态响应中返回实际 seed。
 
+排程前可查 [H3 视频生成时间估算表](minimax-h3-generation-time-estimates.md)：
+它静态列出每种 `quality`、`resolution` 和 5–15 秒组合的粗略生成时间，
+**不包含排队或图片下载时间**；网关不会返回实时预计完成时间。
+
 ## 3. 图片输入与 `aspectPolicy`
 
 I2V 可使用 JSON 的可下载 `sourceUrl` / `endSourceUrl`，或 Bruno multipart 的
