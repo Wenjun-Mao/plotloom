@@ -123,6 +123,12 @@ including both C segment proposals, remain unselected.
 
 ## Promotion into a repo skill (criteria)
 
+Adjacent-shot follow-up: the director reported clear intended dialogue, absence
+of the earlier observed visual defects, and a voice very close to C. This is
+positive two-clip feedback, not broad voice qualification. Keep H3/audio model
+research with the director's specialist; Plotloom's immediate checkpoint is
+reviewing exact editorial windows and the cut with sound, not implementing TTS.
+
 Keep this playbook as the single knowledge source. A future thin repo skill may
 point to it once agents can repeat the review and one or more representative
 guide-compliant trials are assessed. Promote stable rules and examples only;

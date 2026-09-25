@@ -112,3 +112,34 @@ upper-socket placement, or establish that the short sequence works. The
 [playbook](../operations/h3-prompt-writing-playbook.md) separates the proven
 A/B prompt-language mismatch, C's director-confirmed listening observations,
 D's visual concern and unreviewed audio, and open H3 output questions.
+
+## Director review and two-shot editorial candidate
+
+The director subsequently reported clear “主灯，或者码头” dialogue, no visual
+defects of the kind seen in the earlier videos, and a voice very close to C.
+This supersedes the initial pending-listening status above for those observations;
+it does not qualify general voice consistency or select a playback segment.
+The director owns further H3/audio research with the specialist; no TTS pipeline
+or further provider call was made in this follow-up.
+
+The supported API prepared unselected adjacent segment
+`8ba67576-7cda-415a-8a6d-4a624a472edd`, frames `[48,192)` (2–8 seconds),
+SHA-256 `6943bf428a53290cb72c4014178c86ea15992c5f21cacc7a8ab67952cfbfe4c6`.
+It has 144 video frames at 24 fps and 192,000 decoded audio samples at 32 kHz.
+This latest possible window preserves the original ending, but dialogue onset
+and the lost opening action still need review. The session service initially
+refused derivation because launchd's PATH lacked Homebrew ffmpeg; adding
+`/opt/homebrew/bin` to its local session plist fixed the environment dependency.
+No product validation was bypassed. No login item was installed.
+
+A local review-only assembly joins C's `[48,192)` derivative (hash `14353aa9…f69d`)
+to this adjacent derivative with a straight cut and original sound, without
+retiming, crossfade, audio replacement or selection. The encoded review copy is
+`.local/relay/h3-adjacent-shot/two-shot-review-unselected.mp4`, SHA-256
+`68ca7fc1e13798447f1a2ebb14d3c819b2813d656e8ee771792c8469c313b79c`.
+It is not a managed selected asset or a proof of the product's story player.
+ffprobe reports 12 seconds / 288 frames and 12 seconds of audio; full ffmpeg
+decode completed without errors. The adjacent segment loaded via its HTTP
+preview with browser duration 6 and readyState 4. Direct local-file browser
+navigation was blocked by the browser tool; the assembly has not been browser
+or agent-listening accepted. All original and segment selections remain unchanged.
