@@ -3,6 +3,8 @@ const cards = [...grid.querySelectorAll('[data-candidate]')];
 const originalOrder = [...cards];
 const blindButton = document.getElementById('blind-toggle');
 const notesButton = document.getElementById('notes-toggle');
+const candidateCount = document.getElementById('candidate-count');
+const generateButton = document.getElementById('generate-button');
 const compareStatus = document.getElementById('compare-status');
 const shortlist = [];
 let blind = false;
@@ -20,10 +22,9 @@ function cardFor(id) {
 }
 
 function updateView() {
-  [...grid.children].forEach((card, index) => {
+  [...grid.children].forEach(card => {
     const id = card.dataset.candidate;
     const selected = shortlist.includes(id);
-    card.querySelector('.candidate-order').textContent = String(index + 1).padStart(2, '0');
     card.querySelector('.candidate-label').textContent = nameFor(card);
     card.querySelector('.candidate-note').hidden = blind || !notesVisible;
     card.querySelector('audio').setAttribute('aria-label', `播放${nameFor(card)}`);
@@ -48,7 +49,7 @@ function updateView() {
   for (let slot = 0; slot < 2; slot += 1) {
     const id = shortlist[slot];
     const label = document.getElementById(`slot-label-${slot}`);
-    label.textContent = id ? nameFor(cardFor(id)) : slot === 0 ? '选择一条候选' : '选择第二条候选';
+    label.textContent = id ? nameFor(cardFor(id)) : '等待选择';
     const playButton = document.querySelector(`.compare-play[data-slot="${slot}"]`);
     const preferButton = document.querySelector(`.prefer-button[data-slot="${slot}"]`);
     playButton.disabled = !id;
@@ -137,10 +138,17 @@ document.querySelectorAll('.prefer-button').forEach(button => {
   });
 });
 
-for (const id of ['voice-brief', 'audition-line']) {
-  document.getElementById(id).addEventListener('input', () => {
-    document.getElementById('draft-status').textContent = '草稿已修改。四条已保存录音不会随之变化。';
-  });
+function markDraftChanged() {
+  document.getElementById('draft-status').textContent = '生成草稿已修改。四条已保存录音不会随之变化。';
 }
+
+for (const id of ['voice-brief', 'audition-line']) {
+  document.getElementById(id).addEventListener('input', markDraftChanged);
+}
+
+candidateCount.addEventListener('change', () => {
+  generateButton.textContent = `生成 ${candidateCount.value} 个候选`;
+  markDraftChanged();
+});
 
 updateView();

@@ -18,7 +18,7 @@ button:focus-visible, textarea:focus-visible, audio:focus-visible { outline: 2px
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #5dd1a0; }
 .app-body { display: grid; grid-template-columns: 240px minmax(0, 1fr) 254px; min-height: calc(100vh - 68px); }
 .side-rail { padding: 30px 20px; border-right: 1px solid #25303a; background: #0b1017; }
-.rail-caption, .eyebrow, .section-index { color: #e2af55; font-size: 11px; font-weight: 750; letter-spacing: .12em; }
+.rail-caption, .eyebrow { color: #e2af55; font-size: 11px; font-weight: 750; letter-spacing: .12em; }
 .character-name { margin-top: 16px; font-size: 17px; font-weight: 700; }
 .character-subtitle { margin-top: 4px; color: #8b98a8; font-size: 12px; }
 .workflow-steps { display: grid; gap: 8px; margin: 33px 0 0; padding: 0; list-style: none; }
@@ -36,13 +36,16 @@ h1 { margin: 8px 0 9px; font-size: clamp(28px, 2.8vw, 38px); font-weight: 700; l
 section { margin-top: 25px; }
 .design-panel, .compare-panel { padding: 21px 23px; border: 1px solid #2c3742; border-radius: 10px; background: #10161e; }
 .section-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
-.section-heading h2 { margin: 7px 0 0; font-size: 18px; font-weight: 650; }
+.section-heading h2 { margin: 0; font-size: 18px; font-weight: 650; }
 .panel-tag { padding: 5px 9px; border: 1px solid #455260; border-radius: 5px; color: #a2adba; font-size: 11px; white-space: nowrap; }
 .design-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; margin-top: 22px; }
 .design-fields label { display: block; color: #aeb8c5; font-size: 12px; font-weight: 600; }
 textarea { display: block; width: 100%; min-height: 80px; margin-top: 9px; padding: 11px 12px; border: 1px solid #344150; border-radius: 7px; background: #0c1219; color: #edf1f5; font-size: 13px; line-height: 1.65; resize: vertical; }
 .generation-row { display: flex; align-items: center; gap: 14px; margin-top: 19px; }
-.generation-row p { margin: 0; color: #8e9cab; font-size: 12px; line-height: 1.5; }
+.count-field { display: flex; align-items: center; gap: 9px; color: #aeb8c5; font-size: 12px; font-weight: 600; }
+.count-field select { padding: 8px 28px 8px 10px; border: 1px solid #394654; border-radius: 7px; background: #0c1219; color: #edf1f5; font: inherit; }
+.count-field select:focus-visible { outline: 2px solid #e9b75c; outline-offset: 2px; }
+.generation-note { margin: 11px 0 0; color: #8e9cab; font-size: 12px; line-height: 1.5; }
 .primary-button { flex: 0 0 auto; padding: 11px 16px; border: 0; border-radius: 7px; background: #e7b65b; color: #1a160f; font-size: 13px; font-weight: 700; }
 .primary-button:disabled { opacity: .52; }
 .draft-status { min-height: 0; margin: 9px 0 0; color: #efc273; font-size: 12px; }
@@ -58,9 +61,8 @@ textarea { display: block; width: 100%; min-height: 80px; margin-top: 9px; paddi
 .candidate-card { min-width: 0; padding: 16px; border: 1px solid #2e3a46; border-radius: 9px; background: #111820; }
 .candidate-card.is-shortlisted { border-color: #ba9353; background: #191a1c; }
 .candidate-card.is-playing { box-shadow: inset 3px 0 0 #62cba2; }
-.candidate-meta { display: flex; justify-content: space-between; color: #a5b0bd; font-size: 11px; }
-.candidate-order { color: #dbab55; font-weight: 750; letter-spacing: .1em; }
-.candidate-card h3 { margin: 12px 0 14px; font-size: 17px; font-weight: 650; }
+.candidate-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: #a5b0bd; font-size: 11px; }
+.candidate-card h3 { margin: 0 0 14px; color: #eef2f6; font-size: 17px; font-weight: 650; }
 .candidate-note { min-height: 37px; margin: -6px 0 11px; color: #a7b2c0; font-size: 12px; line-height: 1.55; }
 .candidate-card audio { display: block; width: 100%; height: 38px; }
 .candidate-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; }
@@ -70,8 +72,7 @@ textarea { display: block; width: 100%; min-height: 80px; margin-top: 9px; paddi
 .compare-panel { margin-top: 26px; }
 .compare-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 17px; }
 .compare-slot { min-width: 0; padding: 15px; border: 1px solid #34404c; border-radius: 8px; background: #0c1219; }
-.compare-slot > span { display: block; color: #d5a554; font-size: 11px; letter-spacing: .08em; }
-.compare-slot > strong { display: block; min-height: 28px; margin-top: 9px; font-size: 15px; }
+.compare-slot > strong { display: block; min-height: 28px; font-size: 15px; }
 .compare-slot > div { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .compare-play:disabled, .prefer-button:disabled { opacity: .45; }
 .prefer-button.is-preferred { border-color: #5da987; color: #8de1b6; }

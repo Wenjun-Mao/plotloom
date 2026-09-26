@@ -37,7 +37,7 @@
         </div>
 
         <section class="design-panel" aria-labelledby="design-heading">
-          <div class="section-heading"><div><span class="section-index">01 / DESIGN</span><h2 id="design-heading">下一轮声线设计</h2></div><span class="panel-tag">草稿控件</span></div>
+          <div class="section-heading"><h2 id="design-heading">声线设计</h2><span class="panel-tag">草稿控件</span></div>
           <div class="design-fields">
             <label>角色声线方向
               <textarea id="voice-brief" rows="3">三十岁左右的中国女性。冷静、坚定，中低音，自然口语；在紧急抉择中仍然克制。</textarea>
@@ -47,15 +47,23 @@
             </label>
           </div>
           <div class="generation-row">
-            <button type="button" class="primary-button" disabled aria-describedby="generation-note">生成 4 个候选</button>
-            <p id="generation-note">生成服务尚未接入此原型。修改草稿不会改变下方四条已生成录音。</p>
+            <label class="count-field" for="candidate-count">候选数量
+              <select id="candidate-count">
+                <option value="2">2</option>
+                <option value="4" selected>4</option>
+                <option value="6">6</option>
+                <option value="8">8</option>
+              </select>
+            </label>
+            <button id="generate-button" type="button" class="primary-button" disabled aria-describedby="generation-note">生成 4 个候选</button>
           </div>
+          <p id="generation-note" class="generation-note">仅用于设置未来生成的数量；下方始终展示四条已保存录音。生成服务尚未接入此原型。</p>
           <p id="draft-status" class="draft-status" aria-live="polite"></p>
         </section>
 
         <section class="gallery" aria-labelledby="gallery-heading">
           <div class="section-heading gallery-heading">
-            <div><span class="section-index">02 / AUDITION</span><h2 id="gallery-heading">试听候选</h2><p>同一句台词 · 四种设计方向 · 一次只播放一条</p></div>
+            <div><h2 id="gallery-heading">试听候选</h2><p>同一句台词 · 四种设计方向 · 一次只播放一条</p></div>
             <div class="gallery-actions">
               <button id="blind-toggle" type="button" class="toolbar-button" aria-pressed="false">打乱并盲听</button>
               <button id="notes-toggle" type="button" class="toolbar-button" aria-pressed="false">显示设计说明</button>
@@ -63,29 +71,25 @@
           </div>
           <div id="candidate-grid" class="candidate-grid">
             <article class="candidate-card" data-candidate="a">
-              <div class="candidate-meta"><span class="candidate-order">01</span><span>05.04 秒</span></div>
-              <h3 class="candidate-label">候选 A</h3>
+              <div class="candidate-header"><h3 class="candidate-label">候选 A</h3><span>05.04 秒</span></div>
               <p class="candidate-note" hidden>中低音，冷静坚定，略带沙哑，语速中等。</p>
               <audio controls preload="metadata" src="assets/candidate_a_h3_ready.wav" aria-label="播放候选 A"></audio>
               <div class="candidate-actions"><button type="button" class="shortlist-button" aria-pressed="false">加入对比</button><span class="candidate-state">未入围</span></div>
             </article>
             <article class="candidate-card" data-candidate="b">
-              <div class="candidate-meta"><span class="candidate-order">02</span><span>05.44 秒</span></div>
-              <h3 class="candidate-label">候选 B</h3>
+              <div class="candidate-header"><h3 class="candidate-label">候选 B</h3><span>05.44 秒</span></div>
               <p class="candidate-note" hidden>温暖沉稳的女中音，略带自然气声。</p>
               <audio controls preload="metadata" src="assets/candidate_b_h3_ready.wav" aria-label="播放候选 B"></audio>
               <div class="candidate-actions"><button type="button" class="shortlist-button" aria-pressed="false">加入对比</button><span class="candidate-state">未入围</span></div>
             </article>
             <article class="candidate-card" data-candidate="c">
-              <div class="candidate-meta"><span class="candidate-order">03</span><span>05.52 秒</span></div>
-              <h3 class="candidate-label">候选 C</h3>
+              <div class="candidate-header"><h3 class="candidate-label">候选 C</h3><span>05.52 秒</span></div>
               <p class="candidate-note" hidden>清亮但不尖锐，果断敏捷，语速稍快。</p>
               <audio controls preload="metadata" src="assets/candidate_c_h3_ready.wav" aria-label="播放候选 C"></audio>
               <div class="candidate-actions"><button type="button" class="shortlist-button" aria-pressed="false">加入对比</button><span class="candidate-state">未入围</span></div>
             </article>
             <article class="candidate-card" data-candidate="d">
-              <div class="candidate-meta"><span class="candidate-order">04</span><span>07.52 秒</span></div>
-              <h3 class="candidate-label">候选 D</h3>
+              <div class="candidate-header"><h3 class="candidate-label">候选 D</h3><span>07.52 秒</span></div>
               <p class="candidate-note" hidden>成熟低音，略有颗粒感，克制坚韧。</p>
               <audio controls preload="metadata" src="assets/candidate_d_h3_ready.wav" aria-label="播放候选 D"></audio>
               <div class="candidate-actions"><button type="button" class="shortlist-button" aria-pressed="false">加入对比</button><span class="candidate-state">未入围</span></div>
@@ -94,10 +98,10 @@
         </section>
 
         <section class="compare-panel" aria-labelledby="compare-heading">
-          <div class="section-heading"><div><span class="section-index">03 / COMPARE</span><h2 id="compare-heading">快速切换两条声线</h2></div><span id="compare-count" class="panel-tag">0 / 2 已入围</span></div>
+          <div class="section-heading"><h2 id="compare-heading">快速比较两条选中的候选声线</h2><span id="compare-count" class="panel-tag">0 / 2 已入围</span></div>
           <div class="compare-slots">
-            <div class="compare-slot"><span>左侧</span><strong id="slot-label-0">选择一条候选</strong><div><button type="button" class="compare-play" data-slot="0" disabled>从头播放</button><button type="button" class="prefer-button" data-slot="0" disabled>标为本页偏好</button></div></div>
-            <div class="compare-slot"><span>右侧</span><strong id="slot-label-1">选择第二条候选</strong><div><button type="button" class="compare-play" data-slot="1" disabled>从头播放</button><button type="button" class="prefer-button" data-slot="1" disabled>标为本页偏好</button></div></div>
+            <div class="compare-slot"><strong id="slot-label-0">等待选择</strong><div><button type="button" class="compare-play" data-slot="0" disabled>从头播放</button><button type="button" class="prefer-button" data-slot="0" disabled>标为本页偏好</button></div></div>
+            <div class="compare-slot"><strong id="slot-label-1">等待选择</strong><div><button type="button" class="compare-play" data-slot="1" disabled>从头播放</button><button type="button" class="prefer-button" data-slot="1" disabled>标为本页偏好</button></div></div>
           </div>
           <p id="compare-status" class="compare-status" aria-live="polite">可从上方选最多两条。偏好仅在当前页面有效，不会生成 Voice ID。</p>
         </section>
