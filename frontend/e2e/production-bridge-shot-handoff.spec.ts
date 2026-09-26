@@ -29,7 +29,7 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   await expect(bridge).toContainText("投产提案已确认");
   const workflow = page.getByRole("navigation", { name: "创作流程" });
   await workflow.getByRole("link", { name: "来源与大纲" }).click();
-  await page.getByLabel("来源正文或 treatment").fill("Unsaved local source draft — do not discard on shot handoff");
+  await page.getByLabel("故事内容").fill("Unsaved local source draft — do not discard on shot handoff");
   await workflow.getByRole("link", { name: "分镜评审" }).click();
   await bridge.getByText("查看场次与镜头").click();
   await bridge.getByRole("button", { name: `在分镜工作台打开 ${first.shotId}` }).click();

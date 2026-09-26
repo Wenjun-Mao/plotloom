@@ -102,10 +102,10 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
       {error && <ErrorNotice message={error} />}
       {!state ? <Spinner /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
-        <header><span>已接受的来源</span><strong>{state.source ? `来源 r${state.source.revision}` : "尚未保存来源"}</strong></header>
+        <header><span>已确认的改编内容</span><strong>{state.source ? `改编内容 r${state.source.revision}` : "尚未保存故事内容"}</strong></header>
         <label>来源类型<select disabled={readOnly || busy} value={draft.kind} onChange={(event) => updateDraft({ ...draft, kind: event.target.value as SourceMaterial["kind"] })}><option value="synopsis">梗概（发展为来源故事）</option><option value="imported_text">导入文字 / treatment</option><option value="existing_work">既有作品改编</option></select></label>
         <label>标题<input disabled={readOnly || busy} value={draft.title} onChange={(event) => updateDraft({ ...draft, title: event.target.value })} /></label>
-        <label>来源正文或 treatment<textarea disabled={readOnly || busy} value={draft.text} onChange={(event) => updateDraft({ ...draft, text: event.target.value })} rows={10} /></label>
+        <label>故事内容<textarea disabled={readOnly || busy} value={draft.text} onChange={(event) => updateDraft({ ...draft, text: event.target.value })} rows={10} /></label>
         <label>改编意图<textarea disabled={readOnly || busy} value={draft.adaptationIntent} onChange={(event) => updateDraft({ ...draft, adaptationIntent: event.target.value })} rows={3} /></label>
         <label>允许的原创补充（可选）<textarea disabled={readOnly || busy} value={draft.inventedAdditions || ""} onChange={(event) => updateDraft({ ...draft, inventedAdditions: event.target.value || null })} rows={3} /></label>
         <Button variant="primary" disabled={!canSave} onClick={() => void mutate(() => plotloomApi.saveSourceMaterial(projectId, state.source?.revision || 0, draft), true)}>{busy ? "正在保存…" : "确认改编内容"}</Button>
@@ -113,15 +113,15 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
       </article>
 
       <article className="panel source-outline-candidate" data-testid="source-outline-candidate">
-        <header><span>大纲候选</span><strong>{candidate ? `${candidate.status === "ready" ? "可审核" : candidate.status === "accepted" ? "已接受" : candidate.status === "cancelled" ? "已取消" : "等待 specialist"} · ${candidate.jobId.slice(0, 11)}` : "尚无候选"}</strong></header>
-        <p>候选只能来自当前接受的来源和大纲版本；它不会自动替换已接受内容。</p>
+        <header><span>大纲候选</span><strong>{candidate ? `${candidate.status === "ready" ? "待审阅" : candidate.status === "accepted" ? "已确认" : candidate.status === "cancelled" ? "已取消" : "任务已准备"} · ${candidate.jobId.slice(0, 11)}` : "尚无候选"}</strong></header>
+        <p>候选只能来自当前已确认的改编内容和大纲版本；它不会自动替换已确认内容。</p>
         {!candidate && <Button variant="primary" disabled={readOnly || busy || !state.source} onClick={() => {
           setBusy(true); setError("");
           const session = activeProject.current;
           void plotloomApi.prepareOutlineCandidate(projectId).then(() => {
             if (ownsProject(session)) return load(session);
           }).catch((prepareError) => { if (ownsProject(session)) setError(sourceMessage(prepareError)); }).finally(() => { if (ownsProject(session)) setBusy(false); });
-        }}>{busy ? "正在准备…" : "准备 specialist handoff"}</Button>}
+        }}>{busy ? "正在准备…" : "准备大纲任务"}</Button>}
         {candidate && <>
           <small>冻结来源 r{candidate.sourceRevision} · 目标已接受大纲 r{candidate.expectedOutlineRevision}</small>
           {candidate.status === "prepared" && <Button disabled={readOnly || busy} onClick={() => {
@@ -130,8 +130,8 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
             void plotloomApi.refreshOutlineCandidate(projectId, candidate.jobId).then(() => {
               if (ownsProject(session)) return load(session);
             }).catch((refreshError) => { if (ownsProject(session)) setError(sourceMessage(refreshError)); }).finally(() => { if (ownsProject(session)) setBusy(false); });
-          }}>{busy ? "正在检查…" : "刷新 specialist delivery"}</Button>}
-          {(candidate.status === "prepared" || candidate.status === "ready") && <Button variant="danger" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.cancelOutlineCandidate(projectId, candidate.jobId))}>取消并废弃此 handoff</Button>}
+          }}>{busy ? "正在检查…" : "检查任务结果"}</Button>}
+          {(candidate.status === "prepared" || candidate.status === "ready") && <Button variant="danger" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.cancelOutlineCandidate(projectId, candidate.jobId))}>取消此任务</Button>}
           {candidate.status === "ready" && <><details><summary>查看上游 outline.json</summary><pre>{JSON.stringify(candidate.outline, null, 2)}</pre></details>{candidate.outline && <section className="source-outline-upstream-report" data-testid="source-outline-upstream-report"><p role="note">这是候选大纲，尚未经你确认。阅读不会接受或修改内容。</p><OutlineReport key={`${projectId}:${candidate.jobId}`} outline={candidate.outline} url={candidate.reportAvailable ? plotloomApi.outlineCandidateReportUrl(projectId, candidate.jobId) : undefined} /></section>}</>}
           {candidate.status === "ready" && state.source && <><Button variant="primary" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.acceptOutlineCandidate(projectId, { jobId: candidate.jobId, expectedSourceRevision: state.source!.revision, expectedOutlineRevision: accepted?.revision || 0 }))}>确认使用此大纲</Button><p>确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。</p></>}
         </>}
@@ -139,9 +139,9 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
       </article>
 
       <article className="panel source-outline-accepted" data-testid="source-outline-accepted">
-        <header><span>已接受的大纲</span><strong>{accepted ? `已接受 r${accepted.revision}` : "尚未接受"}</strong></header>
-        <p>当前状态：{state.outlineStatus === "accepted" ? "已接受" : state.outlineStatus === "reopened" ? "已重新打开，需新的候选" : state.outlineStatus === "candidate_ready" ? "候选可审核" : "缺失"}</p>
-        {accepted ? <><small>基于来源 r{accepted.sourceRevision} · 候选 {accepted.candidateJobId.slice(0, 11)}</small><details><summary>查看接受的原始 outline.json</summary><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details><Button variant="quiet" disabled={readOnly || busy || state.outlineStatus === "reopened"} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>重新打开，不替换内容</Button></> : <p className="muted">接受操作会新建不可变的大纲 revision；此处绝不从候选静默同步。</p>}
+        <header><span>已确认的大纲</span><strong>{accepted ? `已确认 r${accepted.revision}` : "尚未确认"}</strong></header>
+        <p>当前状态：{state.outlineStatus === "accepted" ? "已确认" : state.outlineStatus === "reopened" ? "已重新打开，需新的候选" : state.outlineStatus === "candidate_ready" ? "待审阅" : "缺失"}</p>
+        {accepted ? <><small>基于故事内容 r{accepted.sourceRevision} · 候选 {accepted.candidateJobId.slice(0, 11)}</small><details><summary>查看已确认的原始 outline.json</summary><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details><Button variant="quiet" disabled={readOnly || busy || state.outlineStatus === "reopened"} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>重新打开，不替换内容</Button></> : <p className="muted">确认会新建不可变的大纲 revision；此处绝不从候选静默同步。</p>}
       </article>
 
       <SectionMapPanel

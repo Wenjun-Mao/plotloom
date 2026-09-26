@@ -13,19 +13,19 @@ test("Brief save continues to an editable Source draft without starting the lega
   const projectId = new URL(page.url()).searchParams.get("project");
   if (!projectId) throw new Error("Brief save did not create a project");
   await expect(page.getByLabel("标题")).toHaveValue("雨停以后");
-  await expect(page.getByLabel("来源正文或 treatment")).toHaveValue("雨刚停，林遥在车站檐下决定去海堤还是旧街。");
+  await expect(page.getByLabel("故事内容")).toHaveValue("雨刚停，林遥在车站檐下决定去海堤还是旧街。");
   await expect(page.getByLabel("改编意图")).toHaveValue("");
   expect((await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline`)).json()).source).toBeNull();
 
-  await page.getByLabel("来源正文或 treatment").fill("作者尚未保存的本地来源草稿。");
+  await page.getByLabel("故事内容").fill("作者尚未保存的本地来源草稿。");
   await page.getByRole("button", { name: "刷新", exact: true }).click();
-  await expect(page.getByLabel("来源正文或 treatment")).toHaveValue("作者尚未保存的本地来源草稿。");
+  await expect(page.getByLabel("故事内容")).toHaveValue("作者尚未保存的本地来源草稿。");
   await page.getByLabel("改编意图").fill("保留一个选择和两个结局。");
   await expect(page.getByLabel("归属 / 署名声明")).toHaveCount(0);
   await expect(page.getByLabel("使用权或许可声明")).toHaveCount(0);
   await expect(page.getByText("将以这些内容和创作方向为依据，生成大纲。本次确认不会启动生成。", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "确认改编内容" }).click();
-  await expect(page.getByText("来源 r1")).toBeVisible();
+  await expect(page.getByText("改编内容 r1", { exact: true })).toBeVisible();
   const saved = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline`)).json();
   expect(saved.source.material).toMatchObject({
     title: "雨停以后",
@@ -56,8 +56,8 @@ test("existing Source content and optional declarations survive a later source e
   expect(saved.ok()).toBeTruthy();
   await page.reload();
   await expect(page.getByLabel("标题")).toHaveValue("Existing source");
-  await expect(page.getByLabel("来源正文或 treatment")).toHaveValue("Existing authored text");
-  await page.getByLabel("来源正文或 treatment").fill("Existing authored text, revised");
+  await expect(page.getByLabel("故事内容")).toHaveValue("Existing authored text");
+  await page.getByLabel("故事内容").fill("Existing authored text, revised");
   await page.getByRole("button", { name: "确认改编内容" }).click();
   const updated = await (await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/source-outline`)).json();
   expect(updated.source.material).toMatchObject({

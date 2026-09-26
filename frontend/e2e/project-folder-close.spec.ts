@@ -17,12 +17,12 @@ test.describe("project-folder Close", () => {
     const projectId = new URL(page.url()).searchParams.get("project")!;
     await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
     await page.getByLabel("标题").fill("E2E：取消 handoff 后关闭");
-    await page.getByLabel("来源正文或 treatment").fill("作者必须先取消正在等待 specialist 的候选，才能关闭项目。");
+    await page.getByLabel("故事内容").fill("作者必须先取消正在等待 specialist 的候选，才能关闭项目。");
     await page.getByLabel("改编意图").fill("验证取消、关闭和重新打开的持久化边界。");
     await page.getByRole("button", { name: "确认改编内容" }).click();
-    await page.getByRole("button", { name: "准备 specialist handoff" }).click();
-  await expect(page.getByText(/^等待 specialist ·/)).toBeVisible();
-    await page.getByRole("button", { name: "取消并废弃此 handoff" }).click();
+    await page.getByRole("button", { name: "准备大纲任务" }).click();
+  await expect(page.getByText(/^任务已准备 ·/)).toBeVisible();
+    await page.getByRole("button", { name: "取消此任务" }).click();
     await expect(page.getByText("已取消")).toBeVisible();
 
     await page.getByRole("button", { name: "当前项目 · 切换" }).click();

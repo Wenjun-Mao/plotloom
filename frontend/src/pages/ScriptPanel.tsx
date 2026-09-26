@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { AcceptedScriptRevision, ScriptCandidate, ScriptReviewState } from "../types";
+import { ManualTaskAssignment } from "./ManualTaskAssignment";
 
 type ProjectSession = { projectId: string; epoch: number };
 
@@ -85,27 +86,27 @@ export function ScriptPanel({ projectId, readOnly }: { projectId: string; readOn
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : accepted?.candidateJobId;
   return <article id="script" className="panel cast-panel" data-testid="script-review">
     <header><span>剧本</span><strong>{heading(state)}</strong></header>
-    <p>完整 pilot 的三个稳定章节各绑定一个已冻结的上游 episode。script.json 是创作权威；分镜评审仅消费这条已接受的 seam。</p>
-    <div className="notice warning">这是非 episode pilot。hook/cliff 与跨互斥结局的 aggregate duration 不构成产品节奏或悬念批准；上游 gate 仍作结构检查，冻结的章节和完整路径时长上限仍然适用。</div>
+    <p>根据已确认的故事分支编写开场和两个结局；每次观看只会经过其中一个结局。</p>
+    <div className="notice warning">上游格式和时长限制仍会检查；冻结章节与完整路径的时长上限继续适用。</div>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
-    {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备并复制 script specialist handoff</Button>}
-    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} run={run} />}
-    {candidate?.status === "ready" && <ScriptJson title="查看待接受 script.json" script={candidate.script} />}
+    {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备剧本任务</Button>}
+    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} run={run} onAssignment={setAssignment} />}
+    {candidate?.status === "ready" && <><ScriptJson title="查看待审阅剧本" script={candidate.script} /><p>确认使用此剧本会确认开场和两个结局，不只确认当前显示的章节。</p></>}
     {accepted && <AcceptedReview accepted={accepted} projectId={projectId} readOnly={readOnly} busy={busy} status={state.status} sectionId={sectionId} draft={draft} onSelect={selectSection} onDraft={setDraft} onReopen={() => run(() => plotloomApi.reopenScript(projectId, accepted.revision))} onSave={save} />}
     {reportJobId && <Report projectId={projectId} jobId={reportJobId} />}
-    {assignment && <label>复制给 specialist 的冻结任务<textarea readOnly value={assignment} rows={5} /></label>}
+    {candidate?.status === "prepared" && assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="剧本" />}
     {error && <ErrorNotice message={error} />}
   </article>;
 }
 
-function CandidateActions({ candidate, projectId, readOnly, busy, run }: { candidate: ScriptCandidate; projectId: string; readOnly: boolean; busy: boolean; run: <Result>(operation: () => Promise<Result>, onSuccess?: (result: Result) => void) => void }) {
+function CandidateActions({ candidate, projectId, readOnly, busy, run, onAssignment }: { candidate: ScriptCandidate; projectId: string; readOnly: boolean; busy: boolean; run: <Result>(operation: () => Promise<Result>, onSuccess?: (result: Result) => void) => void; onAssignment: (value: string) => void }) {
   if (candidate.status === "prepared") return <div className="button-row">
-    <Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverScriptHandoff(projectId, candidate.jobId))}>重新复制冻结 handoff</Button>
-    <Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.refreshScriptCandidate(projectId, candidate.jobId))}>刷新 specialist delivery</Button>
-    <Button variant="danger" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.cancelScriptCandidate(projectId, candidate.jobId))}>取消 handoff</Button>
+    <Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverScriptHandoff(projectId, candidate.jobId), result => onAssignment(result.assignment))}>恢复剧本任务</Button>
+    <Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.refreshScriptCandidate(projectId, candidate.jobId))}>检查任务结果</Button>
+    <Button variant="danger" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.cancelScriptCandidate(projectId, candidate.jobId))}>取消此任务</Button>
   </div>;
   if (candidate.status === "ready") return <div className="button-row">
-    <Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.acceptScriptCandidate(projectId, { jobId: candidate.jobId, expectedScriptRevision: candidate.expectedScriptRevision, binding: candidate.binding, script: candidate.script || {} }))}>显式接受完整 pilot 剧本</Button>
+    <Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.acceptScriptCandidate(projectId, { jobId: candidate.jobId, expectedScriptRevision: candidate.expectedScriptRevision, binding: candidate.binding, script: candidate.script || {} }))}>确认使用此剧本</Button>
     <Button variant="danger" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.cancelScriptCandidate(projectId, candidate.jobId))}>拒绝并取消此剧本</Button>
   </div>;
   return null;
@@ -114,8 +115,8 @@ function CandidateActions({ candidate, projectId, readOnly, busy, run }: { candi
 function AcceptedReview({ accepted, projectId, readOnly, busy, status, sectionId, draft, onSelect, onDraft, onReopen, onSave }: { accepted: AcceptedScriptRevision; projectId: string; readOnly: boolean; busy: boolean; status: ScriptReviewState["status"]; sectionId: string; draft: string; onSelect: (sectionId: string) => void; onDraft: (draft: string) => void; onReopen: () => void; onSave: () => void }) {
   const editing = status === "reopened";
   return <section>
-    <small>已接受 r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。当前 JSON 可直接检查；上游报告始终是原始派生报告。</small>
-    <ScriptJson title="查看当前已接受 script.json" script={accepted.script} />
+    <small>已确认 r{accepted.revision} · hash {accepted.contentHash.slice(0, 12)}。当前 JSON 可直接检查；上游报告始终是原始派生报告。</small>
+    <ScriptJson title="查看当前已确认剧本" script={accepted.script} />
     {!editing && <Button variant="quiet" disabled={readOnly || busy} onClick={onReopen}>重新打开剧本</Button>}
     {editing && <SectionEditor accepted={accepted} disabled={readOnly || busy} sectionId={sectionId} draft={draft} onSelect={onSelect} onDraft={onDraft} onSave={onSave} />}
   </section>;
@@ -154,8 +155,8 @@ function episodeForSection(script: Record<string, unknown> | null, sectionId: st
 
 function heading(state: ScriptReviewState): string {
   if (state.status === "stale") return "上下文已过期";
-  if (state.acceptedScript) return `已接受 r${state.acceptedScript.revision}`;
-  if (state.candidate?.status === "ready") return "可审核";
-  if (state.candidate?.status === "prepared") return "等待 specialist";
+  if (state.acceptedScript) return `已确认 r${state.acceptedScript.revision}`;
+  if (state.candidate?.status === "ready") return "待审阅";
+  if (state.candidate?.status === "prepared") return "任务已准备";
   return "尚无剧本候选";
 }

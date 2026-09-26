@@ -57,7 +57,7 @@ for (const transition of ["A-B-A", "unmount"] as const) {
             : undefined;
           if (operation !== "load") {
             await page.getByTestId("storyboard-review").getByRole("button", {
-              name: operation === "copy" ? "重新复制冻结 handoff" : "刷新 specialist delivery",
+              name: operation === "copy" ? "恢复分镜任务" : "检查任务结果",
             }).click();
           }
           await started;
@@ -82,7 +82,7 @@ for (const transition of ["A-B-A", "unmount"] as const) {
           if (transition === "unmount") await sourceStage(page);
           const panel = page.getByTestId("storyboard-review");
           await expect(panel).toBeVisible();
-          await expect(panel.getByLabel("复制给 specialist 的冻结任务")).toHaveCount(0);
+          await expect(panel.getByLabel("分镜完整任务")).toHaveCount(0);
           await expect(panel.getByRole("alert")).toHaveCount(0);
           await expect(panel.getByRole("button").first()).toBeEnabled();
         } finally {

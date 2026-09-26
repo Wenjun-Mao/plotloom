@@ -17,20 +17,20 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
 
   await page.getByLabel("标题").fill("潮汐灯");
-  await page.getByLabel("来源正文或 treatment").fill("气象站员林澈在风暴前发现电缆只能供给码头或灯塔；被困水手正等待她的决定。");
+  await page.getByLabel("故事内容").fill("气象站员林澈在风暴前发现电缆只能供给码头或灯塔；被困水手正等待她的决定。");
   await page.getByLabel("改编意图").fill("保留一处电缆选择，清楚呈现两条互斥结局。");
   await page.getByRole("button", { name: "确认改编内容" }).click();
   const preparedResponse = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/source-outline/candidates`);
-  await page.getByRole("button", { name: "准备 specialist handoff" }).click();
+  await page.getByRole("button", { name: "准备大纲任务" }).click();
   const prepared = await preparedResponse;
   expect(prepared.ok()).toBeTruthy();
   await writeFixtureOutline(await prepared.json() as PreparedOutline);
-  await page.getByRole("button", { name: "刷新 specialist delivery" }).click();
-  await expect(page.getByText("可审核")).toBeVisible();
+  await page.getByRole("button", { name: "检查任务结果" }).click();
+  await expect(page.getByText("待审阅")).toBeVisible();
   await expect(page.getByText("确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "确认使用此大纲", exact: true }).click();
-  await expect(page.getByText("已接受 r1")).toBeVisible();
+  await expect(page.getByText("已确认 r1")).toBeVisible();
 
   const map = page.getByTestId("section-map");
   const sections = map.locator(".section-map-sections fieldset");
@@ -39,27 +39,27 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   await sections.nth(2).getByLabel("章节摘要").fill("灯塔有电，水手跟随灯光自救；码头停摆。 ");
   await map.getByLabel("选择问题").fill("把有限电力送往哪里？");
   const outcomes = map.locator(".section-map-outcome");
-  await outcomes.nth(0).getByLabel("选择标签").fill("供电码头");
-  await outcomes.nth(0).getByLabel("后果").fill("码头恢复照明，灯塔变暗。 ");
-  await outcomes.nth(1).getByLabel("选择标签").fill("供电灯塔");
-  await outcomes.nth(1).getByLabel("后果").fill("灯塔照亮航道，码头停电。 ");
-  await page.getByRole("button", { name: "保存明确分支映射" }).click();
+  await outcomes.nth(0).getByLabel("选项文字").fill("供电码头");
+  await outcomes.nth(0).getByLabel("选择后的发展").fill("码头恢复照明，灯塔变暗。 ");
+  await outcomes.nth(1).getByLabel("选项文字").fill("供电灯塔");
+  await outcomes.nth(1).getByLabel("选择后的发展").fill("灯塔照亮航道，码头停电。 ");
+  await page.getByRole("button", { name: "保存故事分支" }).click();
   await expect(map.getByText("当前 r1")).toBeVisible();
-  await expect(outcomes.nth(0).getByLabel("选择标签")).toHaveValue("供电码头");
-  await expect(outcomes.nth(1).getByLabel("选择标签")).toHaveValue("供电灯塔");
-  await page.getByRole("button", { name: "安装到规范路由图" }).click();
+  await expect(outcomes.nth(0).getByLabel("选项文字")).toHaveValue("供电码头");
+  await expect(outcomes.nth(1).getByLabel("选项文字")).toHaveValue("供电灯塔");
+  await page.getByRole("button", { name: "应用到故事路线" }).click();
   const routeCards = map.getByTestId("section-map-route-cards");
   await expect(routeCards).toContainText("供电码头 → 结局 A");
   await expect(routeCards).toContainText("供电灯塔 → 结局 B");
-  await expect(map.getByText("规范路由图 r1 · 当前")).toBeVisible();
+  await expect(map.getByText("故事路线 r1 · 当前")).toBeVisible();
 
   await page.reload();
   await expect(page.getByTestId("section-map")).toContainText("当前 r1");
   await expect(page.getByTestId("section-map-route-cards")).toContainText("供电码头 → 结局 A");
-  await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(0).getByLabel("后果")).toHaveValue("码头恢复照明，灯塔变暗。 ");
+  await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(0).getByLabel("选择后的发展")).toHaveValue("码头恢复照明，灯塔变暗。 ");
   await workbench.restartBackend();
   await page.reload();
-  await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(1).getByLabel("后果")).toHaveValue("灯塔照亮航道，码头停电。 ");
+  await expect(page.getByTestId("section-map").locator(".section-map-outcome").nth(1).getByLabel("选择后的发展")).toHaveValue("灯塔照亮航道，码头停电。 ");
   await expect(page.getByTestId("section-map-route-cards")).toContainText("供电灯塔 → 结局 B");
 });
 

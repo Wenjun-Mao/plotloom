@@ -359,10 +359,10 @@ test.describe("F3A production art review", () => {
   test("F4 accepts the three-section script, preserves a scoped edit, and survives backend restart", async ({ page, request, workbench }) => {
     test.setTimeout(75_000);
     const projectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f4-script");
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#script`);
     const panel = page.getByTestId("script-review");
     const preparedResponse = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates`);
-    await panel.getByRole("button", { name: "准备并复制 script specialist handoff" }).click();
+    await panel.getByRole("button", { name: "准备剧本任务" }).click();
     const prepared = await (await preparedResponse).json() as ScriptPreparation;
     const frozenRequest = await readFile(path.join(prepared.packagePath, "request.json"));
     // A deliberately opt-in capture makes an attended specialist handoff from
@@ -381,7 +381,7 @@ test.describe("F3A production art review", () => {
     await page.reload();
     const recopy = page.waitForResponse((response) => response.request().method() === "GET"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates/${prepared.jobId}/handoff`);
-    await panel.getByRole("button", { name: "重新复制冻结 handoff" }).click();
+    await panel.getByRole("button", { name: "恢复剧本任务" }).click();
     const recovered = await recopy;
     expect(recovered.ok(), await recovered.text()).toBeTruthy();
     const recoveredBody = await recovered.json() as ScriptPreparation;
@@ -391,19 +391,19 @@ test.describe("F3A production art review", () => {
     expect(await readFile(path.join(recoveredBody.packagePath, "request.json"))).toEqual(frozenRequest);
     await writeStageDelivery(prepared, "script.json", scriptFixture(), "f4-script", "script");
     const refreshed = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates/${prepared.jobId}/refresh`);
-    await panel.getByRole("button", { name: "刷新 specialist delivery" }).click();
+    await panel.getByRole("button", { name: "检查任务结果" }).click();
     expect((await refreshed).ok()).toBeTruthy();
-    await panel.getByRole("button", { name: "显式接受完整 pilot 剧本" }).click();
-    await expect(panel).toContainText("已接受 r1");
+    await panel.getByRole("button", { name: "确认使用此剧本" }).click();
+    await expect(panel).toContainText("已确认 r1");
     await panel.getByRole("button", { name: "重新打开剧本" }).click();
     await panel.getByRole("combobox").selectOption("opening");
     const editor = panel.locator("textarea.source-outline-json");
     const opening = JSON.parse(await editor.inputValue()) as Record<string, unknown>;
     await editor.fill(JSON.stringify({ ...opening, cliff: "Edited opening leaves its own consequence." }, null, 2));
     await panel.getByRole("button", { name: "保存此章节，不覆盖其他章节" }).click();
-    await expect(panel).toContainText("已接受 r2");
+    await expect(panel).toContainText("已确认 r2");
     await workbench.restartBackend(); await page.reload();
-    await expect(panel).toContainText("已接受 r2");
+    await expect(panel).toContainText("已确认 r2");
     const accepted = await getJson<any>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/script`));
     expect(accepted.acceptedScript.script.episodes[2].ep).toBe(3);
   });

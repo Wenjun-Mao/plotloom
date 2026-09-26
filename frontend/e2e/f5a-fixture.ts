@@ -74,14 +74,14 @@ export async function writeDelivery(prepared: Preparation, stage = "storyboard",
 }
 export async function prepare(page: Page, panel: Locator, id: string): Promise<Preparation> {
   const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/storyboard-source-review/candidates`);
-  await panel.getByRole("button", { name: "准备并复制 storyboard specialist handoff" }).click();
+  await panel.getByRole("button", { name: "准备分镜任务" }).click();
   return json(await response);
 }
 export async function refresh(page: Page, panel: Locator, id: string, jobId: string): Promise<void> {
   const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/storyboard-source-review/candidates/${jobId}/refresh`);
-  await panel.getByRole("button", { name: "刷新 specialist delivery" }).click();
+  await panel.getByRole("button", { name: "检查任务结果" }).click();
   await json(await response);
-  await expect(panel.getByRole("button", { name: "显式接受 review revision" })).toBeEnabled();
+  await expect(panel.getByRole("button", { name: "确认此分镜评审方案" })).toBeEnabled();
 }
 export async function changeScript(request: APIRequestContext, origin: string, id: string): Promise<void> {
   const url = `${origin}/api/v2/projects/${id}/script`;

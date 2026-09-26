@@ -9,6 +9,30 @@ earlier scope and evidence, not the current assignment queue.
 
 ## Now / Next / Later · 2026-09-25
 
+### Active walkthrough wording slice — 2026-09-26
+
+The creator approved implementing the first pass from the
+[wording audit](../verification/2026-09-26-creator-wording-audit.md): story and
+branch labels plus script/storyboard manual-task preparation, recovery and
+copying. Deliver natural action labels tied to actual effects, recoverable
+task text and truthful clipboard feedback. Preserve separate save/apply,
+review/production approval and prepare/dispatch boundaries. Use the
+[creator wording guide](../operations/creator-ui-wording.md).
+
+Verify focused action/clipboard regression tests, typechecks, unit tests and
+the shipped frontend build; independently review the stable diff. Stop at
+this bounded slice. Do not refresh the creator's unsaved Safari form, modify
+their project, submit generation, expand branching or migrate schemas. Media,
+settings, general error handling and generated-report terminology remain
+subsequent audit items, not completed work.
+
+Completed this bounded slice: source/branch and script/storyboard task wording,
+restored script assignment recovery and explicit clipboard feedback. The
+audit's implementation receipt records 229 unit tests, 14 unique focused
+browser journeys, typechecks, build and independent review. Navigation/Brief
+naming remains unchanged for this slice. Continue the manual walkthrough;
+do not interpret the full audit backlog as completed.
+
 - **Now:** The director approved the pacing-first integration recommendation
   below and one bounded longer-shot trial. The director confirmed both lines
   and coherent voice/pose in the earlier two-shot

@@ -22,7 +22,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.getByTestId("art-review")).toBeVisible();
   await expect(page.locator(".source-outline-page")).toHaveAttribute("data-project-id", firstProject);
   await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
-  await expect(page.getByLabel("来源正文或 treatment")).not.toBeVisible();
+  await expect(page.getByLabel("故事内容")).not.toBeVisible();
   await expect(page.getByTestId("art-review").locator("header > span")).toHaveText("美术参考");
   await expect(page.getByTestId("art-review").locator(":scope > small").first()).toContainText("参考研究在下方单独显示");
   await expect(page.getByTestId("art-review").locator(":scope > small").first()).not.toContainText("F3B");
@@ -79,7 +79,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.getByRole("heading", { name: "来源与大纲", exact: true })).toBeVisible();
   await expect(page.locator("h1:visible")).toHaveCount(1);
   await expect(page.getByText("由作者填写保存，不构成平台的法律确认。", { exact: true })).toBeVisible();
-  const sourceText = page.getByLabel("来源正文或 treatment");
+  const sourceText = page.getByLabel("故事内容");
   await sourceText.fill("保留的未保存来源草稿");
   await workflow.getByRole("link", { name: "美术参考" }).click();
   await expect(sourceText).not.toBeVisible();
@@ -97,15 +97,15 @@ test("keeps missing and stale F5A review explanations at their source-bound owne
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#storyboard-review`);
   const review = page.getByTestId("storyboard-review");
-  await expect(review).toContainText("尚无 review");
-  await expect(review).toContainText("准备并复制 storyboard specialist handoff");
+  await expect(review).toContainText("尚无评审");
+  await expect(review).toContainText("准备分镜任务");
   await expect(page.getByRole("heading", { name: "分镜评审", exact: true })).toBeVisible();
 
   await acceptStoryboardReview(request, workbench.apiOrigin, projectId);
   await changeScript(request, workbench.apiOrigin, projectId);
   await page.reload();
   await expect(review).toContainText("上下文已过期");
-  await expect(review).toContainText("已接受剧本 r");
+  await expect(review).toContainText("已确认剧本 r");
   await expect(review).not.toContainText("F4 script r");
   await expect(review).toContainText("不是 Plotloom 的 shots、播放内容、媒体提示词或投产许可");
 });
@@ -120,7 +120,7 @@ test("keeps an independent owner usable when the aggregate source read fails", a
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#script`);
   await expect(page.getByRole("heading", { name: "剧本", exact: true })).toBeVisible();
   await expect(page.getByTestId("script-review")).toBeVisible();
-  await expect(page.getByTestId("script-review")).toContainText("已接受 r1");
+  await expect(page.getByTestId("script-review")).toContainText("已确认 r1");
   await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
 });
 
@@ -139,7 +139,7 @@ test("clears an owner-local load error after its retry succeeds", async ({ page,
   await expect(script.getByRole("alert")).toBeVisible();
   failScriptReads = false;
   await script.getByRole("button", { name: "重试加载剧本" }).click();
-  await expect(script).toContainText("已接受 r1");
+  await expect(script).toContainText("已确认 r1");
   await expect(script.getByRole("alert")).toHaveCount(0);
 });
 
