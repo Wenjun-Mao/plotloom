@@ -4,6 +4,8 @@ import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
 import type { AcceptedCastRevision, CastReviewState } from "../types";
 import { CastEditor, type CastDirectionChange } from "./CastEditor";
+import { CastInferenceNotes } from "./CastInferenceNotes";
+import { castTextPresentation } from "./cast-text-presentation";
 
 type CastPanelProps = {
   projectId: string; readOnly: boolean; state: CastReviewState | undefined; loadError: string;
@@ -78,7 +80,7 @@ export function CastPanel({ projectId, readOnly, state, loadError, onState, onRe
 
 function AcceptedCastSummary({ accepted, onEdit, disabled }: { accepted: AcceptedCastRevision; onEdit: () => void; disabled: boolean }) {
   const characters = charactersOf(accepted.cast);
-return <section className="accepted-cast-summary"><div className="accepted-cast-summary-heading"><div><strong>当前角色</strong><small>这是可复用的已接受文本；图像选择在下方单独进行。</small></div><Button variant="primary" disabled={disabled} onClick={onEdit}>编辑角色设定</Button></div><div className="accepted-cast-grid">{characters.map((character, index) => <article key={String(character.id || index)}><h3>{String(character.name || character.id || `角色 ${index + 1}`)}</h3><dl><CastValue label="性格特点" value={Array.isArray(record(character.persona).personality) ? (record(character.persona).personality as string[]).join("、") : undefined} /><CastValue label="气质与举止" value={record(character.persona).temperament} /><CastValue label="外观" value={record(character.persona).appearance} /><CastValue label="声音方向" value={record(character.voice).timbre} /></dl></article>)}</div><details className="cast-technical"><summary>查看版本与技术详情</summary><small>已接受版本 r{accepted.revision} · 内容标识 {accepted.contentHash} · 已保留既有角色映射。</small></details></section>;
+return <section className="accepted-cast-summary"><div className="accepted-cast-summary-heading"><div><strong>当前角色</strong><small>这是可复用的已接受文本；图像选择在下方单独进行。</small></div><Button variant="primary" disabled={disabled} onClick={onEdit}>编辑角色设定</Button></div><div className="accepted-cast-grid">{characters.map((character, index) => <article key={String(character.id || index)}><h3>{String(character.name || character.id || `角色 ${index + 1}`)}</h3><dl><CastValue label="性格特点" value={Array.isArray(record(character.persona).personality) ? (record(character.persona).personality as string[]).map((value) => castTextPresentation(value).text).join("、") : undefined} /><CastValue label="气质与举止" value={castTextPresentation(record(character.persona).temperament).text} /><CastValue label="外观" value={castTextPresentation(record(character.persona).appearance).text} /><CastValue label="声音方向" value={castTextPresentation(record(character.voice).timbre).text} /></dl><CastInferenceNotes character={character} /></article>)}</div><details className="cast-technical"><summary>查看版本与技术详情</summary><small>已接受版本 r{accepted.revision} · 内容标识 {accepted.contentHash} · 已保留既有角色映射。</small></details></section>;
 }
 
 function CastValue({ label, value }: { label: string; value: unknown }) { return <div><dt>{label}</dt><dd>{typeof value === "string" && value ? value : "未提供"}</dd></div>; }

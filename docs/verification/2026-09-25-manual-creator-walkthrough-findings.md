@@ -498,3 +498,30 @@ blockers. Read-only Chromium inspection verified the actual candidate and
 desktop/narrow layout; Safari was not automated. Existing cast-report iframe
 script-blocking console message is unrelated and remains unchanged. Build
 retains the existing large-bundle advisory.
+
+### Character-card layout and Safari label selection follow-up
+
+The creator reported clutter from “审慎（推断）”, an imbalanced three-column
+card, and inability to select the label “气质与举止” (not its textarea text).
+The marker originates in the frozen specialist cast, not UI-generated copy.
+ADR 0089 separates exact trailing inference markers for display, retaining
+their bytes in state and on save; free-form qualification/acting prose is not
+parsed or silently removed. This applies to editor and accepted summary.
+
+Traits now run across the top; temperament and appearance share a row; voice
+and expandable notes follow. Narrow layouts stack. Native label associations
+use unique IDs and separate controls. Safari reproduction showed that CSS-only
+selection support was insufficient: label activation moved selection into the
+textarea. Cancelling only activation that intersects an existing noncollapsed
+label selection preserves dragging and normal click focus. The range-based
+guard also avoids Selection.containsNode's differing boundary behavior in the
+unit-test DOM. No global click interception or mouse-down suppression remains.
+
+Verification: 242 frontend unit tests, TypeScript and deterministic build pass;
+independent re-review clear. Final-build real Safari AX reported selected text
+“气质与举止” after drag release, and textarea focus after a normal label click.
+The notes disclosure showed both trait and voice qualifiers. Chromium 390px
+inspection showed readable stacked controls and no horizontal overflow.
+Existing build chunk advisory remains. No candidate edit, accept, provider
+dispatch or generation occurred; the original Safari tab was preserved and
+temporary verification tabs closed. Other forms have not been certified fixed.

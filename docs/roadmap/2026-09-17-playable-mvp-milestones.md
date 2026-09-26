@@ -681,6 +681,22 @@ confirmed the existing candidate fields and 22px name at desktop and a
 single-column, no-horizontal-overflow layout at 390px. Safari author review
 remains the next product-acceptance step.
 
+### Character-card follow-up: layout, annotations and selectable labels
+
+Creator approved this bounded follow-up after the first presentation pass.
+Deliverables: compact responsive trait row; temperament/appearance columns;
+separate voice and lossless inference notes; selectable native labels that
+retain normal click focus. ADR 0089 owns the presentation boundary. No prompt,
+schema, candidate, acceptance or broader form rewrite is included.
+
+Verification complete: 242 unit tests, TypeScript and deterministic build pass;
+independent review clear after correcting the range-intersection guard.
+Real Safari reproduces the old selection loss and verifies final-build drag
+selection plus ordinary label focus. Chromium at 390px shows stacked controls
+without horizontal overflow. User's original Safari form was not refreshed;
+temporary verification tabs were closed. Next: author refresh/review, then
+resume the walkthrough. Other pages' selection complaints remain unverified.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

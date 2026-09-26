@@ -29,9 +29,11 @@ it("edits real personality and temperament while preserving motivation and unrel
   const accept = vi.spyOn(plotloomApi, "acceptCastCandidate").mockResolvedValue({} as any);
   await render();
   expect(host.querySelector("legend")?.textContent).toBe("林遥");
-  expect(host.textContent).toContain("性格与气质");
+  expect(host.textContent).toContain("性格特点");
   expect(Array.from(host.querySelectorAll("label")).some((label) => label.textContent?.startsWith("动机"))).toBe(false);
-  await change(host.querySelector("input")!, "内敛、审慎（推断）");
+  expect(host.querySelector("input")!.value).toBe("审慎");
+  expect(host.querySelector(".cast-inference-notes")?.textContent).toContain("审慎（推断）");
+  await change(host.querySelector("input")!, "内敛、审慎");
   await change(host.querySelector("textarea")!, "动作克制");
   await act(async () => button("接受这份角色设定").click());
   const expected = structuredClone(cast);
@@ -62,7 +64,52 @@ it("does not use motivation as fallback for missing personality, and respects re
 
 it("shows the same personality and temperament in the accepted summary", async () => {
   await render("accepted");
-  expect(host.querySelector("dl")?.textContent).toContain("审慎（推断）、愿意回应");
+  expect(host.querySelector("dl")?.textContent).toContain("审慎、愿意回应");
+  expect(host.querySelector(".cast-inference-notes")?.textContent).toContain("审慎（推断）");
   expect(host.querySelector("dl")?.textContent).toContain("温和克制");
   expect(host.querySelector("dl")?.textContent).not.toContain("回应消息");
+});
+
+it("associates separate selectable labels with unique controls across characters", async () => {
+  await render("ready", { characters: [...cast.characters, { ...cast.characters[0], id: "C02" }] });
+  const labels = Array.from(host.querySelectorAll<HTMLLabelElement>(".cast-forms label"));
+  expect(labels.length).toBe(10);
+  expect(new Set(labels.map((label) => label.htmlFor)).size).toBe(labels.length);
+  for (const label of labels) {
+    expect(label.querySelector("input,textarea")).toBeNull();
+    expect(label.control).not.toBeNull();
+  }
+});
+
+it("keeps the complete original cast when accepting without edits", async () => {
+  const accept = vi.spyOn(plotloomApi, "acceptCastCandidate").mockResolvedValue({} as any);
+  await render();
+  await act(async () => button("接受这份角色设定").click());
+  expect(accept.mock.calls[0][1].cast).toEqual(cast);
+});
+
+it("preserves selected label text without suppressing ordinary label activation", async () => {
+  await render();
+  const label = Array.from(host.querySelectorAll("label")).find((item) => item.textContent === "气质与举止")!;
+  const selection = window.getSelection()!;
+  const range = document.createRange();
+  range.selectNodeContents(label);
+  selection.removeAllRanges();
+  selection.addRange(range);
+  const selectedClick = new MouseEvent("click", { bubbles: true, cancelable: true });
+  await act(async () => label.dispatchEvent(selectedClick));
+  expect(selectedClick.defaultPrevented).toBe(true);
+  expect(selection.toString()).toBe("气质与举止");
+  selection.removeAllRanges();
+  const plainClick = new MouseEvent("click", { bubbles: true, cancelable: true });
+  await act(async () => label.dispatchEvent(plainClick));
+  expect(plainClick.defaultPrevented).toBe(false);
+});
+
+it("allows clearing an annotated value without returning the marker to the input", async () => {
+  await render();
+  const input = host.querySelector("input")!;
+  await change(input, "");
+  expect(input.value).toBe("");
+  expect(host.querySelector(".cast-inference-notes")?.textContent).toContain("（推断）");
 });

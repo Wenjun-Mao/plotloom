@@ -47,6 +47,12 @@ or use it as a fallback. Missing design fields stay empty; inferred details
 retain their annotations. Character names are prominent card headings, not
 technical metadata.
 
+For character review, explicit trailing inference markers appear in expandable
+“查看推断说明”; the editor preserves the original qualifier when saving edits.
+Do not rewrite free-form qualifications or claim unmarked traits are verified.
+See [ADR 0089](../adr/0089-cast-review-text-presentation.md). Labels must remain
+selectable while ordinary clicks still focus their associated controls.
+
 For adjacent actions, place each explanation beside its own button, not in
 shared fine print. Choose one primary action for the current state. A completed
 step should state what is ready and offer a clear next destination; it must not
