@@ -222,6 +222,31 @@ completing the workflow and giving actionable feedback, not another test-count
 or isolated-clip receipt. No additional prototype subsystem or broad refactor is
 required merely to prepare the walkthrough.
 
+### Active follow-on: editable creator walkthrough preparation
+
+The director agreed to close the quality-8 trial and proceed. Next deliverable:
+one retained, editable small-story project, one stable entry URL, and a short
+ordered walkthrough. Do not present the lighthouse trial as that deliverable.
+
+- [x] Preserve the longer take and record quality feedback separately from its
+  action-fidelity mismatch; no new generation or selection.
+- [ ] Audit the actual UI path from project/source creation through text review,
+  canonical confirmation, media prerequisites, generation, selection and playback.
+  Source-outline, script and storyboard panels currently expose explicit copied
+  specialist handoffs and manual delivery refresh. Record these as visible manual
+  steps, not automatic execution; do not silently add a new dispatch system.
+- [ ] Choose the smallest story supported by the existing source/graph/timing
+  contracts and state its shot count, proposed media-call budget and quality-8
+  waiting expectations before dispatching any new media.
+- [ ] Rehearse at 1440/1920 using supported APIs/UI, record any terminal-only
+  prerequisite or missing handoff, and fix demonstrated in-scope blockers.
+  Keep prepopulated demonstration data distinct from actions the director will do.
+- [ ] Hand off the editable project with clear starting state, next action,
+  wait/recovery behavior and a list of still-manual specialist steps. Preserve all
+  existing projects and avoid login-startup services.
+- [ ] Let director feedback rank subsequent product work; leave H3/audio model
+  research with the specialist and do not restart the closed clip experiment.
+
 ## Dated checkpoint ledger
 
 The attended walkthrough has delivered bounded presentation slices: the U2
