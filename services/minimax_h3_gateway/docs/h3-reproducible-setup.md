@@ -91,6 +91,8 @@ Download the files named in the manifest from these sources:
 
 - base model, text encoder, and VAEs: [Comfy-Org/MiniMax-H3](https://huggingface.co/Comfy-Org/MiniMax-H3);
 - Turbo LoRAs: [lightx2v/Minimax-h3-Turbo](https://huggingface.co/lightx2v/Minimax-h3-Turbo).
+- optional voice-reference diffusion checkpoint:
+  [Comfy-Org/MiniMax-H3 Ref2VA INT8 ConvRot](https://huggingface.co/Comfy-Org/MiniMax-H3/blob/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors).
 
 Place each file at exactly its `relativePath` from the manifest. Verify every
 download before starting ComfyUI:
@@ -108,6 +110,13 @@ sha256sum \
 Compare the resulting hashes and byte counts with
 [`h3-current-installation.v1.yaml`](../h3-current-installation.v1.yaml). A
 matching filename is not sufficient evidence of matching weights.
+
+The separately qualified Ref2VA route additionally requires
+`diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors` beneath
+the **same** `/home/wjmao/models/comfyui-h3` mount. The Spark trial used
+SHA-256 `9255f52b6677845ad238f20dfaafa94727053694127ab7f255c048f0f9365779`.
+Verify this exact hash after download; the gateway freezes that model identity
+and uses the already listed Qwen3-VL encoder and two VAEs, without a Turbo LoRA.
 
 ## 4. Start the engine with the observed runtime policy
 
@@ -150,6 +159,10 @@ curl --fail http://127.0.0.1:8188/object_info > /tmp/comfy-object-info.json
 The object information must advertise `MiniMaxH3ImageToVideo`,
 `MiniMaxH3SigmaShift`, and every file listed in the manifest. This verifies
 availability, not creative quality.
+To enable the optional voice route, also verify
+`MiniMaxH3ReferenceToVideo`, `MiniMaxH3AddGuide`, `LoadAudio`, `LoadImage` and
+the Ref2VA checkpoint name through `/object_info`; `/health` then reports
+`voiceReferenceReady: true` separately from ordinary FL2VA readiness.
 
 For a completed gateway-managed MP4, inspect it in place rather than relying
 on browser playback alone:
@@ -183,6 +196,12 @@ docker compose logs --tail=100 gateway
 
 The gateway owns serial FIFO dispatch and managed completed-MP4 retention. It
 does not expose arbitrary ComfyUI graphs, model paths, or custom nodes.
+The Ref2VA route is described in [ADR 0090](../../../docs/adr/0090-h3-ref2va-per-job-voice-reference.md).
+Its live qualification used a genuine 576×1024 first frame and an 8-second
+PCM16/mono/32-kHz WAV, with reviewed 5- and 8-second outputs. The retained
+Spark experiment receipts are under
+`/home/wjmao/services/spark-comfyui/data/output/experiments/h3-ref2va-portrait-2026-09-26/`;
+they are evidence for this setup, not a general voice or lip-sync guarantee.
 
 ## 6. Qualification smoke test
 

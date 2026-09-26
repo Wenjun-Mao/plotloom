@@ -6,8 +6,8 @@ from pathlib import Path
 from typing import Any
 
 from .contracts import (
-    GATEWAY_KEYFRAME_RETENTION_DAYS,
     GATEWAY_JOB_RECORD_RETENTION_DAYS,
+    GATEWAY_KEYFRAME_RETENTION_DAYS,
     MANAGED_OUTPUT_RETENTION_HOURS,
     GatewayError,
 )
@@ -59,6 +59,7 @@ class GatewayStore:
             )
         additions = {
             "backend": "TEXT NOT NULL DEFAULT 'h3_video'",
+            "h3_contract": "TEXT NOT NULL DEFAULT 'fl2va'",
             "background_mode": "TEXT",
             "output_mime_type": "TEXT",
             "output_width": "INTEGER",
@@ -104,8 +105,11 @@ class GatewayStore:
             active = int(connection.execute("SELECT COUNT(*) FROM jobs WHERE status IN ('submitting', 'submitted', 'running', 'transfer_pending')").fetchone()[0])
         return queued, active
 
-    def reserve_job(self, values: dict[str, Any], frames: list[dict[str, str]]) -> dict[str, Any]:
-        """Atomically admit one H3 or Qwen job and its image bindings."""
+    def reserve_job(
+        self, values: dict[str, Any], frames: list[dict[str, str]],
+        voice: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Atomically admit one job and all of its immutable input bindings."""
 
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
@@ -115,17 +119,56 @@ class GatewayStore:
                     connection.rollback()
                     raise GatewayError("asset_not_found", 404)
             connection.execute(
-                """INSERT INTO jobs (id, backend, input_mode, quality, resolution, execution_snapshot_json, aspect_policy, background_mode, prompt, seed,
+                """INSERT INTO jobs (id, backend, input_mode, h3_contract, quality, resolution, execution_snapshot_json, aspect_policy, background_mode, prompt, seed,
                    requested_duration_seconds, frame_count, fps, status)
-                   VALUES (:id, :backend, :input_mode, :quality, :resolution, :execution_snapshot_json, :aspect_policy, :background_mode, :prompt, :seed,
-                   :requested_duration_seconds, :frame_count, :fps, 'queued')""", values,
+                   VALUES (:id, :backend, :input_mode, :h3_contract, :quality, :resolution, :execution_snapshot_json, :aspect_policy, :background_mode, :prompt, :seed,
+                   :requested_duration_seconds, :frame_count, :fps, 'queued')""", {**values, "h3_contract": values.get("h3_contract", "fl2va")},
             )
             connection.executemany(
                 "INSERT INTO job_frame_bindings (job_id, role, asset_id, prepared_input_name) VALUES (:job_id, :role, :asset_id, :prepared_input_name)",
                 [{**frame, "job_id": values["id"]} for frame in frames],
             )
+            if voice is not None:
+                connection.execute(
+                    """INSERT INTO job_voice_bindings
+                       (job_id, source_sha256, prepared_sha256, source_size_bytes,
+                        duration_ms, source_name, prepared_input_name)
+                       VALUES (:job_id, :source_sha256, :prepared_sha256,
+                               :source_size_bytes, :duration_ms, :source_name, :prepared_input_name)""",
+                    {**voice, "job_id": values["id"]},
+                )
             connection.commit()
         return self.get_job(values["id"])
+
+    def get_job_voice(self, job_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM job_voice_bindings WHERE job_id = ?", (job_id,)
+            ).fetchone()
+        return dict(row) if row is not None else None
+
+    def list_due_voice_inputs(self) -> list[dict[str, Any]]:
+        """Retain active inputs; release completed audio at output expiry or day 30."""
+
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT voice.*, jobs.status FROM job_voice_bindings voice
+                   JOIN jobs ON jobs.id = voice.job_id
+                   WHERE voice.released_at IS NULL AND (
+                       (jobs.status = 'succeeded' AND jobs.output_expires_at <= CURRENT_TIMESTAMP)
+                      OR (jobs.status IN ('failed', 'cancelled', 'outcome_unknown')
+                          AND jobs.created_at <= datetime('now', ?)))
+                   ORDER BY jobs.rowid ASC""",
+                (f"-{GATEWAY_JOB_RECORD_RETENTION_DAYS} days",),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def mark_voice_released(self, job_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute(
+                "UPDATE job_voice_bindings SET released_at = CURRENT_TIMESTAMP WHERE job_id = ?",
+                (job_id,),
+            )
 
     def get_job_frames(self, job_id: str) -> list[dict[str, Any]]:
         with self._connect() as connection:
@@ -198,13 +241,21 @@ class GatewayStore:
     def list_purgeable_completed_job_records(self) -> list[dict[str, Any]]:
         audit_hours = GATEWAY_JOB_RECORD_RETENTION_DAYS * 24 - MANAGED_OUTPUT_RETENTION_HOURS
         with self._connect() as connection:
-            rows = connection.execute("SELECT * FROM jobs WHERE status = 'succeeded' AND output_expires_at IS NOT NULL AND output_expires_at <= datetime('now', ?) ORDER BY rowid ASC", (f"-{audit_hours} hours",)).fetchall()
+            rows = connection.execute("""SELECT * FROM jobs WHERE status = 'succeeded'
+                AND output_expires_at IS NOT NULL AND output_expires_at <= datetime('now', ?)
+                AND NOT EXISTS (SELECT 1 FROM job_voice_bindings voice
+                                WHERE voice.job_id = jobs.id AND voice.released_at IS NULL)
+                ORDER BY rowid ASC""", (f"-{audit_hours} hours",)).fetchall()
         return [dict(row) for row in rows]
 
     def purge_completed_job_record(self, job_id: str) -> bool:
         audit_hours = GATEWAY_JOB_RECORD_RETENTION_DAYS * 24 - MANAGED_OUTPUT_RETENTION_HOURS
         with self._connect() as connection:
-            deleted = connection.execute("DELETE FROM jobs WHERE id = ? AND status = 'succeeded' AND output_expires_at IS NOT NULL AND output_expires_at <= datetime('now', ?)", (job_id, f"-{audit_hours} hours"))
+            deleted = connection.execute("""DELETE FROM jobs WHERE id = ? AND status = 'succeeded'
+                AND output_expires_at IS NOT NULL AND output_expires_at <= datetime('now', ?)
+                AND NOT EXISTS (SELECT 1 FROM job_voice_bindings voice
+                                WHERE voice.job_id = jobs.id AND voice.released_at IS NULL)""",
+                (job_id, f"-{audit_hours} hours"))
         return deleted.rowcount == 1
 
     def claim_asset_after_last_output_expiry(self, asset_id: str) -> bool:
@@ -221,7 +272,15 @@ class GatewayStore:
     def claim_due_gateway_assets(self) -> int:
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            claimed = connection.execute("UPDATE assets SET purge_pending = 1 WHERE purge_pending = 0 AND created_at <= datetime('now', ?)", (f"-{GATEWAY_KEYFRAME_RETENTION_DAYS} days",))
+            claimed = connection.execute(
+                """UPDATE assets SET purge_pending = 1
+                   WHERE purge_pending = 0 AND created_at <= datetime('now', ?)
+                   AND NOT EXISTS (
+                     SELECT 1 FROM job_frame_bindings bindings JOIN jobs ON jobs.id = bindings.job_id
+                     WHERE bindings.asset_id = assets.id
+                       AND jobs.status NOT IN ('succeeded', 'failed', 'cancelled', 'outcome_unknown')
+                   )""", (f"-{GATEWAY_KEYFRAME_RETENTION_DAYS} days",)
+            )
             connection.commit()
         return claimed.rowcount
 
@@ -269,6 +328,7 @@ CREATE TABLE IF NOT EXISTS assets (
 CREATE TABLE IF NOT EXISTS jobs (
   id TEXT PRIMARY KEY, backend TEXT NOT NULL DEFAULT 'h3_video' CHECK(backend IN ('h3_video', 'qwen_image')),
   input_mode TEXT NOT NULL CHECK(input_mode IN ('image', 'text')),
+  h3_contract TEXT NOT NULL DEFAULT 'fl2va' CHECK(h3_contract IN ('fl2va', 'ref2va')),
   quality INTEGER NOT NULL, resolution TEXT NOT NULL, execution_snapshot_json TEXT NOT NULL,
   aspect_policy TEXT, background_mode TEXT, prompt TEXT NOT NULL, seed INTEGER NOT NULL,
   requested_duration_seconds INTEGER NOT NULL, frame_count INTEGER NOT NULL, fps INTEGER NOT NULL,
@@ -287,4 +347,11 @@ CREATE TABLE IF NOT EXISTS job_frame_bindings (
   PRIMARY KEY(job_id, role)
 );
 CREATE INDEX IF NOT EXISTS job_frame_bindings_asset_idx ON job_frame_bindings(asset_id);
+CREATE TABLE IF NOT EXISTS job_voice_bindings (
+  job_id TEXT PRIMARY KEY REFERENCES jobs(id) ON DELETE CASCADE,
+  source_sha256 TEXT NOT NULL, prepared_sha256 TEXT NOT NULL,
+  source_size_bytes INTEGER NOT NULL, duration_ms INTEGER NOT NULL,
+  source_name TEXT NOT NULL, prepared_input_name TEXT NOT NULL,
+  released_at TEXT
+);
 """

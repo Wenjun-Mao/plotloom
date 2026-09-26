@@ -11,18 +11,19 @@ import requests
 
 from .comfy import ComfyClient
 from .contracts import (
+    QWEN_IMAGE_GUIDANCE_SCALE,
+    QWEN_IMAGE_STEPS,
     CreateImageJobRequest,
+    CreateImageVoiceJobRequest,
     CreateQwenEditImageJobRequest,
     CreateQwenTextImageJobRequest,
     CreateTextJobRequest,
     GatewayError,
     GatewaySettings,
-    QWEN_IMAGE_GUIDANCE_SCALE,
-    QWEN_IMAGE_STEPS,
 )
 from .image_catalog import (
-    QWEN_IMAGE_CONTRACT_VERSION,
     QWEN_IMAGE_CANVASES,
+    QWEN_IMAGE_CONTRACT_VERSION,
     admitted_qwen_image_canvas,
     qwen_image_canvas_from_snapshot,
 )
@@ -38,10 +39,13 @@ from .profile_catalog import (
     execution_from_snapshot,
     frame_count_for_duration_seconds,
 )
+from .qwen_image import QwenImageClient
 from .source_images import SourceImageFetcher
 from .store import GatewayStore
+from .voice_files import VoiceFiles
+from .voice_jobs import VoiceJobs
+from .voice_reference import VOICE_CONTRACT_VERSION, VOICE_RESOLUTIONS
 from .workflow import load_h3_template, render_workflow, single_output_descriptor
-from .qwen_image import QwenImageClient
 
 
 class H3Gateway:
@@ -64,6 +68,8 @@ class H3Gateway:
         self.store = GatewayStore(self.settings.data_dir / "gateway.sqlite3")
         self.store.recover_interrupted_dispatches()
         self.files = GatewayFiles(settings, self.store)
+        self.voice_files = VoiceFiles(settings, self.store, self.files)
+        self.voice_jobs = VoiceJobs(self)
         self.session = session or requests.Session()
         self.comfy = ComfyClient(settings, self.session)
         self.qwen = QwenImageClient(settings, qwen_session or requests.Session())
@@ -73,12 +79,20 @@ class H3Gateway:
     def health(self) -> dict[str, Any]:
         self.comfy.preflight()
         self.qwen.preflight()
+        try:
+            self.comfy.preflight_voice()
+            voice_ready = True
+        except GatewayError:
+            voice_ready = False
         queued, active = self.store.queue_counts()
         return {
             "status": "ok", "generationContractVersion": GENERATION_CONTRACT_VERSION,
             "defaultQuality": DEFAULT_QUALITY, "qualities": sorted(QUALITY_RECIPES),
             "resolutions": [item.value for item in RESOLUTIONS],
-            "inputModes": ["image", "text"], "backends": ["h3_video", "qwen_image"],
+            "inputModes": ["image", "text", "image_voice"], "backends": ["h3_video", "qwen_image"],
+            "voiceContractVersion": VOICE_CONTRACT_VERSION,
+            "voiceReferenceReady": voice_ready,
+            "voiceResolutions": list(VOICE_RESOLUTIONS),
             "imageResolutions": [canvas.resolution for canvas in QWEN_IMAGE_CANVASES],
             "queuedJobs": queued, "activeDispatches": active,
             "dispatchConcurrency": 1,
@@ -114,6 +128,11 @@ class H3Gateway:
             resolution=request.resolution,
             aspect_policy=None, seed=request.seed, duration_seconds=request.duration_seconds, assets=[],
         )
+
+    def create_image_voice_job(
+        self, request: CreateImageVoiceJobRequest, *, image_content: bytes, voice_content: bytes
+    ) -> tuple[dict[str, Any], str]:
+        return self.voice_jobs.create(request, image_content=image_content, voice_content=voice_content)
 
     def create_qwen_text_image_job(self, request: CreateQwenTextImageJobRequest) -> dict[str, Any]:
         return self._create_qwen_image_job(
@@ -258,15 +277,20 @@ class H3Gateway:
         # Validate only the selected frozen execution after claim. A current
         # catalog addition must not make an older queued snapshot un-runnable.
         try:
-            frames = {str(frame["role"]): str(frame["prepared_input_name"]) for frame in self.store.get_job_frames(str(job["id"]))}
-            execution = execution_from_snapshot(str(job["execution_snapshot_json"]))
-            self.comfy.preflight(execution)
-            workflow = render_workflow(
-                self.workflow_template["prompt"], execution=execution,
-                prompt=str(job["prompt"]), start_input_name=frames.get("start"), end_input_name=frames.get("end"),
-                seed=int(job["seed"]), frame_count=int(job["frame_count"]),
-            )
-        except (GatewayError, KeyError, TypeError, ValueError):
+            if job.get("h3_contract") == "ref2va":
+                workflow = self.voice_jobs.prepare_dispatch(job)
+            else:
+                frames = {str(frame["role"]): str(frame["prepared_input_name"]) for frame in self.store.get_job_frames(str(job["id"]))}
+                execution = execution_from_snapshot(str(job["execution_snapshot_json"]))
+                self.comfy.preflight(execution)
+                workflow = render_workflow(
+                    self.workflow_template["prompt"], execution=execution,
+                    prompt=str(job["prompt"]), start_input_name=frames.get("start"), end_input_name=frames.get("end"),
+                    seed=int(job["seed"]), frame_count=int(job["frame_count"]),
+                )
+        except GatewayError as error:
+            return self.store.update_job(str(job["id"]), status="failed", error_code=error.code)
+        except (KeyError, TypeError, ValueError, OSError):
             return self.store.update_job(str(job["id"]), status="failed", error_code="dispatch_local_precondition_failed")
         try:
             prompt_id = self.comfy.submit(workflow=workflow, client_id=str(job["id"]))
@@ -365,9 +389,15 @@ class H3Gateway:
     def output_is_ready(self, job: dict[str, Any]) -> bool:
         return job["status"] == "succeeded" and self.store.output_is_retained(str(job["id"])) and (path := self.files.managed_output_path(job)) is not None and path.is_file() and not path.is_symlink()
 
-    def cleanup_expired_outputs(self) -> int: return self.files.cleanup_expired_outputs()
-    def cleanup_due_job_records(self) -> int: return self.files.cleanup_due_job_records()
-    def cleanup_expired_gateway_keyframes(self) -> int: return self.files.cleanup_expired_gateway_keyframes()
+    def cleanup_expired_outputs(self) -> int:
+        return self.files.cleanup_expired_outputs() + self.voice_files.cleanup_due()
+
+    def cleanup_due_job_records(self) -> int:
+        self.voice_files.cleanup_due()
+        return self.files.cleanup_due_job_records()
+
+    def cleanup_expired_gateway_keyframes(self) -> int:
+        return self.files.cleanup_expired_gateway_keyframes() + self.voice_files.cleanup_due()
     def cleanup_expired_gateway_inputs_and_assets(self) -> int: return self.files.cleanup_expired_gateway_inputs_and_assets()
     def cleanup_pending_asset_purges(self) -> int: return self.files.cleanup_pending_asset_purges()
 

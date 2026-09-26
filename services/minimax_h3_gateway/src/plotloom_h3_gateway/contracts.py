@@ -49,7 +49,7 @@ class GatewaySettings:
     dispatch_worker_enabled: bool = True
 
     @classmethod
-    def from_environment(cls) -> "GatewaySettings":
+    def from_environment(cls) -> GatewaySettings:
         key = os.environ.get("H3_API_KEY", "").strip()
         if not key:
             raise RuntimeError("H3_API_KEY is required")
@@ -132,6 +132,29 @@ class CreateImageJobFromSourceUrlRequest(CreateImageJobRequest, SourceUrlAssetRe
     def require_http_end_source_url(cls, value: str | None) -> str | None:
         if value is None:
             return None
+        return SourceUrlAssetRequest.model_validate({"sourceUrl": value}).source_url
+
+
+class CreateImageVoiceJobRequest(BaseModel):
+    """One first frame and one short PCM voice reference; no FL2VA quality knob."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    prompt: str = Field(min_length=1, max_length=8_000)
+    resolution: str = Field(min_length=7, max_length=9, pattern=r"^[0-9]{3,4}x[0-9]{3,4}$")
+    aspect_policy: AspectPolicy = Field(alias="aspectPolicy")
+    seed: int | None = Field(default=None, ge=0, le=2**63 - 1)
+    duration_seconds: int = Field(default=5, alias="durationSeconds", ge=5, le=8)
+
+
+class CreateImageVoiceJobFromSourceUrlsRequest(CreateImageVoiceJobRequest, SourceUrlAssetRequest):
+    """Both media inputs use URLs; multipart uses neither URL field."""
+
+    voice_source_url: str = Field(alias="voiceSourceUrl", min_length=1, max_length=2_048)
+
+    @field_validator("voice_source_url")
+    @classmethod
+    def require_http_voice_source_url(cls, value: str) -> str:
         return SourceUrlAssetRequest.model_validate({"sourceUrl": value}).source_url
 
 

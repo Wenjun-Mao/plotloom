@@ -332,6 +332,7 @@ The following is a private service contract; it is not a browser API.
 | --- | --- | --- |
 | `GET /health` | no bearer header | Checks ComfyUI and catalog; returns status, direct input modes, safe profile descriptors, queue count and fixed concurrency |
 | `POST /v1/video-jobs/from-image` | bearer | Required start image plus optional end image: multipart `image`/`endImage`, or JSON `sourceUrl`/`endSourceUrl`; queues one I2V job |
+| `POST /v1/video-jobs/from-image-with-voice` | bearer | Separate Ref2VA Base-20 path: one start frame and one bounded WAV, multipart `image`/`voiceAudio` or JSON `sourceUrl`/`voiceSourceUrl` |
 | `POST /v1/video-jobs/from-text` | bearer | JSON text exploration only; no Plotloom authoring path and no image/aspect fields |
 | `GET /v1/video-jobs/{id}` | bearer | Refreshes a known job |
 | `POST /v1/video-jobs/{id}/cancel` | bearer | Cancels only a job that is still `queued` |
@@ -350,6 +351,22 @@ Valid states are `reserved` (legacy only),
 remain `succeeded` with `outputReady: false` after its MP4 expires.
 New jobs return `queued`; the gateway's single worker owns the only transition
 that can submit to ComfyUI.
+Only the Ref2VA creation receipt adds `voiceReferenceSha256` for caller-side
+provenance comparison; ordinary status does not expose the voice file, hash,
+URL or path. Its status projects `inputMode=image_voice`, `quality=8`; the
+`h3_contract=ref2va` database field distinguishes it from FL2VA Base-20.
+
+Ref2VA is an optional checkpoint under `/home/wjmao/models/comfyui-h3`.
+`/health` reports `voiceReferenceReady` independently; admission performs a
+fresh Ref2VA preflight before retaining inputs. A missing Ref2VA model/node
+must not make existing FL2VA jobs or their frozen snapshots disappear. The
+new path admits only 960×544 or 576×1024, 5–8 requested seconds, and a
+1–10-second, at-most-2-MiB PCM16/mono/32-kHz WAV. It canonicalizes the WAV
+header without trimming or changing the reference samples. It is a timbre
+and delivery reference, not an exact transcript, waveform or lip-sync promise.
+The frozen snapshot and private audio binding are defined in
+[ADR 0090](../adr/0090-h3-ref2va-per-job-voice-reference.md); Plotloom owns
+stable Voice IDs and candidate retention in a separate product checkpoint.
 
 For private internal callers, `sourceUrl` accepts `http` and `https`, including
 Tailnet URLs. The gateway follows at most three redirects, uses a 5-second
@@ -378,6 +395,13 @@ then retain their immutable API ID: `YYYY-MM-DDTHH-MM-SSZ_asset_<uuid>.<ext>`
 for admitted frames, `YYYY-MM-DDTHH-MM-SSZ_h3_<uuid>_start.png` or `_end.png`
 for prepared ComfyUI inputs, and `YYYY-MM-DDTHH-MM-SSZ_h3_<uuid>.mp4` for
 completed clips.
+Ref2VA additionally uses `YYYY-MM-DDTHH-MM-SSZ_h3_<uuid>_voice.wav` in both
+the private gateway input directory and ComfyUI's mounted input directory.
+The original submission hash and prepared-file hash are separate frozen
+values. Audio and its prepared first frame remain while queued/running,
+then are released at successful MP4 expiry or after 30 days for terminal
+unsuccessful jobs. A 30-day record purge cannot bypass an audio-file deletion
+failure.
 The timestamp tells an operator when the gateway created its copy; use the
 embedded `asset_…` or `h3_…` ID for API requests and forensic correlation.
 Deploy this as a clean gateway-state cutover: reset prior gateway SQLite and
@@ -454,6 +478,11 @@ Normal code updates are safer: pull a reviewed `main`, rebuild the gateway
 image, verify `/health`, run the relevant Plotloom checks, and only then
 restart the production services. Roll back by deploying the previous reviewed
 source revision and retain the existing gateway state volume.
+The Ref2VA release is additive: it migrates the existing SQLite control plane
+without resetting FL2VA jobs or their frozen snapshots. Before deployment,
+check that no gateway job is actively submitting, verify the Ref2VA model hash
+and Comfy nodes, and retain a scoped database copy for rollback. Deploy only
+the reviewed gateway revision; do not live-edit its Python source on Spark.
 
 ## 10. Evidence, current limits, and next review
 

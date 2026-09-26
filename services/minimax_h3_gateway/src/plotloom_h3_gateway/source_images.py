@@ -18,7 +18,10 @@ class SourceImageFetcher:
         # when the caller supplied a plain requests.Session implementation.
         self._session.max_redirects = settings.source_fetch_max_redirects
 
-    def fetch(self, source_url: str) -> bytes:
+    def fetch(
+        self, source_url: str, *, max_bytes: int = MAX_UPLOAD_BYTES,
+        empty_code: str = "image_size_invalid",
+    ) -> bytes:
         response: Any | None = None
         try:
             response = self._session.get(
@@ -31,8 +34,8 @@ class SourceImageFetcher:
                 ),
             )
             response.raise_for_status()
-            self._reject_declared_oversize(response)
-            return self._read_bounded(response)
+            self._reject_declared_oversize(response, max_bytes)
+            return self._read_bounded(response, max_bytes, empty_code)
         except GatewayError:
             raise
         except requests.RequestException as error:
@@ -46,7 +49,7 @@ class SourceImageFetcher:
                     close()
 
     @staticmethod
-    def _reject_declared_oversize(response: Any) -> None:
+    def _reject_declared_oversize(response: Any, max_bytes: int) -> None:
         header = getattr(response, "headers", {}).get("Content-Length")
         if header is None:
             return
@@ -54,20 +57,20 @@ class SourceImageFetcher:
             declared_size = int(header)
         except (TypeError, ValueError):
             return
-        if declared_size > MAX_UPLOAD_BYTES:
+        if declared_size > max_bytes:
             raise GatewayError("source_url_too_large", 413)
 
     @staticmethod
-    def _read_bounded(response: Any) -> bytes:
+    def _read_bounded(response: Any, max_bytes: int, empty_code: str) -> bytes:
         chunks: list[bytes] = []
         size_bytes = 0
         for chunk in response.iter_content(chunk_size=64 * 1024):
             if not chunk:
                 continue
             size_bytes += len(chunk)
-            if size_bytes > MAX_UPLOAD_BYTES:
+            if size_bytes > max_bytes:
                 raise GatewayError("source_url_too_large", 413)
             chunks.append(chunk)
         if size_bytes == 0:
-            raise GatewayError("image_size_invalid", 413)
+            raise GatewayError(empty_code, 413)
         return b"".join(chunks)

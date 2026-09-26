@@ -47,6 +47,15 @@ This is not an identity-reference, lip-sync guarantee, dialogue editor, or
 final-postproduction pipeline. Speech, sound effects, and music are prompted
 jointly and must be reviewed as creative output.
 
+The optional Ref2VA checkpoint is a **different H3 diffusion path**, not a
+fifth FL2VA `quality` value. It conditions a jointly generated video/audio
+shot on one reviewed first frame and one short voice-timbre reference. The
+portrait 5/8-second trials and landscape 8-second trials were human-reviewed,
+but do not establish general voice identity, perfect dialogue or lip-sync.
+The gateway therefore exposes a separate bounded route and per-job audio
+binding; Plotloom's later stable Voice IDs belong above that service boundary.
+See [ADR 0090](../../../docs/adr/0090-h3-ref2va-per-job-voice-reference.md).
+
 ## 3. Runtime policy versus inference profile
 
 These two layers are intentionally separate.

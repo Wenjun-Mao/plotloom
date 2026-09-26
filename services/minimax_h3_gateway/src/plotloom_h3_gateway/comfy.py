@@ -7,6 +7,7 @@ import requests
 
 from .contracts import GatewayError, GatewaySettings
 from .profile_catalog import H3ExecutionProfile, active_lora_files
+from .voice_reference import VOICE_MODEL
 
 
 class ComfyClient:
@@ -67,6 +68,30 @@ class ComfyClient:
             raise GatewayError("comfy_profile_unavailable", 503) from error
         if first_frame != "IMAGE" or last_frame != "IMAGE":
             raise GatewayError("comfy_profile_unavailable", 503)
+
+    def preflight_voice(self) -> None:
+        """Require only the Ref2VA checkpoint and graph nodes, not FL2VA LoRAs."""
+
+        self._get_json("/system_stats", code="comfy_unavailable")
+        object_info = self._get_json("/object_info", code="comfy_profile_unavailable")
+        try:
+            unets = object_info["UNETLoader"]["input"]["required"]["unet_name"][0]
+            clip = object_info["CLIPLoader"]["input"]["required"]["clip_name"][0]
+            vaes = object_info["VAELoader"]["input"]["required"]["vae_name"][0]
+            audio = object_info["MiniMaxH3ReferenceToVideo"]["input"]["optional"]["ref_audios"][0]
+            images = object_info["MiniMaxH3ReferenceToVideo"]["input"]["optional"]["ref_images"][0]
+        except (KeyError, IndexError, TypeError) as error:
+            raise GatewayError("comfy_voice_profile_unavailable", 503) from error
+        if (
+            not isinstance(unets, list) or VOICE_MODEL not in unets
+            or not isinstance(clip, list) or "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors" not in clip
+            or not isinstance(vaes, list)
+            or not {"minimax_h3_video_vae_fp16.safetensors", "minimax_h3_audio_vae_fp32.safetensors"}.issubset(vaes)
+            or audio != "COMFY_AUTOGROW_V3" or images != "COMFY_AUTOGROW_V3"
+            or not {"MiniMaxH3AddGuide", "LoadImage", "LoadAudio", "PrimitiveInt", "KSamplerSelect",
+                    "BasicScheduler", "BasicGuider", "SamplerCustomAdvanced"}.issubset(object_info)
+        ):
+            raise GatewayError("comfy_voice_profile_unavailable", 503)
 
     def submit(self, *, workflow: dict[str, Any], client_id: str) -> str:
         try:

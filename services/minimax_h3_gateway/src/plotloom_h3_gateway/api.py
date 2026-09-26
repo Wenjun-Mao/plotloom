@@ -14,17 +14,20 @@ from fastapi.responses import Response
 from pydantic import BaseModel, ValidationError
 
 from .contracts import (
+    MAX_UPLOAD_BYTES,
     CreateImageJobFromSourceUrlRequest,
     CreateImageJobRequest,
+    CreateImageVoiceJobFromSourceUrlsRequest,
+    CreateImageVoiceJobRequest,
     CreateQwenEditImageJobFromSourceUrlRequest,
     CreateQwenEditImageJobRequest,
     CreateQwenTextImageJobRequest,
     CreateTextJobRequest,
     GatewayError,
     GatewaySettings,
-    MAX_UPLOAD_BYTES,
 )
 from .gateway import H3Gateway
+from .voice_reference import MAX_VOICE_BYTES, admitted_voice_resolution
 from .worker import GatewayDispatchWorker
 
 
@@ -52,7 +55,7 @@ def create_app(
             if gateway.settings.dispatch_worker_enabled:
                 worker.stop()
 
-    app = FastAPI(title="Plotloom generation gateway", version="7.0", lifespan=lifespan)
+    app = FastAPI(title="Plotloom generation gateway", version="7.1", lifespan=lifespan)
     app.state.gateway = gateway
 
     def authorize(authorization: str | None = Header(default=None)) -> None:
@@ -79,6 +82,14 @@ def create_app(
             raise GatewayError("request_media_type_not_supported", 415)
         job_request = _validated_model(CreateTextJobRequest, await _json_object(request))
         return _job_response(gateway, gateway.create_text_job(job_request))
+
+    @app.post("/v1/video-jobs/from-image-with-voice", dependencies=[Depends(authorize)], status_code=202)
+    async def create_video_job_from_image_with_voice(request: Request) -> dict[str, Any]:
+        image, voice, job_request = await _image_voice_submission(request, gateway)
+        job, audio_sha256 = gateway.create_image_voice_job(
+            job_request, image_content=image, voice_content=voice
+        )
+        return {**_job_response(gateway, job), "voiceReferenceSha256": audio_sha256}
 
     @app.get("/v1/video-jobs/{job_id}", dependencies=[Depends(authorize)])
     def get_video_job(job_id: str) -> dict[str, Any]:
@@ -140,7 +151,8 @@ def _job_response(gateway: H3Gateway, job: dict[str, Any]) -> dict[str, Any]:
         end = job.get("generation_completed_at_ms")
         elapsed = (int(end) if isinstance(end, int) else _now_ms()) - int(job["generation_submitted_at_ms"])
     common = {
-        "id": job["id"], "status": job["status"], "inputMode": job["input_mode"],
+        "id": job["id"], "status": job["status"],
+        "inputMode": "image_voice" if job.get("h3_contract") == "ref2va" else job["input_mode"],
         "generationSubmittedAt": submitted, "generationCompletedAt": completed,
         "generationElapsedMs": elapsed, "error": job["error_code"],
         "outputReady": gateway.output_is_ready(job),
@@ -177,6 +189,44 @@ async def _image_submission(request: Request, gateway: H3Gateway) -> tuple[bytes
         start = gateway.source_images.fetch(source_request.source_url)
         end = gateway.source_images.fetch(source_request.end_source_url) if source_request.end_source_url else None
         return start, end, source_request
+    raise GatewayError("request_media_type_not_supported", 415)
+
+
+async def _image_voice_submission(
+    request: Request, gateway: H3Gateway
+) -> tuple[bytes, bytes, CreateImageVoiceJobRequest]:
+    media_type = _request_media_type(request)
+    if media_type == "multipart/form-data":
+        form = await request.form()
+        allowed = {"image", "voiceAudio", "prompt", "aspectPolicy", "resolution", "seed", "durationSeconds"}
+        received = set(form.keys())
+        if received - allowed or any(len(form.getlist(field)) != 1 for field in received):
+            raise GatewayError("request_fields_invalid", 422)
+        image = form.get("image")
+        voice = form.get("voiceAudio")
+        if image is None or not callable(getattr(image, "read", None)):
+            raise GatewayError("image_file_required", 422)
+        if voice is None or not callable(getattr(voice, "read", None)):
+            raise GatewayError("voice_file_required", 422)
+        fields = {field: form.get(field) for field in received if field not in {"image", "voiceAudio"}}
+        job_request = _validated_model(CreateImageVoiceJobRequest, fields)
+        admitted_voice_resolution(job_request.resolution, job_request.duration_seconds)
+        return (
+            await image.read(MAX_UPLOAD_BYTES + 1), await voice.read(MAX_VOICE_BYTES + 1), job_request
+        )
+    if media_type == "application/json":
+        source_request = _validated_model(
+            CreateImageVoiceJobFromSourceUrlsRequest, await _json_object(request)
+        )
+        admitted_voice_resolution(source_request.resolution, source_request.duration_seconds)
+        return (
+            gateway.source_images.fetch(source_request.source_url),
+            gateway.source_images.fetch(
+                source_request.voice_source_url, max_bytes=MAX_VOICE_BYTES,
+                empty_code="voice_size_invalid",
+            ),
+            source_request,
+        )
     raise GatewayError("request_media_type_not_supported", 415)
 
 
@@ -245,7 +295,7 @@ def _validated_model(model: type[BaseModel], payload: dict[str, Any]) -> Any:
         return model.model_validate(payload)
     except ValidationError as error:
         fields = {str(item) for issue in error.errors() for item in issue["loc"]}
-        if "sourceUrl" in fields or "source_url" in fields or "endSourceUrl" in fields or "end_source_url" in fields:
+        if fields & {"sourceUrl", "source_url", "endSourceUrl", "end_source_url", "voiceSourceUrl", "voice_source_url"}:
             raise GatewayError("source_url_invalid", 422) from error
         raise GatewayError("request_invalid", 422) from error
 

@@ -66,19 +66,22 @@ vertical-first qualification matrix declared in
 It compares complete recipes only; it is not a gateway operation or a public
 profile selector.
 
-The local service contract has five bearer-authenticated client operations plus
-one unauthenticated health route. Creation uses a required exact `resolution`
-and optional `quality` (default `1`); it never accepts `profileId`:
+The local service contract has six bearer-authenticated client operations plus
+one unauthenticated health route. Ordinary FL2VA creation uses a required exact
+`resolution` and optional `quality` (default `1`); it never accepts `profileId`:
 
 1. `POST /v1/video-jobs/from-image` accepts a required start frame and optional
    end frame (multipart files or JSON URLs) and durably queues one job.
 2. `POST /v1/video-jobs/from-text` is an exploration-only text-to-video route;
    Plotloom does not expose it as an authoring mode.
-3. `GET /v1/video-jobs/{id}` reports a known job, its resolved seed, snapped
+3. `POST /v1/video-jobs/from-image-with-voice` accepts one first frame and one
+   short voice-reference WAV for the separate Ref2VA Base-20 path. It does not
+   accept FL2VA `quality` or an end frame; see [ADR 0090](../../docs/adr/0090-h3-ref2va-per-job-voice-reference.md).
+4. `GET /v1/video-jobs/{id}` reports a known job, its resolved seed, snapped
    frame count, actual duration, and backend elapsed timing.
-4. `GET /v1/video-jobs/{id}/output` serves its gateway-managed completed MP4.
-5. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
-6. `GET /health` exposes safe readiness, input modes and queue counts without
+5. `GET /v1/video-jobs/{id}/output` serves its gateway-managed completed MP4.
+6. `POST /v1/video-jobs/{id}/cancel` cancels only a still-queued job.
+7. `GET /health` exposes safe readiness, input modes and queue counts without
    a bearer key.
 
 `POST /v1/assets` and `POST /v1/video-jobs` are deliberately retired. There
@@ -97,8 +100,8 @@ After completion, the gateway atomically hands off its one expected MP4 from
 the mounted ComfyUI output directory into gateway-managed storage, then
 removes the ComfyUI source. It retains that managed copy for 72 hours; see
 [ADR 0039](../../docs/adr/0039-h3-gateway-managed-output-retention.md).
-The corresponding SQLite job record is removed 30 days after that handoff,
-rather than 30 days after the MP4 expires.
+The corresponding SQLite job record is removed at the 30-day total retention
+deadline, after any bound voice input has been released.
 No gateway-owned uploaded keyframe remains beyond 30 days, whether or not it
 was used by a job. A completed job can release its keyframe earlier when its
 last managed MP4 expires. This does not affect Plotloom's canonical project
@@ -135,6 +138,8 @@ The gateway package keeps one responsibility per module:
 - `store.py` owns the SQLite control plane;
 - `workflow.py`, `naming.py`, and `contracts.py` own the frozen workflow,
   timestamped naming, and public settings/contracts respectively.
+- `voice_reference.py`, `voice_jobs.py`, and `voice_files.py` own only the
+  Ref2VA snapshot/graph, admission/dispatch, and private WAV lifecycle.
 
 `app.py` is intentionally only a compatibility export surface. Keep new logic
 in the responsible module rather than growing that façade.
