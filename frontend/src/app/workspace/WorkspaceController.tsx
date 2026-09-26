@@ -237,7 +237,7 @@ export default function WorkspaceController() {
   const page = useMemo(() => {
     switch (activePage) {
       case "source": return project.id
-        ? <SourceOutlinePage projectId={project.id} briefSeed={project.brief} readOnly={projectReadOnly} navigationTarget={session.route.hash} onOpenShot={(shotId) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "storyboard", entity: encodeStoryboardEntity({ kind: "shot", shotId }) })} />
+        ? <SourceOutlinePage projectId={project.id} briefSeed={project.brief} readOnly={projectReadOnly} navigationTarget={session.route.hash} onOpenShot={(shotId) => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "storyboard", entity: encodeStoryboardEntity({ kind: "shot", shotId }) })} onContinueToCharacters={() => workspaceNavigation.requestNavigation({ project: navigationProjectId, stage: "characters" })} />
         : <section className="page"><p>请先保存项目，再添加来源和大纲候选。</p></section>;
       case "characters": return project.id
         ? <CharactersPage projectId={project.id} readOnly={projectReadOnly} />

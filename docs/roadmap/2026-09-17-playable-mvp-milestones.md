@@ -9,6 +9,23 @@ earlier scope and evidence, not the current assignment queue.
 
 ## Now / Next / Later · 2026-09-25
 
+### Completed branch next-step slice — 2026-09-26
+
+Approved during the walkthrough: implement
+[save → apply → continue](../adr/0087-branch-save-apply-continue.md) for the
+branch editor only. Pair descriptions with actions, guard unsaved/redundant
+operations, and navigate to Characters after current routes are ready.
+Deliver state-focused tests, browser save/apply/continue coverage and a rebuilt
+UI; independently review. Do not operate the creator's live project or reload
+their browser. Stop after this slice and resume the manual walkthrough at
+Characters; a global wizard and wider redesign remain out of scope.
+
+Completed with 232 frontend unit tests, frontend and E2E typechecks,
+deterministic build, focused save/apply/continue browser journey and independent
+review passing. Separate read-only Chromium inspection confirmed the ready-state
+action hierarchy on the retained project; Safari replay remains for the creator.
+Continue performs navigation only, with no write request. Resume at Characters.
+
 ### Active walkthrough wording slice — 2026-09-26
 
 The creator approved implementing the first pass from the

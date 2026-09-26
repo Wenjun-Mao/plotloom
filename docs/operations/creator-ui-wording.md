@@ -39,6 +39,12 @@ Do not hide unsupported workflows behind inviting but inaccurate wording.
 
 ## Review checklist
 
+For adjacent actions, place each explanation beside its own button, not in
+shared fine print. Choose one primary action for the current state. A completed
+step should state what is ready and offer a clear next destination; it must not
+silently save, apply or generate content. See the bounded
+[branch flow decision](../adr/0087-branch-save-apply-continue.md).
+
 1. Trace the handler: what is saved, confirmed, applied, copied or dispatched?
 2. Check empty, busy, success, changed-input and failure states.
 3. Does the user know what happens next without an assistant explaining it?

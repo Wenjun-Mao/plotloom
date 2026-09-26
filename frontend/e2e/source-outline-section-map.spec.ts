@@ -45,13 +45,28 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   await outcomes.nth(1).getByLabel("选择后的发展").fill("灯塔照亮航道，码头停电。 ");
   await page.getByRole("button", { name: "保存故事分支" }).click();
   await expect(map.getByText("当前 r1")).toBeVisible();
+  await expect(map.getByRole("button", { name: "保存修改" })).toBeDisabled();
   await expect(outcomes.nth(0).getByLabel("选项文字")).toHaveValue("供电码头");
   await expect(outcomes.nth(1).getByLabel("选项文字")).toHaveValue("供电灯塔");
+  await outcomes.nth(0).getByLabel("选项文字").fill("临时修改");
+  await expect(map.getByRole("button", { name: "应用到故事路线" })).toBeDisabled();
+  await outcomes.nth(0).getByLabel("选项文字").fill("供电码头");
+  await expect(map.getByRole("button", { name: "应用到故事路线" })).toBeEnabled();
   await page.getByRole("button", { name: "应用到故事路线" }).click();
   const routeCards = map.getByTestId("section-map-route-cards");
   await expect(routeCards).toContainText("供电码头 → 结局 A");
   await expect(routeCards).toContainText("供电灯塔 → 结局 B");
   await expect(map.getByText("故事路线 r1 · 当前")).toBeVisible();
+  await expect(map.getByTestId("section-map-ready")).toContainText("故事路线已就绪");
+  const writes: string[] = [];
+  const recordWrite = (request: { method(): string; url(): string }) => { if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method())) writes.push(request.url()); };
+  page.on("request", recordWrite);
+  await map.getByRole("button", { name: "继续：角色设定" }).click();
+  await expect(page).toHaveURL(/[?&]stage=characters/);
+  page.off("request", recordWrite);
+  expect(writes).toEqual([]);
+
+  await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
 
   await page.reload();
   await expect(page.getByTestId("section-map")).toContainText("当前 r1");

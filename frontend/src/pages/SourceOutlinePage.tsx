@@ -30,12 +30,12 @@ function sourceMessage(error: unknown) {
   return error instanceof Error ? error.message : "来源与大纲操作失败。";
 }
 
-export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTarget = "", onOpenShot }: { projectId: string; briefSeed: Pick<ProjectBrief, "title" | "synopsis">; readOnly: boolean; navigationTarget?: string; onOpenShot?: (shotId: string) => void }) {
+export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTarget = "", onOpenShot, onContinueToCharacters }: { projectId: string; briefSeed: Pick<ProjectBrief, "title" | "synopsis">; readOnly: boolean; navigationTarget?: string; onOpenShot?: (shotId: string) => void; onContinueToCharacters?: () => void }) {
   const [state, setState] = useState<SourceOutlineReviewState>();
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [graph, setGraph] = useState<{ payload: StoryGraph; revision: number }>();
+  const [graph, setGraph] = useState<{ payload: StoryGraph; revision: number; contentHash: string | null }>();
   const [loadedProjectId, setLoadedProjectId] = useState("");
   const draftDirty = useRef(false);
   const activeProject = useRef({ projectId, epoch: 0 });
@@ -52,7 +52,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
       const stages = await plotloomApi.getStages(session.projectId);
       if (!ownsProject(session)) return;
       const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
-      setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision } : undefined);
+      setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision, contentHash: graphStage.head.contentHash } : undefined);
       // React Strict Mode can issue a second initial read after the author
       // begins typing. A late read must not silently erase unsaved source text.
       if (!draftDirty.current) {
@@ -87,7 +87,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
       const stages = await plotloomApi.getStages(session.projectId);
       if (!ownsProject(session)) return;
       const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
-      setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision } : undefined);
+      setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision, contentHash: graphStage.head.contentHash } : undefined);
     } catch (mutationError) { if (ownsProject(session)) setError(sourceMessage(mutationError)); }
     finally { if (ownsProject(session)) setBusy(false); }
   };
@@ -144,11 +144,13 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
         {accepted ? <><small>基于故事内容 r{accepted.sourceRevision} · 候选 {accepted.candidateJobId.slice(0, 11)}</small><details><summary>查看已确认的原始 outline.json</summary><pre>{JSON.stringify(accepted.outline, null, 2)}</pre></details><Button variant="quiet" disabled={readOnly || busy || state.outlineStatus === "reopened"} onClick={() => void mutate(() => plotloomApi.reopenOutline(projectId, accepted.revision))}>重新打开，不替换内容</Button></> : <p className="muted">确认会新建不可变的大纲 revision；此处绝不从候选静默同步。</p>}
       </article>
 
-      <SectionMapPanel
+      <SectionMapPanel key={projectId}
         outline={accepted || null} accepted={state.acceptedSectionMap} status={state.sectionMapStatus}
         staleReasons={state.sectionMapStaleReasons} readOnly={readOnly} busy={busy}
         graphAdmission={state.graphAdmission}
-        routes={state.graphAdmission?.status === "current" && graph?.revision === state.graphAdmission.graphRevision ? deriveRoutes(graph.payload) : []}
+        graphReady={Boolean(state.graphAdmission?.status === "current" && graph?.revision === state.graphAdmission.graphRevision && graph?.contentHash === state.graphAdmission.graphContentHash)}
+        sourceDirty={draftDirty.current}
+        routes={state.graphAdmission?.status === "current" && graph?.revision === state.graphAdmission.graphRevision && graph?.contentHash === state.graphAdmission.graphContentHash ? deriveRoutes(graph.payload) : []}
         onSave={(mapping) => {
           if (!state.source || !accepted) return;
           void mutate(() => plotloomApi.saveSectionMap(projectId, {
@@ -170,6 +172,10 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
             expectedSectionMapRevision: map.revision, expectedSectionMapContentHash: map.contentHash,
             expectedGraphRevision: admission?.graphRevision || 0,
           }));
+        }}
+        onContinue={() => {
+          if (draftDirty.current) { setError("故事内容有未保存修改。请先保存或放弃这些修改，再继续角色设定。"); return; }
+          onContinueToCharacters?.();
         }}
       />
       </div>}

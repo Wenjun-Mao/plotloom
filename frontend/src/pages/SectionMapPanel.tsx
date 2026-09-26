@@ -22,12 +22,13 @@ function cloneMap(mapping?: AcceptedSectionMapRevision): SectionMap {
 }
 
 export function SectionMapPanel({
-  outline, accepted, status, staleReasons, graphAdmission, routes, readOnly, busy, onSave, onInstall,
+  outline, accepted, status, staleReasons, graphAdmission, graphReady, sourceDirty, routes, readOnly, busy, onSave, onInstall, onContinue,
 }: {
   outline: AcceptedOutlineRevision | null; accepted: AcceptedSectionMapRevision | null;
-  status: "missing" | "current" | "stale"; staleReasons: string[]; graphAdmission: SourceMapGraphAdmission | null; routes: StoryRoute[]; readOnly: boolean; busy: boolean;
+  status: "missing" | "current" | "stale"; staleReasons: string[]; graphAdmission: SourceMapGraphAdmission | null; graphReady: boolean; sourceDirty: boolean; routes: StoryRoute[]; readOnly: boolean; busy: boolean;
   onSave: (mapping: SectionMap) => void;
   onInstall: () => void;
+  onContinue: () => void;
 }) {
   const [mapping, setMapping] = useState<SectionMap>(() => cloneMap(accepted || undefined));
   useEffect(() => setMapping(cloneMap(accepted || undefined)), [accepted?.revision]);
@@ -43,6 +44,17 @@ export function SectionMapPanel({
     mapping.sections.every(section => section.sectionId.trim() && section.title.trim() && section.summary.trim()) &&
     mapping.choice.outcomes.every(outcome => outcome.outcomeId.trim() && outcome.label.trim() && outcome.consequence.trim() && outcome.endingSectionId),
   );
+  const dirty = Boolean(accepted && JSON.stringify(mapping) !== JSON.stringify(accepted.mapping));
+  const admissionMatchesMap = Boolean(
+    accepted && graphAdmission?.status === "current"
+    && graphAdmission.sectionMapRevision === accepted.revision
+    && graphAdmission.sectionMapContentHash === accepted.contentHash,
+  );
+  const routeInstalled = status === "current" && admissionMatchesMap && graphReady;
+  const applied = routeInstalled && !dirty;
+  const saveDisabled = readOnly || busy || !complete || Boolean(accepted && !dirty && status !== "stale");
+  const applyDisabled = readOnly || busy || !accepted || dirty || status !== "current" || applied;
+  const continueDisabled = readOnly || busy || dirty || sourceDirty || !applied;
 
   return <article className="panel section-map" data-testid="section-map">
     <header><span>故事分支</span><strong>{status === "current" ? `当前 r${accepted?.revision}` : status === "stale" ? `需要重新检查 r${accepted?.revision}` : "尚未保存"}</strong></header>
@@ -68,8 +80,20 @@ export function SectionMapPanel({
           <label>对应结局<select disabled={readOnly || busy || Boolean(accepted)} value={outcome.endingSectionId} onChange={event => updateOutcome(index, "endingSectionId", event.target.value)}>{endingSections.map(section => <option key={section.sectionId} value={section.sectionId}>{section.title || section.sectionId}</option>)}</select></label>
         </div>)}
       </fieldset>
-      <Button variant="primary" disabled={readOnly || busy || !complete} onClick={() => onSave(mapping)}>{busy ? "正在保存…" : accepted ? "保存故事分支的新版本" : "保存故事分支"}</Button>
-      {accepted && status === "current" && <><Button variant="primary" disabled={readOnly || busy} onClick={onInstall}>{graphAdmission?.status === "current" ? `更新故事路线 r${graphAdmission.graphRevision}` : "应用到故事路线"}</Button><small>应用后将创建或更新故事路线，不会生成剧本或视频。更新现有路线后，后续内容可能需要重新检查。</small></>}
+      <section className="section-map-actions" aria-label="故事分支操作">
+        <div className="section-map-action">
+          <div><strong>{accepted ? "保存修改" : "保存故事分支"}</strong><p>{status === "stale" ? "请重新确认当前内容并保存，以绑定最新故事内容和大纲。" : accepted ? "保存当前修改；未修改时无需再次保存。" : "保存章节、选项和对应结局；不会自动生成剧本或视频。"}</p></div>
+          <Button variant={!accepted || dirty || status === "stale" ? "primary" : "quiet"} disabled={saveDisabled} onClick={() => onSave(mapping)}>{busy ? "正在保存…" : accepted ? "保存修改" : "保存故事分支"}</Button>
+        </div>
+        {accepted && <div className="section-map-action">
+          <div><strong>应用到故事路线</strong><p>{dirty ? "请先保存修改，才能应用故事路线。" : status !== "current" ? "故事分支需要重新检查后才能应用。" : applied ? "当前故事路线已使用此版本，无需再次应用。" : "应用后将创建或更新故事路线，不会生成剧本或视频。更新现有路线后，后续内容可能需要重新检查。"}</p></div>
+          <Button variant={!applyDisabled ? "primary" : "quiet"} disabled={applyDisabled} onClick={onInstall}>应用到故事路线</Button>
+        </div>}
+        {routeInstalled && <div className="section-map-action section-map-action-ready" data-testid="section-map-ready">
+          <div><strong>{dirty ? "故事分支有未保存修改" : "故事路线已就绪"}</strong><p>{dirty ? "请先保存故事分支修改，再继续角色设定。" : sourceDirty ? "请先保存故事内容，再继续角色设定。" : "可继续完善角色设定；此操作不会生成内容或改动故事路线。"}</p></div>
+          <Button variant="primary" disabled={continueDisabled} onClick={onContinue}>继续：角色设定</Button>
+        </div>}
+      </section>
       {graphAdmission && <small>故事路线 r{graphAdmission.graphRevision} · {graphAdmission.status === "current" ? "当前" : `需要重新检查：${graphAdmission.staleReasons.join("；")}`}</small>}
       {routes.length > 0 && <section className="section-map-routes" data-testid="section-map-route-cards"><strong>故事路线</strong>{routes.map((route, index) => <article key={route.id}><span>路径 {index + 1}</span><strong>{route.label}</strong><small>{route.nodeIds.join(" → ")}</small></article>)}</section>}
     </>}

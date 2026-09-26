@@ -373,3 +373,27 @@ itself establish remote CI success or creative acceptance.
   schema, validation and compilation changes (including additional endings,
   successive choices and reconnecting branches). Agreement records direction,
   not authorization to implement that expanded contract during this walkthrough.
+
+## Branch save/apply/continue checkpoint — 2026-09-26
+
+The creator subsequently saved and applied the branches, reaching current story
+route r1. Two equally prominent buttons and shared fine print left both action
+effects and the next step unclear. The bounded implementation fixes the action
+state contract rather than adding a generic instruction below the same controls:
+
+- Save, apply and continue each have adjacent explanations and state-dependent
+  prominence. Unchanged saves and already-current applies are disabled.
+- Unsaved branches cannot be applied; dirty story or branch drafts block
+  continuation. Stale branches retain explicit reconfirmation through saving.
+- Ready status requires matching saved-map and loaded-graph provenance.
+  “继续：角色设定” uses guarded navigation and does not generate or write content.
+
+Verification: 232 frontend unit tests, frontend/E2E typechecks, deterministic
+build and one focused browser journey passed. The journey checks that Continue
+causes zero mutating requests. Independent review found no blockers. A separate
+read-only Chromium session confirmed the layout against the retained project;
+the creator's Safari tab and project content were not changed. Screenshot:
+`output/playwright/branch-next-step.png` (local, ignored evidence).
+Safari replay and creative acceptance are not claimed. No Python changes were
+made; the Python suite was not rerun. Existing build chunk-size warning remains.
+Next manual checkpoint: Characters. Contract: ADR 0087.
