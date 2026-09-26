@@ -4,6 +4,8 @@ Open [index.html](index.html) locally in a browser. If the browser blocks local
 files, run `python3 -m http.server 8897 --bind 127.0.0.1` from this directory
 and visit `http://127.0.0.1:8897/`. It is a standalone, non-production UI study
 for the synthetic-first character voice workflow.
+The lab is not bound to a named Plotloom character or project. Its four bundled
+samples are an example audition set, not a fixed product candidate count.
 
 The four WAVs are the actual 2026-09-26 Qwen3-TTS VoiceDesign candidates from
 Spark, all speaking the same Chinese audition line. Their 32-kHz mono PCM16

@@ -18,26 +18,22 @@
 
     <div class="app-body">
       <nav class="side-rail" aria-label="工作流">
-        <div class="rail-caption">CASTING SESSION</div>
-        <div class="character-name">灯塔守望者</div>
-        <div class="character-subtitle">合成声线探索 · 中文</div>
         <ol class="workflow-steps">
           <li class="current"><span>01</span><strong>设计与试听</strong></li>
           <li><span>02</span><strong>入围对比</strong></li>
           <li><span>03</span><strong>视频内验证</strong></li>
           <li><span>04</span><strong>正式声线选择</strong></li>
         </ol>
-        <p class="rail-note">本页只评估已有录音。不会生成新音频，也不会写入 Plotloom 项目。</p>
+        <p class="rail-note">本页只试听已生成的合成语音样本。不会生成新音频，也不会写入 Plotloom 项目。</p>
       </nav>
 
       <main class="workspace">
         <div class="page-heading">
           <div><div class="eyebrow">CHARACTER VOICE · EXPERIMENT 2026.09.26</div><h1>为角色寻找一个声音</h1><p>先用同一句台词比较音色，再将入围声线放进不同镜头检验。</p></div>
-          <span class="slate-count">4 条真实录音</span>
         </div>
 
         <section class="design-panel" aria-labelledby="design-heading">
-          <div class="section-heading"><h2 id="design-heading">声线设计</h2><span class="panel-tag">草稿控件</span></div>
+          <div class="section-heading"><h2 id="design-heading">声线设计</h2></div>
           <div class="design-fields">
             <label>角色声线方向
               <textarea id="voice-brief" rows="3">三十岁左右的中国女性。冷静、坚定，中低音，自然口语；在紧急抉择中仍然克制。</textarea>
@@ -57,13 +53,13 @@
             </label>
             <button id="generate-button" type="button" class="primary-button" disabled aria-describedby="generation-note">生成 4 个候选</button>
           </div>
-          <p id="generation-note" class="generation-note">仅用于设置未来生成的数量；下方始终展示四条已保存录音。生成服务尚未接入此原型。</p>
+          <p id="generation-note" class="generation-note">候选数量适用于未来生成；调整后不会改变下方已加载的样本。此原型尚未接入生成服务。</p>
           <p id="draft-status" class="draft-status" aria-live="polite"></p>
         </section>
 
         <section class="gallery" aria-labelledby="gallery-heading">
           <div class="section-heading gallery-heading">
-            <div><h2 id="gallery-heading">试听候选</h2><p>同一句台词 · 四种设计方向 · 一次只播放一条</p></div>
+            <div><h2 id="gallery-heading">试听候选</h2><p>同一句台词 · 不同设计方向 · 一次只播放一条</p></div>
             <div class="gallery-actions">
               <button id="blind-toggle" type="button" class="toolbar-button" aria-pressed="false">打乱并盲听</button>
               <button id="notes-toggle" type="button" class="toolbar-button" aria-pressed="false">显示设计说明</button>

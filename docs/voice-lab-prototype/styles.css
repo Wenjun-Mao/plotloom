@@ -18,10 +18,8 @@ button:focus-visible, textarea:focus-visible, audio:focus-visible { outline: 2px
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #5dd1a0; }
 .app-body { display: grid; grid-template-columns: 240px minmax(0, 1fr) 254px; min-height: calc(100vh - 68px); }
 .side-rail { padding: 30px 20px; border-right: 1px solid #25303a; background: #0b1017; }
-.rail-caption, .eyebrow { color: #e2af55; font-size: 11px; font-weight: 750; letter-spacing: .12em; }
-.character-name { margin-top: 16px; font-size: 17px; font-weight: 700; }
-.character-subtitle { margin-top: 4px; color: #8b98a8; font-size: 12px; }
-.workflow-steps { display: grid; gap: 8px; margin: 33px 0 0; padding: 0; list-style: none; }
+.eyebrow { color: #e2af55; font-size: 11px; font-weight: 750; letter-spacing: .12em; }
+.workflow-steps { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .workflow-steps li { display: flex; align-items: center; gap: 13px; padding: 12px; border-radius: 8px; color: #8592a1; }
 .workflow-steps li.current { background: #191914; color: #f0e8d8; box-shadow: inset 0 0 0 1px #5e4a2a; }
 .workflow-steps span { color: #ddb064; font-size: 11px; font-weight: 750; }
@@ -32,7 +30,6 @@ button:focus-visible, textarea:focus-visible, audio:focus-visible { outline: 2px
 h1, h2, h3, p { margin-top: 0; }
 h1 { margin: 8px 0 9px; font-size: clamp(28px, 2.8vw, 38px); font-weight: 700; letter-spacing: -.03em; }
 .page-heading p, .gallery-heading p { margin: 0; color: #9ba7b5; font-size: 13px; line-height: 1.5; }
-.slate-count { padding: 7px 11px; border: 1px solid #65502d; border-radius: 7px; color: #efc273; font-size: 12px; white-space: nowrap; }
 section { margin-top: 25px; }
 .design-panel, .compare-panel { padding: 21px 23px; border: 1px solid #2c3742; border-radius: 10px; background: #10161e; }
 .section-heading { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
@@ -86,5 +83,5 @@ textarea { display: block; width: 100%; min-height: 80px; margin-top: 9px; paddi
 .inspector-block > small { margin-top: 5px; color: #8e9ba9; font-size: 11px; line-height: 1.5; }
 .inspector-footer { padding-top: 16px; border-top: 1px solid #28333e; color: #a0acb9; font-size: 12px; line-height: 1.6; }
 @media (max-width: 1180px) { .app-body { grid-template-columns: 190px minmax(0, 1fr); } .topbar { grid-template-columns: 190px 1fr auto; } .inspector { grid-column: 2; display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 20px; border-top: 1px solid #27323d; border-left: 0; } .inspector > .eyebrow, .inspector > h2, .inspector-footer { grid-column: 1 / -1; } .inspector h2 { margin-bottom: 12px; } }
-@media (max-width: 760px) { .topbar { height: auto; min-height: 60px; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 16px; } .topbar-title { display: none; } .topbar-status { font-size: 11px; } .app-body { display: block; } .side-rail { padding: 13px 16px; border-right: 0; border-bottom: 1px solid #25303a; } .rail-caption, .character-subtitle, .rail-note { display: none; } .character-name { margin: 0; font-size: 14px; } .workflow-steps { display: flex; gap: 5px; margin: 11px 0 0; overflow-x: auto; } .workflow-steps li { flex: 0 0 auto; padding: 7px 9px; } .workflow-steps strong { font-size: 11px; } .workspace { padding: 18px 16px 40px; } .page-heading { align-items: start; } .design-fields, .candidate-grid, .compare-slots { grid-template-columns: 1fr; } .gallery-heading { align-items: start; flex-direction: column; } .gallery-actions { justify-content: flex-start; } .inspector { display: block; padding: 24px 16px; } }
+@media (max-width: 760px) { .topbar { height: auto; min-height: 60px; grid-template-columns: 1fr auto; gap: 8px; padding: 10px 16px; } .topbar-title { display: none; } .topbar-status { font-size: 11px; } .app-body { display: block; } .side-rail { padding: 13px 16px; border-right: 0; border-bottom: 1px solid #25303a; } .rail-note { display: none; } .workflow-steps { display: flex; gap: 5px; overflow-x: auto; } .workflow-steps li { flex: 0 0 auto; padding: 7px 9px; } .workflow-steps strong { font-size: 11px; } .workspace { padding: 18px 16px 40px; } .page-heading { align-items: start; } .design-fields, .candidate-grid, .compare-slots { grid-template-columns: 1fr; } .gallery-heading { align-items: start; flex-direction: column; } .gallery-actions { justify-content: flex-start; } .inspector { display: block; padding: 24px 16px; } }
 @media (max-width: 420px) { .topbar-status { max-width: 140px; white-space: normal; } .page-heading { flex-direction: column; } .design-panel, .compare-panel { padding: 17px; } .generation-row { align-items: flex-start; flex-direction: column; } .candidate-actions { align-items: start; flex-direction: column; } }

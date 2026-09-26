@@ -123,7 +123,7 @@ document.querySelectorAll('.compare-play').forEach(button => {
     const audio = cardFor(id).querySelector('audio');
     audio.currentTime = 0;
     audio.play().catch(() => {
-      compareStatus.textContent = '浏览器未能播放这条录音；请检查本地音频文件。';
+      compareStatus.textContent = '浏览器未能播放这条样本；请检查本地音频文件。';
     });
   });
 });
@@ -139,7 +139,7 @@ document.querySelectorAll('.prefer-button').forEach(button => {
 });
 
 function markDraftChanged() {
-  document.getElementById('draft-status').textContent = '生成草稿已修改。四条已保存录音不会随之变化。';
+  document.getElementById('draft-status').textContent = '生成草稿已修改。当前已加载的样本不会随之变化。';
 }
 
 for (const id of ['voice-brief', 'audition-line']) {
