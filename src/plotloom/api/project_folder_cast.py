@@ -15,14 +15,15 @@ def register_project_folder_cast_routes(app: FastAPI, opened_project: Callable[[
     def prepare_cast(project_id: str) -> CastCandidatePreparation:
         with opened_project(project_id) as store:
             candidate, request = store.prepare_cast_candidate(f"ch_{uuid4().hex}")
-            paths = store.creative_handoff_exchange().write_package(request)
+            paths = store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
             payload=candidate.model_dump(mode="python",by_alias=False)|{"package_path":paths["packagePath"],"delivery_path":paths["deliveryPath"],"assignment":f"Plotloom characters assignment for {request.job_id}: read {paths['packagePath']}/request.json and follow its COPY_ASSIGNMENT.txt. Write only cast.json, report.html, and completion.json under {paths['deliveryPath']}. This cannot accept or alter project canon."}
             return CastCandidatePreparation.model_validate(payload)
 
     @app.post("/api/v2/projects/{project_id}/cast/candidates/{job_id}/refresh", response_model=CastCandidate)
     def refresh_cast(project_id: str, job_id: str) -> CastCandidate:
         with opened_project(project_id) as store:
-            delivery=store.creative_handoff_exchange().read_delivery(store.cast_candidate_request(job_id))
+            request = store.cast_candidate_request(job_id)
+            delivery=store.creative_handoff_exchange().read_delivery(request, store.creative_handoff_execution_pin(request))
             if delivery is None: raise HTTPException(status_code=409, detail="the specialist delivery is not present yet")
             return store.admit_cast_delivery(delivery)
 

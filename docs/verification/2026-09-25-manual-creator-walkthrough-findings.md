@@ -434,3 +434,36 @@ and actual output state. No application/schema changes or edits to the completed
 candidate, manifest, frozen request or execution pin were made. Skill validation
 and all 9 creative-handoff exchange tests passed. This is authoring guidance,
 not a claim to have diagnosed or repaired command transport.
+
+### Frozen execution identity repair and retained task recovery
+
+The subsequent skill update exposed a separate product defect: package refresh
+recomputed skill hashes from the current checkout, so a completed task prepared
+before the update failed with “existing package differs from frozen request”.
+The earlier assurance that the delivery would be unaffected was incorrect.
+
+ADR 0088 fixes the trusted-state boundary for all five creative stages. New
+tasks atomically store preparation-time pins with their candidate request;
+verification requires that stored pin, without a current-checkout fallback.
+Missing pins fail closed. Operator recovery verifies Git-resolved skill bytes,
+the project-owned request, complete package and any completed delivery before
+inserting a pin; it neither rewrites files nor accepts content.
+
+Verification: 109 selected backend tests passed (creative exchange, source and
+outline API/storage, cast, art, recovery, character-publication transition,
+production bridge/intent and storyboard timing). Coverage includes drift after
+reopen, missing-pin rejection, tampered-package recovery rejection, unavailable
+revision rejection, unchanged handoff bytes and read-only transition safety.
+Independent review found no blockers. API F401 lint, compile check and diff
+whitespace checks passed. Existing Starlette/httpx deprecation warning remains;
+full Python/frontend suites and Safari interaction were not rerun.
+
+The exact retained task `ch_212cad5ded684740b1d1e6672a570ea4` was recovered using
+independently selected prior checkpoint
+`9a1bb173f20688088ff9b6bb82ef60afd59cb770`. All eight package/delivery file hashes
+match the before-state. Logical snapshots of every existing project table are
+identical; the sole addition is the trusted execution-pin table with one row.
+The server at port 8841 was restarted without creating a login item. Read-only
+delivery verification succeeds and HTTP cast state remains prepared, with no
+accepted cast. No provider dispatch, generation, refresh/admission or creative
+acceptance was performed. Creator next step: click 刷新交付 and review.

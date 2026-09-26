@@ -94,7 +94,7 @@ def register_project_folder_source_outline_routes(
             )
             candidate = store.prepare_outline_candidate(request)
             exchange = store.creative_handoff_exchange()
-            paths = exchange.write_package(request)
+            paths = exchange.write_package(request, store.creative_handoff_execution_pin(request))
             # The assignment is deliberately returned only after project state
             # reserves the exact job identity; the specialist cannot choose it.
             return _outline_assignment(candidate, paths)
@@ -111,7 +111,7 @@ def register_project_folder_source_outline_routes(
             if candidate.status != "prepared":
                 raise HTTPException(status_code=409, detail="outline handoff is no longer awaiting execution")
             request = store.outline_candidate_request(job_id)
-            paths = store.creative_handoff_exchange().verified_package_paths(request)
+            paths = store.creative_handoff_exchange().verified_package_paths(request, store.creative_handoff_execution_pin(request))
             return _outline_assignment(candidate, paths)
 
     @app.post(
@@ -121,7 +121,7 @@ def register_project_folder_source_outline_routes(
     def refresh_source_outline_candidate(project_id: str, job_id: str) -> OutlineCandidate:
         with opened_project(project_id) as store:
             request = store.outline_candidate_request(job_id)
-            delivery = store.creative_handoff_exchange().read_delivery(request)
+            delivery = store.creative_handoff_exchange().read_delivery(request, store.creative_handoff_execution_pin(request))
             if delivery is None:
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,

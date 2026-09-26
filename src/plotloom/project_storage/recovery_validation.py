@@ -100,6 +100,10 @@ _PRE_VIDEO_SEGMENT_SCHEMA_OBJECTS = expected_project_schema_objects(
     include_video_candidate_selection=True,
     include_video_segments=False,
 )
+_PRE_CREATIVE_EXECUTION_PIN_SCHEMA_OBJECTS = expected_project_schema_objects(
+    include_video_candidate_selection=True,
+    include_creative_execution_pins=False,
+)
 
 
 def _assert_schema_contract(connection: sqlite3.Connection) -> None:
@@ -117,6 +121,10 @@ def _assert_schema_contract(connection: sqlite3.Connection) -> None:
     if actual == list(_PRE_VIDEO_SEGMENT_SCHEMA_OBJECTS):
         raise ProjectStorageCorruptionError(
             "project snapshot requires a writable reviewed video segment transition before restore"
+        )
+    if actual == list(_PRE_CREATIVE_EXECUTION_PIN_SCHEMA_OBJECTS):
+        raise ProjectStorageCorruptionError(
+            "project snapshot requires a writable creative execution-pin transition before restore"
         )
     prohibited = {kind for kind, _name, _table, _sql in actual} - {"table", "index"}
     if prohibited or actual != _EXPECTED_SCHEMA_OBJECTS:

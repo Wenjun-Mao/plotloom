@@ -43,13 +43,14 @@ def _context(revision: int = 1) -> SourceOutlineReviewState:
 
 def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     exchange = store.creative_handoff_exchange()  # type: ignore[attr-defined]
-    paths = exchange.write_package(request); package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
+    pin = store.creative_handoff_execution_pin(request)  # type: ignore[attr-defined]
+    paths = exchange.write_package(request, pin); package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"]); delivery.mkdir()
     cast = canonical_json({"source": "Tide Light", "summary": "Lin chooses power.", "characters": [{"id": "lin", "name": "Lin", "persona": {"motivation": "Protect people", "appearance": "Windburned", "arc": "Chooses"}, "voice": {"timbre": "Calm"}}]})
     report = b"<!doctype html><html><body>cast report</body></html>"
     (delivery / "cast.json").write_bytes(cast); (delivery / "report.html").write_bytes(report)
     manifest = {"schemaVersion": 1, "jobId": request.job_id, "requestHash": package["requestHash"], "deliveryId": "cast-fixture", "stage": "characters", "candidate": {"filename": "cast.json", "sha256": sha256(cast).hexdigest()}, "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()}, "executorProvenance": {"codeRevision": "abcdef0", "skillVersion": "fixture", "skillHash": package["executionPin"]["specialistSkillHash"], "upstreamRevision": package["executionPin"]["upstreamRevision"], "upstreamSkillHash": package["executionPin"]["upstreamSkillHash"], "model": "fixture", "reasoningEffort": "high"}, "limitations": ["fixture"]}
-    (delivery / "completion.json").write_text(json.dumps(manifest)); result = exchange.read_delivery(request); assert result is not None
+    (delivery / "completion.json").write_text(json.dumps(manifest)); result = exchange.read_delivery(request, pin); assert result is not None
     return result
 
 
@@ -67,7 +68,7 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
         binding, *_ = bound_context(None, store.manifest.project_id)
         _candidate, request = store.prepare_cast_candidate("ch_" + "b" * 32)
         assert "characters[].id values" in request.creative_brief
-        package_paths = store.creative_handoff_exchange().write_package(request)
+        package_paths = store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
         frozen_instructions = (
             Path(package_paths["packagePath"]) / "COPY_ASSIGNMENT.txt"
         ).read_text()

@@ -9,6 +9,27 @@ earlier scope and evidence, not the current assignment queue.
 
 ## Now / Next / Later · 2026-09-25
 
+### Completed frozen creative execution fix — 2026-09-26
+
+The creator approved fixing refresh after a specialist skill update invalidated
+an already-completed character task. Persist trusted preparation-time execution
+identity and validate existing deliveries against that identity, not mutable
+checkout files. Preserve package tamper detection and all creative acceptance
+boundaries. Cover every creative stage, skill drift/reopen and tampering with
+focused regression tests and independent review. Recover the exact retained
+character task only from independently verified preparation-era Git evidence;
+do not rewrite its package, delivery, request hash or creative content. Deploy
+the verified backend fix, then resume manual candidate review. No generation,
+automatic candidate acceptance or broad historical replay is in scope.
+
+Completed under [ADR 0088](../adr/0088-frozen-creative-execution-identity.md):
+109 selected backend regressions and independent review passed. The retained
+character task was recovered against independently selected revision
+`9a1bb173f20688088ff9b6bb82ef60afd59cb770`; package/delivery bytes and all existing
+project table contents are unchanged. Only its trusted pin record was added.
+Runtime 8841 was restarted, with the character task still prepared/unaccepted.
+Next creator action: refresh delivery, then review the proposal.
+
 ### Completed branch next-step slice — 2026-09-26
 
 Approved during the walkthrough: implement

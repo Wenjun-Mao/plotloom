@@ -33,6 +33,7 @@ from ..schema import (
     SourceOutlineSourceRevisionRow,
 )
 from .access import ProjectPersistenceAccess
+from .creative_execution_pins import freeze_execution_pin
 from .canonical import ProjectCanonicalPersistence
 
 
@@ -227,7 +228,7 @@ class ProjectSourceOutlinePersistence:
             ))
             return self._state_in_session(session, project_id, head)
 
-    def prepare_candidate(self, project_id: str, request: CreativeHandoffRequest) -> OutlineCandidate:
+    def prepare_candidate(self, project_id: str, request: CreativeHandoffRequest, *, execution_pin: dict[str, str]) -> OutlineCandidate:
         request.assert_secret_free()
         if request.project_id != project_id or request.stage != "outline":
             raise CreativeHandoffError("request_identity_mismatch", "outline request does not belong to this project")
@@ -253,6 +254,7 @@ class ProjectSourceOutlinePersistence:
                     raise CreativeHandoffError("delivery_stale", "outline job identity is already terminal")
                 return self._candidate(existing)
             self._assert_no_prepared_publication(session, project_id)
+            freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
             row = SourceOutlineCandidateRow(
                 job_id=request.job_id, project_id=project_id,

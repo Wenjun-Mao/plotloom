@@ -32,6 +32,7 @@ from ..schema import (
     CastCandidateRow, CastHeadRow, CastRevisionRow, ArtCandidateRow, ArtHeadRow, ArtRevisionRow,
     ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow,
     StoryboardReviewCandidateRow, StoryboardReviewHeadRow, StoryboardReviewRevisionRow,
+    CreativeHandoffExecutionPinRow,
     ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeIntentJobRow, ProductionBridgeRevisionRow, VideoEndFrameDecisionRow,
 )
 from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
@@ -79,6 +80,7 @@ from .repository_codecs import (
     work_unit_trace_from_row,
 )
 from .workflow import ProjectAuthoringWorkflow
+from .creative_execution_pins import execution_pin_for_candidate, recover_execution_pin
 
 
 @dataclass(frozen=True)
@@ -140,6 +142,7 @@ class ProjectSQLiteRepository:
                     ArtHeadRow.__table__, ArtCandidateRow.__table__, ArtRevisionRow.__table__,
                     ScriptHeadRow.__table__, ScriptCandidateRow.__table__, ScriptRevisionRow.__table__,
                     StoryboardReviewHeadRow.__table__, StoryboardReviewCandidateRow.__table__, StoryboardReviewRevisionRow.__table__,
+                    CreativeHandoffExecutionPinRow.__table__,
                     ProductionBridgeHeadRow.__table__, ProductionBridgeRevisionRow.__table__, ProductionBridgeAdmissionRow.__table__, ProductionBridgeIntentJobRow.__table__,
                     VideoEndFrameDecisionRow.__table__,
                 ],
@@ -293,6 +296,23 @@ class ProjectSQLiteRepository:
     def _schema_tables(self) -> list[Any]:
         from ..schema import Base
         return [table for table in Base.metadata.sorted_tables if table.name in PROJECT_TEXT_PIPELINE_TABLE_NAMES]
+
+    def creative_handoff_execution_pin(self, request: Any) -> dict[str, str]:
+        """Expose only the candidate-bound execution pin, never a raw session."""
+
+        with self._read() as session:
+            return execution_pin_for_candidate(session, request)
+
+    def recover_creative_handoff_execution_pin(
+        self, request: Any, pin: dict[str, str], *, trusted_revision: str
+    ) -> None:
+        """Record an explicit operator recovery after byte-level verification."""
+
+        with self._lifecycle_write() as session:
+            self._project_row(session, request.project_id)
+            recover_execution_pin(
+                session, request, pin, trusted_revision=trusted_revision
+            )
 
     def close(self) -> None:
         self._database.close()

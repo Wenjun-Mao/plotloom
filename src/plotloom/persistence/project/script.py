@@ -25,6 +25,7 @@ from ...source_outline_contracts import SectionMap, compile_section_map_graph
 from ..schema.project_art import ArtRevisionRow
 from ..schema.project_script import ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow
 from .access import ProjectPersistenceAccess
+from .creative_execution_pins import freeze_execution_pin
 from .art import ProjectArtPersistence
 
 
@@ -111,7 +112,7 @@ class ProjectScriptPersistence:
             stale = self._stale(session, project_id, ScriptBinding.model_validate(binding)) if binding else []
             return ScriptReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_script=self._accepted(accepted) if accepted else None, status="stale" if stale and accepted else head.status, stale_reasons=stale)
 
-    def prepare_candidate(self, project_id: str, job_id: str) -> tuple[ScriptCandidate, CreativeHandoffRequest]:
+    def prepare_candidate(self, project_id: str, job_id: str, *, execution_pin: dict[str, str]) -> tuple[ScriptCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id)); head = self._head(session, project_id)
             if session.scalar(select(ScriptCandidateRow.job_id).where(ScriptCandidateRow.project_id == project_id, ScriptCandidateRow.status == "prepared").limit(1)):
@@ -120,7 +121,7 @@ class ProjectScriptPersistence:
             upstream_outline = _upstream_script_outline(outline, mapping, cast, binding)
             admission = _script_admission_artifact(binding)
             request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-script", stage="script", expected_stage_revision=head.revision, source=source, input_artifacts={"accepted-outline.json": outline, "outline.json": upstream_outline, "section-map.json": mapping, "cast.json": cast, "art.json": art, "script-admission.json": admission}, creative_brief=f"Create one upstream-shaped script.json for the whole current one-choice/two-ending pilot. The author-owned frozen target of {binding.target_playthrough_seconds} seconds is a hard maximum for each complete route, never a required runtime. script-admission.json freezes the exact sectionBindings order and graph-derived section caps; use that mapping unchanged. The opening plus either ending must remain within the frozen route maximum. Do not stretch a section to its cap, do not sum mutually exclusive endings, and do not substitute upstream's three-minute default. accepted-outline.json is preserved F1 evidence; outline.json is trusted code's thin upstream execution projection of only the same stable section summaries and accepted cast identities, because the F1 section representation is not upstream episode-shaped. Do not treat it as a new canonical outline or invent Bible/shot fields. Set top-level lang to en so the unchanged pinned render is reproducible without a renderer flag. Use one episode per section, retain the upstream scenes/action/dialogue flow unchanged, and preserve the actual decision consequence, incoming context, completed actions, speaker identities, and timing. This is an intentionally non-episode pilot. The upstream JSON's required hook/cliff strings are validator structural fields only: for every section, state the actual route-entry/terminal status plainly and do not invent an episodic hook, suspense, or promise of a next episode. Render report.html with the pinned upstream command unchanged; do not inject a wrapper or claim that its structural gate output is product acceptance. Plotloom's review UI labels hook/cliff and aggregate duration across mutually exclusive endings as product-inapplicable; the frozen per-section and complete-route caps remain applicable. F5 consumes the accepted upstream script JSON plus this section binding; it replaces only overlapping scene/beat authoring and does not produce shots, prompts, media, or TTS.")
-            request.assert_secret_free(); now = utc_now()
+            request.assert_secret_free(); freeze_execution_pin(session, request, execution_pin); now = utc_now()
             row = ScriptCandidateRow(job_id=job_id, project_id=project_id, expected_script_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, script=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row); head.candidate_job_id, head.status, head.updated_at = job_id, "prepared", now
             return self._candidate(row), request

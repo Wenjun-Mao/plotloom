@@ -46,7 +46,8 @@ def _context(revision: int = 1) -> tuple[ArtBinding, dict[str, object], dict[str
 
 def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     exchange = store.creative_handoff_exchange()  # type: ignore[attr-defined]
-    paths = exchange.write_package(request)
+    pin = store.creative_handoff_execution_pin(request)  # type: ignore[attr-defined]
+    paths = exchange.write_package(request, pin)
     package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"]); delivery.mkdir()
     render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"
@@ -55,19 +56,20 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     (delivery / "art.json").write_bytes(art); (delivery / "report.html").write_bytes(report)
     manifest = {"schemaVersion": 1, "jobId": request.job_id, "requestHash": package["requestHash"], "deliveryId": "art-fixture", "stage": "art", "candidate": {"filename": "art.json", "sha256": sha256(art).hexdigest()}, "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()}, "executorProvenance": {"codeRevision": "abcdef0", "skillVersion": "fixture", "skillHash": package["executionPin"]["specialistSkillHash"], "upstreamRevision": package["executionPin"]["upstreamRevision"], "upstreamSkillHash": package["executionPin"]["upstreamSkillHash"], "model": "fixture", "reasoningEffort": "high"}, "limitations": ["no images"]}
     (delivery / "completion.json").write_text(json.dumps(manifest))
-    result = exchange.read_delivery(request); assert result is not None
+    result = exchange.read_delivery(request, pin); assert result is not None
     return result
 
 
 def _deliver_stage(store: object, request: CreativeHandoffRequest, filename: str, candidate: dict[str, object], delivery_id: str) -> object:
     exchange = store.creative_handoff_exchange()  # type: ignore[attr-defined]
-    paths = exchange.write_package(request)
+    pin = store.creative_handoff_execution_pin(request)  # type: ignore[attr-defined]
+    paths = exchange.write_package(request, pin)
     package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"]); delivery.mkdir()
     content, report = canonical_json(candidate), b"<!doctype html><html><body>fixture report</body></html>"
     (delivery / filename).write_bytes(content); (delivery / "report.html").write_bytes(report)
     (delivery / "completion.json").write_text(json.dumps({"schemaVersion": 1, "jobId": request.job_id, "requestHash": package["requestHash"], "deliveryId": delivery_id, "stage": request.stage, "candidate": {"filename": filename, "sha256": sha256(content).hexdigest()}, "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()}, "executorProvenance": {"codeRevision": "abcdef0", "skillVersion": "fixture", "skillHash": package["executionPin"]["specialistSkillHash"], "upstreamRevision": package["executionPin"]["upstreamRevision"], "upstreamSkillHash": package["executionPin"]["upstreamSkillHash"], "model": "fixture", "reasoningEffort": "high"}, "limitations": ["fixture"]}))
-    result = exchange.read_delivery(request); assert result is not None
+    result = exchange.read_delivery(request, pin); assert result is not None
     return result
 
 
@@ -231,6 +233,24 @@ def test_existing_bridge_project_adds_only_empty_intent_job_table_on_admitted_op
         assert opened.production_bridge_state().intent_job is None
     finally:
         opened.close()
+    assert project_schema_status(database, project_id) == "current"
+
+
+def test_existing_project_adds_empty_creative_execution_pin_table_on_admitted_open(tmp_path: Path) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id, database = store.manifest.project_id, store.database_path
+    store.close()
+    with sqlite3.connect(database) as connection:
+        connection.execute("DROP TABLE v2_creative_handoff_execution_pins")
+        connection.commit()
+    before_inspection = database.read_bytes()
+    assert project_schema_status(database, project_id) == "creative_execution_pin_transition_required"
+    with pytest.raises(ProjectSchemaTransitionRequiredError, match="writable project open"):
+        storage.projects.inspect(project_id)
+    assert database.read_bytes() == before_inspection
+    opened = storage.projects.open(project_id)
+    opened.close()
     assert project_schema_status(database, project_id) == "current"
 
 
@@ -692,7 +712,7 @@ def test_f5a_explicit_longer_cut_review_survives_restart_and_preserves_old_polic
     try:
         request = store.storyboard_review_candidate_request(job_id)
         assert request.input_artifacts["storyboard-admission.json"]["reviewTiming"]["maxCutSeconds"] == 12
-        store.creative_handoff_exchange().write_package(request)
+        store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
         _deliver_stage(store, request, "storyboard.json", {"episodes": []}, "longer-twelve")
     finally:
         store.close()

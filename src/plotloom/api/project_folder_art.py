@@ -19,7 +19,7 @@ from ..managed_media import publish_import
 
 def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[str], Any]) -> None:
     def preparation(store: Any, candidate: ArtCandidate, request: Any) -> ArtCandidatePreparation:
-        paths = store.creative_handoff_exchange().write_package(request)
+        paths = store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
         return ArtCandidatePreparation.model_validate(candidate.model_dump(mode="python", by_alias=False) | {"package_path": paths["packagePath"], "delivery_path": paths["deliveryPath"], "assignment": f"Plotloom art assignment for {request.job_id}: read {paths['packagePath']}/request.json and follow its COPY_ASSIGNMENT.txt. Write only art.json, report.html, and completion.json under {paths['deliveryPath']}. This cannot accept or alter project canon."})
 
     @app.get("/api/v2/projects/{project_id}/art", response_model=ArtReviewState)
@@ -44,7 +44,8 @@ def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[s
     @app.post("/api/v2/projects/{project_id}/art/candidates/{job_id}/refresh", response_model=ArtCandidate)
     def refresh_art(project_id: str, job_id: str) -> ArtCandidate:
         with opened_project(project_id) as store:
-            delivery = store.creative_handoff_exchange().read_delivery(store.art_candidate_request(job_id))
+            request = store.art_candidate_request(job_id)
+            delivery = store.creative_handoff_exchange().read_delivery(request, store.creative_handoff_execution_pin(request))
             if delivery is None: raise HTTPException(status_code=409, detail="the specialist delivery is not present yet")
             return store.admit_art_delivery(delivery)
 

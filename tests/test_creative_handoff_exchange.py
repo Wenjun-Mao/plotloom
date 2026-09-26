@@ -26,7 +26,7 @@ def _request(*, revision: int = 3) -> CreativeHandoffRequest:
 
 
 def _complete(exchange: CreativeHandoffExchange, request: CreativeHandoffRequest) -> None:
-    paths = exchange.write_package(request)
+    paths = exchange.write_package(request, exchange.current_execution_pin(request.stage))
     package_request = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"])
     delivery.mkdir()
@@ -68,18 +68,18 @@ def test_self_contained_package_is_idempotent_and_keeps_upstream_inputs(tmp_path
     request = _request().model_copy(update={"input_artifacts": {"cast.json": {"source": "Ferry", "characters": []}}})
     exchange = CreativeHandoffExchange(tmp_path / "project" / "outputs" / "creative-handoff")
 
-    copied = exchange.write_package(request)
+    copied = exchange.write_package(request, exchange.current_execution_pin(request.stage))
     package = Path(copied["packagePath"])
 
     assert json.loads((package / "request.json").read_text()) ["upstreamSkillPath"] == "third_party/shuohao-skills/skills/novel-outline/SKILL.md"
     assert json.loads((package / "inputs" / "cast.json").read_text()) == {"source": "Ferry", "characters": []}
-    assert exchange.write_package(request) == copied
+    assert exchange.write_package(request, exchange.current_execution_pin(request.stage)) == copied
 
 
 def test_malformed_delivery_is_rejected_without_mutating_the_handoff_files(tmp_path: Path) -> None:
     request = _request()
     exchange = CreativeHandoffExchange(tmp_path / "exchange")
-    copied = exchange.write_package(request)
+    copied = exchange.write_package(request, exchange.current_execution_pin(request.stage))
     delivery = Path(copied["deliveryPath"])
     delivery.mkdir()
     (delivery / "outline.json").write_text("{}")
@@ -88,7 +88,7 @@ def test_malformed_delivery_is_rejected_without_mutating_the_handoff_files(tmp_p
     before_read = _file_snapshot(tmp_path / "exchange" / "jobs" / request.job_id)
 
     with pytest.raises(CreativeHandoffError, match="completion manifest") as error:
-        exchange.read_delivery(request)
+        exchange.read_delivery(request, exchange.current_execution_pin(request.stage))
 
     assert error.value.code == "delivery_manifest_invalid"
     assert _file_snapshot(tmp_path / "exchange" / "jobs" / request.job_id) == before_read
@@ -98,7 +98,7 @@ def test_stale_delivery_is_rejected_without_mutating_the_candidate(tmp_path: Pat
     request = _request(revision=3)
     exchange = CreativeHandoffExchange(tmp_path / "exchange")
     _complete(exchange, request)
-    delivery = exchange.read_delivery(request)
+    delivery = exchange.read_delivery(request, exchange.current_execution_pin(request.stage))
     assert delivery is not None
     before_currentness_check = _file_snapshot(tmp_path / "exchange" / "jobs" / request.job_id)
 
@@ -121,12 +121,12 @@ def test_candidate_read_rejects_any_altered_specialist_consumed_package_file(
 ) -> None:
     request = _request().model_copy(update={"input_artifacts": {"cast.json": {"source": "Ferry"}}})
     exchange = CreativeHandoffExchange(tmp_path / "exchange")
-    package = Path(exchange.write_package(request)["packagePath"])
+    package = Path(exchange.write_package(request, exchange.current_execution_pin(request.stage))["packagePath"])
     (package / target).write_bytes(replacement)
     before_read = _file_snapshot(package)
 
     with pytest.raises(CreativeHandoffError, match="existing package") as error:
-        exchange.read_delivery(request)
+        exchange.read_delivery(request, exchange.current_execution_pin(request.stage))
 
     assert error.value.code == "package_conflict"
     assert _file_snapshot(package) == before_read
@@ -140,7 +140,7 @@ def test_delivery_requires_exact_derived_report_and_candidate_set(tmp_path: Path
     (delivery / "extra.txt").write_text("unexpected")
 
     with pytest.raises(CreativeHandoffError, match="exactly") as error:
-        exchange.read_delivery(request)
+        exchange.read_delivery(request, exchange.current_execution_pin(request.stage))
 
     assert error.value.code == "delivery_partial"
 
@@ -155,9 +155,37 @@ def test_delivery_cannot_claim_an_unpinned_specialist_or_upstream_skill(tmp_path
     manifest_path.write_bytes(canonical_json(manifest))
 
     with pytest.raises(CreativeHandoffError, match="pinned specialist") as error:
-        exchange.read_delivery(request)
+        exchange.read_delivery(request, exchange.current_execution_pin(request.stage))
 
     assert error.value.code == "delivery_execution_mismatch"
+
+
+def test_delivery_verification_uses_the_captured_pin_not_current_checkout(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    request = _request()
+    exchange = CreativeHandoffExchange(tmp_path / "exchange")
+    pin = exchange.current_execution_pin(request.stage)
+    _complete(exchange, request)
+
+    def unexpected_current_lookup(_stage: str) -> dict[str, str]:
+        raise AssertionError("existing package verification must not inspect current skills")
+
+    monkeypatch.setattr(exchange, "_pinned_execution", unexpected_current_lookup)
+    assert exchange.read_delivery(request, pin) is not None
+
+
+def test_changed_trusted_pin_rejects_the_original_package(tmp_path: Path) -> None:
+    request = _request()
+    exchange = CreativeHandoffExchange(tmp_path / "exchange")
+    pin = exchange.current_execution_pin(request.stage)
+    exchange.write_package(request, pin)
+    changed_pin = pin | {"specialistSkillHash": "0" * 64}
+
+    with pytest.raises(CreativeHandoffError, match="existing package") as error:
+        exchange.read_delivery(request, changed_pin)
+
+    assert error.value.code == "package_conflict"
 
 
 def test_package_requires_checked_out_revision_to_match_recorded_submodule_gitlink(
@@ -175,7 +203,8 @@ def test_package_requires_checked_out_revision_to_match_recorded_submodule_gitli
     exchange = CreativeHandoffExchange(tmp_path / "exchange")
 
     with pytest.raises(CreativeHandoffError, match="does not match") as error:
-        exchange.write_package(_request())
+        request = _request()
+        exchange.write_package(request, exchange.current_execution_pin(request.stage))
 
     assert error.value.code == "execution_pin_missing"
 
@@ -191,6 +220,7 @@ def test_package_preparation_is_explicitly_a_repository_checkout_seam(
     exchange = CreativeHandoffExchange(tmp_path / "exchange")
 
     with pytest.raises(CreativeHandoffError, match="repository checkout") as error:
-        exchange.write_package(_request())
+        request = _request()
+        exchange.write_package(request, exchange.current_execution_pin(request.stage))
 
     assert error.value.code == "execution_pin_missing"

@@ -15,7 +15,7 @@ from ..storyboard_review_contracts import (
 
 def register_project_folder_storyboard_review_routes(app: FastAPI, opened_project: Callable[[str], Any]) -> None:
     def preparation(store: Any, candidate: StoryboardReviewCandidate, request: Any) -> StoryboardReviewCandidatePreparation:
-        paths = store.creative_handoff_exchange().write_package(request)
+        paths = store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
         return StoryboardReviewCandidatePreparation.model_validate(candidate.model_dump(mode="python", by_alias=False) | {"package_path": paths["packagePath"], "delivery_path": paths["deliveryPath"], "assignment": f"Plotloom F5A storyboard review assignment for {request.job_id}: read {paths['packagePath']}/request.json and COPY_ASSIGNMENT.txt. Write only storyboard.json, report.html, and completion.json under {paths['deliveryPath']}. This cannot install canonical shots, media, or approvals."})
 
     @app.get("/api/v2/projects/{project_id}/storyboard-source-review", response_model=StoryboardReviewState)
@@ -40,7 +40,8 @@ def register_project_folder_storyboard_review_routes(app: FastAPI, opened_projec
     @app.post("/api/v2/projects/{project_id}/storyboard-source-review/candidates/{job_id}/refresh", response_model=StoryboardReviewCandidate)
     def refresh_storyboard_review(project_id: str, job_id: str) -> StoryboardReviewCandidate:
         with opened_project(project_id) as store:
-            delivery = store.creative_handoff_exchange().read_delivery(store.storyboard_review_candidate_request(job_id))
+            request = store.storyboard_review_candidate_request(job_id)
+            delivery = store.creative_handoff_exchange().read_delivery(request, store.creative_handoff_execution_pin(request))
             if delivery is None:
                 raise HTTPException(status_code=409, detail="the specialist delivery is not present yet")
             return store.admit_storyboard_review_delivery(delivery)

@@ -31,7 +31,7 @@ from ..source_outline_contracts import (
     OutlineAcceptRequest, OutlineCandidate, OutlineReopenRequest, SourceMaterial,
     SectionMapGraphInstallRequest, SectionMapSaveRequest, SourceOutlineReviewState,
 )
-from ..creative_handoff_contracts import CreativeHandoffRequest
+from ..creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ..creative_handoff_exchange import ValidatedCreativeDelivery
 from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
@@ -411,7 +411,8 @@ class ProjectStore:
         )
 
     def prepare_outline_candidate(self, request: CreativeHandoffRequest) -> OutlineCandidate:
-        return self.repository.source_outline.prepare_candidate(self.manifest.project_id, request)
+        pin = self.creative_handoff_exchange().current_execution_pin(request.stage)
+        return self.repository.source_outline.prepare_candidate(self.manifest.project_id, request, execution_pin=pin)
 
     def admit_outline_delivery(self, delivery: ValidatedCreativeDelivery) -> OutlineCandidate:
         return self.repository.source_outline.admit_delivery(self.manifest.project_id, delivery)
@@ -445,11 +446,55 @@ class ProjectStore:
         outputs = _require_real_directory(self.home / "outputs", label="project outputs root")
         return CreativeHandoffExchange(outputs / "creative-handoff")
 
+    def creative_handoff_execution_pin(self, request: CreativeHandoffRequest) -> dict[str, str]:
+        """Read the pin bound to this candidate's request in project storage."""
+
+        return self.repository.creative_handoff_execution_pin(request)
+
+    def recover_creative_handoff_execution_pin(
+        self, request: CreativeHandoffRequest, *, trusted_revision: str
+    ) -> dict[str, str]:
+        """Explicitly recover a pre-pin handoff from an operator-selected commit.
+
+        This leaves package and delivery files untouched.  It first proves the
+        project still owns this request and that the existing package/delivery
+        match the selected historic pin, then records that pin in SQLite.
+        """
+
+        current = {
+            "outline": self.outline_candidate_request,
+            "characters": self.cast_candidate_request,
+            "art": self.art_candidate_request,
+            "script": self.script_candidate_request,
+            "storyboard": self.storyboard_review_candidate_request,
+        }[request.stage](request.job_id)
+        if current != request:
+            raise CreativeHandoffError(
+                "request_identity_mismatch",
+                "creative handoff request is no longer project-owned",
+            )
+        exchange = self.creative_handoff_exchange()
+        revision, pin = exchange.execution_pin_at_revision(request, trusted_revision)
+        exchange.verified_package_paths(request, pin)
+        delivery = exchange.read_delivery(request, pin)
+        if delivery is not None:
+            claimed_revision = delivery.manifest.executor_provenance.code_revision
+            if not revision.startswith(claimed_revision):
+                raise CreativeHandoffError(
+                    "delivery_execution_mismatch",
+                    "delivery claims a different code revision than the operator-selected recovery revision",
+                )
+        self.repository.recover_creative_handoff_execution_pin(
+            request, pin, trusted_revision=revision
+        )
+        return pin
+
     def cast_state(self) -> CastReviewState:
         return self.repository.cast.get_state(self.manifest.project_id)
 
     def prepare_cast_candidate(self, job_id: str) -> tuple[CastCandidate, CreativeHandoffRequest]:
-        return self.repository.cast.prepare_candidate(self.manifest.project_id, job_id)
+        pin = self.creative_handoff_exchange().current_execution_pin("characters")
+        return self.repository.cast.prepare_candidate(self.manifest.project_id, job_id, execution_pin=pin)
 
     def admit_cast_delivery(self, delivery: ValidatedCreativeDelivery) -> CastCandidate:
         return self.repository.cast.admit_delivery(self.manifest.project_id, delivery)
@@ -482,7 +527,8 @@ class ProjectStore:
         return self.repository.art.get_state(self.manifest.project_id)
 
     def prepare_art_candidate(self, job_id: str) -> tuple[ArtCandidate, CreativeHandoffRequest]:
-        return self.repository.art.prepare_candidate(self.manifest.project_id, job_id)
+        pin = self.creative_handoff_exchange().current_execution_pin("art")
+        return self.repository.art.prepare_candidate(self.manifest.project_id, job_id, execution_pin=pin)
 
     def admit_art_delivery(self, delivery: ValidatedCreativeDelivery) -> ArtCandidate:
         return self.repository.art.admit_delivery(self.manifest.project_id, delivery)
@@ -509,7 +555,8 @@ class ProjectStore:
         return self.repository.script.get_state(self.manifest.project_id)
 
     def prepare_script_candidate(self, job_id: str) -> tuple[ScriptCandidate, CreativeHandoffRequest]:
-        return self.repository.script.prepare_candidate(self.manifest.project_id, job_id)
+        pin = self.creative_handoff_exchange().current_execution_pin("script")
+        return self.repository.script.prepare_candidate(self.manifest.project_id, job_id, execution_pin=pin)
 
     def admit_script_delivery(self, delivery: ValidatedCreativeDelivery) -> ScriptCandidate:
         return self.repository.script.admit_delivery(self.manifest.project_id, delivery)
@@ -536,7 +583,8 @@ class ProjectStore:
         return self.repository.storyboard_review.get_state(self.manifest.project_id)
 
     def prepare_storyboard_review_candidate(self, job_id: str, *, max_cut_seconds: int = 8) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
-        return self.repository.storyboard_review.prepare_candidate(self.manifest.project_id, job_id, max_cut_seconds=max_cut_seconds)
+        pin = self.creative_handoff_exchange().current_execution_pin("storyboard")
+        return self.repository.storyboard_review.prepare_candidate(self.manifest.project_id, job_id, max_cut_seconds=max_cut_seconds, execution_pin=pin)
 
     def admit_storyboard_review_delivery(self, delivery: ValidatedCreativeDelivery) -> StoryboardReviewCandidate:
         return self.repository.storyboard_review.admit_delivery(self.manifest.project_id, delivery)

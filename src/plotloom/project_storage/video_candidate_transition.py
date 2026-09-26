@@ -19,6 +19,7 @@ from ..persistence.schema import (
     Base,
     CharacterImportedAppearanceRow,
     CharacterReferenceDecisionRow,
+    CreativeHandoffExecutionPinRow,
     CharacterReferenceProposalDeliveryRow,
     ProductionBridgeAdmissionRow,
     ProductionBridgeHeadRow,
@@ -75,6 +76,10 @@ class ProjectVideoEndFrameTransitionRequiredError(ProjectSchemaTransitionRequire
     """A current video project needs its additive end-frame decision table."""
 
 
+class ProjectCreativeExecutionPinTransitionRequiredError(ProjectSchemaTransitionRequiredError):
+    """A retained project needs its trusted creative execution-pin table."""
+
+
 SchemaStatus = Literal[
     "current", "selection_transition_required", "art_reference_transition_required",
     "character_delivery_publication_phase_transition_required",
@@ -84,6 +89,7 @@ SchemaStatus = Literal[
     "production_bridge_transition_required",
     "bridge_intent_job_transition_required", "video_segment_transition_required",
     "video_end_frame_transition_required",
+    "creative_execution_pin_transition_required",
 ]
 _SELECTION_TABLE = VideoCandidateSelectionRow.__tablename__
 _CHARACTER_REFERENCE_DELIVERY_TABLE = CharacterReferenceProposalDeliveryRow.__tablename__
@@ -102,6 +108,7 @@ _PRODUCTION_BRIDGE_TABLES = (
     ProductionBridgeHeadRow.__table__, ProductionBridgeRevisionRow.__table__,
     ProductionBridgeAdmissionRow.__table__, ProductionBridgeIntentJobRow.__table__,
 )
+_CREATIVE_EXECUTION_PIN_TABLE = CreativeHandoffExecutionPinRow.__tablename__
 
 
 def _schema_objects(connection: object) -> list[tuple[str, str, str, str | None]]:
@@ -135,6 +142,7 @@ def expected_project_schema_objects(
     include_bridge_intent_jobs: bool = True,
     include_video_segments: bool = True,
     include_video_end_frames: bool = True,
+    include_creative_execution_pins: bool = True,
 ) -> tuple[tuple[str, str, str, str | None], ...]:
     """Return the exact current schema or one permitted immediate predecessor."""
 
@@ -155,6 +163,8 @@ def expected_project_schema_objects(
         table_names.remove(VideoSegmentRow.__tablename__)
     if not include_video_end_frames:
         table_names.remove(VideoEndFrameDecisionRow.__tablename__)
+    if not include_creative_execution_pins:
+        table_names.remove(_CREATIVE_EXECUTION_PIN_TABLE)
     engine = create_engine("sqlite://")
     try:
         Base.metadata.create_all(
@@ -251,10 +261,18 @@ def _requires_video_end_frame_transition(actual: tuple[tuple[str, str, str, str 
     return _recognized_current_or_predecessor(augmented)
 
 
+def _requires_creative_execution_pin_transition(actual: tuple[tuple[str, str, str, str | None], ...]) -> bool:
+    base = expected_project_schema_objects(
+        include_video_candidate_selection=True, include_creative_execution_pins=False,
+    )
+    return actual in {base, _metadata_rebuilt_schema(base)}
+
+
 def _recognized_current_or_predecessor(actual: tuple[tuple[str, str, str, str | None], ...]) -> bool:
     return bool(
         _is_current_schema_objects(actual)
         or _requires_video_segment_transition(actual)
+        or _requires_creative_execution_pin_transition(actual)
         or _requires_bridge_intent_job_transition(actual)
         or _requires_art_reference_decision_transition(actual)
         or _requires_production_bridge_transition(actual)
@@ -401,6 +419,8 @@ def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
         )
     if _is_current_schema_objects(actual):
         return "current"
+    if _requires_creative_execution_pin_transition(actual) and user_version == (0,):
+        return "creative_execution_pin_transition_required"
     if _requires_video_end_frame_transition(actual) and user_version == (0,):
         return "video_end_frame_transition_required"
     if _requires_video_segment_transition(actual) and user_version == (0,):
@@ -486,6 +506,10 @@ def transition_required_error(
     if status == "video_end_frame_transition_required":
         return ProjectVideoEndFrameTransitionRequiredError(
             f"video end-frame transition requires {reason}"
+        )
+    if status == "creative_execution_pin_transition_required":
+        return ProjectCreativeExecutionPinTransitionRequiredError(
+            f"creative execution-pin transition requires {reason}"
         )
     raise AssertionError(f"current project schema does not need a transition: {status}")
 
@@ -608,6 +632,8 @@ def transition_project_schema(
                     VideoSegmentRow.__table__.create(connection)
                 elif status == "video_end_frame_transition_required":
                     VideoEndFrameDecisionRow.__table__.create(connection)
+                elif status == "creative_execution_pin_transition_required":
+                    CreativeHandoffExecutionPinRow.__table__.create(connection)
                 else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
                     raise AssertionError(f"unsupported project transition: {status}")
                 after = tuple(_schema_objects(connection))

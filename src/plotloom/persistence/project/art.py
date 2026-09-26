@@ -21,6 +21,7 @@ from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflic
 from ..schema.project_art import ArtCandidateRow, ArtHeadRow, ArtRevisionRow
 from ..schema.project_cast import CastRevisionRow
 from .access import ProjectPersistenceAccess
+from .creative_execution_pins import freeze_execution_pin
 from .cast import ProjectCastPersistence
 
 
@@ -112,7 +113,7 @@ class ProjectArtPersistence:
             stale = self._stale(session, project_id, ArtBinding.model_validate(binding)) if binding else []
             return ArtReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_art=self._accepted(accepted) if accepted else None, status="stale" if stale and accepted else head.status, stale_reasons=stale)
 
-    def prepare_candidate(self, project_id: str, job_id: str) -> tuple[ArtCandidate, CreativeHandoffRequest]:
+    def prepare_candidate(self, project_id: str, job_id: str, *, execution_pin: dict[str, str]) -> tuple[ArtCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             head = self._head(session, project_id)
@@ -121,6 +122,7 @@ class ProjectArtPersistence:
             binding, source, outline, mapping, cast = self._context(session, project_id)
             request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-art", stage="art", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": mapping, "cast.json": cast}, creative_brief="Create one upstream-shaped art.json candidate for the accepted source, outline, stable section context, and accepted cast. Plotloom additionally owns a required top-level sectionUsage array: write exactly one {sectionId, sceneIds, propIds} object for each section-map ID; sceneIds must be nonempty declared art scene IDs, propIds declared art prop IDs, and no other IDs are allowed. This is only a thin projection, not a second episode/graph model. Do not invent episodes, hooks, physical setting facts, or props from ambiguous state labels. Preserve reviewable stable scene and prop IDs. Cinematic realism is inherited author direction, while the upstream realistic preset is semi-realistic painterly: record that unresolved render-style qualification for F3B rather than silently changing the cast or style. This is a candidate only, not image generation, an asset selection, or project canon.")
             request.assert_secret_free()
+            freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
             row = ArtCandidateRow(job_id=job_id, project_id=project_id, expected_art_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, art=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row)

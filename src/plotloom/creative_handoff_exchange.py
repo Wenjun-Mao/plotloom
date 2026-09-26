@@ -21,6 +21,7 @@ from .creative_handoff_contracts import (
 PACKAGE_VERSION = 1
 COMPLETION_FILENAME = "completion.json"
 TEMPLATE_FILENAME = "completion-manifest.example.json"
+EXECUTION_PIN_KEYS = frozenset({"upstreamRevision", "upstreamSkillHash", "specialistSkillHash"})
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,25 @@ def canonical_json(value: Any) -> bytes:
 
 def request_hash(request: CreativeHandoffRequest) -> str:
     return sha256(canonical_json(request.model_dump(mode="json", by_alias=True))).hexdigest()
+
+
+def execution_pin_for_request(
+    request: CreativeHandoffRequest, execution_pin: dict[str, str] | Any
+) -> dict[str, str]:
+    """Validate a trusted stored pin before it influences package checks."""
+
+    if not isinstance(execution_pin, dict) or set(execution_pin) != EXECUTION_PIN_KEYS:
+        raise CreativeHandoffError("execution_pin_missing", "creative handoff execution pin is malformed")
+    pin = {key: execution_pin[key] for key in EXECUTION_PIN_KEYS}
+    if (
+        not all(isinstance(value, str) for value in pin.values())
+        or len(pin["upstreamRevision"]) < 7
+        or len(pin["upstreamRevision"]) > 64
+        or any(character not in "0123456789abcdef" for character in pin["upstreamRevision"])
+        or any(len(pin[key]) != 64 or any(character not in "0123456789abcdef" for character in pin[key]) for key in ("upstreamSkillHash", "specialistSkillHash"))
+    ):
+        raise CreativeHandoffError("execution_pin_missing", "creative handoff execution pin is malformed")
+    return pin
 
 
 def _read_regular(path: Path, *, max_bytes: int, package: bool = False) -> bytes:
@@ -89,12 +109,12 @@ class CreativeHandoffExchange:
         return {"outline": "outline.json", "characters": "cast.json", "art": "art.json", "script": "script.json", "storyboard": "storyboard.json"}[stage]
 
     @staticmethod
-    def _pinned_execution(request: CreativeHandoffRequest) -> dict[str, str]:
+    def _pinned_execution(stage: str) -> dict[str, str]:
         """Freeze the vendored skill and local specialist used by a package."""
 
         repository = Path(__file__).resolve().parents[2]
         submodule = repository / "third_party" / "shuohao-skills"
-        upstream_skill = repository / "third_party" / "shuohao-skills" / "skills" / f"novel-{request.stage}" / "SKILL.md"
+        upstream_skill = repository / "third_party" / "shuohao-skills" / "skills" / f"novel-{stage}" / "SKILL.md"
         specialist_skill = repository / ".agents" / "skills" / "plotloom-shuohao-specialist" / "SKILL.md"
         if not upstream_skill.is_file() or not specialist_skill.is_file():
             raise CreativeHandoffError(
@@ -128,7 +148,55 @@ class CreativeHandoffExchange:
             "specialistSkillHash": sha256(specialist_skill.read_bytes()).hexdigest(),
         }
 
-    def _projection(self, request: CreativeHandoffRequest) -> tuple[dict[str, Any], bytes, bytes, set[str]]:
+    def current_execution_pin(self, stage: str) -> dict[str, str]:
+        """Capture the current repository pin for a *new* project candidate."""
+
+        return self._pinned_execution(stage)
+
+    def execution_pin_at_revision(
+        self, request: CreativeHandoffRequest, trusted_revision: str
+    ) -> tuple[str, dict[str, str]]:
+        """Derive a recovery pin from an operator-selected repository revision.
+
+        The completion manifest never chooses this revision.  This is only for
+        an explicit recovery of a package that predated database pin storage.
+        """
+
+        repository = Path(__file__).resolve().parents[2]
+        resolved = subprocess.run(
+            ["git", "-C", str(repository), "rev-parse", "--verify", f"{trusted_revision}^{{commit}}"],
+            capture_output=True, check=False,
+        )
+        revision = resolved.stdout.decode("ascii", errors="ignore").strip()
+        if resolved.returncode != 0 or len(revision) != 40:
+            raise CreativeHandoffError("execution_pin_missing", "trusted recovery revision is unavailable")
+        gitlink = subprocess.run(
+            ["git", "-C", str(repository), "ls-tree", revision, "--", "third_party/shuohao-skills"],
+            capture_output=True, text=True, check=False,
+        )
+        fields = gitlink.stdout.strip().split(maxsplit=2)
+        if gitlink.returncode != 0 or len(fields) != 3 or fields[:2] != ["160000", "commit"]:
+            raise CreativeHandoffError("execution_pin_missing", "trusted recovery revision has no Shuohao gitlink")
+        upstream_revision = fields[2].split("\t", 1)[0]
+        specialist = subprocess.run(
+            ["git", "-C", str(repository), "show", f"{revision}:.agents/skills/plotloom-shuohao-specialist/SKILL.md"],
+            capture_output=True, check=False,
+        )
+        upstream = subprocess.run(
+            ["git", "-C", str(repository / "third_party" / "shuohao-skills"), "show", f"{upstream_revision}:skills/novel-{request.stage}/SKILL.md"],
+            capture_output=True, check=False,
+        )
+        if specialist.returncode != 0 or upstream.returncode != 0:
+            raise CreativeHandoffError("execution_pin_missing", "trusted recovery revision cannot resolve pinned skills")
+        return revision, {
+            "upstreamRevision": upstream_revision,
+            "upstreamSkillHash": sha256(upstream.stdout).hexdigest(),
+            "specialistSkillHash": sha256(specialist.stdout).hexdigest(),
+        }
+
+    def _projection(
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+    ) -> tuple[dict[str, Any], bytes, bytes, set[str]]:
         frozen_hash = request_hash(request)
         candidate_filename = self._candidate_filename(request.stage)
         projected = request.model_dump(mode="json", by_alias=True) | {
@@ -137,7 +205,7 @@ class CreativeHandoffExchange:
             "candidateFilename": candidate_filename,
             "reportFilename": "report.html",
             "upstreamSkillPath": f"third_party/shuohao-skills/skills/novel-{request.stage}/SKILL.md",
-            "executionPin": self._pinned_execution(request),
+            "executionPin": execution_pin_for_request(request, execution_pin),
         }
         character_id_instruction = (
             "For characters, preserve established characters[].id values; every "
@@ -168,12 +236,14 @@ class CreativeHandoffExchange:
         })
         return projected, instructions, template, {"request.json", "COPY_ASSIGNMENT.txt", TEMPLATE_FILENAME, "inputs"}
 
-    def _verify_frozen_package(self, request: CreativeHandoffRequest) -> tuple[Path, dict[str, Any]]:
+    def _verify_frozen_package(
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+    ) -> tuple[Path, dict[str, Any]]:
         """Confirm every specialist-consumed package file still matches its projection."""
 
         job_root = self._job_root(request.job_id)
         package = job_root / "package"
-        projected, instructions, template, expected = self._projection(request)
+        projected, instructions, template, expected = self._projection(request, execution_pin)
         names = self._names(package, package=True)
         if names != expected:
             raise CreativeHandoffError("package_conflict", "existing package has unexpected entries")
@@ -191,21 +261,25 @@ class CreativeHandoffExchange:
                 raise CreativeHandoffError("package_conflict", "existing package input differs from frozen request")
         return job_root, projected
 
-    def verified_package_paths(self, request: CreativeHandoffRequest) -> dict[str, str]:
+    def verified_package_paths(
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+    ) -> dict[str, str]:
         """Recover an existing handoff without creating or repairing frozen files."""
         request.assert_secret_free()
-        job_root, _ = self._verify_frozen_package(request)
+        job_root, _ = self._verify_frozen_package(request, execution_pin)
         return {"packagePath": str(job_root / "package"), "deliveryPath": str(job_root / "delivery")}
 
-    def write_package(self, request: CreativeHandoffRequest) -> dict[str, str]:
+    def write_package(
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+    ) -> dict[str, str]:
         request.assert_secret_free()
         job_root = self._job_root(request.job_id)
         package = job_root / "package"
         package.mkdir(parents=True, exist_ok=True)
-        projected, instructions, template, expected = self._projection(request)
+        projected, instructions, template, expected = self._projection(request, execution_pin)
         names = self._names(package, package=True)
         if names:
-            self._verify_frozen_package(request)
+            self._verify_frozen_package(request, execution_pin)
             return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
         inputs = package / "inputs"
         inputs.mkdir(mode=0o700)
@@ -216,9 +290,11 @@ class CreativeHandoffExchange:
         _write_once(package / TEMPLATE_FILENAME, template)
         return {"packagePath": str(package), "deliveryPath": str(job_root / "delivery")}
 
-    def read_delivery(self, request: CreativeHandoffRequest) -> ValidatedCreativeDelivery | None:
+    def read_delivery(
+        self, request: CreativeHandoffRequest, execution_pin: dict[str, str]
+    ) -> ValidatedCreativeDelivery | None:
         request.assert_secret_free()
-        job_root, projected = self._verify_frozen_package(request)
+        job_root, projected = self._verify_frozen_package(request, execution_pin)
         delivery = job_root / "delivery"
         names = self._names(delivery)
         if not names:

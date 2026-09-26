@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from hashlib import sha256
 from pathlib import Path
+import subprocess
 
 import pytest
 from sqlalchemy import update
@@ -26,7 +27,7 @@ from plotloom.exceptions import (
     ProjectBusyError as LifecycleProjectBusyError,
     RevisionConflictError,
 )
-from plotloom.persistence.schema import ProjectRow
+from plotloom.persistence.schema import CreativeHandoffExecutionPinRow, ProjectRow
 from plotloom.project_storage import ProjectBusyError
 from tests.backend_core.conftest import make_story_bible, make_story_graph
 
@@ -66,7 +67,8 @@ def _request(
 
 def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     exchange = store.creative_handoff_exchange()  # type: ignore[attr-defined]
-    paths = exchange.write_package(request)
+    pin = store.creative_handoff_execution_pin(request)  # type: ignore[attr-defined]
+    paths = exchange.write_package(request, pin)
     package_request = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"])
     delivery.mkdir()
@@ -83,7 +85,9 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
         "candidate": {"filename": "outline.json", "sha256": sha256(outline).hexdigest()},
         "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()},
         "executorProvenance": {
-            "codeRevision": "abcdef0",
+            "codeRevision": subprocess.run(
+                ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+            ).stdout.strip(),
             "skillVersion": "fixture",
             "skillHash": package_request["executionPin"]["specialistSkillHash"],
             "upstreamRevision": package_request["executionPin"]["upstreamRevision"],
@@ -94,7 +98,7 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
         "limitations": ["fixture candidate"],
     }
     (delivery / "completion.json").write_text(json.dumps(manifest))
-    result = exchange.read_delivery(request)
+    result = exchange.read_delivery(request, pin)
     assert result is not None
     return result
 
@@ -127,6 +131,79 @@ def test_source_modes_persist_candidate_and_explicit_acceptance(tmp_path: Path, 
         persisted = store.source_outline_state()
         assert persisted.source is not None and persisted.source.material.kind == kind
         assert persisted.accepted_outline == accepted.accepted_outline
+    finally:
+        store.close()
+
+
+def test_explicit_recovery_restores_only_a_git_verified_missing_execution_pin(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    storage = _storage(tmp_path)
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    try:
+        source = _material()
+        store.save_source_material(expected_source_revision=0, material=source)
+        request = _request(store.manifest.project_id, source)
+        store.prepare_outline_candidate(request)
+        exchange = store.creative_handoff_exchange()
+        original_pin = store.creative_handoff_execution_pin(request)
+        _deliver(store, request)
+        job_root = Path(exchange.root / "jobs" / request.job_id)
+        before = {
+            str(path.relative_to(job_root)): path.read_bytes()
+            for path in job_root.rglob("*") if path.is_file()
+        }
+        with store.repository._write() as session:  # type: ignore[attr-defined]
+            row = session.get(CreativeHandoffExecutionPinRow, request.job_id)
+            assert row is not None
+            session.delete(row)
+        with pytest.raises(CreativeHandoffError, match="execution pin"):
+            store.creative_handoff_execution_pin(request)
+
+        with pytest.raises(CreativeHandoffError, match="recovery revision"):
+            store.recover_creative_handoff_execution_pin(
+                request, trusted_revision="0" * 40
+            )
+        with pytest.raises(CreativeHandoffError, match="execution pin"):
+            store.creative_handoff_execution_pin(request)
+
+        revision = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+        package_request = job_root / "package" / "request.json"
+        original_package = package_request.read_bytes()
+        tampered_package = json.loads(original_package)
+        tampered_package["executionPin"]["specialistSkillHash"] = "0" * 64
+        package_request.write_text(json.dumps(tampered_package))
+        with pytest.raises(CreativeHandoffError, match="existing package"):
+            store.recover_creative_handoff_execution_pin(
+                request, trusted_revision=revision
+            )
+        with pytest.raises(CreativeHandoffError, match="execution pin"):
+            store.creative_handoff_execution_pin(request)
+        package_request.write_bytes(original_package)
+
+        assert store.recover_creative_handoff_execution_pin(
+            request, trusted_revision=revision
+        ) == original_pin
+        assert store.creative_handoff_execution_pin(request) == original_pin
+        after = {
+            str(path.relative_to(job_root)): path.read_bytes()
+            for path in job_root.rglob("*") if path.is_file()
+        }
+        assert after == before
+
+        project_id = store.manifest.project_id
+        store.close()
+        store = storage.projects.open(project_id)
+        monkeypatch.setattr(
+            type(store.creative_handoff_exchange()),
+            "_pinned_execution",
+            staticmethod(lambda _stage: (_ for _ in ()).throw(AssertionError("current skills must not be read"))),
+        )
+        persisted_pin = store.creative_handoff_execution_pin(request)
+        assert persisted_pin == original_pin
+        assert store.creative_handoff_exchange().read_delivery(request, persisted_pin) is not None
     finally:
         store.close()
 
@@ -364,14 +441,14 @@ def test_malformed_and_racing_candidate_admission_leave_accepted_outline_unchang
         request = _request(store.manifest.project_id, source)
         store.prepare_outline_candidate(request)
         exchange = store.creative_handoff_exchange()
-        paths = exchange.write_package(request)
+        paths = exchange.write_package(request, store.creative_handoff_execution_pin(request))
         delivery = Path(paths["deliveryPath"])
         delivery.mkdir()
         (delivery / "outline.json").write_text("not-json")
         (delivery / "report.html").write_text("<html></html>")
         (delivery / "completion.json").write_text("not-json")
         with pytest.raises(CreativeHandoffError, match="completion manifest"):
-            exchange.read_delivery(request)
+            exchange.read_delivery(request, store.creative_handoff_execution_pin(request))
         assert store.source_outline_state().accepted_outline is None
 
         # A malformed external folder does not itself terminally resolve the
@@ -382,7 +459,7 @@ def test_malformed_and_racing_candidate_admission_leave_accepted_outline_unchang
             request.model_dump(mode="python") | {"job_id": "ch_" + "b" * 32}
         )
         store.prepare_outline_candidate(next_request)
-        store.creative_handoff_exchange().write_package(next_request)
+        store.creative_handoff_exchange().write_package(next_request, store.creative_handoff_execution_pin(next_request))
         ready = store.admit_outline_delivery(_deliver(store, next_request))
         accepted = store.accept_outline_candidate(OutlineAcceptRequest(
             job_id=ready.job_id, expected_source_revision=1, expected_outline_revision=0,
