@@ -349,3 +349,27 @@ Markdown local link targets and diff whitespace checks passed. Existing build
 chunk-size and Starlette/httpx deprecation warnings remain; full browser-suite
 and Safari replay were not run. CI remains manually triggered; pushing does not
 itself establish remote CI success or creative acceptance.
+
+## Branch-map manual walkthrough — 2026-09-26
+
+- After the creator confirmed outline r1, the branch form still contained
+  generic IDs/titles and empty summaries, question and outcomes. The creator
+  manually reconstructed the accepted outline using assistant guidance.
+  Follow-up: propose an editable branch structure from the confirmed outline,
+  with explicit review before saving/installing; do not silently adopt it.
+- The creator filled the opening, two mutually exclusive endings and route
+  fields. Screenshot evidence shows route 1 points to 赴约 and route 2 to 回家;
+  it does not yet establish a saved map or installed graph.
+- Layout finding: 后果 is a multiline textarea while 抵达结局 is a dropdown.
+  Different heights are appropriate; the creator identifies their side-by-side
+  arrangement as a layout choice rather than identical-control sizing failure.
+  Review top alignment/field grouping without stretching the dropdown to match
+  the textarea. This is a recorded follow-up, not an implemented fix.
+- The creator confirmed that the one-choice/two-ending restriction needs
+  explicit explanation. It is a current branch-map contract limitation, not
+  merely a default UI layout or a general storytelling rule. Near-term UI
+  follow-up: disclose this supported structure before branch entry. Future
+  scope controls should support configurable branching only alongside matching
+  schema, validation and compilation changes (including additional endings,
+  successive choices and reconnecting branches). Agreement records direction,
+  not authorization to implement that expanded contract during this walkthrough.

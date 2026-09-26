@@ -225,6 +225,33 @@ audio bytes, credentials or private source URLs leak through ordinary status.
 
 ## Stop conditions and exclusions
 
+### Next-plan clarification — specialist handoff, 2026-09-26
+
+The specialist reports user agreement to include reviewed Voice Candidates /
+stable character Voice IDs and post-generation speech evidence in the next
+Plotloom plan. This records planning scope, not implementation completion or
+permission to adopt an experimental reference as a canonical voice.
+
+- **Current capability:** neither Plotloom nor the gateway has a Voice
+  Candidate generator or library. The gateway accepts a supplied per-job WAV;
+  it does not design, clone, select or persist a reusable Voice ID.
+- **Trial provenance:** the specialist reports that C1, C2 and portrait trials
+  reused an eight-second mono 32 kHz WAV manually extracted from the earlier
+  director-reviewed C original H3 clip. It was explicitly not adopted as a
+  canonical voice asset. Evidence pointers are ADR 0090 on specialist branch
+  `codex/h3-ref2va-gateway` and Spark's
+  `/home/wjmao/services/spark-comfyui/data/output/experiments/h3-ref2va-voice-2026-09-25/README.md`.
+  These are specialist-provided pointers, not a new local verification.
+- **Plotloom ownership:** candidate provenance, human review, selection
+  revisions and stable character voice identity remain provider-neutral
+  product responsibilities, distinct from gateway inference (checkpoint D).
+- **Separate next-plan workstream:** retain post-generation ASR and alignment
+  evidence comparing actual speech, timing and unexpected words against
+  canonical `DialogueCue`. Preserve transcript uncertainty and manual review;
+  evidence must not rewrite canonical dialogue or automatically accept media.
+  Choose the ASR/alignment implementation and acceptance criteria in a scoped
+  follow-up plan; no service choice or implementation is made here.
+
 Stop before source changes if A does not pass or if Plotloom needs the H3
 queue. Never replay an uncertain submission. Preserve current models,
 experimental outputs and user-valued assets; no setup cleanup without
