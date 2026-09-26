@@ -9,7 +9,6 @@ const compareStatus = document.getElementById('compare-status');
 const shortlist = [];
 let blind = false;
 let notesVisible = false;
-let preferred = null;
 
 function nameFor(card) {
   if (!card) return '';
@@ -41,21 +40,13 @@ function updateView() {
   notesButton.textContent = notesVisible ? '隐藏设计说明' : '显示设计说明';
   notesButton.disabled = blind;
   document.getElementById('compare-count').textContent = `${shortlist.length} / 2 已入围`;
-  document.getElementById('preferred-label').textContent = preferred ? `${nameFor(cardFor(preferred))} · 本页临时` : '尚未标记';
-  document.getElementById('reviewed-label').textContent = blind
-    ? '一条声线已通过两镜头试验 · 身份隐藏'
-    : '候选 A · 两镜头获用户认可';
 
   for (let slot = 0; slot < 2; slot += 1) {
     const id = shortlist[slot];
     const label = document.getElementById(`slot-label-${slot}`);
     label.textContent = id ? nameFor(cardFor(id)) : '等待选择';
     const playButton = document.querySelector(`.compare-play[data-slot="${slot}"]`);
-    const preferButton = document.querySelector(`.prefer-button[data-slot="${slot}"]`);
     playButton.disabled = !id;
-    preferButton.disabled = !id;
-    preferButton.classList.toggle('is-preferred', id === preferred && Boolean(id));
-    preferButton.textContent = id === preferred && id ? '本页偏好' : '标为本页偏好';
   }
 }
 
@@ -79,7 +70,7 @@ blindButton.addEventListener('click', () => {
     compareStatus.textContent = '顺序已打乱；名称和设计说明已隐藏。当前播放和入围选择仍保持。';
   } else {
     originalOrder.forEach(card => grid.append(card));
-    compareStatus.textContent = '已恢复候选身份。偏好仅在当前页面有效，不会生成 Voice ID。';
+    compareStatus.textContent = '已恢复候选身份，入围对比的两条样本保持不变。';
   }
   updateView();
 });
@@ -104,7 +95,6 @@ cards.forEach(card => {
     const index = shortlist.indexOf(id);
     if (index >= 0) {
       shortlist.splice(index, 1);
-      if (preferred === id) preferred = null;
       compareStatus.textContent = `${nameFor(card)} 已移出对比。`;
     } else if (shortlist.length === 2) {
       compareStatus.textContent = '最多同时比较两条；请先移出其中一条。';
@@ -125,16 +115,6 @@ document.querySelectorAll('.compare-play').forEach(button => {
     audio.play().catch(() => {
       compareStatus.textContent = '浏览器未能播放这条样本；请检查本地音频文件。';
     });
-  });
-});
-
-document.querySelectorAll('.prefer-button').forEach(button => {
-  button.addEventListener('click', () => {
-    const id = shortlist[Number(button.dataset.slot)];
-    if (!id) return;
-    preferred = id;
-    compareStatus.textContent = `${nameFor(cardFor(id))} 已标为本页偏好；这不是正式 Voice ID。`;
-    updateView();
   });
 });
 

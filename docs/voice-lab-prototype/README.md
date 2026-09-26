@@ -16,19 +16,19 @@ hash manifest remain under
 Candidate A also has a bounded, user-accepted two-shot H3 trial recorded in
 `/home/wjmao/services/spark-comfyui/data/output/experiments/h3-ref2va-qwen-voice-a-2026-09-26/`.
 
-The page permits playback, blind shuffling, design-note reveal, choosing two
-samples for quick switching, and a temporary on-page preference. Only one
-sample plays at a time. The editable brief, audition line, and 2/4/6/8
+The page permits playback, blind shuffling, design-note reveal, and choosing
+two samples for quick switching. Only one sample plays at a time. The editable
+brief, audition line, and 2/4/6/8
 candidate-count selector illustrate a future generation form; those counts are
 prototype options, not an agreed backend limit. The Generate button is
 intentionally disabled, and changing these controls never alters the four
-saved recordings. No backend request,
-project write, Voice ID, permanent selection, or local storage is involved.
+saved samples. No backend request, project write, permanent selection, or local
+storage is involved.
 The blind shuffle reduces presentation-order bias but does not level-match the
-recordings or constitute a controlled listening study.
-There is intentionally no "confirm selection" action: a temporary listening
-preference is not enough to approve a character voice. That action belongs in
-a later Plotloom-owned review flow after audiovisual validation.
+samples or constitute a controlled listening study. The earlier H3 trial of
+Candidate A is retained as evidence above, not presented as a current status or
+decision in the audition interface. There is intentionally no "confirm
+selection" action until a future workflow gives it a defined effect.
 
 This is a design prototype, not delivery authority for Plotloom. The
 [withheld handoff draft](../verification/2026-09-26-voice-candidate-handoff-draft.md)
