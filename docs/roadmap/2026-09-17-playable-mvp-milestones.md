@@ -224,6 +224,27 @@ required merely to prepare the walkthrough.
 
 ### Active follow-on: editable creator walkthrough preparation
 
+Next-work order agreed on 2026-09-26: finish the current outline review, then
+scope editable synopsis assistance and story-format/duration/optional episode
+and branching settings as one small slice. Continue downstream progressively
+with creator review; do not build the whole generation pipeline upfront.
+The [walkthrough queue](../verification/2026-09-25-manual-creator-walkthrough-findings.md#next-work-queue-agreed-during-outline-review--2026-09-26)
+tracks this follow-up. For now, capture findings and continue the manual review;
+no new generation or feature implementation is started by this queue entry.
+
+The creator subsequently authorized a documentation-only assessment while away.
+The [premise-to-synopsis proposal](2026-09-26-premise-to-synopsis-plan.md) records
+the existing-contract map, recommended first slice, unsupported series/branch
+scope, ownership questions, and verification checklist. It remains proposed,
+not implementation authority; resume the current outline walkthrough first.
+
+The 2026-09-26 director-approved reader correction is bounded to working
+outline overview/detail controls in the original sandboxed interactive report
+([ADR 0086](../adr/0086-trusted-outline-candidate-reader.md)). Preserve the
+current 雨停以后 candidate and stop at a usable read-only review; no generation,
+acceptance, graph installation or episode/synopsis feature expansion belongs to
+this slice. Verify source preservation, reader behavior and static bundle.
+
 The director agreed to close the quality-8 trial and proceed. Next deliverable:
 one retained, editable small-story project, one stable entry URL, and a short
 ordered walkthrough. Do not present the lighthouse trial as that deliverable.
