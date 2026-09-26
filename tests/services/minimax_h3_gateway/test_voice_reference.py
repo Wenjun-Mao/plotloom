@@ -1,7 +1,9 @@
 """Bounded Ref2VA HTTP, persistence, graph, and retention regression tests."""
 from __future__ import annotations
 
+import os
 import sqlite3
+import stat
 import wave
 from hashlib import sha256
 from io import BytesIO
@@ -62,6 +64,7 @@ class _Response:
 class _Comfy:
     def __init__(self) -> None:
         self.submissions: list[dict[str, Any]] = []
+        self.history_response: dict[str, Any] = {}
 
     def get(self, url: str, **_: object) -> _Response:
         if url.endswith("/queue"):
@@ -71,7 +74,7 @@ class _Comfy:
         if url.endswith("/object_info"):
             return _Response(_object_info())
         if "/history/" in url:
-            return _Response({})
+            return _Response(self.history_response)
         raise AssertionError(url)
 
     def post(self, url: str, *, json: dict[str, Any], **_: object) -> _Response:
@@ -141,6 +144,15 @@ def test_voice_multipart_admission_and_frozen_ref2va_graph(tmp_path: Path) -> No
     job = gateway.store.get_job(body["id"])
     assert job["input_mode"] == "image" and job["h3_contract"] == "ref2va"
     assert gateway.store.get_job_voice(body["id"])["source_sha256"] == body["voiceReferenceSha256"]
+    voice_binding = gateway.store.get_job_voice(body["id"])
+    source = gateway.voice_files.source_path(body["id"], voice_binding)
+    prepared = gateway.voice_files.prepared_path(body["id"], voice_binding)
+    assert source is not None and prepared is not None
+    assert stat.S_IMODE(source.stat().st_mode) == 0o600
+    assert stat.S_IMODE(prepared.stat().st_mode) == 0o600
+    assert (prepared.stat().st_uid, prepared.stat().st_gid) == (
+        prepared.parent.stat().st_uid, prepared.parent.stat().st_gid
+    )
     assert [frame["role"] for frame in gateway.store.get_job_frames(body["id"])] == ["start"]
     assert "voiceReferenceSha256" not in client.get(f"/v1/video-jobs/{body['id']}", headers=AUTH).json()
     assert gateway.dispatch_once()["status"] == "submitted"
@@ -153,6 +165,24 @@ def test_voice_multipart_admission_and_frozen_ref2va_graph(tmp_path: Path) -> No
     assert graph["105:9"]["inputs"]["steps"] == 20
     assert "105:121" not in graph and "105:122" not in graph
     assert graph["105:107"]["inputs"]["value"] == 124
+
+
+def test_comfy_execution_error_is_terminal_even_when_completed_is_false(tmp_path: Path) -> None:
+    client, comfy = _client(tmp_path)
+    job_id = _post_voice(client).json()["id"]
+    gateway = client.app.state.gateway
+    assert gateway.dispatch_once()["status"] == "submitted"
+    prompt_id = gateway.store.get_job(job_id)["comfy_prompt_id"]
+    comfy.history_response = {prompt_id: {"status": {
+        "status_str": "error", "completed": False,
+        "messages": [["execution_error", {"exception_message": "sensitive backend detail"}]],
+    }}}
+    status = client.get(f"/v1/video-jobs/{job_id}", headers=AUTH)
+    assert status.status_code == 200
+    assert status.json()["status"] == "failed"
+    assert status.json()["error"] == "comfy_execution_failed"
+    assert "sensitive backend detail" not in status.text
+    assert status.json()["generationCompletedAt"] is not None
 
 
 def test_voice_eight_second_portrait_survives_restart_and_tamper_fails_closed(tmp_path: Path) -> None:
@@ -237,6 +267,24 @@ def test_partial_voice_storage_failure_rolls_back_image(tmp_path: Path, monkeypa
     assert list((tmp_path / "data" / "assets").iterdir()) == []
     assert list((tmp_path / "input").iterdir()) == []
     assert gateway.store.queue_counts() == (0, 0)
+
+
+def test_comfy_input_ownership_failure_rolls_back_both_voice_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client, _ = _client(tmp_path)
+
+    def denied(*_: object) -> None:
+        raise PermissionError("cannot assign shared-input owner")
+
+    monkeypatch.setattr(os, "fchown", denied)
+    response = _post_voice(client)
+    assert response.status_code == 500
+    assert response.json()["error"] == "voice_storage_failed"
+    assert list((tmp_path / "data" / "voice_inputs").iterdir()) == []
+    assert list((tmp_path / "input").iterdir()) == []
+    assert list((tmp_path / "data" / "assets").iterdir()) == []
+    assert client.app.state.gateway.store.queue_counts() == (0, 0)
 
 
 def test_voice_url_form_uses_bounded_fetch_and_mixed_inputs_reject(tmp_path: Path) -> None:

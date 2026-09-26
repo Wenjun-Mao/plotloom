@@ -360,7 +360,12 @@ class H3Gateway:
             return self.store.update_job(job_id, status="running")
         status = record.get("status") if isinstance(record.get("status"), dict) else {}
         if status.get("status_str") not in {"success", "completed"}:
-            if status.get("completed"):
+            messages = status.get("messages") if isinstance(status.get("messages"), list) else []
+            execution_error = any(
+                isinstance(message, (list, tuple)) and bool(message) and message[0] == "execution_error"
+                for message in messages
+            )
+            if status.get("completed") or status.get("status_str") in {"error", "failed"} or execution_error:
                 return self._generation_completed(job_id, status="failed", error_code="comfy_execution_failed")
             return self.store.update_job(job_id, status="running")
         descriptor = single_output_descriptor(record.get("outputs"))

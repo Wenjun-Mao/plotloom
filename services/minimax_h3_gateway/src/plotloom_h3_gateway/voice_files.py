@@ -41,7 +41,13 @@ class VoiceFiles:
         try:
             _write_new(source, voice.source_bytes)
             written.append(source)
-            _write_new(prepared, voice.prepared_bytes)
+            # ComfyUI may run as a different user from the gateway. Keep the
+            # shared input private, but give its directory owner read access.
+            input_owner = self._settings.comfy_input_dir.stat()
+            _write_new(
+                prepared, voice.prepared_bytes,
+                owner=(input_owner.st_uid, input_owner.st_gid),
+            )
             written.append(prepared)
         except OSError as error:
             for path in written:
@@ -124,7 +130,13 @@ class VoiceFiles:
         return candidate
 
 
-def _write_new(path: Path, content: bytes) -> None:
+def _write_new(path: Path, content: bytes, *, owner: tuple[int, int] | None = None) -> None:
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(fd, "wb") as stream:
-        stream.write(content)
+    try:
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(content)
+            if owner is not None:
+                os.fchown(stream.fileno(), *owner)
+    except OSError:
+        path.unlink(missing_ok=True)
+        raise

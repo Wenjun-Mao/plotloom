@@ -61,3 +61,10 @@ admission. `/health` reports `voiceReferenceReady` separately so the optional
 voice path cannot be mistaken for ordinary FL2VA readiness. Tests guard the
 strict route, graph, frozen/restart behavior, non-voice paths, tamper failures
 and file/record cleanup.
+
+The private source WAV remains gateway-owned mode `0600`. Its separate Comfy
+input copy is also mode `0600`, but owned by the shared input directory owner
+so Comfy can read it even when the gateway container runs under another UID.
+Failure to establish that ownership rejects admission and rolls back files.
+Comfy history `execution_error` is terminal even when its `completed` flag is
+false; the public job receives only a stable error code, not a backend traceback.
