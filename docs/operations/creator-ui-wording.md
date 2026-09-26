@@ -39,6 +39,14 @@ Do not hide unsupported workflows behind inviting but inaccurate wording.
 
 ## Review checklist
 
+Character design review presents **性格与气质** from `persona.personality`
+(individual editable traits) and `persona.temperament` (气质与举止), alongside
+appearance and voice. Story motivation is a different concept: preserve
+`persona.motivation` in the cast payload, but do not relabel it as personality
+or use it as a fallback. Missing design fields stay empty; inferred details
+retain their annotations. Character names are prominent card headings, not
+technical metadata.
+
 For adjacent actions, place each explanation beside its own button, not in
 shared fine print. Choose one primary action for the current state. A completed
 step should state what is ready and offer a clear next destination; it must not

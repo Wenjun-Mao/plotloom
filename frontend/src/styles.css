@@ -720,8 +720,15 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .cast-forms { display: grid; gap: 12px; }
 .cast-forms > strong { font-size: 16px; }
 .cast-forms fieldset { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 6px; }
-.cast-forms legend { padding: 0 5px; color: var(--accent); font-weight: 700; }
+.cast-forms legend { padding: 0 5px; color: var(--accent); font: 700 22px var(--sans); letter-spacing: normal; text-transform: none; }
 .cast-forms label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; }
+.cast-forms fieldset { align-items: start; }
+.cast-personality { display: grid; gap: 10px; }
+.cast-trait { display: flex; gap: 8px; align-items: end; }
+.cast-trait label { flex: 1; min-width: 0; }
+.cast-personality button { padding: 7px 10px; color: var(--text); background: transparent; border: 1px solid var(--line); border-radius: 5px; cursor: pointer; }
+.cast-personality button:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 760px) { .cast-forms fieldset { grid-template-columns: 1fr; } }
 .reference-actions { display: grid; gap: 0; padding: 0; margin: 24px 0 32px; border: 1px solid var(--line); border-radius: 8px; background: rgba(17,21,27,.6); overflow: hidden; }
 .reference-task { display: grid; gap: 14px; padding: 18px; }
 .reference-task + .reference-task { border-top: 1px solid var(--line); }

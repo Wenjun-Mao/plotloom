@@ -666,6 +666,21 @@ product scope. Native Codex ImageGen and owned H3 development calls are authoriz
 that is not automatic audiovisual Approval. Model/provider choice changes and new
 audio services must follow the settled scope, not be silently introduced.
 
+## Bounded walkthrough follow-up: character design presentation
+
+Creator-approved scope: replace the visible motivation editor with actual
+personality/temperament editing and enlarge character names. Preserve upstream
+motivation, candidate annotations and all unrelated fields; no schema change,
+generation or live creative acceptance. Deliverable: editor, accepted summary,
+focused preservation tests and refreshed frontend bundle. Stop after verified
+presentation delivery; broader button/copy-task UX remains separate.
+
+Verification: 236 frontend unit tests and TypeScript checks pass; shipped assets
+rebuilt. Independent review found no blockers. Read-only Chromium inspection
+confirmed the existing candidate fields and 22px name at desktop and a
+single-column, no-horizontal-overflow layout at 390px. Safari author review
+remains the next product-acceptance step.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice } from "../components";
 import type { AcceptedCastRevision, CastReviewState } from "../types";
+import { CastEditor, type CastDirectionChange } from "./CastEditor";
 
 type CastPanelProps = {
   projectId: string; readOnly: boolean; state: CastReviewState | undefined; loadError: string;
@@ -50,9 +51,9 @@ export function CastPanel({ projectId, readOnly, state, loadError, onState, onRe
 
   const candidate = state.candidate; const accepted = state.acceptedCast;
   const castCharacters = charactersOf(editedCast);
-  const updateDirection = (index: number, group: "persona" | "voice", key: "motivation" | "appearance" | "timbre", value: string) => setEditedCast((current) => ({
+  const updateDirection: CastDirectionChange = (index, group, key, value) => setEditedCast((current) => ({
     ...current,
-    characters: castCharacters.map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...record(character[group]), [key]: value } } : character),
+    characters: charactersOf(current).map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...record(character[group]), [key]: value } } : character),
   }));
   const saveAccepted = () => act(() => plotloomApi.acceptCastCandidate(projectId, {
     jobId: candidate!.jobId, expectedCastRevision: candidate!.expectedCastRevision, binding: candidate!.binding, cast: editedCast,
@@ -77,15 +78,11 @@ export function CastPanel({ projectId, readOnly, state, loadError, onState, onRe
 
 function AcceptedCastSummary({ accepted, onEdit, disabled }: { accepted: AcceptedCastRevision; onEdit: () => void; disabled: boolean }) {
   const characters = charactersOf(accepted.cast);
-  return <section className="accepted-cast-summary"><div className="accepted-cast-summary-heading"><div><strong>当前角色</strong><small>这是可复用的已接受文本；图像选择在下方单独进行。</small></div><Button variant="primary" disabled={disabled} onClick={onEdit}>编辑角色设定</Button></div><div className="accepted-cast-grid">{characters.map((character, index) => <article key={String(character.id || index)}><h3>{String(character.name || character.id || `角色 ${index + 1}`)}</h3><dl><CastValue label="动机" value={record(character.persona).motivation} /><CastValue label="外观" value={record(character.persona).appearance} /><CastValue label="声音方向" value={record(character.voice).timbre} /></dl></article>)}</div><details className="cast-technical"><summary>查看版本与技术详情</summary><small>已接受版本 r{accepted.revision} · 内容标识 {accepted.contentHash} · 已保留既有角色映射。</small></details></section>;
+return <section className="accepted-cast-summary"><div className="accepted-cast-summary-heading"><div><strong>当前角色</strong><small>这是可复用的已接受文本；图像选择在下方单独进行。</small></div><Button variant="primary" disabled={disabled} onClick={onEdit}>编辑角色设定</Button></div><div className="accepted-cast-grid">{characters.map((character, index) => <article key={String(character.id || index)}><h3>{String(character.name || character.id || `角色 ${index + 1}`)}</h3><dl><CastValue label="性格特点" value={Array.isArray(record(character.persona).personality) ? (record(character.persona).personality as string[]).join("、") : undefined} /><CastValue label="气质与举止" value={record(character.persona).temperament} /><CastValue label="外观" value={record(character.persona).appearance} /><CastValue label="声音方向" value={record(character.voice).timbre} /></dl></article>)}</div><details className="cast-technical"><summary>查看版本与技术详情</summary><small>已接受版本 r{accepted.revision} · 内容标识 {accepted.contentHash} · 已保留既有角色映射。</small></details></section>;
 }
 
 function CastValue({ label, value }: { label: string; value: unknown }) { return <div><dt>{label}</dt><dd>{typeof value === "string" && value ? value : "未提供"}</dd></div>; }
-function CastEditor({ characters, disabled, onChange, editing = false }: { characters: Array<Record<string, unknown>>; disabled: boolean; onChange: (index: number, group: "persona" | "voice", key: "motivation" | "appearance" | "timbre", value: string) => void; editing?: boolean }) {
-  return <section className="cast-forms"><strong>{editing ? "编辑角色设定" : "审核并编辑角色设定"}</strong>{characters.map((character, index) => <fieldset key={String(character.id || index)}><legend>{String(character.name || character.id || `角色 ${index + 1}`)}</legend><label>动机<textarea disabled={disabled} value={stringValue(record(character.persona).motivation)} onChange={(event) => onChange(index, "persona", "motivation", event.target.value)} /></label><label>外观<textarea disabled={disabled} value={stringValue(record(character.persona).appearance)} onChange={(event) => onChange(index, "persona", "appearance", event.target.value)} /></label><label>声音方向<textarea disabled={disabled} value={stringValue(record(character.voice).timbre)} onChange={(event) => onChange(index, "voice", "timbre", event.target.value)} /></label></fieldset>)}</section>;
-}
 
 function charactersOf(cast: Record<string, unknown>): Array<Record<string, unknown>> { return Array.isArray(cast.characters) ? cast.characters.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object") : []; }
 function record(value: unknown): Record<string, unknown> { return value && typeof value === "object" ? value as Record<string, unknown> : {}; }
-function stringValue(value: unknown): string { return typeof value === "string" ? value : ""; }
 function isCastState(value: unknown): value is CastReviewState { return typeof value === "object" && value !== null && "status" in value && "acceptedCast" in value; }

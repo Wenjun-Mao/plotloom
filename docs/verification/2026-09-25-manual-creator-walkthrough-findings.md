@@ -467,3 +467,34 @@ The server at port 8841 was restarted without creating a login item. Read-only
 delivery verification succeeds and HTTP cast state remains prepared, with no
 accepted cast. No provider dispatch, generation, refresh/admission or creative
 acceptance was performed. Creator next step: click 刷新交付 and review.
+
+### Character review presentation
+
+The creator reached the reviewable cast after refresh, then asked why “动机” is
+needed and reported that “林遥” is too small. `CastEditor` surfaces upstream
+`persona.motivation` beside appearance and voice timbre, but does not explain its
+story-writing purpose. Proposed wording: “角色想要什么”, with a brief explanation
+that it describes the character's reason for acting, not a required tragic
+backstory or extra conflict. For this short story, keep it concise and avoid
+inventing facts absent from the source. Whether this merits top-level prominence
+versus expandable story context remains an open product question.
+
+The character name is currently a fieldset legend and visually reads as minor
+metadata. Give it a clear card-heading hierarchy above the editable fields;
+do not enlarge all technical legends indiscriminately. These findings are
+recorded for the character UI pass, not implemented in this walkthrough turn.
+
+Follow-up decision: the creator rejected merely renaming motivation. This
+character-design review now exposes the actual personality traits and
+temperament under “性格与气质”, with separate controls that preserve the array
+and text types. Motivation and all unrelated candidate fields remain intact.
+The accepted summary uses the same design fields. The character legend gets
+a scoped 22px heading treatment, leaving technical legends unchanged.
+No live candidate was accepted or rewritten by this implementation.
+
+Verification: 4 focused field-preservation tests, all 236 frontend unit tests,
+TypeScript and deterministic bundle build passed. Independent review found no
+blockers. Read-only Chromium inspection verified the actual candidate and
+desktop/narrow layout; Safari was not automated. Existing cast-report iframe
+script-blocking console message is unrelated and remains unchanged. Build
+retains the existing large-bundle advisory.
