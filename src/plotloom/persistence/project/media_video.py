@@ -37,6 +37,7 @@ from .media_video_currentness import VideoJobCurrentness
 from .media_video_disposal import VideoCandidateDisposal
 from .media_video_segments import VideoSegmentPersistence
 from .media_video_source import VideoSourceTiming
+from .media_video_end_frames import VideoEndFrames
 
 
 class VideoPilotAccountingPort(Protocol):
@@ -68,6 +69,7 @@ class VideoJobPersistence:
         accounting: VideoPilotAccountingPort | None,
         source_timing: VideoSourceTiming,
         segments: VideoSegmentPersistence,
+        end_frames: VideoEndFrames,
     ) -> None:
         self._access = access
         self._canonical = canonical
@@ -79,6 +81,7 @@ class VideoJobPersistence:
         self._accounting = accounting
         self._source_timing = source_timing
         self._segments = segments
+        self._end_frames = end_frames
         self._disposal = VideoCandidateDisposal(access)
 
     def video_budget(self) -> dict[str, Any]:
@@ -116,7 +119,7 @@ class VideoJobPersistence:
             resolution = production_contract.resolution
             audio = production_contract.audio
             compiler_version = (
-                "plotloom.h3-i2va.v3-reviewed-en" if production_contract.profile_id is not None
+                "plotloom.h3-reviewed-frame.v4" if production_contract.profile_id is not None
                 else "p2-video-adapters-v1"
             )
             provider_snapshot = production_contract.provider_snapshot()
@@ -149,20 +152,21 @@ class VideoJobPersistence:
             source_timing = self._source_timing.binding_in_session(
                 session, project_id, shot_id, shot.duration_units
             )
-            source_seconds = source_timing["durationUnits"] // 1_000
-            if source_timing["durationUnits"] in {6_000, 8_000} or source_timing["kind"] == "f5_bridge":
-                if requested_seconds == source_seconds and playback_intent == "source_exact":
-                    pass
-                elif not (
-                    playback_intent == "segment_required" and source_seconds == 6
-                    and requested_seconds == 8 and production_contract is not None
-                    and production_contract.adapter_id == "minimax_h3_gateway"
-                ):
-                    raise InvalidTransitionError(
-                        "authored shot needs exact request duration or an explicit 8-to-6 segment intent"
-                    )
-            elif playback_intent != "source_exact":
-                raise InvalidTransitionError("segment-required intent needs a six-second authored shot")
+            authored_units = source_timing["durationUnits"]
+            if production_contract is not None and production_contract.adapter_id == "minimax_h3_gateway":
+                frame_count = production_contract.frame_count
+                if authored_units <= 0 or authored_units * 24 % 1_000:
+                    raise InvalidTransitionError("authored shot duration is not representable at 24 fps")
+                if frame_count is None or frame_count * 1_000 < authored_units * 24:
+                    raise InvalidTransitionError("H3 request cannot cover authored shot frames")
+                expected_intent = ("source_exact" if frame_count * 1_000 == authored_units * 24
+                                   else "segment_required")
+                if playback_intent != expected_intent:
+                    raise InvalidTransitionError("H3 request needs explicit authored-to-request playback intent")
+            elif playback_intent != "source_exact" or (
+                authored_units in {6_000, 8_000} or source_timing["kind"] == "f5_bridge"
+            ) and requested_seconds * 1_000 != authored_units:
+                raise InvalidTransitionError("non-H3 video needs exact authored request timing")
             binding = session.scalar(select(ReviewedShotBindingRow).where(ReviewedShotBindingRow.project_id == project_id, ReviewedShotBindingRow.shot_id == shot_id).order_by(ReviewedShotBindingRow.selection_revision.desc()).limit(1))
             if binding is None or not self._admission.reviewed_binding_admission_eligible_in_session(session, project_id, binding, approval=approval):
                 raise InvalidTransitionError("video job needs the current reviewed selected keyframe")
@@ -252,9 +256,26 @@ class VideoJobPersistence:
                 "identityLineage": identity_lineage,
                 "samePersonReviewId": same_person_review.id if same_person_review is not None else None,
                 "sourceTiming": source_timing, "playbackIntent": playback_intent,
+                "endFrame": self._end_frames.current(session, project_id, shot_id, approval_id,
+                                                      storyboard_revision, source_timing)
+                    if production_contract is not None and production_contract.adapter_id == "minimax_h3_gateway" else None,
                 "provider": provider_snapshot,
                 "request": request_snapshot,
             }
+            end_frame = snapshot["endFrame"]
+            if isinstance(end_frame, dict) and end_frame.get("assetId") is not None:
+                if production_contract is None or production_contract.width is None or production_contract.height is None:
+                    raise InvalidTransitionError("ending frame requires an H3 profile")
+                if end_frame["aspectPolicy"] != production_contract.aspect_policy:
+                    raise InvalidTransitionError("H3 start and ending frames need one reviewed gateway aspect treatment")
+                if (end_frame["aspectPolicy"] == "reject_mismatch" and not has_matching_aspect(
+                    end_frame["width"], end_frame["height"],
+                    production_contract.width, production_contract.height,
+                )):
+                    raise KeyframeAspectMismatchError(
+                        end_frame["width"], end_frame["height"],
+                        production_contract.width, production_contract.height,
+                    )
             if production_contract is not None and production_contract.profile_id is not None:
                 from ...video_backends.minimax_h3.prompt import compile_i2va_prompt
                 from ...video_backends.minimax_h3.directions import direction_sources

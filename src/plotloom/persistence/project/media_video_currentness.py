@@ -23,6 +23,7 @@ from .media_character_references import CharacterReferencePersistence
 from .media_identifiers import new_video_job_id
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_video_source import VideoSourceTiming
+from .media_video_end_frames import VideoEndFrames
 
 
 class VideoJobCurrentness:
@@ -36,6 +37,7 @@ class VideoJobCurrentness:
         references: CharacterReferencePersistence,
         same_person: SamePersonReviewPersistence,
         source_timing: VideoSourceTiming,
+        end_frames: VideoEndFrames,
     ) -> None:
         self._access = access
         self._canonical = canonical
@@ -43,6 +45,7 @@ class VideoJobCurrentness:
         self._references = references
         self._same_person = same_person
         self._source_timing = source_timing
+        self._end_frames = end_frames
 
     @staticmethod
     def video_job_id() -> str:
@@ -113,6 +116,10 @@ class VideoJobCurrentness:
                 session, row.project_id, frozen_shot["id"],
                 frozen_shot["durationUnits"], source_timing,
             )
+        ):
+            return False
+        if snapshot.get("provider", {}).get("adapterId") == "minimax_h3_gateway" and not self._end_frames.decision_is_current(
+            session, row.project_id, frozen_shot["id"], snapshot.get("endFrame")
         ):
             return False
         try:

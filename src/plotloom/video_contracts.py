@@ -60,6 +60,13 @@ class VideoJobRequest(CamelModel):
         return value
 
 
+class VideoEndFrameDecisionRequest(CamelModel):
+    asset_id: str | None = Field(default=None, max_length=36)
+    approval_id: str = Field(min_length=1, max_length=36)
+    storyboard_revision: int = Field(ge=1)
+    expected_revision: int = Field(ge=0)
+    aspect_policy: Literal["reject_mismatch", "contain_pad", "cover_center_crop"] | None = None
+
 class VideoReviewRequest(CamelModel):
     reviewer: str = Field(default="", max_length=160)
     decision: Literal["select", "reject"]

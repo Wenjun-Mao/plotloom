@@ -1,0 +1,13 @@
+.video-end-frame-choice { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; padding: 12px 13px; border: 1px solid var(--line); border-radius: 7px; background: var(--panel-3); }
+.video-end-frame-choice > header { display: grid; gap: 4px; min-width: 0; }
+.video-end-frame-choice > header strong { color: var(--text); font-size: 14px; }
+.video-end-frame-choice small { display: block; color: var(--muted); line-height: 1.5; overflow-wrap: anywhere; }
+.video-end-frame-choice label { display: grid; gap: 5px; min-width: 0; }
+.video-end-frame-choice select { width: 100%; min-width: 0; }
+.video-end-frame-choice .button-row { margin: 2px 0 0; }
+.video-end-frame-preview { display: flex; flex-wrap: wrap; align-items: start; gap: 12px; min-width: 0; }
+.video-end-frame-preview img { display: block; width: min(240px, 100%); max-height: 160px; object-fit: contain; background: #080a0e; }
+.video-end-frame-preview > div { display: grid; align-content: start; gap: 7px; flex: 1 1 220px; min-width: 0; }
+.video-end-frame-technical { min-width: 0; color: var(--dim); }
+.video-end-frame-technical summary { width: fit-content; cursor: pointer; font: 700 11px var(--mono); }
+.video-end-frame-technical code { display: block; margin-top: 6px; overflow-wrap: anywhere; font: 10px/1.5 var(--mono); }

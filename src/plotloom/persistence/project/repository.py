@@ -32,7 +32,7 @@ from ..schema import (
     CastCandidateRow, CastHeadRow, CastRevisionRow, ArtCandidateRow, ArtHeadRow, ArtRevisionRow,
     ScriptCandidateRow, ScriptHeadRow, ScriptRevisionRow,
     StoryboardReviewCandidateRow, StoryboardReviewHeadRow, StoryboardReviewRevisionRow,
-    ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeIntentJobRow, ProductionBridgeRevisionRow,
+    ProductionBridgeAdmissionRow, ProductionBridgeHeadRow, ProductionBridgeIntentJobRow, ProductionBridgeRevisionRow, VideoEndFrameDecisionRow,
 )
 from ..transactions import bootstrap_lease, lifecycle_lease, read_lease, work_unit_claim_lease, write_lease
 from .access import ProjectCodecs, ProjectGuards, ProjectLeases, ProjectPersistenceAccess, ProjectRows
@@ -141,6 +141,7 @@ class ProjectSQLiteRepository:
                     ScriptHeadRow.__table__, ScriptCandidateRow.__table__, ScriptRevisionRow.__table__,
                     StoryboardReviewHeadRow.__table__, StoryboardReviewCandidateRow.__table__, StoryboardReviewRevisionRow.__table__,
                     ProductionBridgeHeadRow.__table__, ProductionBridgeRevisionRow.__table__, ProductionBridgeAdmissionRow.__table__, ProductionBridgeIntentJobRow.__table__,
+                    VideoEndFrameDecisionRow.__table__,
                 ],
             )
         self._generation_admission = ProjectGenerationAdmission()
@@ -285,6 +286,7 @@ class ProjectSQLiteRepository:
             direct_video=self._media.direct_video,
             video_currentness=self._media.video_currentness,
             video_segments=self._media.video_segments,
+            video_end_frames=self._media.video_end_frames,
         )
         self.video_dispatch = ProjectVideoDispatchAccess(self._read, self._lifecycle_write)
 

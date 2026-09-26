@@ -88,9 +88,15 @@ class VideoSegmentPersistence:
             source = self._source(job)
             if job.snapshot.get("provider", {}).get("adapterId") != "minimax_h3_gateway":
                 raise InvalidTransitionError("segment proposal requires a qualified H3 take")
-            if source["durationUnits"] not in {6_000, 8_000} or job.requested_seconds != 8:
-                raise InvalidTransitionError("segment proposal needs a six/eight-second shot and qualified eight-second take")
-            expected_intent = "segment_required" if source["durationUnits"] == 6_000 else "source_exact"
+            authored_units = source["durationUnits"]
+            request = job.snapshot.get("request", {})
+            expected_frames = request.get("frameCount")
+            if (type(authored_units) is not int or authored_units <= 0
+                    or authored_units * 24 % 1_000 != 0
+                    or type(expected_frames) is not int
+                    or expected_frames * 1_000 < authored_units * 24):
+                raise InvalidTransitionError("segment proposal needs a frame-representable shot covered by its frozen H3 request")
+            expected_intent = "source_exact" if expected_frames * 1_000 == authored_units * 24 else "segment_required"
             if job.snapshot.get("playbackIntent") != expected_intent:
                 raise InvalidTransitionError("video job lacks its explicit authored-to-request timing intent")
             shot_id = job.snapshot["shot"]["id"]

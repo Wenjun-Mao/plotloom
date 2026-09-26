@@ -4,8 +4,8 @@
 
 ## Proposed follow-on: pacing-first timing and broader H3 inputs (2026-09-25)
 
-This is a design amendment for review, not an implemented replacement of the
-accepted contract below. The director rejected the two-shot trial's transition
+This amendment is implemented for the bounded H3 preparation and reviewed
+playback path. The director rejected the two-shot trial's transition
 despite complete dialogue and coherent voice/pose. Its six-second durations were
 agent-authored test values, not a director requirement. Preserve source fidelity
 by explicitly revising creative timing when needed, rather than forcing every
@@ -26,6 +26,38 @@ silently making measured output the new authored duration; bypassing the frozen
 source binding; or admitting every gateway mode without a reviewed contract.
 The [active implementation brief](../roadmap/2026-09-17-playable-mvp-milestones.md#implementation-brief-for-review-pacing-first-h3-integration)
 owns ordering, verification, unresolved gateway details and the stopping boundary.
+
+### Implemented end-frame and timing contract, 2026-09-25
+
+An optional end frame is an append-only, per-shot decision over a project-owned
+managed PNG/JPEG asset. A decision records its original byte hash, dimensions,
+MIME type, one reviewed gateway aspect policy, active Storyboard Approval,
+storyboard revision and current source-timing binding. A null-asset revision
+explicitly clears it. Preparation freezes the latest decision, including the
+absence at revision zero; a later decision revision, changed asset metadata,
+source binding or Approval makes the prepared job stale. Original asset bytes
+are read and hash-checked again before dispatch. The one gateway `aspectPolicy`
+applies to both `image` and optional `endImage`; differing start/end policies
+block preparation. The full prompt and both image hashes appear in review.
+
+The official pinned [H3 prompt guide](https://raw.githubusercontent.com/MiniMax-AI/MiniMax-H3/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/references/base-en.txt)
+defines FL2VA: Picture 1 aligns at zero and Picture 2 (from Shot 1 for this
+single-shot contract) aligns at effective video duration. The compiler derives
+that two-decimal duration from frozen expected frames divided by 24, then
+describes the movement between images. This is conditioning guidance, never a
+verified promise that the generated last frame equals Picture 2.
+
+An H3 authored duration is eligible when positive integer milliseconds are
+exactly representable at 24 fps (`durationUnits × 24 % 1000 == 0`) and its
+required frame count does not exceed the qualified frozen request's expected
+frames. The latter number is capacity, not playback length. `source_exact`
+applies only when expected request frames equal authored frames; otherwise the
+author must explicitly choose `segment_required`, even for equal nominal
+seconds (a nominal five-second request has 124 frames, while a five-second
+shot needs 120). A fully validated measured take must still cover the chosen
+contiguous frame/audio window. The existing derivative, CAS, explicit
+selection and playback-manifest rules below remain authoritative. There is no
+source retiming, automatic selection, audio stretching or multi-shot mapping.
 
 ## Problem and evidence
 

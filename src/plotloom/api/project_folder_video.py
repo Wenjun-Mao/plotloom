@@ -18,6 +18,7 @@ from ..video_contracts import (
     VideoDiscardRequest,
     VideoDiscardUnselectedRequest,
     VideoJobRequest,
+    VideoEndFrameDecisionRequest,
     VideoReviewRequest,
     VideoSegmentPrepareRequest,
     VideoSegmentSelectRequest,
@@ -75,6 +76,20 @@ def register_project_folder_video_routes(
     def get_video_jobs(project_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
             return {"jobs": _local_repository(store).list_video_jobs(project_id)}
+
+    @app.get("/api/v2/projects/{project_id}/shots/{shot_id}/video-end-frame")
+    def get_video_end_frame(project_id: str, shot_id: str) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return store.media.video_end_frames.get(project_id, shot_id)
+
+    @app.post("/api/v2/projects/{project_id}/shots/{shot_id}/video-end-frame")
+    def choose_video_end_frame(project_id: str, shot_id: str, body: VideoEndFrameDecisionRequest) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return store.media.video_end_frames.choose(
+                project_id, shot_id, asset_id=body.asset_id,
+                approval_id=body.approval_id, storyboard_revision=body.storyboard_revision,
+                expected_revision=body.expected_revision, aspect_policy=body.aspect_policy,
+            )
 
     @app.post(
         "/api/v2/projects/{project_id}/video-jobs", status_code=status.HTTP_201_CREATED

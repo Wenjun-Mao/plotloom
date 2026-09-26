@@ -108,6 +108,13 @@ export type VideoJobPrepareBody = {
   reviewedDirections?: H3ReviewedDirections;
 };
 
+export type VideoEndFrameDecision = {
+  revision: number; assetId: string | null; originalHash?: string | null;
+  mimeType?: string | null; width?: number | null; height?: number | null;
+  aspectPolicy?: "reject_mismatch" | "contain_pad" | "cover_center_crop" | null;
+  approvalId?: string; storyboardRevision?: number;
+};
+
 export class PlotloomApiClient {
   private readonly fetcher: FetchLike;
   private readonly base: string;
@@ -395,6 +402,23 @@ export class PlotloomApiClient {
     if (declaration.rightsNote) form.set("rights_note", declaration.rightsNote);
     form.set("declared_additions_json", JSON.stringify(declaration.declaredAdditions ?? []));
     return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`, { method: "POST", body: form });
+  }
+
+  getManagedAssets(projectId: string): Promise<{ assets: ManagedAsset[] }> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/managed-assets`);
+  }
+
+  getVideoEndFrame(projectId: string, shotId: string): Promise<VideoEndFrameDecision> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/shots/${encodeURIComponent(shotId)}/video-end-frame`);
+  }
+
+  chooseVideoEndFrame(projectId: string, shotId: string, body: {
+    assetId: string | null; approvalId: string; storyboardRevision: number;
+    expectedRevision: number; aspectPolicy: "reject_mismatch" | "contain_pad" | "cover_center_crop" | null;
+  }): Promise<VideoEndFrameDecision> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/shots/${encodeURIComponent(shotId)}/video-end-frame`, {
+      method: "POST", body: JSON.stringify(body),
+    });
   }
 
   getImportedCharacterAppearances(projectId: string): Promise<{ appearances: import("./types").CharacterImportedAppearance[] }> { return this.request(`/projects/${encodeURIComponent(projectId)}/character-imported-appearances`); }

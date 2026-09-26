@@ -25,6 +25,7 @@ from ..persistence.schema import (
     ProductionBridgeIntentJobRow,
     ProductionBridgeRevisionRow,
     VideoCandidateSelectionRow,
+    VideoEndFrameDecisionRow,
     VideoSegmentRow,
 )
 from .format import ProjectStorageCorruptionError
@@ -70,6 +71,10 @@ class ProjectVideoSegmentTransitionRequiredError(ProjectSchemaTransitionRequired
     """A current video project needs its reviewed-playback-segment table."""
 
 
+class ProjectVideoEndFrameTransitionRequiredError(ProjectSchemaTransitionRequiredError):
+    """A current video project needs its additive end-frame decision table."""
+
+
 SchemaStatus = Literal[
     "current", "selection_transition_required", "art_reference_transition_required",
     "character_delivery_publication_phase_transition_required",
@@ -78,6 +83,7 @@ SchemaStatus = Literal[
     "art_reference_decision_transition_required",
     "production_bridge_transition_required",
     "bridge_intent_job_transition_required", "video_segment_transition_required",
+    "video_end_frame_transition_required",
 ]
 _SELECTION_TABLE = VideoCandidateSelectionRow.__tablename__
 _CHARACTER_REFERENCE_DELIVERY_TABLE = CharacterReferenceProposalDeliveryRow.__tablename__
@@ -128,6 +134,7 @@ def expected_project_schema_objects(
     include_production_bridge: bool = True,
     include_bridge_intent_jobs: bool = True,
     include_video_segments: bool = True,
+    include_video_end_frames: bool = True,
 ) -> tuple[tuple[str, str, str, str | None], ...]:
     """Return the exact current schema or one permitted immediate predecessor."""
 
@@ -146,6 +153,8 @@ def expected_project_schema_objects(
         table_names.remove(ProductionBridgeIntentJobRow.__tablename__)
     if not include_video_segments:
         table_names.remove(VideoSegmentRow.__tablename__)
+    if not include_video_end_frames:
+        table_names.remove(VideoEndFrameDecisionRow.__tablename__)
     engine = create_engine("sqlite://")
     try:
         Base.metadata.create_all(
@@ -225,6 +234,41 @@ def _requires_video_segment_transition(actual: tuple[tuple[str, str, str, str | 
         append_character_delivery_publication_phase=True,
     )
     return actual in {base, appended, _metadata_rebuilt_schema(base), _metadata_rebuilt_schema(appended)}
+
+
+def _requires_video_end_frame_transition(actual: tuple[tuple[str, str, str, str | None], ...]) -> bool:
+    # This additive table may be absent from any already-admitted predecessor,
+    # including the immediately previous pre-segment layout. Reconstitute
+    # only this table's known SQLite objects, then reuse the strict existing
+    # classifiers instead of admitting a broad partial-schema shape.
+    table = VideoEndFrameDecisionRow.__tablename__
+    if any(name == table and kind == "table" for kind, name, _owner, _sql in actual):
+        return False
+    end_objects = tuple(item for item in expected_project_schema_objects(
+        include_video_candidate_selection=True,
+    ) if item[2] == table)
+    augmented = tuple(sorted((*actual, *end_objects), key=lambda item: (item[0], item[1])))
+    return _recognized_current_or_predecessor(augmented)
+
+
+def _recognized_current_or_predecessor(actual: tuple[tuple[str, str, str, str | None], ...]) -> bool:
+    return bool(
+        _is_current_schema_objects(actual)
+        or _requires_video_segment_transition(actual)
+        or _requires_bridge_intent_job_transition(actual)
+        or _requires_art_reference_decision_transition(actual)
+        or _requires_production_bridge_transition(actual)
+        or _requires_character_imported_appearance_transition(actual)
+        or _requires_character_selection_metadata_transition(actual)
+        or actual == expected_project_schema_objects(
+            include_video_candidate_selection=True,
+            include_character_delivery_publication_phase=False,
+        )
+        or actual == expected_project_schema_objects(include_video_candidate_selection=False)
+        or actual == expected_project_schema_objects(
+            include_video_candidate_selection=True, include_art_reference_proposals=False,
+        )
+    )
 
 
 def _metadata_rebuilt_schema(
@@ -357,6 +401,8 @@ def project_schema_status(database_path: Path, project_id: str) -> SchemaStatus:
         )
     if _is_current_schema_objects(actual):
         return "current"
+    if _requires_video_end_frame_transition(actual) and user_version == (0,):
+        return "video_end_frame_transition_required"
     if _requires_video_segment_transition(actual) and user_version == (0,):
         return "video_segment_transition_required"
     if _requires_bridge_intent_job_transition(actual) and user_version == (0,):
@@ -436,6 +482,10 @@ def transition_required_error(
     if status == "video_segment_transition_required":
         return ProjectVideoSegmentTransitionRequiredError(
             f"video segment transition requires {reason}"
+        )
+    if status == "video_end_frame_transition_required":
+        return ProjectVideoEndFrameTransitionRequiredError(
+            f"video end-frame transition requires {reason}"
         )
     raise AssertionError(f"current project schema does not need a transition: {status}")
 
@@ -556,9 +606,13 @@ def transition_project_schema(
                     ProductionBridgeIntentJobRow.__table__.create(connection)
                 elif status == "video_segment_transition_required":
                     VideoSegmentRow.__table__.create(connection)
+                elif status == "video_end_frame_transition_required":
+                    VideoEndFrameDecisionRow.__table__.create(connection)
                 else:  # pragma: no cover - kept exhaustive as SchemaStatus grows.
                     raise AssertionError(f"unsupported project transition: {status}")
-                if not _is_current_schema_objects(tuple(_schema_objects(connection))):
+                after = tuple(_schema_objects(connection))
+                if not (_is_current_schema_objects(after) or
+                        status == "video_end_frame_transition_required" and _recognized_current_or_predecessor(after)):
                     raise ProjectStorageCorruptionError(
                         "project schema transition did not produce the current project schema"
                     )
@@ -570,6 +624,10 @@ def transition_project_schema(
                 connection.rollback()
                 raise
             connection.commit()
+            if status == "video_end_frame_transition_required" and project_schema_status(database_path, project_id) != "current":
+                # Continue the already-supported preceding transition. Each
+                # step rechecks exact schema and project identity under lock.
+                transition_project_schema(database_path, project_id, allow_closed=allow_closed)
             return True
     finally:
         engine.dispose()

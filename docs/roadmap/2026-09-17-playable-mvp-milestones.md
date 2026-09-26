@@ -143,6 +143,15 @@ E2E milestone. This is technical verification, not director audiovisual review.
    measured whole take as new timing require a separate design if the current
    integer-millisecond representation cannot express them exactly.
 
+**Implementation checkpoint (2026-09-25):** The optional reviewed end-frame
+decision, frozen first/last-image prompt and transport, hash/currentness guards,
+and frame-representable playback windows are implemented. Offline storage and
+transport tests plus an isolated shipped-static browser journey verify a reviewed
+end image and a 7.5-second/180-frame selected derivative from an eight-second
+take at 1440/1920. This does not install a revised F5 shot, qualify live H3
+audio/video, start the quality-8 longer-take trial, or complete the director's
+retained hands-on creator E2E; those remain the next review/trial milestones.
+
 **Acceptance:** Adapter/transport tests cover quality 1/8, wrong returned quality,
 unsupported duration and exact frame mapping, absent/present end image and changed
 image hashes. Storage tests cover stale F5/Brief/approval/reference, rollback and
@@ -171,7 +180,12 @@ times, plus queue, transfer and review. These horizontal/long-duration cells are
 estimates, not same-combination measurements. End-frame conditioning has no
 independent timing matrix. H3 and Qwen share the serial channel. Keep progress
 honest and recoverable across page reload; unknown dispatch must not trigger
-another request simply because an estimate elapsed.
+another request simply because an estimate elapsed. For the later quality-8
+trial, prefer the existing job completion/reporting mechanism when available.
+Otherwise use coarse checks based on the estimate, keep queue time separate
+from generation time, and avoid repeated model polling while expected running.
+An elapsed estimate never authorizes an automatic retry after uncertain
+dispatch; this preference is not a fixed ETA or a new monitor.
 
 **Next milestone: hands-on creator E2E.** The director explicitly wants personal
 use and feedback to guide priorities after the longer-shot trial. Provide one

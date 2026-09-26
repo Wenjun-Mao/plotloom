@@ -20,7 +20,7 @@ from typing import Any
 
 
 class VideoSegmentError(ValueError):
-    """A take or window cannot satisfy the first production timing contract."""
+    """A take or window cannot satisfy the frame-exact playback contract."""
 
 
 @dataclass(frozen=True)
@@ -168,8 +168,8 @@ def derive_playback_segment(content: bytes, *, in_frame: int, out_frame: int, au
 
     if not isinstance(in_frame, int) or not isinstance(out_frame, int) or in_frame < 0 or out_frame <= in_frame:
         raise VideoSegmentError("choose a nonempty contiguous frame window")
-    if authored_duration_units not in {6_000, 8_000} or authored_duration_units * 24 % 1_000:
-        raise VideoSegmentError("authored duration is outside the first frame-exact contract")
+    if authored_duration_units <= 0 or authored_duration_units * 24 % 1_000:
+        raise VideoSegmentError("authored duration is not representable at 24 fps")
     required_frames = authored_duration_units * 24 // 1_000
     if out_frame - in_frame != required_frames:
         raise VideoSegmentError("chosen window must equal the authored shot duration")

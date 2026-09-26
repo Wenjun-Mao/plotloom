@@ -22,6 +22,7 @@ from .media_direct_video import DirectVideoJobPersistence
 from .media_video import VideoJobPersistence, VideoPilotAccountingPort
 from .media_video_currentness import VideoJobCurrentness
 from .media_video_source import VideoSourceTiming
+from .media_video_end_frames import VideoEndFrames
 from .media_video_segments import VideoSegmentPersistence
 from .media_visual_intents import VisualIntentPersistence
 
@@ -44,8 +45,9 @@ class ProjectMediaPersistence:
         image_currentness = ImageJobCurrentness(access, canonical, admission, references)
         same_person = SamePersonReviewPersistence(access, canonical, admission, references)
         source_timing = VideoSourceTiming(access, bridge)
+        end_frames = VideoEndFrames(access, canonical, admission, source_timing)
         video_currentness = VideoJobCurrentness(
-            access, canonical, admission, references, same_person, source_timing
+            access, canonical, admission, references, same_person, source_timing, end_frames
         )
         video_segments = VideoSegmentPersistence(access, video_currentness)
         self.assets: ManagedAssetPersistence = ManagedAssetPersistence(access, admission)
@@ -65,6 +67,7 @@ class ProjectMediaPersistence:
             accounting,
             source_timing,
             video_segments,
+            end_frames,
         )
         self.direct_video: DirectVideoJobPersistence = DirectVideoJobPersistence(
             access,
@@ -76,6 +79,7 @@ class ProjectMediaPersistence:
             video_currentness,
             source_timing,
             video_segments,
+            end_frames,
         )
         self.references: CharacterReferencePersistence = references
         self.proposals: CharacterReferenceProposalPersistence = (
@@ -85,6 +89,7 @@ class ProjectMediaPersistence:
         self.same_person: SamePersonReviewPersistence = same_person
         self.video_currentness: VideoJobCurrentness = video_currentness
         self.video_segments: VideoSegmentPersistence = video_segments
+        self.video_end_frames: VideoEndFrames = end_frames
         self.image_currentness: ImageJobCurrentness = image_currentness
         self.image_preparation: ImageJobPreparationPersistence = (
             ImageJobPreparationPersistence(

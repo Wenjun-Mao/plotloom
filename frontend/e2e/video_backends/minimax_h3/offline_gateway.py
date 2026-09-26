@@ -24,11 +24,15 @@ class OfflineH3GatewayFake:
     def preflight(self) -> None:
         return None
 
-    def submit_image(self, image: bytes, *, mime_type: str, payload: dict[str, object]) -> dict[str, object]:
+    def submit_image(self, image: bytes, *, mime_type: str, payload: dict[str, object],
+                     end_image: bytes | None = None, end_mime_type: str | None = None) -> dict[str, object]:
         """Mirror the direct multipart image boundary used by Plotloom."""
 
         assert image and mime_type.startswith("image/")
-        assert payload["quality"] == 1
+        assert (end_image is None and end_mime_type is None) or (
+            end_image and end_mime_type in {"image/png", "image/jpeg"}
+        )
+        assert payload["quality"] in {1, 8}
         assert isinstance(payload["resolution"], str)
         assert any(profile.resolution == payload["resolution"] for profile in H3_PROFILES)
         assert payload["aspectPolicy"] in {"cover_center_crop", "contain_pad", "reject_mismatch"}

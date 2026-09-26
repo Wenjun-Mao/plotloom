@@ -13,6 +13,7 @@ _FIXTURE_ENGLISH = {
 
 
 def reviewed_h3_body(client: TestClient, project_id: str, body: dict) -> dict:
+    body = {"playbackIntent": "segment_required", **body}
     endpoint = f"/api/v2/projects/{project_id}/video-jobs/prompt-preview"
     sources_response = client.post(endpoint, json=body)
     assert sources_response.status_code == 200, sources_response.text

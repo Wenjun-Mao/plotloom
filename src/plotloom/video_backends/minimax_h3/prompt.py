@@ -1,4 +1,4 @@
-"""Compile one frozen canonical shot into the H3 single-image prompt contract."""
+"""Compile one frozen canonical shot into reviewed H3 image prompt modes."""
 
 from __future__ import annotations
 
@@ -84,7 +84,13 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
             description.append(
                 f"{speaker} says once{delivery_phrase}: <d>[{_language(cue.get('language'))}] {text}</d>"
             )
-    description.append("Do not add text overlays or words absent from the reviewed first frame and authored shot.")
+    if snapshot.get("endFrame", {}).get("assetId"):
+        description.append(
+            "Continue the visible actions and camera movement from Picture 1 toward "
+            "the subject pose, object state, spatial arrangement, and composition in "
+            "Picture 2 at the end of this single shot."
+        )
+    description.append("Do not add text overlays or words absent from the reviewed pictures and authored shot.")
 
     soundscape = " ".join(
         rendered[f"shot.audioPlan.events.{index}.description"]
@@ -98,8 +104,18 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
         for index, event in enumerate(events)
         if event.get("kind") == "score" and event.get("description")
     ) or "N/A"
+    if snapshot.get("endFrame", {}).get("assetId"):
+        request = snapshot["request"]
+        seconds = request["frameCount"] / request["fps"]
+        image_instruction = (
+            "How the reference pictures align with the target video — "
+            "Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; "
+            f"Picture 2 (from Shot 1) aligns with the {seconds:.2f}-second mark of the target video."
+        )
+    else:
+        image_instruction = _FIRST_FRAME
     return (
-        f"{_FIRST_FRAME}\n\n"
+        f"{image_instruction}\n\n"
         f"integrated_multimodal_description: {' '.join(description)}\n\n"
         f"overall_soundscape: {soundscape}\n\n"
         f"non_diegetic_music: {music}"

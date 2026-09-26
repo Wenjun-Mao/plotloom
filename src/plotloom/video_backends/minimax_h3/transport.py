@@ -111,7 +111,8 @@ class MiniMaxH3GatewayTransport:
             "minimax_h3_gateway_endpoint_v1", {"endpoint": endpoint}
         )
 
-    def submit_image(self, image: bytes, *, mime_type: str, payload: dict[str, Any]) -> dict[str, Any]:
+    def submit_image(self, image: bytes, *, mime_type: str, payload: dict[str, Any],
+                     end_image: bytes | None = None, end_mime_type: str | None = None) -> dict[str, Any]:
         """Submit a frozen Plotloom keyframe through the direct gateway route."""
 
         if set(payload) != {"prompt", "quality", "resolution", "aspectPolicy", "seed", "durationSeconds"}:
@@ -124,9 +125,14 @@ class MiniMaxH3GatewayTransport:
             or type(payload["seed"]) is not int or payload["seed"] < 0
         ):
             raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed"))
+        if (end_image is None) != (end_mime_type is None) or end_mime_type not in {None, "image/png", "image/jpeg"}:
+            raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed"))
+        files = {"image": ("approved-keyframe", image, mime_type)}
+        if end_image is not None:
+            files["endImage"] = ("reviewed-end-frame", end_image, end_mime_type)
         result = self._request_json(
             "submit", "POST", "v1/video-jobs/from-image",
-            files={"image": ("approved-keyframe", image, mime_type)},
+            files=files,
             data={key: str(value) for key, value in payload.items()},
         )
         self._validate_job_envelope(

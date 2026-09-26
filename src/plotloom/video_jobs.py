@@ -121,7 +121,7 @@ class VideoJobService:
     @staticmethod
     def _prompt(snapshot: dict[str, Any]) -> str:
         if snapshot.get("compilerVersion") in {
-            "plotloom.h3-i2va.v3-reviewed-en", "plotloom.h3-i2va.v2", "plotloom.h3-i2va.v1-vocal-control.v1"
+            "plotloom.h3-reviewed-frame.v4", "plotloom.h3-i2va.v3-reviewed-en", "plotloom.h3-i2va.v2", "plotloom.h3-i2va.v1-vocal-control.v1"
         }:
             prompt = snapshot.get("compiledPrompt")
             if not isinstance(prompt, str) or not prompt:
@@ -238,7 +238,20 @@ class VideoJobService:
                 except VideoProviderError as error:
                     raise WanDispatchError(WanDispatchDiagnostic("request_compile", "local_precondition_failed")) from error
                 self._assert_current_backend(video_job_id)
-                submitted = submit_image(image, mime_type=keyframe["mimeType"], payload=payload)
+                end_frame = job["snapshot"].get("endFrame")
+                end_kwargs: dict[str, Any] = {}
+                if isinstance(end_frame, dict) and end_frame.get("assetId"):
+                    try:
+                        stored_end = self.repository.get_managed_asset_storage(project_id, end_frame["assetId"])
+                        end_bytes = self.artifacts.get(stored_end["originalUri"])
+                        if (sha256(end_bytes).hexdigest() != end_frame["originalHash"]
+                                or stored_end["mimeType"] != end_frame["mimeType"]):
+                            raise ValueError("ending frame changed")
+                        end_kwargs = {"end_image": end_bytes, "end_mime_type": end_frame["mimeType"]}
+                    except Exception as error:
+                        raise WanDispatchError(WanDispatchDiagnostic("keyframe_read", "local_precondition_failed")) from error
+                self._assert_current_backend(video_job_id)
+                submitted = submit_image(image, mime_type=keyframe["mimeType"], payload=payload, **end_kwargs)
             else:
                 try:
                     uploaded = self.provider.upload(image, mime_type=keyframe["mimeType"])

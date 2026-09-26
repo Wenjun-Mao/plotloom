@@ -75,6 +75,15 @@ def test_synthetic_whole_eight_second_window(synthetic_eight_second_take: bytes)
     assert segment.output_probe["frameCount"] == 192
 
 
+def test_synthetic_nonlegacy_seven_and_half_second_window(synthetic_eight_second_take: bytes) -> None:
+    segment = derive_playback_segment(
+        synthetic_eight_second_take, in_frame=6, out_frame=186, authored_duration_units=7_500
+    )
+    assert segment.source_probe["frameCount"] == 192
+    assert segment.output_probe["frameCount"] == 180
+    assert segment.output_probe["audioSamples"] == 360_000
+
+
 def test_synthetic_picture_and_sound_markers_follow_arbitrary_window(tmp_path: Path) -> None:
     if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
         pytest.skip("FFmpeg tools are required for synthetic segment verification")
@@ -178,7 +187,7 @@ def test_corrupt_source_is_refused() -> None:
         derive_playback_segment(b"not a video", in_frame=0, out_frame=144, authored_duration_units=6_000)
 
 
-@pytest.mark.parametrize("start,end,duration", [(0, 143, 6_000), (49, 193, 6_000), (0, 192, 6_001)])
+@pytest.mark.parametrize("start,end,duration", [(0, 143, 6_000), (49, 193, 6_000), (0, 192, 6_001), (0, 0, 0)])
 def test_invalid_window_fails_closed(
     synthetic_eight_second_take: bytes, start: int, end: int, duration: int
 ) -> None:

@@ -12,6 +12,7 @@ from .media_video import VideoJobPersistence
 from .media_video_currentness import VideoJobCurrentness
 from .media_video_source import VideoSourceTiming
 from .media_video_segments import VideoSegmentPersistence
+from .media_video_end_frames import VideoEndFrames
 
 
 class DirectVideoJobPersistence(VideoJobPersistence):
@@ -34,6 +35,7 @@ class DirectVideoJobPersistence(VideoJobPersistence):
         currentness: VideoJobCurrentness,
         source_timing: VideoSourceTiming,
         segments: VideoSegmentPersistence,
+        end_frames: VideoEndFrames,
     ) -> None:
         super().__init__(
             access,
@@ -46,4 +48,5 @@ class DirectVideoJobPersistence(VideoJobPersistence):
             accounting=None,
             source_timing=source_timing,
             segments=segments,
+            end_frames=end_frames,
         )

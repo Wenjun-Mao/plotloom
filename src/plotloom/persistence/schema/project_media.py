@@ -153,6 +153,32 @@ class VideoJobRow(Base):
     cancel_requested_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class VideoEndFrameDecisionRow(Base):
+    """Append-only shot decision; a later revision invalidates frozen video inputs."""
+
+    __tablename__ = "v2_video_end_frame_decisions"
+    __table_args__ = (
+        UniqueConstraint("project_id", "shot_id", "revision", name="uq_v2_video_end_frame_shot_revision"),
+        Index("ix_v2_video_end_frame_shot", "project_id", "shot_id", "revision"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    project_id: Mapped[str] = mapped_column(ForeignKey("v2_projects.id", ondelete="CASCADE"), nullable=False)
+    shot_id: Mapped[str] = mapped_column(String(100), nullable=False)
+    revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    asset_id: Mapped[str | None] = mapped_column(ForeignKey("v2_managed_assets.id", ondelete="RESTRICT"), nullable=True)
+    original_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    mime_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    width: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    height: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    provenance: Mapped[list[dict[str, Any]]] = mapped_column(JSON, nullable=False)
+    aspect_policy: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    approval_id: Mapped[str] = mapped_column(ForeignKey("v2_approval_decisions.id", ondelete="RESTRICT"), nullable=False)
+    storyboard_revision: Mapped[int] = mapped_column(Integer, nullable=False)
+    source_timing: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class VideoReviewRow(Base):
     __tablename__ = "v2_video_reviews"
     __table_args__ = (Index("ix_v2_video_reviews_job_created", "video_job_id", "created_at"),)

@@ -484,6 +484,16 @@ def test_production_runtime_composes_the_typed_h3_video_path(tmp_path: Path) -> 
         storage = app.state.project_folder_storage
         store = storage.projects.open(project_id)
         try:
+            storyboard = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD)
+            if storyboard.shots[0].duration_units * 24 % 1_000:
+                revised = storyboard.model_copy(update={
+                    "shots": [item.model_copy(update={"duration_units": 5_000})
+                              if item.id == storyboard.shots[0].id else item for item in storyboard.shots]
+                })
+                store.update_stage(
+                    StageName.STORYBOARD, revised,
+                    expected_revision=store.authoring.get_stage_head(project_id, StageName.STORYBOARD).revision,
+                )
             board = store.authoring.get_stage_head(project_id, StageName.STORYBOARD)
             shot = store.authoring.get_stage_payload(project_id, StageName.STORYBOARD).shots[0]
         finally:

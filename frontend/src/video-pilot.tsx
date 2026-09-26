@@ -2,12 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import type { H3ReviewedDirections, VideoJobPrepareBody } from "./api";
+import type { VideoEndFrameDecision } from "./api";
 import { Button, Panel } from "./components";
 import { deriveRoutes, groupStoryboard } from "./model";
 import { BranchingVideoPreview } from "./branching-video-preview";
 import { VideoSegmentReview } from "./video-segment-review";
 import { MiniMaxH3DurationField, MiniMaxH3ProfileField, MiniMaxH3QualityField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, h3QualifiedDurations, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 import { H3DirectionsReview } from "./h3-directions-review";
+import { VideoEndFrameChoice } from "./video-end-frame";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
 
@@ -188,6 +190,8 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const [h3ProfileId, setH3ProfileId] = useState("");
   const [h3DurationSeconds, setH3DurationSeconds] = useState(5);
   const [h3InputFrameMode, setH3InputFrameMode] = useState<"reject_mismatch" | "cover_center_crop" | "contain_pad">("reject_mismatch");
+  const [endFrameState, setEndFrameState] = useState<{ projectId: string; shotId: string; approvalId?: string; decision: VideoEndFrameDecision } | null>(null);
+  const [endFrameDraftState, setEndFrameDraftState] = useState<{ projectId: string; shotId: string; approvalId?: string; dirty: boolean } | null>(null);
   const [error, setError] = useState("");
   const refreshToken = useRef(0);
   const currentProjectRef = useRef(projectId);
@@ -223,11 +227,10 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     const h3 = isMiniMaxH3Backend(backend);
     const profile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
     if (h3 && !profile) throw new Error("请先选择 H3 视频规格");
-    const aspectMismatch = Boolean(profile && keyframe && keyframe.width * profile.height !== keyframe.height * profile.width);
     return {
       approvalId, shotId: shot.id, storyboardRevision, expectedSelectionRevision: selectionRevision,
       idempotencyKey: idempotencyKey ?? crypto.randomUUID(),
-      playbackIntent: h3 && shot.durationUnits === 6_000 && h3DurationSeconds === 8 ? "segment_required" as const : "source_exact" as const,
+      playbackIntent: h3 && h3RequestedFrames * 1000 !== shot.durationUnits * 24 ? "segment_required" as const : "source_exact" as const,
       ...(backend?.enabled ? {
         requestedDurationSeconds: h3 ? h3DurationSeconds : profile?.durationSeconds ?? backend.durationSeconds,
         resolution: profile ? `${profile.width}x${profile.height}` : backend.resolution,
@@ -236,9 +239,9 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       ...(profile ? { profileId: profile.id } : {}),
       ...(h3 && seed !== undefined ? { seed } : {}),
       ...(h3 ? {
-        aspectPolicy: aspectMismatch ? h3InputFrameMode : "reject_mismatch" as const,
-        allowLetterbox: aspectMismatch && h3InputFrameMode === "contain_pad",
-        allowCenterCrop: aspectMismatch && h3InputFrameMode === "cover_center_crop",
+        aspectPolicy: h3InputFrameMode,
+        allowLetterbox: h3InputFrameMode === "contain_pad",
+        allowCenterCrop: h3InputFrameMode === "cover_center_crop",
       } : {}),
     };
   };
@@ -291,13 +294,21 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     selectedProfile && keyframe
       && keyframe.width * selectedProfile.height !== keyframe.height * selectedProfile.width,
   );
-  const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
-  const h3TimingMismatch = Boolean(h3 && shot && (
-    shot.durationUnits === 6_000 ? h3DurationSeconds !== 8
-      : shot.durationUnits === 8_000 ? h3DurationSeconds !== 8
-      : h3DurationSeconds * 1_000 !== shot.durationUnits
-  ));
+  const requestAspectPolicy = h3InputFrameMode;
+  const currentEndFrame = endFrameState && endFrameState.projectId === projectId
+    && endFrameState.shotId === shot?.id && endFrameState.approvalId === approvalId
+    ? endFrameState.decision : null;
+  const endFrameDraftDirty = Boolean(endFrameDraftState && endFrameDraftState.projectId === projectId
+    && endFrameDraftState.shotId === shot?.id && endFrameDraftState.approvalId === approvalId
+    && endFrameDraftState.dirty);
+  const endFrameAspectReady = !currentEndFrame?.assetId || currentEndFrame.aspectPolicy === requestAspectPolicy;
+  const endFrameApprovalReady = !currentEndFrame?.revision || (currentEndFrame.approvalId === approvalId && currentEndFrame.storyboardRevision === storyboardRevision);
+  const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || !currentEndFrame || endFrameDraftDirty || !endFrameAspectReady || !endFrameApprovalReady || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
   const h3RequestedFrames = h3DurationSeconds * 24 + (5 - h3DurationSeconds * 24 % 17) % 17;
+  const h3TimingMismatch = Boolean(h3 && shot && (
+    shot.durationUnits <= 0 || shot.durationUnits * 24 % 1000 !== 0
+    || h3RequestedFrames * 1000 < shot.durationUnits * 24
+  ));
   return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
     <header className="video-workflow-header"><strong>原片 → 调整片段 → 预览 → 用于故事</strong>
       <small>{visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 个原片候选；仅明确选择的片段会进入故事。` : "当前镜头还没有原片候选。"}</small>
@@ -320,9 +331,17 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {h3 && <MiniMaxH3DurationField values={availableH3Durations} value={h3DurationSeconds} onChange={setH3DurationSeconds} disabled={readOnly} />}
     {h3 && shot && <small className={h3TimingMismatch ? "notice warning" : "notice"} data-testid="h3-authored-timing">
       原稿镜头时长 {(shot.durationUnits / 1000).toFixed(3)} 秒；后端请求 {h3DurationSeconds} 秒 / {h3RequestedFrames} 帧（约 {(h3RequestedFrames / 24).toFixed(2)} 秒）。
-      {shot.durationUnits === 6_000 ? "当前六秒原稿仅可请求八秒原片，再审阅连续 144 帧片段；不会自动裁切或选择。" : "请求时长不是实测播放时长；当前播放路径仍只支持已审核的六/八秒源镜头，其他时长的原片不能据此进入故事。"}
+      {h3TimingMismatch ? "当前请求无法覆盖 24 fps 帧网格上的原稿时长，请修改请求或明确修订原稿。" : `原稿需要 ${shot.durationUnits * 24 / 1000} 帧；仍须核验实测原片并审阅连续片段，不会自动裁切或选择。`}
     </small>}
-    {h3 && selectedProfile && keyframe && !h3AspectMismatch && <small className="notice" data-testid="h3-aspect-ready">当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例匹配；将以 reject_mismatch 冻结。</small>}
+    {h3 && projectId && shot && <VideoEndFrameChoice key={`${projectId}:${shot.id}:${approvalId ?? ""}`} projectId={projectId} shotId={shot.id}
+      approvalId={approvalId} storyboardRevision={storyboardRevision} profile={selectedProfile}
+      requestAspectPolicy={requestAspectPolicy} readOnly={readOnly}
+      onDecision={(decision) => setEndFrameState({ projectId, shotId: shot.id, approvalId, decision })}
+      onDraftChange={(dirty) => setEndFrameDraftState({ projectId, shotId: shot.id, approvalId, dirty })} />}
+    {h3 && selectedProfile && keyframe && !h3AspectMismatch && <div className="notice" data-testid="h3-aspect-ready"><small>当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例匹配。</small>
+      <label>首帧与末帧统一输入处理<select value={h3InputFrameMode} disabled={readOnly} onChange={(event) => setH3InputFrameMode(event.target.value as typeof h3InputFrameMode)}>
+        <option value="reject_mismatch">比例不符则拒绝</option><option value="contain_pad">黑边画布</option><option value="cover_center_crop">居中裁切</option>
+      </select></label></div>}
     {h3 && selectedProfile && keyframe && h3AspectMismatch && <div className="notice warning" data-testid="h3-aspect-preparation">
       <strong>当前审核关键帧 {keyframe.width}×{keyframe.height} 与 {selectedProfile.width}×{selectedProfile.height} 比例不符。</strong>
       <small>默认拒绝比例不符。以下选择只会冻结对原审核关键帧的网关输入处理，不会替换原始字节、来源、审核选择或当前性检查。</small>
@@ -340,9 +359,9 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {h3 && <MiniMaxH3ReviewNotice />}
     {h3 && projectId && shot
       ? <H3DirectionsReview projectId={projectId}
-          sourceIdentity={`${shot.id}:${storyboardRevision}:${selectionRevision}:${keyframe?.id ?? ""}:${h3ProfileId}:${h3DurationSeconds}:${h3InputFrameMode}:${visibleJobs.length}`}
+          sourceIdentity={`${shot.id}:${approvalId ?? ""}:${storyboardRevision}:${selectionRevision}:${keyframe?.id ?? ""}:${h3ProfileId}:${h3DurationSeconds}:${h3InputFrameMode}:${currentEndFrame?.revision ?? "loading"}:${currentEndFrame?.originalHash ?? ""}:${endFrameDraftDirty}:${visibleJobs.length}`}
           disabled={Boolean(cannotPrepare || h3TimingMismatch)} buildRequest={buildPrepareRequest}
-          keyframeHash={keyframe?.originalHash ?? ""} quality={selectedProfile?.quality ?? 0}
+          keyframeHash={keyframe?.originalHash ?? ""} endFrameHash={currentEndFrame?.originalHash ?? null} quality={selectedProfile?.quality ?? 0}
           requestedSeconds={h3DurationSeconds} frameCount={h3RequestedFrames}
           onFreeze={(packageValue, seed, key) => prepare(packageValue, seed, key)} />
       : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>}

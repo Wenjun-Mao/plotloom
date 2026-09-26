@@ -52,8 +52,8 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     return () => cancelAnimationFrame(frame);
   }, [job.id, chosen?.id]);
   const timingReady = job.state === "ingested" && job.current && !rejected && sourceUnits != null
-    && [6_000, 8_000].includes(sourceUnits) && Number.isInteger(requiredFrames)
-    && job.requestedSeconds === 8 && availableFrames >= requiredFrames;
+    && sourceUnits > 0 && Number.isInteger(requiredFrames)
+    && availableFrames >= requiredFrames;
   const prepare = async () => {
     if (!timingReady || busy) return;
     const request = ++requestRef.current;
@@ -107,11 +107,11 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
     <small>原稿镜头时长：{sourceUnits == null ? "来源不可用" : `${(sourceUnits / 1000).toFixed(3)} 秒`}；后端请求时长：{job.requestedSeconds} 秒；实测原片：{job.observed ? `${job.observed.durationSeconds.toFixed(3)} 秒 / ${availableFrames} 帧` : "尚无输出"}。</small>
     <small>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；片段准备后须听看最终片段，再明确选择。此操作不自动确认创作质量。</small>
     {rejected && <small className="notice warning">此原片已拒绝；不能重新选择其片段。请选择另一候选或重新生成。原片与片段证据仍保留。</small>}
-    {!timingReady && !rejected && <small className="notice warning">此候选没有可核验的 24 fps、6/8 秒原稿与合格 8 秒原片组合；不能准备播放片段。</small>}
+    {!timingReady && !rejected && <small className="notice warning">此候选没有足够的已核验画面与声音覆盖当前原稿时长，或原稿时长不在 24 fps 帧网格上；不能准备播放片段。</small>}
     {timingReady && <label>片段入点（帧）
       <input type="number" min={0} max={maxStart} step={1} value={inFrame} disabled={readOnly || busy}
         onChange={(event) => setInFrame(Math.max(0, Math.min(maxStart, Math.trunc(Number(event.target.value) || 0))))} />
-      <small>出点（不含）：{inFrame + requiredFrames} / 原片 {availableFrames} 帧。六秒镜头须恰好 144 帧；不按浏览器时间自动裁切。</small>
+      <small>出点（不含）：{inFrame + requiredFrames} / 原片 {availableFrames} 帧。严格按原稿时长选择连续帧，不按浏览器时间自动裁切。</small>
     </label>}
     <Button disabled={readOnly || busy || !timingReady} onClick={() => void prepare()}>生成待审片段</Button>
     <small>只生成可预览的片段，不会加入故事。确认前请听看片段首尾。</small>

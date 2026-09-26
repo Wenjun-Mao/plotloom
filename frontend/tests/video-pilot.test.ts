@@ -84,6 +84,8 @@ beforeEach(() => {
   vi.spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(() => undefined);
   vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue(undefined);
   vi.spyOn(plotloomApi, "getVideoPilotBudget").mockResolvedValue({ limitSeconds: 100, reservedSeconds: 0, remainingSeconds: 100, attempts: [] });
+  vi.spyOn(plotloomApi, "getVideoEndFrame").mockResolvedValue({ revision: 0, assetId: null });
+  vi.spyOn(plotloomApi, "getManagedAssets").mockResolvedValue({ assets: [] });
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({
     enabled: true, adapterId: "atlas_wan", adapterVersion: "1", provider: "atlascloud",
     model: "alibaba/wan-3.0/image-to-video", durationSeconds: 5, resolution: "720p",
@@ -256,7 +258,7 @@ it("binds H3 prompt review to an explicit gateway crop choice for a mismatched k
   const duration = host.querySelector('[aria-label="H3 时长（已审核）"]') as HTMLSelectElement;
   await act(async () => { duration.value = "8"; duration.dispatchEvent(new Event("change", { bubbles: true })); });
   expect(host.textContent).not.toContain("来源绑定");
-  expect(load?.disabled).toBe(true);
+  expect(load?.disabled).toBe(false);
   expect(host.textContent).not.toContain("100 秒额度");
 });
 
