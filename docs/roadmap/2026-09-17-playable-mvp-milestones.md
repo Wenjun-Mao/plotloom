@@ -10,15 +10,24 @@ earlier scope and evidence, not the current assignment queue.
 ## Now / Next / Later · 2026-09-25
 
 - **Now:** The director approved the pacing-first integration recommendation
-  below and one bounded longer-shot trial. The first gateway quality/duration
-  integration slice is implemented for review; the longer-shot trial has not
-  started.
-  The director confirmed both lines and coherent voice/pose in the two-shot
+  below and one bounded longer-shot trial. The director confirmed both lines
+  and coherent voice/pose in the earlier two-shot
   assembly, but rejected the naturalness of the six-second cut. The six-second
   values came from agent-authored test storyboard cuts, not a user requirement.
+  The first gateway quality/duration integration slice and frozen per-candidate
+  F5 editorial timing control are implemented for review. The
+  [single longer opening trial](../verification/2026-09-25-u4-h3-longer-opening-trial.md)
+  ingested a technically valid, unselected 12.25-second quality-8 original
+  from one 12-second continuous cut; sampled frames show a material concern
+  that the fuse enters the upper socket despite the authored no-choice action.
+  The director subsequently reported no intrinsic video defects and confirmed
+  the apparent insertion. After the intended action was explained, they agreed
+  to separate positive quality feedback from the action-fidelity mismatch and
+  close the trial without another generation. This is not creative acceptance
+  or general quality-8 qualification.
   All takes and segments remain unselected. Preserve the
   [adjacent-shot evidence](../verification/2026-09-24-u4-h3-adjacent-shot.md).
-- **Next:** After that trial, prioritize a director-operated end-to-end creator
+- **Next (approved):** Prioritize a director-operated end-to-end creator
   walkthrough, not an extended series of isolated media experiments. Use a small
   persistent story and the real UI from source through media review to playback.
   Do not require all 27 lighthouse cuts to be produced first.

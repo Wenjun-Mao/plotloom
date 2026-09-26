@@ -21,13 +21,15 @@ class StoryboardReviewBinding(ScriptBinding):
     # These are review-admission limits, not H3 capabilities.  They are frozen
     # with the script binding so a delivery cannot loosen its own timing gate.
     review_min_cut_seconds: int = Field(ge=2, le=8)
-    review_max_cut_seconds: int = Field(ge=2, le=8)
+    review_max_cut_seconds: int = Field(ge=2, le=15)
     review_max_segment_seconds: int = Field(ge=1, le=15)
 
     @model_validator(mode="after")
     def _valid_review_timing(self) -> "StoryboardReviewBinding":
         if self.review_min_cut_seconds > self.review_max_cut_seconds:
             raise ValueError("review minimum cut duration cannot exceed its maximum")
+        if self.review_max_cut_seconds > self.review_max_segment_seconds:
+            raise ValueError("review maximum cut duration cannot exceed segment duration")
         return self
 
 
@@ -70,6 +72,10 @@ class StoryboardReviewAcceptRequest(CamelModel):
     job_id: str
     expected_review_revision: int = Field(ge=0)
     binding: StoryboardReviewBinding
+
+
+class StoryboardReviewPrepareRequest(CamelModel):
+    max_cut_seconds: int = Field(default=8, ge=2, le=15)
 
 
 def ordered_episode_mapping(binding: StoryboardReviewBinding) -> list[ScriptSectionBinding]:

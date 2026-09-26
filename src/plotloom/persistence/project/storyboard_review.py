@@ -52,7 +52,7 @@ class ProjectStoryboardReviewPersistence:
     def _accepted(row: StoryboardReviewRevisionRow) -> AcceptedStoryboardReviewRevision:
         return AcceptedStoryboardReviewRevision(revision=row.revision, candidate_job_id=row.candidate_job_id, content_hash=row.content_hash, binding=row.binding, storyboard=row.storyboard, accepted_at=row.accepted_at)
 
-    def _context(self, session: Any, project_id: str) -> tuple[StoryboardReviewBinding, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    def _context(self, session: Any, project_id: str, *, max_cut_seconds: int = 8) -> tuple[StoryboardReviewBinding, dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
         script_head = self._script._head(session, project_id)
         accepted_row = session.scalar(select(ScriptRevisionRow).where(
             ScriptRevisionRow.project_id == project_id,
@@ -72,13 +72,13 @@ class ProjectStoryboardReviewPersistence:
             script_revision=script.revision,
             script_content_hash=script.content_hash,
             review_min_cut_seconds=2,
-            review_max_cut_seconds=8,
+            review_max_cut_seconds=max_cut_seconds,
             review_max_segment_seconds=15,
         ), script.script, _upstream_script_outline(outline, mapping, cast, inherited), cast, art
 
     def _stale(self, session: Any, project_id: str, binding: StoryboardReviewBinding) -> list[str]:
         try:
-            current, *_ = self._context(session, project_id)
+            current, *_ = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
         except InvalidTransitionError as error:
             return [str(error)]
         fields = tuple(StoryboardReviewBinding.model_fields)
@@ -95,7 +95,7 @@ class ProjectStoryboardReviewPersistence:
             stale = self._stale(session, project_id, StoryboardReviewBinding.model_validate(raw_binding)) if raw_binding else []
             return StoryboardReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_review=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
-    def prepare_candidate(self, project_id: str, job_id: str) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
+    def prepare_candidate(self, project_id: str, job_id: str, *, max_cut_seconds: int = 8) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id)); head = self._head(session, project_id)
             if session.scalar(select(StoryboardReviewCandidateRow.job_id).where(
@@ -103,7 +103,7 @@ class ProjectStoryboardReviewPersistence:
                 StoryboardReviewCandidateRow.status.in_(("prepared", "ready")),
             ).limit(1)):
                 raise InvalidTransitionError("explicitly accept or cancel the current storyboard review candidate before preparing another")
-            binding, script, outline, cast, art = self._context(session, project_id)
+            binding, script, outline, cast, art = self._context(session, project_id, max_cut_seconds=max_cut_seconds)
             admission = {
                 "scriptRevision": binding.script_revision,
                 "scriptContentHash": binding.script_content_hash,
@@ -116,7 +116,7 @@ class ProjectStoryboardReviewPersistence:
                     "maxSegmentSeconds": binding.review_max_segment_seconds,
                 },
             }
-            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts={"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission}, creative_brief="Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, section/route duration caps, and review timing. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to maxCutSeconds 8 and maxSegmentSeconds 15; every cut must be 2–8 seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. Run the pinned novel-storyboard validate and render commands, and derive report.html unchanged. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support.")
+            request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="pilot-storyboard", stage="storyboard", expected_stage_revision=head.revision, source={"acceptedScriptRevision": binding.script_revision, "acceptedScriptContentHash": binding.script_content_hash}, input_artifacts={"script.json": script, "outline.json": outline, "cast.json": cast, "art.json": art, "storyboard-admission.json": admission}, creative_brief=f"Create one raw upstream-shaped storyboard.json for the current accepted F4 script only. storyboard-admission.json freezes the exact accepted script revision/hash, ordered stable section-to-episode mapping, section/route duration caps, and review timing. Retain every mapped episode exactly once and in that order. Set storyboard.params exactly to minCutSeconds {binding.review_min_cut_seconds}, maxCutSeconds {binding.review_max_cut_seconds}, and maxSegmentSeconds {binding.review_max_segment_seconds}; every cut must be {binding.review_min_cut_seconds}–{binding.review_max_cut_seconds} seconds. The script owns dialogue and story facts. Preserve upstream storyboard segments, cuts, frames and H3 prompt text as review direction only. Run the pinned novel-storyboard validate and render commands, and derive report.html unchanged. This is review evidence, not canonical Plotloom shots, a SceneBeats/Bible projection, selected reference, media prompt, player content, dispatch request, or approval. Do not generate media or infer deployed H3 duration support.")
             request.assert_secret_free(); now = utc_now()
             row = StoryboardReviewCandidateRow(job_id=job_id, project_id=project_id, expected_review_revision=head.revision, binding=binding.model_dump(mode="json", by_alias=True), request=request.model_dump(mode="json", by_alias=True), status="prepared", delivery_id=None, manifest_hash=None, storyboard=None, report_html=None, created_at=now, delivered_at=None)
             session.add(row); head.candidate_job_id, head.status, head.updated_at = job_id, "prepared", now
@@ -139,7 +139,7 @@ class ProjectStoryboardReviewPersistence:
                 if row.manifest_hash != delivery.manifest_hash:
                     raise CreativeHandoffError("delivery_conflict", "different delivery already occupies storyboard review candidate")
                 return self._candidate(row)
-            current, script, outline, cast, _art = self._context(session, project_id)
+            current, script, outline, cast, _art = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
             self._validate(delivery.candidate, current, script, outline, cast)
             row.status, row.delivery_id, row.manifest_hash, row.storyboard, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             head.status, head.updated_at = "candidate_ready", row.delivered_at
@@ -158,7 +158,7 @@ class ProjectStoryboardReviewPersistence:
             binding, storyboard = StoryboardReviewBinding.model_validate(row.binding), row.storyboard
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "storyboard review candidate context changed before acceptance")
-            current, script, outline, cast, _art = self._context(session, project_id)
+            current, script, outline, cast, _art = self._context(session, project_id, max_cut_seconds=binding.review_max_cut_seconds)
             self._validate(storyboard, current, script, outline, cast)
             now = utc_now(); head.revision += 1; head.candidate_job_id, head.status, head.updated_at, row.status = None, "accepted", now, "accepted"
             session.add(StoryboardReviewRevisionRow(id=new_id(), project_id=project_id, revision=head.revision, candidate_job_id=row.job_id, content_hash=sha256(canonical_json(storyboard)).hexdigest(), binding=binding.model_dump(mode="json", by_alias=True), storyboard=storyboard, accepted_at=now))

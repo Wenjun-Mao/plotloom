@@ -9,7 +9,7 @@ from fastapi.responses import HTMLResponse
 
 from ..storyboard_review_contracts import (
     StoryboardReviewAcceptRequest, StoryboardReviewCandidate,
-    StoryboardReviewCandidatePreparation, StoryboardReviewState,
+    StoryboardReviewCandidatePreparation, StoryboardReviewPrepareRequest, StoryboardReviewState,
 )
 
 
@@ -24,9 +24,9 @@ def register_project_folder_storyboard_review_routes(app: FastAPI, opened_projec
             return store.storyboard_review_state()
 
     @app.post("/api/v2/projects/{project_id}/storyboard-source-review/candidates", response_model=StoryboardReviewCandidatePreparation, status_code=status.HTTP_201_CREATED)
-    def prepare_storyboard_review(project_id: str) -> StoryboardReviewCandidatePreparation:
+    def prepare_storyboard_review(project_id: str, body: StoryboardReviewPrepareRequest | None = None) -> StoryboardReviewCandidatePreparation:
         with opened_project(project_id) as store:
-            candidate, request = store.prepare_storyboard_review_candidate(f"ch_{uuid4().hex}")
+            candidate, request = store.prepare_storyboard_review_candidate(f"ch_{uuid4().hex}", max_cut_seconds=(body or StoryboardReviewPrepareRequest()).max_cut_seconds)
             return preparation(store, candidate, request)
 
     @app.get("/api/v2/projects/{project_id}/storyboard-source-review/candidates/{job_id}/handoff", response_model=StoryboardReviewCandidatePreparation)

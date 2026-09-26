@@ -535,8 +535,8 @@ class ProjectStore:
     def storyboard_review_state(self) -> StoryboardReviewState:
         return self.repository.storyboard_review.get_state(self.manifest.project_id)
 
-    def prepare_storyboard_review_candidate(self, job_id: str) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
-        return self.repository.storyboard_review.prepare_candidate(self.manifest.project_id, job_id)
+    def prepare_storyboard_review_candidate(self, job_id: str, *, max_cut_seconds: int = 8) -> tuple[StoryboardReviewCandidate, CreativeHandoffRequest]:
+        return self.repository.storyboard_review.prepare_candidate(self.manifest.project_id, job_id, max_cut_seconds=max_cut_seconds)
 
     def admit_storyboard_review_delivery(self, delivery: ValidatedCreativeDelivery) -> StoryboardReviewCandidate:
         return self.repository.storyboard_review.admit_delivery(self.manifest.project_id, delivery)

@@ -11,6 +11,7 @@ export function StoryboardReviewPanel({ projectId, readOnly, onOpenShot }: { pro
   const [assignment, setAssignment] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [maxCutSeconds, setMaxCutSeconds] = useState(8);
   const active = useRef({ projectId, epoch: 0 });
   if (active.current.projectId !== projectId) active.current = { projectId, epoch: active.current.epoch + 1 };
   const owns = (session: { projectId: string; epoch: number }) => active.current === session;
@@ -25,7 +26,7 @@ export function StoryboardReviewPanel({ projectId, readOnly, onOpenShot }: { pro
   }, [projectId]);
   useEffect(() => {
     const session = active.current;
-    setState(undefined); setAssignment(""); setError(""); setBusy(false);
+    setState(undefined); setAssignment(""); setError(""); setBusy(false); setMaxCutSeconds(8);
     void load(session);
     return () => { if (owns(session)) active.current = { projectId: session.projectId, epoch: session.epoch + 1 }; };
   }, [projectId, load]);
@@ -51,7 +52,8 @@ export function StoryboardReviewPanel({ projectId, readOnly, onOpenShot }: { pro
     <p>原始 storyboard.json 和上游报告是与已接受剧本绑定的评审证据，不是 Plotloom 的 shots、播放内容、媒体提示词或投产许可。</p>
     <div className="notice warning">不会创建 SceneBeats/Bible 投影、选择参考、H3 调度或时长变更。</div>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
-    {!candidate && <Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.prepareStoryboardSourceReviewCandidate(projectId), result => setAssignment(result.assignment))}>准备并复制 storyboard specialist handoff</Button>}
+    {!candidate && <div className="button-row"><label>评审镜头上限（秒）<select value={maxCutSeconds} disabled={readOnly || busy} onChange={event => setMaxCutSeconds(Number(event.target.value))}>{[8, 10, 12, 15].map(seconds => <option key={seconds} value={seconds}>{seconds}</option>)}</select></label><Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.prepareStoryboardSourceReviewCandidate(projectId, maxCutSeconds), result => setAssignment(result.assignment))}>准备并复制 storyboard specialist handoff</Button></div>}
+    {candidate && <small>冻结评审时长：单镜头 {candidate.binding.reviewMinCutSeconds}–{candidate.binding.reviewMaxCutSeconds} 秒；分段上限 {candidate.binding.reviewMaxSegmentSeconds} 秒。</small>}
     {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} run={run} onAssignment={setAssignment} />}
     {candidate?.status === "ready" && <StoryboardReviewInspection title="查看待接受 storyboard" value={candidate.storyboard} />}
     {acceptedReview && <section><small>已接受 review r{acceptedReview.revision} · 已接受剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title="查看当前已接受 storyboard" value={acceptedReview.storyboard} /></section>}

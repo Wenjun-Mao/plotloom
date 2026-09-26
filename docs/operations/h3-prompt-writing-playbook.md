@@ -10,9 +10,11 @@ reviewed trials; retain failed prompt/media receipts unchanged.
 - [H3 prompt-writing skill](https://github.com/MiniMax-AI/MiniMax-H3/blob/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/SKILL.md): identify I2VA for one initial image; write rewritten directions in English while preserving dialogue, lyrics, and visible text in their original language.
 - [Base-mode guide](https://github.com/MiniMax-AI/MiniMax-H3/blob/d21241f0a4b3acbb34c97dae47fa417b7065e438/.agents/skills/h3-prompt-writing/references/base-en.txt): anchor `<Picture 1>` at 0.00 seconds; use the three named fields in order; start from the actual first frame and describe continuous action. Put speaker identity and delivery outside `<d>`; put only the language tag and verbatim spoken words inside. Put ambient and physical sounds in `overall_soundscape`, and background music in `non_diegetic_music`. A camera move should read as a natural English action. Soundscape needs concrete sound, not a repetition of dialogue or music.
 
-This playbook is limited to Plotloom's current single-image I2VA route. Do not
-reuse its form for T2VA, last-frame, or full-reference modes without reading
-their official guide and recording a new contract.
+This playbook covers Plotloom's reviewed first-frame I2VA route. The current
+contract may also bind an optional reviewed managed end frame; use that only
+when it suits the shot, not as a prompt-writing default. Do not reuse this form
+for T2VA or full-reference modes without reading their official guide and
+recording a new contract.
 
 ## Ownership and review workflow
 
@@ -130,8 +132,10 @@ comparison and not proof that every earlier defect has the same cause.
 Use quality 1 for fast development evaluation; prefer quality 8 for production
 review once integrated and qualified. Neither setting confers creative acceptance.
 The gateway guide identifies quality 8 as Base-20 without Turbo LoRA; quality
-and resolution are separate controls. Plotloom currently sends and validates
-quality 1 only, so recording this recommendation does not change runtime defaults.
+and resolution are separate controls. The gateway advertises qualities 1, 2,
+3, and 8; Plotloom's reviewed adapter currently admits 1 and 8. Quality 8
+remains an explicit reviewed job choice, not a runtime-default change or
+creative acceptance.
 Keep quality/seed/prompt/images/duration in every receipt. A different quality,
 longer take and new boundary design together test the new workflow, not an
 isolated quality-effect hypothesis. Do not add anti-shaking prompt instructions

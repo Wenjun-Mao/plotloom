@@ -4,6 +4,24 @@
 
 ## Proposed follow-on: pacing-first timing and broader H3 inputs (2026-09-25)
 
+### F5 review timing choice for the longer trial
+
+F5 preparation now accepts an explicit per-candidate maximum cut duration from
+2 through 15 seconds. Eight seconds remains the default and remains the frozen
+policy of earlier accepted reviews. The candidate binds the chosen maximum to
+the accepted F4 source, handoff admission, upstream storyboard parameters, and
+acceptance validation; a changed F4 source still makes it stale. The cut maximum
+cannot exceed the 15-second segment maximum. This is an editorial review limit,
+independent of H3 request capacity or measured playback length.
+
+The earlier global eight-second maximum would reject a 12-second continuous
+opening cut before normal F5 review. Raising that global default would change
+the meaning and currentness of retained eight-second reviews, while editing only
+the delivered JSON would contradict its frozen handoff. The per-candidate choice
+keeps the source review contract explicit and auditable. A longer cut still
+requires a new reviewed delivery, explicit acceptance, and a fresh bridge; it
+does not alter an installed canonical shot.
+
 This amendment is implemented for the bounded H3 preparation and reviewed
 playback path. The director rejected the two-shot trial's transition
 despite complete dialogue and coherent voice/pose. Its six-second durations were

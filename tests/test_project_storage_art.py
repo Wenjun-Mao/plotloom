@@ -667,6 +667,45 @@ def test_f5a_uses_a_distinct_source_review_api_not_the_canonical_storyboard_revi
     assert bridge.json() == {"proposal": None, "status": "missing", "staleReasons": [], "installedStageRevisions": None, "installedStoryboardCurrent": False, "intentJob": None, "simulationLabel": None}
 
 
+def test_f5a_explicit_longer_cut_review_survives_restart_and_preserves_old_policy(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
+    store = storage.projects.create(FIXED_CHINESE_BRIEF)
+    project_id = store.manifest.project_id
+    monkeypatch.setattr("plotloom.persistence.project.storyboard_review.ProjectStoryboardReviewPersistence._validate", staticmethod(lambda *_args: None))
+    try:
+        _accepted_f4_script(store)
+        old, old_request = store.prepare_storyboard_review_candidate("ch_trialoldpolicy20260925aaaaaaaaaaaa")
+        old_ready = store.admit_storyboard_review_delivery(_deliver_stage(store, old_request, "storyboard.json", {"episodes": []}, "old-eight"))
+        accepted = store.accept_storyboard_review_candidate(StoryboardReviewAcceptRequest(job_id=old.job_id, expected_review_revision=0, binding=old_ready.binding))
+        assert accepted.status == "accepted"
+        assert accepted.accepted_review.binding.review_max_cut_seconds == 8  # type: ignore[union-attr]
+    finally:
+        store.close()
+    client = TestClient(create_project_folder_authoring_app(storage))
+    assert client.get(f"/api/v2/projects/{project_id}/storyboard-source-review").json()["status"] == "accepted"
+    assert client.post(f"/api/v2/projects/{project_id}/storyboard-source-review/candidates", json={"maxCutSeconds": 16}).status_code == 422
+    prepared = client.post(f"/api/v2/projects/{project_id}/storyboard-source-review/candidates", json={"maxCutSeconds": 12})
+    assert prepared.status_code == 201, prepared.text
+    assert prepared.json()["binding"]["reviewMaxCutSeconds"] == 12
+    job_id = prepared.json()["jobId"]
+    store = storage.projects.open(project_id)
+    try:
+        request = store.storyboard_review_candidate_request(job_id)
+        assert request.input_artifacts["storyboard-admission.json"]["reviewTiming"]["maxCutSeconds"] == 12
+        store.creative_handoff_exchange().write_package(request)
+        _deliver_stage(store, request, "storyboard.json", {"episodes": []}, "longer-twelve")
+    finally:
+        store.close()
+    refreshed = client.post(f"/api/v2/projects/{project_id}/storyboard-source-review/candidates/{job_id}/refresh")
+    assert refreshed.status_code == 200, refreshed.text
+    chosen = client.post(f"/api/v2/projects/{project_id}/storyboard-source-review/accept", json={
+        "jobId": job_id, "expectedReviewRevision": 1, "binding": refreshed.json()["binding"],
+    })
+    assert chosen.status_code == 200, chosen.text
+    assert chosen.json()["acceptedReview"]["binding"]["reviewMaxCutSeconds"] == 12
+    assert chosen.json()["staleReasons"] == []
+
+
 def test_f5a_accepted_review_stales_when_accepted_f4_script_changes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Lifecycle proof; the separate validator owns candidate-content checks."""
     storage = ProjectFolderStorage(outputs_root=tmp_path / "outputs", application_data_root=tmp_path / "application")
