@@ -83,12 +83,14 @@ paths are covered by the locked Python suite.
   `/home/wjmao/services/spark-comfyui/data/output/experiments/h3-ref2va-gateway-2026-09-26/`.
   The existing local Comfy tunnel at `127.0.0.1:8891` returned HTTP 200 for
   that file. This experimental review copy is not a gateway-managed output
-  and does not inherit the gateway's 72-hour expiry. **Human audiovisual
-  review of the replacement is pending; technical output checks do not
-  assert voice consistency or lip-sync quality.**
+  and does not inherit the gateway's 72-hour expiry. After watching the linked
+  replacement, the user responded **“all good”** on 2026-09-26. This accepts
+  the reviewed canary's audiovisual result; it is not a statistical guarantee
+  of voice consistency or lip-sync quality across other shots and prompts.
 
 No creative acceptance is inferred from a 202 response, health report, test
-count or prior direct-Comfy trial. The gateway canary must reach a known
-terminal status and its exact output must be reviewed before the B checkpoint
-is called accepted. The director receives a separate API handoff after this
-technical gate.
+count or prior direct-Comfy trial. This canary reached a known terminal status
+and its exact output was reviewed before the bounded gateway checkpoint was
+accepted. The director received a separate API handoff; Plotloom Voice ID,
+candidate management, product transport and main-branch integration remain
+outside this specialist checkpoint.
