@@ -397,3 +397,40 @@ the creator's Safari tab and project content were not changed. Screenshot:
 Safari replay and creative acceptance are not claimed. No Python changes were
 made; the Python suite was not rerun. Existing build chunk-size warning remains.
 Next manual checkpoint: Characters. Contract: ADR 0087.
+
+## Character task preparation findings — 2026-09-26
+
+- The creator observed that the enabled “创建新角色提案” button looks disabled
+  because it is gray. Clicking successfully reached the waiting-for-delivery
+  state. This is an affordance/action-hierarchy finding, not a failed click.
+  Proposed shared rule: gold for the main next action, high-contrast outline
+  for secondary enabled actions, muted gray for genuinely disabled actions with
+  an adjacent reason. Audit shared styles and usage rather than recoloring only
+  this button. Recorded for follow-up; not implemented or globally verified.
+- “创建新角色提案” suggests creation, while its explanatory text says it only
+  prepares a copyable manual task. Proposed wording: “准备角色设定任务”.
+- After the click, the screenshot shows “等待手动任务”, “手动任务尚未交付”,
+  “刷新交付”, and collapsed “查看已复制的手动任务”. Task text and its next
+  execution step should be discoverable without assistant guidance. The
+  screenshot does not establish clipboard success; “已复制” needs checking
+  against actual clipboard state rather than assumed preparation success.
+- Walkthrough checkpoint: task prepared, no character delivery or acceptance
+  shown. Next inspect the task-text section, copy the complete assignment, run
+  it in a separate local task, then check delivery and review before accepting.
+
+### Specialist authoring command failures
+
+The character specialist reported two distinct failures: bare `python` was
+unavailable, then an inline `python3` script was rejected for malformed UTF-8
+before execution. Follow-up checks reportedly found UTF-8 locale/input encoding
+and successful short and longer Chinese input; the origin of the malformed
+bytes remains unknown. Do not classify this as a Plotloom product, Chinese-text
+or command-length defect. The file-patch recovery passed the pinned validator
+and delivery hash checks.
+
+The specialist skill now directs Python helpers through `uv run --locked python`,
+candidate authoring through `apply_patch`, and diagnosis through observed errors
+and actual output state. No application/schema changes or edits to the completed
+candidate, manifest, frozen request or execution pin were made. Skill validation
+and all 9 creative-handoff exchange tests passed. This is authoring guidance,
+not a claim to have diagnosed or repaired command transport.

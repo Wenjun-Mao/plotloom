@@ -36,6 +36,20 @@ not a backend job, a review decision, or permission to edit canon.
   the supplied section IDs once, and use only the candidate's stable scene/prop
   IDs. Do not invent an episode, hook, or parallel graph to populate it.
 
+## Local authoring
+
+- For Python helpers, run `uv run --locked python` from the repository root;
+  do not assume a bare `python` command exists or use the system interpreter.
+  Keep the pinned upstream Node validator and renderer commands unchanged.
+- Author candidate JSON with `apply_patch`, rather than embedding the document
+  in an inline Python script. Helpers should read the saved file as UTF-8 data,
+  not reinterpret candidate prose as program source. Still write only the
+  authorized delivery files and publish the completion manifest last.
+- If a command fails, report the observed error and check whether it wrote any
+  output before retrying. A malformed-byte error alone does not establish a
+  locale, Chinese-text, command-length, or transport defect. Preserve the error;
+  investigate transport only if a small reproducible case supports that cause.
+
 ## Delivery
 
 1. Follow the upstream skill's stage boundaries and validators. Seed-derived
