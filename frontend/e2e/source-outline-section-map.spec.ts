@@ -28,7 +28,8 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   await writeFixtureOutline(await prepared.json() as PreparedOutline);
   await page.getByRole("button", { name: "刷新 specialist delivery" }).click();
   await expect(page.getByText("可审核")).toBeVisible();
-  await page.getByRole("button", { name: "显式接受此候选" }).click();
+  await expect(page.getByText("确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "确认使用此大纲", exact: true }).click();
   await expect(page.getByText("已接受 r1")).toBeVisible();
 
   const map = page.getByTestId("section-map");

@@ -81,6 +81,14 @@ selection decisions on the director's behalf during the active walkthrough.
 
 ## Findings
 
+### Outline confirmation wording
+
+Creator found `显式接受此候选` unnatural. Agreed replacement:
+`确认使用此大纲`, with `确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。`
+This changes copy only; acceptance API, revision guards and creator ownership
+remain unchanged. Verification uses the isolated source-outline browser journey,
+not acceptance of the retained 雨停以后 project.
+
 ### Report label comprehension — 2026-09-26
 
 - Scene-card occurrence strips also lack a legend: positions represent upstream
