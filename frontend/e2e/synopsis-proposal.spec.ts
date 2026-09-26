@@ -1,4 +1,4 @@
-import type { APIRequestContext } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 import { expect, test } from "./fixture";
 
 test("turns a synopsis into a reviewable Bible/Graph proposal without entering downstream production", async ({ page, request, workbench }) => {
@@ -58,7 +58,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   expect((await bibleSave).ok()).toBeTruthy();
   const authoredBible = (await readJson<{ stages: Array<{ head: { stage: string; revision: number }; payload: unknown }> }>(request, `${workbench.apiOrigin}/api/v2/projects/${projectId}/stages`)).stages.find((stage) => stage.head.stage === "story_bible");
   expect(authoredBible).toMatchObject({ head: { revision: 2 }, payload: { logline: "夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。" } });
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /项目简报/ }).click();
+  await openBriefTool(page);
   await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
   await page.reload();
   await expect(page.getByTestId("story-proposal-review")).toContainText("夜班气象员要在亲人与整座岛之间决定哪一种真相得以留下。");
@@ -78,7 +78,7 @@ test("turns a synopsis into a reviewable Bible/Graph proposal without entering d
   expect(savedBible).toEqual(authoredBible);
 
   await page.getByLabel("片名").fill("风暴回声");
-  await page.getByRole("button", { name: "保存简报" }).click();
+  await page.getByRole("button", { name: "保存修改" }).click();
   await expect(page.getByText("提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
   const refreshed = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
@@ -128,7 +128,7 @@ test("keeps an authored Bible intact when its graph-only proposal regeneration i
     && /\/api\/v2\/projects\/[^/]+\/stages\/story_bible$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "保存故事圣经" }).click();
   expect((await bibleSave).ok()).toBeTruthy();
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /项目简报/ }).click();
+  await openBriefTool(page);
   await page.reload();
   await expect(page.getByText("提案的上游内容已变更。请重新生成 Story Bible 与剧情 DAG 后，再进入分镜规划；不会覆盖任何下游内容。", { exact: true })).toBeVisible();
   await page.route("**/api/v2/projects/*/pipeline-runs", async (route) => {
@@ -188,7 +188,7 @@ test("continues a current proposal through the smallest editable storyboard rang
     && /\/api\/v2\/projects\/[^/]+\/stages\/scene_beats$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "保存节拍计划" }).click();
   expect((await sceneSave).ok()).toBeTruthy();
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /项目简报/ }).click();
+  await openBriefTool(page);
   const storyboardOnlyRequest = page.waitForResponse((response) => response.request().method() === "POST"
     && /\/api\/v2\/projects\/[^/]+\/pipeline-runs$/.test(new URL(response.url()).pathname));
   await page.getByRole("button", { name: "生成可编辑场景与分镜" }).click();
@@ -201,6 +201,14 @@ test("continues a current proposal through the smallest editable storyboard rang
   await expect(page.getByText("场景与分镜已经是最新版本；不会创建替换运行。", { exact: true })).toBeVisible();
   expect(await requestCount(request, workbench.apiOrigin, projectId)).toBe(runCount);
 });
+
+async function openBriefTool(page: Page): Promise<void> {
+  const tools = page.locator(".workspace-tools-navigation");
+  if (!(await tools.evaluate((element) => (element as HTMLDetailsElement).open))) {
+    await tools.locator("summary").click();
+  }
+  await page.getByRole("navigation", { name: "编辑与工具" }).getByRole("button", { name: "项目简报" }).click();
+}
 
 async function configurePublicNoAuthProfile(request: APIRequestContext, apiOrigin: string, providerOrigin: string): Promise<void> {
   const catalog = await readJson<{ profiles: Array<{ profileId: string; revision: number; configuration: Record<string, unknown> }> }>(request, `${apiOrigin}/api/v2/text-provider-profiles`);

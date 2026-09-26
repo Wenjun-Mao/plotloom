@@ -1241,8 +1241,8 @@ export interface SourceMaterial {
   kind: SourceKind;
   title: string;
   text: string;
-  attribution: string;
-  rightsDeclaration: string;
+  attribution: string | null;
+  rightsDeclaration: string | null;
   adaptationIntent: string;
   inventedAdditions: string | null;
 }

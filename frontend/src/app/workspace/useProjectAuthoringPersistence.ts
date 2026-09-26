@@ -150,8 +150,14 @@ export function useProjectAuthoringPersistence(input: ProjectAuthoringPersistenc
     const nextLocal = mergeProjectResponse(source.session.project, patch);
     try {
       if (!source.session.project.id) {
+        const unsavedProject = source.session.project;
         const createdId = await createProjectFrom(nextLocal, operation, nextLocal.initialStageOnFirstSave);
         if (!createdId) return undefined;
+        // The canonical create consumed this Brief; its local draft must not
+        // trigger a second save prompt when the creator continues to Source.
+        discardDraft(unsavedProject, "brief");
+        currentDraft.current = undefined;
+        setRestoredDraft(undefined);
         return createdId;
       } else {
         if (source.durableDraftsEnabled.current && getDraft(source.session.project, "brief") && !await flushAuthoringDraft("brief")) return;

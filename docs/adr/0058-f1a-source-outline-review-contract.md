@@ -2,6 +2,10 @@
 
 Status: Accepted, 2026-09-17.
 
+The declaration requirement in this record is superseded by
+[ADR 0085](0085-brief-to-source-entry-and-optional-declarations.md). The
+review and acceptance boundaries below remain in force.
+
 ## Context
 
 F0 can freeze and validate a Shuohao outline delivery, but deliberately does

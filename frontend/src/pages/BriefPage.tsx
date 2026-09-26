@@ -4,8 +4,10 @@ import { Button, Field, PageHeader, Panel } from "../components";
 
 type BriefPageProps = {
   value: ProjectBrief;
+  hasSavedProject: boolean;
   saving: boolean;
   onSave: (brief: ProjectBrief) => Promise<unknown>;
+  onSaveAndContinue: (brief: ProjectBrief) => Promise<void>;
   onDraftChange?: (brief: ProjectBrief) => void;
   bible?: StoryBible;
   graph?: StoryGraph;
@@ -24,7 +26,7 @@ const defaultWorkingTitle = "未命名故事";
  * The brief remains the canonical input. This page only composes its first two
  * canonical downstream stages into a review; it does not own proposal state.
  */
-export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
+export function BriefPage({ value, hasSavedProject, saving, onSave, onSaveAndContinue, onDraftChange, bible, graph, proposalRunning = false, proposalReady = true, storyboardRunning = false, onGenerateProposal, onGenerateStoryboard, onReviewStage, onContinueToPlanning }: BriefPageProps) {
   const [draft, setDraft] = useState(value);
   const set = <K extends keyof ProjectBrief>(key: K, next: ProjectBrief[K]) => setDraft((current) => {
     const updated = { ...current, [key]: next };
@@ -32,6 +34,7 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
   });
   const numeric = <K extends keyof ProjectBrief>(key: K, raw: string) => set(key, Number(raw) as ProjectBrief[K]);
   const canonicalDraft = (): ProjectBrief => ({ ...draft, title: draft.title.trim() || defaultWorkingTitle });
+  const canSave = !saving && Boolean(draft.synopsis.trim()) && Number.isInteger(draft.targetPlaythroughSeconds) && draft.targetPlaythroughSeconds >= 3;
   const hasProposal = Boolean(bible?.logline && graph?.nodes.length);
   const decisions = graph?.nodes.filter((node) => node.kind === "decision") || [];
   const endings = graph?.nodes.filter((node) => node.kind === "ending") || [];
@@ -40,7 +43,9 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
   const choiceSources = (graph?.nodes || []).filter((node) => choiceEdges.some((edge) => edge.sourceNodeId === node.id));
   const choicesFor = (nodeId: string) => choiceEdges.filter((edge) => edge.sourceNodeId === nodeId);
   return <div className="page">
-    <PageHeader title="项目简报" description="从梗概生成可审阅故事提案；不会自动生成场景、分镜或媒体。" actions={<><Button variant="quiet" disabled={saving} onClick={() => void onSave(canonicalDraft())}>{saving ? "保存中…" : "保存简报"}</Button>{onGenerateProposal && <Button variant="primary" disabled={saving || proposalRunning || !draft.synopsis.trim()} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button>}</>} />
+    <PageHeader title="项目简报" description={hasSavedProject ? "保存对项目简报的修改；保存后留在本页，已有来源不会被覆盖。" : "保存后进入来源与大纲；片名和梗概会成为可编辑草稿，不会自动接受或生成内容。"} actions={hasSavedProject
+      ? <Button variant="primary" disabled={!canSave} onClick={() => void onSave(canonicalDraft())}>{saving ? "保存中…" : "保存修改"}</Button>
+      : <Button variant="primary" disabled={!canSave} onClick={() => void onSaveAndContinue(canonicalDraft())}>{saving ? "保存中…" : "保存并继续到来源"}</Button>} />
     <div className="two-column wide-left">
       <Panel className="form-card">
         <div className="section-title"><span>Required input</span><strong>从一个梗概开始</strong></div>
@@ -53,7 +58,7 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
         <div className="field-grid three">
           <Field label="语言"><select value={draft.language} onChange={(event) => set("language", event.target.value)}><option value="zh-CN">简体中文</option><option value="en-US">English</option></select></Field>
           <Field label="画幅"><select value={draft.aspectRatio} onChange={(event) => set("aspectRatio", event.target.value)}><option>16:9</option><option>9:16</option><option>1:1</option></select></Field>
-          <Field label="目标游玩时长（秒）"><input type="number" min={30} max={3600} value={draft.targetPlaythroughSeconds} onChange={(event) => numeric("targetPlaythroughSeconds", event.target.value)} /><small>这是创作目标，不是生成后时长的承诺。</small></Field>
+          <Field label="目标游玩时长（秒）"><input type="number" min={3} value={draft.targetPlaythroughSeconds} onChange={(event) => numeric("targetPlaythroughSeconds", event.target.value)} /><small>至少 3 秒；这是创作目标，不是生成后时长的承诺。</small></Field>
         </div>
       </Panel>
       <div className="stack">
@@ -78,6 +83,7 @@ export function BriefPage({ value, saving, onSave, onDraftChange, bible, graph, 
         </Panel>
       </div>
     </div>
+    {onGenerateProposal && <Panel className="brief-alternate-workflow"><strong>其他工作流：旧版故事提案</strong><p>{hasSavedProject ? "直接从简报生成 Story Bible 和剧情图；若要审阅来源与大纲，请从左侧创作流程打开。" : "直接从简报生成 Story Bible 和剧情图；若要先审阅来源与大纲，请使用上方“保存并继续到来源”。"}</p><Button variant="quiet" disabled={!canSave || proposalRunning} onClick={() => void onGenerateProposal(canonicalDraft())}>{proposalRunning ? "正在生成提案…" : "生成故事提案"}</Button></Panel>}
     {hasProposal && bible && graph && <div className="stack proposal-review" data-testid="story-proposal-review">
       <Panel>
         <div className="section-title"><span>Reviewable proposal</span><strong>{bible.logline}</strong></div>

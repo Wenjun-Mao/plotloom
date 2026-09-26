@@ -5,10 +5,14 @@ test.describe("project-folder authoring drafts", () => {
   test("autosaves project.sqlite3 drafts, preserves stale-tab conflict, explicitly saves canon, and recovers after restart", async ({ page, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
-    await page.getByRole("button", { name: "保存简报" }).click();
+    await page.getByRole("button", { name: "保存并继续到来源" }).click();
     await expect(page).toHaveURL(/[?&]project=/);
+    const savedProjectId = new URL(page.url()).searchParams.get("project")!;
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${savedProjectId}&stage=brief`);
+    await expect(page.getByRole("button", { name: "保存修改" })).toBeVisible();
+    await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("草稿：等待编辑", { exact: true })).toBeVisible();
-    const projectId = new URL(page.url()).searchParams.get("project")!;
+    const projectId = savedProjectId;
 
     // The second idle timer fires while the first PUT is deliberately held.
     // Its newer typing must be queued after the first acknowledgement rather
@@ -86,7 +90,7 @@ test.describe("project-folder authoring drafts", () => {
       await route.continue();
     });
     const durableSave = waitForBriefSave(page, projectId, durableTitle);
-    await page.getByRole("button", { name: "保存简报" }).click();
+    await page.getByRole("button", { name: "保存修改" }).click();
     await canonicalSaveStarted;
     const canonicalWhileSaveHeld = await workbenchRequest(workbench.apiOrigin, `/api/v2/projects/${projectId}`);
     expect(canonicalWhileSaveHeld.brief.title).toBe(coalescedTitle);
@@ -104,6 +108,7 @@ test.describe("project-folder authoring drafts", () => {
     await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
     await workbench.restartBackend();
     await page.reload();
+    await page.locator(".topbar-technical-status > summary").click();
     await expect(page.getByText("发现未保存草稿", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "恢复草稿" }).click();
     await expect(page.getByLabel("片名")).toHaveValue(restartDraft);
@@ -146,6 +151,6 @@ async function expectBriefSave(saved: Promise<Response>, expectedTitle: string):
 
 async function saveBriefAndAwaitPatch(page: Page, projectId: string, expectedTitle: string): Promise<void> {
   const saved = waitForBriefSave(page, projectId, expectedTitle);
-  await page.getByRole("button", { name: "保存简报" }).click();
+  await page.getByRole("button", { name: "保存修改" }).click();
   await expectBriefSave(saved, expectedTitle);
 }

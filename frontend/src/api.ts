@@ -620,6 +620,10 @@ export class PlotloomApiClient {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates`, { method: "POST" });
   }
 
+  getOutlineAssignment(projectId: string, jobId: string): Promise<OutlineCandidatePreparation> {
+    return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/assignment`);
+  }
+
   refreshOutlineCandidate(projectId: string, jobId: string): Promise<OutlineCandidate> {
     return this.request(`/projects/${encodeURIComponent(projectId)}/source-outline/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" });
   }

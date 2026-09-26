@@ -40,10 +40,13 @@ test.describe("first-save project bootstrap", () => {
     await openSampleProject(page);
     const title = "E2E Brief-first project";
     await page.getByLabel("片名").fill(title);
+    await expect(page.locator(".page-header .button")).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "保存修改" })).toHaveCount(0);
     const created = captureProjectCreate(page);
-    await page.getByRole("button", { name: "保存简报" }).click();
+    await page.getByRole("button", { name: "保存并继续到来源" }).click();
     const createRequest = await created;
     await expect(page).toHaveURL(/[?&]project=/);
+    await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
     const projectId = currentProjectId(page);
     const creationBody = createRequest.postDataJSON() as ProjectCreateBody;
     expect(creationBody.initialStages.map((stage) => stage.stage)).toEqual([
@@ -84,6 +87,7 @@ test.describe("first-save project bootstrap", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await openSampleProject(page);
     await navigateToSecondaryTool(page, "分镜工作台");
+    await page.getByRole("button", { name: "编辑镜头细节" }).click();
     const action = "E2E：刷新后仍能看到这条已持久化的分镜动作。";
     await page.getByLabel("动作").fill(action);
     const created = captureProjectCreate(page);
@@ -115,6 +119,7 @@ test.describe("first-save project bootstrap", () => {
     await page.reload();
     await expectServiceStatus(page, "Plotloom 服务：已连接");
     await navigateToSecondaryTool(page, "分镜工作台");
+    await page.getByRole("button", { name: "编辑镜头细节" }).click();
     await expect(page.getByLabel("动作")).toHaveValue(action);
   });
 

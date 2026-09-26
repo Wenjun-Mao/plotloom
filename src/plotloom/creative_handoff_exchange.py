@@ -191,6 +191,12 @@ class CreativeHandoffExchange:
                 raise CreativeHandoffError("package_conflict", "existing package input differs from frozen request")
         return job_root, projected
 
+    def verified_package_paths(self, request: CreativeHandoffRequest) -> dict[str, str]:
+        """Recover an existing handoff without creating or repairing frozen files."""
+        request.assert_secret_free()
+        job_root, _ = self._verify_frozen_package(request)
+        return {"packagePath": str(job_root / "package"), "deliveryPath": str(job_root / "delivery")}
+
     def write_package(self, request: CreativeHandoffRequest) -> dict[str, str]:
         request.assert_secret_free()
         job_root = self._job_root(request.job_id)

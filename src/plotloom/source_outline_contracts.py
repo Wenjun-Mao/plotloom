@@ -24,23 +24,30 @@ SectionMapStatus = Literal["missing", "current", "stale"]
 
 
 class SourceMaterial(CamelModel):
-    """Author-declared source facts; declarations are not rights clearance."""
+    """Accepted source content; optional metadata never establishes clearance."""
 
     kind: SourceKind
     title: str = Field(min_length=1, max_length=300)
     text: str = Field(min_length=1, max_length=1_000_000)
-    attribution: str = Field(min_length=1, max_length=4_000)
-    rights_declaration: str = Field(min_length=1, max_length=4_000)
+    attribution: str | None = Field(default=None, max_length=4_000)
+    rights_declaration: str | None = Field(default=None, max_length=4_000)
     adaptation_intent: str = Field(min_length=1, max_length=8_000)
     invented_additions: str | None = Field(default=None, max_length=8_000)
 
-    @field_validator("title", "text", "attribution", "rights_declaration", "adaptation_intent")
+    @field_validator("title", "text", "adaptation_intent")
     @classmethod
     def require_nonblank(cls, value: str) -> str:
         value = value.strip()
         if not value:
             raise ValueError("source fields must not be blank")
         return value
+
+    @field_validator("attribution", "rights_declaration")
+    @classmethod
+    def normalize_optional_metadata(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
 
     def assert_safe(self) -> None:
         if contains_secret_setting(self.model_dump(mode="json", by_alias=True)) or contains_secret_value(self.model_dump(mode="json", by_alias=True)):

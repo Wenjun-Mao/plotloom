@@ -23,15 +23,16 @@ test("serves and persists the checked production bundle through FastAPI", async 
   await page.getByLabel("片名").fill(title);
   const created = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === "/api/v2/projects");
-  await page.getByRole("button", { name: "保存简报" }).click();
+  await page.getByRole("button", { name: "保存并继续到来源" }).click();
   expect((await created).ok()).toBeTruthy();
   await expect(page).toHaveURL(/[?&]project=/);
-  await expect(page.getByLabel("片名")).toHaveValue(title);
+  await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
+  await expect(page.getByLabel("标题")).toHaveValue(title);
 
   assets.beginReload();
   await page.reload();
-  await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
-  await expect(page.getByLabel("片名")).toHaveValue(title);
+  await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
+  await expect(page.getByLabel("标题")).toHaveValue(title);
   await assets.assertHealthy();
 });
 

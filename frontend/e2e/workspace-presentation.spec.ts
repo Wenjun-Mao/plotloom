@@ -16,7 +16,7 @@ async function expectCompactCreatorGap(page: import("@playwright/test").Page) {
 test("keeps creator links compact and gives secondary tools one matching heading", async ({ page, workbench }) => {
   await page.goto(`${workbench.frontendOrigin}/v2/?stage=brief`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("button", { name: "保存简报" }).click();
+  await page.getByRole("button", { name: "保存并继续到来源" }).click();
   await expect(page).toHaveURL(/[?&]project=/);
 
   const toolsSummary = page.getByText("编辑与工具", { exact: true });

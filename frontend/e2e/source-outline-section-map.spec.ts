@@ -10,18 +10,16 @@ test("installs the accepted Tide Light map into canonical routes, then survives 
   await page.getByRole("button", { name: "创建空白项目" }).click();
   await page.getByLabel("片名").fill("潮汐灯");
   await page.getByLabel("故事梗概").fill("气象站员林澈必须决定有限电缆为码头还是灯塔供电。");
-  await page.getByRole("button", { name: "保存简报" }).click();
+  await page.getByRole("button", { name: "保存并继续到来源" }).click();
   await expect(page).toHaveURL(/[?&]project=/);
   const projectId = new URL(page.url()).searchParams.get("project");
   if (!projectId) throw new Error("project creation did not bind an ID");
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
+  await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
 
   await page.getByLabel("标题").fill("潮汐灯");
   await page.getByLabel("来源正文或 treatment").fill("气象站员林澈在风暴前发现电缆只能供给码头或灯塔；被困水手正等待她的决定。");
-  await page.getByLabel("归属 / 署名声明").fill("F1B production-browser fixture author");
-  await page.getByLabel("使用权或许可声明").fill("仅用于 Plotloom F1B 可验证测试；不构成法律确认。");
   await page.getByLabel("改编意图").fill("保留一处电缆选择，清楚呈现两条互斥结局。");
-  await page.getByRole("button", { name: "保存接受的来源" }).click();
+  await page.getByRole("button", { name: "确认改编内容" }).click();
   const preparedResponse = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/source-outline/candidates`);
   await page.getByRole("button", { name: "准备 specialist handoff" }).click();

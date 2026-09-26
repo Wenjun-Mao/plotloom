@@ -124,7 +124,7 @@ describe("M1-B1 App integration contracts", () => {
     await act(async () => setInput(document.querySelector(".form-card input") as HTMLInputElement, localTitle));
     expect(window.sessionStorage.getItem("plotloom:workbench-drafts:v1")).toContain(localTitle);
 
-    await act(async () => button("保存简报").click());
+    await act(async () => button("保存修改").click());
     await flush();
 
     expect(document.body.textContent).toContain("草稿版本已过期");

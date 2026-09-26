@@ -21,6 +21,23 @@ from ..source_outline_contracts import (
 )
 
 
+def _outline_assignment(candidate: OutlineCandidate, paths: dict[str, str]) -> OutlineCandidatePreparation:
+    payload = candidate.model_dump(mode="python", by_alias=False)
+    payload.update(
+        package_path=paths["packagePath"],
+        delivery_path=paths["deliveryPath"],
+        assignment=(
+            f"请执行这份 Plotloom 大纲任务（{candidate.job_id}）。\n"
+            f"先阅读 {paths['packagePath']}/request.json，\n"
+            f"并遵循 {paths['packagePath']}/COPY_ASSIGNMENT.txt 中的要求。\n"
+            "只交付候选大纲、派生报告和完成回执，文件名、格式及验证要求以任务文件为准。\n"
+            f"所有交付文件只写入 {paths['deliveryPath']}。\n"
+            "不要替我接受大纲，不要修改已确认内容或项目状态。完成后报告交付位置和验证结果。"
+        ),
+    )
+    return OutlineCandidatePreparation.model_validate(payload)
+
+
 def register_project_folder_source_outline_routes(
     app: FastAPI, opened_project: Callable[[str], Any]
 ) -> None:
@@ -70,8 +87,9 @@ def register_project_folder_source_outline_routes(
                 input_artifacts={},
                 creative_brief=(
                     "Create one reviewable upstream outline.json candidate from the accepted "
-                    "author source. Preserve source attribution and adaptation intent as supplied; "
-                    "do not claim approval or edit project canon."
+                    "author source. Preserve the adaptation intent and any supplied attribution "
+                    "or rights metadata without inventing missing claims. Do not claim approval, "
+                    "rights clearance, or edit project canon."
                 ),
             )
             candidate = store.prepare_outline_candidate(request)
@@ -79,16 +97,22 @@ def register_project_folder_source_outline_routes(
             paths = exchange.write_package(request)
             # The assignment is deliberately returned only after project state
             # reserves the exact job identity; the specialist cannot choose it.
-            candidate_payload = candidate.model_dump(mode="python", by_alias=False)
-            candidate_payload["package_path"] = paths["packagePath"]
-            candidate_payload["delivery_path"] = paths["deliveryPath"]
-            candidate_payload["assignment"] = (
-                f"Plotloom outline assignment for {request.job_id}: read "
-                f"{paths['packagePath']}/request.json and follow its COPY_ASSIGNMENT.txt. "
-                f"Write only the candidate, derived report, and completion receipt under "
-                f"{paths['deliveryPath']}. This cannot accept or alter project canon."
-            )
-            return OutlineCandidatePreparation.model_validate(candidate_payload)
+            return _outline_assignment(candidate, paths)
+
+    @app.get(
+        "/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/assignment",
+        response_model=OutlineCandidatePreparation,
+    )
+    def get_source_outline_assignment(project_id: str, job_id: str) -> OutlineCandidatePreparation:
+        with opened_project(project_id) as store:
+            candidate = store.source_outline_state().candidate
+            if candidate is None or candidate.job_id != job_id:
+                raise HTTPException(status_code=404, detail="outline handoff not found")
+            if candidate.status != "prepared":
+                raise HTTPException(status_code=409, detail="outline handoff is no longer awaiting execution")
+            request = store.outline_candidate_request(job_id)
+            paths = store.creative_handoff_exchange().verified_package_paths(request)
+            return _outline_assignment(candidate, paths)
 
     @app.post(
         "/api/v2/projects/{project_id}/source-outline/candidates/{job_id}/refresh",
@@ -125,8 +149,14 @@ def register_project_folder_source_outline_routes(
         return HTMLResponse(
             report,
             headers={
-                "Content-Security-Policy": "sandbox; default-src 'none'; style-src 'unsafe-inline'; img-src data:;",
+                "Content-Security-Policy": (
+                    "sandbox allow-scripts; default-src 'none'; script-src 'unsafe-inline'; "
+                    "style-src 'unsafe-inline'; img-src data:; connect-src 'none'; "
+                    "form-action 'none'; base-uri 'none'; frame-src 'none'; "
+                    "object-src 'none'; frame-ancestors 'self';"
+                ),
                 "X-Content-Type-Options": "nosniff",
+                "Referrer-Policy": "no-referrer",
             },
         )
 

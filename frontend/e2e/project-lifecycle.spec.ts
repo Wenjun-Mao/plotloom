@@ -23,6 +23,7 @@ test.describe("M1-B0 real project journeys", () => {
     await page.getByLabel("片名").fill(secondTitle);
     await page.getByLabel("故事梗概").fill(`A canonical synopsis for ${secondTitle}.`);
     const secondProjectId = await saveBrief(page);
+    await returnToBrief(page, workbench.frontendOrigin, secondProjectId);
     await expect(page.getByLabel("片名")).toHaveValue(secondTitle);
     expect(secondProjectId).not.toBe(firstProjectId);
 
@@ -43,6 +44,7 @@ test.describe("M1-B0 real project journeys", () => {
   test("persists a durable draft and installs it only on explicit save", async ({ page, request, workbench }) => {
     const initialTitle = uniqueTitle("E2E draft initial");
     const projectId = await createProject(page, workbench.frontendOrigin, initialTitle);
+    await page.locator(".topbar-technical-status > summary").click();
 
     const durableTitle = uniqueTitle("E2E durable navigation draft");
     await page.getByLabel("片名").fill(durableTitle);
@@ -83,6 +85,7 @@ test.describe("M1-B0 real project journeys", () => {
     }
     const afterSave = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}`);
     expect((await afterSave.json() as { brief: { title: string } }).brief.title).toBe(durableTitle);
+    await page.getByText("编辑与工具", { exact: true }).click();
     await page.getByRole("button", { name: "故事圣经" }).first().click();
     await expect(page.getByRole("heading", { name: "故事圣经" })).toBeVisible();
     await page.getByRole("button", { name: "项目简报" }).first().click();
@@ -183,7 +186,8 @@ test.describe("M1-B0 real project journeys", () => {
     const secondTitle = uniqueTitle("E2E delayed second");
     await page.getByLabel("片名").fill(secondTitle);
     await page.getByLabel("故事梗概").fill(`A canonical synopsis for ${secondTitle}.`);
-    await saveBrief(page);
+    const secondProjectId = await saveBrief(page);
+    await returnToBrief(page, workbench.frontendOrigin, secondProjectId);
     await expect(page.getByLabel("片名")).toHaveValue(secondTitle);
 
     let signalFirstLoad: (() => void) | undefined;
@@ -223,6 +227,7 @@ async function createProject(page: Page, frontendOrigin: string, title: string):
   await page.getByLabel("片名").fill(title);
   await page.getByLabel("故事梗概").fill(`A canonical synopsis for ${title}.`);
   const projectId = await saveBrief(page);
+  await returnToBrief(page, frontendOrigin, projectId);
   await expect(page.getByLabel("片名")).toHaveValue(title);
   return projectId;
 }
@@ -232,10 +237,16 @@ async function saveBrief(page: Page): Promise<string> {
     const request = response.request();
     return request.method() === "POST" && new URL(request.url()).pathname === "/api/v2/projects";
   });
-  await page.getByRole("button", { name: "保存简报" }).click();
+  await page.getByRole("button", { name: "保存并继续到来源" }).click();
   expect((await creation).ok()).toBeTruthy();
   await expect.poll(() => projectIdFromPage(page)).not.toBe("");
+  await expect(page.getByRole("heading", { name: "来源与大纲" })).toBeVisible();
   return projectIdFromPage(page);
+}
+
+async function returnToBrief(page: Page, frontendOrigin: string, projectId: string): Promise<void> {
+  await page.goto(`${frontendOrigin}/v2/?project=${projectId}&stage=brief`);
+  await expect(page.getByRole("button", { name: "保存修改" })).toBeVisible();
 }
 
 async function saveExistingBrief(page: Page, projectId: string): Promise<void> {
@@ -244,8 +255,9 @@ async function saveExistingBrief(page: Page, projectId: string): Promise<void> {
     return request.method() === "PATCH"
       && new URL(request.url()).pathname === `/api/v2/projects/${projectId}`;
   });
-  await page.getByRole("button", { name: "保存简报" }).click();
+  await page.getByRole("button", { name: "保存修改" }).click();
   expect((await saved).ok()).toBeTruthy();
+  await expect(page.getByRole("heading", { name: "项目简报" })).toBeVisible();
 }
 
 async function openDirectory(page: Page): Promise<void> {
