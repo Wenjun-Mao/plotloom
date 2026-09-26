@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Plotloom · Voice Lab prototype</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230b0f15'/%3E%3Ctext x='32' y='41' text-anchor='middle' font-family='sans-serif' font-size='24' fill='%23e7b65b'%3EPL%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">PL</span><span><strong>Plotloom</strong><small>VOICE CASTING LAB</small></span></div>
+      <div class="topbar-title">角色声线工作台 <span>Voice Lab</span></div>
+      <div class="topbar-status"><span class="status-dot"></span>原型 · 已保存样本</div>
+    </header>
+
+    <div class="app-body">
+      <nav class="side-rail" aria-label="工作流">
+        <div class="rail-caption">CASTING SESSION</div>
+        <div class="character-name">灯塔守望者</div>
+        <div class="character-subtitle">合成声线探索 · 中文</div>
+        <ol class="workflow-steps">
+          <li class="current"><span>01</span><strong>设计与试听</strong></li>
+          <li><span>02</span><strong>入围对比</strong></li>
+          <li><span>03</span><strong>视频内验证</strong></li>
+          <li><span>04</span><strong>正式声线选择</strong></li>
+        </ol>
+        <p class="rail-note">本页只评估已有录音。不会生成新音频，也不会写入 Plotloom 项目。</p>
+      </nav>
+
+      <main class="workspace">
+        <div class="page-heading">
+          <div><div class="eyebrow">CHARACTER VOICE · EXPERIMENT 2026.09.26</div><h1>为角色寻找一个声音</h1><p>先用同一句台词比较音色，再将入围声线放进不同镜头检验。</p></div>
+          <span class="slate-count">4 条真实录音</span>
+        </div>
+
+        <section class="design-panel" aria-labelledby="design-heading">
+          <div class="section-heading"><div><span class="section-index">01 / DESIGN</span><h2 id="design-heading">下一轮声线设计</h2></div><span class="panel-tag">草稿控件</span></div>
+          <div class="design-fields">
+            <label>角色声线方向
+              <textarea id="voice-brief" rows="3">三十岁左右的中国女性。冷静、坚定，中低音，自然口语；在紧急抉择中仍然克制。</textarea>
+            </label>
+            <label>统一试听台词
+              <textarea id="audition-line" rows="3">雨还没有停。主灯，或者码头，我们只能先保住一边。</textarea>
+            </label>
+          </div>
+          <div class="generation-row">
+            <button type="button" class="primary-button" disabled aria-describedby="generation-note">生成 4 个候选</button>
+            <p id="generation-note">生成服务尚未接入此原型。修改草稿不会改变下方四条已生成录音。</p>
+          </div>
+          <p id="draft-status" class="draft-status" aria-live="polite"></p>
+        </section>
+
+        <section class="gallery" aria-labelledby="gallery-heading">
+          <div class="section-heading gallery-heading">
+            <div><span class="section-index">02 / AUDITION</span><h2 id="gallery-heading">试听候选</h2><p>同一句台词 · 四种设计方向 · 一次只播放一条</p></div>
+            <div class="gallery-actions">
+              <button id="blind-toggle" type="button" class="toolbar-button" aria-pressed="false">打乱并盲听</button>
+              <button id="notes-toggle" type="button" class="toolbar-button" aria-pressed="false">显示设计说明</button>
+            </div>
+          </div>
+          <div id="candidate-grid" class="candidate-grid">
+            <article class="candidate-card" data-candidate="a">
+              <div class="candidate-meta"><span class="candidate-order">01</span><span>05.04 秒</span></div>
+              <h3 class="candidate-label">候选 A</h3>
+              <p class="candidate-note" hidden>中低音，冷静坚定，略带沙哑，语速中等。</p>
+              <audio controls preload="metadata" src="assets/candidate_a_h3_ready.wav" aria-label="播放候选 A"></audio>
+              <div class="candidate-actions"><button type="button" class="shortlist-button" aria-pressed="false">加入对比</button><span class="candidate-state">未入围</span></div>
+            </article>
+            <article class="candidate-card" data-candidate="b">
+              <div class="candidate-meta"><span class="candidate-order">02</span><span>05.44 秒</span></div>
+              <h3 class="candidate-label">候选 B</h3>
+              <p class="candidate-note" hidden>温暖沉稳的女中音，略带自然气声。</p>
+              <audio controls preload="metadata" src="assets/candidate_b_h3_ready.wav" aria-label="播放候选 B"></audio>
+              <div class="candidate-actions"><button type="button" class="shortlist-button" aria-pressed="false">加入对比</button><span class="candidate-state">未入围</span></div>
+            </article>
+            <article class="candidate-card" data-candidate="c">
+              <div class="candidate-meta"><span class="candidate-order">03</span><span>05.52 秒</span></div>
+              <h3 class="candidate-label">候选 C</h3>
+              <p class="candidate-note" hidden>清亮但不尖锐，果断敏捷，语速稍快。</p>
+              <audio controls preload="metadata" src="assets/candidate_c_h3_ready.wav" aria-label="播放候选 C"></audio>
+              <div class="candidate-actions"><button type="button" class="shortlist-button" aria-pressed="false">加入对比</button><span class="candidate-state">未入围</span></div>
+            </article>
+            <article class="candidate-card" data-candidate="d">
+              <div class="candidate-meta"><span class="candidate-order">04</span><span>07.52 秒</span></div>
+              <h3 class="candidate-label">候选 D</h3>
+              <p class="candidate-note" hidden>成熟低音，略有颗粒感，克制坚韧。</p>
+              <audio controls preload="metadata" src="assets/candidate_d_h3_ready.wav" aria-label="播放候选 D"></audio>
+              <div class="candidate-actions"><button type="button" class="shortlist-button" aria-pressed="false">加入对比</button><span class="candidate-state">未入围</span></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="compare-panel" aria-labelledby="compare-heading">
+          <div class="section-heading"><div><span class="section-index">03 / COMPARE</span><h2 id="compare-heading">快速切换两条声线</h2></div><span id="compare-count" class="panel-tag">0 / 2 已入围</span></div>
+          <div class="compare-slots">
+            <div class="compare-slot"><span>左侧</span><strong id="slot-label-0">选择一条候选</strong><div><button type="button" class="compare-play" data-slot="0" disabled>从头播放</button><button type="button" class="prefer-button" data-slot="0" disabled>标为本页偏好</button></div></div>
+            <div class="compare-slot"><span>右侧</span><strong id="slot-label-1">选择第二条候选</strong><div><button type="button" class="compare-play" data-slot="1" disabled>从头播放</button><button type="button" class="prefer-button" data-slot="1" disabled>标为本页偏好</button></div></div>
+          </div>
+          <p id="compare-status" class="compare-status" aria-live="polite">可从上方选最多两条。偏好仅在当前页面有效，不会生成 Voice ID。</p>
+        </section>
+      </main>
+
+      <aside class="inspector" aria-labelledby="inspector-heading">
+        <div class="eyebrow">INSPECTOR</div><h2 id="inspector-heading">试听状态</h2>
+        <div class="inspector-block"><span>候选来源</span><strong>Qwen3-TTS VoiceDesign</strong><small>2026-09-26 · 合成样本</small></div>
+        <div class="inspector-block"><span>本页偏好</span><strong id="preferred-label">尚未标记</strong><small>仅供界面评估，不是正式选择</small></div>
+        <div class="inspector-block"><span>视频内验证</span><strong id="reviewed-label">候选 A · 两镜头获用户认可</strong><small>不代表跨角色、跨场景可靠度</small></div>
+        <div class="inspector-block"><span>Plotloom Voice ID</span><strong>尚未创建</strong><small>正式资产与审批由 Plotloom 负责</small></div>
+        <p class="inspector-footer">先比较声音，再验证不同台词和可见口型。技术完成不等于创作批准。</p>
+      </aside>
+    </div>
+  </div>
+</body>
+</html>
