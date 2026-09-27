@@ -1,7 +1,8 @@
 # Spark Voice Lab: projects, selective generation and published Voice IDs
 
-**Status:** Proposed implementation plan for owner review; no implementation
-authorized by this document. Follow-on to the deployed
+**Status:** Implemented and live-verified in the specialist Voice Lab on
+2026-09-27; independent review and Plotloom integration remain on hold.
+Follow-on to the deployed
 [Voice Lab MVP](2026-09-26-spark-voice-lab-plan.md), governed by
 [ADR 0092](../adr/0092-voice-lab-projects-and-published-voice-identity.md).
 This is specialist-side work on the retained checkout. The hold on Plotloom

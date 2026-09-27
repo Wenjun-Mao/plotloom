@@ -1,13 +1,13 @@
 # ADR 0092: Project-scoped Voice Lab and independent published Voice IDs
 
-**Status:** Accepted product direction, 2026-09-26. Implementation pending;
-ADR 0091 remains the contract of the currently deployed pilot until this
-cutover is verified.
+**Status:** Implemented and live-verified in the specialist Voice Lab on Spark,
+2026-09-27; independent review is pending before merge/push. Plotloom
+integration remains deferred.
 
 ## Context
 
-The first Spark Voice Lab persists casting rounds globally and opens the most
-recent one at `/`. Its retained verification audio therefore appears to a new
+The first Spark Voice Lab persisted casting rounds globally and opened the most
+recent one at `/`. Its retained verification audio therefore appeared to a new
 visitor, even though no generation happens on page load. The owner wants an
 empty starting workspace, independently editable named projects, and
 candidate-level add/regenerate actions. Plotloom should later accept a Voice
@@ -53,11 +53,10 @@ grow storage without a decision. Deleting a published voice with its project
 would break downstream work. Separate candidate, generation and published
 voice identities preserve selective iteration while making deletion explicit.
 
-The implementation must define project-scoped APIs and UI, a safe migration
-for the existing pilot round, atomic replacement/cleanup, and a read-only
-published-voice resolution contract. The specialist can build and verify the
-Lab side, but the owner has not released the hold on contacting the Plotloom
-director or integrating Plotloom itself.
+The specialist implementation defines project-scoped APIs and UI, a checked
+migration for the existing pilot, pointer-swap replacement with cleanup debt,
+and a read-only published-voice resolution contract. The owner has not released
+the hold on contacting the Plotloom director or integrating Plotloom itself.
 
 The bounded [implementation plan](../roadmap/2026-09-26-spark-voice-lab-projects-plan.md)
 turns this decision into ordered, testable specialist work.

@@ -1,4 +1,4 @@
-"""Private same-origin Voice Lab API and reviewed browser interface."""
+"""Private same-origin project-scoped Voice Lab API."""
 
 from __future__ import annotations
 
@@ -10,7 +10,11 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 
-from .contracts import CloneCreate, RoundCreate, SelectionCreate
+from .contracts import (
+    CandidateCreate, CandidateDelete, CandidateUpdate, CloneCreate,
+    GenerationCreate, ProjectCreate, ProjectDelete, ProjectUpdate,
+    PublishCreate, SelectionCreate,
+)
 from .engine import QwenEngine
 from .media import file_sha256
 from .store import Store
@@ -20,16 +24,21 @@ from .worker import Worker
 WEB_DIR = Path(__file__).parent / "web"
 
 
-def _not_found() -> HTTPException:
-    return HTTPException(status_code=404, detail={"code": "record.not_found"})
+def _api_error(error: ValueError) -> HTTPException:
+    code = str(error)
+    status = 404 if code.endswith(".not_found") else 409
+    return HTTPException(status_code=status, detail={"code": code})
 
 
-def _verified_file(path: str | None, expected_hash: str | None) -> Path:
+def _verified_file(store: Store, path: str | None, expected_hash: str | None) -> Path:
     if not path or not expected_hash:
         raise HTTPException(status_code=409, detail={"code": "audio.not_ready"})
-    source = Path(path)
-    if not source.is_file() or file_sha256(source) != expected_hash:
-        raise HTTPException(status_code=409, detail={"code": "audio.corrupt"})
+    try:
+        source = store.owned_file(path)
+        if not source.is_file() or file_sha256(source) != expected_hash:
+            raise ValueError("audio.corrupt")
+    except (ValueError, OSError) as error:
+        raise HTTPException(status_code=409, detail={"code": "audio.corrupt"}) from error
     return source
 
 
@@ -75,73 +84,161 @@ def create_app(data_dir: Path, engine=None) -> FastAPI:
             "workerActive": worker.active is not None,
         }
 
-    @app.post("/api/rounds", status_code=202)
-    def create_round(body: RoundCreate):
-        round_id = store.create_round(body.auditionText, body.directions)
-        worker.submit("round", round_id)
-        return {"roundId": round_id, "status": "queued"}
+    @app.get("/api/projects")
+    def list_projects():
+        return {"projects": store.projects.list()}
 
-    @app.get("/api/rounds")
-    def list_rounds():
-        return {"rounds": store.list_rounds()}
+    @app.post("/api/projects", status_code=201)
+    def create_project(body: ProjectCreate):
+        return store.projects.create(body.name)
 
-    @app.get("/api/rounds/{round_id}")
-    def get_round(round_id: str):
-        result = store.get_round(round_id)
-        if result is None:
-            raise _not_found()
+    @app.get("/api/projects/{project_id}")
+    def get_project(project_id: str):
+        try:
+            return store.projects.get(project_id)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.put("/api/projects/{project_id}")
+    def update_project(project_id: str, body: ProjectUpdate):
+        try:
+            return store.projects.update(project_id, body.expectedRevision, body.name, body.brief, body.auditionText)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.delete("/api/projects/{project_id}", status_code=204)
+    def delete_project(project_id: str, body: ProjectDelete):
+        try:
+            store.projects.delete(project_id, body.expectedRevision, body.confirmName)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.post("/api/projects/{project_id}/candidates", status_code=201)
+    def add_candidate(project_id: str, body: CandidateCreate):
+        try:
+            return store.projects.add_candidate(project_id, body.expectedProjectRevision, body.direction)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.put("/api/candidates/{candidate_id}")
+    def edit_candidate(candidate_id: str, body: CandidateUpdate):
+        try:
+            return store.projects.edit_candidate(candidate_id, body.expectedProjectRevision,
+                                                 body.expectedCandidateRevision, body.direction)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.delete("/api/candidates/{candidate_id}")
+    def delete_candidate(candidate_id: str, body: CandidateDelete):
+        try:
+            return store.projects.delete_candidate(candidate_id, body.expectedProjectRevision,
+                                                   body.expectedCandidateRevision)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.post("/api/candidates/{candidate_id}/generations", status_code=202)
+    def create_generation(candidate_id: str, body: GenerationCreate):
+        try:
+            result = store.generations.create(candidate_id, body.expectedProjectRevision,
+                                              body.expectedCandidateRevision, body.seed)
+        except ValueError as error:
+            raise _api_error(error) from error
+        worker.submit("generation", result["generationId"])
         return result
 
-    @app.get("/api/candidates/{candidate_id}/audio")
-    def candidate_audio(candidate_id: str, kind: Literal["source", "h3"] = Query(default="source")):
-        candidate = store.get_candidate(candidate_id, private=True)
-        if candidate is None:
-            raise _not_found()
-        key = "source" if kind == "source" else "h3"
-        source = _verified_file(candidate[f"{key}Path"], candidate[f"{key}Sha256"])
-        return FileResponse(source, media_type="audio/wav", filename=f"{candidate_id}-{key}.wav")
+    @app.get("/api/candidates/{candidate_id}/generations")
+    def generation_history(candidate_id: str):
+        try:
+            return {"generations": store.generations.history(candidate_id)}
+        except ValueError as error:
+            raise _api_error(error) from error
 
-    @app.post("/api/selections", status_code=201)
-    def select_candidate(body: SelectionCreate):
-        candidate = store.get_candidate(body.candidateId, private=True)
-        if candidate is None:
-            raise _not_found()
-        if candidate["status"] != "completed":
-            raise HTTPException(status_code=409, detail={"code": "candidate.not_ready"})
-        _verified_file(candidate["sourcePath"], candidate["sourceSha256"])
-        return store.select(body.candidateId)
+    @app.get("/api/generations/{generation_id}")
+    def get_generation(generation_id: str):
+        try:
+            return store.generations.get(generation_id)
+        except ValueError as error:
+            raise _api_error(error) from error
 
-    @app.get("/api/selections")
-    def get_selections():
-        return {"current": store.current_selection(), "history": store.selection_history()}
+    @app.get("/api/generations/{generation_id}/audio")
+    def generation_audio(generation_id: str, kind: Literal["source", "h3"] = Query(default="source")):
+        try:
+            result = store.generations.get(generation_id, private=True)
+        except ValueError as error:
+            raise _api_error(error) from error
+        source = _verified_file(store, result[f"{kind}Path"], result[f"{kind}Sha256"])
+        return FileResponse(source, media_type="audio/wav", filename=f"{generation_id}-{kind}.wav")
+
+    @app.post("/api/projects/{project_id}/selections", status_code=201)
+    def select_generation(project_id: str, body: SelectionCreate):
+        try:
+            return store.generations.select(project_id, body.generationId)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.get("/api/projects/{project_id}/selections")
+    def selection_history(project_id: str):
+        try:
+            store.projects.get(project_id)
+            return {"history": store.generations.selections(project_id)}
+        except ValueError as error:
+            raise _api_error(error) from error
 
     @app.post("/api/clone-trials", status_code=202)
     def create_clone(body: CloneCreate):
         try:
-            clone_id = store.create_clone(body.candidateId, body.text, body.seed)
+            result = store.clones.create(body.projectId, body.generationId, body.text, body.seed)
         except ValueError as error:
-            raise HTTPException(status_code=409, detail={"code": str(error)}) from error
-        worker.submit("clone", clone_id)
-        return {"trialId": clone_id, "status": "queued"}
-
-    @app.get("/api/clone-trials")
-    def list_clones(candidateId: str):
-        return {"trials": store.list_clones(candidateId)}
-
-    @app.get("/api/clone-trials/{clone_id}")
-    def get_clone(clone_id: str):
-        result = store.get_clone(clone_id)
-        if result is None:
-            raise _not_found()
+            raise _api_error(error) from error
+        worker.submit("clone", result["trialId"])
         return result
 
-    @app.get("/api/clone-trials/{clone_id}/audio")
-    def clone_audio(clone_id: str):
-        trial = store.get_clone(clone_id, private=True)
-        if trial is None:
-            raise _not_found()
-        source = _verified_file(trial["audioPath"], trial["audioSha256"])
-        return FileResponse(source, media_type="audio/wav", filename=f"{clone_id}.wav")
+    @app.get("/api/clone-trials")
+    def list_clones(projectId: str):
+        return {"trials": store.clones.list(projectId)}
+
+    @app.get("/api/clone-trials/{trial_id}")
+    def get_clone(trial_id: str):
+        try:
+            return store.clones.get(trial_id)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.get("/api/clone-trials/{trial_id}/audio")
+    def clone_audio(trial_id: str):
+        try:
+            result = store.clones.get(trial_id, private=True)
+        except ValueError as error:
+            raise _api_error(error) from error
+        source = _verified_file(store, result["audioPath"], result["audioSha256"])
+        return FileResponse(source, media_type="audio/wav", filename=f"{trial_id}.wav")
+
+    @app.post("/api/voices", status_code=201)
+    def publish_voice(body: PublishCreate):
+        try:
+            return store.voices.publish(body.projectId, body.generationId)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.get("/api/voices")
+    def list_voices():
+        return {"voices": store.voices.list()}
+
+    @app.get("/api/voices/{voice_id}")
+    def get_voice(voice_id: str):
+        try:
+            return store.voices.get(voice_id)
+        except ValueError as error:
+            raise _api_error(error) from error
+
+    @app.get("/api/voices/{voice_id}/audio")
+    def voice_audio(voice_id: str, kind: Literal["source", "h3"] = Query(default="h3")):
+        try:
+            result = store.voices.get(voice_id, private=True)
+        except ValueError as error:
+            raise _api_error(error) from error
+        source = _verified_file(store, result[f"{kind}Path"], result[f"{kind}Sha256"])
+        return FileResponse(source, media_type="audio/wav", filename=f"{voice_id}-{kind}.wav")
 
     return app
 

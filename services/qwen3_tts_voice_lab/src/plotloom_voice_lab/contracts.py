@@ -1,4 +1,4 @@
-"""Request contracts for bounded synthetic voice casting."""
+"""Strict project, candidate, generation and publication requests."""
 
 from __future__ import annotations
 
@@ -9,33 +9,62 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class RoundCreate(StrictModel):
-    auditionText: str = Field(min_length=1, max_length=160)
-    directions: list[str] = Field(min_length=2, max_length=8)
+class ProjectCreate(StrictModel):
+    name: str = Field(min_length=1, max_length=120)
 
-    @field_validator("auditionText")
+    @field_validator("name")
     @classmethod
-    def audition_not_blank(cls, value: str) -> str:
+    def name_not_blank(cls, value: str) -> str:
         if not value.strip():
-            raise ValueError("audition text cannot be blank")
+            raise ValueError("project.name_blank")
         return value.strip()
 
-    @field_validator("directions")
+
+class ProjectUpdate(ProjectCreate):
+    expectedRevision: int = Field(ge=1)
+    brief: str = Field(max_length=2000)
+    auditionText: str = Field(max_length=160)
+
+
+class ProjectDelete(StrictModel):
+    expectedRevision: int = Field(ge=1)
+    confirmName: str
+
+
+class CandidateCreate(StrictModel):
+    expectedProjectRevision: int = Field(ge=1)
+    direction: str = Field(min_length=1, max_length=300)
+
+    @field_validator("direction")
     @classmethod
-    def validate_directions(cls, value: list[str]) -> list[str]:
-        if len(value) not in {2, 4, 6, 8}:
-            raise ValueError("candidate count must be 2, 4, 6, or 8")
-        if any(not item.strip() or len(item) > 300 for item in value):
-            raise ValueError("each direction must contain 1-300 characters")
-        return [item.strip() for item in value]
+    def direction_not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("candidate.direction_blank")
+        return value.strip()
+
+
+class CandidateUpdate(CandidateCreate):
+    expectedCandidateRevision: int = Field(ge=1)
+
+
+class CandidateDelete(StrictModel):
+    expectedProjectRevision: int = Field(ge=1)
+    expectedCandidateRevision: int = Field(ge=1)
+
+
+class GenerationCreate(StrictModel):
+    expectedProjectRevision: int = Field(ge=1)
+    expectedCandidateRevision: int = Field(ge=1)
+    seed: int | None = Field(default=None, ge=0, le=2**32 - 1)
 
 
 class SelectionCreate(StrictModel):
-    candidateId: str = Field(pattern=r"^vc_[0-9a-f]{32}$")
+    generationId: str = Field(pattern=r"^vg_[0-9a-f]{32}$")
 
 
 class CloneCreate(StrictModel):
-    candidateId: str = Field(pattern=r"^vc_[0-9a-f]{32}$")
+    projectId: str = Field(pattern=r"^vp_[0-9a-f]{32}$")
+    generationId: str = Field(pattern=r"^vg_[0-9a-f]{32}$")
     text: str = Field(min_length=1, max_length=200)
     seed: int | None = Field(default=None, ge=0, le=2**32 - 1)
 
@@ -43,5 +72,10 @@ class CloneCreate(StrictModel):
     @classmethod
     def text_not_blank(cls, value: str) -> str:
         if not value.strip():
-            raise ValueError("text cannot be blank")
+            raise ValueError("clone.text_blank")
         return value.strip()
+
+
+class PublishCreate(StrictModel):
+    projectId: str = Field(pattern=r"^vp_[0-9a-f]{32}$")
+    generationId: str = Field(pattern=r"^vg_[0-9a-f]{32}$")

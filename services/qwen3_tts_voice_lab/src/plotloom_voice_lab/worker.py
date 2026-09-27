@@ -8,9 +8,9 @@ import threading
 from pathlib import Path
 
 from .engine import ModelIntegrityError
+from .identity import BASE_REVISION, DESIGN_REVISION
 from .media import file_sha256, persist_candidate, persist_clone
-from .store import BASE_REVISION, DESIGN_REVISION, Store
-
+from .store import Store
 
 LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +31,8 @@ class Worker:
         self.thread.join(timeout=2)
 
     def submit(self, kind: str, task_id: str) -> None:
+        if kind not in {"generation", "clone"}:
+            raise ValueError("worker.unknown_job_kind")
         self.tasks.put((kind, task_id))
 
     def _loop(self) -> None:
@@ -42,95 +44,71 @@ class Worker:
             self.active = task
             kind, task_id = task
             try:
-                if kind == "round":
-                    self._run_round(task_id)
+                if kind == "generation":
+                    self._run_generation(task_id)
                 else:
                     self._run_clone(task_id)
             except Exception:
                 LOGGER.exception("voice lab worker could not finish %s %s", kind, task_id)
-                if kind == "round":
-                    self.store.mark_round(task_id, "failed", "generation.failed")
+                if kind == "generation":
+                    self.store.generations.fail(task_id, "generation.failed")
                 else:
-                    self.store.mark_clone(task_id, "failed", "generation.failed")
+                    self.store.clones.mark(task_id, "failed", "generation.failed")
             finally:
                 self.active = None
                 self.tasks.task_done()
 
-    def _run_round(self, round_id: str) -> None:
-        self.store.mark_round(round_id, "running")
-        round_data = self.store.get_round(round_id)
-        assert round_data is not None
-        candidates = round_data["candidates"]
-        if any(candidate["modelRevision"] != DESIGN_REVISION for candidate in candidates):
-            for candidate in candidates:
-                self.store.fail_candidate(candidate["candidateId"], "model.snapshot_stale")
-            self.store.mark_round(round_id, "failed", "model.snapshot_stale")
+    def _run_generation(self, generation_id: str) -> None:
+        generation = self.store.generations.get(generation_id)
+        if generation["modelRevision"] != DESIGN_REVISION:
+            self.store.generations.fail(generation_id, "model.snapshot_stale")
             return
+        self.store.generations.mark_running(generation_id)
         try:
             with self.engine.design_session() as session:
-                for candidate in candidates:
-                    candidate_id = candidate["candidateId"]
-                    self.store.mark_candidate_running(candidate_id)
-                    try:
-                        waveform, sample_rate = session.generate(
-                            round_data["auditionText"], candidate["direction"], candidate["seed"],
-                        )
-                        media = persist_candidate(self.store.data_dir, candidate_id, waveform, sample_rate)
-                        self.store.complete_candidate(candidate_id, media)
-                    except ValueError:
-                        self.store.fail_candidate(candidate_id, "audio.invalid")
-                    except Exception:
-                        LOGGER.exception("candidate generation failed for %s", candidate_id)
-                        self.store.fail_candidate(candidate_id, "generation.failed")
+                waveform, sample_rate = session.generate(
+                    generation["auditionText"],
+                    "\n".join(value for value in (generation["brief"], generation["direction"]) if value),
+                    generation["seed"],
+                )
+                media = persist_candidate(
+                    self.store.data_dir, generation["candidateId"], generation_id,
+                    waveform, sample_rate,
+                )
+            self.store.generations.complete(generation_id, media)
         except FileNotFoundError:
-            for candidate in candidates:
-                self.store.fail_candidate(candidate["candidateId"], "model.unavailable")
+            self.store.generations.fail(generation_id, "model.unavailable")
         except ModelIntegrityError:
-            for candidate in candidates:
-                self.store.fail_candidate(candidate["candidateId"], "model.weights_changed")
+            self.store.generations.fail(generation_id, "model.weights_changed")
+        except ValueError:
+            self.store.generations.fail(generation_id, "audio.invalid")
         except Exception:
-            LOGGER.exception("voice design model could not load for %s", round_id)
-            for candidate in candidates:
-                self.store.fail_candidate(candidate["candidateId"], "model.load_failed")
+            LOGGER.exception("voice generation failed for %s", generation_id)
+            self.store.generations.fail(generation_id, "generation.failed")
 
-        latest = self.store.get_round(round_id)
-        assert latest is not None
-        statuses = [candidate["status"] for candidate in latest["candidates"]]
-        if all(status == "completed" for status in statuses):
-            self.store.mark_round(round_id, "completed")
-        elif any(status == "completed" for status in statuses):
-            self.store.mark_round(round_id, "partial", "generation.partial")
-        else:
-            self.store.mark_round(round_id, "failed", "generation.failed")
-
-    def _run_clone(self, clone_id: str) -> None:
-        clone = self.store.get_clone(clone_id)
-        assert clone is not None
-        if clone["modelRevision"] != BASE_REVISION:
-            self.store.mark_clone(clone_id, "failed", "model.snapshot_stale")
+    def _run_clone(self, trial_id: str) -> None:
+        trial = self.store.clones.get(trial_id, private=True)
+        if trial["modelRevision"] != BASE_REVISION:
+            self.store.clones.mark(trial_id, "failed", "model.snapshot_stale")
             return
-        candidate = self.store.get_candidate(clone["candidateId"], private=True)
-        assert candidate is not None
-        round_data = self.store.get_round(candidate["roundId"])
-        assert round_data is not None
-        self.store.mark_clone(clone_id, "running")
-        reference = Path(candidate["sourcePath"]) if candidate["sourcePath"] else None
-        if reference is None or not reference.is_file() or file_sha256(reference) != clone["sourceSha256"]:
-            self.store.mark_clone(clone_id, "failed", "reference.corrupt")
+        reference = Path(trial["referencePath"]) if trial["referencePath"] else None
+        if reference is None or not reference.is_file() or file_sha256(reference) != trial["sourceSha256"]:
+            self.store.clones.mark(trial_id, "failed", "reference.corrupt")
             return
+        self.store.clones.mark(trial_id, "running")
         try:
             with self.engine.clone_session() as session:
                 waveform, sample_rate = session.generate(
-                    clone["text"], reference, round_data["auditionText"], clone["seed"],
+                    trial["text"], reference, trial["referenceText"], trial["seed"],
                 )
-                media = persist_clone(self.store.data_dir, clone_id, waveform, sample_rate)
-            self.store.mark_clone(clone_id, "completed", media=media)
+                media = persist_clone(self.store.data_dir, trial_id, waveform, sample_rate)
+            self.store.clones.mark(trial_id, "completed", media=media)
         except FileNotFoundError:
-            self.store.mark_clone(clone_id, "failed", "model.unavailable")
+            self.store.clones.mark(trial_id, "failed", "model.unavailable")
         except ModelIntegrityError:
-            self.store.mark_clone(clone_id, "failed", "model.weights_changed")
+            self.store.clones.mark(trial_id, "failed", "model.weights_changed")
         except ValueError:
-            self.store.mark_clone(clone_id, "failed", "audio.invalid")
+            self.store.clones.mark(trial_id, "failed", "audio.invalid")
         except Exception:
-            LOGGER.exception("clone generation failed for %s", clone_id)
-            self.store.mark_clone(clone_id, "failed", "generation.failed")
+            LOGGER.exception("clone generation failed for %s", trial_id)
+            self.store.clones.mark(trial_id, "failed", "generation.failed")

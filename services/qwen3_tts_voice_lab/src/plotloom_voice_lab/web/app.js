@@ -1,297 +1,208 @@
-const byId = id => document.getElementById(id);
-const state = { round: null, selection: null, shortlist: [], blind: false, notes: false, order: [] };
-let roundTimer = null;
-let cloneTimer = null;
-let roundEpoch = 0;
+const $ = id => document.getElementById(id);
+const state = { project: null, shortlist: [], order: [], blind: false, notes: false,
+  epoch: 0, polling: null, candidateDrafts: new Map(), candidateSignature: '', cloneSignature: '', pendingGenerationId: null };
 
-async function request(path, options = {}) {
-  const response = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+async function api(path, method = 'GET', body) {
+  const response = await fetch(path, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
   if (!response.ok) {
     let code = `HTTP ${response.status}`;
-    try { code = (await response.json()).detail?.code || code; } catch (_) { /* HTTP status is enough. */ }
+    try { code = (await response.json()).detail?.code || code; } catch (_) { /* Keep HTTP status. */ }
     throw new Error(code);
   }
-  return response.json();
+  return response.status === 204 ? null : response.json();
 }
-
-function setStatus(id, message) { byId(id).textContent = message; }
-function isActive(status) { return status === 'queued' || status === 'running'; }
-function statusText(status) {
-  return ({ queued: '排队中', running: '生成中', completed: '已完成', partial: '部分完成', failed: '失败', interrupted: '已中断' })[status] || status;
+function status(id, text) { $(id).textContent = text; }
+function active(value) { return ['queued', 'running'].includes(value); }
+function statusName(value) { return ({ queued: '排队中', running: '生成中', completed: '已完成', completed_stale: '输入已更改', failed: '失败', interrupted: '已中断' })[value] || value; }
+function node(tag, className, text) { const item = document.createElement(tag); if (className) item.className = className; if (text !== undefined) item.textContent = text; return item; }
+function projectFormChanged() {
+  const p = state.project;
+  return !!p && (p.name !== $('project-name').value || p.brief !== $('project-brief').value || p.auditionText !== $('audition-text').value);
 }
+function changed() { return projectFormChanged() || state.candidateDrafts.size > 0; }
+function clearPolling() { if (state.polling) clearInterval(state.polling); state.polling = null; }
+function selectedCandidate() { return state.project?.candidates.find(c => c.currentGeneration?.generationId === state.project.selectedGenerationId); }
 
-function updateDirectionFields() {
-  const count = Number(byId('candidate-count').value);
-  const area = byId('direction-fields');
-  const saved = [...area.querySelectorAll('textarea')].map(field => field.value);
-  area.replaceChildren();
-  for (let index = 0; index < count; index += 1) {
-    const label = document.createElement('label');
-    label.textContent = `候选 ${String(index + 1).padStart(2, '0')} · 设计说明`;
-    const field = document.createElement('textarea');
-    field.rows = 2;
-    field.maxLength = 300;
-    field.value = saved[index] ?? byId('voice-brief').value;
-    field.addEventListener('input', () => setStatus('draft-status', '设计草稿已修改；已保存录音不会改变。'));
-    label.append(field);
-    area.append(label);
+async function refreshProjects(epoch = state.epoch) {
+  const { projects } = await api('/api/projects');
+  if (epoch !== state.epoch) return;
+  const list = $('project-list'); list.replaceChildren();
+  for (const p of projects) {
+    const button = node('button', p.projectId === state.project?.projectId ? 'active' : '', p.name);
+    button.type = 'button'; button.addEventListener('click', () => navigate(p.projectId)); list.append(button);
   }
-  byId('generate-button').textContent = `生成 ${count} 个候选`;
 }
-
-function candidateLabel(candidate) {
-  if (state.blind) return `盲听片段 ${String(state.order.indexOf(candidate.candidateId) + 1).padStart(2, '0')}`;
-  return `候选 ${String(candidate.ordinal).padStart(2, '0')}`;
+function showChooser() {
+  state.project = null; state.shortlist = []; state.candidateDrafts.clear(); state.candidateSignature = ''; state.cloneSignature = ''; clearPolling();
+  $('chooser').hidden = false; $('workspace').hidden = true;
+  refreshProjects().catch(e => status('service-status', e.message));
 }
-
-function shuffleOrder() {
-  const values = [...state.round.candidates.map(item => item.candidateId)];
-  for (let i = values.length - 1; i > 0; i -= 1) {
+function updateForm(p) {
+  $('project-title').textContent = p.name; $('project-meta').textContent = `${p.projectId} · r${p.revision}`;
+  $('project-name').value = p.name; $('project-brief').value = p.brief; $('audition-text').value = p.auditionText;
+  status('draft-status', '');
+}
+async function loadProject(id, replaceForm = true, epoch = state.epoch) {
+  const p = await api(`/api/projects/${id}`);
+  if (epoch !== state.epoch) return;
+  const switched = state.project?.projectId !== id;
+  state.project = p; $('chooser').hidden = true; $('workspace').hidden = false;
+  if (switched) { state.shortlist = []; state.order = p.candidates.map(c => c.candidateId); state.candidateDrafts.clear(); state.candidateSignature = ''; state.cloneSignature = ''; }
+  if (replaceForm) updateForm(p);
+  const signature = JSON.stringify([p.selectedGenerationId, p.candidates]);
+  if (signature !== state.candidateSignature) { renderCandidates(); renderCompare(); state.candidateSignature = signature; }
+  const pending = p.candidates.find(c => c.latestGeneration?.generationId === state.pendingGenerationId);
+  if (pending && !active(pending.latestGeneration.status)) {
+    status('candidate-status', `${candidateLabel(pending)}：${statusName(pending.latestGeneration.status)}${pending.latestGeneration.errorCode ? ` · ${pending.latestGeneration.errorCode}` : ''}`);
+    state.pendingGenerationId = null;
+  }
+  renderSelection(); await refreshProjects(epoch);
+  if (epoch !== state.epoch) return;
+  const cloneActive = await loadClones(epoch);
+  if (epoch !== state.epoch) return;
+  clearPolling();
+  if (cloneActive || p.candidates.some(c => active(c.latestGeneration?.status))) {
+    state.polling = setInterval(() => loadProject(id, false, epoch).catch(e => status('candidate-status', e.message)), 2500);
+  }
+}
+async function navigate(id, fromHistory = false) {
+  if (changed() && !window.confirm('当前项目有未保存的修改。放弃修改并切换吗？')) {
+    if (fromHistory) history.replaceState({}, '', state.project ? `?project=${encodeURIComponent(state.project.projectId)}` : '/');
+    return;
+  }
+  state.epoch += 1; clearPolling();
+  if (!fromHistory) history.pushState({}, '', id ? `?project=${encodeURIComponent(id)}` : '/');
+  if (!id) { showChooser(); return; }
+  try { await loadProject(id, true, state.epoch); }
+  catch (e) { status('service-status', `项目打开失败：${e.message}`); showChooser(); }
+}
+async function mutate(action, statusId = 'candidate-status') {
+  try { await action(); } catch (e) { status(statusId, `操作失败：${e.message}`); }
+}
+function candidateLabel(c) {
+  if (state.blind) return `盲听 ${String(state.order.indexOf(c.candidateId) + 1).padStart(2, '0')}`;
+  return `候选 ${String(c.ordinal).padStart(2, '0')}`;
+}
+function shuffle() {
+  state.order = state.project.candidates.map(c => c.candidateId);
+  for (let i = state.order.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
-    [values[i], values[j]] = [values[j], values[i]];
-  }
-  if (values.length > 1 && values.every((id, i) => id === state.order[i])) values.push(values.shift());
-  state.order = values;
-}
-
-function renderCompare() {
-  byId('compare-count').textContent = `${state.shortlist.length} / 2 已入围`;
-  for (let slot = 0; slot < 2; slot += 1) {
-    const candidate = state.round?.candidates.find(item => item.candidateId === state.shortlist[slot]);
-    byId(`slot-label-${slot}`).textContent = candidate ? candidateLabel(candidate) : '等待选择';
-    document.querySelector(`.compare-play[data-slot="${slot}"]`).disabled = !candidate;
+    [state.order[i], state.order[j]] = [state.order[j], state.order[i]];
   }
 }
-
-function renderSelection() {
-  const current = state.selection?.candidateId;
-  const candidate = state.round?.candidates.find(item => item.candidateId === current);
-  byId('selected-label').textContent = current
-    ? `${candidate ? candidateLabel(candidate) : '已选参考'} · ${current.slice(0, 13)}…`
-    : '尚未选择参考声线';
-  byId('clone-button').disabled = !current;
+function playSolo(audio) {
+  document.querySelectorAll('audio').forEach(other => { if (other !== audio) other.pause(); });
+  audio.currentTime = 0; audio.play().catch(() => status('candidate-status', '无法播放录音。'));
 }
-
-function makeCandidateCard(candidate) {
-  const card = document.createElement('article');
-  card.className = 'candidate-card';
-  if (state.shortlist.includes(candidate.candidateId)) card.classList.add('is-shortlisted');
-  const header = document.createElement('div');
-  header.className = 'candidate-header';
-  const title = document.createElement('h3');
-  title.textContent = candidateLabel(candidate);
-  const duration = document.createElement('span');
-  duration.textContent = candidate.sourceDurationSeconds ? `${candidate.sourceDurationSeconds.toFixed(2)} 秒` : statusText(candidate.status);
-  header.append(title, duration);
-  card.append(header);
-
-  if (state.notes && !state.blind) {
-    const note = document.createElement('p');
-    note.className = 'candidate-note';
-    note.textContent = candidate.direction;
-    card.append(note);
+function makeCandidate(c) {
+  const current = c.currentGeneration; const latest = c.latestGeneration;
+  const card = node('article', 'candidate-card' + (state.project.selectedGenerationId === current?.generationId ? ' selected' : ''));
+  const head = node('div', 'card-head'); head.append(node('h3', '', candidateLabel(c)), node('span', 'small-text', latest ? statusName(latest.status) : '未生成')); card.append(head);
+  card.append(node('div', 'id', c.candidateId));
+  const direction = node('textarea'); direction.rows = 2; direction.maxLength = 300; direction.value = state.candidateDrafts.get(c.candidateId) ?? c.direction;
+  direction.hidden = state.blind || !state.notes;
+  direction.addEventListener('input', () => { if (direction.value === c.direction) state.candidateDrafts.delete(c.candidateId); else state.candidateDrafts.set(c.candidateId, direction.value); });
+  card.append(direction);
+  if (current) {
+    const audio = node('audio'); audio.controls = true; audio.preload = 'metadata'; audio.src = `/api/generations/${current.generationId}/audio`;
+    audio.setAttribute('aria-label', `播放${candidateLabel(c)}`); audio.addEventListener('play', () => document.querySelectorAll('audio').forEach(other => { if (other !== audio) other.pause(); })); card.append(audio);
+    card.append(node('div', 'small-text', `${current.sourceDurationSeconds?.toFixed(2) || '?'} 秒 · ${current.h3Eligible ? 'H3 参考就绪' : (current.errorCode || '仅可试听')}`));
   }
-  if (candidate.status === 'completed') {
-    const audio = document.createElement('audio');
-    audio.controls = true;
-    audio.preload = 'metadata';
-    audio.src = `/api/candidates/${candidate.candidateId}/audio`;
-    audio.setAttribute('aria-label', `播放${candidateLabel(candidate)}`);
-    audio.addEventListener('play', () => {
-      document.querySelectorAll('#candidate-grid audio, #clone-list audio').forEach(other => {
-        if (other !== audio) other.pause();
-      });
-      card.classList.add('is-playing');
-    });
-    audio.addEventListener('pause', () => card.classList.remove('is-playing'));
-    card.append(audio);
-    const actions = document.createElement('div');
-    actions.className = 'candidate-actions';
-    const compare = document.createElement('button');
-    compare.className = 'shortlist-button';
-    compare.type = 'button';
-    compare.textContent = state.shortlist.includes(candidate.candidateId) ? '移出对比' : '加入对比';
-    compare.addEventListener('click', () => {
-      const current = state.shortlist.indexOf(candidate.candidateId);
-      if (current >= 0) state.shortlist.splice(current, 1);
-      else if (state.shortlist.length < 2) state.shortlist.push(candidate.candidateId);
-      else { setStatus('compare-status', '最多同时比较两条；请先移出其中一条。'); return; }
-      renderCandidates();
-      renderCompare();
-    });
-    const select = document.createElement('button');
-    select.className = 'shortlist-button';
-    select.type = 'button';
-    select.textContent = state.selection?.candidateId === candidate.candidateId ? '当前复用参考' : '选为复用参考';
-    select.disabled = state.selection?.candidateId === candidate.candidateId;
-    select.addEventListener('click', async () => {
-      try {
-        state.selection = await request('/api/selections', {
-          method: 'POST', body: JSON.stringify({ candidateId: candidate.candidateId }),
-        });
-        renderCandidates();
-        renderSelection();
-        await loadClones();
-      } catch (error) { setStatus('compare-status', `选择失败：${error.message}`); }
-    });
-    const eligibility = document.createElement('span');
-    eligibility.className = 'candidate-state';
-    eligibility.textContent = candidate.h3Eligible ? 'H3 参考已就绪'
-      : candidate.errorCode === 'h3.duration_out_of_range' ? 'H3 参考需 1–10 秒' : 'H3 参考准备失败';
-    actions.append(compare, select, eligibility);
-    card.append(actions);
-  } else if (candidate.errorCode) {
-    const error = document.createElement('p');
-    error.className = 'candidate-note';
-    error.textContent = `生成未完成：${candidate.errorCode}`;
-    card.append(error);
+  if (latest?.status === 'failed' || latest?.status === 'interrupted' || latest?.status === 'completed_stale') card.append(node('p', 'error', `最近一次：${latest.errorCode || statusName(latest.status)}。${current ? '原录音仍可用。' : ''}`));
+  const actions = node('div', 'card-actions');
+  const save = node('button', '', '保存说明'); save.hidden = state.blind || !state.notes; save.onclick = () => mutate(async () => {
+    state.project = await api(`/api/candidates/${c.candidateId}`, 'PUT', { expectedProjectRevision: state.project.revision, expectedCandidateRevision: c.revision, direction: direction.value.trim() });
+    state.candidateDrafts.delete(c.candidateId); renderCandidates(); status('candidate-status', '候选说明已保存；已有录音未修改。');
+  }); actions.append(save);
+  const generate = node('button', '', current ? '重新生成此候选' : '生成此候选'); generate.disabled = active(latest?.status); generate.onclick = () => mutate(async () => {
+    if (projectFormChanged() || direction.value !== c.direction) throw new Error('请先保存项目与此候选说明');
+    if (current && !window.confirm('新录音成功后将替换此候选的旧未发布录音。继续吗？')) return;
+    const result = await api(`/api/candidates/${c.candidateId}/generations`, 'POST', { expectedProjectRevision: state.project.revision, expectedCandidateRevision: c.revision });
+    state.pendingGenerationId = result.generationId;
+    status('candidate-status', `${candidateLabel(c)} 已排队：${result.generationId}`); await loadProject(state.project.projectId, false, state.epoch);
+  }); actions.append(generate);
+  if (current) {
+    const compare = node('button', '', state.shortlist.includes(c.candidateId) ? '移出对比' : '加入对比'); compare.onclick = () => {
+      const index = state.shortlist.indexOf(c.candidateId);
+      if (index >= 0) state.shortlist.splice(index, 1); else if (state.shortlist.length < 2) state.shortlist.push(c.candidateId); else { status('candidate-status', '最多比较两条候选。'); return; }
+      renderCandidates(); renderCompare();
+    }; actions.append(compare);
+    const select = node('button', '', state.project.selectedGenerationId === current.generationId ? '当前参考' : '选为参考'); select.disabled = state.project.selectedGenerationId === current.generationId; select.onclick = () => mutate(async () => {
+      await api(`/api/projects/${state.project.projectId}/selections`, 'POST', { generationId: current.generationId });
+      await loadProject(state.project.projectId, false, state.epoch);
+    }); actions.append(select);
   }
-  return card;
+  const remove = node('button', 'danger', '移除'); remove.onclick = () => mutate(async () => {
+    if (!window.confirm(`移除此候选及其未发布录音？${c.candidateId}`)) return;
+    state.project = await api(`/api/candidates/${c.candidateId}`, 'DELETE', { expectedProjectRevision: state.project.revision, expectedCandidateRevision: c.revision });
+    state.candidateDrafts.delete(c.candidateId); state.shortlist = state.shortlist.filter(id => id !== c.candidateId); state.order = state.order.filter(id => id !== c.candidateId); renderCandidates(); renderCompare(); renderSelection();
+  }); actions.append(remove); card.append(actions); return card;
 }
-
 function renderCandidates() {
-  const grid = byId('candidate-grid');
-  grid.replaceChildren();
-  if (!state.round) return;
-  const byCandidate = new Map(state.round.candidates.map(item => [item.candidateId, item]));
-  state.order.forEach(id => grid.append(makeCandidateCard(byCandidate.get(id))));
-  byId('blind-toggle').textContent = state.blind ? '结束盲听' : '打乱并盲听';
-  byId('blind-toggle').setAttribute('aria-pressed', String(state.blind));
-  byId('notes-toggle').textContent = state.notes ? '隐藏设计说明' : '显示设计说明';
-  byId('notes-toggle').disabled = state.blind;
-  renderCompare();
-  renderSelection();
+  const grid = $('candidate-grid'); grid.replaceChildren(); const p = state.project; if (!p) return;
+  const ids = p.candidates.map(c => c.candidateId); state.order = [...state.order.filter(id => ids.includes(id)), ...ids.filter(id => !state.order.includes(id))];
+  const map = new Map(p.candidates.map(c => [c.candidateId, c])); for (const id of state.order) grid.append(makeCandidate(map.get(id)));
+  $('blind-toggle').textContent = state.blind ? '结束盲听' : '打乱并盲听'; $('blind-toggle').setAttribute('aria-pressed', String(state.blind));
+  $('notes-toggle').textContent = state.notes ? '隐藏设计说明' : '显示设计说明'; $('notes-toggle').disabled = state.blind;
 }
-
-async function loadRound(roundId, epoch = roundEpoch) {
-  if (!roundId) return;
-  const result = await request(`/api/rounds/${roundId}`);
-  if (epoch !== roundEpoch) return;
-  const changed = state.round?.roundId !== roundId;
-  state.round = result;
-  if (changed) {
-    state.shortlist = [];
-    state.order = result.candidates.map(item => item.candidateId);
-    history.replaceState(null, '', `?round=${encodeURIComponent(roundId)}`);
-  }
-  setStatus('round-status', `${statusText(result.status)} · ${result.candidates.filter(item => item.status === 'completed').length}/${result.candidates.length} 条完成${result.errorCode ? ` · ${result.errorCode}` : ''}`);
-  const selectedOption = [...byId('round-selector').options].find(option => option.value === roundId);
-  if (selectedOption) selectedOption.textContent = `${result.createdAt.slice(0, 16).replace('T', ' ')} · ${result.candidates.length} 条 · ${statusText(result.status)}`;
-  if (!isActive(result.status) && byId('draft-status').textContent === '新轮次已排队；旧录音保持不变。') {
-    setStatus('draft-status', result.status === 'completed' ? '新轮次已完成；已保存录音不会因修改草稿而改变。' : `新轮次已结束：${statusText(result.status)}`);
-  }
-  if (changed || ![...document.querySelectorAll('#candidate-grid audio')].some(audio => !audio.paused)) renderCandidates();
-  if (!isActive(result.status) && roundTimer) { clearInterval(roundTimer); roundTimer = null; }
-  if (isActive(result.status) && !roundTimer) {
-    roundTimer = setInterval(() => loadRound(roundId, epoch).catch(error => setStatus('round-status', error.message)), 2000);
+function renderCompare() {
+  const area = $('compare-slots'); area.replaceChildren(); status('compare-count', `${state.shortlist.length} / 2 已入围`);
+  for (let i = 0; i < 2; i += 1) {
+    const c = state.project?.candidates.find(item => item.candidateId === state.shortlist[i]); const slot = node('div', 'compare-slot');
+    slot.append(node('strong', '', c ? candidateLabel(c) : '等待选择'));
+    if (c?.currentGeneration) { const button = node('button', '', '从头播放'); button.onclick = () => { const audio = [...document.querySelectorAll('#candidate-grid audio')].find(a => a.src.includes(c.currentGeneration.generationId)); if (audio) playSolo(audio); }; slot.append(button); }
+    area.append(slot);
   }
 }
-
-async function loadRoundList(preferredId) {
-  const { rounds } = await request('/api/rounds');
-  const select = byId('round-selector');
-  select.replaceChildren();
-  for (const round of rounds) {
-    const option = document.createElement('option');
-    option.value = round.roundId;
-    option.textContent = `${round.createdAt.slice(0, 16).replace('T', ' ')} · ${round.candidateCount} 条 · ${statusText(round.status)}`;
-    select.append(option);
-  }
-  const target = rounds.find(item => item.roundId === preferredId)?.roundId || rounds[0]?.roundId;
-  if (target) {
-    roundEpoch += 1;
-    if (roundTimer) { clearInterval(roundTimer); roundTimer = null; }
-    select.value = target;
-    await loadRound(target);
-  }
+function renderSelection() {
+  const c = selectedCandidate(); status('selected-label', c ? `${candidateLabel(c)} · ${c.currentGeneration.generationId}` : '尚未选择参考声线');
+  $('clone-button').disabled = !c; $('publish-button').disabled = !c?.currentGeneration?.h3Eligible;
+}
+async function loadClones(epoch = state.epoch) {
+  const p = state.project; const area = $('clone-list'); if (!p) return false;
+  const { trials } = await api(`/api/clone-trials?projectId=${encodeURIComponent(p.projectId)}`);
+  if (epoch !== state.epoch) return false;
+  const signature = JSON.stringify(trials); if (signature === state.cloneSignature) return trials.some(t => active(t.status));
+  state.cloneSignature = signature; area.replaceChildren();
+  for (const t of trials) { const item = node('div', 'clone-item'); item.append(node('div', '', `${t.text} · ${statusName(t.status)}${t.errorCode ? ` · ${t.errorCode}` : ''}`)); if (t.status === 'completed') { const audio = node('audio'); audio.controls = true; audio.src = `/api/clone-trials/${t.trialId}/audio`; item.append(audio); } area.append(item); }
+  return trials.some(t => active(t.status));
+}
+async function loadVoices() {
+  const { voices } = await api('/api/voices'); const area = $('voice-list'); area.replaceChildren();
+  for (const voice of voices) { const item = node('div', 'voice-item'); const id = node('div', 'voice-id', voice.voiceId); const copy = node('button', '', '复制 Voice ID'); copy.onclick = () => navigator.clipboard.writeText(voice.voiceId).then(() => status('publish-status', 'Voice ID 已复制。')).catch(() => status('publish-status', voice.voiceId)); item.append(id, copy, node('p', '', voice.transcript)); const audio = node('audio'); audio.controls = true; audio.src = `/api/voices/${voice.voiceId}/audio`; item.append(audio); area.append(item); }
 }
 
-async function loadClones() {
-  const candidateId = state.selection?.candidateId;
-  const list = byId('clone-list');
-  list.replaceChildren();
-  if (!candidateId) return;
-  const { trials } = await request(`/api/clone-trials?candidateId=${encodeURIComponent(candidateId)}`);
-  for (const trial of trials) {
-    const item = document.createElement('article');
-    item.className = 'clone-item';
-    const line = document.createElement('p');
-    line.textContent = `${trial.text} · ${statusText(trial.status)}${trial.errorCode ? ` · ${trial.errorCode}` : ''}`;
-    item.append(line);
-    if (trial.status === 'completed') {
-      const audio = document.createElement('audio');
-      audio.controls = true;
-      audio.src = `/api/clone-trials/${trial.trialId}/audio`;
-      item.append(audio);
-    }
-    list.append(item);
-  }
-}
-
-byId('candidate-count').addEventListener('change', updateDirectionFields);
-byId('voice-brief').addEventListener('input', () => setStatus('draft-status', '共同方向已修改；请检查每条候选的独立说明。'));
-byId('generate-button').addEventListener('click', async () => {
-  const button = byId('generate-button');
-  button.disabled = true;
-  try {
-    const directions = [...byId('direction-fields').querySelectorAll('textarea')].map(field => field.value.trim());
-    const result = await request('/api/rounds', {
-      method: 'POST', body: JSON.stringify({ auditionText: byId('audition-line').value.trim(), directions }),
-    });
-    setStatus('draft-status', '新轮次已排队；旧录音保持不变。');
-    await loadRoundList(result.roundId);
-  } catch (error) { setStatus('draft-status', `创建失败：${error.message}`); }
-  finally { button.disabled = false; }
+$('new-project').onclick = $('chooser-create').onclick = () => mutate(async () => {
+  const name = window.prompt('新项目名称（可以使用角色名）：'); if (!name?.trim()) return;
+  const p = await api('/api/projects', 'POST', { name: name.trim() }); await navigate(p.projectId);
+}, 'service-status');
+$('save-project').onclick = () => mutate(async () => {
+  const p = state.project; state.project = await api(`/api/projects/${p.projectId}`, 'PUT', { expectedRevision: p.revision, name: $('project-name').value.trim(), brief: $('project-brief').value, auditionText: $('audition-text').value });
+  updateForm(state.project); await refreshProjects(); status('draft-status', '项目已保存。');
+}, 'draft-status');
+$('delete-project').onclick = () => mutate(async () => {
+  const p = state.project; const confirmation = window.prompt(`输入准确项目名「${p.name}」以删除项目及未发布录音：`); if (confirmation === null) return;
+  await api(`/api/projects/${p.projectId}`, 'DELETE', { expectedRevision: p.revision, confirmName: confirmation }); await navigate(null);
+}, 'draft-status');
+$('add-candidate').onclick = () => mutate(async () => {
+  if (projectFormChanged()) throw new Error('请先保存项目'); const direction = $('new-direction').value.trim();
+  state.project = await api(`/api/projects/${state.project.projectId}/candidates`, 'POST', { expectedProjectRevision: state.project.revision, direction });
+  $('new-direction').value = ''; renderCandidates(); status('candidate-status', '候选已添加，其他录音未改变。');
 });
-byId('round-selector').addEventListener('change', event => {
-  roundEpoch += 1;
-  if (roundTimer) { clearInterval(roundTimer); roundTimer = null; }
-  loadRound(event.target.value).catch(error => setStatus('round-status', error.message));
-});
-byId('blind-toggle').addEventListener('click', () => {
-  if (!state.round) return;
-  state.blind = !state.blind;
-  if (state.blind) { state.notes = false; shuffleOrder(); }
-  else state.order = state.round.candidates.map(item => item.candidateId);
-  renderCandidates();
-});
-byId('notes-toggle').addEventListener('click', () => { state.notes = !state.notes; renderCandidates(); });
-document.querySelectorAll('.compare-play').forEach(button => button.addEventListener('click', () => {
-  const id = state.shortlist[Number(button.dataset.slot)];
-  const audio = [...byId('candidate-grid').querySelectorAll('audio')]
-    .find(item => item.src.includes(id));
-  if (audio) { audio.currentTime = 0; audio.play().catch(() => setStatus('compare-status', '无法播放此录音。')); }
-}));
-byId('clone-button').addEventListener('click', async () => {
-  const button = byId('clone-button');
-  button.disabled = true;
-  try {
-    const result = await request('/api/clone-trials', {
-      method: 'POST', body: JSON.stringify({ candidateId: state.selection.candidateId, text: byId('clone-text').value.trim() }),
-    });
-    setStatus('clone-status', `复用试听已排队：${result.trialId}`);
-    await loadClones();
-    if (cloneTimer) clearInterval(cloneTimer);
-    cloneTimer = setInterval(async () => {
-      try {
-        const trial = await request(`/api/clone-trials/${result.trialId}`);
-        setStatus('clone-status', `${statusText(trial.status)}${trial.errorCode ? ` · ${trial.errorCode}` : ''}`);
-        await loadClones();
-        if (!isActive(trial.status)) { clearInterval(cloneTimer); cloneTimer = null; }
-      } catch (error) { setStatus('clone-status', error.message); }
-    }, 2000);
-  } catch (error) { setStatus('clone-status', `创建失败：${error.message}`); }
-  finally { button.disabled = !state.selection; }
-});
-
-updateDirectionFields();
-Promise.all([request('/health'), request('/api/selections')]).then(async ([health, selections]) => {
-  byId('service-status').textContent = health.designModelAvailable && health.baseModelAvailable ? '服务在线 · 模型文件可用' : '服务在线 · 模型文件不完整';
-  state.selection = selections.current;
-  await loadRoundList(new URLSearchParams(location.search).get('round'));
-  await loadClones();
-  renderSelection();
-}).catch(error => { byId('service-status').textContent = `连接失败：${error.message}`; });
+$('blind-toggle').onclick = () => { if (!state.project) return; state.blind = !state.blind; if (state.blind) { state.notes = false; shuffle(); } else state.order = state.project.candidates.map(c => c.candidateId); renderCandidates(); renderCompare(); };
+$('notes-toggle').onclick = () => { state.notes = !state.notes; renderCandidates(); };
+$('clone-button').onclick = () => mutate(async () => {
+  const c = selectedCandidate(); const result = await api('/api/clone-trials', 'POST', { projectId: state.project.projectId, generationId: c.currentGeneration.generationId, text: $('clone-text').value.trim() });
+  status('clone-status', `复用试听已排队：${result.trialId}`); await loadProject(state.project.projectId, false, state.epoch);
+}, 'clone-status');
+$('publish-button').onclick = () => mutate(async () => {
+  const c = selectedCandidate(); const result = await api('/api/voices', 'POST', { projectId: state.project.projectId, generationId: c.currentGeneration.generationId });
+  status('publish-status', `已发布：${result.voiceId}`); await loadVoices();
+}, 'publish-status');
+for (const id of ['project-name', 'project-brief', 'audition-text']) $(id).addEventListener('input', () => status('draft-status', '未保存的项目修改。'));
+window.addEventListener('beforeunload', e => { if (changed()) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('popstate', () => navigate(new URLSearchParams(location.search).get('project'), true));
+Promise.all([api('/health'), refreshProjects(), loadVoices()]).then(async ([health]) => {
+  status('service-status', health.designModelAvailable && health.baseModelAvailable ? '服务在线 · 模型文件可用' : '服务在线 · 模型文件不完整');
+  const id = new URLSearchParams(location.search).get('project'); if (id) await navigate(id, true); else showChooser();
+}).catch(e => status('service-status', `连接失败：${e.message}`));

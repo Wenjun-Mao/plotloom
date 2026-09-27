@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+import shutil
 import tempfile
 from math import gcd
 from pathlib import Path
@@ -49,9 +50,30 @@ def _validated_waveform(audio: np.ndarray, sample_rate: int) -> tuple[np.ndarray
     return waveform, duration
 
 
-def persist_candidate(data_dir: Path, candidate_id: str, audio: np.ndarray, sample_rate: int) -> dict:
+def copy_verified(source: Path, target: Path, expected_sha256: str) -> Path:
+    """Publish an independent checked copy without exposing a partial file."""
+    if not source.is_file() or file_sha256(source) != expected_sha256:
+        raise ValueError("audio.corrupt")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.exists():
+        raise FileExistsError("audio.already_exists")
+    fd, temp_name = tempfile.mkstemp(prefix=".pending-", dir=target.parent)
+    temp_path = Path(temp_name)
+    try:
+        with source.open("rb") as incoming, os.fdopen(fd, "wb") as outgoing:
+            shutil.copyfileobj(incoming, outgoing)
+        os.chmod(temp_path, 0o600)
+        if file_sha256(temp_path) != expected_sha256:
+            raise ValueError("audio.copy_corrupt")
+        os.replace(temp_path, target)
+        return target
+    finally:
+        temp_path.unlink(missing_ok=True)
+
+
+def persist_candidate(data_dir: Path, candidate_id: str, generation_id: str, audio: np.ndarray, sample_rate: int) -> dict:
     waveform, duration = _validated_waveform(audio, sample_rate)
-    target = data_dir / "assets" / candidate_id
+    target = data_dir / "assets" / candidate_id / generation_id
     source = target / "source.wav"
     if source.exists():
         raise FileExistsError("candidate_audio_already_exists")
