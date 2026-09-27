@@ -114,12 +114,12 @@ it("allows clearing an annotated value without returning the marker to the input
   expect(host.querySelector(".cast-inference-notes")?.textContent).toContain("（推断）");
 });
 
-it("explains optional fields accurately in candidate and reopened review", async () => {
+it("marks the minimum design and permits optional notes in candidate and reopened review", async () => {
   for (const mode of ["ready", "reopened"]) {
     await render(mode);
-    expect(host.querySelector(".cast-field-requirements")?.textContent).toContain("带 * 的为必填项，其余可留空。本页文字字段均可留空");
-    expect(host.querySelectorAll(".cast-forms [required], .cast-forms [aria-required=true]")).toHaveLength(0);
-    expect(Array.from(host.querySelectorAll(".cast-forms label")).every((label) => !label.textContent?.includes("*"))).toBe(true);
+    expect(host.querySelector(".cast-field-requirements")?.textContent).toContain("每个角色至少填写一个性格特点，并提供外观描述");
+    expect(host.querySelectorAll(".cast-forms textarea[required]")).toHaveLength(1);
+    expect(Array.from(host.querySelectorAll(".cast-forms label")).find((label) => label.textContent?.includes("外观"))?.textContent).toContain("*");
   }
 });
 
@@ -143,4 +143,21 @@ it("shows structured notes in the accepted summary and preserves them through re
   await render("reopened", value);
   await act(async () => button("保存重新打开的角色").click());
   expect(save.mock.calls[0][1].cast).toEqual(value);
+});
+
+it("blocks confirmation until required design is repaired in both edit modes", async () => {
+  for (const mode of ["ready", "reopened"]) {
+    await render(mode, { characters: [{ id: "C01", persona: { personality: ["（推断）"], appearance: "  " } }] });
+    const submit = button(mode === "ready" ? "接受这份角色设定" : "保存重新打开的角色");
+    expect(submit.disabled).toBe(true);
+    expect(host.textContent).toContain("请至少填写一个性格特点。");
+    expect(host.textContent).toContain("请填写角色外观");
+    await change(host.querySelector("input")!, "审慎");
+    expect(submit.disabled).toBe(true);
+    await change(host.querySelector<HTMLTextAreaElement>("textarea[required]")!, "深蓝外套");
+    expect(submit.disabled).toBe(false);
+    expect(host.querySelectorAll('[role="alert"]')).toHaveLength(0);
+    await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="删除性格特点 1"]')!.click());
+    expect(submit.disabled).toBe(true);
+  }
 });

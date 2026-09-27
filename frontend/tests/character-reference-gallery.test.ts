@@ -47,7 +47,7 @@ function pendingGallery(): PendingGallery {
 }
 
 function galleryResponse(projectId: string, title: string, options: { characters?: { id: string; name: string }[]; decisions?: any[]; referenceStates?: any[]; proposals?: any[]; assets?: any[] } = {}) {
-  const characters = options.characters ?? [{ id: "keeper", name: "Mira" }];
+  const characters = (options.characters ?? [{ id: "keeper", name: "Mira" }]).map((character) => ({ ...character, persona: { personality: ["Careful"], appearance: "Weathered beacon coat" } }));
   const asset = { id: "same-asset", projectId, originalHash: "original", displayHash: "display", mimeType: "image/png", byteSize: 20, width: 64, height: 48, createdAt: "2026-09-20T00:00:00Z", provenance: null };
   const decisions = options.decisions ?? characters.map((character) => ({ id: character.id, projectId, characterId: character.id, referenceRevision: 1, characterContext: {}, characterContextHash: character.id, primaryAssetId: asset.id, complementaryAssetIds: [], assetHashes: [], reviewer: "reviewer", notes: "test", current: true, revokedAt: null, revokedBy: null, revocationReason: null, createdAt: "2026-09-20T00:00:00Z" }));
   return {

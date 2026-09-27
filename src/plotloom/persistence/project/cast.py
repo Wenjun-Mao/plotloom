@@ -9,6 +9,7 @@ from sqlalchemy import select
 from ...cast_contracts import AcceptedCastRevision, CastAcceptRequest, CastBinding, CastCancelReopenRequest, CastCandidate, CastConsumerMapping, CastReopenRequest, CastReviewState, CastSaveRequest
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
 from ...cast_writing_contract import CONTRACT_FILENAME, cast_writing_contract, validate_cast_notes
+from ...cast_design_validation import validate_cast_design
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import StageName, StageStatus, contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
@@ -237,6 +238,7 @@ class ProjectCastPersistence:
                 raise CreativeHandoffError("delivery_stale", "cast candidate context changed before acceptance")
             cast = request.cast or row.cast
             _validate_cast(cast)
+            validate_cast_design(cast)
             validate_cast_notes(cast, required=CONTRACT_FILENAME in row.request.get("inputArtifacts", {}), previous=row.cast)
             ids = _cast_ids(row.cast)
             if _cast_ids(cast) != ids:
@@ -276,6 +278,7 @@ class ProjectCastPersistence:
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "accepted cast context changed before saving edits")
             _validate_cast(request.cast)
+            validate_cast_design(request.cast)
             validate_cast_notes(request.cast, previous=previous.cast)
             ids = _cast_ids(previous.cast)
             if _cast_ids(request.cast) != ids:

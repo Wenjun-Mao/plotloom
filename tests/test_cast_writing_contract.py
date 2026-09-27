@@ -24,13 +24,13 @@ def test_retained_candidate_needs_no_retroactive_rewrite():
         validate_cast_notes(cast, required=True)
 
 
-def test_editable_text_fields_are_optional_at_cast_acceptance():
-    from plotloom.persistence.project.cast import _validate_cast
+def test_supplementary_fields_are_optional_at_cast_confirmation():
+    from plotloom.cast_design_validation import validate_cast_design
 
-    _validate_cast({
+    validate_cast_design({
         "source": "Retained source", "summary": "Retained summary",
         "characters": [{
-            "id": "C01", "persona": {"personality": [], "temperament": "", "appearance": ""},
+            "id": "C01", "persona": {"personality": ["审慎"], "temperament": "", "appearance": "深蓝外套"},
             "voice": {"timbre": ""},
             "reviewNotes": {"sourceNotes": "", "performanceGuidance": ""},
         }],

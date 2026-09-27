@@ -35,6 +35,14 @@ test.describe("F2B cast-owned reference studies", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const cast = page.getByTestId("cast-review");
     await expect(cast.getByRole("button", { name: "接受这份角色设定" })).toBeEnabled();
+    await cast.getByLabel("外观").fill("  ");
+    await expect(cast.getByRole("button", { name: "接受这份角色设定" })).toBeDisabled();
+    await expect(cast.getByRole("alert")).toContainText("请填写角色外观");
+    await cast.getByLabel("外观").fill("Rain-dark hair and a weathered beacon coat");
+    await cast.getByLabel("性格特点 1", { exact: true }).fill("  ");
+    await expect(cast.getByRole("button", { name: "接受这份角色设定" })).toBeDisabled();
+    await expect(cast.getByRole("alert")).toContainText("请至少填写一个性格特点");
+    await cast.getByLabel("性格特点 1", { exact: true }).fill("Careful");
 
     const accepting = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/accept`);
@@ -609,7 +617,7 @@ async function writeOutlineDelivery(prepared: any): Promise<void> {
 
 async function writeCastDelivery(prepared: any): Promise<void> {
   const request = JSON.parse(await readFile(path.join(prepared.packagePath, "request.json"), "utf8"));
-  const cast = Buffer.from(JSON.stringify({ source: "F2B browser fixture", summary: "One beacon keeper requires an identity reference.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }));
+  const cast = Buffer.from(JSON.stringify({ source: "F2B browser fixture", summary: "One beacon keeper requires an identity reference.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }));
   const report = Buffer.from("<!doctype html><title>F2B cast fixture</title><p>Candidate only.</p>");
   await mkdir(prepared.deliveryPath, { recursive: true });
   await writeFile(path.join(prepared.deliveryPath, "cast.json"), cast);

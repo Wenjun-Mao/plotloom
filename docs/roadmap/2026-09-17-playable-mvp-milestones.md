@@ -731,6 +731,24 @@ deterministic build pass. No acceptance rules changed. The user's Safari tab
 and unsaved cleanup remain untouched; a live refresh/review is deferred until
 the author has saved their current work.
 
+### Corrected minimum character-setting contract
+
+The author rejected the all-optional outcome above and approved real requirements:
+at least one personality trait and an appearance per character (ADR 0091).
+Deliver UI markers and inline errors, acceptance/reopened-save guards, new-task
+instructions and regressions. Preserve historical revisions and current author
+edits; no creative acceptance or automatic content filling. Incomplete candidates
+remain editable. Verify focused backend, frontend, build and fixture browser
+checks plus independent review, then resume the walkthrough.
+
+Delivered: confirmation validation on both endpoints, required trait-group and
+appearance markers, accessible adjacent errors, and new frozen-task guidance.
+51 focused Python tests, 247 frontend tests, application/E2E TypeScript checks,
+deterministic build and browser clear/repair/accept/reopen/save journey pass.
+Independent review found no blockers. Test fixtures were updated rather than
+bypassing the new minimum. Local server restarted; no author-tab reload or
+project content mutation. User review of the updated form remains pending.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

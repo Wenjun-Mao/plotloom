@@ -11,6 +11,7 @@ def cast_writing_contract() -> dict[str, Any]:
             "reviewNotes": {"sourceNotes": "string", "performanceGuidance": "string"},
         },
         "instructions": [
+            "Each character must have at least one nonblank string in persona.personality and a nonblank persona.appearance. Supply an upstream-complete candidate for review. Plotloom author confirmation requires these two design fields; supplementary temperament and voice direction are not confirmation requirements.",
             "Keep persona and voice descriptions descriptive, without inline inference labels or source commentary.",
             "Put source qualifications, inference rationale and proposed production choices in reviewNotes.sourceNotes; identify each affected field/detail. Preserve verbatim persona.evidence.",
             "Put scene-specific acting directions and branch-performance constraints in reviewNotes.performanceGuidance, not temperament or voice identity.",

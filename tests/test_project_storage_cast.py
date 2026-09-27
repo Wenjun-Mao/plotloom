@@ -14,6 +14,7 @@ from plotloom.cast_contracts import (
     CastCancelReopenRequest,
     CastConsumerMapping,
     CastReopenRequest,
+    CastSaveRequest,
 )
 from plotloom.conformance import FIXED_CHINESE_BRIEF
 from plotloom.creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
@@ -47,7 +48,7 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     pin = store.creative_handoff_execution_pin(request)  # type: ignore[attr-defined]
     paths = exchange.write_package(request, pin); package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"]); delivery.mkdir()
-    cast = canonical_json({"source": "Tide Light", "summary": "Lin chooses power.", "characters": [{"id": "lin", "name": "Lin", "reviewNotes": {"sourceNotes": "Appearance is a proposed design", "performanceGuidance": ""}, "persona": {"motivation": "Protect people", "appearance": "Windburned", "arc": "Chooses"}, "voice": {"timbre": "Calm"}}]})
+    cast = canonical_json({"source": "Tide Light", "summary": "Lin chooses power.", "characters": [{"id": "lin", "name": "Lin", "reviewNotes": {"sourceNotes": "Appearance is a proposed design", "performanceGuidance": ""}, "persona": {"personality": ["Careful"], "motivation": "Protect people", "appearance": "Windburned", "arc": "Chooses"}, "voice": {"timbre": "Calm"}}]})
     report = b"<!doctype html><html><body>cast report</body></html>"
     (delivery / "cast.json").write_bytes(cast); (delivery / "report.html").write_bytes(report)
     manifest = {"schemaVersion": 1, "jobId": request.job_id, "requestHash": package["requestHash"], "deliveryId": "cast-fixture", "stage": "characters", "candidate": {"filename": "cast.json", "sha256": sha256(cast).hexdigest()}, "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()}, "executorProvenance": {"codeRevision": "abcdef0", "skillVersion": "fixture", "skillHash": package["executionPin"]["specialistSkillHash"], "upstreamRevision": package["executionPin"]["upstreamRevision"], "upstreamSkillHash": package["executionPin"]["upstreamSkillHash"], "model": "fixture", "reasoningEffort": "high"}, "limitations": ["fixture"]}
@@ -81,11 +82,16 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
             store.admit_cast_delivery(replace(delivery, candidate=missing_notes))
         assert store.cast_state().candidate.status == "prepared"
         ready = store.admit_cast_delivery(delivery)
+        invalid = json.loads(json.dumps(ready.cast))
+        invalid["characters"][0]["persona"]["personality"] = []
+        with pytest.raises(ValueError, match="性格特点"):
+            store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=invalid, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
+        assert store.cast_state().candidate.status == "ready"
         stripped = dict(ready.cast or {})
         stripped["characters"] = [{key: value for key, value in stripped["characters"][0].items() if key != "reviewNotes"}]
         with pytest.raises(ValueError, match="reviewNotes"):
             store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=stripped, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
-        edited = dict(ready.cast or {}); edited["characters"] = [dict(edited["characters"][0], persona={"motivation": "Save both crews", "appearance": "Windburned", "arc": "Chooses"})]
+        edited = dict(ready.cast or {}); edited["characters"] = [dict(edited["characters"][0], persona={"personality": ["Careful"], "motivation": "Save both crews", "appearance": "Windburned", "arc": "Chooses"})]
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=edited, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         assert accepted.accepted_cast is not None and accepted.accepted_cast.cast["characters"][0]["persona"]["motivation"] == "Save both crews"
         with store.repository._read() as session:  # type: ignore[attr-defined]
@@ -100,6 +106,11 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
             "image": None,
         }
         store.reopen_cast(CastReopenRequest(expected_cast_revision=1))
+        invalid = json.loads(json.dumps(accepted.accepted_cast.cast))
+        invalid["characters"][0]["persona"]["appearance"] = "  "
+        with pytest.raises(ValueError, match="外观"):
+            store.save_reopened_cast(CastSaveRequest(expected_cast_revision=1, binding=binding, cast=invalid, consumer_mappings=accepted.accepted_cast.consumer_mappings))
+        assert store.cast_state().accepted_cast.revision == 1
         with store.repository._read() as session:  # type: ignore[attr-defined]
             assert store.repository.cast.identity_context_in_session(  # type: ignore[attr-defined]
                 session, store.manifest.project_id, "lin"

@@ -64,9 +64,12 @@ Required fields use `*` beside the label; optional fields have no marker. Put
 actual submit validation, not recommendations or generation-schema key presence.
 Use native required semantics and adjacent error explanations when a field is
 mandatory; explain conditional requirements where they apply. Do not introduce
-new requirements as a copy-only change. The character review's editable text
-fields currently all permit blank values, so its note explicitly says so and
-recommends retaining source qualifications without falsely marking them required.
+new requirements as a copy-only change. Under
+[ADR 0091](../adr/0091-minimum-character-design.md), character confirmation
+requires at least one nonblank personality trait and a nonblank appearance.
+Mark the trait group and appearance with `*`; temperament, voice direction and
+note content remain optional. Show adjacent errors and block confirmation until
+the design is complete. This supersedes the earlier all-optional character note.
 
 For adjacent actions, place each explanation beside its own button, not in
 shared fine print. Choose one primary action for the current state. A completed
