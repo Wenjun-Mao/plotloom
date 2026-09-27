@@ -19,6 +19,7 @@ export function CastEditor({ characters, disabled, onChange, editing = false }: 
   const editorId = useId();
   return <section className="cast-forms">
     <strong>{editing ? "编辑角色设定" : "审核并编辑角色设定"}</strong>
+    <p className="cast-field-requirements">带 * 的为必填项，其余可留空。本页文字字段均可留空；已有的设定依据建议保留，方便审核创作补充。</p>
     {characters.map((character, index) => {
       const persona = record(character.persona);
       const traits = Array.isArray(persona.personality) ? persona.personality as string[] : [];

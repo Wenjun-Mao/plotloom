@@ -114,6 +114,15 @@ it("allows clearing an annotated value without returning the marker to the input
   expect(host.querySelector(".cast-inference-notes")?.textContent).toContain("（推断）");
 });
 
+it("explains optional fields accurately in candidate and reopened review", async () => {
+  for (const mode of ["ready", "reopened"]) {
+    await render(mode);
+    expect(host.querySelector(".cast-field-requirements")?.textContent).toContain("带 * 的为必填项，其余可留空。本页文字字段均可留空");
+    expect(host.querySelectorAll(".cast-forms [required], .cast-forms [aria-required=true]")).toHaveLength(0);
+    expect(Array.from(host.querySelectorAll(".cast-forms label")).every((label) => !label.textContent?.includes("*"))).toBe(true);
+  }
+});
+
 it("edits separate notes without rewriting descriptions or losing either note", async () => {
   const accept = vi.spyOn(plotloomApi, "acceptCastCandidate").mockResolvedValue({} as any);
   await render();

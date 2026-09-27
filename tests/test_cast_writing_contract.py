@@ -24,6 +24,19 @@ def test_retained_candidate_needs_no_retroactive_rewrite():
         validate_cast_notes(cast, required=True)
 
 
+def test_editable_text_fields_are_optional_at_cast_acceptance():
+    from plotloom.persistence.project.cast import _validate_cast
+
+    _validate_cast({
+        "source": "Retained source", "summary": "Retained summary",
+        "characters": [{
+            "id": "C01", "persona": {"personality": [], "temperament": "", "appearance": ""},
+            "voice": {"timbre": ""},
+            "reviewNotes": {"sourceNotes": "", "performanceGuidance": ""},
+        }],
+    })
+
+
 def test_author_cannot_drop_notes_but_unannotated_retained_characters_stay_valid():
     previous = {"characters": [{"id": "A", "reviewNotes": {"sourceNotes": "", "performanceGuidance": ""}}, {"id": "B"}]}
     validate_cast_notes(previous, previous=previous)

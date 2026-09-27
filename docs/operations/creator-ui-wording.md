@@ -59,6 +59,15 @@ are source-backed, inferred or proposed; **表演提示** records scene-specific
 guidance. Neither note field implies acceptance. Do not silently rewrite old
 candidate prose to fit this distinction.
 
+Required fields use `*` beside the label; optional fields have no marker. Put
+“带 * 的为必填项，其余可留空。” near the beginning of the form. Markers must match
+actual submit validation, not recommendations or generation-schema key presence.
+Use native required semantics and adjacent error explanations when a field is
+mandatory; explain conditional requirements where they apply. Do not introduce
+new requirements as a copy-only change. The character review's editable text
+fields currently all permit blank values, so its note explicitly says so and
+recommends retaining source qualifications without falsely marking them required.
+
 For adjacent actions, place each explanation beside its own button, not in
 shared fine print. Choose one primary action for the current state. A completed
 step should state what is ready and offer a clear next destination; it must not

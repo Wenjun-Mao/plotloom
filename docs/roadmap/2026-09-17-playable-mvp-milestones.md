@@ -716,6 +716,21 @@ and independent review pass. Read-only live-page check exposes the two new note
 fields; the original candidate remains ready/unaccepted and unmodified. Local
 server restarted on 8841. No live creative acceptance or new specialist run.
 
+### Character form: required-field convention
+
+Creator approved `*` for required fields, no marker for optional fields, and an
+explanatory note. Bounded delivery: clarify the current character review without
+changing its acceptance rules or live unsaved edits. Its editable text fields
+all allow blank values; do not invent required markers. Regression checks cover
+the note in candidate/reopened review and blank-value acceptance. Broader form
+rollout requires checking each form's own validation before adding stars.
+Stop after frontend build, focused verification and independent review.
+
+Verification: 245 frontend tests, 9 focused backend tests, TypeScript and
+deterministic build pass. No acceptance rules changed. The user's Safari tab
+and unsaved cleanup remain untouched; a live refresh/review is deferred until
+the author has saved their current work.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation
