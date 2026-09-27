@@ -160,6 +160,20 @@ def create_app(data_dir: Path, engine=None) -> FastAPI:
         except ValueError as error:
             raise _api_error(error) from error
 
+    @app.get("/api/generations/{generation_id}/progress")
+    def generation_progress(generation_id: str):
+        try:
+            generation = store.generations.get(generation_id)
+        except ValueError as error:
+            raise _api_error(error) from error
+        status = generation["status"]
+        live = worker.progress("generation", generation_id) if status in {"queued", "running"} else None
+        return {"generationId": generation_id, "status": status,
+                "queueAhead": live["queueAhead"] if live else None,
+                "phase": live["phase"] if live else None,
+                "elapsedSeconds": live["elapsedSeconds"] if live else None,
+                "errorCode": generation["errorCode"]}
+
     @app.get("/api/generations/{generation_id}/audio")
     def generation_audio(generation_id: str, kind: Literal["source", "h3"] = Query(default="source")):
         try:

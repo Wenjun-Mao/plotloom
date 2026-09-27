@@ -25,6 +25,10 @@ Plotloom authoring UI or H3 gateway.
   project deletion and restart; there is no retirement endpoint yet.
 - One worker handles all design and clone jobs serially. On restart, queued or
   running jobs become `interrupted` and are never silently replayed.
+- While a candidate is queued, its card shows how many design or clone jobs
+  are ahead. During generation, it shows the observed worker phase and elapsed
+  time. The model does not provide a reliable percent complete or ETA; the UI
+  does not invent either.
 
 See [ADR 0092](../../docs/adr/0092-voice-lab-projects-and-published-voice-identity.md).
 
@@ -72,7 +76,7 @@ no server paths or credentials. IDs are opaque. Selected endpoints:
 | Add candidate | `POST /api/projects/{projectId}/candidates` |
 | Edit/delete candidate | `PUT/DELETE /api/candidates/{candidateId}` |
 | Generate only that candidate | `POST /api/candidates/{candidateId}/generations` |
-| Generation progress/audio | `GET /api/generations/{generationId}` and `/audio?kind=source\|h3` |
+| Generation result/progress/audio | `GET /api/generations/{generationId}`, `/progress`, and `/audio?kind=source\|h3` |
 | Select lab reference | `POST /api/projects/{projectId}/selections` |
 | New-line trial | `POST /api/clone-trials`, then `GET /api/clone-trials/{trialId}` |
 | Publish/resolve immutable voice | `POST/GET /api/voices`, `GET /api/voices/{voiceId}`, `/audio?kind=source\|h3` |
@@ -81,6 +85,10 @@ Project, candidate and generation mutations require `expectedRevision`,
 `expectedProjectRevision`, and/or `expectedCandidateRevision` as shown by the
 request model. Deletion additionally requires the exact current project name.
 The old global `/api/rounds` and `/api/selections` authoring routes are gone.
+The progress response is secret-free and returns `status`, `queueAhead`,
+`phase`, `elapsedSeconds` and `errorCode`. `queueAhead` is null if the request
+has not yet reached the in-process queue or is terminal. See
+[ADR 0093](../../docs/adr/0093-voice-lab-observed-job-progress.md).
 
 SQLite is at `$VOICE_LAB_DATA_ROOT/voice_lab.sqlite3`. Unpublished WAVs are
 under `assets/<candidateId>/<generationId>/`, pinned clone references/results

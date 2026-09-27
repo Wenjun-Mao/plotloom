@@ -30,13 +30,13 @@
         <div class="page-heading"><div><div class="eyebrow">PROJECT WORKSPACE</div><h1 id="project-title">声线项目</h1><p id="project-meta" class="muted"></p></div><button id="delete-project" class="danger" type="button">删除项目</button></div>
         <section class="panel" aria-labelledby="design-heading">
           <div class="section-heading"><h2 id="design-heading">声线设计</h2><button id="save-project" class="primary" type="button">保存项目</button></div>
-          <div class="fields"><label>项目名称<input id="project-name" maxlength="120"></label><label>共同方向<textarea id="project-brief" rows="3" maxlength="2000"></textarea></label><label>统一试听台词<textarea id="audition-text" rows="2" maxlength="160"></textarea></label></div>
+          <div class="fields"><div class="field"><span id="project-name-label">项目名称</span><input id="project-name" aria-labelledby="project-name-label" maxlength="120"></div><div class="field"><span id="project-brief-label">共同方向</span><textarea id="project-brief" aria-labelledby="project-brief-label" rows="3" maxlength="2000"></textarea></div><div class="field"><span id="audition-text-label">统一试听台词</span><textarea id="audition-text" aria-labelledby="audition-text-label" rows="2" maxlength="160"></textarea></div></div>
           <p id="draft-status" class="status" role="status"></p>
         </section>
         <section class="panel" aria-labelledby="gallery-heading">
           <div class="section-heading"><div><h2 id="gallery-heading">试听候选</h2><p class="muted">每条候选独立编辑、生成和重新生成。旧录音仅在新录音成功后替换。</p></div><div class="toolbar"><button id="blind-toggle" type="button" aria-pressed="false">打乱并盲听</button><button id="notes-toggle" type="button" aria-pressed="false">显示设计说明</button></div></div>
           <div id="candidate-grid" class="candidate-grid"></div>
-          <div class="add-row"><label>新增候选方向<textarea id="new-direction" rows="2" maxlength="300"></textarea></label><button id="add-candidate" type="button">＋ 添加候选</button></div>
+          <div class="add-row"><div class="field"><span id="new-direction-label">新增候选方向</span><textarea id="new-direction" aria-labelledby="new-direction-label" rows="2" maxlength="300"></textarea></div><button id="add-candidate" type="button">＋ 添加候选</button></div>
           <p id="candidate-status" class="status" role="status"></p>
         </section>
         <section class="panel" aria-labelledby="compare-heading">
@@ -45,7 +45,7 @@
         </section>
         <section class="panel" aria-labelledby="reuse-heading">
           <div class="section-heading"><h2 id="reuse-heading">复用测试</h2><span id="selected-label" class="tag">尚未选择参考声线</span></div>
-          <label>新台词<textarea id="clone-text" rows="2" maxlength="200"></textarea></label>
+          <div class="field"><span id="clone-text-label">新台词</span><textarea id="clone-text" aria-labelledby="clone-text-label" rows="2" maxlength="200"></textarea></div>
           <button id="clone-button" class="primary" type="button" disabled>生成复用试听</button>
           <p id="clone-status" class="status" role="status"></p>
           <div id="clone-list"></div>

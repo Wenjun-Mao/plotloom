@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
 import time
 from contextlib import contextmanager
 from pathlib import Path
@@ -46,6 +47,29 @@ class FakeEngine:
         yield FakeClone()
 
 
+class BlockingDesign(FakeDesign):
+    def __init__(self, started: threading.Event, release: threading.Event):
+        super().__init__()
+        self.started, self.release = started, release
+
+    def generate(self, text: str, direction: str, seed: int):
+        if direction.endswith("方向二"):
+            self.started.set()
+            if not self.release.wait(timeout=10):
+                raise TimeoutError("test did not release design generation")
+        return super().generate(text, direction, seed)
+
+
+class BlockingEngine(FakeEngine):
+    def __init__(self, started: threading.Event, release: threading.Event):
+        super().__init__()
+        self.started, self.release = started, release
+
+    @contextmanager
+    def design_session(self):
+        yield BlockingDesign(self.started, self.release)
+
+
 def wait_for(client: TestClient, path: str):
     for _ in range(150):
         result = client.get(path)
@@ -84,6 +108,51 @@ def generate(client: TestClient, p: dict, c: dict) -> dict:
     })
     assert response.status_code == 202, response.text
     return wait_for(client, f"/api/generations/{response.json()['generationId']}")
+
+
+def test_generation_progress_reflects_serial_queue_and_observed_phase(tmp_path):
+    started, release = threading.Event(), threading.Event()
+    with TestClient(create_app(tmp_path, BlockingEngine(started, release))) as client:
+        p = project(client)
+        p, first = candidate(client, p)
+        source = generate(client, p, first)
+        assert client.post(f"/api/projects/{p['projectId']}/selections", json={
+            "generationId": source["generationId"],
+        }).status_code == 201
+        p, second = candidate(client, p, "方向二")
+        p, third = candidate(client, p, "方向三")
+        try:
+            active_job = client.post(f"/api/candidates/{second['candidateId']}/generations", json={
+                "expectedProjectRevision": p["revision"], "expectedCandidateRevision": second["revision"],
+            }).json()
+            assert started.wait(timeout=3)
+            time.sleep(0.12)
+            active_progress = client.get(f"/api/generations/{active_job['generationId']}/progress").json()
+            assert active_progress["status"] == "running"
+            assert active_progress["phase"] == "synthesizing"
+            assert active_progress["queueAhead"] == 0
+            assert active_progress["elapsedSeconds"] >= 0.1
+
+            clone = client.post("/api/clone-trials", json={
+                "projectId": p["projectId"], "generationId": source["generationId"],
+                "text": "新台词。",
+            })
+            assert clone.status_code == 202
+            waiting_job = client.post(f"/api/candidates/{third['candidateId']}/generations", json={
+                "expectedProjectRevision": p["revision"], "expectedCandidateRevision": third["revision"],
+            }).json()
+            waiting_progress = client.get(f"/api/generations/{waiting_job['generationId']}/progress").json()
+            assert waiting_progress == {
+                "generationId": waiting_job["generationId"], "status": "queued",
+                "queueAhead": 2, "phase": "queued", "elapsedSeconds": None, "errorCode": None,
+            }
+            assert client.get("/api/generations/vg_" + "0" * 32 + "/progress").status_code == 404
+        finally:
+            release.set()
+        assert wait_for(client, f"/api/generations/{active_job['generationId']}")["status"] == "completed"
+        assert wait_for(client, f"/api/generations/{waiting_job['generationId']}")["status"] == "completed"
+        terminal = client.get(f"/api/generations/{waiting_job['generationId']}/progress").json()
+        assert terminal["phase"] is None and terminal["queueAhead"] is None
 
 
 def test_project_candidate_replacement_publication_and_restart(tmp_path):

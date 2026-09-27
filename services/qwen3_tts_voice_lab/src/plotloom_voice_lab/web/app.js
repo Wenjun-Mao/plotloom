@@ -14,6 +14,17 @@ async function api(path, method = 'GET', body) {
 function status(id, text) { $(id).textContent = text; }
 function active(value) { return ['queued', 'running'].includes(value); }
 function statusName(value) { return ({ queued: '排队中', running: '生成中', completed: '已完成', completed_stale: '输入已更改', failed: '失败', interrupted: '已中断' })[value] || value; }
+function progressText(progress) {
+  if (progress.status === 'queued') {
+    if (progress.queueAhead === null) return '已接收请求，等待入队…';
+    return progress.queueAhead ? `排队中 · 前方 ${progress.queueAhead} 个任务` : '排队中 · 下一个开始';
+  }
+  if (progress.status === 'running') {
+    const phase = ({ starting: '任务启动中', loading_model: '模型准备中', synthesizing: '语音合成中', preparing_audio: '音频整理中', finalizing: '结果保存中' })[progress.phase] || '生成中';
+    return `${phase} · 已运行 ${Math.floor(progress.elapsedSeconds || 0)} 秒（模型未提供完成百分比）`;
+  }
+  return `${statusName(progress.status)}${progress.errorCode ? ` · ${progress.errorCode}` : ''}`;
+}
 function node(tag, className, text) { const item = document.createElement(tag); if (className) item.className = className; if (text !== undefined) item.textContent = text; return item; }
 function projectFormChanged() {
   const p = state.project;
@@ -51,7 +62,10 @@ async function loadProject(id, replaceForm = true, epoch = state.epoch) {
   if (replaceForm) updateForm(p);
   const signature = JSON.stringify([p.selectedGenerationId, p.candidates]);
   if (signature !== state.candidateSignature) { renderCandidates(); renderCompare(); state.candidateSignature = signature; }
+  await refreshGenerationProgress(p, epoch);
+  if (epoch !== state.epoch) return;
   const pending = p.candidates.find(c => c.latestGeneration?.generationId === state.pendingGenerationId);
+  if (pending && active(pending.latestGeneration.status)) status('candidate-status', '');
   if (pending && !active(pending.latestGeneration.status)) {
     status('candidate-status', `${candidateLabel(pending)}：${statusName(pending.latestGeneration.status)}${pending.latestGeneration.errorCode ? ` · ${pending.latestGeneration.errorCode}` : ''}`);
     state.pendingGenerationId = null;
@@ -63,6 +77,23 @@ async function loadProject(id, replaceForm = true, epoch = state.epoch) {
   clearPolling();
   if (cloneActive || p.candidates.some(c => active(c.latestGeneration?.status))) {
     state.polling = setInterval(() => loadProject(id, false, epoch).catch(e => status('candidate-status', e.message)), 2500);
+  }
+}
+async function refreshGenerationProgress(project, epoch) {
+  for (const candidate of project.candidates) {
+    const generation = candidate.latestGeneration;
+    if (!active(generation?.status)) continue;
+    let progress;
+    try { progress = await api(`/api/generations/${generation.generationId}/progress`); }
+    catch (_) {
+      if (epoch !== state.epoch) return;
+      const target = $(`progress-${generation.generationId}`);
+      if (target) target.textContent = '进度暂不可用，稍后自动重试。';
+      continue;
+    }
+    if (epoch !== state.epoch || state.project?.projectId !== project.projectId) return;
+    const target = $(`progress-${generation.generationId}`);
+    if (target) target.textContent = progressText(progress);
   }
 }
 async function navigate(id, fromHistory = false) {
@@ -100,9 +131,14 @@ function makeCandidate(c) {
   const head = node('div', 'card-head'); head.append(node('h3', '', candidateLabel(c)), node('span', 'small-text', latest ? statusName(latest.status) : '未生成')); card.append(head);
   card.append(node('div', 'id', c.candidateId));
   const direction = node('textarea'); direction.rows = 2; direction.maxLength = 300; direction.value = state.candidateDrafts.get(c.candidateId) ?? c.direction;
+  direction.setAttribute('aria-label', `${candidateLabel(c)}的声线方向`);
   direction.hidden = state.blind || !state.notes;
   direction.addEventListener('input', () => { if (direction.value === c.direction) state.candidateDrafts.delete(c.candidateId); else state.candidateDrafts.set(c.candidateId, direction.value); });
   card.append(direction);
+  if (active(latest?.status)) {
+    const progress = node('p', 'job-progress', latest.status === 'queued' ? '正在查询队列位置…' : '正在查询生成进度…');
+    progress.id = `progress-${latest.generationId}`; progress.setAttribute('role', 'status'); card.append(progress);
+  }
   if (current) {
     const audio = node('audio'); audio.controls = true; audio.preload = 'metadata'; audio.src = `/api/generations/${current.generationId}/audio`;
     audio.setAttribute('aria-label', `播放${candidateLabel(c)}`); audio.addEventListener('play', () => document.querySelectorAll('audio').forEach(other => { if (other !== audio) other.pause(); })); card.append(audio);
