@@ -70,7 +70,8 @@ ALLOWED_REPOSITORY_ROOTS = {
     "third_party",
     "uv.lock",
 }
-ALLOWED_SERVICE_DIRECTORY = "minimax_h3_gateway"
+ALLOWED_SERVICE_DIRECTORIES = {"minimax_h3_gateway", "qwen3_tts_voice_lab"}
+IGNORED_SERVICE_RUNTIME_PARTS = {".mypy_cache", ".pytest_cache", ".ruff_cache", ".venv", "__pycache__", "build", "dist"}
 IGNORED_WORKTREE_ROOTS = {
     ".gates.jsonl",
     ".env",
@@ -160,47 +161,47 @@ def _find_named_files(root: Path, filenames: set[str]) -> set[Path]:
     return matches
 
 
-def _assert_services_root_is_gateway_only(root: Path, tracked_paths: list[Path]) -> None:
-    """Keep the private gateway a narrow exception to source-root isolation."""
+def _assert_services_root_contains_only_admitted_modules(root: Path, tracked_paths: list[Path]) -> None:
+    """Keep independently deployed services as explicit source-root exceptions."""
 
     services_root = root / "services"
     assert services_root.is_dir() and not services_root.is_symlink(), (
         "services must be a real directory"
     )
     children = {path.name for path in services_root.iterdir()}
-    assert children == {ALLOWED_SERVICE_DIRECTORY}, (
-        "services permits only the tracked MiniMax H3 gateway subtree: "
+    assert children == ALLOWED_SERVICE_DIRECTORIES, (
+        "services permits only the admitted service subtrees: "
         + ", ".join(sorted(children))
     )
-    gateway_root = services_root / ALLOWED_SERVICE_DIRECTORY
-    assert gateway_root.is_dir() and not gateway_root.is_symlink(), (
-        "the admitted MiniMax H3 gateway must be a real directory"
-    )
+    for name in ALLOWED_SERVICE_DIRECTORIES:
+        service_root = services_root / name
+        assert service_root.is_dir() and not service_root.is_symlink(), (
+            f"the admitted {name} service must be a real directory"
+        )
 
     tracked_service_paths = {
         path.as_posix() for path in tracked_paths if path.parts and path.parts[0] == "services"
     }
     invalid_tracked_paths = sorted(
         path for path in tracked_service_paths
-        if not path.startswith(f"services/{ALLOWED_SERVICE_DIRECTORY}/")
+        if len(Path(path).parts) < 3 or Path(path).parts[1] not in ALLOWED_SERVICE_DIRECTORIES
     )
     assert not invalid_tracked_paths, (
-        "tracked files outside the admitted gateway subtree: "
+        "tracked files outside the admitted service subtrees: "
         + ", ".join(invalid_tracked_paths)
     )
     actual_service_paths = {
         path.relative_to(root).as_posix()
         for path in services_root.rglob("*")
-        # Importing the gateway during its own test run writes Python bytecode
-        # next to the source. It is ignored repository-wide and is runtime
-        # debris, not a second service or an untracked implementation file.
+        # Each service's own venv, package build and test caches are local
+        # runtime debris. Source and configuration still must be tracked.
             if (path.is_file() or path.is_symlink())
-            and "__pycache__" not in path.parts
+            and not IGNORED_SERVICE_RUNTIME_PARTS.intersection(path.parts)
             and path.suffix != ".pyc"
             and path.name != ".DS_Store"
     }
     assert actual_service_paths == tracked_service_paths, (
-        "services must contain only tracked gateway files; unexpected: "
+        "services must contain only tracked source files; unexpected: "
         + ", ".join(sorted(actual_service_paths - tracked_service_paths))
         + "; missing: "
         + ", ".join(sorted(tracked_service_paths - actual_service_paths))
@@ -286,7 +287,7 @@ def test_clean_repository_has_only_declared_product_roots() -> None:
     assert not foreign_source_paths, "non-Plotloom source packages are tracked:\n" + "\n".join(
         foreign_source_paths
     )
-    _assert_services_root_is_gateway_only(REPOSITORY_ROOT, tracked_paths)
+    _assert_services_root_contains_only_admitted_modules(REPOSITORY_ROOT, tracked_paths)
 
 
 def test_root_hygiene_allows_only_declared_untracked_local_state(tmp_path: Path) -> None:
@@ -309,21 +310,24 @@ def test_root_hygiene_allows_only_declared_untracked_local_state(tmp_path: Path)
 
 
 def test_services_root_admission_rejects_other_children_and_untracked_files(tmp_path: Path) -> None:
-    tracked = [Path("services/minimax_h3_gateway/README.md")]
+    tracked = [Path(f"services/{name}/README.md") for name in sorted(ALLOWED_SERVICE_DIRECTORIES)]
     gateway = tmp_path / "services" / "minimax_h3_gateway"
     gateway.mkdir(parents=True)
     (gateway / "README.md").write_text("gateway", encoding="utf-8")
+    voice_lab = tmp_path / "services" / "qwen3_tts_voice_lab"
+    voice_lab.mkdir()
+    (voice_lab / "README.md").write_text("voice lab", encoding="utf-8")
 
-    _assert_services_root_is_gateway_only(tmp_path, tracked)
+    _assert_services_root_contains_only_admitted_modules(tmp_path, tracked)
 
     (tmp_path / "services" / "unrelated.py").write_text("blocked", encoding="utf-8")
     with pytest.raises(AssertionError, match="permits only"):
-        _assert_services_root_is_gateway_only(tmp_path, tracked)
+        _assert_services_root_contains_only_admitted_modules(tmp_path, tracked)
     (tmp_path / "services" / "unrelated.py").unlink()
 
     (gateway / "local.env").write_text("blocked", encoding="utf-8")
-    with pytest.raises(AssertionError, match="only tracked gateway files"):
-        _assert_services_root_is_gateway_only(tmp_path, tracked)
+    with pytest.raises(AssertionError, match="only tracked source files"):
+        _assert_services_root_contains_only_admitted_modules(tmp_path, tracked)
 
 
 def test_product_code_contains_no_predecessor_identity() -> None:

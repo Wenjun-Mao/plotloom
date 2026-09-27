@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Voice Lab · 声线设计与试听</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b111a'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='27' font-family='sans-serif' fill='%23e5b456'%3EVL%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">VL</span><span><strong>Voice Lab</strong><small>SPARK · SYNTHETIC VOICE</small></span></div>
+      <div class="topbar-title">角色声线工作台</div>
+      <div id="service-status" class="topbar-status">连接中…</div>
+    </header>
+    <div class="app-body">
+      <nav class="side-rail" aria-label="工作流">
+        <ol class="workflow-steps">
+          <li><a href="#design-heading"><span>01</span><strong>声线设计</strong></a></li>
+          <li><a href="#gallery-heading"><span>02</span><strong>试听候选</strong></a></li>
+          <li><a href="#compare-heading"><span>03</span><strong>快速比较</strong></a></li>
+          <li><a href="#reuse-heading"><span>04</span><strong>复用测试</strong></a></li>
+        </ol>
+      </nav>
+      <main class="workspace">
+        <div class="page-heading"><div><div class="eyebrow">SYNTHETIC VOICE CASTING</div><h1>为角色寻找一个声音</h1><p>同一句台词比较不同声线；录音和设计说明会随轮次保存。</p></div></div>
+
+        <section class="design-panel" aria-labelledby="design-heading">
+          <div class="section-heading"><h2 id="design-heading">声线设计</h2></div>
+          <div class="design-fields">
+            <label>共同方向<textarea id="voice-brief" rows="3">三十岁左右的中国女性。冷静、坚定，中低音，自然口语；在紧急抉择中仍然克制。</textarea></label>
+            <label>统一试听台词<textarea id="audition-line" rows="3">雨还没有停。主灯，或者码头，我们只能先保住一边。</textarea></label>
+          </div>
+          <div class="generation-row">
+            <label class="count-field" for="candidate-count">候选数量
+              <select id="candidate-count"><option>2</option><option selected>4</option><option>6</option><option>8</option></select>
+            </label>
+            <button id="generate-button" type="button" class="primary-button">生成 4 个候选</button>
+          </div>
+          <p class="generation-note">每条候选都有独立的设计说明。修改下方说明只影响下一轮，不改变已保存录音。</p>
+          <div id="direction-fields" class="direction-fields"></div>
+          <p id="draft-status" class="draft-status" role="status"></p>
+        </section>
+
+        <section class="gallery" aria-labelledby="gallery-heading">
+          <div class="section-heading gallery-heading">
+            <div><h2 id="gallery-heading">试听候选</h2><p id="round-status">尚无生成轮次</p></div>
+            <div class="gallery-actions">
+              <label class="count-field" for="round-selector">已保存轮次 <select id="round-selector"></select></label>
+              <button id="blind-toggle" type="button" class="toolbar-button" aria-pressed="false">打乱并盲听</button>
+              <button id="notes-toggle" type="button" class="toolbar-button" aria-pressed="false">显示设计说明</button>
+            </div>
+          </div>
+          <div id="candidate-grid" class="candidate-grid"></div>
+        </section>
+
+        <section class="compare-panel" aria-labelledby="compare-heading">
+          <div class="section-heading"><h2 id="compare-heading">快速比较两条选中的候选声线</h2><span id="compare-count" class="panel-tag">0 / 2 已入围</span></div>
+          <div class="compare-slots">
+            <div class="compare-slot"><strong id="slot-label-0">等待选择</strong><div><button class="compare-play" data-slot="0" type="button" disabled>从头播放</button></div></div>
+            <div class="compare-slot"><strong id="slot-label-1">等待选择</strong><div><button class="compare-play" data-slot="1" type="button" disabled>从头播放</button></div></div>
+          </div>
+          <p id="compare-status" class="compare-status" role="status">从上方加入最多两条候选。</p>
+        </section>
+
+        <section class="compare-panel" aria-labelledby="reuse-heading">
+          <div class="section-heading"><h2 id="reuse-heading">复用测试</h2><span id="selected-label" class="panel-tag">尚未选择参考声线</span></div>
+          <p class="generation-note">在候选卡片中选择一条作为复用参考；这不会修改录音。</p>
+          <label class="reuse-label">新台词<textarea id="clone-text" rows="2">灯塔的备用电源已经接通。我们还有十分钟检查航道。</textarea></label>
+          <div class="generation-row"><button id="clone-button" class="primary-button" type="button" disabled>生成复用试听</button></div>
+          <p id="clone-status" class="compare-status" role="status"></p>
+          <div id="clone-list" class="clone-list"></div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

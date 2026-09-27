@@ -1,0 +1,18 @@
+[Unit]
+Description=Private Spark synthetic Voice Lab
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=VOICE_LAB_HOST=100.64.35.71
+Environment=VOICE_LAB_PORT=8897
+Environment=VOICE_LAB_DATA_ROOT=/home/wjmao/services/plotloom-voice-lab/data
+Environment=VOICE_LAB_DESIGN_MODEL_DIR=/home/wjmao/models/qwen3-tts/voice-design-1.7b
+Environment=VOICE_LAB_BASE_MODEL_DIR=/home/wjmao/models/qwen3-tts/base-1.7b
+ExecStart=/home/wjmao/services/qwen3-tts-trial/.venv/bin/python -m plotloom_voice_lab
+Restart=on-failure
+RestartSec=5
+UMask=0077
+
+[Install]
+WantedBy=default.target

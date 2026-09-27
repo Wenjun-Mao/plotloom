@@ -1,0 +1,28 @@
+[project]
+name = "plotloom-voice-lab"
+version = "0.1.0"
+description = "Private Spark synthetic voice casting lab"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.141,<1",
+  "uvicorn>=0.54,<1",
+  "numpy>=2,<3",
+  "scipy>=1.18,<2",
+  "soundfile>=0.14,<1",
+]
+
+[project.optional-dependencies]
+inference = ["qwen-tts==0.1.1"]
+
+[dependency-groups]
+test = ["pytest>=8,<10", "httpx>=0.28,<1"]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/plotloom_voice_lab"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,11 +1,11 @@
 # Spark Voice Lab: functional synthetic casting MVP
 
-**Status:** Proposed specialist-side implementation plan; not authorization to
-implement, merge, push, or contact the Plotloom director. The owner chose a
-private same-origin UI and generation API on Spark. Plotloom product integration
-and the director handoff remain explicitly on hold. The per-candidate-direction
-choice in step 1 is my recommendation and awaits the owner's answer; it is not
-yet an approved requirement.
+**Status:** Implemented and deployed as a specialist-side pilot on 2026-09-26;
+see the [verification receipt](../verification/2026-09-26-spark-voice-lab-implementation.md).
+The owner chose a private same-origin UI and generation API on Spark, then
+approved editable per-candidate directions. This does not authorize merging,
+pushing, Plotloom product integration, or contacting the Plotloom director;
+that handoff remains explicitly on hold.
 
 ## Outcome and evidence
 
@@ -54,7 +54,7 @@ the current handoff hold and prematurely settle character-level authority.
 
 ## Contract and user journey
 
-1. **Design a round (proposed).** Enter a shared Mandarin audition line and choose 2, 4,
+1. **Design a round.** Enter a shared Mandarin audition line and choose 2, 4,
    6, or 8 candidates. Give each candidate an editable voice direction; the
    UI may copy the shared brief into each field, but must show the exact
    direction that will be submitted. A blank candidate direction is rejected.
