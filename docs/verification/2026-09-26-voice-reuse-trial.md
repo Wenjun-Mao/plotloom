@@ -1,8 +1,9 @@
 # Candidate A VoiceDesign → Base clone trial
 
-**Status:** Six outputs generated and technically checked; speaker continuity,
-delivery, and text accuracy await listening review. This is an isolated Spark
-experiment, not a gateway feature or a Plotloom Voice ID.
+**Status:** Six outputs generated and technically checked. The owner listened
+and judged that all six retain Candidate A's identity, but neither urgent
+sample sounds urgent. Text accuracy and broader reliability remain unreviewed.
+This is an isolated Spark experiment, not a gateway feature or a Plotloom Voice ID.
 
 ## Question and boundary
 
@@ -49,18 +50,23 @@ reference also matches its frozen hash. `ffprobe` independently confirmed
 sample rate, channel count, and duration. Per-sample generation measured
 3.81–4.90 seconds after model load, not a service latency benchmark.
 
-Technical completion does **not** establish same-person identity, good
-performance for each emotional context, exact words, or H3 lip-sync. The owner
-should compare each clone with A and with the other five outputs, listening for
-identity drift, pronunciation, unnatural prosody, and seed sensitivity.
-Candidate A remains a preference, not a canonical selected Voice ID. No
-automatic speaker score or creative acceptance is inferred from file validity.
+The owner's listening review found the same Candidate A identity in all six
+samples. This supports reuse for these three lines and two seeds, not a general
+same-speaker guarantee. The owner also found that **both urgent samples do not
+sound urgent**. The trial therefore separates a promising identity result from
+an unresolved performance-control problem; punctuation and urgent wording alone
+did not deliver the desired acting. Text accuracy, pronunciation, broader seed
+reliability, and H3 lip-sync were not separately accepted. Candidate A remains
+a preference, not a canonical selected Voice ID.
 
 ## Next decision
 
-If the six samples sound sufficiently like one person, define the minimal
-candidate-generation and Voice ID contracts before connecting the Voice Lab's
-Generate control. If they do not, preserve these files as negative evidence and
-test a different reference length/source or clone engine before productizing.
+The identity result is sufficient to *explore* a minimal candidate-generation
+and Voice ID contract before connecting the Voice Lab's Generate control. Keep
+acting direction as a separate, reviewable dimension. A later focused trial
+should compare ways to obtain urgency while holding the voice identity and
+spoken line fixed; do not imply that a selected Voice ID also guarantees
+emotional delivery. No performance-control experiment is authorized by this
+receipt alone.
 
 Official API reference: [Qwen3-TTS Voice Design then Clone](https://github.com/QwenLM/Qwen3-TTS/blob/main/README.md#voice-design-then-clone).
