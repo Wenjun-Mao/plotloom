@@ -723,7 +723,8 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .cast-forms > strong { font-size: 16px; }
 .cast-forms fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 6px; }
 .cast-forms legend { padding: 0 5px; color: var(--accent); font: 700 22px var(--sans); letter-spacing: normal; text-transform: none; }
-.cast-forms label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; }
+/* Controls have their own field grid; keep label text and required marks inline. */
+.cast-forms label { display: block; color: var(--muted); font-size: 11px; }
 .cast-forms fieldset { align-items: start; }
 .cast-personality { display: grid; grid-column: 1 / -1; gap: 10px; }
 .cast-traits { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; }

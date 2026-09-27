@@ -749,6 +749,19 @@ Independent review found no blockers. Test fixtures were updated rather than
 bypassing the new minimum. Local server restarted; no author-tab reload or
 project content mutation. User review of the updated form remains pending.
 
+### Required-marker alignment correction
+
+Creator reported the appearance star on a separate row. Root cause: the old
+grid label treated text and marker as separate items. Scope: use inline label
+content within the existing field layout, preserving native focus/selection and
+required semantics. Regression: real-browser marker position and neighboring
+textarea top alignment. No character data or validation changes; stop after
+focused checks, rebuilt assets and independent review.
+
+Verification: deterministic build, E2E TypeScript and the browser regression
+pass. Marker stays on the label line and adjacent textarea tops align. The live
+server responds on 8841; the author tab was not refreshed or edited.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

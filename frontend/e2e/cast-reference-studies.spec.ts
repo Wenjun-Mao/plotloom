@@ -35,6 +35,18 @@ test.describe("F2B cast-owned reference studies", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const cast = page.getByTestId("cast-review");
     await expect(cast.getByRole("button", { name: "接受这份角色设定" })).toBeEnabled();
+    const appearanceLabel = cast.locator("label").filter({ hasText: "外观" });
+    const labelBox = await appearanceLabel.boundingBox();
+    const starBox = await appearanceLabel.locator("span").boundingBox();
+    expect(labelBox).not.toBeNull();
+    expect(starBox).not.toBeNull();
+    expect(Math.abs(starBox!.y - labelBox!.y)).toBeLessThan(3);
+    expect(starBox!.x).toBeGreaterThan(labelBox!.x);
+    const appearanceBox = await cast.getByLabel("外观").boundingBox();
+    const temperamentBox = await cast.getByLabel("气质与举止").boundingBox();
+    expect(appearanceBox).not.toBeNull();
+    expect(temperamentBox).not.toBeNull();
+    expect(Math.abs(appearanceBox!.y - temperamentBox!.y)).toBeLessThan(2);
     await cast.getByLabel("外观").fill("  ");
     await expect(cast.getByRole("button", { name: "接受这份角色设定" })).toBeDisabled();
     await expect(cast.getByRole("alert")).toContainText("请填写角色外观");
