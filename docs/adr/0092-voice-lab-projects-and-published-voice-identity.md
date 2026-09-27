@@ -58,3 +58,6 @@ for the existing pilot round, atomic replacement/cleanup, and a read-only
 published-voice resolution contract. The specialist can build and verify the
 Lab side, but the owner has not released the hold on contacting the Plotloom
 director or integrating Plotloom itself.
+
+The bounded [implementation plan](../roadmap/2026-09-26-spark-voice-lab-projects-plan.md)
+turns this decision into ordered, testable specialist work.
