@@ -87,7 +87,7 @@ test.describe("F2B cast-owned reference studies", () => {
 
     const saving = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/save`);
-    await cast.getByRole("button", { name: "保存重新打开的角色" }).click();
+    await cast.getByRole("button", { name: "保存角色修改" }).click();
     expect((await saving).ok()).toBeTruthy();
     await expect(gallery).toContainText("已接受角色 r2");
     await expect(gallery.getByLabel("想法")).toBeEditable();

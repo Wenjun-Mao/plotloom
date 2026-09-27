@@ -762,6 +762,17 @@ Verification: deterministic build, E2E TypeScript and the browser regression
 pass. Marker stays on the label line and adjacent textarea tops align. The live
 server responds on 8841; the author tab was not refreshed or edited.
 
+### Character edit save wording
+
+Creator approved replacing the internal-state label “保存重新打开的角色” with
+“保存角色修改”. Scope is button copy, matching test selectors and rebuilt assets;
+save behavior, validation and character data remain unchanged. Stop after focused
+tests, deterministic build and independent review.
+
+Verification: 24 focused frontend tests, TypeScript and deterministic build
+passed; independent review found no issues. Live server serves the new label.
+No author form was refreshed or modified.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

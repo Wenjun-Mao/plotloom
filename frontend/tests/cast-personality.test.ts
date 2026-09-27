@@ -48,7 +48,7 @@ it("preserves array entries on add/delete and saves reopened edits without chang
   await act(async () => button("添加性格特点").click());
   await change(host.querySelectorAll("input")[2], "自主");
   await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="删除性格特点 1"]')!.click());
-  await act(async () => button("保存重新打开的角色").click());
+  await act(async () => button("保存角色修改").click());
   const result = save.mock.calls[0][1].cast as typeof cast;
   expect(result.characters[0].persona.personality).toEqual(["愿意回应", "自主"]);
   expect(result.characters[0].persona.motivation).toBe("回应消息");
@@ -141,14 +141,14 @@ it("shows structured notes in the accepted summary and preserves them through re
   expect(host.querySelector(".accepted-cast-summary")?.textContent).toContain("外观是补充设定");
   const save = vi.spyOn(plotloomApi, "saveReopenedCast").mockResolvedValue({} as any);
   await render("reopened", value);
-  await act(async () => button("保存重新打开的角色").click());
+  await act(async () => button("保存角色修改").click());
   expect(save.mock.calls[0][1].cast).toEqual(value);
 });
 
 it("blocks confirmation until required design is repaired in both edit modes", async () => {
   for (const mode of ["ready", "reopened"]) {
     await render(mode, { characters: [{ id: "C01", persona: { personality: ["（推断）"], appearance: "  " } }] });
-    const submit = button(mode === "ready" ? "接受这份角色设定" : "保存重新打开的角色");
+    const submit = button(mode === "ready" ? "接受这份角色设定" : "保存角色修改");
     expect(submit.disabled).toBe(true);
     expect(host.textContent).toContain("请至少填写一个性格特点。");
     expect(host.textContent).toContain("请填写角色外观");

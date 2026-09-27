@@ -215,7 +215,7 @@ it("replaces a held initial gallery read after reopen and save settle a newer sa
   await flushReact();
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("Current live gallery evidence");
   expect(host.textContent).toContain("已接受角色 r2");
@@ -274,7 +274,7 @@ it("rejects an old held refresh after the same subject is reopened and saved at 
   phase = "newer";
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("已选择身份参考 r2");
 
@@ -316,7 +316,7 @@ it("rejects an old held refresh error after the same subject reaches a newer acc
   phase = "newer";
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("已选择身份参考 r2");
 
@@ -343,7 +343,7 @@ it("rejects a late image-mutation error after the same subject is reopened and s
 
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   expect(host.textContent).toContain("已接受角色 r2");
 
@@ -373,7 +373,7 @@ it("remounts same-subject controls across a reopened-and-saved cast session", as
 
   await act(async () => { button("编辑角色设定").click(); await Promise.resolve(); });
   await flushReact();
-  await act(async () => { button("保存重新打开的角色").click(); await Promise.resolve(); });
+  await act(async () => { button("保存角色修改").click(); await Promise.resolve(); });
   await flushReact();
   const freshDirection = ideaInput();
   expect(freshDirection.disabled).toBe(false);
