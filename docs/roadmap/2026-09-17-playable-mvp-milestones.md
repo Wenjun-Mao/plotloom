@@ -697,6 +697,25 @@ without horizontal overflow. User's original Safari form was not refreshed;
 temporary verification tabs were closed. Next: author refresh/review, then
 resume the walkthrough. Other pages' selection complaints remain unverified.
 
+### Approved bounded follow-up: character writing separation
+
+Creator approved separating descriptive character fields from source/inference
+notes and scene-specific performance guidance (ADR 0090). Deliverable: frozen
+new-request instruction, receiving validation, editable notes and a reviewable
+cleanup proposal for the retained 林遥 candidate. Evidence: prompt/schema audit,
+focused admission/save/UI tests and independent review. Excludes automatic
+candidate rewriting, creative acceptance, media and downstream acting generation.
+Stop after verified delivery and return to the author's walkthrough.
+
+Delivered: frozen writing-contract input, structural admission/save guards,
+separate editable notes and accepted summary, specialist placement override,
+and a [pending author cleanup proposal](../verification/2026-09-26-lin-yao-description-cleanup.md).
+Verification: 47 focused Python tests, 244 frontend tests, TypeScript checks,
+deterministic bundle build, one real-browser fixture accept/reopen/save journey,
+and independent review pass. Read-only live-page check exposes the two new note
+fields; the original candidate remains ready/unaccepted and unmodified. Local
+server restarted on 8841. No live creative acceptance or new specialist run.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from hashlib import sha256
 from pathlib import Path
 
@@ -46,7 +47,7 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     pin = store.creative_handoff_execution_pin(request)  # type: ignore[attr-defined]
     paths = exchange.write_package(request, pin); package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"]); delivery.mkdir()
-    cast = canonical_json({"source": "Tide Light", "summary": "Lin chooses power.", "characters": [{"id": "lin", "name": "Lin", "persona": {"motivation": "Protect people", "appearance": "Windburned", "arc": "Chooses"}, "voice": {"timbre": "Calm"}}]})
+    cast = canonical_json({"source": "Tide Light", "summary": "Lin chooses power.", "characters": [{"id": "lin", "name": "Lin", "reviewNotes": {"sourceNotes": "Appearance is a proposed design", "performanceGuidance": ""}, "persona": {"motivation": "Protect people", "appearance": "Windburned", "arc": "Chooses"}, "voice": {"timbre": "Calm"}}]})
     report = b"<!doctype html><html><body>cast report</body></html>"
     (delivery / "cast.json").write_bytes(cast); (delivery / "report.html").write_bytes(report)
     manifest = {"schemaVersion": 1, "jobId": request.job_id, "requestHash": package["requestHash"], "deliveryId": "cast-fixture", "stage": "characters", "candidate": {"filename": "cast.json", "sha256": sha256(cast).hexdigest()}, "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()}, "executorProvenance": {"codeRevision": "abcdef0", "skillVersion": "fixture", "skillHash": package["executionPin"]["specialistSkillHash"], "upstreamRevision": package["executionPin"]["upstreamRevision"], "upstreamSkillHash": package["executionPin"]["upstreamSkillHash"], "model": "fixture", "reasoningEffort": "high"}, "limitations": ["fixture"]}
@@ -68,12 +69,22 @@ def test_cast_acceptance_preserves_authored_edit_and_rejects_stale_context(tmp_p
         binding, *_ = bound_context(None, store.manifest.project_id)
         _candidate, request = store.prepare_cast_candidate("ch_" + "b" * 32)
         assert "characters[].id values" in request.creative_brief
+        assert request.input_artifacts["cast-writing-contract.json"]["version"] == 1
         package_paths = store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
         frozen_instructions = (
             Path(package_paths["packagePath"]) / "COPY_ASSIGNMENT.txt"
         ).read_text()
         assert "characters[].id must be unique and nonblank" in frozen_instructions
-        ready = store.admit_cast_delivery(_deliver(store, request))
+        delivery = _deliver(store, request)
+        missing_notes = {**delivery.candidate, "characters": [{key: value for key, value in delivery.candidate["characters"][0].items() if key != "reviewNotes"}]}
+        with pytest.raises(ValueError, match="reviewNotes"):
+            store.admit_cast_delivery(replace(delivery, candidate=missing_notes))
+        assert store.cast_state().candidate.status == "prepared"
+        ready = store.admit_cast_delivery(delivery)
+        stripped = dict(ready.cast or {})
+        stripped["characters"] = [{key: value for key, value in stripped["characters"][0].items() if key != "reviewNotes"}]
+        with pytest.raises(ValueError, match="reviewNotes"):
+            store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=stripped, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         edited = dict(ready.cast or {}); edited["characters"] = [dict(edited["characters"][0], persona={"motivation": "Save both crews", "appearance": "Windburned", "arc": "Chooses"})]
         accepted = store.accept_cast_candidate(CastAcceptRequest(job_id=request.job_id, expected_cast_revision=0, binding=binding, cast=edited, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))
         assert accepted.accepted_cast is not None and accepted.accepted_cast.cast["characters"][0]["persona"]["motivation"] == "Save both crews"

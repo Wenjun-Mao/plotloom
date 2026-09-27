@@ -73,7 +73,7 @@ it("shows the same personality and temperament in the accepted summary", async (
 it("associates separate selectable labels with unique controls across characters", async () => {
   await render("ready", { characters: [...cast.characters, { ...cast.characters[0], id: "C02" }] });
   const labels = Array.from(host.querySelectorAll<HTMLLabelElement>(".cast-forms label"));
-  expect(labels.length).toBe(10);
+  expect(labels.length).toBe(14);
   expect(new Set(labels.map((label) => label.htmlFor)).size).toBe(labels.length);
   for (const label of labels) {
     expect(label.querySelector("input,textarea")).toBeNull();
@@ -112,4 +112,26 @@ it("allows clearing an annotated value without returning the marker to the input
   await change(input, "");
   expect(input.value).toBe("");
   expect(host.querySelector(".cast-inference-notes")?.textContent).toContain("（推断）");
+});
+
+it("edits separate notes without rewriting descriptions or losing either note", async () => {
+  const accept = vi.spyOn(plotloomApi, "acceptCastCandidate").mockResolvedValue({} as any);
+  await render();
+  const control = (text: string) => Array.from(host.querySelectorAll("label")).find((label) => label.textContent === text)!.control as HTMLTextAreaElement;
+  await change(control("设定依据与补充说明"), "外观为创作补充。");
+  await change(control("表演提示"), "两个选择都不演成错误。");
+  await act(async () => button("接受这份角色设定").click());
+  const result = accept.mock.calls[0][1].cast as any;
+  expect(result.characters[0].reviewNotes).toEqual({ sourceNotes: "外观为创作补充。", performanceGuidance: "两个选择都不演成错误。" });
+  expect(result.characters[0].persona).toEqual(cast.characters[0].persona);
+});
+
+it("shows structured notes in the accepted summary and preserves them through reopened saves", async () => {
+  const value = { ...cast, characters: [{ ...cast.characters[0], reviewNotes: { sourceNotes: "外观是补充设定", performanceGuidance: "克制表演" } }] };
+  await render("accepted", value);
+  expect(host.querySelector(".accepted-cast-summary")?.textContent).toContain("外观是补充设定");
+  const save = vi.spyOn(plotloomApi, "saveReopenedCast").mockResolvedValue({} as any);
+  await render("reopened", value);
+  await act(async () => button("保存重新打开的角色").click());
+  expect(save.mock.calls[0][1].cast).toEqual(value);
 });

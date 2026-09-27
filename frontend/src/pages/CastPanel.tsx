@@ -55,7 +55,7 @@ export function CastPanel({ projectId, readOnly, state, loadError, onState, onRe
   const castCharacters = charactersOf(editedCast);
   const updateDirection: CastDirectionChange = (index, group, key, value) => setEditedCast((current) => ({
     ...current,
-    characters: charactersOf(current).map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...record(character[group]), [key]: value } } : character),
+    characters: charactersOf(current).map((character, candidateIndex) => candidateIndex === index ? { ...character, [group]: { ...(group === "reviewNotes" ? { sourceNotes: "", performanceGuidance: "" } : {}), ...record(character[group]), [key]: value } } : character),
   }));
   const saveAccepted = () => act(() => plotloomApi.acceptCastCandidate(projectId, {
     jobId: candidate!.jobId, expectedCastRevision: candidate!.expectedCastRevision, binding: candidate!.binding, cast: editedCast,

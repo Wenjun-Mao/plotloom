@@ -525,3 +525,23 @@ inspection showed readable stacked controls and no horizontal overflow.
 Existing build chunk advisory remains. No candidate edit, accept, provider
 dispatch or generation occurred; the original Safari tab was preserved and
 temporary verification tabs closed. Other forms have not been certified fixed.
+# 2026-09-26 follow-up: description / provenance separation
+
+Root cause: upstream character profile instructions require inline inference
+labels, while the review form needs usable descriptions. ADR 0090 freezes the
+new placement contract into future requests and adds `reviewNotes` for source
+qualifications and performance guidance. The UI does not scrub free-form prose.
+The original 林遥 delivery and project acceptance state were not rewritten.
+
+Verification: 47 focused Python tests (cast writing, persistence, exchange, art),
+244 frontend tests, application and E2E typechecks, deterministic build, skill
+validation, one browser fixture cast accept/reopen/save test, and independent
+read-only review pass. A separate Chromium tab confirmed the retained live
+candidate and both new note fields. It was closed without form edits or
+acceptance; the user's Safari tab was untouched. Console emitted the existing
+sandboxed upstream-report script warning, not a new note-editor error.
+
+The local 8841 server was restarted for the new prepare/admission contract.
+Existing live wording remains until author review; see the separate
+[cleanup proposal](2026-09-26-lin-yao-description-cleanup.md). No new specialist
+generation was run, so generated prose quality is not claimed as verified.

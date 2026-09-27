@@ -7,6 +7,7 @@ export type CastDirectionChange = (...args:
   | [index: number, group: "persona", key: "personality", value: string[]]
   | [index: number, group: "persona", key: "temperament" | "appearance", value: string]
   | [index: number, group: "voice", key: "timbre", value: string]
+  | [index: number, group: "reviewNotes", key: "sourceNotes" | "performanceGuidance", value: string]
 ) => void;
 
 export function CastEditor({ characters, disabled, onChange, editing = false }: {
@@ -40,10 +41,25 @@ export function CastEditor({ characters, disabled, onChange, editing = false }: 
         <CastDesignField id={`${fieldId}-temperament`} label="气质与举止" value={persona.temperament} disabled={disabled} onChange={(value) => onChange(index, "persona", "temperament", value)} />
         <CastDesignField id={`${fieldId}-appearance`} label="外观" value={persona.appearance} disabled={disabled} onChange={(value) => onChange(index, "persona", "appearance", value)} />
         <CastDesignField id={`${fieldId}-voice`} label="声音方向" value={record(character.voice).timbre} disabled={disabled} onChange={(value) => onChange(index, "voice", "timbre", value)} wide />
-        <CastInferenceNotes character={character} />
+        <CastInferenceNotes character={character} includeStructured={false} />
+        <details className="cast-wide-field">
+          <summary>设定说明与表演提示</summary>
+          <p>说明哪些细节来自原文、哪些是创作补充；具体场景的表演要求单独记录。不会自动改写上方描述。</p>
+          <CastNoteField id={`${fieldId}-source-notes`} label="设定依据与补充说明" value={record(character.reviewNotes).sourceNotes} disabled={disabled} onChange={(value) => onChange(index, "reviewNotes", "sourceNotes", value)} />
+          <CastNoteField id={`${fieldId}-performance`} label="表演提示" value={record(character.reviewNotes).performanceGuidance} disabled={disabled} onChange={(value) => onChange(index, "reviewNotes", "performanceGuidance", value)} />
+        </details>
       </fieldset>;
     })}
   </section>;
+}
+
+function CastNoteField({ id, label, value, disabled, onChange }: {
+  id: string; label: string; value: unknown; disabled: boolean; onChange: (value: string) => void;
+}) {
+  return <div className="cast-design-field">
+    <CastFieldLabel htmlFor={id}>{label}</CastFieldLabel>
+    <textarea id={id} rows={3} disabled={disabled} value={typeof value === "string" ? value : ""} onChange={(event) => onChange(event.target.value)} />
+  </div>;
 }
 
 function record(value: unknown): Record<string, unknown> { return value && typeof value === "object" ? value as Record<string, unknown> : {}; }

@@ -31,6 +31,14 @@ not a backend job, a review decision, or permission to edit canon.
   Each ID must be nonblank and unique. This is Plotloom's narrow receiving
   extension to the upstream shape: do not invent a replacement identity store
   or alter upstream fields to satisfy it.
+- If a characters request includes `inputs/cast-writing-contract.json`, follow
+  its separate `reviewNotes` fields. This overrides the upstream profile pass's
+  instruction to put inference labels inside descriptions, not the obligation
+  to disclose inferred details. Keep descriptions clean; identify affected
+  fields/details and their basis in `sourceNotes`, and put scene-specific acting
+  directions in `performanceGuidance`. Preserve verbatim evidence. Review the
+  separation before delivery; the upstream validator checks its own shape,
+  not this prose distinction. Do not retrofit an older frozen request.
 - For an `art` candidate, honor the request's explicit Plotloom `sectionUsage`
   extension. It is code-owned linkage, not upstream art semantics: emit exactly
   the supplied section IDs once, and use only the candidate's stable scene/prop

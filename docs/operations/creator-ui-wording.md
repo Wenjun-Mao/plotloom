@@ -53,6 +53,12 @@ Do not rewrite free-form qualifications or claim unmarked traits are verified.
 See [ADR 0089](../adr/0089-cast-review-text-presentation.md). Labels must remain
 selectable while ordinary clicks still focus their associated controls.
 
+New character tasks follow [ADR 0090](../adr/0090-cast-description-and-notes.md):
+descriptions describe the character; **设定依据与补充说明** records which details
+are source-backed, inferred or proposed; **表演提示** records scene-specific acting
+guidance. Neither note field implies acceptance. Do not silently rewrite old
+candidate prose to fit this distinction.
+
 For adjacent actions, place each explanation beside its own button, not in
 shared fine print. Choose one primary action for the current state. A completed
 step should state what is ready and offer a clear next destination; it must not

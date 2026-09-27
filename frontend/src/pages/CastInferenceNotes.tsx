@@ -1,6 +1,6 @@
 import { castTextPresentation } from "./cast-text-presentation";
 
-export function CastInferenceNotes({ character }: { character: Record<string, unknown> }) {
+export function CastInferenceNotes({ character, includeStructured = true }: { character: Record<string, unknown>; includeStructured?: boolean }) {
   const persona = record(character.persona);
   const traits = Array.isArray(persona.personality) ? persona.personality : [];
   const fields = [
@@ -9,12 +9,18 @@ export function CastInferenceNotes({ character }: { character: Record<string, un
     { label: "外观", value: persona.appearance },
     { label: "声音方向", value: record(character.voice).timbre },
   ].filter(({ value }) => castTextPresentation(value).annotation);
-  if (!fields.length) return null;
-  return <details className="cast-inference-notes">
+  const notes = record(character.reviewNotes);
+  return <>
+    {includeStructured && Boolean(notes.sourceNotes || notes.performanceGuidance) && <details className="cast-inference-notes">
+      <summary>设定说明与表演提示</summary>
+      <dl><div><dt>设定依据与补充说明</dt><dd>{String(notes.sourceNotes || "无")}</dd></div><div><dt>表演提示</dt><dd>{String(notes.performanceGuidance || "无")}</dd></div></dl>
+    </details>}
+    {fields.length > 0 && <details className="cast-inference-notes">
     <summary>查看推断说明（{fields.length}）</summary>
     <p>以下内容带有推断标注，供你审核。标注集中显示在这里，保存时仍会保留；正文中的说明不会自动改写。</p>
     <dl>{fields.map(({ label, value }) => <div key={label}><dt>{label}</dt><dd>{String(value)}</dd></div>)}</dl>
-  </details>;
+  </details>}
+  </>;
 }
 
 function record(value: unknown): Record<string, unknown> { return value && typeof value === "object" ? value as Record<string, unknown> : {}; }

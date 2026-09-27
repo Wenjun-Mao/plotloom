@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from ...cast_contracts import AcceptedCastRevision, CastAcceptRequest, CastBinding, CastCancelReopenRequest, CastCandidate, CastConsumerMapping, CastReopenRequest, CastReviewState, CastSaveRequest
 from ...creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRequest
+from ...cast_writing_contract import CONTRACT_FILENAME, cast_writing_contract, validate_cast_notes
 from ...creative_handoff_exchange import ValidatedCreativeDelivery, canonical_json
 from ...domain import StageName, StageStatus, contains_secret_setting, contains_secret_value, new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
@@ -190,6 +191,8 @@ class ProjectCastPersistence:
             if session.scalar(select(CastCandidateRow.job_id).where(CastCandidateRow.project_id == project_id, CastCandidateRow.status == "prepared").limit(1)):
                 raise InvalidTransitionError("cancel the prepared cast specialist publication before changing review state")
             request = CreativeHandoffRequest(job_id=job_id, project_id=project_id, section_id="shared-cast", stage="characters", expected_stage_revision=head.revision, source=source, input_artifacts={"outline.json": outline, "section-map.json": section_map}, creative_brief="Create one upstream-shaped cast.json candidate for the accepted source, outline, and installed stable section context. Shared characters are authored once; preserve established characters[].id values, and require every characters[].id to be unique and nonblank. Make section presence/context explicit. This is a candidate only, not voice evidence, media generation, or project canon.")
+            request.input_artifacts[CONTRACT_FILENAME] = cast_writing_contract()
+            request.creative_brief += " Follow cast-writing-contract.json: separate descriptions, source notes and performance guidance."
             request.assert_secret_free()
             freeze_execution_pin(session, request, execution_pin)
             now = utc_now()
@@ -216,6 +219,7 @@ class ProjectCastPersistence:
             if row.status != "prepared" or row.expected_cast_revision != head.revision or self._stale(session, project_id, CastBinding.model_validate(row.binding)):
                 raise CreativeHandoffError("delivery_stale", "cast candidate context is stale")
             _validate_cast(delivery.candidate)
+            validate_cast_notes(delivery.candidate, required=CONTRACT_FILENAME in request.input_artifacts)
             row.status, row.delivery_id, row.manifest_hash, row.cast, row.report_html, row.delivered_at = "ready", delivery.manifest.delivery_id, delivery.manifest_hash, delivery.candidate, delivery.report.decode("utf-8"), utc_now()
             head.status, head.updated_at = "candidate_ready", row.delivered_at
             return self._candidate(row)
@@ -233,6 +237,7 @@ class ProjectCastPersistence:
                 raise CreativeHandoffError("delivery_stale", "cast candidate context changed before acceptance")
             cast = request.cast or row.cast
             _validate_cast(cast)
+            validate_cast_notes(cast, required=CONTRACT_FILENAME in row.request.get("inputArtifacts", {}), previous=row.cast)
             ids = _cast_ids(row.cast)
             if _cast_ids(cast) != ids:
                 raise ValueError("accepted cast cannot change frozen character IDs")
@@ -271,6 +276,7 @@ class ProjectCastPersistence:
             if binding != request.binding or self._stale(session, project_id, binding):
                 raise CreativeHandoffError("delivery_stale", "accepted cast context changed before saving edits")
             _validate_cast(request.cast)
+            validate_cast_notes(request.cast, previous=previous.cast)
             ids = _cast_ids(previous.cast)
             if _cast_ids(request.cast) != ids:
                 raise ValueError("reopened cast cannot change stable character IDs")
@@ -368,6 +374,7 @@ def _validate_cast(cast: dict[str, Any]) -> None:
     if not isinstance(cast.get("source"), str) or not isinstance(cast.get("summary"), str):
         raise ValueError("upstream cast must retain source and summary")
     _cast_ids(cast)
+    validate_cast_notes(cast)
 
 
 def _validate_mappings(ids: list[str], mappings: list[CastConsumerMapping]) -> None:
