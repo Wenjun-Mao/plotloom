@@ -44,6 +44,10 @@ specialist-side choices are settled.
 - The Qwen Image service was stopped only for model setup/generation and then
   restored; its `/health` returned `ok`. No Plotloom product code or gateway
   contract changed during this voice-casting trial.
+- A subsequent [Base-clone trial](2026-09-26-voice-reuse-trial.md) generated six
+  technically valid Candidate A reuse samples across three new Mandarin lines
+  and two seeds. The owner has not yet reviewed their speaker identity or
+  performance, so this is not evidence of stable cross-line voice continuity.
 
 ## Likely Plotloom ownership when handoff is authorized
 
@@ -84,8 +88,9 @@ instruction to begin implementation now.
 - Candidate count, audition scripts, blind/level-matched comparison policy,
   and whether another voice engine is needed as a quality comparator.
 - Whether a selected candidate should also feed a separate TTS/clone path for
-  off-screen lines. Qwen's documented VoiceDesign-then-Base-clone workflow has
-  not been trialed here; H3 Ref2VA currently uses only the frozen WAV.
+  off-screen lines. The VoiceDesign-then-Base-clone mechanism now has a bounded
+  technical trial, but its six outputs still need listening review. H3 Ref2VA
+  currently uses only the frozen WAV.
 - Plotloom-side retention and consent policy, and exact selection/currentness
   rules, must be decided before proposing a product schema.
 
