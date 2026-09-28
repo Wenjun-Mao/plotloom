@@ -5,6 +5,9 @@ chooser rather than the retained pilot. Projects are independent content
 workspaces, not authenticated user accounts. This service does not change the
 Plotloom authoring UI or H3 gateway.
 
+For the author workflow, model and asset flow, H3 boundary, and intended
+Plotloom handoff, see the [audio pipeline report](docs/audio-pipeline-report.md).
+
 ## Authoring contract
 
 - Create a named empty project. Its name, shared brief and audition line can be
