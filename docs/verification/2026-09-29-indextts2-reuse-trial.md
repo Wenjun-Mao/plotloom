@@ -1,7 +1,8 @@
 # IndexTTS2 Candidate A reuse trial on Spark
 
 **Status:** Eight valid IndexTTS2 audio files generated and technically verified.
-Human listening, text accuracy, identity, and acting acceptance are **pending**.
+The owner's first matched listening review is recorded below; exact wording,
+identity, and acting acceptance remain **pending**.
 This is an isolated specialist experiment, not a Voice Lab engine, Plotloom feature,
 or selected voice. Do not hand implementation instructions to the Plotloom director
 yet; the owner has paused that handoff.
@@ -79,6 +80,22 @@ Qwen's retained WAVs are 24 kHz, Index's are 22.05 kHz; no resampling or
 post-processing was applied to conceal that distinction. There was no ASR or
 independent transcript check in this run.
 
+### Owner listening review · 2026-09-29
+
+After listening to the local side-by-side page, the owner did **not** hear a
+clear difference in human-likeness between Qwen Base and IndexTTS2 on these
+Candidate A samples. The owner suspects that both reference-conditioned reuse
+paths preserve the source voice's synthetic character instead of reinventing it
+as a more human-sounding voice. This is a plausible interpretation of the
+listening result, not a proven model limitation or a general engine ranking.
+
+The owner **did** hear a large audible difference between Index's uncontrolled
+urgent takes and its takes with the explicit emotion vector. This establishes
+that the control materially affects this line; it does not yet establish that
+the controlled version is better, appropriately urgent, or faithful to the
+character. No Voice ID, candidate, or reuse engine was selected from this
+review.
+
 ## Memory and service safety
 
 At preflight, Spark had about 29 GiB available unified memory and 11 GiB swap
@@ -99,9 +116,11 @@ releases model/CUDA state more reliably than relying solely on `empty_cache`.
 
 ## Decision pending
 
-The owner should compare the matched neutral, urgent, and gentle pairs, then
-compare each uncontrolled Index urgent clip with its controlled counterpart.
-Record separate judgments for naturalness, identity, wording, and urgency.
-Only then decide whether Index deserves a Stage-2 engine option. Stage-1 MOSS
-versus Qwen candidate design is a separate decision. No Voice ID or production
-engine selection changes result from this experiment.
+The next useful comparison should hold the Stage-2 engine and dialogue constant
+while changing to a reference voice judged more human-sounding at Stage 1;
+then compare identity, naturalness, exact words, and acting separately. The
+current review does not justify selecting Index over Qwen for general reuse.
+Whether Index's emotion control is useful for a particular performance remains
+a separate judgment. Stage-1 MOSS versus Qwen candidate design is a separate
+decision. No Voice ID or production engine selection changes result from this
+experiment.
