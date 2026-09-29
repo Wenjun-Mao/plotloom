@@ -29,7 +29,7 @@ test.describe("F3A production art review", () => {
   test("F3B shows current reference bytes, restart persistence, stale art, and cancellation release", async ({ page, request, workbench }) => {
     test.setTimeout(75_000);
     const projectId = await createAcceptedArtProject(request, workbench.apiOrigin, "f3b-study");
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const studies = page.getByTestId("art-reference-studies");
     const scene = page.getByTestId("art-reference-scene-S01");
     await expect(studies).toContainText("Cinematic realism");
@@ -42,12 +42,12 @@ test.describe("F3A production art review", () => {
     const proposal = (await prepared.json() as { proposal: { id: string; request: { frozenSnapshot: { acceptedArt: { revision: number } } } } }).proposal;
     expect(proposal.request.frozenSnapshot.acceptedArt.revision).toBe(1);
     const copiedResponse = page.waitForResponse((response) => response.request().method() === "POST"
-      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals/${proposal.id}/copy`);
-    await scene.getByRole("button", { name: "复制 ImageGen 任务" }).click();
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals/${proposal.id}/send`);
+    await scene.getByRole("button", { name: "发送给图像生成助手" }).click();
     await writeArtReferenceDelivery(await copiedResponse);
     const refreshed = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals/${proposal.id}/refresh`);
-    await scene.getByRole("button", { name: "刷新 delivery" }).click();
+    await scene.getByRole("button", { name: "检查图像交付" }).click();
     const refreshResponse = await refreshed;
     expect(refreshResponse.ok(), await refreshResponse.text()).toBeTruthy();
     await expect(scene).toContainText("current");
@@ -79,10 +79,10 @@ test.describe("F3A production art review", () => {
     // The API response alone does not establish that the browser callback has
     // completed its mandatory refresh. Wait for that mounted continuation
     // before exercising a competing lifecycle request.
-    await expect(scene.getByRole("button", { name: "取消 handoff" })).toBeVisible();
+    await expect(scene.getByRole("button", { name: "取消提案" })).toBeVisible();
     const blocked = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
     expect(blocked.status()).toBe(409);
-    await scene.getByRole("button", { name: "取消 handoff" }).click();
+    await scene.getByRole("button", { name: "取消提案" }).click();
     await expect(scene).toContainText("cancelled");
     const released = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
     expect(released.ok(), await released.text()).toBeTruthy();
@@ -99,7 +99,7 @@ test.describe("F3A production art review", () => {
     await page.route(`**/api/v2/projects/${projectId}/managed-assets/mock-f3b-*/display`, async (route) => {
       await route.fulfill({ contentType: "image/png", body: fixturePng() });
     });
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const studies = page.getByTestId("art-reference-studies");
     const scene = page.getByTestId("art-reference-scene-S01");
     await expect(studies.getByRole("note")).toContainText("已隔离的只读浏览器演示");
@@ -165,15 +165,16 @@ test.describe("F3A production art review", () => {
 
   test("re-copies a frozen handoff, rejects it, and replaces it through the browser", async ({ page, request, workbench }) => {
     const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "replace");
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const panel = page.getByTestId("art-review");
 
     const first = await prepareFromBrowser(page, panel, projectId);
-    await expect(panel.getByLabel("复制给 specialist 的冻结任务")).toContainText(first.jobId);
+    await expect(panel.locator("textarea[readonly]")).toHaveValue(new RegExp(first.jobId));
     await page.reload();
     const recopy = page.waitForResponse((response) => response.request().method() === "GET"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art/candidates/${first.jobId}/handoff`);
-    await panel.getByRole("button", { name: "重新复制冻结 handoff" }).click();
+    await panel.getByText("查看任务说明（手动方式）", { exact: true }).click();
+    await panel.getByRole("button", { name: "查看美术任务说明" }).click();
     const recovered = await recopy;
     expect(recovered.ok(), await recovered.text()).toBeTruthy();
     const recoveredBody = await recovered.json() as ArtPreparation;
@@ -185,7 +186,7 @@ test.describe("F3A production art review", () => {
     await refreshFromBrowser(page, panel, projectId, first.jobId);
     await expect(panel.getByRole("button", { name: "拒绝并取消此美术提案" })).toBeVisible();
     await panel.getByRole("button", { name: "拒绝并取消此美术提案" }).click();
-    await expect(panel.getByRole("button", { name: "准备并复制 art specialist handoff" })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "准备美术设定任务" })).toBeVisible();
 
     const replacement = await prepareFromBrowser(page, panel, projectId);
     expect(replacement.jobId).not.toBe(first.jobId);
@@ -195,7 +196,7 @@ test.describe("F3A production art review", () => {
   test("inspects the accepted revision without reopening and preserves it through restart", async ({ page, request, workbench }) => {
     test.setTimeout(75_000);
     const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "accept");
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const panel = page.getByTestId("art-review");
     const prepared = await prepareFromBrowser(page, panel, projectId);
     await writeArtDelivery(prepared, "accepted-original");
@@ -238,19 +239,19 @@ test.describe("F3A production art review", () => {
 
   test("blocks lifecycle operations while a browser-prepared publication is active, then releases them on cancellation", async ({ page, request, workbench }) => {
     const projectId = await createAcceptedCastProject(request, workbench.apiOrigin, "lifecycle");
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const panel = page.getByTestId("art-review");
     const prepared = await prepareFromBrowser(page, panel, projectId);
-    await expect(panel.getByRole("button", { name: "取消 handoff" })).toBeVisible();
+    await expect(panel.getByRole("button", { name: "取消此任务" })).toBeVisible();
     const snapshot = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/snapshots`);
     expect(snapshot.status()).toBe(409);
     const close = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
     expect(close.status()).toBe(409);
     const cancelled = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art/candidates/${prepared.jobId}/cancel`);
-    await panel.getByRole("button", { name: "取消 handoff" }).click();
+    await panel.getByRole("button", { name: "取消此任务" }).click();
     expect((await cancelled).ok()).toBeTruthy();
-    await expect(panel.getByRole("button", { name: "准备并复制 art specialist handoff" })).toBeEnabled();
+    await expect(panel.getByRole("button", { name: "准备美术设定任务" })).toBeEnabled();
     const released = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
     expect(released.ok(), await released.text()).toBeTruthy();
     const reopened = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/open`);
@@ -262,7 +263,7 @@ test.describe("F3A production art review", () => {
   test("does not let a held old-project response mutate the destination project UI", async ({ page, request, workbench }) => {
     const firstProjectId = await createAcceptedCastProject(request, workbench.apiOrigin, "held-first");
     const secondProjectId = await createAcceptedCastProject(request, workbench.apiOrigin, "held-second");
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=source#art`);
     const firstPanel = page.getByTestId("art-review");
     let release!: () => void;
     let markStarted!: () => void;
@@ -280,16 +281,16 @@ test.describe("F3A production art review", () => {
     };
     await page.route(`**/api/v2/projects/${firstProjectId}/art/candidates`, heldRoute);
     try {
-      await firstPanel.getByRole("button", { name: "准备并复制 art specialist handoff" }).click();
+      await firstPanel.getByRole("button", { name: "准备美术设定任务" }).click();
       await started;
       await switchProject(page, secondProjectId);
-      await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
+      await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "美术参考" }).click();
       const destination = page.getByTestId("art-review");
       await expect(destination).toContainText("尚无美术候选");
-      await expect(destination.getByRole("button", { name: "准备并复制 art specialist handoff" })).toBeEnabled();
+      await expect(destination.getByRole("button", { name: "准备美术设定任务" })).toBeEnabled();
       release();
       await expect(destination).toContainText("尚无美术候选");
-      await expect(destination.getByRole("button", { name: "准备并复制 art specialist handoff" })).toBeEnabled();
+      await expect(destination.getByRole("button", { name: "准备美术设定任务" })).toBeEnabled();
     } finally {
       release?.();
       await page.unroute(`**/api/v2/projects/${firstProjectId}/art/candidates`, heldRoute);
@@ -302,9 +303,9 @@ test.describe("F3A production art review", () => {
     const prepared = await getJson<any>(request.post(`${workbench.apiOrigin}/api/v2/projects/${firstProjectId}/art-reference-proposals`, {
       data: { subjectType: "scene", subjectId: "S01", renderDirection: "Held copy fixture." },
     }));
-    await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=source`);
+    await page.goto(`${workbench.frontendOrigin}/v2/?project=${firstProjectId}&stage=source#art`);
     const firstStudies = page.getByTestId("art-reference-studies");
-    await expect(firstStudies.getByRole("button", { name: "复制 ImageGen 任务" })).toBeVisible();
+    await expect(firstStudies.getByRole("button", { name: "发送给图像生成助手" })).toBeVisible();
 
     let release!: () => void;
     let markStarted!: () => void;
@@ -320,18 +321,18 @@ test.describe("F3A production art review", () => {
         // Navigation can abort an already-owned request after its response.
       }
     };
-    await page.route(`**/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/copy`, heldRoute);
+    await page.route(`**/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/send`, heldRoute);
     try {
-      await firstStudies.getByRole("button", { name: "复制 ImageGen 任务" }).click();
+      await firstStudies.getByRole("button", { name: "发送给图像生成助手" }).click();
       await started;
       await switchProject(page, secondProjectId);
       await switchProject(page, firstProjectId);
-      await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
+      await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "美术参考" }).click();
       const returnedPanel = page.getByTestId("art-review");
       await expect(returnedPanel).toBeVisible();
       await expect(returnedPanel.getByLabel("复制给 specialist 的冻结任务")).toHaveCount(0);
       const copiedResponse = page.waitForResponse((response) => response.request().method() === "POST"
-        && new URL(response.url()).pathname === `/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/copy`);
+        && new URL(response.url()).pathname === `/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/send`);
       const postReleaseRefreshes: string[] = [];
       const recordPostReleaseRefresh = (request: import("@playwright/test").Request) => {
         if (request.method() === "GET" && new URL(request.url()).pathname === `/api/v2/projects/${firstProjectId}/art-reference-proposals`) {
@@ -348,11 +349,11 @@ test.describe("F3A production art review", () => {
       page.off("request", recordPostReleaseRefresh);
       await expect(returnedPanel.getByLabel("复制给 specialist 的冻结任务")).toHaveCount(0);
       await expect(returnedPanel.getByRole("alert")).toHaveCount(0);
-      await expect(returnedPanel.getByTestId("art-reference-studies").getByRole("button", { name: "复制 ImageGen 任务" })).toBeEnabled();
+      await expect(returnedPanel.getByTestId("art-reference-studies").getByRole("button", { name: "发送给图像生成助手" })).toBeEnabled();
       expect(postReleaseRefreshes).toEqual([]);
     } finally {
       release?.();
-      await page.unroute(`**/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/copy`, heldRoute);
+      await page.unroute(`**/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/send`, heldRoute);
     }
   });
 
@@ -381,6 +382,7 @@ test.describe("F3A production art review", () => {
     await page.reload();
     const recopy = page.waitForResponse((response) => response.request().method() === "GET"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates/${prepared.jobId}/handoff`);
+    await panel.getByText("查看任务说明（手动方式）", { exact: true }).click();
     await panel.getByRole("button", { name: "恢复剧本任务" }).click();
     const recovered = await recopy;
     expect(recovered.ok(), await recovered.text()).toBeTruthy();
@@ -390,7 +392,7 @@ test.describe("F3A production art review", () => {
     expect(recoveredBody.deliveryPath).toBe(prepared.deliveryPath);
     expect(await readFile(path.join(recoveredBody.packagePath, "request.json"))).toEqual(frozenRequest);
     await writeStageDelivery(prepared, "script.json", scriptFixture(), "f4-script", "script");
-    const refreshed = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/script/candidates/${prepared.jobId}/refresh`);
+    const refreshed = page.waitForResponse((response) => response.request().method() === "POST" && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/specialist-tasks/script/${prepared.jobId}/check`);
     await panel.getByRole("button", { name: "检查任务结果" }).click();
     expect((await refreshed).ok()).toBeTruthy();
     await panel.getByRole("button", { name: "确认使用此剧本" }).click();
@@ -469,7 +471,7 @@ async function writeArtReferenceDelivery(response: import("@playwright/test").Re
 async function prepareFromBrowser(page: import("@playwright/test").Page, panel: import("@playwright/test").Locator, projectId: string): Promise<ArtPreparation> {
   const prepared = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art/candidates`);
-  await panel.getByRole("button", { name: "准备并复制 art specialist handoff" }).click();
+  await panel.getByRole("button", { name: "准备美术设定任务" }).click();
   const response = await prepared;
   expect(response.status()).toBe(201);
   return response.json() as Promise<ArtPreparation>;
@@ -477,8 +479,8 @@ async function prepareFromBrowser(page: import("@playwright/test").Page, panel: 
 
 async function refreshFromBrowser(page: import("@playwright/test").Page, panel: import("@playwright/test").Locator, projectId: string, jobId: string): Promise<void> {
   const refreshed = page.waitForResponse((response) => response.request().method() === "POST"
-    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art/candidates/${jobId}/refresh`);
-  await panel.getByRole("button", { name: "刷新 specialist delivery" }).click();
+    && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/specialist-tasks/art/${jobId}/check`);
+  await panel.getByRole("button", { name: "检查任务结果" }).click();
   expect((await refreshed).ok()).toBeTruthy();
 }
 

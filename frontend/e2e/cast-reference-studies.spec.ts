@@ -103,7 +103,7 @@ test.describe("F2B cast-owned reference studies", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=characters`);
     const panel = page.getByTestId("character-reference-gallery");
     await expect(panel).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "工作台阶段" })).toHaveCount(1);
+    await expect(page.getByRole("navigation", { name: "创作流程" })).toHaveCount(1);
     await expect(page.locator(".workspace-technical-details")).not.toHaveAttribute("open", "");
     await expect(page.locator(".topbar-technical-status")).not.toHaveAttribute("open", "");
     await expect(page.getByText("readiness.not_checked", { exact: false })).not.toBeVisible();
@@ -129,7 +129,14 @@ test.describe("F2B cast-owned reference studies", () => {
     await panel.getByRole("button", { name: "选用当前图片" }).click();
     await expect(panel).toContainText("已选择身份参考 r1");
 
-    await panel.getByRole("button", { name: "基于当前图片修改" }).click();
+    const freshMode = panel.getByRole("radio", { name: "全新生成" });
+    const refineMode = panel.getByRole("radio", { name: "基于图片修改" });
+    await expect(freshMode).toBeChecked();
+    await freshMode.focus();
+    await freshMode.press("ArrowRight");
+    await expect(refineMode).toBeChecked();
+    await expect(freshMode).not.toBeChecked();
+    await panel.locator(".appearance-mode").screenshot({ path: testInfo.outputPath("appearance-radio-modes.png") });
     await panel.getByLabel("想法").fill("Keep the viewed identity and clarify the rain-lit eyebrow anchor.");
     const refinement = await prepareProposalFromBrowser(page, panel, projectId, request, workbench.apiOrigin);
     expect(refinement.parentCandidateAssetId).toBe(originalCandidate);
@@ -159,8 +166,8 @@ test.describe("F2B cast-owned reference studies", () => {
       const viewer = gallery.getByTestId("appearance-viewer");
       await expect(viewer.getByRole("img")).toBeVisible();
       await expect(viewer).toContainText("这张图已被选用");
-      await expect(gallery.getByRole("button", { name: "基于当前图片修改" })).toBeVisible();
-      await expect(gallery.getByRole("button", { name: "尝试全新方案" })).toBeVisible();
+      await expect(gallery.getByRole("radio", { name: "基于图片修改" })).toBeVisible();
+      await expect(gallery.getByRole("radio", { name: "全新生成" })).toBeVisible();
       await expect(gallery.getByLabel("审阅者")).toHaveCount(0);
       await expect(viewer.locator("details")).not.toHaveAttribute("open", "");
       await viewer.getByText("查看生成指令与技术详情", { exact: true }).click();
@@ -297,9 +304,9 @@ test.describe("F2B cast-owned reference studies", () => {
 
     await gallery.getByRole("button", { name: "选用当前图片" }).click();
     await expect(gallery).toContainText("已选择身份参考 r1");
-    await expect(gallery.getByRole("button", { name: "基于当前图片修改" })).toBeDisabled();
+    await expect(gallery.getByRole("radio", { name: "基于图片修改" })).toBeDisabled();
     await expect(gallery).toContainText("不能作为调整父项");
-    await gallery.getByRole("button", { name: "尝试全新方案" }).click();
+    await gallery.getByRole("radio", { name: "全新生成" }).click();
     await gallery.getByLabel("想法").fill("Preserve this imported technical reference while clarifying the coat silhouette.");
     const prepared = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/character-reference-proposals`);
@@ -319,7 +326,10 @@ test.describe("F2B cast-owned reference studies", () => {
     const cast = page.getByTestId("cast-review");
     await cast.getByRole("button", { name: "编辑角色设定" }).click();
     await expect(gallery).toContainText("已接受角色已过期");
+    const restoredCast = page.waitForResponse((response) => response.request().method() === "POST"
+      && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/cast/reopen/cancel`);
     await cast.getByRole("button", { name: "取消编辑" }).click();
+    expect((await restoredCast).ok()).toBeTruthy();
     await expect(gallery).toContainText("已选择身份参考 r1");
     const restored = await getJson<{ appearances: Array<{ current: boolean }> }>(request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/character-imported-appearances`));
     expect(restored.appearances).toHaveLength(5);
@@ -406,7 +416,7 @@ test.describe("F2B cast-owned reference studies", () => {
       await firstPanel.getByRole("button", { name: "创建提案" }).click();
       await preparationStarted;
       await switchProjectInDirectory(page, secondProjectId);
-      await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^02 角色/ }).click();
+      await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "角色", exact: true }).click();
       const secondPanel = page.getByTestId("character-reference-gallery");
       const secondDirection = secondPanel.getByLabel("想法");
       await expect(secondDirection).toBeEditable();
@@ -469,7 +479,7 @@ test.describe("F2B cast-owned reference studies", () => {
 
     await holdImport("Held project import", async () => {
       await switchProjectInDirectory(page, secondProjectId);
-      await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^02 角色/ }).click();
+      await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "角色", exact: true }).click();
       await expect(page.getByTestId("character-reference-gallery")).not.toContainText("Held project import");
     });
     await expect.poll(importedCount).toBe(0);

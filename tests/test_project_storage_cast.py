@@ -193,6 +193,9 @@ def test_cast_reference_proposal_freezes_accepted_subject_without_story_bible(tm
         assert frozen["acceptedCast"]["contentHash"] == accepted.accepted_cast.content_hash
         assert frozen["characterContext"]["authority"] == "cast"
         assert frozen["characterContext"]["appearance"] == "Windburned"
+        store.media.mark_character_reference_proposal_exported(store.manifest.project_id, proposal["id"])
+        with pytest.raises(InvalidTransitionError, match="不能再次发送"):
+            store.media.mark_character_reference_proposal_exported(store.manifest.project_id, proposal["id"], require_prepared=True)
         cancelled = store.media.cancel_character_reference_proposal(
             store.manifest.project_id,
             proposal["id"],

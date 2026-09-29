@@ -73,6 +73,8 @@ from .models import (
 )
 from .project_folder_source_outline import register_project_folder_source_outline_routes
 from .project_folder_cast import register_project_folder_cast_routes
+from .project_folder_specialists import register_specialist_routes
+from ..specialist_settings import SpecialistRegistry, ImageSpecialist
 from .project_folder_art import register_project_folder_art_routes
 from .project_folder_script import register_project_folder_script_routes
 from .project_folder_storyboard_review import register_project_folder_storyboard_review_routes
@@ -729,13 +731,16 @@ def create_project_folder_authoring_app(
         opened_project,
         require_media_draft_scope=require_media_draft_scope,
     )
+    specialists = SpecialistRegistry(storage.application.root, image_dispatcher)
+    app.state.specialists = specialists
+    register_specialist_routes(app, opened_project, specialists)
     register_project_folder_image_job_routes(
         app,
         opened_project,
         image_job_target_id=image_job_target_id,
         require_media_draft_scope=require_media_draft_scope,
         project_h3_target=_project_h3_target,
-        image_dispatcher=image_dispatcher,
+        image_dispatcher=ImageSpecialist(specialists),
     )
     register_project_folder_video_routes(
         app,
@@ -745,7 +750,7 @@ def create_project_folder_authoring_app(
     )
     register_project_folder_source_outline_routes(app, opened_project)
     register_project_folder_cast_routes(app, opened_project)
-    register_project_folder_art_routes(app, opened_project)
+    register_project_folder_art_routes(app, opened_project, ImageSpecialist(specialists))
     register_project_folder_script_routes(app, opened_project)
     register_project_folder_storyboard_review_routes(app, opened_project)
     register_project_folder_production_bridge_routes(

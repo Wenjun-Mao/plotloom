@@ -36,7 +36,9 @@ export function CandidateCard({
       </button>
       <Button
         data-testid={`keep-candidate-${asset.id}`}
-        variant={kept ? "primary" : "quiet"}
+        variant="quiet"
+        aria-pressed={kept}
+        className="selection-toggle"
         onClick={onKeep}
       >
         {kept ? "已保留" : "保留此候选"}

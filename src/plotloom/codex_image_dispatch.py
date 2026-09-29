@@ -9,6 +9,7 @@ import fcntl
 import json
 import os
 import subprocess
+from collections.abc import Callable
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,7 +25,7 @@ class NativeCodexImageDispatcher:
     state_root: Path
     executable: str = "codex"
 
-    def dispatch(self, *, job_id: str, package_path: str, delivery_path: str) -> None:
+    def dispatch(self, *, job_id: str, package_path: str, delivery_path: str, assignment: str | None = None, before_send: Callable[[], None] | None = None) -> None:
         self.state_root.mkdir(parents=True, exist_ok=True)
         root = self.state_root / job_id
         active = self.state_root / "inflight.json"
@@ -34,6 +35,8 @@ class NativeCodexImageDispatcher:
                     "image_dispatch_already_attempted",
                     "this image job already has a native dispatch attempt; it will not be resent automatically",
                 )
+            if active.exists():
+                raise ImageJobError("image_dispatch_busy", "a native specialist job is already in flight")
             try:
                 descriptor = os.open(
                     active, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600
@@ -53,8 +56,17 @@ class NativeCodexImageDispatcher:
                     "image_dispatch_already_attempted",
                     "this image job already has a native dispatch attempt; it will not be resent automatically",
                 ) from error
+            # Reserve first, then atomically export, then queue. A failed
+            # precondition has not sent anything and can release this empty slot.
+            try:
+                if before_send is not None:
+                    before_send()
+            except Exception:
+                root.rmdir()
+                self._release_if_owner_locked(active, job_id)
+                raise
         receipt = root / "receipt.json"
-        message = (
+        message = assignment or (
             f"Frozen Plotloom image package assignment for {job_id}. Read and obey the "
             f"project-local plotloom-image-specialist skill. The package is complete authority: "
             f"{package_path}. Deliver only under {delivery_path}. Do not modify Plotloom code, "

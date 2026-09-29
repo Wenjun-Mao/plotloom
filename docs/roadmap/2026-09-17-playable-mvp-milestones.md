@@ -773,6 +773,105 @@ Verification: 24 focused frontend tests, TypeScript and deterministic build
 passed; independent review found no issues. Live server serves the new label.
 No author form was refreshed or modified.
 
+### Selection controls versus actions
+
+Creator approved radio modes and an audit of similar ambiguous controls. Deliver
+native appearance modes, non-primary checked comparison/retention toggles,
+underlined technical tabs and explicit current-subject/current-image indicators.
+Audit covers frontend conditional primary variants and pressed/selected controls;
+save/apply actions and established reader tabs retain their roles. ADR 0092 owns
+the convention. Excludes generation, data changes and upstream report HTML.
+Stop after frontend checks, gallery browser regression and independent review.
+
+Verification: all 248 frontend tests, both TypeScript checks and deterministic
+build pass. Focused cast original/refinement/restart browser flow passes with
+native arrow-key radio assertions; radio screenshot visually inspected.
+Comparison-capacity and imported-image browser flows also pass. Independent
+review found no actionable defects. The wider two-file browser run was stopped
+after failures in art-review lifecycle/mock-gallery and held project-switching
+tests; this is not a full-suite pass. Its stale sidebar-name assertion was
+updated to the current `创作流程` label before the focused rerun. Broader failure
+triage remains open, so commit/push is deferred rather than bypassing that gate.
+No live author form or project data was modified.
+
+### Walkthrough follow-ups — appearance proposal dispatch
+
+Captured from creator review on 2026-09-27; open, not implemented:
+
+- Normal prepared/no-delivery proposals must use neutral placeholders, not red
+  error stripes. Reserve error styling for actual failed states.
+- Dispatch is blocked in the current walkthrough runner: `serve.py` does not
+  provide `image_dispatcher`; the API rejects dispatch when it is absent with
+  `native image specialist dispatch is not configured`. Proposal
+  `ij_627a0a680e784d30985054cde8bfd669` remains prepared. Diagnose/configure the
+  supported dispatch path before asking the creator to retry; do not cancel,
+  recreate or silently dispatch their request.
+  Configuration inspection confirms the installed `codex queue --help` supports
+  the ADR 0074 transport. The isolated runner explicitly omits media dispatch;
+  this is not a failed image generation. No verified reusable specialist task
+  identity was found in the inspected host-local configuration. The earlier
+  `.local/native-image-proof` dispatcher retains an inflight reservation; it
+  must not be cleared or bypassed to connect this walkthrough. Next: obtain
+  an explicitly authorized dedicated image-specialist chat, bind its host-local
+  identity and lease directory, and restart the same storage-backed runner.
+  Configuration must not automatically send the prepared proposal.
+  Follow-up: the creator identified the existing `Plotloom Image Specialist`
+  chat, which was outside the 50-most-recent chat lookup. Exact-title lookup
+  and task inspection confirmed its latest assignment completed with a
+  validated image delivery for `ij_5de029b5a8084889af72967ae6393bc9`.
+  Prefer reconnecting this existing specialist; creation/archival is not
+  required merely to restore runner configuration. Reconcile its prior
+  dispatch state before reconnecting; idle alone is not lease-release proof.
+  Reconnected 2026-09-27: the retained project database confirms its latest
+  delivery was accepted. Previous temporary runner lease directories are gone
+  after reboot. The local walkthrough runner now uses the existing specialist
+  with persistent host-local dispatch state; older trial reservations remain
+  untouched. Six dispatcher tests passed and the restarted server returned
+  HTTP 200. The creator's proposal remains prepared with unchanged request
+  hash. No send/generation performed; end-to-end image delivery remains to be
+  exercised by the creator. Local configuration/evidence: `.local/creator-walkthrough/DISPATCH.md`.
+- Expose unavailable dispatch before clicking, with an understandable Chinese
+  explanation and next step. Place dispatch errors beside the affected proposal,
+  not only above the history section where they can be missed.
+- Creator cannot select `查看生成指令与技术详情` disclosure text in Safari.
+  Reproduce selection-versus-toggle behavior and fix shared disclosure headers
+  while preserving ordinary click and keyboard expansion. Label fixes do not
+  establish that summary elements work.
+- Review adjacent technical wording (`发送给 specialist`, `冻结方向`,
+  `交付与保留记录`) for creator-facing language; do not obscure actual manual
+  versus automatic execution behavior.
+
+### Creator-approved specialist settings and one-click text tasks (2026-09-29)
+
+Approved scope: two reusable installation-local Codex chat bindings, editable in
+`生成助手设置`; text handles outline, cast, art, script and storyboard, image
+handles character/environment/prop/shot images. ADR 0093 records dispatch safety.
+No automatic chat creation, routing per-stage threads, creative acceptance,
+provider fallback or background server generation is included.
+
+Implemented settings persistence/restart recovery, five shared text send/check
+controls with open-page observation, art/shot explicit image send endpoints,
+and atomic prepared-only native image export. Existing manual package recovery
+is secondary and does not implicitly send. Current accepted user content and
+image selection remain untouched. Existing Image Specialist binding is seeded
+once; text slot remains unconfigured until the creator chooses its chat.
+
+Verification: deterministic native-queue doubles; actual frozen outline package
+→ validated candidate → restart without acceptance; 70 focused backend tests;
+252 frontend unit tests, typecheck, deterministic build and 17 cast/art browser
+journeys passed (the two navigation-sensitive cast cases also rechecked after
+the fix). Live server restarted on 8841; seeded image binding persisted and the
+delivered character image remained available but unselected. Independent Terra
+review confirmed the corrected reservation/admission boundaries. Browser checks
+also exposed A→B→A navigation cancelling an aggregate load without replacement
+when A was still displayed; the navigation owner now replaces interrupted loads
+while preserving same-project trace-selection cancellation. A focused unit test
+and held-request browser journey guard this cause, not a form-enable workaround.
+Stopping condition: verified local workflow, no unrequested live generation,
+explicit handoff for text chat choice and creative image review.
+Earlier Safari disclosure-selection, red pending-state treatment and adjacent
+wording notes above remain open; this change does not claim to fix them.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

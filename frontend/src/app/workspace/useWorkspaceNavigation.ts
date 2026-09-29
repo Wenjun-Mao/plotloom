@@ -5,7 +5,7 @@ import { routeFromLocation, stageForPage, type NavigationTarget, type PageId } f
 import type { UnsafeDraft, WorkspaceSession } from "./useWorkspaceSession";
 
 type NavigationSession = Pick<WorkspaceSession,
-  "activePage" | "project" | "run" | "runSelectionPending" | "unsafeDraft" | "routeRef" | "setUnsafeDraft"
+  "activePage" | "project" | "connection" | "run" | "runSelectionPending" | "unsafeDraft" | "routeRef" | "setUnsafeDraft"
   | "clearForEmptyRoute" | "navigate" | "navigateToProject" | "needsCanonicalRefresh"
   | "focusEntity" | "updateRouteHash" | "navigateHash" | "replaceCurrentRoute" | "acceptRun" | "beginRunSelection" | "cancelRunSelection" | "clearTrace"
 >;
@@ -63,6 +63,10 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     else if (traceSelectionRequested) session.beginRunSelection(next.run);
     if (
       next.forceReload
+      // Navigation cancels the old load, including A→B→A with A still shown.
+      // Only a same-project trace selection can restore its accepted snapshot
+      // via cancelRunSelection without fetching the aggregate again.
+      || (session.connection === "loading" && (!session.runSelectionPending || next.project !== previousRoute.project))
       || next.project !== session.project.id
       || traceSelectionRequested
       || session.needsCanonicalRefresh(next.project)

@@ -2,6 +2,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
+import { specialistsApi } from "../src/features/specialists/api";
 import { ArtPanel } from "../src/pages/ArtPanel";
 import type { ArtBinding, ArtReferenceProposal, ArtReviewState } from "../src/types";
 
@@ -51,15 +52,15 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
 
-it("settles a deferred F3B copy after unmount without refresh, assignment, or error publication", async () => {
+it("settles a deferred F3B send after unmount without refresh, assignment, or error publication", async () => {
   const copied = deferred<{ proposal: ArtReferenceProposal; assignment: string; packagePath: string; deliveryPath: string }>();
   const getArt = vi.spyOn(plotloomApi, "getArt").mockImplementation(async (projectId) => artState(projectId));
   const getStudies = vi.spyOn(plotloomApi, "getArtReferenceProposals").mockResolvedValue({ configured: true, proposals: [study] });
   const getDecisions = vi.spyOn(plotloomApi, "getArtReferenceDecisions").mockResolvedValue({ states: [], decisions: [] });
-  vi.spyOn(plotloomApi, "copyArtReferenceProposal").mockReturnValue(copied.promise);
+  vi.spyOn(specialistsApi, "sendArtImage").mockReturnValue(copied.promise);
 
   await act(async () => { root.render(createElement(ArtPanel, { projectId: "old", readOnly: false })); });
-  const copy = [...host.querySelectorAll("button")].find((button) => button.textContent === "复制 ImageGen 任务");
+  const copy = [...host.querySelectorAll("button")].find((button) => button.textContent === "发送给图像生成助手");
   expect(copy).toBeDefined();
   await act(async () => copy?.click());
   const artCallsBeforeUnmount = getArt.mock.calls.length;

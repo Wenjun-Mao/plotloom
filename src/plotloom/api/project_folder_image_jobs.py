@@ -20,6 +20,7 @@ from ..image_job_contracts import (
 )
 from ..image_job_exchange import PackageReference
 from ..codex_image_dispatch import NativeCodexImageDispatcher
+from .project_folder_image_send import register_image_send_route
 from .models import (
     ImageJobCancellationRequest,
     ProjectFolderImageJobCreateRequest,
@@ -168,16 +169,15 @@ def register_project_folder_image_job_routes(
                 request_hash=proposal["requestHash"],
                 references=package_references(store, source["references"]),
             )
-            proposal = store.media.mark_character_reference_proposal_exported(
-                project_id, proposal_id
-            )
+            exported = []
             image_dispatcher.dispatch(
                 job_id=proposal_id,
                 package_path=package["packagePath"],
                 delivery_path=package["deliveryPath"],
+                before_send=lambda: exported.append(store.media.mark_character_reference_proposal_exported(project_id, proposal_id, require_prepared=True)),
             )
             return {
-                "proposal": proposal,
+                "proposal": exported[0],
                 "packagePath": package["packagePath"],
                 "deliveryPath": package["deliveryPath"],
             }
@@ -366,18 +366,14 @@ def register_project_folder_image_job_routes(
                 ),
             )
             job = store.media.mark_image_job_exported(project_id, job_id)
-            if image_dispatcher is not None:
-                image_dispatcher.dispatch(
-                    job_id=job_id,
-                    package_path=package["packagePath"],
-                    delivery_path=package["deliveryPath"],
-                )
             return {
                 "job": job,
                 "assignment": f"Codex image specialist assignment for {job_id}: read {package['packagePath']}/request.json; use built-in imagegen; write JPEG/PNG outputs and completion.json only under {package['deliveryPath']}.",
                 "packagePath": package["packagePath"],
                 "deliveryPath": package["deliveryPath"],
             }
+
+    register_image_send_route(app, opened_project, image_dispatcher, package_references)
 
     @app.post("/api/v2/projects/{project_id}/image-jobs/{job_id}/refresh")
     def refresh_project_image_job(project_id: str, job_id: str) -> dict[str, Any]:

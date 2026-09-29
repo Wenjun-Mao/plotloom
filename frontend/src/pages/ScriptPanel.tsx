@@ -3,6 +3,7 @@ import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { AcceptedScriptRevision, ScriptCandidate, ScriptReviewState } from "../types";
 import { ManualTaskAssignment } from "./ManualTaskAssignment";
+import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 
 type ProjectSession = { projectId: string; epoch: number };
 
@@ -90,19 +91,18 @@ export function ScriptPanel({ projectId, readOnly }: { projectId: string; readOn
     <div className="notice warning">上游格式和时长限制仍会检查；冻结章节与完整路径的时长上限继续适用。</div>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备剧本任务</Button>}
-    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} run={run} onAssignment={setAssignment} />}
+    {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="script" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={() => load()} />}
+    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} run={run} />}
     {candidate?.status === "ready" && <><ScriptJson title="查看待审阅剧本" script={candidate.script} /><p>确认使用此剧本会确认开场和两个结局，不只确认当前显示的章节。</p></>}
     {accepted && <AcceptedReview accepted={accepted} projectId={projectId} readOnly={readOnly} busy={busy} status={state.status} sectionId={sectionId} draft={draft} onSelect={selectSection} onDraft={setDraft} onReopen={() => run(() => plotloomApi.reopenScript(projectId, accepted.revision))} onSave={save} />}
     {reportJobId && <Report projectId={projectId} jobId={reportJobId} />}
-    {candidate?.status === "prepared" && assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="剧本" />}
+    {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverScriptHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复剧本任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="剧本" />}</details>}
     {error && <ErrorNotice message={error} />}
   </article>;
 }
 
-function CandidateActions({ candidate, projectId, readOnly, busy, run, onAssignment }: { candidate: ScriptCandidate; projectId: string; readOnly: boolean; busy: boolean; run: <Result>(operation: () => Promise<Result>, onSuccess?: (result: Result) => void) => void; onAssignment: (value: string) => void }) {
+function CandidateActions({ candidate, projectId, readOnly, busy, run }: { candidate: ScriptCandidate; projectId: string; readOnly: boolean; busy: boolean; run: <Result>(operation: () => Promise<Result>, onSuccess?: (result: Result) => void) => void }) {
   if (candidate.status === "prepared") return <div className="button-row">
-    <Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverScriptHandoff(projectId, candidate.jobId), result => onAssignment(result.assignment))}>恢复剧本任务</Button>
-    <Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.refreshScriptCandidate(projectId, candidate.jobId))}>检查任务结果</Button>
     <Button variant="danger" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.cancelScriptCandidate(projectId, candidate.jobId))}>取消此任务</Button>
   </div>;
   if (candidate.status === "ready") return <div className="button-row">

@@ -172,9 +172,9 @@ class ProjectMediaRepository:
         return self._proposals.character_reference_proposal_package_sources(project_id, proposal_id)
 
     def mark_character_reference_proposal_exported(
-        self, project_id: str, proposal_id: str
+        self, project_id: str, proposal_id: str, *, require_prepared: bool = False
     ) -> JsonObject:
-        return self._proposals.mark_character_reference_proposal_exported(project_id, proposal_id)
+        return self._proposals.mark_character_reference_proposal_exported(project_id, proposal_id, require_prepared=require_prepared)
 
     def cancel_character_reference_proposal(
         self, project_id: str, proposal_id: str, reason: str
@@ -218,8 +218,8 @@ class ProjectMediaRepository:
     def art_reference_proposal_package_sources(self, project_id: str, proposal_id: str) -> JsonObject:
         return self._art_references.art_reference_proposal_package_sources(project_id, proposal_id)
 
-    def mark_art_reference_proposal_exported(self, project_id: str, proposal_id: str) -> JsonObject:
-        return self._art_references.mark_art_reference_proposal_exported(project_id, proposal_id)
+    def mark_art_reference_proposal_exported(self, project_id: str, proposal_id: str, *, require_prepared: bool = False) -> JsonObject:
+        return self._art_references.mark_art_reference_proposal_exported(project_id, proposal_id, require_prepared=require_prepared)
 
     def cancel_art_reference_proposal(self, project_id: str, proposal_id: str, reason: str) -> JsonObject:
         return self._art_references.cancel_art_reference_proposal(project_id, proposal_id, reason)
@@ -286,8 +286,8 @@ class ProjectMediaRepository:
     def image_job_package_sources(self, project_id: str, job_id: str) -> JsonObject:
         return self._image_delivery.image_job_package_sources(project_id, job_id)
 
-    def mark_image_job_exported(self, project_id: str, job_id: str) -> JsonObject:
-        return self._image_delivery.mark_image_job_exported(project_id, job_id)
+    def mark_image_job_exported(self, project_id: str, job_id: str, *, require_prepared: bool = False) -> JsonObject:
+        return self._image_delivery.mark_image_job_exported(project_id, job_id, require_prepared=require_prepared)
 
     def cancel_image_job(self, project_id: str, job_id: str, reason: str) -> JsonObject:
         return self._image_delivery.cancel_image_job(project_id, job_id, reason)

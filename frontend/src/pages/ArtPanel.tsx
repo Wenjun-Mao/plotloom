@@ -3,6 +3,7 @@ import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { ArtCandidate, ArtReferenceDecision, ArtReferenceDecisionState, ArtReferenceProposal, ArtReviewState } from "../types";
 import { ArtReferenceGallery } from "./ArtReferenceGallery";
+import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 
 type EditorProps = { disabled: boolean; draft: string; setDraft: (value: string) => void };
 type ProjectSession = { projectId: string; epoch: number };
@@ -68,28 +69,25 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
   const heading = state.status === "stale" ? "上下文已过期" : accepted ? `已接受 r${accepted.revision}` : candidate?.status === "ready" ? "可审核" : candidate?.status === "prepared" ? "等待 specialist" : "尚无美术候选";
   const reportJobId = candidate?.status === "ready" ? candidate.jobId : accepted?.candidateJobId;
   const prepare = () => { const session = activeProject.current; setBusy(true); void plotloomApi.prepareArtCandidate(session.projectId).then(async result => { if (ownsProject(session)) { setAssignment(result.assignment); await load(session); } }).catch(reason => { if (ownsProject(session)) setError(reason instanceof Error ? reason.message : "Art preparation failed."); }).finally(() => { if (ownsProject(session)) setBusy(false); }); };
-  const recover = () => candidate && act(
-    () => plotloomApi.recoverArtHandoff(projectId, candidate.jobId),
-    result => setAssignment(result.assignment),
-  );
   const accept = () => { const art = parsed(); if (art && candidate) act(() => plotloomApi.acceptArtCandidate(projectId, { jobId: candidate.jobId, expectedArtRevision: candidate.expectedArtRevision, binding: candidate.binding, art })); };
   const save = () => { const art = parsed(); if (art && accepted) act(() => plotloomApi.saveReopenedArt(projectId, { expectedArtRevision: accepted.revision, binding: accepted.binding, art })); };
   return <article id="art" className="panel cast-panel art-panel" data-testid="art-review">
     <header><span>美术参考</span><strong>{heading}</strong></header>
     <p>共享地点、道具与可核对锚点在此处以文本先行审阅；它本身不生成图片。下方独立的环境与道具研究显示可复用参考字节及其当前性。继承的 cinematic realism 与上游 semi-realistic painterly 预设差异会显式保留给参考研究。</p>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
-    {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备并复制 art specialist handoff</Button>}
-    {candidate && <CandidateReview candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} draft={draft} setDraft={setDraft} recover={recover} refresh={() => act(() => plotloomApi.refreshArtCandidate(projectId, candidate.jobId))} cancel={() => act(() => plotloomApi.cancelArtCandidate(projectId, candidate.jobId))} accept={accept} />}
+    {!candidate && state.status !== "reopened" && <Button variant="primary" disabled={readOnly || busy} onClick={prepare}>准备美术设定任务</Button>}
+    {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="art" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={() => load()} />}
+    {candidate && <CandidateReview candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} draft={draft} setDraft={setDraft} cancel={() => act(() => plotloomApi.cancelArtCandidate(projectId, candidate.jobId))} accept={accept} />}
     {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；文本与报告可审阅，参考研究在下方单独显示。</small><ArtReferenceGallery projectId={projectId} art={accepted.art} acceptedRevision={accepted.revision} acceptedContentHash={accepted.contentHash} studies={studies} decisions={referenceDecisions} decisionStates={referenceStates} readOnly={readOnly} busy={busy} setAssignment={setAssignment} refresh={() => load()} />{state.status !== "reopened" && <Editor disabled draft={draft} setDraft={setDraft} />}{reportJobId && <Report projectId={projectId} jobId={reportJobId} />}<Button variant="quiet" disabled={readOnly || busy || state.status === "reopened"} onClick={() => act(() => plotloomApi.reopenArt(projectId, accepted.revision))}>重新打开美术提案</Button></>}
     {accepted && state.status === "reopened" && <><Editor disabled={readOnly || busy} draft={draft} setDraft={setDraft} /><Button variant="primary" disabled={readOnly || busy} onClick={save}>保存重新打开的美术</Button></>}
-    {assignment && <label>复制给 specialist 的冻结任务<textarea readOnly value={assignment} rows={5} /></label>}
+    {(candidate?.status === "prepared" || assignment) && <details><summary>查看任务说明（手动方式）</summary>{candidate?.status === "prepared" && <Button disabled={readOnly || busy} onClick={() => act(() => plotloomApi.recoverArtHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>查看美术任务说明</Button>}{assignment && <textarea aria-label="美术任务说明" readOnly value={assignment} rows={5} />}</details>}
     {error && <ErrorNotice message={error} />}
   </article>;
 }
 
-function CandidateReview({ candidate, projectId, readOnly, busy, draft, setDraft, recover, refresh, cancel, accept }: { candidate: ArtCandidate; projectId: string; readOnly: boolean; busy: boolean; draft: string; setDraft: (value: string) => void; recover: () => void; refresh: () => void; cancel: () => void; accept: () => void }) {
+function CandidateReview({ candidate, projectId, readOnly, busy, draft, setDraft, cancel, accept }: { candidate: ArtCandidate; projectId: string; readOnly: boolean; busy: boolean; draft: string; setDraft: (value: string) => void; cancel: () => void; accept: () => void }) {
   return <><small>冻结 source r{candidate.binding.sourceRevision} · cast r{candidate.binding.castRevision} · sections {candidate.binding.sectionIds.join(" · ")}</small>
-    {candidate.status === "prepared" && <><Button disabled={readOnly || busy} onClick={recover}>重新复制冻结 handoff</Button><Button disabled={readOnly || busy} onClick={refresh}>刷新 specialist delivery</Button><Button variant="danger" disabled={readOnly || busy} onClick={cancel}>取消 handoff</Button></>}
+    {candidate.status === "prepared" && <Button variant="danger" disabled={readOnly || busy} onClick={cancel}>取消此任务</Button>}
     {candidate.status === "ready" && <><Editor disabled={readOnly || busy} draft={draft} setDraft={setDraft} />{candidate.reportAvailable && <Report projectId={projectId} jobId={candidate.jobId} />}<Button variant="primary" disabled={readOnly || busy} onClick={accept}>显式接受此美术提案</Button><Button variant="danger" disabled={readOnly || busy} onClick={cancel}>拒绝并取消此美术提案</Button></>}
   </>;
 }

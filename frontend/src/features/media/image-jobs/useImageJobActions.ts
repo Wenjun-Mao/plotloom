@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
+import { specialistsApi } from "../../specialists/api";
 import type {
   ApprovalDecision,
   ReviewedKeyframe,
@@ -133,7 +134,7 @@ export function useImageJobActions({
     setBusy(true);
     setError("");
     try {
-      const copied = await plotloomApi.copyImageJob(projectId, jobId);
+      await specialistsApi.sendImage(projectId, jobId);
       setImageJobRefreshNotice((current) => ({
         ...current,
         [jobId]: "已发送给专用 specialist；队列接受不代表生成或 delivery。完成后将自动检查 receipt。",

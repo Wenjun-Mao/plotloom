@@ -7,6 +7,7 @@ import { CastEditor, type CastDirectionChange } from "./CastEditor";
 import { CastInferenceNotes } from "./CastInferenceNotes";
 import { castTextPresentation } from "./cast-text-presentation";
 import { hasValidCastDesign } from "./cast-design-validation";
+import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 
 type CastPanelProps = {
   projectId: string; readOnly: boolean; state: CastReviewState | undefined; loadError: string;
@@ -65,17 +66,17 @@ export function CastPanel({ projectId, readOnly, state, loadError, onState, onRe
   }), undefined, true);
 
   return <article className="panel cast-panel" data-testid="cast-review">
-    <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{accepted ? `已接受角色设定 r${accepted.revision}` : candidate?.status === "ready" ? "审核角色设定" : "角色设定"}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : accepted ? "selected" : "candidate"}`}>{state.status === "stale" ? "上下文已过期" : accepted ? "已接受" : candidate?.status === "ready" ? "可审核" : candidate?.status === "prepared" ? "等待手动任务" : "尚无提案"}</span></header>
+    <header className="cast-panel-heading"><div><span className="eyebrow">角色设定</span><h2>{accepted ? `已接受角色设定 r${accepted.revision}` : candidate?.status === "ready" ? "审核角色设定" : "角色设定"}</h2></div><span className={`reference-state ${state.status === "stale" ? "historical" : accepted ? "selected" : "candidate"}`}>{state.status === "stale" ? "上下文已过期" : accepted ? "已接受" : candidate?.status === "ready" ? "可审核" : candidate?.status === "prepared" ? "任务已准备" : "尚无提案"}</span></header>
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {accepted && <AcceptedCastSummary accepted={accepted} onEdit={() => act(() => plotloomApi.reopenCast(projectId, accepted.revision), undefined, true)} disabled={readOnly || busy || state.status === "reopened"} />}
-    {!candidate && state.status !== "reopened" && <section className="cast-next-action"><div><strong>创建新角色提案</strong><small>只准备可复制的手动任务；不会自动生成、分发或复制。</small></div><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.prepareCastCandidate(projectId), (result) => setAssignment(result.assignment))}>创建新角色提案</Button></section>}
+    {!candidate && state.status !== "reopened" && <section className="cast-next-action"><div><strong>创建新角色提案</strong><small>先准备任务，再发送给文字创作助手。结果需要你审核确认。</small></div><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.prepareCastCandidate(projectId), (result) => setAssignment(result.assignment))}>创建新角色提案</Button></section>}
     {candidate && <>
       <details className="cast-technical"><summary>查看提案来源与技术详情</summary><small>冻结来源与章节：r{candidate.binding.sourceRevision} · r{candidate.binding.outlineRevision} · {candidate.binding.sectionIds.join(" · ")}</small>{candidate.status === "ready" && <><pre>{JSON.stringify(candidate.cast, null, 2)}</pre>{candidate.reportAvailable && <iframe title="只读上游角色报告" className="source-outline-report" sandbox="" src={plotloomApi.castCandidateReportUrl(projectId, candidate.jobId)} />}</>}</details>
-      {candidate.status === "prepared" && <section className="cast-next-action"><div><strong>手动任务尚未交付</strong><small>可刷新已有交付，或取消这个手动任务。</small></div><div className="reference-card-actions"><Button disabled={readOnly || busy} onClick={() => act(() => plotloomApi.refreshCastCandidate(projectId, candidate.jobId))}>刷新交付</Button><Button variant="danger" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelCastCandidate(projectId, candidate.jobId))}>取消手动任务</Button></div></section>}
+      {candidate.status === "prepared" && <><SpecialistTaskActions projectId={projectId} stage="characters" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={() => onRefresh()} /><Button variant="danger" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelCastCandidate(projectId, candidate.jobId))}>取消此任务</Button></>}
       {candidate.status === "ready" && <><CastEditor characters={castCharacters} disabled={readOnly || busy} onChange={updateDirection} /><Button variant="primary" disabled={readOnly || busy || !canConfirm} onClick={saveAccepted}>接受这份角色设定</Button></>}
     </>}
     {accepted && state.status === "reopened" && <><CastEditor characters={castCharacters} disabled={readOnly || busy} onChange={updateDirection} editing /><div className="button-row"><Button variant="primary" disabled={readOnly || busy || !canConfirm} onClick={() => canConfirm && act(() => plotloomApi.saveReopenedCast(projectId, { expectedCastRevision: accepted.revision, binding: accepted.binding, cast: editedCast, consumerMappings: accepted.consumerMappings }), undefined, true)}>保存角色修改</Button><Button variant="quiet" disabled={readOnly || busy} onClick={() => act(() => plotloomApi.cancelReopenedCast(projectId, accepted.revision), undefined, true, true)}>取消编辑</Button></div><small>取消会丢弃未保存的文本，并仅在上游上下文仍当前时恢复 r{accepted.revision} 的既有授权。</small></>}
-    {assignment && <details className="cast-assignment"><summary>查看已复制的手动任务</summary><textarea readOnly rows={5} value={assignment} /></details>}
+    {assignment && <details className="cast-assignment"><summary>查看任务说明（手动方式）</summary><textarea readOnly rows={5} value={assignment} /></details>}
     {(error || loadError) && <ErrorNotice message={error || loadError} />}
   </article>;
 }

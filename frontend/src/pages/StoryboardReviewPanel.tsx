@@ -5,6 +5,7 @@ import type { StoryboardReviewCandidate, StoryboardReviewState } from "../types"
 import { StoryboardReviewInspection } from "./StoryboardReviewInspection";
 import { ProductionBridgePanel } from "./ProductionBridgePanel";
 import { ManualTaskAssignment } from "./ManualTaskAssignment";
+import { SpecialistTaskActions } from "../features/specialists/SpecialistTaskActions";
 
 /** F5A preserves upstream review evidence; it deliberately cannot create product shots. */
 export function StoryboardReviewPanel({ projectId, readOnly, onOpenShot }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void }) {
@@ -55,18 +56,19 @@ export function StoryboardReviewPanel({ projectId, readOnly, onOpenShot }: { pro
     {state.staleReasons.length > 0 && <div className="notice warning">{state.staleReasons.join("；")}</div>}
     {!candidate && <div className="button-row"><label>评审镜头上限（秒）<select value={maxCutSeconds} disabled={readOnly || busy} onChange={event => setMaxCutSeconds(Number(event.target.value))}>{[8, 10, 12, 15].map(seconds => <option key={seconds} value={seconds}>{seconds}</option>)}</select></label><Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.prepareStoryboardSourceReviewCandidate(projectId, maxCutSeconds), result => setAssignment(result.assignment))}>准备分镜任务</Button></div>}
     {candidate && <small>冻结评审时长：单镜头 {candidate.binding.reviewMinCutSeconds}–{candidate.binding.reviewMaxCutSeconds} 秒；分段上限 {candidate.binding.reviewMaxSegmentSeconds} 秒。</small>}
-    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} run={run} onAssignment={setAssignment} />}
+    {candidate?.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="storyboard" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={() => load()} />}
+    {candidate && <CandidateActions candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} run={run} />}
     {candidate?.status === "ready" && <StoryboardReviewInspection title="查看待审阅分镜" value={candidate.storyboard} />}
     {acceptedReview && <section><small>已确认评审 r{acceptedReview.revision} · 已确认剧本 r{acceptedReview.binding.scriptRevision} · hash {acceptedReview.contentHash.slice(0, 12)}</small><StoryboardReviewInspection title="查看当前已确认分镜" value={acceptedReview.storyboard} /></section>}
     {reportJobId && <details><summary>打开原始只读上游报告</summary><iframe title="original derived upstream storyboard report" className="source-outline-report" sandbox="" src={plotloomApi.storyboardSourceReviewCandidateReportUrl(projectId, reportJobId)} /></details>}
-    {candidate?.status === "prepared" && assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="分镜" />}
+    {candidate?.status === "prepared" && <details><summary>查看任务说明（手动方式）</summary><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverStoryboardSourceReviewHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>恢复分镜任务</Button>{assignment && <ManualTaskAssignment key={`${projectId}:${candidate.jobId}:${assignment}`} assignment={assignment} taskName="分镜" />}</details>}
     {error && <ErrorNotice message={error} />}
     {acceptedReview && <ProductionBridgePanel projectId={projectId} readOnly={readOnly} onOpenShot={onOpenShot} />}
   </article>;
 }
 
-function CandidateActions({ candidate, projectId, readOnly, busy, run, onAssignment }: { candidate: StoryboardReviewCandidate; projectId: string; readOnly: boolean; busy: boolean; run: <T>(operation: () => Promise<T>, accepted?: (result: T) => void) => void; onAssignment: (value: string) => void }) {
-  if (candidate.status === "prepared") return <div className="button-row"><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.recoverStoryboardSourceReviewHandoff(projectId, candidate.jobId), result => onAssignment(result.assignment))}>恢复分镜任务</Button><Button disabled={readOnly || busy} onClick={() => run(() => plotloomApi.refreshStoryboardSourceReviewCandidate(projectId, candidate.jobId))}>检查任务结果</Button><Button variant="danger" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.cancelStoryboardSourceReviewCandidate(projectId, candidate.jobId))}>取消此任务</Button></div>;
+function CandidateActions({ candidate, projectId, readOnly, busy, run }: { candidate: StoryboardReviewCandidate; projectId: string; readOnly: boolean; busy: boolean; run: <T>(operation: () => Promise<T>, accepted?: (result: T) => void) => void }) {
+  if (candidate.status === "prepared") return <div className="button-row"><Button variant="danger" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.cancelStoryboardSourceReviewCandidate(projectId, candidate.jobId))}>取消此任务</Button></div>;
   if (candidate.status === "ready") return <div className="button-row"><Button variant="primary" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.acceptStoryboardSourceReviewCandidate(projectId, { jobId: candidate.jobId, expectedReviewRevision: candidate.expectedReviewRevision, binding: candidate.binding }))}>确认此分镜评审方案</Button><Button variant="danger" disabled={readOnly || busy} onClick={() => run(() => plotloomApi.cancelStoryboardSourceReviewCandidate(projectId, candidate.jobId))}>拒绝并取消此评审</Button></div>;
   return null;
 }

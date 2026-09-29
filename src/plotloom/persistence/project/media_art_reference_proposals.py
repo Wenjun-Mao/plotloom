@@ -142,7 +142,7 @@ class ArtReferenceProposalPersistence:
                 raise InvalidTransitionError("art reference proposal is no longer current and cannot be copied")
             return {"proposal": self._proposal_dict(proposal, current=True), "references": []}
 
-    def mark_art_reference_proposal_exported(self, project_id: str, proposal_id: str) -> dict[str, Any]:
+    def mark_art_reference_proposal_exported(self, project_id: str, proposal_id: str, *, require_prepared: bool = False) -> dict[str, Any]:
         with self._access.leases.lifecycle_write() as session:
             self._access.guards.active(self._access.rows.project(session, project_id))
             proposal = session.get(ArtReferenceProposalRow, proposal_id)
@@ -150,6 +150,8 @@ class ArtReferenceProposalPersistence:
                 raise NotFoundError("art reference proposal not found")
             if not self._proposal_is_current_in_session(session, proposal):
                 raise InvalidTransitionError("art reference proposal is no longer current and cannot be copied")
+            if require_prepared and proposal.state != "prepared":
+                raise InvalidTransitionError("该提案已导出或发送，不能再次发送。")
             if proposal.exported_at is None:
                 proposal.exported_at, proposal.state = utc_now(), "exported"
                 session.flush()

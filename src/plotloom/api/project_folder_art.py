@@ -15,9 +15,10 @@ from ..image_job_contracts import (
     ImageJobError,
 )
 from ..managed_media import publish_import
+from ..specialist_settings import ImageSpecialist
 
 
-def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[str], Any]) -> None:
+def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[str], Any], image_dispatcher: ImageSpecialist | None = None) -> None:
     def preparation(store: Any, candidate: ArtCandidate, request: Any) -> ArtCandidatePreparation:
         paths = store.creative_handoff_exchange().write_package(request, store.creative_handoff_execution_pin(request))
         return ArtCandidatePreparation.model_validate(candidate.model_dump(mode="python", by_alias=False) | {"package_path": paths["packagePath"], "delivery_path": paths["deliveryPath"], "assignment": f"Plotloom art assignment for {request.job_id}: read {paths['packagePath']}/request.json and follow its COPY_ASSIGNMENT.txt. Write only art.json, report.html, and completion.json under {paths['deliveryPath']}. This cannot accept or alter project canon."})
@@ -116,6 +117,20 @@ def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[s
         with opened_project(project_id) as store:
             return store.media.cancel_art_reference_proposal(project_id, proposal_id, body.reason)
 
+    @app.post("/api/v2/projects/{project_id}/art-reference-proposals/{proposal_id}/send")
+    def send_art_reference_proposal(project_id: str, proposal_id: str) -> dict[str, Any]:
+        if image_dispatcher is None:
+            raise ImageJobError("image_dispatch_unavailable", "请先配置图像生成助手。")
+        with opened_project(project_id) as store:
+            source = store.media.art_reference_proposal_package_sources(project_id, proposal_id)
+            proposal = source["proposal"]
+            package = store.image_exchange_for(proposal).write_package(
+                job_id=proposal_id, request=proposal["request"], request_hash=proposal["requestHash"], references=[])
+            exported = []
+            image_dispatcher.dispatch(job_id=proposal_id, package_path=package["packagePath"], delivery_path=package["deliveryPath"],
+                before_send=lambda: exported.append(store.media.mark_art_reference_proposal_exported(project_id, proposal_id, require_prepared=True)))
+            return {"proposal": exported[0], **package}
+
     @app.post("/api/v2/projects/{project_id}/art-reference-proposals/{proposal_id}/refresh")
     def refresh_art_reference_proposal(project_id: str, proposal_id: str) -> dict[str, Any]:
         with opened_project(project_id) as store:
@@ -143,8 +158,11 @@ def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[s
                 "width": output.observed.width, "height": output.observed.height,
                 "content": output.content, "observed": output.observed,
             } for output in delivery.outputs]
-            return repository.record_art_reference_proposal_delivery(
+            result = repository.record_art_reference_proposal_delivery(
                 project_id, proposal_id, delivery_id=delivery.manifest.delivery_id,
                 manifest=delivery.manifest.model_dump(mode="json", by_alias=True), manifest_hash=delivery.manifest_hash,
                 outputs=outputs, publish=lambda output: publish_import(store.artifacts, output["content"], output["observed"]),
             )
+            if image_dispatcher is not None:
+                image_dispatcher.complete(proposal_id)
+            return result

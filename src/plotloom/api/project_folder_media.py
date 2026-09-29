@@ -49,6 +49,10 @@ def register_project_folder_media_routes(
             "package_conflict",
             "delivery_conflict",
             "delivery_finalized",
+            "specialist_busy",
+            "specialist_already_sent",
+            "image_dispatch_busy",
+            "image_dispatch_already_attempted",
         }
         return JSONResponse(
             status_code=(

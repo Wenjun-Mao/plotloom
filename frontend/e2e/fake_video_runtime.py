@@ -23,7 +23,7 @@ uvicorn.run(
         test_video_provider=OfflineH3GatewayFake(),
         test_video_adapter=MiniMaxH3GatewayAdapter(),
         test_image_dispatcher=NativeCodexImageDispatcher(
-            "fixture-specialist",
+            "00000000-0000-4000-8000-000000000001",
             settings.application_data_dir / "fixture-native-image-dispatch",
             executable="/usr/bin/true",
         ),
