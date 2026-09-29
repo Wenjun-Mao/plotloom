@@ -87,3 +87,7 @@ review perceived identity, naturalness and expression separately. Neither
 this preference nor a successful reuse test publishes a Voice ID; publication
 and H3 continuity remain separate decisions. No model-wide quality claim
 follows from these five clips.
+
+The [matched Stage-2 comparison](2026-09-29-moss-d-stage2-reuse-comparison.md)
+has since generated Qwen Base and IndexTTS2 samples from that exact raw
+reference. Its owner listening review remains pending.
