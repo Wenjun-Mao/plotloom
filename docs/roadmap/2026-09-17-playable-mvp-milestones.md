@@ -892,6 +892,21 @@ was not exercised. Stopping condition: shared viewer verified and built assets
 published; creator can refresh and try it. Earlier pending-state and disclosure
 text-selection findings remain open, outside this bounded change.
 
+### Creator-approved art render-style correction (2026-09-29)
+
+Approved step: align the art assignment, preset and validator with the creator's
+live-action realistic choice (ADR 0094). Root cause: the prior request required
+preserving the upstream painterly preset, and the upstream validator enforced
+its render sentence. Author owns style; model proposes scene/prop descriptions;
+trusted code freezes and checks the contract. Scope: explicit preparation style,
+actual Brief visual direction, shared upstream-preserving adapter, specialist
+instructions and focused regression/browser checks. Preserve the delivered
+`ch_d219890a21bd49399c29928602dd873a` proposal as evidence and prepare a corrected
+text task. No creative acceptance, images, video or reference-selection changes.
+Stopping condition: verified implementation and a corrected candidate available
+for creator review (or a concrete delivery blocker). Existing unrelated Safari
+selection and pending-state styling findings remain open.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

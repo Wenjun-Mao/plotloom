@@ -35,6 +35,7 @@ from ..creative_handoff_contracts import CreativeHandoffError, CreativeHandoffRe
 from ..creative_handoff_exchange import ValidatedCreativeDelivery
 from ..cast_contracts import CastAcceptRequest, CastCancelReopenRequest, CastCandidate, CastReopenRequest, CastReviewState, CastSaveRequest
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtReopenRequest, ArtReviewState, ArtSaveRequest
+from ..art_style import ArtRenderStyle
 from ..script_contracts import ScriptAcceptRequest, ScriptCandidate, ScriptReopenRequest, ScriptReviewState, ScriptSectionSaveRequest
 from ..storyboard_review_contracts import StoryboardReviewAcceptRequest, StoryboardReviewCandidate, StoryboardReviewState
 from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgeState
@@ -526,9 +527,9 @@ class ProjectStore:
     def art_state(self) -> ArtReviewState:
         return self.repository.art.get_state(self.manifest.project_id)
 
-    def prepare_art_candidate(self, job_id: str) -> tuple[ArtCandidate, CreativeHandoffRequest]:
+    def prepare_art_candidate(self, job_id: str, *, render_style: ArtRenderStyle) -> tuple[ArtCandidate, CreativeHandoffRequest]:
         pin = self.creative_handoff_exchange().current_execution_pin("art")
-        return self.repository.art.prepare_candidate(self.manifest.project_id, job_id, execution_pin=pin)
+        return self.repository.art.prepare_candidate(self.manifest.project_id, job_id, render_style=render_style, execution_pin=pin)
 
     def admit_art_delivery(self, delivery: ValidatedCreativeDelivery) -> ArtCandidate:
         return self.repository.art.admit_delivery(self.manifest.project_id, delivery)

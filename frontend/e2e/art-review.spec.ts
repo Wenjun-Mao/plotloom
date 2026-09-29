@@ -281,16 +281,17 @@ test.describe("F3A production art review", () => {
     };
     await page.route(`**/api/v2/projects/${firstProjectId}/art/candidates`, heldRoute);
     try {
+      await firstPanel.getByLabel("美术风格", { exact: true }).selectOption("realistic");
       await firstPanel.getByRole("button", { name: "准备美术设定任务" }).click();
       await started;
       await switchProject(page, secondProjectId);
       await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "美术参考" }).click();
       const destination = page.getByTestId("art-review");
       await expect(destination).toContainText("尚无美术候选");
-      await expect(destination.getByRole("button", { name: "准备美术设定任务" })).toBeEnabled();
+      await expect(destination.getByRole("button", { name: "准备美术设定任务" })).toBeDisabled();
       release();
       await expect(destination).toContainText("尚无美术候选");
-      await expect(destination.getByRole("button", { name: "准备美术设定任务" })).toBeEnabled();
+      await expect(destination.getByRole("button", { name: "准备美术设定任务" })).toBeDisabled();
     } finally {
       release?.();
       await page.unroute(`**/api/v2/projects/${firstProjectId}/art/candidates`, heldRoute);
@@ -441,7 +442,7 @@ async function createAcceptedCastProject(request: Api, apiOrigin: string, label:
 
 async function createAcceptedArtProject(request: Api, apiOrigin: string, label: string): Promise<string> {
   const projectId = await createAcceptedCastProject(request, apiOrigin, label);
-  const prepared = await getJson<ArtPreparation>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/art/candidates`));
+  const prepared = await getJson<ArtPreparation>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/art/candidates`, { data: { renderStyle: "realistic" } }));
   await writeArtDelivery(prepared, `f3b-art-${label}`);
   const ready = await getJson<any>(request.post(`${apiOrigin}/api/v2/projects/${projectId}/art/candidates/${prepared.jobId}/refresh`));
   await getJson(request.post(`${apiOrigin}/api/v2/projects/${projectId}/art/accept`, {
@@ -469,6 +470,7 @@ async function writeArtReferenceDelivery(response: import("@playwright/test").Re
 }
 
 async function prepareFromBrowser(page: import("@playwright/test").Page, panel: import("@playwright/test").Locator, projectId: string): Promise<ArtPreparation> {
+  await panel.getByLabel("美术风格", { exact: true }).selectOption("realistic");
   const prepared = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art/candidates`);
   await panel.getByRole("button", { name: "准备美术设定任务" }).click();
@@ -516,7 +518,7 @@ async function writeStageDelivery(prepared: any, filename: string, candidate: Re
 function sourceMaterial(label: string) { return { kind: "synopsis", title: `Beacon choice ${label}`, text: "A keeper must power the beacon or dock before the storm closes the channel.", attribution: "F3A production-browser fixture", rightsDeclaration: "Test fixture only; not a rights determination.", adaptationIntent: "Preserve one choice and two explicit endings." }; }
 function sectionMap() { return { sections: [{ sectionId: "opening", title: "Storm warning", summary: "The keeper has one cable and two destinations.", ending: false }, { sectionId: "beacon", title: "Beacon lit", summary: "The beacon guides sailors through the storm.", ending: true }, { sectionId: "dock", title: "Dock lit", summary: "The dock welcomes boats while the beacon goes dark.", ending: true }], choice: { choiceId: "power-choice", sectionId: "opening", prompt: "Where should the keeper send the cable?", outcomes: [{ outcomeId: "beacon-path", label: "Light the beacon", consequence: "The dock loses power.", endingSectionId: "beacon" }, { outcomeId: "dock-path", label: "Light the dock", consequence: "The beacon goes dark.", endingSectionId: "dock" }] } }; }
 function castFixture() { return { source: "F3A browser fixture", summary: "One beacon keeper.", characters: [{ id: "keeper", name: "Mira", reviewNotes: { sourceNotes: "Appearance is proposed", performanceGuidance: "" }, persona: { personality: ["Careful"],  motivation: "Guide sailors home", appearance: "Rain-dark hair and a weathered beacon coat", arc: "Chooses who to protect" }, voice: { timbre: "Steady under pressure" } }] }; }
-function artFixture() { const render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"; return { source: "F3A browser fixture", style: "realistic", scenes: [{ id: "S01", name: "Beacon room", primary: true, summary: "The keeper faces a power choice.", anchors: [{ name: "brass lamp", desc: "old brass" }, { name: "window", desc: "salted glass" }, { name: "desk", desc: "worn wood" }], lighting: [{ state: "dawn", prompt: "cold dawn through a window" }], image: { prompt: "empty beacon room", negativePrompt: "people, human figures", sheet: render, tags: [] } }], props: [], sectionUsage: [{ sectionId: "opening", sceneIds: ["S01"], propIds: [] }, { sectionId: "beacon", sceneIds: ["S01"], propIds: [] }, { sectionId: "dock", sceneIds: ["S01"], propIds: [] }] }; }
+function artFixture() { const render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"; return { source: "F3A browser fixture", style: "realistic", scenes: [{ id: "S01", name: "Beacon room", primary: true, summary: "The keeper faces a power choice.", anchors: [{ name: "brass lamp", desc: "old brass" }, { name: "window", desc: "salted glass" }, { name: "desk", desc: "worn wood" }], lighting: [{ state: "dawn", prompt: "cold dawn through a window" }], image: { prompt: render + ", empty beacon room", negativePrompt: "people, human figures", sheet: render, tags: [] } }], props: [], sectionUsage: [{ sectionId: "opening", sceneIds: ["S01"], propIds: [] }, { sectionId: "beacon", sceneIds: ["S01"], propIds: [] }, { sectionId: "dock", sceneIds: ["S01"], propIds: [] }] }; }
 function mockedArtReferenceStudies(projectId: string) {
   const createdAt = "2026-09-21T00:00:00Z";
   const candidates = Array.from({ length: 5 }, (_, index) => {

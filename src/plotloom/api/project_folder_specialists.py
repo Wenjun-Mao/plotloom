@@ -29,11 +29,13 @@ def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any
     def save_settings(body: SpecialistSettings):
         return registry.save(body)
 
-    def current(store, stage, job_id):
+    def current(store, stage, job_id, *, require_fresh=False):
         state = getattr(store, METHODS[stage][0])()
         candidate = state.candidate
         if candidate is None or candidate.job_id != job_id:
             raise HTTPException(409, "该任务不再是当前提案，请刷新页面。")
+        if require_fresh and getattr(state, "stale_reasons", []):
+            raise HTTPException(409, "任务上下文已过期，请取消后重新准备。")
         return candidate
 
     @app.get("/api/v2/projects/{project_id}/specialist-tasks/{stage}/{job_id}")
@@ -46,7 +48,7 @@ def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any
     @app.post("/api/v2/projects/{project_id}/specialist-tasks/{stage}/{job_id}/send")
     def send(project_id: str, stage: Stage, job_id: str = Path(pattern=JOB_ID_PATTERN)):
         with opened_project(project_id) as store:
-            candidate = current(store, stage, job_id)
+            candidate = current(store, stage, job_id, require_fresh=True)
             if candidate.status != "prepared":
                 raise HTTPException(409, "只有尚未交付的当前提案可以发送。")
             request = getattr(store, METHODS[stage][1])(job_id)

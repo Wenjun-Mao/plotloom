@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse
 
 from ..art_contracts import ArtAcceptRequest, ArtCandidate, ArtCandidatePreparation, ArtReopenRequest, ArtReviewState, ArtSaveRequest
+from ..art_style import ArtPrepareRequest
 from ..image_job_contracts import (
     ArtReferenceDecisionRequest,
     ArtReferenceProposalCancellationRequest,
@@ -28,9 +29,9 @@ def register_project_folder_art_routes(app: FastAPI, opened_project: Callable[[s
         with opened_project(project_id) as store: return store.art_state()
 
     @app.post("/api/v2/projects/{project_id}/art/candidates", response_model=ArtCandidatePreparation, status_code=status.HTTP_201_CREATED)
-    def prepare_art(project_id: str) -> ArtCandidatePreparation:
+    def prepare_art(project_id: str, body: ArtPrepareRequest) -> ArtCandidatePreparation:
         with opened_project(project_id) as store:
-            candidate, request = store.prepare_art_candidate(f"ch_{uuid4().hex}")
+            candidate, request = store.prepare_art_candidate(f"ch_{uuid4().hex}", render_style=body.render_style)
             return preparation(store, candidate, request)
 
     @app.get("/api/v2/projects/{project_id}/art/candidates/{job_id}/handoff", response_model=ArtCandidatePreparation)

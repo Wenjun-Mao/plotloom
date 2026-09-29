@@ -663,7 +663,7 @@ export class PlotloomApiClient {
   castCandidateReportUrl(projectId: string, jobId: string): string { return `${this.base}/projects/${encodeURIComponent(projectId)}/cast/candidates/${encodeURIComponent(jobId)}/report`; }
 
   getArt(projectId: string): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art`); }
-  prepareArtCandidate(projectId: string): Promise<ArtCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates`, { method: "POST" }); }
+  prepareArtCandidate(projectId: string, renderStyle: "live-action" | "realistic" | "ghibli"): Promise<ArtCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates`, { method: "POST", body: JSON.stringify({ renderStyle }) }); }
   recoverArtHandoff(projectId: string, jobId: string): Promise<ArtCandidatePreparation> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/handoff`); }
   refreshArtCandidate(projectId: string, jobId: string): Promise<ArtCandidate> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/refresh`, { method: "POST" }); }
   cancelArtCandidate(projectId: string, jobId: string): Promise<ArtReviewState> { return this.request(`/projects/${encodeURIComponent(projectId)}/art/candidates/${encodeURIComponent(jobId)}/cancel`, { method: "POST" }); }

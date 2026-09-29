@@ -43,12 +43,27 @@ not a backend job, a review decision, or permission to edit canon.
   extension. It is code-owned linkage, not upstream art semantics: emit exactly
   the supplied section IDs once, and use only the candidate's stable scene/prop
   IDs. Do not invent an episode, hook, or parallel graph to populate it.
+- For art requests with `inputs/art-style-contract.json`, that frozen author
+  choice overrides upstream default style and inherited cast/outline render
+  style, without changing source facts or accepted cast. Use its exact `style`
+  and preset in both scene and prop directions. For every style, include the
+  preset's render sentence in every `image.prompt` and `image.sheet`. For live-action, keep
+  painterly/anime terms out of positive prompts, lighting/state prompts and
+  tags. Never ban photography in the negative prompt. Apply `authorDirection`
+  as mood/lighting guidance; do not defer a style conflict to later image work.
+  Use the repository's `node scripts/art-style.mjs validate <art.json> --cast
+  <package>/inputs/cast.json --contract <package>/inputs/art-style-contract.json`
+  and the same command with `render ... --html` redirected to `report.html`.
+  This narrow adapter calls the pinned upstream validator/renderer on the
+  original candidate and adds the selected preset; it replaces only the art
+  CLI entrypoint, not the upstream structural gates. A stale contract requires
+  returning the failure, never editing the frozen package or adapter.
 
 ## Local authoring
 
 - For Python helpers, run `uv run --locked python` from the repository root;
   do not assume a bare `python` command exists or use the system interpreter.
-  Keep the pinned upstream Node validator and renderer commands unchanged.
+  Keep pinned upstream commands unchanged except for the art adapter above.
 - Author candidate JSON with `apply_patch`, rather than embedding the document
   in an inline Python script. Helpers should read the saved file as UTF-8 data,
   not reinterpret candidate prose as program source. Still write only the

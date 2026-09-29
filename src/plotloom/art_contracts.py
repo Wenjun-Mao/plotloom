@@ -26,6 +26,8 @@ class ArtBinding(CamelModel):
     cast_revision: int = Field(ge=1)
     cast_content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     section_ids: list[str] = Field(min_length=3, max_length=3)
+    # Missing only in retained pre-0094 evidence; it cannot become current art.
+    render_contract: dict[str, Any] | None = None
 
     @field_validator("section_ids")
     @classmethod

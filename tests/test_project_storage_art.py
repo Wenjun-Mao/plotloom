@@ -51,7 +51,7 @@ def _deliver(store: object, request: CreativeHandoffRequest) -> object:
     package = json.loads((Path(paths["packagePath"]) / "request.json").read_text())
     delivery = Path(paths["deliveryPath"]); delivery.mkdir()
     render = "Semi-realistic environment concept art, painterly rendering with visible brush texture, grounded architectural perspective, cinematic depth"
-    art = canonical_json({"source": "Tide Light", "style": "realistic", "scenes": [{"id": "S01", "name": "航标室", "primary": True, "summary": "choice pressure", "anchors": [{"name": "铜灯", "desc": "old brass"}, {"name": "窗", "desc": "salted glass"}, {"name": "桌", "desc": "worn wood"}], "lighting": [{"state": "dawn", "prompt": "cold dawn through a window"}], "image": {"prompt": "empty beacon room", "negativePrompt": "people, human figures", "sheet": render, "tags": []}}], "props": [], "sectionUsage": [{"sectionId": "opening", "sceneIds": ["S01"], "propIds": []}, {"sectionId": "ending-a", "sceneIds": ["S01"], "propIds": []}, {"sectionId": "ending-b", "sceneIds": ["S01"], "propIds": []}]})
+    art = canonical_json({"source": "Tide Light", "style": "realistic", "scenes": [{"id": "S01", "name": "航标室", "primary": True, "summary": "choice pressure", "anchors": [{"name": "铜灯", "desc": "old brass"}, {"name": "窗", "desc": "salted glass"}, {"name": "桌", "desc": "worn wood"}], "lighting": [{"state": "dawn", "prompt": "cold dawn through a window"}], "image": {"prompt": render + ", empty beacon room", "negativePrompt": "people, human figures", "sheet": render, "tags": []}}], "props": [], "sectionUsage": [{"sectionId": "opening", "sceneIds": ["S01"], "propIds": []}, {"sectionId": "ending-a", "sceneIds": ["S01"], "propIds": []}, {"sectionId": "ending-b", "sceneIds": ["S01"], "propIds": []}]})
     report = b"<!doctype html><html><body>art report</body></html>"
     (delivery / "art.json").write_bytes(art); (delivery / "report.html").write_bytes(report)
     manifest = {"schemaVersion": 1, "jobId": request.job_id, "requestHash": package["requestHash"], "deliveryId": "art-fixture", "stage": "art", "candidate": {"filename": "art.json", "sha256": sha256(art).hexdigest()}, "report": {"filename": "report.html", "sha256": sha256(report).hexdigest()}, "executorProvenance": {"codeRevision": "abcdef0", "skillVersion": "fixture", "skillHash": package["executionPin"]["specialistSkillHash"], "upstreamRevision": package["executionPin"]["upstreamRevision"], "upstreamSkillHash": package["executionPin"]["upstreamSkillHash"], "model": "fixture", "reasoningEffort": "high"}, "limitations": ["no images"]}
@@ -88,7 +88,7 @@ def _prepare_art_context(store: object) -> ArtBinding:
     _candidate, cast_request = store.prepare_cast_candidate("ch_" + "c" * 32)  # type: ignore[attr-defined]
     ready_cast = store.admit_cast_delivery(_deliver_stage(store, cast_request, "cast.json", {"source": "Tide Light", "summary": "Lin chooses.", "characters": [{"id": "lin", "name": "Lin", "reviewNotes": {"sourceNotes": "Rain coat is proposed", "performanceGuidance": ""}, "persona": {"personality": ["Careful"], "motivation": "Choose", "appearance": "Rain coat", "arc": "Acts"}, "voice": {"timbre": "Calm"}}]}, "cast-fixture"))  # type: ignore[attr-defined]
     store.accept_cast_candidate(CastAcceptRequest(job_id=cast_request.job_id, expected_cast_revision=0, binding=ready_cast.binding, consumer_mappings=[CastConsumerMapping(cast_character_id="lin", consumer_character_id="lin")]))  # type: ignore[attr-defined]
-    candidate, _request = store.prepare_art_candidate("ch_" + "z" * 32)  # type: ignore[attr-defined]
+    candidate, _request = store.prepare_art_candidate("ch_" + "z" * 32, render_style="realistic")  # type: ignore[attr-defined]
     store.cancel_art_candidate(candidate.job_id)  # type: ignore[attr-defined]
     return candidate.binding
 
@@ -100,8 +100,8 @@ def test_art_accept_reopen_cancel_and_currentness(tmp_path: Path) -> None:
         binding = _prepare_art_context(store)
         # _prepare_art_context opens and cancels no art handoff; its binding is
         # from the actual accepted source/map/graph/cast revisions.
-        candidate, request = store.prepare_art_candidate("ch_" + "a" * 32)
-        assert request.input_artifacts.keys() == {"outline.json", "section-map.json", "cast.json"}
+        candidate, request = store.prepare_art_candidate("ch_" + "a" * 32, render_style="realistic")
+        assert request.input_artifacts.keys() == {"outline.json", "section-map.json", "cast.json", "art-style-contract.json"}
         assert "F3B" in request.creative_brief
         assert "art_publication_active" in close_blockers(store)
         client = TestClient(create_project_folder_authoring_app(storage))
@@ -118,7 +118,7 @@ def test_art_accept_reopen_cancel_and_currentness(tmp_path: Path) -> None:
         saved = store.save_reopened_art(ArtSaveRequest(expected_art_revision=1, binding=binding, art=edited))
         assert saved.accepted_art and saved.accepted_art.revision == 2
         assert "does not describe the current accepted revision" in store.art_candidate_report(request.job_id)
-        prepared, _ = store.prepare_art_candidate("ch_" + "b" * 32)
+        prepared, _ = store.prepare_art_candidate("ch_" + "b" * 32, render_style="realistic")
         store.cancel_art_candidate(prepared.job_id)
         with pytest.raises(NotFoundError, match="unavailable"):
             store.art_candidate_request(prepared.job_id)
@@ -286,7 +286,7 @@ def test_art_reference_study_browser_lifecycle_persists_and_stales(tmp_path: Pat
     project_id = store.manifest.project_id
     try:
         binding = _prepare_art_context(store)
-        candidate, request = store.prepare_art_candidate("ch_" + "r" * 32)
+        candidate, request = store.prepare_art_candidate("ch_" + "r" * 32, render_style="realistic")
         ready = store.admit_art_delivery(_deliver(store, request))
         accepted = store.accept_art_candidate(ArtAcceptRequest(job_id=candidate.job_id, expected_art_revision=0, binding=binding, art=ready.art))
         assert accepted.accepted_art
@@ -347,7 +347,7 @@ def test_art_reference_decisions_are_explicit_cas_bound_historical_and_stale(tmp
     project_id = store.manifest.project_id
     try:
         binding = _prepare_art_context(store)
-        candidate, request = store.prepare_art_candidate("ch_" + "d" * 32)
+        candidate, request = store.prepare_art_candidate("ch_" + "d" * 32, render_style="realistic")
         ready = store.admit_art_delivery(_deliver(store, request))
         accepted = store.accept_art_candidate(ArtAcceptRequest(
             job_id=candidate.job_id, expected_art_revision=0, binding=binding, art=ready.art,
@@ -450,7 +450,7 @@ def test_f4_script_accepts_whole_pilot_preserves_scoped_edits_and_rejects_late_d
     project_id = store.manifest.project_id
     try:
         binding = _prepare_art_context(store)
-        art_candidate, art_request = store.prepare_art_candidate("ch_" + "q" * 32)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "q" * 32, render_style="realistic")
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
         store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
         candidate, request = store.prepare_script_candidate("ch_" + "w" * 32)
@@ -488,7 +488,7 @@ def test_f4_script_admission_freezes_exact_mapping_caps_and_target_currentness(t
     store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"target_playthrough_seconds": 180}))
     try:
         binding = _prepare_art_context(store)
-        art_candidate, art_request = store.prepare_art_candidate("ch_" + "t" * 32)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "t" * 32, render_style="realistic")
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
         store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
         candidate, request = store.prepare_script_candidate("ch_" + "x" * 32)
@@ -515,7 +515,7 @@ def test_f4_script_target_change_stales_prepared_delivery(tmp_path: Path) -> Non
     store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"target_playthrough_seconds": 180}))
     try:
         binding = _prepare_art_context(store)
-        art_candidate, art_request = store.prepare_art_candidate("ch_" + "n" * 32)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "n" * 32, render_style="realistic")
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
         store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
         _candidate, request = store.prepare_script_candidate("ch_" + "m" * 32)
@@ -532,7 +532,7 @@ def test_f4_script_source_change_stales_prepared_delivery(tmp_path: Path) -> Non
     store = storage.projects.create(FIXED_CHINESE_BRIEF)
     try:
         binding = _prepare_art_context(store)
-        art_candidate, art_request = store.prepare_art_candidate("ch_" + "i" * 32)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "i" * 32, render_style="realistic")
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
         store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
         _candidate, request = store.prepare_script_candidate("ch_" + "j" * 32)
@@ -551,7 +551,7 @@ def test_f4_script_target_change_stales_ready_candidate_acceptance(tmp_path: Pat
     store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"target_playthrough_seconds": 180}))
     try:
         binding = _prepare_art_context(store)
-        art_candidate, art_request = store.prepare_art_candidate("ch_" + "g" * 32)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "g" * 32, render_style="realistic")
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
         store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
         candidate, script_request = store.prepare_script_candidate("ch_" + "h" * 32)
@@ -570,7 +570,7 @@ def test_f4_prepared_script_blocks_snapshot_until_cancel_and_late_delivery_stays
     project_id = store.manifest.project_id
     try:
         binding = _prepare_art_context(store)
-        art_candidate, art_request = store.prepare_art_candidate("ch_" + "p" * 32)
+        art_candidate, art_request = store.prepare_art_candidate("ch_" + "p" * 32, render_style="realistic")
         art_ready = store.admit_art_delivery(_deliver(store, art_request))
         store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))
         candidate, request = store.prepare_script_candidate("ch_" + "y" * 32)
@@ -591,7 +591,7 @@ def test_f4_prepared_script_blocks_snapshot_until_cancel_and_late_delivery_stays
 
 def _accepted_f4_script(store: object) -> None:
     binding = _prepare_art_context(store)
-    art_candidate, art_request = store.prepare_art_candidate("ch_" + "k" * 32)  # type: ignore[attr-defined]
+    art_candidate, art_request = store.prepare_art_candidate("ch_" + "k" * 32, render_style="realistic")  # type: ignore[attr-defined]
     art_ready = store.admit_art_delivery(_deliver(store, art_request))  # type: ignore[attr-defined]
     store.accept_art_candidate(ArtAcceptRequest(job_id=art_candidate.job_id, expected_art_revision=0, binding=binding, art=art_ready.art))  # type: ignore[attr-defined]
     candidate, request = store.prepare_script_candidate("ch_" + "l" * 32)  # type: ignore[attr-defined]
@@ -789,7 +789,7 @@ def test_art_reference_studies_use_the_complete_current_art_context(tmp_path: Pa
     project_id = store.manifest.project_id
     try:
         binding = _prepare_art_context(store)
-        candidate, request = store.prepare_art_candidate("ch_" + "u" * 32)
+        candidate, request = store.prepare_art_candidate("ch_" + "u" * 32, render_style="realistic")
         ready = store.admit_art_delivery(_deliver(store, request))
         store.accept_art_candidate(ArtAcceptRequest(
             job_id=candidate.job_id, expected_art_revision=0, binding=binding, art=ready.art
