@@ -1,8 +1,10 @@
 # Original MOSS D → Stage-2 voice reuse comparison
 
-**Status:** Technically generated and copied for owner listening. Perceived
-same-person identity, naturalness, exact wording, and performance are **not
-yet judged**. No Voice Lab engine, published Voice ID, H3 workflow, or
+**Status:** Technically generated and reviewed by the owner. Both reuse engines
+performed well on perceived same-person identity in this small listening set;
+the explicit Index urgency takes sounded anxious/scared rather than urgent.
+Exact wording, pronunciation, and broader reliability remain **unverified**.
+No Voice Lab engine, published Voice ID, H3 workflow, or
 Plotloom integration changed. The owner has paused Plotloom-director handoff.
 
 ## Question and controlled boundary
@@ -62,18 +64,41 @@ headroom. After Index completed, it was restarted and `/v1/models` returned
 empty at the final check. These are service-restoration checks, not an
 end-to-end load/concurrency claim.
 
-## Review gate
+## Owner listening review · 2026-09-29
 
-The owner should listen against the original reference and answer separately:
+The owner reported that **all clips performed fairly well at sounding like the
+same person** and could not distinguish a reliable identity advantage for
+IndexTTS2 versus Qwen Base. N2 (Qwen neutral, seed `20260930`) sounded perhaps
+slightly younger than the original MOSS D, but the owner explicitly regarded
+that impression as too subjective to rely on. This is encouraging for these
+lines and seeds, not a general same-speaker guarantee or an engine ranking.
 
-1. Which clips sound like the **same person**, across all three lines and both
-   seeds?
-2. Which sound more natural, after accounting for different loudness?
-3. Are the Mandarin words and pronunciation correct?
-4. Does explicit Index emotion control improve urgency without harming voice
-   identity or introducing artifacts?
+The owner reported that U3 and U5—the two Index clips using the explicit
+emotion vector—**did not sound urgent**; they sounded anxious and scared.
+The vector specified `afraid=0.6` and `surprised=0.3`, so the result is
+consistent with the control signal we gave it. That is an inference about
+this trial's direction, not proof that IndexTTS2 cannot deliver urgency.
+In particular, fear/anxiety and decisive, time-critical urgency should not
+be treated as the same performance target. The controlled takes fail the
+intended urgency review despite the earlier finding that the vector has a
+material audible effect.
 
-Technical audio validation does not answer those questions. There was no ASR
+The owner did not provide a separate judgment of exact spoken words,
+pronunciation, or which engine sounds more human. Do not infer acceptance of
+those dimensions from the positive identity report. The original MOSS D
+remains a provisional Stage-1 reference; this comparison does not choose a
+Stage-2 engine or publish a Voice ID.
+
+## Remaining review gate
+
+Before integration, review exact words and pronunciation and decide whether
+either engine is noticeably more natural after accounting for loudness. Treat
+performance direction as a separate workstream: if urgency is retried, define
+the desired delivery as firm, quick, and time-critical **without fear**, then
+change only that control while holding reference, line, and seeds fixed.
+Do not relabel the fear-heavy U3/U5 results as successful urgency.
+
+Technical audio validation alone does not answer the remaining questions. There was no ASR
 transcript check, video lip-sync check, or product-level Voice ID decision.
 Do not infer general model ranking or select a production engine from these
 files alone. The Index model's nonstandard license remains a separate
