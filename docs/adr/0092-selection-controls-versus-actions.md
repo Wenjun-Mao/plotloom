@@ -26,3 +26,15 @@ No generation, persistence or acceptance semantics change. Native radios provide
 keyboard selection and mutual exclusion. Component and browser tests cover mode
 changes and disabled refinement; existing comparison tests retain capacity and
 clear behavior. Future selection controls should follow this distinction.
+
+## Image viewing amendment — 2026-09-29
+
+Main character, scene and prop images open a shared modal viewer on click or
+keyboard activation. This is a display-only action, never reference selection;
+thumbnails still switch the viewed candidate. Remove the redundant standalone
+zoom button. A visible ×, Escape or backdrop click closes the viewer; clicks
+inside the enlarged image do not. Native modal focus containment, restoration
+to the trigger and temporary background scroll locking belong to the shared
+viewer, not duplicated gallery-specific handlers. Unavailable images retain
+their error state rather than advertising zoom. No generation, selection or
+persistence contract changes.

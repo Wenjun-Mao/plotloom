@@ -872,6 +872,26 @@ explicit handoff for text chat choice and creative image review.
 Earlier Safari disclosure-selection, red pending-state treatment and adjacent
 wording notes above remain open; this change does not claim to fix them.
 
+### Creator-approved direct image viewing (2026-09-29)
+
+Approved scope: click the main character, scene or prop image to enlarge it;
+close with the backdrop, Escape or a visible ×. Thumbnails still navigate and
+reference selection remains a separate explicit action (ADR 0092 amendment).
+The shared viewer previously required a standalone button and lacked backdrop,
+Escape and modal-focus handling. The fix lives in shared image/viewer primitives,
+using a keyboard-accessible image trigger and native modal dialog; unavailable
+images do not offer zoom. No project data, generation or acceptance changes.
+
+Verification: 257 frontend tests, application/E2E typechecks, deterministic static
+build and three focused cast/art browser journeys passed. Live desktop/mobile
+browser checks confirmed image opening, inside-image click retention, backdrop,
+Escape and × dismissal, keyboard opening and restored focus/scroll. The delivered
+林遥 image remains unselected. Independent Terra review found no issues. Local
+visual evidence: `output/playwright/image-zoom-{desktop,mobile}.png`. Safari itself
+was not exercised. Stopping condition: shared viewer verified and built assets
+published; creator can refresh and try it. Earlier pending-state and disclosure
+text-selection findings remain open, outside this bounded change.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

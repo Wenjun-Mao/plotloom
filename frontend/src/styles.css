@@ -763,7 +763,9 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .appearance-viewer { display: grid; gap: 12px; min-width: 0; }
 .appearance-viewer-heading { display: flex; align-items: end; justify-content: space-between; gap: 12px; }
 .appearance-viewer-heading > div { display: grid; gap: 3px; }
-.appearance-viewer > img { display: block; width: 100%; max-height: min(64vw, 620px); min-height: 340px; object-fit: contain; border: 1px solid var(--line-strong); border-radius: 7px; background: #07090c; }
+.appearance-image-trigger { display: block; width: 100%; padding: 0; border: 0; border-radius: 7px; background: transparent; cursor: zoom-in; }
+.appearance-image-trigger:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.appearance-viewer > img, .appearance-image-trigger > img { display: block; width: 100%; max-height: min(64vw, 620px); min-height: 340px; object-fit: contain; border: 1px solid var(--line-strong); border-radius: 7px; background: #07090c; }
 .appearance-viewer .reference-no-image { min-height: 340px; padding: 18px; margin: 0; }
 .appearance-thumbnails { display: flex; gap: 9px; min-width: 0; padding: 2px; overflow-x: auto; }
 .appearance-thumbnail { display: grid; flex: 0 0 112px; gap: 6px; padding: 5px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); background: #0b0f14; text-align: left; }
@@ -784,8 +786,11 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .appearance-ideas { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--line); }
 .appearance-ideas h3 { margin: -5px 0 0; font-size: 18px; }
 .appearance-ideas p { margin: 0; color: var(--muted); font-size: 12px; }
-.appearance-dialog { position: fixed; z-index: 50; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(0,0,0,.78); }
-.appearance-dialog > div { display: grid; justify-items: end; gap: 10px; width: min(1050px, 100%); max-height: 100%; }
+.appearance-dialog { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; padding: 24px; background: rgba(0,0,0,.78); color: inherit; }
+.appearance-dialog[open] { display: grid; place-items: center; }
+.appearance-dialog::backdrop { background: transparent; }
+.appearance-dialog > div { display: grid; justify-items: end; gap: 10px; max-width: min(1050px, 100%); max-height: 100%; }
+.appearance-dialog-close { min-width: 44px; min-height: 44px; font-size: 24px; line-height: 1; }
 .appearance-dialog img, .appearance-dialog .reference-missing-asset { max-width: 100%; max-height: calc(100vh - 100px); object-fit: contain; background: #07090c; }
 .proposal-lifecycle-status { color: var(--dim); font-size: 10px; }
 
@@ -797,7 +802,7 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] { border-color: var(--
 .character-reference-review .reference-subjects button { flex: 0 1 190px; width: auto; }
 .appearance-compare img { height: auto; min-height: 0; max-height: 360px; aspect-ratio: auto; }
 
-@media (max-width: 620px) { .appearance-workspace { padding: 13px; }.appearance-viewer > img, .appearance-viewer .reference-no-image { min-height: 250px; }.appearance-compare { grid-template-columns: 1fr; }.appearance-compare > .button { grid-column: auto; }.appearance-compare img { height: auto; max-height: none; }.appearance-compare .reference-missing-asset { height: min(75vw, 360px); }.appearance-viewer-heading { align-items: start; flex-direction: column; } }
+@media (max-width: 620px) { .appearance-workspace { padding: 13px; }.appearance-viewer > img, .appearance-image-trigger > img, .appearance-viewer .reference-no-image { min-height: 250px; }.appearance-compare { grid-template-columns: 1fr; }.appearance-compare > .button { grid-column: auto; }.appearance-compare img { height: auto; max-height: none; }.appearance-compare .reference-missing-asset { height: min(75vw, 360px); }.appearance-viewer-heading { align-items: start; flex-direction: column; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
