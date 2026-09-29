@@ -1,0 +1,124 @@
+{
+  "purpose": "IndexTTS2 versus Qwen Base; exploratory speaker reuse",
+  "sourceRevision": "ee40fa7d6c6b8a2c7f06105f9f1e65775b74868c",
+  "modelRevision": "740dcaff396282ffb241903d150ac011cd4b1ede",
+  "referenceAudioSha256": "97f1d02937cc70b1dc7a1972333234afbfc7afddeac513b277fd961e9d171dfe",
+  "normalizer": "upstream WeText backend selected on ARM64 (trial only)",
+  "precision": "fp32",
+  "cases": [
+    {
+      "case": "neutral",
+      "text": "灯塔的备用电源已经接通。我们还有十分钟检查航道。",
+      "emotionVector": null,
+      "seed": 20260930,
+      "file": "candidate_a_indextts2_neutral_seed-20260930.wav",
+      "sampleRate": 22050,
+      "durationSeconds": 4.493,
+      "peakAmplitude": 0.7865,
+      "elapsedSeconds": 5.37,
+      "sha256": "8eb0ab5a9b61cdcd3d57495167ea4f5f5990264339b602b10dc06965036fc36f"
+    },
+    {
+      "case": "neutral",
+      "text": "灯塔的备用电源已经接通。我们还有十分钟检查航道。",
+      "emotionVector": null,
+      "seed": 20261001,
+      "file": "candidate_a_indextts2_neutral_seed-20261001.wav",
+      "sampleRate": 22050,
+      "durationSeconds": 3.924,
+      "peakAmplitude": 0.7588,
+      "elapsedSeconds": 4.94,
+      "sha256": "c638e1342fa6004f49498faf0b9a2617b7dc3b3bbda2b0d4bcb185733aec93b8"
+    },
+    {
+      "case": "urgent",
+      "text": "等等，别打开那扇门！控制台还在报警，先把电源切断！",
+      "emotionVector": null,
+      "seed": 20260930,
+      "file": "candidate_a_indextts2_urgent_seed-20260930.wav",
+      "sampleRate": 22050,
+      "durationSeconds": 4.342,
+      "peakAmplitude": 0.9212,
+      "elapsedSeconds": 4.43,
+      "sha256": "36fc9b21fc47632b2c3599d003fda312ae9f30d651f14a3fcc2a98b80fa50505"
+    },
+    {
+      "case": "urgent",
+      "text": "等等，别打开那扇门！控制台还在报警，先把电源切断！",
+      "emotionVector": null,
+      "seed": 20261001,
+      "file": "candidate_a_indextts2_urgent_seed-20261001.wav",
+      "sampleRate": 22050,
+      "durationSeconds": 4.389,
+      "peakAmplitude": 0.7123,
+      "elapsedSeconds": 4.49,
+      "sha256": "1604453e6647319c8bff9fcb1e23d61065757776b229c71d177b67ddbd59ebca"
+    },
+    {
+      "case": "gentle",
+      "text": "我知道你害怕。先跟着我的声音，慢慢呼吸，我们一起出去。",
+      "emotionVector": null,
+      "seed": 20260930,
+      "file": "candidate_a_indextts2_gentle_seed-20260930.wav",
+      "sampleRate": 22050,
+      "durationSeconds": 5.004,
+      "peakAmplitude": 0.632,
+      "elapsedSeconds": 5.04,
+      "sha256": "d0194fc21737e31c21615e1758e35b4abc86adec892e40ff30a59c13f0147ffb"
+    },
+    {
+      "case": "gentle",
+      "text": "我知道你害怕。先跟着我的声音，慢慢呼吸，我们一起出去。",
+      "emotionVector": null,
+      "seed": 20261001,
+      "file": "candidate_a_indextts2_gentle_seed-20261001.wav",
+      "sampleRate": 22050,
+      "durationSeconds": 5.027,
+      "peakAmplitude": 0.5759,
+      "elapsedSeconds": 5.03,
+      "sha256": "158508e39f42518e6e1702fa3d0d82e85a71bddd77db8b13d5cceebe48d7c730"
+    },
+    {
+      "case": "urgent_controlled",
+      "text": "等等，别打开那扇门！控制台还在报警，先把电源切断！",
+      "emotionVector": [
+        0,
+        0,
+        0,
+        0.6,
+        0,
+        0,
+        0.3,
+        0
+      ],
+      "seed": 20260930,
+      "file": "candidate_a_indextts2_urgent_controlled_seed-20260930.wav",
+      "sampleRate": 22050,
+      "durationSeconds": 5.642,
+      "peakAmplitude": 0.8946,
+      "elapsedSeconds": 5.71,
+      "sha256": "d8e0534bc9d7b699490a53ca92e9738f9ff6d1ebc19b69f0c50c07312e746504"
+    },
+    {
+      "case": "urgent_controlled",
+      "text": "等等，别打开那扇门！控制台还在报警，先把电源切断！",
+      "emotionVector": [
+        0,
+        0,
+        0,
+        0.6,
+        0,
+        0,
+        0.3,
+        0
+      ],
+      "seed": 20261001,
+      "file": "candidate_a_indextts2_urgent_controlled_seed-20261001.wav",
+      "sampleRate": 22050,
+      "durationSeconds": 5.782,
+      "peakAmplitude": 1.0,
+      "elapsedSeconds": 5.95,
+      "sha256": "50ac3311944c69756bda9a4d2b8d65cb49773baf0110b61f5533362274a3207e"
+    }
+  ]
+}
