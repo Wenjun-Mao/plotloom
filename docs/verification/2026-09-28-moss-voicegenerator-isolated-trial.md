@@ -1,8 +1,10 @@
 # MOSS-VoiceGenerator isolated Spark audition
 
 **Status:** Technically generated. The owner and a Chinese-speaking friend
-subsequently judged the MOSS group slightly better than the Qwen group;
-individual candidate selection and product acceptance remain pending.
+subsequently judged the MOSS group slightly better than the Qwen group. In a
+later blind Stage-1 reference shortlist, the owner ranked MOSS D first and
+MOSS A second, while noting that even D is not perfect. Product acceptance
+remains pending.
 This is a specialist experiment, not a Voice Lab provider change, published Voice
 ID, Plotloom handoff, or reason to retire Qwen3-TTS.
 
@@ -62,20 +64,22 @@ trial, and both Voice Lab and Qwen Image services remained active.
 ## Listening and decision gate
 
 The owner listened to these clips with a Chinese-speaking friend; both felt
-MOSS was **slightly better** than Qwen overall. They did not select an
-individual MOSS A–D voice or separately accept wording, character fit, and
-prosody for a reusable reference. Do not turn this group-level preference into
-an automatic selection. B and C are noticeably longer than their Qwen
+MOSS was **slightly better** than Qwen overall. The owner subsequently ranked
+the blind shortlist MOSS D first, MOSS A second, and the rest behind, while
+stating that even D was not perfect. This makes D a provisional reference-search
+lead, not an accepted voice identity or a reusable Voice ID. The owner has not
+separately accepted wording, character fit, and prosody for a reusable
+reference. B and C are noticeably longer than their Qwen
 counterparts, so investigate pauses, repetition or extra words by listening.
 The urgent pair can test acting direction, but it differs in generation mode.
 
-For the later Stage-2 reference search, MOSS A is a **provisional test lead**:
-it uses the same written voice direction as the previously preferred Qwen A,
-lasts 6.00 seconds, and peaks below full scale. MOSS D is also technically
-short enough to audition, but has a different older/deeper character direction.
-Neither file has been judged individually more human-sounding; a local blind
-audition page is retained at
+For the later Stage-2 reference search, MOSS D is the **provisional listening
+lead**; MOSS A is the runner-up. This ranking is specific to these recordings
+and does not establish the model's general superiority or same-person reuse.
+The local blind audition page is retained at
 `/Users/wjmao/Downloads/moss-vs-qwen-2026-09-28/stage1-reference-shortlist.html`.
+The bounded [D-focused follow-up](2026-09-29-moss-d-reference-refinement.md)
+is separate evidence and remains pending owner listening.
 
 Even if MOSS wins the short-line audition, VoiceGenerator alone does not prove
 stable *same-person identity* across new lines. Before integration, test a
