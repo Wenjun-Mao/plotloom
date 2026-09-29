@@ -201,6 +201,12 @@ test.describe("F3A production art review", () => {
     const prepared = await prepareFromBrowser(page, panel, projectId);
     await writeArtDelivery(prepared, "accepted-original");
     await refreshFromBrowser(page, panel, projectId, prepared.jobId);
+    await panel.getByRole("button", { name: "查看美术设定报告" }).click();
+    const candidateReport = page.getByRole("dialog", { name: "美术设定报告" });
+    await expect(candidateReport).toBeVisible();
+    await expect(candidateReport).toContainText("这是助手交付时的原始报告");
+    await candidateReport.getByRole("button", { name: "关闭报告" }).click();
+    await expect(candidateReport).not.toBeVisible();
 
     const editor = panel.locator("textarea.source-outline-json");
     const candidate = JSON.parse(await editor.inputValue()) as Record<string, unknown>;
@@ -214,10 +220,18 @@ test.describe("F3A production art review", () => {
     const current = panel.locator("textarea.source-outline-json");
     await expect(current).toBeDisabled();
     await expect(current).toHaveValue(/Author accepted wording/);
-    await panel.getByText("打开只读上游报告").click();
-    const report = panel.frameLocator('iframe[title="derived upstream art report"]');
+    const reportButton = panel.getByRole("button", { name: "查看美术设定报告" });
+    await reportButton.click();
+    const reportDialog = page.getByRole("dialog", { name: "美术设定报告" });
+    await expect(reportDialog).toBeVisible();
+    const dialogBox = await reportDialog.boundingBox();
+    expect(dialogBox!.height).toBeGreaterThan(page.viewportSize()!.height * 0.8);
+    const report = reportDialog.frameLocator('iframe[title="美术设定报告内容"]');
     await expect(report.locator("body")).toContainText("Original specialist report");
     await expect(report.locator("body")).toContainText("original specialist candidate");
+    await reportDialog.getByRole("button", { name: "关闭报告" }).click();
+    await expect(reportDialog).not.toBeVisible();
+    await expect(reportButton).toBeFocused();
 
     await panel.getByRole("button", { name: "重新打开美术提案" }).click();
     await expect(current).toBeEditable();

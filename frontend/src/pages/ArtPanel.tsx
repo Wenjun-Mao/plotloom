@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { ArtCandidate, ArtReferenceDecision, ArtReferenceDecisionState, ArtReferenceProposal, ArtRenderStyle, ArtReviewState } from "../types";
@@ -80,7 +80,7 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
     {!candidate && state.status !== "reopened" && <><label>美术风格 *<select aria-label="美术风格" required value={renderStyle} disabled={readOnly || busy} onChange={event => setRenderStyle(event.target.value as ArtRenderStyle | "")}><option value="">请选择风格</option><option value="live-action">真人写实</option><option value="realistic">半写实厚涂</option><option value="ghibli">吉卜力动画</option></select></label><p>此选择用于新的美术任务，不会修改已接受的角色设定或图片。</p><Button variant="primary" disabled={readOnly || busy || !renderStyle} onClick={prepare}>准备美术设定任务</Button></>}
     {candidate?.status === "prepared" && state.status !== "stale" && <SpecialistTaskActions projectId={projectId} stage="art" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={() => load()} />}
     {candidate && <CandidateReview candidate={candidate} projectId={projectId} readOnly={readOnly} busy={busy} stale={state.status === "stale"} draft={draft} setDraft={setDraft} cancel={() => act(() => plotloomApi.cancelArtCandidate(projectId, candidate.jobId))} accept={accept} />}
-    {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；文本与报告可审阅，参考研究在下方单独显示。</small><ArtReferenceGallery projectId={projectId} art={accepted.art} acceptedRevision={accepted.revision} acceptedContentHash={accepted.contentHash} studies={studies} decisions={referenceDecisions} decisionStates={referenceStates} readOnly={readOnly} busy={busy} setAssignment={setAssignment} refresh={() => load()} />{state.status !== "reopened" && <Editor disabled draft={draft} setDraft={setDraft} />}{reportJobId && <Report projectId={projectId} jobId={reportJobId} />}<Button variant="quiet" disabled={readOnly || busy || state.status === "reopened"} onClick={() => act(() => plotloomApi.reopenArt(projectId, accepted.revision))}>重新打开美术提案</Button></>}
+    {accepted && <><small>已接受 hash {accepted.contentHash.slice(0, 12)}；文本与报告可审阅，参考研究在下方单独显示。</small><ArtReferenceGallery projectId={projectId} art={accepted.art} acceptedRevision={accepted.revision} acceptedContentHash={accepted.contentHash} studies={studies} decisions={referenceDecisions} decisionStates={referenceStates} readOnly={readOnly} busy={busy} setAssignment={setAssignment} refresh={() => load()} />{state.status !== "reopened" && <Editor disabled draft={draft} setDraft={setDraft} />}{reportJobId && <Report key={`${projectId}:${reportJobId}`} projectId={projectId} jobId={reportJobId} />}<Button variant="quiet" disabled={readOnly || busy || state.status === "reopened"} onClick={() => act(() => plotloomApi.reopenArt(projectId, accepted.revision))}>重新打开美术提案</Button></>}
     {accepted && state.status === "reopened" && <><Editor disabled={readOnly || busy} draft={draft} setDraft={setDraft} /><Button variant="primary" disabled={readOnly || busy} onClick={save}>保存重新打开的美术</Button></>}
     {(candidate?.status === "prepared" || assignment) && <details><summary>查看任务说明（手动方式）</summary>{candidate?.status === "prepared" && <Button disabled={readOnly || busy} onClick={() => act(() => plotloomApi.recoverArtHandoff(projectId, candidate.jobId), result => setAssignment(result.assignment))}>查看美术任务说明</Button>}{assignment && <textarea aria-label="美术任务说明" readOnly value={assignment} rows={5} />}</details>}
     {error && <ErrorNotice message={error} />}
@@ -90,7 +90,7 @@ export function ArtPanel({ projectId, readOnly }: { projectId: string; readOnly:
 function CandidateReview({ candidate, projectId, readOnly, busy, stale, draft, setDraft, cancel, accept }: { candidate: ArtCandidate; projectId: string; readOnly: boolean; busy: boolean; stale: boolean; draft: string; setDraft: (value: string) => void; cancel: () => void; accept: () => void }) {
   return <><small>冻结 source r{candidate.binding.sourceRevision} · cast r{candidate.binding.castRevision} · sections {candidate.binding.sectionIds.join(" · ")}</small>
     {candidate.status === "prepared" && <Button variant="danger" disabled={readOnly || busy} onClick={cancel}>取消此任务</Button>}
-    {candidate.status === "ready" && <><Editor disabled={readOnly || busy || stale} draft={draft} setDraft={setDraft} />{candidate.reportAvailable && <Report projectId={projectId} jobId={candidate.jobId} />}<Button variant="primary" disabled={readOnly || busy || stale} onClick={accept}>显式接受此美术提案</Button><Button variant="danger" disabled={readOnly || busy} onClick={cancel}>拒绝并取消此美术提案</Button></>}
+    {candidate.status === "ready" && <><Editor disabled={readOnly || busy || stale} draft={draft} setDraft={setDraft} />{candidate.reportAvailable && <Report key={`${projectId}:${candidate.jobId}`} projectId={projectId} jobId={candidate.jobId} />}<Button variant="primary" disabled={readOnly || busy || stale} onClick={accept}>显式接受此美术提案</Button><Button variant="danger" disabled={readOnly || busy} onClick={cancel}>拒绝并取消此美术提案</Button></>}
   </>;
 }
 
@@ -99,5 +99,22 @@ function Editor({ disabled, draft, setDraft }: EditorProps) {
 }
 
 function Report({ projectId, jobId }: { projectId: string; jobId: string }) {
-  return <details><summary>打开只读上游报告</summary><iframe title="derived upstream art report" className="source-outline-report" sandbox="" src={plotloomApi.artCandidateReportUrl(projectId, jobId)} /></details>;
+  const [expanded, setExpanded] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const opener = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    if (expanded && dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, [expanded]);
+  const close = () => {
+    setExpanded(false);
+    opener.current?.focus();
+  };
+  return <>
+    <button ref={opener} type="button" className="button quiet" onClick={() => setExpanded(true)}>查看美术设定报告</button>
+    {expanded && <dialog ref={dialog} className="review-report-dialog" aria-labelledby={titleId} onClose={close}>
+      <header><div><h2 id={titleId}>美术设定报告</h2><p>这是助手交付时的原始报告。若已编辑 art.json，请以上方当前内容为准；阅读不会接受或修改提案。</p></div><Button onClick={() => dialog.current?.close()}>关闭报告</Button></header>
+      <iframe title="美术设定报告内容" sandbox="" referrerPolicy="no-referrer" src={plotloomApi.artCandidateReportUrl(projectId, jobId)} />
+    </dialog>}
+  </>;
 }
