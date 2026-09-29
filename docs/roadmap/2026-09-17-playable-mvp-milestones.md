@@ -907,6 +907,13 @@ Stopping condition: verified implementation and a corrected candidate available
 for creator review (or a concrete delivery blocker). Existing unrelated Safari
 selection and pending-state styling findings remain open.
 
+Delivered at `6632c2f`; [verification and live replacement receipt](../verification/2026-09-29-live-action-art-contract.md).
+The new live-action candidate is ready for creator review (two scenes and one
+prop), not accepted. The old delivery bytes are unchanged. All 819 backend,
+257 frontend and nine art browser checks passed; Terra findings were resolved.
+The receipt retains the hardcoded F3B image-direction default and inert
+read-only-report controls as bounded follow-ups before future style trials.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation
