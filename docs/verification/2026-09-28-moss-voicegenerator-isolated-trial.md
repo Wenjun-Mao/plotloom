@@ -1,6 +1,8 @@
 # MOSS-VoiceGenerator isolated Spark audition
 
-**Status:** Technically generated; human listening and product acceptance pending.
+**Status:** Technically generated. The owner and a Chinese-speaking friend
+subsequently judged the MOSS group slightly better than the Qwen group;
+individual candidate selection and product acceptance remain pending.
 This is a specialist experiment, not a Voice Lab provider change, published Voice
 ID, Plotloom handoff, or reason to retire Qwen3-TTS.
 
@@ -59,11 +61,21 @@ trial, and both Voice Lab and Qwen Image services remained active.
 
 ## Listening and decision gate
 
-Ask the owner to compare each A–D pair for naturalness, correct words,
-character fit, prosody and unwanted artifacts; do not infer those outcomes
-from successful file creation. B and C are noticeably longer than their Qwen
+The owner listened to these clips with a Chinese-speaking friend; both felt
+MOSS was **slightly better** than Qwen overall. They did not select an
+individual MOSS A–D voice or separately accept wording, character fit, and
+prosody for a reusable reference. Do not turn this group-level preference into
+an automatic selection. B and C are noticeably longer than their Qwen
 counterparts, so investigate pauses, repetition or extra words by listening.
 The urgent pair can test acting direction, but it differs in generation mode.
+
+For the later Stage-2 reference search, MOSS A is a **provisional test lead**:
+it uses the same written voice direction as the previously preferred Qwen A,
+lasts 6.00 seconds, and peaks below full scale. MOSS D is also technically
+short enough to audition, but has a different older/deeper character direction.
+Neither file has been judged individually more human-sounding; a local blind
+audition page is retained at
+`/Users/wjmao/Downloads/moss-vs-qwen-2026-09-28/stage1-reference-shortlist.html`.
 
 Even if MOSS wins the short-line audition, VoiceGenerator alone does not prove
 stable *same-person identity* across new lines. Before integration, test a
