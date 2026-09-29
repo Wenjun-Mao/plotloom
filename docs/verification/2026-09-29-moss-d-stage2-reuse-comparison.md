@@ -103,3 +103,8 @@ transcript check, video lip-sync check, or product-level Voice ID decision.
 Do not infer general model ranking or select a production engine from these
 files alone. The Index model's nonstandard license remains a separate
 integration gate.
+
+The subsequent [Chinese emotion-description trial](2026-09-29-index-chinese-emotion-description-trial.md)
+tests the actual text-to-vector route with the original reference and urgent
+line. Its new takes are technically complete but await listening review;
+they do not change the findings for the retained fear-vector takes above.
