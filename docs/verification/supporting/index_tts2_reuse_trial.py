@@ -64,6 +64,7 @@ def main() -> None:
     parser.add_argument("--reference-audio", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--limit", type=int, default=8, choices=range(1, 9))
+    parser.add_argument("--normalizer-backend", choices=("wetext", "linux"), default="wetext")
     args = parser.parse_args()
 
     source_revision = subprocess.check_output(
@@ -86,7 +87,11 @@ def main() -> None:
         "sourceRevision": SOURCE_REVISION,
         "modelRevision": MODEL_REVISION,
         "referenceAudioSha256": REFERENCE_SHA256,
-        "normalizer": "upstream WeText backend selected on ARM64 (trial only)",
+        "normalizer": (
+            "upstream WeText backend selected on ARM64 (trial only)"
+            if args.normalizer_backend == "wetext"
+            else "upstream Linux WeTextProcessing backend (isolated ARM64 trial)"
+        ),
         "precision": "fp32",
         "cases": [],
     }
@@ -106,7 +111,8 @@ def main() -> None:
     if len(recorded) >= args.limit:
         return
 
-    use_wetext_normalizer()
+    if args.normalizer_backend == "wetext":
+        use_wetext_normalizer()
     from indextts.infer_v2 import IndexTTS2
 
     model = IndexTTS2(

@@ -6,6 +6,10 @@ This is an isolated specialist experiment, not a Voice Lab engine, Plotloom feat
 or selected voice. Do not hand implementation instructions to the Plotloom director
 yet; the owner has paused that handoff.
 
+Follow-up: [native Linux normalizer qualification](2026-09-29-indextts2-normalizer-qualification.md)
+found exact text parity in 30 fixtures and a byte-identical pinned inference smoke.
+The fallback described below remains the historical setup of this first trial.
+
 ## Question and comparison
 
 Can IndexTTS2 reuse a selected candidate voice more naturally, and express an
