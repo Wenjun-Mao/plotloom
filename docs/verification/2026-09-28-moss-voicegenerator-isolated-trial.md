@@ -79,7 +79,9 @@ and does not establish the model's general superiority or same-person reuse.
 The local blind audition page is retained at
 `/Users/wjmao/Downloads/moss-vs-qwen-2026-09-28/stage1-reference-shortlist.html`.
 The bounded [D-focused follow-up](2026-09-29-moss-d-reference-refinement.md)
-is separate evidence and remains pending owner listening.
+is separate evidence. After hearing its four new variants beside the unchanged
+original D, the owner still preferred the original recording; no new variant
+replaced it.
 
 Even if MOSS wins the short-line audition, VoiceGenerator alone does not prove
 stable *same-person identity* across new lines. Before integration, test a

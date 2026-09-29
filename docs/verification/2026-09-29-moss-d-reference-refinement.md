@@ -1,7 +1,9 @@
 # MOSS D Stage-1 reference refinement
 
-**Status:** Four new recordings generated and technically verified on Spark;
-owner listening and creative acceptance pending. No Voice Lab provider,
+**Status:** Four new recordings generated and technically verified on Spark.
+After blind listening, the owner preferred the unchanged original MOSS D
+control over all four variants. This is a provisional reference preference,
+not final voice-identity acceptance. No Voice Lab provider,
 published Voice ID, H3 workflow, or Plotloom integration was changed.
 
 ## Why this trial
@@ -69,7 +71,19 @@ Its reveal mapping is fixed across reloads:
 | 4 | Conversational D, seed 20261001 |
 | 5 | Original D, seed 20261002 |
 
-Owner review should compare naturalness, character fit, intelligibility, and
-pauses. A winner here would still need new-line reference-reuse testing and
-separate voice-identity review before publication. No model-wide quality
-claim follows from these five clips.
+## Owner listening result and next gate
+
+The owner listened and reported that **the original D still wins**. None of
+the four new seed/instruction variants displaced it. This does not prove
+that the original recording is perfect—the owner had already noted that it
+was not—or that other MOSS seeds or directions could never improve it. It
+does mean this small refinement gives no reason to replace the original D
+reference or continue undirected seed sampling now.
+
+If reused for the next bounded test, freeze the original D **raw** recording
+and its hash above, rather than one of the gain-reduced browser copies. Test
+that same reference speaking new lines through the Stage-2 reuse paths, then
+review perceived identity, naturalness and expression separately. Neither
+this preference nor a successful reuse test publishes a Voice ID; publication
+and H3 continuity remain separate decisions. No model-wide quality claim
+follows from these five clips.
