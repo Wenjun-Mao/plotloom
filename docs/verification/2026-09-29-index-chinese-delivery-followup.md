@@ -1,7 +1,9 @@
 # IndexTTS2 · Chinese delivery directions across three new lines
 
 **Status:** All six takes generated and copied with matching hashes. Owner
-listening acceptance is pending. No production integration,
+delivery review passed U1/U2 (urgency) and G1/G2 (reassurance), but did not find
+audible dissatisfaction/frustration in F1/F2. Other listening dimensions remain
+unreviewed. No production integration,
 Voice ID publication, Plotloom-director message, merge, or push is authorized here.
 
 ## Approved slice and stopping condition
@@ -110,9 +112,33 @@ returned `ok` and `/v1/models` returned `Qwen/Qwen-Image-2.1`. Voice Lab's healt
 check still reported `workerActive=false`; ComfyUI remained empty at the
 post-generation check. No concurrent-load claim is made.
 
-## Pending review
+## Owner listening review · 2026-09-29
 
-For each fixed audition ID, review same-person identity, exact spoken words,
-target delivery, and any distortion. Do not infer general instruction following,
-naturalness superiority, or production readiness from six outputs. Preserve the
-earlier accepted urgency finding separately. Index's license gate is unchanged.
+The owner confirmed the following delivery judgments using the fixed IDs:
+
+- **U1/U2:** Yes to firm, decisive urgency.
+- **G1/G2:** Yes to gentle reassurance.
+- **F1/F2:** “Can't really hear 不满或挫败.” These do not pass the intended
+  restrained-frustration target; do not relabel a calm delivery as success.
+
+There was no separate verdict for identity, exact words, or distortion in this
+batch. Urgency now has positive delivery review on two lines with two seeds
+each; reassurance has positive review on one line with two seeds. These small
+sets establish neither general instruction following nor an engine ranking.
+
+## Interpretation and next bounded question
+
+The failed target is consistent with the text-to-emotion stage reducing the
+frustration direction to `calm=0.94` and `angry=0.01`. That control signal was
+observed before synthesis and during both F calls. It makes direction encoding
+the first layer to investigate, but does not prove the cause or show that the
+speech model cannot express restrained frustration. There is no uncontrolled
+or alternate-vector arm here to establish that causal claim.
+
+A proposed next experiment would retain the F line, reference, seeds, and alpha,
+and compare a positively phrased Chinese direction with a modest explicit anger
+vector. This would test interpretation and synthesis separately without another
+broad batch. It is a proposal, not an executed or approved extra generation.
+Do not claim general emotion control or integrate a universal frustration
+preset from the current evidence. Identity, wording, distortion, and the Index
+license remain separate integration gates.
