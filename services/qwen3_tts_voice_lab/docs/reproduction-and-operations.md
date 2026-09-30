@@ -128,7 +128,7 @@ and linger survive reboot.
 ## Resources and failure handling
 
 Admission visibly waits below configured MemAvailable of 12 GiB Qwen / 20 GiB
-MOSS / 24 GiB Index, or if ComfyUI is busy/unreachable. These are conservative
+MOSS / 24 GiB Index, or if ComfyUI is busy/unreachable. These are advisory
 thresholds, **not certified peak-memory limits** or a global GPU scheduler.
 Timeouts: 1800 seconds resource wait, 900 seconds child execution. No replay
 or engine fallback. Every child process group is reaped before the next job,
@@ -138,6 +138,19 @@ For qualification, an operator may temporarily stop idle
 `qwen-image-sglang.service` under existing owner authorization. Restore it and
 verify **both** `http://127.0.0.1:30010/health` and `/v1/models`, plus gateway
 readiness. Normal Lab requests never stop another service.
+
+The [controlled CUDA retest](../../../docs/verification/2026-09-30-voice-lab-cuda-neutral-retest.md)
+passed after operator-directed image-service pausing. The old incident's
+kernel log confirms CUDA context-buffer allocation OOM; its exact allocator
+cause remains unresolved. Neither MemAvailable nor CUDA-reported free certifies
+an allocation on shared GB10 memory. Do not add silent OOM retries/cache flushes
+or use this pass to promise that all resident workloads fit.
+
+Gateway `/health` is aggregate backend readiness, not an idle-only endpoint:
+it correctly returns 503 while Qwen Image is deliberately stopped. Controlled
+operator checks may inspect dispatch counts with read-only gateway SQLite
+during that pause; require normal aggregate readiness before and after it.
+Do not weaken production readiness or start work through a busy queue.
 
 Inspect `journalctl --user -u plotloom-voice-lab.service` and private
 `data/runs/<jobId>/runtime.log`. Diagnose the actual failed layer, not a generic

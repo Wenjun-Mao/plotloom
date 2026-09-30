@@ -1,10 +1,14 @@
 # Spark Voice Lab: independent creation and reuse engines
 
 **Status:** Approved by the owner on 2026-09-29; implemented and deployed on
-2026-09-30, but live qualification is incomplete because one neutral reuse
-attempt failed with CUDA OOM. The nine-call allowance is exhausted; no retry
-or completion claim is authorized by this status. See the
-[deployment and qualification receipt](../verification/2026-09-30-voice-lab-multi-engine-deployment.md).
+2026-09-30. The initial nine-call qualification was incomplete after a CUDA
+OOM; a separately authorized one-call
+[controlled neutral retest passed](../verification/2026-09-30-voice-lab-cuda-neutral-retest.md),
+so all four creator/reuse paths now have successful live technical evidence.
+The old failure remains intact; general co-resident CUDA reliability and new
+creative acceptance are not established. The renewed call allowance is spent.
+See the [original deployment receipt](../verification/2026-09-30-voice-lab-multi-engine-deployment.md)
+and its separate supplement; neither authorizes another generation.
 Count-per-engine and the neutral Qwen Base default were accepted before “go”.
 Planning baseline: `077b1c4` on the retained specialist branch
 `codex/h3-ref2va-gateway`. This is the single plan for the multi-engine slice,

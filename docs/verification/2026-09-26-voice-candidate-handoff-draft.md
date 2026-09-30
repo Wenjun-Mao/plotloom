@@ -94,7 +94,10 @@ the additive migration.
 
 The [deployment receipt](2026-09-30-voice-lab-multi-engine-deployment.md) records
 the exhausted nine-call cap and one unresolved CUDA OOM in Qwen → Index neutral
-reuse. This is not a fully qualified release or authorization to hand it off.
+reuse. The separately authorized
+[controlled retest](2026-09-30-voice-lab-cuda-neutral-retest.md) now passes that
+path without rewriting the initial batch. Co-resident reliability remains
+unproven, and this is still not authorization for director contact or handoff.
 
 See the [current pipeline report](../../services/qwen3_tts_voice_lab/docs/audio-pipeline-report.md)
 and [specialist plan](../roadmap/2026-09-29-voice-lab-multi-engine-plan.md).

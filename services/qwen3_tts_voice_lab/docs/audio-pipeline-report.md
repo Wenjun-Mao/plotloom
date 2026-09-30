@@ -25,8 +25,12 @@ Project + shared audition line + explicit candidate directions
 All four creation/reuse combinations are supported by the contract and offline
 tests. The 2026-09-30 live matrix verified three neutral combinations; the
 Qwen-created reference → Index neutral attempt failed at CUDA model loading.
+A separately authorized [controlled retest](../../../docs/verification/2026-09-30-voice-lab-cuda-neutral-retest.md)
+subsequently passed with the same reference/words/seed/model settings. All four
+paths now have successful technical evidence across the two windows; this is
+not broad co-resident memory reliability or new human identity/acting approval.
 The [deployment receipt](../../../docs/verification/2026-09-30-voice-lab-multi-engine-deployment.md)
-retains that qualification gap rather than claiming four-way acceptance.
+retains the initial failure rather than retroactively claiming that batch passed.
 Same-person identity,
 pronunciation, naturalness and acting are separate judgments.
 A technically valid WAV is not creative approval.

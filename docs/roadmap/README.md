@@ -57,8 +57,10 @@ Technical plans, ADRs, and receipts remain supporting references; they do not in
 The retained H3/voice specialist checkout has an owner-approved
 [multi-engine Voice Lab plan](2026-09-29-voice-lab-multi-engine-plan.md): independent
 Qwen/MOSS creation and Qwen/Index reuse, serial on-demand processes, and
-reviewable delivery controls. Implementation is deployed, but
-[live qualification remains incomplete](../verification/2026-09-30-voice-lab-multi-engine-deployment.md)
-after a CUDA OOM in one neutral reuse combination. This does not change
+reviewable delivery controls. The deployed implementation now has successful
+live evidence for all four creator/reuse paths after a separately authorized
+[controlled CUDA retest](../verification/2026-09-30-voice-lab-cuda-neutral-retest.md).
+Its initial batch still records the original OOM; co-resident reliability and
+creative acceptance are not established. This does not change
 the Plotloom delivery authority. Director contact, Plotloom integration,
 merge and push remain on hold.

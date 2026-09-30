@@ -12,9 +12,13 @@ Projects are independent workspaces, not authenticated user accounts.
 ## Two stages, four independent engines
 
 The 2026-09-30 deployment preserves existing voices and passes offline gates.
-Its bounded live matrix is **not fully qualified**: Qwen-created reference →
-Index neutral reuse failed during CUDA context/model loading, with no replay.
-See the [deployment receipt](../../docs/verification/2026-09-30-voice-lab-multi-engine-deployment.md).
+The initial live matrix retained a Qwen-reference → Index CUDA failure.
+A separately authorized [controlled retest passed](../../docs/verification/2026-09-30-voice-lab-cuda-neutral-retest.md),
+completing successful technical evidence for all four reuse paths without
+rewriting the failed trial. Co-resident CUDA reliability and creative approval
+are not established. See the original
+[deployment receipt](../../docs/verification/2026-09-30-voice-lab-multi-engine-deployment.md)
+and its supplement for the distinct boundaries.
 
 | Stage | Engine ID | Model | Native WAV |
 |---|---|---|---|
