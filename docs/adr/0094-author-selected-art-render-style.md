@@ -43,3 +43,19 @@ Tests cover all presets, unchanged upstream failures, stale direction/pins,
 delivery and author-edit validation, and required UI/API style selection.
 This change generates no images, accepts no art, and does not change existing
 identity references. Other stages' style semantics are not redesigned here.
+
+## Amendment — Chinese reference-image preparation (2026-09-29)
+
+The F3B author-facing form uses Chinese labels, lifecycle states and default
+image requirements derived from the accepted art style, not a hardcoded English
+cinematic-realism override. Unknown styles receive a neutral inheritance
+instruction, never an inferred style. Draft requirements belong to one project,
+accepted revision/hash and subject; ordinary refreshes preserve them. The
+accepted subject's model prompts remain unchanged in collapsed advanced details.
+
+Preparation freezes the author's requirements verbatim (apart from trimming),
+alongside the accepted subject. An existing current task displays its frozen
+requirements read-only; it must not suggest that editing a draft changes an
+already prepared task. No translation service, backend schema change or rewrite
+of retained reports/requests is introduced. Tests cover style inheritance,
+draft isolation, frozen presentation and Chinese request round-tripping.

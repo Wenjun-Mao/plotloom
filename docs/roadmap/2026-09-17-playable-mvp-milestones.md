@@ -939,6 +939,32 @@ candidate's report ID and draft when both existed. Each section now reads its
 own report and JSON version, guarded by a replacement-over-accepted browser
 case. This corrects review presentation only; accepted data is not modified.
 
+### Creator-approved Chinese reference-image preparation (2026-09-29)
+
+Approved step: pause image preparation and correct the English, hardcoded F3B
+render-direction form. The UI owned an unrelated cinematic-realism default and
+exposed internal lifecycle labels. The backend already freezes Chinese overlays
+without translation. Scope: Chinese requirements inherited from accepted art,
+plain-language task states/actions, collapsed original model prompts, isolated
+subject/session drafts and honest read-only prepared requirements (ADR 0094
+amendment). No generation, accepted-data changes, provider/translation layer or
+retained-report rewrite. Stop after focused regression checks, independent
+review and fresh static assets; creator resumes their accepted art r1.
+
+Verification: 268 frontend tests, application/E2E typechecks, deterministic
+static build and all nine art/workflow browser journeys passed. The real
+backend browser case freezes Chinese requirements, keeps them read-only and
+preserves their exact value after restart. Read-only live Chromium inspection
+confirmed the creator's live-action defaults and collapsed model prompts at
+desktop and 390px width, without preparing or sending an image task. Art r1
+hash prefix `6451a6cfb635` remains accepted and unchanged. Local visual evidence:
+`output/playwright/art-requirements-{chinese,mobile}.png`. The original report's
+existing sandbox-blocked script remains unchanged; Safari refresh is a creator
+check, not a claimed browser verification.
+Independent Luna Max review reported no findings. A final parent-panel label
+was aligned from “参考研究” to “参考图片”; focused tests and the static build were
+rerun for that wording-only change.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

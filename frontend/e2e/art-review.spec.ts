@@ -32,15 +32,19 @@ test.describe("F3A production art review", () => {
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=source#art`);
     const studies = page.getByTestId("art-reference-studies");
     const scene = page.getByTestId("art-reference-scene-S01");
-    await expect(studies).toContainText("Cinematic realism");
-    await expect(scene).toContainText("missing");
+    await expect(scene.getByTestId("art-reference-direction")).toHaveValue(/半写实厚涂/);
+    await expect(scene).toContainText("未准备");
+    const imageRequirements = "沿用半写实厚涂，保留冷色晨光，不添加人物。";
+    await scene.getByTestId("art-reference-direction").fill(imageRequirements);
     const preparedResponse = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals`);
-    await scene.getByRole("button", { name: "准备研究" }).click();
+    await scene.getByRole("button", { name: "准备图片生成任务" }).click();
     const prepared = await preparedResponse;
     expect(prepared.status()).toBe(201);
-    const proposal = (await prepared.json() as { proposal: { id: string; request: { frozenSnapshot: { acceptedArt: { revision: number } } } } }).proposal;
+    const proposal = (await prepared.json() as { proposal: { id: string; request: { frozenSnapshot: { acceptedArt: { revision: number }; renderDirection: string } } } }).proposal;
     expect(proposal.request.frozenSnapshot.acceptedArt.revision).toBe(1);
+    expect(proposal.request.frozenSnapshot.renderDirection).toBe(imageRequirements);
+    await expect(scene.getByTestId("art-reference-direction")).toHaveAttribute("readonly", "");
     const copiedResponse = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals/${proposal.id}/send`);
     await scene.getByRole("button", { name: "发送给图像生成助手" }).click();
@@ -50,7 +54,7 @@ test.describe("F3A production art review", () => {
     await scene.getByRole("button", { name: "检查图像交付" }).click();
     const refreshResponse = await refreshed;
     expect(refreshResponse.ok(), await refreshResponse.text()).toBeTruthy();
-    await expect(scene).toContainText("current");
+    await expect(scene).toContainText("图片已返回");
     await expect(scene.getByRole("img", { name: "Beacon room 当前查看图片" })).toBeVisible();
     const decision = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-decisions`);
@@ -60,7 +64,8 @@ test.describe("F3A production art review", () => {
     await expect(scene.locator("details.reference-decision-technical")).toContainText("参考版本r1");
     await workbench.restartBackend();
     await page.reload();
-    await expect(scene).toContainText("current");
+    await expect(scene).toContainText("图片已返回");
+    await expect(scene.getByTestId("art-reference-direction")).toHaveValue(imageRequirements);
     await expect(scene.getByRole("status")).toHaveText("当前参考图：正在查看的候选。");
     await expect(scene.locator("details.reference-decision-technical")).toContainText("参考版本r1");
 
@@ -69,21 +74,21 @@ test.describe("F3A production art review", () => {
     const changed = withSummary(art.acceptedArt.art, "Changed after the reference study was delivered.");
     await getJson(request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/art/save`, { data: { expectedArtRevision: art.acceptedArt.revision, binding: art.acceptedArt.binding, art: changed } }));
     await page.reload();
-    await expect(scene).toContainText("changed / stale");
+    await expect(scene).toContainText("设定已变更");
     await expect(scene).toContainText("此前的参考决定已过期");
     const newPrepared = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/art-reference-proposals`);
-    await scene.getByRole("button", { name: "准备研究" }).click();
+    await scene.getByRole("button", { name: "准备图片生成任务" }).click();
     const active = (await newPrepared).json() as Promise<{ proposal: { id: string } }>;
     const activeId = (await active).proposal.id;
     // The API response alone does not establish that the browser callback has
     // completed its mandatory refresh. Wait for that mounted continuation
     // before exercising a competing lifecycle request.
-    await expect(scene.getByRole("button", { name: "取消提案" })).toBeVisible();
+    await expect(scene.getByRole("button", { name: "取消图片任务" })).toBeVisible();
     const blocked = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
     expect(blocked.status()).toBe(409);
-    await scene.getByRole("button", { name: "取消提案" }).click();
-    await expect(scene).toContainText("cancelled");
+    await scene.getByRole("button", { name: "取消图片任务" }).click();
+    await expect(scene).toContainText("已取消");
     const released = await request.post(`${workbench.apiOrigin}/api/v2/projects/${projectId}/close`);
     expect(released.ok(), await released.text()).toBeTruthy();
     expect(activeId).toBeTruthy();

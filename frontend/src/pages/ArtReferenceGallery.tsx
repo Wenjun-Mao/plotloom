@@ -5,8 +5,9 @@ import { Button, ErrorNotice } from "../components";
 import { AssetZoomDialog, ManagedAssetImage, useBoundedAssetComparison } from "../features/media/references/AppearanceReviewPrimitives";
 import type { ArtReferenceDecision, ArtReferenceDecisionState, ArtReferenceProposal } from "../types";
 import { specialistsApi } from "../features/specialists/api";
+import { ArtReferencePreparation } from "./ArtReferencePreparation";
+import { artSubjects, defaultImageRequirements, studyStatus, subjectKey } from "./artReferencePresentation";
 
-type Subject = { subjectType: "scene" | "prop"; subjectId: string; name: string };
 type Candidate = ArtReferenceProposal["deliveries"][number]["candidates"][number] & {
   delivery: ArtReferenceProposal["deliveries"][number]; study: ArtReferenceProposal;
 };
@@ -25,10 +26,11 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
   showStudyActions?: boolean;
   assetUrl?: (assetId: string) => string;
 }) {
-  const [direction, setDirection] = useState("Cinematic realism: grounded materials, natural lens behavior, no people or hands unless the accepted subject explicitly requires them.");
   const [selectedSubjectKey, setSelectedSubjectKey] = useState("");
   const [error, setError] = useState("");
   const sessionKey = `${projectId}:${acceptedRevision}:${acceptedContentHash}`;
+  const [drafts, setDrafts] = useState<{ session: string; values: Record<string, string> }>({ session: sessionKey, values: {} });
+  if (drafts.session !== sessionKey) setDrafts({ session: sessionKey, values: {} });
   const activeSession = useRef({ key: sessionKey, epoch: 0 });
   if (activeSession.current.key !== sessionKey) activeSession.current = { key: sessionKey, epoch: activeSession.current.epoch + 1 };
   const ownsSession = (session: { key: string; epoch: number }) => activeSession.current === session;
@@ -72,19 +74,21 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
 
   if (!selected) return <section className="art-reference-studies art-reference-gallery" data-testid="art-reference-studies"><strong>尚无可审阅的环境或道具</strong><p>先接受包含稳定 scene/prop ID 的 art.json；这里不会猜测或创建主体。</p></section>;
   const status = studyStatus(study);
+  const direction = (drafts.session === sessionKey ? drafts.values[subjectKey(selected)] : undefined) ?? defaultImageRequirements(art.style, selected.subjectType);
+  const setDirection = (value: string) => setDrafts((previous) => ({ session: sessionKey, values: { ...(previous.session === sessionKey ? previous.values : {}), [subjectKey(selected)]: value } }));
   const actionable = !readOnly && !studyBusy;
   const chooseLabel = selected.subjectType === "scene" ? "用作此环境的参考图" : "用作此道具的参考图";
   const candidateIsCurrent = Boolean(viewed?.study.current && viewed.delivery.state === "accepted");
   const candidateAlreadyChosen = currentDecision?.assetId === viewed?.assetId;
   return <section className="art-reference-studies art-reference-gallery" data-testid="art-reference-studies">
-    <header><div><span>F3B · 环境 / 道具参考研究</span><strong>已接受美术 → 探索候选</strong></div><small>不会选择生产资产，也不会生成或修改 art.json。</small></header>
-    <p>只比较同一稳定主体的现有候选。候选可供审阅，不能成为镜头、生产选择或新的调整父项。</p>
+    <header><div><span>环境 / 道具参考图片</span><strong>按已接受的美术设定生成图片</strong></div><small>不会修改已接受的美术设定。</small></header>
+    <p>先选择环境或道具，再准备图片任务。这里选用的图片仅供参考，不会自动用于镜头或生产。</p>
     {demonstration && <p className="reference-demonstration" role="note"><strong>演示声明：</strong>{demonstration}。不代表真实交付、生成或创意批准。</p>}
     <nav className="reference-subjects" aria-label="环境和道具主体"><span>当前美术主体</span>{subjects.map((subject) => <button key={subjectKey(subject)} type="button" className={subjectKey(subject) === subjectKey(selected) ? "selected" : ""} aria-pressed={subjectKey(subject) === subjectKey(selected)} onClick={() => { setSelectedSubjectKey(subjectKey(subject)); setViewedAssetId(""); clearComparison(); }}><strong>{subject.subjectType === "scene" ? "环境" : "道具"} · {subject.name}</strong><small>{subject.subjectId}</small></button>)}</nav>
     <section className="appearance-workspace" aria-label={`${selected.name} 的环境或道具参考工作区`} data-testid={`art-reference-${selected.subjectType}-${selected.subjectId}`}>
       <div className="appearance-viewer">
         <div className="appearance-viewer-heading"><div><span className="eyebrow">当前查看</span><strong>{selected.subjectType === "scene" ? "环境" : "道具"} · {selected.name}</strong></div><span className={study?.current ? "reference-state selected" : "reference-state historical"}>{status}</span></div>
-        {viewed ? <ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={viewed.asset} assetId={viewed.assetId} alt={`${selected.name} 当前查看图片`} unavailableLabel="当前查看图片不可用" imageUrl={assetUrl?.(viewed.assetId)} onZoom={() => setExpanded(true)} /> : <div className="reference-no-image"><strong>尚无可显示的候选图片</strong><p>{study ? "交付尚未提供可浏览的候选；保留其真实状态。" : "尚未准备此主体的参考研究。"}</p></div>}
+        {viewed ? <ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={viewed.asset} assetId={viewed.assetId} alt={`${selected.name} 当前查看图片`} unavailableLabel="当前查看图片不可用" imageUrl={assetUrl?.(viewed.assetId)} onZoom={() => setExpanded(true)} /> : <div className="reference-no-image"><strong>尚无可显示的候选图片</strong><p>{study ? "本次任务尚无可查看的图片。" : "尚未为此环境或道具准备图片任务。"}</p></div>}
         <div className="button-row">{viewed && <Button variant="primary" disabled={!actionable || !candidateIsCurrent || candidateAlreadyChosen} onClick={() => void act(() => (createReferenceDecision || ((body) => plotloomApi.createArtReferenceDecision(projectId, body)))({ subjectType: selected.subjectType, subjectId: selected.subjectId, assetId: viewed.assetId, expectedReferenceRevision: decisionState?.revision || 0 }), onReferenceDecisionCreated)}>{currentDecision ? `替换为${chooseLabel}` : chooseLabel}</Button>}</div>
         {currentDecision && <><p className="reference-decision" role="status"><strong>当前参考图：</strong>{currentDecision.assetId === viewed?.assetId ? "正在查看的候选。" : "在另一张候选中。"}</p><ReferenceDecisionDetails decision={currentDecision} /></>}
         {!currentDecision && latestDecision && <p className="reference-decision stale" role="status">此前的参考决定已过期；保留在历史中，尚未为当前美术主体自动选择候选。</p>}
@@ -97,28 +101,16 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
       </div>
       {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="同一主体图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant="quiet" aria-pressed={compared} className="selection-toggle" disabled={!compared && comparisonAtCapacity} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidate.outputFilename}` : `加入 ${candidate.outputFilename}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" onClick={clearComparison}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
       {comparisonCandidates.length >= 2 && <div className={`appearance-compare comparison-count-${comparisonCandidates.length}`} data-testid="art-reference-comparison"><header><strong>并排比较 · {comparisonCandidates.length} 张</strong><small>仅比较 {selected.subjectType === "scene" ? "环境" : "道具"} {selected.name}；不会选择生产资产。</small></header>{comparisonCandidates.map((candidate) => <figure key={candidate.assetId}><figcaption>{candidate.assetId === viewed?.assetId ? "当前查看" : "对比图片"} · {candidate.outputFilename}</figcaption><ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={candidate.asset} assetId={candidate.assetId} alt={`${candidate.outputFilename} 比较图片`} unavailableLabel="对比图片不可用" imageUrl={assetUrl?.(candidate.assetId)} /></figure>)}</div>}
-      {showStudyActions && <section className="appearance-ideas"><span className="eyebrow">研究操作</span><h3>准备环境或道具参考任务</h3><p>准备后发送给图像生成助手。交付图片仍需你审阅和选用。</p><label>渲染方向<textarea data-testid="art-reference-direction" disabled={!actionable} rows={3} value={direction} onChange={(event) => setDirection(event.target.value)} /></label>{(!study || !study.current) && <Button disabled={!actionable || !direction.trim()} onClick={() => void act(() => plotloomApi.prepareArtReferenceProposal(projectId, { subjectType: selected.subjectType, subjectId: selected.subjectId, renderDirection: direction.trim() }))}>准备研究</Button>}{study && <div className="button-row">{study.current && study.state === "prepared" && <Button variant="primary" disabled={!actionable} onClick={() => void act(() => specialistsApi.sendArtImage(projectId, study.id))}>发送给图像生成助手</Button>}{study.state !== "prepared" && <Button disabled={!actionable} onClick={() => void act(() => plotloomApi.refreshArtReferenceProposal(projectId, study.id))}>检查图像交付</Button>}{(study.state === "prepared" || study.state === "exported") && <Button variant="danger" disabled={!actionable} onClick={() => void act(() => plotloomApi.cancelArtReferenceProposal(projectId, study.id, "Operator cancelled the F3B reference-study handoff."))}>取消提案</Button>}</div>}</section>}
+      {showStudyActions && <ArtReferencePreparation style={art.style} subject={selected} study={study} actionable={actionable} direction={direction} onDirectionChange={setDirection}
+        onPrepare={() => void act(() => plotloomApi.prepareArtReferenceProposal(projectId, { subjectType: selected.subjectType, subjectId: selected.subjectId, renderDirection: direction.trim() }))}
+        onSend={() => study && void act(() => specialistsApi.sendArtImage(projectId, study.id))}
+        onRefresh={() => study && void act(() => plotloomApi.refreshArtReferenceProposal(projectId, study.id))}
+        onCancel={() => study && void act(() => plotloomApi.cancelArtReferenceProposal(projectId, study.id, "Operator cancelled the F3B reference-study handoff."))}
+      />}
       {error && <ErrorNotice message={error} />}
     </section>
     {viewed && <AssetZoomDialog open={expanded} onClose={() => setExpanded(false)} label="放大查看环境或道具图片"><ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={viewed.asset} assetId={viewed.assetId} alt={`${selected.name} 放大图片`} unavailableLabel="当前查看图片不可用" imageUrl={assetUrl?.(viewed.assetId)} /></AssetZoomDialog>}
   </section>;
-}
-
-function artSubjects(art: Record<string, unknown>): Subject[] {
-  return (["scene", "prop"] as const).flatMap((subjectType) => {
-    const items = art[subjectType === "scene" ? "scenes" : "props"];
-    return Array.isArray(items) ? items.filter((item): item is Record<string, unknown> => typeof item === "object" && item !== null && typeof item.id === "string").map((item) => ({ subjectType, subjectId: item.id as string, name: String(item.name || item.id) })) : [];
-  });
-}
-
-function subjectKey(subject: Subject) { return `${subject.subjectType}:${subject.subjectId}`; }
-
-function studyStatus(study: ArtReferenceProposal | undefined) {
-  if (!study) return "missing";
-  if (study.state === "cancelled") return "cancelled";
-  if (!study.current) return "changed / stale";
-  if (study.deliveries.some((delivery) => delivery.state === "rejected")) return "delivery rejected";
-  return study.state === "delivered" ? "current" : "awaiting delivery";
 }
 
 function ReferenceDecisionDetails({ decision }: { decision: ArtReferenceDecision }) {
