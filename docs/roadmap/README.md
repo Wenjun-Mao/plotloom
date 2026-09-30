@@ -60,8 +60,12 @@ Qwen/MOSS creation and Qwen/Index reuse, serial on-demand processes, and
 reviewable delivery controls. The deployed implementation now has successful
 live evidence for all four creator/reuse paths after a separately authorized
 [controlled CUDA retest](../verification/2026-09-30-voice-lab-cuda-neutral-retest.md).
-Its initial batch still records the original OOM; co-resident reliability and
-creative acceptance are not established. This does not change
+The later [reliability closeout](../verification/2026-09-30-voice-specialist-reliability-closeout.md)
+passes a fresh nine-call matrix, exact cold/post-H3 probes with Qwen-Image up,
+published-byte H3 consumption and idle restart. The initial OOM remains;
+general co-resident concurrency and new creative acceptance are not established.
+[ADR 0096](../adr/0096-voice-lab-shared-host-operating-boundary.md) fixes the
+operator-serial operating boundary, not a new GPU scheduler. This does not change
 the Plotloom delivery authority. Director contact, Plotloom integration,
 merge and push remain on hold.
 

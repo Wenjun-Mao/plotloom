@@ -146,6 +146,19 @@ cause remains unresolved. Neither MemAvailable nor CUDA-reported free certifies
 an allocation on shared GB10 memory. Do not add silent OOM retries/cache flushes
 or use this pass to promise that all resident workloads fit.
 
+The later [closeout](../../../docs/verification/2026-09-30-voice-specialist-reliability-closeout.md)
+also passed that exact path with Qwen-Image running: once with Comfy models cold
+and once after a real Ref2VA job (30.553 GiB host MemAvailable before Index).
+No resource thresholds, inference packages or cache policies were changed.
+The old allocation cause remains unresolved, not silently credited to 0.38.
+
+Use [ADR 0096's operator-serial window](../../../docs/adr/0096-voice-lab-shared-host-operating-boundary.md)
+for shared-host trials. Check all three queues/readiness, reserve the window
+operationally, and prevent other callers from starting work in another service.
+Current advisory checks cannot provide atomic global exclusion. For a future
+multi-client deployment, a common admission owner must retain exclusion on
+unknown dispatch; a plain process-lifetime lock is not enough.
+
 Gateway `/health` is aggregate backend readiness, not an idle-only endpoint:
 it correctly returns 503 while Qwen Image is deliberately stopped. Controlled
 operator checks may inspect dispatch counts with read-only gateway SQLite
@@ -177,3 +190,26 @@ It checks the existing attempt shape and retains any known failure; it does
 not replay failed neutral synthesis or declare a failed matrix complete.
 These continuation modes require checking the cumulative call cap across
 all retained receipts, not treating each invocation as a fresh allowance.
+
+Closeout tools are deployed together under `runtime-inventory/closeout-tools/`
+so their shared `qualify_workflow` and `verify_resident_reuse` imports resolve:
+
+- `verify_resident_reuse.py`: one exact neutral probe, separate cold/post-H3
+  receipt, unchanged failed evidence/Voice IDs and released-child assertions.
+- `verify_published_h3.py`: one Ref2VA job consuming a published H3 derivative;
+  hash/format/stream checks. `--resume-observation` requires a recorded accepted
+  job and only observes it; it never sends another generation POST.
+- `verify_idle_restart.py`: only an idle Lab restart, no generation, preserving
+  project/trial state, published hashes and every managed WAV.
+
+Keep `qualification_receipts.py` beside the four tools. It atomically claims
+each fresh receipt with exclusive creation, mode 0600 and file/directory sync
+before preflight. A failed preflight retains the claim. Stop the previous H3
+observer before explicitly resuming observation; resume is never submission.
+This per-operation claim is not a GPU reservation.
+
+Each tool refuses an existing receipt for a fresh operation. Use new paths only
+under an explicitly bounded allowance; that is not permission to repeat a
+failed experiment. Never place private raw receipts in Git. The retained
+closeout is already complete; these instructions do not ask a future maintainer
+to replay it automatically.

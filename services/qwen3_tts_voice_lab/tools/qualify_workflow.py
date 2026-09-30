@@ -7,6 +7,8 @@ import time
 import urllib.request
 from pathlib import Path
 
+from qualification_receipts import claim_receipt
+
 BASE = 'http://100.64.35.71:8897'
 LINE = '雨还没有停。主灯，或者码头，我们只能先保住一边。'
 DIRECTION = '四十岁左右的中国女性，成熟低音，克制坚韧，自然口语，不要播音腔。'
@@ -46,8 +48,7 @@ def main():
     continuation.add_argument('--existing-pair', help='Explicitly finish a known failed pair using its one remaining creation call; never replay')
     continuation.add_argument('--delivery-only', help='Use only the final two reuse calls after four neutral trials; never retry a failed trial')
     args = parser.parse_args()
-    if args.receipt.exists(): raise ValueError('qualification.already_started')
-    args.receipt.parent.mkdir(parents=True, exist_ok=True)
+    claim_receipt(args.receipt)
     record = {'status': 'started', 'callCaps': {'creation': 3, 'reuse': 6},
               'beforeMemory': sample_memory(), 'results': [], 'peakChildCount': 0,
               'peakProcessRssGiB': 0, 'hostPeakUnavailableGiB': 0, 'observedProcessIds': []}

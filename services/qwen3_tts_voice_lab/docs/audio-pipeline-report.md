@@ -22,13 +22,14 @@ Project + shared audition line + explicit candidate directions
                            ↓ immutable Voice ID + source/H3 copies
 ```
 
-All four creation/reuse combinations are supported by the contract and offline
-tests. The 2026-09-30 live matrix verified three neutral combinations; the
-Qwen-created reference → Index neutral attempt failed at CUDA model loading.
-A separately authorized [controlled retest](../../../docs/verification/2026-09-30-voice-lab-cuda-neutral-retest.md)
-subsequently passed with the same reference/words/seed/model settings. All four
-paths now have successful technical evidence across the two windows; this is
-not broad co-resident memory reliability or new human identity/acting approval.
+All four creation/reuse combinations are supported by the contract and tests.
+The initial 2026-09-30 matrix retained a Qwen → Index CUDA failure; a controlled
+image-service pause subsequently passed that path. The separately authorized
+[closeout](../../../docs/verification/2026-09-30-voice-specialist-reliability-closeout.md)
+now passes a fresh nine-call matrix and the exact neutral path before and after
+H3, with Qwen-Image running. It also verifies publication, exact H3 consumption
+and idle Lab restart. These are bounded serialized technical results, not
+broad memory/concurrency reliability or new human identity/acting approval.
 The [deployment receipt](../../../docs/verification/2026-09-30-voice-lab-multi-engine-deployment.md)
 retains the initial failure rather than retroactively claiming that batch passed.
 Same-person identity,
@@ -107,13 +108,18 @@ Process exit is the model-release boundary; cold loading adds latency.
 Restart interrupts unfinished jobs, not replays them. Queue counts, observed
 phases and elapsed time are shown without fabricated percent or ETA.
 Memory/ComfyUI checks are advisory, not a cross-service GPU lock.
+Shared-host generation windows must be operator-serialized under
+[ADR 0096](../../../docs/adr/0096-voice-lab-shared-host-operating-boundary.md).
+The Lab FIFO and gateway FIFO are separate; neither excludes an independently
+submitted job to the other service.
 
 See [reproduction and operations](reproduction-and-operations.md) for ARM64
 dependencies, licenses, migration and recovery.
 
 The H3 gateway takes audio bytes, not Voice IDs. Its qualified Ref2VA boundary
 remains one image plus a mono 32-kHz PCM16 reference, 960×544 or 576×1024,
-requested 5–8 seconds. This slice adds no H3 trial or gateway Voice ID lookup.
+requested 5–8 seconds. The closeout verified one real job with exact published
+reference bytes; it adds no gateway Voice ID lookup.
 A reference guides identity; it is not an exact soundtrack/lip-sync guarantee.
 Review words, mouth timing, extra speech and subtitles separately.
 

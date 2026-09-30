@@ -17,7 +17,7 @@ leads separately from approved work.
 | Production playback timing | [0082](0082-proposed-production-playback-timing.md) distinguishes authored shot time, frozen request, measured take and a reviewed segment. The bounded synthetic-media implementation is approved; the H3 original-output contract remains intact. |
 | Capability tracking and delivery | [0008](0008-capability-based-adoption-tracking.md)'s tracking method survives, but its named [matrix](../roadmap/archive/superseded/2026-09-02-capability-matrix.md) is archived. Use the [roadmap](../roadmap/README.md) for active work and acceptance. |
 | Verification tooling | [0081](0081-narrow-source-static-and-api-lint-checks.md) separates checked source-bundle browser evidence from installed-wheel packaging evidence and keeps Ruff scoped to API F401 findings. |
-| Voice Lab identity | [0091](0091-spark-voice-lab-candidate-boundary.md) owns the deployed specialist pilot. [0092](0092-voice-lab-projects-and-published-voice-identity.md) records the approved project/candidate/published-voice cutover, not yet implemented. |
+| Voice Lab identity and operation | [0092](0092-voice-lab-projects-and-published-voice-identity.md)'s project/candidate/published-voice cutover is deployed; [0094](0094-voice-lab-independent-engines-and-delivery.md) owns independent engines and observable controls; [0096](0096-voice-lab-shared-host-operating-boundary.md) fixes the current operator-serial shared-host boundary. Plotloom integration is withheld. |
 
 Two files retain the historical number `0040`; cite each by its full slug and
 link, never by number alone. This index is a navigation aid, not a declaration
@@ -26,4 +26,6 @@ rewritten to match current code. The full decision corpus is this directory.
 
 The specialist [ADR 0095](0095-h3-runtime-qualification-and-catalog-isolation.md)
 adds the pinned-runtime and isolated-catalog qualification boundary. Its
-technical checks do not promote ComfyUI 0.38 or alter the quality catalog.
+technical checks alone do not promote a runtime or alter the quality catalog;
+the later [0.38 maintenance adoption](../verification/2026-09-30-h3-comfy038-maintenance-adoption.md)
+records the separately authorized exact-image promotion.

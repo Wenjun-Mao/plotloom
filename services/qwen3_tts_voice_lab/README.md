@@ -14,9 +14,12 @@ Projects are independent workspaces, not authenticated user accounts.
 The 2026-09-30 deployment preserves existing voices and passes offline gates.
 The initial live matrix retained a Qwen-reference → Index CUDA failure.
 A separately authorized [controlled retest passed](../../docs/verification/2026-09-30-voice-lab-cuda-neutral-retest.md),
-completing successful technical evidence for all four reuse paths without
-rewriting the failed trial. Co-resident CUDA reliability and creative approval
-are not established. See the original
+without rewriting the failed trial. The later
+[reliability closeout](../../docs/verification/2026-09-30-voice-specialist-reliability-closeout.md)
+passes a fresh complete nine-call workflow, exact cold/post-H3 probes with
+Qwen-Image running, published-byte H3 consumption and idle Lab restart.
+General concurrent co-resident reliability and new creative approval are not
+established. See the original
 [deployment receipt](../../docs/verification/2026-09-30-voice-lab-multi-engine-deployment.md)
 and its supplement for the distinct boundaries.
 
@@ -63,7 +66,9 @@ jobs, never silently replays them.
 
 Memory/ComfyUI checks are advisory, not a global GPU lock. The Lab never
 automatically stops another service. See the reproduction guide for idle
-cutover and the checked CPU control-plane lock.
+cutover and the checked CPU control-plane dependency lock, and
+[ADR 0096](../../docs/adr/0096-voice-lab-shared-host-operating-boundary.md)
+for the supported operator-serial shared-host window.
 
 ```sh
 uv sync --locked --group test

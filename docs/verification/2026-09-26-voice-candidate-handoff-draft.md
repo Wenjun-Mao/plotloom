@@ -96,14 +96,53 @@ The [deployment receipt](2026-09-30-voice-lab-multi-engine-deployment.md) record
 the exhausted nine-call cap and one unresolved CUDA OOM in Qwen → Index neutral
 reuse. The separately authorized
 [controlled retest](2026-09-30-voice-lab-cuda-neutral-retest.md) now passes that
-path without rewriting the initial batch. Co-resident reliability remains
-unproven, and this is still not authorization for director contact or handoff.
+path without rewriting the initial batch. The later
+[reliability closeout](2026-09-30-voice-specialist-reliability-closeout.md)
+passes a fresh nine-call workflow and the exact neutral path both cold and
+after H3 with Qwen-Image running. One real H3 job consumes the exact published
+bytes; a real idle Lab restart preserves project/trials and 54 WAVs.
+General co-resident concurrency and new creative acceptance remain unproven.
+This is still not authorization for director contact or handoff.
 
 See the [current pipeline report](../../services/qwen3_tts_voice_lab/docs/audio-pipeline-report.md)
 and [specialist plan](../roadmap/2026-09-29-voice-lab-multi-engine-plan.md).
 This note is not an instruction to the director. Plotloom still needs a later
 approved Voice ID import/character binding and frozen-media contract; none is
 implemented by the Lab. No universal emotion presets were accepted.
+
+## Integration-ready facts, not instructions to begin
+
+Entry point: [Voice Lab README](../../services/qwen3_tts_voice_lab/README.md).
+Its [pipeline report](../../services/qwen3_tts_voice_lab/docs/audio-pipeline-report.md)
+explains author behavior; [reproduction/operations](../../services/qwen3_tts_voice_lab/docs/reproduction-and-operations.md)
+pins models, environments, licenses, deployment and recovery. Follow
+[ADR 0096](../adr/0096-voice-lab-shared-host-operating-boundary.md) for current
+shared-host limits. No multi-client GPU reservation exists.
+
+| Concern | Existing contract | Future Plotloom ownership |
+|---|---|---|
+| Resolve an identity | `GET /api/voices/{voiceId}` returns immutable metadata, transcript, model/engine snapshot, source/H3 hashes | Import provenance and bind an explicit selection to a character |
+| Download audio | `GET /api/voices/{voiceId}/audio?kind=source` or `kind=h3` | Verify bytes against the matching hash and retain both in Plotloom storage |
+| Reuse/acting | Selected `generationId` + `POST /api/clone-trials`, `engineId`, new words, optional `seed` and `delivery` | Keep identity separate from a line-specific take and canonical Dialogue Cue |
+| Video input | Gateway multipart `POST /v1/video-jobs/from-image-with-voice`: `image`, `voiceAudio`, `prompt`, `resolution`, `aspectPolicy`, optional seed/duration | Send frozen verified audio bytes; never send a Voice ID expecting the gateway to resolve it |
+| Failure/retention | Lab restart interrupts, never replays; published copies have no expiry/retirement API. Gateway media expires after 72 hours and job records after 30 days | Own production copies, unknown-dispatch handling, revocation/currentness and retention |
+
+Reuse controls are `{"mode":"none"}` (Qwen or Index),
+`{"mode":"text","description":"坚定、果断、时间紧迫"}` (Index), or
+`{"mode":"manual","vector":[0,0.25,0,0,0,0,0,0]}` (Index). The latter
+is one explicitly reviewed restrained-frustration experiment, not a default
+emotion preset. Index returns actual classification/effective strengths;
+successful synthesis must not become automatic acting approval.
+
+The newly published technical ID `voice_5689e99835494d2f8024485523c4dbf6`
+demonstrates the byte handoff; it is not the owner's preferred original MOSS D
+or an instruction to install a character selection in Plotloom.
+
+Specialist completion covers engine adapters, Lab projects/candidates, review
+controls, immutable publication, exact gateway input and operation evidence.
+Plotloom character binding, production snapshots, author-facing approvals,
+dialogue-take selection and its own asset retention remain director-owned
+**future work**, requiring the owner's release of the hold.
 
 ## Decisions still open for an authorized handoff
 
