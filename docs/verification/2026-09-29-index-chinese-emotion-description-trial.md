@@ -1,7 +1,9 @@
 # IndexTTS2 · Chinese emotion-description trial with original MOSS D
 
-**Status:** Two takes generated and copied with matching hashes. Owner listening
-review is pending. This tests the real `use_emo_text=True` route; it does not
+**Status:** Both Chinese-description takes passed the owner's listening review
+for firm, decisive, time-critical delivery. Identity, exact wording, and
+distortion have not received a separate verdict for these new takes.
+This tests the real `use_emo_text=True` route; it does not
 choose a production engine, publish a Voice ID, or change Voice Lab/H3/Plotloom.
 Plotloom-director handoff and merge/push remain on hold.
 
@@ -43,9 +45,32 @@ Preview classification took 2.51 seconds. These are classifier strengths, not
 probabilities or a listening verdict. With alpha 1, no alpha attenuation was
 requested. The speech model receives the eight-dimensional interpretation,
 **not the free-form Chinese description**. There is no urgency category.
-The description was therefore compressed mainly to anger; whether that sounds
-like appropriate urgency is an open listening question, not established success.
-Chinese input alone does not make this a general acting-direction interface.
+The description was therefore compressed mainly to anger. The owner subsequently
+heard the desired urgency in both takes, as recorded below; the classifier's
+category name did not itself establish the perceived delivery. Chinese input
+alone does not make this a general acting-direction interface.
+
+## Owner listening review · 2026-09-29
+
+The owner reported that both clips labelled **试听 B** sounded
+“坚定、果断、时间紧迫”. Because the page randomizes A/B/C, the agent requested
+source reveal without a refresh or reshuffle. The owner then confirmed the
+displayed source was **Index · 中文描述 → 自动情绪分类（本次生成）**.
+This binds the delivery judgment to the new Chinese-description takes at both
+retained seeds, not to the old uncontrolled or fear-vector takes.
+
+This is a successful small trial for this reference, line, description, alpha,
+and two seeds. It does not establish general emotion control, a naturalness
+advantage over Qwen, or a separate identity/wording/distortion acceptance for
+these new clips. The earlier anxious/scared judgment for the fear-vector takes
+is unchanged.
+
+The reusable lesson is to judge **audible performance against the author's
+delivery target**, rather than equating fear with urgency or treating an
+internal emotion label as the final performance verdict. Chinese descriptions
+are a promising author-facing control to validate further, not a direct
+free-form instruction to the speech model. Do not hardcode this anger-heavy
+vector as a universal urgency preset.
 
 ## Execution and technical evidence
 
@@ -118,7 +143,7 @@ product source change, so the full product suite was not rerun. The local
 audition page was not browser-verified by the agent; the owner opens it for
 listening. No ASR or video lip-sync check was performed.
 
-Review the new takes against the unchanged uncontrolled and fear-vector takes:
-same-person identity, exact words, decisive urgency versus anger/fear, and any
-distortion. Keep engine selection and performance-control conclusions pending
-that review. The Index license gate remains unchanged.
+The desired urgency delivery is accepted for both new takes. Separate review of
+same-person identity, exact words, and distortion, plus validation across other
+lines and delivery targets, remains open before integration. Production engine
+selection and the Index license gate remain unchanged.

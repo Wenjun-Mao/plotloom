@@ -106,5 +106,7 @@ integration gate.
 
 The subsequent [Chinese emotion-description trial](2026-09-29-index-chinese-emotion-description-trial.md)
 tests the actual text-to-vector route with the original reference and urgent
-line. Its new takes are technically complete but await listening review;
-they do not change the findings for the retained fear-vector takes above.
+line. After confirming the randomized label's source, the owner accepted both
+new takes as firm, decisive, and time-critical. This successful bounded delivery
+trial does not change the findings for the retained fear-vector takes above or
+establish general emotion control.
