@@ -138,7 +138,13 @@ or alternate-vector arm here to establish that causal claim.
 A proposed next experiment would retain the F line, reference, seeds, and alpha,
 and compare a positively phrased Chinese direction with a modest explicit anger
 vector. This would test interpretation and synthesis separately without another
-broad batch. It is a proposal, not an executed or approved extra generation.
+broad batch. At this review's closeout, it was only a proposal; no extra
+generation had been approved or executed yet.
 Do not claim general emotion control or integrate a universal frustration
 preset from the current evidence. Identity, wording, distortion, and the Index
 license remain separate integration gates.
+
+The owner subsequently approved this bounded investigation. The separate
+[text/vector comparison receipt](2026-09-29-index-frustration-control-comparison.md)
+records its four new takes; those have not yet received a listening verdict and
+do not change the failed-target finding for F1/F2 here.
