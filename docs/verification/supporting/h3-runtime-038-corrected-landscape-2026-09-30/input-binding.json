@@ -1,0 +1,16 @@
+{
+  "caseId": "landscape",
+  "dimensions": [
+    1280,
+    704
+  ],
+  "inputSha256": "f07294d56c0d3468ed3d38432481602a120891e6f9a5bbf4ba48774d18611b71",
+  "graphSha256": "a561efdb37a1544cfa2626571a2598675462e6ff5d2c105bda68e2f13970a831",
+  "templateSha256": "b1c05a67b6ea33be08c671c72e424cc2efe5b3380303463daec04101c22a5d17",
+  "inputReview": "Operator inspected actual pixels: seated astronaut, white helmet, spacecraft, Earth; no padding or scene inset.",
+  "inputProvenance": {
+    "source": "candidate_landscape_00001_.mp4 from original experiment",
+    "frameIndex": 62,
+    "preparation": "Exact frame extraction, no resize/crop/padding"
+  }
+}

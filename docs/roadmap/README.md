@@ -68,8 +68,10 @@ merge and push remain on hold.
 ## Specialist H3 runtime qualification
 
 The separate [ComfyUI 0.38 qualification](2026-09-30-h3-comfy038-runtime-qualification.md)
-used its five-call cap, passed bounded technical checks and restored the
-original runtime. Full visual qualification and production catalog disposition
-remain pending; the retained landscape input–prompt mismatch is not a visual
-pass. No further generation, runtime promotion or Plotloom integration is
+used five calls, followed by a separately approved corrected landscape pair.
+[Maintenance adoption](../verification/2026-09-30-h3-comfy038-maintenance-adoption.md)
+is complete: exact 0.38 image live, original image/container/user directory
+preserved, services healthy. The original input–prompt mismatch remains labelled;
+the adoption is not general quality or co-resident-memory qualification. No
+further generation, Plotloom integration, director contact, merge or push is
 authorized by this supporting record.

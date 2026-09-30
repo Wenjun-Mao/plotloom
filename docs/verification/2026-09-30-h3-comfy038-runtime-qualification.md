@@ -1,7 +1,12 @@
 # H3 ComfyUI 0.38 runtime qualification
 
-**Result:** Bounded technical checks passed; **full qualification and production
-promotion are not complete**. Five of five authorized generation calls used.
+**Current status:** A separately approved two-call correction and maintenance
+adoption is now complete; see the [follow-up receipt](2026-09-30-h3-comfy038-maintenance-adoption.md).
+The original five-call evidence below is retained unchanged in meaning, not
+retroactively treated as a clean landscape visual pass.
+
+**Original trial result:** Bounded technical checks passed; full qualification
+and production promotion were not complete. Five of five authorized calls used.
 Original runtime restored; gateway, Voice Lab and Qwen Image healthy. No model,
 recipe, gateway/API or Voice Lab production source change. No merge/push or
 director contact.
@@ -173,7 +178,7 @@ review-page media links, JSON parsing and final staged patch checks passed.
 Full frontend/E2E/wheel gates were not rerun:
 this changes operator tools/docs, not shipped gateway/frontend/package code.
 
-**Next:** review the valid portrait/voice clips; separately authorize a corrected
+**Original stopping point:** review the valid portrait/voice clips; separately authorize a corrected
 landscape visual pair if required. Decide catalog preservation/reset explicitly
 before any runtime promotion. No new dispatch or automatic adoption is authorized
 by this receipt.

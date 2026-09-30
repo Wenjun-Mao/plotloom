@@ -4,18 +4,22 @@ This manual explains the engineering choices behind the Spark H3 stack. It is
 not a client API guide; colleagues who need the typed private API should use
 the [gateway client guide](../../../docs/operations/minimax-h3-gateway-client-guide.md).
 
-The adjacent [installation manifest](../h3-current-installation.v1.yaml)
-records the observed live stack. It distinguishes observed facts from an
-approved inference recipe so that a plausible-looking video never hides a
-configuration mismatch.
+The adjacent [runtime adoption manifest](../h3-runtime-038-adoption.v1.yaml)
+records the live image and rollback boundary. The original
+[installation manifest](../h3-current-installation.v1.yaml) is retained historical
+asset/runtime evidence, not today's recipe status. Observed facts remain distinct
+from qualification so that a plausible video cannot hide a configuration mismatch.
 
 **Current status (2026-09-30):** the quality/resolution contract in
 [ADR 0070](../../../docs/adr/0070-h3-quality-resolution-contract.md) is deployed;
 the early recipe-comparison discussion below is historical rationale, not
 today's outstanding task. Quality 1 defaults to V1.2 Turbo4/Euler/6/3.
-ComfyUI 0.35.0 remains live. The 0.38.0 candidate's bounded technical tests
-passed, but full visual qualification and catalog migration are pending;
-baseline was restored. See the [runtime receipt](../../../docs/verification/2026-09-30-h3-comfy038-runtime-qualification.md).
+ComfyUI **0.38.0 is live** after bounded maintenance qualification and a corrected
+landscape pair. It uses `data/user-v038`; the original 0.35 image/container/user
+directory remain preserved for rollback. The owner reported no visible quality
+difference across the original pairs. This is not a general quality improvement
+or a fix for Voice Lab's separate CUDA issue. See the
+[adoption receipt](../../../docs/verification/2026-09-30-h3-comfy038-maintenance-adoption.md).
 
 ## 1. System boundaries
 

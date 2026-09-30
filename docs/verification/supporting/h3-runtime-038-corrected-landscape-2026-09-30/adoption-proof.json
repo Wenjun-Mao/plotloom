@@ -1,0 +1,150 @@
+{
+  "capturedAt": "2026-09-30T17:49:09.985072+00:00",
+  "live": {
+    "name": "spark-comfyui",
+    "imageId": "sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110",
+    "running": true,
+    "health": "healthy",
+    "restartPolicy": "unless-stopped",
+    "mounts": {
+      "/opt/ComfyUI/models": "/home/wjmao/models/comfyui-h3",
+      "/opt/ComfyUI/user": "/home/wjmao/services/spark-comfyui/data/user-v038"
+    }
+  },
+  "liveCommit": "6b747c0428c343e1417219641db93a4fb7cb69ae",
+  "latestImageId": "sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110",
+  "rollback": {
+    "name": "spark-comfyui-v035-rollback-20260930",
+    "imageId": "sha256:d45ca7983d4eda39cdd4df3bd03921b28754b2c15ce17f906032ef4dafd1cabc",
+    "running": false,
+    "health": "unhealthy",
+    "restartPolicy": "unless-stopped",
+    "mounts": {
+      "/opt/ComfyUI/models": "/home/wjmao/models/comfyui-h3",
+      "/opt/ComfyUI/user": "/home/wjmao/services/spark-comfyui/data/user"
+    }
+  },
+  "isolatedCandidate": {
+    "name": "spark-comfyui-v038-qualified-20260930",
+    "imageId": "sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110",
+    "running": false,
+    "health": "unhealthy",
+    "restartPolicy": "unless-stopped",
+    "mounts": {
+      "/opt/ComfyUI/models": "/home/wjmao/models/comfyui-h3",
+      "/opt/ComfyUI/user": "/home/wjmao/services/spark-comfyui/experiments/h3-runtime-038-2026-09-30/candidate-user"
+    }
+  },
+  "catalogs": {
+    "user": {
+      "integrity": "ok",
+      "revision": "0006_add_loader_path",
+      "counts": {
+        "assets": 0,
+        "asset_references": 0,
+        "asset_reference_meta": 0,
+        "asset_reference_tags": 0,
+        "tags": 24
+      }
+    },
+    "user-v038": {
+      "integrity": "ok",
+      "revision": "0008_drop_asset_meta",
+      "counts": {
+        "asset_contents": 0,
+        "assets": 0,
+        "asset_tags": 0,
+        "tags": 0
+      }
+    }
+  },
+  "voiceData": {
+    "integrity": "ok",
+    "generations": {
+      "completed": 5,
+      "failed": 1
+    },
+    "cloneTrials": {
+      "completed": 9,
+      "failed": 1
+    },
+    "publishedVoices": 2,
+    "publishedFileChecks": [
+      {
+        "sourceHashMatches": true,
+        "h3HashMatches": true
+      },
+      {
+        "sourceHashMatches": true,
+        "h3HashMatches": true
+      }
+    ]
+  },
+  "health": {
+    "gateway": {
+      "status": "ok",
+      "generationContractVersion": 6,
+      "defaultQuality": 1,
+      "qualities": [
+        1,
+        2,
+        3,
+        8
+      ],
+      "resolutions": [
+        "832x480",
+        "960x544",
+        "1280x704",
+        "576x1024",
+        "608x1088",
+        "704x1280"
+      ],
+      "inputModes": [
+        "image",
+        "text",
+        "image_voice"
+      ],
+      "backends": [
+        "h3_video",
+        "qwen_image"
+      ],
+      "voiceContractVersion": 1,
+      "voiceReferenceReady": true,
+      "voiceResolutions": [
+        "960x544",
+        "576x1024"
+      ],
+      "imageResolutions": [
+        "1024x1024",
+        "832x480",
+        "960x544",
+        "1280x704",
+        "576x1024",
+        "608x1088",
+        "704x1280"
+      ],
+      "queuedJobs": 0,
+      "activeDispatches": 0,
+      "dispatchConcurrency": 1
+    },
+    "voice": {
+      "service": "voice_lab",
+      "status": "ok",
+      "engines": {
+        "index_base": true,
+        "moss_design": true,
+        "qwen_base": true,
+        "qwen_design": true
+      },
+      "workerActive": false
+    },
+    "qwenImage": {
+      "status": "ok"
+    }
+  },
+  "comfyQueue": {
+    "running": 0,
+    "pending": 0
+  },
+  "restartSmoke": "passed; restarted same adopted container before this capture; no host reboot performed"
+}

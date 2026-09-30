@@ -125,10 +125,12 @@ def inspect_media(path: Path) -> dict:
     return json.loads(result.stdout)
 
 
-def runtime_mounts(phase: str) -> list[dict]:
+def runtime_mounts(phase: str, *, candidate_user: Path | None = None) -> list[dict]:
+    expected = str(ROOT / 'data/user') if phase == 'baseline' else str(candidate_user or WORK / 'candidate-user')
+    if phase == 'candidate' and expected == str(ROOT / 'data/user'):
+        raise RuntimeError('Candidate user directory cannot be the production baseline directory')
     details = json.loads(subprocess.check_output(['docker', 'inspect', 'spark-comfyui'], text=True))[0]
     bindings = {item['Destination']: item['Source'] for item in details['Mounts']}
-    expected = str(ROOT / 'data/user') if phase == 'baseline' else str(WORK / 'candidate-user')
     if bindings.get('/opt/ComfyUI/user') != expected:
         raise RuntimeError('Unexpected Comfy user mount; production metadata must remain isolated')
     if bindings.get('/opt/ComfyUI/models') != '/home/wjmao/models/comfyui-h3':
@@ -137,8 +139,8 @@ def runtime_mounts(phase: str) -> list[dict]:
             for item in details['Mounts']]
 
 
-def inventory(phase: str) -> None:
-    mounts = runtime_mounts(phase)
+def inventory(phase: str, *, candidate_user: Path | None = None) -> None:
+    mounts = runtime_mounts(phase, candidate_user=candidate_user)
     details = json.loads(subprocess.check_output(['docker', 'inspect', 'spark-comfyui'], text=True))[0]
     packages = subprocess.check_output(['docker', 'exec', 'spark-comfyui', 'python', '-c',
         'import importlib.metadata as m,json; print(json.dumps({d.metadata["Name"]:d.version for d in m.distributions()}))'], text=True)
@@ -150,11 +152,11 @@ def inventory(phase: str) -> None:
         'packages': json.loads(packages), 'hostMemory': memory_sample(comfy_pid())})
 
 
-def run(phase: str) -> None:
+def run(phase: str, *, call_cap: int | None = None, candidate_user: Path | None = None) -> None:
     path = WORK / f'{phase}-receipt.json'
     if path.exists():
         raise RuntimeError('Receipt already exists; ambiguous or completed work cannot be replayed')
-    runtime_mounts(phase)
+    runtime_mounts(phase, candidate_user=candidate_user)
     expected = BASE_COMMIT if phase == 'baseline' else NEXT_COMMIT
     commit = subprocess.check_output(['docker', 'exec', 'spark-comfyui', 'git', '-C', '/opt/ComfyUI', 'rev-parse', 'HEAD'], text=True).strip()
     if commit != expected:
@@ -163,13 +165,16 @@ def run(phase: str) -> None:
     document = json.loads((WORK / 'cases.json').read_text())
     if digest(TEMPLATE) != document['templateSha256']:
         raise RuntimeError('Frozen template changed')
-    receipt = {'phase': phase, 'comfyCommit': commit, 'generationCallCap': 2 if phase == 'baseline' else 3,
+    call_cap = call_cap if call_cap is not None else (2 if phase == 'baseline' else 3)
+    if not 1 <= call_cap <= 3 or len(document['cases']) < call_cap:
+        raise RuntimeError('Invalid bounded generation call cap')
+    receipt = {'phase': phase, 'comfyCommit': commit, 'generationCallCap': call_cap,
                'generationCalls': 0, 'status': 'running', 'results': [],
                'memoryMeasurement': '1 Hz host availability and process RSS/HWM; not GPU allocation peak'}
     save(path, receipt)
     session = requests.Session()
     try:
-        for case in document['cases'][:2 if phase == 'baseline' else 3]:
+        for case in document['cases'][:call_cap]:
             if graph_hash(case['graph']) != case['graphSha256']:
                 raise RuntimeError('Frozen graph changed')
             if 'inputSha256' in case:

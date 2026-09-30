@@ -1,0 +1,61 @@
+manifestVersion: 1
+kind: minimax_h3_runtime_maintenance_adoption
+capturedAt: "2026-09-30"
+status: adopted_on_spark
+scope: bounded maintenance regression; not general creative qualification
+evidence: ../../docs/verification/2026-09-30-h3-comfy038-maintenance-adoption.md
+
+runtime:
+  container: spark-comfyui
+  imageTag: spark-comfyui:h3-v038-candidate-20260930
+  imageId: sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110
+  latestTagMatchesImage: true
+  comfyVersion: 0.38.0
+  comfyCommit: 6b747c0428c343e1417219641db93a4fb7cb69ae
+  runnerCommit: 408a3d3c7c47725851358ec745efb255d5ff7316
+  python: 3.12.3
+  pytorch: 2.14.0+cu130
+  torchvision: 0.29.0+cu130
+  torchaudio: 2.11.0+cu130
+  sageAttention: 2.2.0
+  policy:
+    attention: sage
+    bf16: true
+    bf16Vae: true
+    staticVram: false
+    shm: 16g
+    bind: 127.0.0.1:8188
+    restart: unless-stopped
+    customNodes: []
+  modelRoot: /home/wjmao/models/comfyui-h3
+  userRoot: /home/wjmao/services/spark-comfyui/data/user-v038
+  mountConfig: tools/comfy038-mounts.conf
+  buildEntrypoint: tools/comfy038-build.sh
+  construction: exact preserved baseline image plus pinned Comfy and constrained non-Comfy packages
+  freshHostBoundary: base image is required; otherwise separately qualify a clean build
+
+catalog:
+  originalRevision: 0006_add_loader_path
+  adoptedRevision: 0008_drop_asset_meta
+  originalAssetsAndBindings: 0
+  originalUnassignedTags: 24
+  disposition: migrate a separate quiescent copy; preserve original directory
+
+rollback:
+  container: spark-comfyui-v035-rollback-20260930
+  imageTag: spark-comfyui:keep-h3-v035-20260930
+  imageId: sha256:d45ca7983d4eda39cdd4df3bd03921b28754b2c15ce17f906032ef4dafd1cabc
+  comfyCommit: d43a5fa20c8547ff42d13232f589a06536c42b97
+  userRoot: /home/wjmao/services/spark-comfyui/data/user
+  mountConfig: /home/wjmao/services/spark-comfyui/spark-h3-mounts.v035-20260930.conf
+  stoppedAndPreserved: true
+
+unchanged:
+  historicalAssetInventory: h3-current-installation.v1.yaml
+  qualityOneLoraInventory: h3-turbo4-v12-evaluation.v1.yaml
+  qualityThreeLoraInventory: h3-8step-sampling-evaluation.v1.yaml
+  baseTwentyRecipe: h3-base20-evaluation.v1.yaml
+  voiceReferenceIdentity: ../../docs/adr/0090-h3-ref2va-per-job-voice-reference.md
+  gatewayContractVersion: 6
+  gatewayAndVoiceLabData: preserved
+  w6a8: not installed or tested

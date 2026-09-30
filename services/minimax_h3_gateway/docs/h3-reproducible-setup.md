@@ -4,20 +4,22 @@ This guide reproduces the local MiniMax-H3 engine that the Plotloom gateway
 uses on Spark. It is deliberately secret-free: it does not contain a Tailnet
 address, bearer value, customer prompt, input image, or generated media.
 
-Use the adjacent [current-installation manifest](../h3-current-installation.v1.yaml)
-for pinned versions, asset hashes, and the observed runtime. The versioned
+Use the adjacent [runtime adoption manifest](../h3-runtime-038-adoption.v1.yaml)
+for the live image, user mount and rollback identity. The retained
+[historical installation manifest](../h3-current-installation.v1.yaml)
+supplies foundation asset hashes, not today's runtime/recipe status. The versioned
 [corrected candidate manifest](../h3-corrected-turbo4-candidate.v1.yaml)
 defines the exact inference recipe to qualify against that runtime.
 
 ### Current runtime status · 2026-09-30
 
-ComfyUI 0.35.0 remains the live runtime. The separately pinned 0.38.0
-candidate passed five bounded technical generations and a CPU decoder
-composition regression, then was stopped and baseline restored. Full visual
-qualification and production catalog migration are **not approved**. Read the
-[runtime receipt](../../../docs/verification/2026-09-30-h3-comfy038-runtime-qualification.md)
-before considering an update. Do not rewrite the historical manifests to
-suggest their observations were made on the candidate.
+ComfyUI **0.38.0 is live** at the pinned adoption-manifest image/commit. Five
+initial calls, a CPU decoder-composition regression and a separately approved
+corrected landscape pair support bounded maintenance adoption, not a general
+quality or memory-reliability guarantee. Only the stable copied `data/user-v038`
+was migrated; original image/container/`data/user` remain preserved. See the
+[adoption receipt](../../../docs/verification/2026-09-30-h3-comfy038-maintenance-adoption.md).
+Historical manifests and original test evidence are not rewritten.
 
 ## 1. Scope and prerequisites
 
@@ -59,10 +61,11 @@ Do not put models, output, or gateway state in the Plotloom checkout.
 
 ## 2. Pin the runner and build the container
 
-The observed deployment uses the open-source `spark-comfyui` runner at commit
-`408a3d3c7c47725851358ec745efb255d5ff7316`. Its built image contains ComfyUI
-commit `d43a5fa20c8547ff42d13232f589a06536c42b97`, PyTorch 2.14.0+cu130, and
-a native GB10 SageAttention build.
+The foundation deployment uses the open-source `spark-comfyui` runner at commit
+`408a3d3c7c47725851358ec745efb255d5ff7316`. Its preserved baseline image contains
+ComfyUI commit `d43a5fa20c8547ff42d13232f589a06536c42b97`, PyTorch 2.14.0+cu130,
+and a native GB10 SageAttention build. The adopted derivative pins ComfyUI to
+`6b747c0428c343e1417219641db93a4fb7cb69ae` while retaining that GPU stack.
 
 ```sh
 git clone https://github.com/bjarkebolding/spark-comfyui.git \
@@ -82,7 +85,10 @@ or use a preserved exact image. The bounded 0.38 candidate uses the separate
 preserved baseline image ID, builds from that immutable ID and pins Comfy's
 commit while constraining every non-Comfy package. It is qualification tooling,
 not a general production updater. A fresh host without that exact base image
-requires a separately qualified clean build.
+requires a separately qualified clean build. To reproduce the adopted derivative
+on a host holding the preserved baseline image, use the checked-in build wrapper
+and verify the result against the adoption manifest. A rebuild may have a
+different Docker image ID; do not promote it merely because the commit matches.
 
 The deployment intentionally has no external custom nodes. Keep
 `comfyui-nodes.list` empty except for comments; MiniMax-H3 is supplied by the
@@ -93,11 +99,17 @@ Create the H3-specific mount configuration:
 ```text
 # spark-h3-mounts.conf
 models = /home/wjmao/models/comfyui-h3
+user = /home/wjmao/services/spark-comfyui/data/user-v038
 ```
 
 The runner will bind that root to `/opt/ComfyUI/models`. Create normal runner
 data directories as needed under `/home/wjmao/services/spark-comfyui/data/`:
-`input`, `output`, `custom_nodes`, and `user`.
+`input`, `output`, `custom_nodes`, and `user-v038`. The checked-in
+[`comfy038-mounts.conf`](../tools/comfy038-mounts.conf) captures the adopted model
+and user mounts. On the existing Spark, `user-v038` already exists: **do not
+recopy or overwrite it**. On another migration, inspect catalog contents and
+copy the original directory only while admission is paused and queues are empty;
+do not apply this empty-catalog disposition to valuable metadata automatically.
 
 ## 3. Download and verify assets
 
@@ -151,6 +163,7 @@ BIND_ADDR=127.0.0.1 \
 SPARK_ATTENTION=sage \
 SPARK_BF16=1 \
 SPARK_BF16_VAE=1 \
+SPARK_STATIC_VRAM=0 \
 SHM_SIZE=16g \
 ./spark-comfyui.sh --mounts ./spark-h3-mounts.conf service
 ```
@@ -162,6 +175,13 @@ interfaces. `--mounts ./spark-h3-mounts.conf` is mandatory: omitting it starts
 a healthy-looking ComfyUI instance with the runner's default model directory,
 where the H3 assets are invisible and the gateway must reject work with
 `comfy_profile_unavailable`.
+
+Before recreating a container, assert `spark-comfyui:latest` identifies the exact
+adopted image from the manifest. Verify `/opt/ComfyUI/user` resolves to the stable
+`data/user-v038` host path, not `data/user` or the experiment copy. The live
+container was created with the same runner policy and exact image ID, then
+passed a restart smoke check. The original 0.35 container stays stopped under its
+rollback name. Do not run the two Comfy containers simultaneously.
 
 Confirm live runtime identity after startup:
 
@@ -257,11 +277,35 @@ H3 comparison. Any such change creates a new runtime candidate.
 - Qualify new Comfy releases against an isolated copy of the user directory.
   Comfy 0.38's migration discards/rebuilds parts of the asset catalog; do not
   point it at production `data/user` without a reviewed metadata disposition.
-  For this experiment, rollback stopped the candidate, restored the preserved
-  baseline container name, and restarted it with its untouched original mount.
+  For this adoption, production uses a separate stable copy; original `data/user`
+  and mount config were preserved without migration.
 - Treat a changed model hash, runner commit, ComfyUI commit, runtime flag, or
   workflow-template hash as a baseline change requiring a fresh smoke test.
 
-For why the current runtime is organized this way, profile selection policy,
-and the upcoming four-step/FP8/quality comparison sequence, read the
+### Exact rollback on the current Spark
+
+First stop admission and confirm all Comfy, gateway and Voice Lab generation
+queues are idle. Stop `plotloom-h3-gateway` and the user service
+`plotloom-voice-lab.service`; do not cancel or interrupt active work. The following
+commands assume the preserved rollback container/config still have the exact
+manifest identities and the new preservation name is unused:
+
+```sh
+cd /home/wjmao/services/spark-comfyui
+docker stop spark-comfyui
+docker rename spark-comfyui spark-comfyui-v038-adopted-20260930
+docker rename spark-comfyui-v035-rollback-20260930 spark-comfyui
+docker tag spark-comfyui:keep-h3-v035-20260930 spark-comfyui:latest
+cp spark-h3-mounts.v035-20260930.conf spark-h3-mounts.conf
+docker start spark-comfyui
+```
+
+Verify the old exact image/commit, original `data/user` mount, empty Comfy queue
+and `/object_info`. Then start the gateway and Voice Lab again and verify their
+health/readiness plus Qwen Image. Do not downgrade or replace `user-v038`, remove
+either user directory, reset CUDA, reboot, or delete model/experiment assets.
+This procedure preserves the adopted state too; it is not a repeatable updater.
+
+For why the current runtime is organized this way and historical inference
+comparisons, read the
 [H3 rationale and operations manual](h3-rationale-and-operations.md).

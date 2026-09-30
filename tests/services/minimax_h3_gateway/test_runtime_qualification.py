@@ -72,6 +72,24 @@ def test_candidate_records_exact_isolated_mounts(study, monkeypatch):
     assert study.runtime_mounts('candidate')[0]['source'] == str(study.WORK / 'candidate-user')
 
 
+def test_explicit_candidate_mount_cannot_point_at_production(study):
+    with pytest.raises(RuntimeError, match='cannot be the production'):
+        study.runtime_mounts('candidate', candidate_user=study.ROOT / 'data/user')
+
+
+@pytest.mark.parametrize('call_cap', [0, 4])
+def test_invalid_call_cap_stops_before_a_generation_session(study, monkeypatch, tmp_path, call_cap):
+    monkeypatch.setattr(study, 'WORK', tmp_path)
+    monkeypatch.setattr(study, 'runtime_mounts', lambda *args, **kwargs: [])
+    monkeypatch.setattr(study.subprocess, 'check_output', lambda *args, **kwargs: study.BASE_COMMIT)
+    monkeypatch.setattr(study, 'comfy_pid', lambda: 9)
+    monkeypatch.setattr(study, 'digest', lambda path: 'template-hash')
+    monkeypatch.setattr(study.requests, 'Session', lambda: pytest.fail('No generation session allowed'))
+    (tmp_path / 'cases.json').write_text(json.dumps({'templateSha256': 'template-hash', 'cases': [{}]}))
+    with pytest.raises(RuntimeError, match='Invalid bounded generation call cap'):
+        study.run('baseline', call_cap=call_cap)
+
+
 @pytest.mark.parametrize('valid_base', [False, True])
 def test_build_wrapper_refuses_wrong_base_and_builds_from_immutable_id(tmp_path, valid_base):
     wrapper = Path(__file__).parents[3] / 'services/minimax_h3_gateway/tools/comfy038-build.sh'

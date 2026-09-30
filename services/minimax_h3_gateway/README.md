@@ -23,10 +23,12 @@ shared operational boundary: the durable, one-active-inference FIFO.
 For the underlying Spark/ComfyUI engine rather than the gateway API, use the
 [reproducible H3 setup guide](docs/h3-reproducible-setup.md), the
 [H3 rationale and operations manual](docs/h3-rationale-and-operations.md), and
-the secret-free [current-installation manifest](h3-current-installation.v1.yaml).
-The manifest deliberately distinguishes the observed live installation from a
-qualified inference profile. New work uses the separate corrected candidate
-manifest until real-model qualification promotes it.
+the secret-free [runtime adoption manifest](h3-runtime-038-adoption.v1.yaml).
+ComfyUI 0.38.0 is live after bounded maintenance adoption, with the original
+0.35 image/container/user directory preserved. The
+[installation inventory](h3-current-installation.v1.yaml) captures historical
+foundation assets; it is not today's runtime or recipe status. New work uses the
+reviewed quality/resolution catalog below, not the historical v1 template.
 
 The separate [8-step sampling evaluation manifest](h3-8step-sampling-evaluation.v1.yaml)
 and [four-step v1.2 evaluation manifest](h3-turbo4-v12-evaluation.v1.yaml)
