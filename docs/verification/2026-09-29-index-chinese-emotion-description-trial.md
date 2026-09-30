@@ -147,3 +147,7 @@ The desired urgency delivery is accepted for both new takes. Separate review of
 same-person identity, exact words, and distortion, plus validation across other
 lines and delivery targets, remains open before integration. Production engine
 selection and the Index license gate remain unchanged.
+
+The bounded [three-line delivery follow-up](2026-09-29-index-chinese-delivery-followup.md)
+retains two seeds each for new urgency, reassurance, and restrained-frustration
+lines. It is a separate listening gate and does not broaden this acceptance.
