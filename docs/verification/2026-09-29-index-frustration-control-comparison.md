@@ -1,7 +1,8 @@
 # IndexTTS2 · Fixed-line frustration control comparison
 
-**Status:** Four new takes generated and copied with matching hashes.
-Listening acceptance is pending. Voice Lab/H3/Plotloom remain unchanged;
+**Status:** Four new takes generated and copied with matching hashes. Owner
+review rejected P1/P2 as too angry and accepted V1/V2 for the intended
+restrained-frustration delivery. Voice Lab/H3/Plotloom remain unchanged;
 director handoff and merge/push remain on hold.
 
 ## Root-cause question and approved boundary
@@ -107,11 +108,44 @@ Its final `/health` returned `ok`, and `/v1/models` identified
 `Qwen/Qwen-Image-2.1`. Voice Lab still reported an idle worker, and ComfyUI's
 queue was empty at the post-generation check. No concurrent-load test is claimed.
 
-## Remaining gate
+## Owner listening review · 2026-09-29
 
-Judge whether each pair communicates audible but restrained dissatisfaction,
-rather than neutrality, scolding, or anxiety. Also review same-person identity,
-exact words, and distortion separately. Keep the failed F1/F2 findings intact.
-No general preset, engine ranking, Voice ID, or license acceptance follows merely
-from successful synthesis. If this second investigation still misses the target,
-reassess the method rather than repeating prompt searches automatically.
+The owner reported: **P1/P2 are too angry, not 保持克制; V1/V2 are good.**
+This accepts the intended delivery in the explicit-vector pair and rejects the
+restraint criterion in the positive-text pair. It does not supply a separate
+new verdict for identity, exact words, or distortion. The previous F1/F2 remain
+failed-target evidence rather than being reclassified through this result.
+
+## Interpretation and bounded stopping decision
+
+The retained sequence now spans calm-heavy F1/F2 (frustration not heard),
+anger-heavy P1/P2 (too angry), and modest anger-only V1/V2 (accepted restraint).
+Together with observed control signals, this makes direction encoding and
+intensity a demonstrated integration concern: Chinese descriptions containing
+“克制” or “情绪力度适中” do not reliably produce mild numeric strengths.
+Index can produce the requested delivery in this case; the failed text output
+is not evidence that its speech model lacks restrained expression.
+
+This is not proof that anger `0.25` is a universal frustration preset or that
+one route is intrinsically better. The arms have different vectors, and evidence
+is limited to one reference, line, listener, and two seeds per arm.
+
+There is enough evidence to stop this audition series and propose a bounded
+Voice Lab integration, not to claim general performance qualification:
+
+- Prior MOSS D reuse review found no reliable same-person advantage between
+  Qwen Base and Index in that small set.
+- Chinese-description urgency passed on two lines with two seeds each;
+  reassurance passed on one line with two seeds.
+- Restrained frustration passed here on one line with two seeds only after
+  using a modest explicit vector; text interpretation remains fallible.
+
+Recommended integration guardrail: keep voice identity separate from delivery,
+make interpreted emotion strengths reviewable and adjustable, and retain an
+audition before reuse. Do not silently turn this trial's vector into a fixed
+mapping for all frustration requests. The next evidence should exercise actual
+project/candidate/reuse operations and serial model loading/unloading, rather
+than repeat broad prompt searches. Exact wording, distortion, the Index license,
+and downstream video/lip-sync behavior remain separate checks at their relevant
+integration boundaries. This recommendation does not authorize implementation,
+publish a Voice ID, or lift the director-handoff/merge/push hold.

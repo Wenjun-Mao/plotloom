@@ -146,5 +146,6 @@ license remain separate integration gates.
 
 The owner subsequently approved this bounded investigation. The separate
 [text/vector comparison receipt](2026-09-29-index-frustration-control-comparison.md)
-records its four new takes; those have not yet received a listening verdict and
-do not change the failed-target finding for F1/F2 here.
+records its four new takes. Subsequent owner review rejected P1/P2 as too angry and accepted V1/V2
+for restrained frustration. That outcome does not change the failed-target
+finding for F1/F2 here.
