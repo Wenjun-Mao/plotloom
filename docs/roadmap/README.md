@@ -51,3 +51,12 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 - [Exact relocation map and date basis](archive/README.md) records every old-to-new path. Dates come from a document's original approval/creation when explicit; otherwise they use its earliest Git addition and are marked as such.
 
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
+
+## Specialist Voice Lab proposal
+
+The retained H3/voice specialist checkout has a proposed
+[multi-engine Voice Lab plan](2026-09-29-voice-lab-multi-engine-plan.md): independent
+Qwen/MOSS creation and Qwen/Index reuse, serial on-demand processes, and
+reviewable delivery controls. It is not implementation approval or a change to
+the Plotloom delivery authority. Director contact, Plotloom integration,
+merge and push remain on hold.
