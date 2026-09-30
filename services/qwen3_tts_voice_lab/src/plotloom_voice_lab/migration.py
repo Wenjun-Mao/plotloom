@@ -166,7 +166,11 @@ def initialize(db_path: Path, root: Path) -> None:
         db.execute("PRAGMA journal_mode=WAL")
         db.execute("PRAGMA foreign_keys=OFF")
         version = db.execute("PRAGMA user_version").fetchone()[0]
+        if version == 3:
+            return
         if version == 2:
+            from .engine_migration import migrate_engines
+            migrate_engines(db)
             return
         if version != 0:
             raise ValueError(f"unsupported_voice_lab_schema:{version}")
@@ -179,6 +183,8 @@ def initialize(db_path: Path, root: Path) -> None:
             raise ValueError("voice_lab_foreign_key_violation")
         db.execute("PRAGMA user_version=2")
         db.commit()
+        from .engine_migration import migrate_engines
+        migrate_engines(db)
     except Exception:
         db.rollback()
         raise

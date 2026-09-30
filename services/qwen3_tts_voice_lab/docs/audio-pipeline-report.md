@@ -1,142 +1,129 @@
-# Voice Lab audio pipeline: what exists and how to use it
+# Voice Lab audio pipeline and intended use
 
-**Scope:** The Spark specialist Voice Lab on `codex/h3-ref2va-gateway`.
-This report distinguishes the running service from the intended Plotloom
-handoff. It does not claim Plotloom can already consume a Voice ID.
+Scope: the specialist Spark Lab, separate from Plotloom authoring.
+[ADR 0094](../../../docs/adr/0094-voice-lab-independent-engines-and-delivery.md)
+defines the multi-engine contract.
 
-## Purpose and flow
+## Two separate decisions
 
-Voice Lab is a casting workspace: describe a character voice, hear alternatives
-on one audition line, test whether a chosen voice survives new lines, and
-publish the chosen recording as a durable reference.
+Creating a compelling voice and preserving it while delivering new lines
+are different problems:
 
 ```text
-Project brief + common audition line + candidate direction
-  → Qwen3-TTS 1.7B VoiceDesign → original 24-kHz WAV
-  → validation/resampling → optional H3-ready 32-kHz WAV
-  → blind listening, comparison, selection
-  → optional 1.7B Base new-line clone test
-  → explicit Publish → immutable Voice ID + independent WAV copies
-
-Future: Plotloom imports Voice ID audio → freezes the audio in a video plan
-  → uploads one reference WAV per H3 job → author reviews the resulting clip.
+Project + shared audition line + explicit candidate directions
+  ├─ Qwen VoiceDesign ─┐
+  └─ MOSS Generator ───┴─ native identity recordings
+                           ↓ listen / blind shuffle / compare / select
+                         frozen reference + transcript + new words
+                           ├─ Qwen Base: neutral reuse
+                           └─ IndexTTS2: none / Chinese direction / manual strengths
+                           ↓ independent takes, not identity replacement
+                         explicit Publish of selected creation recording
+                           ↓ immutable Voice ID + source/H3 copies
 ```
 
-The specialist-side steps exist now at [Spark Voice Lab](http://100.64.35.71:8897/).
-The Plotloom bridge is **not implemented**. A specialist can manually submit
-published audio to the H3 gateway for an experiment, but there is no automatic
-Voice-ID-to-video path.
+All four creation/reuse combinations are supported by the contract and offline
+tests. The 2026-09-30 live matrix verified three neutral combinations; the
+Qwen-created reference → Index neutral attempt failed at CUDA model loading.
+The [deployment receipt](../../../docs/verification/2026-09-30-voice-lab-multi-engine-deployment.md)
+retains that qualification gap rather than claiming four-way acceptance.
+Same-person identity,
+pronunciation, naturalness and acting are separate judgments.
+A technically valid WAV is not creative approval.
 
-## Author workflow today
+## Author workflow
 
-1. Open `/` and create or choose a named project. The home page does not
-   auto-open old recordings. A project has an editable name, shared voice
-   brief, common audition line, candidate slots and lab-only selection.
-2. Save the shared brief and audition line. Add candidates, each with a
-   distinct written direction. Keeping the line constant helps isolate voice
-   differences. The browser can hide directions, shuffle for blind listening,
-   and compare two candidates side by side.
-3. Generate candidates one at a time. Each request freezes the saved text,
-   direction, seed and model revision into a new generation. The serial worker
-   reports the number of design/clone jobs ahead, then observed phases and
-   elapsed time. Qwen does not supply a trustworthy percent complete or ETA.
-4. Listen and choose a current generation as the lab reference. Use **复用测试**
-   to make a new-line sample with the Base model. It pins a copy of the
-   selected source WAV before queuing. Judge voice identity, pronunciation and
-   acting separately. A clone trial is evidence, not a published voice.
-5. If the selection is H3-eligible, explicitly **Publish** it and copy the
-   returned `voiceId`. Publication makes independent hash-checked copies of
-   the original and H3-ready WAV. The read-only Voice ID endpoints resolve
-   those exact bytes after refresh, restart, project deletion or later
-   candidate regeneration.
+1. Open [Voice Lab](http://100.64.35.71:8897/) and create/choose a named project.
+   Save its shared brief and audition line. Keeping the line constant helps
+   compare voices without different words becoming a confound.
+2. Select Qwen, MOSS or both; enter one explicit direction per requested slot.
+   Count means **per engine**; total is also shown. No hidden LLM invents
+   variations. Paired slots share input binding but independent IDs/failures.
+   Regenerate one slot without changing siblings.
+3. Listen, blind-shuffle/hide design information, and compare two recordings.
+   Blind mode hides engine identity; it is not loudness-matched or a controlled
+   preference study.
+4. Select a current creation recording. Choose Qwen Base (neutral default) or
+   Index for **复用测试**. Enter new words separately from acting direction.
+   Admission copies and hash-pins the exact reference and transcript.
+5. Index offers none, Chinese description, or eight manual strengths.
+   Description mode shows actual classifier/effective strengths. Copy them
+   to manual controls and adjust visible components if useful. No overall
+   intensity slider or hidden normalization.
+6. Publish the selected creation recording when ready and copy its `voiceId`.
+   Reuse takes do not replace the identity or automatically publish a voice.
 
-Saving edited descriptions never alters previously generated audio. Changing
-the brief, audition line or direction during an active generation makes its
-result stale rather than current. Failed regeneration preserves the earlier
-usable recording; successful regeneration switches only that candidate and
-removes the older *unpublished* WAV. Published Voice IDs do not change.
+Index's pinned order is 快乐/愤怒/悲伤/害怕/厌恶/低落/惊讶/平静.
+Each value is a finite strength 0–1, not a sum-to-one probability contract.
+`emo_alpha=1.0`. The classifier's output is a proposal, not proof of successful
+acting. Qwen Base rejects unsupported emotion controls.
 
-## Identities and audio contracts
+## Listening findings, not universal presets
 
-| ID | Meaning | Mutability |
-| --- | --- | --- |
-| `projectId` (`vp_…`) | Named casting workspace | Text and candidate list are editable. |
-| `candidateId` (`vc_…`) | Stable slot for one voice direction | Current-generation pointer may change. |
-| `generationId` (`vg_…`) | Frozen VoiceDesign attempt | Provenance stays; replaced unpublished files may be removed. |
-| `trialId` (`vt_…`) | Base new-line experiment | Pinned input and output belong to this trial. |
-| `voiceId` (`voice_…`) | Explicitly published voice | Independent audio and provenance are immutable. |
+The owner and a Chinese-speaking friend slightly preferred MOSS creation in a
+small comparison. Original MOSS D remained preferred over refinements, but was
+not perfectly natural. Neutral Qwen/Index reuse both preserved its identity
+well enough that no reliable winner was heard.
 
-VoiceDesign produces mono 24-kHz float WAV. The Lab validates and hashes it,
-then prepares a separate mono 32-kHz PCM16 reference by deterministic
-resampling. H3 eligibility requires **1–10 seconds** and a prepared file of
-**at most 2 MiB**. A longer valid original may remain auditionable but cannot
-be published as an H3 reference. Retrieval verifies managed paths and hashes;
-public API responses contain no server filesystem paths.
+Chinese-description Index urgency and reassurance passed bounded listening.
+Fear/surprise numeric control sounded anxious, not decisive urgency.
+Calm-heavy frustration missed the target; anger-heavy control was too angry;
+explicit anger `0.25` passed restrained frustration twice.
+These [captured observations](../../../docs/roadmap/2026-09-29-voice-lab-multi-engine-plan.md)
+are not statistical rankings or guarantees for a new voice.
 
-SQLite is `$VOICE_LAB_DATA_ROOT/voice_lab.sqlite3`. Unpublished audio lives
-under `assets/<candidateId>/<generationId>/`, pinned clone material under
-`clones/<trialId>/`, and published copies under `voices/<voiceId>/`. Deleting a
-project requires its exact name and no active jobs; it does not delete its
-published voices. There is no published-voice retirement API or automatic
-Voice Lab media-retention timer yet.
+## Identity and media contracts
 
-## Models and operational boundary
+| ID | Meaning |
+|---|---|
+| `projectId` | Mutable named workspace |
+| `candidateId` | Stable independently editable creation slot |
+| `generationId` | Frozen creation attempt; current pointer may be replaced |
+| `trialId` | New-line attempt with pinned reference, words and delivery |
+| `voiceId` | Explicit immutable publication independent of the project |
 
-The Lab uses **two** of Qwen3-TTS's variants:
+Native WAV bytes stay unchanged: Qwen/MOSS 24 kHz, Index 22.05 kHz.
+Subtype, hash, duration, sample peak and warnings are recorded.
+A separate 32-kHz PCM16 H3 copy records deterministic resampling and any gain.
+It does not trim, time-stretch or repair already-clipped source audio.
+H3 publication requires 1–10 seconds and at most 2 MiB prepared audio.
 
-| Task | Model | Call |
-| --- | --- | --- |
-| Design a new candidate | `Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign` | `generate_voice_design` with text and written instruction |
-| Reuse a voice on a new line | `Qwen/Qwen3-TTS-12Hz-1.7B-Base` | `create_voice_clone_prompt` then `generate_voice_clone` |
+Failed regeneration keeps old audio. Success switches only that slot before
+removing the older unpublished WAV. Edited design makes old audio noncurrent.
+Published copies survive regeneration, deletion and restart; repeated Publish
+for one generation returns the same ID. There is no published-voice retirement
+API or media-retention timer in this slice.
 
-Neither CustomVoice nor either 0.6B variant is used. Checkpoints are under
-`/home/wjmao/models/qwen3-tts/` on Spark. The adapter checks weight hashes,
-loads on demand with BF16/CUDA and Torch SDPA, then releases the model. One
-worker serializes Lab design and clone jobs, **not** H3 or Qwen Image jobs.
-After restart, unfinished Lab jobs become `interrupted` and are not silently
-replayed. The service is private Tailnet, same-origin, and unauthenticated;
-do not expose it publicly. See the [service README](../README.md) for the
-systemd unit, configuration and API route list.
+## Runtime and H3 boundary
 
-## H3 now, Plotloom later
+One lightweight API/FIFO worker supervises **one short-lived model process per
+job**, using separate Qwen/MOSS/Index environments. No four-model warm cache.
+Exact package/file inventories and runtime fingerprints prevent substitution.
+Process exit is the model-release boundary; cold loading adds latency.
+Restart interrupts unfinished jobs, not replays them. Queue counts, observed
+phases and elapsed time are shown without fabricated percent or ETA.
+Memory/ComfyUI checks are advisory, not a cross-service GPU lock.
 
-The authenticated H3 Ref2VA gateway accepts one first-frame image and one
-audio reference per `POST /v1/video-jobs/from-image-with-voice` job. Its
-current admission bounds are 960×544 or 576×1024 video, 5–8 seconds
-requested duration, and a 1–10-second mono 32-kHz PCM16 WAV of at most 2 MiB.
-It does **not** resolve Voice IDs or maintain a voice library. For a manual
-technical trial, retrieve `GET /api/voices/{voiceId}/audio?kind=h3` from the
-Lab and submit those exact bytes as gateway `voiceAudio` with the image and
-prompt. That is not yet a Plotloom workflow.
+See [reproduction and operations](reproduction-and-operations.md) for ARM64
+dependencies, licenses, migration and recovery.
 
-The intended Plotloom integration is to let an author bind a Voice ID to a
-character, import and hash-pin its frozen WAV in Plotloom-owned storage, and
-freeze that selection and exact audio into each production snapshot. The
-gateway would still receive one audio upload per job. Canonical Dialogue Cues
-and shot prompts would own intended words and acting; the reference guides
-identity. Stale or missing references must fail visibly, never silently
-switch voice or fall back to ordinary image-to-video. These product contracts
-and the Plotloom director handoff remain pending.
+The H3 gateway takes audio bytes, not Voice IDs. Its qualified Ref2VA boundary
+remains one image plus a mono 32-kHz PCM16 reference, 960×544 or 576×1024,
+requested 5–8 seconds. This slice adds no H3 trial or gateway Voice ID lookup.
+A reference guides identity; it is not an exact soundtrack/lip-sync guarantee.
+Review words, mouth timing, extra speech and subtitles separately.
 
-The H3 reference is **not** an exact audio track or lip-sync guarantee. Review
-each video for same-person timbre, intended words, pronunciation, emotional
-delivery, visible mouth timing, extra speech and unwanted subtitles. The owner
-heard consistent identity in six Base reuse samples, but both urgent samples
-lacked urgency. Favorable two-shot H3 canaries do not establish broad
-cross-shot reliability. Whether to use the published audition sample or a
-dialogue-specific Base clone as each H3 reference is still an open design
-choice.
+Later Plotloom work must bind a Voice ID to a character, import/hash-pin audio
+in Plotloom-owned storage, freeze it in production snapshots, and distinguish
+identity from dialogue-specific delivery. Whether H3 receives the published
+audition or a selected delivery take remains an open product choice.
+The [handoff note](../../../docs/verification/2026-09-26-voice-candidate-handoff-draft.md)
+is held; no director message/integration is authorized here.
 
-## Evidence and source map
+## Source map
 
-- [Voice Lab API](../src/plotloom_voice_lab/app.py),
-  [model adapter](../src/plotloom_voice_lab/engine.py),
-  [media preparation](../src/plotloom_voice_lab/media.py), and
-  [published-voice store](../src/plotloom_voice_lab/voices.py).
-- [Project/Voice ID decision](../../../docs/adr/0092-voice-lab-projects-and-published-voice-identity.md),
-  [progress decision](../../../docs/adr/0093-voice-lab-observed-job-progress.md),
-  and [H3 reference contract](../../../docs/adr/0090-h3-ref2va-per-job-voice-reference.md).
-- [Spark Lab verification](../../../docs/verification/2026-09-26-spark-voice-lab-implementation.md),
-  [project cutover](../../../docs/verification/2026-09-27-spark-voice-lab-project-cutover.md),
-  [progress check](../../../docs/verification/2026-09-27-voice-lab-job-progress.md),
-  and [Base reuse review](../../../docs/verification/2026-09-26-voice-reuse-trial.md).
+[API](../src/plotloom_voice_lab/app.py) ·
+[engine registry](../src/plotloom_voice_lab/engines/catalog.py) ·
+[supervisor](../src/plotloom_voice_lab/engines/process.py) ·
+[media preparation](../src/plotloom_voice_lab/media.py) ·
+[publication](../src/plotloom_voice_lab/voices.py).

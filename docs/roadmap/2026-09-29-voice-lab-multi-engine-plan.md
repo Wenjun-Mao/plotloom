@@ -1,7 +1,12 @@
 # Spark Voice Lab: independent creation and reuse engines
 
-**Status:** Proposed for owner review on 2026-09-29; implementation has not
-started. Planning baseline: `077b1c4` on the retained specialist branch
+**Status:** Approved by the owner on 2026-09-29; implemented and deployed on
+2026-09-30, but live qualification is incomplete because one neutral reuse
+attempt failed with CUDA OOM. The nine-call allowance is exhausted; no retry
+or completion claim is authorized by this status. See the
+[deployment and qualification receipt](../verification/2026-09-30-voice-lab-multi-engine-deployment.md).
+Count-per-engine and the neutral Qwen Base default were accepted before “go”.
+Planning baseline: `077b1c4` on the retained specialist branch
 `codex/h3-ref2va-gateway`. This is the single plan for the multi-engine slice,
 following the implemented [project/Voice ID plan](2026-09-26-spark-voice-lab-projects-plan.md).
 The hold on Plotloom-director contact, Plotloom changes, merge and push remains.
@@ -29,7 +34,7 @@ These are bounded findings, not a universal acting preset or model ranking.
 Stop isolated audition searches. The next evidence must demonstrate the
 working workflow, model isolation, persistence and failure safety.
 
-## Proposed user behavior
+## Approved user behavior
 
 ### Stage 1: create a voice
 
@@ -38,10 +43,9 @@ working workflow, model isolation, persistence and failure safety.
 - Default comparison creates **Group 1 — Qwen** and **Group 2 — MOSS** from
   the same explicit directions and audition line, without a hidden LLM inventing
   variations. Support selecting just one engine when desired.
-- Proposed count convention: the number is **per selected engine**. Two
+- The number is **per selected engine**. Two
   directions with both engines produce four candidate slots. Show both the
-  per-engine count and total before submission. This is a proposed default for
-  review, not an already approved change to the current count semantics.
+  per-engine count and total before submission.
 - Paired candidates share an input-design binding for comparison but have
   independent candidate/generation IDs and completion states. A failed MOSS
   job does not invalidate the Qwen result. Equal numeric seeds are not a claim
@@ -57,7 +61,7 @@ working workflow, model isolation, persistence and failure safety.
 ### Stage 2: reuse the chosen voice
 
 - Choose Qwen Base or Index independently of the Stage-1 engine. All four
-  creation/reuse combinations are supported. Proposed neutral-reuse default
+  creation/reuse combinations are supported. The neutral-reuse default
   remains Qwen Base; Index is selectable for delivery control. No automatic
   engine fallback or preference inferred from the small listening trials.
 - Keep spoken text separate from performance direction. Qwen Base offers

@@ -1477,7 +1477,7 @@ wheels = [
 
 [[package]]
 name = "plotloom-voice-lab"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastapi" },
@@ -1503,7 +1503,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.141,<1" },
     { name = "numpy", specifier = ">=2,<3" },
     { name = "qwen-tts", marker = "extra == 'inference'", specifier = "==0.1.1" },
-    { name = "scipy", specifier = ">=1.18,<2" },
+    { name = "scipy", specifier = ">=1.16,<2" },
     { name = "soundfile", specifier = ">=0.14,<1" },
     { name = "uvicorn", specifier = ">=0.54,<1" },
 ]

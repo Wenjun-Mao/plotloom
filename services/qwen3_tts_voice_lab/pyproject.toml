@@ -1,13 +1,13 @@
 [project]
 name = "plotloom-voice-lab"
-version = "0.1.0"
+version = "0.2.0"
 description = "Private Spark synthetic voice casting lab"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.141,<1",
   "uvicorn>=0.54,<1",
   "numpy>=2,<3",
-  "scipy>=1.18,<2",
+  "scipy>=1.16,<2",
   "soundfile>=0.14,<1",
 ]
 

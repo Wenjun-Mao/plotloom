@@ -82,16 +82,33 @@ instruction to begin implementation now.
    tests. A technically successful job must remain reviewable, not
    auto-approved.
 
-## Decisions still open on the specialist side
+## Specialist update · 2026-09-30 (still withheld)
 
-- Whether candidate generation becomes a Spark API/service, a bounded offline
-  specialist workflow, or both; no Qwen3-TTS endpoint exists today.
-- Candidate count, audition scripts, blind/level-matched comparison policy,
-  and whether another voice engine is needed as a quality comparator.
-- Whether a selected candidate should also feed a separate TTS/clone path for
-  off-screen lines. The VoiceDesign-then-Base-clone trial passed the owner's
-  bounded identity review, but acting control remains unresolved. H3 Ref2VA
-  currently uses only the frozen WAV.
+The multi-engine implementation separates creation (`qwen_design`,
+`moss_design`) from reuse (`qwen_base`, `index_base`) in the named-project Lab.
+Qwen remains neutral reuse default; Index offers Chinese-description
+interpretation and manual strengths. Actual vectors are evidence, not acting
+approval. Short-lived engine processes replace resident inference in the API.
+Existing Voice IDs remain independent of creator/reuse selection and survive
+the additive migration.
+
+The [deployment receipt](2026-09-30-voice-lab-multi-engine-deployment.md) records
+the exhausted nine-call cap and one unresolved CUDA OOM in Qwen → Index neutral
+reuse. This is not a fully qualified release or authorization to hand it off.
+
+See the [current pipeline report](../../services/qwen3_tts_voice_lab/docs/audio-pipeline-report.md)
+and [specialist plan](../roadmap/2026-09-29-voice-lab-multi-engine-plan.md).
+This note is not an instruction to the director. Plotloom still needs a later
+approved Voice ID import/character binding and frozen-media contract; none is
+implemented by the Lab. No universal emotion presets were accepted.
+
+## Decisions still open for an authorized handoff
+
+- Whether H3 receives the published identity audition or a selected
+  dialogue-specific reuse take. A take must not replace identity implicitly.
+- Plotloom's author-facing delivery/selection workflow and review gates.
+- Whether future comparisons should loudness-match; current blind listening
+  hides identities but is not a controlled study.
 - Plotloom-side retention and consent policy, and exact selection/currentness
   rules, must be decided before proposing a product schema.
 

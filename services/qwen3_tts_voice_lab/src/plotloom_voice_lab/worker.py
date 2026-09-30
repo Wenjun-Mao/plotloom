@@ -1,4 +1,4 @@
-"""One serial, non-replaying inference worker for specialist casting."""
+"""One serial worker, with model lifetime bounded by each supervised process."""
 
 from __future__ import annotations
 
@@ -8,9 +8,8 @@ import threading
 import time
 from pathlib import Path
 
-from .engine import ModelIntegrityError
-from .identity import BASE_REVISION, DESIGN_REVISION
-from .media import file_sha256, persist_candidate, persist_clone
+from .engines.process import EngineFailure
+from .media import file_sha256, persist_candidate_file, persist_clone_file
 from .store import Store
 
 LOGGER = logging.getLogger(__name__)
@@ -26,17 +25,24 @@ class Worker:
         self.phase: str | None = None
         self.started_at: float | None = None
         self.state_lock = threading.Lock()
+        self.stopping = threading.Event()
 
     def start(self) -> None:
         self.thread.start()
 
     def stop(self) -> None:
+        self.stopping.set()
+        self.engine.stop()
         self.tasks.put(None)
-        self.thread.join(timeout=2)
+        self.thread.join(timeout=8)
+        if self.thread.is_alive():
+            raise RuntimeError("worker.shutdown_failed")
 
     def submit(self, kind: str, task_id: str) -> None:
         if kind not in {"generation", "clone"}:
             raise ValueError("worker.unknown_job_kind")
+        if self.stopping.is_set():
+            raise ValueError("worker.stopping")
         self.tasks.put((kind, task_id))
 
     def progress(self, kind: str, task_id: str) -> dict:
@@ -65,84 +71,73 @@ class Worker:
             if task is None:
                 self.tasks.task_done()
                 return
+            kind, task_id = task
+            if self.stopping.is_set():
+                self._fail(kind, task_id, "generation.interrupted")
+                self.tasks.task_done()
+                continue
             with self.state_lock:
                 self.active, self.phase, self.started_at = task, "starting", time.monotonic()
-            kind, task_id = task
             try:
                 if kind == "generation":
                     self._run_generation(task_id)
                 else:
                     self._run_clone(task_id)
+            except EngineFailure as error:
+                self._fail(kind, task_id, str(error))
+            except ValueError:
+                LOGGER.exception("invalid voice lab result for %s %s", kind, task_id)
+                self._fail(kind, task_id, "audio.invalid")
             except Exception:
                 LOGGER.exception("voice lab worker could not finish %s %s", kind, task_id)
-                if kind == "generation":
-                    self.store.generations.fail(task_id, "generation.failed")
-                else:
-                    self.store.clones.mark(task_id, "failed", "generation.failed")
+                self._fail(kind, task_id, "generation.failed")
             finally:
+                native = self.store.data_dir / "runs" / task_id / "audio.wav"
+                with self.store.connection() as db:
+                    self.store.enqueue_cleanup(db, [str(native)])
+                self.store.run_cleanup()
                 with self.state_lock:
                     self.active, self.phase, self.started_at = None, None, None
                 self.tasks.task_done()
 
+    def _fail(self, kind: str, task_id: str, code: str) -> None:
+        if kind == "generation":
+            self.store.generations.fail(task_id, code)
+        else:
+            self.store.clones.mark(task_id, "interrupted" if code == "generation.interrupted" else "failed", code)
+
     def _run_generation(self, generation_id: str) -> None:
         generation = self.store.generations.get(generation_id)
-        if generation["modelRevision"] != DESIGN_REVISION:
-            self.store.generations.fail(generation_id, "model.snapshot_stale")
-            return
         self.store.generations.mark_running(generation_id)
-        try:
-            self._phase("loading_model")
-            with self.engine.design_session() as session:
-                self._phase("synthesizing")
-                waveform, sample_rate = session.generate(
-                    generation["auditionText"],
-                    "\n".join(value for value in (generation["brief"], generation["direction"]) if value),
-                    generation["seed"],
-                )
-                self._phase("preparing_audio")
-                media = persist_candidate(
-                    self.store.data_dir, generation["candidateId"], generation_id,
-                    waveform, sample_rate,
-                )
-            self._phase("finalizing")
-            self.store.generations.complete(generation_id, media)
-        except FileNotFoundError:
-            self.store.generations.fail(generation_id, "model.unavailable")
-        except ModelIntegrityError:
-            self.store.generations.fail(generation_id, "model.weights_changed")
-        except ValueError:
-            self.store.generations.fail(generation_id, "audio.invalid")
-        except Exception:
-            LOGGER.exception("voice generation failed for %s", generation_id)
-            self.store.generations.fail(generation_id, "generation.failed")
+        native, _metrics = self.engine.run(
+            generation["executionSnapshot"],
+            {"text": generation["auditionText"], "direction": "\n".join(
+                value for value in (generation["brief"], generation["direction"]) if value),
+             "seed": generation["seed"]},
+            self.store.data_dir / "runs" / generation_id, self._phase, lambda _value: None,
+        )
+        self._phase("preparing_audio")
+        media = persist_candidate_file(self.store.data_dir, generation["candidateId"], generation_id,
+                                       native, generation["executionSnapshot"]["sampleRate"])
+        media["audioDetails"]["executionMetrics"] = _metrics
+        self._phase("finalizing")
+        self.store.generations.complete(generation_id, media)
 
     def _run_clone(self, trial_id: str) -> None:
         trial = self.store.clones.get(trial_id, private=True)
-        if trial["modelRevision"] != BASE_REVISION:
-            self.store.clones.mark(trial_id, "failed", "model.snapshot_stale")
-            return
         reference = Path(trial["referencePath"]) if trial["referencePath"] else None
         if reference is None or not reference.is_file() or file_sha256(reference) != trial["sourceSha256"]:
-            self.store.clones.mark(trial_id, "failed", "reference.corrupt")
-            return
+            raise EngineFailure("reference.corrupt")
         self.store.clones.mark(trial_id, "running")
-        try:
-            self._phase("loading_model")
-            with self.engine.clone_session() as session:
-                self._phase("synthesizing")
-                waveform, sample_rate = session.generate(
-                    trial["text"], reference, trial["referenceText"], trial["seed"],
-                )
-                self._phase("preparing_audio")
-                media = persist_clone(self.store.data_dir, trial_id, waveform, sample_rate)
-            self._phase("finalizing")
-            self.store.clones.mark(trial_id, "completed", media=media)
-        except FileNotFoundError:
-            self.store.clones.mark(trial_id, "failed", "model.unavailable")
-        except ModelIntegrityError:
-            self.store.clones.mark(trial_id, "failed", "model.weights_changed")
-        except ValueError:
-            self.store.clones.mark(trial_id, "failed", "audio.invalid")
-        except Exception:
-            LOGGER.exception("clone generation failed for %s", trial_id)
-            self.store.clones.mark(trial_id, "failed", "generation.failed")
+        native, _metrics = self.engine.run(
+            trial["executionSnapshot"],
+            {"text": trial["text"], "seed": trial["seed"], "reference": str(reference),
+             "referenceText": trial["referenceText"], "delivery": trial["delivery"]},
+            self.store.data_dir / "runs" / trial_id, self._phase,
+            lambda value: self.store.clones.record_execution(trial_id, value),
+        )
+        self._phase("preparing_audio")
+        media = persist_clone_file(self.store.data_dir, trial_id, native, trial["executionSnapshot"]["sampleRate"])
+        media["audioDetails"]["executionMetrics"] = _metrics
+        self._phase("finalizing")
+        self.store.clones.mark(trial_id, "completed", media=media)

@@ -52,11 +52,13 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
 
-## Specialist Voice Lab proposal
+## Specialist Voice Lab
 
-The retained H3/voice specialist checkout has a proposed
+The retained H3/voice specialist checkout has an owner-approved
 [multi-engine Voice Lab plan](2026-09-29-voice-lab-multi-engine-plan.md): independent
 Qwen/MOSS creation and Qwen/Index reuse, serial on-demand processes, and
-reviewable delivery controls. It is not implementation approval or a change to
+reviewable delivery controls. Implementation is deployed, but
+[live qualification remains incomplete](../verification/2026-09-30-voice-lab-multi-engine-deployment.md)
+after a CUDA OOM in one neutral reuse combination. This does not change
 the Plotloom delivery authority. Director contact, Plotloom integration,
 merge and push remain on hold.

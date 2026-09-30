@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const state = { project: null, shortlist: [], order: [], blind: false, notes: false,
-  epoch: 0, polling: null, candidateDrafts: new Map(), candidateSignature: '', cloneSignature: '', pendingGenerationId: null };
+  epoch: 0, polling: null, candidateDrafts: new Map(), candidateSignature: '', cloneSignature: '', pendingGenerationId: null, auxiliarySaved: {} };
 
 async function api(path, method = 'GET', body) {
   const response = await fetch(path, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
@@ -20,7 +20,7 @@ function progressText(progress) {
     return progress.queueAhead ? `排队中 · 前方 ${progress.queueAhead} 个任务` : '排队中 · 下一个开始';
   }
   if (progress.status === 'running') {
-    const phase = ({ starting: '任务启动中', loading_model: '模型准备中', synthesizing: '语音合成中', preparing_audio: '音频整理中', finalizing: '结果保存中' })[progress.phase] || '生成中';
+    const phase = ({ starting: '任务启动中', waiting_for_resources: '等待内存或其他生成任务释放', loading_model: '模型准备中', interpreting: '解释表演描述中', synthesizing: '语音合成中', preparing_audio: '音频整理中', finalizing: '结果保存中' })[progress.phase] || '生成中';
     return `${phase} · 已运行 ${Math.floor(progress.elapsedSeconds || 0)} 秒（模型未提供完成百分比）`;
   }
   return `${statusName(progress.status)}${progress.errorCode ? ` · ${progress.errorCode}` : ''}`;
@@ -30,7 +30,21 @@ function projectFormChanged() {
   const p = state.project;
   return !!p && (p.name !== $('project-name').value || p.brief !== $('project-brief').value || p.auditionText !== $('audition-text').value);
 }
-function changed() { return projectFormChanged() || state.candidateDrafts.size > 0; }
+function auxiliaryDrafts() {
+  return {
+    creation: JSON.stringify([$('creation-engines').value, $('creation-count').value, [...$('paired-directions').querySelectorAll('textarea')].map(input => input.value)]),
+    new: JSON.stringify([$('new-engine').value, $('new-direction').value]),
+    reuse: JSON.stringify([$('reuse-engine').value, $('reuse-seed').value, $('delivery-mode').value, $('delivery-description').value,
+      [...$('emotion-vector').querySelectorAll('input')].map(input => input.value), $('clone-text').value]),
+  };
+}
+function acceptAuxiliary(kind) { state.auxiliarySaved[kind] = auxiliaryDrafts()[kind]; }
+function changed() {
+  if (!state.project) return false;
+  const drafts = auxiliaryDrafts();
+  return projectFormChanged() || state.candidateDrafts.size > 0
+    || Object.keys(drafts).some(key => drafts[key] !== state.auxiliarySaved[key]);
+}
 function clearPolling() { if (state.polling) clearInterval(state.polling); state.polling = null; }
 function selectedCandidate() { return state.project?.candidates.find(c => c.currentGeneration?.generationId === state.project.selectedGenerationId); }
 
@@ -58,7 +72,15 @@ async function loadProject(id, replaceForm = true, epoch = state.epoch) {
   if (epoch !== state.epoch) return;
   const switched = state.project?.projectId !== id;
   state.project = p; $('chooser').hidden = true; $('workspace').hidden = false;
-  if (switched) { state.shortlist = []; state.order = p.candidates.map(c => c.candidateId); state.candidateDrafts.clear(); state.candidateSignature = ''; state.cloneSignature = ''; }
+  if (switched) {
+    state.shortlist = []; state.order = p.candidates.map(c => c.candidateId); state.candidateDrafts.clear(); state.candidateSignature = ''; state.cloneSignature = '';
+    for (const input of ['new-direction', 'clone-text', 'delivery-description', 'reuse-seed']) $(input).value = '';
+    $('new-engine').value = 'qwen_design'; $('creation-engines').value = 'both'; $('creation-count').value = '2';
+    $('reuse-engine').value = 'qwen_base'; $('delivery-mode').value = 'none'; $('delivery-mode').onchange();
+    for (const input of $('emotion-vector').querySelectorAll('input')) input.value = '0';
+    $('paired-directions').replaceChildren(); creationFields();
+    state.auxiliarySaved = auxiliaryDrafts();
+  }
   if (replaceForm) updateForm(p);
   const signature = JSON.stringify([p.selectedGenerationId, p.candidates]);
   if (signature !== state.candidateSignature) { renderCandidates(); renderCompare(); state.candidateSignature = signature; }
@@ -96,8 +118,8 @@ async function refreshGenerationProgress(project, epoch) {
     if (target) target.textContent = progressText(progress);
   }
 }
-async function navigate(id, fromHistory = false) {
-  if (changed() && !window.confirm('当前项目有未保存的修改。放弃修改并切换吗？')) {
+async function navigate(id, fromHistory = false, discardApproved = false) {
+  if (!discardApproved && changed() && !window.confirm('当前项目有未保存的修改。放弃修改并切换吗？')) {
     if (fromHistory) history.replaceState({}, '', state.project ? `?project=${encodeURIComponent(state.project.projectId)}` : '/');
     return;
   }
@@ -129,12 +151,17 @@ function makeCandidate(c) {
   const current = c.currentGeneration; const latest = c.latestGeneration;
   const card = node('article', 'candidate-card' + (state.project.selectedGenerationId === current?.generationId ? ' selected' : ''));
   const head = node('div', 'card-head'); head.append(node('h3', '', candidateLabel(c)), node('span', 'small-text', latest ? statusName(latest.status) : '未生成')); card.append(head);
-  card.append(node('div', 'id', c.candidateId));
-  const direction = node('textarea'); direction.rows = 2; direction.maxLength = 300; direction.value = state.candidateDrafts.get(c.candidateId) ?? c.direction;
+  const identity = node('div', 'id', c.candidateId); identity.hidden = state.blind; card.append(identity);
+  const draft = state.candidateDrafts.get(c.candidateId);
+  const engine = node('select'); engine.setAttribute('aria-label', `${candidateLabel(c)}的创作引擎`);
+  for (const [id, title] of [['qwen_design', 'Qwen VoiceDesign'], ['moss_design', 'MOSS VoiceGenerator']]) { const option = node('option', '', title); option.value = id; engine.append(option); }
+  engine.value = draft?.engineId ?? c.engineId; engine.hidden = state.blind;
+  const direction = node('textarea'); direction.rows = 2; direction.maxLength = 300; direction.value = draft?.direction ?? c.direction;
   direction.setAttribute('aria-label', `${candidateLabel(c)}的声线方向`);
   direction.hidden = state.blind || !state.notes;
-  direction.addEventListener('input', () => { if (direction.value === c.direction) state.candidateDrafts.delete(c.candidateId); else state.candidateDrafts.set(c.candidateId, direction.value); });
-  card.append(direction);
+  const track = () => { if (direction.value === c.direction && engine.value === c.engineId) state.candidateDrafts.delete(c.candidateId); else state.candidateDrafts.set(c.candidateId, { direction: direction.value, engineId: engine.value }); };
+  direction.addEventListener('input', track); engine.onchange = track;
+  card.append(engine, direction);
   if (active(latest?.status)) {
     const progress = node('p', 'job-progress', latest.status === 'queued' ? '正在查询队列位置…' : '正在查询生成进度…');
     progress.id = `progress-${latest.generationId}`; progress.setAttribute('role', 'status'); card.append(progress);
@@ -143,15 +170,17 @@ function makeCandidate(c) {
     const audio = node('audio'); audio.controls = true; audio.preload = 'metadata'; audio.src = `/api/generations/${current.generationId}/audio`;
     audio.setAttribute('aria-label', `播放${candidateLabel(c)}`); audio.addEventListener('play', () => document.querySelectorAll('audio').forEach(other => { if (other !== audio) other.pause(); })); card.append(audio);
     card.append(node('div', 'small-text', `${current.sourceDurationSeconds?.toFixed(2) || '?'} 秒 · ${current.h3Eligible ? 'H3 参考就绪' : (current.errorCode || '仅可试听')}`));
+    if (!c.currentDesignMatches) card.append(node('p', 'error', '这是修改前的录音；重新生成后才能选为当前参考。'));
+    for (const warning of current.audioDetails?.warnings || []) card.append(node('p', 'error', warning));
   }
   if (latest?.status === 'failed' || latest?.status === 'interrupted' || latest?.status === 'completed_stale') card.append(node('p', 'error', `最近一次：${latest.errorCode || statusName(latest.status)}。${current ? '原录音仍可用。' : ''}`));
   const actions = node('div', 'card-actions');
-  const save = node('button', '', '保存说明'); save.hidden = state.blind || !state.notes; save.onclick = () => mutate(async () => {
-    state.project = await api(`/api/candidates/${c.candidateId}`, 'PUT', { expectedProjectRevision: state.project.revision, expectedCandidateRevision: c.revision, direction: direction.value.trim() });
+  const save = node('button', '', '保存候选设置'); save.hidden = state.blind; save.onclick = () => mutate(async () => {
+    state.project = await api(`/api/candidates/${c.candidateId}`, 'PUT', { expectedProjectRevision: state.project.revision, expectedCandidateRevision: c.revision, direction: direction.value.trim(), engineId: engine.value });
     state.candidateDrafts.delete(c.candidateId); renderCandidates(); status('candidate-status', '候选说明已保存；已有录音未修改。');
   }); actions.append(save);
   const generate = node('button', '', current ? '重新生成此候选' : '生成此候选'); generate.disabled = active(latest?.status); generate.onclick = () => mutate(async () => {
-    if (projectFormChanged() || direction.value !== c.direction) throw new Error('请先保存项目与此候选说明');
+    if (projectFormChanged() || direction.value !== c.direction || engine.value !== c.engineId) throw new Error('请先保存项目与此候选设置');
     if (current && !window.confirm('新录音成功后将替换此候选的旧未发布录音。继续吗？')) return;
     const result = await api(`/api/candidates/${c.candidateId}/generations`, 'POST', { expectedProjectRevision: state.project.revision, expectedCandidateRevision: c.revision });
     state.pendingGenerationId = result.generationId;
@@ -163,7 +192,7 @@ function makeCandidate(c) {
       if (index >= 0) state.shortlist.splice(index, 1); else if (state.shortlist.length < 2) state.shortlist.push(c.candidateId); else { status('candidate-status', '最多比较两条候选。'); return; }
       renderCandidates(); renderCompare();
     }; actions.append(compare);
-    const select = node('button', '', state.project.selectedGenerationId === current.generationId ? '当前参考' : '选为参考'); select.disabled = state.project.selectedGenerationId === current.generationId; select.onclick = () => mutate(async () => {
+    const select = node('button', '', state.project.selectedGenerationId === current.generationId ? '当前参考' : '选为参考'); select.disabled = !c.currentDesignMatches || state.project.selectedGenerationId === current.generationId; select.onclick = () => mutate(async () => {
       await api(`/api/projects/${state.project.projectId}/selections`, 'POST', { generationId: current.generationId });
       await loadProject(state.project.projectId, false, state.epoch);
     }); actions.append(select);
@@ -177,7 +206,12 @@ function makeCandidate(c) {
 function renderCandidates() {
   const grid = $('candidate-grid'); grid.replaceChildren(); const p = state.project; if (!p) return;
   const ids = p.candidates.map(c => c.candidateId); state.order = [...state.order.filter(id => ids.includes(id)), ...ids.filter(id => !state.order.includes(id))];
-  const map = new Map(p.candidates.map(c => [c.candidateId, c])); for (const id of state.order) grid.append(makeCandidate(map.get(id)));
+  const map = new Map(p.candidates.map(c => [c.candidateId, c]));
+  if (state.blind) { for (const id of state.order) grid.append(makeCandidate(map.get(id))); }
+  else for (const [engine, title] of [['qwen_design', 'Group 1 · Qwen VoiceDesign'], ['moss_design', 'Group 2 · MOSS VoiceGenerator']]) {
+    const group = p.candidates.filter(c => c.engineId === engine);
+    if (group.length) { grid.append(node('h3', 'group-heading', title)); group.forEach(c => grid.append(makeCandidate(c))); }
+  }
   $('blind-toggle').textContent = state.blind ? '结束盲听' : '打乱并盲听'; $('blind-toggle').setAttribute('aria-pressed', String(state.blind));
   $('notes-toggle').textContent = state.notes ? '隐藏设计说明' : '显示设计说明'; $('notes-toggle').disabled = state.blind;
 }
@@ -192,16 +226,11 @@ function renderCompare() {
 }
 function renderSelection() {
   const c = selectedCandidate(); status('selected-label', c ? `${candidateLabel(c)} · ${c.currentGeneration.generationId}` : '尚未选择参考声线');
-  $('clone-button').disabled = !c; $('publish-button').disabled = !c?.currentGeneration?.h3Eligible;
+  $('clone-button').disabled = !c?.currentDesignMatches; $('publish-button').disabled = !c?.currentDesignMatches || !c?.currentGeneration?.h3Eligible;
 }
 async function loadClones(epoch = state.epoch) {
-  const p = state.project; const area = $('clone-list'); if (!p) return false;
-  const { trials } = await api(`/api/clone-trials?projectId=${encodeURIComponent(p.projectId)}`);
-  if (epoch !== state.epoch) return false;
-  const signature = JSON.stringify(trials); if (signature === state.cloneSignature) return trials.some(t => active(t.status));
-  state.cloneSignature = signature; area.replaceChildren();
-  for (const t of trials) { const item = node('div', 'clone-item'); item.append(node('div', '', `${t.text} · ${statusName(t.status)}${t.errorCode ? ` · ${t.errorCode}` : ''}`)); if (t.status === 'completed') { const audio = node('audio'); audio.controls = true; audio.src = `/api/clone-trials/${t.trialId}/audio`; item.append(audio); } area.append(item); }
-  return trials.some(t => active(t.status));
+  if (!state.project) return false;
+  return renderTrials({ api, state, epoch, node, active, statusName, progressText });
 }
 async function loadVoices() {
   const { voices } = await api('/api/voices'); const area = $('voice-list'); area.replaceChildren();
@@ -209,12 +238,13 @@ async function loadVoices() {
 }
 
 $('new-project').onclick = $('chooser-create').onclick = () => mutate(async () => {
+  if (changed() && !window.confirm('当前项目有未保存的修改。放弃修改并新建吗？')) return;
   const name = window.prompt('新项目名称（可以使用角色名）：'); if (!name?.trim()) return;
-  const p = await api('/api/projects', 'POST', { name: name.trim() }); await navigate(p.projectId);
+  const p = await api('/api/projects', 'POST', { name: name.trim() }); await navigate(p.projectId, false, true);
 }, 'service-status');
 $('save-project').onclick = () => mutate(async () => {
   const p = state.project; state.project = await api(`/api/projects/${p.projectId}`, 'PUT', { expectedRevision: p.revision, name: $('project-name').value.trim(), brief: $('project-brief').value, auditionText: $('audition-text').value });
-  updateForm(state.project); await refreshProjects(); status('draft-status', '项目已保存。');
+  updateForm(state.project); renderCandidates(); renderSelection(); await refreshProjects(); status('draft-status', '项目已保存。');
 }, 'draft-status');
 $('delete-project').onclick = () => mutate(async () => {
   const p = state.project; const confirmation = window.prompt(`输入准确项目名「${p.name}」以删除项目及未发布录音：`); if (confirmation === null) return;
@@ -222,15 +252,40 @@ $('delete-project').onclick = () => mutate(async () => {
 }, 'draft-status');
 $('add-candidate').onclick = () => mutate(async () => {
   if (projectFormChanged()) throw new Error('请先保存项目'); const direction = $('new-direction').value.trim();
-  state.project = await api(`/api/projects/${state.project.projectId}/candidates`, 'POST', { expectedProjectRevision: state.project.revision, direction });
-  $('new-direction').value = ''; renderCandidates(); status('candidate-status', '候选已添加，其他录音未改变。');
+  state.project = await api(`/api/projects/${state.project.projectId}/candidates`, 'POST', { expectedProjectRevision: state.project.revision, direction, engineId: $('new-engine').value });
+  $('new-direction').value = ''; acceptAuxiliary('new'); renderCandidates(); status('candidate-status', '候选已添加，其他录音未改变。');
 });
 $('blind-toggle').onclick = () => { if (!state.project) return; state.blind = !state.blind; if (state.blind) { state.notes = false; shuffle(); } else state.order = state.project.candidates.map(c => c.candidateId); renderCandidates(); renderCompare(); };
 $('notes-toggle').onclick = () => { state.notes = !state.notes; renderCandidates(); };
-$('clone-button').onclick = () => mutate(async () => {
-  const c = selectedCandidate(); const result = await api('/api/clone-trials', 'POST', { projectId: state.project.projectId, generationId: c.currentGeneration.generationId, text: $('clone-text').value.trim() });
-  status('clone-status', `复用试听已排队：${result.trialId}`); await loadProject(state.project.projectId, false, state.epoch);
-}, 'clone-status');
+setupReuse({ api, state, selectedCandidate, mutate, status, loadProject, acceptAuxiliary });
+
+function creationFields() {
+  const area = $('paired-directions'); const previous = [...area.querySelectorAll('textarea')].map(input => input.value);
+  const count = Number($('creation-count').value); area.replaceChildren();
+  for (let i = 0; i < count; i += 1) {
+    const field = node('div', 'field'); const title = node('span', '', `候选方向 ${i + 1}`); title.id = `paired-label-${i}`;
+    const input = node('textarea'); input.rows = 2; input.maxLength = 300; input.value = previous[i] || '';
+    input.setAttribute('aria-labelledby', title.id); field.append(title, input); area.append(field);
+  }
+  const engines = $('creation-engines').value === 'both' ? 2 : 1;
+  status('creation-total', `每个引擎 ${count} 条，共 ${count * engines} 条。配对候选使用相同方向、台词和种子。`);
+}
+$('creation-count').onchange = $('creation-engines').onchange = creationFields;
+$('create-paired').onclick = () => mutate(async () => {
+  if (projectFormChanged() || state.candidateDrafts.size) throw new Error('请先保存项目和候选设置');
+  const directions = [...$('paired-directions').querySelectorAll('textarea')].map(input => input.value.trim());
+  if (directions.some(value => !value)) throw new Error('请填写每条候选方向');
+  const choice = $('creation-engines').value;
+  const result = await api(`/api/projects/${state.project.projectId}/paired-generations`, 'POST', {
+    expectedProjectRevision: state.project.revision, directions,
+    engineIds: choice === 'both' ? ['qwen_design', 'moss_design'] : [choice],
+  });
+  status('candidate-status', `已排队 ${result.generationIds.length} 条候选。`);
+  for (const input of $('paired-directions').querySelectorAll('textarea')) input.value = '';
+  acceptAuxiliary('creation');
+  await loadProject(state.project.projectId, false, state.epoch);
+});
+creationFields();
 $('publish-button').onclick = () => mutate(async () => {
   const c = selectedCandidate(); const result = await api('/api/voices', 'POST', { projectId: state.project.projectId, generationId: c.currentGeneration.generationId });
   status('publish-status', `已发布：${result.voiceId}`); await loadVoices();
@@ -239,6 +294,8 @@ for (const id of ['project-name', 'project-brief', 'audition-text']) $(id).addEv
 window.addEventListener('beforeunload', e => { if (changed()) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('popstate', () => navigate(new URLSearchParams(location.search).get('project'), true));
 Promise.all([api('/health'), refreshProjects(), loadVoices()]).then(async ([health]) => {
-  status('service-status', health.designModelAvailable && health.baseModelAvailable ? '服务在线 · 模型文件可用' : '服务在线 · 模型文件不完整');
+  const ready = Object.values(health.engines).filter(Boolean).length;
+  status('service-status', `服务在线 · ${ready}/4 引擎配置可用`);
   const id = new URLSearchParams(location.search).get('project'); if (id) await navigate(id, true); else showChooser();
 }).catch(e => status('service-status', `连接失败：${e.message}`));
+import { setupReuse, renderTrials } from '/reuse.js';

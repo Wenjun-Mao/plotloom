@@ -3,11 +3,11 @@ from __future__ import annotations
 import sqlite3
 import threading
 import time
-from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
 import pytest
+import soundfile as sf
 from fastapi.testclient import TestClient
 
 from plotloom_voice_lab.app import create_app
@@ -29,7 +29,7 @@ class FakeDesign:
 
 class FakeClone:
     def generate(self, text: str, reference: Path, reference_text: str, seed: int):
-        assert reference.is_file() and reference_text == "同一句台词。"
+        assert reference.is_file() and reference_text.strip()
         return np.full(48000, 0.2, dtype=np.float32), 24000
 
 
@@ -38,13 +38,37 @@ class FakeEngine:
         self.fail_direction, self.duration = fail_direction, duration
         self.observed_directions: list[str] = []
 
-    @contextmanager
-    def design_session(self):
-        yield FakeDesign(self.fail_direction, self.duration, self.observed_directions)
+    def design(self):
+        return FakeDesign(self.fail_direction, self.duration, self.observed_directions)
 
-    @contextmanager
-    def clone_session(self):
-        yield FakeClone()
+    def availability(self):
+        return {key: True for key in ("qwen_design", "moss_design", "qwen_base", "index_base")}
+
+    def stop(self):
+        pass
+
+    def run(self, snapshot, values, output_dir, phase, evidence):
+        phase("loading_model")
+        phase("synthesizing")
+        if snapshot["stage"] == "creation":
+            audio, rate = self.design().generate(values["text"], values["direction"], values["seed"])
+        else:
+            audio, rate = FakeClone().generate(values["text"], Path(values["reference"]), values["referenceText"], values["seed"])
+            control = values["delivery"]
+            mode = control.get("mode", "none")
+            record = {"mode": mode}
+            if mode != "none":
+                vector = control.get("vector", [0, .85, 0, 0, 0, 0, 0, 0])
+                record.update(effectiveVector=vector)
+                if mode == "text":
+                    record.update(rawVector=vector, classifierSeconds=.1)
+            evidence(record)
+        output_dir.mkdir(parents=True)
+        path = output_dir / "audio.wav"
+        # Native rate varies with engine; the worker must not force 24 kHz.
+        rate = snapshot["sampleRate"]
+        sf.write(path, audio[:rate * self.duration], rate, subtype="FLOAT")
+        return path, {"processElapsedSeconds": .1, "peakTorchGiB": 0, "processId": 0}
 
 
 class BlockingDesign(FakeDesign):
@@ -65,9 +89,8 @@ class BlockingEngine(FakeEngine):
         super().__init__()
         self.started, self.release = started, release
 
-    @contextmanager
-    def design_session(self):
-        yield BlockingDesign(self.started, self.release)
+    def design(self):
+        return BlockingDesign(self.started, self.release)
 
 
 def wait_for(client: TestClient, path: str):
@@ -95,7 +118,7 @@ def project(client: TestClient, name: str = "声线项目") -> dict:
 
 def candidate(client: TestClient, p: dict, direction: str = "方向一") -> tuple[dict, dict]:
     result = client.post(f"/api/projects/{p['projectId']}/candidates", json={
-        "expectedProjectRevision": p["revision"], "direction": direction,
+        "expectedProjectRevision": p["revision"], "direction": direction, "engineId": "qwen_design",
     })
     assert result.status_code == 201, result.text
     p = result.json()
@@ -135,7 +158,7 @@ def test_generation_progress_reflects_serial_queue_and_observed_phase(tmp_path):
 
             clone = client.post("/api/clone-trials", json={
                 "projectId": p["projectId"], "generationId": source["generationId"],
-                "text": "新台词。",
+                "text": "新台词。", "engineId": "qwen_base",
             })
             assert clone.status_code == 202
             waiting_job = client.post(f"/api/candidates/{third['candidateId']}/generations", json={
@@ -217,9 +240,9 @@ def test_selection_clone_and_corruption_guard(tmp_path):
         p = project(client)
         p, c = candidate(client, p)
         gen = generate(client, p, c)
-        assert client.post("/api/clone-trials", json={"projectId": p["projectId"], "generationId": gen["generationId"], "text": "新台词。"}).status_code == 409
+        assert client.post("/api/clone-trials", json={"projectId": p["projectId"], "generationId": gen["generationId"], "text": "新台词。", "engineId": "qwen_base"}).status_code == 409
         assert client.post(f"/api/projects/{p['projectId']}/selections", json={"generationId": gen["generationId"]}).status_code == 201
-        trial = client.post("/api/clone-trials", json={"projectId": p["projectId"], "generationId": gen["generationId"], "text": "新台词。"}).json()
+        trial = client.post("/api/clone-trials", json={"projectId": p["projectId"], "generationId": gen["generationId"], "text": "新台词。", "engineId": "qwen_base"}).json()
         assert wait_for(client, f"/api/clone-trials/{trial['trialId']}")["status"] == "completed"
         assert client.get(f"/api/clone-trials/{trial['trialId']}/audio").status_code == 200
         source = Path(client.app.state.store.generations.get(gen["generationId"], private=True)["sourcePath"])
@@ -267,7 +290,7 @@ def test_legacy_migration_preserves_checked_audio(tmp_path):
     assert migrated["candidates"][0]["currentGeneration"]["sourceSha256"] == media["sourceSha256"]
     assert migrated["selectedGenerationId"] == migrated["candidates"][0]["currentGeneration"]["generationId"]
     assert Path(media["sourcePath"]).is_file()
-    assert sqlite3.connect(db_path).execute("PRAGMA user_version").fetchone()[0] == 2
+    assert sqlite3.connect(db_path).execute("PRAGMA user_version").fetchone()[0] == 3
 
 
 def test_invalid_requests_and_non_h3_clip(tmp_path):
@@ -338,7 +361,7 @@ def test_candidate_edit_has_its_own_revision_and_frozen_generation(tmp_path):
         p, c = candidate(client, p)
         response = client.put(f"/api/candidates/{c['candidateId']}", json={
             "expectedProjectRevision": p["revision"],
-            "expectedCandidateRevision": c["revision"], "direction": "新的方向",
+            "expectedCandidateRevision": c["revision"], "direction": "新的方向", "engineId": "qwen_design",
         })
         assert response.status_code == 200
         edited = response.json()
@@ -346,7 +369,7 @@ def test_candidate_edit_has_its_own_revision_and_frozen_generation(tmp_path):
         assert current["candidateId"] == c["candidateId"] and current["revision"] == 2
         stale = client.put(f"/api/candidates/{c['candidateId']}", json={
             "expectedProjectRevision": edited["revision"],
-            "expectedCandidateRevision": 1, "direction": "过期修改",
+            "expectedCandidateRevision": 1, "direction": "过期修改", "engineId": "qwen_design",
         })
         assert stale.status_code == 409
         assert stale.json()["detail"]["code"] == "candidate.revision_conflict"

@@ -1,102 +1,104 @@
 # Spark Voice Lab
 
-Private, specialist-side synthetic voice casting. A new visitor sees a project
-chooser rather than the retained pilot. Projects are independent content
-workspaces, not authenticated user accounts. This service does not change the
-Plotloom authoring UI or H3 gateway.
+Private synthetic voice casting at <http://100.64.35.71:8897/>. Opening `/`
+shows a project chooser and never generates or opens old recordings.
+Projects are independent workspaces, not authenticated user accounts.
 
-For the author workflow, model and asset flow, H3 boundary, and intended
-Plotloom handoff, see the [audio pipeline report](docs/audio-pipeline-report.md).
+- [Author workflow and pipeline](docs/audio-pipeline-report.md)
+- [Reproduction, licenses and operations](docs/reproduction-and-operations.md)
+- [Engine decision](../../docs/adr/0094-voice-lab-independent-engines-and-delivery.md)
+- [Approved scope](../../docs/roadmap/2026-09-29-voice-lab-multi-engine-plan.md)
 
-## Authoring contract
+## Two stages, four independent engines
 
-- Create a named empty project. Its name, shared brief and audition line can be
-  edited with an expected-revision save. Candidate slots have stable unique
-  IDs and separate editable directions. Add or regenerate a single candidate
-  without rerunning the others.
-- Each generation has a new immutable ID and freezes its line, direction,
-  model revision and seed. The 24-kHz source WAV and, when eligible, a 32-kHz
-  mono PCM16 H3 reference are hash-checked on retrieval. Only 1–10-second,
-  at-most-2-MiB prepared audio is H3 eligible.
-- Failed regeneration keeps the old usable WAV. Successful replacement switches
-  the current pointer before deleting the old unpublished WAV; a lab selection
-  of that old generation is cleared. Cleanup failure remains as a scoped SQLite
-  debt for retry. A queued clone copies and pins its reference on admission.
-- Explicit Publish turns the selected H3-eligible generation into an immutable
-  `voiceId` with independent source and H3 WAV copies. Repeating Publish for the
-  same generation returns the same ID. Published audio survives regeneration,
-  project deletion and restart; there is no retirement endpoint yet.
-- One worker handles all design and clone jobs serially. On restart, queued or
-  running jobs become `interrupted` and are never silently replayed.
-- While a candidate is queued, its card shows how many design or clone jobs
-  are ahead. During generation, it shows the observed worker phase and elapsed
-  time. The model does not provide a reliable percent complete or ETA; the UI
-  does not invent either.
+The 2026-09-30 deployment preserves existing voices and passes offline gates.
+Its bounded live matrix is **not fully qualified**: Qwen-created reference →
+Index neutral reuse failed during CUDA context/model loading, with no replay.
+See the [deployment receipt](../../docs/verification/2026-09-30-voice-lab-multi-engine-deployment.md).
 
-See [ADR 0092](../../docs/adr/0092-voice-lab-projects-and-published-voice-identity.md).
+| Stage | Engine ID | Model | Native WAV |
+|---|---|---|---|
+| Create identity | `qwen_design` | Qwen3-TTS 1.7B VoiceDesign | 24 kHz |
+| Create identity | `moss_design` | MOSS VoiceGenerator | 24 kHz |
+| Reuse identity | `qwen_base` | Qwen3-TTS 1.7B Base, neutral default | 24 kHz |
+| Reuse identity | `index_base` | IndexTTS2, optional delivery control | 22.05 kHz |
 
-## Run and deployment
+Default creation compares Qwen and MOSS. Count is **per selected engine**:
+two explicit directions with two engines create four independent slots.
+Paired slots share direction, line and numeric seed, not equivalent random
+streams. Regenerate or change engine on one slot without affecting siblings.
+Save shared text and slot edits explicitly. Unsaved inputs prompt before
+project navigation.
 
-Keep checkpoints under `/home/wjmao/models/qwen3-tts/`, never in this Git repo.
-The VoiceDesign `model.safetensors` SHA-256 is
-`391e8db219f292c515297cdceeb43e4eae67cdde35fa57e79a6a8a532fca0522`;
-the Base checkpoint SHA-256 is
-`38fc7fc51c5e776e840414b6fd443962e9411b9654888fd7913e4da643cb857c`
-(Hugging Face revision `fd4b254389122332181a7c3db7f27e918eec64e3`).
-The engine verifies weight hashes before inference.
+Choose either reuse engine independently of the creator. Index accepts no
+control, Chinese performance description, or eight manual strengths (0–1).
+Words and acting direction are separate. Actual interpreted/effective
+strengths are saved before synthesis, including on subsequent failure.
+Qwen rejects unsupported emotion-control fields.
 
-From this module directory, `uv sync --locked --extra inference --group test`
-creates an isolated development environment; `uv run --locked pytest -q`
-runs fake-model tests. The Spark pilot uses the isolated
-`/home/wjmao/services/qwen3-tts-trial/.venv` with `qwen-tts==0.1.1`, Torch
-BF16/CUDA, Torch SDPA and this module's installed wheel. Only the Voice Lab
-unit should be restarted for updates.
+Native source bytes, subtype, rate, peak and hash are retained. A separate
+deterministic 32-kHz mono PCM16 H3 derivative records resampling and any gain
+needed to avoid clipping. Over-range float source gets a warning, never silent
+source attenuation. H3 eligibility remains 1–10 seconds and at most 2 MiB.
 
-```text
-VOICE_LAB_HOST=100.64.35.71
-VOICE_LAB_PORT=8897
-VOICE_LAB_DATA_ROOT=/home/wjmao/services/plotloom-voice-lab/data
-VOICE_LAB_DESIGN_MODEL_DIR=/home/wjmao/models/qwen3-tts/voice-design-1.7b
-VOICE_LAB_BASE_MODEL_DIR=/home/wjmao/models/qwen3-tts/base-1.7b
+Explicit Publish produces an immutable `voiceId` with independent source and
+H3 WAV copies. Repeating Publish for one generation returns the same ID.
+Published audio survives regeneration, project deletion and restart. Failed
+regeneration preserves old audio; successful replacement removes only the old
+unpublished recording. Edited design makes the old recording noncurrent.
+
+## Runtime and verification
+
+The API loads **no inference model**. One FIFO worker starts one short-lived
+supervised engine process in its pinned environment and reaps its process group
+before the next job. Qwen, MOSS and Index use separate qualified environments.
+All weights remain under `/home/wjmao/models`. Changed frozen settings/files
+fail visibly; no fallback. The UI shows queue counts, observed phases and
+elapsed time, without invented percent or ETA. Restart interrupts unfinished
+jobs, never silently replays them.
+
+Memory/ComfyUI checks are advisory, not a global GPU lock. The Lab never
+automatically stops another service. See the reproduction guide for idle
+cutover and the checked CPU control-plane lock.
+
+```sh
+uv sync --locked --group test
+uv run --locked pytest -q
+uv build --wheel
 ```
 
-`python -m plotloom_voice_lab` runs exactly one worker. Never use multi-worker
-Uvicorn for this SQLite/in-process queue. The enabled
-[`systemd --user` unit](deploy/plotloom-voice-lab.service) restarts after
-reboot and binds only the Tailscale IP. Open
-`http://100.64.35.71:8897/` from the Tailnet. Do not publicly expose this
-unauthenticated generation service.
+The [systemd user unit](deploy/plotloom-voice-lab.service) uses the lightweight
+`/home/wjmao/services/plotloom-voice-lab/.venv`, private
+`VOICE_LAB_RUNTIME_CONFIG`, and the existing data root. Run exactly one worker,
+never multi-worker Uvicorn. With user linger the unit survives reboot.
+This unauthenticated service is Tailnet-only; do not expose it publicly.
 
-## API
+## API and storage
 
-All writes return stable error codes in `detail.code`; public responses contain
-no server paths or credentials. IDs are opaque. Selected endpoints:
+Public responses expose no filesystem paths or credentials. Revision conflicts
+return stable `detail.code`; malformed input uses FastAPI 422.
 
 | Operation | Route |
 |---|---|
+| Engines | `GET /api/engines` |
 | List/create project | `GET/POST /api/projects` |
 | Read/edit/delete project | `GET/PUT/DELETE /api/projects/{projectId}` |
-| Add candidate | `POST /api/projects/{projectId}/candidates` |
-| Edit/delete candidate | `PUT/DELETE /api/candidates/{candidateId}` |
-| Generate only that candidate | `POST /api/candidates/{candidateId}/generations` |
-| Generation result/progress/audio | `GET /api/generations/{generationId}`, `/progress`, and `/audio?kind=source\|h3` |
-| Select lab reference | `POST /api/projects/{projectId}/selections` |
-| New-line trial | `POST /api/clone-trials`, then `GET /api/clone-trials/{trialId}` |
-| Publish/resolve immutable voice | `POST/GET /api/voices`, `GET /api/voices/{voiceId}`, `/audio?kind=source\|h3` |
+| Paired creation | `POST /api/projects/{projectId}/paired-generations` |
+| Add slot | `POST /api/projects/{projectId}/candidates` |
+| Edit/delete slot | `PUT/DELETE /api/candidates/{candidateId}` |
+| Generate one slot | `POST /api/candidates/{candidateId}/generations` |
+| Result/progress/audio | `GET /api/generations/{generationId}`, `/progress`, `/audio?kind=source\|h3` |
+| Select reference | `POST /api/projects/{projectId}/selections` |
+| New-line trial | `POST /api/clone-trials`, `GET /api/clone-trials/{trialId}` |
+| Publish/resolve | `POST/GET /api/voices`, `GET /api/voices/{voiceId}`, `/audio?kind=source\|h3` |
 
-Project, candidate and generation mutations require `expectedRevision`,
-`expectedProjectRevision`, and/or `expectedCandidateRevision` as shown by the
-request model. Deletion additionally requires the exact current project name.
-The old global `/api/rounds` and `/api/selections` authoring routes are gone.
-The progress response is secret-free and returns `status`, `queueAhead`,
-`phase`, `elapsedSeconds` and `errorCode`. `queueAhead` is null if the request
-has not yet reached the in-process queue or is terminal. See
-[ADR 0093](../../docs/adr/0093-voice-lab-observed-job-progress.md).
+SQLite: `$VOICE_LAB_DATA_ROOT/voice_lab.sqlite3`. Unpublished media:
+`assets/<candidateId>/<generationId>/`; pinned trials: `clones/<trialId>/`;
+published copies: `voices/<voiceId>/`. Private runner request/events/log:
+`runs/<jobId>/` (no automatic audit-log retention policy yet).
+Schema v3 additively preserves old IDs, columns and WAV hashes; historical
+provenance stays schema 0, not reinterpreted as today's settings.
+Never reset live data to fix an operational issue.
 
-SQLite is at `$VOICE_LAB_DATA_ROOT/voice_lab.sqlite3`. Unpublished WAVs are
-under `assets/<candidateId>/<generationId>/`, pinned clone references/results
-under `clones/<trialId>/`, and independent published WAVs under
-`voices/<voiceId>/`. The first v2 start transactionally migrates the old pilot
-rounds/selections/clones to one named pilot project, validating stored hashes.
-Back up the exact data root, including SQLite WAL/SHM if live, before installing
-a new wheel. Do not delete pilot files to resolve an operational problem.
+Plotloom Voice ID consumption remains **unimplemented and withheld**. This
+slice changes only the specialist Lab; no director message, merge or push.

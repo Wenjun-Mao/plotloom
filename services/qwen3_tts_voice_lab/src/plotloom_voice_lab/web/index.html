@@ -6,7 +6,7 @@
   <title>Voice Lab · 声线工作台</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b111a'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='27' font-family='sans-serif' fill='%23e5b456'%3EVL%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="/styles.css">
-  <script src="/app.js" defer></script>
+  <script src="/app.js" type="module"></script>
 </head>
 <body>
   <header class="topbar">
@@ -32,11 +32,17 @@
           <div class="section-heading"><h2 id="design-heading">声线设计</h2><button id="save-project" class="primary" type="button">保存项目</button></div>
           <div class="fields"><div class="field"><span id="project-name-label">项目名称</span><input id="project-name" aria-labelledby="project-name-label" maxlength="120"></div><div class="field"><span id="project-brief-label">共同方向</span><textarea id="project-brief" aria-labelledby="project-brief-label" rows="3" maxlength="2000"></textarea></div><div class="field"><span id="audition-text-label">统一试听台词</span><textarea id="audition-text" aria-labelledby="audition-text-label" rows="2" maxlength="160"></textarea></div></div>
           <p id="draft-status" class="status" role="status"></p>
+          <div class="fields">
+            <div class="field"><span id="creation-engines-label">创作引擎</span><select id="creation-engines" aria-labelledby="creation-engines-label"><option value="both">Qwen + MOSS（配对）</option><option value="qwen_design">Qwen VoiceDesign</option><option value="moss_design">MOSS VoiceGenerator</option></select></div>
+            <div class="field"><span id="creation-count-label">每个引擎的候选数量</span><select id="creation-count" aria-labelledby="creation-count-label"><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></div>
+          </div>
+          <div id="paired-directions" class="fields"></div>
+          <p id="creation-total" class="small-text"></p><button id="create-paired" type="button" class="primary">生成候选</button>
         </section>
         <section class="panel" aria-labelledby="gallery-heading">
           <div class="section-heading"><div><h2 id="gallery-heading">试听候选</h2><p class="muted">每条候选独立编辑、生成和重新生成。旧录音仅在新录音成功后替换。</p></div><div class="toolbar"><button id="blind-toggle" type="button" aria-pressed="false">打乱并盲听</button><button id="notes-toggle" type="button" aria-pressed="false">显示设计说明</button></div></div>
           <div id="candidate-grid" class="candidate-grid"></div>
-          <div class="add-row"><div class="field"><span id="new-direction-label">新增候选方向</span><textarea id="new-direction" aria-labelledby="new-direction-label" rows="2" maxlength="300"></textarea></div><button id="add-candidate" type="button">＋ 添加候选</button></div>
+          <div class="add-row"><div class="field"><span id="new-direction-label">新增候选方向</span><textarea id="new-direction" aria-labelledby="new-direction-label" rows="2" maxlength="300"></textarea></div><select id="new-engine" aria-label="新增候选引擎"><option value="qwen_design">Qwen VoiceDesign</option><option value="moss_design">MOSS VoiceGenerator</option></select><button id="add-candidate" type="button">＋ 添加候选</button></div>
           <p id="candidate-status" class="status" role="status"></p>
         </section>
         <section class="panel" aria-labelledby="compare-heading">
@@ -46,6 +52,8 @@
         <section class="panel" aria-labelledby="reuse-heading">
           <div class="section-heading"><h2 id="reuse-heading">复用测试</h2><span id="selected-label" class="tag">尚未选择参考声线</span></div>
           <div class="field"><span id="clone-text-label">新台词</span><textarea id="clone-text" aria-labelledby="clone-text-label" rows="2" maxlength="200"></textarea></div>
+          <div class="fields"><div class="field"><span id="reuse-engine-label">复用引擎</span><select id="reuse-engine" aria-labelledby="reuse-engine-label"><option value="qwen_base">Qwen Base（默认、中性）</option><option value="index_base">IndexTTS2</option></select></div><div class="field"><span id="reuse-seed-label">种子（留空随机）</span><input id="reuse-seed" type="number" min="0" max="4294967295" step="1" aria-labelledby="reuse-seed-label"></div></div>
+          <div id="delivery-controls" hidden><div class="field"><span id="delivery-mode-label">表演控制</span><select id="delivery-mode" aria-labelledby="delivery-mode-label"><option value="none">无控制</option><option value="text">中文表演描述 → 自动情绪分类</option><option value="manual">手动八维强度</option></select></div><div id="delivery-description-field" class="field" hidden><span id="delivery-description-label">表演描述（不作为台词朗读）</span><textarea id="delivery-description" maxlength="300" rows="2" aria-labelledby="delivery-description-label"></textarea></div><div id="emotion-vector" class="emotion-grid" hidden></div></div>
           <button id="clone-button" class="primary" type="button" disabled>生成复用试听</button>
           <p id="clone-status" class="status" role="status"></p>
           <div id="clone-list"></div>

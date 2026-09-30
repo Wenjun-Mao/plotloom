@@ -52,6 +52,10 @@ class ProjectRepository:
                 result["candidates"].append({
                     "candidateId": candidate["id"], "ordinal": candidate["ordinal"],
                     "direction": candidate["direction"], "revision": candidate["revision"],
+                    "engineId": candidate["engine_id"], "designBinding": candidate["design_binding"],
+                    "currentDesignMatches": bool(current and current["direction"] == candidate["direction"]
+                        and current["engine_id"] == candidate["engine_id"] and current["brief"] == row["brief"]
+                        and current["audition_text"] == row["audition_text"]),
                     "currentGeneration": self.store.generations.public(current) if current else None,
                     "latestGeneration": {"generationId": latest["id"], "status": latest["status"],
                                          "errorCode": latest["error_code"]} if latest else None,
@@ -77,7 +81,9 @@ class ProjectRepository:
             ))
         return self.get(project_id)
 
-    def add_candidate(self, project_id: str, expected_revision: int, direction: str) -> dict:
+    def add_candidate(self, project_id: str, expected_revision: int, direction: str, engine_id: str = "qwen_design") -> dict:
+        from .engines.catalog import snapshot
+        snapshot(engine_id, "creation")
         candidate_id, stamp = new_id("vc"), now()
         with self.store.connection() as db:
             db.execute("BEGIN IMMEDIATE")
@@ -85,13 +91,15 @@ class ProjectRepository:
             count, ordinal = db.execute("SELECT COUNT(*),COALESCE(MAX(ordinal),0)+1 FROM candidate_slots WHERE project_id=?", (project_id,)).fetchone()
             if count >= 64:
                 raise ValueError("project.candidate_limit")
-            db.execute("INSERT INTO candidate_slots VALUES (?,?,?,?,?,?,?,?)", (
-                candidate_id, project_id, ordinal, direction, 1, None, stamp, stamp,
+            db.execute("INSERT INTO candidate_slots (id,project_id,ordinal,direction,revision,current_generation_id,created_at,updated_at,engine_id) VALUES (?,?,?,?,?,?,?,?,?)", (
+                candidate_id, project_id, ordinal, direction, 1, None, stamp, stamp, engine_id,
             ))
             db.execute("UPDATE projects SET revision=revision+1,updated_at=? WHERE id=?", (stamp, project_id))
         return self.get(project_id)
 
-    def edit_candidate(self, candidate_id: str, project_revision: int, candidate_revision: int, direction: str) -> dict:
+    def edit_candidate(self, candidate_id: str, project_revision: int, candidate_revision: int, direction: str, engine_id: str = "qwen_design") -> dict:
+        from .engines.catalog import snapshot
+        snapshot(engine_id, "creation")
         with self.store.connection() as db:
             db.execute("BEGIN IMMEDIATE")
             candidate = db.execute("SELECT * FROM candidate_slots WHERE id=?", (candidate_id,)).fetchone()
@@ -101,12 +109,39 @@ class ProjectRepository:
             if candidate["revision"] != candidate_revision:
                 raise ValueError("candidate.revision_conflict")
             stamp = now()
-            db.execute("UPDATE candidate_slots SET direction=?,revision=revision+1,updated_at=? WHERE id=?", (
-                direction, stamp, candidate_id,
+            db.execute("UPDATE candidate_slots SET direction=?,engine_id=?,revision=revision+1,updated_at=? WHERE id=?", (
+                direction, engine_id, stamp, candidate_id,
             ))
             db.execute("UPDATE projects SET revision=revision+1,updated_at=? WHERE id=?", (stamp, candidate["project_id"]))
             project_id = candidate["project_id"]
         return self.get(project_id)
+
+    def create_paired(self, project_id: str, body) -> tuple[dict, list[str]]:
+        """Admit the reviewed group as one transaction, then dispatch separate jobs."""
+        import secrets
+        created = []
+        stamp = now()
+        with self.store.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            project = self._require_project(db, project_id, body.expectedProjectRevision)
+            if not project["audition_text"].strip():
+                raise ValueError("generation.input_missing")
+            count, ordinal = db.execute("SELECT COUNT(*),COALESCE(MAX(ordinal),0) FROM candidate_slots WHERE project_id=?", (project_id,)).fetchone()
+            if count + len(body.directions) * len(body.engineIds) > 64:
+                raise ValueError("project.candidate_limit")
+            for direction in body.directions:
+                binding, seed = new_id("vd"), body.seed if body.seed is not None else secrets.randbits(32)
+                for engine_id in body.engineIds:
+                    candidate_id, generation_id = new_id("vc"), new_id("vg")
+                    ordinal += 1
+                    db.execute("INSERT INTO candidate_slots (id,project_id,ordinal,direction,revision,current_generation_id,created_at,updated_at,engine_id,design_binding) VALUES (?,?,?,?,?,?,?,?,?,?)", (
+                        candidate_id, project_id, ordinal, direction, 1, None, stamp, stamp, engine_id, binding,
+                    ))
+                    candidate = db.execute("SELECT * FROM candidate_slots WHERE id=?", (candidate_id,)).fetchone()
+                    self.store.generations.admit(db, generation_id, stamp, candidate, project, seed)
+                    created.append(generation_id)
+            db.execute("UPDATE projects SET revision=revision+1,updated_at=? WHERE id=?", (stamp, project_id))
+        return self.get(project_id), created
 
     def delete_candidate(self, candidate_id: str, project_revision: int, candidate_revision: int) -> dict:
         with self.store.connection() as db:

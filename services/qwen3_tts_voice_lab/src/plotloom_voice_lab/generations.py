@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import secrets
+import json
 from typing import TYPE_CHECKING
 
-from .identity import DESIGN_MODEL, DESIGN_REVISION
+from .engines.catalog import snapshot
 from .media import file_sha256
 from .store import new_id, now
 
@@ -33,6 +34,8 @@ class GenerationRepository:
             "preparationVersion": row["preparation_version"],
             "removedAt": row["removed_at"], "createdAt": row["created_at"],
             "updatedAt": row["updated_at"],
+            "engineId": row["engine_id"], "executionSnapshot": json.loads(row["snapshot_json"]),
+            "audioDetails": json.loads(row["audio_details"] or "{}"),
         }
 
     def get(self, generation_id: str, *, private: bool = False) -> dict:
@@ -66,14 +69,18 @@ class GenerationRepository:
                 raise ValueError("generation.input_missing")
             if db.execute("SELECT 1 FROM generations WHERE candidate_id=? AND status IN ('queued','running')", (candidate_id,)).fetchone():
                 raise ValueError("candidate.busy")
-            db.execute("""INSERT INTO generations
-                (id,candidate_id,status,audition_text,brief,direction,seed,model_id,
-                 model_revision,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)""", (
-                generation_id, candidate_id, "queued", project["audition_text"],
-                project["brief"], candidate["direction"], seed if seed is not None else secrets.randbits(32),
-                DESIGN_MODEL, DESIGN_REVISION, stamp, stamp,
-            ))
+            self.admit(db, generation_id, stamp, candidate, project, seed)
         return self.get(generation_id)
+
+    def admit(self, db, generation_id, stamp, candidate, project, seed) -> None:
+        spec = snapshot(candidate["engine_id"], "creation")
+        db.execute("""INSERT INTO generations
+            (id,candidate_id,status,audition_text,brief,direction,seed,model_id,
+             model_revision,created_at,updated_at,engine_id,snapshot_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+            generation_id, candidate["id"], "queued", project["audition_text"],
+            project["brief"], candidate["direction"], seed if seed is not None else secrets.randbits(32),
+            spec["modelId"], spec["modelRevision"], stamp, stamp, candidate["engine_id"], json.dumps(spec),
+        ))
 
     def mark_running(self, generation_id: str) -> None:
         with self.store.connection() as db:
@@ -89,16 +96,17 @@ class GenerationRepository:
             project = db.execute("SELECT * FROM projects WHERE id=?", (candidate["project_id"],)).fetchone()
             stamp = now()
             changed = (generation["direction"] != candidate["direction"]
+                       or generation["engine_id"] != candidate["engine_id"]
                        or generation["audition_text"] != project["audition_text"]
                        or generation["brief"] != project["brief"])
             db.execute("""UPDATE generations SET status=?,error_code=?,
                 source_path=?,source_sha256=?,source_duration_seconds=?,source_sample_rate=?,
-                h3_path=?,h3_sha256=?,h3_eligible=?,preparation_version=?,updated_at=? WHERE id=?""", (
+                h3_path=?,h3_sha256=?,h3_eligible=?,preparation_version=?,audio_details=?,updated_at=? WHERE id=?""", (
                 "completed_stale" if changed else "completed",
                 "generation.input_changed" if changed else media["h3IssueCode"],
                 media["sourcePath"], media["sourceSha256"], media["sourceDurationSeconds"],
                 media["sourceSampleRate"], media["h3Path"], media["h3Sha256"],
-                int(media["h3Eligible"]), media["preparationVersion"], stamp, generation_id,
+                int(media["h3Eligible"]), media["preparationVersion"], json.dumps(media.get("audioDetails", {})), stamp, generation_id,
             ))
             if changed:
                 self.store.enqueue_cleanup(db, [media["sourcePath"], media["h3Path"]])
@@ -124,8 +132,8 @@ class GenerationRepository:
 
     def fail(self, generation_id: str, code: str) -> None:
         with self.store.connection() as db:
-            db.execute("UPDATE generations SET status='failed',error_code=?,updated_at=? WHERE id=? AND status IN ('queued','running')", (
-                code, now(), generation_id,
+            db.execute("UPDATE generations SET status=?,error_code=?,updated_at=? WHERE id=? AND status IN ('queued','running')", (
+                "interrupted" if code == "generation.interrupted" else "failed", code, now(), generation_id,
             ))
 
     def select(self, project_id: str, generation_id: str) -> dict:
@@ -137,6 +145,8 @@ class GenerationRepository:
                 JOIN candidate_slots c ON c.id=g.candidate_id WHERE g.id=?""", (generation_id,)).fetchone()
             if row is None or row["project_id"] != project_id or row["status"] != "completed" or row["current_generation_id"] != generation_id or not row["source_path"]:
                 raise ValueError("generation.not_selectable")
+            candidate = db.execute("SELECT * FROM candidate_slots WHERE id=?", (row["candidate_id"],)).fetchone()
+            require_current_design(row, candidate, project)
             source = self.store.owned_file(row["source_path"])
             if not source.is_file() or file_sha256(source) != row["source_sha256"]:
                 raise ValueError("audio.corrupt")
@@ -154,3 +164,9 @@ class GenerationRepository:
             return [{"selectionId": row["id"], "candidateId": row["candidate_id"],
                      "generationId": row["generation_id"], "selectedAt": row["selected_at"]}
                     for row in rows]
+
+
+def require_current_design(generation, candidate, project) -> None:
+    if (generation["engine_id"] != candidate["engine_id"] or generation["direction"] != candidate["direction"]
+            or generation["brief"] != project["brief"] or generation["audition_text"] != project["audition_text"]):
+        raise ValueError("generation.design_stale")

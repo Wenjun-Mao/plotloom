@@ -12,10 +12,11 @@ from fastapi.responses import FileResponse
 
 from .contracts import (
     CandidateCreate, CandidateDelete, CandidateUpdate, CloneCreate,
-    GenerationCreate, ProjectCreate, ProjectDelete, ProjectUpdate,
+    GenerationCreate, PairedCreation, ProjectCreate, ProjectDelete, ProjectUpdate,
     PublishCreate, SelectionCreate,
 )
-from .engine import QwenEngine
+from .engines.catalog import public_catalog
+from .engines.process import ProcessEngine
 from .media import file_sha256
 from .store import Store
 from .worker import Worker
@@ -44,10 +45,7 @@ def _verified_file(store: Store, path: str | None, expected_hash: str | None) ->
 
 def create_app(data_dir: Path, engine=None) -> FastAPI:
     store = Store(data_dir)
-    engine = engine or QwenEngine(
-        Path(os.environ.get("VOICE_LAB_DESIGN_MODEL_DIR", "/home/wjmao/models/qwen3-tts/voice-design-1.7b")),
-        Path(os.environ.get("VOICE_LAB_BASE_MODEL_DIR", "/home/wjmao/models/qwen3-tts/base-1.7b")),
-    )
+    engine = engine or ProcessEngine()
     worker = Worker(store, engine)
 
     @asynccontextmanager
@@ -69,6 +67,10 @@ def create_app(data_dir: Path, engine=None) -> FastAPI:
     def javascript():
         return FileResponse(WEB_DIR / "app.js", media_type="application/javascript")
 
+    @app.get("/reuse.js")
+    def reuse_javascript():
+        return FileResponse(WEB_DIR / "reuse.js", media_type="application/javascript")
+
     @app.get("/styles.css")
     def stylesheet():
         return FileResponse(WEB_DIR / "styles.css", media_type="text/css")
@@ -77,12 +79,23 @@ def create_app(data_dir: Path, engine=None) -> FastAPI:
     def health():
         return {
             "service": "voice_lab", "status": "ok",
-            "designModelAvailable": (engine.design_model_dir / "model.safetensors").is_file()
-                if hasattr(engine, "design_model_dir") else True,
-            "baseModelAvailable": (engine.base_model_dir / "model.safetensors").is_file()
-                if hasattr(engine, "base_model_dir") else True,
+            "engines": engine.availability(),
             "workerActive": worker.active is not None,
         }
+
+    @app.get("/api/engines")
+    def engines():
+        return {"engines": public_catalog(), "availability": engine.availability()}
+
+    @app.post("/api/projects/{project_id}/paired-generations", status_code=202)
+    def paired_generations(project_id: str, body: PairedCreation):
+        try:
+            project, generation_ids = store.projects.create_paired(project_id, body)
+        except ValueError as error:
+            raise _api_error(error) from error
+        for generation_id in generation_ids:
+            worker.submit("generation", generation_id)
+        return {"project": project, "generationIds": generation_ids}
 
     @app.get("/api/projects")
     def list_projects():
@@ -116,7 +129,7 @@ def create_app(data_dir: Path, engine=None) -> FastAPI:
     @app.post("/api/projects/{project_id}/candidates", status_code=201)
     def add_candidate(project_id: str, body: CandidateCreate):
         try:
-            return store.projects.add_candidate(project_id, body.expectedProjectRevision, body.direction)
+            return store.projects.add_candidate(project_id, body.expectedProjectRevision, body.direction, body.engineId)
         except ValueError as error:
             raise _api_error(error) from error
 
@@ -124,7 +137,7 @@ def create_app(data_dir: Path, engine=None) -> FastAPI:
     def edit_candidate(candidate_id: str, body: CandidateUpdate):
         try:
             return store.projects.edit_candidate(candidate_id, body.expectedProjectRevision,
-                                                 body.expectedCandidateRevision, body.direction)
+                                                 body.expectedCandidateRevision, body.direction, body.engineId)
         except ValueError as error:
             raise _api_error(error) from error
 
@@ -201,7 +214,8 @@ def create_app(data_dir: Path, engine=None) -> FastAPI:
     @app.post("/api/clone-trials", status_code=202)
     def create_clone(body: CloneCreate):
         try:
-            result = store.clones.create(body.projectId, body.generationId, body.text, body.seed)
+            result = store.clones.create(body.projectId, body.generationId, body.text, body.seed,
+                                         body.engineId, body.delivery)
         except ValueError as error:
             raise _api_error(error) from error
         worker.submit("clone", result["trialId"])
@@ -226,6 +240,18 @@ def create_app(data_dir: Path, engine=None) -> FastAPI:
             raise _api_error(error) from error
         source = _verified_file(store, result["audioPath"], result["audioSha256"])
         return FileResponse(source, media_type="audio/wav", filename=f"{trial_id}.wav")
+
+    @app.get("/api/clone-trials/{trial_id}/progress")
+    def clone_progress(trial_id: str):
+        try:
+            trial = store.clones.get(trial_id)
+        except ValueError as error:
+            raise _api_error(error) from error
+        live = worker.progress("clone", trial_id) if trial["status"] in {"queued", "running"} else None
+        return {"trialId": trial_id, "status": trial["status"], "errorCode": trial["errorCode"],
+                "phase": live["phase"] if live else None, "queueAhead": live["queueAhead"] if live else None,
+                "elapsedSeconds": live["elapsedSeconds"] if live else None,
+                "executionDetails": trial["executionDetails"]}
 
     @app.post("/api/voices", status_code=201)
     def publish_voice(body: PublishCreate):
