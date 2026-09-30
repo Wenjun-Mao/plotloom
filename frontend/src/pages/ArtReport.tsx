@@ -1,0 +1,36 @@
+import { useEffect, useId, useRef, useState } from "react";
+import { plotloomApi } from "../api";
+import { Button } from "../components";
+import "./ArtReport.css";
+
+const reportCaveat = "这是助手交付时的原始报告。若已编辑 art.json，请以当前 JSON 内容为准；阅读不会接受或修改提案。";
+
+/** Readable review comes first; the immutable report never substitutes for edited JSON. */
+export function ArtReport({ projectId, jobId }: { projectId: string; jobId: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const dialog = useRef<HTMLDialogElement>(null);
+  const opener = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const reportUrl = plotloomApi.artCandidateReportUrl(projectId, jobId);
+  useEffect(() => {
+    if (expanded && dialog.current && !dialog.current.open) dialog.current.showModal();
+  }, [expanded]);
+  const close = () => {
+    setExpanded(false);
+    opener.current?.focus();
+  };
+  return <>
+    <details className="art-report-preview" open>
+      <summary>查看美术设定报告</summary>
+      <div className="art-report-toolbar">
+        <p>{reportCaveat}</p>
+        <button ref={opener} type="button" className="button quiet" onClick={() => setExpanded(true)}>放大阅读报告</button>
+      </div>
+      <iframe title="美术设定报告预览" sandbox="" referrerPolicy="no-referrer" src={reportUrl} />
+    </details>
+    {expanded && <dialog ref={dialog} className="review-report-dialog" aria-labelledby={titleId} onClose={close}>
+      <header><div><h2 id={titleId}>美术设定报告</h2><p>{reportCaveat}</p></div><Button onClick={() => dialog.current?.close()}>关闭报告</Button></header>
+      <iframe title="美术设定报告内容" sandbox="" referrerPolicy="no-referrer" src={reportUrl} />
+    </dialog>}
+  </>;
+}

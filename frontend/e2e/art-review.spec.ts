@@ -201,7 +201,13 @@ test.describe("F3A production art review", () => {
     const prepared = await prepareFromBrowser(page, panel, projectId);
     await writeArtDelivery(prepared, "accepted-original");
     await refreshFromBrowser(page, panel, projectId, prepared.jobId);
-    await panel.getByRole("button", { name: "查看美术设定报告" }).click();
+    const preview = panel.locator("details.art-report-preview");
+    const jsonDetails = panel.locator("details.art-json-editor");
+    await expect(preview).toHaveAttribute("open", "");
+    await expect(jsonDetails).not.toHaveAttribute("open", "");
+    await expect(preview.frameLocator("iframe").locator("body")).toContainText("original specialist candidate");
+    expect(await preview.evaluate((element) => !!(element.compareDocumentPosition(document.querySelector("details.art-json-editor")!) & Node.DOCUMENT_POSITION_FOLLOWING))).toBeTruthy();
+    await panel.getByRole("button", { name: "放大阅读报告" }).click();
     const candidateReport = page.getByRole("dialog", { name: "美术设定报告" });
     await expect(candidateReport).toBeVisible();
     await expect(candidateReport).toContainText("这是助手交付时的原始报告");
@@ -209,6 +215,7 @@ test.describe("F3A production art review", () => {
     await expect(candidateReport).not.toBeVisible();
 
     const editor = panel.locator("textarea.source-outline-json");
+    await jsonDetails.locator("summary").click();
     const candidate = JSON.parse(await editor.inputValue()) as Record<string, unknown>;
     const acceptedCandidate = withSummary(candidate, "Author accepted wording, distinct from the original specialist candidate.");
     await editor.fill(JSON.stringify(acceptedCandidate, null, 2));
@@ -220,14 +227,15 @@ test.describe("F3A production art review", () => {
     const current = panel.locator("textarea.source-outline-json");
     await expect(current).toBeDisabled();
     await expect(current).toHaveValue(/Author accepted wording/);
-    const reportButton = panel.getByRole("button", { name: "查看美术设定报告" });
+    await expect(preview).toHaveAttribute("open", "");
+    await expect(jsonDetails).not.toHaveAttribute("open", "");
+    const reportButton = panel.getByRole("button", { name: "放大阅读报告" });
     await reportButton.click();
     const reportDialog = page.getByRole("dialog", { name: "美术设定报告" });
     await expect(reportDialog).toBeVisible();
     const dialogBox = await reportDialog.boundingBox();
     expect(dialogBox!.height).toBeGreaterThan(page.viewportSize()!.height * 0.8);
     const report = reportDialog.frameLocator('iframe[title="美术设定报告内容"]');
-    await expect(report.locator("body")).toContainText("Original specialist report");
     await expect(report.locator("body")).toContainText("original specialist candidate");
     await reportDialog.getByRole("button", { name: "关闭报告" }).click();
     await expect(reportDialog).not.toBeVisible();
@@ -235,6 +243,9 @@ test.describe("F3A production art review", () => {
 
     await panel.getByRole("button", { name: "重新打开美术提案" }).click();
     await expect(current).toBeEditable();
+    await expect(jsonDetails).not.toHaveAttribute("open", "");
+    await jsonDetails.locator("summary").click();
+    await expect(current).toBeVisible();
     const reopened = withSummary(JSON.parse(await current.inputValue()) as Record<string, unknown>, "Author saved r2 wording after reopen.");
     await current.fill(JSON.stringify(reopened, null, 2));
     await panel.getByRole("button", { name: "保存重新打开的美术" }).click();
@@ -249,6 +260,18 @@ test.describe("F3A production art review", () => {
     await expect(panel).toContainText("已接受 r2");
     await expect(current).toHaveValue(/Author saved r2 wording/);
     await expectOnlySourceMapGraph(request, workbench.apiOrigin, projectId);
+
+    // A replacement proposal must not relabel its report or JSON as accepted art.
+    const replacement = await prepareFromBrowser(page, panel, projectId);
+    await writeArtDelivery(replacement, "replacement-after-acceptance");
+    await refreshFromBrowser(page, panel, projectId, replacement.jobId);
+    const previews = panel.locator(".art-report-preview > iframe");
+    await expect(previews).toHaveCount(2);
+    await expect(previews.nth(0)).toHaveAttribute("src", new RegExp(`${replacement.jobId}/report$`));
+    await expect(previews.nth(1)).toHaveAttribute("src", new RegExp(`${prepared.jobId}/report$`));
+    await expect(panel.locator(".art-json-editor[open]")).toHaveCount(0);
+    await expect(current.nth(0)).toHaveValue(/The keeper faces a power choice/);
+    await expect(current.nth(1)).toHaveValue(/Author saved r2 wording/);
   });
 
   test("blocks lifecycle operations while a browser-prepared publication is active, then releases them on cancellation", async ({ page, request, workbench }) => {

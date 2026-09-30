@@ -914,6 +914,31 @@ prop), not accepted. The old delivery bytes are unchanged. All 819 backend,
 The receipt retains the hardcoded F3B image-direction default and inert
 read-only-report controls as bounded follow-ups before future style trials.
 
+### Creator-approved report-first art review (2026-09-29)
+
+Approved step: show the readable art report expanded by default, with the
+advanced JSON editor collapsed underneath; retain the full-window reader.
+Cause: ArtPanel explicitly opened its technical editor before a report-only
+modal trigger. This is a presentation hierarchy correction, not a new data or
+acceptance contract. Candidate, accepted and reopened views keep the original
+report caveat, sandbox, editing validation and explicit acceptance unchanged.
+Scope excludes generation, project-content edits and unrelated wording cleanup.
+Stopping condition: report-first browser checks and fresh built assets; creator
+reviews their existing candidate, without automatic acceptance.
+
+Verification: application and E2E typechecks, deterministic frontend build,
+257 frontend tests and all nine art/workflow browser journeys passed. Coverage
+checks report-before-JSON order, default disclosure states, candidate/accepted
+report reading, explicit JSON edits after reopen and restart persistence. Live
+read-only Chromium checks confirmed the existing candidate report, full-window
+reader, Escape dismissal and a 390px-wide layout without page overflow. The
+original report remains sandboxed; its existing inert copy/export controls are
+not changed here. Safari refresh/creator acceptance remains a user check.
+Independent review identified that the accepted section reused the replacement
+candidate's report ID and draft when both existed. Each section now reads its
+own report and JSON version, guarded by a replacement-over-accepted browser
+case. This corrects review presentation only; accepted data is not modified.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation
