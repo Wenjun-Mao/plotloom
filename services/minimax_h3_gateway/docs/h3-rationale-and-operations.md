@@ -9,6 +9,14 @@ records the observed live stack. It distinguishes observed facts from an
 approved inference recipe so that a plausible-looking video never hides a
 configuration mismatch.
 
+**Current status (2026-09-30):** the quality/resolution contract in
+[ADR 0070](../../../docs/adr/0070-h3-quality-resolution-contract.md) is deployed;
+the early recipe-comparison discussion below is historical rationale, not
+today's outstanding task. Quality 1 defaults to V1.2 Turbo4/Euler/6/3.
+ComfyUI 0.35.0 remains live. The 0.38.0 candidate's bounded technical tests
+passed, but full visual qualification and catalog migration are pending;
+baseline was restored. See the [runtime receipt](../../../docs/verification/2026-09-30-h3-comfy038-runtime-qualification.md).
+
 ## 1. System boundaries
 
 ```text
@@ -75,7 +83,7 @@ Conversely, a Turbo adapter is not adequately described by `turbo=true` and a
 step count. Its LoRA, shifts, sampler, scheduler, and denoise must travel
 together as an explicit, versioned recipe.
 
-## 4. Corrected candidate and retained observed history
+## 4. Corrected candidate and retained observed history (2026-09-18)
 
 The retained observed v1 engine had the right 4-step v1.0 768p LightX2V LoRA,
 strength `1.0`, four steps, `res_multistep`, `simple`, and denoise `1.0`. It
@@ -121,7 +129,7 @@ preparation owns aspect behavior (`reject_mismatch`, deliberate padding, or
 deliberate crop) before the H3 graph is submitted. The graph must not hide an
 authoring decision by silently changing aspect treatment.
 
-## 6. Candidate profile policy
+## 6. Candidate profile policy and historical comparison sequence
 
 The following states keep experiments from silently becoming production:
 
@@ -133,7 +141,7 @@ The following states keep experiments from silently becoming production:
 | Production | Explicitly selected default after qualification. |
 | Retired | Cannot receive new work but remains interpretable in historical evidence. |
 
-The immediate comparison sequence is:
+The initial 2026-09-18 comparison sequence was:
 
 1. Re-baseline the implemented 4-step v1.0 candidate with its explicit `6 / 3`
    shifts.
@@ -193,6 +201,24 @@ moderate-motion, and difficult-motion shots before promoting a profile.
   are cleaned after 30 days according to their respective lifecycle rules.
 - A changed asset hash, source revision, runtime flag, or profile recipe is a
   new candidate, not a transparent maintenance update.
+
+### Decoder/runtime maintenance is separate from recipe tuning
+
+H3's VAE tiles internally even through ordinary `VAEDecode`. The 0.35 decoder
+stored raw tile tails; 0.38's composited-neighbour repair addresses that layer,
+not image padding or prompt wording. The synthetic two-way overlap regression
+reproduced the old error and passed on the pinned candidate. A successful
+decode is still not whole-video seam, acting, speech or identity acceptance.
+
+Runtime startup is also a data operation. The candidate's catalog migration
+discards some metadata even though all inference calls succeeded. Use an
+isolated user-directory copy and preserved baseline container; decide catalog
+disposition before promotion. See [ADR 0095](../../../docs/adr/0095-h3-runtime-qualification-and-catalog-isolation.md).
+
+For input-conditioned comparisons, review prepared image pixels together with
+the prompt before spending calls. The 2026-09-30 landscape pair accidentally
+used a padded doorway image with an astronaut prompt: retain it as technical
+evidence, but do not treat the scene transition as a clean decoder quality test.
 
 For precise installation and recovery steps, use the
 [reproducible setup guide](h3-reproducible-setup.md). For the private API,

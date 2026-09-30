@@ -9,6 +9,16 @@ for pinned versions, asset hashes, and the observed runtime. The versioned
 [corrected candidate manifest](../h3-corrected-turbo4-candidate.v1.yaml)
 defines the exact inference recipe to qualify against that runtime.
 
+### Current runtime status · 2026-09-30
+
+ComfyUI 0.35.0 remains the live runtime. The separately pinned 0.38.0
+candidate passed five bounded technical generations and a CPU decoder
+composition regression, then was stopped and baseline restored. Full visual
+qualification and production catalog migration are **not approved**. Read the
+[runtime receipt](../../../docs/verification/2026-09-30-h3-comfy038-runtime-qualification.md)
+before considering an update. Do not rewrite the historical manifests to
+suggest their observations were made on the candidate.
+
 ## 1. Scope and prerequisites
 
 This has been verified on a DGX Spark / NVIDIA GB10 running Ubuntu 24.04.5,
@@ -63,6 +73,16 @@ git checkout 408a3d3c7c47725851358ec745efb255d5ff7316
 ./spark-comfyui.sh install
 ./spark-comfyui.sh tune --persist
 ```
+
+These runner commands describe the installation workflow; its build can
+resolve a newer Comfy checkout/dependencies. They alone cannot reproduce an
+old image byte-for-byte. Verify the resulting runtime against the manifest,
+or use a preserved exact image. The bounded 0.38 candidate uses the separate
+[`comfy038-build.sh`](../tools/comfy038-build.sh) entrypoint: it verifies the
+preserved baseline image ID, builds from that immutable ID and pins Comfy's
+commit while constraining every non-Comfy package. It is qualification tooling,
+not a general production updater. A fresh host without that exact base image
+requires a separately qualified clean build.
 
 The deployment intentionally has no external custom nodes. Keep
 `comfyui-nodes.list` empty except for comments; MiniMax-H3 is supplied by the
@@ -215,11 +235,12 @@ There are two distinct checks:
    sampling recipe.
 
 Use the profile-rendered `minimax_h3_template_v2.json`, not the retained
-observed v1 template, for new work. The current v2 profile catalog explicitly
-renders LightX2V FL2VA Turbo 4-step v1.0 as `4 steps / video shift 6 / audio
-shift 3`, with `res_multistep` / `simple` and denoise `1.0`. It is a candidate
-until a retained real-model baseline passes review; the old v1 profile IDs
-remain historical-only and cannot receive new jobs.
+observed v1 template, for new work. Current creation uses `quality` and exact
+`resolution`, not legacy `profileId`: quality 1 is V1.2 Turbo4/Euler/6/3,
+quality 2 is V1.0 Turbo4/res_multistep/6/3, quality 3 is V1.0 Turbo8/Euler/6/3,
+and quality 8 is Base20/res_multistep/native 12/3 without LoRA. The earlier
+corrected-v1.0 candidate manifest is retained evidence, not the default today.
+See [ADR 0070](../../../docs/adr/0070-h3-quality-resolution-contract.md).
 
 ## 7. Update, rollback, and reboot
 
@@ -229,9 +250,15 @@ H3 comparison. Any such change creates a new runtime candidate.
 - After a normal Spark reboot, Docker restarts ComfyUI and the gateway because
   both are configured with `unless-stopped` policies. Confirm both health
   surfaces instead of assuming startup succeeded.
-- Preserve the current image before an intentional runner update using the
-  runner's `update --keep` option. Its `update --rollback` path restores the
-  previous image.
+- Preserve the exact current image, container configuration and user directory
+  before an update. The runner's `update --keep` also updates its runner and
+  builds Comfy master, so do not use it for a pinned one-variable comparison.
+  Image rollback alone does not undo an in-place user-database migration.
+- Qualify new Comfy releases against an isolated copy of the user directory.
+  Comfy 0.38's migration discards/rebuilds parts of the asset catalog; do not
+  point it at production `data/user` without a reviewed metadata disposition.
+  For this experiment, rollback stopped the candidate, restored the preserved
+  baseline container name, and restarted it with its untouched original mount.
 - Treat a changed model hash, runner commit, ComfyUI commit, runtime flag, or
   workflow-template hash as a baseline change requiring a fresh smoke test.
 

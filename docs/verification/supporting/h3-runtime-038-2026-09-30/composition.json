@@ -1,0 +1,20 @@
+{
+  "kind": "synthetic_two_way_h3_vae_composition",
+  "method": "Installed H3 tiled_decode with synthetic tile pixels versus independently normalized separable overlap-add",
+  "geometry": [512, 512],
+  "tileGrid": [3, 3],
+  "gpuUsed": false,
+  "baseline": {
+    "comfyCommit": "d43a5fa20c8547ff42d13232f589a06536c42b97",
+    "maxAbsError": 0.28346019983291626,
+    "meanAbsError": 0.02657470852136612,
+    "affectedCodeReproduced": true
+  },
+  "candidate": {
+    "comfyCommit": "6b747c0428c343e1417219641db93a4fb7cb69ae",
+    "maxAbsError": 3.5762786865234375e-7,
+    "meanAbsError": 1.4468696463154629e-8,
+    "compositionRegressionPassed": true
+  },
+  "boundary": "Two-way overlap composition only; not a diffusion/VAE-weight quality benchmark or a proof for arbitrary tile-overlap plans"
+}

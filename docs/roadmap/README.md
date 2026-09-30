@@ -64,3 +64,12 @@ Its initial batch still records the original OOM; co-resident reliability and
 creative acceptance are not established. This does not change
 the Plotloom delivery authority. Director contact, Plotloom integration,
 merge and push remain on hold.
+
+## Specialist H3 runtime qualification
+
+The separate [ComfyUI 0.38 qualification](2026-09-30-h3-comfy038-runtime-qualification.md)
+used its five-call cap, passed bounded technical checks and restored the
+original runtime. Full visual qualification and production catalog disposition
+remain pending; the retained landscape input–prompt mismatch is not a visual
+pass. No further generation, runtime promotion or Plotloom integration is
+authorized by this supporting record.

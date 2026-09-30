@@ -1,0 +1,40 @@
+{
+  "mounts": [
+    {
+      "source": "/home/wjmao/services/spark-comfyui/data/custom_nodes",
+      "destination": "/opt/ComfyUI/custom_nodes",
+      "readWrite": true
+    },
+    {
+      "source": "/home/wjmao/services/spark-comfyui/experiments/h3-runtime-038-2026-09-30/candidate-user",
+      "destination": "/opt/ComfyUI/user",
+      "readWrite": true
+    },
+    {
+      "source": "/home/wjmao/services/spark-comfyui/comfyui-nodes.list",
+      "destination": "/opt/spark/comfyui-nodes.list",
+      "readWrite": false
+    },
+    {
+      "source": "/var/lib/docker/volumes/spark-comfyui-cache/_data",
+      "destination": "/home/comfy/.cache",
+      "readWrite": true
+    },
+    {
+      "source": "/home/wjmao/models/comfyui-h3",
+      "destination": "/opt/ComfyUI/models",
+      "readWrite": true
+    },
+    {
+      "source": "/home/wjmao/services/spark-comfyui/data/input",
+      "destination": "/opt/ComfyUI/input",
+      "readWrite": true
+    },
+    {
+      "source": "/home/wjmao/services/spark-comfyui/data/output",
+      "destination": "/opt/ComfyUI/output",
+      "readWrite": true
+    }
+  ],
+  "passed": true
+}

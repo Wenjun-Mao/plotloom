@@ -1,0 +1,181 @@
+{
+  "phase": "candidate",
+  "comfyCommit": "6b747c0428c343e1417219641db93a4fb7cb69ae",
+  "generationCallCap": 3,
+  "generationCalls": 3,
+  "status": "completed",
+  "results": [
+    {
+      "caseId": "landscape",
+      "graphSha256": "6c10f84b669ba15feb4083e4397ae55d2758e49be269bb321ba6eb142989b78a",
+      "state": "completed",
+      "beforeMemory": {
+        "MemFreeKiB": 53487928,
+        "MemAvailableKiB": 76537700,
+        "CachedKiB": 26112820,
+        "VmHWMKiB": 1149456,
+        "VmRSSKiB": 1149456
+      },
+      "promptId": "53c2e7f8-9086-4f7a-bd57-5dd29c3717cc",
+      "elapsedMs": 165161,
+      "cachedNodeIds": [],
+      "output": {
+        "filename": "candidate_landscape_00001_.mp4",
+        "subfolder": "experiments/h3-runtime-038-2026-09-30",
+        "type": "output"
+      },
+      "outputSha256": "6eaa5dc2493f8f8b8d878128c2b3af4d690ba295b8fc13392d8dd54c1db5e811",
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 704,
+            "r_frame_rate": "24/1",
+            "nb_frames": "124"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "32000",
+            "r_frame_rate": "0/0",
+            "nb_frames": "163"
+          }
+        ],
+        "format": {
+          "duration": "5.167000"
+        }
+      },
+      "fullStreamDecode": "passed",
+      "sampledMemory": {
+        "count": 166,
+        "minHostAvailableKiB": 29982704,
+        "maxProcessRSSKiB": 7639220,
+        "maxProcessHWMKiB": 7640044
+      }
+    },
+    {
+      "caseId": "portrait",
+      "graphSha256": "a6733cc09d9d33464fccf86777bbab4b6ee08e37575fc5311bc9d9b1a47ed1ab",
+      "state": "completed",
+      "beforeMemory": {
+        "MemFreeKiB": 3468816,
+        "MemAvailableKiB": 30679792,
+        "CachedKiB": 29767928,
+        "VmHWMKiB": 7640044,
+        "VmRSSKiB": 7624896
+      },
+      "promptId": "9b9c41ca-9759-429f-9f7d-2dbeb0833a7e",
+      "elapsedMs": 156129,
+      "cachedNodeIds": [
+        "115",
+        "116",
+        "105:11",
+        "105:24",
+        "105:17",
+        "105:9",
+        "105:6",
+        "105:13",
+        "105:15",
+        "105:107",
+        "105:121",
+        "105:122"
+      ],
+      "output": {
+        "filename": "candidate_portrait_00001_.mp4",
+        "subfolder": "experiments/h3-runtime-038-2026-09-30",
+        "type": "output"
+      },
+      "outputSha256": "b02c8504605e1e2c0a54874499987b8f584fe52aaf98e31a6a8730604eb12ee6",
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 704,
+            "height": 1280,
+            "r_frame_rate": "24/1",
+            "nb_frames": "124"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "32000",
+            "r_frame_rate": "0/0",
+            "nb_frames": "163"
+          }
+        ],
+        "format": {
+          "duration": "5.167000"
+        }
+      },
+      "fullStreamDecode": "passed",
+      "sampledMemory": {
+        "count": 157,
+        "minHostAvailableKiB": 26810972,
+        "maxProcessRSSKiB": 7667844,
+        "maxProcessHWMKiB": 7667844
+      }
+    },
+    {
+      "caseId": "voice",
+      "graphSha256": "9fe08934ead52eeb7505bb1a25e8a20761037bc20e7909819e210f2d7a04362d",
+      "state": "completed",
+      "beforeMemory": {
+        "MemFreeKiB": 6055492,
+        "MemAvailableKiB": 30478492,
+        "CachedKiB": 27045788,
+        "VmHWMKiB": 7667744,
+        "VmRSSKiB": 7665304
+      },
+      "promptId": "b5650702-463d-4719-bef2-fad04ac1af9d",
+      "elapsedMs": 474433,
+      "cachedNodeIds": [
+        "105:11",
+        "105:24",
+        "105:13",
+        "105:107"
+      ],
+      "output": {
+        "filename": "candidate_voice_00001_.mp4",
+        "subfolder": "experiments/h3-runtime-038-2026-09-30",
+        "type": "output"
+      },
+      "outputSha256": "612db506dab635c74ee785846b92dbf7a4a0837e8cb020c55afc1f56779cdb96",
+      "media": {
+        "programs": [],
+        "streams": [
+          {
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 576,
+            "height": 1024,
+            "r_frame_rate": "24/1",
+            "nb_frames": "124"
+          },
+          {
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "sample_rate": "32000",
+            "r_frame_rate": "0/0",
+            "nb_frames": "163"
+          }
+        ],
+        "format": {
+          "duration": "5.167000"
+        }
+      },
+      "fullStreamDecode": "passed",
+      "sampledMemory": {
+        "count": 475,
+        "minHostAvailableKiB": 28497660,
+        "maxProcessRSSKiB": 7665304,
+        "maxProcessHWMKiB": 7667744
+      }
+    }
+  ],
+  "memoryMeasurement": "1 Hz host availability and process RSS/HWM; not GPU allocation peak"
+}

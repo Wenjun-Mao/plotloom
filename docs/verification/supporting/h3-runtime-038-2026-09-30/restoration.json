@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-30",
+  "comfyCommit": "d43a5fa20c8547ff42d13232f589a06536c42b97",
+  "baselineImageId": "sha256:d45ca7983d4eda39cdd4df3bd03921b28754b2c15ce17f906032ef4dafd1cabc",
+  "baselineState": "running",
+  "candidateImageId": "sha256:db0010004575a508b5ac67fb36ea4ab83cf1964a84e70932019749f330c64110",
+  "candidateState": "exited",
+  "comfyQueue": {"queue_running": [], "queue_pending": []},
+  "gateway": {"status": "ok", "queuedJobs": 0, "activeDispatches": 0, "voiceReferenceReady": true},
+  "voiceLab": {
+    "status": "ok",
+    "workerActive": false,
+    "engines": {"index_base": true, "moss_design": true, "qwen_base": true, "qwen_design": true},
+    "sqliteIntegrity": "ok",
+    "generations": {"completed": 5, "failed": 1},
+    "cloneTrials": {"completed": 9, "failed": 1},
+    "voices": [
+      {"voiceId": "voice_0397626c720c47af9f42f3b50e02138f", "sourceHashMatches": true, "h3HashMatches": true},
+      {"voiceId": "voice_f2da8670374546579b3048fd9d1222d4", "sourceHashMatches": true, "h3HashMatches": true}
+    ]
+  },
+  "qwenImage": {"status": "ok", "modelId": "Qwen/Qwen-Image-2.1"},
+  "productionCatalogMigrated": false,
+  "productionPromotion": false,
+  "generationCalls": 5,
+  "humanReview": "pending",
+  "landscapeVisualQualification": "invalid_input_prompt_mismatch"
+}
