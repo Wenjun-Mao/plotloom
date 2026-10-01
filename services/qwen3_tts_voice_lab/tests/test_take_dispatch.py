@@ -107,3 +107,29 @@ def test_late_registration_of_deleted_take_releases_without_generation(tmp_path)
         assert result["releaseConfirmed"] is True and result["status"] == "deleted"
         assert service.state.worker.tasks.empty()
         assert client.get(f"/api/voice-takes/{take['takeId']}/audio").status_code == 409
+
+
+def test_failed_take_publication_removes_partial_outputs_and_keeps_identity(tmp_path, monkeypatch):
+    service = app(tmp_path)
+    voice, _ = published_voice(service.state.store)
+
+    def failed_publication(target, native, rate):
+        (target / 'source.wav').write_bytes(b'partial-native')
+        (target / 'h3.wav').write_bytes(b'partial-derivative')
+        raise ValueError('fixture.publication_failed')
+
+    monkeypatch.setattr('plotloom_voice_lab.worker.persist_reference_file', failed_publication)
+    with TestClient(service) as client:
+        take = client.post('/api/voice-takes', json={
+            'voiceId': voice['voiceId'], 'text': '关门。', 'engineId': 'index_base', 'seed': 1,
+        }).json()
+        command = grant(service.state.store, take)
+        assert client.post('/internal/executions', json=command, headers=AUTH).status_code == 202
+        assert wait_for(client, '/api/voice-takes/' + take['takeId'])['status'] == 'failed'
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline and not service.state.store.dispatch.execution(command['grantId'])['releaseConfirmed']:
+            time.sleep(.01)
+        target = tmp_path / 'takes' / take['takeId']
+        assert not (target / 'source.wav').exists() and not (target / 'h3.wav').exists()
+        assert service.state.store.voices.get(voice['voiceId']) == voice
+        assert client.get('/api/voice-takes/' + take['takeId'] + '/audio').status_code == 409

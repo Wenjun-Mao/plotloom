@@ -105,3 +105,16 @@ def test_v3_migration_preserves_existing_voice_and_terminal_json(tmp_path):
         assert original == [tuple(row) for row in db.execute("SELECT * FROM voices")]
         assert db.execute("PRAGMA user_version").fetchone()[0] == 4
     assert reopened.voices.get(voice["voiceId"]) == voice
+
+
+def test_admitted_take_keeps_its_snapshot_when_catalogue_changes(tmp_path, monkeypatch):
+    from plotloom_voice_lab.engines.catalog import CATALOG
+    store = Store(tmp_path)
+    voice, _ = published_voice(store)
+    body = TakeCreate(voiceId=voice['voiceId'], text='先切断电源。', engineId='index_base', seed=7)
+    first = store.takes.create(body)
+    monkeypatch.setitem(CATALOG['index_base']['settings'], 'emoAlpha', .5)
+    second = store.takes.create(body)
+    assert store.takes.get(first['takeId'])['executionSnapshot'] == first['executionSnapshot']
+    assert first['executionSnapshot']['settings']['emoAlpha'] == 1.0
+    assert second['executionSnapshot']['settings']['emoAlpha'] == .5

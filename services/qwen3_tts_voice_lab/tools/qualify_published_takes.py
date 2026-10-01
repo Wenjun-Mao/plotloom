@@ -21,6 +21,7 @@ GATEWAY_DB = Path('/home/wjmao/services/plotloom-h3-gateway/data/gateway.sqlite3
 LAB_DB = Path('/home/wjmao/services/plotloom-voice-lab/data/voice_lab.sqlite3')
 TEXT = '等等，别打开那扇门！控制台还在报警，先把电源切断！'
 DELIVERY = {'mode': 'text', 'description': '情况紧迫，果断地制止对方。语气坚定，立即行动，不恐慌、不害怕。'}
+ACTIVE_VIDEO_STATES = {'queued', 'submitting', 'submitted', 'running', 'transfer_pending'}
 
 
 def sha(content):
@@ -134,7 +135,7 @@ def main():
                     checkpoint('video_' + result['status'], ids)
                     print('H3', result['status'], flush=True)
                     previous = result['status']
-                if result['status'] not in {'queued', 'running'}:
+                if result['status'] not in ACTIVE_VIDEO_STATES:
                     break
                 time.sleep(3)
             assert result['status'] == 'succeeded' and result['outputReady'], 'video.failed_or_unknown'

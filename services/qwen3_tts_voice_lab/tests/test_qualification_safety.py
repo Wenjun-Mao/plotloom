@@ -19,6 +19,7 @@ TOOLS = Path(__file__).parents[1] / 'tools'
     ('verify_idle_restart', ['--project-id', 'unused', '--original-trial-id', 'unused']),
     ('qualify_workflow', []),
     ('qualify_published_takes', []),
+    ('observe_published_takes', ['--source-receipt', 'unused']),
 ])
 def test_existing_receipt_never_replays(tmp_path, monkeypatch, module, args):
     monkeypatch.syspath_prepend(str(TOOLS))
@@ -82,3 +83,10 @@ def test_claim_syncs_file_and_parent(tmp_path, monkeypatch):
     monkeypatch.setattr(receipts.os, 'fsync', observed_sync)
     receipts.claim_receipt(tmp_path / 'new-operation.json')
     assert directory_flags == [False, True]
+
+
+def test_video_observer_recognizes_all_nonterminal_gateway_states(monkeypatch):
+    monkeypatch.syspath_prepend(str(TOOLS))
+    observer = importlib.import_module('qualify_published_takes')
+    assert observer.ACTIVE_VIDEO_STATES == {'queued', 'submitting', 'submitted', 'running', 'transfer_pending'}
+    assert not observer.ACTIVE_VIDEO_STATES.intersection({'succeeded', 'failed', 'cancelled', 'outcome_unknown'})
