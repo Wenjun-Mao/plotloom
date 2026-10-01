@@ -13,6 +13,12 @@ For colleagues calling the private API, use the Chinese
 [Qwen client guide](qwen-image-gateway-client-guide.md). Neither document
 contains the bearer secret.
 
+The specialist deployment's durable gateway lane also admits all Voice Lab
+creation/reuse work; see [ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md).
+Image generation settings, resident SGLang runtime and image retention are
+unchanged. Unknown execution blocks the shared lane rather than admitting
+another backend; direct SGLang clients are outside that guarantee.
+
 ## 1. Contract and non-goals
 
 Qwen admits two image routes:

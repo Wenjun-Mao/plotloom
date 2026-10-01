@@ -1,6 +1,6 @@
 # MiniMax-H3 gateway: operator and maintainer manual
 
-**Status:** the documented H3 path is live on `main` as one deliberately
+**Status:** the documented H3 path is live on Spark as one deliberately
 limited, private video backend. This is the human-facing handoff entry point
 for operating, verifying, and changing it. It does not contain a bearer
 secret, raw prompt, or customer media. Colleagues who need to call the private
@@ -12,8 +12,14 @@ Qwen-Image-2.1 is a separate image backend with its own
 [operator manual](qwen-image-gateway-manual.md),
 [Chinese client guide](qwen-image-gateway-client-guide.md), and
 [reproducible setup guide](../../services/minimax_h3_gateway/docs/qwen-image-spark-setup.md).
-The two backends share the durable FIFO, but their generation contracts and
-runtime maintenance procedures are not interchangeable.
+H3, Qwen-Image and all Voice Lab creation/reuse jobs share the gateway-owned
+durable FIFO in the specialist deployment. Their generation contracts and
+runtime maintenance procedures are not interchangeable. Published voice takes
+are documented in the separate [Chinese take guide](../../services/qwen3_tts_voice_lab/docs/voice-takes-client-guide.md)
+and [Voice Lab operations guide](../../services/qwen3_tts_voice_lab/docs/reproduction-and-operations.md).
+See [ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md)
+for grants, release proof and uncertainty handling; health alone cannot release
+an unresolved inference owner. Direct backend clients are outside this lane.
 
 For exact machine-readable behavior, the source profile and tests remain the
 implementation authority. This manual links them rather than duplicating an
@@ -365,8 +371,10 @@ new path admits only 960×544 or 576×1024, 5–8 requested seconds, and a
 header without trimming or changing the reference samples. It is a timbre
 and delivery reference, not an exact transcript, waveform or lip-sync promise.
 The frozen snapshot and private audio binding are defined in
-[ADR 0090](../adr/0090-h3-ref2va-per-job-voice-reference.md); Plotloom owns
-stable Voice IDs and candidate retention in a separate product checkpoint.
+[ADR 0090](../adr/0090-h3-ref2va-per-job-voice-reference.md). Voice Lab owns
+published Voice IDs and durable performance takes; later Plotloom integration
+owns character/dialogue selection and its own retained production copies.
+The video route still consumes WAV bytes, not a Voice/Take ID resolver.
 
 For private internal callers, `sourceUrl` accepts `http` and `https`, including
 Tailnet URLs. The gateway follows at most three redirects, uses a 5-second

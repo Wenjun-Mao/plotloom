@@ -15,6 +15,16 @@ from memory_trace import MemoryTrace
 from qualification_receipts import claim_receipt
 
 
+def verify_audio_binding(source, first, database):
+    # Ordinary video status deliberately omits the reference hash. Verify the
+    # admission receipt and frozen storage binding, not an invented status field.
+    digest = first['h3Sha256']
+    assert source['videoAccepted']['voiceReferenceSha256'] == digest
+    with sqlite3.connect(database) as db:
+        assert db.execute('SELECT source_sha256 FROM job_voice_bindings WHERE job_id=?',
+                          (source['videoAccepted']['id'],)).fetchone() == (digest,)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source-receipt', type=Path, required=True)
@@ -69,7 +79,9 @@ def main():
                 raise TimeoutError('accepted_jobs.observation_timeout_no_replay')
             first = get('/v1/voice-takes/' + first_id)
             assert first['sourceSha256'] == source['firstResult']['sourceSha256']
-            assert first['h3Sha256'] == source['firstResult']['h3Sha256'] == video['voiceReferenceSha256']
+            assert first['h3Sha256'] == source['firstResult']['h3Sha256']
+            from qualify_published_takes import GATEWAY_DB
+            verify_audio_binding(source, first, GATEWAY_DB)
             for take in (first, second):
                 for kind in ('source', 'h3'):
                     assert sha(get(f'/v1/voice-takes/{take["takeId"]}/audio?kind={kind}', True)) == take[kind + 'Sha256']
@@ -92,8 +104,8 @@ def main():
             subprocess.run(['ffmpeg', '-v', 'error', '-i', str(output), '-map', '0:v', '-map', '0:a', '-f', 'null', '-'], check=True)
             record.update(status='passed', firstResult=first, secondResult=second, videoResult=video,
                           lane=lane_entries(ids), media=media, outputSha256=sha(content), firstTakeUnchanged=True)
-    except Exception as error:
-        record.update(status='failed_or_uncertain_no_replay', failure=str(error))
+    except BaseException as error:
+        record.update(status='failed_or_uncertain_no_replay', failure=str(error) or type(error).__name__)
         raise
     finally:
         record['memorySummary'] = trace.summary

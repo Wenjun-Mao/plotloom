@@ -186,6 +186,25 @@ outbox and one-use execution grants. Existing terminal records/JSON and WAVs
 are preserved. Restore control services, check all backend health and hashes.
 Do not restart or rebuild ComfyUI/SGLang or touch model installations.
 
+Use `tools/prepare_shared_cutover.py` on Spark for the scoped preservation and
+copy-migration proofs. Existing Docker-owned gateway WAVs are root/0600: its
+no-network Docker helper reads only the identified service roots and assigns
+the backup copies to the operator. It never changes live asset permissions or
+mounts model directories. Keep failed partial preparations as evidence;
+`--services-already-stopped` requires both control owners demonstrably stopped.
+SQLite verification needs journal/SHM bookkeeping access even when the queries
+are read-only; a read-only filesystem mount is not equivalent to a read-only SQL
+connection. Never interpret that verifier failure as damaged media or reset data.
+
+`tools/qualify_published_takes.py` admits the capped experiment exactly once.
+If an observer stops after admission, `tools/observe_published_takes.py` can only
+GET the three known jobs from its retained receipt, using a new exclusive
+observation receipt. Video statuses submitting/submitted/transfer_pending are
+nonterminal; the exact reference hash is verified from admission plus its frozen
+binding, not ordinary status. No observer can authorize a replacement call.
+`tools/verify_shared_restart.py` requires a passed observation and idle owners,
+then compares complete SQLite state and retained WAV/media hashes over restart.
+
 CPU registration can reconcile duplicate acknowledgements. The gateway orders
 all jobs by its registration sequence, not cross-host timestamps. Until registered,
 the UI shows unknown queue position. No local inference fallback exists.

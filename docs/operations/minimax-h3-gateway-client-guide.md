@@ -249,8 +249,11 @@ auth:
 
 创建响应额外给出一次性的 `voiceReferenceSha256`：它是提交的原始 WAV 字节的
 SHA-256，供调用方比对自己的候选音频。后续普通状态不重复这个哈希，也不返回
-音频、URL 或私有路径。网关只保存这个任务的参考音频，不提供声线 ID 或声线库。
-Plotloom 若接入，将自己管理人物的稳定 Voice ID 和候选音频；网关 72 小时视频
+音频、URL 或私有路径。视频接口只接收此任务的 WAV，不解析 Voice ID 或 Take ID。
+现在可先用独立的 [台词表演 API](../../services/qwen3_tts_voice_lab/docs/voice-takes-client-guide.md)
+生成、试听并下载 H3 WAV；再作为 `voiceAudio` 上传。声线和表演由 Voice Lab
+长期保存，重新生成不覆盖旧结果；全部生成共享 FIFO。
+Plotloom 若接入，将自己管理人物的稳定选择和保留副本；网关 72 小时视频
 与最多 30 天任务/输入清理不应作为 Plotloom 声音素材的保留政策。
 
 ## 8. 查询与下载

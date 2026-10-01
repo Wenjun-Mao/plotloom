@@ -20,6 +20,7 @@ TOOLS = Path(__file__).parents[1] / 'tools'
     ('qualify_workflow', []),
     ('qualify_published_takes', []),
     ('observe_published_takes', ['--source-receipt', 'unused']),
+    ('verify_shared_restart', ['--source-receipt', 'unused']),
 ])
 def test_existing_receipt_never_replays(tmp_path, monkeypatch, module, args):
     monkeypatch.syspath_prepend(str(TOOLS))
@@ -90,3 +91,17 @@ def test_video_observer_recognizes_all_nonterminal_gateway_states(monkeypatch):
     observer = importlib.import_module('qualify_published_takes')
     assert observer.ACTIVE_VIDEO_STATES == {'queued', 'submitting', 'submitted', 'running', 'transfer_pending'}
     assert not observer.ACTIVE_VIDEO_STATES.intersection({'succeeded', 'failed', 'cancelled', 'outcome_unknown'})
+
+
+def test_reference_proof_uses_admission_and_storage_not_video_status(tmp_path, monkeypatch):
+    import sqlite3
+    monkeypatch.syspath_prepend(str(TOOLS))
+    observer = importlib.import_module('observe_published_takes')
+    database = tmp_path / 'gateway.sqlite3'
+    with sqlite3.connect(database) as db:
+        db.execute('CREATE TABLE job_voice_bindings(job_id TEXT,source_sha256 TEXT)')
+        db.execute('INSERT INTO job_voice_bindings VALUES (?,?)', ('h3_test', 'abc'))
+    source = {'videoAccepted': {'id': 'h3_test', 'voiceReferenceSha256': 'abc'}}
+    observer.verify_audio_binding(source, {'h3Sha256': 'abc'}, database)
+    with pytest.raises(AssertionError):
+        observer.verify_audio_binding(source, {'h3Sha256': 'changed'}, database)
