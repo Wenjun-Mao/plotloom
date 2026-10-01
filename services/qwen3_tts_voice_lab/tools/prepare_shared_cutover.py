@@ -51,8 +51,15 @@ def idle():
             assert not db.execute('SELECT 1 FROM execution_grants WHERE release_confirmed=0').fetchone(), 'cutover.unreleased_grant'
 
 
-def prepare(backup):
-    idle()
+def prepare(backup, release, already_stopped):
+    info = json.loads(subprocess.check_output(['docker', 'inspect', 'plotloom-h3-gateway']))[0]
+    if already_stopped:
+        state = subprocess.run(['systemctl', '--user', 'is-active', 'plotloom-voice-lab.service'], capture_output=True, text=True)
+        assert state.stdout.strip() == 'inactive' and not info['State']['Running'], 'cutover.owners_not_stopped'
+        queue = fetch('http://127.0.0.1:8188/queue')
+        assert not queue['queue_running'] and not queue['queue_pending'], 'cutover.comfy_busy'
+    else:
+        idle()
     backup.mkdir(mode=0o700, parents=False, exist_ok=False)
     # Stop admissions before the definitive database checks; preserve stopped
     # owners on refusal rather than restarting independent inference queues.
@@ -67,6 +74,16 @@ def prepare(backup):
             assert not db.execute(f"SELECT 1 FROM {table} WHERE status IN ('queued','running')").fetchone(), 'cutover.lab_admission_race'
     from memory_trace import sample
     assert not any(p['label'] == 'voice_engine' for p in sample()['processes']), 'cutover.live_engine'
+    # Existing gateway media is root-owned/0600. Use the already-authorized
+    # Docker daemon for a no-network, scoped copy; never chmod live inputs.
+    subprocess.run(['docker', 'run', '--rm', '--network', 'none', '--user', '0', '--entrypoint', 'python',
+        '-v', f'{LAB}:{LAB}', '-v', f'{GATEWAY}:{GATEWAY}:ro', '-v', f'{UNIT}:{UNIT}:ro',
+        info['Image'], str(release / 'prepare_shared_cutover.py'), 'preserve',
+        '--release', str(release), '--backup', str(backup), '--previous-image', info['Image']], check=True)
+
+
+def preserve_state(backup, previous_image):
+    assert os.geteuid() == 0 and backup.is_dir(), 'cutover.scoped_copy_requires_root'
     record = {'status': 'preserved_stopped', 'services': {}}
     for label, root, name in [('lab', LAB, 'voice_lab.sqlite3'), ('gateway', GATEWAY, 'gateway.sqlite3')]:
         data, destination = root / 'data', backup / label
@@ -83,9 +100,11 @@ def prepare(backup):
         shutil.copy2(source, private / name)
         (private / name).chmod(0o600)
     shutil.copytree(SOURCE, backup / 'gateway-source')
-    info = json.loads(subprocess.check_output(['docker', 'inspect', 'plotloom-h3-gateway']))[0]
-    record['previousGatewayImage'] = info['Image']
+    record['previousGatewayImage'] = previous_image
     (backup / 'preservation.json').write_text(json.dumps(record, indent=2) + '\n')
+    owner = LAB.stat()
+    for path in [*backup.rglob('*'), backup]:
+        os.chown(path, owner.st_uid, owner.st_gid, follow_symlinks=False)
     print(json.dumps({'status': record['status'], 'backup': str(backup),
                       'tableCounts': {k: v['tableCounts'] for k, v in record['services'].items()}}))
 
@@ -145,13 +164,16 @@ def prove_migrations(backup):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=['prepare', 'prove', 'configure', 'verify'])
+    parser.add_argument('operation', choices=['prepare', 'preserve', 'prove', 'configure', 'verify'])
     parser.add_argument('--backup', type=Path, required=True)
     parser.add_argument('--release', type=Path, required=True)
+    parser.add_argument('--services-already-stopped', action='store_true')
+    parser.add_argument('--previous-image')
     args = parser.parse_args()
     if args.backup.parent.resolve() != LAB or args.release.parent.resolve() != LAB / 'releases':
         raise ValueError('cutover.invalid_scope')
-    if args.operation == 'prepare': prepare(args.backup)
+    if args.operation == 'prepare': prepare(args.backup, args.release, args.services_already_stopped)
+    elif args.operation == 'preserve': preserve_state(args.backup, args.previous_image)
     elif args.operation == 'prove': prove_migrations(args.backup)
     elif args.operation == 'configure': configure(args.release)
     else: verify(args.backup)
