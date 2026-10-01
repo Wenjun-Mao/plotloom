@@ -9,6 +9,7 @@ Projects are independent workspaces, not authenticated user accounts.
 - [Engine decision](../../docs/adr/0094-voice-lab-independent-engines-and-delivery.md)
 - [Published takes and shared admission](../../docs/roadmap/2026-09-30-voice-takes-h3-plan.md)
 - [Take API client guide](docs/voice-takes-client-guide.md)
+- [Verified shared-admission deployment](../../docs/verification/2026-10-01-published-voice-takes-shared-admission.md)
 
 ## Two stages, four independent engines
 

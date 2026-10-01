@@ -1,8 +1,10 @@
 # ADR 0097: Published voice performance takes and shared admission
 
-**Status:** Accepted for implementation, 2026-09-30, under the owner-approved
-[bounded plan](../roadmap/2026-09-30-voice-takes-h3-plan.md). Existing runtime
-behavior remains governed by ADRs 0092, 0094 and 0096 until cutover is verified.
+**Status:** Accepted 2026-09-30; runtime adoption technically verified 2026-10-01
+under the owner-approved [bounded plan](../roadmap/2026-09-30-voice-takes-h3-plan.md)
+and [completion receipt](../verification/2026-10-01-published-voice-takes-shared-admission.md).
+This supersedes ADR 0096's independent-queue operating boundary for managed
+gateway/Lab callers, not its limits on direct backend clients or memory claims.
 Plotloom integration, director contact, merge and push remain withheld.
 
 ## Context
@@ -14,7 +16,7 @@ urgency with an Index dialogue-specific take, with no owner-reported identity,
 word or lip-sync penalty in that shot. H3 already accepts frozen reference WAV
 bytes, but this does not promise the generated soundtrack exactly repeats them.
 
-Gateway H3/Qwen-Image and Voice Lab currently dispatch independently. Combining
+At the planning baseline, gateway H3/Qwen-Image and Voice Lab dispatched independently. Combining
 them through a convenience endpoint alone would expose a production-looking
 API without solving that known scheduling boundary.
 

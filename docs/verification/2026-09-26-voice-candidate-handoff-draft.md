@@ -116,16 +116,19 @@ Entry point: [Voice Lab README](../../services/qwen3_tts_voice_lab/README.md).
 Its [pipeline report](../../services/qwen3_tts_voice_lab/docs/audio-pipeline-report.md)
 explains author behavior; [reproduction/operations](../../services/qwen3_tts_voice_lab/docs/reproduction-and-operations.md)
 pins models, environments, licenses, deployment and recovery. Follow
-[ADR 0096](../adr/0096-voice-lab-shared-host-operating-boundary.md) for current
-shared-host limits. No multi-client GPU reservation exists.
+[ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md)
+for current managed shared admission. H3, Qwen-Image and all Lab synthesis now
+share one durable FIFO; direct backend clients/unrelated GPU services remain
+outside that guarantee. ADR 0096 remains historical evidence of the prior
+operator-serial boundary, not the current managed dispatch design.
 
 | Concern | Existing contract | Future Plotloom ownership |
 |---|---|---|
 | Resolve an identity | `GET /api/voices/{voiceId}` returns immutable metadata, transcript, model/engine snapshot, source/H3 hashes | Import provenance and bind an explicit selection to a character |
 | Download audio | `GET /api/voices/{voiceId}/audio?kind=source` or `kind=h3` | Verify bytes against the matching hash and retain both in Plotloom storage |
-| Reuse/acting | Selected `generationId` + `POST /api/clone-trials`, `engineId`, new words, optional `seed` and `delivery` | Keep identity separate from a line-specific take and canonical Dialogue Cue |
+| Reuse/acting | Published `voiceId` + gateway `POST /v1/voice-takes`, `engineId`, exact words, optional `seed` and `delivery`; immutable `takeId`, status/list and verified source/H3 download | Bind a selected take to a canonical Dialogue Cue, retain audio/provenance and make audition/approval explicit |
 | Video input | Gateway multipart `POST /v1/video-jobs/from-image-with-voice`: `image`, `voiceAudio`, `prompt`, `resolution`, `aspectPolicy`, optional seed/duration | Send frozen verified audio bytes; never send a Voice ID expecting the gateway to resolve it |
-| Failure/retention | Lab restart interrupts, never replays; published copies have no expiry/retirement API. Gateway media expires after 72 hours and job records after 30 days | Own production copies, unknown-dispatch handling, revocation/currentness and retention |
+| Failure/retention | Durable voices/takes have no TTL; confirmed terminal Take deletion is explicit. Unknown dispatch/unreleased process holds the shared lane, never replays. Gateway media expires after 72 hours and job records after 30 days | Own production copies, unknown-dispatch handling, revocation/currentness and retention |
 
 Reuse controls are `{"mode":"none"}` (Qwen or Index),
 `{"mode":"text","description":"坚定、果断、时间紧迫"}` (Index), or
@@ -139,15 +142,42 @@ demonstrates the byte handoff; it is not the owner's preferred original MOSS D
 or an instruction to install a character selection in Plotloom.
 
 Specialist completion covers engine adapters, Lab projects/candidates, review
-controls, immutable publication, exact gateway input and operation evidence.
+controls, immutable publication and performance takes, shared managed dispatch,
+exact gateway input and operation evidence. Project-scoped clone trials remain
+temporary auditions, not the production Take contract.
 Plotloom character binding, production snapshots, author-facing approvals,
 dialogue-take selection and its own asset retention remain director-owned
 **future work**, requiring the owner's release of the hold.
 
+## Specialist closeout · 2026-10-01 (still withheld)
+
+The [four-checkpoint receipt](2026-10-01-published-voice-takes-shared-admission.md)
+records deployed published-ID takes, the authenticated gateway facade, exact
+audio-byte handoff and one managed cross-service generation owner. The
+[Chinese client guide](../../services/qwen3_tts_voice_lab/docs/voice-takes-client-guide.md)
+specifies the current public API. There is no synthesis hidden inside video
+creation: create/inspect/audition a take, download its verified H3 WAV, then
+upload those bytes to the existing image-with-voice route.
+
+The capped live proof used two Index takes and one H3 job, followed by GET-only
+completion and idle restart checks. Three published identities and 60 managed
+WAVs survive restart unchanged. The technical MOSS publication above is still
+not original MOSS D. No new acting approval, universal reference-strategy
+default, exact-waveform promise or old-CUDA root-cause claim follows.
+
+When handoff is authorized, the director needs to design character→Voice ID and
+Dialogue Cue→Take selection, revision/hash currentness, retained production
+audio and explicit reference strategy. Freeze the exact selected bytes and
+matching words in the production snapshot; do not silently switch engine,
+voice or delivery after a failure. These remain later Plotloom decisions, not
+instructions or code changes delivered here.
+
 ## Decisions still open for an authorized handoff
 
-- Whether H3 receives the published identity audition or a selected
-  dialogue-specific reuse take. A take must not replace identity implicitly.
+- Plotloom's author-facing default between an identity audition and an explicit
+  dialogue-specific take. Both are available; the matched shot favored the
+  performance take, but no universal default was demonstrated. A take must not
+  replace identity implicitly.
 - Plotloom's author-facing delivery/selection workflow and review gates.
 - Whether future comparisons should loudness-match; current blind listening
   hides identities but is not a controlled study.

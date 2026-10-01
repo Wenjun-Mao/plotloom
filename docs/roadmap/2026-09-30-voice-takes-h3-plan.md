@@ -1,13 +1,56 @@
 # Published voice → performance take → H3
 
-**Status:** Owner-approved for all four checkpoints, 2026-09-30; implementation
-in progress. The active goal is “Go ahead and finish all four checkpoints.”
+**Status:** All four specialist checkpoints implemented and technically verified,
+2026-10-01; see the [completion receipt](../verification/2026-10-01-published-voice-takes-shared-admission.md).
+Owner approval was 2026-09-30 for “Go ahead and finish all four checkpoints.”
 Planning baseline: `e288623`, retained `codex/h3-ref2va-gateway` checkout.
 No Relay execution, Plotloom source changes, director contact, merge or push.
 
-This is the next specialist slice, not a reopening of the implemented
+## Planning review, 2026-10-01
+
+The planning-only review reused this document without authorizing new inference.
+Source inspection at local HEAD
+`43ff815` confirms that the durable take domain, shared admission lane, gateway
+facade and Lab take controls are already present. This is implementation
+progress, not final deployment acceptance. Preserve the original approval and
+baseline above rather than restarting or duplicating the four-checkpoint plan.
+
+The following bounded closeout sequence was subsequently completed under the
+continued four-checkpoint goal; evidence is in the completion receipt:
+
+1. **Finish the deployed UI artifact.** Build and smoke the Voice Lab wheel from
+   its own service directory. The latest source adds manual Take ID copying when
+   the Clipboard API is absent or denied on Tailnet HTTP. At a verified idle
+   boundary, install the new wheel without dependency/model changes or data
+   resets; retain the previous release and verify the pinned inference source
+   fingerprints. Restart only the two control services as needed.
+2. **Verify the actual caller journey.** Confirm the existing file-SQLite browser
+   journey, then use the deployed Lab to restore the selected voice/take, listen,
+   download and manually copy the Take ID. Retain a 1440×900 screenshot. Recheck
+   idle service restart and persistence with existing accepted results only;
+   do not press Generate or submit another video.
+3. **Reconcile evidence and operational documentation.** Inspect the retained
+   exact-ID qualification/restart receipts before making acceptance claims.
+   Keep original observer failures separate from inference outcomes. Record
+   the bounded call counts, immutable audio/hash binding, FIFO/process release,
+   data preservation, actual deployed artifact and verification gaps. Segmented
+   memory observations are not an uninterrupted peak-memory measurement or a
+   historical CUDA root-cause diagnosis. Update the held integration note and
+   ADR adoption status only to match verified evidence.
+4. **Close locally, then stop.** Secret-scan the scoped changes, inspect retained
+   screenshots, preserve generated evidence outside tracked source where
+   appropriate, stop owned test services and make a cohesive local evidence
+   commit. Audit all four checkpoints against the receipt. Director contact,
+   Plotloom integration, merge and push remain withheld.
+
+No additional voice/video generation, quality sweep, resident model cache,
+H3 Take-ID resolver or automatic creative approval is part of this closeout.
+If retained evidence does not establish a gate, record the gap and reassess the
+method; an observer failure is not permission to replay accepted inference.
+
+This is a specialist slice, not a reopening of the implemented
 [multi-engine Lab plan](2026-09-29-voice-lab-multi-engine-plan.md).
-The proposed durable boundary is [ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md).
+The adopted durable boundary is [ADR 0097](../adr/0097-published-voice-performance-takes-and-shared-admission.md).
 
 ## Outcome
 
@@ -23,7 +66,7 @@ clips retained identity, accurate words and good lip-sync. This supports this
 workflow for that shot, not universal superiority or an automatic H3 default.
 Further quality tuning and historical CUDA investigation remain parked.
 
-## Verified starting point and limits
+## Verified planning baseline and limits
 
 - Published Voice IDs already have independent native/H3 copies, hashes and
   frozen provenance; they survive candidate regeneration and project deletion.
@@ -72,7 +115,7 @@ Further quality tuning and historical CUDA investigation remain parked.
 
 ### Public gateway API
 
-| Operation | Proposed route |
+| Operation | Route |
 | --- | --- |
 | Queue a take | `POST /v1/voice-takes` → `202` |
 | List takes for an identity | `GET /v1/voice-takes?voiceId=…` |
@@ -250,3 +293,18 @@ resource optimization, model training or additional diagnosis is included.
 Do not contact the director, merge or push until the owner releases those holds.
 Commit cohesive local checkpoints and a final receipt once implemented/verified;
 Progress and evidence are recorded here and in the final verification receipt.
+
+## Implementation closeout · 2026-10-01
+
+| Checkpoint | Verified delivery |
+| --- | --- |
+| 1 · Durable take domain | Published-ID-only resolution, frozen reference/inputs, immutable native/H3 audio, guarded deletion, preservation migration |
+| 2 · Shared admission | All managed producers share durable FIFO; outbox/grant reconciliation, process release and unknown-dispatch blocking verified |
+| 3 · Gateway and Lab | Authenticated take API; real file-SQLite browser journey; deployed playback/download/manual-copy/selection restoration |
+| 4 · Cutover and evidence | Copy migration proofs; two Index takes plus one H3 job; exact audio binding; idle restart preserving three voices and 60 WAVs; held handoff updated |
+
+Runtime/source revision `43ff815` is qualified. Final documentation and screenshots
+are committed separately without changing runtime code. No new acting acceptance
+is claimed; source clipping warnings remain visible. The original observer
+failures and segmented memory traces remain retained. No inference was replayed.
+The director/contact/Plotloom/merge/push holds above are still in force.

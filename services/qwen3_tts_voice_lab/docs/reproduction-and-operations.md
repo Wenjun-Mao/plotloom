@@ -94,7 +94,11 @@ uv export --locked --no-dev --no-emit-project --output-file dist/control-require
 3. Create its lightweight `.venv` with `/usr/bin/python3.12`; `uv pip sync
    --require-hashes` the exported requirements, install wheel `--no-deps`.
    Check app imports without Torch. Preserve the qualified engine packages.
-4. Stop only `systemctl --user stop plotloom-voice-lab.service`, then run:
+4. For the current shared deployment, stop **both** control owners: the gateway
+   container and `plotloom-voice-lab.service`. Prove no accepted work/grant is
+   active before replacing a package. The Lab-only command below is the older
+   single-service migration helper; for shared cutover use
+   `prepare_shared_cutover.py` as specified in the shared deployment section:
 
    ```sh
    .venv/bin/python releases/preserve_cutover.py \
@@ -124,6 +128,15 @@ Runtime manifest mode is 0600. Executables and paths are server-owned, never
 author fields. Public responses expose engine settings/fingerprints, not
 private runtime paths or credentials. Run one worker; the enabled user unit
 and linger survive reboot.
+
+A web-only wheel replacement does not require inference changes. At the same
+idle boundary, retain the previous release, reinstall the wheel `--no-deps`
+into the CPU API and three engine environments, and compare installed Python
+files to the existing manifest. If they are identical, keep that manifest and
+all model/dependency settings. If Python changes, recapture its fingerprints
+and review affected verification. Never disable the check to complete a deploy.
+The [2026-10-01 receipt](../../../docs/verification/2026-10-01-published-voice-takes-shared-admission.md)
+records the actual deployed artifacts and preservation/restart proof.
 
 ## Resources and failure handling
 
