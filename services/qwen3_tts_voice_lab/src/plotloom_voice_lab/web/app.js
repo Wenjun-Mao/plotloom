@@ -15,6 +15,7 @@ function status(id, text) { $(id).textContent = text; }
 function active(value) { return ['queued', 'running'].includes(value); }
 function statusName(value) { return ({ queued: '排队中', running: '生成中', completed: '已完成', completed_stale: '输入已更改', failed: '失败', interrupted: '已中断' })[value] || value; }
 function progressText(progress) {
+  if ((progress.dispatchErrorCode || progress.errorCode) && progress.phase === 'active') return `队列暂停 · ${progress.dispatchErrorCode || progress.errorCode}（等待核实，未自动重试）`;
   if (progress.status === 'queued') {
     if (progress.queueAhead === null) return '已接收请求，等待入队…';
     return progress.queueAhead ? `排队中 · 前方 ${progress.queueAhead} 个任务` : '排队中 · 下一个开始';
@@ -124,7 +125,11 @@ async function navigate(id, fromHistory = false, discardApproved = false) {
     return;
   }
   state.epoch += 1; clearPolling();
-  if (!fromHistory) history.pushState({}, '', id ? `?project=${encodeURIComponent(id)}` : '/');
+  if (!fromHistory) {
+    const url = new URL(location.href);
+    if (id) url.searchParams.set('project', id); else url.searchParams.delete('project');
+    history.pushState({}, '', url);
+  }
   if (!id) { showChooser(); return; }
   try { await loadProject(id, true, state.epoch); }
   catch (e) { status('service-status', `项目打开失败：${e.message}`); showChooser(); }
@@ -235,7 +240,10 @@ async function loadClones(epoch = state.epoch) {
 async function loadVoices() {
   const { voices } = await api('/api/voices'); const area = $('voice-list'); area.replaceChildren();
   for (const voice of voices) { const item = node('div', 'voice-item'); const id = node('div', 'voice-id', voice.voiceId); const copy = node('button', '', '复制 Voice ID'); copy.onclick = () => navigator.clipboard.writeText(voice.voiceId).then(() => status('publish-status', 'Voice ID 已复制。')).catch(() => status('publish-status', voice.voiceId)); item.append(id, copy, node('p', '', voice.transcript)); const audio = node('audio'); audio.controls = true; audio.src = `/api/voices/${voice.voiceId}/audio`; item.append(audio); area.append(item); }
+  await takes.voices(voices);
 }
+
+const takes = setupTakes({ api, node, status, active, progressText });
 
 $('new-project').onclick = $('chooser-create').onclick = () => mutate(async () => {
   if (changed() && !window.confirm('当前项目有未保存的修改。放弃修改并新建吗？')) return;
@@ -299,3 +307,4 @@ Promise.all([api('/health'), refreshProjects(), loadVoices()]).then(async ([heal
   const id = new URLSearchParams(location.search).get('project'); if (id) await navigate(id, true); else showChooser();
 }).catch(e => status('service-status', `连接失败：${e.message}`));
 import { setupReuse, renderTrials } from '/reuse.js';
+import { setupTakes } from '/takes.js';

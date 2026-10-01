@@ -64,8 +64,26 @@
           <button id="publish-button" type="button" disabled>发布所选声线</button>
           <p id="publish-status" class="status" role="status"></p>
         </section>
-        <section class="panel voice-library" aria-labelledby="voices-heading"><div class="section-heading"><h2 id="voices-heading">已发布声线</h2></div><div id="voice-list"></div></section>
       </div>
+      <section class="panel voice-library" aria-labelledby="voices-heading"><div class="section-heading"><h2 id="voices-heading">已发布声线</h2></div><div id="voice-list"></div></section>
+      <section class="panel" aria-labelledby="takes-heading">
+        <div class="section-heading"><h2 id="takes-heading">台词表演</h2></div>
+        <p class="muted">以已发布声线为身份锚点。每次生成获得独立 Take ID，不替换之前的录音。</p>
+        <div class="fields">
+          <div class="field"><span id="take-voice-label">Voice ID</span><select id="take-voice" aria-labelledby="take-voice-label"></select></div>
+          <div class="field"><span id="take-engine-label">复用引擎</span><select id="take-engine" aria-labelledby="take-engine-label"><option value="qwen_base">Qwen Base（中性）</option><option value="index_base">IndexTTS2</option></select></div>
+          <div class="field"><span id="take-seed-label">种子（留空随机）</span><input id="take-seed" type="number" min="0" max="4294967295" step="1" aria-labelledby="take-seed-label"></div>
+        </div>
+        <div class="field"><span id="take-text-label">准确台词</span><textarea id="take-text" aria-labelledby="take-text-label" rows="2" maxlength="200"></textarea></div>
+        <div id="take-controls" hidden>
+          <div class="field"><span id="take-mode-label">表演控制</span><select id="take-mode" aria-labelledby="take-mode-label"><option value="none">无控制</option><option value="text">中文表演描述 → 自动情绪分类</option><option value="manual">手动八维强度</option></select></div>
+          <div id="take-description-field" class="field" hidden><span id="take-description-label">表演描述（不作为台词朗读）</span><textarea id="take-description" aria-labelledby="take-description-label" rows="2" maxlength="300"></textarea></div>
+          <div id="take-vector" class="emotion-grid" hidden></div>
+        </div>
+        <button id="take-create" type="button" class="primary" disabled>生成新的台词表演</button>
+        <p id="take-status" class="status" role="status"></p>
+        <div id="take-list"></div>
+      </section>
     </main>
   </div>
 </body>

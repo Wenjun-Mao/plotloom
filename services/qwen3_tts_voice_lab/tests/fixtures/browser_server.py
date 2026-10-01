@@ -8,8 +8,7 @@ import uvicorn
 import soundfile as sf
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from test_voice_lab import FakeEngine
-from plotloom_voice_lab.app import create_app
+from test_voice_lab import FakeEngine, create_app
 
 
 class BrowserEngine(FakeEngine):
