@@ -183,8 +183,38 @@ one request, uncertain first dispatch never reaches the second, and final
 sample failure cannot hide a job error. Re-review found no remaining material
 findings in those areas.
 
-**Stop:** Technical comparison complete; owner listening review pending.
-Further voice tuning is paused unless a concrete reported defect motivates
-new scope. The identity anchor and existing H3 default remain unchanged; this
-pair does not authorize integration or choose a winning strategy. No old
-failure is relabelled as fixed by this work. Usage/cost telemetry unavailable.
+## Owner listening review
+
+The owner reviewed the retained page and reported a large emotional difference.
+The page's fixed mapping is **A = line-specific Index performance reference**
+and **B = original MOSS D identity audition**, matching their retained output
+hashes above. Neither label was reshuffled or inferred from playback order.
+
+| Dimension | Owner verdict |
+|---|---|
+| Same-person identity | Both pass |
+| Exact dialogue | Both pass |
+| Firmness and decisiveness | Both pass |
+| Time-critical urgency / emotional strength | A is much stronger than B |
+| Lip-sync, extra speech and subtitles | Both good; no reported issue |
+
+For this shot, the reviewed line-specific performance is the preferred strategy
+when stronger urgency matters, without a reported identity, wording or lip-sync
+penalty. This supports keeping the permanent identity anchor separate from
+line-specific performance takes, then considering a reviewed take as H3's
+reference for performance-sensitive dialogue. It does not establish general
+superiority, prove isolated emotion transfer, guarantee soundtrack reuse, or
+silently change the production H3 default. The two practical strategies also
+differ in reference wording/duration, as described above.
+
+The owner elected to treat the historical CUDA failure as an isolated incident
+for current prioritization and **stop investigating unless it happens again**.
+Its cause remains unresolved, not fixed or proven random. Preserve the original
+failure, memory records and reusable observer; no new diagnosis, stress test,
+monitoring automation or automatic OOM recovery is authorized. Existing serial
+operating safeguards remain unchanged.
+
+**Stop:** Technical comparison and this pair's owner listening review complete.
+Further voice tuning and CUDA investigation are paused unless a concrete
+reported defect/recurrence motivates new scope. No integration, director
+message, merge or push is authorized. Usage/cost telemetry unavailable.

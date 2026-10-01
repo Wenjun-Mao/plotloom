@@ -65,3 +65,8 @@ Spark NVML remains explicitly unmeasured. Never start a second CUDA context
 just to instrument an active job, or add overlapping UMA/RSS/Torch values.
 Trace failure must be visible and must not erase the underlying job failure.
 See [historical evidence and measurement boundaries](../verification/2026-09-30-reference-strategies-and-memory.md).
+
+The owner's subsequent review parks investigation of the isolated historical
+CUDA incident unless it recurs. Preserve evidence and the observer; do not
+claim the cause is fixed, remove serial safeguards, schedule additional probes,
+or add automatic recovery merely because current runs passed.

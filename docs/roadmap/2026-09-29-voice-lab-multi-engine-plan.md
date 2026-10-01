@@ -23,6 +23,15 @@ Identity references remain permanent anchors and performance takes remain
 separate. The pair does not by itself choose a production H3 default or resolve
 the original CUDA allocation failure.
 
+Owner review of that pair passed identity, exact words, firmness/decisiveness,
+lip-sync and absence of extra speech/subtitles for both clips. The line-specific
+Index performance reference (A) produced much stronger urgency than the identity
+audition (B). Retain that bounded workflow finding for eventual integration;
+no default, API or identity publication is changed here. Both tuning and CUDA
+investigation are now parked; reopen only for a concrete defect/recurrence.
+The historical CUDA failure and memory evidence stay preserved, not relabelled
+as repaired. Director contact and merge/push remain on hold.
+
 ## Outcome and evidence
 
 Make the existing Spark UI useful for two separate decisions:
