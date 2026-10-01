@@ -122,15 +122,37 @@ def verify(backup):
     print('Both SQLite migrations preserved original columns/rows and all managed files.')
 
 
+def prove_migrations(backup):
+    from plotloom_voice_lab.store import Store
+    proofs = backup / 'migration-proofs'; proofs.mkdir(mode=0o700)
+    for label, name in [('lab', 'voice_lab.sqlite3'), ('gateway', 'gateway.sqlite3')]:
+        destination = proofs / label; destination.mkdir(mode=0o700)
+        shutil.copy2(backup / label / name, destination / name)
+        before = rows(destination / name)
+        if label == 'lab':
+            Store(destination)
+        else:
+            subprocess.run(['docker', 'run', '--rm', '--network', 'none', '-v', f'{destination}:/proof',
+                'minimax_h3_gateway-gateway', 'python', '-c',
+                'from pathlib import Path; from plotloom_h3_gateway.store import GatewayStore; GatewayStore(Path("/proof/gateway.sqlite3"))'], check=True)
+        with sqlite3.connect(destination / name) as db:
+            assert db.execute('PRAGMA integrity_check').fetchone() == ('ok',)
+            for table, value in before.items():
+                columns = ','.join(f'"{column}"' for column in value['columns'])
+                assert db.execute(f'SELECT {columns} FROM "{table}" ORDER BY rowid').fetchall() == value['rows']
+    print('Both installed control-plane migration proofs passed on copies; backups unchanged.')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('operation', choices=['prepare', 'configure', 'verify'])
+    parser.add_argument('operation', choices=['prepare', 'prove', 'configure', 'verify'])
     parser.add_argument('--backup', type=Path, required=True)
     parser.add_argument('--release', type=Path, required=True)
     args = parser.parse_args()
     if args.backup.parent.resolve() != LAB or args.release.parent.resolve() != LAB / 'releases':
         raise ValueError('cutover.invalid_scope')
     if args.operation == 'prepare': prepare(args.backup)
+    elif args.operation == 'prove': prove_migrations(args.backup)
     elif args.operation == 'configure': configure(args.release)
     else: verify(args.backup)
 
