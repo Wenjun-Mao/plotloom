@@ -120,10 +120,56 @@ general superiority or automatically change the default H3 input.
 
 ## Execution and acceptance
 
-The first job was accepted as `h3_26de75cecbf3456c9fcc21acee5034f5`; the
-comparison remains in progress. Spark's private evidence directory is
+Both jobs succeeded; no third job or new TTS call occurred. Spark's private evidence directory is
 `/home/wjmao/services/plotloom-voice-lab/runtime-inventory/reference-strategy-pair-2026-09-30/`.
 The CPU observer and runner hashes deployed there match their local copies.
+
+| Reference strategy | Job | Backend elapsed | Minimum sampled available RAM |
+|---|---|---:|---:|
+| Original identity audition | `h3_26de75cecbf3456c9fcc21acee5034f5` | 741.712 s | 29.511 GiB |
+| Existing line-specific performance | `h3_7acad2a427f840448de624f92f82d54a` | 738.944 s | 29.449 GiB |
+
+Both outputs are 576×1024, 192 frames, exactly eight seconds, H.264 with
+32-kHz AAC. Full video/audio decode and source/derived/output copy hashes passed.
+Read-only SQLite comparison confirmed that frozen snapshots differ only in
+`audioName`, `audioSha256`, `preparedAudioSha256` and per-job `imageName`.
+The canonical sorted common-control hash, excluding only those four fields, is
+`d03e19b041adfffb4d4f5839d55726359b4a604dcd06da0ce4da76198eb38a88`.
+Model, recipe, prepared image, prompt and all generation settings match.
+
+The trace contains **1,476 samples**, with a maximum actual gap of **1.017 s**
+and no observer failure. In each observed case window, swap-out counter delta
+was zero and memory PSI `some/full avg10` stayed zero. The Linux OOM-kill
+counter did not increase. The matching kernel journal window
+`2026-09-30 22:18:33–22:43:24 America/Toronto` contained no matching allocation
+or OOM error. These observations do not measure CUDA free/peak capacity or
+prove every future allocation safe. Existing swap occupied about 7.93 GiB;
+it was not newly written by this pair and was not cleared.
+
+Private Mac review package:
+`/Users/wjmao/plotloom-canaries/2026-09-30-h3-reference-strategies/index.html`.
+It keeps blind A/B labels until source reveal. Both video elements loaded with
+the expected dimensions/duration, played and mutually paused in Playwright;
+source reveal and JavaScript syntax checks passed. A 1440×900 capture is retained
+inside that package. File navigation is blocked by the CLI browser, so this
+check served only the package over a temporary loopback HTTP server; that
+validation server and owned browser were stopped afterward. This is playback
+verification, not a listening, identity or lip-sync verdict.
+
+Private evidence hashes:
+
+- Pair receipt: `5bffc4934edbfbe02a3047ef2330db351d906e97f76c8f1795c320b9ac01d48a`.
+- Raw memory JSONL: `43a56f4d2d94fc5d7fea34aa62c55e0fb9b02d747919f6055fb795c8f1a278d7`.
+- Identity-reference output: `b2515aceaf11d00bff28acc1366128eb48bf9a366cd3803c8ad12d8a8403fe34`.
+- Performance-reference output: `8b4def902a741078d3918a25fe26516fb7de80fd76c6f690e147f8a587ecea8d`.
+- Original failed receipt copy: `516b1354bcc65ddccef49ca17191f9adcd02b8c5c0c60767df19b017e486efdf`.
+- Historical sysstat binary copy: `5f9013448105b706a728f8e9db5c00040827a2bbee9e96fe2e591d2bad0aede0`.
+
+The raw sysstat copy is preserved privately before daily/monthly rotation can
+remove the original readings. Historical receipt rows and published voices
+were never rewritten. Final checks show Lab idle, H3/Qwen gateway fully ready
+with zero queued/active dispatches, and Qwen Image healthy. No service was
+stopped or restarted for this pair.
 
 Focused verification: 64 locked Voice Lab tests, 13 root extraction checks,
 scoped Ruff, relative documentation links and patch checks passed. The existing
@@ -137,5 +183,8 @@ one request, uncertain first dispatch never reaches the second, and final
 sample failure cannot hide a job error. Re-review found no remaining material
 findings in those areas.
 
-Final technical evidence and listening acceptance remain pending. No old
-failure is relabelled as fixed by this work.
+**Stop:** Technical comparison complete; owner listening review pending.
+Further voice tuning is paused unless a concrete reported defect motivates
+new scope. The identity anchor and existing H3 default remain unchanged; this
+pair does not authorize integration or choose a winning strategy. No old
+failure is relabelled as fixed by this work. Usage/cost telemetry unavailable.
