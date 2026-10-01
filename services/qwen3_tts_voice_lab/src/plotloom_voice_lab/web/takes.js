@@ -79,7 +79,10 @@ export function setupTakes({ api, node, status, active, progressText }) {
       for (const kind of take.h3Eligible ? ['source', 'h3'] : ['source']) {
         const link = node('a', '', kind === 'source' ? '下载原生 WAV' : '下载 H3 WAV'); link.href = `/api/voice-takes/${take.takeId}/audio?kind=${kind}`; link.download = `${take.takeId}-${kind}.wav`; item.append(link, document.createTextNode(' '));
       }
-      const copy = node('button', '', '复制 Take ID'); copy.onclick = () => navigator.clipboard.writeText(take.takeId).then(() => status('take-status', 'Take ID 已复制。')).catch(() => status('take-status', take.takeId)); item.append(copy);
+      const copy = node('button', '', '复制 Take ID'); copy.onclick = async () => {
+        try { await navigator.clipboard.writeText(take.takeId); status('take-status', 'Take ID 已复制。'); }
+        catch (_) { status('take-status', `请手动复制 Take ID：${take.takeId}`); }
+      }; item.append(copy);
     }
     const repeat = node('button', '', '复制为新表演'); repeat.onclick = () => fill(take); item.append(repeat);
     if (!active(take.status) && take.status !== 'deleted') {

@@ -52,6 +52,9 @@ async (page) => {
   if (!page.url().includes(first.takeId) || await page.locator('#take-mode').inputValue() !== 'manual') throw new Error('selection/draft refresh');
   if (await page.locator(`#take-list [data-take-id="${first.takeId}"][aria-current="true"]`).count() !== 1) throw new Error('visible selected-take restoration');
   if (await page.locator(`#take-list [data-take-id="${first.takeId}"]`).evaluate(element => getComputedStyle(element).boxShadow) === 'none') throw new Error('selected-take highlight missing');
+  await page.evaluate(() => Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true }));
+  await page.locator(`[data-take-id="${first.takeId}"]`).getByRole('button', { name: '复制 Take ID', exact: true }).click();
+  if (!(await page.locator('#take-status').textContent()).includes(first.takeId)) throw new Error('HTTP manual-copy fallback missing');
   page.once('dialog', dialog => dialog.accept());
   await page.locator(`[data-take-id="${second.takeId}"]`).getByRole('button', { name: '删除此表演', exact: true }).click();
   await page.waitForFunction(() => document.querySelectorAll('#take-list audio').length === 1);
