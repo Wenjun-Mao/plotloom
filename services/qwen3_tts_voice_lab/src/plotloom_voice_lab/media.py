@@ -94,8 +94,12 @@ def _native_audio(path: Path, expected_sample_rate: int) -> tuple[np.ndarray, in
 
 def persist_candidate_file(data_dir: Path, candidate_id: str, generation_id: str,
                            native: Path, expected_sample_rate: int) -> dict:
+    return persist_reference_file(data_dir / "assets" / candidate_id / generation_id, native, expected_sample_rate)
+
+
+def persist_reference_file(target: Path, native: Path, expected_sample_rate: int) -> dict:
+    """Prepare a reference without changing authoritative native bytes."""
     waveform, sample_rate, duration, details = _native_audio(native, expected_sample_rate)
-    target = data_dir / "assets" / candidate_id / generation_id
     source = target / "source.wav"
     if source.exists():
         raise FileExistsError("candidate_audio_already_exists")
@@ -134,7 +138,7 @@ def persist_candidate_file(data_dir: Path, candidate_id: str, generation_id: str
             return result
         result.update(h3Path=str(h3_path), h3Sha256=file_sha256(h3_path), h3Eligible=True)
     except Exception:
-        LOGGER.exception("H3 reference preparation failed for candidate %s", candidate_id)
+        LOGGER.exception("H3 reference preparation failed")
         h3_path.unlink(missing_ok=True)
         result["h3IssueCode"] = "h3.preparation_failed"
         return result

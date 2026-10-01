@@ -71,6 +71,9 @@ def create_app(
     def health() -> dict[str, Any]:
         return gateway.health()
 
+    from .voice_api import install_voice_api
+    install_voice_api(app, gateway, authorize)
+
     @app.post("/v1/video-jobs/from-image", dependencies=[Depends(authorize)], status_code=202)
     async def create_video_job_from_image(request: Request) -> dict[str, Any]:
         start_content, end_content, job_request = await _image_submission(request, gateway)

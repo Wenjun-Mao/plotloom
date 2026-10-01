@@ -51,6 +51,10 @@ class ProcessEngine:
             if self.process is not None:
                 self._reap(self.process)
 
+    def release_confirmed(self) -> bool:
+        with self.lock:
+            return self.process is None
+
     @staticmethod
     def _reap(process) -> None:
         # Include descendants even if the leader has already exited.

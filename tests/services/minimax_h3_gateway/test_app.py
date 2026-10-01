@@ -363,7 +363,9 @@ def test_gateway_restart_and_uncertain_submit_never_replay_claimed_work(tmp_path
     client, _session = _client(tmp_path)
     interrupted = _submit_image(client, seed=4)
     waiting = _submit_image(client, seed=5)
-    assert client.app.state.gateway.store.claim_next_queued()["id"] == interrupted["id"]
+    gateway = client.app.state.gateway
+    assert gateway.lane.claim()["job_id"] == interrupted["id"]
+    gateway.store.update_job(interrupted["id"], status="submitting")
     client.close()
 
     resumed_session = _ComfySession()
@@ -379,8 +381,9 @@ def test_gateway_restart_and_uncertain_submit_never_replay_claimed_work(tmp_path
     assert recovered.json()["status"] == "outcome_unknown"
     assert recovered.json()["error"] == "gateway_restart_before_known_submission"
     next_submitted = resumed.app.state.gateway.dispatch_once()
-    assert next_submitted is not None and next_submitted["id"] == waiting["id"]
-    assert [item["client_id"] for item in resumed_session.submissions] == [waiting["id"]]
+    assert next_submitted is None
+    assert resumed_session.submissions == []
+    assert resumed.app.state.gateway.store.get_job(waiting["id"])["status"] == "queued"
 
     uncertain_session = _UncertainSubmitSession()
     uncertain_settings = GatewaySettings(

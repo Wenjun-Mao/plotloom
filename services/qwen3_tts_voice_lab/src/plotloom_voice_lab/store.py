@@ -34,11 +34,15 @@ class Store:
         from .generations import GenerationRepository
         from .clones import CloneRepository
         from .voices import VoiceRepository
+        from .takes import TakeRepository
+        from .dispatch import DispatchRepository
 
         self.projects = ProjectRepository(self)
         self.generations = GenerationRepository(self)
         self.clones = CloneRepository(self)
         self.voices = VoiceRepository(self)
+        self.takes = TakeRepository(self)
+        self.dispatch = DispatchRepository(self)
 
     @contextmanager
     def connection(self) -> Iterator[sqlite3.Connection]:
@@ -94,6 +98,9 @@ class Store:
         """A prior dispatch may have reached the model; never replay it."""
         with self.connection() as db:
             stamp = now()
-            db.execute("UPDATE generations SET status='interrupted',error_code='generation.interrupted',updated_at=? WHERE status IN ('queued','running')", (stamp,))
-            db.execute("UPDATE clone_trials SET status='interrupted',error_code='generation.interrupted',updated_at=? WHERE status IN ('queued','running')", (stamp,))
+            for table, kind in (("generations", "generation"), ("clone_trials", "clone"), ("voice_takes", "take")):
+                db.execute(f"""UPDATE {table} SET status='interrupted',error_code='generation.interrupted',updated_at=?
+                    WHERE status='running' OR (status='queued' AND (
+                        NOT EXISTS(SELECT 1 FROM dispatch_outbox WHERE kind=? AND job_id={table}.id)
+                        OR EXISTS(SELECT 1 FROM execution_grants WHERE kind=? AND job_id={table}.id)))""", (stamp, kind, kind))
         self.run_cleanup()

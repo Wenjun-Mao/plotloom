@@ -43,10 +43,12 @@ def _verified_file(store: Store, path: str | None, expected_hash: str | None) ->
     return source
 
 
-def create_app(data_dir: Path, engine=None) -> FastAPI:
+def create_app(data_dir: Path, engine=None, *, lane_client=None, dispatch_key=None) -> FastAPI:
     store = Store(data_dir)
     engine = engine or ProcessEngine()
-    worker = Worker(store, engine)
+    worker = Worker(store, engine, lane_client=lane_client)
+    if lane_client is not None and hasattr(lane_client, "bind"):
+        lane_client.bind(worker)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -58,6 +60,12 @@ def create_app(data_dir: Path, engine=None) -> FastAPI:
     app = FastAPI(title="Spark Voice Lab", lifespan=lifespan, docs_url=None, redoc_url=None)
     app.state.store = store
     app.state.worker = worker
+    from .take_api import install_take_api
+    install_take_api(app, store, worker, _verified_file, _api_error, dispatch_key=dispatch_key)
+
+    @app.get("/takes.js")
+    def takes_javascript():
+        return FileResponse(WEB_DIR / "takes.js", media_type="application/javascript")
 
     @app.get("/")
     def index():

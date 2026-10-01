@@ -46,6 +46,8 @@ class GatewayStore:
                 )
             connection.executescript(_CURRENT_SCHEMA)
             self._migrate(connection)
+            from .lane import initialize_lane
+            initialize_lane(connection)
 
     @staticmethod
     def _migrate(connection: sqlite3.Connection) -> None:
@@ -137,6 +139,9 @@ class GatewayStore:
                                :source_size_bytes, :duration_ms, :source_name, :prepared_input_name)""",
                     {**voice, "job_id": values["id"]},
                 )
+            from .lane import media_binding, register
+            row = connection.execute("SELECT * FROM jobs WHERE id=?", (values["id"],)).fetchone()
+            register(connection, "gateway", row["backend"], row["id"], media_binding(row))
             connection.commit()
         return self.get_job(values["id"])
 
@@ -181,26 +186,16 @@ class GatewayStore:
             ).fetchall()
         return [dict(row) for row in rows]
 
-    def claim_next_queued(self) -> dict[str, Any] | None:
-        with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
-            row = connection.execute("SELECT * FROM jobs WHERE status = 'queued' ORDER BY rowid ASC LIMIT 1").fetchone()
-            if row is None:
-                connection.commit()
-                return None
-            job_id = str(row["id"])
-            updated = connection.execute("UPDATE jobs SET status = 'submitting', updated_at = CURRENT_TIMESTAMP WHERE id = ? AND status = 'queued'", (job_id,))
-            if updated.rowcount != 1:
-                connection.rollback()
-                return None
-            connection.commit()
-        return self.get_job(job_id)
-
     def recover_interrupted_dispatches(self) -> None:
         with self._connect() as connection:
             connection.execute(
                 "UPDATE jobs SET status = 'outcome_unknown', error_code = COALESCE(error_code, 'gateway_restart_before_known_submission'), updated_at = CURRENT_TIMESTAMP WHERE status IN ('reserved', 'submitting')"
             )
+
+    def begin_media_dispatch(self, job_id: str) -> bool:
+        with self._connect() as connection:
+            changed = connection.execute("UPDATE jobs SET status='submitting',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='queued'", (job_id,))
+            return changed.rowcount == 1
 
     def list_active_jobs(self) -> list[dict[str, Any]]:
         with self._connect() as connection:
@@ -251,11 +246,14 @@ class GatewayStore:
     def purge_completed_job_record(self, job_id: str) -> bool:
         audit_hours = GATEWAY_JOB_RECORD_RETENTION_DAYS * 24 - MANAGED_OUTPUT_RETENTION_HOURS
         with self._connect() as connection:
+            connection.execute("BEGIN IMMEDIATE")
             deleted = connection.execute("""DELETE FROM jobs WHERE id = ? AND status = 'succeeded'
                 AND output_expires_at IS NOT NULL AND output_expires_at <= datetime('now', ?)
                 AND NOT EXISTS (SELECT 1 FROM job_voice_bindings voice
                                 WHERE voice.job_id = jobs.id AND voice.released_at IS NULL)""",
                 (job_id, f"-{audit_hours} hours"))
+            if deleted.rowcount == 1:
+                connection.execute("DELETE FROM generation_lane WHERE owner='gateway' AND job_id=? AND state='done'", (job_id,))
         return deleted.rowcount == 1
 
     def claim_asset_after_last_output_expiry(self, asset_id: str) -> bool:
@@ -279,6 +277,10 @@ class GatewayStore:
                      SELECT 1 FROM job_frame_bindings bindings JOIN jobs ON jobs.id = bindings.job_id
                      WHERE bindings.asset_id = assets.id
                        AND jobs.status NOT IN ('succeeded', 'failed', 'cancelled', 'outcome_unknown')
+                   ) AND NOT EXISTS (
+                     SELECT 1 FROM job_frame_bindings bindings JOIN generation_lane lane
+                       ON lane.owner='gateway' AND lane.job_id=bindings.job_id
+                     WHERE bindings.asset_id=assets.id AND lane.state='active'
                    )""", (f"-{GATEWAY_KEYFRAME_RETENTION_DAYS} days",)
             )
             connection.commit()

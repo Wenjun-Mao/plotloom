@@ -75,6 +75,11 @@ class H3Gateway:
         self.qwen = QwenImageClient(settings, qwen_session or requests.Session())
         self.source_images = SourceImageFetcher(settings, session=source_session)
         self.workflow_template = load_h3_template()
+        from .lane import GenerationLane, LaneDispatcher
+        from .voice_control import VoiceControl
+        self.lane = GenerationLane(self.store)
+        self.voice_control = VoiceControl(settings)
+        self.dispatcher = LaneDispatcher(self, self.voice_control)
 
     def health(self) -> dict[str, Any]:
         self.comfy.preflight()
@@ -84,7 +89,7 @@ class H3Gateway:
             voice_ready = True
         except GatewayError:
             voice_ready = False
-        queued, active = self.store.queue_counts()
+        queued, active = self.lane.counts()
         return {
             "status": "ok", "generationContractVersion": GENERATION_CONTRACT_VERSION,
             "defaultQuality": DEFAULT_QUALITY, "qualities": sorted(QUALITY_RECIPES),
@@ -252,28 +257,33 @@ class H3Gateway:
             raise GatewayError(code, 422) from error
 
     def dispatch_once(self) -> dict[str, Any] | None:
-        for active in self.store.list_active_jobs():
-            if active.get("backend", "h3_video") == "h3_video":
-                self.refresh_job(str(active["id"]))
-        if self.store.list_active_jobs():
-            return None
-        job = self.store.claim_next_queued()
-        if job is None:
+        return self.dispatcher.advance()
+
+    def dispatch_media(self, job: dict[str, Any]) -> dict[str, Any] | None:
+        if job["status"] in {"succeeded", "failed", "cancelled", "outcome_unknown"}:
+            return job
+        # One persisted dispatcher intent wins, even if two API processes
+        # accidentally observe the same granted lane entry concurrently.
+        if job["status"] != "queued":
             return None
         if job.get("backend", "h3_video") == "qwen_image":
             # Do not let an independently-running Comfy task overlap the
             # shared lane, even though this queued job itself is Qwen.
             try:
                 if self.comfy.queue_depth() > 0:
-                    return self.store.update_job(str(job["id"]), status="queued")
+                    return self.store.get_job(str(job["id"]))
             except GatewayError:
-                return self.store.update_job(str(job["id"]), status="queued")
+                return self.store.get_job(str(job["id"]))
+            if not self.store.begin_media_dispatch(str(job["id"])):
+                return None
             return self._dispatch_qwen_image(job)
         try:
             if self.comfy.queue_depth() > 0:
-                return self.store.update_job(str(job["id"]), status="queued")
+                return self.store.get_job(str(job["id"]))
         except GatewayError:
-            return self.store.update_job(str(job["id"]), status="queued")
+            return self.store.get_job(str(job["id"]))
+        if not self.store.begin_media_dispatch(str(job["id"])):
+            return None
         # Validate only the selected frozen execution after claim. A current
         # catalog addition must not make an older queued snapshot un-runnable.
         try:
@@ -293,6 +303,7 @@ class H3Gateway:
         except (KeyError, TypeError, ValueError, OSError):
             return self.store.update_job(str(job["id"]), status="failed", error_code="dispatch_local_precondition_failed")
         try:
+            self.store.update_job(str(job["id"]), status="submitting")
             prompt_id = self.comfy.submit(workflow=workflow, client_id=str(job["id"]))
         except GatewayError as error:
             return self.store.update_job(str(job["id"]), status="outcome_unknown", error_code=error.code)
@@ -399,6 +410,7 @@ class H3Gateway:
 
     def cleanup_due_job_records(self) -> int:
         self.voice_files.cleanup_due()
+        self.lane.purge_finished_voice_records()
         return self.files.cleanup_due_job_records()
 
     def cleanup_expired_gateway_keyframes(self) -> int:

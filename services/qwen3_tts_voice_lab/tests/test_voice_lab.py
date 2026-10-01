@@ -10,9 +10,14 @@ import pytest
 import soundfile as sf
 from fastapi.testclient import TestClient
 
-from plotloom_voice_lab.app import create_app
+from plotloom_voice_lab.app import create_app as production_app
 from plotloom_voice_lab.media import file_sha256, persist_candidate
 from plotloom_voice_lab.store import Store
+from fixtures.shared_lane import SharedLaneFixture
+
+
+def create_app(data_dir, engine=None):
+    return production_app(data_dir, engine, lane_client=SharedLaneFixture(data_dir))
 
 
 class FakeDesign:
@@ -46,6 +51,9 @@ class FakeEngine:
 
     def stop(self):
         pass
+
+    def release_confirmed(self):
+        return True
 
     def run(self, snapshot, values, output_dir, phase, evidence):
         phase("loading_model")
@@ -165,6 +173,13 @@ def test_generation_progress_reflects_serial_queue_and_observed_phase(tmp_path):
                 "expectedProjectRevision": p["revision"], "expectedCandidateRevision": third["revision"],
             }).json()
             waiting_progress = client.get(f"/api/generations/{waiting_job['generationId']}/progress").json()
+            for _ in range(100):
+                if waiting_progress["phase"] == "queued":
+                    break
+                assert waiting_progress["phase"] == "waiting_for_registration"
+                assert waiting_progress["queueAhead"] is None
+                time.sleep(.01)
+                waiting_progress = client.get(f"/api/generations/{waiting_job['generationId']}/progress").json()
             assert waiting_progress == {
                 "generationId": waiting_job["generationId"], "status": "queued",
                 "queueAhead": 2, "phase": "queued", "elapsedSeconds": None, "errorCode": None,
@@ -257,6 +272,7 @@ def test_interrupted_job_not_replayed_and_old_routes_removed(tmp_path):
     p = store.projects.update(p["projectId"], p["revision"], "测试", "", "同一句台词。")
     p = store.projects.add_candidate(p["projectId"], p["revision"], "方向一")
     generation = store.generations.create(p["candidates"][0]["candidateId"], p["revision"], 1, 7)
+    store.generations.mark_running(generation["generationId"])
     with TestClient(create_app(tmp_path, FakeEngine())) as client:
         assert client.get(f"/api/generations/{generation['generationId']}").json()["status"] == "interrupted"
         assert client.post('/api/rounds', json={}).status_code == 404
@@ -290,7 +306,7 @@ def test_legacy_migration_preserves_checked_audio(tmp_path):
     assert migrated["candidates"][0]["currentGeneration"]["sourceSha256"] == media["sourceSha256"]
     assert migrated["selectedGenerationId"] == migrated["candidates"][0]["currentGeneration"]["generationId"]
     assert Path(media["sourcePath"]).is_file()
-    assert sqlite3.connect(db_path).execute("PRAGMA user_version").fetchone()[0] == 3
+    assert sqlite3.connect(db_path).execute("PRAGMA user_version").fetchone()[0] == 4
 
 
 def test_invalid_requests_and_non_h3_clip(tmp_path):

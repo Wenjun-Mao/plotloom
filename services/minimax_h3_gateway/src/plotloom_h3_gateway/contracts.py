@@ -47,6 +47,8 @@ class GatewaySettings:
     source_fetch_max_redirects: int = 3
     worker_poll_seconds: float = 0.5
     dispatch_worker_enabled: bool = True
+    voice_lab_url: str = ""
+    voice_lab_key: str = ""
 
     @classmethod
     def from_environment(cls) -> GatewaySettings:
@@ -55,6 +57,8 @@ class GatewaySettings:
             raise RuntimeError("H3_API_KEY is required")
         return cls(
             api_key=key,
+            voice_lab_url=os.environ.get("H3_VOICE_LAB_URL", "").rstrip("/"),
+            voice_lab_key=os.environ.get("H3_VOICE_LAB_KEY", ""),
             data_dir=Path(os.environ.get("H3_GATEWAY_DATA_DIR", "/var/lib/plotloom-h3-gateway")),
             comfy_input_dir=Path(os.environ.get("H3_COMFY_INPUT_DIR", "/comfy/input")),
             comfy_output_dir=Path(os.environ.get("H3_COMFY_OUTPUT_DIR", "/comfy/output")),

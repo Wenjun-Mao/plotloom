@@ -122,3 +122,28 @@ class CloneCreate(StrictModel):
 class PublishCreate(StrictModel):
     projectId: str = Field(pattern=r"^vp_[0-9a-f]{32}$")
     generationId: str = Field(pattern=r"^vg_[0-9a-f]{32}$")
+
+
+class TakeCreate(StrictModel):
+    voiceId: str = Field(pattern=r"^voice_[0-9a-f]{32}$")
+    text: str = Field(min_length=1, max_length=200)
+    engineId: ReuseEngine
+    seed: int | None = Field(default=None, ge=0, le=2**32 - 1)
+    delivery: DeliveryControl = Field(default_factory=DeliveryControl)
+
+    @field_validator("text")
+    @classmethod
+    def require_words(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("take.text_blank")
+        return value.strip()
+
+    @model_validator(mode="after")
+    def supported_delivery(self):
+        if self.engineId == "qwen_base" and self.delivery.mode != "none":
+            raise ValueError("engine.delivery_unsupported")
+        return self
+
+
+class TakeDelete(StrictModel):
+    confirmTakeId: str

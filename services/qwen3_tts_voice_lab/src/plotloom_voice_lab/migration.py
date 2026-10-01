@@ -166,11 +166,17 @@ def initialize(db_path: Path, root: Path) -> None:
         db.execute("PRAGMA journal_mode=WAL")
         db.execute("PRAGMA foreign_keys=OFF")
         version = db.execute("PRAGMA user_version").fetchone()[0]
+        if version == 4:
+            return
         if version == 3:
+            from .take_migration import migrate_takes
+            migrate_takes(db)
             return
         if version == 2:
             from .engine_migration import migrate_engines
             migrate_engines(db)
+            from .take_migration import migrate_takes
+            migrate_takes(db)
             return
         if version != 0:
             raise ValueError(f"unsupported_voice_lab_schema:{version}")
@@ -185,6 +191,8 @@ def initialize(db_path: Path, root: Path) -> None:
         db.commit()
         from .engine_migration import migrate_engines
         migrate_engines(db)
+        from .take_migration import migrate_takes
+        migrate_takes(db)
     except Exception:
         db.rollback()
         raise
