@@ -116,7 +116,7 @@ uv export --locked --no-dev --no-emit-project --output-file dist/control-require
 
 7. Install the reviewed unit under `~/.config/systemd/user/`, daemon-reload and
    start. Only the existing data root migrates; no reset. Verify old Voice ID
-   source/H3 hashes, schema v3, `/api/engines`, chooser and worker health.
+   source/H3 hashes, schema v4, `/api/engines`, chooser and worker health.
 8. Retain the old unit/wheel and scoped backup for operator-directed recovery;
    never casually restore over later work. Refresh open browser tabs.
 
@@ -152,12 +152,62 @@ and once after a real Ref2VA job (30.553 GiB host MemAvailable before Index).
 No resource thresholds, inference packages or cache policies were changed.
 The old allocation cause remains unresolved, not silently credited to 0.38.
 
-Use [ADR 0096's operator-serial window](../../../docs/adr/0096-voice-lab-shared-host-operating-boundary.md)
-for shared-host trials. Check all three queues/readiness, reserve the window
-operationally, and prevent other callers from starting work in another service.
-Current advisory checks cannot provide atomic global exclusion. For a future
-multi-client deployment, a common admission owner must retain exclusion on
-unknown dispatch; a plain process-lifetime lock is not enough.
+The new [ADR 0097](../../../docs/adr/0097-published-voice-performance-takes-and-shared-admission.md)
+contract routes all Lab admissions through the gateway-owned durable lane.
+Direct Comfy/SGLang calls and unrelated GPU containers remain outside it; reserve
+operator windows for those. Advisory headroom checks are not a memory guarantee.
+
+## Shared admission deployment and recovery
+
+Keep exactly one gateway dispatcher and one Lab execution worker. Do not start
+old independent voice workers alongside this deployment. Install the same Lab
+wheel in the CPU API and all three qualified engine environments; inference
+packages, model assets and resource thresholds stay unchanged. Recapture runtime
+fingerprints after installing the new wheel: only the installed Lab source changes;
+do not reuse a manifest that pins the previous package's Python files.
+
+Private 0600 file `/home/wjmao/services/plotloom-voice-lab/dispatch.env`:
+
+```text
+VOICE_LAB_GATEWAY_URL=http://100.64.35.71:8090
+VOICE_LAB_DISPATCH_KEY=<private-control-secret>
+```
+
+The systemd unit requires that file. The gateway's existing private `.env` adds
+`H3_VOICE_LAB_URL=http://100.64.35.71:8897` and
+`H3_VOICE_LAB_KEY=<same-private-control-secret>`. This private channel key is
+separate from the ordinary gateway client Bearer Key. No key enters SQLite,
+public responses, media or tracked examples. HTTP is deliberate on the Tailnet.
+
+At an idle cutover, stop the two control-plane owners, back up exact Lab and
+gateway SQLite/media, prove additive migration on copies, then deploy. Gateway
+adds `generation_lane`; Lab schema v4 adds takes, transactional registration
+outbox and one-use execution grants. Existing terminal records/JSON and WAVs
+are preserved. Restore control services, check all backend health and hashes.
+Do not restart or rebuild ComfyUI/SGLang or touch model installations.
+
+CPU registration can reconcile duplicate acknowledgements. The gateway orders
+all jobs by its registration sequence, not cross-host timestamps. Until registered,
+the UI shows unknown queue position. No local inference fallback exists.
+
+Only private `/internal/executions` may authorize a frozen voice job/hash.
+The grant is recorded before enqueueing; duplicate delivery cannot run it twice.
+The process group is reaped before `releaseConfirmed=true` is persisted. The
+dispatcher queries that exact grant after a lost reply; it never resends it.
+Never-started outbox entries survive restart. Dispatched voice jobs become
+interrupted with an unreleased grant, retaining uncertainty and blocking the lane.
+
+Investigate `generation_lane` active entry/error, the Lab's exact execution grant,
+and retained runner/PID events when blocked. Missing acknowledgement may resolve
+through the original grant's status. Hard-crash/reaping uncertainty requires an
+explicit operator reconciliation of the owned process and evidence; this slice
+has no force-release API. Healthy/idle-looking services are not release proof.
+Do not clear registries, delete active rows, reset databases, expire leases or
+restart an old dispatcher to bypass the hold. Never replay unknown inference.
+
+The gateway's completed voice-registration audit expires after 30 days. Durable
+Lab takes/voices/grants do not. Gateway media/job retention is unchanged; active
+uncertain media inputs are protected from expiry cleanup until reconciled.
 
 Gateway `/health` is aggregate backend readiness, not an idle-only endpoint:
 it correctly returns 503 while Qwen Image is deliberately stopped. Controlled

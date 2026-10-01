@@ -7,7 +7,8 @@ Projects are independent workspaces, not authenticated user accounts.
 - [Author workflow and pipeline](docs/audio-pipeline-report.md)
 - [Reproduction, licenses and operations](docs/reproduction-and-operations.md)
 - [Engine decision](../../docs/adr/0094-voice-lab-independent-engines-and-delivery.md)
-- [Approved scope](../../docs/roadmap/2026-09-29-voice-lab-multi-engine-plan.md)
+- [Published takes and shared admission](../../docs/roadmap/2026-09-30-voice-takes-h3-plan.md)
+- [Take API client guide](docs/voice-takes-client-guide.md)
 
 ## Two stages, four independent engines
 
@@ -56,7 +57,7 @@ unpublished recording. Edited design makes the old recording noncurrent.
 
 ## Runtime and verification
 
-The API loads **no inference model**. One FIFO worker starts one short-lived
+The API loads **no inference model**. The gateway-owned durable FIFO grants one short-lived
 supervised engine process in its pinned environment and reaps its process group
 before the next job. Qwen, MOSS and Index use separate qualified environments.
 All weights remain under `/home/wjmao/models`. Changed frozen settings/files
@@ -64,11 +65,12 @@ fail visibly; no fallback. The UI shows queue counts, observed phases and
 elapsed time, without invented percent or ETA. Restart interrupts unfinished
 jobs, never silently replays them.
 
-Memory/ComfyUI checks are advisory, not a global GPU lock. The Lab never
-automatically stops another service. See the reproduction guide for idle
-cutover and the checked CPU control-plane dependency lock, and
-[ADR 0096](../../docs/adr/0096-voice-lab-shared-host-operating-boundary.md)
-for the supported operator-serial shared-host window.
+All Lab creation, clone trials and durable takes register in the same lane as
+H3/Qwen-Image, under [ADR 0097](../../docs/adr/0097-published-voice-performance-takes-and-shared-admission.md).
+Missing control configuration leaves jobs visibly waiting, never running locally.
+Unknown dispatch/unreaped children hold the lane without retry. Memory/ComfyUI
+checks remain supplementary; direct backend clients are outside this guarantee.
+The Lab never automatically stops another service.
 
 The standalone CPU-only [memory observer](tools/memory_trace.py) retains
 one-second timestamped memory/pressure/process samples for an explicitly
@@ -86,7 +88,8 @@ The [systemd user unit](deploy/plotloom-voice-lab.service) uses the lightweight
 `/home/wjmao/services/plotloom-voice-lab/.venv`, private
 `VOICE_LAB_RUNTIME_CONFIG`, and the existing data root. Run exactly one worker,
 never multi-worker Uvicorn. With user linger the unit survives reboot.
-This unauthenticated service is Tailnet-only; do not expose it publicly.
+This unauthenticated UI is Tailnet-only; private execution routes require a
+separate bearer key. Do not expose it publicly.
 
 ## API and storage
 
@@ -106,12 +109,13 @@ return stable `detail.code`; malformed input uses FastAPI 422.
 | Select reference | `POST /api/projects/{projectId}/selections` |
 | New-line trial | `POST /api/clone-trials`, `GET /api/clone-trials/{trialId}` |
 | Publish/resolve | `POST/GET /api/voices`, `GET /api/voices/{voiceId}`, `/audio?kind=source\|h3` |
+| Durable dialogue take | `POST/GET /api/voice-takes`, `GET/DELETE /api/voice-takes/{takeId}`, `/audio?kind=source\|h3` |
 
 SQLite: `$VOICE_LAB_DATA_ROOT/voice_lab.sqlite3`. Unpublished media:
 `assets/<candidateId>/<generationId>/`; pinned trials: `clones/<trialId>/`;
-published copies: `voices/<voiceId>/`. Private runner request/events/log:
+published copies: `voices/<voiceId>/`; independent takes: `takes/<takeId>/`. Private runner request/events/log:
 `runs/<jobId>/` (no automatic audit-log retention policy yet).
-Schema v3 additively preserves old IDs, columns and WAV hashes; historical
+Schema v4 additively preserves old IDs, columns and WAV hashes; historical
 provenance stays schema 0, not reinterpreted as today's settings.
 Never reset live data to fix an operational issue.
 

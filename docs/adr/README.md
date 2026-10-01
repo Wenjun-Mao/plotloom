@@ -29,3 +29,8 @@ adds the pinned-runtime and isolated-catalog qualification boundary. Its
 technical checks alone do not promote a runtime or alter the quality catalog;
 the later [0.38 maintenance adoption](../verification/2026-09-30-h3-comfy038-maintenance-adoption.md)
 records the separately authorized exact-image promotion.
+
+[ADR 0097](0097-published-voice-performance-takes-and-shared-admission.md) is a
+accepted contract for published-identity performance takes and shared managed
+admission, linked to the owner-approved specialist plan. Runtime adoption needs
+its verification receipt; it does not authorize Plotloom integration.

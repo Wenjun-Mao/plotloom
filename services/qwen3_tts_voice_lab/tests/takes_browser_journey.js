@@ -1,6 +1,7 @@
 async (page) => {
   if (new URL(page.url()).port !== '8898') throw new Error('fixture origin required');
   const origin = 'http://127.0.0.1:8898';
+  await page.route(origin + '/styles.css', route => route.continue());
   const request = async (path, method = 'GET', body) => {
     const response = await page.request.fetch(origin + path, { method, ...(body ? { data: body } : {}) });
     if (!response.ok()) throw new Error(await response.text());
@@ -50,6 +51,7 @@ async (page) => {
   await page.waitForFunction(() => document.querySelectorAll('#take-list audio').length === 2);
   if (!page.url().includes(first.takeId) || await page.locator('#take-mode').inputValue() !== 'manual') throw new Error('selection/draft refresh');
   if (await page.locator(`#take-list [data-take-id="${first.takeId}"][aria-current="true"]`).count() !== 1) throw new Error('visible selected-take restoration');
+  if (await page.locator(`#take-list [data-take-id="${first.takeId}"]`).evaluate(element => getComputedStyle(element).boxShadow) === 'none') throw new Error('selected-take highlight missing');
   page.once('dialog', dialog => dialog.accept());
   await page.locator(`[data-take-id="${second.takeId}"]`).getByRole('button', { name: '删除此表演', exact: true }).click();
   await page.waitForFunction(() => document.querySelectorAll('#take-list audio').length === 1);

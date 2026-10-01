@@ -94,9 +94,16 @@ Tailnet base URL and a test image—see
 [`docs/operations/minimax-h3-gateway-client-guide.md`](../../docs/operations/minimax-h3-gateway-client-guide.md).
 
 The gateway owns one FIFO dispatch worker. Its queue is intentionally not
-length-capped: one H3 **or** Qwen inference request runs at a time while any
-further jobs remain durably queued. This is a concurrency guarantee, not a
-retention policy; see [ADR 0072](../../docs/adr/0072-shared-qwen-image-and-h3-generation-lane.md).
+length-capped: one H3, Qwen image **or** Voice Lab generation runs at a time while
+further jobs remain durably queued. All Lab creation/clone/take entrypoints register
+through the same lane. Unknown outcomes and unproven child release block dispatch,
+without replay. See [ADR 0097](../../docs/adr/0097-published-voice-performance-takes-and-shared-admission.md).
+
+The authenticated `/v1/voice-takes` facade delegates voice resolution and durable
+audio ownership to the CPU Voice Lab control service, not gateway media tables.
+See the [Chinese client guide](../qwen3_tts_voice_lab/docs/voice-takes-client-guide.md)
+and [deployment/recovery](../qwen3_tts_voice_lab/docs/reproduction-and-operations.md).
+H3 video still requires explicit audio bytes; no hidden TTS or ID lookup is added.
 
 After completion, the gateway atomically hands off its one expected MP4 from
 the mounted ComfyUI output directory into gateway-managed storage, then

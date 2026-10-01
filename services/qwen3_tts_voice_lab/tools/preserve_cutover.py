@@ -29,9 +29,14 @@ def main():
         raise ValueError('cutover.invalid_scope')
     database = source / 'voice_lab.sqlite3'
     with sqlite3.connect(database) as db:
-        for table in ('generations', 'clone_trials'):
+        tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        for table in ('generations', 'clone_trials', 'voice_takes'):
+            if table not in tables:
+                continue
             if db.execute(f"SELECT count(*) FROM {table} WHERE status IN ('queued','running')").fetchone()[0]:
                 raise ValueError('cutover.busy')
+        if 'execution_grants' in tables and db.execute('SELECT 1 FROM execution_grants WHERE release_confirmed=0').fetchone():
+            raise ValueError('cutover.unreleased_execution')
     before = rows(database)
     waves = {str(path.relative_to(source)): file_sha256(path) for path in source.rglob('*.wav')}
     shutil.copytree(source, backup)

@@ -8,6 +8,7 @@ Environment=VOICE_LAB_HOST=100.64.35.71
 Environment=VOICE_LAB_PORT=8897
 Environment=VOICE_LAB_DATA_ROOT=/home/wjmao/services/plotloom-voice-lab/data
 Environment=VOICE_LAB_RUNTIME_CONFIG=/home/wjmao/services/plotloom-voice-lab/runtime.json
+EnvironmentFile=/home/wjmao/services/plotloom-voice-lab/dispatch.env
 ExecStart=/home/wjmao/services/plotloom-voice-lab/.venv/bin/python -m plotloom_voice_lab
 Restart=on-failure
 RestartSec=5

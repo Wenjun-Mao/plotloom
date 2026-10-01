@@ -69,6 +69,12 @@ operator-serial operating boundary, not a new GPU scheduler. This does not chang
 the Plotloom delivery authority. Director contact, Plotloom integration,
 merge and push remain on hold.
 
+The owner-approved specialist slice is the
+[published voice → performance take → H3 plan](2026-09-30-voice-takes-h3-plan.md).
+It implements durable line-specific takes and one managed cross-service dispatch
+owner, preserving the existing H3 audio-bytes input. Deployment acceptance is
+recorded separately; Plotloom integration/director contact/merge/push remain held.
+
 ## Specialist H3 runtime qualification
 
 The separate [ComfyUI 0.38 qualification](2026-09-30-h3-comfy038-runtime-qualification.md)

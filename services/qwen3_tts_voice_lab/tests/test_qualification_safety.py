@@ -18,6 +18,7 @@ TOOLS = Path(__file__).parents[1] / 'tools'
     ('verify_resident_reuse', ['--reference-trial-id', 'unused', '--resident-state', 'cold_comfy']),
     ('verify_idle_restart', ['--project-id', 'unused', '--original-trial-id', 'unused']),
     ('qualify_workflow', []),
+    ('qualify_published_takes', []),
 ])
 def test_existing_receipt_never_replays(tmp_path, monkeypatch, module, args):
     monkeypatch.syspath_prepend(str(TOOLS))
@@ -25,7 +26,10 @@ def test_existing_receipt_never_replays(tmp_path, monkeypatch, module, args):
     receipt = tmp_path / 'started.json'
     receipt.write_text('{}')
     monkeypatch.setattr(sys, 'argv', [module, '--receipt', str(receipt), *args])
-    monkeypatch.setattr(observer, 'api', lambda *a, **k: pytest.fail('unexpected request'))
+    if hasattr(observer, 'api'):
+        monkeypatch.setattr(observer, 'api', lambda *a, **k: pytest.fail('unexpected request'))
+    else:
+        monkeypatch.setattr(observer.subprocess, 'check_output', lambda *a, **k: pytest.fail('unexpected runtime inspection'))
     with pytest.raises(ValueError, match='receipt_exists_no_(replay|repeat)'):
         observer.main()
 
