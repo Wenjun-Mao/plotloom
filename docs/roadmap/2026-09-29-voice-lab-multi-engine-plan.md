@@ -15,6 +15,14 @@ Planning baseline: `077b1c4` on the retained specialist branch
 following the implemented [project/Voice ID plan](2026-09-26-spark-voice-lab-projects-plan.md).
 The hold on Plotloom-director contact, Plotloom changes, merge and push remains.
 
+The owner subsequently approved one [matched H3 reference-strategy pair](../verification/2026-09-30-reference-strategies-and-memory.md),
+using retained original MOSS D and an already-reviewed Index line-specific take,
+with timestamped host-memory logging. Stop after those two clips; further voice
+tuning is paused unless a concrete reported problem justifies new scope.
+Identity references remain permanent anchors and performance takes remain
+separate. The pair does not by itself choose a production H3 default or resolve
+the original CUDA allocation failure.
+
 ## Outcome and evidence
 
 Make the existing Spark UI useful for two separate decisions:

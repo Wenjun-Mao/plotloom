@@ -54,3 +54,14 @@ separates cold, warm and controlled-pause evidence. Preserve the original OOM,
 published bytes and terminal attempts. Keep one supervised voice child and
 reap it before another starts. Expose actual queue/phases; do not advertise
 health/configuration as a successful inference guarantee.
+
+## Detailed memory evidence
+
+The 2026-09-30 bounded reference-strategy comparison adds an opt-in, CPU-only
+operator trace, not a runtime admission guarantee or another API. Sample host
+memory, pressure, swap and labelled process RSS with UTC/monotonic timestamps;
+retain the actual sampling gaps and job phase/ID. GPU memory unavailable from
+Spark NVML remains explicitly unmeasured. Never start a second CUDA context
+just to instrument an active job, or add overlapping UMA/RSS/Torch values.
+Trace failure must be visible and must not erase the underlying job failure.
+See [historical evidence and measurement boundaries](../verification/2026-09-30-reference-strategies-and-memory.md).

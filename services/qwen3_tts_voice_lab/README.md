@@ -70,6 +70,12 @@ cutover and the checked CPU control-plane dependency lock, and
 [ADR 0096](../../docs/adr/0096-voice-lab-shared-host-operating-boundary.md)
 for the supported operator-serial shared-host window.
 
+The standalone CPU-only [memory observer](tools/memory_trace.py) retains
+one-second timestamped memory/pressure/process samples for an explicitly
+authorized operator window. It generates nothing and does not allocate a CUDA
+context. See the [measurement limits and original failure analysis](../../docs/verification/2026-09-30-reference-strategies-and-memory.md)
+before interpreting MemAvailable, RSS or Torch allocation as GPU headroom.
+
 ```sh
 uv sync --locked --group test
 uv run --locked pytest -q

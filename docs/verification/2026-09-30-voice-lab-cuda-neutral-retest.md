@@ -35,6 +35,13 @@ Neither number alone certifies the next driver allocation. These sources do
 not prove fragmentation or the exact allocator/cache/driver cause here.
 No cache flush, reboot, GPU reset or unrelated-container stop was used.
 
+Subsequent [historical memory review](2026-09-30-reference-strategies-and-memory.md)
+recovered the failed trial's sampled minimum: **62.373 GiB MemAvailable**,
+with about 69.7 GiB in coarse system samples around the original failure.
+The roughly 33 GiB observation above was later diagnosis, not that original
+window. Thus available evidence does not support simple whole-host RAM
+exhaustion; the precise CUDA allocation cause remains unresolved.
+
 ## One controlled dispatch
 
 Lab/gateway queues and ComfyUI were idle. Only the already-authorized idle
