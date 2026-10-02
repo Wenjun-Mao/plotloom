@@ -1,7 +1,7 @@
 # Creator stages 2–3: reviewed contract checkpoint
 
-Status: implementation independently reviewed; committed-candidate verification
-pending. Creator acceptance remains partial.
+Status: implementation independently reviewed and committed-candidate gates
+passed. Creator acceptance remains partial; live recovery is the next step.
 Baseline `c027131ab3be6797c4e1c5a229dec51d651411a4`, retained `main`.
 The manager owns review, commit/push and deployment. No new Script task has been
 prepared after the skill/brief correction.
@@ -163,6 +163,19 @@ normal specialists are inactive, and normal health is good. Fresh manager
 capture `manager-terminal-precommit-original.json` is byte-identical to the
 launch baseline (API state, 73 tables and 67 files). Origin and local `main`
 were aligned at `c027131` before this scoped commit.
+
+Committed implementation `66725b36f39c880076d468c71db1eca642598323` passed the
+previously failing pin-recovery criterion, then all 897 Python tests (229.77
+seconds). The documented `python -m pytest` service invocation passed all 37
+workbench bridge/manage/isolated-runtime checks. A plain `pytest` invocation
+could not collect the isolated test's repository helper import; that invocation
+was corrected without changing product or test code. Both frontend typechecks,
+all 286 unit tests and all 18 affected source-review/response-ownership browser
+tests passed on the committed implementation. Browser evidence is under
+`manager-terminal-committed-e2e`; the earlier 28-test consumer run remains
+separate evidence. Only the existing Starlette/httpx dependency warning remains.
+No gate was waived, no live reservation was cleared during verification, and
+no normal-service restart or generated-asset change occurred.
 
 ## Owned runtime and next action
 

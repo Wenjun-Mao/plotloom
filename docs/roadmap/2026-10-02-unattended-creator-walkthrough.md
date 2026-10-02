@@ -263,3 +263,12 @@ original-project protection and truthful evidence remain.
   Manager review/commit precedes the owned restart and explicit Settings check.
   Both native specialists are idle; no lease clearing, replay, service restart
   or new live task. Isolated ports 8851/8852 remain running, normal services intact.
+- Manager committed verification, 07:52 UTC: implementation `66725b3` passed
+  the commit-dependent pin-recovery criterion and the full 897-test Python gate.
+  All 37 workbench transport checks, 286 frontend unit tests, both typechecks
+  and 18 affected committed-backend browser tests passed. Independent review
+  closed the replaced-ready finding and found no remaining scoped issues.
+  The fresh original baseline remains unchanged. After this checkpoint is
+  pushed, resume the same worker for the owned isolated restart and explicit
+  Settings reconciliation; only then prepare a new Script task. No native
+  generation, Script acceptance or Storyboard milestone is implied by tests.
