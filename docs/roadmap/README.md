@@ -62,8 +62,11 @@ listening-based audio review. Its [resumed-media closeout](../verification/2026-
 records deployed explicit seed controls and improved C2 text fidelity, not
 audiovisual acceptance. New submissions stopped by 16:38:45 UTC; the hard
 handoff boundary is 17:08:45 UTC (13:08:45 Toronto). The temporary heartbeat
-is paused. Real audiovisual acceptance still requires
-genuine sound review and further media work; it is not complete. Test-copy provisional decisions
+was paused at that closeout. At 17:22:39 UTC the owner confirmed C1–C4 sound
+and authorized two more hours: stop new submissions at 18:52:39 UTC and
+handoff by 19:22:39 UTC (15:22:39 Toronto). The same heartbeat resumes only
+for this window. Remaining route media and assembly review are still open.
+Test-copy provisional decisions
 and removal of fixed generation caps and blanket video/remote/provider/redesign
 exclusions are approved. The run launched at 2026-10-02 05:34:18 UTC; its plan owns the current
 scope and preservation gates.

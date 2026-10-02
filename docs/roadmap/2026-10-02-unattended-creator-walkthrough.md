@@ -1,10 +1,12 @@
 # Bounded unattended creator walkthrough
 
-Status: the owner-authorized resumed media window has reached closeout.
-New submissions stopped by 12:38:45 Toronto / 16:38:45 UTC; the window's hard
-handoff boundary remains 13:08:45 Toronto / 17:08:45 UTC. No further generation
-is authorized by an automatic continuation. The owner agreed to listen at
-16:08 UTC; no clip-specific sound verdict has yet been received.
+Status: the owner approved C1–C4 visually, confirmed their sound, and explicitly
+authorized another two hours at 17:22:39 UTC. The current window ends at
+15:22:39 Toronto / 19:22:39 UTC; stop new submissions at 14:52:39 Toronto /
+18:52:39 UTC, preserving the final 30 minutes for review and handoff.
+Root records the four reviewed segments in the isolated copy and continues
+the remaining shots and both ending routes. New outputs still receive their
+own audiovisual review; individual opening-clip approval is not assembly review.
 See the [resumed-media closeout](../verification/2026-10-02-stage4-resumed-media-closeout.md)
 for the deployed explicit-seed control and improved, still-unselected C2 trial.
 The earlier verification-only extension and its closeout remain historical.
@@ -12,7 +14,7 @@ Accessible confirmations are deployed
 and pushed at `fe656c0`; final tests and actual in-app browser checks passed.
 See the [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
 for exact evidence and pending audio/creative/media work. The same temporary
-heartbeat is now paused at closeout. The owner will listen; no
+heartbeat is re-enabled for this window. The owner will listen; no
 clip is accepted for sound merely because a stream exists or generation is authorized.
 The owner issued the final start command with Relay direct and explicitly
 required its model-choice guide for every delegation. The partial checkpoint
@@ -20,9 +22,9 @@ below preserves resume state; only the time window was extended, not acceptance
 or preservation requirements.
 
 Launch: 2026-10-02 01:34:18 America/Toronto / 05:34:18 UTC.
-The resumed-window generation cutoff is 12:38:45 Toronto / 16:38:45 UTC;
-the current hard cutoff is 13:08:45 Toronto / 17:08:45 UTC. This supersedes
-the previous verification-only extension through 17:00 UTC. Original-project
+The current generation cutoff is 14:52:39 Toronto / 18:52:39 UTC;
+the current hard cutoff is 15:22:39 Toronto / 19:22:39 UTC. This supersedes
+the prior resumed window through 17:08:45 UTC. Original-project
 preservation and genuine audiovisual acceptance requirements are unchanged.
 Manager: `01a04525-e907-7630-9640-78790d69e8ae`.
 
@@ -224,6 +226,12 @@ original-project protection and truthful evidence remain.
 
 ## Run log
 
+- Owner-approved continuation, 17:22:39 UTC: after reviewing C1–C4, the owner
+  said all looked good and then answered yes to sound approval and another
+  two-hour production window. Root owns UI/source/provider mutations; a
+  GPT-6.1 Sol / Medium reviewer reassesses the remaining stills and reply
+  shots. All original 73 tables, 67 files and seven API projections still
+  equal baseline; both specialist registries are idle before continuation.
 - Resumed media closeout: `a7e92b0` adds the shared explicit-seed review
   contract (ADR 0102), passes 387 frontend tests, both types and the
   shipped-static restore regression, and is pushed/deployed. One new C2 real
