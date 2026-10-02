@@ -1,7 +1,10 @@
 # Bounded unattended creator walkthrough
 
-Status: approved and executing. The owner issued the final start command with
-Relay direct and explicitly required its model-choice guide for every delegation.
+Status: approved; live UI work is blocked on manual Mac unlock, first detected
+at 12:33 UTC and retained in the 12:40 UTC checkpoint.
+The owner issued the final start command with Relay direct and explicitly
+required its model-choice guide for every delegation. The partial checkpoint
+below preserves resume state; the original run boundaries are unchanged.
 
 Launch: 2026-10-02 01:34:18 America/Toronto / 05:34:18 UTC.
 Stop new work: 09:04:18 Toronto / 13:04:18 UTC; reserve the final 30 minutes for
@@ -397,3 +400,20 @@ original-project protection and truthful evidence remain.
   still matches before deployment. No image/H3 job was prepared; manager deployment
   and actual UI recovery precede resuming generation. See the appended
   [source receipt](../verification/2026-10-02-stage4-source-gate.md).
+- Stage 4 live checkpoint, 12:40 UTC: pushed repair `bd3ffd9` is deployed to
+  the normal workbench and the manager-owned isolated copy (PID 89547,
+  8851/8852). Original 73 tables and 67 file hashes are exact; only the expected
+  read-only provenance defaults changed three API asset projections. The real
+  UI recovered, approved the installed storyboard, explicitly re-reviewed the
+  C01 story-bible reference, and delivered four pinned still outputs and two H3
+  originals. Only opening cuts 1/2 have provisionally selected keyframes. Cut 1
+  has a verified 60-frame/2.5-second proposal; **all real videos remain unselected** because
+  audio cannot be auditioned. Cut 2 video text is not reliably legible; its
+  intended rejection did not persist. Cut 3's rural setting breaks continuity;
+  cut 4's already-raised gaze needs first-frame/action review. Computer-use
+  inventory reports a locked Mac and failed automatic unlock; UI mutations
+  stopped and the owner was asked to unlock manually. Both workers are idle,
+  with no pending or uncertain generation. Neither real-media route is playable;
+  reader and synthetic playback results are separate. No source workaround,
+  security bypass or deadline extension. See the [live checkpoint and exact
+  continuation](../verification/2026-10-02-stage4-live-checkpoint.md).

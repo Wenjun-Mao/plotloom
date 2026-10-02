@@ -53,7 +53,10 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
 
 The [bounded unattended walkthrough plan](2026-10-02-unattended-creator-walkthrough.md)
-is approved and executing for the creator's eight-hour absence. Test-copy provisional decisions
+is approved for the creator's eight-hour absence. Its current
+[partial live checkpoint](../verification/2026-10-02-stage4-live-checkpoint.md)
+requires manual Mac unlock to resume UI work; real audiovisual acceptance remains
+open. Test-copy provisional decisions
 and removal of fixed generation caps and blanket video/remote/provider/redesign
 exclusions are approved. The run launched at 2026-10-02 05:34:18 UTC and ends no
 later than 13:34:18 UTC; its plan owns the current scope and preservation gates.

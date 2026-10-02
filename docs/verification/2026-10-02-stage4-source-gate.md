@@ -144,3 +144,23 @@ The fresh original pre-deployment capture still matches all seven API states,
 73 tables and 67 files. After deployment, its three retained art assets are expected
 to expose newly complete read-only provenance fields; compare that derived-only
 delta explicitly rather than rewriting the original baseline.
+
+## Post-repair deployment and actual live checkpoint
+
+Repair `bd3ffd9d255f9b66502ca003da6a6ef95d166daa` was committed and pushed;
+16 committed recovery/pin checks passed. Manager-owned PID 89547 / session
+18618 replaced the cleanly stopped old copy process on the same 8851/8852 roots.
+Only the normal workbench container was restarted, leaving its bridge untouched
+and H3 disabled. Static bytes remained unchanged. Original 73-table/67-file
+state is exact; API comparison found only the predicted default provenance
+fields on the three art assets. The baseline was not rewritten.
+
+The real UI recovered, explicitly approved the installed storyboard, and
+re-reviewed the retained C01 photo under its story-bible authority. Four real
+still outputs were delivered; two were selected provisionally as keyframes.
+Two real H3 originals and one exact 60-frame proposal exist. None of the videos
+is selected. Text fidelity, scene/first-frame continuity, unsupported audio
+audition and a locked Mac prevent a complete
+real-media journey. See the [live checkpoint](2026-10-02-stage4-live-checkpoint.md)
+for observed results, preserved failures, exact resume steps and the distinction
+between fixture gates and actual acceptance.
