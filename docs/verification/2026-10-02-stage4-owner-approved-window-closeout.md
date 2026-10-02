@@ -9,10 +9,12 @@ generation was started after the submission cutoff; receiving, inspecting and
 recording already-submitted work remained closeout actions.
 
 The full twelve-cut, two-ending real-media walkthrough is **not complete**.
-Four opening segments are selected; C5 and A1 await their own owner sound
-verdicts. A2 has only a delivered, unbound still. B2's new take was explicitly
-rejected. A3/B1/B4 remain unsent still preparations; B3's prior failed take is
-preserved. Neither full route is playable, and no assembly acceptance is claimed.
+At window close, four opening segments were selected; C5 and A1 awaited their
+own owner sound verdicts. The [post-window listening verdict](#post-window-owner-listening-verdict)
+now records both selected, for six selected clips total. A2 has only a delivered,
+unbound still. B2's new take was explicitly rejected. A3/B1/B4 remain unsent
+still preparations; B3's prior failed take is preserved. Neither full route is
+playable, and no assembly acceptance is claimed.
 
 ## Three encountered failures, fixed at their owners
 
@@ -87,7 +89,7 @@ Each is exactly 2.5 seconds. The replacement C2, not its rejected predecessor,
 is selected. This records individual opening-clip approval, not an assembled
 opening, route, geography or new-output sound verdict.
 
-### C5: waiting take, unselected
+### C5: waiting take, unselected at window close
 
 The accepted C1 still's exact original bytes were independently imported as
 C5 asset `1e9c54b5-d02e-4112-9c3d-83feac85eeaa`, with C5's own intent and
@@ -98,15 +100,15 @@ review panel, so **no formal identity-review receipt is claimed** for C5.
 Real job `vj_76a72a982acb44058115e67aa963d523` ingested once. Root and independent
 review inspected all 60 proposed frames: a stable phone-held wait, with no
 arrival, typing, send or departure observed. Segment
-`4d75aa82-2929-4a09-9bfa-499c5da00413` is current/unselected, `[0,60)`.
+`4d75aa82-2929-4a09-9bfa-499c5da00413` was current/unselected at window close, `[0,60)`.
 Seed `733776270646588`; compiled-prompt SHA-256
 `943ff6323350bdd544a6360c7b5f9f3ba908708023fc8ec2d40b64d7579e675e`.
 Derivative SHA-256:
 `0db1fe6a1f9b6c9ea8fcfff3fb584317d7dfd90a9e1f7488bf1573da8eb02f53`.
-The clip was offered for owner sound review; no verdict has been received.
+The clip was offered for owner sound review; no verdict had arrived at window close.
 Cross-shot porch/strap/geography continuity remains an assembly question.
 
-### A1: exterior approach, unselected
+### A1: exterior approach, unselected at window close
 
 The delivered A1 still was explicitly retained, given its own intent, bound,
 and visually reviewed against frozen C01 in the UI. Real job
@@ -117,13 +119,13 @@ with a following camera, retained phone/person/bag and plausible evolving
 window/street geometry. No stop, entry, typing, send or extra person was observed.
 Feet are mostly cropped; framing tightens, and A2's starting frame needs cut review.
 
-Segment `9c0561ab-f133-412b-8682-476a9c420f14` is current/unselected, `[0,60)`.
+Segment `9c0561ab-f133-412b-8682-476a9c420f14` was current/unselected at window close, `[0,60)`.
 Seed `4215546708741480`; compiled-prompt SHA-256
 `44919f82e323869501c6f6c85c98f5766dfd885c185d45e10f72810c1b457a21`.
 Derivative SHA-256:
 `9f7f78f30f41629a2ced9ba09b00f222f196eb2a47d657fd258dd9c17d2c038b`.
-The owner answered **“尚未试听”** to this clip's sound-review question;
-no audio acceptance or selection was inferred.
+The owner initially answered **“尚未试听”** to this clip's sound-review question;
+no audio acceptance or selection was inferred before the later listening verdict.
 
 ### B2: controlled first-frame trial, rejected
 
@@ -180,12 +182,12 @@ with no formal same-person review or A2 H3 preparation/dispatch.
 
 ## Preservation and handoff
 
-Fresh `manager-third-window-final-original.json` exactly equals
+At window close, fresh `manager-third-window-final-original.json` exactly equalled
 `manager-closeout-original.json`: **73 tables, 67 file hashes and seven API
-projections unchanged**. Both `/healthz` endpoints are healthy and both
-specialist registries have `busy: false`, `activeTasks: []`. All **10 real
-originals are ingested**, with seven derivatives and four selected segments;
-there is no pending/uncertain provider dispatch. Both full routes remain blocked
+projections unchanged**. Both `/healthz` endpoints were healthy and both
+specialist registries had `busy: false`, `activeTasks: []`. All **10 real
+originals were ingested**, with seven derivatives and four selected segments;
+there was no pending/uncertain provider dispatch. Both full routes remain blocked
 by missing current selected media, correctly shown in the actual UI.
 
 Root was the sole browser/provider owner; source implementation and independent
@@ -212,9 +214,32 @@ Workflow-local evidence under `.local/unattended-2026-10-02/` includes:
   `h3-read-recovery-{withdrawn,revalidated}-ui.jpg`; `h3-recovery-static/`.
 - `evidence/manager-third-window-final-original.json` and the retained baseline.
 
-[Open A1 sound review](http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84&stage=storyboard&entity=shot%3Aending-a-s1-c1#video-segment-preview-vj_177a64801d574581b42698d2308b19a6).
-[Open C5 sound review](http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84&stage=storyboard&entity=shot%3Aopening-s1-c5#video-segment-preview-vj_76a72a982acb44058115e67aa963d523).
-Next owner action: listen to these two individual clips and provide their
-verdicts. A further explicitly bounded production window is required for
+## Post-window owner listening verdict
+
+At **2026-10-02 19:28:09 UTC**, the owner reported: “I listened to C5/A1,
+they just sound good, I see no issues.” This supersedes their pending individual
+sound verdicts, not the closed generation window or whole-route acceptance.
+Root confirmed the exact current segment IDs, hashes and `[0,60)` ranges above,
+then explicitly selected each once through the isolated-copy UI with reviewer
+`Owner approval · recorded by Codex in isolated copy` and the owner's verbatim
+quote. Prior frame-by-frame visual assessment remains attributed to Codex and
+the independent reviewer, not retroactively attributed to the owner.
+
+- A1 selection review `c6556434-c935-4e4c-aa76-01ad8ece0b5b`, saved at 19:31:45 UTC.
+- C5 selection review `bc9a9b40-a620-44db-b64d-3295f4ce1ccc`, saved at 19:33:06 UTC.
+
+Fresh persisted reads verify both unchanged derivatives are current/selected:
+**10 originals, seven derivatives, six selected clips (C1–C5 and A1)**.
+Actual UI selection proof is retained in `stage4-live/{a1,c5}-owner-approved-selected.jpg`.
+Both `manager-owner-c5-a1-before-original.json` and
+`manager-owner-c5-a1-after-original.json` equal the original baseline:
+73 tables, 67 file hashes and seven API projections unchanged. No generation,
+worker reactivation or heartbeat resumption occurred. A2/A3/B1–B4 still lack
+selected media; both full routes and cross-shot audiovisual continuity remain
+incomplete and unaccepted.
+
+[Open selected A1](http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84&stage=storyboard&entity=shot%3Aending-a-s1-c1#video-segment-preview-vj_177a64801d574581b42698d2308b19a6).
+[Open selected C5](http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84&stage=storyboard&entity=shot%3Aopening-s1-c5#video-segment-preview-vj_76a72a982acb44058115e67aa963d523).
+A further explicitly bounded production window is required for
 remaining route media and reassessed phone action, followed by whole-route
 audiovisual/continuity review. Do not select merely to unlock playback.

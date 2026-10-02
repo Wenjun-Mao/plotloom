@@ -66,8 +66,9 @@ was paused at that closeout. At 17:22:39 UTC the owner confirmed C1–C4 sound
 and authorized two more hours: stop new submissions at 18:52:39 UTC and
 handoff by 19:22:39 UTC (15:22:39 Toronto). The
 [owner-approved-window closeout](../verification/2026-10-02-stage4-owner-approved-window-closeout.md)
-records selected C1–C4, unselected C5/A1 awaiting sound, rejected revised B2,
-an unbound A2 still, and deployed retention/static/H3-review guardrails.
+records selected C1–C4 and the later 19:28:09 UTC owner C5/A1 listening verdict:
+both are now selected, for six selected clips total. Revised B2 is rejected;
+A2 remains an unbound still. Retention/static/H3-review guardrails are deployed.
 The heartbeat is paused; remaining route media and assembly review need a
 new bounded production window and genuine audiovisual acceptance.
 Test-copy provisional decisions

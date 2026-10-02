@@ -1,10 +1,10 @@
 # Bounded unattended creator walkthrough
 
-Status: the owner-approved two-hour continuation is closed to new submissions;
-handoff is due by 15:22:39 Toronto / 19:22:39 UTC. C1–C4 are explicitly selected
-after owner visual/sound approval. C5 and A1 have current unselected review
-segments awaiting owner sound verdicts; revised B2 is rejected, A2 is a delivered
-unbound still, and remaining route media/assembly review are incomplete.
+Status: the owner-approved two-hour continuation closed at 15:22:39 Toronto /
+19:22:39 UTC. C1–C4 remain selected after owner visual/sound approval. The owner
+confirmed C5/A1 sound at 19:28:09 UTC; both exact reviewed segments are now
+explicitly selected, for six selected clips total. Revised B2 is rejected, A2
+is a delivered unbound still, and remaining route media/assembly review are incomplete.
 See the [owner-approved-window closeout](../verification/2026-10-02-stage4-owner-approved-window-closeout.md)
 for deployed `8427b13`/`ddb780c` retention, static-revalidation and H3 draft
 guardrails, real media receipts, passing checks and exact next owner actions.
