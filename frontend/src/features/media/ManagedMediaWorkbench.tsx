@@ -158,6 +158,7 @@ export function ManagedMediaWorkbench({
     draftQuiescence,
     currentApproval,
     workbench,
+    mediaReadPhase,
     imageJobs,
     imageExchangeConfigured,
     imageJobTarget,

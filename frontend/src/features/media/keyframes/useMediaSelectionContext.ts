@@ -17,6 +17,7 @@ import {
   type IntentDraft,
 } from "../../../visual-intent-drafts";
 import type { ProjectDraftQuiescence } from "../../authoring/projectDraftQuiescence";
+import type { MediaReadPhase } from "../useMediaWorkbenchData";
 
 function draftFor(
   intent: VisualIntent | undefined,
@@ -54,6 +55,7 @@ export function useMediaSelectionContext({
   draftQuiescence,
   currentApproval,
   workbench,
+  mediaReadPhase,
   imageJobs,
   imageExchangeConfigured,
   imageJobTarget,
@@ -80,6 +82,7 @@ export function useMediaSelectionContext({
   draftQuiescence?: ProjectDraftQuiescence;
   currentApproval: ApprovalDecision | undefined;
   workbench: VisualWorkbench;
+  mediaReadPhase: MediaReadPhase;
   imageJobs: ImageJob[];
   imageExchangeConfigured: boolean;
   imageJobTarget: ImageJobDraftTarget;
@@ -97,7 +100,12 @@ export function useMediaSelectionContext({
   setKeptAssetId: Dispatch<SetStateAction<string>>;
   setFrameIndex: Dispatch<SetStateAction<number>>;
 }) {
-  const priorProjectId = useRef(projectId);
+  const retainedSelection = useRef<{
+    projectId?: string;
+    shotId?: string;
+    bindingId?: string;
+    initialized: boolean;
+  }>({ projectId, shotId: selectedShot?.id, initialized: false });
   const sceneShots = useMemo(
     () =>
       selectedShot
@@ -277,15 +285,24 @@ export function useMediaSelectionContext({
       })),
     );
   }, [selectedBinding?.id, selectedIdentityMapping]);
-  // A reviewed binding is durable per Shot. Restore it after a reload or a
-  // parent review refresh rather than making the creator rediscover which
-  // candidate and intent revision were already selected.
+  // Read withdrawal means unknown, not a binding change. Keep explicit creator
+  // retention through refresh, and restore only on navigation or an actual
+  // authoritative binding transition (ADR 0103).
   useEffect(() => {
-    const changedProject = priorProjectId.current !== projectId;
-    priorProjectId.current = projectId;
-    if (selectedBinding) setKeptAssetId(selectedBinding.assetId);
-    else if (changedProject) setKeptAssetId("");
-  }, [projectId, selectedBinding?.id]);
+    const prior = retainedSelection.current;
+    const changedScope = prior.projectId !== projectId
+      || prior.shotId !== selectedShot?.id;
+    if (changedScope) {
+      retainedSelection.current = { projectId, shotId: selectedShot?.id, initialized: false };
+      setKeptAssetId("");
+    }
+    if (mediaReadPhase !== "ready") return;
+    const current = retainedSelection.current;
+    if (!current.initialized || current.bindingId !== selectedBinding?.id) {
+      setKeptAssetId(selectedBinding?.assetId ?? "");
+      retainedSelection.current = { ...current, bindingId: selectedBinding?.id, initialized: true };
+    }
+  }, [projectId, selectedShot?.id, mediaReadPhase, selectedBinding?.id]);
   useEffect(() => {
     if (!playing || !preview) return;
     const frame = preview.manifest.frames[frameIndex];

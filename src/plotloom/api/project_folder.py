@@ -7,7 +7,6 @@ from typing import Annotated, Any, Literal
 
 from fastapi import FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse, Response
-from fastapi.staticfiles import StaticFiles
 
 from ..domain import (
     AuthoringDraft,
@@ -88,6 +87,7 @@ from ..persistence import stable_hash
 from .project_folder_generation import register_project_folder_generation_routes
 from .text_admission import TextAdmissionService
 from .text_backends import register_text_profile_routes
+from .static_assets import RevalidatingStaticFiles
 
 
 def create_project_folder_authoring_app(
@@ -772,7 +772,7 @@ def create_project_folder_authoring_app(
     if static_dir is not None:
         app.mount(
             "/v2",
-            StaticFiles(directory=static_dir, html=True, check_dir=False),
+            RevalidatingStaticFiles(directory=static_dir, html=True, check_dir=False),
             name="v2-static",
         )
     return app
