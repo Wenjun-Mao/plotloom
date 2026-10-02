@@ -27,6 +27,18 @@ nor shim retries; lost acknowledgement still means outcome unknown. Credentials
 remain outside project/application state and image layers. Health checks do not
 queue tasks. This applies equally to text and image specialists.
 
+### Wake-up boundary clarification (2026-10-01)
+
+The bridge acknowledges queue admission, not specialist startup. The approved
+wake-up follow-on requires native atomic admission and the specialist's existing
+tool executor. A process-local `thread/read` status is not a concurrency guard;
+do not substitute a standalone app-server execution surface merely because its
+`thread/resume`/`thread/queue/start` schemas exist. Native writer exclusion and
+busy-start rejection are useful guards, but do not establish desktop tool
+execution or ownership transfer. Keep the current transport until that complete
+path is verified. A lost acknowledgement still cannot authorize another queue
+submission. See the [investigation receipt](../verification/2026-10-01-specialist-wake-up-gap.md).
+
 ## Alternatives and consequences
 
 A container-only native CLI cannot run the Mac app's executable. Disabling image

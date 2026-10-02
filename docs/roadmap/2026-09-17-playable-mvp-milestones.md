@@ -984,6 +984,29 @@ pins are verified; no generation was dispatched. OrbStack's disabled login
 startup was enabled. See the [deployment and outage receipt](../verification/2026-10-01-persistent-creator-workbench.md)
 for evidence and the remaining awake-host/native-app requirements.
 
+### Creator-approved specialist wake-up follow-on (2026-10-01)
+
+Approved step: fix the persistent bridge's unloaded-specialist wake gap. A
+creator Send must queue the frozen assignment once and start it without opening
+the chat when unloaded/idle; active turns must remain untouched and pending
+work queued. Preserve one-inflight and unknown-outcome safety. Deliverable:
+an independently reviewed, verified candidate, or a precise native-API blocker.
+Evidence must cover unloaded, idle, busy and concurrent-start behavior rather
+than using a status read as an atomic guard. No creative acceptance, selection,
+video, fallback, reset, real-request replay, global restart or private transport.
+Deploy only at an evidenced safe checkpoint. Manager owns final review/push.
+
+Research stopped at an unsupported execution boundary, with no runtime patch or
+deployment. Native desktop idle consumption works without navigation. Native
+queue/start rejects active/pending turns and separate writers cannot resume the
+same owned thread, but the desktop control socket is absent and a standalone
+resume/start client has no verified desktop ImageGen execution binding. The
+[wake-up investigation receipt](../verification/2026-10-01-specialist-wake-up-gap.md)
+records exact tests, limitations and disposable targets. The real S01 assignment
+and current data remain untouched. Next action: establish a supported desktop
+wake transport that preserves specialist tools, then verify the complete path;
+do not implement a status-check or alternate-executor workaround.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation
