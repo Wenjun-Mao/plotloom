@@ -126,6 +126,20 @@ media and director observations to an H3 specialist as separate evidence,
 without claiming general H3 limits from these individual trials. C and D,
 including both C segment proposals, remain unselected.
 
+## Bounded phone-text observation · 2026-10-02
+
+In the isolated 雨停以后 C2 trial, replacing the first-frame package while
+holding seed, quality, dimensions, duration and the exact compiled prompt
+fixed made “我还在老地方。” legible through all 60 proposed playback frames.
+Root and independent review saw no added words, new UI or typing/send state
+in that window. The [resumed-media receipt](../verification/2026-10-02-stage4-resumed-media-closeout.md)
+preserves both jobs, controls, image/output hashes and inspection coverage.
+The new image also changes framing, background and text presentation, so this
+supports that particular revised input package, not isolated pixel-size
+causality, universal Chinese-text preservation, or B2/B3 typing/send fidelity.
+Sound and whole-sequence acceptance remain open. Exact still text alone never
+substitutes for checking the generated original and proposed playback frames.
+
 ## Quality choice: development versus production review
 
 On 2026-09-25 the director clarified that earlier visual defects were mainly

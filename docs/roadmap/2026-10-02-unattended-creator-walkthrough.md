@@ -1,15 +1,18 @@
 # Bounded unattended creator walkthrough
 
-Status: a new bounded media window is active after the owner's explicit yes
-at 16:08 UTC to further generation and owner listening-based audio review.
-Window: 12:08:45–13:08:45 Toronto / 16:08:45–17:08:45 UTC; stop new submissions
-at 12:38:45 Toronto / 16:38:45 UTC, preserving the 30-minute review buffer.
+Status: the owner-authorized resumed media window has reached closeout.
+New submissions stopped by 12:38:45 Toronto / 16:38:45 UTC; the window's hard
+handoff boundary remains 13:08:45 Toronto / 17:08:45 UTC. No further generation
+is authorized by an automatic continuation. The owner agreed to listen at
+16:08 UTC; no clip-specific sound verdict has yet been received.
+See the [resumed-media closeout](../verification/2026-10-02-stage4-resumed-media-closeout.md)
+for the deployed explicit-seed control and improved, still-unselected C2 trial.
 The earlier verification-only extension and its closeout remain historical.
 Accessible confirmations are deployed
 and pushed at `fe656c0`; final tests and actual in-app browser checks passed.
 See the [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
 for exact evidence and pending audio/creative/media work. The same temporary
-heartbeat is re-enabled only for this new window. The owner will listen; no
+heartbeat is now paused at closeout. The owner will listen; no
 clip is accepted for sound merely because a stream exists or generation is authorized.
 The owner issued the final start command with Relay direct and explicitly
 required its model-choice guide for every delegation. The partial checkpoint
@@ -221,6 +224,18 @@ original-project protection and truthful evidence remain.
 
 ## Run log
 
+- Resumed media closeout: `a7e92b0` adds the shared explicit-seed review
+  contract (ADR 0102), passes 387 frontend tests, both types and the
+  shipped-static restore regression, and is pushed/deployed. One new C2 real
+  take holds the previous seed/profile/prompt fixed while changing the first
+  image. Root and independent review find exact message text legible across
+  its first 60 frames; framing/background confound pixel-size causality.
+  C2/C4 now have exact 2.5-second unselected proposals. All seven originals
+  and four derivatives remain unselected, with no pending jobs. C5 reuse was
+  not dispatched because cross-shot geography/strap continuity remains open.
+  Fresh original 73-table/67-file/seven-API equality and both idle healthy
+  workbenches are confirmed; the heartbeat is paused. Sound, missing route
+  media and full playback remain unaccepted. See the resumed closeout above.
 - Media restart, 16:08 UTC: the owner answered yes to a new bounded generation
   window and taking responsibility for listening-based audio review. Root owns
   all browser/provider/source writes; a read-only GPT-6.1 Sol / Medium reviewer
