@@ -1,22 +1,26 @@
 # Bounded unattended creator walkthrough
 
-Status: final verification/deployment handoff complete; full media acceptance
-remains open. The owner extended the cutoff at 15:31 UTC to 13:00 Toronto /
-17:00 UTC with no new media generation. Accessible confirmations are deployed
+Status: a new bounded media window is active after the owner's explicit yes
+at 16:08 UTC to further generation and owner listening-based audio review.
+Window: 12:08:45–13:08:45 Toronto / 16:08:45–17:08:45 UTC; stop new submissions
+at 12:38:45 Toronto / 16:38:45 UTC, preserving the 30-minute review buffer.
+The earlier verification-only extension and its closeout remain historical.
+Accessible confirmations are deployed
 and pushed at `fe656c0`; final tests and actual in-app browser checks passed.
 See the [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
-for exact evidence and pending audio/creative/media work. The temporary heartbeat
-is stopped; no automatic generation continuation is authorized.
+for exact evidence and pending audio/creative/media work. The same temporary
+heartbeat is re-enabled only for this new window. The owner will listen; no
+clip is accepted for sound merely because a stream exists or generation is authorized.
 The owner issued the final start command with Relay direct and explicitly
 required its model-choice guide for every delegation. The partial checkpoint
 below preserves resume state; only the time window was extended, not acceptance
 or preservation requirements.
 
 Launch: 2026-10-02 01:34:18 America/Toronto / 05:34:18 UTC.
-Real-generation cutoff remains 11:04:18 Toronto / 15:04:18 UTC. Final hard cutoff:
-13:00 Toronto / 17:00 UTC. The final owner-approved extension is for verification,
-deployment and handoff, including the native-popup fix requested at 15:13 UTC;
-it does not reopen generation. These supersede the earlier hard cutoffs.
+The resumed-window generation cutoff is 12:38:45 Toronto / 16:38:45 UTC;
+the current hard cutoff is 13:08:45 Toronto / 17:08:45 UTC. This supersedes
+the previous verification-only extension through 17:00 UTC. Original-project
+preservation and genuine audiovisual acceptance requirements are unchanged.
 Manager: `01a04525-e907-7630-9640-78790d69e8ae`.
 
 ## Goal and confirmed choices
@@ -217,6 +221,13 @@ original-project protection and truthful evidence remain.
 
 ## Run log
 
+- Media restart, 16:08 UTC: the owner answered yes to a new bounded generation
+  window and taking responsibility for listening-based audio review. Root owns
+  all browser/provider/source writes; a read-only GPT-6.1 Sol / Medium reviewer
+  reassesses phone-text failures before the next discriminating experiment.
+  Retained C1/C3 derivatives are offered for owner sound review. Existing prepared
+  drafts and rejected outputs remain evidence, not automatic sends or approvals.
+  The new one-hour window and 30-minute review buffer are recorded above.
 - Final verification extension: the owner requested the native-popup correction
   in the current run and subsequently extended handoff until 17:00 UTC, without
   reopening generation. `fe656c0` replaces all four native confirmations with

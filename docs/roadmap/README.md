@@ -57,9 +57,11 @@ was approved for the creator's eight-hour absence, extended by two hours at
 13:18 UTC, then extended for verification/deployment/handoff until 17:00 UTC.
 Its [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
 records deployed accessible confirmations and the preserved local review copy.
-The temporary heartbeat is stopped. Real audiovisual acceptance still requires
+The owner authorized a new bounded media window at 16:08 UTC and will provide
+listening-based audio review. New submissions stop at 16:38:45 UTC; handoff is
+due at 17:08:45 UTC (13:08:45 Toronto). The existing temporary heartbeat is
+re-enabled only for that window. Real audiovisual acceptance still requires
 genuine sound review and further media work; it is not complete. Test-copy provisional decisions
 and removal of fixed generation caps and blanket video/remote/provider/redesign
-exclusions are approved. The run launched at 2026-10-02 05:34:18 UTC and ends no
-later than 17:00 UTC (real generation stopped 15:04:18 UTC); its plan owns the current
+exclusions are approved. The run launched at 2026-10-02 05:34:18 UTC; its plan owns the current
 scope and preservation gates.
