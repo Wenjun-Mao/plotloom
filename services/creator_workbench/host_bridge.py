@@ -47,7 +47,23 @@ class QueueBridge:
         except (OSError, subprocess.TimeoutExpired):
             return {"returncode": 1}
         # CLI stdout/stderr can include the message; neither is logged or returned.
-        return {"returncode": result.returncode}
+        if result.returncode != 0:
+            return {"returncode": result.returncode}
+        try:
+            opened = subprocess.run(
+                ["/usr/bin/open", f"codex://threads/{thread}"],
+                capture_output=True,
+                timeout=2,
+                check=False,
+            )
+            wake_state = (
+                "open_requested" if opened.returncode == 0 else "open_unconfirmed"
+            )
+        except (OSError, subprocess.TimeoutExpired):
+            wake_state = "open_unconfirmed"
+        # Opening is navigation, not a second submission. Never turn an already
+        # acknowledged queue into a retryable failure when the open step fails.
+        return {"returncode": 0, "wakeState": wake_state}
 
 
 def handler_for(bridge: QueueBridge):

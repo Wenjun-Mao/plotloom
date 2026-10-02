@@ -1007,6 +1007,34 @@ and current data remain untouched. Next action: establish a supported desktop
 wake transport that preserves specialist tools, then verify the complete path;
 do not implement a status-check or alternate-executor workaround.
 
+### Approved external desktop-open follow-on (2026-10-02)
+
+Following review of the isolated native-navigation evidence, the creator
+approved checking a supported external command/deep link and integrating it if
+verified. The documented `codex://threads/<thread-id>` link is now the bounded
+candidate (ADR 0096): queue once, then request desktop open, never steer or
+interrupt. Preserve the original unknown-outcome and delivery reservations;
+surface open failure separately from queue admission. The visible chat switch
+is intentional. Existing real specialist assignments remain untouched.
+
+Deliverable: focused bridge/dispatcher tests, isolated external-open unloaded
+and busy probes, independent review, then safe deployment and push. Stop if
+external opening does not retain native execution or if duplicate/interrupt
+safety fails. No provider change, private transport, alternate executor,
+creative acceptance, project reset or background-only wake claim.
+
+Delivered and deployed: the actual updated bridge passed isolated unloaded and
+busy native-desktop probes without duplicate or interrupted turns. Independent
+review's stale-send-controls finding was fixed with read-only reconciliation;
+review then reported no remaining findings. The 53 focused backend checks,
+26 related regressions, 274 frontend tests and 9 art browser tests passed.
+Deployment preserved the complete accepted-art/proposal/specialist API state
+and exact S01 package/delivery bytes. See the
+[deep-link wake receipt](../verification/2026-10-02-native-deep-link-wake.md).
+No real assignment was replayed, no delivery was automatically admitted, and
+no image was selected. Next creator step: inspect the existing S01 delivery;
+a future production send verifies the installed HTTP bridge with ImageGen.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

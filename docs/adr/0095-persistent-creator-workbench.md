@@ -29,6 +29,10 @@ queue tasks. This applies equally to text and image specialists.
 
 ### Wake-up boundary clarification (2026-10-01)
 
+The later [ADR 0096](0096-native-specialist-deep-link-wake.md) qualifies the
+documented external desktop-open path; the investigation below remains the
+evidence at this earlier boundary, not a claim that desktop wake is impossible.
+
 The bridge acknowledges queue admission, not specialist startup. The approved
 wake-up follow-on requires native atomic admission and the specialist's existing
 tool executor. A process-local `thread/read` status is not a concurrency guard;

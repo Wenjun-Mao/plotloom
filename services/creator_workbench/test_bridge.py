@@ -3,6 +3,7 @@
 import json
 import subprocess
 from http.server import ThreadingHTTPServer
+from io import BytesIO
 from threading import Thread
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -47,8 +48,11 @@ def test_bridge_uses_exact_native_command_once_for_either_configured_role(
 
     monkeypatch.setattr(subprocess, "run", queue)
     message = "Frozen package at /Users/creator/project/package. 中文要求。"
-    assert bridge.queue({"thread": task, "message": message}) == {"returncode": 0}
-    assert len(commands) == 1
+    assert bridge.queue({"thread": task, "message": message}) == {
+        "returncode": 0,
+        "wakeState": "open_requested",
+    }
+    assert len(commands) == 2
     assert commands[0][0] == [
         str(bridge.executable),
         "queue",
@@ -58,6 +62,118 @@ def test_bridge_uses_exact_native_command_once_for_either_configured_role(
         message,
     ]
     assert commands[0][1]["timeout"] < 30
+    assert commands[1][0] == ["/usr/bin/open", f"codex://threads/{task}"]
+    assert sum(options["timeout"] for _, options in commands) < 28
+
+
+@pytest.mark.parametrize("failure", ["nonzero", "timeout", "missing"])
+def test_open_failure_preserves_queue_acknowledgement_without_retry(
+    bridge, monkeypatch, failure
+):
+    commands = []
+
+    def run(command, **_options):
+        commands.append(command)
+        if len(commands) == 1:
+            return subprocess.CompletedProcess(command, 0)
+        if failure == "timeout":
+            raise subprocess.TimeoutExpired(command, 2)
+        if failure == "missing":
+            raise OSError("private error detail")
+        return subprocess.CompletedProcess(command, 1, b"private", b"private")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    assert bridge.queue({"thread": IMAGE_TASK, "message": "request"}) == {
+        "returncode": 0,
+        "wakeState": "open_unconfirmed",
+    }
+    assert len(commands) == 2
+
+
+def test_nonzero_queue_acknowledgement_never_opens_or_retries(bridge, monkeypatch):
+    commands = []
+
+    def run(command, **_options):
+        commands.append(command)
+        return subprocess.CompletedProcess(command, 1, b"private", b"private")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    assert bridge.queue({"thread": IMAGE_TASK, "message": "request"}) == {
+        "returncode": 1
+    }
+    assert len(commands) == 1
+
+
+@pytest.mark.parametrize("wake_state", ["open_requested", "open_unconfirmed"])
+def test_client_emits_only_bounded_wake_acknowledgement(
+    tmp_path, monkeypatch, capsys, wake_state
+):
+    token = tmp_path / "token"
+    token.write_text("private-token")
+    monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE", str(token))
+    monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_URL", "http://bridge")
+    monkeypatch.setattr(
+        codex_client,
+        "urlopen",
+        lambda *_args, **_kwargs: BytesIO(
+            json.dumps(
+                {
+                    "returncode": 0,
+                    "wakeState": wake_state,
+                    "untrusted": "private-output",
+                }
+            ).encode()
+        ),
+    )
+    assert (
+        codex_client.main(
+            ["queue", "--thread", IMAGE_TASK, "--message", "private-assignment"]
+        )
+        == 0
+    )
+    output = capsys.readouterr()
+    assert json.loads(output.out) == {
+        "protocol": "plotloom.native-queue.v1",
+        "wakeState": wake_state,
+    }
+    assert not output.err
+    assert "private" not in output.out
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        None,
+        {},
+        {"returncode": True},
+        {"returncode": 0},
+        {"returncode": 0, "wakeState": {}},
+        {"returncode": 0, "wakeState": "untrusted-private-value"},
+    ],
+)
+def test_client_malformed_acknowledgement_fails_closed_without_output_leak(
+    tmp_path, monkeypatch, capsys, result
+):
+    token = tmp_path / "token"
+    token.write_text("private-token")
+    monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE", str(token))
+    monkeypatch.setenv("PLOTLOOM_CODEX_BRIDGE_URL", "http://bridge")
+    attempts = []
+
+    def response(*_args, **_kwargs):
+        attempts.append(True)
+        return BytesIO(json.dumps(result).encode())
+
+    monkeypatch.setattr(codex_client, "urlopen", response)
+    assert (
+        codex_client.main(
+            ["queue", "--thread", IMAGE_TASK, "--message", "private-assignment"]
+        )
+        == 1
+    )
+    output = capsys.readouterr()
+    assert not output.out and "private" not in output.err
+    assert len(attempts) == 1
 
 
 @pytest.mark.parametrize(

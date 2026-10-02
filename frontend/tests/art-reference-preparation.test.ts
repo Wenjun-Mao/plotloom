@@ -2,6 +2,7 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
+import { specialistsApi } from "../src/features/specialists/api";
 import { ArtReferenceGallery } from "../src/pages/ArtReferenceGallery";
 import { defaultImageRequirements, studyStatus } from "../src/pages/artReferencePresentation";
 import type { ArtReferenceProposal } from "../src/types";
@@ -90,4 +91,29 @@ it("labels task lifecycle without implying image acceptance", () => {
   expect(studyStatus({ ...study, current: false })).toBe("设定已变更");
   expect(studyStatus({ ...study, state: "cancelled", current: false })).toBe("已取消");
   expect(studyStatus({ ...study, deliveries: [{ state: "rejected" } as ArtReferenceProposal["deliveries"][number]] })).toBe("交付未通过检查");
+});
+
+it("reconciles a queued send warning without hiding it or offering another send", async () => {
+  const warning = "任务已入队，但无法确认助手聊天已打开。请勿重复发送。";
+  const send = vi.spyOn(specialistsApi, "sendArtImage").mockRejectedValue(new Error(warning));
+  const refresh = vi.fn(async () => { root.render(createElement(ArtReferenceGallery, { ...defaults, studies: [{ ...study, state: "exported", exportedAt: "now" }], refresh })); });
+  await render({ studies: [study], refresh });
+  await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "发送给图像生成助手")!.click());
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(refresh).toHaveBeenCalledTimes(1);
+  expect(host.textContent).toContain(warning);
+  expect(host.textContent).toContain("检查图像交付");
+  expect([...host.querySelectorAll("button")].some((button) => button.textContent === "发送给图像生成助手")).toBe(false);
+});
+
+it("does not reconcile a failed send into a different accepted session", async () => {
+  let reject!: (error: Error) => void;
+  vi.spyOn(specialistsApi, "sendArtImage").mockReturnValue(new Promise((_, fail) => { reject = fail; }));
+  const refresh = vi.fn(async () => {});
+  await render({ studies: [study], refresh });
+  await act(async () => [...host.querySelectorAll("button")].find((button) => button.textContent === "发送给图像生成助手")!.click());
+  await render({ acceptedRevision: 2, refresh });
+  await act(async () => reject(new Error("Old session queue warning")));
+  expect(refresh).not.toHaveBeenCalled();
+  expect(host.textContent).not.toContain("Old session queue warning");
 });

@@ -6,6 +6,7 @@ import type {
   VisualWorkbench,
 } from "../../../types";
 import { plotloomApi } from "../../../api";
+import { reconcileFailedSend } from "../../specialists/reconcileFailedSend";
 
 export function useCharacterReferenceActions({
   projectId,
@@ -147,10 +148,7 @@ export function useCharacterReferenceActions({
     setBusy(true);
     setError("");
     try {
-      await plotloomApi.sendCharacterReferenceProposal(
-        projectId,
-        proposalId,
-      );
+      await reconcileFailedSend(() => plotloomApi.sendCharacterReferenceProposal(projectId, proposalId), refresh);
       await refresh();
     } catch (proposalError) {
       setError(

@@ -43,12 +43,21 @@ queued. The token is created with mode 0600 in
 mounted as a Compose secret, never baked into the image or project state.
 Deployment paths/logs live in ignored `.local/creator-workbench/`.
 
-The browser can stay available while Codex is closed. Open Codex to execute
-native specialist assignments. The bridge makes one attempt and never retries;
-the existing Plotloom reservations still protect unknown queue outcomes. Never
+After queue acknowledgement, the bridge requests desktop opening with
+`/usr/bin/open codex://threads/<configured-specialist-id>`. This documented
+deep link **switches the visible chat**; the desktop retains its own executor
+and schedules queued work without steering or interrupting an active turn.
+The open acknowledgement is not evidence that generation has started. If it
+fails or times out, Plotloom retains the queued receipt/reservation and tells
+the creator to open the existing assistant manually, not resend.
+
+The browser can stay available while Codex is closed. Desktop cold-start and
+sign-in recovery are not qualified by the local wake probe. The bridge makes
+one queue and one post-acknowledgement open attempt and never retries; the
+existing Plotloom reservations still protect unknown queue outcomes. Never
 delete leases to get around a failed send. `check-bridge` checks connectivity
 without queueing a task. This deployment retains the walkthrough's disabled
-video backend and existing explicit review/acceptance behavior (ADR 0095).
+video backend and existing explicit review/acceptance behavior (ADRs 0095/0096).
 
 To remove only the host bridge, use `launchctl bootout gui/$(id -u)/com.plotloom.creator-codex-bridge`
 and remove its exact plist from `~/Library/LaunchAgents/`. Stopping or removing

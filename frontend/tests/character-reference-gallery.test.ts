@@ -196,6 +196,24 @@ it("does not retain an in-flight specialist send from a cast session invalidated
   expect(host.textContent).toContain("已接受角色已过期");
 });
 
+it("reads the exported character handoff after a wake warning and preserves that warning", async () => {
+  const { asset, proposal } = candidateProposal("project");
+  proposal.deliveries = []; proposal.state = "prepared";
+  installResolvedGallery(galleryResponse("project", "Wake warning fixture", { proposals: [proposal], assets: [asset] }));
+  const warning = "任务已入队，请打开已有助手，不要重复发送。";
+  const send = vi.spyOn(plotloomApi, "sendCharacterReferenceProposal").mockImplementation(async () => {
+    proposal.state = "exported";
+    throw new Error(warning);
+  });
+  await renderProject("project");
+  await act(async () => button("发送给 specialist").click());
+  await flushReact();
+  expect(send).toHaveBeenCalledTimes(1);
+  expect(host.textContent).toContain(warning);
+  expect([...host.querySelectorAll("button")].some((entry) => entry.textContent === "发送给 specialist")).toBe(false);
+  expect(vi.mocked(plotloomApi.getCharacterReferenceProposals).mock.calls.length).toBeGreaterThan(1);
+});
+
 it("replaces a held initial gallery read after reopen and save settle a newer same-subject cast session", async () => {
   const initial = galleryResponse("project", "Old initial gallery evidence");
   const current = galleryResponse("project", "Current live gallery evidence");

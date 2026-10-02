@@ -1,4 +1,5 @@
 """All creative stages use pinned handoffs, never automatic acceptance."""
+import json
 import subprocess
 from contextlib import contextmanager
 from types import SimpleNamespace
@@ -7,16 +8,19 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from plotloom.api.project_folder_media import register_project_folder_media_routes
 from plotloom.api.project_folder_specialists import METHODS, register_specialist_routes
 from plotloom.creative_handoff_contracts import CreativeHandoffError
 from tests.test_specialist_settings import configured
 
 
 @pytest.mark.parametrize("stage", METHODS)
-def test_stage_dispatch_delivery_and_cancelled_observation(tmp_path, monkeypatch, stage):
+@pytest.mark.parametrize("wake_unconfirmed", [False, True])
+def test_stage_dispatch_delivery_and_cancelled_observation(tmp_path, monkeypatch, stage, wake_unconfirmed):
     registry, settings = configured(tmp_path)
     calls = []
-    monkeypatch.setattr(subprocess, "run", lambda command, **kw: calls.append(command) or subprocess.CompletedProcess(command, 0))
+    output = json.dumps({"protocol": "plotloom.native-queue.v1", "wakeState": "open_unconfirmed"}) if wake_unconfirmed else "Queued"
+    monkeypatch.setattr(subprocess, "run", lambda command, **kw: calls.append(command) or subprocess.CompletedProcess(command, 0, output))
     job = "ch_" + "a" * 32
     candidate = SimpleNamespace(job_id=job, status="prepared")
     state = SimpleNamespace(candidate=candidate)
@@ -51,11 +55,20 @@ def test_stage_dispatch_delivery_and_cancelled_observation(tmp_path, monkeypatch
         yield store
 
     app = FastAPI()
+    register_project_folder_media_routes(app, opened, require_media_draft_scope=lambda *_args: None)
     register_specialist_routes(app, opened, registry)
     url = f"/api/v2/projects/project/specialist-tasks/{stage}/{job}"
     with TestClient(app, raise_server_exceptions=False) as client:
         assert client.get(url).json()["configured"]
-        assert client.post(url + "/send").json()["state"] == "queued"
+        sent = client.post(url + "/send")
+        if wake_unconfirmed:
+            assert sent.status_code == 422
+            assert sent.json()["code"] == "image_dispatch_wake_unconfirmed"
+            assert "任务已入队" in sent.json()["message"]
+            assert "请勿重复发送" in sent.json()["message"]
+        else:
+            assert sent.json()["state"] == "queued"
+        assert client.get(url).json()["state"] == "queued"
         assert len(calls) == 1 and calls[0][3] == settings.text.task_id
         assert "/frozen/package/request.json" in calls[0][-1]
         assert client.post(url + "/send").status_code >= 400

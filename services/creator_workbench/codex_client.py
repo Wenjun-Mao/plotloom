@@ -38,7 +38,24 @@ def main(argv=None):
     if args.command == "bridge-health":
         print("Native Codex bridge is available.")
         return 0
-    return int(result["returncode"])
+    if not isinstance(result, dict) or type(result.get("returncode")) is not int:
+        print("Native Codex bridge acknowledgement is invalid.", file=sys.stderr)
+        return 1
+    if result["returncode"] == 0:
+        if result.get("wakeState") not in ("open_requested", "open_unconfirmed"):
+            print(
+                "Native Codex bridge wake acknowledgement is invalid.", file=sys.stderr
+            )
+            return 1
+        print(
+            json.dumps(
+                {
+                    "protocol": "plotloom.native-queue.v1",
+                    "wakeState": result["wakeState"],
+                }
+            )
+        )
+    return result["returncode"]
 
 
 if __name__ == "__main__":

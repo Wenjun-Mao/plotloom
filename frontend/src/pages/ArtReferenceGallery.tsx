@@ -5,6 +5,7 @@ import { Button, ErrorNotice } from "../components";
 import { AssetZoomDialog, ManagedAssetImage, useBoundedAssetComparison } from "../features/media/references/AppearanceReviewPrimitives";
 import type { ArtReferenceDecision, ArtReferenceDecisionState, ArtReferenceProposal } from "../types";
 import { specialistsApi } from "../features/specialists/api";
+import { reconcileFailedSend } from "../features/specialists/reconcileFailedSend";
 import { ArtReferencePreparation } from "./ArtReferencePreparation";
 import { artSubjects, defaultImageRequirements, studyStatus, subjectKey } from "./artReferencePresentation";
 
@@ -57,11 +58,11 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
   const currentDecision = selected ? decisions.find((item) => item.current && item.subjectType === selected.subjectType && item.subjectId === selected.subjectId) : undefined;
   const latestDecision = selected ? decisions.find((item) => item.subjectType === selected.subjectType && item.subjectId === selected.subjectId) : undefined;
   const { comparisonCandidates, comparisonAssetIds, comparisonAtCapacity, toggleComparison, clearComparison } = useBoundedAssetComparison(viewableCandidates);
-  const act = async <Result,>(operation: () => Promise<Result>, onSuccess?: (result: Result) => void) => {
+  const act = async <Result,>(operation: (isCurrent: () => boolean) => Promise<Result>, onSuccess?: (result: Result) => void) => {
     const session = activeSession.current;
     setBusySession(session); setError("");
     try {
-      const result = await operation();
+      const result = await operation(() => ownsSession(session));
       if (!ownsSession(session)) return;
       onSuccess?.(result);
       await refresh();
@@ -103,7 +104,7 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
       {comparisonCandidates.length >= 2 && <div className={`appearance-compare comparison-count-${comparisonCandidates.length}`} data-testid="art-reference-comparison"><header><strong>并排比较 · {comparisonCandidates.length} 张</strong><small>仅比较 {selected.subjectType === "scene" ? "环境" : "道具"} {selected.name}；不会选择生产资产。</small></header>{comparisonCandidates.map((candidate) => <figure key={candidate.assetId}><figcaption>{candidate.assetId === viewed?.assetId ? "当前查看" : "对比图片"} · {candidate.outputFilename}</figcaption><ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={candidate.asset} assetId={candidate.assetId} alt={`${candidate.outputFilename} 比较图片`} unavailableLabel="对比图片不可用" imageUrl={assetUrl?.(candidate.assetId)} /></figure>)}</div>}
       {showStudyActions && <ArtReferencePreparation style={art.style} subject={selected} study={study} actionable={actionable} direction={direction} onDirectionChange={setDirection}
         onPrepare={() => void act(() => plotloomApi.prepareArtReferenceProposal(projectId, { subjectType: selected.subjectType, subjectId: selected.subjectId, renderDirection: direction.trim() }))}
-        onSend={() => study && void act(() => specialistsApi.sendArtImage(projectId, study.id))}
+        onSend={() => study && void act((isCurrent) => reconcileFailedSend(() => specialistsApi.sendArtImage(projectId, study.id), async () => { if (isCurrent()) await refresh(); }))}
         onRefresh={() => study && void act(() => plotloomApi.refreshArtReferenceProposal(projectId, study.id))}
         onCancel={() => study && void act(() => plotloomApi.cancelArtReferenceProposal(projectId, study.id, "Operator cancelled the F3B reference-study handoff."))}
       />}

@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import json
 import subprocess
 
 import pytest
 
 from plotloom.codex_image_dispatch import NativeCodexImageDispatcher
-from plotloom.image_job_contracts import ImageJobError
-from plotloom.image_job_contracts import ImageReferenceUse
+from plotloom.image_job_contracts import ImageJobError, ImageReferenceUse
 
 
 def test_native_dispatch_queues_one_frozen_package_and_releases_after_delivery(
@@ -112,3 +112,43 @@ def test_stale_completion_cannot_release_a_replacement_lease(tmp_path, monkeypat
     assert "ij_bcdefghijklmnopqrstu" in (tmp_path / "inflight.json").read_text()
 def test_empty_reference_attestation_is_valid_only_for_reference_free_packages() -> None:
     assert ImageReferenceUse(viewedReferenceHashes=[], identityNotes="No identity references.").viewed_reference_hashes == []
+
+
+@pytest.mark.parametrize("wake_state", ["open_requested", "open_unconfirmed"])
+def test_mac_wake_ack_keeps_queue_admission_and_never_resends(
+    tmp_path, monkeypatch, wake_state
+) -> None:
+    attempts = []
+
+    def queue(command, **_kwargs):
+        attempts.append(command)
+        return subprocess.CompletedProcess(command, 0, json.dumps({
+            "protocol": "plotloom.native-queue.v1", "wakeState": wake_state
+        }), "private stderr")
+
+    monkeypatch.setattr(subprocess, "run", queue)
+    dispatcher = NativeCodexImageDispatcher("task-local", tmp_path)
+    job = "ij_abcdefghijklmnopqrst"
+    exported = []
+
+    def send():
+        dispatcher.dispatch(job_id=job, package_path="/package", delivery_path="/delivery",
+            before_send=lambda: exported.append(True))
+
+    if wake_state == "open_unconfirmed":
+        with pytest.raises(ImageJobError, match="任务已入队") as failure:
+            send()
+        assert failure.value.code == "image_dispatch_wake_unconfirmed"
+    else:
+        send()
+    assert exported == [True]
+    assert json.loads((tmp_path / job / "receipt.json").read_text()) == {
+        "jobId": job, "taskId": "task-local", "state": "queued", "wakeState": wake_state
+    }
+    with pytest.raises(ImageJobError, match="already has a native dispatch attempt"):
+        send()
+    with pytest.raises(ImageJobError, match="already in flight"):
+        dispatcher.dispatch(job_id="ij_bcdefghijklmnopqrstu", package_path="/two", delivery_path="/two-delivery")
+    assert len(attempts) == 1 and exported == [True]
+    dispatcher.complete(job)
+    assert not (tmp_path / "inflight.json").exists()

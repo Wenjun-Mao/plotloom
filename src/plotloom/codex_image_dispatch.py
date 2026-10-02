@@ -93,7 +93,16 @@ class NativeCodexImageDispatcher:
                 "image_dispatch_outcome_unknown",
                 "native image dispatch outcome is unknown; Plotloom will not retry this job",
             )
-        receipt.write_text(json.dumps({"jobId": job_id, "taskId": self.task_id, "state": "queued"}), encoding="utf-8")
+        record = {"jobId": job_id, "taskId": self.task_id, "state": "queued"}
+        wake_state = _bridge_wake_state(completed.stdout)
+        if wake_state is not None:
+            record["wakeState"] = wake_state
+        receipt.write_text(json.dumps(record), encoding="utf-8")
+        if wake_state == "open_unconfirmed":
+            raise ImageJobError(
+                "image_dispatch_wake_unconfirmed",
+                "任务已入队，但无法确认助手聊天已打开。请在 Codex 中打开对应助手；请勿重复发送。",
+            )
 
     def complete(self, job_id: str) -> None:
         """Release the one-job gate only after terminal repository handling."""
@@ -120,3 +129,15 @@ class NativeCodexImageDispatcher:
             return
         if record == {"jobId": job_id, "taskId": self.task_id}:
             active.unlink()
+
+
+def _bridge_wake_state(stdout: str | None) -> str | None:
+    """Read only the Mac shim's bounded acknowledgement, not native CLI prose."""
+    try:
+        value = json.loads(stdout)
+    except (ValueError, TypeError):
+        return None
+    for state in ("open_requested", "open_unconfirmed"):
+        if value == {"protocol": "plotloom.native-queue.v1", "wakeState": state}:
+            return state
+    return None

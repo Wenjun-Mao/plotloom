@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { plotloomApi } from "../api";
+import { reconcileFailedSend } from "../features/specialists/reconcileFailedSend";
 import { Button, ErrorNotice, Field, Spinner } from "../components";
 import { AppearanceModeSelector } from "./AppearanceModeSelector";
 import { AssetZoomDialog, ManagedAssetImage as AssetPresentation, useBoundedAssetComparison } from "../features/media/references/AppearanceReviewPrimitives";
@@ -207,8 +208,8 @@ function SubjectGallery({ projectId, subject, data, readOnly, castRevision, root
   const prepare = () => void act(async () => {
     await plotloomApi.prepareCharacterReferenceProposal(projectId, { characterId: subject.id, castRevision, visualDirection: direction.trim(), parentCandidateAssetId: ideaMode === "refine" ? effectiveViewedAssetId || undefined : undefined });
   }, () => { setDirection(""); setIdeaMode("fresh"); });
-  const send = (proposal: CharacterReferenceProposal) => void act(async () => {
-    await plotloomApi.sendCharacterReferenceProposal(projectId, proposal.id);
+  const send = (proposal: CharacterReferenceProposal) => void act(async (isCurrent) => {
+    await reconcileFailedSend(() => plotloomApi.sendCharacterReferenceProposal(projectId, proposal.id), async () => { if (isCurrent()) await onRefresh(rootSession); });
   });
   const refreshProposal = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.refreshCharacterReferenceProposal(projectId, proposal.id); });
   const cancel = (proposal: CharacterReferenceProposal) => void act(async () => { await plotloomApi.cancelCharacterReferenceProposal(projectId, proposal.id, "Creator cancelled the exploratory reference handoff from Characters."); });

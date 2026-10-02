@@ -1,4 +1,5 @@
 """Local bindings never bypass a native queue reservation."""
+import json
 import subprocess
 from uuid import uuid4
 
@@ -105,3 +106,25 @@ def test_export_precondition_failure_releases_unsent_reservation(tmp_path, monke
         send(registry, before_send=reject)
     assert not registry.view()["busy"]
     assert registry.status("ch_" + "a" * 32)["state"] == "prepared"
+
+
+@pytest.mark.parametrize("role", ["text", "image"])
+def test_open_unconfirmed_retains_queue_and_binding_after_restart(tmp_path, monkeypatch, role):
+    calls = []
+    def queue(command, **_kwargs):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, json.dumps({
+            "protocol": "plotloom.native-queue.v1", "wakeState": "open_unconfirmed"
+        }))
+    monkeypatch.setattr(subprocess, "run", queue)
+    registry, settings = configured(tmp_path)
+    with pytest.raises(ImageJobError, match="任务已入队"):
+        send(registry, role=role)
+    restored = SpecialistRegistry(tmp_path)
+    assert restored.status("ch_" + "a" * 32)["state"] == "queued"
+    assert restored.view()["busy"]
+    with pytest.raises(ImageJobError, match="不要重复发送"):
+        send(restored, role=role)
+    with pytest.raises(ImageJobError):
+        restored.save(settings)
+    assert len(calls) == 1
