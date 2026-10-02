@@ -48,3 +48,19 @@ cast/media state.
   a Shot binding or satisfy F5/F7 production cross-shot review requirements.
 - The cancellation route is available only through the proposal's project and
   leaves the original package and any late-delivery evidence intact.
+
+## Author editing clarification (2026-10-02)
+
+The ordinary Cast editor exposes the complete existing `character.image`
+direction (`style`, `prompt`, `promptLocal`, `negativePrompt`, `tags`, `sheet`),
+and the accepted summary displays its style. These fields already belong to
+the model proposal followed by explicit author acceptance/revision. Hiding them
+made conflicting painterly directions impossible to revise through the UI even
+though later reference packages correctly froze them as accepted identity facts.
+
+Authors must explicitly revise contradictory direction before preparing a new
+reference. Reopen/save retains the existing revision, ID/mapping, currentness
+and invalidation contracts. Code does not translate prompts, infer a replacement
+style from Brief or Art, rewrite reports, or select/regenerate references.
+Upstream Cast generation presets are unchanged. Browser regression covers
+cancel, explicit save, reload, unchanged identity/evidence and new-package binding.

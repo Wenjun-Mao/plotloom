@@ -214,3 +214,26 @@ original-project protection and truthful evidence remain.
 - Original project: `ee271b49-f384-414c-9711-452ee6333b84`; original workbench
   remains on port 8841. Copy root, URL and baseline evidence follow after the
   isolation gate; no copy mutation or handoff before that gate passes.
+- Step 1 recovery checkpoint, 06:16 UTC / 02:16 Toronto: the serial replacement
+  writer qualified a single isolated runtime composition after two manual
+  launcher failures. Both unknown jobs and their roots remain quarantined;
+  no lease clearing, replay or definitive no-queue claim. See the
+  [launcher preflight receipt](../verification/2026-10-02-isolated-launcher-preflight.md)
+  and [ADR 0098](../adr/0098-isolated-workbench-native-transport.md).
+  Actual fake-native roundtrips cover both roles, foreign-ID refusal and unknown
+  outcome preservation. Real no-queue startup/shutdown also found and fixed the
+  SIGTERM cleanup boundary. Original API/73 tables/67 files still match baseline;
+  final copy matches 35 snapshot files and has no bindings or dispatch roots.
+  No new live dispatch or UI milestone. Source is quiescent on `196c43a` plus
+  the uncommitted reviewed-scope candidate; manager independent review/commit
+  precedes the first fresh live package because API source is an execution pin.
+  Final copy ports 8851/8852 are stopped; normal services/static remain untouched.
+- Manager integration checkpoint: independent transport and service-boundary
+  review found no actionable findings. The stale gateway-only extraction guard
+  was corrected to the two explicit service owners documented by ADR 0095;
+  the fresh broad Python run passed 836 tests. Full frontend 286 tests, both
+  typechecks and the revised Cast browser regression passed. Reviewed static
+  assets were promoted only after the normal specialists were inactive, with
+  the original API/73 tables/67 files still unchanged. This scoped checkpoint
+  is committed before the next real image preparation; native generation and
+  copy-only creative decisions remain the next stages, not claimed acceptance.

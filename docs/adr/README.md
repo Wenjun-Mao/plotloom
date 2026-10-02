@@ -18,6 +18,7 @@ leads separately from approved work.
 | Branch editor next step | [0087](0087-branch-save-apply-continue.md) distinguishes save, apply and navigation to Characters using current saved-map and graph state. |
 | Creative task execution identity | [0088](0088-frozen-creative-execution-identity.md) binds preparation-time skill identity in trusted project persistence; refresh does not substitute current checkout hashes. |
 | Native specialist availability and wake | [0095](0095-persistent-creator-workbench.md) owns the persistent Mac/Docker deployment; [0096](0096-native-specialist-deep-link-wake.md) separates queue admission from a documented desktop-open request without transferring execution ownership. |
+| Isolated native transport composition | [0098](0098-isolated-workbench-native-transport.md) derives the test server, bridge allowlist and outbound shim from one runtime owner; unknown dispatch reservations remain authoritative. |
 | Art render-style authority | [0094](0094-author-selected-art-render-style.md) freezes author-selected style and Brief direction, retaining upstream gates through a shared art adapter. |
 | Additional art-reference candidates | [0097](0097-art-reference-additional-candidates.md) separates a new requirements draft from a frozen delivered request, retaining existing images and reference choices. |
 | Character-review presentation | [0089](0089-cast-review-text-presentation.md) separates exact inference suffixes losslessly and preserves label selection without removing normal field activation. |

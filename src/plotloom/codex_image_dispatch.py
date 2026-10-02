@@ -11,7 +11,7 @@ import os
 import subprocess
 from collections.abc import Callable
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from .image_job_contracts import ImageJobError
@@ -24,6 +24,7 @@ class NativeCodexImageDispatcher:
     task_id: str
     state_root: Path
     executable: str = "codex"
+    environment: dict[str, str] | None = field(default=None, repr=False)
 
     def dispatch(self, *, job_id: str, package_path: str, delivery_path: str, assignment: str | None = None, before_send: Callable[[], None] | None = None) -> None:
         self.state_root.mkdir(parents=True, exist_ok=True)
@@ -76,6 +77,7 @@ class NativeCodexImageDispatcher:
             completed = subprocess.run(
                 [self.executable, "queue", "--thread", self.task_id, "--message", message],
                 capture_output=True, text=True, timeout=30, check=False,
+                env=self.environment,
             )
         except (OSError, subprocess.TimeoutExpired) as error:
             receipt.write_text(json.dumps({"jobId": job_id, "taskId": self.task_id, "state": "outcome_unknown"}), encoding="utf-8")

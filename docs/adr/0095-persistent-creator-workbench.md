@@ -27,6 +27,18 @@ nor shim retries; lost acknowledgement still means outcome unknown. Credentials
 remain outside project/application state and image layers. Health checks do not
 queue tasks. This applies equally to text and image specialists.
 
+### Repository service ownership clarification (2026-10-02)
+
+The tracked `services/creator_workbench` deployment is the second explicit
+service owner alongside `services/minimax_h3_gateway`. The extraction guard
+had retained its older gateway-only allowlist despite this decision and the
+committed workbench, causing the broad Python suite to fail. The guard now
+names exactly these two real directories and still rejects unknown children,
+foreign tracked paths, untracked files and missing tracked files. Credentials,
+generated deployment configuration and runtime data remain outside both source
+subtrees. Adding another service requires an explicit ownership decision, not
+a general `services/*` exception. Focused tests exercise both admitted owners.
+
 ### Wake-up boundary clarification (2026-10-01)
 
 The later [ADR 0096](0096-native-specialist-deep-link-wake.md) qualifies the

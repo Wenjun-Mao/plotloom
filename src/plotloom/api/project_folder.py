@@ -101,6 +101,8 @@ def create_project_folder_authoring_app(
     bridge_intent_service: Any | None = None,
     bridge_simulation_label: str | None = None,
     image_dispatcher: NativeCodexImageDispatcher | None = None,
+    specialist_executable: str | None = None,
+    specialist_environment: dict[str, str] | None = None,
     static_dir: Path | None = None,
     lifespan: Any | None = None,
 ) -> FastAPI:
@@ -731,7 +733,10 @@ def create_project_folder_authoring_app(
         opened_project,
         require_media_draft_scope=require_media_draft_scope,
     )
-    specialists = SpecialistRegistry(storage.application.root, image_dispatcher)
+    specialists = SpecialistRegistry(
+        storage.application.root, image_dispatcher,
+        executable=specialist_executable, environment=specialist_environment,
+    )
     app.state.specialists = specialists
     register_specialist_routes(app, opened_project, specialists)
     register_project_folder_image_job_routes(

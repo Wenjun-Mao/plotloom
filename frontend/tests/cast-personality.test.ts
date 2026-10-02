@@ -73,7 +73,9 @@ it("shows the same personality and temperament in the accepted summary", async (
 it("associates separate selectable labels with unique controls across characters", async () => {
   await render("ready", { characters: [...cast.characters, { ...cast.characters[0], id: "C02" }] });
   const labels = Array.from(host.querySelectorAll<HTMLLabelElement>(".cast-forms label"));
-  expect(labels.length).toBe(14);
+  // Each character has two personality controls, five design/notes fields,
+  // and the six existing image-direction fields.
+  expect(labels.length).toBe(26);
   expect(new Set(labels.map((label) => label.htmlFor)).size).toBe(labels.length);
   for (const label of labels) {
     expect(label.querySelector("input,textarea")).toBeNull();

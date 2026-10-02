@@ -8,6 +8,8 @@ export type CastDirectionChange = (...args:
   | [index: number, group: "persona", key: "personality", value: string[]]
   | [index: number, group: "persona", key: "temperament" | "appearance", value: string]
   | [index: number, group: "voice", key: "timbre", value: string]
+  | [index: number, group: "image", key: "style" | "prompt" | "promptLocal" | "negativePrompt" | "sheet", value: string]
+  | [index: number, group: "image", key: "tags", value: string[]]
   | [index: number, group: "reviewNotes", key: "sourceNotes" | "performanceGuidance", value: string]
 ) => void;
 
@@ -46,6 +48,16 @@ export function CastEditor({ characters, disabled, onChange, editing = false }: 
         <CastDesignField id={`${fieldId}-temperament`} label="气质与举止" value={persona.temperament} disabled={disabled} onChange={(value) => onChange(index, "persona", "temperament", value)} />
         <CastDesignField id={`${fieldId}-appearance`} label="外观" required error={errors.appearance} value={persona.appearance} disabled={disabled} onChange={(value) => onChange(index, "persona", "appearance", value)} />
         <CastDesignField id={`${fieldId}-voice`} label="声音方向" value={record(character.voice).timbre} disabled={disabled} onChange={(value) => onChange(index, "voice", "timbre", value)} wide />
+        <details className="cast-wide-field">
+          <summary>角色图像方向</summary>
+          <p>这些方向会与角色外观一起用于后续参考图任务。请明确修改所有冲突的风格描述；保存不会自动翻译、生成图片或改写美术设定。</p>
+          {([
+            ["style", "角色图像风格"], ["prompt", "角色图像提示词"],
+            ["promptLocal", "角色图像中文提示词"], ["negativePrompt", "角色图像反向提示词"],
+            ["sheet", "角色设定图提示词"],
+          ] as const).map(([key, label]) => <CastDesignField key={key} id={`${fieldId}-image-${key}`} label={label} value={record(character.image)[key]} disabled={disabled} onChange={(value) => onChange(index, "image", key, value)} />)}
+          <CastNoteField id={`${fieldId}-image-tags`} label="角色图像标签（每行一个）" value={Array.isArray(record(character.image).tags) ? (record(character.image).tags as string[]).join("\n") : ""} disabled={disabled} onChange={(value) => onChange(index, "image", "tags", value.split("\n").map((tag) => tag.trim()).filter(Boolean))} />
+        </details>
         <CastInferenceNotes character={character} includeStructured={false} />
         <details className="cast-wide-field">
           <summary>设定说明与表演提示</summary>

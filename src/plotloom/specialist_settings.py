@@ -39,11 +39,16 @@ class SpecialistSettings(CamelModel):
 
 
 class SpecialistRegistry:
-    def __init__(self, root: Path, image: NativeCodexImageDispatcher | None = None):
+    def __init__(
+        self, root: Path, image: NativeCodexImageDispatcher | None = None, *,
+        executable: str | None = None, environment: dict[str, str] | None = None,
+    ):
         self.root = root / "specialists"
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "settings.json"
         self.bootstrap = image
+        self.executable = executable
+        self.environment = environment
         with self.lock():
             if not self.path.exists():
                 settings = SpecialistSettings()
@@ -94,8 +99,10 @@ class SpecialistRegistry:
     def _dispatcher(self, data, task_id):
         root = Path(data["roots"].get(task_id, self.root / "dispatch" / task_id))
         data["roots"][task_id] = str(root)
-        executable = self.bootstrap.executable if self.bootstrap and task_id == self.bootstrap.task_id else "codex"
-        return NativeCodexImageDispatcher(task_id, root, executable)
+        bootstrap = self.bootstrap if self.bootstrap and task_id == self.bootstrap.task_id else None
+        executable = self.executable or (bootstrap.executable if bootstrap else "codex")
+        environment = self.environment if self.environment is not None else (bootstrap.environment if bootstrap else None)
+        return NativeCodexImageDispatcher(task_id, root, executable, environment)
 
     def status(self, job_id: str):
         with self.lock():

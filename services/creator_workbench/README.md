@@ -63,6 +63,42 @@ To remove only the host bridge, use `launchctl bootout gui/$(id -u)/com.plotloom
 and remove its exact plist from `~/Library/LaunchAgents/`. Stopping or removing
 the container leaves the bound project directories in place.
 
+## Isolated test installation
+
+Use `isolated.py` for an already restored, verified test installation. It owns
+one loopback server and native bridge in the same process, with an ephemeral
+outbound shim and one shared installation-local specialist registry. Do not
+copy/edit launcher scripts or point the copy at the normal LaunchAgent.
+
+```sh
+uv run --locked python services/creator_workbench/isolated.py \
+  --data-root .local/unattended-2026-10-02/final-installation \
+  --static-dir .local/unattended-2026-10-02/static \
+  --codex /absolute/path/to/native/codex \
+  --token-file /absolute/private/directory/bridge-token \
+  --port 8851 --bridge-port 8852
+```
+
+Supply an existing owner-only credential outside installation state: directory
+0700, regular token file 0600, owned by the current user. Startup rejects
+foreign dispatch roots, symlinked application state, unavailable executables and
+port collisions. Both specialist roles, including UI rebindings, use the exact
+derived shim URL/credential environment. Parent PATH/bridge/proxy settings do
+not route this installation elsewhere. Stopping the process releases its ports,
+bridge and shim; it does not change leases, receipts or other services.
+
+Qualify the complete HTTP → shim subprocess → authenticated bridge → fake
+native executable path before a real package dispatch. This test uses generated
+fixture UUIDs and stubs desktop navigation; it cannot send an actual user task:
+
+```sh
+uv run --locked python -m pytest services/creator_workbench/test_isolated.py -q
+```
+
+An isolated health check is a no-queue readiness probe, never dispatch evidence.
+The existing outcome-unknown policy still forbids blind retry or lease clearing.
+See [ADR 0098](../../docs/adr/0098-isolated-workbench-native-transport.md).
+
 ## Verification
 
 With no specialist work in flight, the bounded check deliberately terminates
