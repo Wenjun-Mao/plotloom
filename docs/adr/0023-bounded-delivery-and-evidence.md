@@ -49,9 +49,28 @@ next action, and available usage deltas. Use the completion plan's active record
 instead of creating a separate reporting system. The capability matrix remains
 the product-level progress authority.
 
-GPT-5.6 Terra is the user's default for subagents. Primary-model choice is based
-on measured cost per accepted result and the reasoning needed; this ADR does
-not assert that a cheaper model or lower effort is always cheaper overall.
+On 2026-10-02, the user explicitly replaced the former GPT-5.6 Terra delegation
+default with Relay's **Manager model choice** guide, for coordinators, executors
+and native subagents alike:
+
+| Work | Model / reasoning |
+|---|---|
+| Clear bounded implementation, routine coordination, focused verification | GPT-6 Luna / Max |
+| Challenging coding, integration or coordination with meaningful ambiguity | GPT-6.1 Sol / Medium |
+| Difficult architecture, high-risk decisions or persistent reasoning failures | GPT-6.1 Sol / High |
+
+Choose directly by difficulty, not role or an escalation ladder. Explicit user
+choices take precedence. Set supported native model/effort fields at dispatch,
+announce actual settings, and disclose unavailable choices or inherited defaults.
+Sol also supports Xhigh; reserve Astra for demonstrated need or user request.
+Do not change active tasks or global defaults. Escalate for inadequate reasoning,
+not missing tools, authority or inputs. This replaces the unconditional Terra
+default rather than adding a parallel policy. `AGENTS.md` carries the same rule
+so future assignments do not silently revert to the old choice.
+
+Primary-model choice remains based on measured cost per accepted result and
+the reasoning needed; this ADR does not assert that a cheaper model or lower
+effort is always cheaper overall.
 Use existing usage data. If delayed or absent, report that limitation rather
 than blocking product work to build a meter. Spend or response guardrails may
 be agreed for a task, but must not be described as enforced without a mechanism.
