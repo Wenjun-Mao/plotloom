@@ -272,3 +272,18 @@ original-project protection and truthful evidence remain.
   pushed, resume the same worker for the owned isolated restart and explicit
   Settings reconciliation; only then prepare a new Script task. No native
   generation, Script acceptance or Storyboard milestone is implied by tests.
+- Steps 2–3 live continuation, 08:30 UTC: the owned restart and one Settings
+  reconciliation freed the cancelled Script reservation without publication.
+  Fresh Script was accepted, its opening-only edit saved as r2, and both routes
+  exercised in the actual reader. Fresh three-segment/ten-cut Storyboard review
+  r1 was accepted against Script r2 after full report review. Current S01 delivery
+  was imported but left unselected because the two-direction junction is unclear.
+  A second basename rename exposed a contradictory primary package example;
+  manager authorized the bounded emitter correction, projection extraction/pin
+  and ADR 0074 clarification. The candidate passes 61 focused checks and awaits
+  independent review/commit; both specialists are idle. The unsent P01 was
+  cancelled and must be freshly prepared after that gate. Original API/73 tables/
+  67 files remain unchanged. S01/P01 iteration, successful requirements revision,
+  Storyboard reader and stale-source transition remain pending. Stage 4/H3 and
+  its integer-seconds bridge finding remain a separate slice. See the updated
+  [stage 2–3 checkpoint](../verification/2026-10-02-stage23-contract-checkpoint.md).

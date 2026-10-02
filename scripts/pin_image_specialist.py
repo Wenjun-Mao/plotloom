@@ -32,6 +32,7 @@ PINNED_SOURCES = (
     # their package façades attest the route and delivery code beneath them.
     Path("src/plotloom/api"),
     Path("src/plotloom/image_job_exchange.py"),
+    Path("src/plotloom/image_job_package.py"),
     Path("src/plotloom/image_job_contracts.py"),
     Path("src/plotloom/persistence"),
 )

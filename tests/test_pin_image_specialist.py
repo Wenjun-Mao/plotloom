@@ -62,6 +62,7 @@ def modular_checkout(tmp_path: Path) -> tuple[Path, Path]:
         "src/plotloom/persistence/project/media_image_delivery.py": "# delivery owner\n",
         "src/plotloom/image_job_contracts.py": "# image contract owner\n",
         "src/plotloom/image_job_exchange.py": "# exchange owner\n",
+        "src/plotloom/image_job_package.py": "# frozen package projection owner\n",
     }
     for name, content in source_files.items():
         path = repository / name
@@ -250,6 +251,7 @@ def test_pin_rejects_modified_tracked_source_after_normal_runtime_imports(
     ("relative_path", "operation"),
     [
         ("src/plotloom/api/project_folder_image_jobs.py", "dirty"),
+        ("src/plotloom/image_job_package.py", "dirty"),
         ("src/plotloom/persistence/project/media_image_delivery.py", "staged_delete"),
         ("src/plotloom/api/new_image_delivery_guard.py", "untracked"),
         ("src/plotloom/api/new_image_delivery_guard.generated.py", "ignored"),

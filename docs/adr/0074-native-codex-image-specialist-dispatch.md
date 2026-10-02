@@ -63,6 +63,29 @@ meaningful rejected-delivery record. This prevents an ordinary multi-poll
 publication window from flooding gallery history without weakening evidence
 after the specialist has declared completion.
 
+## Returned output names (2026-10-02 clarification)
+
+Two live deliveries renamed ImageGen outputs to `candidate.png`: the primary
+completion example prescribed that concrete name while the specialist skill
+required the returned basename. The package emitter owns field shape and frozen
+job identity; ImageGen supplies the output basename, and the specialist copies
+the selected bytes unchanged and declares that name. Creator ownership of
+creative acceptance and selection is unchanged.
+
+Both primary package instructions now require the exact returned basename, and
+completion examples use an explicit replace-with-returned-basename placeholder.
+The cohesive projection moves into `image_job_package.py`, included in the
+specialist execution pin. Emitted-package regressions cover the instruction and
+example agreement; pin tests reject an uncommitted projection owner. Manifest
+validation and exact-path staging cleanup remain strict. A downstream renamer,
+weaker cleanup matching, or a worker acknowledgement alone would retain the
+contradictory contract and were rejected.
+
+Published packages, receipts, outputs and staging evidence are preserved.
+Existing package projections are never rewritten to appear compliant: prepare a
+fresh job after the reviewed source is committed. This clarifies the existing
+delivery contract without changing its schema or creating historical replay.
+
 ## Consequences
 
 - The specialist is replaceable behind this small runtime adapter; no provider

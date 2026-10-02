@@ -1,10 +1,12 @@
 # Creator stages 2–3: reviewed contract checkpoint
 
-Status: implementation independently reviewed and committed-candidate gates
-passed. Creator acceptance remains partial; live recovery is the next step.
-Baseline `c027131ab3be6797c4e1c5a229dec51d651411a4`, retained `main`.
-The manager owns review, commit/push and deployment. No new Script task has been
-prepared after the skill/brief correction.
+Status: prior lifecycle implementation independently reviewed, committed and
+verified; live Script and Storyboard source review now provisionally accepted
+in the test copy. The returned-basename correction is an uncommitted candidate
+awaiting manager review. Current HEAD `3c535e03f4664b92d02c6de8dacc890a3e431ca9`,
+retained `main`; earlier baseline `c027131ab3be6797c4e1c5a229dec51d651411a4`.
+The manager owns review, commit/push and deployment. Earlier checkpoints below
+retain the facts and limitations known at that time.
 
 ## Actual creator UI evidence
 
@@ -182,14 +184,95 @@ no normal-service restart or generated-asset change occurred.
 The isolated runtime remains at
 `http://127.0.0.1:8851/v2/?project=ee271b49-f384-414c-9711-452ee6333b84`,
 with bridge 8852 and final installation rooted under
-`.local/unattended-2026-10-02/final-installation`. Session `8066` / PID 41667
-remains owned and running; normal 8841/8842 are untouched. The process still has
-the pre-fix Python brief loaded; restart only the owned runtime at a reviewed,
-safe checkpoint before preparing the fresh Script package.
+`.local/unattended-2026-10-02/final-installation`. Session `33475` / PID 12237
+remains owned and running after the authorized restart from session `8066` /
+PID 41667. Normal 8841/8842 are untouched. The process has the committed
+Script/lifecycle fixes loaded but predates the pending basename correction.
+Restart only the owned runtime after manager review/commit and a safe dispatch
+checkpoint before preparing another image package.
 
 Native image chat `01a0fb4f-5f01-7e21-a8c6-ea5f662c676f` used GPT-6 Luna/Max;
 text chat `01a0fb4f-60d9-7062-883a-e00f1d17d493` used GPT-6.1 Sol/Medium.
-Keep both available. After independent review/commit and safe reservation
-reconciliation, continue the remaining scene/prop loop and fresh Script →
-Storyboard UI journey. Preserve the absolute 13:04:18 UTC stop-new-work and
-13:34:18 UTC hard cutoff.
+Keep both available. Continue the remaining scene/prop iteration and source
+currentness journey after the basename source gate. Preserve the absolute
+13:04:18 UTC stop-new-work and 13:34:18 UTC hard cutoff.
+
+## Live continuation and basename source gate, 08:30 UTC
+
+The owned restart loaded the reviewed lifecycle implementation. One explicit
+Settings check reconciled cancelled Script `ch_53712ec5f84d4a18a6c05c78532c28ca`
+as completed/discarded and freed its reservation without installing a candidate.
+All 12 failed package/delivery files remained unchanged.
+`stage23-live-reconciliation.json` records the live check.
+
+Fresh Script `ch_a6ac01dd42da4dd989c02b6c9db85b71` was prepared/sent once,
+returned the required sectionBindings, and passed full raw/report review.
+Provisional r1 was reopened; only the opening chapter's gaze description was
+edited and saved through the scoped editor. Accepted Script r2 has hash
+`0c6f03fbb4820b7300f4e33ab05760d1cc27f6224e46895c0aafc3fa7b72f00f`.
+Both endings and all section bindings remain exactly equal to r1. Reload and
+the actual reader showed the opening edit and separate cafe/home paths; screenshots
+are `script-r2-ui.jpg`, `script-reader-cafe.jpg`, `script-reader-home.jpg`.
+Route estimates are 20 and 22.5 seconds, not the report's sum across mutually
+exclusive endings. No actual playback duration or media acceptance is claimed.
+
+Fresh Storyboard `ch_42a18564596b42aaaba7fdfee8d2838d` was prepared/sent once
+against Script r2. Full report/raw review covered three segments and ten cuts,
+all script beats, the single choice, exact incoming/reply messages, and retained
+character/scene facts. Cut totals are 12.5 seconds for the opening, 7.5 for cafe,
+and 10 for home; each cut fits the frozen 2–8 second limits. It is provisionally
+accepted as source-review r1, hash `2af6181bb798`, bound to Script r2.
+`storyboard-r1-ui.jpg` records the visible accepted binding. This is source review,
+not canonical production shots, H3 dispatch or creative acceptance by the owner.
+
+Current-Art S01 `ij_e103c9db8d0940ab9f109baf67bd4693` was prepared/sent once,
+delivered and technically imported. Enlarged and parallel comparison showed
+wet porch/lighting but insufficiently readable two-direction junction geometry;
+it remains unselected. Retained Art-r1 S01/P01 choices are stale under Art r2;
+disabled selection was respected. S02 remains the earlier provisionally selected
+current-Art reference. Unsent P01 `ij_6d3cb9f871ea4893a9438555baae46f3` was
+explicitly cancelled before this correction; it had no exported package or native
+lease. Prepare a fresh P01 after the reviewed source is committed.
+
+S01 repeated the S02 output rename. The contradictory package example used
+`candidate.png` despite the skill's returned-basename requirement. The bounded
+fix places an explicit placeholder in both template branches and the same
+exact-name/unchanged-bytes rule in both primary instructions. The cohesive
+projection is extracted to `image_job_package.py` and included in the execution
+pin. ADR 0074 records ownership, rejected workarounds and preservation. Strict
+receipt validation and staging cleanup are unchanged; published S01/S02 packages,
+receipts and staging remain intact. No generation occurred during edits.
+
+The candidate passed 61 focused Python checks covering emitted packages,
+execution pins, cleanup, dispatch, image workflow/identity/delivery and additional
+Art candidates (14.30 seconds). Full Ruff passed for the projection, exchange and
+new package regression; F401 passed for the changed pin script/tests, and
+`git diff --check` passed. Full pin script/test Ruff still reports the existing
+two I001 and one PLW1510 findings; these were not expanded by the fix.
+Both native specialists are idle. Fresh serialized original capture
+`stage23-basename-review-original.json` equals the launch baseline across API
+states, all 73 tables and 67 files. `stage23-before-basename-fix.json` preserves
+copy state and frozen image hashes.
+`stage23-basename-review-preservation.json` confirms those copy API states and
+all six frozen files per S01/S02 job remained equal after the source edits.
+
+Remaining acceptance: purposeful S01 composition revision, current P01 reference
+and a successful revised-requirements delivery loop; Storyboard reader and
+Script-change-to-stale-Storyboard transition. These have not been claimed complete.
+Stage 4 is separate: manager review identified `production_bridge.py` integer
+seconds handling as conflicting with the accepted 2.5-second cuts and the exact
+millisecond timing contract. Preserve these cuts and reproduce/fix that bridge
+contract in its authorized slice; no rounding, storyboard regeneration or H3
+call was used here. No measured usage/cost delta is available.
+
+Manager review found no actionable issues in the basename clarification or
+projection extraction. The independent GPT-6 Luna / Max reviewer passed 19
+package/pin checks; the manager separately passed 51 package, pin, cleanup,
+delivery and identity checks plus 13 workflow, specialist, selection and
+additional-candidate checks. These counts overlap the worker's 61 checks and
+must not be added together. Changed-module Ruff and diff checks pass. The fresh
+original capture is byte-identical to launch; read-only API inspection confirms
+Storyboard source-review r1 is accepted against Script r2 with all three ordered
+section bindings. The manager will commit this source locally, then run the
+complete Python gate before push or owned-runtime restart. No new image send or
+runtime promotion is implied by this review.
