@@ -1,12 +1,13 @@
 # Creator stages 2–3: reviewed contract checkpoint
 
-Status at 09:46 UTC: lifecycle and returned-basename fixes are committed,
-verified and pushed. Source-currentness implementation `27710e3` on retained
-`main` passed final independent review and full committed verification; reviewed
-frontend assets are promoted and push is the next action. The copy intentionally has Script r3 and
-stale retained Storyboard r1 pending actual fixed-UI replay and regeneration.
+Status at 10:14 UTC: stages 2–3 are complete in the isolated provisional copy.
+Committed/pushed source `b348cc0` passed the manager's source-currentness gate;
+actual fixed-UI replay, current Storyboard r2, both reader routes and revised
+S01/P01 reference loops are complete. See the
+[final live checkpoint](2026-10-02-stage23-live-completion.md) for current state,
+runtime, preservation evidence and the production handoff boundary.
 Earlier checkpoints below retain the facts and limitations known at that time;
-the latest section supersedes their pending-state and runtime descriptions.
+the linked final live checkpoint supersedes their pending-state and runtime descriptions.
 
 ## Actual creator UI evidence
 

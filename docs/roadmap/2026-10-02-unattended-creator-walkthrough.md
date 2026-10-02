@@ -331,3 +331,20 @@ original-project protection and truthful evidence remain.
   for owned-copy restart, visible stale-state replay, fresh current Storyboard
   and the remaining purposeful S01/P01 image loop. Normal Python deployment and
   production/real-video work remain pending; fixture gates do not imply them.
+- Steps 2–3 final live gate, 10:14 UTC: committed/pushed `b348cc0` loaded in
+  owned isolated PID 83040 on 8851/8852 with matching reviewed static. Actual
+  reload/entry/refresh stale-state replay passed. Fresh F5 bound to Script r3
+  was fully reviewed and provisionally accepted as Storyboard r2 (12 cuts);
+  both cafe/home reader routes passed, estimated 20/22.5 seconds. P01's front
+  view requirements loop and S01's clearer existing two-direction junction
+  loop each used distinct prepare/send/delivery/enlarge/compare/explicit reference
+  decisions. C01/S01/S02/P01 references and Cast r3/Art r2/Script r3/Storyboard r2
+  are current. Exact new image basenames/pins/hashes match; old proposals,
+  decisions and frozen image evidence remain intact. Cleanup refusal preserved
+  staging. Fresh original seven-state/73-table/67-file capture equals baseline.
+  Both native workers are idle, reservations free and routes retained. No new
+  application source edit, normal restart, production installation or H3 call.
+  Manager owns the documentation review/commit and stage 4 handoff; provisional
+  copy choices remain distinct from owner creative acceptance and media playback.
+  See the [final live checkpoint](../verification/2026-10-02-stage23-live-completion.md)
+  for receipts, exact runtime/workers and remaining production timing boundary.
