@@ -1,5 +1,11 @@
 # Stage 4 live checkpoint: real media, acceptance still open
 
+Final extension and deployed popup correction:
+[extended closeout](2026-10-02-stage4-extended-closeout.md). This supersedes the
+operational deadline/state below while preserving the original observations.
+The final owner-authorized hard cutoff is 17:00 UTC / 13:00 Toronto, with no new
+generation after 15:04:18 UTC. Full audiovisual acceptance remains incomplete.
+
 Owner-authorized continuation at 13:18 UTC / 09:18 Toronto: the owner extended
 the original run by two hours. Stop new work at **15:04:18 UTC / 11:04:18 Toronto**;
 hard cutoff **15:34:18 UTC / 11:34:18 Toronto**. The original 12:40 evidence below

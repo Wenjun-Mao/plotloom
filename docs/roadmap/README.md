@@ -53,13 +53,13 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
 
 The [bounded unattended walkthrough plan](2026-10-02-unattended-creator-walkthrough.md)
-was approved for the creator's eight-hour absence and explicitly extended by
-two hours at 13:18 UTC. Its current
-[partial live checkpoint](../verification/2026-10-02-stage4-live-checkpoint.md)
-preserves the local review copy; interactive UI access has returned and the
-heartbeat is active with extended deadlines. Real audiovisual acceptance still
-requires genuine sound review. Test-copy provisional decisions
+was approved for the creator's eight-hour absence, extended by two hours at
+13:18 UTC, then extended for verification/deployment/handoff until 17:00 UTC.
+Its [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
+records deployed accessible confirmations and the preserved local review copy.
+The temporary heartbeat is stopped. Real audiovisual acceptance still requires
+genuine sound review and further media work; it is not complete. Test-copy provisional decisions
 and removal of fixed generation caps and blanket video/remote/provider/redesign
 exclusions are approved. The run launched at 2026-10-02 05:34:18 UTC and ends no
-later than 15:34:18 UTC (stop new work 15:04:18 UTC); its plan owns the current
+later than 17:00 UTC (real generation stopped 15:04:18 UTC); its plan owns the current
 scope and preservation gates.

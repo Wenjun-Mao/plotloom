@@ -1,26 +1,30 @@
 # Bounded unattended creator walkthrough
 
-Status: active under the owner's explicit two-hour extension at 13:18 UTC.
-Interactive copy UI access was verified again at 13:19–13:20; sound acceptance
-still needs owner input. The existing heartbeat is active with extended deadlines.
+Status: final verification/deployment handoff complete; full media acceptance
+remains open. The owner extended the cutoff at 15:31 UTC to 13:00 Toronto /
+17:00 UTC with no new media generation. Accessible confirmations are deployed
+and pushed at `fe656c0`; final tests and actual in-app browser checks passed.
+See the [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
+for exact evidence and pending audio/creative/media work. The temporary heartbeat
+is stopped; no automatic generation continuation is authorized.
 The owner issued the final start command with Relay direct and explicitly
 required its model-choice guide for every delegation. The partial checkpoint
 below preserves resume state; only the time window was extended, not acceptance
 or preservation requirements.
 
 Launch: 2026-10-02 01:34:18 America/Toronto / 05:34:18 UTC.
-Extended stop new work: 11:04:18 Toronto / 15:04:18 UTC; reserve the final
-30 minutes for verification and handoff. Extended hard cutoff: 11:34:18 Toronto /
-15:34:18 UTC. These replace the original 09:04:18/09:34:18 Toronto boundaries.
+Real-generation cutoff remains 11:04:18 Toronto / 15:04:18 UTC. Final hard cutoff:
+13:00 Toronto / 17:00 UTC. The final owner-approved extension is for verification,
+deployment and handoff, including the native-popup fix requested at 15:13 UTC;
+it does not reopen generation. These supersede the earlier hard cutoffs.
 Manager: `01a04525-e907-7630-9640-78790d69e8ae`.
 
 ## Goal and confirmed choices
 
 Continue the creator journey while the owner is away, find and repair actual
 functional/usability blockers, and leave a reproducible morning handoff. Run
-for at most ten hours after approved launch (eight original hours plus the
-owner-authorized two-hour extension); finish earlier if the scoped
-journey and verification are complete. This is not ten hours of compulsory
+until the final absolute cutoff above; finish earlier if the scoped
+journey and verification are complete or only owner decisions remain. This is not compulsory
 generation or a promise that unsupported production capabilities will be built.
 
 The owner explicitly chose a clearly labelled **test copy with provisional
@@ -213,6 +217,16 @@ original-project protection and truthful evidence remain.
 
 ## Run log
 
+- Final verification extension: the owner requested the native-popup correction
+  in the current run and subsequently extended handoff until 17:00 UTC, without
+  reopening generation. `fe656c0` replaces all four native confirmations with
+  explicit DOM consent and aligns deletion controls with retained-segment
+  protection. Independent review, 377 frontend tests, both typechecks, two
+  browser regressions (including shipped-static restore), three backend disposal
+  checks and actual in-app browser checks passed. Original 73 tables/67 files
+  remain unchanged; all six real videos remain unselected. The
+  [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
+  preserves the open media-acceptance boundary and exact next work.
 - Launch baseline: `370e46b`; only this plan and its roadmap index were pending.
 - First implementation owner: GPT-6.1 Sol / Medium, selected for integration
   ambiguity in recovery isolation and real creator/native/media transitions.
