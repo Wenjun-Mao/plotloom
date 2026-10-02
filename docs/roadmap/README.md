@@ -51,3 +51,9 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 - [Exact relocation map and date basis](archive/README.md) records every old-to-new path. Dates come from a document's original approval/creation when explicit; otherwise they use its earliest Git addition and are marked as such.
 
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
+
+The [bounded unattended walkthrough plan](2026-10-02-unattended-creator-walkthrough.md)
+is approved and executing for the creator's eight-hour absence. Test-copy provisional decisions
+and removal of fixed generation caps and blanket video/remote/provider/redesign
+exclusions are approved. The run launched at 2026-10-02 05:34:18 UTC and ends no
+later than 13:34:18 UTC; its plan owns the current scope and preservation gates.
