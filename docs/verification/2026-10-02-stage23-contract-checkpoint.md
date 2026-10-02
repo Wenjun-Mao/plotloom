@@ -273,6 +273,10 @@ additional-candidate checks. These counts overlap the worker's 61 checks and
 must not be added together. Changed-module Ruff and diff checks pass. The fresh
 original capture is byte-identical to launch; read-only API inspection confirms
 Storyboard source-review r1 is accepted against Script r2 with all three ordered
-section bindings. The manager will commit this source locally, then run the
-complete Python gate before push or owned-runtime restart. No new image send or
-runtime promotion is implied by this review.
+section bindings. Committed implementation `d6fade8765f77450d50487d22825a001940f36f3`
+passed all 902 Python tests (230.03 seconds) and all 37 workbench/bridge tests
+(8.08 seconds). Only the existing Starlette/httpx warning remains. No frontend
+source changed, so generated assets remain current. Push and an owned isolated
+restart at the idle checkpoint may now precede fresh live packages; normal
+services and both quarantined installations remain unchanged. These checks do
+not establish a successful live exact-basename delivery; that is the next test.

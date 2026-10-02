@@ -287,3 +287,11 @@ original-project protection and truthful evidence remain.
   Storyboard reader and stale-source transition remain pending. Stage 4/H3 and
   its integer-seconds bridge finding remain a separate slice. See the updated
   [stage 2–3 checkpoint](../verification/2026-10-02-stage23-contract-checkpoint.md).
+- Manager basename gate, 08:37 UTC: independent review found no actionable
+  issues; implementation `d6fade8` passed all 902 Python tests and all 37
+  workbench/bridge tests. The original baseline remains byte-identical, and
+  source-review API inspection confirms Storyboard r1 is accepted against
+  Script r2. No frontend source or normal runtime changed. Resume the same
+  coordinator after push for the owned restart and remaining stages 2–3 UI
+  checks; the next live package must be freshly prepared from this committed
+  source, not an old prepared request or a rewritten receipt.
