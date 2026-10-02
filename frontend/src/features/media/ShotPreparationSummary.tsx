@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { plotloomApi } from "../../api";
 import { Button } from "../../components";
 import { currentBridgeCut } from "../../production-bridge-handoff";
+import { sourceSecondsToMilliseconds } from "../../production-timing";
+import { isMiniMaxH3Capability } from "../../video-backends/minimax-h3";
+import { h3RequestFrameCount, h3SourceFrameCount, h3Timing } from "../../video-backends/minimax-h3-timing";
 import type { ProductionBridgeState, Shot, StoryboardReview, VideoBackend, VisualWorkbench } from "../../types";
 import type { MediaReadPhase } from "./useMediaWorkbenchData";
 
@@ -61,7 +64,7 @@ export function ShotPreparationSummary({
 
   const current = sources && sources.projectId === projectId && sources.storyboardRevision === storyboardRevision && sources.retryEpoch === retryEpoch ? sources : undefined;
   const cut = currentBridgeCut(current?.bridge, storyboardRevision, shot.id);
-  const sourceMatches = Boolean(cut && shot.durationUnits === cut.seconds * 1000 && !draftChanged);
+  const sourceMatches = Boolean(cut && shot.durationUnits === sourceSecondsToMilliseconds(cut.seconds) && !draftChanged);
   const approvalCurrent = Boolean(
     !draftChanged && review?.activeApproval && review.head.status === "ready" &&
     review.head.revision === storyboardRevision &&
@@ -77,10 +80,19 @@ export function ShotPreparationSummary({
   });
   const qualified = current?.backend?.qualifiedDurationSeconds;
   const exactSeconds = cut?.seconds ?? shot.durationUnits / 1000;
-  const segmentEligible = exactSeconds === 6 && qualified?.includes(8);
-  const durationStatus = !qualified ? "未知"
-    : segmentEligible
-      ? `6 秒虽在网关请求目录内，当前播放片段合同仅接受 8 秒原片提供连续 144 帧候选。原片输出须核验，片段须经人工听看并明确选择；${current?.backend?.enabled ? "当前后端已配置" : "当前后端未配置，暂不能提交请求"}`
+  const sourceMilliseconds = sourceSecondsToMilliseconds(exactSeconds);
+  const h3Backend = isMiniMaxH3Capability(current?.backend);
+  const h3Catalog = qualified?.filter((seconds) => h3RequestFrameCount(seconds) !== undefined).sort((left, right) => left - right);
+  const coveringRequest = h3Catalog?.map((seconds) => ({ seconds, timing: h3Timing(sourceMilliseconds ?? 0, seconds, qualified) }))
+    .find(({ timing }) => timing.playbackIntent !== undefined);
+  const reviewNotice = "原片输出须核验，连续片段须经人工听看并明确选择；不会自动裁切或用于故事";
+  const durationStatus = !qualified?.length ? "未知（请求目录不可用）"
+    : h3Backend
+      ? !h3Catalog?.length ? "H3 请求目录不可用，不能准备请求"
+        : sourceMilliseconds === undefined || h3SourceFrameCount(sourceMilliseconds) === undefined
+          ? `${exactSeconds} 秒不在 24 fps 整数帧网格上；不能准备 H3 请求`
+          : !coveringRequest ? `当前 H3 请求目录容量不足以覆盖 ${exactSeconds} 秒原稿；不能准备请求`
+            : `${exactSeconds} 秒原稿需要 ${coveringRequest.timing.sourceFrames} 帧；目录内 ${coveringRequest.seconds} 秒请求提供 ${coveringRequest.timing.requestFrames} 帧容量。${reviewNotice}；${current?.backend?.enabled ? "当前后端已配置，其他准备条件仍须审核" : "当前后端未配置，暂不能提交请求"}`
       : qualified.includes(exactSeconds)
         ? `${exactSeconds} 秒在当前请求目录内；不代表生成输出物理时长、可选片段或故事播放资格`
         : `${exactSeconds} 秒不在当前请求目录（${qualified.join(" / ")} 秒）；不能通过选择其他时长绕过精确来源约束`;

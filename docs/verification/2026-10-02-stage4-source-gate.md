@@ -164,3 +164,87 @@ audition and a locked Mac prevent a complete
 real-media journey. See the [live checkpoint](2026-10-02-stage4-live-checkpoint.md)
 for observed results, preserved failures, exact resume steps and the distinction
 between fixture gates and actual acceptance.
+
+## Extended-run frontend timing repair candidate, 13:58:37 UTC
+
+After the owner's manual unlock confirmation, actual UI reconciliation showed
+that the earlier second-video rejection persisted at 13:43:40 UTC. It was not
+replayed. Opening third-shot preparation then falsely reported that its source
+coordinates were inapplicable despite an accepted/current installed proposal r3
+and an exact 2.5-second cut. No fresh job was prepared or dispatched.
+
+Diagnosis: `bridgeCut` still required integer seconds, hiding valid fractional
+cuts; the preparation summary retained the obsolete six-to-eight-second
+exception. Independent manager inspection also found that the request form's
+direct Python modulo transcription produced negative JavaScript remainders:
+six/twelve-second requests displayed 141/277 frames instead of backend 158/294.
+The manager authorized one bounded frontend timing-consumer repair and froze
+generation for its source gate. Canonical values and backend contracts are intact.
+
+The candidate interprets the JSON number's decimal value with exact integer
+arithmetic, matching backend seconds-to-ms semantics without rounding. It uses
+the same conversion for source handoff and source-match checks; coordinates
+remain positive integers and browser units must remain safe integers. A shared
+H3 timing helper supplies the 24 fps / 17k+5 ceiling, source frame-grid checks,
+qualified catalog membership, covering capacity and exact/segment-required
+intent to both the actual request form and preparation summary. The summary
+identifies covering capacity without declaring admission or creative acceptance;
+non-H3/disabled/missing-catalog conditions retain their own boundaries. ADR 0100
+records these current-consumer semantics. No image package, prompt compiler,
+provider format, temporal text or cross-shot source contract changed.
+
+Executed verification:
+
+- Focused helpers/source-handoff/summary/actual-request component: **71 passed**.
+  Independent backend vectors cover every qualified 5–15-second request, exact
+  decimal 2.5/1.001/0.001 seconds, fractional-ms refusal, invalid numbers,
+  preserved coordinate guards, exact/segment-required intent, off-grid source,
+  insufficient capacity and missing/unqualified catalogs. The new request
+  fixture initially omitted its required story graph; that fixture error was
+  corrected, with no product guard weakened.
+- Complete frontend: **360 passed / 47 files**; app and E2E typechecks pass.
+- Four affected real-browser fixture flows passed: fractional-source/currentness
+  handoff, exhaustive presentation review, H3 quality/duration controls and H3
+  reviewed prompt/segment path. The handoff now seeds a disposable accepted
+  2.5-second bridge and verifies exact coordinates and 60/124-frame guidance;
+  actual H3 controls verify six/twelve-second 158/294-frame projections.
+- Production build succeeds at
+  `.local/unattended-2026-10-02/stage4-timing-static`, outside both served roots.
+  Only the existing large-chunk advisory remains. No served static promotion,
+  product UI reload, normal restart, commit or push was performed by this worker.
+
+Source candidate is on `8894bf8` and frozen for independent review and manager
+commit/deployment. An unsent geography correction draft is retained in the copy.
+The existing four ImageGen deliveries, two H3 originals and unselected derivative
+remain preserved. All real videos remain unselected pending genuine owner sound
+review. Fixture checks establish source behavior, not actual media completion.
+
+### Manager review and final frontend gate, 14:09 UTC
+
+Independent GPT-6 Luna / Max review found one consumer omission: the actual
+disabled H3 API supplies its read-only catalog with
+`reason: h3_video_not_configured` and no configured adapter ID. The initial
+summary therefore misclassified that response. The manager corrected the
+capability classifier to recognize this explicit existing API projection while
+keeping enabled-backend controls and dispatch separate. Generic catalogs,
+conflicting adapters and an enabled response with the disabled reason do not
+acquire H3 identity. Six regression cases cover the actual disabled projection
+and those refusal boundaries; ADR 0100 records the distinction. The same
+independent reviewer verified the fix and reported no further concrete finding.
+
+Manager verification: all **366 frontend tests / 47 files** pass, both app and
+E2E typechecks pass, and the final external production build succeeds at
+`.local/unattended-2026-10-02/stage4-timing-final-static`. The fractional-source
+handoff and H3 controls browser flows were independently rerun: **2 passed**.
+Only the existing large-chunk advisory remains. The final generated tree differs
+from the served tree only in `workbench.js`; canonical source, Python services
+and provider configuration do not change, so no backend restart is required.
+
+The pre-promotion original-project capture
+`evidence/manager-timing-gate-original.json` exactly matches the previously
+deployed API projection; all 73 database tables and 67 retained-file hashes
+still match the original launch baseline. Both services are healthy, the copy
+specialist registry is idle, and the two retained videos are ingested/unselected.
+Generation remains frozen until the manager commits, pushes, verifies served
+asset hashes and hands control back to the sole live-workflow owner. This gate
+does not certify real-media creative or sound acceptance.

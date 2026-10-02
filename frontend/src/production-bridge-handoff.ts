@@ -1,4 +1,5 @@
 import type { ProductionBridgeState } from "./types";
+import { sourceSecondsToMilliseconds } from "./production-timing";
 
 export interface BridgeCut {
   shotId: string;
@@ -23,12 +24,12 @@ export function bridgeCut(value: Record<string, unknown>): BridgeCut | undefined
     typeof value.shotId !== "string" || !value.shotId ||
     typeof value.sectionId !== "string" || !value.sectionId ||
     !positiveInteger(value.episode) || !positiveInteger(value.sceneIndex) ||
-    !positiveInteger(value.seconds) || !positiveInteger(coordinates.segmentIndex) ||
+    sourceSecondsToMilliseconds(value.seconds) === undefined || !positiveInteger(coordinates.segmentIndex) ||
     !positiveInteger(coordinates.segmentSceneIndex) || !positiveInteger(coordinates.cutIndex)
   ) return undefined;
   return {
     shotId: value.shotId, sectionId: value.sectionId,
-    episode: value.episode, sceneIndex: value.sceneIndex, seconds: value.seconds,
+    episode: value.episode, sceneIndex: value.sceneIndex, seconds: value.seconds as number,
     segmentIndex: coordinates.segmentIndex, segmentSceneIndex: coordinates.segmentSceneIndex,
     sourceCutIndex: coordinates.cutIndex,
   };

@@ -55,6 +55,23 @@ segment-required consent, derivative and selection gates remain separate.
 Bridge preparation checks the retained accepted F5 binding and frozen timing
 policy before deriving/freezing source inputs; stale evidence cannot be laundered.
 
+Frontend source handoff and readiness use the same decimal-value conversion,
+including fractional seconds such as 2.5 and 1.001; binary multiplication cannot
+decide exact millisecond representability. Browser projections also refuse units
+outside their safe integer domain. Coordinates retain positive-integer validation.
+The H3 request form and preparation summary share current 24 fps / 17k+5 ceiling
+and source-frame/capacity calculations, including nonnegative remainder semantics.
+Only a qualified H3 catalog supplies covering-request guidance; other providers
+and unavailable catalogs do not inherit H3 admission. The existing disabled
+capability projection identifies H3 through `enabled: false` and
+`reason: h3_video_not_configured` when no adapter is configured; this permits
+read-only catalog explanation, never configured-backend controls or dispatch.
+An unrelated adapter or a generic duration list does not identify H3.
+A covering request requires
+segment review unless its frame count exactly matches the authored duration.
+This replaces the obsolete six-second/eight-second display exception without
+changing canonical timing, provider contracts or media selection authority.
+
 Isolated H3 composition is explicit/default-off and shares the trusted H3-only
 builder while RuntimeConfig exclusively owns isolated storage. Provider-only
 `VideoProviderSettings` and full runtime settings share trusted dotenv loading

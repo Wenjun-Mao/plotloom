@@ -10,6 +10,7 @@ import { VideoSegmentReview } from "./video-segment-review";
 import { MiniMaxH3DurationField, MiniMaxH3ProfileField, MiniMaxH3QualityField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, h3QualifiedDurations, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 import { H3DirectionsReview } from "./h3-directions-review";
 import { VideoEndFrameChoice } from "./video-end-frame";
+import { h3Timing } from "./video-backends/minimax-h3-timing";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
 
@@ -227,10 +228,11 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     const h3 = isMiniMaxH3Backend(backend);
     const profile = h3 ? selectedH3Profile(backend, h3ProfileId) : undefined;
     if (h3 && !profile) throw new Error("请先选择 H3 视频规格");
+    if (h3 && !currentH3Timing.playbackIntent) throw new Error("当前 H3 请求目录、原稿帧网格或请求容量不适用");
     return {
       approvalId, shotId: shot.id, storyboardRevision, expectedSelectionRevision: selectionRevision,
       idempotencyKey: idempotencyKey ?? crypto.randomUUID(),
-      playbackIntent: h3 && h3RequestedFrames * 1000 !== shot.durationUnits * 24 ? "segment_required" as const : "source_exact" as const,
+      playbackIntent: h3 ? currentH3Timing.playbackIntent! : "source_exact",
       ...(backend?.enabled ? {
         requestedDurationSeconds: h3 ? h3DurationSeconds : profile?.durationSeconds ?? backend.durationSeconds,
         resolution: profile ? `${profile.width}x${profile.height}` : backend.resolution,
@@ -304,11 +306,9 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const endFrameAspectReady = !currentEndFrame?.assetId || currentEndFrame.aspectPolicy === requestAspectPolicy;
   const endFrameApprovalReady = !currentEndFrame?.revision || (currentEndFrame.approvalId === approvalId && currentEndFrame.storyboardRevision === storyboardRevision);
   const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || !currentEndFrame || endFrameDraftDirty || !endFrameAspectReady || !endFrameApprovalReady || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
-  const h3RequestedFrames = h3DurationSeconds * 24 + (5 - h3DurationSeconds * 24 % 17) % 17;
-  const h3TimingMismatch = Boolean(h3 && shot && (
-    shot.durationUnits <= 0 || shot.durationUnits * 24 % 1000 !== 0
-    || h3RequestedFrames * 1000 < shot.durationUnits * 24
-  ));
+  const currentH3Timing = h3Timing(shot?.durationUnits ?? 0, h3DurationSeconds, backend?.qualifiedDurationSeconds);
+  const h3RequestedFrames = currentH3Timing.requestFrames;
+  const h3TimingMismatch = h3 && !currentH3Timing.playbackIntent;
   return <Panel className="video-pilot-workflow" data-testid="video-pilot-panel">
     <header className="video-workflow-header"><strong>原片 → 调整片段 → 预览 → 用于故事</strong>
       <small>{visibleJobs.length ? `当前镜头有 ${visibleJobs.length} 个原片候选；仅明确选择的片段会进入故事。` : "当前镜头还没有原片候选。"}</small>
@@ -330,8 +330,8 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {h3 && <MiniMaxH3ProfileField profiles={availableH3Profiles} value={h3ProfileId} onChange={setH3ProfileId} disabled={readOnly} />}
     {h3 && <MiniMaxH3DurationField values={availableH3Durations} value={h3DurationSeconds} onChange={setH3DurationSeconds} disabled={readOnly} />}
     {h3 && shot && <small className={h3TimingMismatch ? "notice warning" : "notice"} data-testid="h3-authored-timing">
-      原稿镜头时长 {(shot.durationUnits / 1000).toFixed(3)} 秒；后端请求 {h3DurationSeconds} 秒 / {h3RequestedFrames} 帧（约 {(h3RequestedFrames / 24).toFixed(2)} 秒）。
-      {h3TimingMismatch ? "当前请求无法覆盖 24 fps 帧网格上的原稿时长，请修改请求或明确修订原稿。" : `原稿需要 ${shot.durationUnits * 24 / 1000} 帧；仍须核验实测原片并审阅连续片段，不会自动裁切或选择。`}
+      原稿镜头时长 {(shot.durationUnits / 1000).toFixed(3)} 秒；后端请求 {h3DurationSeconds} 秒 / {h3RequestedFrames ?? "未知"} 帧{h3RequestedFrames !== undefined && `（约 ${(h3RequestedFrames / 24).toFixed(2)} 秒）`}。
+      {h3TimingMismatch ? "当前请求目录不适用，或无法覆盖 24 fps 帧网格上的原稿时长，请审阅请求与原稿。" : `原稿需要 ${currentH3Timing.sourceFrames} 帧；仍须核验实测原片并审阅连续片段，不会自动裁切或选择。`}
     </small>}
     {h3 && projectId && shot && <VideoEndFrameChoice key={`${projectId}:${shot.id}:${approvalId ?? ""}`} projectId={projectId} shotId={shot.id}
       approvalId={approvalId} storyboardRevision={storyboardRevision} profile={selectedProfile}
@@ -362,7 +362,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
           sourceIdentity={`${shot.id}:${approvalId ?? ""}:${storyboardRevision}:${selectionRevision}:${keyframe?.id ?? ""}:${h3ProfileId}:${h3DurationSeconds}:${h3InputFrameMode}:${currentEndFrame?.revision ?? "loading"}:${currentEndFrame?.originalHash ?? ""}:${endFrameDraftDirty}:${visibleJobs.length}`}
           disabled={Boolean(cannotPrepare || h3TimingMismatch)} buildRequest={buildPrepareRequest}
           keyframeHash={keyframe?.originalHash ?? ""} endFrameHash={currentEndFrame?.originalHash ?? null} quality={selectedProfile?.quality ?? 0}
-          requestedSeconds={h3DurationSeconds} frameCount={h3RequestedFrames}
+          requestedSeconds={h3DurationSeconds} frameCount={h3RequestedFrames ?? 0}
           onFreeze={(packageValue, seed, key) => prepare(packageValue, seed, key)} />
       : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>}
     </details>

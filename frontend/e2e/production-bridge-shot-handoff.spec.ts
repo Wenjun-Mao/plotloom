@@ -6,10 +6,9 @@ import { demoProject } from "../src/demo";
 
 test("accepted bridge opens exact canonical shots and reports owner readiness without browsing writes", async ({ page, request, workbench }) => {
   test.setTimeout(120_000);
-  // The shared F5A browser fixture is review-valid but deliberately not bridge-
-  // installable (fractional cuts and insufficient scene duration). Seed only
-  // this worker's disposable roots with the existing validated bridge fixture.
-  const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot], {
+  // Seed only this worker's disposable roots with an accepted exact-ms bridge,
+  // including fractional source seconds used by the actual Stage 4 journey.
+  const id = execFileSync("uv", ["run", "python", "-m", "frontend.e2e.fixtures.bridge_handoff_project", "--outputs", workbench.outputsRoot, "--application", workbench.applicationDataRoot, "--seconds", "2.5"], {
     cwd: path.resolve(".."), encoding: "utf8",
   }).trim();
   const bridgeRoot = `${workbench.apiOrigin}/api/v2/projects/${id}/production-bridge`;
@@ -44,7 +43,10 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   await expect(summary).toContainText(`精确来源时长 ${first.seconds} 秒`);
   await expect(summary).toContainText("缺少当前批准");
   await expect(summary).toContainText("视频后端：已配置");
-  await expect(summary.getByTestId("shot-duration-compatibility")).toContainText("不在当前请求目录");
+  await expect(summary).toContainText("精确来源时长 2.5 秒 · 当前绑定");
+  await expect(summary.getByTestId("bridge-source-unavailable")).toHaveCount(0);
+  await expect(summary.getByTestId("shot-duration-compatibility")).toContainText("2.5 秒原稿需要 60 帧；目录内 5 秒请求提供 124 帧容量");
+  await expect(summary.getByTestId("shot-duration-compatibility")).toContainText("不会自动裁切或用于故事");
 
   await page.reload();
   await expect(summary).toContainText(`当前镜头准备状态 · ${first.shotId}`);

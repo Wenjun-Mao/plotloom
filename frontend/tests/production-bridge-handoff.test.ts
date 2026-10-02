@@ -17,3 +17,18 @@ it("keeps exact F5 coordinates and duration only for a current installed head", 
   expect(currentBridgeCut(accepted, 1, "unknown")).toBeUndefined();
   expect(bridgeCut({ ...cut, source: { segmentIndex: 4, cutIndex: 2 } })).toBeUndefined();
 });
+
+it.each([2.5, 1.001, 0.001, 8])("keeps source coordinates for exact decimal %s-second cuts", (seconds) => {
+  const fractional = { ...cut, seconds };
+  expect(bridgeCut(fractional)?.seconds).toBe(seconds);
+  expect(currentBridgeCut({ ...accepted, proposal: { ...accepted.proposal!, cuts: [fractional] } }, 1, cut.shotId)?.sourceCutIndex).toBe(2);
+});
+
+it.each([1.0004, true, NaN, Infinity, 0, -1])("does not admit invalid source duration %s", (seconds) => {
+  expect(bridgeCut({ ...cut, seconds })).toBeUndefined();
+});
+
+it.each([0, -1, 1.5, true, Infinity])("keeps coordinates positive integers for value %s", (value) => {
+  expect(bridgeCut({ ...cut, episode: value })).toBeUndefined();
+  expect(bridgeCut({ ...cut, source: { ...cut.source, segmentIndex: value } })).toBeUndefined();
+});
