@@ -134,10 +134,14 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
 async function prepareOfflineCandidate(page: Page, panel: Locator, projectId: string): Promise<{ id: string }> {
   const preparedPost = page.waitForResponse(response => response.request().method() === "POST"
     && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/video-jobs`);
-  await freezeReviewedFixtureDirections(panel);
+  // All three deliberate candidates reuse one exact seed, while each new
+  // review still has its own idempotency key and explicit submission.
+  await freezeReviewedFixtureDirections(panel, "2325339575976657");
   const response = await preparedPost;
   expect(response.ok(), await response.text()).toBeTruthy();
-  const prepared = await response.json() as { id: string };
+  expect(response.request().postDataJSON()).toMatchObject({ seed: 2325339575976657 });
+  const prepared = await response.json() as { id: string; snapshot: { request: { seed: number } } };
+  expect(prepared.snapshot.request.seed).toBe(2325339575976657);
   const job = panel.getByTestId(`video-job-${prepared.id}`);
   await job.getByRole("button", { name: "提交一次" }).click();
   await job.getByRole("button", { name: "获取结果" }).click();

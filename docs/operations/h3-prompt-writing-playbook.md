@@ -97,8 +97,11 @@ holding prompt, keyframe and other settings constant. Do not infer a universally
 good/bad seed from one shot, or silently change it when retrying an uncertain job.
 The current review UI initializes a random seed and holds it throughout a
 source-review session; it does not promise a fresh seed on every repeated freeze.
-An explicit “new variation / same seed” control is a possible follow-up, not
-implemented by this note. No additional generation accompanied this update.
+That was the UI at the time of this observation; no additional generation
+accompanied that update. [ADR 0102](../adr/0102-explicit-h3-review-seed.md) now
+exposes an explicit decimal seed field for reuse or a distinct variation.
+Changing it clears the review and rotates request identity; it never submits
+or retries automatically. Source and complete prompt must be reviewed again.
 
 ## Prompt/input responsibility versus H3 output review
 

@@ -12,11 +12,12 @@ const translations: Record<string, string> = {
   "克制但紧迫": "Restrained but urgent.",
 };
 
-export async function freezeReviewedFixtureDirections(panel: Locator) {
+export async function freezeReviewedFixtureDirections(panel: Locator, seed?: string) {
   const production = panel.locator("#video-production");
   if (!await production.evaluate(element => (element as HTMLDetailsElement).open)) await production.locator("summary").first().click();
   const review = panel.getByTestId("h3-directions-review");
   if (!await review.evaluate(element => (element as HTMLDetailsElement).open)) await review.locator("summary").click();
+  if (seed !== undefined) await review.getByLabel("H3 随机种子", { exact: true }).fill(seed);
   await review.getByRole("button", { name: "读取当前来源" }).click();
   await expect(review.locator("textarea").first()).toBeVisible();
   for (const field of await review.locator(".h3-direction-field").all()) {
