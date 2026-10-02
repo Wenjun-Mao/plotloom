@@ -1,9 +1,9 @@
 # Creator stages 2–3: reviewed contract checkpoint
 
-Status at 09:43 UTC: lifecycle and returned-basename fixes are committed,
-verified and pushed. The source-currentness candidate on retained `main` has
-passed final independent review; manager promotion/commit and full committed
-Python verification are in progress. The copy intentionally has Script r3 and
+Status at 09:46 UTC: lifecycle and returned-basename fixes are committed,
+verified and pushed. Source-currentness implementation `27710e3` on retained
+`main` passed final independent review and full committed verification; reviewed
+frontend assets are promoted and push is the next action. The copy intentionally has Script r3 and
 stale retained Storyboard r1 pending actual fixed-UI replay and regeneration.
 Earlier checkpoints below retain the facts and limitations known at that time;
 the latest section supersedes their pending-state and runtime descriptions.
@@ -413,3 +413,12 @@ The deterministic build succeeded and promoted the reviewed frontend assets to
 static promotion: no normal Python restart, copy restart, native generation or
 production action has occurred. The full Python gate follows the scoped local
 commit, before push and fresh execution-pinned packages.
+
+Committed implementation `27710e3` passed all 910 Python tests (235.18 seconds)
+and all 37 workbench/bridge tests (8.05 seconds), with only the existing
+Starlette/httpx warning. The promoted static tree exactly matches the final
+reviewed staged tree. Fresh manager capture
+`manager-currentness-postbuild-original.json` is byte-identical to launch across
+all seven API states, 73 tables and 67 managed files. After push, the same stage
+coordinator may restart only the owned copy, promote its static copy and resume
+the remaining live UI steps. The normal Python service remains unchanged.
