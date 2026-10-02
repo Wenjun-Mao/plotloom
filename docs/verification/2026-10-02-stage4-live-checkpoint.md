@@ -1,11 +1,17 @@
 # Stage 4 live checkpoint: real media, acceptance still open
 
+Owner-authorized continuation at 13:18 UTC / 09:18 Toronto: the owner extended
+the original run by two hours. Stop new work at **15:04:18 UTC / 11:04:18 Toronto**;
+hard cutoff **15:34:18 UTC / 11:34:18 Toronto**. The original 12:40 evidence below
+remains unchanged. The addendum records the pre-extension preservation checkpoint,
+restored heartbeat and verified return of interactive UI access.
+
 Status at 12:40 UTC / 08:40 Toronto, 2026-10-02: **partial, not complete**.
 The Mac locked during review; computer-use inventory reports that automatic
 unlock failed and requires manual unlock. Dependent UI work is stopped, with
 no pending image/video generation. The owner has been asked to unlock the Mac.
-The approved stop-new-work boundary remains 13:04:18 UTC and hard cutoff
-13:34:18 UTC. This receipt does not extend either boundary.
+At that checkpoint the approved stop-new-work boundary was 13:04:18 UTC and
+hard cutoff 13:34:18 UTC. The later owner-authorized extension is recorded above.
 
 This follows the [source gate](2026-10-02-stage4-source-gate.md) and
 [stages 2–3 live completion](2026-10-02-stage23-live-completion.md) under the
@@ -212,3 +218,38 @@ proposal before choosing it. Source-critical reply media, third-shot scene
 continuity and fourth-shot first-frame alignment then need bounded review;
 do not submit fresh work after the stop-new boundary or count this receipt as
 permission to extend the run. No existing generation needs replay.
+
+## Pre-extension preservation checkpoint and authorized resumption
+
+At 13:14–13:17 UTC, both `/healthz` endpoints returned `ok`; the retained copy
+process is still PID 89547. Both native workers remain idle with unchanged
+completion cursors. Read-only API checks confirm the same four current delivered
+image jobs, two current ingested/unselected video jobs with empty reviews, and
+one current unselected derivative. No new dispatch or UI mutation was performed.
+At that checkpoint the earlier lock had not been independently cleared through a
+usable review UI, and no owner unlock confirmation or genuine sound review had
+been received.
+
+`evidence/manager-closeout-original.json` exactly matches the 12:43 capture.
+Its 73 database tables and 67 file hashes still exactly match the launch baseline.
+No application source, normal service configuration, media selection or stored
+original-project data changed during closeout. The isolated server is retained
+at the same local review URL; no restart, deletion or quarantine replay is needed.
+
+At 13:15 UTC, the existing `creator-walkthrough-reporting-guard` heartbeat was
+disabled (`PAUSED`, confirmed by the automation tool and saved configuration)
+while awaiting owner review/restart, following the Task Watchdog stop condition.
+Its scope, schedule and target were preserved. No replacement monitor was created.
+The owner then explicitly requested two additional hours at 13:18 UTC. At 13:19
+the same heartbeat was restored to `ACTIVE`, with only the authorized extension
+added to its scope/deadlines; identity, hourly schedule and target are unchanged.
+The new stop-new/hard-cutoff times are 15:04:18/15:34:18 UTC. This supersedes the
+earlier run-closeout conclusion without relabelling any media as accepted.
+
+At 13:19–13:20, the manager opened the retained copy in a fresh in-app browser
+tab, verified the loaded project and successfully expanded its navigation menu.
+Interactive UI access is available again; no security setting or authentication
+control was changed. The coordinator must inspect its own previous dialog/review
+state before retrying any mutation. Genuine owner audition of the retained
+original and 2.5-second candidate is still required before video selection.
+The unresolved text, geography and first-frame/action issues above remain open.

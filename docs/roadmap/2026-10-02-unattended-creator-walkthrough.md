@@ -1,22 +1,26 @@
 # Bounded unattended creator walkthrough
 
-Status: approved; live UI work is blocked on manual Mac unlock, first detected
-at 12:33 UTC and retained in the 12:40 UTC checkpoint.
+Status: active under the owner's explicit two-hour extension at 13:18 UTC.
+Interactive copy UI access was verified again at 13:19–13:20; sound acceptance
+still needs owner input. The existing heartbeat is active with extended deadlines.
 The owner issued the final start command with Relay direct and explicitly
 required its model-choice guide for every delegation. The partial checkpoint
-below preserves resume state; the original run boundaries are unchanged.
+below preserves resume state; only the time window was extended, not acceptance
+or preservation requirements.
 
 Launch: 2026-10-02 01:34:18 America/Toronto / 05:34:18 UTC.
-Stop new work: 09:04:18 Toronto / 13:04:18 UTC; reserve the final 30 minutes for
-verification and handoff. Hard cutoff: 09:34:18 Toronto / 13:34:18 UTC.
+Extended stop new work: 11:04:18 Toronto / 15:04:18 UTC; reserve the final
+30 minutes for verification and handoff. Extended hard cutoff: 11:34:18 Toronto /
+15:34:18 UTC. These replace the original 09:04:18/09:34:18 Toronto boundaries.
 Manager: `01a04525-e907-7630-9640-78790d69e8ae`.
 
 ## Goal and confirmed choices
 
 Continue the creator journey while the owner is away, find and repair actual
 functional/usability blockers, and leave a reproducible morning handoff. Run
-for at most eight hours after approved launch; finish earlier if the scoped
-journey and verification are complete. This is not eight hours of compulsory
+for at most ten hours after approved launch (eight original hours plus the
+owner-authorized two-hour extension); finish earlier if the scoped
+journey and verification are complete. This is not ten hours of compulsory
 generation or a promise that unsupported production capabilities will be built.
 
 The owner explicitly chose a clearly labelled **test copy with provisional
@@ -58,7 +62,7 @@ Current baseline: `370e46b` on clean `main`. Read-only preflight found:
   and verify state; record every setup/API-only step rather than calling it a
   creator UI success. Keep all disposable data and evidence workflow-local.
 - There is no fixed text, ImageGen or H3 submission-count cap. Generate and
-  iterate as needed within the eight-hour window, reusing valid retained assets
+  iterate as needed within the approved extended window, reusing valid retained assets
   where useful. Keep attempts purposeful and evidence-backed; no blind retry of
   an unknown queue outcome and no clearing its reservation to force progress.
 - H3/video enablement and real submissions, private remote access, additional
@@ -77,7 +81,7 @@ Current baseline: `370e46b` on clean `main`. Read-only preflight found:
 
 ### 1. Establish isolation and the run boundary
 
-Record an absolute eight-hour cutoff at launch in America/Toronto and UTC, the
+Record the absolute authorized cutoff in America/Toronto and UTC, the
 source revision, original-project semantic/file baseline and owned local
 resources. Verify Docker, native app, specialist availability, and no competing
 source writer. Create the isolated test installation through the current recovery
@@ -204,7 +208,7 @@ checkpoint and report it; do not bypass security or claim continuous execution.
   dispatch safety, production ownership, timing, deployment and revision flow.
 
 Execution approval was received at launch. Test-copy provisional decisions and
-removal of the call caps/scope exclusions are settled; the eight-hour cutoff,
+removal of the call caps/scope exclusions are settled; the extended cutoff,
 original-project protection and truthful evidence remain.
 
 ## Run log
@@ -417,3 +421,23 @@ original-project protection and truthful evidence remain.
   reader and synthetic playback results are separate. No source workaround,
   security bypass or deadline extension. See the [live checkpoint and exact
   continuation](../verification/2026-10-02-stage4-live-checkpoint.md).
+- Closeout, 13:17 UTC: no work was dispatched after the stop-new boundary.
+  Fresh checks confirm both workbench health endpoints, retained copy PID 89547,
+  two idle workers and unchanged four-image/two-video/unselected-derivative state.
+  The final original capture exactly equals the 12:43 checkpoint; all 73 tables
+  and 67 file hashes still equal launch. The existing heartbeat is confirmed
+  disabled while awaiting owner review/restart. The local review copy, evidence,
+  worker chats and quarantined unknown outcomes remain preserved. No source or
+  runtime workaround, replay, video acceptance or deadline extension occurred.
+  At this checkpoint, a new window and genuine sound review were required to
+  continue the unfinished real-media journey.
+- Owner-authorized extension, 13:18 UTC: the owner added two hours to the
+  original run. New stop-new boundary 15:04:18 UTC; hard cutoff 15:34:18 UTC.
+  The same heartbeat was restored to ACTIVE at 13:19 with updated deadlines.
+  A fresh in-app browser tab loaded the copy and responded to a navigation
+  expansion, independently establishing usable interactive access again.
+  Resume the same coordinator and image worker, inspect previous review/dialog
+  state before retrying, and preserve all existing output/decisions. Only time
+  changed: copy-only provisional authority, genuine audiovisual review,
+  single-writer ownership, unknown-dispatch safety and original preservation
+  remain mandatory. No replay of completed or quarantined work is authorized.
