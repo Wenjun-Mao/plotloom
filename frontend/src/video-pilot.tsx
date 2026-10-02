@@ -10,6 +10,7 @@ import { VideoSegmentReview } from "./video-segment-review";
 import { MiniMaxH3DurationField, MiniMaxH3ProfileField, MiniMaxH3QualityField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, h3QualifiedDurations, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 import { H3DirectionsReview } from "./h3-directions-review";
 import { VideoEndFrameChoice } from "./video-end-frame";
+import { useConfirmation } from "./confirmation";
 import { h3Timing } from "./video-backends/minimax-h3-timing";
 
 type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
@@ -17,6 +18,12 @@ type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: numbe
 function frozenShot(job: VideoJob): FrozenShot {
   const candidate = job.snapshot.shot;
   return candidate && typeof candidate === "object" ? candidate as FrozenShot : {};
+}
+
+// ADR 0082 retains every proposed derivative and its original, even when
+// neither is currently selected. The server remains the deletion authority.
+function canDiscard(job: VideoJob): boolean {
+  return job.state === "ingested" && !job.selected && !job.segments?.length;
 }
 
 /**
@@ -188,6 +195,7 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
   const [backend, setBackend] = useState<VideoBackend | null>(null);
   const [jobs, setJobs] = useState<VideoJob[]>([]);
+  const { requestConfirmation, confirmation } = useConfirmation(JSON.stringify([projectId, shot?.id, selectionRevision, jobs.map(job => [job.id, job.selectionRevision, job.state, job.selected, job.current, job.segments?.map(segment => segment.id)])]), readOnly);
   const [h3ProfileId, setH3ProfileId] = useState("");
   const [h3DurationSeconds, setH3DurationSeconds] = useState(5);
   const [h3InputFrameMode, setH3InputFrameMode] = useState<"reject_mismatch" | "cover_center_crop" | "contain_pad">("reject_mismatch");
@@ -381,11 +389,12 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
         {(job.state === "submitted" || job.state === "retrieve_needed") && <Button disabled={readOnly} onClick={() => void act(() => plotloomApi.reconcileVideoJob(projectId!, job.id), "获取结果未完成")}>获取结果</Button>}
         {["prepared", "dispatching", "submitted", "retrieve_needed", "outcome_unknown"].includes(job.state) && !job.cancelRequestedAt && <Button variant="danger" disabled={readOnly} onClick={() => void act(() => plotloomApi.cancelVideoJob(projectId!, job.id), "取消意图未记录")}>记录取消意图</Button>}
         {job.state === "ingested" && !isH3Job(job) && <Button disabled={readOnly || !job.current} onClick={() => void act(() => plotloomApi.reviewVideoJob(projectId!, job.id, "select", "", "", job.selectionRevision), "选择未完成")}>选择此候选</Button>}
-        {job.state === "ingested" && !job.selected && <Button variant="danger" disabled={readOnly} onClick={() => {
-          if (window.confirm("永久删除此未选择视频候选？此操作不可撤销。")) void act(() => plotloomApi.discardVideoJob(projectId!, job.id, job.selectionRevision), "删除未完成");
+        {canDiscard(job) && <Button variant="danger" disabled={readOnly} onClick={() => {
+          requestConfirmation({ title: "永久删除", message: "永久删除此未选择视频候选？此操作不可撤销。", details: `原片：${job.id}`, action: () => act(() => plotloomApi.discardVideoJob(projectId!, job.id, job.selectionRevision), "删除未完成") });
         }}>永久删除</Button>}
         {job.state === "discard_pending" && <Button variant="danger" disabled={readOnly} onClick={() => void act(() => plotloomApi.discardVideoJob(projectId!, job.id, job.selectionRevision), "重试删除未完成")}>重试永久删除</Button>}
       </div>
+      {job.state === "ingested" && !job.selected && Boolean(job.segments?.length) && <small>此原片已有保留片段，不能永久删除；原片与片段证据会保留。</small>}
       {isH3Job(job) && projectId && job.state === "ingested" && <div id={job.id === segmentAnchorJobId ? "shot-segment" : undefined}><VideoSegmentReview key={`${projectId}:${job.id}`} projectId={projectId} job={job} readOnly={readOnly} onRefresh={refresh} /></div>}
       {job.error && <small>{job.error}</small>}</article>)}
     <section id="shot-story-preview" className="story-playback-section"><strong>预览 · 用于故事</strong>
@@ -399,10 +408,11 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       {projectId && <BranchingVideoPreview projectId={projectId} jobs={jobs} storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} />}
     </section>
     {shot && visibleJobs.length === 0 && <small>当前镜头尚无冻结的视频请求。</small>}
-    {shot && visibleJobs.some((job) => job.state === "ingested" && !job.selected) && <Button variant="danger" disabled={readOnly} onClick={() => {
+    {shot && visibleJobs.some(canDiscard) && <Button variant="danger" disabled={readOnly} onClick={() => {
       const revision = visibleJobs[0]?.selectionRevision ?? 0;
-      const ids = visibleJobs.filter((job) => job.state === "ingested" && !job.selected).map((job) => job.id);
-      if (window.confirm(`永久删除这 ${ids.length} 个未选择视频候选？此操作不可撤销。`)) void act(() => plotloomApi.discardUnselectedVideoJobs(projectId!, shot.id, ids, revision), "批量删除未完成");
-    }}>删除全部未选择候选</Button>}
+      const ids = visibleJobs.filter(canDiscard).map((job) => job.id);
+      requestConfirmation({ title: "批量永久删除", message: `永久删除这 ${ids.length} 个未选择且无保留片段的视频候选？此操作不可撤销。`, details: `镜头：${shot.id}\n原片：${ids.join("\n")}`, action: () => act(() => plotloomApi.discardUnselectedVideoJobs(projectId!, shot.id, ids, revision), "批量删除未完成") });
+    }}>删除可清理的未选择候选</Button>}
+    {confirmation}
   </Panel>;
 }

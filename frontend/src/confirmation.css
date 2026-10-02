@@ -1,0 +1,4 @@
+.confirmation-dialog { width: min(92vw, 600px); max-height: 85dvh; overflow: auto; padding: 24px; border: 1px solid var(--line); border-radius: 12px; color: var(--text); background: var(--panel); }
+.confirmation-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+.confirmation-dialog h2 { margin-top: 0; }
+.confirmation-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; font: 12px var(--mono); }

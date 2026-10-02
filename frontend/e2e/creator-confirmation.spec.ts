@@ -1,0 +1,34 @@
+import { expect, test } from "./fixture";
+
+test("all four creator confirmations use DOM consent with keyboard/cancel/reload recovery", async ({ page, workbench }) => {
+  const nativeDialogs: string[] = [];
+  page.on("dialog", async dialog => { nativeDialogs.push(dialog.type()); await dialog.dismiss(); });
+  await page.goto(`${workbench.frontendOrigin}/v2/e2e/creator-confirmation-fixture.html`);
+  await expect(page.getByRole("heading", { name: "Disposable creator confirmation fixture" })).toBeVisible();
+  const reject = page.getByRole("region", { name: "Rejection fixture" }).getByRole("button", { name: "拒绝此原片并撤销选择" });
+  await reject.click(); const dialog = page.getByRole("alertdialog");
+  await expect(dialog.getByRole("button", { name: "取消", exact: true })).toBeFocused();
+  await page.keyboard.press("Tab"); await expect(dialog.getByRole("button", { name: "确认拒绝原片" })).toBeFocused();
+  await page.keyboard.press("Shift+Tab"); await expect(dialog.getByRole("button", { name: "取消", exact: true })).toBeFocused();
+  await page.keyboard.press("Escape"); await expect(dialog).toHaveCount(0); await expect(reject).toBeFocused();
+  await expect(page.locator("#fixture-writes")).toHaveText("[]");
+  await reject.click(); await page.reload(); await expect(dialog).toHaveCount(0); await expect(page.locator("#fixture-writes")).toHaveText("[]");
+  await reject.click(); await dialog.getByRole("button", { name: "确认拒绝原片" }).click();
+  await expect(page.locator("#fixture-writes")).toContainText('"reject","disposable","disposable-reject","reject","","",7');
+  const deletion = page.getByRole("region", { name: "Deletion fixture" });
+  await deletion.getByTestId("video-job-disposable-one").getByRole("button", { name: "永久删除", exact: true }).click();
+  await expect(dialog).toContainText("此操作不可撤销"); await dialog.getByRole("button", { name: "取消", exact: true }).click();
+  await expect(page.locator("#fixture-writes")).not.toContainText('"single"');
+  await deletion.getByTestId("video-job-disposable-one").getByRole("button", { name: "永久删除", exact: true }).click();
+  await dialog.getByRole("button", { name: "确认永久删除", exact: true }).click();
+  await expect(page.locator("#fixture-writes")).toContainText('"single","disposable","disposable-one",7');
+  await deletion.getByRole("button", { name: "删除可清理的未选择候选" }).click(); await expect(dialog).toContainText("disposable-two");
+  await dialog.getByRole("button", { name: "确认批量永久删除" }).click();
+  await expect(page.locator("#fixture-writes")).toContainText('"bulk","disposable","shot_01",["disposable-two"],7');
+  await page.getByRole("region", { name: "Coverage fixture" }).getByRole("button", { name: "编辑镜头细节", exact: true }).click();
+  await page.getByRole("region", { name: "Coverage fixture" }).locator(".coverage-link").first().getByRole("button", { name: "移除", exact: true }).click();
+  await dialog.getByRole("button", { name: "取消", exact: true }).click(); await expect(page.locator("#fixture-writes")).not.toContainText('"coverage"');
+  await page.getByRole("region", { name: "Coverage fixture" }).locator(".coverage-link").first().getByRole("button", { name: "移除", exact: true }).click();
+  await dialog.getByRole("button", { name: "确认移除覆盖" }).click(); await expect(page.locator("#fixture-writes")).toContainText('"coverage"');
+  expect(nativeDialogs).toEqual([]);
+});

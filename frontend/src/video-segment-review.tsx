@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { VideoJob, VideoSegment } from "./types";
 import { ApiError, plotloomApi } from "./api";
 import { Button } from "./components";
+import { useConfirmation } from "./confirmation";
 
 function authoredUnits(job: VideoJob): number | null {
   const binding = job.snapshot.sourceTiming;
@@ -87,9 +88,11 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
       if (activeRef.current && request === requestRef.current) setBusy(false);
     }
   };
+  const { requestConfirmation, confirmation } = useConfirmation(
+    JSON.stringify([projectId, job.id, job.selectionRevision, job.outputHash, job.state, job.current, rejected]), readOnly || busy,
+  );
   const reject = async () => {
-    if (busy || rejected
-      || !window.confirm("拒绝此原片并撤销当前选择？原片与片段证据会保留。")) return;
+    if (readOnly || busy || rejected || !job.current) return;
     const request = ++requestRef.current;
     setBusy(true); setError("");
     try {
@@ -134,7 +137,11 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
       <small>确认只影响当前镜头的已核验片段；不会改动原片。</small>
       <Button disabled={readOnly || busy || rejected || !chosen.current} onClick={() => void select()}>确认用于故事</Button>
     </div>}
-    <Button variant="danger" disabled={readOnly || busy || rejected || !job.current} onClick={() => void reject()}>拒绝此原片并撤销选择</Button>
+    <Button variant="danger" disabled={readOnly || busy || rejected || !job.current} onClick={() => requestConfirmation({
+      title: "拒绝原片", message: "拒绝此原片并撤销当前选择？原片与片段证据会保留。",
+      details: `原片：${job.id}\n审核人：${reviewer.trim() || "未填写"}\n说明：${note.trim() || "未填写"}`, action: reject,
+    })}>拒绝此原片并撤销选择</Button>
+    {confirmation}
     {error && <small className="notice warning" role="status">{error}</small>}
   </section>;
 }

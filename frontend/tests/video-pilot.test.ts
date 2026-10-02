@@ -11,6 +11,7 @@ import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBa
 
 let root: Root;
 let host: HTMLDivElement;
+const dialogDescriptors = ["showModal", "close"].map(name => Object.getOwnPropertyDescriptor(HTMLDialogElement.prototype, name));
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -92,7 +93,7 @@ beforeEach(() => {
     nativeAudio: true, requiresAspectPolicy: false, tracksPaidWanPilot: true,
   } satisfies VideoBackend);
 });
-afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); });
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); ["showModal", "close"].forEach((name, index) => { if (dialogDescriptors[index]) Object.defineProperty(HTMLDialogElement.prototype, name, dialogDescriptors[index]!); else Reflect.deleteProperty(HTMLDialogElement.prototype, name); }); });
 
 it("does not describe an unconfigured H3 backend as the legacy Wan five-second pilot", async () => {
   vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, reason: "h3_video_not_configured", qualifiedDurationSeconds: [5, 8] });
@@ -402,7 +403,8 @@ it("allows a current ingested take with no prepared segment to be rejected", asy
   });
   const review = vi.spyOn(plotloomApi, "reviewVideoJob").mockResolvedValue({} as never);
   const refresh = vi.fn().mockResolvedValue(undefined);
-  vi.spyOn(window, "confirm").mockReturnValue(true);
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
   await act(async () => root.render(createElement(VideoSegmentReview, {
     projectId: "project", job: candidate, readOnly: false, onRefresh: refresh,
   })));
@@ -417,6 +419,8 @@ it("allows a current ingested take with no prepared segment to be rejected", asy
   const reject = [...host.querySelectorAll("button")].find((item) => item.textContent?.includes("拒绝此原片"))!;
   expect(reject.disabled).toBe(false);
   await act(async () => { reject.click(); await Promise.resolve(); });
+  expect(review).not.toHaveBeenCalled();
+  await act(async () => { document.querySelector<HTMLDialogElement>("dialog")!.querySelectorAll<HTMLButtonElement>("button")[1].click(); });
   expect(review).toHaveBeenCalledWith("project", candidate.id, "reject", "creator", "Reject before segment derivation", 0);
   expect(refresh).toHaveBeenCalledOnce();
 });
