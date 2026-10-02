@@ -38,7 +38,7 @@ const buildRequest = (seed: number, idempotencyKey: string): VideoJobPrepareBody
 });
 const render = async (identity: string, onFreeze: (value: H3ReviewedDirections, seed: number, key: string) => Promise<void> = async () => {}) => {
   await act(async () => root.render(createElement(H3DirectionsReview, {
-    projectId: "project", sourceIdentity: identity, disabled: false, buildRequest, onFreeze,
+    projectId: "project", sourceIdentity: identity, sourceReady: true, disabled: false, buildRequest, onFreeze,
     keyframeHash: "a".repeat(64), quality: 8, requestedSeconds: 15, frameCount: 362,
   })));
 };

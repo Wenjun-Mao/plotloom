@@ -27,7 +27,7 @@ const button = (text: string) => [...host.querySelectorAll<HTMLButtonElement>("b
 async function click(element: HTMLButtonElement) { await act(async () => element.click()); }
 async function render() {
   await act(async () => root.render(createElement(VideoPilotPanel, {
-    projectId: "project", shot, selectionRevision: 7, storyboardRevision: 1, readOnly: false,
+    projectId: "project", shot, selectionRevision: 7, storyboardRevision: 1, mediaReadPhase: "ready", readOnly: false,
     storyboard: demoProject.storyboard, sceneBeats: demoProject.sceneBeats, graph: demoProject.storyGraph,
   })));
 }

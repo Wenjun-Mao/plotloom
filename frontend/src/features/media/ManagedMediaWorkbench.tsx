@@ -332,6 +332,8 @@ export function ManagedMediaWorkbench({
         <VideoPilotPanel projectId={projectId} shot={selectedShot} approvalId={review?.activeApproval?.id}
           storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision}
           keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
+          reviewedBinding={selectedBinding} samePersonReviewId={selectedBinding ? currentReviewByBinding.get(selectedBinding.id)?.id : undefined}
+          mediaReadPhase={mediaReadPhase}
           storyboard={storyboard} sceneBeats={sceneBeats} graph={graph} routeId={routeId} readOnly={mediaOwnerReadOnly} />
       </div>
       <details className="workbench-support" ref={preparationDetails}><summary>准备与参考 · 图片、角色、导入</summary>

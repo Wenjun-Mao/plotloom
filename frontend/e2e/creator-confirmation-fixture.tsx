@@ -31,7 +31,7 @@ function Fixture() {
   return <main><h1>Disposable creator confirmation fixture</h1><p>Test-only synthetic media/actions. No provider calls, persistent writes or creative acceptance.</p>
     <pre id="fixture-writes">[]</pre><button onClick={() => setRevision(value => value + 1)}>Invalidate fixture revision</button>
     <section aria-label="Rejection fixture"><VideoSegmentReview projectId="disposable" job={{ ...candidate("disposable-reject"), selectionRevision: revision }} readOnly={false} onRefresh={async () => undefined} /></section>
-    <section aria-label="Deletion fixture"><VideoPilotPanel projectId="disposable" shot={demoProject.storyboard.shots[0]} selectionRevision={revision} readOnly={false}
+    <section aria-label="Deletion fixture"><VideoPilotPanel projectId="disposable" shot={demoProject.storyboard.shots[0]} selectionRevision={revision} mediaReadPhase="ready" readOnly={false}
       storyboard={demoProject.storyboard} sceneBeats={demoProject.sceneBeats} graph={demoProject.storyGraph} /></section>
     <section aria-label="Coverage fixture"><StoryboardPage bible={demoProject.storyBible} graph={demoProject.storyGraph} sceneBeats={demoProject.sceneBeats}
       value={demoProject.storyboard} stale={false} mediaTasks={{}} saving={false} entityId={`shot:${demoProject.storyboard.shots[0].id}`} onSave={async () => undefined}

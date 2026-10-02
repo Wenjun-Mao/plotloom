@@ -69,7 +69,7 @@ function props(projectId: string, shotId: string, sceneId?: string) {
   const route = routeContext([...new Set(shotId === "shot-3" ? ["shot-1", "shot-2", "shot-3"] : shotId === "new-shot" ? ["new-shot"] : ["shot-1", "shot-2"])]);
   return {
     projectId, shot: { id: shotId, title: `Shot ${shotId}`, sceneId } as Shot,
-    approvalId: "approval", storyboardRevision: 1, selectionRevision: 1, readOnly: false,
+    approvalId: "approval", storyboardRevision: 1, selectionRevision: 1, mediaReadPhase: "ready" as const, readOnly: false,
     ...route,
     routeId: sceneId === "other" ? undefined : route.routeId,
   };

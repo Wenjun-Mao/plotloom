@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ManagedAsset, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
+import type { ManagedAsset, ReviewedKeyframe, SceneBeatPlan, Shot, StoryGraph, Storyboard, VideoBackend, VideoJob, VideoPilotBudget } from "./types";
 import { plotloomApi } from "./api";
 import type { H3ReviewedDirections, VideoJobPrepareBody } from "./api";
 import type { VideoEndFrameDecision } from "./api";
@@ -9,6 +9,8 @@ import { BranchingVideoPreview } from "./branching-video-preview";
 import { VideoSegmentReview } from "./video-segment-review";
 import { MiniMaxH3DurationField, MiniMaxH3ProfileField, MiniMaxH3QualityField, MiniMaxH3ReviewNotice, MiniMaxH3Summary, h3Profiles, h3QualifiedDurations, isMiniMaxH3Backend, selectedH3Profile } from "./video-backends/minimax-h3";
 import { H3DirectionsReview } from "./h3-directions-review";
+import { useH3MediaIdentity } from "./h3-review-context";
+import type { MediaReadPhase } from "./features/media/useMediaWorkbenchData";
 import { VideoEndFrameChoice } from "./video-end-frame";
 import { useConfirmation } from "./confirmation";
 import { h3Timing } from "./video-backends/minimax-h3-timing";
@@ -188,9 +190,10 @@ function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: 
   </section>;
 }
 
-export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevision, selectionRevision, keyframe, storyboard, sceneBeats, graph, routeId, readOnly }: {
+export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevision, selectionRevision, keyframe, reviewedBinding, samePersonReviewId, mediaReadPhase, storyboard, sceneBeats, graph, routeId, readOnly }: {
   projectId?: string; shot?: Shot; approvalId?: string; storyboardRevision?: number; selectionRevision: number;
   keyframe?: ManagedAsset; storyboard: Storyboard; sceneBeats: SceneBeatPlan; graph: StoryGraph; routeId?: string; readOnly: boolean;
+  reviewedBinding?: ReviewedKeyframe; samePersonReviewId?: string; mediaReadPhase: MediaReadPhase;
 }) {
   const [budget, setBudget] = useState<VideoPilotBudget | null>(null);
   const [backend, setBackend] = useState<VideoBackend | null>(null);
@@ -313,7 +316,10 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     && endFrameDraftState.dirty);
   const endFrameAspectReady = !currentEndFrame?.assetId || currentEndFrame.aspectPolicy === requestAspectPolicy;
   const endFrameApprovalReady = !currentEndFrame?.revision || (currentEndFrame.approvalId === approvalId && currentEndFrame.storyboardRevision === storyboardRevision);
-  const cannotPrepare = readOnly || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || !currentEndFrame || endFrameDraftDirty || !endFrameAspectReady || !endFrameApprovalReady || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
+  const mediaReady = mediaReadPhase === "ready";
+  const mediaIdentity = useH3MediaIdentity({ projectId, shotId: shot?.id, ready: mediaReady,
+    binding: reviewedBinding, keyframe, samePersonReviewId });
+  const cannotPrepare = readOnly || !mediaReady || !projectId || !shot || !approvalId || !storyboardRevision || backend?.enabled === false || (h3 && (!selectedProfile || !keyframe || !currentEndFrame || endFrameDraftDirty || !endFrameAspectReady || !endFrameApprovalReady || (h3AspectMismatch && h3InputFrameMode === "reject_mismatch")));
   const currentH3Timing = h3Timing(shot?.durationUnits ?? 0, h3DurationSeconds, backend?.qualifiedDurationSeconds);
   const h3RequestedFrames = currentH3Timing.requestFrames;
   const h3TimingMismatch = h3 && !currentH3Timing.playbackIntent;
@@ -367,7 +373,8 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
     {h3 && <MiniMaxH3ReviewNotice />}
     {h3 && projectId && shot
       ? <H3DirectionsReview projectId={projectId}
-          sourceIdentity={`${shot.id}:${approvalId ?? ""}:${storyboardRevision}:${selectionRevision}:${keyframe?.id ?? ""}:${h3ProfileId}:${h3DurationSeconds}:${h3InputFrameMode}:${currentEndFrame?.revision ?? "loading"}:${currentEndFrame?.originalHash ?? ""}:${endFrameDraftDirty}:${visibleJobs.length}`}
+          sourceIdentity={JSON.stringify([shot.id, approvalId, storyboardRevision, mediaIdentity, h3ProfileId, h3DurationSeconds, h3InputFrameMode, currentEndFrame?.revision, currentEndFrame?.originalHash, endFrameDraftDirty, visibleJobs.length])}
+          sourceReady={mediaReady}
           disabled={Boolean(cannotPrepare || h3TimingMismatch)} buildRequest={buildPrepareRequest}
           keyframeHash={keyframe?.originalHash ?? ""} endFrameHash={currentEndFrame?.originalHash ?? null} quality={selectedProfile?.quality ?? 0}
           requestedSeconds={h3DurationSeconds} frameCount={h3RequestedFrames ?? 0}

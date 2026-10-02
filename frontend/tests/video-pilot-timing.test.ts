@@ -33,7 +33,7 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 async function render(durationUnits: number, requestSeconds: number) {
   await act(async () => root.render(createElement(VideoPilotPanel, {
     projectId: "project", shot: { ...demoProject.storyboard.shots[0], durationUnits },
-    approvalId: "approval", storyboardRevision: 1, selectionRevision: 1, readOnly: false, keyframe,
+    approvalId: "approval", storyboardRevision: 1, selectionRevision: 1, mediaReadPhase: "ready", readOnly: false, keyframe,
     graph: demoProject.storyGraph, storyboard: demoProject.storyboard, sceneBeats: demoProject.sceneBeats,
   })));
   await act(async () => { await Promise.resolve(); });
