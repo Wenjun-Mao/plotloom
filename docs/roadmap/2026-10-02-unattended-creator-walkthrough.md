@@ -1,21 +1,18 @@
 # Bounded unattended creator walkthrough
 
-Status: the owner approved C1–C4 visually, confirmed their sound, and explicitly
-authorized another two hours at 17:22:39 UTC. The current window ends at
-15:22:39 Toronto / 19:22:39 UTC; stop new submissions at 14:52:39 Toronto /
-18:52:39 UTC, preserving the final 30 minutes for review and handoff.
-Root records the four reviewed segments in the isolated copy and continues
-the remaining shots and both ending routes. New outputs still receive their
-own audiovisual review; individual opening-clip approval is not assembly review.
-See the [resumed-media closeout](../verification/2026-10-02-stage4-resumed-media-closeout.md)
-for the deployed explicit-seed control and improved, still-unselected C2 trial.
-The earlier verification-only extension and its closeout remain historical.
-Accessible confirmations are deployed
-and pushed at `fe656c0`; final tests and actual in-app browser checks passed.
-See the [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
-for exact evidence and pending audio/creative/media work. The same temporary
-heartbeat is re-enabled for this window. The owner will listen; no
-clip is accepted for sound merely because a stream exists or generation is authorized.
+Status: the owner-approved two-hour continuation is closed to new submissions;
+handoff is due by 15:22:39 Toronto / 19:22:39 UTC. C1–C4 are explicitly selected
+after owner visual/sound approval. C5 and A1 have current unselected review
+segments awaiting owner sound verdicts; revised B2 is rejected, A2 is a delivered
+unbound still, and remaining route media/assembly review are incomplete.
+See the [owner-approved-window closeout](../verification/2026-10-02-stage4-owner-approved-window-closeout.md)
+for deployed `8427b13`/`ddb780c` retention, static-revalidation and H3 draft
+guardrails, real media receipts, passing checks and exact next owner actions.
+The temporary heartbeat is paused. New production requires another explicitly
+bounded authorization. Individual clip approval does not accept an assembly.
+The [resumed-media closeout](../verification/2026-10-02-stage4-resumed-media-closeout.md)
+and [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
+remain historical receipts for explicit-seed and accessible-confirmation fixes.
 The owner issued the final start command with Relay direct and explicitly
 required its model-choice guide for every delegation. The partial checkpoint
 below preserves resume state; only the time window was extended, not acceptance

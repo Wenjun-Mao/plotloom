@@ -137,8 +137,29 @@ preserves both jobs, controls, image/output hashes and inspection coverage.
 The new image also changes framing, background and text presentation, so this
 supports that particular revised input package, not isolated pixel-size
 causality, universal Chinese-text preservation, or B2/B3 typing/send fidelity.
-Sound and whole-sequence acceptance remain open. Exact still text alone never
-substitutes for checking the generated original and proposed playback frames.
+The owner subsequently approved C1–C4's individual visual/sound results;
+whole-sequence acceptance remains open. Exact still text alone never substitutes
+for checking the generated original and proposed playback frames.
+
+The later B2 first-frame comparison held the old entire request, English fields
+and compiled prompt fixed, including seed. Its larger unobstructed display did
+**not** resolve exact reply/incoming glyph deformation through the first 60
+frames, and its composer expanded/arrow moved during keyboard motion. Review
+did not establish a send gesture or convincing walking from that tight view.
+Framing and retained incoming-message presentation also changed, so this is a
+failed input-package trial, not isolated screen-size causality or a universal
+H3 limitation. Reading-only C2 success does not qualify typing/send behavior.
+Reassess the actual first-state/action strategy before more generation; preserve
+the failed original and do not erase/retype or omit source motion just to hold
+the screen. The [owner-approved-window receipt](../verification/2026-10-02-stage4-owner-approved-window-closeout.md)
+records the exact controls, all-frame inspection and saved rejection.
+
+Adjacent-shot stills also require pixel comparison: A2 used only C01 image
+conditioning and text descriptions of observed A1 geometry. Shared nouns for
+window, bench and planter do not certify the same location; pendant/window
+detail and end/start pose differences remain explicit cut-review questions.
+Do not claim an absent cross-shot image reference or bind an unsuitable image
+merely to unlock refinement.
 
 ## Quality choice: development versus production review
 
