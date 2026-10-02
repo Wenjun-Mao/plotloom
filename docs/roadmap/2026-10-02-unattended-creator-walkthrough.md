@@ -348,3 +348,32 @@ original-project protection and truthful evidence remain.
   copy choices remain distinct from owner creative acceptance and media playback.
   See the [final live checkpoint](../verification/2026-10-02-stage23-live-completion.md)
   for receipts, exact runtime/workers and remaining production timing boundary.
+- Stage 4 bounded source gate, 2026-10-02: implements exhaustive reviewed
+  presentation ownership, exact integer-ms timing/provenance, retained accepted
+  F5 binding, exact post-opening runtime question/labels, shared explicit/default-off
+  isolated H3 composition and compatible typed health inputModes. ADR 0100 records
+  the contract. Disposable fixtures verify explicit presentation/intent/install,
+  image/H3 source separation and synthetic browser media lifecycle. Final assets
+  are staged outside served roots. Independent review, manager commit/push and
+  asset promotion precede live canonical installation, fresh pinned keyframes,
+  scoped v7 H3 enablement/dispatch and audiovisual acceptance. Actual copy runtime
+  is currently offline with cause unestablished; normal health still responds.
+  No source-gate live mutation or generation occurred. See the
+  [source receipt](../verification/2026-10-02-stage4-source-gate.md) for executed
+  checks, frozen evidence boundaries and the stopping condition.
+
+- Stage 4 independent review fixes, 11:15 UTC: four reproduced findings were
+  corrected at ownership boundaries: admitted-media playback scope, provider-only
+  trusted settings, exact visible-text whitespace and semantic/mechanical H3
+  separation without substring classification. Focused89 backend/service and25
+  playback frontend tests pass. Prior-candidate full956Python/service41/frontend292
+  gates passed, but manager retains targeted closure and final gate on reopened
+  source. Final build remains staged and the live boundary unchanged.
+- Stage 4 manager source gate, 11:22 UTC: both independent reviewers closed all
+  four findings. Final independent Python **964**, service/bridge/manage **46**,
+  frontend **294**, both typechecks and scoped lint/diff gates pass. Independent
+  production rebuild matches staged bytes. Original seven-state/73-table/67-file
+  capture still equals launch baseline. Matching static was promoted with normal
+  native specialists inactive and reservation-free; copy runtime remains offline.
+  Manager commit/push and backend startup precede real production/media actions;
+  fixture playback and constructor qualification are not real-video acceptance.

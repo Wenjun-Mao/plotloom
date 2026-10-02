@@ -335,3 +335,91 @@ def test_cli_sigterm_cleans_bridge_ports_and_ephemeral_shim(installation):
         with socket.socket() as released:
             released.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             released.bind(("127.0.0.1", port))
+
+
+def test_h3_is_explicit_default_off_even_with_enabled_parent_settings(installation, monkeypatch):
+    config, _ = installation
+    monkeypatch.setenv("PLOTLOOM_ENABLE_H3_GATEWAY", "true")
+    monkeypatch.setenv("VIDEO_PROVIDER", "untrusted")
+    monkeypatch.setenv("VIDEO_MODEL_API_KEY", "fixture-secret")
+    with compose(config) as runtime:
+        assert not config.enable_h3
+        # Disabled composition must never consume the parent's provider/credential.
+        from fastapi.testclient import TestClient
+        with TestClient(runtime.app) as client:
+            assert client.get("/api/v2/video-backend").json()["enabled"] is False
+    assert monkeypatch is not None
+
+
+def test_h3_optin_keeps_runtimeconfig_storage_authority(installation, monkeypatch):
+    config, _ = installation
+    monkeypatch.setenv("VIDEO_PROVIDER", "minimax_h3_gateway")
+    monkeypatch.setenv("VIDEO_MODEL", "minimax_h3_gateway_catalog_v7")
+    monkeypatch.setenv("VIDEO_BASE_URL", "http://100.64.1.2:8090")
+    monkeypatch.setenv("VIDEO_MODEL_API_KEY", "fixture-secret")
+    monkeypatch.setenv("PLOTLOOM_OUTPUTS_DIR", "/normal-must-not-open")
+    monkeypatch.setenv("PLOTLOOM_APPLICATION_DATA_DIR", "/normal-application-must-not-open")
+    with compose(replace(config, enable_h3=True)) as runtime:
+        assert runtime.app.state.specialists.path.is_relative_to(config.data_root)
+        from fastapi.testclient import TestClient
+        with TestClient(runtime.app) as client:
+            payload = client.get("/api/v2/video-backend").json()
+            assert payload["enabled"] is True
+            assert "fixture-secret" not in json.dumps(payload)
+
+
+def test_trusted_dotenv_provider_precedence_with_unexported_video_settings(installation, tmp_path, monkeypatch):
+    config, _ = installation
+    for key in ("VIDEO_PROVIDER", "VIDEO_MODEL", "VIDEO_BASE_URL", "VIDEO_MODEL_API_KEY", "PLOTLOOM_OUTPUTS_DIR", "PLOTLOOM_APPLICATION_DATA_DIR"):
+        monkeypatch.delenv(key, raising=False)
+    checkout = tmp_path / "trusted-checkout"; checkout.mkdir()
+    (checkout / ".env").write_text(
+        "VIDEO_PROVIDER=minimax_h3_gateway\nVIDEO_MODEL=minimax_h3_gateway_catalog_v7\n"
+        "VIDEO_BASE_URL=http://100.64.1.2:8090\nVIDEO_MODEL_API_KEY=fixture-dotenv-key\n"
+        "PLOTLOOM_OUTPUTS_DIR=/normal-do-not-open\nPLOTLOOM_APPLICATION_DATA_DIR=/normal-do-not-open-app\n"
+    )
+    settings = isolated.load_h3_configuration(checkout)
+    assert settings.video_api_key.get_secret_value() == "fixture-dotenv-key"
+    assert settings.video_base_url == "http://100.64.1.2:8090"
+    assert not hasattr(settings, "outputs_dir")
+    assert not hasattr(settings, "application_data_dir")
+    monkeypatch.setenv("VIDEO_BASE_URL", "http://100.64.1.3:8090")
+    assert isolated.load_h3_configuration(checkout).video_base_url == "http://100.64.1.3:8090"
+
+
+def test_enable_h3_requires_boolean_not_an_extra_port(installation):
+    config, _ = installation
+    with pytest.raises(ValueError, match="boolean"):
+        replace(config, enable_h3=8853).validated()
+
+
+@pytest.mark.parametrize("ambient", ["equal", "nested", "obsolete-and-malformed"])
+def test_h3_provider_only_configuration_does_not_validate_ambient_storage(installation, monkeypatch, ambient):
+    config, _ = installation
+    monkeypatch.setenv("VIDEO_PROVIDER", "minimax_h3_gateway")
+    monkeypatch.setenv("VIDEO_MODEL", "minimax_h3_gateway_catalog_v7")
+    monkeypatch.setenv("VIDEO_BASE_URL", "http://100.64.1.2:8090")
+    monkeypatch.setenv("VIDEO_MODEL_API_KEY", "fixture-provider-key")
+    monkeypatch.setenv("PLOTLOOM_OUTPUTS_DIR", "/normal-do-not-open")
+    monkeypatch.setenv("PLOTLOOM_APPLICATION_DATA_DIR", "/normal-do-not-open/application" if ambient == "nested" else "/normal-do-not-open")
+    if ambient == "obsolete-and-malformed":
+        monkeypatch.setenv("PLOTLOOM_DATA_DIR", "/retired-do-not-open")
+        monkeypatch.setenv("PORT", "invalid-port")
+        monkeypatch.setenv("TEXT_TEMPERATURE", "not-a-number")
+    with compose(replace(config, enable_h3=True)) as runtime:
+        assert runtime.app.state.specialists.path.is_relative_to(config.data_root)
+        from fastapi.testclient import TestClient
+        with TestClient(runtime.app) as client:
+            assert client.get("/api/v2/video-backend").json()["enabled"] is True
+
+
+@pytest.mark.parametrize("failure", ["missing-credential", "invalid-catalog"])
+def test_h3_provider_only_configuration_still_fails_closed(installation, monkeypatch, failure):
+    config, _ = installation
+    monkeypatch.setenv("VIDEO_PROVIDER", "minimax_h3_gateway")
+    monkeypatch.setenv("VIDEO_MODEL", "untrusted-catalog" if failure == "invalid-catalog" else "minimax_h3_gateway_catalog_v7")
+    monkeypatch.setenv("VIDEO_MODEL_API_KEY", "" if failure == "missing-credential" else "fixture-provider-key")
+    monkeypatch.setenv("PLOTLOOM_OUTPUTS_DIR", "/normal-do-not-open")
+    monkeypatch.setenv("PLOTLOOM_APPLICATION_DATA_DIR", "/normal-do-not-open")
+    with pytest.raises(RuntimeError, match="VIDEO_MODEL_API_KEY|trusted MiniMax"), compose(replace(config, enable_h3=True)):
+        pytest.fail("invalid provider configuration must never serve")

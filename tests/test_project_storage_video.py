@@ -1111,7 +1111,7 @@ def test_h3_reviewed_directions_preview_bind_and_dispatch_after_restart(
     prepared = client.post(f"/api/v2/projects/{project_id}/video-jobs", json={**body, "reviewedDirections": reviewed})
     assert prepared.status_code == 201, prepared.text
     job = prepared.json()
-    assert job["snapshot"]["compilerVersion"] == "plotloom.h3-reviewed-frame.v4"
+    assert job["snapshot"]["compilerVersion"] == "plotloom.h3-reviewed-frame.v5-presentation"
     assert job["snapshot"]["shot"]["action"] == "沈岚把铜质熔断器放在两条并列插槽之间。"
     assert job["snapshot"]["compiledPrompt"] == prompt
     assert job["snapshot"]["reviewedDirections"] == reviewed

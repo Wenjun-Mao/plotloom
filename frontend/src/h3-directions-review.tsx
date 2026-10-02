@@ -109,7 +109,7 @@ export function H3DirectionsReview({ projectId, sourceIdentity, disabled, buildR
           aria-label={`${source.label}的英文生成说明`} />
       </label>)}
       <label className="h3-direction-check"><input type="checkbox" checked={reviewed} disabled={disabled || busy}
-        onChange={(event) => { setReviewed(event.target.checked); setCompiled(""); setCompiledHash(""); }} /><span>我已核对英文说明忠于来源；声音补充已明确审阅</span></label>
+        onChange={(event) => { setReviewed(event.target.checked); setCompiled(""); setCompiledHash(""); }} /><span>我已核对英文说明忠于来源；画面文字保持准确且不发声；声音补充已明确审阅</span></label>
       <div className="h3-direction-actions"><Button disabled={disabled || busy || !reviewed || sources.sources.some((source) => !drafts[source.path]?.trim())}
         onClick={() => void preview()}>预览完整 H3 提示词</Button></div>
       {compiled && <><pre className="video-prompt-preview">{compiled}</pre>

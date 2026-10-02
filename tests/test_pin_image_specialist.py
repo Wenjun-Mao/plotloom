@@ -63,6 +63,9 @@ def modular_checkout(tmp_path: Path) -> tuple[Path, Path]:
         "src/plotloom/image_job_contracts.py": "# image contract owner\n",
         "src/plotloom/image_job_exchange.py": "# exchange owner\n",
         "src/plotloom/image_job_package.py": "# frozen package projection owner\n",
+        "src/plotloom/production_presentation.py": "# presentation owner\n",
+        "src/plotloom/production_timing.py": "# timing owner\n",
+        "src/plotloom/canonical_schema.py": "# canonical owner\n",
     }
     for name, content in source_files.items():
         path = repository / name
@@ -291,3 +294,13 @@ def test_pin_rejects_a_missing_committed_modular_source(
     assert "pinned specialist source is not committed at HEAD" in result.stderr
     assert json.dumps(relative_path) in result.stderr
     assert not (package.parent / "delivery" / "executor-pin.json").exists()
+
+
+def test_pin_supports_current_presentation_package(modular_checkout: tuple[Path, Path]) -> None:
+    repository, package = modular_checkout
+    request_path = package / "request.json"
+    request = json.loads(request_path.read_text())
+    request["packageVersion"] = 5
+    request_path.write_text(json.dumps(request))
+    result = _run_pin(repository, package)
+    assert result.returncode == 0, result.stderr

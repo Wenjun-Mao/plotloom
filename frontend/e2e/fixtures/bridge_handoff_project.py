@@ -15,16 +15,20 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--outputs", type=Path, required=True)
     parser.add_argument("--application", type=Path, required=True)
+    parser.add_argument("--pending", action="store_true", help="Prepare a new unreviewed proposal without installation")
     args = parser.parse_args()
     storage = ProjectFolderStorage(outputs_root=args.outputs, application_data_root=args.application)
     store = storage.projects.create(FIXED_CHINESE_BRIEF.model_copy(update={"shot_count_policy": "advisory"}))
     try:
         proposal = _prepare_installable_bridge(store)
-        accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
-            expected_proposal_revision=proposal.revision,
-            expected_content_hash=proposal.content_hash,
-        ))
-        assert accepted.status == "accepted"
+        if args.pending:
+            store.prepare_production_bridge()
+        else:
+            accepted = store.accept_production_bridge(ProductionBridgeAcceptRequest(
+                expected_proposal_revision=proposal.revision,
+                expected_content_hash=proposal.content_hash,
+            ))
+            assert accepted.status == "accepted"
         print(store.manifest.project_id)
     finally:
         store.close()

@@ -123,10 +123,7 @@ def build_runtime_app(
     from .codex_image_dispatch import NativeCodexImageDispatcher
     from .domain import ProviderProfileCapabilities, ProviderSettings
     from .video_backends.minimax_h3 import (
-        H3_CATALOG_ID,
-        H3_PROFILES_BY_ID,
         MiniMaxH3GatewayAdapter,
-        MiniMaxH3GatewayTransport,
     )
     from .pipeline import (
         RunSecretBroker,
@@ -267,25 +264,9 @@ def build_runtime_app(
         video_adapter = test_video_adapter or MiniMaxH3GatewayAdapter()
     elif test_video_probe is not None:
         raise ValueError("a test video probe requires a typed test video provider")
-    elif settings.h3_gateway_enabled:
-        if settings.video_api_key is None:
-            raise RuntimeError("H3 gateway requires VIDEO_MODEL_API_KEY")
-        if (
-            settings.video_provider != "minimax_h3_gateway"
-            or settings.video_model not in {
-                H3_CATALOG_ID,
-                *H3_PROFILES_BY_ID,
-            }
-        ):
-            raise RuntimeError("H3 gateway runtime must use the trusted MiniMax H3 catalog")
-        video_provider = MiniMaxH3GatewayTransport(
-            settings.video_api_key.get_secret_value(),
-            base_url=settings.video_base_url,
-        )
-        video_adapter = MiniMaxH3GatewayAdapter()
     else:
-        video_provider = None
-        video_adapter = None
+        from .video_backends.minimax_h3.runtime import build_h3_backend
+        video_provider, video_adapter = build_h3_backend(settings, enabled=settings.h3_gateway_enabled)
 
     @asynccontextmanager
     async def runtime_lifespan(_app: Any):

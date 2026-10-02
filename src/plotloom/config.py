@@ -90,6 +90,41 @@ def resolve_repo_root(start: Path | None = None) -> Path:
     return candidate
 
 
+def load_trusted_environment(repo_root: Path | None = None) -> Path:
+    """Apply trusted dotenv precedence without validating runtime storage."""
+    source_checkout = repo_root is not None or _source_checkout_root() is not None
+    root = resolve_repo_root(repo_root)
+    if source_checkout:
+        # Exported host values win; installed wheels never inspect cwd.
+        load_dotenv(dotenv_path=root / ".env", override=False)
+    return root
+
+
+def _video_provider_values() -> dict[str, object]:
+    return {
+        "video_provider": os.environ.get("VIDEO_PROVIDER") or "minimax_h3_gateway",
+        "video_base_url": os.environ.get("VIDEO_BASE_URL") or "http://127.0.0.1",
+        "video_model": os.environ.get("VIDEO_MODEL") or H3_CATALOG_ID,
+        "video_auth_mode": os.environ.get("VIDEO_AUTH_MODE") or "bearer",
+        "video_api_key": os.environ.get("VIDEO_MODEL_API_KEY") or None,
+    }
+
+
+class VideoProviderSettings(BaseModel):
+    """Provider-only server configuration; contains no installation paths."""
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    video_provider: str
+    video_base_url: str
+    video_model: str
+    video_auth_mode: Literal["none", "bearer"]
+    video_api_key: SecretStr | None
+
+    @classmethod
+    def from_env(cls, repo_root: Path | None = None) -> VideoProviderSettings:
+        load_trusted_environment(repo_root)
+        return cls(**_video_provider_values())
+
+
 class PlotloomSettings(BaseModel):
     """Runtime-owned configuration for the project-folder composition."""
 
@@ -158,13 +193,7 @@ class PlotloomSettings(BaseModel):
 
     @classmethod
     def from_env(cls, repo_root: Path | None = None) -> PlotloomSettings:
-        source_checkout = repo_root is not None or _source_checkout_root() is not None
-        root = resolve_repo_root(repo_root)
-        if source_checkout:
-            # Only an explicit/source checkout root is trusted as a dotenv
-            # source. Existing host variables win because loading is
-            # deliberately non-overriding. Installed wheels never inspect cwd.
-            load_dotenv(dotenv_path=root / ".env", override=False)
+        root = load_trusted_environment(repo_root)
 
         obsolete = (
             "PLOTLOOM_DATA_DIR",
@@ -277,12 +306,7 @@ class PlotloomSettings(BaseModel):
                 configured_path("PLOTLOOM_CODEX_IMAGE_DISPATCH_STATE_DIR", application_data_dir / "native-image-dispatch")
                 if os.environ.get("PLOTLOOM_CODEX_IMAGE_SPECIALIST_TASK_ID") else None
             ),
-            video_provider=os.environ.get("VIDEO_PROVIDER") or "minimax_h3_gateway",
-            video_base_url=os.environ.get("VIDEO_BASE_URL") or "http://127.0.0.1",
-            video_model=os.environ.get("VIDEO_MODEL")
-            or H3_CATALOG_ID,
-            video_auth_mode=os.environ.get("VIDEO_AUTH_MODE") or "bearer",
+            **_video_provider_values(),
             text_api_key=resolve_text_provider_api_key(DEFAULT_PROVIDER_PROFILE_ID),
             image_api_key=os.environ.get("IMAGE_MODEL_API_KEY") or None,
-            video_api_key=os.environ.get("VIDEO_MODEL_API_KEY") or None,
         )

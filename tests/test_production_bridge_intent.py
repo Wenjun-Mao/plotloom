@@ -24,7 +24,7 @@ from plotloom.provider_profiles import StageMaxOutputTokens, TextProviderProfile
 from plotloom.project_storage.composition import ProjectFolderStorage
 from plotloom.runtime import build_runtime_app
 from plotloom.storyboard_review_contracts import StoryboardReviewAcceptRequest
-from tests.test_production_bridge import _source_shaped_review_board
+from tests.test_production_bridge import _source_shaped_review_board, _review_fixture_presentation
 from tests.test_project_storage_art import _accepted_f4_script, _deliver_stage
 
 
@@ -53,6 +53,7 @@ def _pending_project(tmp_path: Path) -> tuple[ProjectFolderStorage, str, int, st
         ))
         proposal = store.prepare_production_bridge().proposal
         assert proposal and not proposal.installable
+        proposal = _review_fixture_presentation(store, proposal)
         return storage, store.manifest.project_id, proposal.revision, proposal.content_hash
 
 
@@ -389,6 +390,16 @@ def test_runtime_http_fake_inference_review_edit_save_then_explicit_install(tmp_
             "expectedProposalRevision": proposal["revision"], "expectedContentHash": proposal["contentHash"],
         })
         assert stale_accept.status_code in {400, 409, 422}
+        presentation = revised["presentation"]
+        reviewed = client.put(f"{base}/proposals/presentation", json={
+            "expectedProposalRevision": revised["revision"], "expectedContentHash": revised["contentHash"],
+            "sourceHash": presentation["sourceHash"], "reviewedComplete": True,
+            "entries": [{"id": source["id"], "spans": [{"start": 0, "end": len(source["sourceText"]),
+                "role": "dialogue" if source["kind"] == "dialogue" else "physical",
+                "rendering": "" if source["kind"] == "dialogue" else source["sourceText"]}]} for source in presentation["sources"]],
+        })
+        assert reviewed.status_code == 200, reviewed.text
+        revised = reviewed.json()["proposal"]
         accepted = client.post(f"{base}/accept", json={
             "expectedProposalRevision": revised["revision"], "expectedContentHash": revised["contentHash"],
         })

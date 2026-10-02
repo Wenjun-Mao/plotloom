@@ -203,6 +203,7 @@ export interface Shot {
   visualIntent: string;
   motionIntent: string;
   action: string;
+  visibleTexts?: Array<{ text: string; sourceCoordinates: Record<string, unknown>; sourceContentHash: string }>;
   transition: string;
   characterIds: string[];
   locationId: string | null;
@@ -1339,6 +1340,10 @@ export interface StoryboardReviewState { candidate: StoryboardReviewCandidate | 
 export interface ProductionBridgeConflict { code: string; message: string; sectionId: string | null; episode: number | null; sceneIndex: number | null; }
 export interface ProductionBridgeIntentEntry { id: string; targetKind: "scene_objective" | "beat_purpose"; targetId: string; sourceCoordinates: Record<string, unknown>; sourceContentHash: string; sourceExcerpt: string; suggestedText: string | null; text: string; }
 export interface ProductionBridgeIntentPackage { suggestionOrigin: "none" | "model_inference.v1"; reviewState: "pending" | "model_suggested" | "author_saved"; entries: ProductionBridgeIntentEntry[]; provenance?: Record<string, unknown> | null; }
-export interface ProductionBridgeProposal { revision: number; contentHash: string; inputs: Record<string, unknown>; intentPackage: ProductionBridgeIntentPackage; scenes: Array<Record<string, unknown>>; cuts: Array<Record<string, unknown>>; conflicts: ProductionBridgeConflict[]; advisories: ProductionBridgeConflict[]; installable: boolean; preparedAt: string; }
+export interface PresentationSpan { start: number; end: number; role: "unassigned" | "physical" | "visible_text" | "runtime_choice" | "review_only" | "dialogue"; rendering: string; reason: string; }
+export interface PresentationSource { id: string; kind: "action" | "composition" | "dialogue"; targetId: string; coordinates: Record<string, unknown>; sourceHash: string; sourceText: string; spans: PresentationSpan[]; }
+export interface RuntimeChoice { choiceId: string; sectionId: string; prompt: string; outcomes: Array<{ outcomeId: string; label: string; endingSectionId: string; consequence: string }>; }
+export interface ProductionPresentation { version: 1; reviewed: boolean; sourceHash: string; sources: PresentationSource[]; runtimeChoice: RuntimeChoice; frozenEvidence: Record<string, unknown>; }
+export interface ProductionBridgeProposal { presentation?: ProductionPresentation | null; revision: number; contentHash: string; inputs: Record<string, unknown>; intentPackage: ProductionBridgeIntentPackage; scenes: Array<Record<string, unknown>>; cuts: Array<Record<string, unknown>>; conflicts: ProductionBridgeConflict[]; advisories: ProductionBridgeConflict[]; installable: boolean; preparedAt: string; }
 export interface ProductionBridgeIntentJob { id: string; status: "queued" | "dispatched" | "ready" | "stale" | "failed" | "cancelled" | "outcome_unknown"; proposalRevision: number; proposalContentHash: string; profileId: string; profileVersion: number; promptVersion: string; createdAt: string; updatedAt: string; errorCode: string | null; errorMessage: string | null; resultProposalRevision: number | null; providerRequestId: string | null; responseHash: string | null; }
-export interface ProductionBridgeState { proposal: ProductionBridgeProposal | null; status: "missing" | "ready" | "accepted" | "stale"; staleReasons: string[]; installedStageRevisions: Record<string, number> | null; installedStoryboardCurrent: boolean; intentJob?: ProductionBridgeIntentJob | null; simulationLabel?: string | null; }
+export interface ProductionBridgeState { runtimeChoice?: RuntimeChoice | null; proposal: ProductionBridgeProposal | null; status: "missing" | "ready" | "accepted" | "stale"; staleReasons: string[]; installedStageRevisions: Record<string, number> | null; installedStoryboardCurrent: boolean; intentJob?: ProductionBridgeIntentJob | null; simulationLabel?: string | null; }

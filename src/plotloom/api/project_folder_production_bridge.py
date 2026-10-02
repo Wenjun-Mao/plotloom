@@ -6,6 +6,7 @@ from typing import Any, Callable
 from fastapi import FastAPI, HTTPException, Request, status
 
 from ..production_bridge_contracts import ProductionBridgeAcceptRequest, ProductionBridgeIntentGenerateRequest, ProductionBridgeIntentUpdateRequest, ProductionBridgeState
+from ..production_presentation import ProductionPresentationUpdateRequest
 from ..production_bridge_intent_service import ProductionBridgeIntentService
 from .text_admission import TextAdmissionService
 
@@ -40,6 +41,11 @@ def register_project_folder_production_bridge_routes(
     def update_production_bridge_intent(project_id: str, body: ProductionBridgeIntentUpdateRequest) -> ProductionBridgeState:
         with opened_project(project_id) as store:
             return response(store.update_production_bridge_intent_package(body))
+
+    @app.put("/api/v2/projects/{project_id}/production-bridge/proposals/presentation", response_model=ProductionBridgeState)
+    def update_production_presentation(project_id: str, body: ProductionPresentationUpdateRequest) -> ProductionBridgeState:
+        with opened_project(project_id) as store:
+            return response(store.update_production_bridge_presentation(body))
 
     @app.post("/api/v2/projects/{project_id}/production-bridge/accept", response_model=ProductionBridgeState)
     def accept_production_bridge(project_id: str, body: ProductionBridgeAcceptRequest) -> ProductionBridgeState:

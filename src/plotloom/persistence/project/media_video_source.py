@@ -7,6 +7,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from ...production_timing import source_seconds_to_milliseconds
 from ...domain import StageName, StageStatus
 from ...exceptions import InvalidTransitionError
 from ..codec import stable_hash
@@ -64,7 +65,11 @@ class VideoSourceTiming:
             if not current:
                 raise InvalidTransitionError("bridge source-cut provenance is stale")
             seconds = cut.get("seconds")
-            if not isinstance(seconds, int) or seconds * 1_000 != duration_units:
+            try:
+                exact_units = source_seconds_to_milliseconds(seconds)
+            except ValueError as error:
+                raise InvalidTransitionError("bridge source-cut duration is unrepresentable") from error
+            if exact_units != duration_units:
                 raise InvalidTransitionError("bridge source-cut duration differs from canonical shot")
             return {
                 "kind": "f5_bridge", "admissionId": admission.id,

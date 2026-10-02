@@ -34,6 +34,9 @@ PINNED_SOURCES = (
     Path("src/plotloom/image_job_exchange.py"),
     Path("src/plotloom/image_job_package.py"),
     Path("src/plotloom/image_job_contracts.py"),
+    Path("src/plotloom/production_presentation.py"),
+    Path("src/plotloom/production_timing.py"),
+    Path("src/plotloom/canonical_schema.py"),
     Path("src/plotloom/persistence"),
 )
 
@@ -200,8 +203,8 @@ def main() -> int:
     preflight = request.get("specialistPreflight")
     if not isinstance(preflight, dict):
         raise SystemExit("Unsupported package: missing specialistPreflight.")
-    if request.get("schemaVersion") != 3 or request.get("packageVersion") != 4:
-        raise SystemExit("Unsupported package: expected schema version 3 and package version 4.")
+    if request.get("schemaVersion") != 3 or request.get("packageVersion") not in {4, 5}:
+        raise SystemExit("Unsupported package: expected schema version 3 and package version 4 or 5.")
     if preflight.get("version") != SUPPORTED_PREFLIGHT_VERSION or preflight.get("skillVersion") != SUPPORTED_SKILL_VERSION:
         raise SystemExit("Unsupported specialist preflight version or skill version.")
     if request.get("executionContract") != SUPPORTED_EXECUTION_CONTRACT or preflight.get("executionContract") != SUPPORTED_EXECUTION_CONTRACT:

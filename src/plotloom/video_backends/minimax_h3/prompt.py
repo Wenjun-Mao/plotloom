@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+import json
 
 from .directions import bind_reviewed_directions
 
@@ -32,6 +33,11 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
     if camera:
         description.append(rendered["shot.cameraMovement"])
 
+    for visible in shot.get("visibleTexts", []):
+        description.append(
+            "Show this exact authored diegetic visible text, without speaking it or adding captions: "
+            + json.dumps(visible["text"], ensure_ascii=False) + "."
+        )
     speaker_ids: dict[str, str] = {}
     characters = {
         item["id"]: item for item in context.get("characters", [])

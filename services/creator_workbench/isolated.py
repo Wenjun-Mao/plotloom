@@ -30,8 +30,11 @@ class RuntimeConfig:
     token_file: Path
     port: int
     bridge_port: int
+    enable_h3: bool = False
 
     def validated(self):
+        if type(self.enable_h3) is not bool:
+            raise ValueError("isolated H3 opt-in must be a boolean")
         if any(not 0 <= p <= 65535 for p in (self.port, self.bridge_port)):
             raise ValueError("ports must be between 0 and 65535")
         if self.port and self.port == self.bridge_port:
@@ -74,7 +77,7 @@ class RuntimeConfig:
         static = self.static_dir.resolve(strict=True)
         if not static.is_dir():
             raise ValueError("static assets must be an existing directory")
-        return RuntimeConfig(data, static, executable, token_path, self.port, self.bridge_port)
+        return RuntimeConfig(data, static, executable, token_path, self.port, self.bridge_port, self.enable_h3)
 
 
 @dataclass
@@ -93,6 +96,12 @@ class IsolatedRuntime:
     @property
     def bridge_url(self):
         return f"http://127.0.0.1:{self.bridge_server.server_port}"
+
+
+def load_h3_configuration(trusted_checkout_root: Path):
+    """Load only trusted provider settings; RuntimeConfig owns every path."""
+    from plotloom.config import VideoProviderSettings
+    return VideoProviderSettings.from_env(repo_root=trusted_checkout_root)
 
 
 @contextmanager
@@ -123,8 +132,12 @@ def compose(config: RuntimeConfig):
             outputs_root=config.data_root / "outputs",
             application_data_root=config.data_root / "application",
         )
+        from plotloom.video_backends.minimax_h3.runtime import build_h3_backend
+        # Load only provider configuration; RuntimeConfig remains storage authority.
+        settings = load_h3_configuration(Path(__file__).resolve().parents[2]) if config.enable_h3 else None
+        provider, adapter = build_h3_backend(settings, enabled=config.enable_h3)
         app = create_project_folder_authoring_app(
-            storage, video_provider=None, video_adapter=None, static_dir=config.static_dir,
+            storage, video_provider=provider, video_adapter=adapter, static_dir=config.static_dir,
             specialist_executable=str(shim), specialist_environment=environment,
         )
         bridge = QueueBridge(config.native_executable, app.state.specialists.path, config.token_file.read_text().strip())
@@ -158,8 +171,9 @@ def main():
     parser.add_argument("--token-file", type=Path, required=True)
     parser.add_argument("--port", type=port, required=True)
     parser.add_argument("--bridge-port", type=port, required=True)
+    parser.add_argument("--enable-h3", action="store_true", help="Explicitly enable the trusted H3 backend for this isolated installation")
     args = parser.parse_args()
-    config = RuntimeConfig(args.data_root, args.static_dir, args.codex, args.token_file, args.port, args.bridge_port)
+    config = RuntimeConfig(args.data_root, args.static_dir, args.codex, args.token_file, args.port, args.bridge_port, args.enable_h3)
     def exit_process(_signal, _frame):
         # Uvicorn replays SIGTERM after its own shutdown. A Python exit lets
         # the outer composition close the bridge and shim before termination.

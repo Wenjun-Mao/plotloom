@@ -556,6 +556,9 @@ class ProjectStore(ProjectCreativeHandoffs):
     def production_bridge_state(self) -> ProductionBridgeState:
         return self.repository.production_bridge.get_state(self.manifest.project_id)
 
+    def update_production_bridge_presentation(self, request):
+        return self.repository.production_bridge.update_presentation(self.manifest.project_id, request)
+
     def prepare_production_bridge(self) -> ProductionBridgeState:
         return self.repository.production_bridge.prepare(self.manifest.project_id)
 

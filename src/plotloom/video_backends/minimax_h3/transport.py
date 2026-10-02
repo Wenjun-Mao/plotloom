@@ -74,6 +74,15 @@ class MiniMaxH3GatewayTransport:
             raise ValueError("H3 gateway port is invalid")
         return candidate + "/"
 
+    @staticmethod
+    def _required_input_modes(value: object) -> bool:
+        return (
+            isinstance(value, list)
+            and all(type(mode) is str and bool(mode.strip()) and mode == mode.strip() for mode in value)
+            and len(value) == len(set(value))
+            and {"image", "text"}.issubset(value)
+        )
+
     def preflight(self) -> None:
         if not self._api_key:
             raise VideoProviderError("h3_gateway_credential_unavailable")
@@ -87,7 +96,7 @@ class MiniMaxH3GatewayTransport:
             or payload.get("defaultQuality") != 1
             or payload.get("qualities") != [1, 2, 3, 8]
             or payload.get("resolutions") != ["832x480", "960x544", "1280x704", "576x1024", "608x1088", "704x1280"]
-            or payload.get("inputModes") != ["image", "text"]
+            or not self._required_input_modes(payload.get("inputModes"))
             or type(payload.get("queuedJobs")) is not int
             or payload["queuedJobs"] < 0
             or type(payload.get("activeDispatches")) is not int
@@ -268,7 +277,7 @@ class MiniMaxH3GatewayTransport:
             "outcome_unknown", "cancelled",
         }:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
-        if value.get("inputMode") not in {"image", "text"}:
+        if value.get("inputMode") != "image":
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))
         if value.get("inputMode") == "image" and value.get("aspectPolicy") not in {"cover_center_crop", "contain_pad", "reject_mismatch"}:
             raise WanDispatchError(WanDispatchDiagnostic(phase, "invalid_envelope"))

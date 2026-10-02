@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { ProductionBridgeIntentEntry, ProductionBridgeState } from "../types";
+import { ProductionPresentationReview } from "./ProductionPresentationReview";
 import { bridgeCut } from "../production-bridge-handoff";
 
 const proposalKey = (projectId: string, state: ProductionBridgeState) => {
@@ -17,6 +18,7 @@ function userFacingBridgeMessage(message: string): string {
 export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { projectId: string; readOnly: boolean; onOpenShot?: (shotId: string) => boolean | void }) {
   const [state, setState] = useState<ProductionBridgeState>();
   const [intentEntries, setIntentEntries] = useState<ProductionBridgeIntentEntry[]>([]);
+  const [presentationDirty, setPresentationDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [loadFailed, setLoadFailed] = useState(false);
@@ -110,7 +112,7 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
     {loadFailed ? <><ErrorNotice message={userFacingBridgeMessage(error)} /><Button onClick={retryLoad}>重试加载</Button></> : <Spinner />}
   </section>;
   const proposal = state.proposal;
-  const unsaved = intentDirty || draftConflict;
+  const unsaved = intentDirty || draftConflict || presentationDirty;
   const activeJob = job?.status === "queued" || job?.status === "dispatched";
   return <section className="panel cast-panel" data-testid="production-bridge">
     <header><span>投产提案</span><strong>{state.status === "accepted" ? "投产提案已确认" : state.status === "stale" ? "上下文已过期" : "待确认"}</strong></header>
@@ -141,10 +143,11 @@ export function ProductionBridgePanel({ projectId, readOnly, onOpenShot }: { pro
         {state.status !== "accepted" && <Button disabled={readOnly || busy || !intentDirty || draftConflict || intentEntries.some(entry => !entry.text.trim())} onClick={() => run(() => plotloomApi.updateProductionBridgeIntent(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash, entries: intentEntries.map(entry => ({ id: entry.id, text: entry.text })) }), true)}>保存戏剧意图整包</Button>}
         {state.status !== "accepted" && unsaved && <p><small>当前编辑未保存或提案已变化；保存并刷新前，不能确认投产提案。</small></p>}
       </details>
+      <ProductionPresentationReview projectId={projectId} proposal={proposal} accepted={state.status === "accepted"} disabled={readOnly || busy || activeJob || state.status === "stale" || intentDirty || draftConflict} onSaved={adopt} onDirty={setPresentationDirty} onBusy={setBusy} />
       <details><summary>技术详情（版本、来源与冻结输入）</summary><code>{proposal.contentHash}</code>{job && <p><small>推断任务 {job.id} · 配置 {job.profileId} r{job.profileVersion} · 提示 v{job.promptVersion}</small></p>}{proposal.intentPackage.provenance && <p><small>建议来源任务：{String(proposal.intentPackage.provenance.jobId ?? "")}</small></p>}</details>
       <p>确认后，将建立后续制作使用的场景与镜头数据；不会自动生成图片或视频。</p>
       {state.status !== "accepted" && <Button variant="primary" disabled={readOnly || busy || !proposal.installable || unsaved} onClick={() => run(() => plotloomApi.acceptProductionBridge(projectId, { expectedProposalRevision: proposal.revision, expectedContentHash: proposal.contentHash }))}>确认投产提案</Button>}
-      {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
+      {state.status !== "accepted" && !proposal.installable && <p>请先完成戏剧意图与呈现归属审阅，并显式解决项目规划冲突；系统不会拆分场次或静默改写规则。</p>}
       {state.status === "accepted" && <p>{state.installedStoryboardCurrent
         ? "投产提案已确认。可在上方选择镜头进入既有分镜工作台；分镜审核、参考选择、关键帧与媒体准备仍须分别完成。"
         : "投产提案已确认，但确认时的分镜版本不再是当前版本；请在既有分镜工作台核对当前镜头，来源镜头直达已暂停。"}</p>}

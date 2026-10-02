@@ -606,3 +606,43 @@ it("autoplays only the next current source, holds the final frame, and reports c
   await act(async () => { [...host.querySelectorAll("button")].find((item) => item.textContent === "播放当前")?.click(); await Promise.resolve(); });
   expect(host.querySelector('[role="status"]')?.textContent).toContain("gesture required");
 });
+
+it("shows the source-bound question only after opening completion and closes on stale or failed ownership", async () => {
+  const fixture = branchingFixture();
+  fixture.graph.startNodeId = "decision";
+  fixture.selected = fixture.selected.map(item => ({ ...item, snapshot: { ...item.snapshot, sourceTiming: { kind: "f5_bridge" } } }));
+  const sourceChoice = { sectionId: "decision", prompt: "她今晚应该赴约吗？", outcomes: [
+    { outcomeId: "edge-2", endingSectionId: "left", label: "left" },
+    { outcomeId: "edge-3", endingSectionId: "right", label: "right" },
+  ] };
+  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "accepted", installedStoryboardCurrent: true, runtimeChoice: sourceChoice } as never);
+  const renderFixture = () => root.render(createElement(BranchingVideoPreview, { projectId: "project", jobs: fixture.selected, storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph }));
+  await act(async () => { renderFixture(); await Promise.resolve(); });
+  expect(host.querySelector('[data-testid="branching-choice-question"]')).toBeNull();
+  await act(async () => { host.querySelector("video")!.dispatchEvent(new Event("ended", { bubbles: true })); });
+  expect(host.querySelector('[data-testid="branching-choice-question"]')?.textContent).toBe(sourceChoice.prompt);
+  expect(host.querySelector('[data-testid="branching-choices"]')?.textContent).toContain("left");
+  const next = deferred<Awaited<ReturnType<typeof plotloomApi.getProductionBridge>>>();
+  read.mockReturnValue(next.promise);
+  fixture.selected = fixture.selected.map(item => ({ ...item, snapshot: { ...item.snapshot, sourceTiming: { kind: "f5_bridge", revision: 2 } } }));
+  await act(async () => renderFixture());
+  expect(host.querySelector('[data-testid="branching-choices"]')).toBeNull();
+  await act(async () => { next.reject(new Error("source ownership unavailable")); await Promise.resolve(); });
+  expect(host.querySelector('[data-testid="branching-choices"]')).toBeNull();
+});
+
+
+it.each(["stale", "foreign-current"])("canonical choices ignore %s bridge job history outside admitted playback", async (historyKind) => {
+  const fixture = branchingFixture();
+  fixture.graph.startNodeId = "decision";
+  const historical = selectedJob("historical-bridge", 1, {
+    current: historyKind !== "stale", selected: historyKind !== "stale",
+    snapshot: { shot: { id: "retired-shot", sceneId: "retired-scene" }, sourceTiming: { kind: "f5_bridge" } },
+  });
+  const read = vi.spyOn(plotloomApi, "getProductionBridge").mockResolvedValue({ status: "accepted", installedStoryboardCurrent: false, runtimeChoice: null } as never);
+  await act(async () => root.render(createElement(BranchingVideoPreview, { projectId: "project", jobs: [...fixture.selected, historical], storyboard: fixture.storyboard, sceneBeats: fixture.sceneBeats, graph: fixture.graph })));
+  await act(async () => host.querySelector("video")!.dispatchEvent(new Event("ended", { bubbles: true })));
+  expect(host.querySelector('[data-testid="branching-choices"]')?.textContent).toContain("left");
+  expect(host.querySelector('[data-testid="branching-choices"]')?.textContent).toContain("right");
+  expect(read).not.toHaveBeenCalled();
+});

@@ -309,3 +309,32 @@ def test_legacy_quality_one_profile_keeps_its_frozen_meaning() -> None:
             aspect_policy="reject_mismatch", allow_letterbox=False,
             allow_center_crop=False, seed=1, profile_id=legacy_id,
         )
+
+
+@pytest.mark.parametrize("modes,valid", [
+    (["image", "text", "image_voice"], True), (["text", "image"], True),
+    (["image"], False), (["text"], False), (None, False), ("image,text", False),
+    (["image", "text", "image"], False), (["image", "text", ""], False),
+    (["image", "text", " voice "], False), (["image", "text", 1], False),
+    (["image", "text", []], False),
+])
+def test_health_qualifies_unique_required_modes_without_enabling_extras(modes, valid):
+    session = _GatewaySession()
+    original = session.request
+    def health(method, url, **kwargs):
+        response = original(method, url, **kwargs)
+        if url.endswith("/health"):
+            response._payload["inputModes"] = modes
+        return response
+    session.request = health
+    transport = MiniMaxH3GatewayTransport("test-key", base_url="http://100.64.1.2:8090", session=session)
+    if valid: transport.preflight()
+    else:
+        with pytest.raises(VideoProviderError, match="profile_unavailable"): transport.preflight()
+
+
+@pytest.mark.parametrize("mode", ["image_voice", "text", "voice"])
+def test_unconsumed_modes_cannot_enter_image_job_result(mode):
+    payload = _job("succeeded", True); payload["inputMode"] = mode
+    with pytest.raises(WanDispatchError):
+        MiniMaxH3GatewayTransport._validate_job_envelope(payload, phase="poll")

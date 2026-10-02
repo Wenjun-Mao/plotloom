@@ -281,7 +281,7 @@ def test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacemen
         assert copied.status_code == 200, copied.text
         package = Path(copied.json()["packagePath"])
         package_request = json.loads((package / "request.json").read_text(encoding="utf-8"))
-        assert package_request["packageVersion"] == 4
+        assert package_request["packageVersion"] == 5
         assert package_request["references"][0]["role"] == "character_identity:fixture-hero"
         assert "characterIdentity[].acceptedCast" in (
             package / "COPY_ASSIGNMENT.txt"

@@ -261,6 +261,7 @@ class ImageJobPreparationPersistence:
             shot_payload = shot.model_dump(mode="json", by_alias=True)
             visual_proposal = {
                 "title": shot.title, "action": shot.action, "composition": shot.composition,
+                "visibleTexts": [item.model_dump(mode="json", by_alias=True) for item in shot.visible_texts],
                 "visualIntent": shot.visual_intent, "cameraAngle": shot.camera_angle,
                 "cameraMovement": shot.camera_movement,
             }
@@ -271,7 +272,8 @@ class ImageJobPreparationPersistence:
                 scene_beats=scene_beats,
             )
             snapshot = {
-                "snapshotVersion": contract_version, "compilerVersion": f"plotloom.codex-image-job.v{contract_version}",
+                "snapshotVersion": contract_version, "compilerVersion": f"plotloom.codex-image-job.v{contract_version}-presentation.v1",
+                "presentationContract": "physical-visible-runtime.v1",
                 "projectId": project_id, "approvalId": approval.id,
                 "approvalGateSetVersion": approval.gate_set_version,
                 "storyboardEntityRevisionId": approval.entity_revision_id,

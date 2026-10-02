@@ -30,7 +30,7 @@ test("H3 browser exposes quality and duration without granting playback eligibil
   await quality.selectOption("8");
   await duration.selectOption("15");
   await expect(panel.getByTestId("h3-authored-timing")).toContainText("362 帧");
-  await expect(panel.getByTestId("h3-authored-timing")).toContainText("当前六秒原稿仅可请求八秒原片");
+  await expect(panel.getByTestId("h3-authored-timing")).toContainText("原稿需要 144 帧；仍须核验实测原片并审阅连续片段，不会自动裁切或选择");
   await expect(panel.getByTestId("h3-directions-review").locator("button").first()).toBeDisabled();
   for (const width of [1440, 1920]) {
     await page.setViewportSize({ width, height: 1080 });

@@ -439,6 +439,13 @@ class AudioPlan(V2Model):
         return self
 
 
+class AuthoredVisibleText(V2Model):
+    """Exact nonspoken words, with source evidence retained independently."""
+    text: Annotated[str, Field(strict=True, min_length=1, pattern=r"\S")]
+    source_coordinates: dict[str, Any]
+    source_content_hash: Annotated[str, Field(pattern=r"^[a-f0-9]{64}$")]
+
+
 class ShotV2(V2Model):
     id: StableId
     scene_id: StableId
@@ -452,6 +459,7 @@ class ShotV2(V2Model):
     visual_intent: str
     motion_intent: str
     action: str
+    visible_texts: list[AuthoredVisibleText] = Field(default_factory=list)
     transition: str
     cue_ids: list[StableId]
     audio_plan: AudioPlan

@@ -1,4 +1,5 @@
 import { expect, test } from "./fixture";
+import { freezeReviewedFixtureDirections } from "./video_backends/minimax_h3/review-directions";
 import { demoProject } from "../src/demo";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,7 +99,7 @@ async function ingestAndSelectOfflineCandidate(page: Page, panel: Locator, proje
   const allowLetterbox = panel.getByLabel("允许黑边画布（保留当前横幅构图）");
   if (!await allowLetterbox.isChecked()) await allowLetterbox.check();
   await panel.getByLabel("H3 时长（已审核）").selectOption("8");
-  await panel.getByRole("button", { name: "生成另一候选（冻结当前审核关键帧）" }).click();
+  await freezeReviewedFixtureDirections(panel);
   await panel.getByRole("button", { name: "提交一次" }).click();
   const reconciled = page.waitForResponse((response) => {
     const pathname = new URL(response.url()).pathname;

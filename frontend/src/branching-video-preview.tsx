@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SceneBeatPlan, StoryEdge, StoryGraph, StoryNode, Storyboard, VideoJob } from "./types";
+import type { RuntimeChoice, SceneBeatPlan, StoryEdge, StoryGraph, StoryNode, Storyboard, VideoJob } from "./types";
 import { plotloomApi } from "./api";
 import { Button } from "./components";
 
@@ -89,6 +89,27 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
     () => branchingPreviewManifest(projectId, jobs, storyboard, sceneBeats, graph),
     [projectId, jobs, storyboard, sceneBeats, graph],
   );
+  const playbackJobs = [...manifest.nodes.values()].flatMap(node => node.jobs);
+  const bridgeOwned = playbackJobs.some(job => (job.snapshot.sourceTiming as { kind?: string } | undefined)?.kind === "f5_bridge");
+  const choiceIdentity = JSON.stringify({ projectId, bridgeOwned, media: playbackJobs.map(job => [job.id, job.snapshot.sourceTiming]), scope: manifest.identity, edges: graph.edges });
+  const [choiceState, setChoiceState] = useState<{ identity: string; choice: RuntimeChoice | null }>({ identity: "", choice: null });
+  const runtimeChoice = choiceState.identity === choiceIdentity ? choiceState.choice : null;
+  const choiceReady = !bridgeOwned || runtimeChoice !== null;
+  useEffect(() => {
+    if (!bridgeOwned) return;
+    const controller = new AbortController();
+    setChoiceState({ identity: choiceIdentity, choice: null });
+    void plotloomApi.getProductionBridge(projectId, controller.signal).then(state => {
+      if (controller.signal.aborted) return;
+      if (state.status === "accepted" && state.installedStoryboardCurrent && state.runtimeChoice) {
+        const choice = state.runtimeChoice;
+        const outgoing = graph.edges.filter(edge => edge.sourceNodeId === choice.sectionId);
+        const exact = outgoing.length === choice.outcomes.length && choice.outcomes.every(outcome => outgoing.some(edge => edge.id === outcome.outcomeId && edge.targetNodeId === outcome.endingSectionId && edge.choiceText === outcome.label));
+        if (exact) setChoiceState({ identity: choiceIdentity, choice });
+      }
+    }).catch(() => { /* Unverified choice ownership stays closed. */ });
+    return () => controller.abort();
+  }, [choiceIdentity]);
   const player = useRef<HTMLVideoElement>(null);
   const transitionRef = useRef("");
   const handledMediaRef = useRef("");
@@ -258,8 +279,10 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
       <div className="button-row"><Button onClick={play}>播放当前</Button></div>
     </>}
     {!missingMedia.length && !current && <small>此节点没有已编排镜头。</small>}
+    {bridgeOwned && !choiceReady && <small role="status">正在核对当前来源的选择界面；未确认时不能选择分支。</small>}
     {playbackError && <small className="notice warning" role="status">{playbackError}</small>}
-    {!missingMedia.length && nodeComplete && isDecision && <div className="button-row" data-testid="branching-choices">
+    {!missingMedia.length && nodeComplete && isDecision && choiceReady && <div className="button-row" data-testid="branching-choices">
+      {runtimeChoice?.sectionId === node.node.id && <p data-testid="branching-choice-question">{runtimeChoice.prompt}</p>}
       {node.outgoing.map((edge) => <Button key={edge.id} onClick={() => moveTo(edge, true)}>{edge.choiceText || `前往 ${manifest.nodes.get(edge.targetNodeId)?.node.title || edge.targetNodeId}`}</Button>)}
     </div>}
     {!missingMedia.length && nodeComplete && isEnding && <div className="button-row"><Button onClick={restart}>{restartLabel}</Button></div>}

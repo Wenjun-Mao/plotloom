@@ -1207,7 +1207,7 @@
       ]
     },
     "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement": {
-      "source_sha256": "71d69d00327fe81b7dde02c10a0d21a972edc82d7273f4f7e6f9784c594299e1",
+      "source_sha256": "b808488289a7d4ecc58a9bf5c55bb1b124f366903df62e0e19950a7c613d0f33",
       "assertions": [
         "approval.status_code == 201",
         "missing.status_code == 422",
@@ -1220,7 +1220,7 @@
         "frozen['characterIdentity'][0]['acceptedCast'] == accepted_cast",
         "[entry['role'] for entry in frozen['references']] == ['character_identity']",
         "copied.status_code == 200",
-        "package_request['packageVersion'] == 4",
+        "package_request['packageVersion'] == 5",
         "package_request['references'][0]['role'] == 'character_identity:fixture-hero'",
         "'characterIdentity[].acceptedCast' in (package / 'COPY_ASSIGNMENT.txt').read_text(encoding='utf-8')",
         "awaiting.status_code == 200",
@@ -2731,7 +2731,7 @@
       "current_replacements": [
         "tests/test_project_storage_image_identity_contracts.py::test_identity_image_delivery_is_reviewed_then_stales_on_reference_replacement"
       ],
-      "mapping_note": "The direct project-folder P1.5 regression proves missing-reference refusal, frozen reference roles and v4 package pin, waiting without output, attested delivery, explicit same-person review before preview, and replacement-driven stale job/review/preview history without rewriting prior decisions.",
+      "mapping_note": "The direct project-folder P1.5 regression proves missing-reference refusal, frozen reference roles and current package pin (v5 presentation contract from 2026-10-02; prior frozen v4 packages remain unchanged), waiting without output, attested delivery, explicit same-person review before preview, and replacement-driven stale job/review/preview history without rewriting prior decisions.",
       "review_status": "verified"
     },
     {

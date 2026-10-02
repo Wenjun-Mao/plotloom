@@ -152,3 +152,13 @@ next explicit workflow steps.
 
 The detailed mapping, acceptance sequence, exclusions, and test scope are in
 [the bridge design](../verification/2026-09-22-f5-to-production-canonical-bridge-design.md).
+
+## 2026-10-02 amendment: exact timing and reviewed presentation
+
+[ADR 0100](0100-reviewed-production-presentation.md) defines the required reviewed
+physical/diegetic/runtime presentation supplement, complete source coverage and
+shared image/H3 input boundary. Exact source milliseconds are converted without
+rounding at production/provenance boundaries; raw F5 admission is unchanged.
+Preparation validates the retained accepted F5 binding including its frozen cut
+policy before freezing the current source chain. Fresh preparation cannot pair
+stale F5 with a newer Script.

@@ -7,6 +7,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from .domain import CamelModel
+from .production_presentation import ProductionPresentation
 
 
 ProductionBridgeStatus = Literal["missing", "ready", "accepted", "stale"]
@@ -67,6 +68,7 @@ class ProductionBridgeProposal(CamelModel):
     content_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
     inputs: dict[str, Any]
     intent_package: ProductionBridgeIntentPackage
+    presentation: ProductionPresentation | None = None
     scenes: list[dict[str, Any]]
     cuts: list[dict[str, Any]]
     conflicts: list[ProductionBridgeConflict] = Field(default_factory=list)
@@ -83,6 +85,7 @@ class ProductionBridgeState(CamelModel):
     installed_storyboard_current: bool = False
     intent_job: "ProductionBridgeIntentJob | None" = None
     simulation_label: str | None = None
+    runtime_choice: dict[str, Any] | None = None
 
 
 class ProductionBridgeIntentJob(CamelModel):

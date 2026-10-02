@@ -94,6 +94,9 @@ def bind_reviewed_directions(snapshot: dict[str, Any], package: dict[str, Any] |
         rendered[path] = english
     if set(rendered) != expected:
         raise ValueError("H3 direction fields do not cover every current source")
+    # Typed visibleTexts belong to the compiler's nonspoken role. Ordinary
+    # words shared with physical direction cannot establish semantic misuse;
+    # faithful role separation remains an explicit package review.
     for cue in snapshot["resolvedContext"].get("dialogueCues", []):
         text = str(cue.get("text") or "")
         if text and any(text in english for english in rendered.values()):

@@ -10,6 +10,7 @@ from .image_job_contracts import ImageJobError
 
 PACKAGE_VERSION = 3
 PINNED_PACKAGE_VERSION = 4
+PRESENTATION_PACKAGE_VERSION = 5
 COMPLETION_TEMPLATE_FILENAME = "completion-manifest.example.json"
 OUTPUT_BASENAME_INSTRUCTION = (
     "Copy each selected ImageGen JPEG or PNG unchanged using its exact returned basename; "
@@ -31,6 +32,8 @@ def package_version(request: dict[str, Any]) -> int:
     if schema_version == 2:
         return 2
     if schema_version == 3:
+        if request.get("frozenSnapshot", {}).get("presentationContract") == "physical-visible-runtime.v1":
+            return PRESENTATION_PACKAGE_VERSION
         return PINNED_PACKAGE_VERSION if request.get("specialistPreflight", {}).get("version") == "p1.5-pin.v1" else PACKAGE_VERSION
     raise ImageJobError("request_integrity", "frozen image request schema is unsupported")
 
@@ -122,6 +125,11 @@ def project_image_package(
                 )
             )
             + adaptation_instruction
+            + ("Use the frozen shot action/composition and resolved visibleEvent fields as physical presentation authority. "
+               "visibleTexts are exact nonspoken diegetic words: preserve their original text in the image. "
+               "Never generate player choice questions, option buttons or UI; runtime owns that presentation. "
+               "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
+               if version == PRESENTATION_PACKAGE_VERSION else "")
             + OUTPUT_BASENAME_INSTRUCTION
             + "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. Do not write "
             "SQLite, modify this package, or include sensitive values."
@@ -130,7 +138,7 @@ def project_image_package(
             f"Plotloom {'art-reference study' if art_reference else 'character-reference proposal' if proposal else 'identity-aware image job'} {job_id}\n"
             f"Read: {package / 'request.json'}\n"
             f"Read completion template: {package / COMPLETION_TEMPLATE_FILENAME}\n"
-            + (f"Before ImageGen, run: uv run python scripts/pin_image_specialist.py --package {package}\n" if version == PINNED_PACKAGE_VERSION else "")
+            + (f"Before ImageGen, run: uv run python scripts/pin_image_specialist.py --package {package}\n" if version in {PINNED_PACKAGE_VERSION, PRESENTATION_PACKAGE_VERSION} and request.get("specialistPreflight") else "")
             + f"Deliver only under: {job_root / 'delivery'}\n"
             + (
                 "Use Codex built-in image generation. View every supplied character_identity reference and preserve "
@@ -148,6 +156,11 @@ def project_image_package(
                 )
             )
             + adaptation_instruction
+            + ("Use the frozen shot action/composition and resolved visibleEvent fields as physical presentation authority. "
+               "visibleTexts are exact nonspoken diegetic words: preserve their original text in the image. "
+               "Never generate player choice questions, option buttons or UI; runtime owns that presentation. "
+               "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
+               if version == PRESENTATION_PACKAGE_VERSION else "")
             + OUTPUT_BASENAME_INSTRUCTION
             + "Disclose the "
             "exact actual prompt and publish completion.json only after every declared output is complete.\n"

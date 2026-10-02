@@ -213,8 +213,12 @@ class ImageJobCurrentness:
         locations_by_id = {item.id: item for item in story_bible.locations}
 
         return {
-            "scene": dump(scene) if scene is not None else None,
-            "beats": [dump(item) for item in beats],
+            # Semantic objectives/purposes and raw evidence are reviewed narrative
+            # context, not active image/H3 physical or runtime presentation authority.
+            "scene": {key: value for key, value in dump(scene).items() if key != "objective"} if scene is not None else None,
+            "beats": [{"id": item.id, "sceneId": item.scene_id, "order": item.order,
+                       "visibleEvent": item.visible_event, "entryState": dump(item.entry_state),
+                       "exitState": dump(item.exit_state)} for item in beats],
             "dialogueCues": [dump(item) for item in cues],
             "characters": [dump(characters_by_id[item_id]) for item_id in character_ids if item_id in characters_by_id],
             "locations": [dump(locations_by_id[item_id]) for item_id in location_ids if item_id in locations_by_id],

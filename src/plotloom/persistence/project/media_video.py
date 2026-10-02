@@ -119,7 +119,7 @@ class VideoJobPersistence:
             resolution = production_contract.resolution
             audio = production_contract.audio
             compiler_version = (
-                "plotloom.h3-reviewed-frame.v4" if production_contract.profile_id is not None
+                "plotloom.h3-reviewed-frame.v5-presentation" if production_contract.profile_id is not None
                 else "p2-video-adapters-v1"
             )
             provider_snapshot = production_contract.provider_snapshot()
