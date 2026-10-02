@@ -1035,6 +1035,25 @@ No real assignment was replayed, no delivery was automatically admitted, and
 no image was selected. Next creator step: inspect the existing S01 delivery;
 a future production send verifies the installed HTTP bridge with ImageGen.
 
+### Approved walkthrough follow-on: another art-reference candidate (2026-10-02)
+
+The creator approved adding a requirements-revision flow after disliking a
+delivered P01 candidate. Scope: expose a new draft and explicit prepare/send for
+the same accepted scene/prop, preserve existing candidates and selections, and
+reuse comparison. ADR 0097 records the boundary. Evidence: isolated component
+and browser tests for another candidate, draft/session isolation and selection
+retention; independent review; fresh generated assets. Stop after verified UI
+delivery and push. No real image dispatch, creative choice, art reopening,
+image-edit semantics or remote-access work is included.
+
+Delivered: the additional-candidate form is available in the rebuilt frontend;
+25 focused component tests, 286 full frontend tests, 25 art-storage/API checks
+and 9 art browser tests passed. Independent review found no actionable issues.
+A separate browser confirmed local P01 draft edit/cancel without any mutating
+request; complete project art/proposal/decision/specialist state was unchanged.
+See the [verification receipt](../verification/2026-10-02-art-reference-additional-candidate.md).
+Real regeneration and creative selection remain the creator's next actions.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation

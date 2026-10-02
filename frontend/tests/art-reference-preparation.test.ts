@@ -117,3 +117,89 @@ it("does not reconcile a failed send into a different accepted session", async (
   expect(refresh).not.toHaveBeenCalled();
   expect(host.textContent).not.toContain("Old session queue warning");
 });
+
+const delivered = { ...study, state: "delivered" as const };
+const button = (label: string) => [...host.querySelectorAll("button")].find((entry) => entry.textContent === label);
+async function click(label: string) { await act(async () => button(label)!.click()); }
+
+it("opens and cancels a new draft without editing the frozen request or calling an API", async () => {
+  const prepare = vi.spyOn(plotloomApi, "prepareArtReferenceProposal");
+  const send = vi.spyOn(specialistsApi, "sendArtImage");
+  const cancel = vi.spyOn(plotloomApi, "cancelArtReferenceProposal");
+  await render({ studies: [delivered] });
+  await click("修改要求，再生成一张");
+  expect(textarea().readOnly).toBe(false);
+  expect(textarea().value).toBe("保留雨后积水，柔和晨光。");
+  expect(host.textContent).toContain("不会把旧图作为编辑输入");
+  await edit("更低的视角，保持真人写实。");
+  await click("取消本次修改");
+  expect(textarea().readOnly).toBe(true);
+  expect(textarea().value).toBe("保留雨后积水，柔和晨光。");
+  expect(prepare).not.toHaveBeenCalled();
+  expect(send).not.toHaveBeenCalled();
+  expect(cancel).not.toHaveBeenCalled();
+});
+
+it("prepares a separate frozen candidate and still requires an explicit send", async () => {
+  const next = { ...study, id: "new-study", request: { frozenSnapshot: { renderDirection: "新要求" } } };
+  const prepare = vi.spyOn(plotloomApi, "prepareArtReferenceProposal").mockResolvedValue({ proposal: next });
+  const send = vi.spyOn(specialistsApi, "sendArtImage").mockResolvedValue({} as never);
+  const refresh = vi.fn(async () => root.render(createElement(ArtReferenceGallery, { ...defaults, studies: [next, delivered], refresh })));
+  await render({ studies: [delivered], refresh });
+  await click("修改要求，再生成一张");
+  await edit("  新要求  ");
+  await click("准备新图片任务");
+  expect(prepare).toHaveBeenCalledExactlyOnceWith("project", { subjectType: "scene", subjectId: "S01", renderDirection: "新要求" });
+  expect(send).not.toHaveBeenCalled();
+  expect(textarea().readOnly).toBe(true);
+  expect(textarea().value).toBe("新要求");
+  expect(button("修改要求，再生成一张")).toBeUndefined();
+  await click("发送给图像生成助手");
+  expect(send).toHaveBeenCalledExactlyOnceWith("project", "new-study");
+  expect(delivered.request.frozenSnapshot).toEqual(study.request.frozenSnapshot);
+});
+
+it("keeps retry drafts separate for scenes and props across navigation and refresh", async () => {
+  const prop = { ...delivered, id: "prop-study", subjectType: "prop" as const, subjectId: "P01" };
+  await render({ studies: [delivered, prop] });
+  await click("修改要求，再生成一张"); await edit("环境新要求");
+  await select(2); await click("修改要求，再生成一张"); await edit("道具新要求");
+  await select(0);
+  expect(textarea().value).toBe("环境新要求");
+  expect(button("准备新图片任务")).toBeDefined();
+  await render({ studies: [{ ...delivered }, prop] });
+  expect(textarea().value).toBe("环境新要求");
+  await select(2);
+  expect(textarea().value).toBe("道具新要求");
+});
+
+it.each([{ projectId: "other" }, { acceptedRevision: 2 }, { acceptedContentHash: "new-hash" }])("does not carry revision mode across accepted sessions: %j", async (change) => {
+  await render({ studies: [delivered] });
+  await click("修改要求，再生成一张"); await edit("旧会话修改");
+  await render({ studies: [delivered], ...change });
+  expect(button("准备新图片任务")).toBeUndefined();
+  expect(textarea().readOnly).toBe(true);
+  await render({ studies: [delivered] });
+  expect(button("准备新图片任务")).toBeUndefined();
+});
+
+it.each(["prepared", "exported", "cancelled"] as const)("does not offer another candidate for a %s task", async (state) => {
+  await render({ studies: [{ ...study, state }] });
+  expect(button("修改要求，再生成一张")).toBeUndefined();
+});
+
+it.each([{ readOnly: true }, { busy: true }])("disables revision controls when unavailable: %j", async (override) => {
+  await render({ studies: [delivered], ...override });
+  expect(button("修改要求，再生成一张")!.disabled).toBe(true);
+});
+
+it("retains revised requirements after a preparation failure and blocks blank drafts", async () => {
+  vi.spyOn(plotloomApi, "prepareArtReferenceProposal").mockRejectedValue(new Error("Preparation failed"));
+  await render({ studies: [delivered] });
+  await click("修改要求，再生成一张"); await edit("   ");
+  expect(button("准备新图片任务")!.disabled).toBe(true);
+  await edit("保留本次修改"); await click("准备新图片任务");
+  expect(host.textContent).toContain("Preparation failed");
+  expect(textarea().readOnly).toBe(false);
+  expect(textarea().value).toBe("保留本次修改");
+});

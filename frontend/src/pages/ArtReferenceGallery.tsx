@@ -7,11 +7,12 @@ import type { ArtReferenceDecision, ArtReferenceDecisionState, ArtReferencePropo
 import { specialistsApi } from "../features/specialists/api";
 import { reconcileFailedSend } from "../features/specialists/reconcileFailedSend";
 import { ArtReferencePreparation } from "./ArtReferencePreparation";
-import { artSubjects, defaultImageRequirements, studyStatus, subjectKey } from "./artReferencePresentation";
+import { artSubjects, defaultImageRequirements, record, studyStatus, subjectKey } from "./artReferencePresentation";
 
 type Candidate = ArtReferenceProposal["deliveries"][number]["candidates"][number] & {
   delivery: ArtReferenceProposal["deliveries"][number]; study: ArtReferenceProposal;
 };
+type RequirementDraft = { value: string; sourceStudyId?: string };
 
 /**
  * F3B stays in the existing ArtPanel. This is only its image-first review
@@ -30,7 +31,7 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
   const [selectedSubjectKey, setSelectedSubjectKey] = useState("");
   const [error, setError] = useState("");
   const sessionKey = `${projectId}:${acceptedRevision}:${acceptedContentHash}`;
-  const [drafts, setDrafts] = useState<{ session: string; values: Record<string, string> }>({ session: sessionKey, values: {} });
+  const [drafts, setDrafts] = useState<{ session: string; values: Record<string, RequirementDraft> }>({ session: sessionKey, values: {} });
   if (drafts.session !== sessionKey) setDrafts({ session: sessionKey, values: {} });
   const activeSession = useRef({ key: sessionKey, epoch: 0 });
   if (activeSession.current.key !== sessionKey) activeSession.current = { key: sessionKey, epoch: activeSession.current.epoch + 1 };
@@ -75,8 +76,17 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
 
   if (!selected) return <section className="art-reference-studies art-reference-gallery" data-testid="art-reference-studies"><strong>尚无可审阅的环境或道具</strong><p>先接受包含稳定 scene/prop ID 的 art.json；这里不会猜测或创建主体。</p></section>;
   const status = studyStatus(study);
-  const direction = (drafts.session === sessionKey ? drafts.values[subjectKey(selected)] : undefined) ?? defaultImageRequirements(art.style, selected.subjectType);
-  const setDirection = (value: string) => setDrafts((previous) => ({ session: sessionKey, values: { ...(previous.session === sessionKey ? previous.values : {}), [subjectKey(selected)]: value } }));
+  const draft = drafts.session === sessionKey ? drafts.values[subjectKey(selected)] : undefined;
+  const direction = draft?.value ?? defaultImageRequirements(art.style, selected.subjectType);
+  const revising = Boolean(study?.current && study.state === "delivered" && draft?.sourceStudyId === study.id);
+  const setDraft = (value: RequirementDraft) => setDrafts((previous) => ({ session: sessionKey, values: { ...(previous.session === sessionKey ? previous.values : {}), [subjectKey(selected)]: value } }));
+  const setDirection = (value: string) => setDraft({ value, sourceStudyId: revising ? study?.id : undefined });
+  const startRevision = () => {
+    if (!study?.current || study.state !== "delivered") return;
+    const frozenDirection = record(study.request.frozenSnapshot).renderDirection;
+    setDraft({ value: typeof frozenDirection === "string" ? frozenDirection : defaultImageRequirements(art.style, selected.subjectType), sourceStudyId: study.id });
+    setError("");
+  };
   const actionable = !readOnly && !studyBusy;
   const chooseLabel = selected.subjectType === "scene" ? "用作此环境的参考图" : "用作此道具的参考图";
   const candidateIsCurrent = Boolean(viewed?.study.current && viewed.delivery.state === "accepted");
@@ -103,6 +113,7 @@ export function ArtReferenceGallery({ projectId, art, acceptedRevision, accepted
       {viewableCandidates.length > 1 && <div className="appearance-compare-controls" aria-label="同一主体图片比较"><span>比较（已选 {comparisonCandidates.length}/4；至少选择 2 张）</span>{viewableCandidates.map((candidate) => { const compared = comparisonAssetIds.includes(candidate.assetId); return <Button key={candidate.id} variant="quiet" aria-pressed={compared} className="selection-toggle" disabled={!compared && comparisonAtCapacity} onClick={() => toggleComparison(candidate.assetId)}>{compared ? `移出 ${candidate.outputFilename}` : `加入 ${candidate.outputFilename}`}</Button>; })}{comparisonCandidates.length > 0 && <Button variant="quiet" onClick={clearComparison}>清空比较</Button>}{comparisonAtCapacity && <small>已达四张上限；先移出一张再替换。</small>}</div>}
       {comparisonCandidates.length >= 2 && <div className={`appearance-compare comparison-count-${comparisonCandidates.length}`} data-testid="art-reference-comparison"><header><strong>并排比较 · {comparisonCandidates.length} 张</strong><small>仅比较 {selected.subjectType === "scene" ? "环境" : "道具"} {selected.name}；不会选择生产资产。</small></header>{comparisonCandidates.map((candidate) => <figure key={candidate.assetId}><figcaption>{candidate.assetId === viewed?.assetId ? "当前查看" : "对比图片"} · {candidate.outputFilename}</figcaption><ManagedAssetImage projectId={projectId} subjectId={subjectKey(selected)} asset={candidate.asset} assetId={candidate.assetId} alt={`${candidate.outputFilename} 比较图片`} unavailableLabel="对比图片不可用" imageUrl={assetUrl?.(candidate.assetId)} /></figure>)}</div>}
       {showStudyActions && <ArtReferencePreparation style={art.style} subject={selected} study={study} actionable={actionable} direction={direction} onDirectionChange={setDirection}
+        revising={revising} onRevise={startRevision} onCancelRevision={() => setDraft({ value: direction })}
         onPrepare={() => void act(() => plotloomApi.prepareArtReferenceProposal(projectId, { subjectType: selected.subjectType, subjectId: selected.subjectId, renderDirection: direction.trim() }))}
         onSend={() => study && void act((isCurrent) => reconcileFailedSend(() => specialistsApi.sendArtImage(projectId, study.id), async () => { if (isCurrent()) await refresh(); }))}
         onRefresh={() => study && void act(() => plotloomApi.refreshArtReferenceProposal(projectId, study.id))}
