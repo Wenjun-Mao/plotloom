@@ -72,3 +72,28 @@ The actual-config provider-only constructor also passed with a process-scoped
 current v7 catalog, unexported credential loaded from trusted dotenv, and default-off
 behavior; it made no network call. Commit/push, backend deployment and live media
 continuation follow this gate and are not implied by these tests.
+
+## Committed deployment checkpoint, 11:25 UTC
+
+Implementation `ca318239072b3b893671cb51d7de0ededea2f55c` is pushed to `main`.
+The committed-source recovery/pin checks pass (16 tests). Staging exposed one
+extra trailing blank line in the new projection module; it was removed before
+commit and the complete staged diff check passed. No semantic change followed
+the final gates.
+
+Only normal container `plotloom-creator-workbench-1` was restarted; its native
+bridge was not restarted. Normal health is good and H3 remains disabled there.
+The same isolated installation is now held by the manager chat's process
+PID **72269**, exec session **35131**, on **8851/8852**. It was started through the
+committed isolated launcher with explicit `--enable-h3` and a process-only
+`VIDEO_MODEL=minimax_h3_gateway_catalog_v7`; no credential or dotenv was changed.
+The copy reports H3 enabled and qualified requests of 5–15 seconds. This is
+configuration/readiness evidence, not a gateway dispatch or generated video.
+
+Both served bundles match the reviewed SHA-256 above. The copy retains current
+Script r3 and Storyboard r2, no production proposal, and no active specialist
+tasks. Its old specialist IDs remain archived and must be explicitly rebound
+to fresh chats before dispatch. The original post-deployment capture
+`evidence/manager-stage4-after-deploy-original.json` still matches all seven API
+states, 73 tables and 67 files byte-for-byte. The earlier online gap remains
+unexplained; this checkpoint does not claim uninterrupted availability.

@@ -377,3 +377,12 @@ original-project protection and truthful evidence remain.
   native specialists inactive and reservation-free; copy runtime remains offline.
   Manager commit/push and backend startup precede real production/media actions;
   fixture playback and constructor qualification are not real-video acceptance.
+- Stage 4 committed deployment, 11:25 UTC: implementation `ca31823` is pushed;
+  16 committed recovery/pin tests pass. Only the normal workbench container was
+  restarted, with health good and H3 still disabled. Manager-owned isolated
+  PID 72269 serves the same copy on 8851/8852 with explicit H3 opt-in and scoped
+  current-catalog override; both served bundles match reviewed bytes. Current
+  Script r3/Storyboard r2 and idle reservations are confirmed. Original API,
+  73 tables and 67 files remain identical after deployment. No real stage 4
+  generation has occurred yet; fresh specialist binding and explicit copy-only
+  presentation/intent/installation are the next live steps.
