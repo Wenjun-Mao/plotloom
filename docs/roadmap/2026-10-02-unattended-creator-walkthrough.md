@@ -295,3 +295,30 @@ original-project protection and truthful evidence remain.
   coordinator after push for the owned restart and remaining stages 2–3 UI
   checks; the next live package must be freshly prepared from this committed
   source, not an old prepared request or a rewritten receipt.
+- Steps 2–3 source-currentness gate, 09:28 UTC: fresh P01 delivered under its
+  exact ImageGen basename, passed technical admission and was provisionally
+  selected in the copy; cleanup refusal preserved staging. Both actual Storyboard
+  reader routes passed. A scoped opening-only Script edit saved r3 and correctly
+  made retained Storyboard r1 stale, exposing mounted-panel cached authority after
+  navigation/global refresh. The bounded ADR 0099 candidate repairs visible-owner
+  revalidation, dirty-draft authority retention, stale candidate action guards and
+  unified latest-read readiness. All three independent-review findings were
+  repaired; implementation is frozen for re-review. Both typechecks, 289 frontend
+  unit tests and 45 affected browser checks pass. Build output remains staged
+  outside normal/copy served static; original API/73 tables/67 files remain exact.
+  Manager source review/commit and idle promotion precede actual fixed-UI replay,
+  fresh current Storyboard, purposeful S01 revision and the P01 requirements loop.
+  No new native generation or stage 4/H3 action during source edits. See the
+  [updated checkpoint](../verification/2026-10-02-stage23-contract-checkpoint.md).
+- Final current-review seam checkpoint, 09:36 UTC: re-review closed draft/read
+  findings but exposed Script/Cast accepted-first state projection. The bounded
+  API fix now derives status/reasons from the active candidate, otherwise retained
+  acceptance, including a first candidate. Current replacements remain usable
+  over preserved stale accepted evidence; Cast candidate action guards match this
+  contract. All 40 focused Python, 18 seam/currentness browser, 289 frontend unit,
+  both typecheck and the Cast direction browser gates pass. Configured-availability
+  Send tests have positive controls and fail-closed interception with zero sends.
+  Candidate is frozen for final review; latest bundle is staged only. Original
+  API/73 tables/67 files remain exact and copy reservations free. Manager owns
+  final review/promotion/commit/full Python before the remaining copy-only UI
+  milestones. No fresh live package, restart or stage 4/H3 action.

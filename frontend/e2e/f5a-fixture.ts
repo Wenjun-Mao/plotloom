@@ -19,10 +19,25 @@ export async function json<T = any>(pending: Pick<APIResponse, "ok" | "text" | "
 export async function fixture(name: string): Promise<any> {
   return JSON.parse(await readFile(path.join(fixtureDirectory, name), "utf8"));
 }
+
+/** Availability-only transport fixture: durable review state stays on the real API. */
+export async function availableSpecialistWithoutSend(page: Page, id: string, stage: string, jobId: string) {
+  const root = `**/api/v2/projects/${id}/specialist-tasks/${stage}/${jobId}`;
+  let sends = 0;
+  await page.route(root, async route => {
+    const response = await route.fetch();
+    await route.fulfill({ response, json: { ...await response.json(), configured: true } });
+  });
+  await page.route(`${root}/send`, async route => {
+    sends++;
+    await route.fulfill({ status: 409, json: { detail: "Availability fixture forbids dispatch." } });
+  });
+  return () => sends;
+}
 export function endpoint(origin: string, projectId: string): string {
   return `${origin}/api/v2/projects/${projectId}/storyboard-source-review`;
 }
-export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}): Promise<string> {
+export async function createScriptProject(request: APIRequestContext, origin: string, label: string, candidates: Partial<Record<"cast" | "art" | "script", unknown>> = {}, stages: readonly ("cast" | "art" | "script")[] = ["cast", "art", "script"]): Promise<string> {
   const root = `${origin}/api/v2/projects`;
   const created = await json(request.post(root, { headers: { "Idempotency-Key": `f5a-${label}-${Date.now()}` }, data: { brief: { ...demoProject.brief, title: `F5A ${label}`, targetPlaythroughSeconds: 180 } } }));
   const id = created.id;
@@ -40,7 +55,7 @@ export async function createScriptProject(request: APIRequestContext, origin: st
     expectedSourceRevision: 1, expectedSourceContentHash: map.source.contentHash, expectedOutlineRevision: 1, expectedOutlineContentHash: map.acceptedOutline.contentHash,
     expectedSectionMapRevision: 1, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0,
   } }));
-  for (const stage of ["cast", "art", "script"] as const) {
+  for (const stage of stages) {
     const candidate = candidates[stage] ?? await fixture(`${stage}.json`);
     const preparation = stage === "art" ? { data: { renderStyle: (candidate as { style: string }).style } } : undefined;
     const prepared = await json(request.post(`${url}/${stage}/candidates`, preparation));

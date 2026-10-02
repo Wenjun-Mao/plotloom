@@ -92,3 +92,24 @@ it("restores the recovered script assignment without claiming it was copied", as
   expect(host.textContent).not.toContain("已复制完整任务");
   expect(writeText).not.toHaveBeenCalled();
 });
+
+it("a mutation refresh supersedes a delayed activation payload and failure verdict", async () => {
+  const prepared = deferred<{ assignment: string }>();
+  const activation = deferred<ScriptReviewState>();
+  const getScript = vi.spyOn(plotloomApi, "getScript")
+    .mockResolvedValueOnce(preparedState())
+    .mockReturnValueOnce(activation.promise)
+    .mockResolvedValue(awaitingDeliveryState());
+  vi.spyOn(plotloomApi, "prepareScriptCandidate").mockReturnValue(prepared.promise as ReturnType<typeof plotloomApi.prepareScriptCandidate>);
+  await act(async () => root.render(createElement(ScriptPanel, { projectId: "project", readOnly: false, refreshToken: 1 })));
+  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent === "准备剧本任务")?.click());
+  await act(async () => root.render(createElement(ScriptPanel, { projectId: "project", readOnly: false, refreshToken: 2 })));
+  expect(host.textContent).toContain("正在刷新");
+  await act(async () => { prepared.resolve({ assignment: "current assignment" }); await prepared.promise; });
+  expect(getScript).toHaveBeenCalledTimes(3);
+  expect([...host.querySelectorAll("button")].find(button => button.textContent === "取消此任务")?.disabled).toBe(false);
+  await act(async () => { activation.resolve(preparedState()); await activation.promise; });
+  expect(host.textContent).not.toContain("无法刷新");
+  expect([...host.querySelectorAll("button")].find(button => button.textContent === "取消此任务")?.disabled).toBe(false);
+  expect(host.textContent).not.toContain("尚无剧本候选");
+});

@@ -180,9 +180,9 @@ class ProjectCastPersistence:
             head = self._head(session, project_id)
             candidate = session.get(CastCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(CastRevisionRow).where(CastRevisionRow.project_id == project_id, CastRevisionRow.revision == head.revision)) if head.revision else None
-            binding = accepted.binding if accepted else candidate.binding if candidate else None
+            binding = candidate.binding if candidate else accepted.binding if accepted else None
             stale = self._stale(session, project_id, CastBinding.model_validate(binding)) if binding else []
-            return CastReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted) if accepted else None, status="stale" if stale and accepted else head.status, stale_reasons=stale)
+            return CastReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_cast=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
     def prepare_candidate(self, project_id: str, job_id: str, *, execution_pin: dict[str, str]) -> tuple[CastCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:

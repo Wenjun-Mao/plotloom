@@ -108,9 +108,9 @@ class ProjectScriptPersistence:
             self._access.rows.project(session, project_id); head = self._head(session, project_id)
             candidate = session.get(ScriptCandidateRow, head.candidate_job_id) if head.candidate_job_id else None
             accepted = session.scalar(select(ScriptRevisionRow).where(ScriptRevisionRow.project_id == project_id, ScriptRevisionRow.revision == head.revision)) if head.revision else None
-            binding = accepted.binding if accepted else candidate.binding if candidate else None
+            binding = candidate.binding if candidate else accepted.binding if accepted else None
             stale = self._stale(session, project_id, ScriptBinding.model_validate(binding)) if binding else []
-            return ScriptReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_script=self._accepted(accepted) if accepted else None, status="stale" if stale and accepted else head.status, stale_reasons=stale)
+            return ScriptReviewState(candidate=self._candidate(candidate) if candidate else None, accepted_script=self._accepted(accepted) if accepted else None, status="stale" if stale else head.status, stale_reasons=stale)
 
     def prepare_candidate(self, project_id: str, job_id: str, *, execution_pin: dict[str, str]) -> tuple[ScriptCandidate, CreativeHandoffRequest]:
         with self._access.leases.lifecycle_write() as session:

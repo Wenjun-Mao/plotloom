@@ -374,6 +374,10 @@ test.describe("F3A production art review", () => {
       const returnedPanel = page.getByTestId("art-review");
       await expect(returnedPanel).toBeVisible();
       await expect(returnedPanel.getByLabel("复制给 specialist 的冻结任务")).toHaveCount(0);
+      // Returning to a mounted owner now revalidates its server authority.
+      // Settle that legitimate activation read before attributing later reads
+      // to the held, obsolete send continuation.
+      await expect(returnedPanel.getByTestId("art-reference-studies").getByRole("button", { name: "发送给图像生成助手" })).toBeEnabled();
       const copiedResponse = page.waitForResponse((response) => response.request().method() === "POST"
         && new URL(response.url()).pathname === `/api/v2/projects/${firstProjectId}/art-reference-proposals/${prepared.proposal.id}/send`);
       const postReleaseRefreshes: string[] = [];

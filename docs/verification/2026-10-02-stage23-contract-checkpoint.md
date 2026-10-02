@@ -1,12 +1,12 @@
 # Creator stages 2–3: reviewed contract checkpoint
 
-Status: prior lifecycle implementation independently reviewed, committed and
-verified; live Script and Storyboard source review now provisionally accepted
-in the test copy. The returned-basename correction is an uncommitted candidate
-awaiting manager review. Current HEAD `3c535e03f4664b92d02c6de8dacc890a3e431ca9`,
-retained `main`; earlier baseline `c027131ab3be6797c4e1c5a229dec51d651411a4`.
-The manager owns review, commit/push and deployment. Earlier checkpoints below
-retain the facts and limitations known at that time.
+Status at 09:43 UTC: lifecycle and returned-basename fixes are committed,
+verified and pushed. The source-currentness candidate on retained `main` has
+passed final independent review; manager promotion/commit and full committed
+Python verification are in progress. The copy intentionally has Script r3 and
+stale retained Storyboard r1 pending actual fixed-UI replay and regeneration.
+Earlier checkpoints below retain the facts and limitations known at that time;
+the latest section supersedes their pending-state and runtime descriptions.
 
 ## Actual creator UI evidence
 
@@ -280,3 +280,136 @@ source changed, so generated assets remain current. Push and an owned isolated
 restart at the idle checkpoint may now precede fresh live packages; normal
 services and both quarantined installations remain unchanged. These checks do
 not establish a successful live exact-basename delivery; that is the next test.
+
+## Exact-basename delivery and source-currentness gate, 09:28 UTC
+
+Owned isolated restart session `11027` / PID 37975 loaded pushed revision
+`25fb66765aa738f4c2e75c920402a1fc98969249`; ports 8851/8852 remain running.
+Normal 8841/8842 and both quarantined roots remain untouched. Native image and
+text specialists are idle, and both copy reservation slots are free.
+
+Fresh P01 `ij_cacff342612e41d6aedbb7a3194dbcfc` was prepared/sent once through
+the UI. Its exact returned basename is
+`exec-b6b272c4-a0cc-4be0-a9e1-5d5a1ffd16d9.png`; delivery and source SHA-256
+both equal `5f21dfd04ae8a2cb5d9ab287889e912fdd0d5e24edccf3375dc320c096876869`.
+Request, job, revision and skill pin checks passed. One explicit UI result check
+admitted the delivery and freed the lease. Enlarged review showed a generic
+unbranded phone with blank screen and useful material views; it was provisionally
+selected only in the copy. Screenshot `p01-exact-basename-selected.jpg` and
+`p01-exact-basename-live-receipt.json` record the outcome. Cleanup refused the
+0755 staging root, so the exact source is preserved; permissions and receipts
+were not changed. The successful revised-requirements loop remains pending.
+
+The actual Storyboard reader exercised cafe and home routes separately, with
+four opening cuts and three cuts in each selected ending. Screenshots
+`storyboard-reader-cafe-r1.jpg` and `storyboard-reader-home-r1.jpg` preserve the
+reader evidence. An intentional scoped Script edit changed only
+`episodes[0].scenes[0].flow[3].action` from “目光停留片刻” to “目光短暂停留”.
+Script r3 hash is
+`bb63a123d8b0903ed94026436b71b110018550c65f2bb24575a0e000a17348c7`.
+All other fields, both endings and timings remained identical. The server
+correctly marked retained Storyboard r1 stale against Script r3, and retained
+accepted evidence remained byte-for-byte unchanged. The freshly loaded reader
+refused stale Storyboard while allowing Script reading.
+
+The workbench's mounted hidden panels instead retained accepted Storyboard r1
+after navigation and aggregate refresh. This demonstrated the project-ID-only
+read contract failure. The bounded frontend repair, ADR 0099, revalidates visible
+source owners on entry and same-project refresh; activation, retry, mutation and
+delivery completion share one latest-read readiness owner. Superseded reads
+publish neither old payload nor failure. Latest pending/failed reads disable
+authority-dependent actions. Stale prepared/ready Script and Storyboard candidates
+cannot be sent/accepted, while checks, cancellation and recovery remain available.
+Dirty Script/Art text keeps its original revision/hash/binding when authority
+changes; saving is disabled and explicit discard/current-version replacement
+controls preserve author choice.
+
+The first independent review identified draft loss, stale candidate actions and
+split read ownership; all three were repaired. The source candidate is frozen for
+re-review. Both frontend typechecks and all 289 unit tests passed, including the
+actual ScriptPanel activation/mutation overlap. All 45 affected browser tests
+passed: 12 currentness, 9 Art/Script, 12 delayed ownership, 6 Storyboard source and
+6 navigation checks. An initial new Art regression filled the gallery requirements
+textarea instead of art.json; its failure trace remains under
+`source-currentness-review-repairs`. The corrected scoped selector passed against
+actual reopened-to-stale state. The earlier Art A-B-A assertion now waits for its
+legitimate activation read before measuring old-response containment; it passed.
+The source-outline/section-map browser regression also passed separately (6.8
+seconds), including its canonical route installation and reopen. Diff checks pass.
+Fresh copy specialist API inspection confirms reservations are free; compact native
+snapshots confirm both workers remain idle.
+
+The build succeeded into the isolated staging directory
+`.local/unattended-2026-10-02/source-currentness-static` only. Its existing large
+chunk warning remains. Neither normal `src/plotloom/static` nor the currently
+served copy static root was promoted. Fresh original capture
+`stage23-currentness-review-original.json` exactly equals the preceding manager
+baseline across seven API states, 73 tables and 67 files.
+`source-currentness-review-preservation.json` verifies the sole Script change,
+retained Storyboard evidence and staged bundle hashes.
+
+Current copy state intentionally remains Script r3 / stale Storyboard r1. No new
+native package, H3 call, production action, receipt rewrite or staging cleanup
+occurred during this fix. Manager review/commit and idle static promotion precede
+the remaining actual UI replay, fresh current Storyboard, purposeful S01 junction
+revision and P01 revised-requirements loop. Those remaining steps are not complete;
+the source gate does not establish product acceptance. No usage/cost delta is
+available from existing records.
+
+## Final current-review seam repair, 09:36 UTC
+
+Re-review closed dirty-draft retention and unified read ownership, but found an
+originating API projection issue: Script and Cast preferred retained accepted
+bindings and only reported stale if acceptance existed. A first stale candidate
+could therefore retain prepared/ready status, while a valid replacement over
+stale accepted evidence was incorrectly blocked. The bounded repair chooses the
+active candidate binding, otherwise retained accepted, and reports stale for that
+same seam regardless of acceptance. This matches existing Art/Storyboard state
+projection. Exact dispatch/admission/acceptance guards and downstream accepted
+authority checks remain unchanged; no accepted bytes or bindings are rewritten.
+Cast candidate send/accept/editor controls now honor the projected stale status
+selectively, preserving check/cancel behavior. ADR 0099 records this decision.
+
+The focused Python gate passed 40 checks (25.42 seconds), including eight new
+first-candidate/replacement cases across Cast/Script prepared and ready states.
+All six new real-backend browser seam checks and all twelve currentness checks
+passed together (60.0 seconds). The first seam browser run's two replacement-send
+controls exposed unconfigured specialist availability, while four first-candidate
+cases passed; those traces remain under `review-seam-currentness-focused`.
+The corrected tests use a narrow configured-availability status fixture with
+fail-closed Send interception. They establish current Send enabled before stale
+Send disabled, preserve real backend review state, and assert zero Send calls.
+Current replacement acceptance is performed through the real fixture UI and
+retained accepted bytes are compared before acceptance.
+
+Both typechecks and all 289 frontend unit tests passed again. The existing Cast
+image-direction/edit browser check passed separately (5.9 seconds). New-test
+Ruff and changed persistence F401 pass; full persistence Ruff reports the exact
+same baseline I001/TRY004 findings verified from HEAD (two Cast, four Script).
+The earlier 45-browser and source-map gates remain separate evidence and their
+overlapping counts are not summed.
+
+Implementation is frozen for final independent seam review. The latest staged
+bundle includes the Cast guards and remains unpromoted. Fresh original capture
+`stage23-final-seam-original.json` equals the manager baseline across all seven
+API states, 73 tables and 67 files. Latest bundle hashes and free copy specialist
+reservations are recorded in `source-currentness-final-seam-preservation.json`.
+Manager owns final review, generated-asset promotion, commit/push and the required
+full Python gate before fresh execution-pinned packages. No new live generation,
+normal/copy static promotion, runtime restart or H3 action occurred in this repair.
+
+## Manager source-currentness gate, 09:43 UTC
+
+Final independent GPT-6.1 Sol / Medium review found no remaining scoped findings
+and independently passed all eight backend seam regressions. The manager also
+passed those eight tests, all 289 frontend unit tests, both typechecks and diff
+checks. The three original review findings and the originating Script/Cast seam
+projection defect are closed with regression evidence, not waivers.
+
+Both normal specialists are inactive; both copy specialists are idle. Fresh
+specialist APIs report no active tasks or reservations in either installation.
+The deterministic build succeeded and promoted the reviewed frontend assets to
+`src/plotloom/static`; its pre-existing large-chunk warning remains. This is only
+static promotion: no normal Python restart, copy restart, native generation or
+production action has occurred. The full Python gate follows the scoped local
+commit, before push and fresh execution-pinned packages.

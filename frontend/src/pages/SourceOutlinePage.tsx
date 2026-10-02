@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, plotloomApi } from "../api";
 import { Button, ErrorNotice, Spinner } from "../components";
 import type { ProjectBrief, SourceMaterial, SourceOutlineReviewState, StoryGraph } from "../types";
@@ -11,6 +11,7 @@ import { ScriptPanel } from "./ScriptPanel";
 import { StoryboardReviewPanel } from "./StoryboardReviewPanel";
 import { deriveRoutes } from "../model";
 import { sourceWorkflowTarget } from "../app/workspace/sourceWorkflowNavigation";
+import { useReviewActivation } from "./useReviewActivation";
 
 const blankSource: SourceMaterial = {
   kind: "synopsis",
@@ -31,7 +32,7 @@ function sourceMessage(error: unknown) {
   return error instanceof Error ? error.message : "来源与大纲操作失败。";
 }
 
-export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTarget = "", onOpenShot, onContinueToCharacters }: { projectId: string; briefSeed: Pick<ProjectBrief, "title" | "synopsis">; readOnly: boolean; navigationTarget?: string; onOpenShot?: (shotId: string) => void; onContinueToCharacters?: () => void }) {
+export function SourceOutlinePage({ projectId, briefSeed, readOnly: ownerReadOnly, navigationTarget = "", refreshToken, onOpenShot, onContinueToCharacters }: { projectId: string; briefSeed: Pick<ProjectBrief, "title" | "synopsis">; readOnly: boolean; navigationTarget?: string; refreshToken?: unknown; onOpenShot?: (shotId: string) => void; onContinueToCharacters?: () => void }) {
   const [state, setState] = useState<SourceOutlineReviewState>();
   const [draft, setDraft] = useState<SourceMaterial>(blankSource);
   const [busy, setBusy] = useState(false);
@@ -44,14 +45,15 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
   const ownsProject = (session: { projectId: string; epoch: number }) => activeProject.current === session;
   const focusedTarget = sourceWorkflowTarget(navigationTarget) || "source";
 
-  const load = async (session = activeProject.current) => {
+  const load = useCallback(async (isCurrent: () => boolean) => {
+    const session = activeProject.current;
     setError("");
     try {
       const next = await plotloomApi.getSourceOutline(session.projectId);
-      if (!ownsProject(session)) return;
-      setState(next);
+      if (!ownsProject(session) || !isCurrent()) return false;
       const stages = await plotloomApi.getStages(session.projectId);
-      if (!ownsProject(session)) return;
+      if (!ownsProject(session) || !isCurrent()) return false;
+      setState(next);
       const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
       setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision, contentHash: graphStage.head.contentHash } : undefined);
       // React Strict Mode can issue a second initial read after the author
@@ -61,16 +63,19 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
         draftDirty.current = false;
       }
       setLoadedProjectId(session.projectId);
-    } catch (loadError) { if (ownsProject(session)) setError(sourceMessage(loadError)); }
-  };
+      return true;
+    } catch (loadError) { if (ownsProject(session) && isCurrent()) setError(sourceMessage(loadError)); }
+    return false;
+  }, [projectId, briefSeed]);
 
   useEffect(() => {
     const session = activeProject.current;
     draftDirty.current = false;
     setState(undefined); setGraph(undefined); setLoadedProjectId(""); setError(""); setBusy(false); setDraft(blankSource);
-    void load(session);
     return () => { if (ownsProject(session)) activeProject.current = { projectId: session.projectId, epoch: session.epoch + 1 }; };
   }, [projectId]); // The project route owns refreshes.
+  const { checking, failed, recheck } = useReviewActivation({ projectId, active: focusedTarget === "source", refreshToken, load });
+  const readOnly = ownerReadOnly || checking || failed;
 
   const updateDraft = (next: SourceMaterial) => {
     draftDirty.current = true;
@@ -85,10 +90,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
       if (!ownsProject(session)) return;
       setState(next);
       if (savedSource) { setDraft(next.source?.material || sourceDraftFromBrief(briefSeed)); draftDirty.current = false; }
-      const stages = await plotloomApi.getStages(session.projectId);
-      if (!ownsProject(session)) return;
-      const graphStage = stages.stages.find((stage) => stage.head.stage === "story_graph");
-      setGraph(graphStage?.payload ? { payload: graphStage.payload as StoryGraph, revision: graphStage.head.revision, contentHash: graphStage.head.contentHash } : undefined);
+      await recheck();
     } catch (mutationError) { if (ownsProject(session)) setError(sourceMessage(mutationError)); }
     finally { if (ownsProject(session)) setBusy(false); }
   };
@@ -99,7 +101,7 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
 
   return <section id="source" className="page source-outline-page" data-project-id={loadedProjectId || projectId}>
     <section className="source-workflow-source" hidden={focusedTarget !== "source"} aria-labelledby="source-workflow-heading">
-      <header className="page-header"><div><h1 id="source-workflow-heading">来源与大纲</h1><p>填写故事来源，审阅大纲，并确定分支路线。</p></div><Button variant="quiet" disabled={busy} onClick={() => void load()}>刷新</Button></header>
+      <header className="page-header"><div><h1 id="source-workflow-heading">来源与大纲</h1><p>填写故事来源，审阅大纲，并确定分支路线。</p></div><Button variant="quiet" disabled={busy || checking} onClick={() => void recheck()}>刷新</Button></header>
       {error && <ErrorNotice message={error} />}
       {!state ? <Spinner /> : <div className="source-outline-grid">
       <article className="panel source-outline-source" data-testid="source-outline-source">
@@ -120,12 +122,12 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
           setBusy(true); setError("");
           const session = activeProject.current;
           void plotloomApi.prepareOutlineCandidate(projectId).then(() => {
-            if (ownsProject(session)) return load(session);
+            if (ownsProject(session)) return recheck();
           }).catch((prepareError) => { if (ownsProject(session)) setError(sourceMessage(prepareError)); }).finally(() => { if (ownsProject(session)) setBusy(false); });
         }}>{busy ? "正在准备…" : "准备大纲任务"}</Button>}
         {candidate && <>
           <small>冻结来源 r{candidate.sourceRevision} · 目标已接受大纲 r{candidate.expectedOutlineRevision}</small>
-          {candidate.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="outline" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={() => load()} />}
+          {candidate.status === "prepared" && <SpecialistTaskActions projectId={projectId} stage="outline" jobId={candidate.jobId} disabled={readOnly || busy} onDelivered={recheck} />}
           {(candidate.status === "prepared" || candidate.status === "ready") && <Button variant="danger" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.cancelOutlineCandidate(projectId, candidate.jobId))}>取消此任务</Button>}
           {candidate.status === "ready" && <><details><summary>查看上游 outline.json</summary><pre>{JSON.stringify(candidate.outline, null, 2)}</pre></details>{candidate.outline && <section className="source-outline-upstream-report" data-testid="source-outline-upstream-report"><p role="note">这是候选大纲，尚未经你确认。阅读不会接受或修改内容。</p><OutlineReport key={`${projectId}:${candidate.jobId}`} outline={candidate.outline} url={candidate.reportAvailable ? plotloomApi.outlineCandidateReportUrl(projectId, candidate.jobId) : undefined} /></section>}</>}
           {candidate.status === "ready" && state.source && <><Button variant="primary" disabled={readOnly || busy} onClick={() => void mutate(() => plotloomApi.acceptOutlineCandidate(projectId, { jobId: candidate.jobId, expectedSourceRevision: state.source!.revision, expectedOutlineRevision: accepted?.revision || 0 }))}>确认使用此大纲</Button><p>确认后，将以这份大纲继续设计分支和剧本；不会自动生成后续内容。</p></>}
@@ -177,15 +179,15 @@ export function SourceOutlinePage({ projectId, briefSeed, readOnly, navigationTa
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "art"} aria-labelledby="art-workflow-heading">
       <header className="page-header"><div><h1 id="art-workflow-heading">美术参考</h1><p>审阅地点、道具及其可复用参考。</p></div></header>
-      <ArtPanel projectId={projectId} readOnly={readOnly} />
+      <ArtPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "art"} refreshToken={refreshToken} />
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "script"} aria-labelledby="script-workflow-heading">
       <header className="page-header"><div><h1 id="script-workflow-heading">剧本</h1><p>审阅当前完整 pilot，或编辑允许修改的稳定章节。</p></div></header>
-      <ScriptPanel projectId={projectId} readOnly={readOnly} />
+      <ScriptPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "script"} refreshToken={refreshToken} />
     </section>
     <section className="source-workflow-focus" hidden={focusedTarget !== "storyboard-review"} aria-labelledby="storyboard-review-workflow-heading">
       <header className="page-header"><div><h1 id="storyboard-review-workflow-heading">分镜评审</h1><p>审阅与已接受剧本绑定的 storyboard 证据。</p></div></header>
-      <StoryboardReviewPanel projectId={projectId} readOnly={readOnly} onOpenShot={(shotId) => {
+      <StoryboardReviewPanel projectId={projectId} readOnly={ownerReadOnly} active={focusedTarget === "storyboard-review"} refreshToken={refreshToken} onOpenShot={(shotId) => {
         if (draftDirty.current) return false;
         onOpenShot?.(shotId);
         return true;
