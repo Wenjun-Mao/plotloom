@@ -2,23 +2,23 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from hashlib import sha256
-import json
 from typing import Any, Literal
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from ...domain import ProjectLifecycleStatus, new_id, utc_now
-from ...exceptions import InvalidTransitionError, NotFoundError
-from ...exceptions import RevisionConflictError
+from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...image_job_contracts import ImageJobError
+from ...managed_asset_provenance import project_asset_provenance
 from ..codec import _stored_utc, stable_hash
 from ..schema import (
-    ArtReferenceProposalCandidateRow,
     ArtReferenceDecisionRow,
     ArtReferenceDecisionStateRow,
+    ArtReferenceProposalCandidateRow,
     ArtReferenceProposalDeliveryRow,
     ArtReferenceProposalRow,
     ArtRevisionRow,
@@ -30,7 +30,6 @@ from .access import ProjectPersistenceAccess
 from .art import ProjectArtPersistence
 from .media_assets import ManagedAssetPersistence
 from .media_identifiers import new_image_job_id
-
 
 ArtSubjectType = Literal["scene", "prop"]
 
@@ -233,13 +232,13 @@ class ArtReferenceProposalPersistence:
                 session.add(asset); session.flush()
                 session.add(ManagedAssetProvenanceRow(
                     id=new_id(), project_id=project_id, asset_id=asset.id,
-                    declaration={
+                    declaration=project_asset_provenance({
                         "origin": "art_reference_proposal", "rights": "unknown", "proposalId": proposal.id,
                         "subjectType": proposal.subject_type, "subjectId": proposal.subject_id,
                         "deliveryId": delivery_id, "outputFilename": output["filename"],
                         "actualPrompt": manifest["actualPrompt"], "toolEvidence": manifest["toolEvidence"],
                         "executorProvenance": manifest.get("executorProvenance"), "limitations": manifest.get("limitations", []),
-                    }, created_at=utc_now(),
+                    }), created_at=utc_now(),
                 ))
                 session.add(ArtReferenceProposalCandidateRow(
                     id=new_id(), proposal_id=proposal.id, delivery_id=delivery.id, asset_id=asset.id,

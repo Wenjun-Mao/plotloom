@@ -97,3 +97,50 @@ to fresh chats before dispatch. The original post-deployment capture
 `evidence/manager-stage4-after-deploy-original.json` still matches all seven API
 states, 73 tables and 67 files byte-for-byte. The earlier online gap remains
 unexplained; this checkpoint does not claim uninterrupted availability.
+
+## Post-install managed-provenance repair, 11:53 UTC
+
+The actual UI saved the complete presentation, all 15 explicitly provisional
+manual dramatic intents, then installed proposal r3. Manager GET confirms current
+canonical story-bible/scene-beats/storyboard r1 and the exact source-bound runtime
+choice. No image package or H3 job had been prepared when opening the storyboard
+workbench produced a blank page: `MediaCandidates.tsx` read
+`asset.provenance.declaredAdditions.length`, but eight of the copy's nine asset
+declarations lacked that required public field. Art-reference and crop writers
+produced incomplete common provenance; this was not a generation failure.
+
+ADR 0027 now names the common strict provenance envelope. Art/crop/import writes
+and asset reads preserve origin-specific evidence while exposing complete common
+fields. Missing retained metadata means unknown rights, no note and no additions
+declaration, not acquired rights or proof of no generated additions. Reads do not
+rewrite immutable declarations or asset bytes. Invalid present values reject.
+Independent review additionally found the import POST omitted provenance despite
+its complete-asset return contract; the same normalized declaration now appears
+in the stored row and response. POST, both GET projections and stored declaration
+agree in a regression. The reviewer closed the finding after nine focused tests.
+
+Manager independently passed 46 service/bridge/manage tests, the two real-component
+mixed-workbench tests and both typechecks. The complete frontend passes 295 tests.
+Its mixed-origin UI fixture mocks the API response; backend regressions separately
+exercise actual retained rows and public API projection. New-model/test lint and
+diff checks pass. Rebuilt static is byte-identical to source and copy served trees;
+no frontend product asset promotion is needed. The final independent affected
+backend/media/recovery gate passes **111 tests** (58.74 s). Deployment follows
+this frozen checkpoint. The prior 964-test full Python gate
+preceded this small repair and is not relabelled as a rerun of it.
+
+Evidence is under `.local/unattended-2026-10-02/stage4-live/`: installed source/state
+receipts, `provenance-crash-receipt.json`, `provenance-crash.jpg`, and sanitized
+`gateway-preflight.json`. Actual H3 preflight passed contract 6 with required
+image/text modes and an empty queue; no H3 submission occurred. The current image
+package supplies character identity references, not selected S01/S02/P01 image
+attachments. Environmental/prop continuity must therefore be reported as text-guided
+unless another supported reviewed-media route is actually used. Exact reply
+retention in ending-b cut 3 remains a real-input review item: its source refers to
+the prior reply without a literal text span. No freeform text override or claim of
+image-conditioned art continuity is authorized by this repair.
+
+The fresh original pre-deployment capture still matches all seven API states,
+73 tables and 67 files. After deployment, its three retained art assets are expected
+to expose newly complete read-only provenance fields; compare that derived-only
+delta explicitly rather than rewriting the original baseline.

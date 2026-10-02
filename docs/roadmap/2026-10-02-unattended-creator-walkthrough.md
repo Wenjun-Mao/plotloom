@@ -386,3 +386,14 @@ original-project protection and truthful evidence remain.
   73 tables and 67 files remain identical after deployment. No real stage 4
   generation has occurred yet; fresh specialist binding and explicit copy-only
   presentation/intent/installation are the next live steps.
+- Stage 4 actual installation and provenance gate, 11:54 UTC: presentation and
+  15 labelled provisional manual intents were saved and proposal r3 installed
+  through the UI. Opening the storyboard workbench then exposed incomplete
+  art/crop provenance versus the common asset DTO. The bounded source repair
+  preserves immutable evidence and completes read/write response metadata;
+  independent review closed the import POST mismatch. Final affected backend
+  **111**, services **46**, frontend **295**, both types and scoped lint/diff
+  checks pass. Static bytes are unchanged. Original API/73-table/67-file baseline
+  still matches before deployment. No image/H3 job was prepared; manager deployment
+  and actual UI recovery precede resuming generation. See the appended
+  [source receipt](../verification/2026-10-02-stage4-source-gate.md).

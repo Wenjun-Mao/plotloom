@@ -6,11 +6,11 @@ from collections.abc import Callable
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.orm import Session
 
 from ...domain import new_id, utc_now
 from ...exceptions import InvalidTransitionError, NotFoundError, RevisionConflictError
 from ...keyframe_preparation import has_matching_aspect
+from ...managed_asset_provenance import project_asset_provenance
 from ..codec import _stored_utc
 from ..schema import ManagedAssetProvenanceRow, ManagedAssetRow, ReviewedShotBindingRow
 from .access import ProjectPersistenceAccess
@@ -56,6 +56,7 @@ class ManagedAssetPersistence:
         with self._access.leases.lifecycle_write() as session:
             project = self._access.rows.project(session, project_id)
             self._access.guards.active(project)
+            projected_declaration = project_asset_provenance(declaration)
             # Publish under the same lifecycle writer lease that admits the
             # immutable metadata, so a rejected/archived project never leaves
             # a newly written unowned blob behind.
@@ -74,10 +75,10 @@ class ManagedAssetPersistence:
             session.flush()
             session.add(ManagedAssetProvenanceRow(
                 id=new_id(), project_id=project_id, asset_id=asset.id,
-                declaration=declaration, created_at=now,
+                declaration=projected_declaration, created_at=now,
             ))
             session.flush()
-            return self.managed_asset_dict(asset)
+            return {**self.managed_asset_dict(asset), "provenance": projected_declaration}
 
     def get_managed_asset_storage(self, project_id: str, asset_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:
@@ -199,24 +200,25 @@ class ManagedAssetPersistence:
             )
             session.add(asset)
             session.flush()
+            declaration = project_asset_provenance({
+                "origin": "plotloom_keyframe_center_crop",
+                "sourceBindingId": binding.id,
+                "sourceAssetId": source_asset.id,
+                "sourceOriginalHash": source_asset.original_hash,
+                "targetProfile": dict(target_profile),
+                "transform": {
+                    "version": 1,
+                    "strategy": "cover_center_crop",
+                    "centering": [0.5, 0.5],
+                },
+            })
             session.add(ManagedAssetProvenanceRow(
                 id=new_id(), project_id=project_id, asset_id=asset.id,
-                declaration={
-                    "origin": "plotloom_keyframe_center_crop",
-                    "sourceBindingId": binding.id,
-                    "sourceAssetId": source_asset.id,
-                    "sourceOriginalHash": source_asset.original_hash,
-                    "targetProfile": dict(target_profile),
-                    "transform": {
-                        "version": 1,
-                        "strategy": "cover_center_crop",
-                        "centering": [0.5, 0.5],
-                    },
-                },
+                declaration=declaration,
                 created_at=now,
             ))
             session.flush()
-            return self.managed_asset_dict(asset)
+            return {**self.managed_asset_dict(asset), "provenance": declaration}
 
     def list_managed_assets(self, project_id: str) -> list[dict[str, Any]]:
         with self._access.leases.read() as session:
@@ -236,6 +238,6 @@ class ManagedAssetPersistence:
                 )
                 result.append({
                     **self.managed_asset_dict(row),
-                    "provenance": provenance.declaration if provenance else None,
+                    "provenance": project_asset_provenance(provenance.declaration) if provenance else None,
                 })
             return result

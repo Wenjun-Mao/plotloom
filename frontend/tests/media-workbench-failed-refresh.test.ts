@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { plotloomApi } from "../src/api";
 import { demoProject } from "../src/demo";
 import { ManagedMediaWorkbench } from "../src/features/media/ManagedMediaWorkbench";
-import type { ImageJob, VisualWorkbench } from "../src/types";
+import type { ImageJob, ManagedAsset, VisualWorkbench } from "../src/types";
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -34,6 +34,28 @@ beforeEach(() => {
   vi.spyOn(plotloomApi, "getAuthoringDrafts").mockResolvedValue([]);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.useRealTimers(); });
+
+it("renders a mixed-origin gallery from the common provenance DTO and keeps candidate controls usable", async () => {
+  const assets: ManagedAsset[] = ["art_reference_proposal", "plotloom_keyframe_center_crop", "character_reference_proposal", "manual"].map((origin, index) => ({
+    id: `asset-${index}`, projectId: "project-1", originalHash: "a".repeat(64), displayHash: "b".repeat(64),
+    mimeType: "image/png", byteSize: 1024, width: 832, height: 480, createdAt: "2026-10-02T00:00:00Z",
+    provenance: { origin, rights: "unknown", rightsNote: null, declaredAdditions: index === 3 ? ["lamp"] : [] },
+  }));
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue({ ...emptyWorkbench, assets });
+  await act(async () => root.render(createElement(ManagedMediaWorkbench, {
+    projectId: "project-1", storyboard: demoProject.storyboard,
+    bible: demoProject.storyBible, graph: demoProject.storyGraph,
+    sceneBeats: demoProject.sceneBeats, selectedShot: demoProject.storyboard.shots[0],
+    storyboardRevision: 1, storyBibleRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
+  })));
+  await act(async () => { await Promise.resolve(); await Promise.resolve(); });
+  const cards = host.querySelectorAll('.media-candidate-grid[aria-label="候选图像比较"] .media-candidate');
+  expect(cards.length).toBe(4);
+  for (const origin of assets.map((asset) => asset.provenance!.origin)) expect(host.textContent).toContain(origin);
+  expect(host.textContent).toContain("已知新增：lamp");
+  await act(async () => (cards[0].querySelector("button") as HTMLButtonElement).click());
+  expect(cards[0].querySelector("button")?.getAttribute("aria-pressed")).toBe("true");
+});
 
 it("withdraws media owner controls and exported-job polling after a same-context read failure", async () => {
   vi.spyOn(plotloomApi, "getVisualWorkbench")

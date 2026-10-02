@@ -973,7 +973,7 @@ def test_video_disposal_keeps_a_cross_kind_managed_asset_blob(
     opened.media.record_managed_import(
         project_id, original_hash=sha256(retained_bytes).hexdigest(), display_hash=sha256(retained_bytes).hexdigest(),
         mime_type="video/mp4", byte_size=len(retained_bytes), width=1, height=1,
-        declaration={"source": "cross-kind disposal fixture"},
+        declaration={"origin": "cross-kind disposal fixture", "source": "cross-kind disposal fixture"},
         publish=lambda: (retained["uri"], retained["uri"]),
     )
     opened.close()

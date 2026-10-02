@@ -46,6 +46,20 @@ implementation record for the non-generative boundary authorized by ADR 0026.
 
 ## Consequences and guardrails
 
+### Common provenance envelope (2026-10-02)
+
+All managed-asset writers and the public asset projection expose `origin`,
+`rights`, `rightsNote`, and `declaredAdditions`, while retaining origin-specific
+delivery, source, transform, and executor evidence. Missing common metadata in
+retained immutable declarations projects as `unknown`, `null`, and `[]`;
+these mean no recorded rights claim, note, or additions declaration. They do
+not establish acquired rights or absence of generated additions. Projection
+does not update stored rows or bytes. Invalid present values are rejected,
+not coerced. This fixes the art/crop writer versus workbench DTO mismatch that
+crashed a mixed-asset gallery. A frontend-only optional-chain bypass and
+rewriting retained evidence were rejected. Writer, retained-row projection,
+and mixed-origin workbench regressions guard this shared contract.
+
 The public managed-media endpoints are deliberately project-scoped and accept
 only upload bytes, never local paths or remote URLs. Missing/corrupt byte-store
 observations stay distinct from Approval applicability. The workbench refreshes
