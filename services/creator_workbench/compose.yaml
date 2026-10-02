@@ -1,0 +1,51 @@
+name: plotloom-creator
+services:
+  workbench:
+    build:
+      context: ../..
+      dockerfile: services/creator_workbench/Dockerfile
+    restart: unless-stopped
+    init: true
+    user: "${PLOTLOOM_UID:?Use manage.py}:${PLOTLOOM_GID:?Use manage.py}"
+    stop_grace_period: 30s
+    ports:
+      - "127.0.0.1:8841:8841"
+    working_dir: ${PLOTLOOM_CHECKOUT:?Use manage.py start to configure the checkout}
+    environment:
+      PYTHONPATH: ${PLOTLOOM_CHECKOUT}/src
+      PLOTLOOM_CHECKOUT: ${PLOTLOOM_CHECKOUT}
+      PLOTLOOM_CREATOR_DATA: ${PLOTLOOM_CREATOR_DATA}
+      PLOTLOOM_CODEX_BRIDGE_URL: http://host.docker.internal:8842
+      PLOTLOOM_CODEX_BRIDGE_TOKEN_FILE: /run/secrets/codex_bridge_token
+    secrets:
+      - codex_bridge_token
+    volumes:
+      # Stable absolute paths preserve request packages and native-task access.
+      - type: bind
+        source: ${PLOTLOOM_CHECKOUT}
+        target: ${PLOTLOOM_CHECKOUT}
+        read_only: true
+      - type: bind
+        source: ${PLOTLOOM_CREATOR_DATA}/outputs
+        target: ${PLOTLOOM_CREATOR_DATA}/outputs
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${PLOTLOOM_CREATOR_DATA}/application
+        target: ${PLOTLOOM_CREATOR_DATA}/application
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8841/healthz', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+secrets:
+  codex_bridge_token:
+    file: ${PLOTLOOM_BRIDGE_TOKEN_FILE:?Use manage.py start to create the local bridge token}

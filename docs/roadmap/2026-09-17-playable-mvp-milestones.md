@@ -965,6 +965,25 @@ Independent Luna Max review reported no findings. A final parent-panel label
 was aligned from “参考研究” to “参考图片”; focused tests and the static build were
 rerun for that wording-only change.
 
+### Creator-approved persistent walkthrough deployment (2026-10-01)
+
+Approved step: diagnose the recurring offline server and persist the existing
+walkthrough through a simple Docker service. The Mac rebooted on September 29
+at 21:34 Toronto time after the foreground server was started; there was no
+restart owner. Scope: localhost Docker Compose with restart policy, existing
+data mounts, locked runtime dependencies, health/logs and the minimal macOS
+native queue bridge needed to retain text/image send buttons (ADR 0095).
+No project reset, lease cleanup, generation, creative acceptance or video
+backend expansion. Stop after restart/data persistence checks, independent
+review and an operational service at the creator's existing URL.
+
+The detached OrbStack container is healthy; real process-crash recovery and
+container recreation retained accepted art r1, the prepared S01 request and
+specialist state exactly. Native bridge connectivity and upstream Git/Node
+pins are verified; no generation was dispatched. OrbStack's disabled login
+startup was enabled. See the [deployment and outage receipt](../verification/2026-10-01-persistent-creator-workbench.md)
+for evidence and the remaining awake-host/native-app requirements.
+
 ## Named open decisions
 
 - **F0:** exact upstream revision and smallest reproducible dependency/adaptation
