@@ -2,6 +2,23 @@
 
 Status: Accepted, 2026-09-18.
 
+## Clarification: specialist emission of trusted linkage (2026-10-02)
+
+A real frozen handoff passed the upstream validator but omitted the required
+top-level `sectionBindings`. The brief said to use the frozen mapping, while
+the shared specialist skill documented only the characters/art extensions and
+otherwise required raw upstream shapes. This left the emission boundary unclear.
+
+The Script brief and specialist skill now explicitly require copying
+`script-admission.json.sectionBindings` unchanged into top-level
+`script.json.sectionBindings`. Before publishing, the specialist compares the
+exact ordered array and episode set/cardinality against the frozen admission.
+Upstream validation does not check this Plotloom extension. Trusted code still
+owns the mapping; the specialist merely transports it. Missing or permuted
+bindings remain receiving errors; no arrival-time inference or correction is
+allowed. Failed frozen requests and delivered bytes remain retained evidence;
+recovery uses explicit cancellation and a fresh handoff.
+
 ## Context
 
 The pinned `novel-script` format is a small batch of numbered episodes, while

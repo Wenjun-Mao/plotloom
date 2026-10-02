@@ -52,6 +52,7 @@ test("accepted bridge opens exact canonical shots and reports owner readiness wi
   await expect(bridge).toContainText("投产提案已确认");
   await page.goForward();
   await expect(summary).toContainText(`当前镜头准备状态 · ${first.shotId}`);
+  await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
   await summary.getByRole("button", { name: "返回分镜评审" }).click();
   await expect(page).toHaveURL(new RegExp("stage=source#storyboard-review$"));
   await bridge.getByText("查看场次与镜头").click();

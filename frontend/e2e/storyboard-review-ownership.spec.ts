@@ -10,7 +10,7 @@ async function switchProject(page: Page, id: string): Promise<void> {
   await sourceStage(page);
 }
 async function sourceStage(page: Page): Promise<void> {
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /^01 来源与大纲/ }).click();
+  await page.getByRole("navigation", { name: "创作流程" }).getByRole("link", { name: "分镜评审", exact: true }).click();
 }
 
 for (const transition of ["A-B-A", "unmount"] as const) {
@@ -27,7 +27,9 @@ for (const transition of ["A-B-A", "unmount"] as const) {
         let markStarted!: () => void;
         const held = new Promise<void>(resolve => { release = resolve; });
         const started = new Promise<void>(resolve => { markStarted = resolve; });
-        const url = operation === "load" ? root : `${root}/candidates/${prepared.jobId}/${operation === "copy" ? "handoff" : "refresh"}`;
+        const url = operation === "load" ? root : operation === "copy"
+          ? `${root}/candidates/${prepared.jobId}/handoff`
+          : `${workbench.apiOrigin}/api/v2/projects/${id}/specialist-tasks/storyboard/${prepared.jobId}/check`;
         const pathname = new URL(url).pathname;
         const pattern = `**${pathname}`;
         let captured = false;
@@ -43,7 +45,7 @@ for (const transition of ["A-B-A", "unmount"] as const) {
           else await route.fulfill({ response: upstream });
         };
         if (operation !== "load") {
-          await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`);
+          await page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`);
           await expect(page.getByTestId("storyboard-review")).toBeVisible();
         }
         await page.route(pattern, routeHandler);
@@ -53,9 +55,10 @@ for (const transition of ["A-B-A", "unmount"] as const) {
           // start that fetch before `goto` settles, which deadlocks the test
           // before it reaches `release`.
           const initialNavigation = operation === "load"
-            ? page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source`, { waitUntil: "domcontentloaded" })
+            ? page.goto(`${workbench.frontendOrigin}/v2/?project=${id}&stage=source#storyboard-review`, { waitUntil: "domcontentloaded" })
             : undefined;
           if (operation !== "load") {
+            if (operation === "copy") await page.getByTestId("storyboard-review").getByText("查看任务说明（手动方式）", { exact: true }).click();
             await page.getByTestId("storyboard-review").getByRole("button", {
               name: operation === "copy" ? "恢复分镜任务" : "检查任务结果",
             }).click();
@@ -64,7 +67,8 @@ for (const transition of ["A-B-A", "unmount"] as const) {
           await initialNavigation;
           if (transition === "A-B-A") { await switchProject(page, other); await switchProject(page, id); }
           else {
-            await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /剧情 DAG/ }).click();
+            await page.getByText("编辑与工具", { exact: true }).click();
+            await page.getByRole("navigation", { name: "编辑与工具" }).getByRole("button", { name: "剧情 DAG", exact: true }).click();
             await expect(page.getByTestId("storyboard-review")).toHaveCount(0);
           }
           if (transition === "A-B-A") await expect(page.getByTestId("storyboard-review")).toBeVisible();
@@ -84,7 +88,7 @@ for (const transition of ["A-B-A", "unmount"] as const) {
           await expect(panel).toBeVisible();
           await expect(panel.getByLabel("分镜完整任务")).toHaveCount(0);
           await expect(panel.getByRole("alert")).toHaveCount(0);
-          await expect(panel.getByRole("button").first()).toBeEnabled();
+          await expect(panel.getByRole("button", { name: operation === "refresh" ? "确认此分镜评审方案" : "取消此任务", exact: true })).toBeEnabled();
         } finally {
           release?.();
           await page.unroute(pattern, routeHandler);

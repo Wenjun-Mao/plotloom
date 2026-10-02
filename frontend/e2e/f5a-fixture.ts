@@ -41,8 +41,10 @@ export async function createScriptProject(request: APIRequestContext, origin: st
     expectedSectionMapRevision: 1, expectedSectionMapContentHash: map.acceptedSectionMap.contentHash, expectedGraphRevision: 0,
   } }));
   for (const stage of ["cast", "art", "script"] as const) {
-    const prepared = await json(request.post(`${url}/${stage}/candidates`));
-    await writeDelivery(prepared, stage === "cast" ? "characters" : stage, candidates[stage] ?? await fixture(`${stage}.json`));
+    const candidate = candidates[stage] ?? await fixture(`${stage}.json`);
+    const preparation = stage === "art" ? { data: { renderStyle: (candidate as { style: string }).style } } : undefined;
+    const prepared = await json(request.post(`${url}/${stage}/candidates`, preparation));
+    await writeDelivery(prepared, stage === "cast" ? "characters" : stage, candidate);
     const ready = await json(request.post(`${url}/${stage}/candidates/${prepared.jobId}/refresh`));
     const body: Record<string, unknown> = { jobId: prepared.jobId, binding: prepared.binding, [`expected${stage[0].toUpperCase()}${stage.slice(1)}Revision`]: 0 };
     if (stage === "cast") body.consumerMappings = ready.cast.characters.map((character: { id: string }) => ({ castCharacterId: character.id, consumerCharacterId: character.id }));
@@ -78,7 +80,7 @@ export async function prepare(page: Page, panel: Locator, id: string): Promise<P
   return json(await response);
 }
 export async function refresh(page: Page, panel: Locator, id: string, jobId: string): Promise<void> {
-  const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/storyboard-source-review/candidates/${jobId}/refresh`);
+  const response = page.waitForResponse(r => r.request().method() === "POST" && new URL(r.url()).pathname === `/api/v2/projects/${id}/specialist-tasks/storyboard/${jobId}/check`);
   await panel.getByRole("button", { name: "检查任务结果" }).click();
   await json(await response);
   await expect(panel.getByRole("button", { name: "确认此分镜评审方案" })).toBeEnabled();

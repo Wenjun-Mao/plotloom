@@ -81,6 +81,7 @@ from .repository_codecs import (
 )
 from .workflow import ProjectAuthoringWorkflow
 from .creative_execution_pins import execution_pin_for_candidate, recover_execution_pin
+from .creative_terminal import ProjectCreativeTerminalPersistence
 
 
 @dataclass(frozen=True)
@@ -183,6 +184,7 @@ class ProjectSQLiteRepository:
         self.art = ProjectArtPersistence(self._project_access, self.cast)
         self.script = ProjectScriptPersistence(self._project_access, self.art)
         self.storyboard_review = ProjectStoryboardReviewPersistence(self._project_access, self.script)
+        self.creative_terminal = ProjectCreativeTerminalPersistence(self._project_access)
         self.production_bridge = ProductionBridgePersistence(self._project_access, self._canonical, self.storyboard_review)
         self.production_bridge_intent = ProductionBridgeIntentPersistence(self._project_access, self.production_bridge)
         self._media = ProjectMediaPersistence(

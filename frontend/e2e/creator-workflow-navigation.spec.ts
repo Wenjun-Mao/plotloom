@@ -24,7 +24,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page.getByTestId("source-outline-source")).not.toBeVisible();
   await expect(page.getByLabel("故事内容")).not.toBeVisible();
   await expect(page.getByTestId("art-review").locator("header > span")).toHaveText("美术参考");
-  await expect(page.getByTestId("art-review").locator(":scope > small").first()).toContainText("参考研究在下方单独显示");
+  await expect(page.getByTestId("art-review").locator(":scope > small").first()).toContainText("参考图片在下方单独显示");
   await expect(page.getByTestId("art-review").locator(":scope > small").first()).not.toContainText("F3B");
   await expect(page.locator(".topbar")).not.toContainText("美术参考");
   await expect(workflow.getByRole("link", { name: "美术参考" })).toHaveAttribute("aria-current", "step");
@@ -78,7 +78,7 @@ test("keeps source-owned workflow targets project-scoped and separate from legac
   await expect(page).toHaveURL(new RegExp(`project=${secondProject}&stage=source#source$`));
   await expect(page.getByRole("heading", { name: "来源与大纲", exact: true })).toBeVisible();
   await expect(page.locator("h1:visible")).toHaveCount(1);
-  await expect(page.getByText("由作者填写保存，不构成平台的法律确认。", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "确认改编内容", exact: true })).toBeVisible();
   const sourceText = page.getByLabel("故事内容");
   await sourceText.fill("保留的未保存来源草稿");
   await workflow.getByRole("link", { name: "美术参考" }).click();

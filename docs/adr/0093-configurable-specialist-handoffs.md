@@ -29,6 +29,43 @@ validate its request-bound terminal receipt, release the slot, and never install
 the discarded candidate. An invalid current candidate retains its lease for
 investigation instead of silently permitting another assignment.
 
+## Amendment: cancelled-delivery reconciliation (2026-10-02)
+
+A real cancelled Script retained its reservation because the check route's
+discard branch first called ordinary request lookup, which rejects cancelled
+rows. The unit fake did not implement that guard and hid the mismatch.
+Outline additionally retains a cancelled row at its visible head; currentness
+therefore requires a prepared status as well as matching job identity.
+
+Terminal reconciliation now has a separately named project-persistence access
+to the exact stage's retained cancelled/ready/accepted candidate row. A ready
+candidate can be replaced after ordinary refresh admitted it but before the
+specialist reservation completed; only a noncurrent check takes this ready-row
+discard path. Storyboard preparation still blocks a ready candidate. It checks route
+project/stage/job against the stored request and stored execution pin; package
+bytes never select the request or recover a missing pin. Ordinary request,
+handoff, resend and admission guards remain closed for cancelled jobs. The
+confined exchange/pin handle adapter is separated from the oversized general
+project handle; terminal metadata has its own cohesive persistence capability.
+
+An explicit check validates the original frozen package and complete delivery
+against that retained request/pin. Valid terminal delivery is discarded without
+changing the project or its newer head. Missing, partial, tampered or foreign
+delivery keeps the reservation. Invalid current delivery still requires
+investigation and never automatically releases. Idle or cancellation alone is
+not completion proof; valid terminal proof also resolves `outcome_unknown`.
+
+Registry completion binds to saved project/stage dispatch context, one dispatch
+root, and exact receipt job/task identity. A pending receipt cannot be relabelled
+completed when its lease belongs to another owner or exact release fails.
+Low-level dispatch release still compares the exact `{jobId, taskId}` record.
+Completed receipt tombstones persist; repeated checks do not disturb a newer
+lease. A pending owned receipt with no remaining lease can finish its tombstone
+only after valid terminal proof, covering a crash between exact unlink and the
+receipt write. No native dispatch means there is no reservation to release for a valid
+manual-current admission. Real-store/exchange regressions cover every creative
+stage and identity, receipt, pin, restart and competing-lease boundaries.
+
 ## Alternatives and consequences
 
 One thread per stage adds setup without needed parallelism; one shared thread

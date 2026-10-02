@@ -71,12 +71,13 @@ def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any
     @app.post("/api/v2/projects/{project_id}/specialist-tasks/{stage}/{job_id}/check")
     def check(project_id: str, stage: Stage, job_id: str = Path(pattern=JOB_ID_PATTERN)):
         with opened_project(project_id) as store:
+            registry.assert_creative_task_identity(job_id, project_id=project_id, stage=stage)
             candidate = getattr(store, METHODS[stage][0])().candidate
             is_current = candidate is not None and candidate.job_id == job_id
             if is_current and candidate.status in {"ready", "accepted"}:
-                registry.complete(job_id)
+                registry.complete_creative_task(job_id, project_id=project_id, stage=stage)
                 return {"state": "completed"}
-            request = getattr(store, METHODS[stage][1])(job_id)
+            request = getattr(store, METHODS[stage][1])(job_id) if is_current and candidate.status == "prepared" else store.terminal_creative_request(stage, job_id)
             try:
                 delivery = store.creative_handoff_exchange().read_delivery(request, store.creative_handoff_execution_pin(request))
             except CreativeHandoffError as error:
@@ -87,9 +88,9 @@ def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any
                 return registry.status(job_id)
             if not is_current or candidate.status != "prepared":
                 # A cancelled/replaced proposal can finish without becoming current.
-                registry.complete(job_id)
+                registry.complete_creative_task(job_id, project_id=project_id, stage=stage)
                 return {"state": "completed", "candidateStatus": "discarded"}
             # Admission validates source binding/schema/report/hash; it is not creative acceptance.
             result = getattr(store, METHODS[stage][2])(delivery)
-            registry.complete(job_id)
+            registry.complete_creative_task(job_id, project_id=project_id, stage=stage)
             return {"state": "completed", "candidateStatus": result.status}

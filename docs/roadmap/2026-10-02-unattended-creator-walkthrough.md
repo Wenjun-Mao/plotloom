@@ -237,3 +237,29 @@ original-project protection and truthful evidence remain.
   the original API/73 tables/67 files still unchanged. This scoped checkpoint
   is committed before the next real image preparation; native generation and
   copy-only creative decisions remain the next stages, not claimed acceptance.
+- Steps 2–3 contract checkpoint: Cast r3 and live-action Art r2 are provisionally
+  accepted in the final copy; retained C01 is reselected, and one new S02 image
+  was imported, compared and explicitly selected. Revised S02 draft cancellation
+  preserved its request/choice. Real Script delivery omitted required linkage;
+  its request/output remain preserved after explicit UI cancellation. The
+  same-contract brief/skill clarification has 50 passing Python checks; current
+  navigation/reader/manual/production checks and all 18 storyboard source/ownership
+  checks pass. Original API/73 tables/67 files still equal baseline. Script and
+  storyboard acceptance, further scene/prop iteration and production remain
+  pending. See the [stage 2–3 checkpoint](../verification/2026-10-02-stage23-contract-checkpoint.md).
+  A retained specialist reservation exposed the unreachable cancelled-delivery
+  reconciliation branch. Following manager safety review, the bounded repair
+  is implemented and frozen for independent review: stage-owned retained
+  request/pin authority, exact native receipt/context/lease ownership, and
+  discarded completion without candidate installation or a newer-head change.
+  Independent review found ready rows replaced before specialist completion;
+  noncurrent ready reconciliation and eight real refresh/replacement regressions
+  repair that gap without changing ordinary stage guards. The final focused
+  gate passes 88 tests including all 57 real-composition reconciliation cases.
+  The preceding broader focused
+  checks passed 111 before the dirty-skill/committed-pin recovery criterion,
+  with the remaining files passing 42 checks while that criterion was excluded.
+  Its unchanged method and hash-only diagnosis are recorded; rerun after commit.
+  Manager review/commit precedes the owned restart and explicit Settings check.
+  Both native specialists are idle; no lease clearing, replay, service restart
+  or new live task. Isolated ports 8851/8852 remain running, normal services intact.

@@ -134,13 +134,72 @@ class SpecialistRegistry:
     def complete(self, job_id: str):
         with self.lock():
             data = self._read()
-            for task_id, root in data["roots"].items():
-                receipt = Path(root) / job_id / "receipt.json"
-                if receipt.exists():
-                    self._dispatcher(data, task_id).complete(job_id)
-                    value = json.loads(receipt.read_text())
-                    value["state"] = "completed"
-                    receipt.write_text(json.dumps(value), encoding="utf-8")
+            self._complete_owned(data, job_id, self._owned_dispatch(data, job_id))
+
+    def assert_creative_task_identity(self, job_id: str, *, project_id: str, stage: str):
+        with self.lock():
+            self._creative_dispatch(self._read(), job_id, project_id, stage)
+
+    def complete_creative_task(self, job_id: str, *, project_id: str, stage: str):
+        with self.lock():
+            data = self._read()
+            dispatch = self._creative_dispatch(data, job_id, project_id, stage)
+            self._complete_owned(data, job_id, dispatch)
+
+    def _creative_dispatch(self, data, job_id, project_id, stage):
+        dispatch = self._owned_dispatch(data, job_id)
+        context = data.get("jobs", {}).get(job_id)
+        if (dispatch is not None or context is not None) and context != {"projectId": project_id, "stage": stage}:
+            raise ImageJobError("specialist_dispatch_identity", "任务的项目或阶段与保留的发送记录不一致，保留预约。")
+        # A current manual delivery has no native attempt or reservation to finish.
+        return dispatch
+
+    def _owned_dispatch(self, data, job_id):
+        matches = [(task_id, Path(root)) for task_id, root in data["roots"].items()
+                   if (Path(root) / job_id).exists() or (Path(root) / job_id).is_symlink()]
+        if not matches:
+            return None
+        if len(matches) != 1:
+            raise ImageJobError("specialist_dispatch_identity", "任务对应多个发送目录，保留预约。")
+        task_id, root = matches[0]
+        directory = root / job_id
+        receipt = directory / "receipt.json"
+        if directory.is_symlink():
+            raise ImageJobError("specialist_dispatch_identity", "发送记录目录不可用于确认完成，保留预约。")
+        value = self._dispatch_record(receipt)
+        if value.get("jobId") != job_id or value.get("taskId") != task_id or value.get("state") not in {"queued", "outcome_unknown", "completed"}:
+            raise ImageJobError("specialist_dispatch_identity", "发送回执身份不一致，保留预约。")
+        active = root / "inflight.json"
+        if value["state"] != "completed" and (active.exists() or active.is_symlink()) and self._dispatch_record(active) != {"jobId": job_id, "taskId": task_id}:
+            raise ImageJobError("specialist_dispatch_identity", "预约属于其他任务，不能确认当前任务完成。")
+        return task_id, receipt, value
+
+    @staticmethod
+    def _dispatch_record(path):
+        try:
+            if path.is_symlink() or not path.is_file():
+                raise ValueError("unavailable dispatch record")
+            value = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(value, dict):
+                raise TypeError("invalid dispatch record")
+        except (OSError, ValueError, TypeError) as error:
+            raise ImageJobError("specialist_dispatch_identity", "无法验证保留的发送记录，保留预约。") from error
+        return value
+
+    def _complete_owned(self, data, job_id, dispatch):
+        if dispatch is None:
+            return
+        task_id, receipt, value = dispatch
+        if value["state"] == "completed":
+            return
+        self._dispatcher(data, task_id).complete(job_id)
+        root = receipt.parent.parent
+        if (root / "inflight.json").exists() or (root / "inflight.json").is_symlink():
+            raise ImageJobError("specialist_dispatch_identity", "预约未由当前任务释放，保留发送回执。")
+        value["state"] = "completed"
+        temporary = receipt.with_suffix(".tmp")
+        temporary.write_text(json.dumps(value), encoding="utf-8")
+        temporary.replace(receipt)
 
 
 class ImageSpecialist:

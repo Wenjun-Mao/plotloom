@@ -48,6 +48,7 @@ def test_stage_dispatch_delivery_and_cancelled_observation(tmp_path, monkeypatch
     setattr(store, METHODS[stage][0], lambda: state)
     setattr(store, METHODS[stage][1], lambda requested: request if requested == job else pytest.fail("wrong identity"))
     setattr(store, METHODS[stage][2], admit)
+    store.terminal_creative_request = lambda requested_stage, requested: request if (requested_stage, requested) == (stage, job) else pytest.fail("wrong terminal identity")
 
     @contextmanager
     def opened(project):

@@ -58,6 +58,16 @@ not a backend job, a review decision, or permission to edit canon.
   original candidate and adds the selected preset; it replaces only the art
   CLI entrypoint, not the upstream structural gates. A stale contract requires
   returning the failure, never editing the frozen package or adapter.
+- For a `script` candidate, copy `inputs/script-admission.json.sectionBindings`
+  unchanged into top-level `script.json.sectionBindings`. This is Plotloom's
+  required receiving extension to the upstream shape. Trusted code owns the
+  mapping values and order; do not infer, permute, omit, or choose them.
+  Before publishing the completion manifest, compare that exact ordered array
+  against the frozen admission and confirm that the candidate episode numbers
+  form exactly its episode set with the same cardinality. Run these checks in
+  addition to the pinned upstream validator, which does not enforce this
+  extension. Keep the original candidate and report together; never repair a
+  published delivery or retrofit an older frozen request.
 
 ## Local authoring
 

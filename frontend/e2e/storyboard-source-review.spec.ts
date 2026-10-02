@@ -15,6 +15,7 @@ test.describe("F5A production FastAPI/file-SQLite review", () => {
     expect(admission.reviewTiming).toEqual({ minCutSeconds: 2, maxCutSeconds: 8, maxSegmentSeconds: 15 });
     expect(admission.sectionBindings.map((entry: any) => entry.sectionId)).toEqual(["opening", "beacon", "dock"]);
     await page.reload();
+    await panel.getByText("查看任务说明（手动方式）", { exact: true }).click();
     const copied = page.waitForResponse(r => r.request().method() === "GET" && r.url().endsWith(`/${prepared.jobId}/handoff`));
     await panel.getByRole("button", { name: "恢复分镜任务" }).click();
     const recovered = await json(await copied);
