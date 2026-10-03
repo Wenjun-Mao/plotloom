@@ -159,7 +159,9 @@ def main():
     if args.action == "start":
         compose(config, "build")
         install_bridge(config)
-        compose(config, "up", "-d", "--wait", "--wait-timeout", "90")
+        # Mounted Python edits do not change the image/config identity used by
+        # Compose. Explicit start must activate them, not reuse cached imports.
+        compose(config, "up", "-d", "--force-recreate", "--wait", "--wait-timeout", "90")
         compose(config, "exec", "-T", "workbench", "codex", "bridge-health")
         print("Creator workbench is available at http://127.0.0.1:8841/v2/")
     elif args.action == "status":

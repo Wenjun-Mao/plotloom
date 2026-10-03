@@ -186,3 +186,41 @@ currentness/hash update or lease-release shortcut was used.
 Release revision, final UI recheck, remote CI result and heartbeat closure are
 recorded below when complete. New sound/final-film acceptance remains pending
 the owner even when this E2E implementation is complete.
+
+### Release-gate recovery
+
+Implementation `d228ca28c823bd80a6186ef474529f8cfe960de7` was pushed cleanly,
+but [CI run 37154439070](https://github.com/Wenjun-Mao/plotloom/actions/runs/37154439070)
+failed nine audio-timing cases (1,038 passed). Frontend contracts, archived
+prompt-reader verification, deterministic build and checked bundle passed;
+wheel/browser steps did not execute. This failure is retained, not represented
+as a green release.
+
+Root reproduced the exact FFmpeg 6.1.1 behavior in a disposable Ubuntu24
+container using the locked Python dependencies. The shared probe counted AAC
+codec padding rather than reconciling its shortened final packet with the
+MP4's exact stream endpoint. [ADR 0082](../adr/0082-proposed-production-playback-timing.md)
+records the measured discrepancy and the bounded reconciliation; no exactness
+tolerance was widened. A separately broken shifted-PTS fixture now explicitly
+preserves timestamps and asserts 192 frames/origin1 before derivation.
+The four affected test modules pass **66 tests** on both Linux FFmpeg6.1.1
+and Mac FFmpeg9.0.2. The revised probe also checks all12 retained selected
+segments without changing bytes, selections, hashes or historical evidence.
+
+Normal container inspection additionally found no FFmpeg executable. A separate
+candidate image now includes/build-checks FFmpeg and ffprobe, and its Debian
+FFmpeg5.1.9 successfully derives real B1 to60 frames/80,000 presented samples
+(80,896 decoded, 896 explained tail padding). This is temporary derivation from
+read-only media, not a new managed proposal or sound acceptance. The existing
+normal container was not replaced. Independent Sol/Medium review found that
+`start` could still reuse a cached container after mounted-only Python edits;
+explicit start now forces recreation, with an order/argument regression.
+Independent review of that fix found no remaining concrete blocker.
+The service's documented module-based test invocation passes47 tests; a direct
+`pytest` entrypoint invocation failed collection because its module path omitted
+the repository root, and is not counted as a passed check.
+The recovered candidate passes the complete local backend suite: **1,054 tests**,
+one existing deprecation warning, 298.49 seconds. Scoped Ruff/API F401,
+whitespace, wheel build and installed-wheel smoke pass. The stable candidate
+image was rebuilt under its separate test tag after the activation fix; neither
+the normal image tag nor its running container was replaced.

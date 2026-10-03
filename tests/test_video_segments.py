@@ -13,6 +13,8 @@ import pytest
 from plotloom.video_segments import (
     VideoSegmentError,
     _audio_timestamps_follow_samples,
+    _presented_audio_counts,
+    _probe,
     derive_playback_segment,
 )
 
@@ -147,9 +149,13 @@ def test_synthetic_nonzero_common_pts_keeps_exact_audio_window(
     subprocess.run(
         ["ffmpeg", "-v", "error", "-i", str(original),
          "-vf", "setpts=PTS+1/TB", "-af", "asetpts=PTS+1/TB",
+         "-fps_mode", "passthrough",
          "-c:v", "libx264", "-c:a", "aac", "-y", str(shifted)],
         check=True, timeout=90,
     )
+    source_probe = _probe(shifted)
+    assert source_probe.frame_count == 192
+    assert source_probe.video_start == 1
     segment = derive_playback_segment(
         shifted.read_bytes(), in_frame=12, out_frame=156,
         authored_duration_units=6_000,
@@ -157,6 +163,32 @@ def test_synthetic_nonzero_common_pts_keeps_exact_audio_window(
     assert segment.output_probe["frameCount"] == 144
     assert segment.output_probe["videoStart"] == "0"
     assert abs(segment.output_probe["audioSamples"] - 288_000) <= 1
+
+
+@pytest.mark.parametrize("duration_field", ["duration", "pkt_duration"])
+def test_presented_aac_tail_requires_packet_and_stream_agreement(duration_field: str) -> None:
+    frames = [{duration_field: 1024}, {duration_field: 256}]
+    times = [Fraction(0), Fraction(1024, 48000)]
+    stream = {"start_pts": 0, "duration_ts": 1280}
+    assert _presented_audio_counts(frames, times, [1024, 1024], stream, Fraction(1, 48000), 48000) == [1024, 256]
+    # A decoder that already discarded the padding reaches the same authority.
+    assert _presented_audio_counts(frames, times, [1024, 256], stream, Fraction(1, 48000), 48000) == [1024, 256]
+
+
+@pytest.mark.parametrize("duration,counts,stream,error", [
+    (0, [1024, 1024], {"start_pts": 0, "duration_ts": 1024}, "duration disagrees"),
+    (1025, [1024, 1024], {"start_pts": 0, "duration_ts": 2049}, "duration disagrees"),
+    (256, [1024, 2048], {"start_pts": 0, "duration_ts": 1280}, "exceeds one AAC"),
+    (256, [1024, 1024], {}, "lacks an exact stream"),
+    (256, [1024, 1024], {"start_pts": 0, "duration_ts": 1282}, "disagrees with the stream"),
+])
+def test_unproven_audio_padding_is_refused(duration, counts, stream, error) -> None:
+    with pytest.raises(VideoSegmentError, match=error):
+        _presented_audio_counts(
+            [{"duration": 1024}, {"duration": duration}],
+            [Fraction(0), Fraction(1024, 48000)], counts, stream,
+            Fraction(1, 48000), 48000,
+        )
 
 
 def test_synthetic_short_audio_and_variable_cadence_are_refused(tmp_path: Path) -> None:

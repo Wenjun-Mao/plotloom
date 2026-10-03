@@ -114,6 +114,34 @@ one sample of local timestamp quantization. This does not accumulate tolerance:
 a two-sample gap or drift beyond one sample still blocks, as do the exact
 window coverage and end-time checks above.
 
+### Presented AAC samples versus decoder padding (2026-10-03)
+
+CI on FFmpeg 6.1.1 exposed a probe ownership error hidden by local FFmpeg 9.0.2:
+the same six-second derivative declared a shortened final packet and exact
+stream endpoint, while the older decoder returned a full 1024-sample final
+frame. At 32 kHz this yielded 192,512 decoded samples for 192,000 presented
+samples; at 48 kHz, 288,768 for 288,000. Treating every decoded sample as
+presented sound contradicted this ADR's explicit edit-metadata allowance.
+
+The probe reconciles only a shortened **final AAC frame**, bounded to one codec
+frame, when its exact packet/frame duration and exact stream start/duration
+endpoint agree within the existing one-sample timestamp bound. Otherwise it
+refuses the take. `audioSamples` and `audioEnd` describe presented sound;
+`audioDecodedSamples` and `audioDiscardedPadding` retain the measured decoder
+count and explained non-presented tail. Earlier timestamps still use cumulative
+decoded counts to prove continuity. No extra sample tolerance, filler, stretch,
+stream-duration-only clipping or rewrite of retained segment evidence is allowed.
+This belongs in the shared probe, not API/test acceptance exceptions.
+
+The shifted-PTS synthetic fixture separately depended on implicit video sync:
+FFmpeg 6 duplicated 24 opening frames and moved video origin to zero. It now
+uses explicit `-fps_mode passthrough` and asserts the original 192 frames and
+one-second origin before testing derivation. This matches the documented
+[FFmpeg sync mode](https://raw.githubusercontent.com/FFmpeg/FFmpeg/n6.1.1/doc/ffmpeg.texi)
+and fixes fixture construction without bypassing audio coverage refusal.
+Focused tests retain short-audio/gap refusal and require packet/stream agreement;
+the real Linux and Mac probes verify the same strict presented-sample contract.
+
 ## First slice, alternatives and decision boundary
 
 Approved first implementation: build the probe/segment/selection contract and minimal Chinese review UI for current 24-fps H3 6/8-second authored shots; use qualified 8-second requests as possible source takes for six-second windows, while preserving exact source timing and all existing Approval/reference/keyframe, dispatch and quality gates. The creator may choose **any contiguous exact-duration in/out window** with its sound, inspect the final derivative, and explicitly confirm the selected take/window; the system must not claim that a human watched it merely because a control was clicked. Show separately “原稿镜头时长”, “后端请求时长”, “实测原片”, and “已审核播放片段”; label an 8-second request as *candidate material for a six-second segment*, not as an exact match. Block with a clear reason for no Approval, stale source/selection, no qualified request, missing frames/audio, non-frame-aligned shot, unreviewed window, mismatched probe, or clipped creative content. A six-second catalog entry must not be introduced on the assumption that `158/24` equals six.

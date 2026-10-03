@@ -19,6 +19,22 @@ container; do not relocate/rewrite requests or start with a fresh project store.
 The image contains locked Python dependencies plus Node and Git, which current
 art validation and upstream execution pins require.
 
+### Playback tooling and activation clarification (2026-10-03)
+
+The exact playback path in ADR 0082 requires FFmpeg and ffprobe in the server's
+execution environment. The retained container lacked both, even though the Mac
+isolated runtime supplied them. The image now installs the distribution's
+FFmpeg package and checks both executables during build; enabling a provider
+remains a separate explicit configuration decision. Relying on host PATH or
+moving derivation to a provider would hide a missing deployment dependency.
+Read-only mounted Python source is not hot reload: explicit `start` now forces
+container recreation even when mounted-only changes leave the built image and
+Compose configuration unchanged. A regression asserts build → bridge → forced
+recreate → health order. Static bundle bytes are served from the mount and
+can become visible earlier. Activation therefore requires a quiet dispatch
+checkpoint and deliberate admission of any changed project schema; frontend
+visibility alone does not prove an upgraded backend.
+
 Native Codex queueing must remain on macOS. A separate login-started launchd
 bridge runs only the existing `codex queue` command, authenticated with a local
 token, and permits only the configured specialist task IDs. A container CLI shim

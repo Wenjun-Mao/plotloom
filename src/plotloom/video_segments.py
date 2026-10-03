@@ -31,6 +31,7 @@ class SegmentProbe:
     audio_end: Fraction
     audio_sample_rate: int
     audio_samples: int
+    audio_decoded_samples: int
     width: int
     height: int
     format_duration: Fraction
@@ -44,6 +45,8 @@ class SegmentProbe:
             "audioEnd": str(self.audio_end),
             "audioSampleRate": self.audio_sample_rate,
             "audioSamples": self.audio_samples,
+            "audioDecodedSamples": self.audio_decoded_samples,
+            "audioDiscardedPadding": self.audio_decoded_samples - self.audio_samples,
             "width": self.width,
             "height": self.height,
             "formatDuration": str(self.format_duration),
@@ -110,6 +113,39 @@ def _audio_timestamps_follow_samples(
     return True
 
 
+def _presented_audio_counts(
+    frames: list[dict[str, Any]], times: list[Fraction], counts: list[int],
+    stream: dict[str, Any], time_base: Fraction, sample_rate: int,
+) -> list[int]:
+    """Reconcile a padded final AAC frame with its MP4 presentation endpoint.
+
+    Some decoders expose the full final codec frame rather than applying the
+    shortened packet duration. Neither a stream declaration alone nor a wider
+    sample tolerance proves that the excess is non-presented padding.
+    """
+    duration = frames[-1].get("duration", frames[-1].get("pkt_duration"))
+    if duration is None:
+        return counts
+    try:
+        presented = int(duration) * time_base * sample_rate
+    except (TypeError, ValueError) as error:
+        raise VideoSegmentError("final audio frame lacks exact presentation duration") from error
+    if presented.denominator != 1 or presented <= 0 or presented > counts[-1]:
+        raise VideoSegmentError("final audio duration disagrees with decoded samples")
+    if presented == counts[-1]:
+        return counts
+    if counts[-1] > 1024:
+        raise VideoSegmentError("audio padding exceeds one AAC frame")
+    try:
+        stream_end = (int(stream["start_pts"]) + int(stream["duration_ts"])) * time_base
+    except (KeyError, TypeError, ValueError) as error:
+        raise VideoSegmentError("audio padding lacks an exact stream endpoint") from error
+    frame_end = times[-1] + Fraction(presented, sample_rate)
+    if abs(stream_end - frame_end) > Fraction(1, sample_rate):
+        raise VideoSegmentError("audio padding disagrees with the stream endpoint")
+    return [*counts[:-1], int(presented)]
+
+
 def _probe(path: Path, *, strict_container: bool = False) -> SegmentProbe:
     ffprobe = shutil.which("ffprobe")
     if ffprobe is None:
@@ -149,18 +185,24 @@ def _probe(path: Path, *, strict_container: bool = False) -> SegmentProbe:
         raise VideoSegmentError("source audio has an empty decoded frame")
     if not _audio_timestamps_follow_samples(audio_times, audio_counts, sample_rate):
         raise VideoSegmentError("source audio has a presentation gap or overlap")
+    presented_counts = _presented_audio_counts(
+        audio_frames, audio_times, audio_counts, audio, audio_base, sample_rate,
+    )
     frame_count = len(video_frames)
     if video.get("nb_frames") not in (None, "N/A", str(frame_count)):
         raise VideoSegmentError("declared frame count differs from decoded frames")
     video_end = video_times[0] + Fraction(frame_count, 24)
-    audio_end = audio_times[-1] + Fraction(audio_counts[-1], sample_rate)
+    audio_end = audio_times[-1] + Fraction(presented_counts[-1], sample_rate)
     # A container may include one codec packet's edit-list tail. A larger
     # discrepancy is not evidence of a coherent presentation interval.
     media_start = min(video_times[0], audio_times[0])
     tolerance = Fraction(1024, sample_rate) if strict_container else max(Fraction(1, 24), Fraction(1024, sample_rate))
     if abs(format_duration - (max(video_end, audio_end) - media_start)) > tolerance:
         raise VideoSegmentError("container duration disagrees with decoded streams")
-    return SegmentProbe(frame_count, video_times[0], audio_times[0], audio_end, sample_rate, sum(audio_counts), width, height, format_duration)
+    return SegmentProbe(
+        frame_count, video_times[0], audio_times[0], audio_end, sample_rate,
+        sum(presented_counts), sum(audio_counts), width, height, format_duration,
+    )
 
 
 def derive_playback_segment(content: bytes, *, in_frame: int, out_frame: int, authored_duration_units: int) -> DerivedSegment:

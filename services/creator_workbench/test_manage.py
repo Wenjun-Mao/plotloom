@@ -64,6 +64,23 @@ def test_start_reloads_changed_bridge_code_at_the_same_source_path(installation)
     assert [command[1] for command in commands] == ["bootout", "bootstrap"]
 
 
+def test_start_recreates_backend_when_only_mounted_python_source_changes(monkeypatch):
+    config = {"data": "/isolated/data", "token": "/private/token", "codex": "/native/codex"}
+    calls = []
+    monkeypatch.setattr(manage.sys, "platform", "darwin")
+    monkeypatch.setattr(manage.sys, "argv", ["manage.py", "start"])
+    monkeypatch.setattr(manage, "load_config", lambda _root: config)
+    monkeypatch.setattr(manage, "install_bridge", lambda value: calls.append(("bridge", value)))
+    monkeypatch.setattr(manage, "compose", lambda value, *args: calls.append(("compose", value, args)))
+    manage.main()
+    assert calls == [
+        ("compose", config, ("build",)),
+        ("bridge", config),
+        ("compose", config, ("up", "-d", "--force-recreate", "--wait", "--wait-timeout", "90")),
+        ("compose", config, ("exec", "-T", "workbench", "codex", "bridge-health")),
+    ]
+
+
 def test_existing_credentials_are_secured_without_changing_the_token(tmp_path):
     private = tmp_path / "private"
     private.mkdir(mode=0o755)

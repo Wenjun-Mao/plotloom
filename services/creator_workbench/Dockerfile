@@ -4,7 +4,8 @@ FROM python:3.12-slim-bookworm
 
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=uv /uv /usr/local/bin/uv
-RUN apt-get update && apt-get install -y --no-install-recommends git libstdc++6 \
+RUN apt-get update && apt-get install -y --no-install-recommends git libstdc++6 ffmpeg \
+    && ffmpeg -version && ffprobe -version \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/plotloom-dependencies
 COPY pyproject.toml uv.lock ./

@@ -9,7 +9,9 @@ uv run --locked python services/creator_workbench/manage.py start --data-root .l
 This starts a detached container at **http://127.0.0.1:8841/v2/** using the
 existing walkthrough project and installation data. Port 8841 must be free;
 stop the old foreground walkthrough process before starting. The image installs
-locked Python dependencies, Node and Git. The current checkout is mounted
+locked Python dependencies, Node, Git and FFmpeg/ffprobe for exact playback
+segment derivation. Installing these tools does not enable a video provider.
+The current checkout is mounted
 read-only so Git/submodule pins, adapters and frozen package paths remain valid.
 Only the existing `outputs` and `application` subdirectories are writable.
 No project copy, reset, request rewrite or task dispatch occurs during startup.
@@ -27,9 +29,12 @@ uv run --locked python services/creator_workbench/manage.py check-bridge
 uv run --locked python services/creator_workbench/manage.py stop
 ```
 
-After dependency or service-file changes, rerun `start` to rebuild and recreate
-the container. Python/UI source changes remain visible through the read-only
-checkout mount; rebuild generated frontend assets when changing the frontend.
+After dependency, service-file or Python source changes, rerun `start` to rebuild
+and recreate the container. The checkout mount exposes source changes, but an
+already-running Python process keeps imported code cached. Rebuild generated
+frontend assets when changing the frontend; these static bytes are served from
+the mount without a backend restart. Coordinate any schema admission and wait
+for a quiet dispatch checkpoint before activating a changed backend.
 
 ## Native specialist bridge
 
