@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -178,6 +179,103 @@ class VideoSegmentPersistence:
                 decision="select", note=note, created_at=now,
             ))
             return self._projection(segment, current=True, selected=True)
+
+    def reopen_rejected_h3_review(
+        self, project_id: str, video_job_id: str, *, reviewer: str, reason: str,
+        expected_selection_revision: int,
+    ) -> dict[str, Any]:
+        """Append explicit reconsideration while preserving current shot playback."""
+        reviewer, reason = reviewer.strip(), reason.strip()
+        if not reviewer or not reason:
+            raise InvalidTransitionError("reopening a rejected H3 take requires a reviewer and reason")
+
+        with self._access.leases.lifecycle_write() as session:
+            job = session.get(VideoJobRow, video_job_id)
+            if job is None or job.project_id != project_id:
+                raise NotFoundError("video job not found")
+            snapshot = job.snapshot
+            provider = snapshot.get("provider") if isinstance(snapshot, dict) else None
+            if (
+                job.state != "ingested"
+                or not isinstance(provider, dict)
+                or provider.get("adapterId") != "minimax_h3_gateway"
+                or not self._currentness.video_job_current_in_session(session, job)
+            ):
+                raise InvalidTransitionError("only a current ingested H3 take can be reopened")
+
+            latest = session.scalar(
+                select(VideoReviewRow)
+                .where(VideoReviewRow.video_job_id == job.id)
+                .order_by(VideoReviewRow.created_at.desc(), VideoReviewRow.id.desc())
+                .limit(1)
+            )
+            if latest is None or latest.decision != "reject":
+                raise InvalidTransitionError("only the latest rejected H3 review can be reopened")
+
+            self._source(job)
+            shot_id = snapshot["shot"]["id"]
+            selection = self._selection(session, project_id, shot_id)
+            actual_revision = selection.revision if selection is not None else 0
+            if actual_revision != expected_selection_revision:
+                raise RevisionConflictError(
+                    "video-candidate-selection", expected_selection_revision, actual_revision
+                )
+            if actual_revision < 0:
+                raise InvalidTransitionError("video selection revision is invalid")
+            if selection is not None and selection.selected_video_job_id == job.id:
+                raise InvalidTransitionError("a rejected H3 take cannot remain the selected video job")
+
+            next_revision = actual_revision + 1
+            if selection is None:
+                selection = VideoCandidateSelectionRow(
+                    project_id=project_id, shot_id=shot_id,
+                    selected_video_job_id=None, revision=next_revision, updated_at=utc_now(),
+                )
+                session.add(selection)
+            else:
+                selected_id = selection.selected_video_job_id
+                if selected_id is not None:
+                    selected_job = session.get(VideoJobRow, selected_id)
+                    selected_snapshot = selected_job.snapshot if selected_job is not None else None
+                    selected_shot = selected_snapshot.get("shot") if isinstance(selected_snapshot, dict) else None
+                    if (
+                        selected_job is None
+                        or selected_job.project_id != project_id
+                        or not isinstance(selected_shot, dict)
+                        or selected_shot.get("id") != shot_id
+                    ):
+                        raise InvalidTransitionError("current video selection is inconsistent")
+                    active_segments = session.scalars(
+                        select(VideoSegmentRow).where(
+                            VideoSegmentRow.project_id == project_id,
+                            VideoSegmentRow.shot_id == shot_id,
+                            VideoSegmentRow.video_job_id == selected_id,
+                            VideoSegmentRow.selected_revision == actual_revision,
+                        )
+                    ).all()
+                    if len(active_segments) > 1:
+                        raise InvalidTransitionError("current video selection has multiple active segments")
+                    if active_segments:
+                        active_segments[0].selected_revision = next_revision
+                selection.revision = next_revision
+                selection.updated_at = utc_now()
+
+            # Review projection sorts by createdAt and then id. Keep the
+            # explicit reopen event after its rejection even within one clock tick.
+            created_at = max(
+                utc_now(), _stored_utc(latest.created_at) + timedelta(microseconds=1)
+            )
+            review = VideoReviewRow(
+                id=new_id(), video_job_id=job.id, reviewer=reviewer,
+                decision="reopen", note=reason, created_at=created_at,
+            )
+            session.add(review)
+            return {
+                "id": review.id, "videoJobId": job.id, "reviewer": reviewer,
+                "decision": "reopen", "note": reason,
+                "createdAt": _stored_utc(created_at).isoformat(),
+                "selectionRevision": next_revision,
+            }
 
     def proposal_storage(self, project_id: str, segment_id: str) -> dict[str, Any]:
         with self._access.leases.read() as session:

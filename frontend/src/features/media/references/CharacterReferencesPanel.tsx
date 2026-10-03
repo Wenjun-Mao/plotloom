@@ -7,6 +7,7 @@ import type {
 } from "../../../types";
 import { plotloomApi } from "../../../api";
 import { Button, Field } from "../../../components";
+import type { MediaReadPhase } from "../useMediaWorkbenchData";
 
 type ReferenceForm = {
   characterId: string;
@@ -56,6 +57,7 @@ export function CharacterReferencesPanel({
   },
   readOnly,
   busy,
+  mediaReadPhase = "ready",
   onSelectReference,
   onRevokeReference,
   onPrepareProposal,
@@ -79,6 +81,7 @@ export function CharacterReferencesPanel({
   form: ReferenceForm;
   readOnly: boolean;
   busy: boolean;
+  mediaReadPhase?: MediaReadPhase;
   onSelectReference: () => void;
   onRevokeReference: (characterId: string) => void;
   onPrepareProposal: () => void;
@@ -245,17 +248,18 @@ export function CharacterReferencesPanel({
                     })}
                   </div>
                 ) : (
-                  <div className="notice warning">尚未选择身份参考</div>
+                  mediaReadPhase === "ready" ? <div className="notice warning">尚未选择身份参考</div>
+                    : <small>当前身份参考状态尚未核验，请待媒体刷新完成。</small>
                 )}
                 <strong>
                   {character.name} ·{" "}
                   {decision?.current
                     ? `r${decision.referenceRevision}`
-                    : "missing"}
+                    : mediaReadPhase === "ready" ? "missing" : "状态未知"}
                 </strong>
                 <small>
                   {decision?.notes ??
-                    "P1.5 image job 会在准备时拒绝可见角色缺少参考的镜头。"}
+                    (mediaReadPhase === "ready" ? "P1.5 image job 会在准备时拒绝可见角色缺少参考的镜头。" : "读取完成前不会开放参考选择或图片请求。")}
                 </small>
                 {acceptedCast && (
                   <small data-testid={`cast-linked-reference-${character.id}`}>

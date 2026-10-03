@@ -6,6 +6,7 @@ from typing import Any
 import json
 
 from .directions import bind_reviewed_directions
+from ...shot_presentation import message_direction
 
 _FIRST_FRAME = (
     "For the target video, at 0.00 seconds into the target video, "
@@ -38,6 +39,9 @@ def compile_i2va_prompt(snapshot: dict[str, Any], reviewed_directions: dict[str,
             "Show this exact authored diegetic visible text, without speaking it or adding captions: "
             + json.dumps(visible["text"], ensure_ascii=False) + "."
         )
+    treatment = message_direction(snapshot.get("shotPresentation"))
+    if treatment:
+        description.append(treatment)
     speaker_ids: dict[str, str] = {}
     characters = {
         item["id"]: item for item in context.get("characters", [])

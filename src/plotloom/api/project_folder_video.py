@@ -17,8 +17,9 @@ from ..video_backends.minimax_h3.adapter import H3_QUALIFIED_DURATION_FRAMES
 from ..video_contracts import (
     VideoDiscardRequest,
     VideoDiscardUnselectedRequest,
-    VideoJobRequest,
     VideoEndFrameDecisionRequest,
+    VideoJobRequest,
+    VideoReviewReopenRequest,
     VideoReviewRequest,
     VideoSegmentPrepareRequest,
     VideoSegmentSelectRequest,
@@ -171,6 +172,22 @@ def register_project_folder_video_routes(
                 reviewer=body.reviewer,
                 decision=body.decision,
                 note=body.note,
+                expected_selection_revision=body.expected_selection_revision,
+            )
+
+    @app.post(
+        "/api/v2/projects/{project_id}/video-jobs/{video_job_id}/review/reopen",
+        status_code=status.HTTP_201_CREATED,
+    )
+    def reopen_video_job_review(
+        project_id: str, video_job_id: str, body: VideoReviewReopenRequest
+    ) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return _local_repository(store).reopen_video_job_review(
+                project_id,
+                video_job_id,
+                reviewer=body.reviewer,
+                reason=body.reason,
                 expected_selection_revision=body.expected_selection_revision,
             )
 

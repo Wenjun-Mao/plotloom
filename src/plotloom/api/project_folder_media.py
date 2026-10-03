@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from hashlib import sha256
 import json
-from typing import Annotated, Any, Callable, Literal
+from collections.abc import Callable
+from hashlib import sha256
+from typing import Annotated, Any, Literal
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.responses import JSONResponse, Response
@@ -19,6 +20,7 @@ from ..managed_media import (
     publish_import,
 )
 from ..persistence import stable_hash
+from ..shot_presentation import ShotPresentationRequest
 from .models import ProjectFolderVisualIntentRequest
 
 
@@ -29,6 +31,16 @@ def register_project_folder_media_routes(
     require_media_draft_scope: Callable[..., Any],
 ) -> None:
     """Register direct-storage asset, preview, and workbench routes."""
+
+    @app.get("/api/v2/projects/{project_id}/shots/{shot_id}/production-presentation")
+    def get_shot_presentation(project_id: str, shot_id: str) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return store.media.shot_presentations.get(project_id, shot_id)
+
+    @app.put("/api/v2/projects/{project_id}/shots/{shot_id}/production-presentation")
+    def review_shot_presentation(project_id: str, shot_id: str, body: ShotPresentationRequest) -> dict[str, Any]:
+        with opened_project(project_id) as store:
+            return store.media.shot_presentations.review(project_id, shot_id, body)
 
     @app.exception_handler(ManagedMediaError)
     async def managed_media_error_handler(

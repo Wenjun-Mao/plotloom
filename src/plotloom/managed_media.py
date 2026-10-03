@@ -105,6 +105,7 @@ class ReviewedSelectionRequest(CamelModel):
     storyboard_revision: int = Field(ge=1)
     approval_id: str = Field(min_length=1, max_length=36)
     compatibility_note: str = Field(min_length=1, max_length=2_000)
+    expected_presentation_revision: int = Field(default=0, ge=0)
     visual_intent_id: str = Field(min_length=1, max_length=36)
     visual_intent_revision: int = Field(ge=1)
 

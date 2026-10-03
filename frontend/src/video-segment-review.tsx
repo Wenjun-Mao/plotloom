@@ -33,17 +33,22 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
   const [proposalId, setProposalId] = useState("");
   const [reviewer, setReviewer] = useState("");
   const [note, setNote] = useState("");
+  const [reopenReviewer, setReopenReviewer] = useState("");
+  const [reopenReason, setReopenReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const activeRef = useRef(true);
   const requestRef = useRef(0);
   useEffect(() => {
     activeRef.current = true;
-    setInFrame(0); setProposalId(""); setReviewer(""); setNote(""); setBusy(false); setError("");
+    setInFrame(0); setProposalId(""); setReviewer(""); setNote("");
+    setReopenReviewer(""); setReopenReason(""); setBusy(false); setError("");
     return () => { activeRef.current = false; requestRef.current += 1; };
   }, [projectId, job.id]);
   const available = (job.segments ?? []).filter((segment) => segment.current);
   const rejected = job.reviews.at(-1)?.decision === "reject";
+  const previouslyRejected = job.reviews.some((review) => review.decision === "reject");
+  const explicitlyReopened = job.reviews.at(-1)?.decision === "reopen";
   const chosen: VideoSegment | undefined = available.find((segment) => segment.id === proposalId)
     ?? available[available.length - 1];
   useEffect(() => {
@@ -105,11 +110,30 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
       if (activeRef.current && request === requestRef.current) setBusy(false);
     }
   };
+  const reopen = async () => {
+    if (readOnly || busy || !rejected || !job.current || job.state !== "ingested"
+      || !reopenReviewer.trim() || !reopenReason.trim()) return;
+    const request = ++requestRef.current;
+    setBusy(true); setError("");
+    try {
+      await plotloomApi.reopenVideoJobReview(
+        projectId, job.id, reopenReviewer.trim(), reopenReason.trim(), job.selectionRevision,
+      );
+      if (!activeRef.current || request !== requestRef.current) return;
+      setReopenReviewer(""); setReopenReason("");
+      await onRefresh();
+    } catch (reason) {
+      if (activeRef.current && request === requestRef.current) setError(reviewError(reason, "重新开放审阅未完成"));
+    } finally {
+      if (activeRef.current && request === requestRef.current) setBusy(false);
+    }
+  };
   return <section id={`video-segment-review-${job.id}`} className="video-segment-review" data-testid={`video-segment-review-${job.id}`}>
     <strong>调整片段 · 预览 · 用于故事</strong>
     <small>原稿镜头时长：{sourceUnits == null ? "来源不可用" : `${(sourceUnits / 1000).toFixed(3)} 秒`}；后端请求时长：{job.requestedSeconds} 秒；实测原片：{job.observed ? `${job.observed.durationSeconds.toFixed(3)} 秒 / ${availableFrames} 帧` : "尚无输出"}。</small>
     <small>原片保留不变。选择连续的 {Number.isInteger(requiredFrames) ? requiredFrames : "—"} 帧及同期声音；片段准备后须听看最终片段，再明确选择。此操作不自动确认创作质量。</small>
-    {rejected && <small className="notice warning">此原片已拒绝；不能重新选择其片段。请选择另一候选或重新生成。原片与片段证据仍保留。</small>}
+    {rejected && <small className="notice warning">此原片已拒绝，片段选择已锁定。可在下方明确重新开放审阅，也可选择另一候选或重新生成；原片与片段证据仍保留。</small>}
+    {previouslyRejected && explicitlyReopened && <small className="notice">此前拒绝记录仍保留；本次已明确重新开放审阅。尚未准备片段或选择故事播放。</small>}
     {!timingReady && !rejected && <small className="notice warning">此候选没有足够的已核验画面与声音覆盖当前原稿时长，或原稿时长不在 24 fps 帧网格上；不能准备播放片段。</small>}
     {timingReady && <label>片段入点（帧）
       <input type="number" min={0} max={maxStart} step={1} value={inFrame} disabled={readOnly || busy}
@@ -141,6 +165,23 @@ export function VideoSegmentReview({ projectId, job, readOnly, onRefresh }: {
       title: "拒绝原片", message: "拒绝此原片并撤销当前选择？原片与片段证据会保留。",
       details: `原片：${job.id}\n审核人：${reviewer.trim() || "未填写"}\n说明：${note.trim() || "未填写"}`, action: reject,
     })}>拒绝此原片并撤销选择</Button>
+    {rejected && <div className="reopen-video-review" data-testid={`video-review-reopen-${job.id}`}>
+      <strong>重新开放原片审阅</strong>
+      <small>必填审核人和理由。此操作只解除拒绝锁定并保留历史；不会准备片段、选择原片或生成新视频。</small>
+      <label>重新开放审核人（必填）
+        <input value={reopenReviewer} required maxLength={160}
+          disabled={readOnly || busy || !job.current || job.state !== "ingested"}
+          onChange={(event) => setReopenReviewer(event.target.value)} />
+      </label>
+      <label>重新开放理由（必填）
+        <textarea value={reopenReason} required maxLength={2_000}
+          disabled={readOnly || busy || !job.current || job.state !== "ingested"}
+          onChange={(event) => setReopenReason(event.target.value)} />
+      </label>
+      <Button disabled={readOnly || busy || !job.current || job.state !== "ingested"
+        || !reopenReviewer.trim() || !reopenReason.trim()}
+        onClick={() => void reopen()}>重新开放审阅</Button>
+    </div>}
     {confirmation}
     {error && <small className="notice warning" role="status">{error}</small>}
   </section>;

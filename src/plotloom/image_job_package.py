@@ -11,6 +11,34 @@ from .image_job_contracts import ImageJobError
 PACKAGE_VERSION = 3
 PINNED_PACKAGE_VERSION = 4
 PRESENTATION_PACKAGE_VERSION = 5
+
+
+def presentation_amendment_instruction(request: dict) -> str:
+    decision = request.get("frozenSnapshot", {}).get("shotPresentation")
+    if decision is None:
+        return ""
+    instruction = ("The source-bound shotPresentation explicitly amends physical presentation. "
+                   "Use its effectiveShot and review as authority; source is retained evidence, never active direction. ")
+    if decision["review"]["messagePresentation"] != "source":
+        instruction += ("The first image shows a large front-facing popped-out preview outside the phone with "
+                        "the complete exact UNSENT draft already present. The phone has no readable text. "
+                        "Sending belongs to subsequent video action, never the first image; no already-sent first image. ")
+    return instruction
+
+
+def runtime_presentation_instruction(request: dict) -> str:
+    if request.get("frozenSnapshot", {}).get("shotPresentation") is None:
+        # Retained, immutable packages must still re-project byte-for-byte.
+        return "Never generate player choice questions, option buttons or UI; runtime owns that presentation. "
+    return (
+        "Never generate runtime branching-choice UI, including player choice questions or branch-option buttons; "
+        "runtime owns that presentation. Depict only the authored or explicitly reviewed message/interface treatment. "
+        "Render message words only from the frozen visibleTexts, preserving them exactly; "
+        "do not invent additional message text or replies. "
+        "Nonverbal interface cues must follow the frozen physical presentation. "
+    )
+
+
 COMPLETION_TEMPLATE_FILENAME = "completion-manifest.example.json"
 OUTPUT_BASENAME_INSTRUCTION = (
     "Copy each selected ImageGen JPEG or PNG unchanged using its exact returned basename; "
@@ -127,8 +155,9 @@ def project_image_package(
             + adaptation_instruction
             + ("Use the frozen shot action/composition and resolved visibleEvent fields as physical presentation authority. "
                "visibleTexts are exact nonspoken diegetic words: preserve their original text in the image. "
-               "Never generate player choice questions, option buttons or UI; runtime owns that presentation. "
-               "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
+               + presentation_amendment_instruction(request)
+               + runtime_presentation_instruction(request)
+               + "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
                if version == PRESENTATION_PACKAGE_VERSION else "")
             + OUTPUT_BASENAME_INSTRUCTION
             + "Write complete JPEG or PNG files to delivery/outputs, then publish delivery/completion.json once. Do not write "
@@ -158,8 +187,9 @@ def project_image_package(
             + adaptation_instruction
             + ("Use the frozen shot action/composition and resolved visibleEvent fields as physical presentation authority. "
                "visibleTexts are exact nonspoken diegetic words: preserve their original text in the image. "
-               "Never generate player choice questions, option buttons or UI; runtime owns that presentation. "
-               "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
+               + presentation_amendment_instruction(request)
+               + runtime_presentation_instruction(request)
+               + "No text compositor is implied by this request; disclose any inability to render the exact authored words. "
                if version == PRESENTATION_PACKAGE_VERSION else "")
             + OUTPUT_BASENAME_INSTRUCTION
             + "Disclose the "

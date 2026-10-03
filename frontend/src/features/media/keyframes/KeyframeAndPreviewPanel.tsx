@@ -41,6 +41,7 @@ export function KeyframeAndPreviewPanel({
   selectedBinding,
   keptAssetId,
   retainedIdentityMapping,
+  candidateState,
   assetById,
   intentEditor,
   activeIntent,
@@ -49,6 +50,7 @@ export function KeyframeAndPreviewPanel({
   readOnly,
   busy,
   mediaDraftsEnabled,
+  mediaReadPhase = "ready",
   review,
   maxPreviewLength,
   previewLength,
@@ -73,6 +75,7 @@ export function KeyframeAndPreviewPanel({
   selectedBinding: ReviewedKeyframe | undefined;
   keptAssetId: string;
   retainedIdentityMapping: IdentityMapping[];
+  candidateState: "current" | "history" | "imported";
   assetById: Map<string, ManagedAsset>;
   intentEditor: IntentEditor;
   activeIntent: VisualIntent | undefined;
@@ -81,6 +84,7 @@ export function KeyframeAndPreviewPanel({
   readOnly: boolean;
   busy: boolean;
   mediaDraftsEnabled: boolean;
+  mediaReadPhase?: "loading" | "ready" | "error";
   review: StoryboardReview | null | undefined;
   maxPreviewLength: number;
   previewLength: number;
@@ -106,7 +110,7 @@ export function KeyframeAndPreviewPanel({
     <>
       {!selectedBinding &&
         keptAssetId &&
-        retainedIdentityMapping.length > 0 && (
+        retainedIdentityMapping.length > 0 && candidateState === "history" && (
           <section
             className="intent-editor"
             data-testid="frozen-reference-history"
@@ -174,9 +178,12 @@ export function KeyframeAndPreviewPanel({
             </div>
           </section>
         )}
+      {!selectedBinding && keptAssetId && candidateState === "current" && <p role="status">
+        当前已交付候选尚未审核为关键帧。核对并保存意图，再审核选择；参考身份比较随后单独完成。
+      </p>}
       {keptAssetId && (
         <section className="intent-editor" aria-label="可审核视觉意图">
-          <strong>为保留候选记录可审核意图 · shot_keyframe</strong>
+          <strong>记录关键帧候选的视觉意图</strong>
           {intentEditor.dirty && (
             <div className="notice warning" role="status">
               <span>
@@ -298,7 +305,7 @@ export function KeyframeAndPreviewPanel({
           }
           onClick={() => void onSelectKeyframe()}
         >
-          为当前 Shot 审核选择
+          审核为当前镜头关键帧
         </Button>
         <Field label="连续预览镜头数">
           <select
@@ -338,7 +345,7 @@ export function KeyframeAndPreviewPanel({
           需要当前 storyboard Approval；导入、比较和意图细化仍可继续。
         </small>
       )}
-      {!!previewShotIds.length && (
+      {mediaReadPhase === "ready" && !!previewShotIds.length && (
         <small>
           {previewShotIds.join(" → ")} ·{" "}
           {missingPreviewShotIds.length

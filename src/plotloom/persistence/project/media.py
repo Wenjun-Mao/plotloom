@@ -25,6 +25,7 @@ from .media_video_source import VideoSourceTiming
 from .media_video_end_frames import VideoEndFrames
 from .media_video_segments import VideoSegmentPersistence
 from .media_visual_intents import VisualIntentPersistence
+from .media_shot_presentations import ShotPresentations
 
 
 class ProjectMediaPersistence:
@@ -41,6 +42,8 @@ class ProjectMediaPersistence:
         bridge: object | None = None,
     ) -> None:
         admission = KeyframeAdmission(access)
+        presentations = ShotPresentations(access, canonical, admission)
+        self.shot_presentations = presentations
         references = CharacterReferencePersistence(access, canonical, cast)
         image_currentness = ImageJobCurrentness(access, canonical, admission, references)
         same_person = SamePersonReviewPersistence(access, canonical, admission, references)

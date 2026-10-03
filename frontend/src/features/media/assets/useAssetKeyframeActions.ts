@@ -39,6 +39,7 @@ export function useAssetKeyframeActions({
   setWorkbench,
   previewShotIds,
   missingPreviewShotIds,
+  presentationRevision,
 }: {
   projectId?: string;
   origin: string;
@@ -64,6 +65,7 @@ export function useAssetKeyframeActions({
   setWorkbench: Dispatch<SetStateAction<VisualWorkbench>>;
   previewShotIds: string[];
   missingPreviewShotIds: string[];
+  presentationRevision?: number;
 }) {
   const chooseCandidate = (id: string) =>
     setCandidates((current) =>
@@ -184,6 +186,7 @@ export function useAssetKeyframeActions({
         compatibilityNote: compatibility.trim(),
         visualIntentId: activeIntent.id,
         visualIntentRevision: activeIntent.revision,
+        expectedPresentationRevision: presentationRevision ?? 0,
       });
       // A shot change can supersede the read refresh that follows a successful
       // selection. The mutation response is the authoritative revision, so

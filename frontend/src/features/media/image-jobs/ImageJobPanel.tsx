@@ -1,10 +1,12 @@
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import type { ImageJob, ReviewedKeyframe } from "../../../types";
 import { Badge, Button, Field } from "../../../components";
 import {
   type ImageJobDraftTarget,
   useImageJobDirectionDraft,
 } from "../../../visual-intent-drafts";
+import type { MediaReadPhase } from "../useMediaWorkbenchData";
+import { shotImageJobs } from "./image-job-visibility";
 
 type ImageJobDirection = ReturnType<typeof useImageJobDirectionDraft>;
 type DeliveryCandidate = ImageJob["deliveries"][number]["candidates"][number];
@@ -20,6 +22,8 @@ export function ImageJobPanel({
   readOnly,
   busy,
   imageJobs,
+  shotId,
+  mediaReadPhase = "ready",
   imageJobRefreshNotice,
   selectedBinding,
   onPrepare,
@@ -37,6 +41,8 @@ export function ImageJobPanel({
   readOnly: boolean;
   busy: boolean;
   imageJobs: ImageJob[];
+  shotId?: string;
+  mediaReadPhase?: MediaReadPhase;
   imageJobRefreshNotice: Record<string, string>;
   selectedBinding: ReviewedKeyframe | undefined;
   onPrepare: () => void;
@@ -44,13 +50,18 @@ export function ImageJobPanel({
   onRefresh: (jobId: string) => void;
   onCancel: (jobId: string) => void;
 }) {
+  const [showProjectHistory, setShowProjectHistory] = useState(false);
+  const scopedJobs = shotImageJobs(imageJobs, shotId);
+  const visibleJobs = showProjectHistory ? imageJobs : scopedJobs;
+  const mediaKnown = mediaReadPhase === "ready";
   return (
       <section className="image-job-panel" data-testid="image-job-panel">
         <div className="section-title">
           <span>Codex image jobs · P1.5</span>
           <strong>Prepare → Send → Generate → Auto-check → Select</strong>
         </div>
-        {!imageExchangeConfigured && (
+        {!mediaKnown && <small role="status">{mediaReadPhase === "loading" ? "正在读取图片请求与配置状态…" : "图片请求与配置状态暂时未知，请刷新媒体状态。"}</small>}
+        {mediaKnown && !imageExchangeConfigured && (
           <div className="notice warning">
             尚未配置同机 exchange root。设置{" "}
             <code>PLOTLOOM_IMAGE_EXCHANGE_ROOT</code> 后重启服务；不会回退到外部
@@ -61,7 +72,7 @@ export function ImageJobPanel({
           当前 storyboard Approval 冻结单镜头请求和角色映射后，专用同机 specialist
           接收不可变 package；delivery 会自动检查并只在通过既有验证后显示为候选。队列接受不代表生成、delivery、Approval 或选择。H3/Qwen 不参与此流程。
         </p>
-        {imageJobPrerequisite && (
+        {mediaKnown && imageJobPrerequisite && (
           <div className="notice warning" data-testid="image-job-prerequisite">
             {imageJobPrerequisite}
           </div>
@@ -182,8 +193,11 @@ export function ImageJobPanel({
             image job
           </Button>
         </div>
+        {mediaKnown && shotId && scopedJobs.length < imageJobs.length && <Button variant="quiet" onClick={() => setShowProjectHistory(!showProjectHistory)}>
+          {showProjectHistory ? "只看当前镜头请求" : `查看全项目请求历史（${imageJobs.length}）`}
+        </Button>}
         <div className="image-job-history">
-          {imageJobs.map((job) => (
+          {visibleJobs.map((job) => (
             <article
               key={job.id}
               className="image-job-card"
@@ -198,6 +212,7 @@ export function ImageJobPanel({
                   {job.current ? job.state.toUpperCase() : "INAPPLICABLE"}
                 </Badge>
               </div>
+              {showProjectHistory && <small>镜头：{job.request.frozenSnapshot?.shot?.id ?? "历史请求未记录镜头"}</small>}
               <small>
                 冻结请求 {job.requestHash.slice(0, 12)} ·{" "}
                 {job.deliveries.length
@@ -279,9 +294,9 @@ export function ImageJobPanel({
               ))}
             </article>
           ))}
-          {!imageJobs.length && (
+          {mediaKnown && !visibleJobs.length && (
             <small>
-              尚无 P1 job。完成前置条件并准备后，可复制 assignment 给指定的
+              {shotId && !showProjectHistory ? "当前镜头尚无 P1 job。" : "尚无 P1 job。"}完成前置条件并准备后，可复制 assignment 给指定的
               Codex specialist。
             </small>
           )}

@@ -38,6 +38,7 @@ PINNED_SOURCES = (
     Path("src/plotloom/specialist_settings.py"),
     Path("src/plotloom/codex_image_dispatch.py"),
     Path("src/plotloom/production_presentation.py"),
+    Path("src/plotloom/shot_presentation.py"),
     Path("src/plotloom/production_timing.py"),
     Path("src/plotloom/canonical_schema.py"),
     Path("src/plotloom/persistence"),

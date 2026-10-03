@@ -19,6 +19,9 @@ import { ImageJobPanel } from "./image-jobs/ImageJobPanel";
 import { AssetImportPanel } from "./assets/AssetImportPanel";
 import { SamePersonReviewPanel } from "./references/SamePersonReviewPanel";
 import { KeyframeAndPreviewPanel } from "./keyframes/KeyframeAndPreviewPanel";
+import { ShotPresentationReview } from "./keyframes/ShotPresentationReview";
+import { generatedCandidateState } from "./keyframes/shot-presentation";
+import { shotLabel } from "../../shot-label";
 import { VideoPilotPanel } from "../../video-pilot";
 import { useAssetKeyframeActions } from "./assets/useAssetKeyframeActions";
 import { useImageJobActions } from "./image-jobs/useImageJobActions";
@@ -109,6 +112,7 @@ export function ManagedMediaWorkbench({
   const [previewLength, setPreviewLength] = useState(3);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [presentationReview, setPresentationReview] = useState<{ shotId: string; revision: number }>();
   const [playing, setPlaying] = useState(false);
   const [frameIndex, setFrameIndex] = useState(0);
   const preparationDetails = useRef<HTMLDetailsElement>(null);
@@ -209,6 +213,7 @@ export function ManagedMediaWorkbench({
     setWorkbench,
     previewShotIds,
     missingPreviewShotIds,
+    presentationRevision: presentationReview?.shotId === selectedShot?.id ? presentationReview?.revision : 0,
   });
   const {
     prepareImageJob,
@@ -297,6 +302,11 @@ export function ManagedMediaWorkbench({
         <span>Shot media workbench</span>
         <strong>镜头媒体工作台</strong>
       </div>
+      {projectId && selectedShot && mediaDraftsEnabled && <ShotPresentationReview
+        key={`${projectId}:${selectedShot.id}`} projectId={projectId} shotId={selectedShot.id}
+        approval={currentApproval} storyboardRevision={storyboardRevision} readOnly={mediaOwnerReadOnly || busy}
+        onLoaded={revision => setPresentationReview({ shotId: selectedShot.id, revision })} onSaved={refresh} quiescence={draftQuiescence}
+      />}
       <div className="button-row">
         <Field label="当前媒体镜头">
           <select
@@ -307,7 +317,7 @@ export function ManagedMediaWorkbench({
             {!selectedShot && <option value="">{storyboard.shots.length ? "未打开镜头 · 请明确选择" : "尚无镜头"}</option>}
             {storyboard.shots.map((shot) => (
               <option key={shot.id} value={shot.id}>
-                {shot.title} · {shot.id}
+                {shotLabel(shot)} · {shot.id}
               </option>
             ))}
           </select>
@@ -328,7 +338,7 @@ export function ManagedMediaWorkbench({
         </div>
       )}
       <div className="shot-workbench-focus">
-        <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择媒体镜头"}</small><strong>{selectedShot?.title || "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
+        <div className="shot-workbench-heading"><div><small>{selectedShot ? `当前镜头 · ${selectedShot.durationUnits / 1000} 秒` : "尚未选择媒体镜头"}</small><strong>{selectedShot ? shotLabel(selectedShot) : "请选择镜头"}</strong>{selectedShot && <p>{selectedShot.action}</p>}</div></div>
         <VideoPilotPanel projectId={projectId} shot={selectedShot} approvalId={review?.activeApproval?.id}
           storyboardRevision={storyboardRevision} selectionRevision={workbench.selectionRevision}
           keyframe={selectedBinding ? assetById.get(selectedBinding.assetId) : undefined}
@@ -366,6 +376,7 @@ export function ManagedMediaWorkbench({
           setProposalParentCandidateAssetId,
         }}
         readOnly={mediaOwnerReadOnly}
+        mediaReadPhase={mediaReadPhase}
         busy={busy}
         onSelectReference={() => void selectCharacterReference()}
         onRevokeReference={(characterId) => void revokeCharacterReference(characterId)}
@@ -386,6 +397,8 @@ export function ManagedMediaWorkbench({
         readOnly={mediaOwnerReadOnly}
         busy={busy}
         imageJobs={imageJobs}
+        shotId={selectedShot?.id}
+        mediaReadPhase={mediaReadPhase}
         imageJobRefreshNotice={imageJobRefreshNotice}
         selectedBinding={selectedBinding}
         onPrepare={() => void prepareImageJob()}
@@ -444,6 +457,7 @@ export function ManagedMediaWorkbench({
         selectedBinding={selectedBinding}
         keptAssetId={keptAssetId}
         retainedIdentityMapping={retainedIdentityMapping}
+        candidateState={generatedCandidateState(keptAssetId, imageJobs)}
         assetById={assetById}
         intentEditor={intentEditor}
         activeIntent={activeIntent}
@@ -452,6 +466,7 @@ export function ManagedMediaWorkbench({
         readOnly={mediaOwnerReadOnly}
         busy={busy}
         mediaDraftsEnabled={mediaDraftsReady}
+        mediaReadPhase={mediaReadPhase}
         review={review}
         maxPreviewLength={maxPreviewLength}
         previewLength={previewLength}

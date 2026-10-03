@@ -367,7 +367,7 @@ export interface VideoJob {
   current: boolean;
   selected: boolean;
   selectionRevision: number;
-  reviews: Array<{ id: string; reviewer: string; decision: "select" | "reject"; note: string; createdAt: string }>;
+  reviews: Array<{ id: string; reviewer: string; decision: "select" | "reject" | "reopen"; note: string; createdAt: string }>;
   providerPredictionId: string | null;
   outputHash: string | null;
   observed: {
@@ -596,6 +596,7 @@ export interface ImageJob {
     kind: "original" | "refinement" | "keyframe_adaptation";
     visualProposal?: Record<string, unknown>;
     frozenSnapshot?: {
+      shot?: Pick<Shot, "id">;
       visibleCharacterIds?: string[];
       characterIdentity?: Array<{
         characterId: string;

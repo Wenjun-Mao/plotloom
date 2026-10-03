@@ -18,6 +18,7 @@ from ..schema import (
     VisualSelectionStateRow,
 )
 from .access import ProjectPersistenceAccess
+from .media_shot_presentations import ShotPresentations
 
 
 class KeyframeAdmission:
@@ -64,6 +65,8 @@ class KeyframeAdmission:
         """
 
         if binding.project_id != project_id:
+            return False
+        if not ShotPresentations.binding_matches(session, binding):
             return False
         latest_binding = session.scalar(
             select(ReviewedShotBindingRow)

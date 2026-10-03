@@ -67,6 +67,8 @@ def modular_checkout(tmp_path: Path) -> tuple[Path, Path]:
         "src/plotloom/specialist_settings.py": "# terminal reservation owner\n",
         "src/plotloom/codex_image_dispatch.py": "# exact lease owner\n",
         "src/plotloom/production_presentation.py": "# presentation owner\n",
+        "src/plotloom/shot_presentation.py": "# shot presentation contract owner\n",
+        "src/plotloom/persistence/project/media_shot_presentations.py": "# per-shot review owner\n",
         "src/plotloom/production_timing.py": "# timing owner\n",
         "src/plotloom/canonical_schema.py": "# canonical owner\n",
     }
@@ -268,6 +270,8 @@ def test_pin_rejects_modified_tracked_source_after_normal_runtime_imports(
     [
         ("src/plotloom/api/project_folder_image_jobs.py", "dirty"),
         ("src/plotloom/image_job_package.py", "dirty"),
+        ("src/plotloom/shot_presentation.py", "dirty"),
+        ("src/plotloom/persistence/project/media_shot_presentations.py", "dirty"),
         ("src/plotloom/persistence/project/media_image_delivery.py", "staged_delete"),
         ("src/plotloom/api/new_image_delivery_guard.py", "untracked"),
         ("src/plotloom/api/new_image_delivery_guard.generated.py", "ignored"),

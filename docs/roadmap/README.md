@@ -72,6 +72,14 @@ A2 remains an unbound still. Retention/static/H3-review guardrails are deployed.
 The owner then approved a [two-hour evening continuation](2026-10-02-stage4-evening-continuation.md),
 21:30:07–23:30:07 Toronto on October 2, stopping new submissions at 23:00:07.
 Remaining route media and genuine assembly acceptance stay open.
+The owner subsequently authorized an
+[eight-hour E2E-first continuation](2026-10-03-e2e-first-continuation.md),
+14:43:28–22:43:28 Toronto on October 3, stopping new submissions at 22:13:28.
+The current priority is a usable complete creator workflow with acceptable
+real media; final-production polish is deferred. A2's following camera, B1's
+wider geography and the B2 popped-out reply treatment are visually approved.
+This is the active window and supersedes the earlier creative stopping criteria,
+not dispatch/source safety or original-project preservation.
 Test-copy provisional decisions
 and removal of fixed generation caps and blanket video/remote/provider/redesign
 exclusions are approved. The run launched at 2026-10-02 05:34:18 UTC; its plan owns the current

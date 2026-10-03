@@ -24,6 +24,7 @@ from .media_identifiers import new_video_job_id
 from .media_same_person_reviews import SamePersonReviewPersistence
 from .media_video_source import VideoSourceTiming
 from .media_video_end_frames import VideoEndFrames
+from .media_shot_presentations import ShotPresentations
 
 
 class VideoJobCurrentness:
@@ -46,6 +47,7 @@ class VideoJobCurrentness:
         self._same_person = same_person
         self._source_timing = source_timing
         self._end_frames = end_frames
+        self.presentations = ShotPresentations(access, canonical, admission)
 
     @staticmethod
     def video_job_id() -> str:
@@ -107,6 +109,10 @@ class VideoJobCurrentness:
         if not isinstance(request, dict) or request.get("durationSeconds") != row.requested_seconds:
             return False
         frozen_shot = snapshot.get("shot") if isinstance(snapshot, dict) else None
+        if not isinstance(frozen_shot, dict) or not isinstance(frozen_shot.get("id"), str) or not self.presentations.matches(
+            session, row.project_id, frozen_shot["id"], snapshot.get("shotPresentation")
+        ):
+            return False
         source_timing = snapshot.get("sourceTiming") if isinstance(snapshot, dict) else None
         if source_timing is not None and (
             not isinstance(frozen_shot, dict)

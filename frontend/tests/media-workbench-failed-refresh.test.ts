@@ -18,7 +18,7 @@ const emptyWorkbench: VisualWorkbench = {
 const exportedJob: ImageJob = {
   id: "job-1", projectId: "project-1", productionUnitId: "unit-1",
   parentJobId: null, parentCandidateAssetId: null,
-  request: { kind: "original" }, requestHash: "hash", state: "exported", current: true,
+  request: { kind: "original", frozenSnapshot: { shot: { id: demoProject.storyboard.shots[0].id } } }, requestHash: "hash", state: "exported", current: true,
   exportedAt: "2026-09-23T00:00:00Z", cancelledAt: null,
   cancellationReason: null, createdAt: "2026-09-23T00:00:00Z", deliveries: [],
 };
@@ -85,6 +85,9 @@ it("withdraws media owner controls and exported-job polling after a same-context
   await act(async () => vi.advanceTimersByTimeAsync(200));
   expect(poll).toHaveBeenCalledTimes(1);
   expect(host.textContent).toContain("当前角色参考与关键帧状态未知");
+  expect(host.textContent).not.toContain("尚未配置同机 exchange root");
+  expect(host.textContent).not.toContain("尚未选择身份参考");
+  expect(host.textContent).not.toContain("尚无 P1 job");
   expect((host.querySelector('[data-testid="managed-image-upload"]') as HTMLInputElement).disabled).toBe(true);
   expect(host.querySelector('[data-testid="current-reviewed-keyframe"]')).toBeNull();
   await act(async () => vi.advanceTimersByTimeAsync(3100));
@@ -92,4 +95,26 @@ it("withdraws media owner controls and exported-job polling after a same-context
   expect(saveDraft).not.toHaveBeenCalled();
   expect(discardDraft).not.toHaveBeenCalled();
   expect((host.querySelector('[data-testid="image-job-presentation-change"]') as HTMLTextAreaElement).value).toBe("Keep the shot framing");
+});
+
+it("keeps project image history accessible and attributes jobs to their frozen shots", async () => {
+  vi.spyOn(plotloomApi, "getVisualWorkbench").mockResolvedValue(emptyWorkbench);
+  vi.mocked(plotloomApi.getImageJobs).mockResolvedValue({ configured: true, jobs: [exportedJob, {
+    ...exportedJob, id: "foreign-job", state: "cancelled", current: false,
+    request: { kind: "original", frozenSnapshot: { shot: { id: "foreign-shot" } } },
+  }] });
+  await act(async () => root.render(createElement(ManagedMediaWorkbench, {
+    projectId: "project-1", storyboard: demoProject.storyboard, bible: demoProject.storyBible,
+    graph: demoProject.storyGraph, sceneBeats: demoProject.sceneBeats,
+    selectedShot: demoProject.storyboard.shots[0], storyboardRevision: 1,
+    storyBibleRevision: 1, mediaDraftsEnabled: false, review: null, readOnly: false,
+  })));
+  expect(host.querySelector('[data-testid="image-job-job-1"]')).not.toBeNull();
+  expect(host.querySelector('[data-testid="image-job-foreign-job"]')).toBeNull();
+  const history = [...host.querySelectorAll("button")].find(button => button.textContent?.startsWith("查看全项目请求历史"))!;
+  await act(async () => history.click());
+  expect(host.querySelector('[data-testid="image-job-foreign-job"]')?.textContent).toContain("镜头：foreign-shot");
+  const scoped = [...host.querySelectorAll("button")].find(button => button.textContent === "只看当前镜头请求")!;
+  await act(async () => scoped.click());
+  expect(host.querySelector('[data-testid="image-job-foreign-job"]')).toBeNull();
 });

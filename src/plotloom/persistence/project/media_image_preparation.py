@@ -258,6 +258,12 @@ class ImageJobPreparationPersistence:
                     "identity-aware job has more than nine frozen reference attachments; reduce the authored visible cast or reference views",
                 )
 
+            resolved_context = self._currentness.image_job_resolved_context(
+                shot=shot, storyboard=storyboard, story_bible=story_bible, scene_beats=scene_beats,
+            )
+            shot, resolved_context, presentation = self._currentness.presentations.project(
+                session, project_id, shot, resolved_context
+            )
             shot_payload = shot.model_dump(mode="json", by_alias=True)
             visual_proposal = {
                 "title": shot.title, "action": shot.action, "composition": shot.composition,
@@ -265,12 +271,6 @@ class ImageJobPreparationPersistence:
                 "visualIntent": shot.visual_intent, "cameraAngle": shot.camera_angle,
                 "cameraMovement": shot.camera_movement,
             }
-            resolved_context = self._currentness.image_job_resolved_context(
-                shot=shot,
-                storyboard=storyboard,
-                story_bible=story_bible,
-                scene_beats=scene_beats,
-            )
             snapshot = {
                 "snapshotVersion": contract_version, "compilerVersion": f"plotloom.codex-image-job.v{contract_version}-presentation.v1",
                 "presentationContract": "physical-visible-runtime.v1",
@@ -285,6 +285,10 @@ class ImageJobPreparationPersistence:
                 "references": references,
                 "audioContext": shot_payload.get("audioPlan", {}),
             }
+            if presentation is not None:
+                snapshot["shotPresentation"] = presentation
+                snapshot["compilerVersion"] += "-shot-presentation.v1"
+                snapshot["visualProposal"]["messagePresentation"] = presentation["review"]["messagePresentation"]
             if contract_version == 3:
                 snapshot["visibleCharacterIds"] = list(shot.character_ids)
                 snapshot["characterIdentity"] = identity_mappings

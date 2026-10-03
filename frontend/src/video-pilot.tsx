@@ -14,8 +14,9 @@ import type { MediaReadPhase } from "./features/media/useMediaWorkbenchData";
 import { VideoEndFrameChoice } from "./video-end-frame";
 import { useConfirmation } from "./confirmation";
 import { h3Timing } from "./video-backends/minimax-h3-timing";
+import { shotLabel } from "./shot-label";
 
-type FrozenShot = { id?: string; title?: string; sceneId?: string; order?: number };
+type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string; order?: number };
 
 function frozenShot(job: VideoJob): FrozenShot {
   const candidate = job.snapshot.shot;
@@ -69,7 +70,7 @@ export function selectedRouteVideos(
   ));
   const missingShotTitles = routeShots
     .filter(({ shot, sceneId }) => !(selectedByShotId.get(shot.id) || []).some((job) => frozenShot(job).sceneId === sceneId && job.playbackSegment?.authoredDurationUnits === shot.durationUnits))
-    .map(({ shot }) => shot.title || shot.id);
+    .map(({ shot }) => shotLabel(shot));
   return {
     jobs: sequence,
     missingShotTitles,
@@ -168,7 +169,7 @@ function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: 
   const shot = frozenShot(current);
   return <section className="video-sequence" data-testid="video-sequence-player">
     <strong>已选择镜头顺序播放</strong>
-    <small>{jobs.map((item) => frozenShot(item).title || frozenShot(item).id || item.id).join(" → ")}</small>
+    <small>{jobs.map((item) => shotLabel(frozenShot(item), item.id)).join(" → ")}</small>
     <video
       key={currentIdentity}
       controls
@@ -179,7 +180,7 @@ function OrderedVideoPlayback({ projectId, jobs, sourceIdentity }: { projectId: 
       data-playback-identity={currentIdentity}
       onEnded={(event) => advance(event.currentTarget.dataset.playbackIdentity)}
     />
-    <small>当前 {index + 1}/{jobs.length}：{shot.title || shot.id}。最后一帧停留，需明确重启才会从头播放。</small>
+    <small>当前 {index + 1}/{jobs.length}：{shotLabel(shot)}。最后一帧停留，需明确重启才会从头播放。</small>
     {playbackError && <small className="notice warning" role="status">{playbackError}</small>}
     <div className="button-row">
       <Button onClick={() => play(false)}>播放当前</Button>
@@ -382,13 +383,13 @@ export function VideoPilotPanel({ projectId, shot, approvalId, storyboardRevisio
       : <div className="button-row"><Button disabled={cannotPrepare || h3TimingMismatch} onClick={() => void prepare()}>生成另一候选（冻结当前审核关键帧）</Button></div>}
     </details>
     {error && <small className="notice warning">{error}</small>}
-    {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {frozenShot(job).title || "当前镜头"}</strong><span>{job.selected ? "已选择片段" : job.state === "ingested" ? "待审原片" : job.state}</span></header>
+    {visibleJobs.map((job, index) => <article id={index === 0 ? "shot-original" : undefined} className="video-job-card" key={job.id} data-testid={`video-job-${job.id}`}><header><strong>原片 · {shotLabel(frozenShot(job))}</strong><span>{job.selected ? "已选择片段" : job.state === "ingested" ? "待审原片" : job.state}</span></header>
       <small>{isH3Job(job) ? `质量 ${frozenH3Quality(job)} · ` : ""}请求 {job.requestedSeconds} 秒 {job.observed ? `· 实测 ${job.observed.durationSeconds.toFixed(2)} 秒` : ""}</small>
       <small> · {jobStatus(job)}</small>
       <details className="video-technical-history"><summary>审核历史与技术详情</summary>
         <small>选择版本 {job.selectionRevision} · 原片编号 {job.id}</small>
         <pre>{JSON.stringify(job.snapshot.request || {}, null, 2)}</pre>
-        {job.reviews.map((review) => <small key={review.id}>审阅：{review.decision === "select" ? "选择" : "拒绝"}{review.reviewer ? ` · ${review.reviewer}` : ""}{review.note ? ` · ${review.note}` : ""}</small>)}
+        {job.reviews.map((review) => <small key={review.id}>审阅：{review.decision === "select" ? "选择" : review.decision === "reopen" ? "重新开放审阅" : "拒绝"}{review.reviewer ? ` · ${review.reviewer}` : ""}{review.note ? ` · ${review.note}` : ""}</small>)}
       </details>
       {job.state === "ingested" && projectId && <video controls preload="metadata" src={plotloomApi.videoJobMediaUrl(projectId, job.id)} data-testid={`video-job-player-${job.id}`} onPlay={(event) => document.querySelectorAll<HTMLVideoElement>("[data-testid^='video-job-player-']").forEach((video) => { if (video !== event.currentTarget) video.pause(); })} />}
       <div className="button-row">

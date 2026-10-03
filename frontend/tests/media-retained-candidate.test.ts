@@ -99,7 +99,9 @@ it("reviews the explicitly retained replacement after intent save withdraws and 
   const select = vi.spyOn(plotloomApi, "selectReviewedKeyframe").mockResolvedValue({ id: "new-asset-binding", selectionRevision: 10 });
   await render(shot, "project", true);
   expect(kept("old-asset")).toBe("true");
+  expect(control("keep-candidate-new-asset").textContent).toBe("用此图审阅关键帧");
   await click("keep-candidate-new-asset");
+  expect(control("keep-candidate-new-asset").textContent).toBe("当前待审关键帧候选");
   await edit(control<HTMLTextAreaElement>("visual-intent-source-refs"), "new-asset-source");
   await act(async () => vi.advanceTimersByTimeAsync(750));
   expect(control<HTMLButtonElement>("save-visual-intent").disabled).toBe(false);
@@ -120,6 +122,7 @@ it("reviews the explicitly retained replacement after intent save withdraws and 
   const compatibility = Array.from(host.querySelectorAll("label")).find((label) => label.textContent?.includes("审核兼容性说明"))!.querySelector("textarea")!;
   await edit(compatibility, "Replacement matches the approved shot.");
   expect(control<HTMLButtonElement>("select-reviewed-keyframe").disabled).toBe(false);
+  expect(control("select-reviewed-keyframe").textContent).toBe("审核为当前镜头关键帧");
   await click("select-reviewed-keyframe");
   expect(select).toHaveBeenCalledWith("project", expect.objectContaining({
     assetId: "new-asset", visualIntentId: "new-asset-intent", visualIntentRevision: 1,

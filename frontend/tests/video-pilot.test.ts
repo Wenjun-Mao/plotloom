@@ -378,7 +378,7 @@ it("prepares a synthetic review window without auto-selecting and ignores late u
   expect(select).not.toHaveBeenCalled();
 });
 
-it("does not offer a rejected H3 take for another segment decision", async () => {
+it("keeps a rejected H3 take locked until its review is explicitly reopened", async () => {
   const segment = selectedJob("rejected-h3", 1).playbackSegment!;
   const candidate = selectedJob("rejected-h3", 1, {
     segments: [{ ...segment, selected: false }], playbackSegment: null, selected: false,
@@ -393,6 +393,120 @@ it("does not offer a rejected H3 take for another segment decision", async () =>
   expect(host.textContent).toContain("此原片已拒绝");
   expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("生成待审片段"))?.disabled).toBe(true);
   expect([...host.querySelectorAll("button")].find((item) => item.textContent?.includes("确认用于故事"))?.disabled).toBe(true);
+  const reopenPanel = host.querySelector('[data-testid="video-review-reopen-rejected-h3"]')!;
+  expect(reopenPanel.querySelector("input")?.required).toBe(true);
+  expect(reopenPanel.querySelector("textarea")?.required).toBe(true);
+  expect([...reopenPanel.querySelectorAll("button")].find((item) => item.textContent === "重新开放审阅")?.disabled).toBe(true);
+});
+
+it("reopens a rejected H3 review with required annotations and refreshes distinct history only", async () => {
+  vi.spyOn(plotloomApi, "getVideoBackend").mockResolvedValue({ enabled: false, reason: "h3_video_not_configured", qualifiedDurationSeconds: [5, 8] });
+  const segment = selectedJob("review-reopen", 1).playbackSegment!;
+  const rejected = selectedJob("review-reopen", 1, {
+    selected: false, playbackSegment: null,
+    segments: [{ ...segment, selected: false }],
+    selectionRevision: 0,
+    requestedSeconds: 8,
+    observed: { durationSeconds: 8, width: 576, height: 1024, videoCodec: "h264", audioCodec: "aac", frameRate: 24, frameCount: 192 },
+    snapshot: {
+      provider: { adapterId: "minimax_h3_gateway" },
+      shot: { id: "shot-1", title: "Shot 1", sceneId: "scene", order: 1, durationUnits: 6_000 },
+      sourceTiming: { kind: "canonical", durationUnits: 6_000 },
+    },
+    reviews: [{ id: "old-rejection", reviewer: "creator", decision: "reject", note: "Unsafe cut", createdAt: "2026-09-23T00:00:00Z" }],
+  });
+  const reopened: VideoJob = {
+    ...rejected, selectionRevision: 1,
+    reviews: [...rejected.reviews, { id: "reopened", reviewer: "creator", decision: "reopen", note: "Reconsider camera move", createdAt: "2026-09-23T00:00:00.000001Z" }],
+  };
+  let reads = 0;
+  vi.spyOn(plotloomApi, "getVideoJobs").mockImplementation(async () => ({ jobs: ++reads === 1 ? [rejected] : [reopened] }));
+  const reopen = vi.spyOn(plotloomApi, "reopenVideoJobReview").mockResolvedValue({} as never);
+  const prepareSegment = vi.spyOn(plotloomApi, "prepareVideoSegment").mockResolvedValue({} as never);
+  const selectSegment = vi.spyOn(plotloomApi, "selectVideoSegment").mockResolvedValue({} as never);
+  const prepareJob = vi.spyOn(plotloomApi, "prepareVideoJob").mockResolvedValue({} as never);
+  const submitJob = vi.spyOn(plotloomApi, "submitVideoJob").mockResolvedValue({} as never);
+  await render("project", "shot-1", "scene");
+
+  const panel = host.querySelector('[data-testid="video-review-reopen-review-reopen"]')!;
+  const reviewer = panel.querySelector("input")!;
+  const reason = panel.querySelector("textarea")!;
+  const button = [...panel.querySelectorAll("button")].find((item) => item.textContent === "重新开放审阅")!;
+  expect(button.disabled).toBe(true);
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(reviewer, "creator");
+    reviewer.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(button.disabled).toBe(true);
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(reason, "Reconsider camera move");
+    reason.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  expect(button.disabled).toBe(false);
+  await act(async () => { button.click(); await Promise.resolve(); });
+
+  expect(reopen).toHaveBeenCalledWith("project", "review-reopen", "creator", "Reconsider camera move", 0);
+  expect(host.textContent).toContain("此前拒绝记录仍保留");
+  expect(host.textContent).toContain("重新开放审阅");
+  expect(host.textContent).toContain("Unsafe cut");
+  expect(host.textContent).toContain("Reconsider camera move");
+  expect(host.querySelector('[data-testid="video-review-reopen-review-reopen"]')).toBeNull();
+  expect(prepareSegment).not.toHaveBeenCalled();
+  expect(selectSegment).not.toHaveBeenCalled();
+  expect(prepareJob).not.toHaveBeenCalled();
+  expect(submitJob).not.toHaveBeenCalled();
+});
+
+it.each([
+  { label: "read-only", readOnly: true, current: true },
+  { label: "stale", readOnly: false, current: false },
+])("disables rejected-take reopening when the review is $label", async ({ readOnly, current }) => {
+  const segment = selectedJob("disabled-reopen", 1).playbackSegment!;
+  const candidate = selectedJob("disabled-reopen", 1, {
+    selected: false, playbackSegment: null, current,
+    segments: [{ ...segment, selected: false }],
+    snapshot: { provider: { adapterId: "minimax_h3_gateway" }, shot: { id: "shot-1", durationUnits: 6_000 }, sourceTiming: { kind: "canonical", durationUnits: 6_000 } },
+    reviews: [{ id: "rejected", reviewer: "creator", decision: "reject", note: "Rejected", createdAt: "2026-09-23T00:00:00Z" }],
+  });
+  const reopen = vi.spyOn(plotloomApi, "reopenVideoJobReview");
+  await act(async () => root.render(createElement(VideoSegmentReview, {
+    projectId: "project", job: candidate, readOnly, onRefresh: async () => undefined,
+  })));
+  const panel = host.querySelector('[data-testid="video-review-reopen-disabled-reopen"]')!;
+  expect(panel.querySelector("input")?.disabled).toBe(true);
+  expect(panel.querySelector("textarea")?.disabled).toBe(true);
+  expect([...panel.querySelectorAll("button")].find((item) => item.textContent === "重新开放审阅")?.disabled).toBe(true);
+  expect(reopen).not.toHaveBeenCalled();
+});
+
+it("locks reopen annotations while the command is pending", async () => {
+  const segment = selectedJob("busy-reopen", 1).playbackSegment!;
+  const candidate = selectedJob("busy-reopen", 1, {
+    selected: false, playbackSegment: null,
+    segments: [{ ...segment, selected: false }],
+    snapshot: { provider: { adapterId: "minimax_h3_gateway" }, shot: { id: "shot-1", durationUnits: 6_000 }, sourceTiming: { kind: "canonical", durationUnits: 6_000 } },
+    reviews: [{ id: "rejected", reviewer: "creator", decision: "reject", note: "Rejected", createdAt: "2026-09-23T00:00:00Z" }],
+  });
+  const pending = deferred<unknown>();
+  vi.spyOn(plotloomApi, "reopenVideoJobReview").mockReturnValue(pending.promise);
+  await act(async () => root.render(createElement(VideoSegmentReview, {
+    projectId: "project", job: candidate, readOnly: false, onRefresh: async () => undefined,
+  })));
+  const panel = host.querySelector('[data-testid="video-review-reopen-busy-reopen"]')!;
+  const reviewer = panel.querySelector("input")!;
+  const reason = panel.querySelector("textarea")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(reviewer, "creator");
+    reviewer.dispatchEvent(new Event("input", { bubbles: true }));
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(reason, "Reconsider");
+    reason.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  const button = [...panel.querySelectorAll("button")].find((item) => item.textContent === "重新开放审阅")!;
+  await act(async () => { button.click(); await Promise.resolve(); });
+  expect(button.disabled).toBe(true);
+  expect(reviewer.disabled).toBe(true);
+  expect(reason.disabled).toBe(true);
+  await act(async () => { pending.resolve({}); await pending.promise; });
 });
 
 it("allows a current ingested take with no prepared segment to be rejected", async () => {
@@ -434,6 +548,7 @@ it("waits at a decision, follows only the clicked edge, holds an ending, and ign
   await act(async () => { await Promise.resolve(); });
   const scene = host.querySelector('[data-testid="branching-video-job-scene-job"]') as HTMLVideoElement;
   expect(scene).not.toBeNull();
+  expect(host.textContent).toContain("选择历史：尚未选择");
   await act(async () => { scene.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
   const decision = host.querySelector('[data-testid="branching-video-job-decision-job"]') as HTMLVideoElement;
   expect(decision).not.toBeNull();
@@ -445,6 +560,8 @@ it("waits at a decision, follows only the clicked edge, holds an ending, and ign
   await act(async () => { choices.find((choice) => choice.textContent === "right")?.click(); await Promise.resolve(); });
   expect(host.querySelector('[data-testid="branching-video-job-right-job"]')).not.toBeNull();
   expect(host.querySelector('[data-testid="branching-video-job-left-job"]')).toBeNull();
+  expect(host.textContent).toContain("选择历史：right");
+  expect(host.textContent).not.toContain("选择历史：edge-");
   expect(play).toHaveBeenCalledTimes(2);
   const right = host.querySelector('[data-testid="branching-video-job-right-job"]') as HTMLVideoElement;
   await act(async () => { right.dispatchEvent(new Event("ended", { bubbles: true })); await Promise.resolve(); });
@@ -470,6 +587,7 @@ it("creates a fresh media episode when an ending is restarted", async () => {
   expect(restarted).not.toBe(scene);
   expect(restarted.currentTime).toBe(0);
   expect(host.querySelector('[data-testid="branching-choices"]')).toBeNull();
+  expect(host.textContent).toContain("选择历史：尚未选择");
 });
 
 it("does not auto-traverse a canonical decision with one outgoing edge, including an empty decision node", async () => {
@@ -536,7 +654,7 @@ it("uses the explicit current-play control without changing the branching sessio
   await act(async () => { await Promise.resolve(); });
   await act(async () => { [...host.querySelectorAll("button")].find((button) => button.textContent === "播放当前")?.click(); await Promise.resolve(); });
   expect(play).toHaveBeenCalledTimes(1);
-  expect(host.textContent).toContain("当前节点：scene");
+  expect(host.textContent).toContain("当前段落：scene");
 });
 
 it("scopes selected playback by project, scene, and current selected membership", async () => {

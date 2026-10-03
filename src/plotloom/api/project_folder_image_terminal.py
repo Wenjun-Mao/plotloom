@@ -6,7 +6,6 @@ from typing import Any, Literal
 
 from fastapi import FastAPI
 
-from ..image_job_contracts import ImageJobError
 from ..image_terminal_outcome import ImageTerminalReview, read_blocked_outcome, review_record
 from ..specialist_settings import SpecialistRegistry
 

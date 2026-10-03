@@ -79,6 +79,20 @@ class VideoReviewRequest(CamelModel):
         return value.strip()
 
 
+class VideoReviewReopenRequest(CamelModel):
+    reviewer: str = Field(min_length=1, max_length=160)
+    reason: str = Field(min_length=1, max_length=2_000)
+    expected_selection_revision: int = Field(ge=0)
+
+    @field_validator("reviewer", "reason")
+    @classmethod
+    def require_nonblank_annotation(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("reviewer and reason must not be blank")
+        return value
+
+
 class VideoDiscardRequest(CamelModel):
     expected_selection_revision: int = Field(ge=0)
 

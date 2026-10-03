@@ -44,6 +44,7 @@ class ProjectMediaRepository:
         video_currentness: VideoJobCurrentness,
         video_segments: VideoSegmentPersistence,
         video_end_frames: VideoEndFrames,
+        shot_presentations,
     ) -> None:
         self._assets = assets
         self._intents = intents
@@ -61,6 +62,7 @@ class ProjectMediaRepository:
         self.video_currentness = video_currentness
         self.video_segments = video_segments
         self.video_end_frames = video_end_frames
+        self.shot_presentations = shot_presentations
 
     def record_managed_import(
         self, project_id: str, *, original_hash: str, display_hash: str,
@@ -94,6 +96,7 @@ class ProjectMediaRepository:
         self, project_id: str, *, asset_id: str, shot_id: str, scene_id: str,
         expected_selection_revision: int, storyboard_revision: int, approval_id: str,
         compatibility_note: str, visual_intent_id: str, visual_intent_revision: int,
+        expected_presentation_revision: int = 0,
     ) -> JsonObject:
         return self._keyframes.select_reviewed_keyframe(
             project_id, asset_id=asset_id, shot_id=shot_id, scene_id=scene_id,
@@ -101,6 +104,7 @@ class ProjectMediaRepository:
             storyboard_revision=storyboard_revision, approval_id=approval_id,
             compatibility_note=compatibility_note, visual_intent_id=visual_intent_id,
             visual_intent_revision=visual_intent_revision,
+            expected_presentation_revision=expected_presentation_revision,
         )
 
     def create_still_preview(

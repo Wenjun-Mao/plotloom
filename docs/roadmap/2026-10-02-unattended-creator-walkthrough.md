@@ -1,6 +1,12 @@
 # Bounded unattended creator walkthrough
 
-Status: the owner-approved [two-hour evening continuation](2026-10-02-stage4-evening-continuation.md),
+Current execution: the owner-approved
+[eight-hour E2E-first continuation](2026-10-03-e2e-first-continuation.md)
+owns the 2026-10-03 14:43:28–22:43:28 Toronto window and revised acceptance
+priority. A2, B1 and the bubble treatment have new owner visual approval;
+earlier rejected/blocked dispositions below remain historical evidence.
+
+Prior closeout: the owner-approved [two-hour evening continuation](2026-10-02-stage4-evening-continuation.md),
 21:30:07–23:30:07 Toronto on October 2 (01:30:07–03:30:07 UTC October 3),
 with new submissions stopping at 23:00:07 Toronto, has closed. C1–C5 and A1
 remain selected; both A2 video takes and revised B2 are rejected. B1's fresh

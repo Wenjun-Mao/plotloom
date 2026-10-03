@@ -98,3 +98,29 @@ def test_emitted_package_requires_returned_basename_in_both_primary_instructions
     assert emitted["packageVersion"] == (2 if schema_version == 2 else 4)
     assert exchange.write_package(**arguments) == copied
     exchange.verify_package(**arguments)
+
+
+@pytest.mark.parametrize("mode", [None, "popped_out_draft", "popped_out_send"])
+def test_message_treatment_excludes_only_runtime_branching_ui(tmp_path: Path, mode: str | None) -> None:
+    snapshot = {"presentationContract": "physical-visible-runtime.v1"}
+    if mode:
+        snapshot["shotPresentation"] = {"review": {"messagePresentation": mode}}
+    request = {"schemaVersion": 3, "jobId": "ij_" + "c" * 20, "kind": "original", "frozenSnapshot": snapshot}
+    request_hash = sha256(json.dumps(request, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    exchange = ImageJobExchange(tmp_path / "exchange", limits=ManagedMediaLimits())
+    arguments = {"job_id": request["jobId"], "request": request, "request_hash": request_hash, "references": []}
+    package = Path(exchange.write_package(**arguments)["packagePath"])
+    emitted = json.loads((package / "request.json").read_text())
+    assignment = (package / "COPY_ASSIGNMENT.txt").read_text()
+    for instruction in (emitted["deliveryInstruction"], assignment):
+        if mode is None:
+            assert "Never generate player choice questions, option buttons or UI;" in instruction
+            assert "runtime branching-choice UI" not in instruction
+        else:
+            assert "Never generate runtime branching-choice UI" in instruction
+            assert "Nonverbal interface cues must follow the frozen physical presentation." in instruction
+            assert "do not invent additional message text or replies" in instruction
+            assert "complete exact UNSENT draft" in instruction
+            assert "never the first image; no already-sent first image" in instruction
+            assert "option buttons or UI;" not in instruction
+    exchange.verify_package(**arguments)

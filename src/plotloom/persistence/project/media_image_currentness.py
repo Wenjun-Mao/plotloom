@@ -16,6 +16,7 @@ from .canonical import ProjectCanonicalPersistence
 from .media_admission import KeyframeAdmission
 from .media_character_references import CharacterReferencePersistence
 from .media_identifiers import new_image_job_id
+from .media_shot_presentations import ShotPresentations
 
 
 class ImageJobCurrentness:
@@ -32,6 +33,7 @@ class ImageJobCurrentness:
         self._canonical = canonical
         self._admission = admission
         self._references = references
+        self.presentations = ShotPresentations(access, canonical, admission)
 
     @staticmethod
     def image_job_id() -> str:
@@ -77,6 +79,9 @@ class ImageJobCurrentness:
             and approval.entity_revision_id == unit.storyboard_entity_revision_id
             and approval.subject_revision == unit.storyboard_revision
         ):
+            return False
+
+        if not self.presentations.matches(session, job.project_id, unit.shot_id, unit.snapshot.get("shotPresentation")):
             return False
 
         # V1 original jobs predate the reviewed-keyframe refinement binding and

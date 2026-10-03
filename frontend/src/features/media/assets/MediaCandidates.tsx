@@ -41,7 +41,7 @@ export function CandidateCard({
         className="selection-toggle"
         onClick={onKeep}
       >
-        {kept ? "已保留" : "保留此候选"}
+        {kept ? "当前待审关键帧候选" : "用此图审阅关键帧"}
       </Button>
     </article>
   );

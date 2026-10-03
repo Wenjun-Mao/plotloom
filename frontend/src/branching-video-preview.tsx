@@ -2,8 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { RuntimeChoice, SceneBeatPlan, StoryEdge, StoryGraph, StoryNode, Storyboard, VideoJob } from "./types";
 import { plotloomApi } from "./api";
 import { Button } from "./components";
+import { shotLabel } from "./shot-label";
 
-type FrozenShot = { id?: string; title?: string; sceneId?: string };
+type FrozenShot = { id?: string; title?: string; action?: string; sceneId?: string };
 
 function frozenShot(job: VideoJob): FrozenShot {
   const candidate = job.snapshot.shot;
@@ -54,7 +55,7 @@ export function branchingPreviewManifest(
     const missingShots = shots.filter((shot) => !(selectedByShot.get(shot.id) || []).some(
       (job) => frozenShot(job).sceneId === shot.sceneId && job.playbackSegment?.authoredDurationUnits === shot.durationUnits,
     ));
-    const missingShotTitles = missingShots.map((shot) => shot.title || shot.id);
+    const missingShotTitles = missingShots.map((shot) => shotLabel(shot));
     const missingShotIds = missingShots.map((shot) => shot.id);
     nodes.set(node.id, {
       node,
@@ -208,6 +209,10 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   }
   const isDecision = node.node.kind === "decision" || node.outgoing.length > 1;
   const isEnding = node.node.kind === "ending" || node.outgoing.length === 0;
+  const choiceLabels = history.flatMap((edgeId) => {
+    const edge = graph.edges.find((item) => item.id === edgeId);
+    return edge?.kind === "choice" ? [edge.choiceText || manifest.nodes.get(edge.targetNodeId)?.node.title || "继续"] : [];
+  });
   const missingMedia = [...new Set([...incompleteShots, ...(mediaFailure ? [mediaFailure] : [])])];
   const failedShotId = mediaFailure && current ? frozenShot(current).id : undefined;
   const returnShotIds = [...new Set([...missingShotIds, ...(failedShotId ? [failedShotId] : [])])];
@@ -252,10 +257,10 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
   };
   return <section className="video-sequence" data-testid="branching-video-preview">
     <strong>{title}</strong>
-    <small>当前节点：{node.node.title || node.node.id}。选择历史：{history.length ? history.join(" → ") : "尚未选择"}</small>
+    <small>当前段落：{node.node.title || node.node.id}。选择历史：{choiceLabels.length ? choiceLabels.join(" → ") : "尚未选择"}</small>
     {missingMedia.length > 0 && <div className="notice warning" data-testid="branching-missing-media">
       <small>{mediaFailure ? `故事已暂停：${mediaFailure} 的所选片段无法读取或播放。` : `故事还不能播放：${missingMedia.join("、")} 缺少当前已确认的播放片段。`}待审原片不会自动用于故事。</small>
-      {returnShotIds.map((shotId) => <a key={shotId} href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {storyboard.shots.find((shot) => shot.id === shotId)?.title || shotId} 审核片段</a>)}
+      {returnShotIds.map((shotId) => <a key={shotId} href={`?${new URLSearchParams({ project: projectId, stage: "storyboard", entity: `shot:${shotId}` }).toString()}#shot-workbench`}>返回镜头 {shotLabel(storyboard.shots.find((shot) => shot.id === shotId) ?? { id: shotId })} 审核片段</a>)}
     </div>}
     {!missingMedia.length && current && <>
       <video
@@ -269,13 +274,13 @@ export function BranchingVideoPreview({ projectId, jobs, storyboard, sceneBeats,
         onEnded={(event) => advanceClip(event.currentTarget.dataset.playbackIdentity)}
         onError={(event) => {
           if (event.currentTarget.dataset.playbackIdentity !== mediaIdentity || currentMediaIdentityRef.current !== mediaIdentity) return;
-          const failure = frozenShot(current).title || frozenShot(current).id || current.id;
+          const failure = shotLabel(frozenShot(current), current.id);
           mediaFailureRef.current = failure;
           setShouldAutoplay(false);
           setMediaFailure(failure);
         }}
       />
-      <small>节点镜头 {clipIndex + 1}/{node.jobs.length}。{isDecision || isEnding ? "最后一帧停留，等待明确操作。" : "单一路径完成后继续。"}</small>
+      <small>本段镜头 {clipIndex + 1}/{node.jobs.length}。{isDecision || isEnding ? "最后一帧停留，等待明确操作。" : "单一路径完成后继续。"}</small>
       <div className="button-row"><Button onClick={play}>播放当前</Button></div>
     </>}
     {!missingMedia.length && !current && <small>此节点没有已编排镜头。</small>}

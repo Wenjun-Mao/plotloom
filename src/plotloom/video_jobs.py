@@ -121,7 +121,7 @@ class VideoJobService:
     @staticmethod
     def _prompt(snapshot: dict[str, Any]) -> str:
         if snapshot.get("compilerVersion") in {
-            "plotloom.h3-reviewed-frame.v5-presentation", "plotloom.h3-reviewed-frame.v4", "plotloom.h3-i2va.v3-reviewed-en", "plotloom.h3-i2va.v2", "plotloom.h3-i2va.v1-vocal-control.v1"
+            "plotloom.h3-reviewed-frame.v6-shot-presentation", "plotloom.h3-reviewed-frame.v5-presentation", "plotloom.h3-reviewed-frame.v4", "plotloom.h3-i2va.v3-reviewed-en", "plotloom.h3-i2va.v2", "plotloom.h3-i2va.v1-vocal-control.v1"
         }:
             prompt = snapshot.get("compiledPrompt")
             if not isinstance(prompt, str) or not prompt:

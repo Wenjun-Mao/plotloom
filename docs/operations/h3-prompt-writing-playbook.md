@@ -163,6 +163,31 @@ merely to unlock refinement.
 
 ## Quality choice: development versus production review
 
+### Reviewed popped-out draft treatment · 2026-10-03
+
+The owner found the isolated B2 trial's large, front-facing popped-out Chinese
+message readable and its slight wobble acceptable as walking motion. For the
+E2E-first continuation, a complete unsent draft is shown from frame zero while
+the character composes or reviews it; B3 owns the separate send action. This
+is an explicit authored presentation change, not a hidden English override,
+an incoming reply, a spoken line, or a character-by-character typing test.
+[ADR 0107](../adr/0107-shot-production-presentation.md) binds the exact source
+literal, reviewed presentation revision and first-frame decision into fresh
+image/H3 requests. The canonical B2 continuation also kept the large message
+intelligible in normal segment playback. Incidental tiny phone marks were
+observed and are not narrative information or proof of pixel-perfect output.
+
+Use this as a bounded method when small angled text is not essential to the
+story: preserve the exact meaning and wording, author a simpler physical
+presentation, review the actual first state, and assess the resulting motion
+at normal playback speed. A send scene still needs an intelligible sent-state
+cue; finger movement alone is insufficient. Quality 8 was used in this run,
+but framing, presentation, wording and inputs changed together. No isolated
+quality effect or universal H3 Chinese-text capability is established.
+Historical failed jobs and the independent trial remain unchanged. The owner
+now prioritizes a usable E2E workflow with acceptable media; final-film polish
+and new sound acceptance remain separate reviews.
+
 On 2026-09-25 the director clarified that earlier visual defects were mainly
 shaking: intermittent in their quality 1/2/3 tests and largely resolved with
 quality 8. This is director-reported experience, not a controlled Plotloom

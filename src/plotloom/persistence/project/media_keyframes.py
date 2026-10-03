@@ -56,6 +56,7 @@ class ReviewedKeyframePersistence:
         compatibility_note: str,
         visual_intent_id: str,
         visual_intent_revision: int,
+        expected_presentation_revision: int = 0,
     ) -> dict[str, Any]:
         """Append an immutable reviewed binding under one lifecycle writer lease."""
 
@@ -102,6 +103,10 @@ class ReviewedKeyframePersistence:
             shot = next((item for item in storyboard.shots if item.id == shot_id), None)
             if shot is None or shot.scene_id != scene_id:
                 raise InvalidTransitionError("reviewed keyframe must target a current shot in its declared scene")
+            presentation = self._image_currentness.presentations.current(session, project_id, shot_id)
+            presentation_revision = presentation["revision"] if presentation else 0
+            if presentation_revision != expected_presentation_revision:
+                raise RevisionConflictError("shot-presentation", expected_presentation_revision, presentation_revision)
             state.revision += 1
             state.updated_at = now
             binding = ReviewedShotBindingRow(
