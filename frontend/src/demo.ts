@@ -23,7 +23,7 @@ const scene = (id: string, storyNodeId: string, title: string, objective: string
 
 const shot = (id: string, sceneId: string, order: number, title: string, shotSize: Shot["shotSize"], durationUnits: number, action: string, cueIds: string[], characterIds: string[] = ["char_ruanxing"]): Shot => ({
   id, sceneId, order, title, shotSize, durationUnits, cameraAngle: "eye_level", cameraMovement: "stable", composition: "subject-led",
-  visualIntent: action, motionIntent: action, action, transition: "cut", cueIds, audioPlan: audio(durationUnits),
+  visualIntent: action, motionIntent: action, action, visibleTexts: [], transition: "cut", cueIds, audioPlan: audio(durationUnits),
   characterIds, locationId: "loc_control", propIds: [], requiredEntityStates: [], entryState: continuity("承接上一镜"), exitState: continuity("稳定停留"),
 });
 

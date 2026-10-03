@@ -24,7 +24,7 @@ test("keeps a reviewed fake-H3 video playable after direct-folder restore", asyn
   await page.locator("details.workbench-support > summary").filter({ hasText: "关键帧与静帧预览" }).click();
   await page.getByLabel("来源声明").fill("Offline H3 keyframe fixture.");
   await page.getByTestId("managed-image-upload").setInputFiles(retainedStill);
-  await page.getByLabel("候选图像比较").locator(".media-candidate").getByRole("button", { name: "保留此候选" }).click();
+  await page.getByLabel("候选图像比较").locator(".media-candidate").getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("direct video fixture source");
   await page.getByTestId("save-visual-intent").click();
   await page.getByLabel("审核兼容性说明").fill("Reviewed for the frozen direct H3 candidate.");

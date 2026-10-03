@@ -1,3 +1,4 @@
+import { navigateToSecondaryTool, openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
 import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
@@ -13,7 +14,9 @@ test.describe("P0 imported still preview journey", () => {
   test("persists an explicit reviewed intent, refreshes applicability, and refuses deletion", async ({ page, request, workbench }, testInfo) => {
     const projectId = await createCanonicalProject(request, workbench.apiOrigin);
     await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
-    await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
+    await navigateToSecondaryTool(page, "分镜工作台");
+    await openMediaPreparation(page);
+    await openMediaKeyframes(page);
 
     await page.getByLabel("审核人标签").fill("P0 file-SQLite browser reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
@@ -30,10 +33,10 @@ test.describe("P0 imported still preview journey", () => {
     const cards = candidateCards;
     // Keeping each real image is an explicit comparison action; it adds the
     // candidate without treating the last imported file as a hidden default.
-    await cards.nth(0).getByRole("button", { name: "保留此候选" }).click();
-    await cards.nth(1).getByRole("button", { name: "保留此候选" }).click();
+    await cards.nth(0).getByTestId(/^keep-candidate-/).click();
+    await cards.nth(1).getByTestId(/^keep-candidate-/).click();
     await expect(page.getByText("正在比较两个候选", { exact: false })).toBeVisible();
-    await cards.nth(0).getByRole("button", { name: "保留此候选" }).click();
+    await cards.nth(0).getByTestId(/^keep-candidate-/).click();
     await page.getByTestId("visual-intent-source-refs").fill("development session image · fixture A");
     await page.getByTestId("save-visual-intent").click();
     await expect(page.getByText(/已保存 r1/)).toBeVisible();
@@ -59,6 +62,9 @@ test.describe("P0 imported still preview journey", () => {
     // not a tab, navigation, or in-process state check.
     await workbench.restartBackend();
     await page.reload();
+    await openMediaPreparation(page);
+    await openMediaKeyframes(page);
+    await page.getByRole("button", { name: "编辑镜头细节", exact: true }).click();
     await expect(page.getByTestId("still-animatic")).toBeVisible();
     const afterRestart = await captureRestartEvidence(request, workbench.apiOrigin, projectId);
     expect(afterRestart.preview).toEqual(beforeRestart.preview);
@@ -73,7 +79,8 @@ test.describe("P0 imported still preview journey", () => {
     // A replacement is explicit, makes the former receipt stale, and permits
     // a new current receipt after the creator freezes the replacement.
     await page.getByRole("button", { name: "编辑镜头 门开" }).click();
-    await cards.nth(1).getByRole("button", { name: "保留此候选" }).click();
+    await openMediaPreparation(page);
+    await cards.nth(1).getByTestId(/^keep-candidate-/).click();
     await page.getByTestId("visual-intent-source-refs").fill("development session image · fixture B");
     await page.getByTestId("save-visual-intent").click();
     await page.getByLabel("审核兼容性说明").fill("The replacement still matches the approved first-shot composition.");
@@ -93,7 +100,7 @@ test.describe("P0 imported still preview journey", () => {
     await page.getByRole("button", { name: "批准当前分镜" }).click();
     await expect(page.getByText("当前批准：P0 reapproval reviewer", { exact: true })).toBeVisible();
     await expect(page.getByText("尚缺 3 个审核关键帧", { exact: false })).toBeVisible();
-    await cards.nth(1).getByRole("button", { name: "保留此候选" }).click();
+    await cards.nth(1).getByTestId(/^keep-candidate-/).click();
     await expect(page.getByText(/已保存 r1/)).toBeVisible();
     await page.getByLabel("审核兼容性说明").fill("Reapproved board compatibility is explicit, not inherited.");
     await expect(page.getByTestId("select-reviewed-keyframe")).toBeEnabled();

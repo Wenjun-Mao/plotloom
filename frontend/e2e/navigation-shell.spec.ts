@@ -1,4 +1,5 @@
 import { expect, test } from "./fixture";
+import { navigateToSecondaryTool } from "./workbench-controls";
 
 test.describe("M1-B0 query navigation shell", () => {
   test("uses stage/entity query parameters and restores stage on browser back", async ({ page, workbench }) => {
@@ -39,7 +40,7 @@ test.describe("M1-B0 query navigation shell", () => {
     await expect(page.locator(".node-inspector")).toContainText("冲入控制室");
   });
 
-  test("keeps the URL project identity when a stage is clicked before refresh hydration completes", async ({ page, workbench }) => {
+  test("preserves project identity and withdraws stage navigation until refresh hydration completes", async ({ page, workbench }) => {
     const projectId = await persistSampleProject(page, workbench.frontendOrigin);
     let releaseProjectResponse: (() => void) | undefined;
     const projectResponseGate = new Promise<void>((resolve) => {
@@ -58,17 +59,18 @@ test.describe("M1-B0 query navigation shell", () => {
     });
 
     await page.reload();
-    await expect(page.getByText("Plotloom 服务：连接中", { exact: true })).toBeVisible();
-    await page
-      .getByRole("navigation", { name: "工作台阶段" })
-      .getByRole("button", { name: /故事圣经/ })
-      .click();
-    await expect(page).toHaveURL(new RegExp(`project=${escapeRegex(projectId)}&stage=bible`));
+    await expect(page.getByTestId("workspace-hydrating")).toBeVisible();
+    await page.getByText("编辑与工具", { exact: true }).click();
+    await expect(page.getByRole("navigation", { name: "编辑与工具" }).getByRole("button", { name: "故事圣经", exact: true })).toBeDisabled();
+    await expect(page).toHaveURL(new RegExp(`project=${escapeRegex(projectId)}&stage=storyboard`));
 
     releaseProjectResponse?.();
+    await expect(page.getByTestId("workspace-hydrating")).not.toBeVisible();
+    await navigateToSecondaryTool(page, "故事圣经");
+    await expect(page).toHaveURL(new RegExp(`project=${escapeRegex(projectId)}&stage=bible`));
     await expect(page.getByRole("heading", { name: "故事圣经" })).toBeVisible();
     await expect(page.locator(".project-switcher")).toContainText("月城余晖");
-    await expect(page.locator(".project-switcher")).toContainText(projectId);
+    await expect(page.locator(".project-switcher")).not.toContainText(projectId);
   });
 
   test("does not expose a provisional teaching editor during persisted-project hydration", async ({ page, workbench }) => {
@@ -101,10 +103,7 @@ test.describe("M1-B0 query navigation shell", () => {
 async function persistSampleProject(page: import("@playwright/test").Page, frontendOrigin: string): Promise<string> {
   await page.goto(`${frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page
-    .getByRole("navigation", { name: "工作台阶段" })
-    .getByRole("button", { name: /分镜工作台/ })
-    .click();
+  await navigateToSecondaryTool(page, "分镜工作台");
   const created = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === "/api/v2/projects");
   await page.getByRole("button", { name: "保存分镜" }).click();

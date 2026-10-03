@@ -1,5 +1,6 @@
 import type { APIRequestContext, Page, Response as PlaywrightResponse } from "@playwright/test";
 import { expect, test } from "./fixture";
+import { navigateToSecondaryTool } from "./workbench-controls";
 
 type StageName = "story_bible" | "story_graph" | "scene_beats" | "storyboard";
 type ProviderStatus = {
@@ -120,9 +121,7 @@ async function createDemoProject(page: Page, frontendOrigin: string): Promise<st
 
 async function navigateToStage(page: Page, name: string): Promise<void> {
   const label = name.replace(/^\d+\s+/, "");
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", {
-    name: new RegExp(escapeRegex(label)),
-  }).click();
+  await navigateToSecondaryTool(page, label);
 }
 
 async function pollProgress(request: APIRequestContext, apiOrigin: string, runId: string, status: string): Promise<{ workUnits: Array<{ workUnitId: string; stage: string; status: string; maxAttempts: number; latestAttempt: Record<string, unknown> | null }> }> {
@@ -157,8 +156,4 @@ async function stages(request: APIRequestContext, apiOrigin: string, projectId: 
 async function json<T>(response: PlaywrightResponse | Awaited<ReturnType<APIRequestContext["get"]>>): Promise<T> {
   expect(response.ok(), `${response.status()} ${await response.text()}`).toBeTruthy();
   return response.json() as Promise<T>;
-}
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

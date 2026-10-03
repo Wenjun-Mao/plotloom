@@ -1,3 +1,4 @@
+import { navigateToSecondaryTool, openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -218,10 +219,9 @@ test.describe("P1 self-contained copied image brief", () => {
     await page.goto(
       `${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`,
     );
-    await page
-      .getByRole("navigation", { name: "工作台阶段" })
-      .getByRole("button", { name: /分镜工作台/ })
-      .click();
+    await navigateToSecondaryTool(page, "分镜工作台");
+    await openMediaPreparation(page);
+    await openMediaKeyframes(page);
     await page
       .getByLabel("审核人标签")
       .fill("P1 self-contained browser reviewer");
@@ -318,6 +318,7 @@ test.describe("P1 self-contained copied image brief", () => {
       window.sessionStorage.setItem(key, JSON.stringify(drafts));
     });
     await page.reload();
+    await openMediaPreparation(page);
     await expect(page.getByTestId("image-job-direction-stale")).toBeVisible();
     await page.getByRole("button", { name: "确认后恢复到当前上下文" }).click();
     await expect(page.getByTestId("image-job-direction-stale")).toHaveCount(0);
@@ -328,6 +329,7 @@ test.describe("P1 self-contained copied image brief", () => {
     await page.goto(
       `${workbench.frontendOrigin}/v2/?project=${otherProjectId}&stage=storyboard`,
     );
+    await openMediaPreparation(page);
     await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(
       "",
     );
@@ -337,6 +339,8 @@ test.describe("P1 self-contained copied image brief", () => {
     await page.goto(
       `${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`,
     );
+    await openMediaPreparation(page);
+    await openMediaKeyframes(page);
     await expect(page.getByTestId("image-job-presentation-change")).toHaveValue(
       originalDirection,
     );
@@ -481,6 +485,8 @@ test.describe("P1 self-contained copied image brief", () => {
     await page.getByTestId("create-still-preview").click();
     await expect(page.getByTestId("still-animatic")).toBeVisible();
     await page.reload();
+    await openMediaPreparation(page);
+    await openMediaKeyframes(page);
     await expect(page.getByTestId("still-animatic")).toBeVisible();
 
     const refinementDirection =

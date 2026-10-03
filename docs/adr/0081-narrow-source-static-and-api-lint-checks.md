@@ -52,3 +52,21 @@ existing E2E mode. Browser and persistence coverage now exercises the checked
 source bundle, while installed-wheel browser coverage remains open. The CI
 workflow remains `workflow_dispatch` only. The scope does not imply product or
 creative acceptance.
+
+## Current-control browser journeys · 2026-10-03
+
+Browser setup must exercise the current creator UI rather than retain removed
+sidebar/button labels or depend on disclosure positions. The shared
+`frontend/e2e/workbench-controls.ts` names secondary navigation and media panels;
+candidate toggles retain their asset-bound test identity while their visible
+labels distinguish pending review. Hydration tests verify withdrawn controls,
+then normal navigation after load. Persistence, source/identity ownership,
+selection and natural playback assertions remain required. This updates test
+setup for current UI contracts; it does not restore retired UI or widen product
+acceptance. ADR0109 owns the independent CI budget/evidence boundary.
+
+The sample shot seed emits the already-defined canonical `visibleTexts: []`
+default explicitly. Its omission made exact first-save roundtrip checks differ
+after backend serialization; the seed, not a permissive comparator, owns the
+repair. Serialized-bootstrap regression coverage retains the exact stage
+payload assertion and introduces no authored text or ownership change.

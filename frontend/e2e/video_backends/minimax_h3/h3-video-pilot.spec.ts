@@ -1,3 +1,4 @@
+import { openMediaPreparation, openMediaKeyframes } from "../../workbench-controls";
 import { expect, test } from "../../fixture";
 import { freezeReviewedFixtureDirections } from "./review-directions";
 import { demoProject } from "../../../src/demo";
@@ -17,13 +18,13 @@ test("H3 browser path freezes a selected no-stretch catalog profile", async ({ p
   const projectId = (await created.json()).id as string;
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`);
 
-  await page.locator("details.workbench-support").first().locator("summary").click();
-  await page.locator("details.workbench-support").last().locator("summary").click();
+  await openMediaPreparation(page);
+  await openMediaKeyframes(page);
   await page.getByLabel("审核人标签").fill("H3 browser reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("H3 browser fixture");
   await page.getByTestId("managed-image-upload").setInputFiles(still);
-  await page.getByRole("button", { name: "保留此候选" }).click();
+  await page.getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("H3 fixture source");
   await page.getByTestId("save-visual-intent").click();
   await page.getByLabel("审核兼容性说明").fill("Current approved H3 fixture keyframe.");

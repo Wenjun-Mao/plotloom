@@ -1,3 +1,4 @@
+import { navigateToSecondaryTool, openServiceStatus } from "./workbench-controls";
 import type { APIRequestContext, Page, Response as PlaywrightResponse } from "@playwright/test";
 import { expect, test } from "./fixture";
 
@@ -17,7 +18,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
   test("authors, persists, reloads, deep-links, and approves a canonical project", async ({ page, request, workbench }) => {
     await page.goto(`${workbench.frontendOrigin}/v2/`);
     await page.getByRole("button", { name: "打开示例项目" }).click();
-    await expect(page.getByRole("navigation", { name: "工作台阶段" })).toBeVisible();
+    await expect(page.getByText("编辑与工具", { exact: true })).toBeVisible();
 
     // Bootstrap through the final stage so the server receives a contiguous,
     // valid canonical prefix.  Subsequent writes exercise each individual
@@ -124,7 +125,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
 
     await navigateToStage(page, "05 分镜工作台");
     const action = "E2E M1-B1：阮星跨过气密门，确认控制室仍有一条可审计的选择。";
-    await page.getByLabel("动作").fill(action);
+    await page.getByLabel("动作", { exact: true }).fill(action);
     await expect(page.getByLabel("镜头 ID")).toHaveValue("shot_01");
     await page.getByLabel("镜头 ID").press("Tab");
 
@@ -174,7 +175,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await savePatchedStage(page, projectId, "storyboard", "保存分镜");
     await page.reload();
     await expect(page.getByLabel("镜头 ID")).toHaveValue("shot_01");
-    await expect(page.getByLabel("动作")).toHaveValue(action);
+    await expect(page.getByLabel("动作", { exact: true })).toHaveValue(action);
     await expect(page.getByRole("group", { name: "AudioPlan" }).getByLabel("描述")).toHaveValue("E2E：气密门密封声与通风系统低鸣");
     await expect(page.getByRole("group", { name: "镜头要求的实体状态" }).getByLabel("状态")).toHaveValue("focused");
     await expect(page.locator('[data-entity-key="link:shot_01:b1"]').getByLabel("覆盖权重")).toHaveValue("0.9");
@@ -183,6 +184,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     // normal browser reload is the public way to obtain the server's complete
     // resulting dependency projection before a review decision is offered.
     await page.reload();
+    await openServiceStatus(page);
     await expect(page.getByText("Plotloom 服务：已连接", { exact: true })).toBeVisible();
     await expectCanonicalHeads(request, workbench.apiOrigin, projectId);
 
@@ -196,7 +198,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
     await expect(page.getByLabel("姓名")).toHaveValue("阮星");
 
     await navigateToStage(page, "05 分镜工作台");
-    await expect(page.getByLabel("动作")).toHaveValue(action);
+    await expect(page.getByLabel("动作", { exact: true })).toHaveValue(action);
     await page.getByLabel("审核人标签").fill("E2E local workbench reviewer");
     const approval = page.waitForResponse((response) => response.request().method() === "POST"
       && new URL(response.url()).pathname === `/api/v2/projects/${projectId}/storyboard-approval`);
@@ -239,8 +241,7 @@ test.describe("M1-B1 canonical workbench journey", () => {
 
 async function navigateToStage(page: Page, name: string): Promise<void> {
   const label = name.replace(/^\d+\s+/, "");
-  await page.getByRole("navigation", { name: "工作台阶段" })
-    .getByRole("button", { name: new RegExp(escapeRegex(label)) }).click();
+  await navigateToSecondaryTool(page, label);
 }
 
 async function selectGraphEntity(page: Page, kind: "node" | "edge", id: string): Promise<void> {
@@ -279,8 +280,4 @@ async function expectCanonicalHeads(request: APIRequestContext, apiOrigin: strin
       schemaVersion: 2,
     });
   }
-}
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

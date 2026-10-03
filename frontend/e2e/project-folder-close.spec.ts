@@ -186,7 +186,7 @@ test.describe("project-folder Close", () => {
     await page.getByText("准备与参考 · 图片、角色、导入", { exact: true }).click();
     await page.getByLabel("来源声明").fill("Close/reopen durable media-draft fixture.");
     await page.getByTestId("managed-image-upload").setInputFiles(retainedStill);
-    await page.getByLabel("候选图像比较").locator(".media-candidate").getByRole("button", { name: "保留此候选" }).click();
+    await page.getByLabel("候选图像比较").locator(".media-candidate").getByTestId(/^keep-candidate-/).click();
     await page.getByText("关键帧与静帧预览", { exact: true }).click();
     await page.getByTestId("visual-intent-source-refs").fill("canonical visual intent source");
     await page.getByTestId("save-visual-intent").click();

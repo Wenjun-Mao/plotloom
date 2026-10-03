@@ -1,3 +1,4 @@
+import { navigateToSecondaryTool, openMediaPreparation, openMediaKeyframes, openServiceStatus } from "./workbench-controls";
 import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import { execFile } from "node:child_process";
@@ -16,14 +17,17 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   const durableTitle = "E2E snapshot retains this server draft";
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${projectId}&stage=brief`);
   await page.getByLabel("片名").fill(durableTitle);
+  await openServiceStatus(page);
   await expect(page.getByText("草稿：已保存", { exact: true })).toBeVisible();
 
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
+  await navigateToSecondaryTool(page, "分镜工作台");
+  await openMediaPreparation(page);
+  await openMediaKeyframes(page);
   await page.getByLabel("审核人标签").fill("snapshot fixture reviewer");
   await page.getByRole("button", { name: "批准当前分镜" }).click();
   await page.getByLabel("来源声明").fill("Offline reviewed still retained by the portable snapshot.");
   await page.getByTestId("managed-image-upload").setInputFiles(retainedStill);
-  await page.getByLabel("候选图像比较").locator(".media-candidate").getByRole("button", { name: "保留此候选" }).click();
+  await page.getByLabel("候选图像比较").locator(".media-candidate").getByTestId(/^keep-candidate-/).click();
   await page.getByTestId("visual-intent-source-refs").fill("snapshot media lineage fixture");
   await page.getByTestId("save-visual-intent").click();
   await page.getByLabel("审核兼容性说明").fill("The stored fixture is reviewed for this exact shot.");
@@ -80,7 +84,8 @@ test("snapshots an open project then restores its draft, reviewed media, and lin
   const restoredWorkbench = await request.get(`${workbench.apiOrigin}/api/v2/projects/${projectId}/visual-workbench`);
   expect(restoredWorkbench.ok(), await restoredWorkbench.text()).toBeTruthy();
   expect((await restoredWorkbench.json() as { reviewedKeyframes: unknown[] }).reviewedKeyframes).toHaveLength(1);
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
+  await navigateToSecondaryTool(page, "分镜工作台");
+  await openMediaPreparation(page);
   await expect(page.getByAltText(/Imported candidate/)).toBeVisible();
   // The worker-scoped fixture can serve later project-folder tests. Its public
   // restart helper intentionally defaults to these original paths, so restore

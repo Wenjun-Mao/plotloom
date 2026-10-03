@@ -1,3 +1,4 @@
+import { navigateToSecondaryTool, openTechnicalDetails } from "./workbench-controls";
 import type { APIRequestContext, Page, Response as PlaywrightResponse } from "@playwright/test";
 import { expect, test } from "./fixture";
 
@@ -35,6 +36,7 @@ test("a bearer run waits for its frozen profile key and resumes without switchin
   });
 
   await page.goto(`${workbench.frontendOrigin}/v2/?project=${encodeURIComponent(projectId)}&stage=trace&run=${encodeURIComponent(sourceRun.id)}`);
+  await openTechnicalDetails(page);
   await expect(page.getByText(`运行冻结在 Profile ${frozenProfileId}；请为这个 Profile 补充当前标签页 Key 后再继续。不会自动切换模型。`, { exact: true })).toBeVisible();
   await expect(page.getByText("冻结 Profile 缺少会话 Key", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "为冻结 Profile 补 Key" })).toBeVisible();
@@ -109,7 +111,7 @@ async function configureFrozenBearerProfile(
 async function createDemoProject(page: Page, frontendOrigin: string): Promise<string> {
   await page.goto(`${frontendOrigin}/v2/`);
   await page.getByRole("button", { name: "打开示例项目" }).click();
-  await page.getByRole("navigation", { name: "工作台阶段" }).getByRole("button", { name: /分镜工作台/ }).click();
+  await navigateToSecondaryTool(page, "分镜工作台");
   const created = page.waitForResponse((response) => response.request().method() === "POST"
     && new URL(response.url()).pathname === "/api/v2/projects");
   await page.getByRole("button", { name: "保存分镜" }).click();

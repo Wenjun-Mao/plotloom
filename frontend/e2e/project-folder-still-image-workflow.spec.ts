@@ -1,3 +1,4 @@
+import { navigateToSecondaryTool, openMediaPreparation, openMediaKeyframes } from "./workbench-controls";
 import { expect, test } from "./fixture";
 import { demoProject } from "../src/demo";
 import path from "node:path";
@@ -22,10 +23,9 @@ test.describe("project-folder still-image workflow", () => {
     await page.goto(
       `${workbench.frontendOrigin}/v2/?project=${projectId}&stage=storyboard`,
     );
-    await page
-      .getByRole("navigation", { name: "工作台阶段" })
-      .getByRole("button", { name: /分镜工作台/ })
-      .click();
+    await navigateToSecondaryTool(page, "分镜工作台");
+    await openMediaPreparation(page);
+    await openMediaKeyframes(page);
     await page.getByLabel("审核人标签").fill("project-folder browser reviewer");
     await page.getByRole("button", { name: "批准当前分镜" }).click();
 
@@ -35,7 +35,7 @@ test.describe("project-folder still-image workflow", () => {
     await page.getByTestId("managed-image-upload").setInputFiles(retainedStill);
     const candidates = page.getByLabel("候选图像比较").locator(".media-candidate");
     await expect(candidates).toHaveCount(1);
-    await candidates.getByRole("button", { name: "保留此候选" }).click();
+    await candidates.getByTestId(/^keep-candidate-/).click();
     await page
       .getByTestId("visual-intent-source-refs")
       .fill("project-folder retained fixture");
@@ -55,6 +55,7 @@ test.describe("project-folder still-image workflow", () => {
     const before = await visualEvidence(request, workbench.apiOrigin, projectId);
     await workbench.restartBackend();
     await page.reload();
+    await openMediaPreparation(page);
     const after = await visualEvidence(request, workbench.apiOrigin, projectId);
     expect(after).toEqual(before);
     await expect(candidates).toHaveCount(1);
