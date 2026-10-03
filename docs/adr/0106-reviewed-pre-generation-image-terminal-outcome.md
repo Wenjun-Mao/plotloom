@@ -43,6 +43,12 @@ acknowledgement describes the stopped original attempt, not execution of the
 later acknowledgement at the old code revision. New terminal/lifecycle owners
 join the preflight's committed-source boundary.
 
+A proven transcription error in an unadmitted marker may be corrected by its
+original worker only after coordinator authorization and exact rejected-byte/
+hash preservation outside the inbox. New proof requires fresh hash-bound review;
+an admitted marker is never rewritten. Foreign proof remains rejected, not
+reinterpreted as an alias or silently normalized.
+
 ## Alternatives and consequences
 
 Cancellation-only release, idle-only release, manual lease deletion, assistant

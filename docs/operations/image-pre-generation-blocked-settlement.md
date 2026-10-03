@@ -54,3 +54,10 @@ queue-message identity automatically. Settings do not become a general lease
 clearer. [ADR 0106](../adr/0106-reviewed-pre-generation-image-terminal-outcome.md)
 defines this boundary. A retained identical reviewed proof can finish a crash
 tombstone without touching a successor's lease; an ordinary idle/cancel cannot.
+
+If a marker is rejected **before settlement** for a proven transcription error,
+preserve its exact bytes/hash and the rejection outside the delivery inbox.
+The coordinator may authorize the same worker to correct only that unadmitted
+declaration. Re-read and review the new marker hash; stale previews cannot be
+used. Never rewrite an admitted marker, original pin/package, or an uncertain
+worker outcome. This corrects evidence, not reservation validation.
