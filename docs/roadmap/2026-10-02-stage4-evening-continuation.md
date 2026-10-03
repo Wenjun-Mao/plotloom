@@ -77,10 +77,10 @@ route and current execution pins. This readiness-only bootstrap completed;
 the worker is idle awaiting a newly queued immutable package. No competing
 source writer or automatic resend.
 
-The existing `creator-walkthrough-reporting-guard` heartbeat was updated and
-confirmed ACTIVE, not duplicated. It is continuation insurance with a one-hour
-silence gate and this exact cutoff, not another writer. Keep it quiet on
-unchanged/non-actionable state and disable it at closeout.
+At window start, the existing `creator-walkthrough-reporting-guard` heartbeat
+was updated and confirmed ACTIVE, not duplicated. It provided continuation
+insurance with a one-hour silence gate and this exact cutoff, not another
+writer. At closeout it was confirmed PAUSED while awaiting owner direction.
 
 ## Completion and handoff
 

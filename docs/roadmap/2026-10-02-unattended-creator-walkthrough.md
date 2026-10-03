@@ -1,14 +1,18 @@
 # Bounded unattended creator walkthrough
 
-Status: the owner approved a new [two-hour evening continuation](2026-10-02-stage4-evening-continuation.md),
+Status: the owner-approved [two-hour evening continuation](2026-10-02-stage4-evening-continuation.md),
 21:30:07–23:30:07 Toronto on October 2 (01:30:07–03:30:07 UTC October 3),
-with new submissions stopping at 23:00:07 Toronto. C1–C5 and A1 remain selected;
-revised B2 is rejected, A2 is a delivered unbound still, and remaining route
-media/assembly review are incomplete. The linked continuation owns current deadlines.
+with new submissions stopping at 23:00:07 Toronto, has closed. C1–C5 and A1
+remain selected; both A2 video takes and revised B2 are rejected. B1's fresh
+still is delivered but unbound pending location continuity. Remaining route
+media/assembly review are incomplete. See the
+[evening closeout](../verification/2026-10-03-stage4-evening-closeout.md)
+for verified recovery, current media evidence and outstanding owner choices.
 See the [owner-approved-window closeout](../verification/2026-10-02-stage4-owner-approved-window-closeout.md)
 for deployed `8427b13`/`ddb780c` retention, static-revalidation and H3 draft
 guardrails, real media receipts, passing checks and exact next owner actions.
-The existing temporary heartbeat is ACTIVE for this authorized window.
+The existing temporary heartbeat is PAUSED while awaiting owner direction;
+further live submissions require a new production window.
 Individual clip approval does not accept an assembly.
 The [resumed-media closeout](../verification/2026-10-02-stage4-resumed-media-closeout.md)
 and [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
