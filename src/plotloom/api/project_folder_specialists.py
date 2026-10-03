@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Path
 
 from ..creative_handoff_contracts import JOB_ID_PATTERN, CreativeHandoffError
 from ..specialist_settings import SpecialistRegistry, SpecialistSettings
+from .project_folder_image_terminal import register_image_terminal_routes
 
 Stage = Literal["outline", "characters", "art", "script", "storyboard"]
 # Existing stage repositories remain the sole owners of currentness and admission.
@@ -21,6 +22,7 @@ METHODS = {
 
 
 def register_specialist_routes(app: FastAPI, opened_project: Callable[[str], Any], registry: SpecialistRegistry):
+    register_image_terminal_routes(app, opened_project, registry)
     @app.get("/api/v2/specialists")
     def settings():
         return registry.view()

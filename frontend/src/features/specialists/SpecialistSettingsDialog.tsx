@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, ErrorNotice } from "../../components";
 import { specialistsApi, type SpecialistSettings } from "./api";
+import { ImageTerminalSettlement } from "./ImageTerminalSettlement";
 
 export function SpecialistSettingsDialog({ onClose }: { onClose: () => void }) {
   const [settings, setSettings] = useState<SpecialistSettings>();
@@ -32,7 +33,7 @@ export function SpecialistSettingsDialog({ onClose }: { onClose: () => void }) {
           <label><span>聊天 ID</span><input placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value={settings[role].taskId || ""} onChange={event => { setSaved(false); setSettings({ ...settings, [role]: { ...settings[role], taskId: event.target.value || null } }); }} /></label>
         </fieldset>)}
         {settings?.busy && <p role="status">助手还有未完成的任务，暂时不能更改设置。请先检查任务结果。</p>}
-        {settings?.activeTasks?.map(task => <div key={task.jobId}><small>{task.stage || "图像"} · {task.jobId}</small>{task.projectId && task.stage ? <Button disabled={busy} onClick={() => void check(task.projectId!, task.stage!, task.jobId)}>检查此任务的结果</Button> : <p>请在图像提案中检查交付。</p>}</div>)}
+        {settings?.activeTasks?.map(task => <div key={task.jobId}><small>{task.stage || "图像"} · {task.jobId}</small>{task.projectId && task.stage ? <Button disabled={busy} onClick={() => void check(task.projectId!, task.stage!, task.jobId)}>检查此任务的结果</Button> : <><p>请在图像提案中检查交付。</p><ImageTerminalSettlement jobId={task.jobId} onSettled={async () => { setSettings(await specialistsApi.settings()); window.dispatchEvent(new Event("plotloom-specialists-changed")); }} /></>}</div>)}
         {saved && <p role="status">设置已保存，即刻生效。聊天是否可接收任务将在发送时确认。</p>}
         {error && <ErrorNotice message={error} />}
       </div><footer><Button onClick={onClose}>关闭</Button><Button variant="primary" disabled={!settings || busy || settings.busy} onClick={() => void save()}>保存助手设置</Button></footer>

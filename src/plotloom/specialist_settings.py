@@ -136,6 +136,47 @@ class SpecialistRegistry:
             data = self._read()
             self._complete_owned(data, job_id, self._owned_dispatch(data, job_id))
 
+    def assert_image_terminal_identity(self, job_id: str, task_id: str):
+        with self.lock():
+            self._image_terminal_dispatch(self._read(), job_id, task_id)
+
+    def _image_terminal_dispatch(self, data, job_id, task_id, terminal_record=None):
+        dispatch = self._owned_dispatch(data, job_id, terminal_record=terminal_record)
+        if dispatch is None or dispatch[0] != task_id or job_id in data.get("jobs", {}):
+            raise ImageJobError("image_terminal_dispatch_identity", "终止声明不匹配保留的图像发送记录；保留预约。")
+        return dispatch
+
+    def settle_image_blocked(self, job_id: str, record: dict):
+        """Persist validated proof before exact release; never infer termination."""
+        with self.lock():
+            data = self._read()
+            dispatch = self._image_terminal_dispatch(data, job_id, record["marker"]["taskId"], terminal_record=record)
+            task_id, receipt, value = dispatch
+            prior = value.get("terminalSettlement")
+            if prior is not None and prior != record:
+                raise ImageJobError("image_terminal_review_changed", "已有不同的终止审核记录；保留预约。")
+            if value["state"] == "completed":
+                if prior != record:
+                    raise ImageJobError("image_terminal_conflict", "此发送已有其他完成结果。")
+                return
+            active = receipt.parent.parent / "inflight.json"
+            if prior == record and active.exists() and self._dispatch_record(active) != {"jobId": job_id, "taskId": task_id}:
+                # The identical reviewed proof predates exact release. A later
+                # owner can only acquire this cooperating dispatch slot after
+                # release; finalize the old tombstone without touching it.
+                value["state"] = "completed"
+                temporary = receipt.with_suffix(".tmp")
+                temporary.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+                temporary.replace(receipt)
+                return
+            value["terminalSettlement"] = record
+            temporary = receipt.with_suffix(".tmp")
+            temporary.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+            temporary.replace(receipt)
+            # A crash after proof persistence or exact unlink is recoverable by
+            # revalidating this same marker and review, without a second send.
+            self._complete_owned(data, job_id, (task_id, receipt, value))
+
     def assert_creative_task_identity(self, job_id: str, *, project_id: str, stage: str):
         with self.lock():
             self._creative_dispatch(self._read(), job_id, project_id, stage)
@@ -154,7 +195,7 @@ class SpecialistRegistry:
         # A current manual delivery has no native attempt or reservation to finish.
         return dispatch
 
-    def _owned_dispatch(self, data, job_id):
+    def _owned_dispatch(self, data, job_id, *, terminal_record=None):
         matches = [(task_id, Path(root)) for task_id, root in data["roots"].items()
                    if (Path(root) / job_id).exists() or (Path(root) / job_id).is_symlink()]
         if not matches:
@@ -170,7 +211,8 @@ class SpecialistRegistry:
         if value.get("jobId") != job_id or value.get("taskId") != task_id or value.get("state") not in {"queued", "outcome_unknown", "completed"}:
             raise ImageJobError("specialist_dispatch_identity", "发送回执身份不一致，保留预约。")
         active = root / "inflight.json"
-        if value["state"] != "completed" and (active.exists() or active.is_symlink()) and self._dispatch_record(active) != {"jobId": job_id, "taskId": task_id}:
+        retained_identical_terminal = terminal_record is not None and value.get("terminalSettlement") == terminal_record
+        if value["state"] != "completed" and not retained_identical_terminal and (active.exists() or active.is_symlink()) and self._dispatch_record(active) != {"jobId": job_id, "taskId": task_id}:
             raise ImageJobError("specialist_dispatch_identity", "预约属于其他任务，不能确认当前任务完成。")
         return task_id, receipt, value
 

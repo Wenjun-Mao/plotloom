@@ -2,6 +2,11 @@
 
 **Status:** Accepted
 
+2026-10-03 amendment: [ADR 0106](0106-reviewed-pre-generation-image-terminal-outcome.md)
+adds explicit, reviewed, request/pin/dispatch-bound terminal proof for cancelled
+attempts blocked before generation. Cancellation and idle alone still do not
+release reservations; successful-delivery and frozen package contracts remain unchanged.
+
 ## Context
 
 P1.5 already freezes an image package and validates a specialist completion

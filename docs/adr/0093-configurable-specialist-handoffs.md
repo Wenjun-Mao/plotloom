@@ -1,5 +1,9 @@
 # 0093 — Configurable text and image specialists
 
+The bounded non-success image terminal outcome is defined by
+[ADR 0106](0106-reviewed-pre-generation-image-terminal-outcome.md); it does not
+change cancellation-only or idle-only reservation safety.
+
 ## Decision
 
 Provide two installation-local bindings (display name and Codex chat UUID):

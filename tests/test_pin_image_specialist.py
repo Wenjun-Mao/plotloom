@@ -63,6 +63,9 @@ def modular_checkout(tmp_path: Path) -> tuple[Path, Path]:
         "src/plotloom/image_job_contracts.py": "# image contract owner\n",
         "src/plotloom/image_job_exchange.py": "# exchange owner\n",
         "src/plotloom/image_job_package.py": "# frozen package projection owner\n",
+        "src/plotloom/image_terminal_outcome.py": "# no-output terminal owner\n",
+        "src/plotloom/specialist_settings.py": "# terminal reservation owner\n",
+        "src/plotloom/codex_image_dispatch.py": "# exact lease owner\n",
         "src/plotloom/production_presentation.py": "# presentation owner\n",
         "src/plotloom/production_timing.py": "# timing owner\n",
         "src/plotloom/canonical_schema.py": "# canonical owner\n",
@@ -88,6 +91,16 @@ def _run_pin(repository: Path, package: Path) -> subprocess.CompletedProcess[str
         capture_output=True,
         text=True,
     )
+
+
+@pytest.mark.parametrize("source", ["image_terminal_outcome.py", "specialist_settings.py", "codex_image_dispatch.py"])
+def test_pin_rejects_dirty_terminal_execution_owner(modular_checkout, source):
+    repository, package = modular_checkout
+    (repository / "src/plotloom" / source).write_text("# uncommitted terminal change\n")
+    result = _run_pin(repository, package)
+    assert result.returncode != 0
+    assert "pinned specialist source has uncommitted changes" in result.stderr
+    assert not (package.parent / "delivery" / "executor-pin.json").exists()
 
 
 def _compile_tracked_fixture_modules(repository: Path) -> None:
