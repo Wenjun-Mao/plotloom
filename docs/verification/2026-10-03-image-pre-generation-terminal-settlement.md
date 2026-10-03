@@ -40,10 +40,29 @@ results above are root's actual executions.
 
 ## Live trial
 
-Pending deployment and explicit UI settlement of cancelled
+Deployed the committed backend and freshly built frontend to the same isolated
+installation on port 8851. Root used the real settings UI to settle cancelled
 `ij_fa5d92f47309455db808ef45600ea145`. Its request SHA-256 is
 `82176d3dce375e3faae7f58b1814d3a11aabe1693458a82e7db00a042120914a`.
-The original pin and package are preserved. No live lease has been cleared,
-no failed package replayed, and no terminal success fabricated. Record the
-supplementary same-worker acknowledgement and explicit operator review here
-after they actually complete. This recovery alone is not image or route acceptance.
+
+The first supplementary marker transcribed the assistant UUID with `7714`
+instead of retained `7712`. UI verification rejected it and retained the lease.
+Root preserved its exact bytes (SHA-256
+`6779d0791828e7b3966c4e5e8eb900f933fe3275d7cb106b3e303bf981d9121d`),
+checked the actual delegation and native chat identity, and authorized the same
+worker to correct only this unadmitted transcription. The exact diff contains
+only that task-ID field. No executor alias exception was added.
+
+Corrected marker SHA-256:
+`b4626cdde47a691e3248f4c7244de29d93620418e1fb785627d3ad1a91e7cb71`.
+Root observed the same-worker final turn
+`01a0ff9e-a709-7cd2-a53e-b6e3aace17ca` completed and idle at native revision 62,
+entered those observations in the UI, and explicitly settled once. Readback
+showed no busy reservation and an exact dispatch receipt with `state: completed`,
+the marker and operator review retained. The original executor pin still hashes
+to `609ed3fa7f0c5525d4fea2b12237bd82ac80fd22d7cc18222c6e34f5cce0ae4e`.
+The cancelled job and original package remain evidence; no image completion or
+candidate was fabricated. Screenshot and rejected-marker evidence are retained
+under `.local/unattended-2026-10-02/stage4-live/`.
+
+This confirms the bounded live recovery path, not image or route acceptance.
