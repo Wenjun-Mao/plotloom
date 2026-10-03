@@ -2,6 +2,12 @@ name: CI
 
 on:
   workflow_dispatch:
+    inputs:
+      browser_grep:
+        description: "Browser test-name regex (.* is the full release gate; any filter is diagnostic only)"
+        required: true
+        default: ".*"
+        type: string
 
 jobs:
   verify:
@@ -57,24 +63,58 @@ jobs:
         run: uv build --wheel
       - name: Smoke installed wheel
         run: uv run python scripts/smoke_installed_wheel.py dist
+
+  browser:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install browser fixture dependencies
+        run: |
+          uv sync --all-groups --frozen
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+          npm --prefix frontend ci
       - name: Install Playwright Chromium
         working-directory: frontend
         run: npx playwright install --with-deps chromium
       - name: Browser regression contracts
-        # Each worker runs full fixture stacks; serialize CI to bound resource demand.
-        # Contention remains a hypothesis pending a fresh CI run.
-        run: npm --prefix frontend run test:e2e -- --workers=1
+        # Keep one real fixture stack per runner; distribute files across runners.
+        # Playwright must finalize reports before the step/job cancellation budget.
+        timeout-minutes: 45
+        env:
+          BROWSER_GREP: ${{ inputs.browser_grep }}
+          BROWSER_SHARD: ${{ matrix.shard }}
+        run: npm --prefix frontend run test:e2e -- --workers=1 --shard="${BROWSER_SHARD}/2" --grep="${BROWSER_GREP}" --global-timeout=2400000
       - name: Upload Playwright test results
-        if: failure()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-test-results
+          name: playwright-test-results-${{ matrix.shard }}
           path: frontend/test-results
           retention-days: 7
       - name: Upload Playwright report
-        if: failure()
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: frontend/playwright-report
           retention-days: 7

@@ -97,6 +97,10 @@ uv build --wheel
 uv run python scripts/smoke_installed_wheel.py dist
 ```
 
+手动 CI 默认以 `browser_grep=.*` 执行完整发布检查；浏览器测试分为两个独立
+runner，每个只运行一个 worker，并保留各自的报告。填写其他正则只用于诊断，
+不能替代完整发布验收。见 [ADR 0109](docs/adr/0109-bounded-browser-ci-evidence.md)。
+
 对已保存文本 profile 的真实四阶段验收与 secret-free 回执，见
 [conformance runner](docs/conformance.md)。M1.5 只有在两个所需 profile
 在 `--qualify-m15` 严格模式下各完成 3 次原子安装、各至少 10/12
