@@ -1,5 +1,9 @@
 # Stage 4 evening continuation
 
+Outcome: [evening closeout](../verification/2026-10-03-stage4-evening-closeout.md).
+Source recovery is verified; the full media goal remains incomplete. The
+heartbeat is paused and further production awaits the recorded owner decisions.
+
 The owner approved continuation and explicitly chose **another two hours**.
 The recorded window starts at the manager's acknowledgement:
 **2026-10-02 21:30:07–23:30:07 America/Toronto**
