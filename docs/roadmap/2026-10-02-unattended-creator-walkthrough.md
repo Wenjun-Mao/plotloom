@@ -1,15 +1,15 @@
 # Bounded unattended creator walkthrough
 
-Status: the owner-approved two-hour continuation closed at 15:22:39 Toronto /
-19:22:39 UTC. C1–C4 remain selected after owner visual/sound approval. The owner
-confirmed C5/A1 sound at 19:28:09 UTC; both exact reviewed segments are now
-explicitly selected, for six selected clips total. Revised B2 is rejected, A2
-is a delivered unbound still, and remaining route media/assembly review are incomplete.
+Status: the owner approved a new [two-hour evening continuation](2026-10-02-stage4-evening-continuation.md),
+21:30:07–23:30:07 Toronto on October 2 (01:30:07–03:30:07 UTC October 3),
+with new submissions stopping at 23:00:07 Toronto. C1–C5 and A1 remain selected;
+revised B2 is rejected, A2 is a delivered unbound still, and remaining route
+media/assembly review are incomplete. The linked continuation owns current deadlines.
 See the [owner-approved-window closeout](../verification/2026-10-02-stage4-owner-approved-window-closeout.md)
 for deployed `8427b13`/`ddb780c` retention, static-revalidation and H3 draft
 guardrails, real media receipts, passing checks and exact next owner actions.
-The temporary heartbeat is paused. New production requires another explicitly
-bounded authorization. Individual clip approval does not accept an assembly.
+The existing temporary heartbeat is ACTIVE for this authorized window.
+Individual clip approval does not accept an assembly.
 The [resumed-media closeout](../verification/2026-10-02-stage4-resumed-media-closeout.md)
 and [extended closeout](../verification/2026-10-02-stage4-extended-closeout.md)
 remain historical receipts for explicit-seed and accessible-confirmation fixes.
@@ -19,9 +19,9 @@ below preserves resume state; only the time window was extended, not acceptance
 or preservation requirements.
 
 Launch: 2026-10-02 01:34:18 America/Toronto / 05:34:18 UTC.
-The current generation cutoff is 14:52:39 Toronto / 18:52:39 UTC;
-the current hard cutoff is 15:22:39 Toronto / 19:22:39 UTC. This supersedes
-the prior resumed window through 17:08:45 UTC. Original-project
+The earlier generation cutoff was 14:52:39 Toronto / 18:52:39 UTC;
+its hard cutoff was 15:22:39 Toronto / 19:22:39 UTC. The linked evening
+continuation supersedes those deadlines. Original-project
 preservation and genuine audiovisual acceptance requirements are unchanged.
 Manager: `01a04525-e907-7630-9640-78790d69e8ae`.
 

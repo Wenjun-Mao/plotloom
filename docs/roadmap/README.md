@@ -69,8 +69,9 @@ handoff by 19:22:39 UTC (15:22:39 Toronto). The
 records selected C1–C4 and the later 19:28:09 UTC owner C5/A1 listening verdict:
 both are now selected, for six selected clips total. Revised B2 is rejected;
 A2 remains an unbound still. Retention/static/H3-review guardrails are deployed.
-The heartbeat is paused; remaining route media and assembly review need a
-new bounded production window and genuine audiovisual acceptance.
+The owner then approved a [two-hour evening continuation](2026-10-02-stage4-evening-continuation.md),
+21:30:07–23:30:07 Toronto on October 2, stopping new submissions at 23:00:07.
+Remaining route media and genuine assembly acceptance stay open.
 Test-copy provisional decisions
 and removal of fixed generation caps and blanket video/remote/provider/redesign
 exclusions are approved. The run launched at 2026-10-02 05:34:18 UTC; its plan owns the current
