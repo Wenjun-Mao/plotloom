@@ -37,6 +37,12 @@ baseline: 73 tables, 67 file hashes and seven API projections unchanged.
   continuity input, not walking or route acceptance.
 - A3/B1/B4: retained unsent preparations are historical, not send permission
   for stale execution pins. Prepare fresh current packages where appropriate.
+  Independent source reassessment corrects the earlier carried-over A3 gaze
+  premise: accepted F4 r3, F5A review r2, installed storyboard r1 and bridge
+  agree that A3 stops outside quietly; the gaze lift belongs to opening C4.
+  Freeze A3's continuity input after A2's reviewed terminal state. B1 must
+  retain its turn-away before homeward walking; B4 remains calm continued
+  homeward walking, not evidence of unreviewed B2/B3 success.
 - B2/B3: preserve failed takes and rejection history. After two unsuccessful
   B2 criteria, reassess first-state/action strategy before another trial.
   Reading-only C2 success does not qualify typing or sending. Do not omit
