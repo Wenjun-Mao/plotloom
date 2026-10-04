@@ -219,6 +219,18 @@ native assignment after the02:13:28Z submission boundary.
 At closeout, listening to A2/A3/B1–B4 remained the next owner action; the owner
 has since completed that review and approved all six cuts' sound, recorded in
 the linked receipt. Their visual/technical and final-film boundaries remain.
-Original/normal backend
-activation and its additive schema upgrade remain unapproved and unperformed;
-final-film polishing is deferred, not silently accepted.
+At that closeout, original/normal backend activation and its additive schema
+upgrade remained unapproved and unperformed. Final-film polishing is deferred,
+not silently accepted.
+
+## Authorized normal activation follow-up · October 3, 22:56 Toronto
+
+The owner subsequently said “go ahead” to normal backend/schema activation.
+The [activation receipt](../verification/2026-10-03-normal-backend-activation.md)
+records the recreated healthy normal container and supported73→74-table
+transition: only an empty `v2_shot_presentations` table was added. All73 old
+table rows,67 managed file hashes and7 original API projections are unchanged.
+Native bridge, current endpoint/static bytes and a fresh actual UI reload pass.
+H3 remains disabled; no test-copy story/media was transferred and no new
+generation was dispatched. This separately authorized deployment does not
+reopen the completed generation window or expand creative acceptance.

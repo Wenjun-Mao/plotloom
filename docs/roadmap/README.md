@@ -85,8 +85,12 @@ and [browser closeout](../verification/2026-10-04-e2e-browser-closeout.md)
 separate owner approvals, provisional selections and executed verification.
 The reporting heartbeat is paused. The owner subsequently listened to
 A2/A3/B1–B4 and approved all six cuts' sound; all12 selected clips now have
-individual sound approval. Final-film polish and normal backend/schema
-activation remain pending owner decisions. The revised
+individual sound approval. The owner then authorized
+[normal backend/schema activation](../verification/2026-10-03-normal-backend-activation.md):
+the normal installation is current, with one new empty presentation table and
+all previous data/media preserved. H3 stays disabled and the finished test copy
+was not transferred. Final-film polish and copy promotion remain separate
+owner decisions. The revised
 criterion superseded creative stopping criteria, not dispatch/source safety or
 original-project preservation.
 Test-copy provisional decisions

@@ -473,3 +473,8 @@ all earlier reviews preserved (A2 reject → reopen → provisional select → o
 listening approval). All12 selected cuts now have owner individual-cut sound
 approval. This does not infer new final-film visual approval, assembled-route
 sound approval, regeneration authority or normal-project activation.
+
+The owner later separately authorized normal backend/schema activation. The
+[deployment receipt](2026-10-03-normal-backend-activation.md) records the healthy
+normal installation, exact new empty table and preserved original/copy data;
+H3 remains disabled and the completed copy has not been transferred.
