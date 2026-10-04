@@ -46,10 +46,9 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     const previousRoute = session.routeRef.current;
     clearDraftRouteState();
     if (!next.project) {
-      // A blank or demo workspace has no server ID. Moving between its pages
-      // must retain that local snapshot; only leaving a loaded project opens a
-      // new blank onboarding workspace.
-      if (next.project !== (session.project.id || "")) session.clearForEmptyRoute(route, historyMode);
+      // Local blank/demo page changes retain their snapshot. Explicit Home
+      // intent must still reset them even though both routes have no server ID.
+      if (next.home || next.project !== (session.project.id || "")) session.clearForEmptyRoute(route, historyMode);
       else session.navigate(route, historyMode);
       return;
     }
@@ -91,6 +90,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
     hash?: string;
     history?: "push" | "pop";
     forceReload?: boolean;
+    home?: boolean;
   }) => {
     const normalized: NavigationTarget = { entity: "", run: "", hash: "", history: "push", forceReload: false, ...next };
     const currentRoute = session.routeRef.current;
@@ -100,6 +100,7 @@ export function useWorkspaceNavigation({ session, drafts, loadProject, pollRun, 
       && normalized.entity === currentRoute.entity
       && normalized.run === currentRoute.run
       && !normalized.forceReload
+      && !normalized.home
     ) {
       if (normalized.hash !== currentRoute.hash) {
         if (normalized.history === "push") session.navigateHash(normalized.hash);

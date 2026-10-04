@@ -52,6 +52,10 @@ proven retirements. It does not authorize broad cleanup or contract redesign.
 
 Technical plans, ADRs, and receipts remain supporting references; they do not independently expand current scope.
 
+The approved [Workspace Home control](2026-10-04-workspace-home.md) is a bounded
+navigation add-on: the brand returns to onboarding through the existing draft
+gate without closing projects or cancelling work. Delivery is in progress.
+
 The owner-approved [direct project deletion](2026-10-04-direct-project-deletion.md)
 is reviewed, locally qualified, published and activated on normal 8841: visible
 typed consent for active, archived, closed and media-bearing projects, with the

@@ -80,6 +80,13 @@
 .art-reference-gallery > header > small, .art-reference-gallery > p { font-size: var(--type-support); }
 .characters-page .page-header h1 { font-size: var(--type-page); }
 .project-switcher span, .project-switcher small, .sidebar-footer small { font: 500 var(--type-support)/1.5 var(--sans); letter-spacing: normal; text-transform: none; }
+.brand-home { width: 100%; border: 0; border-bottom: 1px solid var(--line); color: var(--text); background: transparent; font: inherit; text-align: left; }
+.brand-home:not(:disabled):hover { background: var(--panel-2); }
+.brand-home .brand-mark { flex-shrink: 0; }
+.brand-home-copy { flex: 1; min-width: 0; }
+.brand-home strong { display: flex; align-items: center; gap: 8px; }
+.brand-home-label { margin-left: auto; color: var(--muted); font-size: var(--type-support); white-space: nowrap; }
+.brand-home:disabled { cursor: not-allowed; opacity: .55; }
 .creator-workflow-heading, .workspace-tools-navigation > summary { font: 600 var(--type-label)/1.5 var(--sans); letter-spacing: normal; }
 .sidebar nav button strong, .creator-workflow-links strong { font-size: var(--type-label); }
 .topbar-technical-status > summary, .workspace-technical-details > summary { font: 500 var(--type-support)/1.5 var(--sans); }
