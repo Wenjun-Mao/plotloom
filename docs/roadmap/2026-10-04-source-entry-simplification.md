@@ -1,6 +1,8 @@
 # Source entry simplification and V1 reference
 
-Status: Approved implementation in progress, 2026-10-04.
+Status: Scoped implementation completed, 2026-10-04. Full remote CI is pending;
+local gates, independent review and normal activation passed. Evidence:
+[verification receipt](../verification/2026-10-04-source-entry-simplification.md).
 
 ## Approved outcome
 
