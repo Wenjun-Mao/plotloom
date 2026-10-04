@@ -13,7 +13,19 @@ for (const width of [1440, 1920, 1280, 390]) {
     await expect(page.getByLabel("片名")).not.toHaveAttribute("aria-required", "true");
     await expect(page.getByText("REQUIRED INPUT")).toHaveCount(0);
     await expect(page.locator(".brief-alternate-workflow button")).not.toBeVisible();
-    await page.getByText("高级生产范围设置", { exact: true }).click();
+    const structure = page.locator(".brief-layout details");
+    const structureSummary = page.getByText("剧情结构与分镜", { exact: true });
+    const decisions = page.getByLabel("每条路线的选择次数");
+    await expect(structure).toHaveAttribute("open", "");
+    await expect(decisions).toBeVisible();
+    const initialDecisions = await decisions.inputValue();
+    await structureSummary.click();
+    await expect(structure).not.toHaveAttribute("open", "");
+    await expect(decisions).not.toBeVisible();
+    await expect(save).toBeDisabled();
+    await structureSummary.click();
+    await expect(structure).toHaveAttribute("open", "");
+    await expect(decisions).toHaveValue(initialDecisions);
     await page.getByText("其他工作流：旧版故事提案", { exact: true }).click();
     const layout = await page.evaluate(() => {
       const advanced = document.querySelector(".brief-layout")!.getBoundingClientRect();

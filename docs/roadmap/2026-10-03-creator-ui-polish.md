@@ -287,3 +287,32 @@ No original story, media or approval was changed; H3 stays disabled in normal.
 The owner's uncoached attempt and Chinese-speaking colleagues' feedback remain
 the human usability check. Final-film polishing and further production are
 not part of this completed implementation scope.
+
+## Owner walkthrough follow-up — October 4, 2026
+
+The owner approved making the Brief's structure/shot settings visible by default
+and naming the panel **剧情结构与分镜**. The existing collapsed `<details>` hid
+these controls; its broad “高级生产范围设置” label also obscured their purpose.
+This is a presentation-layer follow-up, not a new structure or generation contract.
+
+Deliver the renamed, initially expanded native disclosure, retain manual
+collapse, align its nearby guidance, and rebuild shipped assets. Regression
+evidence must cover initial expansion, collapse/reopen, retained strict/nondefault
+values, unchanged save/generation callbacks and desktop/narrow layout. Use an
+independent stable-delta review and non-mutating normal-installation inspection.
+Exclude new grouping, setting/schema changes, generation, project/media writes,
+restarts and Chinese manual edits; its update remains owner-deferred.
+Stop after scoped verification, publication and handoff.
+
+The follow-up is implemented and independently reviewed with no findings.
+All 481 frontend unit tests, frontend/E2E typechecks, deterministic build and
+four focused browser cases (1440, 1920, 1280 and 390px) passed. Normal 8841
+inspection confirmed initial expansion and manual collapse/reopen in a temporary
+unsaved workspace; no project was saved. Served JavaScript matches the rebuilt
+asset (`3a93ad5227c3170225d1224d660b01cf243848a2c0b0c363064ae346a3534828`).
+Before/after normal data captures are identical
+(`683b5fe5bff25ba23291e6d878207a77c2c39ce6d55584d948f5246dbead9a31`);
+the Chinese manual is unchanged. Screenshot evidence is retained locally at
+`output/playwright/brief-structure-2026-10-04.png`. No backend restart, generation
+or settings change occurred. This is scoped presentation verification, not
+fresh full-backend qualification or human usability acceptance.

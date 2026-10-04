@@ -75,6 +75,30 @@ it("keeps both legacy generation controls disabled when a ready Brief is read-on
   expect(storyboard.disabled).toBe(false);
 });
 
+it("opens Brief structure and shots by default without changing retained settings or overriding manual collapse", async () => {
+  const value = { ...demoProject.brief, decisionPointsPerPath: 3, endingCount: 4, nodeBudget: 16,
+    maxOutDegree: 4, desiredJoinCount: 2, shotsPerSceneMin: 2, shotsPerSceneMax: 5, shotCountPolicy: "strict" as const };
+  const briefProps = { value, hasSavedProject: true, saving: false,
+    onSave: vi.fn(async () => {}), onSaveAndContinue: vi.fn(async () => {}),
+    onDraftChange: vi.fn(), onGenerateProposal: vi.fn(async () => {}) };
+  await act(async () => root.render(createElement(BriefPage, briefProps)));
+  const structure = host.querySelector<HTMLDetailsElement>(".brief-layout details")!;
+  expect(structure.querySelector("summary")?.textContent).toBe("剧情结构与分镜");
+  expect(structure.open).toBe(true);
+  expect([...structure.querySelectorAll("input")].map(input => input.value)).toEqual(["3", "4", "16", "4", "2", "2", "5"]);
+  expect(structure.querySelector("select")?.value).toBe("strict");
+  expect(host.querySelector<HTMLDetailsElement>(".brief-alternate-workflow details")?.open).toBe(false);
+  structure.open = false;
+  await act(async () => root.render(createElement(BriefPage, { ...briefProps, saving: true })));
+  expect(structure.open).toBe(false);
+  structure.open = true;
+  expect(structure.querySelector("select")?.value).toBe("strict");
+  expect(briefProps.onDraftChange).not.toHaveBeenCalled();
+  expect(briefProps.onSave).not.toHaveBeenCalled();
+  expect(briefProps.onSaveAndContinue).not.toHaveBeenCalled();
+  expect(briefProps.onGenerateProposal).not.toHaveBeenCalled();
+});
+
 it("distinguishes a loading cast read from an initial failure and exposes a read-only retry", async () => {
   await renderCast();
   expect(host.textContent).toContain("正在读取角色设定");

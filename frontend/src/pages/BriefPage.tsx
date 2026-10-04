@@ -53,7 +53,7 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
         : <Button variant="primary" busy={saving} disabled={!canSave} aria-describedby="brief-save-hint" onClick={() => void onSaveAndContinue(canonicalDraft())}>{saving ? "保存中…" : "保存并继续到来源"}</Button>}
       <p id="brief-save-hint" className="action-prerequisite">{saveHint}</p>
     </div>} />
-    <StageGuide title="从故事想法开始">写清主角、处境和观众要做的选择。高级设置可保留默认值，后续仍可调整。</StageGuide>
+    <StageGuide title="从故事想法开始">写清主角、处境和观众要做的选择。剧情结构与分镜设置可保留默认值，后续仍可调整。</StageGuide>
     <div className="two-column wide-left brief-layout">
       <Panel className="form-card">
         <div className="section-title"><strong>故事想法</strong><p className="required-legend">* 为必填项；其他信息可稍后完善。</p></div>
@@ -71,8 +71,8 @@ export function BriefPage({ value, hasSavedProject, saving, readOnly = false, on
       </Panel>
       <div className="stack">
         <Panel className="form-card">
-          <details>
-            <summary>高级生产范围设置</summary>
+          <details open>
+            <summary>剧情结构与分镜</summary>
             <p className="action-prerequisite">按需调整分支规模和镜头偏好；不确定时保留默认值。现有项目的规则不会因打开此处而改变。</p>
           <div className="field-grid two">
             <Field label="每条路线的选择次数"><input type="number" min={1} value={draft.decisionPointsPerPath} onChange={(event) => numeric("decisionPointsPerPath", event.target.value)} /></Field>
