@@ -1,7 +1,13 @@
 # Project save-and-close
 
-Status: Reviewed implementation and full local qualification complete;
-publication and normal activation pending, 2026-10-04.
+Status: Reviewed, locally qualified, published and activated, 2026-10-04.
+Full remote CI remains in progress; creator usability acceptance is separate.
+
+Completion: [verification receipt](../verification/2026-10-04-project-save-close.md)
+binds runtime `c61d019` to 1,088 Python, 464 frontend unit and 153 full unfiltered
+browser passes, independent review, normal activation and unchanged existing
+project evidence. The live check inspected consent and cancelled it; no real
+project was closed or modified. The approved stopping condition is met.
 
 ## Approved outcome
 

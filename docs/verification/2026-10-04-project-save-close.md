@@ -1,7 +1,8 @@
 # Project save-and-close and force exit
 
-Status: implementation reviewed and locally qualified; publication and normal
-activation pending. Creator usability acceptance remains separate.
+Status: scoped implementation reviewed, locally qualified, published and
+activated. Full remote CI remains in progress. Creator usability acceptance
+remains separate.
 
 Scope: the owner's approved save-and-close fix and directory force-close,
 discarding this tab's unsent edits while leaving background jobs running.
@@ -54,6 +55,9 @@ changing the method. Interrupted broad runs are not counted as qualification.
 
 ## Executed verification
 
+Runtime candidate: `c61d0195d7492d84837a8ef669bbe836dfb4d7a0`, published to
+`origin/main`. The completion receipt update changes documentation only.
+
 | Check | Result |
 | --- | --- |
 | Full Python suite | 1,088 passed in 345.62 seconds; existing Starlette/httpx warning |
@@ -66,7 +70,7 @@ changing the method. Interrupted broad runs are not counted as qualification.
 | Focused save/force-close and lifecycle browser checks | 19 passed |
 | Full unfiltered browser run | 153 passed in 8.4 minutes, two workers |
 | Whitespace | Passed |
-| Full remote CI | Not dispatched yet |
+| Full remote CI | [Run 37233109002](https://github.com/Wenjun-Mao/plotloom/actions/runs/37233109002), in progress on the exact runtime candidate, `browser_grep=.*` |
 
 Checked bundle SHA-256:
 `ba7043fb86a96a35cf384916640e28ecd821c233ea70054ba6b1c019e131f1b9`.
@@ -75,17 +79,44 @@ Installed-smoke wheel SHA-256:
 
 ## Normal activation and preservation
 
-Pending publication and a fresh quiescence check. No close,
-force-close, save, generation or acceptance test is authorized on the owner's
-two existing projects. Live browser verification will inspect controls and
-cancel force-close consent only; isolated fixtures own mutation coverage.
+The supported `uv run --locked python services/creator_workbench/manage.py
+start --data-root .local/creator-walkthrough` command successfully recreated
+normal 8841 after a fresh quiescence check: both projects had zero generation,
+image, video and media-task records, and the native specialist registry had
+`busy: false`, `activeTasks: []`. The container is healthy, `/healthz` is `ok`
+and the native Codex bridge is available. No schema migration or data copy was
+needed for the bounded draft scope.
 
-The preflight read-only captures remain byte-identical to the baseline:
-SHA-256 `086d881719da44ec2dd8978ad67dc76fb7de9a08453ce7f7d69a74a201930210`.
+- Container: `377fb803a758966546ce0585d3b5ead80282918905435d573d6a733717752ac0`.
+- Image: `sha256:d34531081f5944bee000e54d5e012e92a6bc742b3bbda2a0f60486b68463d177`.
+- Start: `2026-10-04T20:42:19.482916766Z` (October 4, 16:42 Toronto).
+- Served `/v2/workbench.js` matches the checked bundle hash above.
+
+The read-only captures in `.local/source-entry-2026-10-04/` are byte-identical:
+`before-save-close.json`, `preflight-save-close.json`,
+`before-save-close-activation.json`, `after-save-close-activation.json` and
+`after-save-close-browser.json`. `cmp` passed; their SHA-256 is
+`086d881719da44ec2dd8978ad67dc76fb7de9a08453ce7f7d69a74a201930210`.
 They cover both normal projects' 74 table projections each, seven API projections
 each, two managed files for 风里的纸飞机 and 67 for 雨停以后, plus specialist
-settings. This is captured row/projection/file equality, not whole-SQLite-file
-byte equality. Retained 8851 is outside the task.
+settings. The existing bridge credential hash is unchanged, and H3 remains
+disabled. This is captured row/projection/file equality, not whole-SQLite-file
+byte equality. Retained 8851 was not used or changed.
+
+A fresh temporary background tab visibly showed the workspace close control,
+both directory actions, 当前项目 versus 可打开, and the close-is-not-deletion
+explanation. Force-close consent was opened and cancelled without dispatching
+Close; **关闭窗口** dismissed the directory while Source and the project
+remained open. The temporary tab was closed. No save, project close, generation
+or acceptance action was used on either existing project. Mutation coverage
+belongs to the isolated browser fixtures, not the creator's projects.
+
+Live screenshots in `.local/save-close-2026-10-04/`:
+
+| Evidence | SHA-256 |
+| --- | --- |
+| `directory.png` | `5de5c9f1f2c8e8b129a7d3a9713ea8ca4847f28f2c0eb27117248e065dcce9d2` |
+| `force-consent.png` | `fa4c47d6a442b3abd1a7e41ada59449f235d734fca623d904202cb9638a223f2` |
 
 ## Deferred and next action
 
@@ -96,6 +127,6 @@ The manual remains SHA-256
 The existing creator tab will not be refreshed by automation: text unsent in
 that old runtime should be copied before the creator refreshes it.
 
-After qualified publication and activation, stop implementation. The next
-product step is the owner's continued new-project walkthrough, not additional
-automatic UI redesign or manual synchronization.
+Scoped implementation stops here. The next product step is the owner's
+continued new-project walkthrough, not additional automatic UI redesign or
+manual synchronization. Pending remote CI is not represented as a passed gate.
